@@ -125,7 +125,7 @@ def _phase(name, start):
                         "collection": "model.algebraic",
                         "signed_residual": 0.0,
                         "normalization": {
-                            "schema": "carbon.battery.cv-equation-normalization.v1",
+                            "schema": "carbon.battery.cv-equation-normalization.v2",
                             "status": "VERIFIED_SYMBOLIC_RELATION",
                             "scale_source": "OPERATIVE_ALGEBRAIC_VARIABLE_SCALE",
                             "parameter_source": "OPERATIVE_MODEL_SYMBOL_PROCESSOR_PARAMETER_VALUES",
@@ -135,6 +135,7 @@ def _phase(name, start):
                             "nominal_capacity_ah": 5.0,
                             "target_v": target,
                             "symbolic_equality_basis": "PINNED_PYBAMM_FULL_SYMBOL_IDENTITY",
+                            "relation_construction": "ACTUAL_CURRENT_KEY_PARAMETER_BROADCAST_DISCRETISATION_AND_SCALE",
                             "normalized_residual_units": "SOLVER_NORMALIZED",
                             "voltage_residual_units": "V",
                             "signed_voltage_residual_v": 0.0,
@@ -550,6 +551,8 @@ def test_cv_normalized_residual_is_multiplied_before_voltage_tolerance(
         "nonfinite_voltage",
         "missing_last_occurrence",
         "duplicate_equation",
+        "old_normalization_version",
+        "missing_construction",
     ],
 )
 def test_cv_unit_witness_cannot_be_omitted_forged_or_partially_covered(defect):
@@ -575,6 +578,10 @@ def test_cv_unit_witness_cannot_be_omitted_forged_or_partially_covered(defect):
     elif defect == "missing_last_occurrence":
         last = row["per_cycle"][-1]["phases"]["cv"]["voltage_contact_observation"]
         del last["terminal_state"]["current_control_equations"][0]["normalization"]
+    elif defect == "old_normalization_version":
+        normalized["schema"] = "carbon.battery.cv-equation-normalization.v1"
+    elif defect == "missing_construction":
+        del normalized["relation_construction"]
     else:
         equations.append(copy.deepcopy(equation))
     before = json.dumps(row, sort_keys=True)
@@ -599,11 +606,14 @@ def test_cv_extraction_uses_actual_processed_algebraic_equation_not_stale_submod
     collection, correct_relation, stale_class, compatible
 ):
     class Scale:
+        def __init__(self, value=5.0):
+            self.value = value
+
         def is_constant(self):
             return True
 
         def evaluate(self):
-            return 5.0
+            return self.value
 
     class Symbol:
         def __init__(self, code, function):
@@ -637,6 +647,18 @@ def test_cv_extraction_uses_actual_processed_algebraic_equation_not_stale_submod
         name = "Current variable [A]"
         scale = Scale()
 
+    class Processor:
+        def __init__(self):
+            self.parameter_values = {"Nominal cell capacity [A.h]": 5.0}
+
+        def __call__(self, *, name, symbol):
+            if isinstance(name, str):
+                return symbol
+            return Symbol(
+                ("explicit_multiply", 1.0 / name.scale.evaluate(), symbol.code),
+                lambda y: symbol.function(y) / name.scale.evaluate(),
+            )
+
     class Step(dict):
         pass
 
@@ -654,7 +676,7 @@ def test_cv_extraction_uses_actual_processed_algebraic_equation_not_stale_submod
     sample.t_event, sample.y_event = [end], [[guarded.CONTROL_V]]
     voltage = Symbol("processed_voltage", lambda y: float(y[0, 0]))
     equation = (
-        (voltage - guarded.CONTROL_V) / Variable.scale
+        Processor()(name=Variable(), symbol=voltage - guarded.CONTROL_V)
         if correct_relation
         else Symbol("wrong_zero_equation", lambda y: 0.0)
     )
@@ -670,9 +692,8 @@ def test_cv_extraction_uses_actual_processed_algebraic_equation_not_stale_submod
         submodels={"external circuit": circuit},
         variables={"Voltage [V]": Unprocessed(), "Battery voltage [V]": Unprocessed()},
         get_processed_variable_or_event=lambda _: voltage,
-        symbol_processor=SimpleNamespace(
-            parameter_values={"Nominal cell capacity [A.h]": 5.0}
-        ),
+        symbol_processor=Processor(),
+        _resolve_coupled_variables=lambda _: voltage,
         events=[
             SimpleNamespace(
                 name="C-rate cut-off [experiment]",

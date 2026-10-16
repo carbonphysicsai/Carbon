@@ -100,20 +100,125 @@ def plan(out):
     return len(jobs)
 
 
-def _simulation(job):
-    guarded = job.get("reference_method") is not None
+def _guarded_job_context(
+    job, *, stage_binding=None, expected_stage_binding_digest=None
+):
+    """Closed registered DEVELOPMENT stages; metadata is not physical proof.
+
+    EVAL alone needs Root-pinned serializable context. Its controller must also
+    check genuine CAL/pretruth/resource eligibility before submitting workers.
+    """
+    if type(job) is not dict:
+        raise ValueError("registered job mapping required")
+    keys = {
+        "reference_method",
+        "reference_method_digest",
+        "reference_admission",
+        "reference_dataset",
+        "reference_role",
+    }
+    guarded = bool(keys & set(job))
+    if not guarded and stage_binding is None and expected_stage_binding_digest is None:
+        return None
+    from carbon.design_search import tasks
+
+    admission = job.get("reference_admission")
+    if admission == "carbon.scorelab.guarded419.eval-admission.v1":
+        from scripts.dev.score_lab import guarded419_context as context_module
+        from scripts.dev.score_lab import guarded419_eval as evaluation
+
+        fields = {
+            "schema",
+            "registration_sha256",
+            "plan",
+            "plan_digest",
+            "source_pins",
+            "source_pins_digest",
+            "refinement_job_ids",
+        }
+        if (
+            type(stage_binding) is not dict
+            or set(stage_binding) != fields
+            or stage_binding["schema"]
+            != "carbon.battery.guarded419.eval-worker-context.v1"
+            or type(expected_stage_binding_digest) is not str
+            or tasks.digest(stage_binding) != expected_stage_binding_digest
+        ):
+            raise tasks.TaskError(
+                "independently bound closed EVAL worker context required"
+            )
+        context = context_module.load(
+            expected_sha256=stage_binding["registration_sha256"]
+        )
+        result = evaluation.job_context(
+            job,
+            plan=stage_binding["plan"],
+            expected_plan_digest=stage_binding["plan_digest"],
+            source_pins=stage_binding["source_pins"],
+            expected_source_pins_digest=stage_binding["source_pins_digest"],
+            context=context,
+            refinement_job_ids=stage_binding["refinement_job_ids"],
+        )
+        # The adapter first validates its closed inventory. Only its registered
+        # repository-relative named files can reach this local-byte comparison.
+        for path, expected in stage_binding["source_pins"]["files"].items():
+            if hashlib.sha256((ROOT / path).read_bytes()).hexdigest() != expected:
+                raise tasks.TaskError("actual EVAL worker source bytes differ")
+        if (
+            type(result) is not dict
+            or set(result) != {"record_schema", "reference_identity"}
+            or result["record_schema"] != evaluation.RECORD
+        ):
+            raise tasks.TaskError("closed registered EVAL worker metadata required")
+        return {
+            "schema": result["record_schema"],
+            "reference_identity": result["reference_identity"],
+        }
+    if stage_binding is not None or expected_stage_binding_digest is not None:
+        raise tasks.TaskError("EVAL worker context cannot enter another stage")
+    if not guarded:
+        return None
+    if admission == "carbon.scorelab.guarded419.t9-admission.v1":
+        from scripts.dev.score_lab import guarded419_t9 as adapter
+
+        adapter.validate_job(job)
+        return {"schema": adapter.RECORD, "reference_identity": adapter.observer()}
+    if admission == "carbon.scorelab.guarded419.cal15-admission.v1":
+        from scripts.dev.score_lab import guarded419_calibration_continue as adapter
+
+        adapter.validate_job(job)
+        return {"schema": adapter.RECORD, "reference_identity": adapter.observer()}
+    if admission == "carbon.scorelab.guarded419.t128-admission.v1":
+        from scripts.dev.score_lab import guarded419_t128 as adapter
+
+        adapter.validate_job(job)
+        return {
+            "schema": adapter.RECORD,
+            "reference_identity": adapter.observer(job["reference_role"]),
+        }
+    if admission is not None:
+        raise tasks.TaskError("unknown guarded worker stage")
+    from scripts.dev.battery import guarded_reference
+
+    guarded_reference.validate_job(job)
+    return {
+        "schema": guarded_reference.RECORD,
+        "reference_identity": guarded_reference.observer({}),
+    }
+
+
+def _simulation(job, *, stage_binding=None, expected_stage_binding_digest=None):
+    guarded = (
+        _guarded_job_context(
+            job,
+            stage_binding=stage_binding,
+            expected_stage_binding_digest=expected_stage_binding_digest,
+        )
+        is not None
+    )
     if guarded:
         from scripts.dev.battery import guarded_reference
 
-        if (
-            job.get("reference_admission")
-            == "carbon.scorelab.guarded419.t9-admission.v1"
-        ):
-            from scripts.dev.score_lab import guarded419_t9
-
-            guarded419_t9.validate_job(job)
-        else:
-            guarded_reference.validate_job(job)
     import pybamm
 
     from carbon.battery import reference as ref
@@ -355,7 +460,7 @@ def _cv_equation_normalization(
     import numpy as np
 
     result = {
-        "schema": "carbon.battery.cv-equation-normalization.v1",
+        "schema": "carbon.battery.cv-equation-normalization.v2",
         "status": "UNAVAILABLE",
         "scale_source": "OPERATIVE_ALGEBRAIC_VARIABLE_SCALE",
         "parameter_source": "OPERATIVE_MODEL_SYMBOL_PROCESSOR_PARAMETER_VALUES",
@@ -393,11 +498,19 @@ def _cv_equation_normalization(
         )
         voltage = model.get_processed_variable_or_event("Voltage [V]")
         voltage_relation = voltage - target
-        if expression != voltage_relation / scale_symbol:
+        # Process the independently defined voltage under the actual current
+        # key. Its scalar broadcast, domains and scale must follow the pinned
+        # discretisation order; post-processing division distributes matrices.
+        raw_voltage = model._resolve_coupled_variables(model.variables["Voltage [V]"])
+        if model.symbol_processor(name="Voltage [V]", symbol=raw_voltage) != voltage:
+            raise ValueError("RAW_VOLTAGE_DOES_NOT_REPRODUCE_PROCESSED_VOLTAGE")
+        expected = model.symbol_processor(name=variable, symbol=raw_voltage - target)
+        if expression != expected:
             raise ValueError("NOT_THE_SCALED_PROCESSED_VOLTAGE_RELATION")
         result.update(
             status="VERIFIED_SYMBOLIC_RELATION",
             symbolic_equality_basis="PINNED_PYBAMM_FULL_SYMBOL_IDENTITY",
+            relation_construction="ACTUAL_CURRENT_KEY_PARAMETER_BROADCAST_DISCRETISATION_AND_SCALE",
             signed_voltage_residual_v=_finite_scalar(scaled_residual * scale),
             independent_voltage_residual_v=_finite_scalar(
                 voltage_relation.evaluate(t=time_s, y=state, inputs=inputs)
@@ -730,49 +843,56 @@ def _soc_clock(cycle1, soc0, capacity):
     }
 
 
-def solve_one(job):
+def solve_one(job, *, stage_binding=None, expected_stage_binding_digest=None):
     import pybamm
 
     pybamm.set_logging_level("ERROR")
+    requested = {
+        "carbon.scorelab.guarded419.t9-admission.v1": "carbon.battery.guarded419-t9-feasibility-record.v1",
+        "carbon.scorelab.guarded419.cal15-admission.v1": "carbon.battery.guarded419-cal15-feasibility-record.v1",
+        "carbon.scorelab.guarded419.t128-admission.v1": "carbon.battery.guarded419-t128-feasibility-record.v1",
+        "carbon.scorelab.guarded419.eval-admission.v1": "carbon.battery.guarded419-eval-feasibility-record.v1",
+    }
     record = {
         **job,
-        "schema": (
-            "carbon.battery.guarded419-t9-feasibility-record.v1"
-            if job.get("reference_admission")
-            == "carbon.scorelab.guarded419.t9-admission.v1"
-            else (
+        "schema": requested.get(
+            job.get("reference_admission"),
+            (
                 "carbon.battery.guarded419-feasibility-record.v1"
                 if job.get("reference_method") is not None
                 else "carbon.battery.feasibility02-record.v1"
-            )
+            ),
         ),
     }
     if job.get("reference_admission") == "carbon.scorelab.guarded419.t9-admission.v1":
         from scripts.dev.score_lab import guarded419_t9
 
-        # Requested T9 context also identifies typed failures before a solve;
-        # it is not evidence that the reference executed or passed tracking.
+        # Requested context identifies failures, never successful execution.
         record["reference_identity"] = guarded419_t9.observer()
     started = time.perf_counter()
     try:
-        sim, cooling = _simulation(job)
+        context = _guarded_job_context(
+            job,
+            stage_binding=stage_binding,
+            expected_stage_binding_digest=expected_stage_binding_digest,
+        )
+        if context is not None and job.get("reference_admission") is not None:
+            record.update(context)
+        if stage_binding is None and expected_stage_binding_digest is None:
+            sim, cooling = _simulation(job)
+        else:
+            sim, cooling = _simulation(
+                job,
+                stage_binding=stage_binding,
+                expected_stage_binding_digest=expected_stage_binding_digest,
+            )
         sol = sim.solve(initial_soc=job["soc0"], calc_esoh=False)
-    except Exception as exc:  # noqa: BLE001 -- typed below
+    except Exception as exc:  # noqa: BLE001 -- typed reference outcome
         return {**record, "status": "REFERENCE_SOLVER_FAILED", "error": repr(exc)[:300],
                 "wall_s": time.perf_counter() - started}  # fmt: skip
     record["cooling"] = cooling
-    if job.get("reference_method") is not None:
-        from scripts.dev.battery import guarded_reference
-
-        if (
-            job.get("reference_admission")
-            == "carbon.scorelab.guarded419.t9-admission.v1"
-        ):
-            from scripts.dev.score_lab import guarded419_t9
-
-            record["reference_identity"] = guarded419_t9.observer()
-        else:
-            record["reference_identity"] = guarded_reference.observer({})
+    if context is not None:
+        record.update(context)
     record["observation_provenance"] = _observation_source_metadata(sim)
     cycles = list(sol.cycles)
     if len(cycles) < N_CYCLES or any(c is None for c in cycles):
@@ -844,11 +964,18 @@ def solve_one(job):
     return record
 
 
-def _timed(job):
+def _timed(job, *, stage_binding=None, expected_stage_binding_digest=None):
     """`solve_one` in its worker, with the worker's CPU core-seconds (user +
     system, every thread) for this case beside `wall_s`."""
     started = time.process_time()
-    record = solve_one(job)
+    if stage_binding is None and expected_stage_binding_digest is None:
+        record = solve_one(job)
+    else:
+        record = solve_one(
+            job,
+            stage_binding=stage_binding,
+            expected_stage_binding_digest=expected_stage_binding_digest,
+        )
     return {**record, "core_s": time.process_time() - started}
 
 
@@ -857,7 +984,17 @@ def solve(jobs_path, records_path, workers):
 
     solver_provenance = truth_env.provenance(".")
     jobs = json.loads(Path(jobs_path).read_text())["jobs"]
-    if any("reference_method" in job for job in jobs):
+    if any(
+        {
+            "reference_method",
+            "reference_method_digest",
+            "reference_admission",
+            "reference_dataset",
+            "reference_role",
+        }
+        & set(job)
+        for job in jobs
+    ):
         raise ValueError(
             "guarded reference jobs require the prospectively bound calibration path"
         )

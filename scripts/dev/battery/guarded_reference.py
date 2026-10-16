@@ -21,7 +21,7 @@ OBSERVER = "carbon.scorelab.battery-v3.guarded419-full30-observer.v1"
 DATASET = "carbon.scorelab.battery-v3.guarded419-first-T5-h1.v1"
 N1_CONTEXT = "carbon.scorelab.battery-v3.guarded419-n1-context.v1"
 BINDING = "carbon.scorelab.guarded419-calibration-execution.v1"
-REPORT = "carbon.scorelab.guarded419-calibration-reduction.v2"
+REPORT = "carbon.scorelab.guarded419-calibration-reduction.v3"
 RECORD = "carbon.battery.guarded419-feasibility-record.v1"
 MODULE = "scripts/dev/battery/guarded_reference.py"
 CONTROL_V = 4.19
@@ -455,7 +455,7 @@ def _tracking_report(
                 _require(
                     type(normalized) is dict
                     and normalized["schema"]
-                    == "carbon.battery.cv-equation-normalization.v1"
+                    == "carbon.battery.cv-equation-normalization.v2"
                     and normalized["status"] == "VERIFIED_SYMBOLIC_RELATION"
                     and normalized["scale_source"]
                     == "OPERATIVE_ALGEBRAIC_VARIABLE_SCALE"
@@ -464,6 +464,8 @@ def _tracking_report(
                     and normalized["parameter_name"] == "Nominal cell capacity [A.h]"
                     and normalized["symbolic_equality_basis"]
                     == "PINNED_PYBAMM_FULL_SYMBOL_IDENTITY"
+                    and normalized["relation_construction"]
+                    == "ACTUAL_CURRENT_KEY_PARAMETER_BROADCAST_DISCRETISATION_AND_SCALE"
                     and normalized["scale_is_constant"] is True
                     and _finite(normalized["scale"])
                     and normalized["scale"] > 0
@@ -502,7 +504,7 @@ def _tracking_report(
     except (KeyError, TypeError, ValueError, OverflowError, tasks.TaskError) as exc:
         reasons.append(str(exc) if isinstance(exc, ValueError) else type(exc).__name__)
     return {
-        "schema": "carbon.scorelab.guarded419-tracking.v2",
+        "schema": "carbon.scorelab.guarded419-tracking.v3",
         "status": "TRACKING_COMPATIBLE" if not reasons else "REFERENCE_UNRESOLVED",
         "checked_phases": checked,
         "required_phases": 181,
