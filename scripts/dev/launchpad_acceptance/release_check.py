@@ -87,6 +87,7 @@ _PROJECTED_NAMES = set(_FLOWS) | {
     "compute",
     "send_worker",
     "options",
+    "toolbox",
     "ladder",
 }
 
@@ -411,6 +412,8 @@ _SURFACES = {
     "HTTP:/api/v1/setup/status": None,
     "HTTP:/api/v1/operations/options": "options",
     "MCP:carbon_options": "options",
+    "HTTP:/api/v1/operations/toolbox": "toolbox",
+    "MCP:carbon_toolbox": "toolbox",
     "MCP:carbon_setup_begin": "begin",
     "MCP:carbon_setup_status": None,
 }
