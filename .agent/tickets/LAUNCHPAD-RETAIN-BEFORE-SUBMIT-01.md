@@ -25,7 +25,8 @@ regressions; pinned static checks; Root canonical execution/publication/merge.
 Expected paths: this ticket and decision; graphite/miner edition.py and driver.py;
 development_session research_campaign.py and new submission_policy.py;
 battery/campaign.py and multi_intake.py; miner_mcp/mcp_operations.py;
-miner_launchpad operations.py, supervisor.py and runner.py;
+miner_launchpad operations.py, supervisor.py, runner.py, projection.py and
+research_view.js (both-door truthful retained status);
 focused regression tests and narrowly required launch-contract test updates.
 One author; Platform independently reviews read-only. Disjoint from EVAL396,
 ScoreLab frozen scientific files, existing T07 and frozen f080 evidence.
@@ -45,3 +46,10 @@ Maturity ceiling: implemented/tested restrictive engineering control only.
 No scientific/security qualification, deployment authority, T07 admission or
 verdict is earned by source. Root owns canonical tests, push, PR and merge.
 Conditional closeout: required validation and normal merge of final candidate.
+
+Boundary: this control governs the normal Launchpad/campaign execution graph,
+including the directly callable campaign evaluation and commitment entrypoints.
+The generic raw submit_through_intake transport is not a campaign admission API;
+its normal campaign callers are guarded before discovery/signing. This ticket
+does not claim arbitrary Python callers cannot use independent transport APIs.
+The miner sandbox's separate process/import isolation remains unchanged.

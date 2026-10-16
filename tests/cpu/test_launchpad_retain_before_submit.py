@@ -22,7 +22,9 @@ from test_graphite_miner_driver import (
     select,
 )
 from test_launchpad_graphite import (
-    graphite,  # noqa: F401 - fixture
+    graphite as _graphite,
+)
+from test_launchpad_graphite import (
     join,
     launch_request,
     perform,
@@ -42,6 +44,9 @@ from scripts.dev.miner_launchpad.runner import (
     RunnerAdapter,
     graphite_launch,
 )
+
+# Reuse the existing fixture object without import-shadowing exceptions.
+graphite = _graphite
 
 
 @pytest.fixture
@@ -82,6 +87,14 @@ def test_full_practises_and_retains_without_evaluation_then_resumes_without_a_tu
     view = driver.view(w.root)
     assert view[policy.FIELD] == policy.RETAIN_ONLY and view["stage"] == "retained"
     assert view["stages"][-1]["state"] == "RETAINED"
+    from scripts.dev.miner_launchpad.projection import graphite_progress
+
+    exposed = graphite_progress(
+        w.prepared.manifest, w.prepared.ledger.status(owner="alice"), w.root
+    )
+    assert exposed[policy.FIELD] == policy.RETAIN_ONLY
+    assert exposed["stage"] == "retained"
+    assert exposed["stages"][-1]["state"] == "RETAINED"
     # The real loop must not be entered a second time, even with a new model.
     w.monkeypatch.setattr(driver, "_session", forbidden)
     assert w.run(RoleTransport(planner=[], constructor=[])) is None
@@ -240,7 +253,7 @@ def test_launch_choice_carries_the_policy_to_gate_and_freeze(tmp_path, monkeypat
 
 
 def test_actual_launch_admission_records_and_replays_policy_without_constructing_gate(
-    graphite,  # noqa: F811 - imported fixture
+    graphite,
     monkeypatch,
 ):
     host = graphite.host
