@@ -111,7 +111,7 @@ def _phase(name, start, job):
                         "identity": "PROCESSED_VOLTAGE_MINUS_TARGET_OVER_CURRENT_SCALE",
                         "signed_residual": 0.0,
                         "normalization": {
-                            "schema": "carbon.battery.cv-equation-normalization.v1",
+                            "schema": "carbon.battery.cv-equation-normalization.v2",
                             "status": "VERIFIED_SYMBOLIC_RELATION",
                             "scale_source": "OPERATIVE_ALGEBRAIC_VARIABLE_SCALE",
                             "parameter_source": "OPERATIVE_MODEL_SYMBOL_PROCESSOR_PARAMETER_VALUES",
@@ -121,6 +121,7 @@ def _phase(name, start, job):
                             "nominal_capacity_ah": 5.0,
                             "target_v": target,
                             "symbolic_equality_basis": "PINNED_PYBAMM_FULL_SYMBOL_IDENTITY",
+                            "relation_construction": "ACTUAL_CURRENT_KEY_PARAMETER_BROADCAST_DISCRETISATION_AND_SCALE",
                             "normalized_residual_units": "SOLVER_NORMALIZED",
                             "voltage_residual_units": "V",
                             "signed_voltage_residual_v": 0.0,

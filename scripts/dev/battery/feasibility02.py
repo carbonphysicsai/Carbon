@@ -355,7 +355,7 @@ def _cv_equation_normalization(
     import numpy as np
 
     result = {
-        "schema": "carbon.battery.cv-equation-normalization.v1",
+        "schema": "carbon.battery.cv-equation-normalization.v2",
         "status": "UNAVAILABLE",
         "scale_source": "OPERATIVE_ALGEBRAIC_VARIABLE_SCALE",
         "parameter_source": "OPERATIVE_MODEL_SYMBOL_PROCESSOR_PARAMETER_VALUES",
@@ -393,11 +393,19 @@ def _cv_equation_normalization(
         )
         voltage = model.get_processed_variable_or_event("Voltage [V]")
         voltage_relation = voltage - target
-        if expression != voltage_relation / scale_symbol:
+        # Process the independently defined voltage under the actual current
+        # key. Its scalar broadcast, domains and scale must follow the pinned
+        # discretisation order; post-processing division distributes matrices.
+        raw_voltage = model._resolve_coupled_variables(model.variables["Voltage [V]"])
+        if model.symbol_processor(name="Voltage [V]", symbol=raw_voltage) != voltage:
+            raise ValueError("RAW_VOLTAGE_DOES_NOT_REPRODUCE_PROCESSED_VOLTAGE")
+        expected = model.symbol_processor(name=variable, symbol=raw_voltage - target)
+        if expression != expected:
             raise ValueError("NOT_THE_SCALED_PROCESSED_VOLTAGE_RELATION")
         result.update(
             status="VERIFIED_SYMBOLIC_RELATION",
             symbolic_equality_basis="PINNED_PYBAMM_FULL_SYMBOL_IDENTITY",
+            relation_construction="ACTUAL_CURRENT_KEY_PARAMETER_BROADCAST_DISCRETISATION_AND_SCALE",
             signed_voltage_residual_v=_finite_scalar(scaled_residual * scale),
             independent_voltage_residual_v=_finite_scalar(
                 voltage_relation.evaluate(t=time_s, y=state, inputs=inputs)
