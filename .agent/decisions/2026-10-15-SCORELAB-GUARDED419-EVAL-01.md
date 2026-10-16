@@ -23,3 +23,13 @@ drop hard/zero-weight bands or use new labels to choose questions/models.
 Reversible by a prospective new adapter/context version. No old bytes or
 historical interpretation changes. Root owns runtime, chronology registration,
 resource/TEST/merge gates; future CAL interface remains an engineering dependency.
+
+Root prospectively released the existing CAL file bridge and direct controls.
+Use the owner's `from_files(spec, *, load, scope)` and then its real nominal
+`validate_for` with independently bound specification digests. The public EVAL
+signature stays unchanged. Optimizer agreed that N1 bundle CAL entry `path`
+means the logical registered file ID accepted by the existing CLI `load`, not
+the registry entry's physical disk path. Never resolve either name implicitly
+or add a filesystem reader. This is a reversible engineering convention, not
+a scientific, custody or data-admission decision. Full nominal CAL and source
+affinity still gate before EVAL bytes and are revalidated by the builder.

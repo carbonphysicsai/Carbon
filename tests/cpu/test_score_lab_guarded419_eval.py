@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -350,3 +351,184 @@ def test_raw_dict_context_cannot_mint_or_validate_nominal_evidence():
             {},
             context={"status": "PASS"},
         )
+
+
+def _cal_context():
+    # Real upstream context, not a monkeypatched success or fabricated CAL.
+    from scripts.dev.score_lab import guarded419_context as context
+
+    return context.load(expected_sha256=context.REGISTRATION_SHA256)
+
+
+def _cal_file_spec():
+    # Malformed reference bytes below can never issue nominal CAL evidence.
+    entry = {"path": "cal-binding", "sha256": hashlib.sha256(b"not-json").hexdigest()}
+    return {
+        "schema": "carbon.scorelab.guarded419.cal15-files.v1",
+        "scope": "PUBLIC_DEVELOPMENT",
+        "binding": dict(entry),
+        "manifest": {**entry, "path": "cal-manifest"},
+        "raw_chunks": {},
+        "g0": {
+            name: {**entry, "path": "g0-" + name}
+            for name in ("binding", "records", "receipt")
+        },
+        "t9": {
+            "binding": {**entry, "path": "t9-binding"},
+            "manifest": {**entry, "path": "t9-manifest"},
+            "raw_chunks": {},
+        },
+        "probe": {
+            name: {**entry, "path": "probe-" + name}
+            for name in (
+                "construction",
+                "inputs",
+                "support",
+                "fit",
+                "predictions",
+                "outcome",
+            )
+        },
+        "expected_binding_digest": "sha256:" + "1" * 64,
+        "expected_manifest_digest": "sha256:" + "2" * 64,
+    }
+
+
+def test_cal_file_bridge_invalid_context_cannot_reach_cal_or_eval_loader(monkeypatch):
+    reads = []
+
+    def forbidden_api():
+        pytest.fail("invalid context must stop before CAL construction")
+
+    monkeypatch.setattr(producer, "_cal_api", forbidden_api)
+    with pytest.raises(tasks.TaskError):
+        producer.calibration_from_files(
+            _cal_file_spec(),
+            load=reads.append,
+            scope="PUBLIC_DEVELOPMENT",
+            context={"status": "PASS"},
+        )
+    assert reads == []
+
+
+@pytest.mark.parametrize("defect", ["scope", "binding_digest", "manifest_digest"])
+def test_cal_file_bridge_refuses_bad_scope_or_digest_before_loading(defect):
+    spec, reads = _cal_file_spec(), []
+    if defect == "scope":
+        spec["scope"] = "SYNTHETIC_FIXTURE"
+    else:
+        spec["expected_" + defect] = "not-a-content-digest"
+
+    def load(key):
+        reads.append(key)
+        pytest.fail("invalid admission must not load any CAL or EVAL bytes")
+
+    with pytest.raises(tasks.TaskError):
+        producer.calibration_from_files(
+            spec, load=load, scope="PUBLIC_DEVELOPMENT", context=_cal_context()
+        )
+    assert reads == []
+
+
+def test_cal_file_bridge_missing_callable_loader_is_typed_unavailable(monkeypatch):
+    reads = []
+    monkeypatch.setattr(
+        producer,
+        "_cal_api",
+        lambda: SimpleNamespace(from_files=None, validate_for=None),
+    )
+    with pytest.raises(
+        producer.PrerequisiteUnavailable, match="nominal file interface"
+    ):
+        producer.calibration_from_files(
+            _cal_file_spec(),
+            load=reads.append,
+            scope="PUBLIC_DEVELOPMENT",
+            context=_cal_context(),
+        )
+    assert reads == []
+
+
+def test_cal_file_bridge_delegates_exact_spec_and_loader_but_not_evidence(monkeypatch):
+    from scripts.dev.score_lab import guarded419_calibration_continue as cal
+
+    spec, calls = _cal_file_spec(), []
+
+    def load(key):
+        pytest.fail("delegation refusal must not load EVAL")
+
+    def refused(actual, *, load, scope):
+        calls.append((actual, load, scope))
+        raise tasks.TaskError("real-loader refusal sentinel")
+
+    monkeypatch.setattr(cal, "from_files", refused)
+    with pytest.raises(tasks.TaskError, match="real-loader refusal sentinel"):
+        producer.calibration_from_files(
+            spec, load=load, scope="PUBLIC_DEVELOPMENT", context=_cal_context()
+        )
+    assert calls == [(spec, load, "PUBLIC_DEVELOPMENT")]
+    assert calls[0][0] is spec and calls[0][1] is load
+
+
+@pytest.mark.parametrize("use_disk_path", [False, True])
+def test_cal_registry_file_ids_are_not_physical_path_aliases(use_disk_path):
+    spec, reads = _cal_file_spec(), []
+    registry = {
+        "cal-binding": {
+            "path": "public/cal-binding.json",
+            "sha256": spec["binding"]["sha256"],
+        }
+    }
+    artifacts = {"cal-binding": b"not-json"}
+    if use_disk_path:
+        spec["binding"]["path"] = registry["cal-binding"]["path"]
+
+    def load(key):
+        reads.append(key)
+        if key not in registry:
+            raise tasks.TaskError("UNDECLARED_INPUT")
+        raw = artifacts[key]
+        assert hashlib.sha256(raw).hexdigest() == registry[key]["sha256"]
+        return raw
+
+    expected = tasks.TaskError if use_disk_path else json.JSONDecodeError
+    with pytest.raises(expected, match="UNDECLARED_INPUT" if use_disk_path else None):
+        producer.calibration_from_files(
+            spec, load=load, scope="PUBLIC_DEVELOPMENT", context=_cal_context()
+        )
+    # The logical ID reaches the genuine CAL parser, which rejects the bad
+    # JSON. The physical path is rejected by the registry, never opened.
+    assert reads == [spec["binding"]["path"]]
+    assert not any("eval" in key for key in reads)
+
+
+def test_cal_file_bridge_revalidates_nominal_evidence_and_independent_pins(monkeypatch):
+    from scripts.dev.score_lab import guarded419_calibration_continue as cal
+
+    spec, calls = _cal_file_spec(), []
+    forged = {"status": "PASS"}
+    monkeypatch.setattr(cal, "from_files", lambda *args, **kwargs: forged)
+    real_validate = cal.validate_for
+
+    def validate(evidence, **kwargs):
+        calls.append((evidence, kwargs))
+        return real_validate(evidence, **kwargs)
+
+    monkeypatch.setattr(cal, "validate_for", validate)
+    with pytest.raises(tasks.TaskError, match="validated nominal CAL15"):
+        producer.calibration_from_files(
+            spec,
+            load=lambda key: pytest.fail("no reference bytes expected"),
+            scope="PUBLIC_DEVELOPMENT",
+            context=_cal_context(),
+        )
+    assert calls == [
+        (
+            forged,
+            {
+                "expected_binding_digest": spec["expected_binding_digest"],
+                "expected_manifest_digest": spec["expected_manifest_digest"],
+                "scope": "PUBLIC_DEVELOPMENT",
+            },
+        )
+    ]

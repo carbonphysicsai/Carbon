@@ -409,17 +409,34 @@ def _cal_api():
 
 
 def calibration_from_files(spec, *, load, scope, context):
-    """Reserved bridge: no serialized CAL format was supplied by its owner yet.
+    """Delegate to the real CAL loader, never to an alternate evidence path.
 
-    Do not read arbitrary spec/load inputs or accept PASS. Replace this stop
-    only with the real owner-frozen file/API contract and negative controls.
+    In an N1 bundle, CAL entry ``path`` values are logical ``manifest.files``
+    keys. ``load`` resolves only that registry; physical paths are not aliases.
+    Standalone callers own their loader namespace and its public-root boundary.
     """
     _context(context)
     if scope not in SCOPES:
         raise tasks.TaskError("bounded development calibration scope required")
-    raise PrerequisiteUnavailable(
-        "CALIBRATION_API_UNAVAILABLE: owner file binding is not integrated"
+    if type(spec) is not dict or spec.get("scope") != scope:
+        raise tasks.TaskError("CAL file specification scope differs")
+    for name in ("expected_binding_digest", "expected_manifest_digest"):
+        _digest(spec.get(name))
+    cal = _cal_api()
+    if not callable(getattr(cal, "from_files", None)) or not callable(
+        getattr(cal, "validate_for", None)
+    ):
+        raise PrerequisiteUnavailable("CAL15 nominal file interface is not integrated")
+    evidence = cal.from_files(spec, load=load, scope=scope)
+    # A returned mapping/PASS flag is not nominal evidence. The later early
+    # gate also checks the bank's independent pins and scientific source map.
+    cal.validate_for(
+        evidence,
+        expected_binding_digest=spec["expected_binding_digest"],
+        expected_manifest_digest=spec["expected_manifest_digest"],
+        scope=scope,
     )
+    return evidence
 
 
 def _calibration(evidence, manifest, pins, context):

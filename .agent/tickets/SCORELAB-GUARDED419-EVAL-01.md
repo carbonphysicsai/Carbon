@@ -8,6 +8,18 @@ one decision and usage note. No shared producer/worker/guard/T128 edits.
 
 ## Contract and plan
 
+Root released only the CAL file bridge and its direct tests from the historical
+19c source freeze. Delegate to the CAL owner's real `from_files` and nominal
+`validate_for`; do not copy its constructor, create accepted toy CAL, or edit
+shared worker/guard code. In N1 bundles, each CAL entry's `path` is a logical
+key of the existing `manifest.files` registry, not its physical path value.
+Keep the existing loader's undeclared-ID refusal and byte pins; no path search,
+aliases, filesystem fallback or EVAL label preload. Standalone CAL callers
+continue to own their own loader namespace. Root integrates the actual CAL and
+context dependencies before testing. Cover missing loader API, wrong scope or
+digests, registered-ID versus physical-path mismatch, raw-dict nominal refusal
+and delegation failure without issuing a fake positive CAL certificate.
+
 KEEP existing frozen physical inputs, question-law values/roles/order, numerical
 policy and existing evidence harness. WRAP authentic context/raw/calibration/
 model provenance rather than permit the old producer to accept guarded rows.

@@ -112,11 +112,22 @@ CAL `validate_for` interface currently remains an upstream dependency. Its actua
 complete15 source/guard/numerical handling needs integration and testing before
 this adapter may issue real evidence. Dynamic CAL bindings and immutable
 scientific dependencies must agree with EVAL. Actual G0 is unresolved today.
-The CLI bridge `calibration_from_files(spec, *, load, scope, context)` explicitly
-raises CALIBRATION_API_UNAVAILABLE without reading the spec until the CAL owner
-supplies its actual frozen input format/API. This is a typed stop, not a stub
-that can produce evidence. The direct-library build accepts only real nominal
-calibration_evidence through the owner's validator.
+The CLI bridge `calibration_from_files(spec, *, load, scope, context)` checks
+the registered context, scope and content-digest forms, delegates to the real
+CAL owner's `from_files(spec, *, load, scope)`, and revalidates the resulting
+nominal evidence against those digests. A missing owner module or callable
+file/nominal API remains typed unavailable. There is no alternate constructor
+or caller-PASS path. The actual CAL API is a Root integration dependency.
+
+In an N1 bundle, each CAL file entry's `path` is the **logical registered file
+ID** (a key of the outer `manifest.files` registry), never the entry's physical
+disk-path value. The unchanged CLI loader refuses unknown IDs and authenticates
+the registered bytes; the CAL loader independently checks its own raw hash.
+No path-to-ID search, alias, filesystem fallback or raw EVAL read is added.
+Standalone CAL callers retain their own explicit loader namespace. Root pins
+the actual closed `carbon.scorelab.guarded419.cal15-files.v1` specification;
+all original G0/T9/prior-segment and probe evidence is reconstructed by CAL's
+owner, not by this bridge. Tests never fabricate accepted CAL evidence.
 `validate_calibration(evidence, manifest, source_pins, *, context)` exposes the
 same full nominal CAL gate before the CLI constructs any eagerly evaluated
 `raw_chunks={key: load(file_id), ...}` arguments. The CLI must call it before
