@@ -28,14 +28,31 @@ class TransportCode(str, Enum):
     STORE = "TRANSPORT_STORE"
 
 
+class _MalformedBranch(str, Enum):
+    """Private origin diagnostics; never serialized into a transport response."""
+
+    UNCLASSIFIED = "UNCLASSIFIED"
+    BODY_PARSE = "BODY_PARSE"
+    HEADERS_TYPE = "HEADERS_TYPE"
+    HEADER_COUNT = "HEADER_COUNT"
+    HEADER_VALUE_TYPE = "HEADER_VALUE_TYPE"
+    HEADER_BUDGET = "HEADER_BUDGET"
+    HEADER_ASCII = "HEADER_ASCII"
+    HEADER_LINE_BREAK = "HEADER_LINE_BREAK"
+    HEADER_DUPLICATE = "HEADER_DUPLICATE"
+    NONCE_RANGE = "NONCE_RANGE"
+    RECEIPT_REF = "RECEIPT_REF"
+
+
 class TransportFailure(Exception):
-    def __init__(self, code: TransportCode):
+    def __init__(self, code: TransportCode, *, _branch=None):
         self.code = code
+        self._branch = _branch if type(_branch) is _MalformedBranch else None
         super().__init__(code.value)
 
 
 def _invalid():
-    raise TransportFailure(TransportCode.MALFORMED)
+    raise TransportFailure(TransportCode.MALFORMED, _branch=_MalformedBranch.BODY_PARSE)
 
 
 def _meter(value, depth=0, budget=None):

@@ -109,9 +109,11 @@ from pathlib import Path
 
 from carbon.transport.models import (
     MAX_BODY,
+    MAX_HEADERS,
     PATH,
     TransportCode,
     TransportFailure,
+    _MalformedBranch,
     parse_message,
 )
 
@@ -180,6 +182,55 @@ def log(event, *, out=None, **fields):
         **fields,
     }
     print(json.dumps(record, sort_keys=True), file=out or sys.stderr, flush=True)
+
+
+class _MalformedDiagnostics:
+    """At most one closed private event per branch per intake lifetime.
+
+    No raw request/exception is handed to the logger. Counts saturate at the
+    first rejected header count (17); an unexamined budget stays unknown.
+    Recording is best effort and never replaces the transport refusal.
+    """
+
+    def __init__(self):
+        self._seen = set()
+        self._lock = threading.Lock()
+
+    def note(self, failure, headers):
+        if (
+            type(failure) is not TransportFailure
+            or failure.code is not TransportCode.MALFORMED
+        ):
+            return
+        try:
+            branch = failure._branch
+            if type(branch) is not _MalformedBranch:
+                branch = _MalformedBranch.UNCLASSIFIED
+            with self._lock:
+                if branch in self._seen:
+                    return
+                self._seen.add(branch)
+            count, over_count, over_budget = None, None, None
+            if type(headers) is dict:
+                count = min(len(headers), 17)
+                over_count = len(headers) > 16
+                if not over_count:
+                    size = 0
+                    for key, value in headers.items():
+                        if type(key) is not str or type(value) is not str:
+                            break
+                        size += len(key) + len(value)
+                    else:
+                        over_budget = size > MAX_HEADERS
+            log(
+                "transport_malformed",
+                branch=branch.value,
+                header_count_capped_at_17=count,
+                header_count_over_limit=over_count,
+                header_budget_over_limit=over_budget,
+            )
+        except Exception:  # noqa: BLE001 - private diagnostics must not mask refusal
+            return
 
 
 _TERMINAL = {
@@ -821,6 +872,7 @@ class BatteryIntake:
         #: when this door serves no feed.
         self.feed = feed
         self.wake = threading.Event()
+        self._malformed_diagnostics = _MalformedDiagnostics()
 
     def score_feed(self):
         """The signed score feed: released windows only (VALIDATOR-29). Served
@@ -930,6 +982,7 @@ class BatteryIntake:
         try:
             envelope = parse_message(body)
         except TransportFailure as failure:
+            self._malformed_diagnostics.note(failure, headers)
             return _refused(400, failure.code.value)
         snapshot = self.window.get(envelope["snapshot"])
         if snapshot is None:
@@ -946,6 +999,7 @@ class BatteryIntake:
         try:
             received = await gateway.receive(body, headers)
         except TransportFailure as failure:
+            self._malformed_diagnostics.note(failure, headers)
             return _refused(
                 401 if failure.code is TransportCode.IDENTITY else 400,
                 failure.code.value,
