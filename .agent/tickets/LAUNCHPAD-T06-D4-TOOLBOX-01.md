@@ -1,6 +1,8 @@
 # LAUNCHPAD-T06-D4-TOOLBOX-01 — toolbox acceptance projection repair
 
-Status: in progress. Base: `97106c1b36a19f7750f8e7ac344c4d6536d4b767`.
+Status: in progress. Initial base: `97106c1b36a19f7750f8e7ac344c4d6536d4b767`.
+Current merged-main base: `4124b0080c7e6d30571a75a7307f7f3849f23405`,
+reconciled by normal merge `b219b2eb91bd41ec28a4c164d38386884e545d7b`.
 Authority: OWNER-LAUNCHPAD-E2E-SUITE-01 D4, T06, and
 `docs/development/LAUNCHPAD_ACCEPTANCE_PLAN.md` §3.7. Reviewer: Launchpad
 owner Platform2 or Root's independent reviewer.
@@ -29,10 +31,12 @@ Expected manifest: this ticket, `scripts/dev/launchpad_acceptance/release_check.
 `scripts/dev/miner_launchpad/research_view.js`,
 `tests/cpu/test_launchpad_acceptance.py`, and
 `tests/cpu/control_center_page_check.cjs`. No host/provider or PR #1407
-source changes. PR #1407 also changes `research_view.js` at lines 380-394 and
+source changes. PR #1407 merged as `4124b0080c7e6d30571a75a7307f7f3849f23405`;
+it also changes `research_view.js` at lines 380-394 and
 `control_center_page_check.cjs` after line 1307 for Graphite retention; this
-D4 addition is at lines 635 and 143, respectively, distinct hunks. Reconcile
-the pending PR before this ticket merges. Primary Development Hub map_ref: `SYSTEM/AGENT-EXECUTION`;
+D4 addition is at lines 636 and 143, respectively, distinct hunks. The normal
+merge above preserved both changes without a conflict. Primary Development Hub
+map_ref: `SYSTEM/AGENT-EXECUTION`;
 impact `mapped_detail`. The hub's purpose, placement, status, dependency,
 boundary, maturity, and primary links remain accurate; this follow-up repairs
 one already-described door's metadata, so no hub source edit is proposed.
