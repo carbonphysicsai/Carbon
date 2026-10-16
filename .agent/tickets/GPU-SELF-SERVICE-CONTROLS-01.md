@@ -34,7 +34,8 @@ whole-device release. No new cleanup/watchdog authority supplied as a Boolean.
 
 Owned manifest: this ticket/decision; reconstruction/worker/docker_runtime.py;
 reconstruction/worker/accelerator_runtime.py; necessary fixed-practice plumbing
-in development_session/research_carrier.py; focused regression tests. One PR.
+in development_session/research_carrier.py; tests/cpu/test_gpu_self_service_controls.py;
+tests/cpu/test_fixed_practice_failure_diagnostics.py. Seven paths, one PR.
 Open PRs 1398-1401/1385/1255/1246/1222 do not overlap the reserved runtime files;
 recheck the final manifest before push. Other source lanes remain single writers.
 
