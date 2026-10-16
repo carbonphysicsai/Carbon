@@ -227,11 +227,48 @@ def test_one_bad_validator_does_not_prevent_the_other_and_nothing_is_signed_to_a
     assert second["state"] == "SCORED"
     assert all(url == PAIRS[1]["intake_url"] for url, _, _ in wire.sent)
     assert all(receiver == PAIRS[1]["receiver_hotkey"] for receiver, _ in wire.signed)
+    refusal_path = multi_intake._refusal_path(tmp_path, PAIRS[0], 1)
+    if state == "REFUSED":
+        assert json.loads(refusal_path.read_bytes()) == {
+            "schema": multi_intake.REFUSAL_SCHEMA,
+            "epoch": 1,
+            "target": PAIRS[0],
+            "state": "REFUSED",
+            "code": code,
+        }
+    else:
+        assert not refusal_path.exists()
+    assert not rs._record_path(targets.journal(tmp_path, PAIRS[0]), 1).exists()
+    assert rs._record_path(targets.journal(tmp_path, PAIRS[1]), 1).is_file()
     projected = projection._multi_validator_outcome(
         1, tmp_path / "epoch-1" / multi_intake.STATUS_NAME
     )
     assert [row["state"] for row in projected["validators"]] == [state, "SCORED"]
     assert "private exception" not in json.dumps(projected)
+
+
+def test_refusal_journal_write_failure_is_target_local_infrastructure(
+    tmp_path, wire, monkeypatch
+):
+    wire.bad_receiver.add(PAIRS[0]["intake_url"])
+    blocked = multi_intake._refusal_path(tmp_path, PAIRS[0], 1)
+    write = multi_intake._write
+
+    def fail_refusal(path, value):
+        if path == blocked:
+            raise OSError("fixture private journal error")
+        return write(path, value)
+
+    monkeypatch.setattr(multi_intake, "_write", fail_refusal)
+    feedback = asyncio.run(campaign.evaluate_candidate(prepared(tmp_path), 1, RECORD))
+    first, second = feedback["validators"]
+    assert first["state"] == "FAILED_INFRA"
+    assert first["code"] == "evaluation_failed_infra"
+    assert second["state"] == "SCORED"
+    assert not blocked.exists()
+    assert rs._record_path(targets.journal(tmp_path, PAIRS[1]), 1).is_file()
+    assert all(url == PAIRS[1]["intake_url"] for url, _, _ in wire.sent)
+    assert "fixture private journal error" not in json.dumps(feedback)
 
 
 def test_one_journal_directory_failure_does_not_suppress_its_peer(

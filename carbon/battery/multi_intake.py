@@ -14,6 +14,7 @@ from carbon.development_session.profile import canonical
 
 SCHEMA = "carbon.battery.permitted-feedback.multi.v1"
 STATUS_NAME = "permitted-validator-status.json"
+REFUSAL_SCHEMA = "carbon.battery.intake-refusal.v1"
 
 
 def _write(path, value):
@@ -30,6 +31,10 @@ def _write(path, value):
 
 def _result_path(root, target, epoch):
     return result_path(root, target, epoch)
+
+
+def _refusal_path(root, target, epoch):
+    return journal(root, target) / f"intake-refusal-epoch-{epoch}.json"
 
 
 def _cached(root, target, epoch):
@@ -168,7 +173,24 @@ async def evaluate(prepared, epoch, record, targets):
                 stale_recommit=stale_recommit if gate is not None else None,
             )
         except OperationRefused as refused:
-            return _row(target, code=campaign.intake_code(refused.code))
+            row = _row(target, code=campaign.intake_code(refused.code))
+            if row["state"] == "REFUSED":
+                try:
+                    _write(
+                        _refusal_path(root, target, epoch),
+                        {
+                            "schema": REFUSAL_SCHEMA,
+                            "epoch": epoch,
+                            "target": target,
+                            "state": row["state"],
+                            "code": row["code"],
+                        },
+                    )
+                except OSError:
+                    # A missing private journal is infrastructure, not proof
+                    # that the target's refusal was durably retained.
+                    return _row(target, code="evaluation_failed_infra")
+            return row
         try:
             _write(_result_path(root, target, epoch), feedback)
         except OSError:
