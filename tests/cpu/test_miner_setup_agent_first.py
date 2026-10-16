@@ -453,7 +453,6 @@ def test_a_key_reaches_the_mcp_door_only_as_an_owner_only_file(tmp_path):
 def test_public_mcp_pasted_key_refusal_precedes_validation_and_dispatch(
     page, monkeypatch
 ):
-    from carbon.miner_mcp import mcp_setup
     from scripts.dev.miner_launchpad.setup_operations import NEXT_STEPS
 
     served, state, checks = page
@@ -473,7 +472,7 @@ def test_public_mcp_pasted_key_refusal_precedes_validation_and_dispatch(
         dispatched.append(True)
         raise AssertionError("MCP key value reached setup dispatch")
 
-    monkeypatch.setattr(mcp_setup, "perform", unexpected_dispatch)
+    monkeypatch.setattr(setup, "inference", unexpected_dispatch)
     tools = {tool.name: tool for tool in asyncio.run(server.list_tools())}
     assert "key" not in tools["carbon_setup_inference"].input_schema["properties"]
     assert "key" in schema("inference", HTTP)["properties"]
