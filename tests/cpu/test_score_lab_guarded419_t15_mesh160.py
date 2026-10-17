@@ -197,9 +197,9 @@ class Mesh160DiagnosticTest(unittest.TestCase):
         self.assertEqual(outcome["status"], "REFERENCE_UNRESOLVED")
         self.assertEqual(outcome["mesh320_route"], "NOT_ADMITTED")
         changed = copy.deepcopy(row)
-        changed["per_cycle"][0]["phases"]["cc1"]["plating_observation"]["min_at_s"] = (
-            2.0
-        )
+        changed["per_cycle"][0]["phases"]["cc1"]["plating_observation"][
+            "min_at_s"
+        ] = 2.0
         with mock.patch.object(
             diagnostic,
             "tracking_report",
@@ -208,6 +208,13 @@ class Mesh160DiagnosticTest(unittest.TestCase):
             self.assertEqual(
                 diagnostic.route_readout(changed)["status"], "REFERENCE_UNRESOLVED"
             )
+
+    def test_historical_mesh80_row_cannot_supply_new_diagnostic(self):
+        old = {"case_id": diagnostic.CASE_ID.replace(":mesh160", ":mesh80")}
+        outcome = diagnostic.route_readout(old)
+        self.assertEqual(outcome["status"], "REFERENCE_UNRESOLVED")
+        self.assertEqual(outcome["mesh320_route"], "NOT_ADMITTED")
+        self.assertFalse(outcome["reference_verdict"])
 
     def test_raw_voltage_guard_and_nonfinite_observation_refuse(self):
         with mock.patch.object(
