@@ -41,8 +41,15 @@ caller use the same `ScoreEngine.score_solver_benchmark_v3` method; A5/v1 score
 bytes and meanings are unchanged. No physical threshold or production scalar
 is adopted by this development code.
 
-The physics-bound receiver uses registration/result schema **v2** and Score
-Pack/result schema **v3**. Earlier development benchmark v1 and pack v2 records
+The physics-bound receiver uses registration/result schema **v2** for serial
+batch-one queries, and a prospective registration **v3** for whole-batch
+queries. V3 binds input and output shapes, batch size, and an explicit
+engineering-reference kind. It charges the full measured time of each batch;
+it never divides wall time by the sample count or calls a saved label lookup a
+reference run. V3 permits `peak_memory_bytes: null` only when peak memory was
+not measured, and reports the corresponding aggregate as null. V2 retains its
+numeric-memory requirement and exact historical meaning. Both registration
+versions use the Score Pack/result schema **v3**. Earlier development benchmark v1 and pack v2 records
 remain historical; this path refuses them rather than implying that they
 carried the new physics binding.
 
@@ -56,9 +63,18 @@ model count. The older value/N1 and menu commands below remain historical
 diagnostics and are not prerequisites for this path. The first tests use
 synthetic complete references only; a real Challenge must supply its existing
 registered job, TRAIN identity, output/gate contract and adequate measured
-reference evidence. This measurement profile supports one output quantity
-and serial batch size 1; other output metrics, units or batching need an
-explicit registered extension, not reinterpretation of these results.
+reference evidence. The v2 profile supports one output quantity and serial
+batch size 1. The v3 profile supports a registered complete batch with one
+output quantity and the same mean-absolute-error metric. Other output metrics
+or units need another explicit registration version.
+
+`bundle_benchmark.benchmark_saved_entry` binds an independently retained v5
+public bundle entry and custody receipt to the trusted Challenge job, complete
+benchmark registration, measured model rows, and common reference rows before
+calling the same `ScoreEngine`. Custody alone yields `NOT_READY`; a complete
+measurement with no registered accuracy ceiling yields `PACK_NOT_READY`. The
+Challenge owner supplies the physics and the producer supplies actual measured
+rows. This development reducer does not run a model, reference, or solver.
 
 ## OPT-16: V2 bank producer workflow
 
