@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Safe prospective KNN intake replay; synthetic data only, no solver/score."""
 
 from __future__ import annotations
@@ -20,7 +19,9 @@ from scripts.dev.score_lab.__main__ import main as score_lab_main
 
 ROOT = Path(__file__).resolve().parents[2]
 INTAKE_PATH = ROOT / "scripts/dev/score_lab/knn_intake_replay.py"
-INTAKE_SPEC = importlib.util.spec_from_file_location("scorelab_knn_intake_replay", INTAKE_PATH)
+INTAKE_SPEC = importlib.util.spec_from_file_location(
+    "scorelab_knn_intake_replay", INTAKE_PATH
+)
 assert INTAKE_SPEC is not None and INTAKE_SPEC.loader is not None
 intake = importlib.util.module_from_spec(INTAKE_SPEC)
 INTAKE_SPEC.loader.exec_module(intake)
@@ -45,7 +46,9 @@ def _rewrite_state_header(state: bytes, **changes) -> bytes:
     output = io.BytesIO()
     np.savez(
         output,
-        __header__=np.frombuffer(json.dumps(header, sort_keys=True).encode(), dtype=np.uint8),
+        __header__=np.frombuffer(
+            json.dumps(header, sort_keys=True).encode(), dtype=np.uint8
+        ),
         **arrays,
     )
     return output.getvalue()
@@ -120,7 +123,9 @@ def _synthetic_bundle(tmp_path: Path) -> tuple[Path, Path]:
         "recipe_digest": "sha256:7c3f0e5a46d8b0a9d1d9ac762ba4c85862ee219d46cb39a434ec927de89f55e6",
     }
     producer_sidecar_bytes = json.dumps(producer_sidecar, sort_keys=True).encode()
-    producer_ref = _write_artifact(artifact_root, "producer.json", producer_sidecar_bytes)
+    producer_ref = _write_artifact(
+        artifact_root, "producer.json", producer_sidecar_bytes
+    )
     fixture_ref = _write_artifact(artifact_root, "replay.npz", fixture)
     array_sidecar = {
         name: {
@@ -149,7 +154,9 @@ def _synthetic_bundle(tmp_path: Path) -> tuple[Path, Path]:
         "qualification_claimed": False,
     }
     receiver_check_bytes = json.dumps(receiver_check, sort_keys=True).encode()
-    receiver_check_ref = _write_artifact(artifact_root, "receiver-check.json", receiver_check_bytes)
+    receiver_check_ref = _write_artifact(
+        artifact_root, "receiver-check.json", receiver_check_bytes
+    )
     comparison = {
         "schema": "carbon.scorelab.public-knn-receiver-replay-comparison.v1",
         "disposition": "RECEIVER_VERIFIED_PROSPECTIVE_PUBLIC_TRAIN_REPLAY",
@@ -187,7 +194,9 @@ def _synthetic_bundle(tmp_path: Path) -> tuple[Path, Path]:
     return manifest_path, artifact_root
 
 
-def test_prospective_replay_uses_existing_safe_loader_without_fit(tmp_path, monkeypatch):
+def test_prospective_replay_uses_existing_safe_loader_without_fit(
+    tmp_path, monkeypatch
+):
     manifest, artifact_root = _synthetic_bundle(tmp_path)
 
     def forbidden_fit(*_args, **_kwargs):
@@ -203,7 +212,9 @@ def test_prospective_replay_uses_existing_safe_loader_without_fit(tmp_path, monk
     assert set(report["outputs"]) == {"eta", "q", "t", "v"}
 
 
-def test_receiver_admission_writes_content_bound_create_only_receipt(tmp_path, monkeypatch):
+def test_receiver_admission_writes_content_bound_create_only_receipt(
+    tmp_path, monkeypatch
+):
     manifest, artifact_root = _synthetic_bundle(tmp_path)
     original_manifest = manifest.read_bytes()
     receipt_path = tmp_path / "receiver" / "prospective-entry.json"
@@ -228,9 +239,10 @@ def test_receiver_admission_writes_content_bound_create_only_receipt(tmp_path, m
         "battery-public-train-knn-retention-smoke-20261016"
     )
     assert receipt["entry"]["training_data"]["scope"] == "PUBLIC_TRAIN_ONLY"
-    assert receipt["artifact_bindings"]["native_state"]["sha256"] == json.loads(
-        original_manifest
-    )["entry"]["artifacts"]["native_state"]["sha256"]
+    assert (
+        receipt["artifact_bindings"]["native_state"]["sha256"]
+        == json.loads(original_manifest)["entry"]["artifacts"]["native_state"]["sha256"]
+    )
     assert receipt["receiver_replay"]["status"] == "PASS"
     assert receipt["receiver_replay"]["output_bindings"]
     assert receipt["placement"] == "PROSPECTIVE_OUTSIDE_FROZEN18"
@@ -419,10 +431,14 @@ def test_saved_state_kind_and_schema_are_rejected_before_any_restore(
     assert restored is False
 
 
-def test_saved_state_knn_preflight_restores_only_after_header_validation(tmp_path, monkeypatch):
+def test_saved_state_knn_preflight_restores_only_after_header_validation(
+    tmp_path, monkeypatch
+):
     manifest_path, artifact_root = _synthetic_bundle(tmp_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    state = (artifact_root / manifest["entry"]["artifacts"]["native_state"]["path"]).read_bytes()
+    state = (
+        artifact_root / manifest["entry"]["artifacts"]["native_state"]["path"]
+    ).read_bytes()
     original = recipes.import_state
     calls = []
 
