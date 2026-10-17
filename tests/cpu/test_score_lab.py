@@ -17,7 +17,6 @@ from scripts.dev.score_lab import (
     public_physics,
     synthetic,
 )
-from scripts.dev.score_lab.legacy_cli import _report
 from scripts.dev.score_lab.core import (
     LabRefused,
     analyze,
@@ -25,6 +24,7 @@ from scripts.dev.score_lab.core import (
     v2_rule,
     validate_panel,
 )
+from scripts.dev.score_lab.legacy_cli import _report
 
 ROOT = Path(__file__).resolve().parents[2]
 V9 = ROOT / "docs/development/evidence/battery-score-tuning/registry-v9.json"

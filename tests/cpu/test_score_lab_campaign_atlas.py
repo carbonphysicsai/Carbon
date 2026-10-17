@@ -7,8 +7,8 @@ import json
 import pytest
 
 from scripts.dev.score_lab import campaign_atlas
-from scripts.dev.score_lab.legacy_cli import main
 from scripts.dev.score_lab.core import LabRefused
+from scripts.dev.score_lab.legacy_cli import main
 
 
 def _shard(index, tau):

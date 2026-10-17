@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import sys
 import argparse
+import sys
 
 
 def main(argv=None):
