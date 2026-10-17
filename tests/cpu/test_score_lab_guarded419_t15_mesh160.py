@@ -12,6 +12,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import mock
 
+import numpy as np
+
 from carbon.design_search import tasks
 from scripts.dev.battery import feasibility02
 from scripts.dev.score_lab import guarded419_t15_mesh160 as diagnostic
@@ -19,6 +21,32 @@ from scripts.dev.score_lab import guarded419_t15_mesh160_worker as worker
 
 
 class Mesh160DiagnosticTest(unittest.TestCase):
+    def test_diagnostic_extracts_finite_returned_array_location(self):
+        def entry(values):
+            return types.SimpleNamespace(entries=np.asarray(values, dtype=float))
+
+        step = {
+            "Time [s]": entry([0, 1, 2]),
+            "Volume-averaged cell temperature [K]": entry([298, 299, 300]),
+            "Voltage [V]": entry([4.1, 4.15, 4.19]),
+            "Total heating [W]": entry([0, 0, 0]),
+            "Discharge capacity [A.h]": entry([0, 1, 2]),
+            "Negative electrode lithium plating reaction overpotential [V]": entry(
+                [[0.001, 0.0008, 0.001], [0.002, 0.003, 0.002]]
+            ),
+        }
+        cooling = {"h_w_m2k": 1.0, "area_m2": 1.0, "t_amb_k": 298.0}
+        summary = feasibility02._step_summary(step, cooling, plating_diagnostic=True)
+        self.assertEqual(summary["plating_observation"]["shape"], [2, 3])
+        self.assertEqual(summary["plating_observation"]["time_axis"], 1)
+        self.assertEqual(summary["plating_observation"]["min_index"], [0, 1])
+        self.assertEqual(summary["plating_observation"]["min_at_s"], 1.0)
+        step["Negative electrode lithium plating reaction overpotential [V]"] = entry(
+            [[0.001, 0.0008, 0.001], [0.002, 0.003, 0.002], [0.004, 0.005, 0.006]]
+        )
+        with self.assertRaisesRegex(ValueError, "time axis is ambiguous"):
+            feasibility02._step_summary(step, cooling, plating_diagnostic=True)
+
     def test_distinct_exact_job_and_no_rung_label_alias(self):
         expected = diagnostic.job()
         diagnostic.validate_job(expected)
@@ -94,7 +122,20 @@ class Mesh160DiagnosticTest(unittest.TestCase):
             {
                 "cycle": index,
                 "phases": {
-                    name: {"plating_min_v": value if name == "cc1" else value + 1}
+                    name: {
+                        "plating_min_v": value if name == "cc1" else value + 1,
+                        "t_start_s": 0.0,
+                        "t_end_s": 1.0,
+                        "plating_observation": {
+                            "status": "FINITE_RETURNED_ENTRIES",
+                            "shape": [3],
+                            "entry_count": 3,
+                            "time_axis": 0,
+                            "min_index": [0],
+                            "min_at_s": 0.0,
+                            "min_v": value if name == "cc1" else value + 1,
+                        },
+                    }
                     for name in ("cc1", "cc2", "cv")
                 },
             }
@@ -155,6 +196,18 @@ class Mesh160DiagnosticTest(unittest.TestCase):
             outcome = diagnostic.route_readout(changed)
         self.assertEqual(outcome["status"], "REFERENCE_UNRESOLVED")
         self.assertEqual(outcome["mesh320_route"], "NOT_ADMITTED")
+        changed = copy.deepcopy(row)
+        changed["per_cycle"][0]["phases"]["cc1"]["plating_observation"]["min_at_s"] = (
+            2.0
+        )
+        with mock.patch.object(
+            diagnostic,
+            "tracking_report",
+            return_value={"status": "TRACKING_COMPATIBLE"},
+        ):
+            self.assertEqual(
+                diagnostic.route_readout(changed)["status"], "REFERENCE_UNRESOLVED"
+            )
 
     def test_raw_voltage_guard_and_nonfinite_observation_refuse(self):
         with mock.patch.object(

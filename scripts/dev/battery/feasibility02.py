@@ -793,7 +793,7 @@ def _experiment_descriptor(sim, index):
         return None
 
 
-def _step_summary(step, cooling):
+def _step_summary(step, cooling, *, plating_diagnostic=False):
     import numpy as np
 
     t = step["Time [s]"].entries
@@ -802,9 +802,11 @@ def _step_summary(step, cooling):
     removal = cooling["h_w_m2k"] * cooling["area_m2"] * (temp - cooling["t_amb_k"])
     heating = step["Total heating [W]"].entries
     q = step["Discharge capacity [A.h]"].entries
-    eta = step["Negative electrode lithium plating reaction overpotential [V]"].entries
+    eta = np.asarray(
+        step["Negative electrode lithium plating reaction overpotential [V]"].entries
+    )
     i_max, i_min = int(np.argmax(temp)), int(np.argmin(temp))
-    return {
+    result = {
         "t_start_s": float(t[0]),
         "t_end_s": float(t[-1]),
         "t_max_c": float(temp[i_max] - 273.15),
@@ -820,6 +822,25 @@ def _step_summary(step, cooling):
         "heating_energy_j": float(np.trapezoid(heating, t)),
         "time_observations": _time_observations(t),
     }
+    if plating_diagnostic:
+        if not np.all(np.isfinite(eta)) or eta.size == 0 or not np.all(np.isfinite(t)):
+            raise ValueError("nonfinite or empty diagnostic plating/time entries")
+        axes = [axis for axis, length in enumerate(eta.shape) if length == len(t)]
+        if len(axes) != 1:
+            raise ValueError("diagnostic plating time axis is ambiguous")
+        index = tuple(
+            int(value) for value in np.unravel_index(np.argmin(eta), eta.shape)
+        )
+        result["plating_observation"] = {
+            "status": "FINITE_RETURNED_ENTRIES",
+            "shape": list(eta.shape),
+            "entry_count": int(eta.size),
+            "time_axis": axes[0],
+            "min_index": list(index),
+            "min_at_s": float(t[index[axes[0]]]),
+            "min_v": result["plating_min_v"],
+        }
+    return result
 
 
 def _soc_clock(cycle1, soc0, capacity):
@@ -953,7 +974,18 @@ def solve_one(job, *, stage_binding=None, expected_stage_binding_digest=None):
                 steps = steps[1:]  # the initial rest is reported separately
             if len(steps) != len(PHASES):
                 raise ValueError(f"cycle {k} has {len(steps)} steps")
-            phases = {name: _step_summary(s, cooling) for name, s in zip(PHASES, steps)}
+            phases = {
+                name: _step_summary(
+                    s,
+                    cooling,
+                    plating_diagnostic=(
+                        job.get("reference_admission")
+                        == "carbon.scorelab.guarded419.t15-mesh160-diagnostic-admission.v1"
+                        and name in ("cc1", "cc2", "cv")
+                    ),
+                )
+                for name, s in zip(PHASES, steps)
+            }
             for offset, (name, step) in enumerate(zip(PHASES, steps)):
                 phases[name]["voltage_contact_observation"] = (
                     _voltage_contact_observation(

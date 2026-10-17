@@ -100,6 +100,9 @@ def observer():
             "MIN_FINITE_RETURNED_NEGATIVE_ELECTRODE_OVERPOTENTIAL_ENTRIES"
             "_CC1_CC2_CV_ALL_30_CYCLES"
         ),
+        "plating_location_evidence": (
+            "PER_CHARGE_PHASE_FINITE_ARRAY_SHAPE_TIME_AXIS_MIN_INDEX_AND_TIME"
+        ),
         "raw_voltage": "OBSERVED_INITIAL_REST_AND_ALL_180_PHASES",
         "numerical_claim": "UNVALIDATED_NONVERDICT_DIAGNOSTIC",
     }
@@ -139,18 +142,45 @@ def route_readout(record):
             raise ValueError("NONFINITE_RETURNED_PLATING_MINIMUM")
         observed = Decimal(str(raw))
         charging = [
-            (cycle["cycle"], phase, cycle["phases"][phase]["plating_min_v"])
+            (cycle["cycle"], phase, cycle["phases"][phase])
             for cycle in record["per_cycle"]
             for phase in ("cc1", "cc2", "cv")
         ]
-        if len(charging) != 90 or any(
-            type(value) is not float or not math.isfinite(value)
-            for _, _, value in charging
-        ):
+        if len(charging) != 90:
             raise ValueError("INCOMPLETE_CHARGING_MINIMUMS")
-        minimum = min(charging, key=lambda item: item[2])
+        for _, _, summary in charging:
+            value = summary["plating_min_v"]
+            observation = summary["plating_observation"]
+            shape = observation["shape"]
+            index = observation["min_index"]
+            axis = observation["time_axis"]
+            if (
+                type(value) is not float
+                or not math.isfinite(value)
+                or observation["status"] != "FINITE_RETURNED_ENTRIES"
+                or observation["min_v"] != value
+                or type(shape) is not list
+                or not shape
+                or any(type(size) is not int or size < 1 for size in shape)
+                or math.prod(shape) != observation["entry_count"]
+                or type(axis) is not int
+                or not 0 <= axis < len(shape)
+                or type(index) is not list
+                or len(index) != len(shape)
+                or any(
+                    type(position) is not int or not 0 <= position < size
+                    for position, size in zip(index, shape, strict=True)
+                )
+                or type(observation["min_at_s"]) is not float
+                or not math.isfinite(observation["min_at_s"])
+                or not summary["t_start_s"]
+                <= observation["min_at_s"]
+                <= summary["t_end_s"]
+            ):
+                raise ValueError("INVALID_RETURNED_PLATING_LOCATION")
+        minimum = min(charging, key=lambda item: item[2]["plating_min_v"])
         if (
-            minimum[2] != raw
+            minimum[2]["plating_min_v"] != raw
             or record["whole_programme"]["plating_min_cycle"] != minimum[0]
             or record["whole_programme"]["plating_min_phase"] != minimum[1]
         ):
