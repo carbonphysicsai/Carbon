@@ -12,6 +12,8 @@ decision must not be WAIT.
 
 from __future__ import annotations
 
+import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -19,21 +21,119 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "dev"))
 
-from merge_on_green import Decision, PullRequestState, decide
+import merge_on_green as watcher
+from merge_on_green import Decision, PullRequestState, decide, strict_base_rule
 
 PINNED = "a" * 40
 MOVED = "b" * 40
+BASE = "c" * 40
+
+
+def receipt():
+    return {
+        "schema": "carbon.ci-merge-receipt.v1",
+        "head": {"sha": PINNED, "tree": "d" * 40},
+        "base": {"sha": BASE, "tree": "e" * 40},
+        "merge": {"sha": "f" * 40, "tree": "0" * 40, "parents": [BASE, PINNED]},
+        "head_result": "PASSED",
+        "merge_result": "PASSED",
+        "classification": "PASSED",
+        "gate_result": "PASSED",
+        "required_jobs": {"Contract and authority acceptance": 1},
+        "jobs": [
+            {
+                "family": "Contract and authority acceptance",
+                "revision": revision,
+                "index": 0,
+                "id": index + 1,
+                "attempt": 1,
+                "status": "completed",
+                "conclusion": "success",
+            }
+            for index, revision in enumerate(("head", "merge"))
+        ],
+    }
+
+
+def green(**changes):
+    fields = {
+        "state": "OPEN",
+        "head_sha": PINNED,
+        "base_sha": BASE,
+        "run_status": "completed",
+        "run_conclusion": "success",
+        "receipt": receipt(),
+        "strict_base_rule": True,
+    }
+    return PullRequestState(**{**fields, **changes})
 
 
 def test_green_on_the_pinned_revision_merges() -> None:
     decision, reason = decide(
         PINNED,
-        PullRequestState(
-            "OPEN", PINNED, run_status="completed", run_conclusion="success"
-        ),
+        green(),
     )
     assert decision is Decision.MERGE
     assert PINNED[:12] in reason
+    assert BASE[:12] in reason
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"receipt": None},
+        {"base_sha": MOVED},
+        {"base_sha": None},
+        {"strict_base_rule": False},
+    ],
+)
+def test_green_head_alone_does_not_authorize_merging(changes):
+    decision, reason = decide(PINNED, green(**changes))
+    assert decision is Decision.STOP and reason
+
+
+@pytest.mark.parametrize(
+    "mutation", ["wrong_head", "missing_merge_job", "unfinished_gate", "failed_merge"]
+)
+def test_only_complete_current_pair_acceptance_can_merge(mutation):
+    value = receipt()
+    if mutation == "wrong_head":
+        value["head"]["sha"] = MOVED
+        value["merge"]["parents"][1] = MOVED
+    elif mutation == "missing_merge_job":
+        value["jobs"].pop()
+    elif mutation == "unfinished_gate":
+        value["gate_result"] = "PENDING"
+    else:
+        value["jobs"][-1]["conclusion"] = "failure"
+    assert decide(PINNED, green(receipt=value))[0] is Decision.STOP
+
+
+@pytest.mark.parametrize(
+    "strict,app,expected",
+    [
+        (True, 15368, True),
+        (False, 15368, False),
+        ("true", 15368, False),
+        (True, 1, False),
+        (True, "15368", False),
+    ],
+)
+def test_base_guard_must_be_an_effective_strict_actions_gate(strict, app, expected):
+    rules = [
+        {
+            "type": "required_status_checks",
+            "parameters": {
+                "strict_required_status_checks_policy": strict,
+                "required_status_checks": [
+                    {"context": "Merge gate", "integration_id": app}
+                ],
+            },
+        }
+    ]
+    assert strict_base_rule(rules) is expected
+    assert not strict_base_rule([])
+    assert not strict_base_rule({})
 
 
 def test_a_head_that_moved_stops_rather_than_waiting() -> None:
@@ -56,6 +156,8 @@ def test_a_head_that_moved_stops_rather_than_waiting() -> None:
         PullRequestState("CLOSED", PINNED),
         PullRequestState("OPEN", None),
         PullRequestState("UNREADABLE", None),
+        PullRequestState("UNREADABLE", PINNED),
+        PullRequestState("OPEN", PINNED, run_status="UNKNOWN"),
         PullRequestState("OPEN", MOVED),
         PullRequestState(
             "OPEN", PINNED, run_status="completed", run_conclusion="failure"
@@ -115,6 +217,100 @@ def test_a_missing_run_is_a_wait_and_a_finished_one_is_not() -> None:
         )[0]
         is Decision.STOP
     )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        None,
+        "base_moved",
+        "bad_artifact",
+        "missing_artifact",
+        "wrong_run_head",
+        "bad_run_response",
+        "loose_rule",
+    ],
+)
+def test_observe_reads_current_main_and_the_latest_ci_attempt(monkeypatch, mutation):
+    calls = []
+
+    def fake_gh(*args):
+        calls.append(args)
+        data = None
+        code = 0
+        if args[:2] == ("pr", "view"):
+            data = {"state": "OPEN", "headRefOid": PINNED}
+        elif args[:2] == ("run", "list"):
+            assert "--workflow" in args and "ci.yml" in args
+            data = [
+                {
+                    "headSha": PINNED,
+                    "databaseId": 123,
+                    "status": "completed",
+                    "conclusion": "success",
+                }
+            ]
+        elif args == ("api", "repos/{owner}/{repo}/git/ref/heads/main"):
+            data = {"object": {"sha": MOVED if mutation == "base_moved" else BASE}}
+        elif args == ("api", "repos/{owner}/{repo}/actions/runs/123"):
+            data = {
+                "head_sha": MOVED if mutation == "wrong_run_head" else PINNED,
+                "run_attempt": 2,
+            }
+            if mutation == "bad_run_response":
+                data = []
+        elif args[:2] == ("run", "download"):
+            assert args[args.index("--name") + 1] == "ci-merge-result-2"
+            folder = Path(args[args.index("--dir") + 1])
+            if mutation == "missing_artifact":
+                code = 1
+            else:
+                (folder / "ci-merge-receipt.json").write_text(
+                    "bad" if mutation == "bad_artifact" else json.dumps(receipt())
+                )
+        elif args == ("api", "repos/{owner}/{repo}/rules/branches/main"):
+            data = [
+                {
+                    "type": "required_status_checks",
+                    "parameters": {
+                        "strict_required_status_checks_policy": mutation
+                        != "loose_rule",
+                        "required_status_checks": [
+                            {"context": "Merge gate", "integration_id": 15368}
+                        ],
+                    },
+                }
+            ]
+        else:
+            raise AssertionError(args)
+        return subprocess.CompletedProcess(args, code, json.dumps(data), "")
+
+    monkeypatch.setattr(watcher, "_gh", fake_gh)
+    observed = watcher.observe(123, "fixture-branch", PINNED)
+    assert decide(PINNED, observed)[0] is (
+        Decision.MERGE if mutation is None else Decision.STOP
+    )
+    assert not any(args[:2] == ("pr", "merge") for args in calls)
+
+
+def test_dry_run_never_calls_merge_even_for_a_valid_pair(monkeypatch, capsys):
+    calls = []
+
+    def fake_gh(*args):
+        calls.append(args)
+        assert args[:2] == ("pr", "view")
+        return subprocess.CompletedProcess(
+            args,
+            0,
+            json.dumps({"headRefOid": PINNED, "headRefName": "fixture-branch"}),
+            "",
+        )
+
+    monkeypatch.setattr(watcher, "_gh", fake_gh)
+    monkeypatch.setattr(watcher, "observe", lambda *args: green())
+    assert watcher.main(["--pr", "123", "--dry-run"]) == 0
+    assert "MERGE:" in capsys.readouterr().out
+    assert len(calls) == 1
 
 
 def test_the_merge_decision_is_pinned_to_the_revision_that_was_checked() -> None:

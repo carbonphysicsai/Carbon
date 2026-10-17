@@ -24,6 +24,8 @@ jobs:
     outputs:
       candidate_sha: ${{ steps.candidate.outputs.candidate_sha }}
       base_sha: ${{ steps.candidate.outputs.base_sha }}
+      merge_sha: ${{ steps.candidate.outputs.merge_sha }}
+      identity_artifact: ${{ steps.binding.outputs.artifact }}
       change_scope: ${{ steps.delivery.outputs.change_scope }}
       dev_image_required: ${{ steps.delivery.outputs.dev_image_required }}
       c03_worker_required: ${{ steps.delivery.outputs.c03_worker_required }}
@@ -36,8 +38,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT_NAME: ${{ github.event_name }}
-          EVENT_SHA: ${{ github.sha }}
-          EVENT_BEFORE: ${{ github.event.before }}
           EVENT_REF: ${{ github.ref }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           EVENT_PR_HEAD: ${{ github.event.pull_request.head.sha }}
@@ -45,30 +45,54 @@ jobs:
           set -euo pipefail
           if [[ "${EVENT_NAME}" == "pull_request" ]]; then
             endpoint="repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}"
-            candidate_sha="$(gh api "${endpoint}" --jq .head.sha)"
-            base_sha="$(gh api "${endpoint}" --jq .base.sha)"
+            pull="$(gh api "${endpoint}")"
+            candidate_sha="$(jq -r .head.sha <<< "${pull}")"
+            base_sha="$(jq -r .base.sha <<< "${pull}")"
+            merge_sha="$(jq -r .merge_commit_sha <<< "${pull}")"
+            [[ "$(jq -r .mergeable <<< "${pull}")" == true ]] \
+              || { echo "No confirmed clean merge; no head-only fallback." >&2; exit 2; }
+            [[ "$(jq -r .base.ref <<< "${pull}")" == main ]]
+            [[ "$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)" == "${base_sha}" ]] \
+              || { echo "Main changed during resolution; re-validation is required." >&2; exit 2; }
             [[ "${EVENT_PR_HEAD}" =~ ^[0-9a-f]{40}$ ]]
             if [[ "${candidate_sha}" != "${EVENT_PR_HEAD}" ]]; then
               echo "Historical event head ${EVENT_PR_HEAD} no longer equals live head ${candidate_sha}; use the current event run." >&2
               exit 2
             fi
-          elif [[ "${EVENT_NAME}" == "push" && "${EVENT_REF}" == "refs/heads/main" ]]; then
-            candidate_sha="${EVENT_SHA}"
-            base_sha="${EVENT_BEFORE}"
           else
             echo "Unsupported event/ref: ${EVENT_NAME} ${EVENT_REF}" >&2
             exit 2
           fi
           [[ "${candidate_sha}" =~ ^[0-9a-f]{40}$ ]]
           [[ "${base_sha}" =~ ^[0-9a-f]{40}$ ]]
-          printf 'candidate_sha=%s\nbase_sha=%s\n' "${candidate_sha}" "${base_sha}" >> "${GITHUB_OUTPUT}"
+          [[ "${merge_sha}" =~ ^[0-9a-f]{40}$ ]]
+          printf 'candidate_sha=%s\nbase_sha=%s\nmerge_sha=%s\n' "${candidate_sha}" "${base_sha}" "${merge_sha}" >> "${GITHUB_OUTPUT}"
 
-      - name: Check out current exact candidate with history
+      - name: Fetch the exact clean merge and both parents
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ steps.candidate.outputs.candidate_sha }}
+          ref: ${{ steps.candidate.outputs.merge_sha }}
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Bind the clean merge, then retain exact-head preflight
+        id: binding
+        env:
+          HEAD_SHA: ${{ steps.candidate.outputs.candidate_sha }}
+          BASE_SHA: ${{ steps.candidate.outputs.base_sha }}
+          MERGE_SHA: ${{ steps.candidate.outputs.merge_sha }}
+        run: |
+          set -euo pipefail
+          python3 scripts/dev/ci_merge.py prepare --head "${HEAD_SHA}" --base "${BASE_SHA}" --merge "${MERGE_SHA}" --receipt "${RUNNER_TEMP}/ci-merge-receipt.json"
+          printf 'artifact=ci-merge-identities-%s\n' "${GITHUB_RUN_ATTEMPT}" >> "${GITHUB_OUTPUT}"
+          git checkout --detach "${HEAD_SHA}"
+
+      - name: Retain immutable head/base/merge identities
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.binding.outputs.artifact }}
+          path: ${{ runner.temp }}/ci-merge-receipt.json
+          if-no-files-found: error
 
       - name: Classify and run delivery preflight
         id: delivery
@@ -97,7 +121,7 @@ jobs:
 
 
   canonical:
-    name: Canonical environment
+    name: Canonical environment (${{ matrix.revision }}, ${{ matrix.shard }}) [${{ needs.preflight.outputs.merge_sha }}]
     if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL'
     needs: preflight
     runs-on: ubuntu-24.04
@@ -111,12 +135,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        revision: [head, merge]
         shard: [0, 1, 2, 3, 4, 5]
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          ref: ${{ matrix.revision == 'head' && needs.preflight.outputs.candidate_sha || needs.preflight.outputs.merge_sha }}
           fetch-depth: 0
           persist-credentials: false
       - name: Select this shard's share of the canonical command
@@ -221,12 +246,12 @@ jobs:
         if: always() && matrix.shard == 0
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: quality-inventory
+          name: quality-inventory-${{ matrix.revision }}-${{ github.run_attempt }}
           path: .carbon-artifacts/quality.json
           if-no-files-found: warn
 
   dev-image:
-    name: Clean dev-container image
+    name: Clean dev-container image (${{ matrix.revision }}, ${{ matrix.shard }}) [${{ needs.preflight.outputs.merge_sha }}]
     if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && needs.preflight.outputs.dev_image_required == 'true'
     needs: preflight
     runs-on: ubuntu-24.04
@@ -252,15 +277,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        revision: [head, merge]
         shard: [0, 1, 2, 3, 4, 5]
     env:
-      CARBON_DEV_IMAGE: carbon-dev:${{ needs.preflight.outputs.candidate_sha }}
+      CARBON_DEV_IMAGE: carbon-dev:${{ matrix.revision == 'head' && needs.preflight.outputs.candidate_sha || needs.preflight.outputs.merge_sha }}
       CARBON_UV_GROUPS: "chain archive science-jax science-torch mcp"
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          ref: ${{ matrix.revision == 'head' && needs.preflight.outputs.candidate_sha || needs.preflight.outputs.merge_sha }}
           fetch-depth: 0
           persist-credentials: false
       - name: Select this shard's share of the canonical command
@@ -335,7 +361,7 @@ jobs:
         run: ./scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"
 
   c03-worker:
-    name: C-03/C-04/C-05/C-07/C-08/C-10 isolated service acceptance
+    name: C-03/C-04/C-05/C-07/C-08/C-10 isolated service acceptance (${{ matrix.revision }}) [${{ needs.preflight.outputs.merge_sha }}]
     if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && (needs.preflight.outputs.c03_worker_required == 'true' || needs.preflight.outputs.julia_service_required == 'true')
     needs: preflight
     runs-on: ubuntu-24.04
@@ -343,11 +369,15 @@ jobs:
     # its own job (julia-service), in parallel, under the same condition; the
     # Merge gate requires both whenever either is required.
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [head, merge]
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          ref: ${{ matrix.revision == 'head' && needs.preflight.outputs.candidate_sha || needs.preflight.outputs.merge_sha }}
           fetch-depth: 0
           persist-credentials: false
       - name: Install pinned uv
@@ -373,7 +403,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: c03-worker-evidence
+          name: c03-worker-evidence-${{ matrix.revision }}-${{ github.run_attempt }}
           path: |
             .carbon-artifacts/c03-worker-image.json
             .carbon-artifacts/c03-service-junit.xml
@@ -381,7 +411,7 @@ jobs:
           if-no-files-found: error
 
   julia-service:
-    name: Authored-Julia isolated service acceptance
+    name: Authored-Julia isolated service acceptance (${{ matrix.revision }}) [${{ needs.preflight.outputs.merge_sha }}]
     if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && (needs.preflight.outputs.c03_worker_required == 'true' || needs.preflight.outputs.julia_service_required == 'true')
     needs: preflight
     runs-on: ubuntu-24.04
@@ -392,11 +422,15 @@ jobs:
     # builds its own C-03 parent (julia_worker_image.sh), so this job needs
     # nothing from c03-worker.
     timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [head, merge]
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          ref: ${{ matrix.revision == 'head' && needs.preflight.outputs.candidate_sha || needs.preflight.outputs.merge_sha }}
           fetch-depth: 0
           persist-credentials: false
       - name: Resolve Docker Hub through a pull-through mirror
@@ -461,7 +495,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: julia-service-evidence
+          name: julia-service-evidence-${{ matrix.revision }}-${{ github.run_attempt }}
           path: |
             .carbon-artifacts/julia-worker-image.json
             .carbon-artifacts/julia-service-traces.jsonl
@@ -469,16 +503,20 @@ jobs:
           if-no-files-found: error
 
   workbench:
-    name: Workbench release and application acceptance
+    name: Workbench release and application acceptance (${{ matrix.revision }}) [${{ needs.preflight.outputs.merge_sha }}]
     if: needs.preflight.outputs.workbench_required == 'true'
     needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [head, merge]
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          ref: ${{ matrix.revision == 'head' && needs.preflight.outputs.candidate_sha || needs.preflight.outputs.merge_sha }}
           fetch-depth: 0
           persist-credentials: false
       - name: Install pinned uv
@@ -505,16 +543,20 @@ jobs:
         run: ./scripts/dev/workbench_release_checks.sh
 
   contract-authority:
-    name: Contract and authority acceptance
+    name: Contract and authority acceptance (${{ matrix.revision }}) [${{ needs.preflight.outputs.merge_sha }}]
     if: needs.preflight.outputs.change_scope == 'CONTRACT_AUTHORITY'
     needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [head, merge]
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          ref: ${{ matrix.revision == 'head' && needs.preflight.outputs.candidate_sha || needs.preflight.outputs.merge_sha }}
           fetch-depth: 0
           persist-credentials: false
       - name: Install pinned uv
@@ -533,16 +575,20 @@ jobs:
         run: ./scripts/dev/ci_contract_authority.sh
 
   hub-validation:
-    name: Development Hub validation
+    name: Development Hub validation (${{ matrix.revision }}) [${{ needs.preflight.outputs.merge_sha }}]
     if: needs.preflight.outputs.hub_required == 'true' && needs.preflight.outputs.change_scope != 'DERIVED_DOCUMENTATION'
     needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [head, merge]
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          ref: ${{ matrix.revision == 'head' && needs.preflight.outputs.candidate_sha || needs.preflight.outputs.merge_sha }}
           fetch-depth: 0
           persist-credentials: false
       - name: Refresh current live pull-request metadata
@@ -565,16 +611,20 @@ jobs:
         run: ./scripts/dev/ci_hub.sh
 
   derived-documentation:
-    name: Derived documentation acceptance
+    name: Derived documentation acceptance (${{ matrix.revision }}) [${{ needs.preflight.outputs.merge_sha }}]
     if: needs.preflight.outputs.change_scope == 'DERIVED_DOCUMENTATION'
     needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [head, merge]
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          ref: ${{ matrix.revision == 'head' && needs.preflight.outputs.candidate_sha || needs.preflight.outputs.merge_sha }}
           fetch-depth: 0
           persist-credentials: false
       - name: Refresh current live pull-request metadata
@@ -602,6 +652,10 @@ jobs:
     needs: [preflight, canonical, dev-image, c03-worker, julia-service, workbench, contract-authority, hub-validation, derived-documentation]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
     steps:
       # Repository-local trust hardening: execute the protected base's gate and
       # classifier implementations over an exact candidate checkout. The
@@ -623,7 +677,58 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           path: .carbon-gate-candidate
+      - name: Check out the exact merge object with its parents
+        if: needs.preflight.outputs.merge_sha != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.merge_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          path: .carbon-gate-merge
+      - name: Read the immutable head/base/merge binding
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IDENTITY_ARTIFACT: ${{ needs.preflight.outputs.identity_artifact }}
+        run: |
+          set -euo pipefail
+          [[ "${IDENTITY_ARTIFACT}" =~ ^ci-merge-identities-[1-9][0-9]*$ ]]
+          gh run download "${GITHUB_RUN_ID}" --name "${IDENTITY_ARTIFACT}" --dir "${RUNNER_TEMP}/ci-merge-receipt"
+      - name: Record both acceptance results and reject stale identities
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PREFLIGHT_SCOPE: ${{ needs.preflight.outputs.change_scope }}
+          PREFLIGHT_IMAGE: ${{ needs.preflight.outputs.dev_image_required }}
+          PREFLIGHT_C03: ${{ needs.preflight.outputs.c03_worker_required }}
+          PREFLIGHT_JULIA: ${{ needs.preflight.outputs.julia_service_required }}
+          PREFLIGHT_WORKBENCH: ${{ needs.preflight.outputs.workbench_required }}
+          PREFLIGHT_HUB: ${{ needs.preflight.outputs.hub_required }}
+        run: |
+          set -euo pipefail
+          helper=.carbon-gate-base/scripts/dev/ci_merge.py
+          if [[ ! -f "${helper}" ]]; then
+            # One prospective migration: old bases have no merge-receipt helper.
+            # No arbitrary candidate implementation may supply this fallback.
+            helper=.carbon-gate-candidate/scripts/dev/ci_merge.py
+            printf '%s\n' "c763863885f1097312f54d294886ffc7cc773407df80dd0bebfc73c59a7e28c5  ${helper}" | sha256sum --check --strict
+          fi
+          gh api --paginate --slurp "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?filter=all&per_page=100" > "${RUNNER_TEMP}/ci-merge-jobs.json"
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" > "${RUNNER_TEMP}/ci-merge-pull.json"
+          main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
+          gh api "repos/${GITHUB_REPOSITORY}/rules/branches/main" > "${RUNNER_TEMP}/ci-merge-rules.json"
+          service=false
+          if [[ "${PREFLIGHT_C03}" == true || "${PREFLIGHT_JULIA}" == true ]]; then service=true; fi
+          python3 "${helper}" finish --repository .carbon-gate-merge --receipt "${RUNNER_TEMP}/ci-merge-receipt/ci-merge-receipt.json" --jobs "${RUNNER_TEMP}/ci-merge-jobs.json" --pull "${RUNNER_TEMP}/ci-merge-pull.json" --main "${main_sha}" --rules "${RUNNER_TEMP}/ci-merge-rules.json" --scope "${PREFLIGHT_SCOPE}" --image "${PREFLIGHT_IMAGE}" --service "${service}" --workbench "${PREFLIGHT_WORKBENCH}" --hub "${PREFLIGHT_HUB}" --summary "${GITHUB_STEP_SUMMARY}"
+      - name: Retain head acceptance alongside merge acceptance
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ci-merge-result-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ci-merge-receipt/ci-merge-receipt.json
+          if-no-files-found: error
+
       - name: Require every classified acceptance job
+        if: always()
         env:
           BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
           CANDIDATE_SHA: ${{ needs.preflight.outputs.candidate_sha }}

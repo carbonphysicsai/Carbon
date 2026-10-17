@@ -42,11 +42,13 @@ first run's measured timings showed 6 finish as fast with fewer runners).
    2026-10-03 and stays byte-for-byte as it is. A conflict in it (from a PR
    opened before this rule) keeps both sides, main's sections first; never
    drop, reorder or reword another session's section.
-3. **Do not merge main into a green PR without a real conflict.** Main does
-   not require up-to-date branches and CI tests the PR's own head, so main
-   moving is not a reason to re-merge. Merge main only when GitHub reports a
-   conflict or the PR needs something main now has, and then just before the
-   final push, after the repo's fast checks on the merge result.
+3. **Validate the exact integration pair (PLT-12).** CI tests both the exact
+   head and its clean merge with an exact main base. The receipt keeps both
+   results. Head or base movement requires re-validation; conflicts have no
+   head-only fallback. The intended strict main rule requires the branch to
+   be up to date at merge time. PR Head alone owns branch synchronization and
+   the resulting validation; other sessions report the changed base and stop
+   the affected handoff. This prospectively replaces the head-only exemption.
 4. **Merge the moment you are green.** The merge manager arms GitHub
    auto-merge on each queued PR, pinned to its head:
 
@@ -54,9 +56,10 @@ first run's measured timings showed 6 finish as fast with fewer runners).
    gh pr merge <N> --auto --merge --match-head-commit <sha>
    ```
 
-   GitHub merges it the moment its `Merge gate` passes. The ruleset makes that
-   check required on main for every head, so nothing untested merges even if
-   the branch moves. Arm independent PRs together; arm dependent ones one at a
+   GitHub may merge only after `Merge gate` passes and the strict base rule
+   permits the current pair. A newer base requires fresh validation. The
+   versioned rule must be applied and verified; its file is not live
+   enforcement. Arm independent PRs together; arm dependent ones one at a
    time, in order. Disarm with `gh pr merge <N> --disable-auto`. Without the
    live ruleset, never arm auto-merge: merge a green PR at once with
    `gh pr merge --merge --match-head-commit <sha>`. The sharded canonical job
@@ -95,4 +98,8 @@ first run's measured timings showed 6 finish as fast with fewer runners).
   - `Merge gate` is required on main, with no bypass actors;
   - main accepts only pull requests, merged with merge commits;
   - force-pushes and deletion of main are blocked;
-  - no human review is required, and branches need not be up to date.
+  - no human review is required; strict status checks guard the validated base.
+
+PLT-12 activation is an administrative change owned by PR Head/the owner.
+See [CI merge validation](CI_MERGE_VALIDATION.md). Until the strict rule has
+been applied and verified, the merge watcher refuses to authorize a merge.

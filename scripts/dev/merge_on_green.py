@@ -28,9 +28,14 @@ import argparse
 import json
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Any
+
+from ci_merge import MergeError, check_receipt, passed, strict_base_rule
 
 
 class Decision(Enum):
@@ -53,6 +58,9 @@ class PullRequestState:
     head_sha: str | None
     run_status: str | None = None
     run_conclusion: str | None = None
+    base_sha: str | None = None
+    receipt: dict[str, Any] | None = None
+    strict_base_rule: bool = False
 
 
 def decide(pinned_sha: str, observed: PullRequestState) -> tuple[Decision, str]:
@@ -66,6 +74,11 @@ def decide(pinned_sha: str, observed: PullRequestState) -> tuple[Decision, str]:
         return Decision.STOP, "already merged; nothing to wait for"
     if observed.state == "CLOSED":
         return Decision.STOP, "closed without merging; the wait cannot come true"
+    if observed.state != "OPEN":
+        return (
+            Decision.STOP,
+            "pull request state could not be confirmed open; no merge authority",
+        )
     if not observed.head_sha:
         return (
             Decision.STOP,
@@ -80,14 +93,50 @@ def decide(pinned_sha: str, observed: PullRequestState) -> tuple[Decision, str]:
         return Decision.STOP, moved
     if observed.run_status == "completed":
         if observed.run_conclusion == "success":
-            return Decision.MERGE, f"green on {pinned_sha[:12]}"
+            try:
+                receipt = check_receipt(observed.receipt)
+            except MergeError as error:
+                return Decision.STOP, f"no exact head/base/merge acceptance: {error}"
+            if receipt["head"]["sha"] != pinned_sha:
+                return (
+                    Decision.STOP,
+                    "receipt names another head; re-validation required",
+                )
+            if not observed.base_sha:
+                return (
+                    Decision.STOP,
+                    "main's current base could not be read; no merge authority",
+                )
+            if receipt["base"]["sha"] != observed.base_sha:
+                return Decision.STOP, "validated base changed; re-validation required"
+            if not passed(receipt):
+                return Decision.STOP, "head and merge acceptance are not both passed"
+            if not observed.strict_base_rule:
+                return (
+                    Decision.STOP,
+                    "strict main base rule is not confirmed active; an API read alone cannot close the merge race",
+                )
+            return (
+                Decision.MERGE,
+                f"green on head {pinned_sha[:12]} and base {observed.base_sha[:12]}",
+            )
         finished = (
             f"checks for {pinned_sha[:12]} completed as "
             f"{observed.run_conclusion or 'an unreported conclusion'}"
         )
+        if observed.receipt:
+            finished += "; " + str(observed.receipt.get("classification", "INCOMPLETE"))
         return Decision.STOP, finished
     if observed.run_status is None:
         return Decision.WAIT, f"no run has appeared yet for {pinned_sha[:12]}"
+    if observed.run_status not in {
+        "queued",
+        "in_progress",
+        "waiting",
+        "requested",
+        "pending",
+    }:
+        return Decision.STOP, "unrecognized CI run state; no merge authority"
     return (
         Decision.WAIT,
         f"checks for {pinned_sha[:12]} are {observed.run_status}",
@@ -107,32 +156,92 @@ def observe(pr: int, branch: str, pinned_sha: str) -> PullRequestState:
         payload = json.loads(view.stdout)
     except json.JSONDecodeError:
         return PullRequestState(state="UNREADABLE", head_sha=None)
+    if not isinstance(payload, dict):
+        return PullRequestState(state="UNREADABLE", head_sha=None)
+    if payload.get("state") != "OPEN" or payload.get("headRefOid") != pinned_sha:
+        return PullRequestState(
+            state=payload.get("state", "UNREADABLE"), head_sha=payload.get("headRefOid")
+        )
+    main_ref = _gh("api", "repos/{owner}/{repo}/git/ref/heads/main")
+    base = None
+    try:
+        if main_ref.returncode == 0:
+            base = json.loads(main_ref.stdout).get("object", {}).get("sha")
+    except (ValueError, AttributeError):
+        pass
 
     runs = _gh(
         "run",
         "list",
+        "--workflow",
+        "ci.yml",
         "--branch",
         branch,
         "--limit",
         "10",
         "--json",
-        "status,conclusion,headSha",
+        "status,conclusion,headSha,databaseId",
     )
-    status = conclusion = None
+    status = conclusion = run_id = None
     if runs.returncode == 0:
         try:
-            for run in json.loads(runs.stdout):
+            run_list = json.loads(runs.stdout)
+            for run in run_list if isinstance(run_list, list) else []:
+                if not isinstance(run, dict):
+                    continue
                 if run.get("headSha") == pinned_sha:
                     status = run.get("status")
                     conclusion = run.get("conclusion")
+                    run_id = run.get("databaseId")
                     break
         except json.JSONDecodeError:
             pass
+    receipt = None
+    strict = False
+    if status == "completed" and run_id:
+        detail = _gh("api", f"repos/{{owner}}/{{repo}}/actions/runs/{run_id}")
+        try:
+            metadata = json.loads(detail.stdout) if detail.returncode == 0 else {}
+            if not isinstance(metadata, dict):
+                raise MergeError("CI run metadata is not an object")
+            attempt = metadata.get("run_attempt")
+            if (
+                metadata.get("head_sha") == pinned_sha
+                and type(attempt) is int
+                and attempt > 0
+            ):
+                with tempfile.TemporaryDirectory(prefix="carbon-ci-merge-") as folder:
+                    artifact = _gh(
+                        "run",
+                        "download",
+                        str(run_id),
+                        "--name",
+                        f"ci-merge-result-{attempt}",
+                        "--dir",
+                        folder,
+                    )
+                    path = Path(folder) / "ci-merge-receipt.json"
+                    if (
+                        artifact.returncode == 0
+                        and path.is_file()
+                        and path.stat().st_size <= 1024 * 1024
+                    ):
+                        receipt = check_receipt(
+                            json.loads(path.read_text(encoding="utf-8"))
+                        )
+            rules = _gh("api", "repos/{owner}/{repo}/rules/branches/main")
+            if rules.returncode == 0:
+                strict = strict_base_rule(json.loads(rules.stdout))
+        except (OSError, ValueError, TypeError, MergeError):
+            receipt = None
     return PullRequestState(
         state=payload.get("state", "UNREADABLE"),
         head_sha=payload.get("headRefOid"),
         run_status=status,
         run_conclusion=conclusion,
+        base_sha=base,
+        receipt=receipt,
+        strict_base_rule=strict,
     )
 
 
