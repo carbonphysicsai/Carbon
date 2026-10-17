@@ -1,6 +1,7 @@
 """Synthetic-only binding tests for retained bundle models and shared scoring."""
 
 from copy import deepcopy
+from dataclasses import dataclass
 
 import pytest
 
@@ -61,6 +62,7 @@ def fixture():
         "bundle_digest": "sha256:toy-bundle",
         "recipe_digest": "sha256:toy-recipe",
         "state_digest": "sha256:toy-state",
+        "fixture_digest": "sha256:toy-inputs",
         "prediction_digest": "sha256:toy-predictions",
         "role_manifest_sha256": "sha256:toy-roles",
         "physics_contract": {
@@ -262,6 +264,93 @@ def test_registered_batch_two_is_one_measured_engineering_query():
     assert result["score_status"] == "PACK_NOT_READY"
 
 
+def test_saved_v2_worker_receipt_maps_to_one_measured_v3_query():
+    entry, receipt, job, serial, refs, _, _ = fixture()
+    body = deepcopy(serial)
+    body.pop("registration_digest")
+    body["schema"] = bench.SCHEMA_V3
+    body["output"].update({"size": 128, "shape": [2, 8, 8, 1]})
+    body["reference"]["evidence_kind"] = bench.ENGINEERING_REFERENCE
+    body["timing_profile"].update(
+        {"batch_size": 2, "query_unit": "complete_batch", "input_shape": [2, 8, 8, 1]}
+    )
+    registration = bench.register(body)
+    refs[0].update(
+        {
+            "outputs": [1.0] * 128,
+            "source": "MEASURED_ENGINEERING_REFERENCE_RUN",
+            "peak_memory_bytes": None,
+        }
+    )
+    predictions = [[[[1.1] for _ in range(8)] for _ in range(8)] for _ in range(2)]
+    prediction_bytes = bundle._canonical(predictions)[:-1]
+    inference = {
+        "recipe_digest": entry["recipe_digest"],
+        "state_digest": entry["state_digest"],
+        "predictions_digest": bundle._sha(prediction_bytes),
+        "predictions": predictions,
+        "worker_operation": "operation-" + "a" * 64,
+        "receipt": {
+            "schema": "carbon.development.bundle-inference.v2",
+            "recipe_digest": entry["recipe_digest"],
+            "state_digest": entry["state_digest"],
+            "inputs_digest": entry["fixture_digest"],
+            "predictions_digest": bundle._sha(prediction_bytes),
+            "measurement": {
+                "scope": "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE",
+                "timing_s": {
+                    "preprocess": 0.1,
+                    "inference": 1.7,
+                    "postprocess": 0.1,
+                    "export": 0.1,
+                },
+                "input_shape": [2, 8, 8, 1],
+                "input_dtype": "float32",
+                "output_shape": [2, 8, 8, 1],
+                "output_dtype": "float32",
+            },
+        },
+    }
+
+    @dataclass(frozen=True)
+    class WorkerResult:
+        recipe_digest: str
+        state_digest: str
+        predictions_digest: str
+        predictions: list
+        worker_operation: str
+        receipt: dict
+
+    measured = bundle.measurement_from_saved_inference(
+        entry, registration, WorkerResult(**inference), gates={"toy_gate": True}
+    )
+    assert measured["build_seconds"] is None
+    assert measured["cases"][0]["peak_memory_bytes"] is None
+    result = bundle.benchmark_saved_entry(
+        entry, receipt, job, registration, refs, measured
+    )
+    assert result["status"] == "BENCHMARK_REDUCED"
+    assert result["score_status"] == "PACK_NOT_READY"
+    assert result["benchmark"]["models"][0]["by_role"]["P"]["paired_speedup"] == 4.0
+
+    broken = deepcopy(inference)
+    broken["receipt"]["inputs_digest"] = "sha256:other-fixture"
+    with pytest.raises(bundle.BundleBenchmarkRefused, match="saved_inference_binding"):
+        bundle.measurement_from_saved_inference(
+            entry, registration, broken, gates={"toy_gate": True}
+        )
+    broken = deepcopy(inference)
+    broken["predictions"][0][0][0][0] = 9.0
+    with pytest.raises(bundle.BundleBenchmarkRefused, match="saved_prediction_digest"):
+        bundle.measurement_from_saved_inference(
+            entry, registration, broken, gates={"toy_gate": True}
+        )
+    with pytest.raises(bundle.BundleBenchmarkRefused, match="saved_inference_shape"):
+        bundle.measurement_from_saved_inference(
+            entry, registration, inference, gates={}
+        )
+
+
 def test_forged_custody_or_score_pack_is_refused():
     entry, receipt, job, registration, refs, measurement, pack = fixture()
     with pytest.raises(bundle.BundleBenchmarkRefused, match="custody_binding"):
@@ -279,6 +368,12 @@ def test_forged_custody_or_score_pack_is_refused():
 def test_v2_still_requires_numeric_memory_evidence():
     entry, receipt, job, registration, refs, measurement, pack = fixture()
     refs[0]["peak_memory_bytes"] = None
+    with pytest.raises(bench.BenchmarkRefused, match="nonfinite_measurement"):
+        bundle.benchmark_saved_entry(
+            entry, receipt, job, registration, refs, measurement, pack
+        )
+    refs[0]["peak_memory_bytes"] = 64
+    measurement["build_seconds"] = None
     with pytest.raises(bench.BenchmarkRefused, match="nonfinite_measurement"):
         bundle.benchmark_saved_entry(
             entry, receipt, job, registration, refs, measurement, pack

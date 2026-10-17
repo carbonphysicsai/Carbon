@@ -119,8 +119,10 @@ def test_v3_unmeasured_peak_memory_does_not_block_measured_accuracy_and_speed():
         row["peak_memory_bytes"] = None
     for row in model["cases"]:
         row["peak_memory_bytes"] = None
+    model["build_seconds"] = None
     result = bench.compare(registration, references, [model])
     p = result["models"][0]["by_role"]["P"]
+    assert result["models"][0]["build_seconds"] is None
     assert p["status"] == "MEASURED_DEVELOPMENT"
     assert p["mean_absolute_error"] == 0.0
     assert p["paired_speedup"] == pytest.approx(5.0)

@@ -10,6 +10,8 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
+from dataclasses import asdict, is_dataclass
 
 from carbon.scoring.solver_benchmark_v3 import register_pack
 from scripts.dev.score_lab import solver_benchmark
@@ -28,6 +30,7 @@ _ENTRY_BINDINGS = (
     "bundle_digest",
     "recipe_digest",
     "state_digest",
+    "fixture_digest",
     "prediction_digest",
     "role_manifest_sha256",
     "physics_contract",
@@ -225,6 +228,139 @@ def _measurement_model(measurement, entry, trusted_job, registration, physics):
         "physics_contract_digest": physics["definition_digest"],
         "build_seconds": measurement["build_seconds"],
         "cases": measurement["cases"],
+    }
+
+
+def _flat_tensor(value, shape):
+    if not shape:
+        if type(value) not in (int, float) or not math.isfinite(value):
+            raise BundleBenchmarkRefused("saved_prediction_nonfinite")
+        return [float(value)]
+    if type(value) is not list or len(value) != shape[0]:
+        raise BundleBenchmarkRefused("saved_prediction_shape")
+    return [number for item in value for number in _flat_tensor(item, shape[1:])]
+
+
+def measurement_from_saved_inference(
+    entry, registration, inference, *, gates, build_seconds=None
+):
+    """Map one trusted, measured v2 worker receipt to one v3 batch query.
+
+    The caller supplies Challenge-owned gate verdicts. This reducer verifies
+    worker output, measurement shape and custody digests; it does not infer
+    physical validity or estimate missing build and peak-memory telemetry.
+    """
+    if is_dataclass(inference) and not isinstance(inference, type):
+        inference = asdict(inference)
+    required = {
+        "recipe_digest",
+        "state_digest",
+        "predictions_digest",
+        "predictions",
+        "worker_operation",
+        "receipt",
+    }
+    if (
+        type(inference) is not dict
+        or set(inference) != required
+        or type(registration) is not dict
+        or registration.get("schema") != solver_benchmark.SCHEMA_V3
+        or len(registration.get("cases", [])) != 1
+        or type(entry) is not dict
+        or type(gates) is not dict
+        or set(gates) != set(registration["mandatory_gates"])
+        or any(type(passed) is not bool for passed in gates.values())
+        or type(inference["worker_operation"]) is not str
+        or re.fullmatch(r"operation-[0-9a-f]{64}", inference["worker_operation"])
+        is None
+    ):
+        raise BundleBenchmarkRefused("saved_inference_shape")
+    receipt = inference["receipt"]
+    if (
+        type(receipt) is not dict
+        or set(receipt)
+        != {
+            "schema",
+            "recipe_digest",
+            "state_digest",
+            "inputs_digest",
+            "predictions_digest",
+            "measurement",
+        }
+        or receipt["schema"] != "carbon.development.bundle-inference.v2"
+        or any(
+            inference[field] != entry.get(field) or receipt[field] != inference[field]
+            for field in ("recipe_digest", "state_digest")
+        )
+        or receipt["inputs_digest"] != entry.get("fixture_digest")
+        or receipt["predictions_digest"] != inference["predictions_digest"]
+    ):
+        raise BundleBenchmarkRefused("saved_inference_binding")
+    measured = receipt["measurement"]
+    if (
+        type(measured) is not dict
+        or set(measured)
+        != {
+            "scope",
+            "timing_s",
+            "input_shape",
+            "input_dtype",
+            "output_shape",
+            "output_dtype",
+        }
+        or measured["scope"]
+        != "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
+        or measured["input_shape"] != registration["timing_profile"]["input_shape"]
+        or measured["output_shape"] != registration["output"]["shape"]
+        or any(
+            type(measured[field]) is not str or not measured[field]
+            for field in ("input_dtype", "output_dtype")
+        )
+        or type(measured["timing_s"]) is not dict
+        or set(measured["timing_s"])
+        != {"preprocess", "export", "inference", "postprocess"}
+        or any(
+            type(value) not in (int, float) or not math.isfinite(value) or value < 0
+            for value in measured["timing_s"].values()
+        )
+        or math.fsum(measured["timing_s"].values()) <= 0
+    ):
+        raise BundleBenchmarkRefused("saved_inference_measurement")
+    try:
+        raw = json.dumps(
+            inference["predictions"], allow_nan=False, separators=(",", ":")
+        ).encode()
+    except (TypeError, ValueError, UnicodeEncodeError) as exc:
+        raise BundleBenchmarkRefused("saved_prediction_encoding") from exc
+    if _sha(raw) != receipt["predictions_digest"]:
+        raise BundleBenchmarkRefused("saved_prediction_digest")
+    outputs = _flat_tensor(inference["predictions"], measured["output_shape"])
+    if len(outputs) != registration["output"]["size"]:
+        raise BundleBenchmarkRefused("saved_prediction_shape")
+    return {
+        "schema": MEASUREMENT_SCHEMA,
+        "entry_id": entry["entry_id"],
+        "challenge": entry["challenge"],
+        "challenge_version": entry["challenge_version"],
+        "interface_digest": entry["interface_digest"],
+        "recipe_digest": entry["recipe_digest"],
+        "state_digest": entry["state_digest"],
+        "train_digest": entry["train_digest"],
+        "batch_size": registration["timing_profile"]["batch_size"],
+        "input_shape": measured["input_shape"],
+        "output_shape": measured["output_shape"],
+        "build_seconds": build_seconds,
+        "cases": [
+            {
+                "id": registration["cases"][0]["id"],
+                "status": "OK",
+                "source": "MEASURED_INFERENCE_RUN",
+                "outputs": outputs,
+                "gates": gates,
+                "timing_s": measured["timing_s"],
+                "peak_memory_bytes": None,
+            }
+        ],
     }
 
 

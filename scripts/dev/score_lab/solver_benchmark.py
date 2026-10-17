@@ -77,6 +77,13 @@ def _peak_memory(value, registration):
     return _number(value, nonnegative=True)
 
 
+def _build_seconds(value, registration):
+    """A v3 measured query need not claim an unmeasured prior build cost."""
+    if registration["schema"] == SCHEMA_V3 and value is None:
+        return None
+    return _number(value, nonnegative=True)
+
+
 def _derived(value):
     if type(value) not in (int, float):
         raise BenchmarkRefused("derived_nonfinite")
@@ -377,7 +384,7 @@ def compare(registration, references, models, *, score_pack=None):
         if model["physics_contract_digest"] != physics_identity["definition_digest"]:
             raise BenchmarkRefused("model_physics_contract_identity")
         seen.add(model["artifact_digest"])
-        build_seconds = _number(model["build_seconds"], nonnegative=True)
+        build_seconds = _build_seconds(model["build_seconds"], registration)
         measured = _case_map(model["cases"], roster, "model_case_roster")
         by_role = {}
         for role in sorted({c["role"] for c in registration["cases"]}):
