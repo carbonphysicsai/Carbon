@@ -146,6 +146,30 @@ Independent confirmation needs a preregistered disjoint physical/source/task
 unit with accepted reference applicability; if none exists, report only the
 same-bank diagnostic and do not claim confirmed score alignment.
 
+**Pairing with proposed Challenge briefs.** The [benchmark brief index](../../../Business/research/benchmark-challenge-briefs/README.md),
+its [CFD brief](../../../Business/research/benchmark-challenge-briefs/BACKWARD_FACING_STEP.md),
+[full-3D optics brief](../../../Business/research/benchmark-challenge-briefs/METAGRATING_3D.md),
+and `briefs.json` are `PROPOSED / NOT RUN`: they do not register P/Q/w,
+numeric buyer limits, novelty distances, acceptance bands, or spend. They
+suggest CFD first and original full-3D optics next; battery's exposed
+operational diagnostic is a separate development job, not transferable
+physics or reference adequacy for either brief.
+
+| Proposed job | Broad fidelity and native-unit limit readout | Verified picked-design value and realistic competitors | Reference boundary |
+| --- | --- | --- | --- |
+| 2D backward-facing-step recovery contour | Compare mass-flow-weighted total-pressure loss, bottom-wall `Cf`, wall `Cp`, reattachment `x/H`, and selected flow/turbulence profiles. Keep the loss definition/pressure unit and source-shifted `Cp` distinct. A prospective separation/recovery margin is `registered maximum x/H − observed x/H`; false-feasible means a predicted nonnegative margin but a negative reference margin, while false-infeasible reverses those sides. A buyer pressure-loss cap, geometric and manufacturing limits need their own registered observables and units. | After solver checking, report the feasible contour's pressure loss under each operating scenario. Compare equal-resource model screening with cached response maps/correlations, coarse-to-fine or adjoint/DoE SU2 search and direct solver search, charging construction, caching, retries and final verification. | NASA `x/H=6.26±0.10` and wall/profile data check the **published anchor**, not a buyer limit or novel-contour truth. Carbon's full SU2 deck, convergence/BC sensitivity, variant applicability, numeric limits and P/Q/w are not yet accepted. |
+| Full-3D periodic metagrating mask/thickness | Preserve x/y periodicity and full x/y/z Maxwell fields. Compare normalized desired transmitted `+1` order power, every propagating unwanted transmitted/reflected order, total `R/T`, energy residual and convergence. Prospective margins are `desired efficiency − registered minimum` and `registered unwanted/reflection cap − observed power`, all dimensionless; report false-feasible and false-infeasible separately for each. Fabrication feature/thickness/etch rules need registered observables before testing. | Verify the selected mask's feasible desired-order efficiency with full-3D Meep, against source-mask lookup, pattern libraries/response maps, converged S4 RCWA, direct RCWA or Meep optimization at measured equal total resources. | The source script's separate normalization run currently covers desired-order power, not all-order/energy reduction. Agreement on published masks does not validate novel masks, fabrication, or a 2D/effective-index substitute. Geometry, numerical adequacy, fabrication limits and P/Q/w remain unregistered. |
+
+For both, a physically valid reference output that breaches a buyer limit is a
+correct negative design case, not a physics failure. A missing or uncertain
+reference remains unresolved and cannot establish `NONE_FEASIBLE`. Start with
+one bounded question whose observable, reference applicability and cheap
+competitor can actually be checked; the briefs' 32/64/128-case and euro
+figures are planning assumptions, not a mandate for a full-grid run or spend.
+Retain original model bytes, lineage and native state; a saved fixture digest
+is not the separately staged inference-input digest. Preserve the old failed
+and exposed runs as versioned evidence rather than silently rescoring them.
+
 **One controlled experiment.** Freeze the task, action grammar, starts, seed,
 optimizer version, tie rule, query budget, condition panel and bank identity.
 Run each reconstructed model and each control through that same prediction-only
@@ -206,9 +230,10 @@ as a labelled same-bank diagnostic (no new solves), then at most one separately
 registered pilot on a disjoint physical/source/task unit under an explicit
 query/CPU/wall/spend cap and reference acceptance rule. Product/Root dispatch
 that pilot only after its cap and custody are registered. Research checks
-physical applicability;
-Test Lead/owner controls real bands, gate values, weights, stopping and score
-adoption. Until those inputs and accepted references exist, the real value
+physical applicability. The Challenge's scientific owner registers real
+limit bands, gates, buyer weights and any score adoption; the Test Lead
+coordinates registered execution, evidence masks and operational caps within
+that authority. Until those inputs and accepted references exist, the real value
 claim is `INSUFFICIENT_EVIDENCE`, while the fixture and exposed diagnostic can
 still identify concrete software or reference gaps.
 
