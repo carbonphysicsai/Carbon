@@ -73,6 +73,16 @@ class ChallengeCampaign:
     intake_code: Callable | None = None
     #: () -> validated public unified construction contract, or not offered.
     construction_contract: Callable | None = None
+    #: () -> prospective Challenge-owned construction kit and limits digest.
+    #: five-field direct recipe identity; None means this path is unserved.
+    construction_kit: Callable | None = None
+    #: Exact direct-recipe reconstruction operation. Absence means the new
+    #: public path is unserved even when a Challenge can describe its kit.
+    construction_reconstruct: Callable | None = None
+    #: () -> Challenge-owned public TRAIN, input and output material for the
+    #: shared isolated source-bundle worker. None means bundle practice is
+    #: unserved; this is a task adapter, never a backbone permission list.
+    construction_bundle_material: Callable | None = None
     #: (strategy, level binding) -> public, non-blocking construction notices.
     construction_notices: Callable | None = None
     #: (url) -> the validator intake's public facts, checked to serve this
@@ -204,6 +214,8 @@ def _battery_intake_outcome(code):
 
 def _battery():
     from carbon.battery import campaign as battery
+    from carbon.battery import construction_kit as battery_construction_kit
+    from carbon.battery import direct_graph_worker as battery_direct_graph_worker
     from carbon.battery import level4_parts as battery_level4
     from carbon.battery import multi_intake as battery_multi
     from carbon.battery import research_view as battery_view
@@ -228,6 +240,8 @@ def _battery():
         multi_feedback_status=battery_multi.STATUS_NAME,
         intake_code=battery.intake_code,
         construction_contract=battery_unified.contract,
+        construction_kit=battery_construction_kit.construction_kit,
+        construction_reconstruct=battery_direct_graph_worker.reconstruct_public,
         construction_notices=battery.construction_notices,
         intake_check=_battery_intake,
         intake_outcome=_battery_intake_outcome,

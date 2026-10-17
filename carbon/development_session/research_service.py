@@ -134,6 +134,201 @@ class Discovery:
         return self.manifest
 
 
+class DirectFixtureDiscovery:
+    """Public fixture facts on the shared service, with no task admission.
+
+    Reads the source bytes again at use, so a changed TRAIN, practice array,
+    physics document, or resource fact cannot silently retain its old identity.
+    This is discovery for synthetic development, not a qualified Challenge.
+    """
+
+    def __init__(self, material, *, task_admission=False):
+        if type(task_admission) is not bool:
+            raise TypeError("exact direct task admission selection required")
+        self._material = material
+        self._task_admission = task_admission
+        self.info, self.manifest = self._snapshot()
+
+    def _snapshot(self):
+        import numpy as np
+
+        from carbon.challenge_kit.synthetic_linear_field_2d import (
+            bundle_material,
+            bundle_material_v3,
+            bundle_material_v4,
+            bundle_material_v5,
+        )
+
+        material = self._material
+        if type(material) is not dict:
+            raise ValueError("direct public material must be a dictionary")
+        key, kit, train = (
+            material.get("challenge_key"),
+            material.get("construction_kit"),
+            material.get("train"),
+        )
+        if (
+            type(key) is not research.ChallengeKey
+            or type(kit) is not dict
+            or type(train) is not bytes
+            or kit.get("id") != key.challenge_id
+            or kit.get("version") != key.version
+            or kit.get("train_digest") != digest(train)
+            or kit.get("interface_digest")
+            != digest(canonical(material.get("interface_document")))
+            or kit.get("construction_limits_digest")
+            != digest(canonical(material.get("construction_limits_document")))
+            or material.get("physics_digest")
+            != digest(canonical(material.get("physics_contract")))
+        ):
+            raise ValueError("direct Challenge kit or fixed public TRAIN differs")
+        practice = material.get("practice_inputs")
+        reference = material.get("practice_reference")
+        train_ids = material.get("train_case_ids")
+        practice_ids = material.get("practice_case_ids")
+        if (
+            type(practice) is not np.ndarray
+            or type(reference) is not np.ndarray
+            or practice.dtype != np.float32
+            or reference.dtype != np.float32
+            or practice.shape != reference.shape
+            or practice.ndim < 2
+            or not np.isfinite(practice).all()
+            or not np.isfinite(reference).all()
+            or type(train_ids) is not tuple
+            or type(practice_ids) is not tuple
+            or len(practice_ids) != practice.shape[0]
+        ):
+            raise ValueError("direct public practice bytes or case IDs differ")
+        registered_material = {
+            "1.0": bundle_material,
+            "1.1": bundle_material_v3,
+            "1.2": bundle_material_v4,
+            "1.3": bundle_material_v5,
+        }.get(key.version)
+        if registered_material is None:
+            raise ValueError("direct public Challenge version is unregistered")
+        if self._task_admission and key.version not in ("1.1", "1.2", "1.3"):
+            raise ValueError("direct task admission requires prospective kit")
+        registered = registered_material()
+        if (
+            key != registered["challenge_key"]
+            or kit != registered["construction_kit"]
+            or train != registered["train"]
+            or material.get("allowlist_bytes") != registered["allowlist_bytes"]
+            or material.get("allowlist_digest") != registered["allowlist_digest"]
+            or train_ids != registered["train_case_ids"]
+            or practice_ids != registered["practice_case_ids"]
+            or not np.array_equal(material.get("example"), registered["example"])
+            or not np.array_equal(practice, registered["practice_inputs"])
+            or not np.array_equal(reference, registered["practice_reference"])
+            or material.get("expected_output_shape")
+            != registered["expected_output_shape"]
+            or any(
+                material.get(name) != registered[name]
+                for name in (
+                    "interface_document",
+                    "construction_limits_document",
+                    "physics_contract",
+                    "resource_facts",
+                    "disclosure",
+                )
+            )
+        ):
+            raise ValueError("direct public material differs from registered fixture")
+
+        def array_digest(array):
+            return digest(
+                canonical({"dtype": str(array.dtype), "shape": list(array.shape)})
+                + array.tobytes(order="C")
+            )
+
+        info = research.DirectChallengeInfo(
+            "3.0",
+            key,
+            key.challenge_id + "-train",
+            digest(train),
+            train_ids,
+            key.challenge_id + "-practice",
+            array_digest(practice),
+            array_digest(reference),
+            practice_ids,
+            kit["interface_digest"],
+            kit["construction_limits_digest"],
+            material["physics_digest"],
+            digest(canonical(material.get("resource_facts"))),
+            digest(canonical(material.get("disclosure"))),
+            research.DisclosureClass.PUBLIC_RESEARCH,
+        )
+        manifest = research.DirectRecipeManifest(
+            "3.0",
+            key,
+            research.canonical_digest(info),
+            digest(canonical(kit)),
+            info.public_train_digest,
+            info.practice_inputs_digest,
+            info.practice_reference_digest,
+            info.interface_digest,
+            info.construction_limits_digest,
+            info.physics_digest,
+            info.resource_facts_digest,
+            info.disclosure_digest,
+            (
+                research.DIRECT_RECIPE_SOURCE_TASK_OPERATIONS
+                if self._task_admission and key.version == "1.3"
+                else (
+                    research.DIRECT_RECIPE_TASK_OPERATIONS
+                    if self._task_admission
+                    else research.DIRECT_RECIPE_OPERATIONS
+                )
+            ),
+            research.PROTOCOL_LIMITS,
+        )
+        return info, manifest
+
+    def _checked(self, key):
+        info, manifest = self._snapshot()
+        if key != info.challenge_key or (info, manifest) != (
+            self.info,
+            self.manifest,
+        ):
+            raise ValueError("direct public material identity changed")
+        return info, manifest
+
+    def graph_adapter_for(self, key):
+        """Return the exact registered 1.3 graph adapter, or no capability.
+
+        The selector follows the existing full fixture recheck. A caller's
+        recipe or an unverified material flag cannot select an adapter.
+        """
+        if (
+            type(key) is not research.ChallengeKey
+            or key.version != "1.3"
+            or key != self.info.challenge_key
+        ):
+            return None
+        self._checked(key)
+        adapter = self._material["construction_limits_document"].get(
+            "graph_training_adapter"
+        )
+        expected = {
+            "schema": "carbon.synthetic-linear-field-2d.graph-training-adapter.v1",
+            "id": "synthetic-linear-field-2d-public-jax-graph-v1",
+            "source_kind": "graph",
+            "train_use_dataset": "synthetic-linear-field-2d-public-train",
+            "procedure_schema": "carbon.construction-recipe.v1",
+            "output_format": "carbon.numeric-graph.v1",
+            "state_schema": "carbon.development.graph-source-state.v1",
+        }
+        return expected["id"] if adapter == expected else None
+
+    def get_challenge_info(self, key):
+        return self._checked(key)[0]
+
+    def get_interaction_manifest(self, key):
+        return self._checked(key)[1]
+
+
 class NoPrior:
     def get_prior(self, request):
         raise KeyError("no registered public prior pack")

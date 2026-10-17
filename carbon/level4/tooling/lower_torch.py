@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import collections
 import math
+import operator
 
 from .. import graph
 
@@ -209,13 +210,265 @@ def _fft_scale(b, value, normalization, n, xla_scale):
     return b.emit("mul", [value, k], dtype, shape, out_dtype=None)
 
 
+def _native_layer_norm(b, node, env):
+    """Lower all three results of Core ATen layer norm from trusted metadata."""
+    target = str(node.target)
+    args = node.args
+    if len(args) != 5 or node.kwargs:
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    x_arg, normalized_shape, weight_arg, bias_arg, epsilon = args
+    if not hasattr(x_arg, "op") or not isinstance(normalized_shape, (list, tuple)):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    x = env[x_arg]
+    dtype, shape = b.avals[x]
+    if dtype not in ("float32", "float64"):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    if (
+        not normalized_shape
+        or any(type(d) is not int or d <= 0 for d in normalized_shape)
+        or list(normalized_shape) != shape[-len(normalized_shape) :]
+        or len(normalized_shape) > len(shape)
+        or type(epsilon) not in (int, float)
+        or not math.isfinite(epsilon)
+        or epsilon < 0
+    ):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    for affine in (weight_arg, bias_arg):
+        if affine is not None and (
+            not hasattr(affine, "op")
+            or b.avals[env[affine]] != (dtype, list(normalized_shape))
+        ):
+            raise graph.GraphRefused("aten_arguments_not_supported", target)
+    rank = len(shape)
+    axes = list(range(rank - len(normalized_shape), rank))
+    prefix = shape[: -len(normalized_shape)]
+    stats_shape = prefix + [1] * len(normalized_shape)
+    count = math.prod(normalized_shape)
+
+    def mean_of(value):
+        reduced = b.emit(
+            "reduce_sum", [value], dtype, prefix, axes=axes, out_sharding=None
+        )
+        reduced = b.emit(
+            "div",
+            [reduced, b.broadcast(b.scalar(count, dtype), prefix)],
+            dtype,
+            prefix,
+        )
+        return b.emit(
+            "reshape",
+            [reduced],
+            dtype,
+            stats_shape,
+            dimensions=None,
+            new_sizes=stats_shape,
+            sharding=None,
+        )
+
+    mean = mean_of(x)
+    centered = b.emit("sub", [x, b.broadcast(mean, shape)], dtype, shape)
+    squared = b.emit("integer_pow", [centered], dtype, shape, y=2)
+    variance = mean_of(squared)
+    variance = b.emit(
+        "add",
+        [variance, b.broadcast(b.scalar(epsilon, dtype), stats_shape)],
+        dtype,
+        stats_shape,
+    )
+    rstd = b.unary("rsqrt", variance, accuracy=None)
+    result = b.emit(
+        "mul", [centered, b.broadcast(rstd, shape)], dtype, shape, out_dtype=None
+    )
+    if weight_arg is not None:
+        result = b.emit(
+            "mul",
+            [result, b.broadcast(env[weight_arg], shape)],
+            dtype,
+            shape,
+            out_dtype=None,
+        )
+    if bias_arg is not None:
+        result = b.emit(
+            "add", [result, b.broadcast(env[bias_arg], shape)], dtype, shape
+        )
+    # Core ATen exposes mean and rstd for callers, but Torch's native op
+    # marks both auxiliary outputs nondifferentiable. Keep the internal
+    # statistics above on the differentiable path for the normalized result.
+    outputs = (
+        result,
+        b.unary("stop_gradient", mean),
+        b.unary("stop_gradient", rstd),
+    )
+    metadata = node.meta.get("val")
+    if not isinstance(metadata, (tuple, list)) or len(metadata) != 3:
+        raise graph.GraphRefused("aten_result_metadata_not_supported", target)
+    for output, meta in zip(outputs, metadata):
+        if b.avals[output] != (_dtype(meta.dtype), [int(d) for d in meta.shape]):
+            raise graph.GraphRefused("aten_result_metadata_not_supported", target)
+    return outputs
+
+
+def _softmax(b, node, env):
+    """Lower Core ATen softmax using the existing stable reduction primitives."""
+    target = str(node.target)
+    args = node.args
+    if (
+        len(args) != 3
+        or node.kwargs
+        or not hasattr(args[0], "op")
+        or type(args[1]) is not int
+        or type(args[2]) is not bool
+        or args[2]
+    ):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    x = env[args[0]]
+    dtype, shape = b.avals[x]
+    rank = len(shape)
+    dim = _norm(args[1], rank)
+    if (
+        dtype not in ("float32", "float64")
+        or rank == 0
+        or not 0 <= dim < rank
+        or any(size <= 0 for size in shape)
+    ):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    if _aval(node) != (dtype, shape):
+        raise graph.GraphRefused("aten_result_metadata_not_supported", target)
+
+    reduced_shape = shape[:dim] + shape[dim + 1 :]
+    kept_shape = shape[:dim] + [1] + shape[dim + 1 :]
+
+    def keep_dim(value):
+        return b.emit(
+            "reshape",
+            [value],
+            dtype,
+            kept_shape,
+            dimensions=None,
+            new_sizes=kept_shape,
+            sharding=None,
+        )
+
+    # The shift leaves softmax unchanged, so its derivative is identically
+    # irrelevant. Stop the input path before JAX's reduce_max primitive.
+    maximum = b.emit(
+        "reduce_max",
+        [b.unary("stop_gradient", x)],
+        dtype,
+        reduced_shape,
+        axes=[dim],
+        out_sharding=None,
+    )
+    shifted = b.emit("sub", [x, b.broadcast(keep_dim(maximum), shape)], dtype, shape)
+    exponentials = b.unary("exp", shifted, accuracy=None)
+    total = b.emit(
+        "reduce_sum",
+        [exponentials],
+        dtype,
+        reduced_shape,
+        axes=[dim],
+        out_sharding=None,
+    )
+    return b.emit(
+        "div", [exponentials, b.broadcast(keep_dim(total), shape)], dtype, shape
+    )
+
+
+def _sum_dim(b, node, env):
+    """Lower a static Core ATen dimensioned sum with its declared dtype."""
+    target = str(node.target)
+    args, kw = node.args, node.kwargs
+    if (
+        len(args) not in (2, 3)
+        or not hasattr(args[0], "op")
+        or (args[1] is not None and not isinstance(args[1], (list, tuple)))
+        or (args[1] is not None and any(type(axis) is not int for axis in args[1]))
+        or set(kw) - {"keepdim", "dtype"}
+        or (len(args) == 3 and "keepdim" in kw)
+    ):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    keepdim = args[2] if len(args) == 3 else kw.get("keepdim", False)
+    if type(keepdim) is not bool:
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    x = env[args[0]]
+    input_dtype, shape = b.avals[x]
+    output_dtype = (
+        input_dtype if kw.get("dtype") is None else _DTYPES.get(str(kw["dtype"]))
+    )
+    rank = len(shape)
+    requested_axes = args[1]
+    if requested_axes is None or not requested_axes:
+        axes = list(range(rank))
+    else:
+        # Torch treats a scalar as logical rank one for axis validation,
+        # while its result remains a scalar even with keepdim=True.
+        axes = [_norm(axis, rank or 1) for axis in requested_axes]
+    if (
+        input_dtype not in ("float32", "float64")
+        or output_dtype not in ("float32", "float64")
+        or any(not 0 <= axis < (rank or 1) for axis in axes)
+        or len(set(axes)) != len(axes)
+    ):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    axes.sort()
+    reduced_shape = [size for axis, size in enumerate(shape) if axis not in axes]
+    expected_shape = (
+        [1 if axis in axes else size for axis, size in enumerate(shape)]
+        if keepdim
+        else reduced_shape
+    )
+    if _aval(node) != (output_dtype, expected_shape):
+        raise graph.GraphRefused("aten_result_metadata_not_supported", target)
+    if rank == 0:
+        return b.to(x, output_dtype)
+    reduced = b.emit(
+        "reduce_sum",
+        [b.to(x, output_dtype)],
+        output_dtype,
+        reduced_shape,
+        axes=axes,
+        out_sharding=None,
+    )
+    if not keepdim:
+        return reduced
+    return b.emit(
+        "reshape",
+        [reduced],
+        output_dtype,
+        expected_shape,
+        dimensions=None,
+        new_sizes=expected_shape,
+        sharding=None,
+    )
+
+
 def _emit(b, node, env):
     """The Carbon value for one Core ATen call, or `GraphRefused`."""
     target = str(node.target)
     args, kw = node.args, node.kwargs
+    if node.target is operator.getitem:
+        if (
+            len(args) != 2
+            or kw
+            or not hasattr(args[0], "op")
+            or not isinstance(env.get(args[0]), tuple)
+            or type(args[1]) is not int
+            or args[1] not in (0, 1, 2)
+        ):
+            raise graph.GraphRefused("aten_tuple_index_not_supported", target)
+        selected = env[args[0]][args[1]]
+        if b.avals[selected] != _aval(node):
+            raise graph.GraphRefused("aten_result_metadata_not_supported", target)
+        return selected
     entry = b.allowlist.aten.get(target)
     if entry is None or entry["default"] == "refuse":
         raise graph.GraphRefused("aten_op_not_allowlisted", target)
+    if target == "aten.native_layer_norm.default":
+        return _native_layer_norm(b, node, env)
+    if target == "aten._softmax.default":
+        return _softmax(b, node, env)
+    if target == "aten.sum.dim_IntList":
+        return _sum_dim(b, node, env)
     dtype, shape = (
         _aval(node)
         if "val" in node.meta and node.meta["val"] is not None

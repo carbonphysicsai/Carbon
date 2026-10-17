@@ -209,6 +209,71 @@ class ResearchImageIdentity:
     runtime_digest: str
 
 
+@dataclass(frozen=True)
+class LibraryWorkerImage:
+    """A provisioned library child and its separately pinned C-03 parent.
+
+    This is a dispatch identity, not a conversion to ResearchImageIdentity.
+    The public recipe reference is checked against the provisioner result at
+    use, before the child can enter the bounded research carrier.
+    """
+
+    provisioned: object
+    parent: object
+    bundle_ref: dict
+
+    @property
+    def image_id(self):
+        return self.provisioned.image_id
+
+
+def verify_library_worker_image(image, cli=None):
+    """Check a distinct offline library child immediately before dispatch."""
+    from carbon.reconstruction.worker.docker_runtime import WorkerImageIdentity
+
+    from .library_bundles import LibraryBundleRef, ProvisionedLibraryEnvironment
+
+    if (
+        type(image) is not LibraryWorkerImage
+        or type(image.provisioned) is not ProvisionedLibraryEnvironment
+        or type(image.parent) is not WorkerImageIdentity
+        or image.provisioned.bundle
+        != LibraryBundleRef.from_dict(image.bundle_ref)
+        or image.provisioned.bundle.language != "python"
+        or image.provisioned.parent_image != image.parent.image_id
+    ):
+        raise ValueError("library worker identity differs")
+    cli = cli or DockerCLI()
+    if not doctor(
+        image_id=image.parent.image_id, image_identity=image.parent, cli=cli
+    ).eligible:
+        raise ValueError("pinned library parent ineligible")
+    child = cli.json(
+        ["image", "inspect", image.image_id, "--format", "{{json .}}"]
+    )
+    parent = cli.json(
+        ["image", "inspect", image.parent.image_id, "--format", "{{json .}}"]
+    )
+    config = child.get("Config", {})
+    labels = config.get("Labels") or {}
+    layers = parent.get("RootFS", {}).get("Layers", [])
+    if (
+        child.get("Id") != image.image_id
+        or child.get("Os") != "linux"
+        or child.get("Architecture") != "amd64"
+        or config.get("User") != "65532:65532"
+        or config.get("Entrypoint") != parent.get("Config", {}).get("Entrypoint")
+        or labels.get("org.opencontainers.image.carbon.development.library-bundle")
+        != image.provisioned.bundle.bundle_digest
+        or labels.get("org.opencontainers.image.carbon.development.parent")
+        != image.parent.image_id
+        or not layers
+        or child.get("RootFS", {}).get("Layers", [])[: len(layers)] != layers
+    ):
+        raise ValueError("library worker child binding differs")
+    return image
+
+
 def verify_image(image, cli=None):
     if type(image) is not ResearchImageIdentity:
         raise ValueError("separate miner analysis image required")

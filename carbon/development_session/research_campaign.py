@@ -1270,20 +1270,85 @@ async def freeze_candidate(
     refusal = freeze_refusal(ledger.root, strategy)
     if refusal is not None:
         raise OperationRefused(refusal)
-    found = cl.binding(prepared.manifest)
-    try:
-        compiled, envelope = cl.check_freeze(found, strategy, level4_directory)
-    except cl.LevelRefused as refused:
-        raise OperationRefused(refused.code) from None
+    if type(reason) is not str or not 1 <= len(reason) <= 4096:
+        raise ValueError("a bounded selection reason is required")
+    if type(used_feedback) is not bool:
+        raise ValueError("used_feedback is a Boolean")
+    direct = prepared.manifest.get("construction_mode") == "direct"
+    if direct:
+        from .construction_recipe import (
+            RecipeRefused,
+            bind_recipe,
+            graph_envelope_from_workspace,
+        )
+
+        if level4_directory is not None:
+            raise OperationRefused("construction_source_from_workspace_required")
+        campaign = prepared.campaign
+        if not callable(
+            getattr(campaign, "construction_reconstruct", None)
+        ) or not callable(getattr(campaign, "construction_kit", None)):
+            raise OperationRefused("construction_reconstruction_unserved")
+        try:
+            kit = campaign.construction_kit()
+            recipe = bind_recipe(
+                strategy,
+                challenge_id=kit["id"],
+                challenge_version=kit["version"],
+                train_digest=kit["train_digest"],
+                interface_digest=kit["interface_digest"],
+                construction_limits_digest=kit["construction_limits_digest"],
+            )
+            source = recipe.to_dict()["source"]
+            if source["kind"] == "graph":
+                envelope = graph_envelope_from_workspace(ledger, owner, recipe)
+            elif callable(getattr(campaign, "construction_bundle_material", None)):
+                envelope = None
+            else:
+                raise RecipeRefused("construction_reconstruction_unserved")
+        except RecipeRefused as refused:
+            raise OperationRefused(refused.code) from None
+        record = {
+            "schema": (
+                "carbon.direct-selected-recipe.v1"
+                if source["kind"] == "graph"
+                else "carbon.direct-selected-recipe.v2"
+            ),
+            "status": "SELECTED",
+            "strategy": recipe.to_dict(),
+            "reason": reason,
+            "used_feedback": used_feedback,
+            "strategy_hash": recipe.digest,
+            "construction_recipe_digest": recipe.digest,
+            "construction_source_digest": (
+                source["submission_digest"]
+                if source["kind"] == "graph"
+                else source["bundle_ref"]["bundle_digest"]
+            ),
+            "construction_limits_digest": kit["construction_limits_digest"],
+            "train_digest": kit["train_digest"],
+            "interface_digest": kit["interface_digest"],
+            "final_evidence": False,
+        }
+        if envelope is not None:
+            record["source_envelope_digest"] = digest(envelope)
+    else:
+        found = cl.binding(prepared.manifest)
+        try:
+            compiled, envelope = cl.check_freeze(found, strategy, level4_directory)
+        except cl.LevelRefused as refused:
+            raise OperationRefused(refused.code) from None
+        record = (
+            candidate_record(strategy, reason, used_feedback)
+            if found is None
+            else cl.candidate_record(found, strategy, reason, used_feedback, compiled)
+        )
     epoch = _open_epoch(prepared)
-    record = (
-        candidate_record(strategy, reason, used_feedback)
-        if found is None
-        else cl.candidate_record(found, strategy, reason, used_feedback, compiled)
-    )
     ledger.checkpoint()
     folder = _epoch_paths(ledger, epoch)
-    if envelope is not None:
+    if direct and envelope is not None:
+        write_once(folder / "direct-source-envelope.json", envelope)
+    elif envelope is not None:
         cl.write_envelope(folder, envelope)
     write_once(folder / "selected-recipe.json", canonical(record))
     write_once(
@@ -1326,6 +1391,11 @@ async def practice_recipe(
 
     try:
         mode = smoke.mode_of(mode)
+        if (
+            prepared.manifest.get("construction_mode") == "direct"
+            and mode == smoke.SMOKE
+        ):
+            raise OperationRefused("smoke_practice_unavailable")
         if mode == smoke.SMOKE:
             smoke.hook_of(prepared.campaign)
     except smoke.SmokeUnavailable as refused:

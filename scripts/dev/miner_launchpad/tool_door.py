@@ -200,6 +200,121 @@ class ToolDoor:
         return {"ok": True, "task": projected}
 
 
+def _direct_task_projection(view, public_result=None):
+    """Browser-readable progress from the direct provider's public view."""
+    if type(view) is not dict or type(view.get("task_id")) is not dict:
+        return None
+    identity = view["task_id"].get("value")
+    state = view.get("state")
+    if type(identity) is not str or type(state) is not str:
+        return None
+    status = (
+        "working"
+        if state in {"QUEUED", "RUNNING", "CANCEL_REQUESTED"}
+        else (
+            "completed"
+            if state == "SUCCEEDED"
+            else "cancelled" if state == "CANCELLED" else "failed"
+        )
+    )
+    return {
+        "taskId": identity,
+        "status": status,
+        "statusMessage": state,
+        "result": public_result,
+        "official_eligible": False,
+    }
+
+
+class DirectToolDoor:
+    """One local page session on an explicitly supplied direct-v3 adapter."""
+
+    def __init__(self, adapter):
+        from carbon.development_session.research_tools import (
+            DIRECT_PREFIX,
+            DirectResearchMinerTools,
+        )
+        from carbon.miner_mcp.standard_server import _create_direct_server
+
+        if type(adapter) is not DirectResearchMinerTools:
+            raise TypeError("trusted direct DEVELOPMENT adapter required")
+        self.adapter = adapter
+        self.prefix = DIRECT_PREFIX
+        self.server = _create_direct_server(adapter)
+        self.tools = dict(self.server._tool_manager._tools)
+
+    def describe(self):
+        return {
+            "tools": [
+                {
+                    "name": name,
+                    "operation": name.removeprefix(self.prefix),
+                    "description": tool.description,
+                    "input_schema": tool.parameters,
+                }
+                for name, tool in sorted(self.tools.items())
+            ],
+            "workspace": [],
+            "run_julia_available": False,
+            "gpu_lane": None,
+            "development_only": True,
+            "challenge": {
+                "id": self.adapter.challenge.challenge_id,
+                "version": self.adapter.challenge.version,
+            },
+            "official_eligible": False,
+        }
+
+    async def call(self, name, arguments):
+        from mcp.server.mcpserver.exceptions import ToolError
+
+        from scripts.dev.miner_launchpad.controller import Rejected
+
+        tool = self.tools.get(name)
+        if tool is None:
+            raise Rejected("tool_unknown", 404)
+        if type(arguments) is not dict:
+            raise Rejected("tool_arguments_object_required")
+        try:
+            value = await tool.run(arguments, None)
+        except ToolError as refused:
+            return {"ok": False, "error": str(refused)[:2000]}
+        except Exception:  # noqa: BLE001 - never expose trusted controls
+            return {"ok": False, "error": "DIRECT_OPERATIONAL_STOP"}
+        return {"ok": True, "result": value.model_dump(mode="json")}
+
+    async def start(self, arguments):
+        if type(arguments) is not dict:
+            return {"ok": False, "error": "INVALID_ARGUMENTS"}
+        result = await self.call(self.prefix + "start_research_task", arguments)
+        if not result["ok"]:
+            return result
+        value = result["result"]
+        task = _direct_task_projection(value["task"], value["public_result"])
+        return {
+            "ok": True,
+            "task": task,
+            "result": value,
+            "operation_id": value["operation_id"],
+        }
+
+    async def observe(self, task_id, *, cancel=False):
+        if type(task_id) is not str:
+            return {"ok": False, "error": "INVALID_ARGUMENTS"}
+        name = "cancel_research_task" if cancel else "get_research_result"
+        result = await self.call(self.prefix + name, {"task_id": task_id})
+        if not result["ok"]:
+            return result
+        value = result["result"]
+        task = _direct_task_projection(value["task"], value["public_result"])
+        if task is None or task["taskId"] != task_id:
+            return {
+                "ok": False,
+                "error": "Task unavailable; reconcile through the operator",
+            }
+        return {"ok": True, "task": task, "result": value}
+
+
 def _refusal(exc):
     from carbon.miner_mcp import serving
 
@@ -234,7 +349,15 @@ class _Session:
         stack = contextlib.AsyncExitStack()
         try:
             adapter = await stack.enter_async_context(manager)
-            door = ToolDoor(adapter)
+            from carbon.development_session.research_tools import (
+                DirectResearchMinerTools,
+            )
+
+            door = (
+                DirectToolDoor(adapter)
+                if type(adapter) is DirectResearchMinerTools
+                else ToolDoor(adapter)
+            )
         except BaseException:
             await stack.aclose()
             raise
@@ -303,7 +426,11 @@ class ToolSessions:
                 **session.door.describe(),
                 "tasks": list(session.tasks),
                 "holds": (
-                    "This page holds the campaign while the tools are open: "
+                    "This page holds the local DEVELOPMENT construction session "
+                    "while the tools are open. Your MCP agent can use it after "
+                    "you close this page's tools."
+                    if campaign == DIRECT_DEVELOPMENT_SESSION
+                    else "This page holds the campaign while the tools are open: "
                     "your agent's carbon_attach_campaign, practice, freeze "
                     "and submit answer campaign_busy until you close them."
                 ),
@@ -400,6 +527,7 @@ class ToolSessions:
 
 
 ACTIONS = ("state", "open", "close", "call", "start", "observe", "cancel")
+DIRECT_DEVELOPMENT_SESSION = "direct-development"
 
 
 def route(host, campaign, action, value):
@@ -417,7 +545,10 @@ def route(host, campaign, action, value):
         raise Rejected("tools_unavailable", 409)
     if action not in ACTIONS:
         raise Rejected("unknown_tools_action", 404)
-    row = host.owned_campaign(campaign)
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    direct = campaign == DIRECT_DEVELOPMENT_SESSION and type(host) is RunnerAdapter
+    row = None if direct else host.owned_campaign(campaign)
     if action == "state":
         return {"campaign": campaign, **sessions.state(campaign)}
     if action == "close":
@@ -427,6 +558,10 @@ def route(host, campaign, action, value):
     if action == "open":
         if value != {}:
             raise Rejected("control_body_must_be_empty_object")
+        if direct:
+            if host.configuration is None:
+                raise Rejected("research_profile_unavailable", 409)
+            return {"campaign": campaign, **sessions.open(campaign)}
         if row.get("kind") == "fixture":
             # The demo's synthetic session (RSURF-D18): no profile, chain or
             # lock exists to check, and it runs nothing.
@@ -456,7 +591,24 @@ def runner_opener(host):
 
     @contextlib.asynccontextmanager
     async def opener(campaign):
-        from carbon.miner_mcp.standard_cli import attached
+        from carbon.miner_mcp.standard_cli import (
+            attached,
+            attached_installed_direct_development,
+        )
+
+        if campaign == DIRECT_DEVELOPMENT_SESSION:
+            if host.configuration is None:
+                raise RuntimeError("no runner profile")
+            from scripts.dev.miner_launchpad.controller import LockHeld
+
+            try:
+                async with attached_installed_direct_development(
+                    Path(host.configuration)
+                ) as (adapter, _selected):
+                    yield adapter
+            except LockHeld:
+                raise Busy() from None
+            return
 
         row = host.owned_campaign(campaign)
         if host.configuration is None:

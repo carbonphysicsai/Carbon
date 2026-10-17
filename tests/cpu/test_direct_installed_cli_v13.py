@@ -1,0 +1,321 @@
+"""Installed direct CLI keeps old kits while routing prospective v1.3."""
+
+from __future__ import annotations
+
+import asyncio
+import contextlib
+import json
+from dataclasses import asdict
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+from carbon.challenge_kit import synthetic_linear_field_2d as kit
+from carbon.development_session.research_ledger import CampaignLedger
+from carbon.miner_mcp import standard_cli as cli
+from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+
+def test_registered_kit_selection_preserves_old_material(monkeypatch):
+    prospective = lambda: {"challenge_key": "prospective-test-only"}
+    monkeypatch.setattr(kit, "bundle_material_v5", prospective, raising=False)
+    assert cli._direct_material("1.1") is kit.bundle_material_v3
+    assert cli._direct_material("1.2") is kit.bundle_material_v4
+    assert cli._direct_material("1.3") is prospective
+    for unknown in ("1.4", "", [], None):
+        with pytest.raises(cli.AttachRefused) as refused:
+            cli._direct_material(unknown)
+        assert refused.value.code == "direct_development_kit_unavailable"
+
+
+def test_missing_prospective_material_fails_closed_without_affecting_old_kits(
+    monkeypatch,
+):
+    monkeypatch.delattr(kit, "bundle_material_v5", raising=False)
+    assert cli._direct_material("1.1") is kit.bundle_material_v3
+    assert cli._direct_material("1.2") is kit.bundle_material_v4
+    with pytest.raises(cli.AttachRefused) as refused:
+        cli._direct_material("1.3")
+    assert refused.value.code == "direct_development_kit_unavailable"
+
+
+def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
+    monkeypatch, tmp_path
+):
+    from carbon.chain import external_signer
+    from carbon.development_session import (
+        gpu_practice,
+        miner_network,
+        research_campaign,
+        research_image,
+    )
+    from carbon.reconstruction.worker import docker_runtime
+    from scripts.dev.miner_launchpad import runner
+
+    digest = "sha256:" + "a" * 64
+    parent = SimpleNamespace(image_id=digest)
+    analysis = SimpleNamespace(parent_image=digest)
+    signer = SimpleNamespace(ss58_address="owner")
+    base = tmp_path / "campaigns"
+    base.mkdir()
+    public = tmp_path / "public.json"
+    public.write_text(json.dumps({"netuid": cli.CARBON_NETUID, "hotkey": "owner"}))
+    paths = {
+        "image_manifest": str(tmp_path / "image.json"),
+        "analysis_image_manifest": str(tmp_path / "analysis.json"),
+        "miner_public": str(public),
+    }
+    cfg = {
+        "enabled": True,
+        "campaigns_root": str(base),
+        "paths": paths,
+        "accepted_revision": "a" * 40,
+        "gpu_image": str(tmp_path / "gpu-image.json"),
+        "principal": "owner",
+    }
+    monkeypatch.setattr(
+        kit, "bundle_material_v5", lambda: {"challenge_key": "v13"}, raising=False
+    )
+    monkeypatch.setattr(cli, "private_json", lambda _path: cfg)
+    monkeypatch.setattr(runner, "validated_profile", lambda value: value)
+    monkeypatch.setattr(
+        research_campaign, "accepted_implementation", lambda _rev: object()
+    )
+    monkeypatch.setattr(research_campaign, "private_file", lambda path: path)
+    monkeypatch.setattr(research_campaign, "verify_current_worker", lambda *_args: None)
+    monkeypatch.setattr(research_image, "load_analysis_image", lambda _path: analysis)
+    monkeypatch.setattr(research_image, "verify_image", lambda _image: None)
+    monkeypatch.setattr(docker_runtime, "load_image_identity", lambda _path: parent)
+    monkeypatch.setattr(
+        docker_runtime,
+        "doctor",
+        lambda **_kwargs: SimpleNamespace(eligible=True),
+    )
+    monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _parent: "jax")
+    monkeypatch.setattr(
+        miner_network,
+        "binding",
+        lambda **_kwargs: SimpleNamespace(
+            netuid=cli.CARBON_NETUID,
+            context=object(),
+            publisher_hotkey="publisher",
+        ),
+    )
+    monkeypatch.setattr(external_signer, "miner_signer", lambda *_args: signer)
+
+    source = cli.load_direct_installed_source(tmp_path / "profile.json", version="1.3")
+    assert source.root == base / ".direct-development" / "kit-1.3" / ("a" * 64)
+    assert source.cache_root == base / ".direct-development" / "library-cache"
+    assert source.version == "1.3"
+    assert source.parent is parent
+    assert source.signer is signer
+
+
+@pytest.mark.parametrize(("requested", "expected"), [(None, "1.2"), ("1.3", "1.3")])
+def test_cli_serves_selected_kit_through_existing_installed_path(
+    monkeypatch, requested, expected
+):
+    seen = []
+
+    async def serve(configuration, *, version="1.2"):
+        seen.append((configuration, version))
+
+    monkeypatch.setattr(cli, "serve_installed_direct_development", serve)
+    arguments = ["--configuration", "operator.json", "--direct-development"]
+    if requested is not None:
+        arguments.extend(("--direct-version", requested))
+    assert cli.main(arguments) == 0
+    assert seen == [(Path("operator.json"), expected)]
+
+
+def test_unknown_cli_kit_refuses_before_serving(monkeypatch, capsys):
+    async def unexpected(*_args, **_kwargs):
+        pytest.fail("unknown kit must not serve")
+
+    monkeypatch.setattr(cli, "serve_installed_direct_development", unexpected)
+    assert (
+        cli.main(
+            [
+                "--configuration",
+                "operator.json",
+                "--direct-development",
+                "--direct-version",
+                "1.4",
+            ]
+        )
+        == 2
+    )
+    assert "direct_development_kit_unavailable" in capsys.readouterr().err
+
+
+def test_cleanup_option_reconciles_all_versions(monkeypatch, capsys):
+    calls = []
+
+    async def cleanup(configuration):
+        calls.append(configuration)
+        return {"status": "DIRECT_CLEANUP_COMPLETE", "retained_tasks_checked": 0}
+
+    monkeypatch.setattr(cli, "cleanup_installed_direct_development", cleanup)
+    assert (
+        cli.main(
+            [
+                "--configuration",
+                "operator.json",
+                "--direct-development",
+                "--direct-version",
+                "1.3",
+                "--cleanup-only",
+            ]
+        )
+        == 0
+    )
+    assert calls == [Path("operator.json")]
+    assert "DIRECT_CLEANUP_COMPLETE" in capsys.readouterr().out
+    assert cli.DIRECT_KIT_VERSIONS == ("1.1", "1.2", "1.3")
+
+
+def test_cleanup_reads_legacy_and_graph_parent_image_rows():
+    digest = "sha256:" + "a" * 64
+    parent = WorkerImageIdentity(
+        image_id=digest,
+        config_digest=digest,
+        source_tree_digest=digest,
+        wheel_digest=digest,
+        lock_digest=digest,
+        base_image_digest=digest,
+        build_recipe_digest=digest,
+        entrypoint_digest=digest,
+    )
+    legacy = json.dumps([digest, asdict(parent), "bundle-ref", digest])
+    graph = json.dumps(["GRAPH_PARENT", asdict(parent)])
+    assert cli._retained_direct_parent(legacy, digest) == parent
+    assert cli._retained_direct_parent(graph, digest) == parent
+    for row in (
+        json.dumps(["GRAPH_PARENT", asdict(parent), "extra"]),
+        json.dumps(["UNKNOWN_PARENT", asdict(parent)]),
+    ):
+        with pytest.raises(ValueError):
+            cli._retained_direct_parent(row, digest)
+    with pytest.raises(ValueError):
+        cli._retained_direct_parent(graph, "sha256:" + "b" * 64)
+
+
+def test_cleanup_visits_retained_v13_kit(monkeypatch, tmp_path):
+    from carbon.chain import external_signer
+    from carbon.development_session import direct_research_composition as composition
+    from carbon.development_session import miner_network, research_campaign
+    from scripts.dev.miner_launchpad import runner
+
+    base = tmp_path / "campaigns"
+    (base / ".direct-development" / "kit-1.3").mkdir(parents=True)
+    public = tmp_path / "miner-public.json"
+    public.write_text(json.dumps({"netuid": cli.CARBON_NETUID, "hotkey": "owner"}))
+    config = tmp_path / "profile.json"
+    cfg = {
+        "campaigns_root": str(base),
+        "principal": "owner",
+        "paths": {"miner_public": str(public)},
+    }
+    monkeypatch.setattr(cli, "private_json", lambda _path: cfg)
+    monkeypatch.setattr(runner, "validated_profile", lambda value: value)
+    monkeypatch.setattr(research_campaign, "private_file", lambda path: path)
+    monkeypatch.setattr(
+        miner_network,
+        "binding",
+        lambda **_kwargs: SimpleNamespace(
+            netuid=cli.CARBON_NETUID,
+            context=object(),
+            publisher_hotkey="publisher",
+        ),
+    )
+    monkeypatch.setattr(external_signer, "miner_signer", lambda *_args: object())
+    monkeypatch.setattr(
+        kit, "bundle_material_v5", lambda: {"challenge_key": "v13"}, raising=False
+    )
+    seen = []
+
+    class Connection:
+        def __init__(self, **kwargs):
+            seen.append(kwargs["version"])
+            self.challenge = "v13"
+
+    monkeypatch.setattr(composition, "DirectDevelopmentConnection", Connection)
+
+    async def requester(_connection, *, challenge):
+        assert challenge == "v13"
+        return "owner"
+
+    monkeypatch.setattr(cli, "_requester", requester)
+    result = asyncio.run(cli.cleanup_installed_direct_development(config))
+    assert result == {"status": "DIRECT_CLEANUP_COMPLETE", "retained_tasks_checked": 0}
+    assert seen == ["1.3"]
+
+
+def test_attached_v13_uses_same_owner_check_and_composition(monkeypatch, tmp_path):
+    from carbon.development_session import direct_research_composition as composition
+    from scripts.dev.miner_launchpad import controller
+
+    challenge = "prospective-test-only"
+    monkeypatch.setattr(
+        kit, "bundle_material_v5", lambda: {"challenge_key": challenge}, raising=False
+    )
+    monkeypatch.setattr(
+        controller, "owner_lock", lambda _root: contextlib.nullcontext()
+    )
+
+    async def requester(_connection, *, challenge):
+        assert challenge == "prospective-test-only"
+        return "owner-hotkey"
+
+    monkeypatch.setattr(cli, "_requester", requester)
+    seen = []
+
+    def compose(**kwargs):
+        seen.append(kwargs)
+        tasks = SimpleNamespace(close=lambda: None)
+        return SimpleNamespace(tasks=tasks), object()
+
+    monkeypatch.setattr(composition, "compose_synthetic_direct_development", compose)
+
+    class Adapter:
+        def __init__(self, **kwargs):
+            self.arguments = kwargs
+
+        async def shutdown_tasks(self):
+            pass
+
+    monkeypatch.setattr(cli, "DirectResearchMinerTools", Adapter)
+    root = tmp_path / "kit-1.3" / ("a" * 64)
+    root.mkdir(parents=True)
+    ledger = CampaignLedger(root / "ledger")
+    connection = SimpleNamespace(service=SimpleNamespace(gateway=object()))
+    attachment = cli.DirectDevelopmentAttachment(
+        root=root,
+        version="1.3",
+        owner="owner-hotkey",
+        connection=connection,
+        ledger=ledger,
+        image=None,
+        inference_image=object(),
+    )
+
+    async def attach():
+        async with cli.attached_direct_development(attachment) as (adapter, selected):
+            assert selected is attachment
+            assert adapter.arguments["owner"] == "owner-hotkey"
+
+    asyncio.run(attach())
+    assert len(seen) == 1
+    assert seen[0]["version"] == "1.3"
+    assert seen[0]["root"] == root / "direct-tasks"
+    assert seen[0]["owner"] == "owner-hotkey"
+
+    async def wrong_requester(_connection, *, challenge):
+        return "another-owner"
+
+    monkeypatch.setattr(cli, "_requester", wrong_requester)
+    with pytest.raises(cli.AttachRefused) as refused:
+        asyncio.run(attach())
+    assert refused.value.code == "campaign_owner_changed"
+    assert len(seen) == 1

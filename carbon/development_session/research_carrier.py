@@ -41,6 +41,10 @@ from .research_workspace import ResearchWorkspace
 
 PRECHARGED_TRIAL = ContextVar("carbon_precharged_trial", default=None)
 
+# A fixed public TRAIN build in a separately provisioned offline library child.
+# This stays in the bounded Carbon worker lane, never the miner script lane.
+LIBRARY_BUILD_PROVENANCE = "DIRECT_BUNDLE_PUBLIC_RECONSTRUCTION"
+
 ACTIVE_TASK = ContextVar("carbon_public_research_task", default=None)
 
 BOOTSTRAP = """
@@ -338,6 +342,25 @@ def _fixed_practice_stage(operation, provenance, stage):
     except Exception as error:
         if provenance == "BATTERY_PUBLIC_PRACTICE":
             _retain_practice_failure(operation, stage, error)
+        elif (
+            provenance == LIBRARY_BUILD_PROVENANCE
+            and stage == "PROGRAM"
+            and isinstance(error, WorkerFailure)
+        ):
+            # The fixed Docker stream removes its partial stdout on failure.
+            # Keep the bounded, private controller diagnostic for a failed
+            # source-bundle build so an operator can distinguish an import,
+            # fit, or export fault before admitting another run. This file is
+            # not part of the returned/public result or model snapshot.
+            try:
+                diagnostic = error.private_diagnostic
+                if type(diagnostic) is bytes and diagnostic:
+                    write_once(
+                        operation / "private-build-program-diagnostic.bin",
+                        diagnostic[:65536],
+                    )
+            except Exception:  # noqa: BLE001, S110 - preserve worker failure
+                pass
         raise
 
 
@@ -497,7 +520,12 @@ def _run_locked(
                 write_once(path, body)
                 path.chmod(0o444)
         with _fixed_practice_stage(operation, provenance, "HOST_READINESS"):
-            if provenance == "MINER_SELF_REPORTED":
+            if provenance == LIBRARY_BUILD_PROVENANCE:
+                from .research_image import verify_library_worker_image
+
+                verify_library_worker_image(image, cli)
+                checked = doctor(image_id=image.image_id, cli=cli)
+            elif provenance == "MINER_SELF_REPORTED":
                 from .julia_analysis import (
                     JuliaResearchImageIdentity,
                     verify_julia_image,

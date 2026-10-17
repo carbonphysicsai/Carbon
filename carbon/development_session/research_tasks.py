@@ -14,12 +14,34 @@ code, field and fix.
 from __future__ import annotations
 
 import base64
+import binascii
+import hashlib
 import json
+import math
+import os
+import re
+import sqlite3
+import threading
+import time
+from pathlib import Path
 
 from carbon.authoring.model import EvidenceRole
+from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 from carbon.research import (
+    CancellationDisposition,
     DevelopmentWorkspaceTaskSpecV1,
     DevelopmentWorkspaceTaskSpecV2,
+    DirectCancelTaskRequestV3,
+    DirectCancelTaskResultV3,
+    DirectGetTaskRequestV3,
+    DirectGetTaskResultV3,
+    DirectPracticeTaskSpecV1,
+    DirectStartTaskRequestV3,
+    DirectStartTaskResultV3,
+    DirectTaskBindingsV3,
+    DirectTaskReceiptV3,
+    DirectTaskStateV3,
+    DirectTaskViewV3,
     PracticeTaskSpec,
     ResearchTaskKind,
     ResearchTaskState,
@@ -28,6 +50,8 @@ from carbon.research import (
     load_canonical,
 )
 from carbon.research.durable import DurableResearchTaskProvider
+from carbon.research.errors import ResearchServiceErrorCode
+from carbon.research.lifecycle import ResearchTaskProviderError
 from carbon.research.model import InfrastructureFailureClass
 from carbon.research.records import (
     AuthorizedResearchOutcome,
@@ -40,6 +64,7 @@ from carbon.research.records import (
     RetentionReuseBinding,
 )
 
+from .construction_recipe import ConstructionRecipe
 from .profile import canonical, digest
 from .research_carrier import (
     ACTIVE_TASK,
@@ -62,12 +87,32 @@ class PublicDevelopmentResearchTasks(DurableResearchTaskProvider):
             self.close()
             raise
 
+    def _resolve_start(self, request):
+        if (
+            type(request.task_spec) is DirectPracticeTaskSpecV1
+            and getattr(self._executor.executor.practice, "construction_mode", None)
+            != "direct"
+        ):
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.REQUEST_TYPE_INVALID
+            )
+        return super()._resolve_start(request)
+
     @staticmethod
     def _spec_parts(request):
         if type(request.task_spec) is DevelopmentWorkspaceTaskSpecV1:
             return ResearchTaskKind.DEVELOPMENT_WORKSPACE_V1, (), (), ()
         if type(request.task_spec) is DevelopmentWorkspaceTaskSpecV2:
             return ResearchTaskKind.DEVELOPMENT_WORKSPACE_V2, (), (), ()
+        if type(request.task_spec) is DirectPracticeTaskSpecV1:
+            recipe = request.task_spec.recipe
+            challenge = recipe["challenge"]
+            if (
+                challenge["id"] != request.challenge_key.challenge_id
+                or challenge["version"] != request.challenge_key.version
+            ):
+                raise ValueError("direct recipe Challenge differs from task")
+            return ResearchTaskKind.DIRECT_PRACTICE, (), (), ()
         return DurableResearchTaskProvider._spec_parts(request)
 
     def cancel_research_task(self, request):
@@ -145,6 +190,1364 @@ class PublicDevelopmentResearchTasks(DurableResearchTaskProvider):
             }:
                 raise ValueError("task is not running")
             return load_canonical(self._requests[task_id], StartResearchTaskRequest)
+
+
+class DirectDevelopmentTasksV3:
+    """Durable public-development direct tasks beside the historical v2 store.
+
+    This provider owns task state and both C-03 child operations. Its public
+    binding is Challenge material, while image and effective controls remain
+    private execution evidence. There is deliberately no injected runner or
+    generic completion callback in this normal task path.
+    """
+
+    _LIMITATIONS = (
+        "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY",
+        "NOT_OFFICIAL_EVIDENCE",
+        "NOT_SCIENTIFICALLY_QUALIFIED",
+    )
+    _EXPORT_OP = re.compile(
+        rb"(?m)^carbon\.level4\.graph\.GraphRefused: "
+        rb"aten_op_(?:not_lowered|not_allowlisted) at "
+        rb"(aten\.[A-Za-z_][A-Za-z_0-9]{0,63}\."
+        rb"[A-Za-z_][A-Za-z_0-9]{0,63})\r?$"
+    )
+
+    def __init__(
+        self,
+        *,
+        root: Path,
+        requester: str,
+        ledger,
+        owner: str,
+        discovery,
+        image=None,
+        inference_image,
+        image_resolver=None,
+    ) -> None:
+        if (
+            not isinstance(root, Path)
+            or not root.is_absolute()
+            or root.is_symlink()
+            or type(requester) is not str
+            or not requester
+            or type(owner) is not str
+            or not owner
+        ):
+            raise ValueError("private direct task root and requester required")
+        root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        root.chmod(0o700)
+        self._path = root / "direct-tasks.sqlite3"
+        if self._path.is_symlink():
+            raise ValueError("symlink direct task store rejected")
+        import fcntl
+
+        self._lease = (root / "direct-supervisor.lock").open("a+b")
+        try:
+            fcntl.flock(self._lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            self._lease.close()
+            raise ValueError("direct research supervisor already active") from None
+        self._lock = threading.RLock()
+        self.ledger, self.owner = ledger, owner
+        self.discovery = discovery
+        self.image, self.inference_image = image, inference_image
+        self.image_resolver = image_resolver
+        self._requests: dict[str, DirectStartTaskRequestV3] = {}
+        self._views: dict[str, DirectTaskViewV3] = {}
+        self._task_image_bindings: dict[str, str] = {}
+        self._measured_tasks: set[str] = set()
+        self._idempotency: dict[str, str] = {}
+        self._cancellations: dict[str, str | None] = {}
+        try:
+            self._check_image_identity()
+            with self._db() as db:
+                db.executescript(
+                    """
+                    CREATE TABLE IF NOT EXISTS direct_binding (
+                        id INTEGER PRIMARY KEY CHECK(id=1), identity TEXT NOT NULL,
+                        entropy BLOB NOT NULL);
+                    CREATE TABLE IF NOT EXISTS direct_tasks (
+                        id TEXT PRIMARY KEY, request BLOB NOT NULL,
+                        view BLOB NOT NULL, cancellation TEXT);
+                    CREATE TABLE IF NOT EXISTS direct_evidence (
+                        id TEXT PRIMARY KEY REFERENCES direct_tasks(id),
+                        body BLOB NOT NULL);
+                    CREATE TABLE IF NOT EXISTS direct_task_images (
+                        id TEXT PRIMARY KEY REFERENCES direct_tasks(id),
+                        identity TEXT NOT NULL);
+                    CREATE TABLE IF NOT EXISTS direct_task_sources (
+                        id TEXT PRIMARY KEY REFERENCES direct_tasks(id),
+                        body BLOB NOT NULL, digest TEXT NOT NULL);
+                    CREATE TABLE IF NOT EXISTS direct_task_measurements (
+                        id TEXT PRIMARY KEY REFERENCES direct_tasks(id),
+                        profile TEXT NOT NULL);
+                """
+                )
+                binding = (
+                    json.dumps(
+                        [
+                            requester,
+                            owner,
+                            "PER_RECIPE_LIBRARY_IMAGE",
+                            inference_image.image_id,
+                        ],
+                        separators=(",", ":"),
+                    )
+                    if image_resolver is not None
+                    else json.dumps(
+                        [
+                            requester,
+                            owner,
+                            image.image_id,
+                            image.parent.image_id,
+                            inference_image.image_id,
+                            image.bundle_ref,
+                        ],
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                )
+                row = db.execute(
+                    "SELECT identity,entropy FROM direct_binding WHERE id=1"
+                ).fetchone()
+                if row is None:
+                    row = (binding, os.urandom(32))
+                    db.execute("INSERT INTO direct_binding VALUES(1,?,?)", row)
+                if row[0] != binding:
+                    raise ValueError("direct requester or image binding changed")
+                self._entropy = row[1]
+                retained = db.execute(
+                    "SELECT id,request,view,cancellation FROM direct_tasks ORDER BY id"
+                ).fetchall()
+                retained_images = dict(
+                    db.execute("SELECT id,identity FROM direct_task_images").fetchall()
+                )
+                retained_sources = {
+                    row[0] for row in db.execute("SELECT id FROM direct_task_sources")
+                }
+                retained_measurements = dict(
+                    db.execute("SELECT id,profile FROM direct_task_measurements")
+                )
+            self._path.chmod(0o600)
+            for identity, request_bytes, view_bytes, cancellation in retained:
+                request = load_canonical(request_bytes, DirectStartTaskRequestV3)
+                view = load_canonical(view_bytes, DirectTaskViewV3)
+                if (
+                    identity != view.task_id.value
+                    or self._task_id(request).value != identity
+                    or self._bindings(request) != view.immutable_bindings
+                ):
+                    raise ValueError("retained direct task binding conflict")
+                self._requests[identity] = request
+                self._views[identity] = view
+                if identity in retained_measurements:
+                    if retained_measurements[identity] != "COLD_QUERY_V2":
+                        raise ValueError("retained direct measurement profile differs")
+                    self._measured_tasks.add(identity)
+                source_kind = request.recipe["source"]["kind"]
+                if image_resolver is not None or source_kind == "graph":
+                    if identity not in retained_images:
+                        raise ValueError("retained direct task image binding missing")
+                    self._task_image_bindings[identity] = retained_images[identity]
+                if source_kind == "graph":
+                    self._source_envelope(
+                        identity, ConstructionRecipe.from_dict(request.recipe)
+                    )
+                elif identity in retained_sources:
+                    raise ValueError("retained bundle task has graph source bytes")
+                self._idempotency[request.idempotency_key] = identity
+                self._cancellations[identity] = cancellation
+                if view.state is DirectTaskStateV3.SUCCEEDED:
+                    self._verified_success_evidence(view)
+                elif view.state is DirectTaskStateV3.FAILED_INFRA:
+                    self._verified_failure_evidence(view)
+            self._reconcile_interrupted()
+            expected_image_bindings = {
+                identity
+                for identity, request in self._requests.items()
+                if image_resolver is not None
+                or request.recipe["source"]["kind"] == "graph"
+            }
+            if set(retained_images) != expected_image_bindings or retained_sources != {
+                identity
+                for identity, request in self._requests.items()
+                if request.recipe["source"]["kind"] == "graph"
+            }:
+                raise ValueError("retained direct task image binding differs")
+            if set(retained_measurements) - set(self._requests):
+                raise ValueError("retained direct measurement task missing")
+            # Retained children are cleaned before a live image doctor can
+            # reject new admission after a crash.
+            self._verify_images()
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self) -> None:
+        if not self._lease.closed:
+            self._lease.close()
+
+    def _check_image_identity(self) -> None:
+        from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+        from .research_image import LibraryWorkerImage
+
+        if type(self.inference_image) is not WorkerImageIdentity:
+            raise ValueError("exact C-03 library child and parent images required")
+        if self.image_resolver is not None:
+            if self.image is not None or not callable(self.image_resolver):
+                raise ValueError("one trusted per-recipe library resolver required")
+        elif (
+            type(self.image) is not LibraryWorkerImage
+            or self.image.parent != self.inference_image
+        ):
+            raise ValueError("exact C-03 library child and parent images required")
+
+    def _verify_images(self) -> None:
+        from .research_image import verify_library_worker_image
+
+        self._check_image_identity()
+        if self.image_resolver is None:
+            verify_library_worker_image(self.image)
+
+    def _resolved_image(self, request):
+        """Resolve only a recipe ref; runtime verifies the selected child anew."""
+        from .construction_recipe import ConstructionRecipe
+        from .library_bundles import LibraryBundleRef
+        from .research_image import LibraryWorkerImage, verify_library_worker_image
+        from .synthetic_graph_adapter import ADAPTER_ID
+
+        recipe = ConstructionRecipe.from_dict(request.recipe)
+        source = recipe.to_dict()["source"]
+        if source["kind"] == "graph":
+            adapter = getattr(self.discovery, "graph_adapter_for", None)
+            if not callable(adapter) or adapter(request.challenge_key) != ADAPTER_ID:
+                raise ValueError("direct graph adapter unavailable for Challenge")
+            return self.inference_image
+        if source["kind"] != "bundle":
+            raise ValueError("direct task source unavailable")
+        if self.image_resolver is None:
+            return self.image
+        image = self.image_resolver(LibraryBundleRef.from_dict(source["bundle_ref"]))
+        if (
+            type(image) is not LibraryWorkerImage
+            or image.bundle_ref != source["bundle_ref"]
+            or image.parent != self.inference_image
+        ):
+            raise ValueError("resolved library worker identity differs")
+        verify_library_worker_image(image)
+        return image
+
+    @staticmethod
+    def _image_binding(image):
+        from dataclasses import asdict
+
+        from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+        if type(image) is WorkerImageIdentity:
+            return json.dumps(
+                ["GRAPH_PARENT", asdict(image)],
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+
+        return json.dumps(
+            [
+                image.image_id,
+                asdict(image.parent),
+                image.bundle_ref,
+                image.provisioned.context_digest,
+            ],
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+
+    def _db(self):
+        from contextlib import contextmanager
+
+        @contextmanager
+        def opened():
+            if self._lease.closed:
+                raise ValueError("direct supervisor closed")
+            db = sqlite3.connect(self._path, timeout=10)
+            db.execute("PRAGMA synchronous=FULL")
+            try:
+                yield db
+                db.commit()
+            except BaseException:
+                db.rollback()
+                raise
+            finally:
+                db.close()
+
+        return opened()
+
+    def _source_envelope(self, identity: str, recipe: ConstructionRecipe) -> bytes:
+        """Read charged immutable source bytes, never mutable workspace names."""
+        from carbon.level4 import intake
+
+        from .direct_graph_construction_worker import _checked_envelope
+
+        if recipe.to_dict()["source"]["kind"] != "graph":
+            raise ValueError("direct task has no graph source")
+        with self._db() as db:
+            row = db.execute(
+                "SELECT body,digest FROM direct_task_sources WHERE id=?", (identity,)
+            ).fetchone()
+        if row is None or row[0] != b"" or type(row[1]) is not str:
+            raise ValueError("retained direct graph source differs")
+        path = self._source_path(identity)
+        if (
+            path.is_symlink()
+            or not path.is_file()
+            or path.stat().st_size > 2 * intake.BOUNDS["submission_bytes"]
+        ):
+            raise ValueError("retained direct graph source differs")
+        body = path.read_bytes()
+        if digest(body) != row[1]:
+            raise ValueError("retained direct graph source differs")
+        try:
+            return _checked_envelope(recipe, body)
+        except ValueError:
+            raise ValueError("retained direct graph source differs") from None
+
+    def _source_path(self, identity: str) -> Path:
+        """Keep frozen graph bytes under the ledger's existing storage meter."""
+        folder = self.ledger.root / "direct-task-sources"
+        if folder.is_symlink() or (folder.exists() and not folder.is_dir()):
+            raise ValueError("retained direct graph source directory differs")
+        folder.mkdir(mode=0o700, exist_ok=True)
+        folder.chmod(0o700)
+        return folder / (hashlib.sha256(identity.encode("utf-8")).hexdigest() + ".json")
+
+    def _retain_source(self, identity: str, source_envelope: bytes) -> None:
+        """Admit and atomically retain each new task's bytes inside the ledger."""
+        path = self._source_path(identity)
+        if path.is_symlink():
+            raise ValueError("retained direct graph source differs")
+        if path.exists():
+            if (
+                not path.is_file()
+                or path.stat().st_size != len(source_envelope)
+                or path.read_bytes() != source_envelope
+            ):
+                raise ValueError("retained direct graph source differs")
+            self.ledger.check_storage(65536)
+            return
+        self.ledger.check_storage(len(source_envelope) + 65536)
+        staged = path.with_name(path.name + "." + os.urandom(8).hex() + ".staging")
+        handle = os.open(staged, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        try:
+            with os.fdopen(handle, "wb") as out:
+                out.write(source_envelope)
+                out.flush()
+                os.fsync(out.fileno())
+            os.replace(staged, path)
+        finally:
+            staged.unlink(missing_ok=True)
+        if path.is_symlink() or path.read_bytes() != source_envelope:
+            raise ValueError("retained direct graph source differs")
+        try:
+            self.ledger.check_storage(65536)
+        except BaseException:
+            # This exact task has no DB row yet; do not leave a newly staged
+            # over-budget object available to a later admission attempt.
+            path.unlink()
+            raise
+
+    def _bindings(self, request: DirectStartTaskRequestV3) -> DirectTaskBindingsV3:
+        from carbon.development_session.bundle_construction_worker import (
+            verify_direct_resource_policy,
+        )
+        from carbon.development_session.construction_recipe import (
+            ConstructionRecipe,
+            bind_recipe,
+        )
+        from carbon.research import canonical_digest
+
+        from .synthetic_graph_adapter import ADAPTER_ID
+
+        info, manifest = self.discovery._checked(request.challenge_key)
+        material = self.discovery._material
+        kit = material["construction_kit"]
+        policy = material["construction_limits_document"][
+            "reconstruction_resource_policy"
+        ]
+        expected = (
+            canonical_digest(info),
+            canonical_digest(manifest),
+            digest(canonical(kit)),
+            info.public_train_digest,
+            info.practice_inputs_digest,
+            info.interface_digest,
+            info.construction_limits_digest,
+            digest(canonical(policy)),
+        )
+        actual = (
+            request.challenge_info_digest,
+            request.manifest_digest,
+            request.construction_kit_digest,
+            request.public_train_digest,
+            request.practice_inputs_digest,
+            request.interface_digest,
+            request.construction_limits_digest,
+            request.resource_policy_digest,
+        )
+        if actual != expected:
+            raise ResearchTaskProviderError(ResearchServiceErrorCode.REFERENCE_MISMATCH)
+        binding = {
+            "challenge_id": request.challenge_key.challenge_id,
+            "challenge_version": request.challenge_key.version,
+            "train_digest": info.public_train_digest,
+            "interface_digest": info.interface_digest,
+            "construction_limits_digest": info.construction_limits_digest,
+        }
+        recipe = bind_recipe(request.recipe, **binding)
+        source = recipe.to_dict()["source"]
+        graph_adapter = getattr(self.discovery, "graph_adapter_for", None)
+        if (
+            (
+                source["kind"] == "graph"
+                and (
+                    not callable(graph_adapter)
+                    or graph_adapter(request.challenge_key) != ADAPTER_ID
+                )
+            )
+            or (
+                source["kind"] == "bundle"
+                and self.image_resolver is None
+                and source["bundle_ref"] != self.image.bundle_ref
+            )
+            or verify_direct_resource_policy(
+                binding, material["construction_limits_document"]
+            )
+            != info.construction_limits_digest
+        ):
+            raise ResearchTaskProviderError(ResearchServiceErrorCode.REFERENCE_MISMATCH)
+        return DirectTaskBindingsV3(
+            request.challenge_key,
+            ConstructionRecipe.from_dict(request.recipe).digest,
+            *actual,
+        )
+
+    def _task_id(self, request: DirectStartTaskRequestV3):
+        from carbon.research.refs import ResearchTaskId
+
+        body = canonical_bytes(request)
+        hashed = hashlib.sha256(
+            b"CARBON-DIRECT-TASK-V3\0" + self._entropy + body
+        ).hexdigest()
+        return ResearchTaskId("rtsk_" + hashed)
+
+    def _save(
+        self,
+        request: DirectStartTaskRequestV3,
+        view: DirectTaskViewV3,
+        cancellation: str | None = None,
+        image_binding: str | None = None,
+        failure_evidence: dict | None = None,
+        source_envelope: bytes | None = None,
+        measure_query: bool = False,
+    ) -> None:
+        if cancellation is None:
+            cancellation = self._cancellations.get(view.task_id.value)
+        with self._db() as db:
+            db.execute(
+                """INSERT INTO direct_tasks VALUES(?,?,?,?)
+                ON CONFLICT(id) DO UPDATE SET
+                    request=excluded.request,
+                    view=excluded.view,
+                    cancellation=excluded.cancellation""",
+                (
+                    view.task_id.value,
+                    canonical_bytes(request),
+                    canonical_bytes(view),
+                    cancellation,
+                ),
+            )
+            if image_binding is not None:
+                db.execute(
+                    "INSERT INTO direct_task_images VALUES(?,?)",
+                    (view.task_id.value, image_binding),
+                )
+            if source_envelope is not None:
+                db.execute(
+                    "INSERT INTO direct_task_sources VALUES(?,?,?)",
+                    (view.task_id.value, b"", digest(source_envelope)),
+                )
+            if measure_query:
+                db.execute(
+                    "INSERT INTO direct_task_measurements VALUES(?,?)",
+                    (view.task_id.value, "COLD_QUERY_V2"),
+                )
+            if failure_evidence is not None:
+                db.execute(
+                    "INSERT INTO direct_evidence VALUES(?,?)",
+                    (view.task_id.value, canonical(failure_evidence)),
+                )
+        self._views[view.task_id.value] = view
+        if image_binding is not None:
+            self._task_image_bindings[view.task_id.value] = image_binding
+        self._cancellations[view.task_id.value] = cancellation
+        if measure_query:
+            self._measured_tasks.add(view.task_id.value)
+
+    def start_research_task(self, request, *, measure_query=False):
+        from carbon.research.refs import ResearchTaskId
+
+        from .research_ledger import LedgerRefusal
+
+        if (
+            type(request) is not DirectStartTaskRequestV3
+            or type(measure_query) is not bool
+        ):
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.REQUEST_TYPE_INVALID
+            )
+        with self._lock:
+            bindings = self._bindings(request)
+            if measure_query:
+                outputs = self.discovery._material.get("interface_document", {}).get(
+                    "outputs"
+                )
+                if (
+                    type(outputs) is not dict
+                    or type(outputs.get("dtype")) is not str
+                    or not outputs["dtype"]
+                ):
+                    raise ResearchTaskProviderError(
+                        ResearchServiceErrorCode.REFERENCE_MISMATCH
+                    )
+            prior = self._idempotency.get(request.idempotency_key)
+            if prior is not None:
+                if (
+                    self._requests[prior] != request
+                    or (prior in self._measured_tasks) != measure_query
+                ):
+                    raise ResearchTaskProviderError(
+                        ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
+                    )
+                return DirectStartTaskResultV3(False, self._views[prior])
+            if len(self._views) >= 256:
+                raise ResearchTaskProviderError(ResearchServiceErrorCode.BOUND_EXCEEDED)
+            try:
+                self._verify_images()
+                image = self._resolved_image(request)
+                source_envelope = None
+                if request.recipe["source"]["kind"] == "graph":
+                    from .construction_recipe import graph_envelope_from_workspace
+                    from .direct_graph_construction_worker import _checked_envelope
+
+                    recipe = ConstructionRecipe.from_dict(request.recipe)
+                    source_envelope = _checked_envelope(
+                        recipe,
+                        graph_envelope_from_workspace(self.ledger, self.owner, recipe),
+                    )
+            except FileNotFoundError:
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.REFERENCE_NOT_FOUND
+                ) from None
+            except ValueError:
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.REFERENCE_MISMATCH
+                ) from None
+            except (OSError, WorkerFailure):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.INFRASTRUCTURE_FAILURE
+                ) from None
+            task_id: ResearchTaskId = self._task_id(request)
+            if source_envelope is not None:
+                try:
+                    self._retain_source(task_id.value, source_envelope)
+                except LedgerRefusal:
+                    raise ResearchTaskProviderError(
+                        ResearchServiceErrorCode.BOUND_EXCEEDED
+                    ) from None
+                except ValueError:
+                    raise ResearchTaskProviderError(
+                        ResearchServiceErrorCode.REFERENCE_MISMATCH
+                    ) from None
+                except OSError:
+                    raise ResearchTaskProviderError(
+                        ResearchServiceErrorCode.INFRASTRUCTURE_FAILURE
+                    ) from None
+            now = time.time_ns() // 1000
+            view = DirectTaskViewV3(
+                task_id,
+                request.challenge_key,
+                DirectTaskStateV3.QUEUED,
+                0,
+                now,
+                now,
+                bindings,
+                None,
+            )
+            self._save(
+                request,
+                view,
+                image_binding=(
+                    self._image_binding(image)
+                    if self.image_resolver is not None
+                    or request.recipe["source"]["kind"] == "graph"
+                    else None
+                ),
+                source_envelope=source_envelope,
+                measure_query=measure_query,
+            )
+            self._requests[task_id.value] = request
+            self._idempotency[request.idempotency_key] = task_id.value
+            return DirectStartTaskResultV3(True, view)
+
+    def get_research_result(self, request):
+        if type(request) is not DirectGetTaskRequestV3:
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.REQUEST_TYPE_INVALID
+            )
+        with self._lock:
+            view = self._views.get(request.task_id.value)
+            if view is None or view.challenge_key != request.challenge_key:
+                raise ResearchTaskProviderError(ResearchServiceErrorCode.TASK_NOT_FOUND)
+            if view.state is DirectTaskStateV3.SUCCEEDED:
+                self._verified_success_evidence(view)
+            return DirectGetTaskResultV3(view)
+
+    def queued_tasks(self):
+        """Owned queue snapshot for the authenticated supervisor after restart."""
+        with self._lock:
+            return tuple(
+                view.task_id
+                for view in self._views.values()
+                if view.state is DirectTaskStateV3.QUEUED
+            )
+
+    def cancel_observed_task(self, task_id, challenge):
+        cancellation = (
+            self._cancellations.get(task_id.value) or "mcp-cancel-" + task_id.value
+        )
+        return self.cancel_research_task(
+            DirectCancelTaskRequestV3(challenge, task_id, cancellation)
+        )
+
+    def requires_reconciliation(self, task_id):
+        with self._lock:
+            view = self._views.get(task_id.value)
+            if view is None:
+                return False
+            if view.state in (
+                DirectTaskStateV3.RUNNING,
+                DirectTaskStateV3.CANCEL_REQUESTED,
+            ):
+                return True
+        return any(
+            self.ledger.operation_state(child, owner=self.owner) == "RESERVED"
+            for child in self._children(task_id)
+        )
+
+    def public_result(self, task):
+        """Only bounded public predictions or a verified adapter-gap hint."""
+        if (
+            type(task) is DirectTaskViewV3
+            and task.state is DirectTaskStateV3.FAILED_INFRA
+        ):
+            return self._verified_failure_evidence(task)
+        if (
+            type(task) is not DirectTaskViewV3
+            or task.state is not DirectTaskStateV3.SUCCEEDED
+        ):
+            return None
+        evidence = self._verified_success_evidence(task)
+        return {
+            "schema": "carbon.direct-public-practice-result.v3",
+            "task_id": task.task_id.value,
+            "receipt_digest": digest(canonical_bytes(task.terminal_receipt)),
+            "predictions_digest": evidence["predictions_digest"],
+            "predictions": evidence["predictions"],
+            "official_eligible": False,
+        }
+
+    def _verified_failure_evidence(self, view):
+        """Read only our closed failure projection, never private worker text."""
+        if (
+            type(view) is not DirectTaskViewV3
+            or view.state is not DirectTaskStateV3.FAILED_INFRA
+            or view.terminal_receipt is None
+            or self._views.get(view.task_id.value) != view
+        ):
+            raise ValueError("direct failure receipt unavailable")
+        with self._db() as db:
+            row = db.execute(
+                "SELECT body FROM direct_evidence WHERE id=?", (view.task_id.value,)
+            ).fetchone()
+        if row is None:
+            return None  # Historical v3 failures have no structured hint.
+        if len(row[0]) > 4096:
+            raise ValueError("retained direct failure custody differs")
+        try:
+            evidence = json.loads(row[0])
+        except (TypeError, ValueError, UnicodeError):
+            raise ValueError("retained direct failure custody differs") from None
+        if (
+            type(evidence) is not dict
+            or set(evidence)
+            != {
+                "schema",
+                "task_id",
+                "receipt_digest",
+                "failed_stage",
+                "reason_code",
+                "diagnostic_provenance",
+                "reported_operation",
+                "next_step",
+                "official_eligible",
+            }
+            or evidence["schema"] != "carbon.direct-public-construction-failure.v1"
+            or evidence["task_id"] != view.task_id.value
+            or evidence["receipt_digest"]
+            != digest(canonical_bytes(view.terminal_receipt))
+            or evidence["failed_stage"] != "BUILD_EXPORT"
+            or evidence["reason_code"] != "REPORTED_CARBON_EXPORT_OPERATION_GAP"
+            or evidence["diagnostic_provenance"] != "WORKER_DIAGNOSTIC_ADVISORY"
+            or evidence["next_step"] != "CHECK_CARBON_ADAPTER_SUPPORT"
+            or evidence["official_eligible"] is not False
+            or type(evidence["reported_operation"]) is not str
+            or not re.fullmatch(
+                r"aten\.[A-Za-z_][A-Za-z_0-9]{0,63}\." r"[A-Za-z_][A-Za-z_0-9]{0,63}",
+                evidence["reported_operation"],
+            )
+        ):
+            raise ValueError("retained direct failure custody differs")
+        return evidence
+
+    def _verified_success_evidence(self, view):
+        """Bind retained output bytes and worker receipt to the public terminal."""
+        if (
+            type(view) is not DirectTaskViewV3
+            or view.state is not DirectTaskStateV3.SUCCEEDED
+            or view.terminal_receipt is None
+            or self._views.get(view.task_id.value) != view
+        ):
+            raise ValueError("direct success receipt unavailable")
+        with self._db() as db:
+            row = db.execute(
+                "SELECT body FROM direct_evidence WHERE id=?", (view.task_id.value,)
+            ).fetchone()
+        if row is None or len(row[0]) > 24 * 1024**2:
+            raise ValueError("retained direct result custody differs")
+        try:
+            evidence = json.loads(row[0])
+            if (
+                type(evidence) is not dict
+                or type(evidence.get("predictions_raw_base64")) is not str
+            ):
+                raise ValueError("retained direct result custody differs")
+            encoded = evidence["predictions_raw_base64"].encode("ascii")
+            raw = base64.b64decode(encoded, validate=True)
+            predictions = json.loads(raw)
+        except (KeyError, TypeError, ValueError, UnicodeError, binascii.Error):
+            raise ValueError("retained direct result custody differs") from None
+        source = self._requests[view.task_id.value].recipe["source"]
+        if view.task_id.value in self._task_image_bindings:
+            image_binding = json.loads(self._task_image_bindings[view.task_id.value])
+            if source["kind"] == "graph":
+                if (
+                    image_binding[0] != "GRAPH_PARENT"
+                    or evidence.get("schema")
+                    != "carbon.direct-private-attempt.graph.v1"
+                    or any(
+                        evidence.get(field) != image_binding[1]["image_id"]
+                        for field in (
+                            "image_id",
+                            "parent_image_id",
+                            "inference_image_id",
+                        )
+                    )
+                    or evidence.get("submission_digest") != source["submission_digest"]
+                    or "bundle_digest" in evidence
+                    or "context_digest" in evidence
+                ):
+                    raise ValueError("retained direct worker image custody differs")
+            else:
+                image_id, parent, bundle_ref, context_digest = image_binding
+                if (
+                    evidence.get("schema") != "carbon.direct-private-attempt.v3"
+                    or evidence.get("image_id") != image_id
+                    or evidence.get("parent_image_id") != parent["image_id"]
+                    or evidence.get("inference_image_id") != parent["image_id"]
+                    or evidence.get("bundle_digest") != bundle_ref["bundle_digest"]
+                    or evidence.get("context_digest") != context_digest
+                ):
+                    raise ValueError("retained direct worker image custody differs")
+        receipt = view.terminal_receipt
+        inference = evidence.get("inference_receipt")
+        measured = view.task_id.value in self._measured_tasks
+        if (
+            not 0 < len(raw) <= 16 * 1024**2
+            or base64.b64encode(raw) != encoded
+            or type(predictions) is not list
+            or digest(raw) != receipt.predictions_digest
+            or evidence.get("predictions_digest") != receipt.predictions_digest
+            or evidence.get("state_digest") != receipt.state_digest
+            or type(inference) is not dict
+            or inference.get("schema")
+            != (
+                "carbon.development.bundle-inference.v2"
+                if measured
+                else "carbon.development.bundle-inference.v1"
+            )
+            or inference.get("recipe_digest") != view.immutable_bindings.recipe_digest
+            or inference.get("state_digest") != receipt.state_digest
+            or inference.get("predictions_digest") != receipt.predictions_digest
+        ):
+            raise ValueError("retained direct result custody differs")
+        if measured:
+            from .bundle_construction_worker import _tensors
+
+            measurement = inference.get("measurement")
+            material = self.discovery._material
+            expected_dtype = material["interface_document"]["outputs"]["dtype"]
+            if (
+                set(inference)
+                != {
+                    "schema",
+                    "recipe_digest",
+                    "state_digest",
+                    "inputs_digest",
+                    "predictions_digest",
+                    "measurement",
+                }
+                or type(measurement) is not dict
+                or set(measurement)
+                != {
+                    "scope",
+                    "timing_s",
+                    "input_shape",
+                    "input_dtype",
+                    "output_shape",
+                    "output_dtype",
+                }
+                or measurement["scope"]
+                != "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
+                or inference["inputs_digest"]
+                != digest(_tensors(inputs=material["practice_inputs"]))
+                or measurement["input_shape"] != list(material["practice_inputs"].shape)
+                or measurement["input_dtype"] != str(material["practice_inputs"].dtype)
+                or measurement["output_shape"]
+                != list(material["expected_output_shape"])
+                or measurement["output_dtype"] != expected_dtype
+                or type(measurement["timing_s"]) is not dict
+                or set(measurement["timing_s"])
+                != {"preprocess", "inference", "postprocess", "export"}
+                or any(
+                    type(value) not in (int, float)
+                    or not math.isfinite(value)
+                    or value < 0
+                    for value in measurement["timing_s"].values()
+                )
+                or math.fsum(measurement["timing_s"].values()) <= 0
+            ):
+                raise ValueError("retained direct measurement differs")
+        elif "measurement" in inference:
+            raise ValueError("retained direct measurement without profile")
+        evidence["predictions"] = predictions
+        return evidence
+
+    @classmethod
+    def _reported_export_gap(cls, error, child_states):
+        """Extract one fixed lowering operation name, never echo diagnostic text.
+
+        This is advice about a public fixture's Carbon exporter, not an
+        authority-bearing classification of participant code or evaluation.
+        """
+        if (
+            not isinstance(error, WorkerFailure)
+            or error.code is not WorkerCode.RUNTIME
+            or child_states[0] != "FAILED_INFRA"
+            or child_states[1] is not None
+        ):
+            return None
+        matches = cls._EXPORT_OP.findall(error.private_diagnostic)
+        if len(matches) != 1:
+            return None
+        return matches[0].decode("ascii")
+
+    def _transition(
+        self, view, state, *, receipt=None, cancellation=None, export_gap=None
+    ):
+        from dataclasses import replace
+
+        now = max(time.time_ns() // 1000, view.updated_at_micros)
+        updated = replace(
+            view,
+            state=state,
+            revision=view.revision + 1,
+            updated_at_micros=now,
+            terminal_receipt=receipt,
+        )
+        failure_evidence = None
+        if export_gap is not None:
+            if state is not DirectTaskStateV3.FAILED_INFRA or receipt is None:
+                raise ValueError(
+                    "export gap requires a terminal infrastructure receipt"
+                )
+            failure_evidence = {
+                "schema": "carbon.direct-public-construction-failure.v1",
+                "task_id": view.task_id.value,
+                "receipt_digest": digest(canonical_bytes(receipt)),
+                "failed_stage": "BUILD_EXPORT",
+                "reason_code": "REPORTED_CARBON_EXPORT_OPERATION_GAP",
+                "diagnostic_provenance": "WORKER_DIAGNOSTIC_ADVISORY",
+                "reported_operation": export_gap,
+                "next_step": "CHECK_CARBON_ADAPTER_SUPPORT",
+                "official_eligible": False,
+            }
+        self._save(
+            self._requests[view.task_id.value],
+            updated,
+            cancellation,
+            failure_evidence=failure_evidence,
+        )
+        return updated
+
+    def _receipt(self, view, state, *, result=None, failure=None, refusal_code=None):
+        return DirectTaskReceiptV3(
+            view.task_id,
+            state,
+            view.immutable_bindings,
+            result.build.state_digest if result is not None else None,
+            result.inference.predictions_digest if result is not None else None,
+            failure,
+            refusal_code,
+            max(time.time_ns() // 1000, view.updated_at_micros),
+            self._LIMITATIONS,
+        )
+
+    def _children(self, task_id):
+        from .bundle_construction_worker import direct_child_identity
+
+        return tuple(
+            direct_child_identity(task_id.value, phase)
+            for phase in ("build", "inference")
+        )
+
+    def cancel_research_task(self, request):
+        if type(request) is not DirectCancelTaskRequestV3:
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.REQUEST_TYPE_INVALID
+            )
+        with self._lock:
+            view = self._views.get(request.task_id.value)
+            if view is None or view.challenge_key != request.challenge_key:
+                raise ResearchTaskProviderError(ResearchServiceErrorCode.TASK_NOT_FOUND)
+            if view.state in (
+                DirectTaskStateV3.SUCCEEDED,
+                DirectTaskStateV3.FAILED_INFRA,
+                DirectTaskStateV3.CANCELLED,
+            ):
+                return DirectCancelTaskResultV3(view, CancellationDisposition.TOO_LATE)
+            if view.state is DirectTaskStateV3.CANCEL_REQUESTED:
+                if self._cancellations[view.task_id.value] != request.cancellation_id:
+                    raise ResearchTaskProviderError(
+                        ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
+                    )
+                for child in self._children(view.task_id):
+                    request_cancel(self.ledger, owner=self.owner, identity=child)
+                return DirectCancelTaskResultV3(
+                    view, CancellationDisposition.ALREADY_ACCEPTED
+                )
+            if view.state is DirectTaskStateV3.QUEUED:
+                receipt = self._receipt(view, DirectTaskStateV3.CANCELLED)
+                view = self._transition(
+                    view,
+                    DirectTaskStateV3.CANCELLED,
+                    receipt=receipt,
+                    cancellation=request.cancellation_id,
+                )
+            else:
+                view = self._transition(
+                    view,
+                    DirectTaskStateV3.CANCEL_REQUESTED,
+                    cancellation=request.cancellation_id,
+                )
+                for child in self._children(view.task_id):
+                    request_cancel(self.ledger, owner=self.owner, identity=child)
+            return DirectCancelTaskResultV3(view, CancellationDisposition.ACCEPTED)
+
+    def _reconcile_interrupted(self):
+        from .research_carrier import reconcile_worker
+
+        for view in tuple(self._views.values()):
+            if view.state not in (
+                DirectTaskStateV3.RUNNING,
+                DirectTaskStateV3.CANCEL_REQUESTED,
+            ):
+                continue
+            if view.state is DirectTaskStateV3.CANCEL_REQUESTED:
+                for child in self._children(view.task_id):
+                    request_cancel(self.ledger, owner=self.owner, identity=child)
+            child_states = []
+            for child in self._children(view.task_id):
+                state = self.ledger.operation_state(child, owner=self.owner)
+                if state == "RESERVED":
+                    reconcile_worker(self.ledger, owner=self.owner, identity=child)
+                    state = self.ledger.operation_state(child, owner=self.owner)
+                if state not in (
+                    None,
+                    "SUCCEEDED",
+                    "FAILED_INFRA",
+                    "FAILED_MINER",
+                    "CANCELLED",
+                ):
+                    raise ValueError("direct child cleanup status unresolved")
+                child_states.append(state)
+            state = (
+                DirectTaskStateV3.CANCELLED
+                if view.state is DirectTaskStateV3.CANCEL_REQUESTED
+                else (
+                    DirectTaskStateV3.REFUSED
+                    if "FAILED_MINER" in child_states
+                    and "FAILED_INFRA" not in child_states
+                    else DirectTaskStateV3.FAILED_INFRA
+                )
+            )
+            receipt = self._receipt(
+                view,
+                state,
+                failure=(
+                    (
+                        InfrastructureFailureClass.INTERNAL
+                        if "FAILED_INFRA" in child_states
+                        else InfrastructureFailureClass.WORKER_LOST
+                    )
+                    if state is DirectTaskStateV3.FAILED_INFRA
+                    else None
+                ),
+                refusal_code=(
+                    "candidate_program_failed"
+                    if state is DirectTaskStateV3.REFUSED
+                    else None
+                ),
+            )
+            self._transition(view, state, receipt=receipt)
+
+    def run_queued_task(self, task_id):
+        from .bundle_construction_worker import (
+            DirectReconstructionResult,
+            _private_controls_digest,
+            reconstruct_and_infer_public,
+        )
+        from .construction_recipe import ConstructionRecipe
+        from .direct_graph_construction_worker import (
+            BUILD_PROVENANCE as GRAPH_BUILD_PROVENANCE,
+        )
+        from .direct_graph_construction_worker import (
+            INFERENCE_PROVENANCE as GRAPH_INFERENCE_PROVENANCE,
+        )
+        from .direct_graph_construction_worker import (
+            GraphConstructionDecision,
+            reconstruct_and_infer_graph_public,
+        )
+
+        with self._lock:
+            view = self._views.get(task_id.value)
+            if view is None:
+                raise ResearchTaskProviderError(ResearchServiceErrorCode.TASK_NOT_FOUND)
+            if view.state is not DirectTaskStateV3.QUEUED:
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.INVALID_TASK_TRANSITION
+                )
+            request = self._requests[task_id.value]
+            try:
+                image = self._resolved_image(request)
+                recipe = ConstructionRecipe.from_dict(request.recipe)
+                source_kind = recipe.to_dict()["source"]["kind"]
+                source_envelope = (
+                    self._source_envelope(task_id.value, recipe)
+                    if source_kind == "graph"
+                    else None
+                )
+                if (
+                    task_id.value in self._task_image_bindings
+                    and self._image_binding(image)
+                    != self._task_image_bindings[task_id.value]
+                ):
+                    raise ValueError("admitted direct library image changed")
+            except (FileNotFoundError, ValueError, OSError, WorkerFailure):
+                receipt = self._receipt(
+                    view,
+                    DirectTaskStateV3.FAILED_INFRA,
+                    failure=InfrastructureFailureClass.DEPENDENCY_UNAVAILABLE,
+                )
+                return self._transition(
+                    view, DirectTaskStateV3.FAILED_INFRA, receipt=receipt
+                )
+            view = self._transition(view, DirectTaskStateV3.RUNNING)
+        try:
+            self._bindings(request)
+            material = self.discovery._material
+            kit = material["construction_kit"]
+            binding = {
+                "challenge_id": kit["id"],
+                "challenge_version": kit["version"],
+                "train_digest": kit["train_digest"],
+                "interface_digest": kit["interface_digest"],
+                "construction_limits_digest": kit["construction_limits_digest"],
+            }
+            if source_kind == "graph":
+                result = reconstruct_and_infer_graph_public(
+                    self.ledger,
+                    owner=self.owner,
+                    identity=task_id.value,
+                    image=image,
+                    recipe=recipe,
+                    challenge_binding=binding,
+                    limits_document=material["construction_limits_document"],
+                    source_envelope=source_envelope,
+                    train=material["train"],
+                    seed=0,
+                    inputs=material["practice_inputs"],
+                    expected_output_shape=material["expected_output_shape"],
+                    allowlist_bytes=material["allowlist_bytes"],
+                    measure_query=task_id.value in self._measured_tasks,
+                )
+            else:
+                result = reconstruct_and_infer_public(
+                    self.ledger,
+                    owner=self.owner,
+                    identity=task_id.value,
+                    image=image,
+                    inference_image=self.inference_image,
+                    recipe=recipe,
+                    challenge_binding=binding,
+                    limits_document=material["construction_limits_document"],
+                    train=material["train"],
+                    example=material["example"],
+                    seed=0,
+                    inputs=material["practice_inputs"],
+                    expected_output_shape=material["expected_output_shape"],
+                    allowlist_bytes=material["allowlist_bytes"],
+                    expected_output_dtype=(
+                        material["interface_document"]["outputs"]["dtype"]
+                        if task_id.value in self._measured_tasks
+                        else None
+                    ),
+                    measure_query=task_id.value in self._measured_tasks,
+                )
+            if (
+                type(result) is not DirectReconstructionResult
+                or result.execution_boundary != "C03_DOCKER"
+                or result.policy_digest != request.construction_limits_digest
+                or result.build.recipe_digest != view.immutable_bindings.recipe_digest
+                or result.inference.recipe_digest
+                != view.immutable_bindings.recipe_digest
+                or result.build.state_digest != result.inference.state_digest
+                or result.build_controls_digest is None
+                or result.inference_controls_digest is None
+                or not result.build.worker_operation
+                or not result.inference.worker_operation
+                or result.build.worker_operation == result.inference.worker_operation
+            ):
+                raise ValueError("direct C-03 two-phase evidence incomplete")
+            # A replacement callback cannot yield success without both settled
+            # real child operations and their retained effective controls.
+            from .research_carrier import LIBRARY_BUILD_PROVENANCE
+
+            build_provenance, inference_provenance = (
+                (GRAPH_BUILD_PROVENANCE, GRAPH_INFERENCE_PROVENANCE)
+                if source_kind == "graph"
+                else (LIBRARY_BUILD_PROVENANCE, "DIRECT_BUNDLE_PUBLIC_INFERENCE")
+            )
+
+            controls = (
+                _private_controls_digest(
+                    self.ledger,
+                    owner=self.owner,
+                    identity=self._children(task_id)[0],
+                    operation=result.build.worker_operation,
+                    provenance=build_provenance,
+                ),
+                _private_controls_digest(
+                    self.ledger,
+                    owner=self.owner,
+                    identity=self._children(task_id)[1],
+                    operation=result.inference.worker_operation,
+                    provenance=inference_provenance,
+                ),
+            )
+            if controls != (
+                result.build_controls_digest,
+                result.inference_controls_digest,
+            ):
+                raise ValueError("direct worker controls changed")
+            snapshot = (
+                self.ledger.root
+                / result.inference.worker_operation
+                / "snapshot"
+                / "predictions.json"
+            )
+            if (
+                snapshot.is_symlink()
+                or not snapshot.is_file()
+                or not 0 < snapshot.stat().st_size <= 16 * 1024**2
+            ):
+                raise ValueError("direct prediction snapshot unavailable")
+            predictions_raw = snapshot.read_bytes()
+            if (
+                digest(predictions_raw) != result.inference.predictions_digest
+                or json.loads(predictions_raw) != result.inference.predictions
+            ):
+                raise ValueError("direct prediction snapshot changed")
+            private = {
+                "schema": (
+                    "carbon.direct-private-attempt.graph.v1"
+                    if source_kind == "graph"
+                    else "carbon.direct-private-attempt.v3"
+                ),
+                "image_id": image.image_id,
+                "parent_image_id": (
+                    image.image_id if source_kind == "graph" else image.parent.image_id
+                ),
+                "inference_image_id": self.inference_image.image_id,
+                "build_operation": result.build.worker_operation,
+                "inference_operation": result.inference.worker_operation,
+                "build_controls_digest": controls[0],
+                "inference_controls_digest": controls[1],
+                "state_digest": result.build.state_digest,
+                "predictions_digest": result.inference.predictions_digest,
+                "build_receipt": result.build.receipt,
+                "inference_receipt": result.inference.receipt,
+                "predictions_raw_base64": base64.b64encode(predictions_raw).decode(
+                    "ascii"
+                ),
+            }
+            if source_kind == "graph":
+                private["submission_digest"] = recipe.to_dict()["source"][
+                    "submission_digest"
+                ]
+            else:
+                private["bundle_digest"] = image.provisioned.bundle.bundle_digest
+                private["context_digest"] = image.provisioned.context_digest
+            with self._lock:
+                view = self._views[task_id.value]
+                if view.state is DirectTaskStateV3.CANCEL_REQUESTED:
+                    receipt = self._receipt(view, DirectTaskStateV3.CANCELLED)
+                    return self._transition(
+                        view, DirectTaskStateV3.CANCELLED, receipt=receipt
+                    )
+                if view.state is not DirectTaskStateV3.RUNNING:
+                    raise ValueError("direct task state changed")
+                from dataclasses import replace
+
+                completed = max(time.time_ns() // 1000, view.updated_at_micros)
+                receipt = self._receipt(
+                    view, DirectTaskStateV3.SUCCEEDED, result=result
+                )
+                succeeded = replace(
+                    view,
+                    state=DirectTaskStateV3.SUCCEEDED,
+                    revision=view.revision + 1,
+                    updated_at_micros=max(completed, receipt.completed_at_micros),
+                    terminal_receipt=receipt,
+                )
+                with self._db() as db:
+                    db.execute(
+                        "INSERT INTO direct_evidence VALUES(?,?)",
+                        (task_id.value, canonical(private)),
+                    )
+                    db.execute(
+                        "UPDATE direct_tasks SET view=? WHERE id=?",
+                        (canonical_bytes(succeeded), task_id.value),
+                    )
+                self._views[task_id.value] = succeeded
+                return succeeded
+        except Exception as exc:  # noqa: BLE001 - private worker details stay private.
+            # A child can be RESERVED after an exception. Do not mark the
+            # parent terminal until every claimed child has observed cleanup.
+            from .research_carrier import reconcile_worker
+
+            child_states = []
+            for child in self._children(task_id):
+                child_state = self.ledger.operation_state(child, owner=self.owner)
+                if child_state == "RESERVED":
+                    reconcile_worker(self.ledger, owner=self.owner, identity=child)
+                    child_state = self.ledger.operation_state(child, owner=self.owner)
+                if child_state not in (
+                    None,
+                    "SUCCEEDED",
+                    "FAILED_INFRA",
+                    "FAILED_MINER",
+                    "CANCELLED",
+                ):
+                    raise ValueError("direct child cleanup remains unresolved")
+                child_states.append(child_state)
+            with self._lock:
+                view = self._views[task_id.value]
+                graph_decision = (
+                    exc
+                    if source_kind == "graph"
+                    and isinstance(exc, GraphConstructionDecision)
+                    and child_states == ["SUCCEEDED", None]
+                    else None
+                )
+                state = (
+                    DirectTaskStateV3.CANCELLED
+                    if view.state is DirectTaskStateV3.CANCEL_REQUESTED
+                    else (
+                        DirectTaskStateV3(graph_decision.state)
+                        if graph_decision is not None
+                        else (
+                            DirectTaskStateV3.FAILED_INFRA
+                            if "FAILED_INFRA" in child_states
+                            else (
+                                DirectTaskStateV3.REFUSED
+                                if isinstance(exc, MinerProgramFailure)
+                                or "FAILED_MINER" in child_states
+                                else DirectTaskStateV3.UNRESOLVED
+                            )
+                        )
+                    )
+                )
+                receipt = self._receipt(
+                    view,
+                    state,
+                    failure=(
+                        InfrastructureFailureClass.INTERNAL
+                        if state is DirectTaskStateV3.FAILED_INFRA
+                        else None
+                    ),
+                    refusal_code=(
+                        graph_decision.reason_code
+                        if graph_decision is not None
+                        and state
+                        in (DirectTaskStateV3.REFUSED, DirectTaskStateV3.UNRESOLVED)
+                        else (
+                            "candidate_program_failed"
+                            if state is DirectTaskStateV3.REFUSED
+                            else (
+                                "unresolved_execution"
+                                if state is DirectTaskStateV3.UNRESOLVED
+                                else None
+                            )
+                        )
+                    ),
+                )
+                return self._transition(
+                    view,
+                    state,
+                    receipt=receipt,
+                    export_gap=(
+                        self._reported_export_gap(exc, child_states)
+                        if state is DirectTaskStateV3.FAILED_INFRA
+                        else None
+                    ),
+                )
+
+    def private_attempt(self, task_id):
+        """Trusted inspection only; public service never returns this record."""
+        view = self._views.get(task_id.value)
+        if view is None or view.state is not DirectTaskStateV3.SUCCEEDED:
+            return None
+        return self._verified_success_evidence(view)
 
 
 #: The most bytes one `read_file` returns, by the campaign's research tools
@@ -938,6 +2341,11 @@ class PublicResearchExecutor:
                 # them: a typed outcome, never an infrastructure failure.
                 result = refused_result(refused)
             evidence = ResearchEvidenceClass.STRUCTURAL_ONLY
+        elif type(spec) is DirectPracticeTaskSpecV1:
+            if getattr(self.practice, "construction_mode", None) != "direct":
+                raise ValueError("direct practice is unavailable for this campaign")
+            result = self.practice(identity, spec.recipe)
+            evidence = ResearchEvidenceClass.PRACTICE_NON_AUTHORITATIVE
         elif type(spec) is PracticeTaskSpec:
             # The practice adapter supplies trusted labels/randomness and the
             # catalog compiler; the requester supplies only a registered recipe.

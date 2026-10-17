@@ -807,9 +807,20 @@ class ResearchToolAdapter:
             tools_for_sdk,
         )
 
-        if self.authored_julia_available:
-            return tools_for_sdk(self._sdk)
-        return TOOLS if campaign_tools_rule(self._sdk.ledger) is None else TOOLS_V2
+        base = (
+            tools_for_sdk(self._sdk)
+            if self.authored_julia_available
+            else TOOLS if campaign_tools_rule(self._sdk.ledger) is None else TOOLS_V2
+        )
+        manifest = getattr(
+            getattr(self._sdk.composition, "discovery", None), "manifest", None
+        )
+        if type(manifest) is research.DirectRecipeManifest:
+            offered = {
+                PREFIX + operation for operation in manifest.supported_operations
+            }
+            return [tool for tool in base if tool["name"] in offered]
+        return base
 
     @property
     def gpu_lane(self):

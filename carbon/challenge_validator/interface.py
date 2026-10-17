@@ -214,9 +214,17 @@ class ChallengeAdapter(abc.ABC):
     #: An engineering admission limit on the strategy's bytes, not a
     #: scientific value.
     max_strategy_bytes: int
+    #: None keeps the historical top-level challenge_id strategy. A new
+    #: prospectively versioned contract may explicitly serve one other schema;
+    #: a schema marker never widens an existing adapter by accident.
+    strategy_schema: str | None = None
     #: Miner-outcome keys this adapter may return beyond `OUTCOME_REQUIRED`
     #: and `failure`.
     disclosure_fields: frozenset = frozenset()
+
+    def validate_strategy(self, strategy):
+        """Optional contract-specific strict screen after neutral JSON parsing."""
+        return None
 
     # --- identities ---------------------------------------------------------
 

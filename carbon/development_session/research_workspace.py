@@ -36,6 +36,10 @@ class WorkspaceFileMissing(ValueError):
     the requester's to fix."""
 
 
+class WorkspaceBoundExceeded(ValueError):
+    """A bounded consumer refused an existing file before loading its bytes."""
+
+
 def is_workspace_name(name):
     """Whether `name` is a flat workspace identifier (never a path)."""
     return (
@@ -132,6 +136,36 @@ class ResearchWorkspace:
             path = self._object(row[1])
             body = path.read_bytes() if path.is_file() else None
         if body is None or digest(body) != row[1]:
+            raise ValueError("workspace artifact unavailable")
+        return body
+
+    def get_bounded(self, name, max_bytes):
+        """Read for a bounded consumer without changing normal workspace limits."""
+        self.name(name)
+        if type(max_bytes) is not int or max_bytes < 0:
+            raise ValueError("non-negative workspace read bound required")
+        with self.ledger.db() as db:
+            row = db.execute(
+                "SELECT CASE WHEN LENGTH(body)<=? THEN body ELSE NULL END,digest "
+                "FROM workspace WHERE owner=? AND name=?",
+                (max_bytes, self.owner, name),
+            ).fetchone()
+        if row is None:
+            raise WorkspaceFileMissing("workspace artifact unavailable")
+        body, fingerprint = row
+        if body is None:
+            raise WorkspaceBoundExceeded("workspace artifact exceeds read bound")
+        if body == _EMPTY and fingerprint != digest(_EMPTY):
+            path = self._object(fingerprint)
+            if not path.is_file():
+                raise ValueError("workspace artifact unavailable")
+            if path.stat().st_size > max_bytes:
+                raise WorkspaceBoundExceeded("workspace artifact exceeds read bound")
+            with path.open("rb") as source:
+                body = source.read(max_bytes + 1)
+            if len(body) > max_bytes:
+                raise WorkspaceBoundExceeded("workspace artifact exceeds read bound")
+        if digest(body) != fingerprint:
             raise ValueError("workspace artifact unavailable")
         return body
 

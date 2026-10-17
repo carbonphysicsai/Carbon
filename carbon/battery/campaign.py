@@ -385,12 +385,18 @@ def manifest_document(
     feedback=FEEDBACK_FULL,
     graphite=None,
     construction_level=None,
+    construction_mode=None,
     public_model_retention=None,
 ):
     from carbon.development_session.research_ledger import VERSION
     from carbon.reconstruction.capability_registry import contract_digest
 
     from .research import SCAFFOLD, objective
+
+    if construction_mode not in (None, "direct") or (
+        construction_mode and construction_level
+    ):
+        raise ValueError("direct construction mode conflicts with a legacy level")
 
     document = {
         "schema": VERSION,
@@ -428,6 +434,7 @@ def manifest_document(
             if construction_level
             else {}
         ),
+        **({"construction_mode": construction_mode} if construction_mode else {}),
     }
     if public_model_retention is not None:
         from .public_model_retention import frozen_opt_in
@@ -467,6 +474,11 @@ async def prepare_battery(args, *, ledger=None, campaign):
     if args.command == "resume" and not manifest_path.exists():
         raise ValueError("no frozen campaign to resume")
     frozen = json.loads(manifest_path.read_bytes()) if manifest_path.exists() else None
+    mode = getattr(args, "construction_mode", None)
+    if mode not in (None, "direct") or (
+        frozen is not None and frozen.get("construction_mode") != mode
+    ):
+        raise ValueError("battery construction mode differs from the frozen campaign")
     from carbon.development_session import submission_policy
 
     if frozen is not None:
@@ -604,6 +616,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
             feedback=getattr(args, "feedback_mode", FEEDBACK_FULL),
             graphite=graphite,
             construction_level=getattr(args, "construction_level", None),
+            construction_mode=mode,
             **retention,
         )
         write_once(manifest_path, canonical(manifest))
@@ -716,6 +729,11 @@ def compose(
     from .public_model_retention import frozen_opt_in
 
     manifest_path = ledger.root / "campaign-manifest.json"
+    construction_mode = (
+        json.loads(manifest_path.read_bytes()).get("construction_mode")
+        if manifest_path.exists()
+        else None
+    )
     retention = (
         frozen_opt_in(json.loads(manifest_path.read_bytes()), owner=owner)
         if manifest_path.exists()
@@ -725,6 +743,7 @@ def compose(
     # so practice runs in the isolated carrier and says so.
     practice = BatteryPractice(
         level=level,
+        construction_mode=construction_mode,
         model_retention=retention,
         ledger=ledger,
         owner=owner,

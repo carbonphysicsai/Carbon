@@ -29,6 +29,7 @@ from .model import (
     CancelResearchTaskResult,
     ChallengeInfo,
     CompileStrategyRequest,
+    DirectRecipeManifest,
     ExactPriorSelector,
     GetPriorRequest,
     GetResearchResultRequest,
@@ -299,9 +300,13 @@ class InMemoryResearchTaskProvider:
     def _check_discovery(
         request: StartResearchTaskRequest,
         info: ChallengeInfo,
-        manifest: InteractionManifest,
+        manifest: InteractionManifest | DirectRecipeManifest,
         kind: ResearchTaskKind,
     ) -> None:
+        if type(manifest) is DirectRecipeManifest:
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE
+            )
         if (
             type(info) is not ChallengeInfo
             or type(manifest) is not InteractionManifest
@@ -331,7 +336,7 @@ class InMemoryResearchTaskProvider:
 
     def _resolve_start(self, request: StartResearchTaskRequest) -> tuple[
         ChallengeInfo,
-        InteractionManifest,
+        InteractionManifest | DirectRecipeManifest,
         ResearchTaskKind,
         tuple[ResolvedStrategy, ...],
         tuple[StrategyHash | None, ...],
@@ -343,7 +348,11 @@ class InMemoryResearchTaskProvider:
             manifest = self._manifests.get_interaction_manifest(request.challenge_key)
             kind, roles, strategies, parents = self._spec_parts(request)
             self._check_discovery(request, info, manifest, kind)
-            availability = manifest.prior_availability
+            availability = (
+                NoPriorAvailability()
+                if type(manifest) is DirectRecipeManifest
+                else manifest.prior_availability
+            )
             if type(availability) is NoPriorAvailability:
                 if type(request.prior_selector) is not NoPriorSelector:
                     raise ResearchTaskProviderError(

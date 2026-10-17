@@ -1,0 +1,219 @@
+"""The owner cache preserves a child image binding without granting runtime authority."""
+
+import json
+
+import pytest
+
+from carbon.development_session import library_environment_cache as cache
+from carbon.development_session.library_bundles import (
+    LibraryBundleRef,
+    ProvisionedLibraryEnvironment,
+)
+from carbon.development_session.research_image import LibraryWorkerImage
+from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+
+def _sha(char):
+    return "sha256:" + char * 64
+
+
+def _image(context):
+    parent = WorkerImageIdentity(
+        _sha("a"),
+        _sha("a"),
+        _sha("b"),
+        _sha("c"),
+        _sha("d"),
+        _sha("e"),
+        _sha("f"),
+        _sha("0"),
+    )
+    bundle = LibraryBundleRef(
+        "carbon.library-bundle-ref.v1",
+        _sha("1"),
+        "python",
+        "jax-cuda13-py311",
+        _sha("2"),
+    )
+    environment = ProvisionedLibraryEnvironment(
+        bundle, parent.image_id, context, _sha("3"), _sha("4")
+    )
+    return LibraryWorkerImage(environment, parent, bundle.to_dict())
+
+
+def test_cache_round_trip_requires_verification_and_trusted_bindings(
+    tmp_path, monkeypatch
+):
+    contexts = tmp_path / "contexts"
+    context = contexts / "checked"
+    context.mkdir(parents=True)
+    image = _image(context)
+    calls = []
+    monkeypatch.setattr(cache, "_context_digest", lambda _: _sha("3"))
+    monkeypatch.setattr(
+        cache,
+        "verify_library_worker_image",
+        lambda candidate, cli: calls.append((candidate, cli)),
+    )
+    path = tmp_path / "image.json"
+    adapter = object()
+
+    cache.store_verified_library_worker_image(
+        path, image, context_root=contexts, cli=adapter
+    )
+    assert calls == [(image, adapter)]
+    assert (
+        cache.load_cached_library_worker_image(
+            path,
+            expected_bundle=image.provisioned.bundle,
+            expected_parent=image.parent,
+            context_root=contexts,
+        )
+        == image
+    )
+    assert len(calls) == 1  # Cache loading does not claim Docker verification.
+
+    record = json.loads(path.read_text(encoding="utf-8"))
+    record["bundle"]["bundle_digest"] = _sha("9")
+    path.write_text(json.dumps(record), encoding="utf-8")
+    with pytest.raises(ValueError, match="binding changed"):
+        cache.load_cached_library_worker_image(
+            path,
+            expected_bundle=image.provisioned.bundle,
+            expected_parent=image.parent,
+            context_root=contexts,
+        )
+
+
+def test_cache_refuses_changed_context_and_unverified_write(tmp_path, monkeypatch):
+    contexts = tmp_path / "contexts"
+    context = contexts / "checked"
+    context.mkdir(parents=True)
+    image = _image(context)
+    path = tmp_path / "image.json"
+    monkeypatch.setattr(cache, "_context_digest", lambda _: _sha("3"))
+
+    def refuse(_image, _cli):
+        raise ValueError("child image unavailable")
+
+    monkeypatch.setattr(cache, "verify_library_worker_image", refuse)
+    with pytest.raises(ValueError, match="child image unavailable"):
+        cache.store_verified_library_worker_image(
+            path, image, context_root=contexts, cli=object()
+        )
+    assert not path.exists()
+
+    monkeypatch.setattr(cache, "verify_library_worker_image", lambda _image, _cli: None)
+    cache.store_verified_library_worker_image(
+        path, image, context_root=contexts, cli=object()
+    )
+    monkeypatch.setattr(cache, "_context_digest", lambda _: _sha("8"))
+    with pytest.raises(ValueError, match="invalid cached library worker image"):
+        cache.load_cached_library_worker_image(
+            path,
+            expected_bundle=image.provisioned.bundle,
+            expected_parent=image.parent,
+            context_root=contexts,
+        )
+
+
+def test_admitted_install_reuses_verified_hit_and_reprovisions_for_new_parent(
+    tmp_path, monkeypatch
+):
+    import_path = tmp_path / "user-input"
+    cache_root = tmp_path / "owner-cache"
+    cache_root.mkdir()
+    image = _image(tmp_path / "placeholder")
+    selected = image.provisioned.bundle
+    material = ({"language": "python"}, b"source", {}, b"lock", b"license")
+    provisions = []
+    verifications = []
+    monkeypatch.setattr(cache, "load_pinned_bundle_directory", lambda _: material)
+    monkeypatch.setattr(cache, "bundle_ref", lambda *args: selected)
+    monkeypatch.setattr(cache, "_context_digest", lambda _: _sha("3"))
+
+    def prepare(root, *args):
+        parent_id = args[-1]
+        context = root / selected.bundle_digest[7:] / parent_id[7:]
+        context.mkdir(parents=True, exist_ok=True)
+        return context, selected.bundle_digest, _sha("3")
+
+    def provision(root, expected_ref, *args, cli):
+        parent_id = args[-1]
+        provisions.append((expected_ref, parent_id, cli))
+        context, _, digest = prepare(root, *args)
+        return ProvisionedLibraryEnvironment(
+            selected, parent_id, context, digest, _sha("4")
+        )
+
+    def verify(candidate, cli):
+        verifications.append((candidate, cli))
+        return candidate
+
+    monkeypatch.setattr(cache, "prepare_offline_context", prepare)
+    monkeypatch.setattr(cache, "provision_offline_bundle", provision)
+    monkeypatch.setattr(cache, "verify_library_worker_image", verify)
+    adapter = object()
+
+    wrong_bundle = LibraryBundleRef(
+        selected.schema,
+        _sha("8"),
+        selected.language,
+        selected.runtime_profile_id,
+        selected.environment_digest,
+    )
+    with pytest.raises(ValueError, match="recipe bundle reference differs"):
+        cache.install_pinned_library_worker_image(
+            import_path,
+            cache_root,
+            image.parent,
+            expected_bundle=wrong_bundle,
+            cli=adapter,
+        )
+    assert not provisions
+
+    first = cache.install_pinned_library_worker_image(
+        import_path, cache_root, image.parent, expected_bundle=selected, cli=adapter
+    )
+    receipt_path, context_path = cache.library_image_cache_paths(
+        cache_root, selected, image.parent
+    )
+    assert context_path == first.provisioned.context
+    assert receipt_path.is_file()
+    second = cache.install_pinned_library_worker_image(
+        import_path, cache_root, image.parent, expected_bundle=selected, cli=adapter
+    )
+    assert first == second
+    assert len(provisions) == 1
+    assert verifications == [(first, adapter), (second, adapter)]
+
+    changed_parent = WorkerImageIdentity(
+        _sha("9"),
+        _sha("9"),
+        _sha("b"),
+        _sha("c"),
+        _sha("d"),
+        _sha("e"),
+        _sha("f"),
+        _sha("0"),
+    )
+    third = cache.install_pinned_library_worker_image(
+        import_path,
+        cache_root,
+        changed_parent,
+        expected_bundle=selected,
+        cli=adapter,
+    )
+    assert third.parent == changed_parent
+    assert len(provisions) == 2
+    assert third.provisioned.context != first.provisioned.context
+
+    receipt = receipt_path
+    record = json.loads(receipt.read_text(encoding="utf-8"))
+    record["parent"]["image_id"] = _sha("8")
+    receipt.write_text(json.dumps(record), encoding="utf-8")
+    with pytest.raises(ValueError):
+        cache.install_pinned_library_worker_image(
+            import_path, cache_root, image.parent, expected_bundle=selected, cli=adapter
+        )
+    assert len(provisions) == 2  # A corrupt hit never silently rebuilds.

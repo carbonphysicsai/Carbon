@@ -1,0 +1,1048 @@
+"""One isolated source-bundle build and separate inert-graph inference route.
+
+The source callable runs only in the provisioned child. The inference worker
+receives no source package, TRAIN bytes or constructor, and uses the existing
+Carbon graph interpreter. A Challenge owns the exact TRAIN tensor document and
+its interface adapter; this module does not choose scientific measurements.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import io
+import json
+import math
+import re
+import time
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
+
+from carbon.challenge_validator.strict_json import MalformedStrategy, parse_strategy
+
+from .bundle_graph_state import MAX_BYTES as MAX_STATE_BYTES
+from .construction_recipe import ConstructionRecipe, RecipeRefused, bind_recipe
+from .library_bundles import LibraryBundleRef
+from .profile import canonical
+from .research_carrier import LIBRARY_BUILD_PROVENANCE, PRECHARGED_TRIAL, _run
+from .research_image import LibraryWorkerImage
+
+BUILD_PROGRAM = r'''"""Fixed isolated source-bundle build; no judge or hidden data."""
+import hashlib, importlib, io, json, shutil, sys
+from pathlib import Path
+import numpy as np
+
+work = Path.cwd()
+out = work.parent / "output"
+for package in ("carbon", "carbon/challenge_validator", "carbon/level4",
+                "carbon/level4/tooling", "carbon/development_session"):
+    folder = work / package
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "__init__.py").write_text("")
+for name in __STAGED_MODULES__:
+    destination = work.joinpath(*name.split(".")).with_suffix(".py")
+    shutil.copyfile(work / (name + ".py"), destination)
+sys.path.insert(0, str(work))
+
+from carbon.development_session.construction_recipe import ConstructionRecipe, bind_recipe
+from carbon.development_session.bundle_graph_state import freeze
+from carbon.level4.allowlist import Allowlist
+from carbon.level4.tooling import lower_jax, lower_torch
+
+digest = lambda body: "sha256:" + hashlib.sha256(body).hexdigest()
+control = json.loads((work / "control.json").read_bytes())
+recipe = ConstructionRecipe.from_bytes((work / "recipe.json").read_bytes())
+if recipe.digest != control["recipe_digest"]:
+    raise ValueError("bundle build recipe differs")
+bind_recipe(recipe.to_dict(), **control["binding"])
+source = recipe.to_dict()["source"]
+if source["kind"] != "bundle" or source["bundle_ref"] != control["bundle_ref"]:
+    raise ValueError("bundle build source differs")
+train_raw = (work / "train.npz").read_bytes()
+if digest(train_raw) != control["binding"]["train_digest"]:
+    raise ValueError("bundle build TRAIN differs")
+with np.load(io.BytesIO(train_raw), allow_pickle=False) as data:
+    if set(data.files) != {"inputs", "targets"}:
+        raise ValueError("bundle build TRAIN tensors differ")
+    train_inputs, train_targets = data["inputs"], data["targets"]
+if (train_inputs.dtype.kind not in "fiu" or train_targets.dtype.kind not in "fiu"
+    or not np.isfinite(train_inputs).all() or not np.isfinite(train_targets).all()
+    or train_inputs.ndim < 2 or train_targets.ndim < 2
+    or len(train_inputs) != len(train_targets) or len(train_inputs) < 1):
+    raise ValueError("bundle build TRAIN tensor contract differs")
+example_raw = (work / "example.npz").read_bytes()
+if digest(example_raw) != control["example_digest"]:
+    raise ValueError("bundle build example differs")
+with np.load(io.BytesIO(example_raw), allow_pickle=False) as data:
+    if set(data.files) != {"inputs"}:
+        raise ValueError("bundle build example contract differs")
+    example = data["inputs"]
+if (example.dtype.kind not in "fiu" or not np.isfinite(example).all()
+    or example.ndim < 2 or example.shape[1:] != train_inputs.shape[1:]):
+    raise ValueError("bundle build example shape differs")
+
+entry = recipe.to_dict()["procedure"]["entrypoint"]
+factory = getattr(importlib.import_module(entry["module"]), entry["name"])
+if not callable(factory):
+    raise ValueError("bundle build entrypoint not callable")
+product = factory(
+    train_inputs, train_targets, seed=control["seed"],
+    configuration=recipe.to_dict()["procedure"]["configuration"],
+    train_use=recipe.to_dict()["procedure"]["train_use"],
+)
+if (type(product) is not dict or set(product) != {"framework", "apply", "parameters"}
+    or product["framework"] not in ("jax", "torch")
+    or not callable(product["apply"]) or type(product["parameters"]) is not list):
+    raise ValueError("bundle build product contract differs")
+allowed = Allowlist((work / "allowlist.json").read_bytes())
+if allowed.digest != control["allowlist_digest"]:
+    raise ValueError("bundle build allowlist differs")
+if product["framework"] == "jax":
+    import jax.numpy as jnp
+    if product["parameters"]:
+        raise ValueError("JAX closed apply must carry its trained arrays")
+    trial = np.asarray(product["apply"](jnp.asarray(example)))
+    traced = lower_jax.trace(product["apply"], jnp.asarray(example))
+    doc = lower_jax.lower(
+        traced, role="forward", allowlist=allowed, input_names=["inputs/x"]
+    )
+    arrays = []
+else:
+    import torch
+    arrays = [np.asarray(p.detach().cpu().numpy()) for p in product["parameters"]]
+    with torch.no_grad():
+        trial = np.asarray(product["apply"](
+            product["parameters"], torch.as_tensor(example)
+        ).detach().cpu().numpy())
+    _, core = lower_torch.export(
+        product["apply"], product["parameters"], torch.as_tensor(example)
+    )
+    doc, _ = lower_torch.lower(core, allowlist=allowed)
+if (trial.shape != (len(example), *train_targets.shape[1:])
+    or trial.dtype.kind not in "fiu" or not np.isfinite(trial).all()):
+    raise ValueError("bundle build output shape or value differs")
+state = freeze(recipe, doc, arrays, allowed)
+(out / "state.npz").write_bytes(state)
+(out / "receipt.json").write_text(json.dumps({
+    "schema": "carbon.development.bundle-build.v1",
+    "recipe_digest": recipe.digest,
+    "bundle_digest": source["bundle_ref"]["bundle_digest"],
+    "train_digest": control["binding"]["train_digest"],
+    "state_digest": digest(state),
+    "allowlist_digest": allowed.digest,
+    "framework": product["framework"],
+}, sort_keys=True, allow_nan=False))
+'''
+
+INFER_PROGRAM = r'''"""Fixed input-only graph inference; no source or TRAIN."""
+import hashlib, io, json, shutil, sys, time
+from pathlib import Path
+import numpy as np
+
+work = Path.cwd()
+out = work.parent / "output"
+for package in ("carbon", "carbon/challenge_validator", "carbon/level4",
+                "carbon/level4/tooling", "carbon/development_session"):
+    folder = work / package
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "__init__.py").write_text("")
+for name in __STAGED_MODULES__:
+    destination = work.joinpath(*name.split(".")).with_suffix(".py")
+    shutil.copyfile(work / (name + ".py"), destination)
+sys.path.insert(0, str(work))
+
+from carbon.development_session.construction_recipe import ConstructionRecipe, bind_recipe
+from carbon.development_session.bundle_graph_state import load
+from carbon.level4.allowlist import Allowlist
+from carbon.level4.interpret import rebuild
+import jax.numpy as jnp
+
+digest = lambda body: "sha256:" + hashlib.sha256(body).hexdigest()
+control = json.loads((work / "control.json").read_bytes())
+recipe = ConstructionRecipe.from_bytes((work / "recipe.json").read_bytes())
+if recipe.digest != control["recipe_digest"]:
+    raise ValueError("bundle inference recipe differs")
+bind_recipe(recipe.to_dict(), **control["binding"])
+state = (work / "state.npz").read_bytes()
+if digest(state) != control["state_digest"]:
+    raise ValueError("bundle inference state differs")
+allowed = Allowlist((work / "allowlist.json").read_bytes())
+if allowed.digest != control["allowlist_digest"]:
+    raise ValueError("bundle inference allowlist differs")
+measure = control.get("measure_query", False)
+if type(measure) is not bool:
+    raise ValueError("bundle inference measurement control differs")
+if measure:
+    preprocess_start = time.perf_counter()
+doc, parameters = load(state, recipe, allowed)
+raw_inputs = (work / "inputs.npz").read_bytes()
+if digest(raw_inputs) != control["inputs_digest"]:
+    raise ValueError("bundle inference inputs differ")
+with np.load(io.BytesIO(raw_inputs), allow_pickle=False) as data:
+    if set(data.files) != {"inputs"}:
+        raise ValueError("bundle inference input contract differs")
+    inputs = data["inputs"]
+if inputs.dtype.kind not in "fiu" or not np.isfinite(inputs).all():
+    raise ValueError("bundle inference nonfinite inputs")
+declared = doc["graphs"][doc["entry"]]["inputs"]
+if (len(declared) != len(parameters) + 1
+    or declared[-1]["name"] != control.get("input_name", "inputs/x")):
+    raise ValueError("bundle inference input binding differs")
+parameter_arrays = [jnp.asarray(p) for p in parameters]
+input_array = jnp.asarray(inputs)
+if measure:
+    inference_start = time.perf_counter()
+forward = rebuild(doc, allowed)
+if recipe.to_dict()["source"]["kind"] == "graph":
+    batch = declared[-1]["shape"][0]
+    blocks = []
+    for start in range(0, len(input_array), batch):
+        part = input_array[start:start + batch]
+        used = len(part)
+        if used < batch:
+            part = jnp.pad(part, [(0, batch - used)] + [(0, 0)] * (part.ndim - 1))
+        outputs = forward(*parameter_arrays, part)
+        if len(outputs) != 1:
+            raise ValueError("graph inference output arity differs")
+        blocks.append(outputs[0][:used])
+    outputs = [jnp.concatenate(blocks)]
+else:
+    outputs = forward(*parameter_arrays, input_array)
+if len(outputs) != 1:
+    raise ValueError("bundle inference output arity differs")
+result = np.asarray(outputs[0])
+if measure:
+    postprocess_start = time.perf_counter()
+if (list(result.shape) != control["expected_output_shape"]
+    or (control.get("expected_output_dtype") is not None
+        and result.dtype != np.dtype(control["expected_output_dtype"]))
+    or result.dtype.kind not in "fiu" or not np.isfinite(result).all()):
+    raise ValueError("bundle inference output contract differs")
+body = json.dumps(result.tolist(), allow_nan=False, separators=(",", ":")).encode()
+if measure:
+    export_start = time.perf_counter()
+(out / "predictions.json").write_bytes(body)
+receipt = {
+    "schema": ("carbon.development.bundle-inference.v2" if measure
+               else "carbon.development.bundle-inference.v1"),
+    "recipe_digest": recipe.digest,
+    "state_digest": control["state_digest"],
+    "inputs_digest": control["inputs_digest"],
+    "predictions_digest": digest(body),
+}
+if measure:
+    export_end = time.perf_counter()
+    receipt["measurement"] = {
+        "scope": "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE",
+        "timing_s": {
+            "preprocess": inference_start - preprocess_start,
+            "inference": postprocess_start - inference_start,
+            "postprocess": export_start - postprocess_start,
+            "export": export_end - export_start,
+        },
+        "input_shape": list(inputs.shape),
+        "input_dtype": str(inputs.dtype),
+        "output_shape": list(result.shape),
+        "output_dtype": str(result.dtype),
+    }
+(out / "receipt.json").write_text(json.dumps(receipt, sort_keys=True, allow_nan=False))
+'''
+
+STAGED_MODULES = (
+    "carbon.challenge_validator.strict_json",
+    "carbon.level4.graph",
+    "carbon.level4.params",
+    "carbon.level4.allowlist",
+    "carbon.level4.named",
+    "carbon.level4.interpret",
+    "carbon.level4.tooling.lower_jax",
+    "carbon.level4.tooling.lower_torch",
+    "carbon.development_session.construction_recipe",
+    "carbon.development_session.bundle_graph_state",
+)
+BUILD_PROGRAM = BUILD_PROGRAM.replace("__STAGED_MODULES__", repr(STAGED_MODULES))
+INFER_PROGRAM = INFER_PROGRAM.replace("__STAGED_MODULES__", repr(STAGED_MODULES))
+
+
+def _digest(body: bytes) -> str:
+    return "sha256:" + hashlib.sha256(body).hexdigest()
+
+
+def _tensors(**arrays) -> bytes:
+    out = io.BytesIO()
+    for value in arrays.values():
+        if (
+            type(value) is not np.ndarray
+            or value.dtype.kind not in "fiu"
+            or not np.isfinite(value).all()
+        ):
+            raise RecipeRefused("bundle_tensor_invalid")
+    np.savez(out, **arrays)
+    body = out.getvalue()
+    if not 0 < len(body) <= MAX_STATE_BYTES:
+        raise RecipeRefused("bundle_tensor_oversized")
+    return body
+
+
+def _checked_binding(recipe: ConstructionRecipe, binding: dict) -> dict:
+    """Require a trusted Challenge's exact kit, never one echoed by the recipe."""
+    if type(binding) is not dict or set(binding) != {
+        "challenge_id",
+        "challenge_version",
+        "train_digest",
+        "interface_digest",
+        "construction_limits_digest",
+    }:
+        raise RecipeRefused("bundle_challenge_binding_invalid")
+    bind_recipe(recipe.to_dict(), **binding)
+    return binding
+
+
+def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
+    """Check a Challenge-owned synthetic policy against the actual C-03 lane.
+
+    A request or operator profile cannot author this policy. The kit's pinned
+    limits digest is checked first; the worker profile then proves these
+    finite limits are the ones this direct source route actually enforces.
+    The aggregate task deadline remains an orchestration obligation, not a
+    property inferred from either 600-second worker call.
+    """
+    from carbon.challenge_kit import synthetic_linear_field_2d
+
+    from .local_diagnostic_plan import MAX_TASK_WALL_SECONDS
+    from .research_carrier import _worker_profile
+
+    version = (
+        binding.get("challenge_version", binding.get("version"))
+        if type(binding) is dict
+        else None
+    )
+    if (
+        type(binding) is dict
+        and "challenge_version" in binding
+        and "version" in binding
+        and binding["challenge_version"] != binding["version"]
+    ):
+        raise RecipeRefused("construction_resource_policy_binding_invalid")
+    if version == "1.3":
+        prospective = getattr(
+            synthetic_linear_field_2d, "construction_limits_document_v3", None
+        )
+        if not callable(prospective):
+            raise RecipeRefused("construction_resource_policy_binding_invalid")
+        trusted_limits = prospective()
+        expected_schema = "carbon.synthetic-linear-field-2d.construction-limits.v3"
+    elif version in ("1.0", "1.1", "1.2"):
+        trusted_limits = synthetic_linear_field_2d.construction_limits_document()
+        expected_schema = "carbon.synthetic-linear-field-2d.construction-limits.v2"
+    else:
+        raise RecipeRefused("construction_resource_policy_binding_invalid")
+    if (
+        type(binding) is not dict
+        or type(limits_document) is not dict
+        or limits_document != trusted_limits
+        or _digest(canonical(limits_document))
+        != binding.get("construction_limits_digest")
+        or limits_document.get("schema") != expected_schema
+        or limits_document.get("scope") != "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"
+    ):
+        raise RecipeRefused("construction_resource_policy_binding_invalid")
+    profile = _worker_profile(None, LIBRARY_BUILD_PROVENANCE).body
+    expected = {
+        "schema": "carbon.synthetic-linear-field-2d.reconstruction-resources.v1",
+        "cpu_count_max": profile["cpu"]["count"],
+        "memory_bytes_max": profile["memory"]["bytes"],
+        "swap_bytes_max": profile["memory"]["swap_bytes"],
+        "pids_max": profile["pids"],
+        "nofile_max": profile["nofile_per_process"],
+        "scratch_bytes_max": profile["scratch"]["bytes"],
+        "scratch_inodes_max": profile["scratch"]["inodes"],
+        "build_wall_seconds_max": profile["deadline_seconds"],
+        "inference_wall_seconds_max": profile["deadline_seconds"],
+        "total_reconstruction_wall_seconds_max": MAX_TASK_WALL_SECONDS,
+        "network": profile["security"]["network"],
+        "cleanup_required": True,
+    }
+    if limits_document.get("reconstruction_resource_policy") != expected:
+        raise RecipeRefused("construction_resource_policy_unserved")
+    return binding["construction_limits_digest"]
+
+
+def _stage_modules() -> dict[str, bytes]:
+    root = Path(__file__).resolve().parents[2]
+    files = {
+        name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
+        for name in STAGED_MODULES
+    }
+    return files
+
+
+def _trusted_allowlist(raw: bytes):
+    """Select only an exact repository material; v1 history stays unchanged."""
+    from carbon.challenge_kit import synthetic_linear_field_2d
+    from carbon.level4.allowlist import Allowlist
+
+    if type(raw) is not bytes or not 0 < len(raw) <= 1024**2:
+        raise RecipeRefused("bundle_allowlist_invalid")
+    root = Path(__file__).resolve().parents[1] / "level4"
+    trusted = (
+        (root / "allowlist_v1.json").read_bytes(),
+        (root / "allowlist_v2.json").read_bytes(),
+        (root / "allowlist_v3.json").read_bytes(),
+        (root / "allowlist_v4.json").read_bytes(),
+    )
+    prospective = getattr(synthetic_linear_field_2d, "allowlist_v5_bytes", None)
+    if callable(prospective):
+        trusted += (prospective(),)
+    if raw not in trusted:
+        raise RecipeRefused("bundle_allowlist_unregistered")
+    return Allowlist(raw)
+
+
+@dataclass(frozen=True)
+class BundleBuildResult:
+    recipe_digest: str
+    state_digest: str
+    state_path: Path
+    worker_operation: str
+    receipt: dict
+
+
+def reconstruct_public(
+    ledger,
+    *,
+    owner: str,
+    identity: str,
+    image: LibraryWorkerImage,
+    recipe: ConstructionRecipe,
+    challenge_binding: dict,
+    train: bytes,
+    example: np.ndarray,
+    seed: int,
+    allowlist_bytes: bytes,
+    limits_document: dict | None = None,
+    seconds: int = 600,
+    runner=None,
+) -> BundleBuildResult:
+    """Run an exact source entrypoint only in the provisioned child worker."""
+    if (
+        type(image) is not LibraryWorkerImage
+        or type(recipe) is not ConstructionRecipe
+        or recipe.to_dict()["source"]["kind"] != "bundle"
+        or recipe.to_dict()["output"]["format"] != "carbon.numeric-graph.v1"
+        or image.bundle_ref != recipe.to_dict()["source"]["bundle_ref"]
+        or image.provisioned.bundle != LibraryBundleRef.from_dict(image.bundle_ref)
+        or type(seed) is not int
+        or seed < 0
+        or type(train) is not bytes
+        or not 0 < len(train) <= MAX_STATE_BYTES
+        or _digest(train) != recipe.to_dict()["challenge"]["train_digest"]
+        or type(allowlist_bytes) is not bytes
+        or not 0 < len(allowlist_bytes) <= 1024**2
+    ):
+        raise RecipeRefused("bundle_build_binding_invalid")
+    binding = _checked_binding(recipe, challenge_binding)
+    if limits_document is not None:
+        verify_direct_resource_policy(binding, limits_document)
+    allowed = _trusted_allowlist(allowlist_bytes)
+    example_bytes = _tensors(inputs=example)
+    files = _stage_modules()
+    files.update(
+        {
+            "recipe.json": recipe.canonical_bytes,
+            "train.npz": train,
+            "example.npz": example_bytes,
+            "allowlist.json": allowlist_bytes,
+            "control.json": json.dumps(
+                {
+                    "recipe_digest": recipe.digest,
+                    "bundle_ref": image.bundle_ref,
+                    "binding": binding,
+                    "example_digest": _digest(example_bytes),
+                    "allowlist_digest": allowed.digest,
+                    "seed": seed,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode(),
+        }
+    )
+
+    def checked(snapshot: Path):
+        if {path.name for path in snapshot.iterdir()} != {"state.npz", "receipt.json"}:
+            raise ValueError("bundle build output set differs")
+        for name, ceiling in (("state.npz", MAX_STATE_BYTES), ("receipt.json", 65536)):
+            path = snapshot / name
+            if (
+                path.is_symlink()
+                or not path.is_file()
+                or not 0 < path.stat().st_size <= ceiling
+            ):
+                raise ValueError("bounded bundle build output required")
+        state = (snapshot / "state.npz").read_bytes()
+        receipt_raw = (snapshot / "receipt.json").read_bytes()
+        try:
+            receipt = parse_strategy(receipt_raw, max_bytes=65536)
+        except MalformedStrategy:
+            raise ValueError("bundle build receipt malformed") from None
+        if receipt != {
+            "schema": "carbon.development.bundle-build.v1",
+            "recipe_digest": recipe.digest,
+            "bundle_digest": image.bundle_ref["bundle_digest"],
+            "train_digest": binding["train_digest"],
+            "state_digest": _digest(state),
+            "allowlist_digest": allowed.digest,
+            "framework": receipt.get("framework"),
+        } or receipt["framework"] not in ("jax", "torch"):
+            raise ValueError("bundle build receipt identity differs")
+        return state, receipt
+
+    worker = (runner or _run)(
+        ledger,
+        owner=owner,
+        identity=identity,
+        source=BUILD_PROGRAM,
+        files=files,
+        image=image,
+        seconds=seconds,
+        provenance=LIBRARY_BUILD_PROVENANCE,
+        extra_resources=(
+            {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
+        ),
+        output_validator=checked,
+    )
+    snapshot = ledger.root / worker["operation"] / "snapshot"
+    state, receipt = checked(snapshot)
+    if any(
+        _digest((snapshot / name).read_bytes()) != worker["files"].get(name)
+        for name in ("state.npz", "receipt.json")
+    ):
+        raise ValueError("bundle build output custody differs")
+    return BundleBuildResult(
+        recipe.digest,
+        _digest(state),
+        snapshot / "state.npz",
+        worker["operation"],
+        receipt,
+    )
+
+
+@dataclass(frozen=True)
+class BundleInferenceResult:
+    recipe_digest: str
+    state_digest: str
+    predictions_digest: str
+    predictions: list
+    worker_operation: str
+    receipt: dict
+
+
+def infer_public(
+    ledger,
+    *,
+    owner: str,
+    identity: str,
+    image: LibraryWorkerImage,
+    inference_image,
+    recipe: ConstructionRecipe,
+    challenge_binding: dict,
+    build: BundleBuildResult,
+    inputs: np.ndarray,
+    expected_output_shape: tuple[int, ...],
+    allowlist_bytes: bytes,
+    limits_document: dict | None = None,
+    expected_output_dtype: str | None = None,
+    measure_query: bool = False,
+    seconds: int = 600,
+    runner=None,
+) -> BundleInferenceResult:
+    """Reopen inert state in the base C-03 image with input-only tensors."""
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    if measure_query and (
+        type(expected_output_dtype) is not str or not expected_output_dtype
+    ):
+        raise RecipeRefused("measured_output_dtype_unregistered")
+    if type(build) is not BundleBuildResult:
+        raise RecipeRefused("bundle_inference_custody_invalid")
+    expected = ledger.root / build.worker_operation / "snapshot" / "state.npz"
+    if (
+        type(image) is not LibraryWorkerImage
+        or type(inference_image) is not WorkerImageIdentity
+        or type(recipe) is not ConstructionRecipe
+        or recipe.to_dict()["source"]["kind"] != "bundle"
+        or image.bundle_ref != recipe.to_dict()["source"]["bundle_ref"]
+        or recipe.to_dict()["output"]["format"] != "carbon.numeric-graph.v1"
+        or build.recipe_digest != recipe.digest
+        or build.state_path != expected
+        or expected.is_symlink()
+        or not expected.is_file()
+        or not 0 < expected.stat().st_size <= MAX_STATE_BYTES
+        or type(allowlist_bytes) is not bytes
+        or not 0 < len(allowlist_bytes) <= 1024**2
+        or type(expected_output_shape) is not tuple
+        or not expected_output_shape
+        or any(type(n) is not int or n < 1 for n in expected_output_shape)
+    ):
+        raise RecipeRefused("bundle_inference_custody_invalid")
+    state = expected.read_bytes()
+    binding = _checked_binding(recipe, challenge_binding)
+    if limits_document is not None:
+        verify_direct_resource_policy(binding, limits_document)
+    if _digest(state) != build.state_digest:
+        raise RecipeRefused("bundle_inference_state_changed")
+    return _infer_state(
+        ledger,
+        owner=owner,
+        identity=identity,
+        inference_image=inference_image,
+        recipe=recipe,
+        binding=binding,
+        state=state,
+        state_digest=build.state_digest,
+        inputs=inputs,
+        expected_output_shape=expected_output_shape,
+        expected_output_dtype=expected_output_dtype,
+        measure_query=measure_query,
+        allowlist_bytes=allowlist_bytes,
+        seconds=seconds,
+        runner=runner,
+    )
+
+
+def infer_saved_bundle(
+    ledger,
+    *,
+    owner: str,
+    identity: str,
+    image: LibraryWorkerImage,
+    inference_image,
+    recipe: ConstructionRecipe,
+    challenge_binding: dict,
+    state_bytes: bytes,
+    expected_state_digest: str,
+    inputs: np.ndarray,
+    expected_input_shape: tuple[int, ...],
+    expected_input_dtype: str,
+    expected_output_shape: tuple[int, ...],
+    expected_output_dtype: str,
+    allowlist_bytes: bytes,
+    limits_document: dict | None = None,
+    seconds: int = 600,
+    runner=None,
+) -> BundleInferenceResult:
+    """Infer from a separately validated saved graph; never stage source or TRAIN.
+
+    The caller owns bank-entry/custody validation and the trusted image resolver.
+    An injected runner supplies TEST_ONLY evidence, not an isolated C-03 run.
+    This result has no per-query latency or peak-memory measurement.
+    """
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    if (
+        type(image) is not LibraryWorkerImage
+        or type(inference_image) is not WorkerImageIdentity
+        or inference_image != image.parent
+        or type(recipe) is not ConstructionRecipe
+        or recipe.to_dict()["source"]["kind"] != "bundle"
+        or image.bundle_ref != recipe.to_dict()["source"]["bundle_ref"]
+        or recipe.to_dict()["output"]["format"] != "carbon.numeric-graph.v1"
+        or type(state_bytes) is not bytes
+        or not 0 < len(state_bytes) <= MAX_STATE_BYTES
+        or type(expected_state_digest) is not str
+        or type(allowlist_bytes) is not bytes
+        or not 0 < len(allowlist_bytes) <= 1024**2
+    ):
+        raise RecipeRefused("saved_bundle_inference_binding_invalid")
+    if _digest(state_bytes) != expected_state_digest:
+        raise RecipeRefused("saved_bundle_inference_state_changed")
+    binding = _checked_binding(recipe, challenge_binding)
+    if limits_document is not None:
+        verify_direct_resource_policy(binding, limits_document)
+    allowed = _trusted_allowlist(allowlist_bytes)
+    from .bundle_graph_state import load
+
+    load(state_bytes, recipe, allowed)
+    if (
+        type(inputs) is not np.ndarray
+        or type(expected_input_shape) is not tuple
+        or not expected_input_shape
+        or any(type(n) is not int or n < 1 for n in expected_input_shape)
+        or inputs.shape != expected_input_shape
+        or type(expected_output_shape) is not tuple
+        or not expected_output_shape
+        or any(type(n) is not int or n < 1 for n in expected_output_shape)
+        or not _exact_numeric_dtype(inputs.dtype, expected_input_dtype)
+        or not _exact_numeric_dtype(expected_output_dtype, expected_output_dtype)
+    ):
+        raise RecipeRefused("saved_bundle_inference_tensor_contract_invalid")
+    return _infer_state(
+        ledger,
+        owner=owner,
+        identity=identity,
+        inference_image=inference_image,
+        recipe=recipe,
+        binding=binding,
+        state=state_bytes,
+        state_digest=expected_state_digest,
+        inputs=inputs,
+        expected_output_shape=expected_output_shape,
+        expected_output_dtype=expected_output_dtype,
+        allowlist_bytes=allowlist_bytes,
+        measure_query=True,
+        seconds=seconds,
+        runner=runner,
+    )
+
+
+def _exact_numeric_dtype(actual, expected: str) -> bool:
+    if type(expected) is not str:
+        return False
+    try:
+        dtype = np.dtype(expected)
+        return dtype.kind in "fiu" and dtype == np.dtype(actual)
+    except (TypeError, ValueError):
+        return False
+
+
+def _infer_state(
+    ledger,
+    *,
+    owner: str,
+    identity: str,
+    inference_image,
+    recipe: ConstructionRecipe,
+    binding: dict,
+    state: bytes,
+    state_digest: str,
+    inputs: np.ndarray,
+    expected_output_shape: tuple[int, ...],
+    allowlist_bytes: bytes,
+    expected_output_dtype: str | None = None,
+    measure_query: bool = False,
+    input_name: str = "inputs/x",
+    provenance: str = "DIRECT_BUNDLE_PUBLIC_INFERENCE",
+    seconds: int = 600,
+    runner=None,
+) -> BundleInferenceResult:
+    if provenance not in (
+        "DIRECT_BUNDLE_PUBLIC_INFERENCE",
+        "DIRECT_GRAPH_PUBLIC_INFERENCE",
+    ):
+        raise RecipeRefused("direct_inference_provenance_invalid")
+    allowed = _trusted_allowlist(allowlist_bytes)
+    inputs_bytes = _tensors(inputs=inputs)
+    files = _stage_modules()
+    control = {
+        "recipe_digest": recipe.digest,
+        "binding": binding,
+        "state_digest": state_digest,
+        "inputs_digest": _digest(inputs_bytes),
+        "allowlist_digest": allowed.digest,
+        "expected_output_shape": list(expected_output_shape),
+    }
+    if expected_output_dtype is not None:
+        control["expected_output_dtype"] = expected_output_dtype
+    if measure_query:
+        control["measure_query"] = True
+    if input_name != "inputs/x":
+        if input_name != "inputs/forcing":
+            raise RecipeRefused("direct_inference_input_name_invalid")
+        control["input_name"] = input_name
+    files.update(
+        {
+            "recipe.json": recipe.canonical_bytes,
+            "state.npz": state,
+            "inputs.npz": inputs_bytes,
+            "allowlist.json": allowlist_bytes,
+            "control.json": json.dumps(
+                control, sort_keys=True, separators=(",", ":")
+            ).encode(),
+        }
+    )
+    if "train.npz" in files or "source.tar.gz" in files:
+        raise ValueError("inference stage contains construction material")
+
+    def checked(snapshot: Path):
+        if {path.name for path in snapshot.iterdir()} != {
+            "predictions.json",
+            "receipt.json",
+        }:
+            raise ValueError("bundle inference output set differs")
+        for name, ceiling in (
+            ("predictions.json", 16 * 1024**2),
+            ("receipt.json", 65536),
+        ):
+            path = snapshot / name
+            if (
+                path.is_symlink()
+                or not path.is_file()
+                or not 0 < path.stat().st_size <= ceiling
+            ):
+                raise ValueError("bounded bundle inference output required")
+        raw = (snapshot / "predictions.json").read_bytes()
+        receipt_raw = (snapshot / "receipt.json").read_bytes()
+        try:
+            predictions = json.loads(raw)
+            receipt = parse_strategy(receipt_raw, max_bytes=65536)
+        except (ValueError, MalformedStrategy):
+            raise ValueError("bundle inference output malformed") from None
+        expected_receipt = {
+            "schema": (
+                "carbon.development.bundle-inference.v2"
+                if measure_query
+                else "carbon.development.bundle-inference.v1"
+            ),
+            "recipe_digest": recipe.digest,
+            "state_digest": state_digest,
+            "inputs_digest": _digest(inputs_bytes),
+            "predictions_digest": _digest(raw),
+        }
+        if measure_query:
+            measured = receipt.get("measurement")
+            if (
+                type(measured) is not dict
+                or set(measured)
+                != {
+                    "scope",
+                    "timing_s",
+                    "input_shape",
+                    "input_dtype",
+                    "output_shape",
+                    "output_dtype",
+                }
+                or measured["scope"]
+                != "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
+                or measured["input_shape"] != list(inputs.shape)
+                or measured["input_dtype"] != str(inputs.dtype)
+                or measured["output_shape"] != list(expected_output_shape)
+                or measured["output_dtype"] != expected_output_dtype
+                or type(measured["timing_s"]) is not dict
+                or set(measured["timing_s"])
+                != {"preprocess", "inference", "postprocess", "export"}
+                or any(
+                    type(value) not in (int, float)
+                    or not math.isfinite(value)
+                    or value < 0
+                    for value in measured["timing_s"].values()
+                )
+                or sum(measured["timing_s"].values()) <= 0
+            ):
+                raise ValueError("bundle inference measurement differs")
+            expected_receipt["measurement"] = measured
+        if type(predictions) is not list or receipt != expected_receipt:
+            raise ValueError("bundle inference output identity differs")
+        return raw, predictions, receipt
+
+    worker = (runner or _run)(
+        ledger,
+        owner=owner,
+        identity=identity,
+        source=INFER_PROGRAM,
+        files=files,
+        image=inference_image,
+        seconds=seconds,
+        provenance=provenance,
+        extra_resources=(
+            {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
+        ),
+        output_validator=checked,
+    )
+    snapshot = ledger.root / worker["operation"] / "snapshot"
+    raw, predictions, receipt = checked(snapshot)
+    if any(
+        _digest((snapshot / name).read_bytes()) != worker["files"].get(name)
+        for name in ("predictions.json", "receipt.json")
+    ):
+        raise ValueError("bundle inference output custody differs")
+    return BundleInferenceResult(
+        recipe.digest,
+        state_digest,
+        _digest(raw),
+        predictions,
+        worker["operation"],
+        receipt,
+    )
+
+
+@dataclass(frozen=True)
+class DirectReconstructionResult:
+    """Private two-stage result; injected runners are test-only evidence."""
+
+    build: BundleBuildResult
+    inference: BundleInferenceResult
+    policy_digest: str
+    execution_boundary: str
+    build_controls_digest: str | None
+    inference_controls_digest: str | None
+    elapsed_seconds: float
+
+
+def _private_controls_digest(
+    ledger, *, owner: str, identity: str, operation: str, provenance: str
+) -> str:
+    """Bind a settled real C-03 operation and its effective control record."""
+    if (
+        type(operation) is not str
+        or re.fullmatch(r"operation-[0-9a-f]{64}", operation) is None
+    ):
+        raise RecipeRefused("bundle_controls_unavailable")
+    operation_root = ledger.root / operation
+    if operation_root.is_symlink() or not operation_root.is_dir():
+        raise RecipeRefused("bundle_controls_unavailable")
+    path = operation_root / "resources.json"
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 1024**2:
+        raise RecipeRefused("bundle_controls_unavailable")
+    raw = path.read_bytes()
+    try:
+        observed = json.loads(raw)
+    except ValueError:
+        raise RecipeRefused("bundle_controls_unavailable") from None
+    if (
+        type(observed) is not dict
+        or type(observed.get("controls")) is not dict
+        or type(observed.get("controls_digest")) is not str
+        or type(observed.get("resources")) is not dict
+        or observed["controls_digest"] != _digest(canonical(observed["controls"]))
+    ):
+        raise RecipeRefused("bundle_controls_unavailable")
+    with ledger.db() as db:
+        row = db.execute(
+            "SELECT state,result FROM operations WHERE id=? AND owner=?",
+            (identity, owner),
+        ).fetchone()
+    if row is None or row[0] != "SUCCEEDED":
+        raise RecipeRefused("bundle_controls_unavailable")
+    try:
+        result = json.loads(row[1])
+    except (TypeError, ValueError):
+        raise RecipeRefused("bundle_controls_unavailable") from None
+    if (
+        type(result) is not dict
+        or result.get("schema") != "carbon.autoresearch.worker-result.v1"
+        or result.get("operation") != operation
+        or result.get("provenance") != provenance
+        or result.get("scientific_qualification") is not False
+        or result.get("official_eligible") is not False
+    ):
+        raise RecipeRefused("bundle_controls_unavailable")
+    return _digest(raw)
+
+
+def direct_child_identity(identity: str, phase: str) -> str:
+    """Derive bounded, distinct ledger identities for a direct task's phases."""
+    if type(identity) is not str or not identity or phase not in ("build", "inference"):
+        raise RecipeRefused("bundle_child_identity_invalid")
+    return (
+        "direct-" + hashlib.sha256(identity.encode("utf-8")).hexdigest() + "-" + phase
+    )
+
+
+def reconstruct_and_infer_public(
+    ledger,
+    *,
+    owner: str,
+    identity: str,
+    image: LibraryWorkerImage,
+    inference_image,
+    recipe: ConstructionRecipe,
+    challenge_binding: dict,
+    limits_document: dict,
+    train: bytes,
+    example: np.ndarray,
+    seed: int,
+    inputs: np.ndarray,
+    expected_output_shape: tuple[int, ...],
+    allowlist_bytes: bytes,
+    expected_output_dtype: str | None = None,
+    measure_query: bool = False,
+    runner=None,
+) -> DirectReconstructionResult:
+    """Fresh build and source-free inference under the fixture's finite policy.
+
+    Both carrier calls confirm cleanup before returning. Each phase gets at
+    most its registered wall allowance and at most the remaining aggregate
+    allowance. A test runner proves bytes and custody, never C-03 isolation.
+    """
+    binding = _checked_binding(recipe, challenge_binding)
+    policy_digest = verify_direct_resource_policy(binding, limits_document)
+    policy = limits_document["reconstruction_resource_policy"]
+    started = time.monotonic()
+    deadline = started + policy["total_reconstruction_wall_seconds_max"]
+    build_identity = direct_child_identity(identity, "build")
+    inference_identity = direct_child_identity(identity, "inference")
+
+    def phase_seconds(name: str) -> int:
+        remaining = int(deadline - time.monotonic())
+        if remaining < 40:
+            raise RecipeRefused("construction_total_deadline_reached")
+        return min(policy[name], remaining)
+
+    build = reconstruct_public(
+        ledger,
+        owner=owner,
+        identity=build_identity,
+        image=image,
+        recipe=recipe,
+        challenge_binding=binding,
+        train=train,
+        example=example,
+        seed=seed,
+        allowlist_bytes=allowlist_bytes,
+        limits_document=limits_document,
+        seconds=phase_seconds("build_wall_seconds_max"),
+        runner=runner,
+    )
+    inference = infer_public(
+        ledger,
+        owner=owner,
+        identity=inference_identity,
+        image=image,
+        inference_image=inference_image,
+        recipe=recipe,
+        challenge_binding=binding,
+        build=build,
+        inputs=inputs,
+        expected_output_shape=expected_output_shape,
+        expected_output_dtype=expected_output_dtype,
+        measure_query=measure_query,
+        allowlist_bytes=allowlist_bytes,
+        limits_document=limits_document,
+        seconds=phase_seconds("inference_wall_seconds_max"),
+        runner=runner,
+    )
+    elapsed = time.monotonic() - started
+    if elapsed > policy["total_reconstruction_wall_seconds_max"]:
+        raise RecipeRefused("construction_total_deadline_reached")
+    if build.state_digest != inference.state_digest:
+        raise RecipeRefused("bundle_inference_custody_invalid")
+    controls = (
+        (
+            _private_controls_digest(
+                ledger,
+                owner=owner,
+                identity=build_identity,
+                operation=build.worker_operation,
+                provenance=LIBRARY_BUILD_PROVENANCE,
+            ),
+            _private_controls_digest(
+                ledger,
+                owner=owner,
+                identity=inference_identity,
+                operation=inference.worker_operation,
+                provenance="DIRECT_BUNDLE_PUBLIC_INFERENCE",
+            ),
+        )
+        if runner is None
+        else (None, None)
+    )
+    return DirectReconstructionResult(
+        build,
+        inference,
+        policy_digest,
+        "C03_DOCKER" if runner is None else "TEST_ONLY_LOCAL_RUNNER",
+        controls[0],
+        controls[1],
+        elapsed,
+    )

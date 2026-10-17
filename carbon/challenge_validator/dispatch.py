@@ -42,8 +42,7 @@ MAX_FIELD = 128
 MAX_RECEIPT_KEYS = 16
 #: A development-only contract variant's digest (OWNER-GRAPHITE-TEST-WAVE-03 §1).
 _VARIANT_NOT_SERVED = "development_variant_not_served"
-#: Every code `Validator.screen` refuses with: a closed set, so a transport's
-#: client can explain each one.
+#: Historical neutral screening codes, explained by the Battery client.
 SCREEN_REFUSALS = (
     "malformed_submission",
     "contract_digest_malformed",
@@ -59,6 +58,19 @@ SCREEN_REFUSALS = (
     "non_finite_value",
     "duplicate_key",
     "integer_out_of_range",
+)
+#: Prospective ConstructionRecipe-only typed reasons. The legacy Battery
+#: client does not serve this adapter, so these stay in the new adapter's
+#: profile until the corresponding client is wired.
+RECIPE_SCREEN_REFUSALS = (
+    "construction_recipe_malformed",
+    "construction_recipe_challenge_invalid",
+    "construction_recipe_source_invalid",
+    "construction_recipe_procedure_invalid",
+    "construction_recipe_pretrained_state_forbidden",
+    "construction_recipe_output_invalid",
+    "construction_recipe_oversized",
+    "construction_recipe_binding_mismatch",
 )
 
 
@@ -97,6 +109,23 @@ class Adapters:
 
         if is_development_variant(adapter.contract_digest):
             raise ValueError(DEVELOPMENT_VARIANT_NOT_SERVED)
+        if adapter.strategy_schema is not None:
+            from carbon.reconstruction.served_recipe_contract import registered
+
+            try:
+                recipe_contract = registered(
+                    adapter.challenge_id, adapter.challenge_version
+                )
+            except LookupError:
+                raise ValueError(
+                    "the adapter's recipe Challenge has no registered contract"
+                ) from None
+            if (
+                adapter.strategy_schema != recipe_contract.document["recipe_schema"]
+                or adapter.contract_digest != recipe_contract.digest
+            ):
+                raise ValueError("the adapter's recipe contract differs")
+            return
         try:
             registered = contract(adapter.challenge_id)
         except UnknownChallenge:
@@ -295,8 +324,29 @@ class Validator:
             )
         except MalformedStrategy as malformed:
             return refuse(malformed.code, adapter)
-        if strategy.get("challenge_id") != adapter.challenge_id:
+        if adapter.strategy_schema is None:
+            named_challenge = strategy.get("challenge_id")
+            named_version = adapter.challenge_version
+            schema_matches = strategy.get("schema") != ("carbon.construction-recipe.v1")
+        else:
+            named = strategy.get("challenge")
+            named_challenge = named.get("id") if type(named) is dict else None
+            named_version = named.get("version") if type(named) is dict else None
+            schema_matches = strategy.get("schema") == adapter.strategy_schema
+        if (
+            not schema_matches
+            or named_challenge != adapter.challenge_id
+            or named_version != adapter.challenge_version
+        ):
             return refuse("challenge_mismatch", adapter)
+        try:
+            adapter.validate_strategy(strategy)
+        except ValueError as rejected:
+            code = getattr(rejected, "code", None)
+            return refuse(
+                code if code in RECIPE_SCREEN_REFUSALS else "malformed_submission",
+                adapter,
+            )
         return Screened(
             adapter=adapter,
             admitted=Admitted(

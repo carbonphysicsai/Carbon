@@ -244,7 +244,7 @@ def make_operation_tools(host, *, guard=None):
         required = (op.required | BODY_REQUIRED.get(op.name, frozenset())) - (
             {"idempotency_key"} if op.name in GENERATES_KEY else set()
         )
-        for field in sorted(op.required | op.optional):
+        for field in sorted(op.required | op.optional | op.replay_optional):
             kind, meaning = FIELDS[field]
             default = ... if field in required else None
             annotation = _annotation(field, kind)
@@ -252,10 +252,32 @@ def make_operation_tools(host, *, guard=None):
                 # This prospective safety policy distinguishes omission from
                 # explicit null; only its closed versioned literal is valid.
                 annotation = annotation | None
-            parameters[field] = (annotation, Field(default, description=meaning))
+            if field in op.replay_optional:
+                # Old clients must be able to retry the *same recorded key*
+                # through MCP. These names grant no new construction choice:
+                # the launch replay gate checks the exact historical request
+                # before registration and rejects a new key.
+                parameters[field] = (
+                    annotation,
+                    Field(
+                        default,
+                        description=(
+                            "Deprecated historical idempotency replay only. "
+                            "A new launch with this field is refused."
+                        ),
+                        json_schema_extra={"deprecated": True},
+                    ),
+                )
+            else:
+                parameters[field] = (annotation, Field(default, description=meaning))
         model = create_model(
             "operation_" + op.name, __base__=StrictArguments, **parameters
         )
+        schema = model.model_json_schema()
+        # Historical keys remain parseable for exact idempotency replay, but
+        # normal tool discovery must not offer retired construction selectors.
+        for field in op.replay_optional:
+            schema["properties"].pop(field, None)
 
         async def invoke(ctx=None, **arguments):
             if guard is not None:
@@ -316,7 +338,7 @@ def make_operation_tools(host, *, guard=None):
             fn=invoke,
             name=PREFIX + op.name,
             description=f"{op.summary} Gates: {gates}. {_door_notes(op)}",
-            parameters=model.model_json_schema(),
+            parameters=schema,
             fn_metadata=ExactMetadata(arg_model=model, output_model=OperationResult),
             is_async=True,
             context_kwarg="ctx",
