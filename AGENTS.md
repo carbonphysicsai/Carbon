@@ -1,239 +1,136 @@
 # Carbon — Agent Engineering Instructions
 
-> **OWNER-WORKFLOW-SPEED-01 (2026-10-03):** the Development Hub is retired.
-> It is no merge requirement: no `HUB_*` PR-body line, no Hub events, no
-> regenerated Hub files and no snapshot repin. Its files stay frozen as
-> history. Record each new decision as its own file,
-> `.agent/decisions/YYYY-MM-DD-<ID>.md`; never append to `.agent/DECISIONS.md`,
-> which is the frozen history before that date. Merge the moment a PR is green
-> and mergeable; do not merge main into a green PR unless GitHub reports a real
-> conflict, and defer to any open PR labelled `merge-priority` whose CI is
-> running or green. See `docs/development/MERGE_HYGIENE.md`.
+Carbon discovers, independently reconstructs and tests methods for making fast
+physical models. Build small, coherent, testable changes that serve that goal.
+Prefer working user flows and fewer active mechanisms over more code or process.
+Repository-wide decision ownership lives in [CONSTITUTION.md](CONSTITUTION.md).
 
-> **OWNER-RESEARCH-ENVIRONMENT-01 (2026-09-27):** every mining environment
-> MUST give miners everything they need to research, hypothesize, train,
-> generate data, test and iterate, including the Challenge's public generator
-> and reference solver under their own seeds. Declare each Challenge's
-> provisions (or named gaps) in `carbon/challenge_kit/standard.py`; see
-> `docs/development/RESEARCH_ENVIRONMENT_STANDARD.md`. Official evaluation
-> material still never reaches a sandbox.
+**Build toward [the Carbon operating vision](docs/development/CARBON_BUILD_TARGET.md).**
+It is the owner-approved target for this migration, not a new approval layer.
+A task should visibly advance that normal flow or remove a real obstacle to it.
+Team owners make routine reversible decisions autonomously; Root coordinates
+scope and genuine cross-team/reserved decisions. Do not create work to stay busy.
 
-> **OWNER-TRAINING-BUDGET-STUDY-01 (2026-09-29):** every Challenge completes
-> the training budget study (`docs/development/CHALLENGE_TRAINING_BUDGET_STUDY.md`)
-> with its own sheet before its training limit is set and before it pays
-> rewards. Readiness records enforce it; rules R1-R8 are frozen by digest.
-> Launch path v1.0.8.
-> Amended by OWNER-TRAINING-BUDGET-STUDY-02 (2026-10-06): the study also sets
-> each Challenge's TRAIN data size and validator capacity (R9-R11, frozen by
-> digest). OWNER-COMPUTE-BUDGET-01 (2026-10-06): every Challenge runs the same
-> Challenge-neutral study, supplying only its sheet and adapter, toward one
-> compute budget per Challenge (ticket TRAINING-BUDGET-01).
+The current owner-authorized lean migration replaces construction-level,
+backbone and change-combination permission ladders with one reproducible recipe:
+pinned construction source/dependencies, fixed Challenge TRAIN, fresh model
+construction, and separate Carbon-controlled evaluation. Preserve the working
+Bittensor wiring. ScoreLab is a thin model-versus-solver workbench over the same
+versioned scoring implementation used by validators: physics/constraints,
+accuracy, then the Challenge's declared performance objective. This is a build
+target, not a claim of implemented universal compatibility or qualification.
 
-> **OWNER-CHALLENGE-ADMISSION-01 (amended 2026-10-01):** an internal
-> development protocol, never mainnet; miners see only the final optimized
-> version. Construction permissions expand without per-change review, but every
-> expansion is recorded (§6.1) and every finding (score-value divergence, a
-> failing trigger, a gate anomaly) escalates and is never suppressed (§6.2). See
-> `Design_Specs/Challenge_Admission.md`. Not a qualification gate.
+Public local experimentation does not require an official receiving validator.
+Official submission separately requires the actual served contract. Recipe
+resource identity is the Challenge's construction policy, not a private host
+profile or operator TEST grant. Miner and validator each use their own compute.
+Construction code never gains judge authority; pretrained model ingress is not
+allowed. Broad source access is not proof that encoded pretrained information
+can always be detected.
 
-> **OWNER-C-W1-D3-DELEGATION-01:** Ryan delegates provisional scientific and
-> engineering choices only for the separately typed, non-paying C-W1-D3
-> DEVELOPMENT rule. See `.agent/DECISIONS.md` and
-> `docs/development/CW1_DEVELOPMENT_SCORING_RULE.md`. This is not independent
-> review; official/protected/production qualification, A5 fixture provenance,
-> historical receipts and public-network authority remain unchanged.
-
-
-> **OWNER-C0-REWARD-01 prospective amendment (2026-09-09):**
-> `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md` and
-> `.agent/plans/C0_score_reward_program.md` record the owner's sequential C0
-> implementation mandate and persistent DIRECT_WINNER_PLUS_BURN route.
-> Mandatory-treasury and temporary-direct-only clauses below are superseded
-> on payment routing only. Scientific admission/comparison, frontier/finality,
-> security, qualification and deployment requirements remain domain-owned.
-> Treasury is optional and non-blocking; that payment amendment by itself
-> authorizes no public-network operation.
-
-> **OWNER-C-W1-DEV-TESTNET-01 prospective amendment (2026-09-15):**
-> `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.7.md` adds a distinct
-> public/synthetic DEVELOPMENT testnet demonstration. It does not weaken or
-> complete official C-W1/C-09/C-EA2, protected, scientific, security, mainnet
-> or LIVE requirements. Public writes require its exact external transaction
-> gates; AWS is deferred and Hippius is an unverified future preference.
-
-This repository contains the implementation of **Carbon**, an incentivized experimental system for discovering, independently testing, learning from, and qualifying methods for constructing fast physical models.
-
-The first bounded implementation searches neural-operator `TrainingStrategy` objects. That is a P0 subtype of Carbon's broader long-term construction-method architecture; coding agents must not widen execution freedom merely because the long-term ontology is broader.
-
-This file defines the default engineering behavior for coding agents and human executors. Repository-wide authority is mapped in [`CONSTITUTION.md`](./CONSTITUTION.md).
-
-The goal is not maximum code volume. The goal is:
-
-> **small, testable, reviewable changes that faithfully implement Carbon's current specifications, preserve future constitutional boundaries, and never invent science, economics, security guarantees, or commercial traction.**
+Development Hub files are frozen history (OWNER-WORKFLOW-SPEED-01). No Hub
+map, event, declaration, regeneration or snapshot repin is required. Historical
+decisions stay in `.agent/DECISIONS.md`; new durable decisions use separate files
+under `.agent/decisions/`. Relevant existing Challenge research-environment,
+training-budget, admission, development-rule and network authorizations retain
+their exact domain scope. They are not prerequisites for unrelated development
+or a grant of scientific, security, economic, deployment or public-network power.
 
 ---
 
-## Current delivery direction: OWNER-DX-03
+# 1. Read the authority relevant to the task
 
-For engineering delivery, follow `.agent/DELIVERY_PROTOCOL.md` (2026-09-06).
-It supersedes older review, receipt, exact-head ceremony, and post-merge-CI
-requirements in tickets, boards, and handoffs. There is no mandatory human
-reviewer or GPT receipt. Follow the ticket, run its tests and one applicable
-automated acceptance, then merge. Keep all scientific and security invariants.
+At a new ticket or major change, read `CONSTITUTION.md`,
+`.agent/INVARIANTS.md`, the current authorized task, and the domain specifications
+for the behavior being changed. Check `.agent/WAVE.md` and relevant decisions
+for dependencies and history; a new direct owner assignment may supersede an
+older queue. Record that change in the existing task record, not another board.
 
-# 1. Mandatory authority read
+Use `.agent/DELIVERY_PROTOCOL.md` for delivery and
+`.agent/DELEGATED_DECISION_PROTOCOL.md` for decision ownership. These are single
+sources, not extra approval stages. Refresh relevant reads when their version,
+scope or authority changes; do not repeat unrelated repository archaeology.
 
-Before every new ticket or major wave, read:
-
-1. `CONSTITUTION.md`;
-2. `.agent/INVARIANTS.md`;
-3. `.agent/WAVE.md`;
-4. the active ticket under `.agent/tickets/`;
-5. recent decisions under `.agent/decisions/` (older ones are in `.agent/DECISIONS.md`);
-6. `.agent/DELIVERY_PROTOCOL.md` and
-   `.agent/DELEGATED_DECISION_PROTOCOL.md`;
-7. ticket-referenced domain specifications;
-8. `Design_Specs/Build_Out.md`;
-9. for A8 onward, `Design_Specs/Build_Out_Constitutional_Overlay.md`;
-10. `Design_Specs/Agentic_Development_Master_Plan.md` only for relevant future-compatibility constraints.
-
-Scientific constitutional reference:
-
-- `docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md`.
-
-If work touches customer/product/business semantics, also read the relevant `Business/` authority, beginning with `Business/Business_Canon.md`.
-
-If work touches public claims, also read `docs/publications/README.md`.
-
-Do not rely on memory when the repository version is available.
+Consult `Design_Specs/Build_Out.md` and its constitutional overlay when sequencing
+or migration is affected. The Agentic Development Master Plan supplies relevant
+future constraints, not extra implementation permission or current prerequisites.
+Read Business authority for business/rights changes and
+`docs/publications/README.md` for public claims. Verify repository evidence;
+do not rely on an old orientation snapshot as current runtime truth.
 
 ---
 
-# 2. Authority and conflict handling
+# 2. Resolve authority by domain
 
-Authority is domain-owned.
+`CONSTITUTION.md` maps domain owners. Scientific canon governs scientific
+meaning; current domain specifications govern runtime behavior. Tickets and
+current owner directions define authorized engineering scope. Publications and
+historical plans cannot activate capabilities.
 
-- `CONSTITUTION.md` defines repository-wide authority boundaries and durable doctrine.
-- Scientific canon controls scientific constitutional interpretation.
-- Domain specifications define current semantic behavior.
-- `Build_Out.md` defines current detailed sequencing.
-- `Build_Out_Constitutional_Overlay.md` prevents stale sequencing shorthand from violating the integrated constitution.
-- `.agent/` tickets define bounded active work.
-- `Business/` governs commercial strategy outside the scientific judge.
-- Publications explain; they do not define runtime truth.
+Identify a conflict as documentation lag, implementation lag, migration, or a
+new owner decision. An already authorized migration is engineering work, not a
+reason to ask the owner to authorize the same goal again. Select reversible
+implementation details within scope and document material consequences.
 
-If documents materially conflict:
-
-1. identify the semantic domain;
-2. determine the domain owner;
-3. check the constitutional overlay;
-4. classify the seam as `NO_CONFLICT`, `DOCUMENTATION_LAG`, `IMPLEMENTATION_LAG`, `MIGRATION_REQUIRED`, or `NEW_OWNER_DECISION_REQUIRED`;
-5. if a material decision remains unresolved, stop the affected change and
-   request human/owner input.
-
-An engineering decision within the active ticket's delegated authority is no
-longer unresolved for this rule once the executor selects and records the
-recommended working decision and sends any required lead notification under
-`.agent/DELEGATED_DECISION_PROTOCOL.md`. A human-reserved decision remains
-unresolved: the affected behavior or sub-scope must stop and stay fail closed,
-but unrelated authorized ticket work may continue. Stop the whole ticket only
-when no correct bounded implementation can proceed without that reserved
-decision.
-
-Do not silently choose the convenient interpretation.
+For a genuinely reserved unresolved decision, stop only the affected behavior,
+keep the missing value explicit and fail closed, and state the smallest decision
+needed. Continue independent authorized work. Never resolve a conflict by
+silently changing science, security acceptance, economics or historical meaning.
+Current direct human instructions and actual enforced protections take precedence
+over repository workflow defaults; this cleanup does not waive them.
 
 ---
 
-# 3. Mission and human ownership
+# 3. Human ownership
 
-Agents may implement software, tests, interfaces, infrastructure, deterministic fixtures, mocks, schemas, adapters, and explicitly specified scientific logic.
-
-Agents must not independently decide:
-
-- physical/scientific truth;
-- production thresholds or tolerances;
-- Challenge population/envelope claims;
-- qualification pass/fail;
-- launch readiness;
-- live economic policy;
-- security acceptance;
-- customer rights/IP policy;
-- production deployment authority;
-- investor traction claims.
-
-Humans retain final authority over scientific qualification, security acceptance, live economics, launch, legal/commercial rights, and material company decisions.
-
-When owner input is required: **stop the affected behavior or sub-scope, mark
-it blocked, and state the smallest decision required.** Unrelated authorized
-ticket work may continue only where the unresolved value remains explicit and
-fail closed. Stop the whole ticket when no correct bounded implementation can
-proceed without that owner decision.
+Agents may implement software, interfaces, tests, infrastructure and explicitly
+specified scientific logic. They do not independently grant scientific or
+security qualification, choose production tolerances/populations, activate LIVE,
+change live economics, decide rights/IP policy, authorize production deployment,
+or assert commercial traction. Missing reserved values remain explicit.
+An engineering test pass is not any of those decisions.
 
 ---
 
-# 4. Orientation and reuse
+# 4. Inspect and reuse before adding
 
-Before substantial implementation, inspect relevant:
+Trace the relevant canonical code, callers, public interfaces, persistence,
+tests and CI. Consult `.agent/CODE_AUTHORITY.toml` and
+`docs/history/LEGACY_CODE_INDEX.md` before deliberate archive reuse. Archive
+presence is not implementation authority; use its exact recorded ref.
+`.agent/ORIENTATION.md` is historical archaeology, not a live repository map.
 
-- repository structure;
-- `Design_Specs/`;
-- current canonical `carbon/` implementation;
-- tests and CI;
-- `.agent/` / `agent_pack/`;
-- schemas, persistence, public APIs;
-- current authority/maturity map;
-- `.agent/CODE_AUTHORITY.toml`; and
-- `docs/history/LEGACY_CODE_INDEX.md`.
-
-Inspect archived PoC, Julia, neuron/Bittensor, or other quarantined executable
-components only when the active ticket explicitly owns their deliberate reuse
-or migration. Use the exact archive ref recorded in the legacy index. Archive
-presence grants no current implementation authority and is not part of normal
-test discovery, packaging, orientation, or ticket acceptance.
-
-If `.agent/ORIENTATION.md` exists, treat it as historical orientation evidence and verify whether it is stale relative to the current constitution.
-
-Classify existing code:
-
-**KEEP → WRAP → REPAIR → REPLACE**
-
-Prefer in that order. Do not perform large rewrites or directory churn just to match an architecture diagram.
+Prefer **KEEP -> WRAP -> REPAIR -> REPLACE**. Remove an obsolete path with its
+tested caller replacement. Do not create a parallel framework, per-library
+permission system, duplicate tracker or extra handoff to avoid integrating the
+working components. Compatibility code needs an identified consumer and explicit
+historical semantics. Moving code to a legacy file is relocation, not deletion.
+Each team has authority to perform this cleanup in its owned scope, including
+replacing obsolete permission-contract tests with new behavior/boundary tests.
+Do not delete a real failing invariant to obtain green. Coordinate shared paths
+with their owner; no separate cleanup approval is needed.
+Do not purge unrelated code, artifacts or worktrees to improve a line count.
 
 ---
 
-# 5. Never invent science
+# 5. Implement science; do not invent it
 
-Agents must not invent production values for:
+Reuse actual registered scientific decisions. Do not invent production physical
+thresholds, solver tolerances, population/sampling laws, uncertainty floors,
+qualification criteria or scoring coefficients. Do not reopen an unchanged
+accepted value merely to wire software together.
 
-- physical thresholds;
-- solver tolerances;
-- scientific gates;
-- target populations or sampling laws;
-- uncertainty floors;
-- qualification criteria;
-- challenge distributions;
-- production scoring coefficients requiring science approval;
-- claims of physical validity.
-
-Use explicit blocked placeholders such as `HUMAN_INPUT`, `None`, `null`, or equivalent where the schema permits.
-
-Synthetic fixture values are allowed only when clearly non-production and structurally unable to enter LIVE scientific/economic authority.
-
-Preserve the distinction:
-
-> code that **implements** a scientific decision
-
-versus
-
-> code that **makes** the scientific decision.
-
-Agents may do the former, not the latter.
+Use `HUMAN_INPUT`, `None`, or a typed unresolved state for a missing reserved
+value. Synthetic fixture values are allowed only in a structurally separated
+non-production path. Missing production qualification does not prevent that
+path from testing the software. Reference failure remains distinct from
+candidate failure; never fabricate truth or silently alter the denominator.
 
 ---
 
 # 6. Core implementation invariants
 
-These bind all current Wave-A work.
+These bind current work; the historical Wave-A labels do not restrict an explicitly authorized migration.
 
 1. **No hidden-evaluation leakage.** Official seeds, derived seeds, draw IDs, reversible IDs, protected samples, private metadata, or reconstruction-sensitive hidden state never appear in miner/public surfaces.
 2. **Mock isolation.** Mock/light/estimate/scaffold/free execution never accesses official packs, seeds, protected exam data, or private validator state.
@@ -311,152 +208,80 @@ Landscape, priors, construction agents, or Physics Intelligence may propose. Reg
 
 ---
 
-# 8. Maturity discipline and historical snapshot
+# 8. Report actual maturity
 
-The block below records the repository state at the 2026-08-23 constitutional
-reconciliation. It is historical evidence, not the live ticket board, and must
-not be used to select the next ticket.
+Use current code, tests and the authorized task to establish status. Old Wave-A
+snapshots, future plans and inherited OPEN/EMPTY queues do not select work.
+Distinguish SPECIFIED, IMPLEMENTED and TESTED from SCIENTIFICALLY_QUALIFIED,
+SECURITY_QUALIFIED, NETWORK_QUALIFIED and PRODUCTION_QUALIFIED.
 
-For current ticket status and sequencing, read `.agent/WAVE.md` at the exact
-current commit. If a WAVE status is explicitly conditional on independent
-review, human authorization, or merge, treat the prior merged status as
-authoritative until that gate is satisfied. Use the active ticket and
-`docs/context/IMPLEMENTED_VS_SPECIFIED_CURRENT.md` to interpret the bounded
-scope of any status.
-
-At the 2026-08-23 constitutional reconciliation:
-
-```text
-A-1 done
-A0–A7 done in recorded bounded scopes
-A8 todo / not implemented
-A9 todo
-A10 todo
-A11 todo
-A12 todo
-```
-
-Never relabel a ticket merely because documentation describes its intended
-design. A status changes only when the applicable ticket evidence and WAVE
-review, authorization, and merge gate are satisfied.
-
-A component may separately be:
-
-```text
-SPECIFIED
-IMPLEMENTED
-TESTED
-SCIENTIFICALLY_QUALIFIED
-SECURITY_QUALIFIED
-NETWORK_QUALIFIED
-COMMERCIALLY_VALIDATED
-PRODUCTION_QUALIFIED
-```
-
-Do not infer later states from earlier ones.
+Library presence, direct model execution, normal Launchpad reconstruction,
+ScoreLab custody, independent validator evaluation and qualification are
+separate evidence states. Do not substitute component results for the normal
+user flow. Preserve old failures, missing native state and versioned evidence.
 
 ---
 
-# 9. Ticket-based development
+# 9. Build one coherent task
 
-Work on the owner-authorized ticket. Use one branch/worktree and one PR by
-default. Read the current contract and inspect working code before changing
-it. Create a plan only when it helps implement a complex ticket; separate
-contract, plan, or approval commits are not mandatory.
+Use one bounded task, branch/worktree and PR by default. Explicit team work may
+have disjoint owned slices with one integration owner. Keep a short working
+contract and plan in the existing task when complexity warrants it; do not
+require a separate contract commit, design PR or checkpoint for each slice.
 
-Implement coherent slices with focused tests and continue through the ticket.
-Do not stop after each slice for another owner prompt. Record material
-engineering decisions and notify the applicable lead without waiting for
-routine approval. Human-reserved scientific or security decisions still stop
-the affected behavior and remain fail closed.
+Finish the authorized user flow, including replacement of obsolete callers.
+A parser, schema, screen, direct probe or source-only adapter is not a completed
+reconstruction workflow. Remove redundant machinery as part of the replacement;
+do not preserve it as a hidden admission prerequisite.
 
-Before acceptance, reconcile affected docs and inspect the candidate for
-correctness. Independent agent review is
-optional. No human approval, GPT receipt, fixed review count, or repeated
-fresh-context complete-diff review is a routine delivery gate.
-
-Run one applicable automated acceptance on the ready candidate. Fix failing
-tests and concrete defects, validate affected interactions, and merge the
-tested revision with the expected-head guard. Unless the owner requested a
-stop, finish delivery and continue to the next authorized ticket. Follow
-`.agent/DELIVERY_PROTOCOL.md`; do not resurrect superseded ticket boilerplate.
+Record material decisions once, notify affected authorized receivers and keep
+working. Require an acknowledgement only when a dependent action actually needs
+that receiver's artifact or custody, not for unrelated work. Routine choices
+inside the contract do not need new owner phrases, reviews or receipts.
+Delivery requirements live in `.agent/DELIVERY_PROTOCOL.md` only.
 
 ---
 
-# 10. Testing and evidence
+# 10. Validate the behavior changed
 
-A completed ticket needs implemented behavior and passing evidence for its
-Definition of Done. During implementation, run focused ticket/subsystem tests.
-Before shipping, require CI's applicable regression, invariant, quality,
-and package/import checks. Unknown paths retain full runtime acceptance.
-Do not weaken scientific, leakage, isolation, or correctness tests to obtain
-a green result. Owner-authorized delivery-policy tests must reflect the new
-policy and continue to reject untested or failed required jobs.
+Run focused tests during implementation and the existing scope-required
+canonical/CI checks before delivery. Use `scripts/dev/classify_changes.py` and
+the maintained CI manifests; do not invent a second test quota or copy an old
+suite into every ticket. Unknown changes retain the classifier's fail-closed
+scope. Never weaken scientific, leakage, isolation or correctness assertions.
 
-Use `./scripts/dev/canonical.sh` when local canonical execution is available.
-Do not repeat an unavailable Docker attempt. Use pinned GitHub CI for
-acceptance and label native-host tests as diagnostics.
+Use `./scripts/dev/canonical.sh` when available. Native output is diagnostic,
+not canonical acceptance. Diagnose an unavailable runner before retrying; pinned
+CI may supply acceptance. Trusted development dependency bootstrap and hostile
+offline miner execution are distinct boundaries; do not apply one to the other.
 
-Keep scope, material decisions, tests, and limitations in the ticket/PR. CI
-owns revision and run identities. A brief completion comment is sufficient;
-no normalized receipt, evidence seal, or copied SHA inventory is required.
-Closeout can be conditional in the shipping PR and takes effect after the
-required automated acceptance and successful merge. Confirm the merge, report
-remaining limitations, and proceed without waiting for a second full CI run.
-A main smoke failure needs a repair; it does not justify fabricating success.
-
-SPECIFIED, IMPLEMENTED, and TESTED remain separate from SCIENTIFICALLY_QUALIFIED,
-SECURITY_QUALIFIED, and PRODUCTION_QUALIFIED. Engineering delivery grants none
-of those human-reserved states.
+Report what ran, what passed, what failed or was skipped, and the limits of the
+result. Retest when a change, failure or unresolved risk warrants it; do not
+repeat green work for reassurance. Relevant end-to-end checks must exercise the
+actual submitted procedure, retained native state and common scoring semantics.
+All material test models retain native state, original inputs/targets/predictions
+and public source/environment/data/recipe/seed lineage in the existing ScoreLab
+bank. A digest is not weights. Inert schema fixtures are not model campaigns.
 
 ---
 
-# 11. Stub and fixture policy
+# 11. Keep fixtures separate from authority
 
-Stubbed, mocked, synthetic, or incomplete TrainEval/reconstruction backends may exercise:
-
-- lifecycle;
-- schemas;
-- persistence;
-- APIs;
-- deterministic fixtures;
-- state transitions;
-- disclosure behavior.
-
-They must not create:
-
-- LIVE scientific authority;
-- production rankings;
-- frontier events;
-- treasury obligations;
-- product qualification;
-- claims of secure arbitrary-code execution.
-
-Prefer structural capability/provenance separation. Do not rely on a caller-supplied `emission_capable` Boolean as scientific authority.
+Synthetic, stubbed or incomplete backends may exercise lifecycle, schemas,
+persistence, APIs, deterministic execution and disclosure. They cannot create
+LIVE science, production ranking, frontier/treasury obligations, qualification
+or claims of secure arbitrary-code execution. Authority must come from actual
+provenance and policy, not a caller-supplied `emission_capable` flag.
 
 ---
 
-# 12. Public interfaces and migration
+# 12. Migrate interfaces explicitly
 
-Treat established schemas/public interfaces as contracts.
-
-Do not casually change:
-
-- MCP tools;
-- request/response fields;
-- Challenge/submission IDs;
-- public card/leaderboard fields;
-- status enums;
-- scoring fields;
-- validator/miner protocol behavior.
-
-When a constitutional migration requires change:
-
-1. specify it explicitly;
-2. version/migrate prospectively;
-3. update tests;
-4. update docs;
-5. preserve historical evidence interpretation.
+Treat MCP/HTTP fields, identities, persisted schemas, statuses, scores and
+miner/validator behavior as contracts. An authorized replacement updates its
+callers, tests and documentation together and versions material semantic changes
+prospectively. Keep only the historical readers actually needed. Do not silently
+rescore old evidence or preserve obsolete permission layers under new labels.
 
 ---
 
@@ -547,103 +372,57 @@ without evidence.
 
 ---
 
-# 17. Failure and escalation
+# 17. Diagnose and escalate the actual blocker
 
-Stop and escalate when:
+Stop affected execution for a real security/approval rejection, unavailable
+required credential/infrastructure, an invariant violation, or a reserved
+unresolved decision. Do not retry a rejected action through another actor,
+destination or route. Continue unaffected authorized work.
 
-- specification/constitution conflict blocks correctness;
-- required scientific/economic/security/legal input is absent for an affected
-  behavior and cannot remain explicit and fail closed;
-- implementation would weaken an invariant;
-- required external credentials/infrastructure are unavailable;
-- two materially different attempts fail for the same root reason;
-- existing implementation materially contradicts the spec and replacement would be substantial;
-- the ticket requires a later-wave architectural decision not yet authorized.
+After two materially different failures with the same cause, diagnose and repair
+that cause before another attempt. Do not loop on stale capacity or guessed APIs.
+A concrete engineering defect is a repair task, not automatically a new owner
+choice. A current explicitly authorized migration is not blocked solely because
+an older ticket called it future work.
 
-Report:
-
-1. what was attempted;
-2. what failed;
-3. relevant files/tests/errors;
-4. likely blocker;
-5. smallest owner decision required.
-
-A clean blocker is better than invented progress.
-
-These stop conditions apply to the affected change or sub-scope. They stop the
-whole ticket only when the blocker prevents every correct bounded continuation
-under `.agent/DELEGATED_DECISION_PROTOCOL.md`.
+A blocker report names the action, evidence, cause, rule source and current
+applicability, next repair or smallest reserved decision. Reuse an existing
+pending question; silence is not approval. A wait must name a still-satisfiable
+condition. Never turn an unsupported observation into a pass or scientific fail.
 
 ---
 
-# 18. Git/change hygiene
+# 18. Git and delivery hygiene
 
-Prefer one ticket → one reviewable branch/diff.
+Keep diffs coherent and reversible. Do not rewrite unrelated history, commit
+secrets, silently change contracts, introduce unnecessary dependencies, or make
+empty/evidence-only commits to retrigger validation. Preserve other worktrees
+and uncommitted changes.
 
-Use normal merge commits only. Do not squash or rebase-merge. Only the merge
-manager arms GitHub auto-merge (OWNER-WORKFLOW-SPEED-01): merge-commit method,
-pinned to the PR's exact head, and only while the live ruleset requires `Merge
-gate` on main. Merge when the ready PR revision has passed its scope-required automated
-checks and `Merge gate`, no applicable owner block or real merge conflict remains,
-and the merge operation uses the expected-head race guard. Human review, GPT
-receipts, review-thread bookkeeping, repeated clean-pass quotas, and post-merge
-full-CI verification are not merge requirements. After merge confirm GitHub
-reports the expected PR merged and record the bounded completion result.
-
-Do not:
-
-- mass-delete or mass-rename unrelated code;
-- rewrite unrelated history;
-- silently alter public interfaces;
-- introduce unnecessary dependencies;
-- commit secrets/credentials;
-- push unreviewed major production changes merely for speed.
-- create commits whose only purpose is recording successful CI, review, merge,
-  an evidence seal, or a validation retrigger.
-
-Changes should be understandable and revertible.
+Use the designated integration/merge owner and current
+`.agent/DELIVERY_PROTOCOL.md`; do not reconstruct delivery rules from old ticket
+boilerplate. Actual expected-head, required-check, publication and current human
+conditions remain binding. This document changes no live ruleset or protected
+branch setting.
 
 ---
 
 # 19. Completion report
 
-At ticket end report:
-
-### Implemented
-What changed.
-
-### Reused
-KEEP/WRAP/REPAIR choices.
-
-### Tests
-Exact commands/results.
-
-### Invariants
-Relevant constitutional invariants exercised.
-
-### Maturity
-Which states are actually earned: specified / implemented / tested / qualified etc.
-
-### Risks / Follow-up
-Remaining work.
-
-### Human Input Required
-Only unresolved owner decisions.
-
-Do not describe incomplete work as complete.
+Give one concise account of changed behavior and removed machinery, what was
+reused, the checks and their actual results, earned maturity, limitations and
+remaining owner decisions. Link existing artifacts when useful. No mandatory
+section-per-check, duplicate report, copied SHA inventory or new tracker.
+Do not describe unmerged or incomplete work as delivered.
 
 ---
 
-# 20. Core principle
+# 20. Goal-first engineering
 
-When choosing between:
-
-**moving faster by guessing**
-
-and
-
-**stopping because Carbon's current science, security, economics, business authority, or specification does not provide the answer**
-
-always choose the second.
+At each decision ask internally: "Is this how we should be doing this? Is there a
+better way to accomplish this for Carbon's goals?" Prefer the smallest complete
+useful path. This is judgment, not another checklist, permission gate or required
+receipt. Remove rules that protect no current boundary within the authorized
+scope; preserve the boundaries that do.
 
 > **The search surface may widen. The authority boundary may not.**

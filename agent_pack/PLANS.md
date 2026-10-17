@@ -1,47 +1,19 @@
-# Execution plan template
+# Optional working plan
 
-Use for any multi-module, protocol, persistence, concurrency, scientific, or
-security-sensitive ticket. Save it as `.agent/plans/<ticket-id>.md` before
-implementation. The plan is working contract support, not a human-silence
-gate.
+Use a plan when it helps finish complex work; do not create one merely because a
+task touches multiple modules. Keep it in the existing ticket/PR unless a
+separate evolving plan is actually useful. No separate plan commit or approval
+stage is required.
 
-## Authority and start
+A useful plan answers:
 
-**Ticket / delivery mode:** (`SINGLE_TICKET_PR` by default)
-**Starting base commit/tree:**
-**Relevant authority/specifications:**
-**Human-reserved inputs and fail-closed seams:**
+- What authorized behavior will work, and what obsolete path will be removed?
+- Which existing code/callers can be kept, wrapped or repaired?
+- What coherent implementation steps and meaningful checks establish that flow?
+- What actual boundary or unresolved reserved value limits the change?
 
-## Disposition and decisions
-
-**Existing implementation:** (paths + `KEEP` / `WRAP` / `REPAIR` / `REPLACE`)
-**Durable decisions / notification route:**
-**Separate-contract exception:** (`NOT_APPLICABLE` or exact authorized reason)
-
-## Vertical slices
-
-1. Working contract, decisions, plan, and ticket-start state.
-2. Coherent implementation/test slices.
-3. Final integration, stable tracked evidence, and exact candidate audit.
-
-**Expected manifest / explicit exclusions:**
-**Tests to add:**
-**Canonical commands:** (use `./scripts/dev/canonical.sh` off canonical Linux)
-**Risks / stop conditions:**
-
-## Completion predicate
-
-State the exact-head required checks and `Merge gate`, fresh read-only
-complete-diff Codex/GPT review, valid-finding repair, distinct non-author human
-approval carrying the closed receipt, successful `GPT review gate`, zero
-unresolved review threads, normal expected-head merge, ordered-parent/reviewed-
-tree verification, exact-main `Merge gate`, bounded maturity, and next-ticket
-transition. Dynamic identities belong in the external completion receipt, not
-a closeout-only commit.
-
-## Implementation result
-
-**What shipped:**
-**Focused/canonical validation outcome:**
-**Deviations from plan:**
-**Remaining human input / follow-up:**
+Update the plan when the approach materially changes. Record enduring decisions
+once; do not duplicate a decision package or SHA inventory here. Completion uses
+[the delivery policy](../.agent/DELIVERY_PROTOCOL.md) and current human/protected
+conditions, not a second review/receipt lifecycle. Report what worked, what was
+removed, actual tests and remaining limitations.

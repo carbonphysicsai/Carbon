@@ -11,10 +11,11 @@ any role/evidence → PAUSED_HUMAN | PAUSED_INFRA
 all required exact-candidate evidence → FINAL_CANDIDATE_READY
 ```
 
-`FINAL_CANDIDATE_READY` is terminal inside this controller. Carbon's existing
-delivery protocol remains the sole path from that candidate through exact-head
-checks, fresh complete-diff Codex/GPT review, non-author approval, GPT review
-gate, normal merge, exact-main verification, and external receipt.
+`FINAL_CANDIDATE_READY` is terminal inside this optional controller. It does
+not create a repository-wide review or receipt requirement. Follow the current
+[delivery policy](../../../.agent/DELIVERY_PROTOCOL.md) and current direct
+human/protected conditions for delivery. The packet/isolation rules below apply
+to this harness when deliberately selected, not to every engineering task.
 
 ## Packet law
 
