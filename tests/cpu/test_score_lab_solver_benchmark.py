@@ -319,6 +319,45 @@ def test_finite_inputs_cannot_overflow_into_a_retained_result():
         bench.compare(registration, references, [huge_error])
 
 
+def test_oversized_integer_measurements_refuse_with_typed_errors():
+    registration, references, model = fixture()
+    oversized = 10**1000
+    changed = deepcopy(registration)
+    changed.pop("registration_digest")
+    changed["cases"][0]["weight"] = oversized
+    with pytest.raises(bench.BenchmarkRefused, match="nonfinite_measurement"):
+        bench.register(changed)
+    references[0]["elapsed_s"] = oversized
+    with pytest.raises(bench.BenchmarkRefused, match="nonfinite_measurement"):
+        bench.compare(registration, references, [model("toy", [1.0, 3.0], 2.0)])
+
+
+def test_oversized_integer_scoring_inputs_refuse_with_typed_errors():
+    registration, references, model = fixture()
+    body = {
+        "schema": "carbon.scoring.solver-benchmark-pack.v2",
+        "scope": "SYNTHETIC_DEVELOPMENT",
+        "challenge": "toy-field",
+        "benchmark_registration_digest": registration["registration_digest"],
+        "output": {
+            "quantity": "field",
+            "unit": "toy-unit",
+            "metric": "mean_absolute_error",
+        },
+        "hard_gates": ["physics"],
+        "accuracy_ceiling": 10**1000,
+        "performance_objective": "maximize_paired_speedup",
+    }
+    with pytest.raises(BenchmarkScoreRefused, match="pack_accuracy_ceiling"):
+        register_pack(body)
+    body["accuracy_ceiling"] = 0.25
+    pack = register_pack(body)
+    measured = bench.compare(registration, references, [model("toy", [1.0, 3.0], 2.0)])
+    measured["models"][0]["by_role"]["P"]["paired_speedup"] = 10**1000
+    with pytest.raises(BenchmarkScoreRefused, match="benchmark_measurement"):
+        ScoreEngine.score_solver_benchmark_v2(measured, pack)
+
+
 def test_producer_cli_uses_the_same_receiver_without_printing_case_ids(
     tmp_path, capsys
 ):

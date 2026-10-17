@@ -31,6 +31,15 @@ COUNT_KEYS = frozenset(
 )
 
 
+def _finite_number(value):
+    if type(value) not in (int, float):
+        return False
+    try:
+        return math.isfinite(float(value))
+    except (OverflowError, ValueError):
+        return False
+
+
 def measurement_status(counts):
     """One shared status order; reference gaps never become candidate faults."""
     if (
@@ -100,9 +109,7 @@ def register_pack(body):
     ):
         raise BenchmarkScoreRefused("pack_gates")
     ceiling = body["accuracy_ceiling"]
-    if ceiling is not None and (
-        type(ceiling) not in (int, float) or not math.isfinite(ceiling) or ceiling < 0
-    ):
+    if ceiling is not None and (not _finite_number(ceiling) or ceiling < 0):
         raise BenchmarkScoreRefused("pack_accuracy_ceiling")
     if body["performance_objective"] != "maximize_paired_speedup":
         raise BenchmarkScoreRefused("pack_performance_objective")
@@ -178,11 +185,9 @@ def score(benchmark, pack):
             error = p.get("mean_absolute_error")
             speedup = p.get("paired_speedup")
             if (
-                type(error) not in (int, float)
-                or not math.isfinite(error)
+                not _finite_number(error)
                 or error < 0
-                or type(speedup) not in (int, float)
-                or not math.isfinite(speedup)
+                or not _finite_number(speedup)
                 or speedup <= 0
             ):
                 raise BenchmarkScoreRefused("benchmark_measurement")

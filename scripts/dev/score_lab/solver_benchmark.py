@@ -33,17 +33,29 @@ def _digest(body):
 
 
 def _number(value, *, positive=False, nonnegative=False):
-    if type(value) not in (int, float) or not math.isfinite(value):
+    if type(value) not in (int, float):
         raise BenchmarkRefused("nonfinite_measurement")
-    if positive and value <= 0 or nonnegative and value < 0:
+    try:
+        number = float(value)
+    except (OverflowError, ValueError) as exc:
+        raise BenchmarkRefused("nonfinite_measurement") from exc
+    if not math.isfinite(number):
+        raise BenchmarkRefused("nonfinite_measurement")
+    if positive and number <= 0 or nonnegative and number < 0:
         raise BenchmarkRefused("measurement_out_of_range")
-    return float(value)
+    return number
 
 
 def _derived(value):
-    if type(value) not in (int, float) or not math.isfinite(value):
+    if type(value) not in (int, float):
         raise BenchmarkRefused("derived_nonfinite")
-    return float(value)
+    try:
+        number = float(value)
+    except (OverflowError, ValueError) as exc:
+        raise BenchmarkRefused("derived_nonfinite") from exc
+    if not math.isfinite(number):
+        raise BenchmarkRefused("derived_nonfinite")
+    return number
 
 
 def _sum(values):
