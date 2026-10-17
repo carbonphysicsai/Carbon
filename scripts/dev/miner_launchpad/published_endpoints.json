@@ -8,5 +8,13 @@
     "intake_url": "the validator intake's https URL",
     "receiver_hotkey": "the ss58 hotkey of the validator published as the receiver; informational until the intake client checks it at submit"
   },
-  "endpoints": []
+  "endpoints": [
+    {
+      "network": "testnet",
+      "netuid": 567,
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "intake_url": "https://intake.carbonphysics.ai",
+      "receiver_hotkey": "5CtxhYH5Qqv8EcqC8ffGsUcyaQe4ojNRtsQqTbWyhbu1CMHf"
+    }
+  ]
 }
