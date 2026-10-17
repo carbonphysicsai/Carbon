@@ -1,9 +1,9 @@
 """Synthetic-only receiver checks; no Challenge physics or solver execution."""
 
-from copy import deepcopy
 import json
 import subprocess
 import sys
+from copy import deepcopy
 
 import pytest
 
@@ -343,16 +343,19 @@ def test_active_benchmark_import_does_not_load_historical_battery_lab():
     )
     assert help_run.returncode == 0
     assert "producer-only" in help_run.stdout.lower()
+    boundary_code = (
+        "import sys; from scripts.dev.score_lab.__main__ import main; "
+        "from scripts.dev.score_lab import solver_benchmark; "
+        "assert not any(name.startswith('carbon.battery.value') or "
+        "name.startswith('scripts.dev.score_lab.campaign_') or "
+        "name == 'scripts.dev.score_lab.legacy_cli' "
+        "for name in sys.modules)"
+    )
     boundary = subprocess.run(
         [
             sys.executable,
             "-c",
-            "import sys; from scripts.dev.score_lab.__main__ import main; "
-            "from scripts.dev.score_lab import solver_benchmark; "
-            "assert not any(name.startswith('carbon.battery.value') or "
-            "name.startswith('scripts.dev.score_lab.campaign_') or "
-            "name == 'scripts.dev.score_lab.legacy_cli' "
-            "for name in sys.modules)",
+            boundary_code,
         ],
         capture_output=True,
         text=True,
