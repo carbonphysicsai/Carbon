@@ -1,280 +1,113 @@
-# Carbon Delivery Protocol
+# Carbon delivery policy
 
-**Status:** owner-authorized delivery policy, effective 2026-09-06
-**Decision:** OWNER-DX-03
-**Applies to:** current and future engineering tickets, including open PRs
+Repository defaults: OWNER-DX-03 (6 September 2026), amended by
+OWNER-WORKFLOW-SPEED-01 (3 October 2026). The 17 October instruction audit removes
+superseded procedural text; it changes no live ruleset, protected branch or
+scientific/security/economic acceptance.
 
-The owner directs: follow the ticket, test the changes, and ship. This policy
-supersedes GOV-REVIEW-01 and older delivery-process requirements in tickets,
-plans, Wave records, agent handoffs, and Hub instructions. Historical receipts
-remain historical evidence. Scientific, security, economic, legal, deployment,
-qualification, and LIVE acceptance remain human-reserved and unchanged.
+This is the single repository source for engineering delivery. Other agent
+entry points and historical tickets must not add retired requirements back.
+Current direct human instructions and actual enforced controls remain binding.
+If the current task supplies stricter review/approval/merge conditions, honor
+those conditions; do not treat these defaults as a waiver. Reuse an existing
+policy clarification rather than asking duplicate variants. Continue unaffected
+source and testing work while an affected delivery action is held.
 
-## 1. Ticket to merge
+## Implement and validate
 
-1. Read the ticket and relevant authority. Keep working code under
-   KEEP -> WRAP -> REPAIR -> REPLACE. Implement the ticket's Definition of Done.
-2. Use one branch and one PR per ticket by default. Develop coherent slices
-   with focused tests. Continue through slices without asking for permission
-   at each checkpoint unless the owner requested a stop.
-3. Record material decisions, one file each under `.agent/decisions/`, and
-   update affected documentation. The Development Hub is retired
-   (OWNER-WORKFLOW-SPEED-01): no Hub maintenance. Do not create a contract-only PR, a separate
-   plan, or a review checkpoint merely because a ticket has multiple modules.
-   Split independently shippable work when an actual dependency or owner
-   instruction requires it; explain the split in the PR.
-4. Check the change for correctness and add regression tests for defects.
-   An independent agent review is optional. There is no mandatory human
-   reviewer, GPT receipt, bot approval, model score, clean-pass quota, or
-   fresh-context full-diff review loop. Fix concrete defects; verify repairs
-   with focused tests and inspect the affected interactions.
-5. Finish the candidate, mark the PR ready, and run the applicable automated
-   acceptance once. Required tests must pass. Merge the tested revision with
-   the expected-head guard; do not merge code that changed after its checks.
-6. Confirm GitHub reports the merge. Post one brief completion comment with
-   the ticket, test result/CI link, remaining limitations, and next ticket.
-   Close the ticket in its bounded engineering scope and continue when the
-   owner authorized end-to-end execution. No second approval prompt, receipt
-   schema, evidence-seal commit, or post-merge full-CI wait is required.
+Use one coherent task, branch/worktree and PR by default. Split independently
+shippable work when a real dependency or explicit direction warrants it. A
+multi-module ticket does not require a separate contract PR, plan commit,
+approval checkpoint or per-slice ceremony. Record material choices once under
+the decision protocol, reconcile affected docs and finish the user flow.
 
-A valid bug, failed required test, actual merge conflict, or unresolved
-human-reserved decision can stop the affected work. A review receipt, prose
-formatting issue, bot outage, or incomplete historical ceremony cannot.
-Never suppress a failing test, invent a pass, or relabel qualification.
+During development run focused tests for changed behavior and its affected
+interactions. Before delivery run the applicable automated acceptance for the
+candidate. The maintained change classifier, CI manifests and workflow own the
+scope; do not duplicate their path lists or stale shard/test counts here.
+Unknown changes retain their fail-closed classification. Required tests must
+pass; failed, skipped or absent required evidence is not success. Preserve
+scientific, leakage, isolation, correctness and invariant test semantics.
 
-### 1.1 Enforce properties by construction
+Use `./scripts/dev/canonical.sh` when available, or the pinned CI environment.
+Label native-host results as diagnostics. Diagnose runner unavailability before
+retrying; it does not block disjoint implementation. A missing development
+package is addressed through trusted maintained bootstrap with pinned inputs,
+not by weakening hostile-worker offline controls. Rebuild a development image
+only when its actual environment inputs or required acceptance call for it.
 
-When a value must satisfy a property before it is used, prefer a design where an
-object that does not satisfy it cannot be constructed, over one that checks the
-property at the point of use. A check is a thing that can be incomplete or
-bypassed; a type that cannot be built from unvalidated input has nothing to get
-wrong later, and its error lands where the mistake was made rather than wherever
-the value is eventually written.
+Finish and check a candidate before pushing it ready. Do not repeatedly rerun
+successful checks for reassurance, change prose to force CI, or create an empty
+evidence-seal commit. After an actual code/environment change or concrete
+failure, validate the affected revision. Retry the failed infrastructure job
+when appropriate; do not relabel a failed broad run as a pass.
 
-The transferable part is a question to ask, not a pattern to apply:
+## Review and merge
 
-> **What establishes this property, and what happens when someone constructs the
-> object differently?**
+Check the candidate for correctness and repair concrete bugs. Independent review
+is a useful tool for risk, not a repository-wide fixed review quota. Under the
+repository defaults there is no mandatory human reviewer, GPT receipt, bot
+approval, clean-pass count or repeated fresh-context complete-diff review loop.
+A current explicit human condition or actual protected requirement still
+controls, including any applicable review or approval requirement.
 
-If the answer is a flag, a naming convention, a comment, or a re-check inside the
-consumer, the property is true but unenforced. Three workstreams reached this
-independently on 2026-09-21, each by a different route: a second call site found
-by tracing (`#256`), a hand-maintained list found by going stale (`#258`), and a
-validator found by a test failing on the wrong branch (`#257` lineage). None was
-found by agreeing with the principle in advance.
+Only the designated integration/merge owner performs delivery. Verify actual
+PR head/checks and owner blocks. Use normal merge commits with the exact
+expected-head race guard, after scope-required acceptance and `Merge gate`
+succeed. Do not bypass a failed required check, actual conflict, security
+rejection, unclosed material defect or applicable owner stop. No admin override
+or alternative actor/destination may evade a rejection.
 
-A useful check on whether a design actually achieved it: a *valid* value, passed
-in its raw underlying form, should still be refused. Nothing about that value is
-wrong; it is refused because it did not come through validation, which is exactly
-the property a check at the point of use cannot establish.
+Do not refresh a suitable approved base solely because main advanced. Reconcile
+real conflicts or changed dependencies and validate the resulting changes.
+Never copy check success from different executable inputs. Actual merge
+ordering and the established manager lane are described in
+[MERGE_HYGIENE.md](../docs/development/MERGE_HYGIENE.md); that document does not
+override current human constraints. No auto-merge is enabled by this cleanup.
 
-Two corollaries that recur:
+Confirm GitHub reports the intended merge, then give one concise completion
+record with behavior, test results, limitations and the next authorized action.
+CI/Git supply revision identities. Do not require a human to transcribe SHA
+inventories, counters or a normalized receipt schema. No second full acceptance,
+post-merge evidence commit or copied receipt is a repository default. Diagnose
+an actual main-smoke failure; never fabricate successful integration.
 
-- **The generic-error branch is the highest-risk surface in a validator.** It is
-  the path nobody designs, so it is where unvalidated input goes to be logged or
-  echoed. Prefer a specific refusal that names the mistake, and inspect what the
-  catch-all does with what it was handed.
-- **A closed schema and a positive format check answer different questions.** A
-  closed shape is a complete structural guarantee against a hostile caller and
-  says nothing about an honest user making the most natural mistake available to
-  them. Passing one is not evidence about the other.
+Finish through delivery only within the current session's authorization. Do not
+start the next historical queue item, publish source, deploy, spend, sign or
+resume a cancelled schedule merely because the current task completed.
 
-This is an engineering standard, not a new delivery gate. It adds no required
-review, check, or approval, and nothing here blocks a merge.
+## Retired process and historical evidence
 
-### 1.2 A claim must report its basis
+The Development Hub is frozen history. No map_ref, Hub event, PR declaration,
+regeneration, snapshot repin or Hub maintenance acceptance is required. Its
+legacy contracts and templates cannot add those tasks. Leave frozen files
+unchanged unless their deliberate migration is authorized. Historical decisions
+stay in `.agent/DECISIONS.md`; durable new decisions use `.agent/decisions/`.
 
-**A green that cannot say what it checked is not a result.** When a check,
-report, or monitor concludes success, it should also carry what it examined -
-how many items, which properties were compared, which could not be - so that a
-conclusion drawn from nothing reads as drawn from nothing instead of as a pass.
+Old review receipts and exact-main ceremony records remain evidence of what
+happened under their original rules. Do not rewrite them or use them to impose
+superseded process. A repository ruleset file describes intended protection;
+inspect actual settings when relevant. This task does not apply administrative
+changes or claim that a committed ruleset proves live enforcement.
 
-The defect this prevents is an **absence of evidence converted into evidence of
-a conclusion**. It runs in both directions, which is why each instance looks like
-a different bug rather than like the last one:
+## Evidence and blockers
 
-```text
-observing    "cannot see"      must not become   "nothing is there"
-verifying    "cannot check"    must not become   "mismatched"
-reporting    "nothing failed"  must not become   "passed"
-```
+Prefer validation at an actual trust boundary and reuse its result internally;
+do not add another schema/receipt layer for each consumer without a distinct
+property to protect. For a claimed property, identify what establishes it and
+whether another construction path can bypass it. A type, digest or closed
+schema proves only the property actually checked, not scientific or security
+qualification.
 
-Seven instances were found on 2026-09-21 across two executors, and the surfaces
-were unrelated enough that none resembled its predecessor: a decision recorded in
-an authority document reported as implemented; a verification record listing
-properties as verified because the list was hardcoded rather than compared; a
-comparison where absent-on-both-sides matched; a pod runner tested on a
-development host that supplied binaries the target image lacks; a local validator
-reporting zero errors for a block it had skipped; four hub-impact declarations
-satisfied by an incidental marker word rather than by their stated reason; and a
-status watcher reporting a pull request green from an API response that contained
-no checks at all.
+A result states what it examined and what it could not examine. An empty read,
+missing check, unobserved process or unavailable measurement is unknown, not a
+pass, zero or mismatch. Success without its basis is incomplete evidence.
 
-Every one produced a conclusion with no attached basis, and every one was true as
-stated. That is what makes the failure mode durable: it survives review by people
-looking for false statements, because nothing said is false. The question to ask
-is not "is this true?" but **"what is this true *of*, and is that the thing being
-claimed?"**
+A wait names a current satisfiable condition. If the head changed, the job
+terminated, or the receiver already completed, update the action rather than
+polling stale state. A blocker names its source, purpose, current applicability
+and affected action. Scope it narrowly; continue independent authorized work.
 
-The remedy is structural rather than a handled edge case. Build the basis into
-the success path, and treat a read that returned nothing as *no information*
-rather than as a pass. This is an engineering standard, not a delivery gate.
-
-### 1.3 A wait that cannot say what it is waiting for is not waiting
-
-> **An unsatisfiable wait presents as patience.**
-
-A watcher pinned to a SHA that is no longer the head polls forever. From outside,
-"not yet" and "never" look identical: no error, no failure, just a pull request
-that quietly does not merge. The expected-head guard worked exactly as designed;
-the watcher's silence was the defect.
-
-The transferable part is a question, asked before the wait starts and again each
-time the wait is reported:
-
-> **Can the thing I am waiting for still become true? If I cannot answer that, I
-> am not waiting - I am stuck.**
-
-What follows from it:
-
-- State the condition before waiting, in terms that can be *evaluated* rather
-  than described.
-- A pinned identifier that no longer exists is a **reported condition, not a
-  continued wait**. Say so and stop.
-- When the blocker is someone else, verify that they are actually the blocker.
-  Re-read the state; do not infer it from the last thing that was known.
-- A report that says "waiting" must say what for, and how its arrival would be
-  recognised. A report that says only "waiting" cannot be distinguished from one
-  that should say "stuck".
-
-Three instances on 2026-09-22, and the shape is only visible once they are put
-beside each other: **six pull requests green and unmerged** across two lanes,
-because their watchers held stale SHAs copied from a template; **a pull request
-reported as waiting on two other workstreams** while it was red on a single Ruff
-diagnostic, so it was waiting on its own author and nobody checked; and
-**sessions idle for two hours after ending a turn**, which from outside is
-indistinguishable from sessions working.
-
-Each looked like patience, which is why none of them raised an alarm. A failure
-that announces itself gets fixed; this one is quiet by construction, and the
-quiet is the symptom.
-
-The remedy is the same shape as 1.1: make the unsatisfiable wait impossible to
-express rather than remembering not to write one. A waiter should re-read the
-condition it pinned, and stop with a report the moment that condition becomes
-unreachable - a head that moved, a pull request already merged or closed, a
-check that completed without success. `scripts/dev/merge_on_green.py` is the
-worked version for the case that produced these, and its decision function is
-tested against each terminal state precisely because "still waiting" is the one
-answer that must never be returned for a condition that cannot come true.
-
-This is an engineering standard, not a delivery gate. It adds no required check
-and blocks no merge.
-
-## 2. Validation budget
-
-
-**OWNER-CW1-DEVELOPMENT-CI-01 (2026-09-17):** Ryan authorizes bounded
-non-paying DEVELOPMENT competition acceptance, including the C-W1-D3 migration.
-The exact runtime paths and subsystem test manifest live in
-`scripts/dev/development_scope.py`; no general development-prefix exemption exists.
-Run all invariants, all-test collection, affected measurement/scoring/signed-source/
-lifecycle/reward and tooling regressions, package/outside-tree checks, canonical
-doctor, quality, applicable JAX tests, public-source validation, Hub and Merge gate.
-Mixed official/shared scientific, worker/reference, broader runtime or unknown
-changes retain full CPU regression. Exact dependency/environment changes retain
-full acceptance. Clean image builds follow actual `.devcontainer`, dependency,
-interpreter and packaging inputs; an unknown document or CI routing change alone
-does not cause a rebuild. Actual worker/reference/shared lifecycle changes retain
-their isolated-service campaign. Reuse accepted isolation evidence for unchanged
-boundaries. This supersedes older blanket full-runtime wording only in this scope.
-
-**OWNER-C0-VALIDATION-01 (2026-09-09, prospective):** The owner authorizes
-skipping the full 30+ minute CPU regression on each NET delivery when the
-executor judges it unnecessary. Known network paths use an explicit tested
-network/subsystem manifest; all invariants, collection, quality, package,
-Hub and required Merge gate assertions remain. Unknown paths, shared
-scientific changes and resolved dependency changes retain full regression.
-This supersedes the blanket runtime-PR CPU sentence below for that bounded
-profile; it does not turn failures into passes or weaken test semantics.
-
-NET-5-D2 applies the same bounded principle to the exact finite synthetic A8
-identity extension: checked before/after hashes, all A7/A8/scoring and NET-5
-regressions, unchanged invariant/quality/package/Hub/image/Merge assertions.
-Any other shared scientific change retains full regression.
-
-NET-1's first broad run on `253403f` passed 4,865 CPU tests (including the
-installed SDK) and all 169 invariants; two bootstrap tests failed because
-their environment inherited the chain group. Their repair explicitly tests
-both dev-only and dev-plus-chain environments. Focused repair acceptance is
-appropriate: no resolved dependency changed from main (only two existing
-11.1.0 constraints were tightened). The classifier verifies that exact
-manifest-only migration byte-for-byte; other dependency changes stay full.
-The initial broad run remains failed historical evidence, not a green receipt.
-
-During development, run focused ticket and affected-subsystem tests. Use the
-canonical wrapper when available. A missing local Docker installation is
-infrastructure unavailability, not a reason to repeat the same failed command
-or to block implementation; GitHub's pinned environment supplies acceptance.
-Native-host tests are diagnostics, not canonical qualification.
-
-For a ready runtime PR, CI runs the CPU regression suite, invariant tests,
-quality ratchet, and package/import checks, on 6 parallel shards that split the
-CPU suite by test file and run every other lane once (OWNER-WORKFLOW-SPEED-01).
-Unknown paths retain full runtime acceptance. Contract-only and generated-doc changes
-retain their existing lighter classified suites. Test semantics remain intact.
-
-The clean development-image build runs for environment, dependency, workflow,
-or canonical-runner changes and unknown paths. Ordinary Python implementation
-and test changes use the pinned canonical runner without rebuilding the image.
-The aggregate Merge gate rejects failed or skipped required jobs.
-
-Draft PR updates do not start acceptance. Marking a draft ready starts its
-first acceptance run. Ready PR code pushes start acceptance for that revision.
-PR title/body edits, review submissions, and comments do not start full CI.
-
-The Development Hub is retired (OWNER-WORKFLOW-SPEED-01, 2026-10-03). It is no
-merge requirement: PR bodies carry no `HUB_*` declaration, and no PR adds Hub
-events, regenerates Hub files or repins its snapshot. Its files remain as frozen
-history. The lesson recorded here about partial local Hub validation still
-illustrates 1.2: a local pass that skipped checks is evidence only about the
-checks that ran.
-Main smoke checks detect integration failures after merge; they are not a
-second full acceptance or a ticket-closeout ceremony.
-
-Batch changes before pushing a ready candidate. Do not rerun a green workflow
-for reassurance, rewrite a PR body to force CI, create an empty commit, or
-repeat a successful job after an infrastructure failure. Retry the failed job.
-After a real code/test/environment change, validate the new revision. Docs and
-status notes do not require another substantive code review. Do not copy a
-success from different executable inputs and claim the new code passed.
-
-## 3. Merge control and evidence
-
-The intended repository rule is one required status check: `Merge gate` from
-GitHub Actions, with zero required approvals and no last-push approval.
-Thread-resolution bookkeeping is not an additional gate; actual unresolved
-bugs and explicit owner blocks still require disposition. Use normal merge
-commits and retain the API's inexpensive expected-head race guard.
-
-Merge hygiene (one decision per file, conflicts in retired Hub files and the
-frozen `.agent/DECISIONS.md`, merging when green, no re-merging main into a
-green PR without a real conflict, and the `merge-priority` lane) is governed by
-`docs/development/MERGE_HYGIENE.md` (OWNER-MERGE-HYGIENE-01, amended by
-OWNER-WORKFLOW-SPEED-01).
-
-Do not require a base refresh solely because main advanced. Inspect the
-integration impact; reconcile conflicts or changed dependencies and validate
-those changes. The merge guard prevents merging a different PR revision; it
-does not prove scientific qualification or conflict-free semantic integration.
-
-CI obtains revision identities from GitHub/Git. Do not ask a human to copy
-head/tree/base SHAs, review counters, or rerun totals into a PR. The PR needs a
-ticket/scope explanation, test summary, and risks.
-Legacy receipt fields are historical metadata and are not merge authority.
-
-The versioned intended rule remains `.github/rulesets/main.v1.json`; the file
-format version is unchanged. The apply tool must verify live settings after
-an administrative write. A committed artifact is not proof of live enforcement.
-No receipt or merge operation grants scientific, security, production, LIVE,
-network, frontier, settlement, weight, or emission authority.
+Science, security acceptance, rights, production, LIVE, network economics,
+frontier, settlement, weight and emission authority remain domain-owned.
+Passing engineering checks or merging code grants none of them.
