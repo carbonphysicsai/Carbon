@@ -273,6 +273,12 @@ class Mesh160DiagnosticTest(unittest.TestCase):
                 )
             self.assertEqual(len(called), 1)
 
+    def test_worker_rejects_type_changed_job_echo(self):
+        row = {**diagnostic.job(), "schema": diagnostic.RECORD}
+        self.assertTrue(worker._job_echo_valid(row))
+        row["h_multiplier"] = True
+        self.assertFalse(worker._job_echo_valid(row))
+
 
 if __name__ == "__main__":
     unittest.main()

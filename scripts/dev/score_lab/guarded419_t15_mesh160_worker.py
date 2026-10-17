@@ -39,6 +39,15 @@ def _hex(value, size):
     return type(value) is str and re.fullmatch(r"[0-9a-f]{" + str(size) + r"}", value)
 
 
+def _job_echo_valid(row):
+    try:
+        return tasks.digest(
+            {key: row.get(key) for key in diagnostic.job()}
+        ) == tasks.digest(diagnostic.job())
+    except (TypeError, ValueError, tasks.TaskError):
+        return False
+
+
 def _head(root):
     result = subprocess.run(
         ["git", "-C", str(root), "rev-parse", "HEAD"],
@@ -65,7 +74,13 @@ def _source(spec, root, *, environ=os.environ):
         path = root / name
         if (
             path.is_symlink()
+            or any(
+                parent.is_symlink()
+                for parent in path.parents
+                if parent != root and parent.is_relative_to(root)
+            )
             or not path.is_file()
+            or not path.resolve().is_relative_to(root.resolve())
             or _sha(path.read_bytes()) != expected
         ):
             raise tasks.TaskError("actual mesh160 source bytes differ: " + name)
@@ -102,7 +117,7 @@ def _spec(spec):
     ):
         raise tasks.TaskError("complete mesh160 source byte pins required")
     diagnostic.validate_job(spec["job"])
-    if spec["observer"] != diagnostic.observer():
+    if tasks.digest(spec["observer"]) != tasks.digest(diagnostic.observer()):
         raise tasks.TaskError("exact mesh160 returned-entry observer required")
     if type(spec["attempt_id"]) is not str or not re.fullmatch(
         r"[a-z0-9][a-z0-9-]{0,79}", spec["attempt_id"]
@@ -144,7 +159,16 @@ def prepare_spec(*, root, attempt_id, out):
     files = {}
     for name in sorted(REQUIRED_SOURCES):
         path = root / name
-        if path.is_symlink() or not path.is_file():
+        if (
+            path.is_symlink()
+            or any(
+                parent.is_symlink()
+                for parent in path.parents
+                if parent != root and parent.is_relative_to(root)
+            )
+            or not path.is_file()
+            or not path.resolve().is_relative_to(root.resolve())
+        ):
             raise tasks.TaskError("ordinary mesh160 source file required")
         files[name] = _sha(path.read_bytes())
     spec = {
@@ -224,7 +248,7 @@ def run(spec, *, records_path, root=None, solve=feasibility02._timed, stamp=None
         type(row) is not dict
         or row.get("case_id") != diagnostic.CASE_ID
         or row.get("schema") != diagnostic.RECORD
-        or any(row.get(key) != value for key, value in diagnostic.job().items())
+        or not _job_echo_valid(row)
     ):
         receipt["per_job"][diagnostic.CASE_ID] = "INVALID_REFERENCE"
         receipt["status"] = "REFERENCE_UNRESOLVED"
@@ -236,7 +260,15 @@ def run(spec, *, records_path, root=None, solve=feasibility02._timed, stamp=None
         handle.write(raw)
         handle.flush()
         os.fsync(handle.fileno())
-    readout = diagnostic.route_readout(stamped)
+    try:
+        readout = diagnostic.route_readout(stamped)
+    except Exception as exc:  # noqa: BLE001 -- raw bytes survive malformed reference
+        readout = {
+            "status": "REFERENCE_UNRESOLVED",
+            "mesh320_route": "NOT_ADMITTED",
+            "error_type": type(exc).__name__,
+            "reference_verdict": False,
+        }
     receipt["raw_records_sha256"] = _sha(raw)
     receipt["raw_rows"] = [{"line": 1, "job_id": diagnostic.CASE_ID}]
     receipt["route_readout"] = readout
