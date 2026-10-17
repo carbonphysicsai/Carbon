@@ -9632,6 +9632,20 @@ events:
       - "WAVE-C/NET-6"
     supersedes: null
   -
+    map_ref: "WAVE-C/C-03"
+    event_type: "evidence"
+    event_id: "LEAN-RECIPE-DELIVERY-01-SOURCE-CANDIDATE"
+    owner_lane: "platform_engineering"
+    status: "active"
+    summary: "A bounded DEVELOPMENT source candidate composes the fixed public TRAIN kit, signed direct recipe task, isolated fresh graph or verified-library build, source-free inference, retained result and prospective validator recipe screening from reviewed source. Changed CPU tests collect and focused native diagnostics pass where Windows can execute them; full Linux canonical execution, an installed matching worker image, a real signed model result, a registered Score Pack and bank bridge remain unearned. The prospective receiver has score_pack null and refuses scoring. This event does not select or complete C-03, qualify science or security, or activate official evaluation."
+    primary_detail: ".agent/tickets/LEAN_RECIPE_DELIVERY_01.md"
+    affects:
+      - "WAVE-C/C-07"
+      - "WAVE-C/C-08"
+      - "WAVE-C/NET-2"
+      - "SYSTEM/CI"
+    supersedes: null
+  -
     map_ref: "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
     event_type: "evidence"
     event_id: "HUB-LEDGER-PER-EVENT-01"
