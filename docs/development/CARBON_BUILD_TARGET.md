@@ -47,6 +47,13 @@ arbitrary source encodes no learned information. Do not disguise this limitation
 with construction levels. Export/runtime incompatibility is a concrete adapter
 problem, not a permanent backbone approval category or a universal support claim.
 
+Each Challenge owns its **physics contract**: physical scope, governing
+relationships, assumptions, boundary and initial conditions where applicable,
+quantities and units, constraints, reference applicability and acceptance rules.
+The shared platform binds and enforces that versioned contract; a backbone,
+runtime or another Challenge cannot supply its physical acceptance. Shared
+gate execution does not make the physics contract universal.
+
 ## One scoring implementation
 
 ScoreLab remains a thin workbench over the same versioned ScoreEngine and
