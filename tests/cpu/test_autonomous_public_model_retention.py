@@ -1,6 +1,7 @@
 """Prospective own-agent public practice retention, with a fixture carrier only."""
 
 import io
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -13,11 +14,18 @@ from test_graphite_public_model_retention import (
 
 from carbon.battery import public_model_retention as retention
 from carbon.battery import recipes
-from carbon.battery.practice import PROGRAM
+from carbon.battery.compile import compile_recipe
+from carbon.battery.practice import PROGRAM, PracticeSet, staged_files
 from carbon.development_session.profile import canonical, digest
 
 REVISION = "a" * 40
-pytest_plugins = ("test_graphite_public_model_retention",)
+
+
+@pytest.fixture(scope="module")
+def public_stage():
+    repository = Path(__file__).resolve().parents[2]
+    _, recipe = compile_recipe(STRATEGY)
+    return staged_files(repository, PracticeSet.load(repository), recipe, 11)
 
 
 def opt_in():
