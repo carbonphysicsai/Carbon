@@ -214,7 +214,9 @@ def _direct_task_projection(view, public_result=None):
         else (
             "completed"
             if state == "SUCCEEDED"
-            else "cancelled" if state == "CANCELLED" else "failed"
+            else "cancelled"
+            if state == "CANCELLED"
+            else "failed"
         )
     )
     return {
@@ -429,7 +431,7 @@ class ToolSessions:
                     "This page holds the local DEVELOPMENT construction session "
                     "while the tools are open. Your MCP agent can use it after "
                     "you close this page's tools."
-                    if campaign == DIRECT_DEVELOPMENT_SESSION
+                    if campaign in DIRECT_DEVELOPMENT_VERSIONS
                     else "This page holds the campaign while the tools are open: "
                     "your agent's carbon_attach_campaign, practice, freeze "
                     "and submit answer campaign_busy until you close them."
@@ -528,6 +530,11 @@ class ToolSessions:
 
 ACTIONS = ("state", "open", "close", "call", "start", "observe", "cancel")
 DIRECT_DEVELOPMENT_SESSION = "direct-development"
+DIRECT_DEVELOPMENT_V13_SESSION = "direct-development-1.3"
+DIRECT_DEVELOPMENT_VERSIONS = {
+    DIRECT_DEVELOPMENT_SESSION: "1.2",
+    DIRECT_DEVELOPMENT_V13_SESSION: "1.3",
+}
 
 
 def route(host, campaign, action, value):
@@ -547,7 +554,7 @@ def route(host, campaign, action, value):
         raise Rejected("unknown_tools_action", 404)
     from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
-    direct = campaign == DIRECT_DEVELOPMENT_SESSION and type(host) is RunnerAdapter
+    direct = campaign in DIRECT_DEVELOPMENT_VERSIONS and type(host) is RunnerAdapter
     row = None if direct else host.owned_campaign(campaign)
     if action == "state":
         return {"campaign": campaign, **sessions.state(campaign)}
@@ -596,14 +603,15 @@ def runner_opener(host):
             attached_installed_direct_development,
         )
 
-        if campaign == DIRECT_DEVELOPMENT_SESSION:
+        if campaign in DIRECT_DEVELOPMENT_VERSIONS:
             if host.configuration is None:
                 raise RuntimeError("no runner profile")
             from scripts.dev.miner_launchpad.controller import LockHeld
 
             try:
                 async with attached_installed_direct_development(
-                    Path(host.configuration)
+                    Path(host.configuration),
+                    version=DIRECT_DEVELOPMENT_VERSIONS[campaign],
                 ) as (adapter, _selected):
                     yield adapter
             except LockHeld:

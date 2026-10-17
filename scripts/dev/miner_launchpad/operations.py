@@ -269,8 +269,8 @@ FIELDS = {
             "time) bind."
         ),
     ),
-    # Construction levels (LAUNCHPAD-LEVELS-01 S2, S3): chosen at launch,
-    # frozen in the manifest, bound into the frozen recipe.
+    # Historical construction selectors remain here for persisted campaign
+    # replay. New launch requests do not admit them.
     "construction_level": (
         "integer",
         (
@@ -583,9 +583,13 @@ class Operation:
     #: body runs. One that only reads or withdraws (observe, halt) is not:
     #: a miner can always see and stop their own campaign.
     admits_work: bool = True
+    #: Accepted only so an exact historical idempotency retry can replay its
+    #: recorded result. The normal options and browser launch schema omit
+    #: them; MCP marks them deprecated and replay-only for old clients.
+    replay_optional: frozenset = frozenset()
 
     def __post_init__(self):
-        if not self.required | self.optional <= set(FIELDS):
+        if not self.required | self.optional | self.replay_optional <= set(FIELDS):
             raise ValueError(f"{self.name}: every field is declared in FIELDS")
         if list(self.gates) != [g for g in GATE_ORDER if g in self.gates]:
             raise ValueError(f"{self.name}: gates run in the fixed order")
@@ -622,21 +626,19 @@ OPERATIONS = {
                     "plan",
                     "hunt",
                     "limits",
-                    "construction_level",
-                    "construction_variant_digest",
-                    "arm",
                 }
             ),
             ("request", "profile", "replay", "registration"),
+            replay_optional=frozenset(
+                {"construction_level", "construction_variant_digest", "arm"}
+            ),
         ),
         Operation(
             "options",
             "Every launch-time choice with its true availability now: who "
-            "selects, each model family's registry verdict, and the research "
-            "lanes this host has; construction_options lists every registered "
-            "change with Available or Coming soon and a plain reason. "
-            "Launch retains the registered level binding until the composed "
-            "compile supplies its derived summary. Reads only.",
+            "selects, model-provider availability, and the research lanes "
+            "this host has; construction_paths distinguishes public "
+            "reconstruction from official receiver serving. Reads only.",
             frozenset(),
             frozenset(),
             ("request", "profile"),
@@ -1004,7 +1006,7 @@ def _closed(op, request):
     if type(request) is not dict:
         raise Rejected("closed_request_required")
     keys = set(request)
-    if not op.required <= keys <= op.required | op.optional:
+    if not op.required <= keys <= op.required | op.optional | op.replay_optional:
         raise Rejected("closed_request_required")
 
 
@@ -1053,6 +1055,7 @@ def perform(host, name, request):
     if op is None:
         raise Rejected("unknown_operation", 404)
     profile = miner = campaign = None
+    retired_launch_selector = False
     for gate in op.gates:
         if gate == "request":
             _closed(op, request)
@@ -1061,6 +1064,14 @@ def perform(host, name, request):
                 # Setup's name for the same choice; never the caller's dict.
                 request = {**request, "agent": AGENT_ALIASES[agent]}
             if op.name == "launch":
+                retired_launch_selector = any(
+                    key in request
+                    for key in (
+                        "construction_level",
+                        "construction_variant_digest",
+                        "arm",
+                    )
+                )
                 request = without_level_zero(without_null_graphite_fields(request))
         elif gate == "profile":
             try:
@@ -1078,6 +1089,8 @@ def perform(host, name, request):
             replayed = host.replayed(profile, request, op.name)
             if replayed is not None:
                 return replayed
+            if retired_launch_selector:
+                raise Rejected("construction_selector_retired", 409)
         elif gate == "registration":
             miner = _registered(host, profile)
             _signer_reachable(host, profile)

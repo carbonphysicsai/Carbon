@@ -36,10 +36,21 @@ _SOURCE_PATHS = (
 
 
 def _source_identity() -> str:
-    """Bind the adapter and existing build/infer modules actually installed."""
+    """Bind the adapter and every repository module staged into its workers."""
+    from carbon.development_session.bundle_construction_worker import (
+        STAGED_MODULES as BUNDLE_STAGED_MODULES,
+    )
+    from carbon.development_session.direct_graph_construction_worker import (
+        STAGED_MODULES as GRAPH_STAGED_MODULES,
+    )
+
     root = Path(__file__).resolve().parents[2]
     observed = {}
-    for name in _SOURCE_PATHS:
+    staged = {
+        module.replace(".", "/") + ".py"
+        for module in (*BUNDLE_STAGED_MODULES, *GRAPH_STAGED_MODULES)
+    }
+    for name in sorted(set(_SOURCE_PATHS) | staged):
         path = root / name
         if path.is_symlink() or not path.is_file():
             raise ValueError("served recipe source unavailable")
