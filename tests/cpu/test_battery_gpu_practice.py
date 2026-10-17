@@ -630,6 +630,64 @@ def test_the_live_gpu_check_detects_installs_the_record_and_verifies(live):
     assert (live.root / "host-device.json").read_bytes() == before
 
 
+def test_same_device_driver_refresh_preserves_operator_context(live, monkeypatch):
+    live.checks.gpu(live.manifest, campaign=battery_campaign())
+    previous = HostDeviceRecord.load(live.root)
+    operator_record = {
+        **previous.document,
+        "record_id": "operator-selected",
+        "provider": "operator-host",
+        "platform": "WSL2",
+        "container_runtime": "DOCKER_DESKTOP",
+    }
+    onboarding.install_record(live.root, operator_record, name="host-device.json")
+    previous = HostDeviceRecord.load(live.root)
+    observed = {
+        "devices": [{**OBSERVED["devices"][0], "driver_version": "591.00"}],
+        "source": OBSERVED["source"],
+    }
+    monkeypatch.setattr(onboarding, "observe_local_device", lambda **_: observed)
+
+    found = live.checks.gpu(live.manifest, campaign=battery_campaign())
+    refreshed = HostDeviceRecord.load(live.root)
+    assert refreshed.driver_version == "591.00"
+    assert refreshed.digest != previous.digest
+    assert found["record_digest"] == refreshed.digest
+    for field in ("record_id", "provider", "platform", "container_runtime"):
+        assert refreshed.document[field] == previous.document[field]
+    assert refreshed.document["observation_provenance"].startswith(
+        "detected by Launchpad setup with "
+    )
+    assert (
+        refreshed.document["observed_at_unix"]
+        >= previous.document["observed_at_unix"]
+    )
+    before = (live.root / "host-device.json").read_bytes()
+    live.checks.gpu(live.manifest, campaign=battery_campaign())
+    assert (live.root / "host-device.json").read_bytes() == before
+
+
+def test_same_device_driver_refresh_refuses_unwritable_record(
+    live, monkeypatch
+):
+    live.checks.gpu(live.manifest, campaign=battery_campaign())
+    before = (live.root / "host-device.json").read_bytes()
+    observed = {
+        "devices": [{**OBSERVED["devices"][0], "driver_version": "591.00"}],
+        "source": OBSERVED["source"],
+    }
+    monkeypatch.setattr(onboarding, "observe_local_device", lambda **_: observed)
+
+    def cannot_write(*_, **__):
+        raise WorkerFailure(WorkerCode.UNAVAILABLE)
+
+    monkeypatch.setattr(onboarding, "install_record", cannot_write)
+    with pytest.raises(SetupRefused) as refused:
+        live.checks.gpu(live.manifest, campaign=battery_campaign())
+    assert refused.value.code == "host_device_record_not_writable"
+    assert (live.root / "host-device.json").read_bytes() == before
+
+
 def test_the_live_gpu_check_refuses_by_field(live, monkeypatch, tmp_path):
     wrong = tmp_path / "cpu-worker.json"
     wrong.write_bytes(record_bytes(gpu_image(lock="sha256:" + "c" * 64)))

@@ -1555,10 +1555,22 @@ class LiveChecks:
             installed = load_miner_lane_record(root)
         except WorkerFailure:
             installed = None
+        changed_driver = (
+            installed is not None
+            and installed.device_uuid == document["device_uuid"]
+            and installed.driver_version != document["driver_version"]
+        )
+        if changed_driver:
+            # Refresh the measurement, not the operator's identity/context.
+            # observed_at_unix and provenance still describe the fresh probe.
+            for field in ("record_id", "provider", "platform", "container_runtime"):
+                if field in installed.document:
+                    document[field] = installed.document[field]
         if (
             installed is None
             or installed.device_uuid != document["device_uuid"]
             or installed.document.get("schema") != document["schema"]
+            or changed_driver
         ):
             try:
                 onboarding.install_record(root, document, name=HOST_DEVICE_RECORD)
