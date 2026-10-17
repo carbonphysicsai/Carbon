@@ -516,7 +516,7 @@ def test_direct_measured_query_profile_survives_restart_and_cannot_switch(
             mismatch.value.code
             is research.ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
         )
-        historical = replace(request, idempotency_key="historical-v1")
+        historical = replace(request, idempotency_key="historical-v1-0001")
         reopened.start_research_task(historical)
         with pytest.raises(research.ResearchTaskProviderError) as old_mismatch:
             reopened.start_research_task(historical, measure_query=True)
