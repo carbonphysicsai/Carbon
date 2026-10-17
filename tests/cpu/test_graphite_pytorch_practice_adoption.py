@@ -43,6 +43,10 @@ def sandbox(tmp_path):
     return Sandbox(tmp_path)
 
 
+def offer_fixture_gpu(sandbox):
+    sandbox._executable(sandbox.tools / "nvidia-smi", "#!/bin/sh\nexit 0\n")
+
+
 def test_local_install_builds_torch_and_passes_that_parent_to_analysis(
     sandbox,
 ):
@@ -67,6 +71,7 @@ def test_local_install_builds_torch_and_passes_that_parent_to_analysis(
 
 
 def test_local_torch_gpu_install_uses_the_separate_torch_builder(sandbox):
+    offer_fixture_gpu(sandbox)
     sandbox._executable(
         sandbox.work / "scripts/dev/torch_worker_image.sh",
         '#!/bin/sh\nmkdir -p "$(dirname "$1")"\n'
@@ -113,6 +118,7 @@ def test_release_installs_the_complete_torch_pair_without_a_build(
 
 
 def test_release_torch_gpu_selection_pulls_and_records_its_exact_kind(sandbox):
+    offer_fixture_gpu(sandbox)
     publish_release(sandbox, kinds=TORCH_KINDS)
     result = run_release(
         sandbox, "--pytorch", "--gpu", "--release", RELEASE, "--no-start"
@@ -135,6 +141,7 @@ def test_release_torch_gpu_selection_pulls_and_records_its_exact_kind(sandbox):
 
 
 def test_missing_torch_gpu_record_refuses_before_checkout_or_pull(sandbox):
+    offer_fixture_gpu(sandbox)
     before = sandbox.head()
     publish_release(
         sandbox,
