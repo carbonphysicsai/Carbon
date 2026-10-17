@@ -47,8 +47,10 @@ queries. V3 binds input and output shapes, batch size, and an explicit
 engineering-reference kind. It charges the full measured time of each batch;
 it never divides wall time by the sample count or calls a saved label lookup a
 reference run. V3 permits `peak_memory_bytes: null` only when peak memory was
-not measured, and reports the corresponding aggregate as null. V2 retains its
-numeric-memory requirement and exact historical meaning. Both registration
+not measured, and reports the corresponding aggregate as null. A saved model
+with no measured construction time likewise reports `build_seconds: null` in
+v3; that value is never inferred from inference time. V2 retains its
+numeric-memory and build-time requirements and exact historical meaning. Both registration
 versions use the Score Pack/result schema **v3**. Earlier development benchmark v1 and pack v2 records
 remain historical; this path refuses them rather than implying that they
 carried the new physics binding.
@@ -75,6 +77,13 @@ calling the same `ScoreEngine`. Custody alone yields `NOT_READY`; a complete
 measurement with no registered accuracy ceiling yields `PACK_NOT_READY`. The
 Challenge owner supplies the physics and the producer supplies actual measured
 rows. This development reducer does not run a model, reference, or solver.
+`bundle_benchmark.measurement_from_saved_inference` accepts a trusted Platform
+v2 timed worker result for one registered complete-batch query. It checks the
+retained fixture, recipe, state and prediction digests, output shape and timing
+scope before mapping the worker's four timing phases to the measured-model row.
+The caller still supplies Challenge-owned gate verdicts and independently
+measured same-batch reference rows; a retained prediction or label is never a
+timing measurement.
 
 ## OPT-16: V2 bank producer workflow
 
