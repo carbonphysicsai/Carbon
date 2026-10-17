@@ -21,9 +21,10 @@ For a release **that includes this repair and publishes its Torch companion**:
 This selects `torch-worker-image.json` plus
 `torch-analysis-worker-image.json`. The default invocation selects C03 plus
 its C03-parented analysis as before. Repeat `--pytorch` on updates. The flag
-selects the CPU worker; `--gpu` still installs the separate JAX GPU worker.
-Select local CPU in setup to use CPU Torch practice. A GPU setup advertises the
-backend of its independently selected GPU image instead.
+selects the CPU worker. With a release containing
+`TORCH-GPU-INSTALLER-SELECTION-01`, `--pytorch --gpu` also selects the separate
+Torch GPU worker; `--gpu` alone keeps the JAX worker. Select local CPU in setup
+to use CPU Torch practice. GPU setup verifies the selected worker's backend.
 
 The existing local build route, when the host operator authorizes it, is:
 
@@ -95,12 +96,19 @@ Use a supported base recipe for these hardware legs. This does not enable
 composed construction training on GPU or discharge its separate compiler and
 security obligations.
 
-The current installer `--gpu` selects JAX; local Torch GPU testing requires its
-explicit manifest in the existing setup request. Remote setup's
+For a future release containing `TORCH-GPU-INSTALLER-SELECTION-01`, use
+`./scripts/install_miner.sh --release <matching-worker-images-tag> --pytorch --gpu`
+to install the matching Torch CPU/analysis pair and Torch GPU worker. The
+already published `worker-images-v5` tag contains the older installer, which
+still selects JAX with `--pytorch --gpu`; current v5 Torch GPU testing requires
+a separately digest-pulled `torch-gpu` release record and its explicit manifest
+in the existing `carbon_setup_compute` request. Do not mix the future source
+with v5 images or relabel the v5 installation. Remote setup's
 `installed.released_gpu` recognizes the `accelerator` release kind only; it
 does not automatically offer a published Torch GPU reference. Root must verify
 the actual selected remote route if choosing RunPod rather than infer it from
-the CPU `--pytorch` flag. This CPU repair does not change remote GPU selection.
+the local `--pytorch --gpu` flags. This local installer repair does not change
+remote GPU selection.
 
 `worker_image_capability.py --gpus --expect-device-kind <observed-kind>` can
 observe imports/device/determinism, but the validator accelerator rebuild leg
