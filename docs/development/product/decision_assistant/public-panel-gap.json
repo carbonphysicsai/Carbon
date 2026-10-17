@@ -1,0 +1,43 @@
+{
+  "counts": {
+    "OK": 800
+  },
+  "cpu_core_seconds": {
+    "reason": "NOT_RECORDED_NO_WALL_TIME_OR_RSS_CONVERSION",
+    "status": "GAP",
+    "value": null
+  },
+  "manifest_sha256": "7d4529df11998aadb6c16f6d87fcccde64fe24009aed1089f6959c8f1e31785b",
+  "overlay_lock_sha256": "sha256:6267e033b30728b200d9e0c2aa6b55a9117cd67e03c6f89c9a17294d12e594ee",
+  "provenance_basis": "BYTE_AND_DOCUMENT_IDENTITY_MATCH_ONLY",
+  "pybamm_version": "26.8.0.0",
+  "qualification_claim": false,
+  "real_battery_comparison": {
+    "reasons": [
+      "SOLVER_NOT_ACCEPTED",
+      "CPU_CORE_SECONDS_MISSING"
+    ],
+    "regret": null,
+    "status": "GAP"
+  },
+  "records": 800,
+  "records_sha256": "7670d5fbb524e6c31a0a04749b53dcb86b9c16cb791b67bfe3673681481b4474",
+  "schema": "carbon.product.assistant-public-panel-gap.v1",
+  "scope": "DEVELOPMENT",
+  "solver_acceptance": {
+    "accepted": false,
+    "authority": "OWNER_PRODUCT_CHAT_2026_10_12",
+    "reason": "CURRENT_USE_HOLD_NOT_OVERRIDDEN_BY_HISTORICAL_MANIFEST_TEXT",
+    "status": "SOLVER_NOT_ACCEPTED"
+  },
+  "solver_image": "ghcr.io/carbonphysicsai/carbon-determinism-study@sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
+  "source_role": "PUBLIC_PHYSICS_CALIBRATION_NOT_ACCEPTED_DECISION_EVIDENCE",
+  "wall_cost_estimate": {
+    "basis": "DEVELOPMENT_RECORDED_WALL_SECONDS_ONLY",
+    "build_median": 0.2218159139956697,
+    "maximum": 525.1484510040027,
+    "median": 108.43800232800277,
+    "minimum": 63.52251896300004,
+    "solve_median": 108.10962446349731
+  }
+}
