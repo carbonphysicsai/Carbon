@@ -345,6 +345,51 @@ def test_saved_v2_worker_receipt_maps_to_one_measured_v3_query():
     assert result["score_status"] == "PACK_NOT_READY"
     assert result["benchmark"]["models"][0]["by_role"]["P"]["paired_speedup"] == 4.0
 
+    # Prospective v3 observes the actual JAX output array before host copy;
+    # the declared timing profile is not re-labelled as observed placement.
+    v3 = deepcopy(inference)
+    v3["receipt"]["schema"] = "carbon.development.bundle-inference.v3"
+    v3["receipt"]["measurement"].update(
+        {
+            "device_observation": "JAX_OUTPUT_ARRAY_BEFORE_HOST_COPY",
+            "execution_devices": [
+                {"platform": "cpu", "device_kind": "toy-cpu", "id": 0}
+            ],
+        }
+    )
+    assert (
+        bundle.measurement_from_saved_inference(
+            entry, registration, v3, gates={"toy_gate": True}
+        )
+        == measured
+    )
+    bad_device = deepcopy(v3)
+    bad_device["receipt"]["measurement"]["device_observation"] = "REQUESTED_PROFILE"
+    with pytest.raises(
+        bundle.BundleBenchmarkRefused, match="saved_inference_device_observation"
+    ):
+        bundle.measurement_from_saved_inference(
+            entry, registration, bad_device, gates={"toy_gate": True}
+        )
+    missing_device = deepcopy(v3)
+    del missing_device["receipt"]["measurement"]["execution_devices"]
+    with pytest.raises(
+        bundle.BundleBenchmarkRefused, match="saved_inference_measurement"
+    ):
+        bundle.measurement_from_saved_inference(
+            entry, registration, missing_device, gates={"toy_gate": True}
+        )
+    historical_with_v3_fields = deepcopy(inference)
+    historical_with_v3_fields["receipt"]["measurement"].update(
+        v3["receipt"]["measurement"]
+    )
+    with pytest.raises(
+        bundle.BundleBenchmarkRefused, match="saved_inference_measurement"
+    ):
+        bundle.measurement_from_saved_inference(
+            entry, registration, historical_with_v3_fields, gates={"toy_gate": True}
+        )
+
     broken = deepcopy(inference)
     broken["receipt"]["inputs_digest"] = entry["fixture_digest"]
     with pytest.raises(bundle.BundleBenchmarkRefused, match="saved_inference_binding"):

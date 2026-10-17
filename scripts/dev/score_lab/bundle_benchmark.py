@@ -296,7 +296,11 @@ def measurement_from_saved_inference(
             "predictions_digest",
             "measurement",
         }
-        or receipt["schema"] != "carbon.development.bundle-inference.v2"
+        or receipt["schema"]
+        not in (
+            "carbon.development.bundle-inference.v2",
+            "carbon.development.bundle-inference.v3",
+        )
         or any(
             inference[field] != entry.get(field) or receipt[field] != inference[field]
             for field in ("recipe_digest", "state_digest")
@@ -306,6 +310,11 @@ def measurement_from_saved_inference(
     ):
         raise BundleBenchmarkRefused("saved_inference_binding")
     measured = receipt["measurement"]
+    device_fields = (
+        {"device_observation", "execution_devices"}
+        if receipt["schema"] == "carbon.development.bundle-inference.v3"
+        else set()
+    )
     if (
         type(measured) is not dict
         or set(measured)
@@ -317,6 +326,7 @@ def measurement_from_saved_inference(
             "output_shape",
             "output_dtype",
         }
+        | device_fields
         or measured["scope"]
         != "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
         or measured["input_shape"] != registration["timing_profile"]["input_shape"]
@@ -335,6 +345,34 @@ def measurement_from_saved_inference(
         or math.fsum(measured["timing_s"].values()) <= 0
     ):
         raise BundleBenchmarkRefused("saved_inference_measurement")
+    if device_fields:
+        devices = measured["execution_devices"]
+        if (
+            measured["device_observation"] != "JAX_OUTPUT_ARRAY_BEFORE_HOST_COPY"
+            or type(devices) is not list
+            or not devices
+            or any(
+                type(device) is not dict
+                or set(device) != {"platform", "device_kind", "id"}
+                or type(device["platform"]) is not str
+                or not device["platform"]
+                or type(device["device_kind"]) is not str
+                or not device["device_kind"]
+                or type(device["id"]) is not int
+                or device["id"] < 0
+                for device in devices
+            )
+            or devices
+            != sorted(
+                devices,
+                key=lambda device: (
+                    device["platform"],
+                    device["id"],
+                    device["device_kind"],
+                ),
+            )
+        ):
+            raise BundleBenchmarkRefused("saved_inference_device_observation")
     try:
         raw = json.dumps(
             inference["predictions"], allow_nan=False, separators=(",", ":")
