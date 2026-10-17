@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import io
 import json
 from pathlib import Path
 
@@ -34,6 +35,20 @@ RECORD = (
 
 def _sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def _rewrite_state_header(state: bytes, **changes) -> bytes:
+    with np.load(io.BytesIO(state), allow_pickle=False) as archive:
+        header = json.loads(bytes(archive["__header__"]).decode("utf-8"))
+        arrays = {name: archive[name] for name in archive.files if name != "__header__"}
+    header.update(changes)
+    output = io.BytesIO()
+    np.savez(
+        output,
+        __header__=np.frombuffer(json.dumps(header, sort_keys=True).encode(), dtype=np.uint8),
+        **arrays,
+    )
+    return output.getvalue()
 
 
 def _write_artifact(root: Path, name: str, body: bytes) -> dict:
@@ -315,3 +330,107 @@ def test_prospective_replay_refuses_misbound_or_authority_changing_inputs(
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(intake.IntakeReplayRefused, match=message):
         intake.verify_knn_intake_replay(manifest_path, artifact_root=artifact_root)
+
+
+@pytest.mark.parametrize(
+    ("location", "field", "value"),
+    [
+        ("top", "scope", "PUBLIC_EVAL"),
+        ("historical", "original_producer_output_recovered", True),
+        ("entry", "classification", "QUALIFIED"),
+        ("challenge", "id", "other-challenge"),
+    ],
+)
+def test_admission_never_receipts_forged_producer_authority(
+    tmp_path, location, field, value
+):
+    manifest_path, artifact_root = _synthetic_bundle(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if location == "top":
+        manifest[field] = value
+    elif location == "historical":
+        manifest["historical_record"][field] = value
+    elif location == "entry":
+        manifest["entry"][field] = value
+    else:
+        manifest["entry"]["challenge"][field] = value
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    receipt_path = tmp_path / "receiver" / "entry.json"
+    with pytest.raises(model_entry_admission.ModelEntryRefused, match="replay_refused"):
+        model_entry_admission.admit_public_train_entry(
+            manifest_path,
+            artifact_root=artifact_root,
+            receipt_path=receipt_path,
+        )
+    assert not receipt_path.exists()
+
+
+@pytest.mark.parametrize(
+    ("location", "field", "value", "message"),
+    [
+        ("top", "scope", "PUBLIC_EVAL", "registered public TRAIN scope"),
+        ("historical", "original_producer_output_recovered", True, "unrecovered"),
+        ("entry", "classification", "QUALIFIED", "registered unscored class"),
+        ("challenge", "id", "other-challenge", "challenge identity"),
+    ],
+)
+def test_receiver_refuses_forged_producer_authority_fields(
+    tmp_path, location, field, value, message
+):
+    manifest_path, artifact_root = _synthetic_bundle(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if location == "top":
+        manifest[field] = value
+    elif location == "historical":
+        manifest["historical_record"][field] = value
+    elif location == "entry":
+        manifest["entry"][field] = value
+    else:
+        manifest["entry"]["challenge"][field] = value
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(intake.IntakeReplayRefused, match=message):
+        intake.verify_knn_intake_replay(manifest_path, artifact_root=artifact_root)
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"kind": "mlp"}, "registered KNN schema and kind"),
+        ({"schema": "other.schema"}, "registered KNN schema and kind"),
+    ],
+)
+def test_saved_state_kind_and_schema_are_rejected_before_any_restore(
+    tmp_path, monkeypatch, changes, message
+):
+    manifest_path, artifact_root = _synthetic_bundle(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    state_path = artifact_root / manifest["entry"]["artifacts"]["native_state"]["path"]
+    bad_state = _rewrite_state_header(state_path.read_bytes(), **changes)
+    restored = False
+
+    def forbidden_restore(*_args, **_kwargs):
+        nonlocal restored
+        restored = True
+        raise AssertionError("untrusted model kind must be refused before restore")
+
+    monkeypatch.setattr(recipes, "import_state", forbidden_restore)
+    with pytest.raises(intake.IntakeReplayRefused, match=message):
+        intake._load_knn_state(bad_state)
+    assert restored is False
+
+
+def test_saved_state_knn_preflight_restores_only_after_header_validation(tmp_path, monkeypatch):
+    manifest_path, artifact_root = _synthetic_bundle(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    state = (artifact_root / manifest["entry"]["artifacts"]["native_state"]["path"]).read_bytes()
+    original = recipes.import_state
+    calls = []
+
+    def counted_restore(header, arrays):
+        calls.append(header["kind"])
+        return original(header, arrays)
+
+    monkeypatch.setattr(recipes, "import_state", counted_restore)
+    model = intake._load_knn_state(state)
+    assert type(model) is recipes.KNN
+    assert calls == ["knn"]

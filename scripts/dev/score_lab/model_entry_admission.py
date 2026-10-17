@@ -110,6 +110,7 @@ def admit_public_train_entry(
     try:
         if manifest_path.read_bytes() != manifest_bytes:
             raise ModelEntryRefused("manifest_changed_during_admission")
+        producer_entry = knn_intake_replay.validate_producer_authority(manifest)
         bindings = _artifact_bindings(manifest)
         for ref in bindings.values():
             knn_intake_replay._artifact(artifact_root, ref)
@@ -118,7 +119,6 @@ def admit_public_train_entry(
     except knn_intake_replay.IntakeReplayRefused as exc:
         raise ModelEntryRefused(f"artifact_changed_during_admission:{exc}") from exc
 
-    entry = manifest["entry"]
     receipt = {
         "schema": RECEIPT_SCHEMA,
         "revision": 1,
@@ -131,12 +131,12 @@ def admit_public_train_entry(
             "record_revision": manifest.get("record_revision"),
         },
         "entry": {
-            "model_id": entry["model_id"],
-            "classification": entry["classification"],
-            "challenge": entry["challenge"],
-            "recipe": entry["recipe"],
-            "source": entry["source"],
-            "training_data": entry["training_data"],
+            "model_id": producer_entry["model_id"],
+            "classification": producer_entry["classification"],
+            "challenge": producer_entry["challenge"],
+            "recipe": producer_entry["recipe"],
+            "source": producer_entry["source"],
+            "training_data": producer_entry["training_data"],
         },
         "historical_parent": {
             "sha256": bindings["parent_manifest"]["sha256"],

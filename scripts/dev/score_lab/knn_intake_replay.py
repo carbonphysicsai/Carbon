@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Verify a prospective public-TRAIN KNN saved-state replay bundle.
 
-This is a development-only wrapper around Carbon's existing non-pickle
-``recipes.model_from_bytes`` loader. It is not an integrated ScoreLab intake,
-receiver ACK, scoring path, or qualification decision.
+This is a development-only KNN replay wrapper. It preflights the NPZ kind and
+schema before calling the existing non-pickle KNN state importer. It is not an
+integrated ScoreLab intake, receiver ACK, scoring path, or qualification decision.
 """
 
 from __future__ import annotations
@@ -24,6 +24,26 @@ _COMPARISON_SCHEMA = "carbon.scorelab.public-knn-receiver-replay-comparison.v1"
 _EXPECTED_OUTPUTS = {"eta": "eta", "q": "q", "t": "t", "v": "v"}
 _MAX_STATE_BYTES = 256 * 1024
 _MAX_REPLAY_BYTES = 16 * 1024
+_PUBLIC_TRAIN_SCOPE = "PUBLIC_TRAIN_ONLY_DEVELOPMENT_OUTSIDE_FROZEN_18"
+_PUBLIC_TRAIN_CLASSIFICATION = "PUBLIC_DEVELOPMENT_EXPLORATORY_NOT_SCORED"
+_CHALLENGE = {
+    "id": "battery-fastcharge-ageing-development-v1",
+    "version": "1.0",
+    "contract_sha256": "eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e",
+}
+_TRAIN_SHA256 = "3a7c763cca272df729268759e3062abd79e104a5c527c17314aef663944cf0e3"
+_SOURCE_COMMIT = "2ec54fee8bffe08d521847290982e2b147be55ba"
+_SOURCE_RECIPES_BLOB = "13dd0182b698551554496d59700d0a265b315d7b"
+_TOP_LEVEL_FIELDS = {
+    "schema", "record_revision", "record_role", "status", "scope",
+    "historical_record", "entry",
+}
+_ENTRY_FIELDS = {
+    "model_id", "classification", "challenge", "recipe", "source",
+    "training_data", "artifacts", "receiver_evidence", "placement",
+    "ingested", "scored", "qualification_claimed", "frozen_18_modified",
+    "score_or_truth_join_created", "limitations",
+}
 
 
 class IntakeReplayRefused(ValueError):
@@ -69,6 +89,188 @@ def _artifact(root: Path, ref: dict) -> bytes:
     return body
 
 
+def _require_object(value: object, fields: set[str], label: str) -> dict:
+    if not isinstance(value, dict) or set(value) != fields:
+        raise IntakeReplayRefused(f"{label} fields do not match the registered shape")
+    return value
+
+
+def validate_producer_authority(manifest: object) -> dict:
+    """Validate the producer-controlled authority fields and return a projection.
+
+    The projection contains only allow-listed, validated identity fields suitable
+    for a receiver receipt. It deliberately excludes arbitrary producer extras.
+    """
+    record = _require_object(manifest, _TOP_LEVEL_FIELDS, "producer record")
+    if record.get("schema") != _RECORD_SCHEMA or record.get("record_revision") != 2:
+        raise IntakeReplayRefused("unsupported prospective record identity")
+    if record.get("record_role") != "PRODUCER_PROSPECTIVE_PUBLIC_TRAIN_ADDENDUM":
+        raise IntakeReplayRefused("record is not a producer prospective addendum")
+    if record.get("status") != "RECEIVER_ACK_PENDING":
+        raise IntakeReplayRefused("formal receiver ACK must remain pending")
+    if record.get("scope") != _PUBLIC_TRAIN_SCOPE:
+        raise IntakeReplayRefused("producer record must declare the registered public TRAIN scope")
+
+    historical = _require_object(
+        record.get("historical_record"),
+        {"status", "parent_manifest", "original_producer_output_recovered", "note"},
+        "historical record",
+    )
+    if historical.get("status") != "INCOMPLETE":
+        raise IntakeReplayRefused("historical producer disposition must remain INCOMPLETE")
+    if historical.get("original_producer_output_recovered") is not False:
+        raise IntakeReplayRefused("historical producer output must remain unrecovered")
+
+    entry = _require_object(record.get("entry"), _ENTRY_FIELDS, "producer entry")
+    if entry.get("classification") != _PUBLIC_TRAIN_CLASSIFICATION:
+        raise IntakeReplayRefused("entry classification is not the registered unscored class")
+    challenge = _require_object(entry.get("challenge"), set(_CHALLENGE), "challenge identity")
+    if challenge != _CHALLENGE:
+        raise IntakeReplayRefused("entry challenge identity differs from the registered challenge")
+    if entry.get("model_id") != "battery-public-train-knn-retention-smoke-20261016":
+        raise IntakeReplayRefused("unexpected prospective model identity")
+    if entry.get("placement") != "PROSPECTIVE_OUTSIDE_FROZEN18":
+        raise IntakeReplayRefused("prospective placement is required")
+    if any(entry.get(flag) is not False for flag in (
+        "ingested", "scored", "qualification_claimed", "frozen_18_modified",
+        "score_or_truth_join_created",
+    )):
+        raise IntakeReplayRefused("prospective entry has a forbidden acceptance effect")
+    limitations = entry.get("limitations")
+    if not isinstance(limitations, list) or not limitations or any(
+        not isinstance(item, str) for item in limitations
+    ):
+        raise IntakeReplayRefused("prospective limitations must remain explicit")
+
+    recipe = _require_object(
+        entry.get("recipe"),
+        {"family", "neighbours", "train_fraction", "strategy", "recipe_digest", "strategy_hash", "plan_digest"},
+        "recipe",
+    )
+    if recipe.get("family") != "knn":
+        raise IntakeReplayRefused("only the registered KNN recipe family is admissible")
+    neighbours = recipe.get("neighbours")
+    if isinstance(neighbours, bool) or not isinstance(neighbours, int) or not 1 <= neighbours <= 32:
+        raise IntakeReplayRefused("KNN neighbour count is outside the bounded public TRAIN set")
+    fraction = recipe.get("train_fraction")
+    if isinstance(fraction, bool) or not isinstance(fraction, (int, float)) or not 0 < fraction <= 1:
+        raise IntakeReplayRefused("KNN training fraction is invalid")
+    strategy = _require_object(
+        recipe.get("strategy"),
+        {"schema_version", "challenge_id", "backbone", "parameters"},
+        "recipe strategy",
+    )
+    parameters = _require_object(strategy.get("parameters"), {"neighbours"}, "strategy parameters")
+    if strategy != {
+        "schema_version": "1.0",
+        "challenge_id": _CHALLENGE["id"],
+        "backbone": "knn",
+        "parameters": {"neighbours": neighbours},
+    } or parameters.get("neighbours") != neighbours:
+        raise IntakeReplayRefused("strategy does not match the registered KNN recipe")
+    for name in ("recipe_digest", "strategy_hash", "plan_digest"):
+        value = recipe.get(name)
+        if not isinstance(value, str) or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
+            raise IntakeReplayRefused(f"{name} must be a lowercase SHA-256 digest")
+
+    source = _require_object(entry.get("source"), {"commit", "recipes_git_blob", "runtime"}, "source")
+    runtime = _require_object(source.get("runtime"), {"device", "python", "numpy"}, "source runtime")
+    if source.get("commit") != _SOURCE_COMMIT or source.get("recipes_git_blob") != _SOURCE_RECIPES_BLOB:
+        raise IntakeReplayRefused("source identity differs from the registered producer build")
+    if runtime != {"device": "cpu", "python": "3.12.14", "numpy": "2.3.5"}:
+        raise IntakeReplayRefused("producer runtime differs from the registered CPU runtime")
+
+    train = _require_object(
+        entry.get("training_data"),
+        {"scope", "challenge", "dataset_version", "dataset_sha256", "subset", "rows", "public_seed"},
+        "training data",
+    )
+    if train != {
+        "scope": "PUBLIC_TRAIN_ONLY",
+        "challenge": "battery-fastcharge-ageing-development-v1@1.0",
+        "dataset_version": "battery public TRAIN v1",
+        "dataset_sha256": _TRAIN_SHA256,
+        "subset": train.get("subset"),
+        "rows": 32,
+        "public_seed": 11,
+    } or _canonical_subset(train.get("subset")) != ("first", "32", "cases"):
+        raise IntakeReplayRefused("training data is not the registered bounded public TRAIN subset")
+
+    # Expose only fields the receiver intends to acknowledge; nested values are
+    # rebuilt so producer-controlled extras can never leak into the receipt.
+    return {
+        "model_id": entry["model_id"],
+        "classification": _PUBLIC_TRAIN_CLASSIFICATION,
+        "challenge": dict(_CHALLENGE),
+        "recipe": {
+            "family": "knn",
+            "neighbours": neighbours,
+            "train_fraction": float(fraction),
+            "strategy": {
+                "schema_version": "1.0",
+                "challenge_id": _CHALLENGE["id"],
+                "backbone": "knn",
+                "parameters": {"neighbours": neighbours},
+            },
+            "recipe_digest": recipe["recipe_digest"],
+            "strategy_hash": recipe["strategy_hash"],
+            "plan_digest": recipe["plan_digest"],
+        },
+        "source": {
+            "commit": _SOURCE_COMMIT,
+            "recipes_git_blob": _SOURCE_RECIPES_BLOB,
+            "runtime": dict(runtime),
+        },
+        "training_data": {
+            "scope": "PUBLIC_TRAIN_ONLY",
+            "challenge": "battery-fastcharge-ageing-development-v1@1.0",
+            "dataset_version": "battery public TRAIN v1",
+            "dataset_sha256": _TRAIN_SHA256,
+            "subset": train["subset"],
+            "rows": 32,
+            "public_seed": 11,
+        },
+    }
+
+
+def _load_knn_state(state_bytes: bytes) -> recipes.KNN:
+    """Preflight NPZ kind and schema before invoking any model restorer."""
+    try:
+        with np.load(io.BytesIO(state_bytes), allow_pickle=False) as archive:
+            if "__header__" not in archive.files:
+                raise IntakeReplayRefused("saved state has no model header")
+            header_bytes = bytes(archive["__header__"])
+            header = json.loads(header_bytes.decode("utf-8"))
+            if not isinstance(header, dict):
+                raise IntakeReplayRefused("saved model header must be an object")
+            if header.get("schema") != _MODEL_SCHEMA or header.get("kind") != "knn":
+                raise IntakeReplayRefused("saved model must declare the registered KNN schema and kind")
+            if set(header) != {"schema", "kind", "k", "fraction", "layout"}:
+                raise IntakeReplayRefused("saved KNN header fields do not match the registered shape")
+            if set(archive.files) != {"__header__", "u", "y", "ocv_soc", "ocv_v"}:
+                raise IntakeReplayRefused("saved KNN arrays do not match the registered shape")
+            if isinstance(header.get("k"), bool) or not isinstance(header.get("k"), int) or not 1 <= header["k"] <= 32:
+                raise IntakeReplayRefused("saved KNN neighbour count is outside bounds")
+            fraction = header.get("fraction")
+            if isinstance(fraction, bool) or not isinstance(fraction, (int, float)) or not 0 < fraction <= 1:
+                raise IntakeReplayRefused("saved KNN fraction is invalid")
+            layout = header.get("layout")
+            if not isinstance(layout, dict) or set(layout) != {"g", "k", "bounded_v", "predict_v0", "fade"}:
+                raise IntakeReplayRefused("saved KNN layout fields do not match the registered shape")
+            arrays = {name: archive[name] for name in archive.files if name != "__header__"}
+    except IntakeReplayRefused:
+        raise
+    except (OSError, UnicodeError, json.JSONDecodeError, ValueError, KeyError) as exc:
+        raise IntakeReplayRefused("saved state is not a safe numeric KNN NPZ") from exc
+    try:
+        model = recipes.import_state(header, arrays)
+    except (ValueError, KeyError, TypeError, ImportError) as exc:
+        raise IntakeReplayRefused("KNN state could not be restored") from exc
+    if type(model) is not recipes.KNN:
+        raise IntakeReplayRefused("preflighted state did not restore as KNN")
+    return model
+
+
 def verify_knn_intake_replay(
     manifest_path: str | Path, *, artifact_root: str | Path | None = None
 ) -> dict:
@@ -90,18 +292,11 @@ def verify_knn_intake_replay(
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise IntakeReplayRefused("prospective manifest is unreadable JSON") from exc
 
-    if manifest.get("schema") != _RECORD_SCHEMA or manifest.get("record_revision") != 2:
-        raise IntakeReplayRefused("unsupported prospective record identity")
-    if manifest.get("record_role") != "PRODUCER_PROSPECTIVE_PUBLIC_TRAIN_ADDENDUM":
-        raise IntakeReplayRefused("record is not a producer prospective addendum")
-    if manifest.get("status") != "RECEIVER_ACK_PENDING":
-        raise IntakeReplayRefused("formal receiver ACK must remain pending")
+    producer_projection = validate_producer_authority(manifest)
 
     historical = manifest.get("historical_record", {})
     parent = historical.get("parent_manifest", {})
     parent_bytes = _artifact(root, parent)
-    if historical.get("status") != "INCOMPLETE":
-        raise IntakeReplayRefused("historical producer disposition must remain INCOMPLETE")
     try:
         parent_manifest = json.loads(parent_bytes.decode("utf-8"))
     except (UnicodeError, json.JSONDecodeError) as exc:
@@ -109,20 +304,7 @@ def verify_knn_intake_replay(
     if parent_manifest.get("schema") != _RECORD_SCHEMA:
         raise IntakeReplayRefused("parent manifest schema mismatch")
 
-    entry = manifest.get("entry", {})
-    if entry.get("placement") != "PROSPECTIVE_OUTSIDE_FROZEN18":
-        raise IntakeReplayRefused("prospective placement is required")
-    if any(entry.get(flag) is not False for flag in (
-        "ingested", "scored", "qualification_claimed", "frozen_18_modified",
-        "score_or_truth_join_created",
-    )):
-        raise IntakeReplayRefused("prospective entry has a forbidden acceptance effect")
-    if entry.get("training_data", {}).get("scope") != "PUBLIC_TRAIN_ONLY":
-        raise IntakeReplayRefused("public TRAIN-only scope is required")
-    if entry.get("training_data", {}).get("dataset_sha256") != (
-        "3a7c763cca272df729268759e3062abd79e104a5c527c17314aef663944cf0e3"
-    ):
-        raise IntakeReplayRefused("unexpected public TRAIN identity")
+    entry = manifest["entry"]
 
     artifacts = entry.get("artifacts", {})
     state_ref = artifacts.get("native_state", {})
@@ -249,10 +431,8 @@ def verify_knn_intake_replay(
     if set(arrays) != {"input", "eta", "q", "t", "v"}:
         raise IntakeReplayRefused("replay fixture must contain exactly input, eta, q, t, v")
 
-    model = recipes.model_from_bytes(state_bytes)
-    if type(model) is not recipes.KNN:
-        raise IntakeReplayRefused("saved state did not load as the declared KNN")
-    if model.k != recipe.get("neighbours") or model.fraction != recipe.get("train_fraction"):
+    model = _load_knn_state(state_bytes)
+    if model.k != producer_projection["recipe"]["neighbours"] or model.fraction != producer_projection["recipe"]["train_fraction"]:
         raise IntakeReplayRefused("loaded KNN settings differ from the registered recipe")
     input_array = arrays["input"]
     if input_array.dtype != np.dtype("float64") or input_array.ndim != 2:
