@@ -57,15 +57,34 @@ gate execution does not make the physics contract universal.
 ## One scoring implementation
 
 ScoreLab remains a thin workbench over the same versioned ScoreEngine and
-Challenge Score Pack as validators. Its core comparison is the **model design
-versus the solver on the same job and required fidelity**:
+Challenge Score Pack as validators. A core design focus is **backbone-agnostic
+models judged against the solver in a real design task**, on the same job and
+required fidelity under declared comparable compute. Keep three dimensions
+visible:
 
-- Apply the Challenge's mandatory physics/constraint gates.
-- Check solver-reference accuracy using its actual metrics, units and coverage.
-- Among eligible candidates, apply the declared performance objective using
-  measured latency/throughput/memory and an honest solver baseline. Report
-  construction/training cost separately; cached reference reads are not solver
-  runtime. If no ranking rule exists, report the tradeoff without inventing one.
+- Broad physical/output fidelity across the Challenge's declared scope, using
+  its reference metrics, units and coverage.
+- Fidelity at optimization-defining limits: the correct side and signed margin,
+  with false-feasible errors (model admits, solver rejects) reported separately
+  from conservative errors (model rejects, solver admits).
+- Actual achieved design outcome, verified with the solver for the model's
+  recommended design under declared comparable compute.
+
+Physics-law validity differs from design infeasibility. Correctly identifying
+an over-limit but physically valid response is correct. The Challenge's
+mandatory physics/accuracy gates and recommended-design feasibility remain
+noncompensable; speed or another favorable dimension cannot offset a mandatory
+failure. ScoreLab should design tests of a weighted blend of these dimensions
+for design usefulness. This requirement adopts no numerical weights, thresholds
+or new ranking rule.
+
+Among eligible candidates, apply the declared performance objective using
+measured latency/throughput/memory and an honest solver baseline. Report
+construction/training cost separately; cached reference reads are not solver
+runtime. If no ranking rule exists, report the tradeoff without inventing one.
+Use the same ScoreEngine and Challenge packs, with no separate scoring framework.
+The existing speedup-only DEVELOPMENT pack and historical results keep their
+current semantics; this design focus does not rescore or replace them.
 
 Missing/reference/infra evidence stays typed and unresolved, not zero or model
 failure. All adverse outcomes remain represented. Equal authorized measurements
