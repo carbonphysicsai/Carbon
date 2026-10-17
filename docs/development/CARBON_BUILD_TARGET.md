@@ -1,12 +1,12 @@
 # The Carbon we are building
 
 Owner-directed engineering target, 17 October 2026. Ryan asked to lock this full
-vision into the system. Four workstreams deliver one flow: common construction,
-Launchpad capabilities, shared design-task scoring and preserved Bittensor
-integration. This guides implementation; it is not another framework or a claim
-that the target is delivered. Existing scientific, security, economic and release
-authorities retain their scope. The economic preference below remains a proposal;
-this direction does not approve the pending instruction-policy cleanup.
+vision into the system. Four workstreams deliver one flow: Construction Path,
+Launchpad capabilities, ScoreLab and Emissions design. This guides implementation;
+it is not another framework or a claim that the target is delivered. Existing
+scientific, security, economic and release authorities retain their scope. The
+economic preference below remains a proposal; this direction does not approve
+the pending instruction-policy cleanup.
 
 ## The purpose
 
@@ -15,7 +15,7 @@ validators independently reconstruct; Carbon controls the test. A useful model
 satisfies the Challenge's physics/constraints and accuracy requirements, then
 competes on the declared performance objective against the solver.
 
-## 1. One construction path
+## 1. Construction Path
 
 Platform owns one path agnostic to backbone, library and language. Any complete,
 explicit pinned construction procedure, including graph building and custom
@@ -73,7 +73,7 @@ need an actual consumer. Relocation is not deletion; a simplified screen over
 the old restrictions is not simplification. Add a layer only for a distinct
 necessary boundary or demonstrated requirement.
 
-## 2. Launchpad supplies ordinary capabilities
+## 2. Launchpad capabilities
 
 Launchpad exposes compute, libraries, agents, dependencies and provisioning
 through the ordinary UI and common APIs, arranging pinned dependencies and
@@ -83,7 +83,7 @@ its graph or custom architecture; it never silently substitutes a base model.
 These capabilities support the common construction path, not a separate path
 or manual operator handoff for each library or language.
 
-## 3. One scoring implementation
+## 3. ScoreLab: one scoring implementation
 
 ScoreLab remains a thin workbench over the same versioned ScoreEngine and
 Challenge physics contract and Score Pack as validators. A core design focus is
@@ -126,7 +126,7 @@ scientifically interchangeable. Preserve historical v1 semantics and evidence.
 Buyer-value tau/N1, retrospective survivor menus and expanding oracle grids are
 not prerequisites for this core. An explicit future Challenge may use them.
 
-## 4. Preserve Bittensor and target one application
+## 4. Emissions design; preserve the Bittensor path
 
 Preserve the existing HTTPS miner submission path through Cloudflare to the
 validator, with Bittensor identities/authentication, metagraph/UID handling,
@@ -138,6 +138,8 @@ The checkout target is the same application, protocol, build and adopted policy
 as mainnet, differing only in explicit network, key and endpoint configuration.
 This is a target for the full path, not evidence that validator v8.8 accepts the
 lean protocol or that end-to-end mainnet equivalence has been demonstrated.
+Any test-only exception must be named explicitly and cannot serve as evidence
+of mainnet equivalence.
 
 Ryan's preferred proposal is pure per-Challenge king of the hill: one eligible
 incumbent holds that Challenge's share until replaced. Strictly better replacement,
