@@ -5,18 +5,16 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from test_graphite_public_model_retention import (
+    IMAGE,
+    STRATEGY,
+    practice_fixture,
+)
 
 from carbon.battery import public_model_retention as retention
 from carbon.battery import recipes
 from carbon.battery.practice import PROGRAM
 from carbon.development_session.profile import canonical, digest
-from test_graphite_public_model_retention import (
-    IMAGE,
-    STRATEGY,
-    practice_fixture,
-    public_stage,
-)
-
 
 REVISION = "a" * 40
 
@@ -53,8 +51,9 @@ def manifest():
 
 
 def test_normal_owner_launch_freezes_distinct_opt_in(tmp_path, monkeypatch):
-    from carbon.battery import campaign, research
     from test_battery_research_images import IMAGES, launch, runtime
+
+    from carbon.battery import campaign, research
 
     marker = tmp_path / retention.OPT_IN_FILE
     marker.write_bytes(canonical(owner_opt_in()))
@@ -104,9 +103,10 @@ def test_normal_owner_launch_freezes_distinct_opt_in(tmp_path, monkeypatch):
             **selected,
         )
     marker.unlink()
-    assert retention.launch_opt_in(
-        tmp_path, campaign_id="cmp-battery-julia", agent="none"
-    ) == {}
+    assert (
+        retention.launch_opt_in(tmp_path, campaign_id="cmp-battery-julia", agent="none")
+        == {}
+    )
 
 
 def test_normal_owner_practice_retains_model(tmp_path):
@@ -121,9 +121,12 @@ def test_normal_owner_practice_retains_model(tmp_path):
 
 def test_autonomous_opt_in_is_explicit_frozen_and_revision_bound(tmp_path):
     path = tmp_path / retention.OPT_IN_FILE
-    assert retention.launch_opt_in(
-        tmp_path, campaign_id="cmp-battery-julia", agent="autonomous"
-    ) == {}
+    assert (
+        retention.launch_opt_in(
+            tmp_path, campaign_id="cmp-battery-julia", agent="autonomous"
+        )
+        == {}
+    )
     path.write_bytes(canonical(opt_in()))
     assert retention.launch_opt_in(
         tmp_path, campaign_id="cmp-battery-julia", agent="autonomous"
@@ -137,8 +140,11 @@ def test_autonomous_opt_in_is_explicit_frozen_and_revision_bound(tmp_path):
     ):
         with pytest.raises(ValueError):
             retention.frozen_opt_in({**manifest(), **changed}, owner="miner-requester")
-    for changed in ({"scope": "PRIVATE"}, {"program_version": "future"},
-                    {"destination": "https://example.invalid"}):
+    for changed in (
+        {"scope": "PRIVATE"},
+        {"program_version": "future"},
+        {"destination": "https://example.invalid"},
+    ):
         path.write_bytes(canonical({**opt_in(), **changed}))
         with pytest.raises(ValueError):
             retention.launch_opt_in(
@@ -151,8 +157,10 @@ def test_autonomous_writer_versions_without_changing_graphite(public_stage):
         PROGRAM, public_stage, opt_in=opt_in(), identity="own-trial", image=IMAGE
     )
     graphite_opt = {
-        **opt_in(), "schema": retention.OPT_IN_SCHEMA,
-        "scope": "PUBLIC_GRAPHITE_TEST", "program_version": retention.PROGRAM_VERSION,
+        **opt_in(),
+        "schema": retention.OPT_IN_SCHEMA,
+        "scope": "PUBLIC_GRAPHITE_TEST",
+        "program_version": retention.PROGRAM_VERSION,
     }
     graphite, _, _ = retention.retained_program(
         PROGRAM, public_stage, opt_in=graphite_opt, identity="own-trial", image=IMAGE
@@ -189,9 +197,10 @@ def test_autonomous_trial_retains_native_state_and_bound_sidecar(tmp_path):
     assert practice.image.image_id == ANALYSIS.parent_image
     assert sidecar["image"] == practice.image.image_id
     assert sidecar["files"]["fit.json"] == row["artifacts"]["fit.json"]["sha256"]
-    assert sidecar["files"]["predictions.json"] == row["artifacts"][
-        "predictions.json"
-    ]["sha256"]
+    assert (
+        sidecar["files"]["predictions.json"]
+        == row["artifacts"]["predictions.json"]["sha256"]
+    )
     assert sidecar["state"]["sha256"] == digest(body)
     assert sidecar["recipe_digest"] == result["recipe_digest"]
     assert recipes.model_from_bytes(body).predict(np.zeros((1, 4))) is not None
@@ -199,8 +208,11 @@ def test_autonomous_trial_retains_native_state_and_bound_sidecar(tmp_path):
 
 def test_native_state_decoder_rejects_object_pickle_payload():
     buffer = io.BytesIO()
-    np.savez(buffer, __header__=np.frombuffer(b"{}", dtype=np.uint8),
-             object_payload=np.asarray([object()], dtype=object))
+    np.savez(
+        buffer,
+        __header__=np.frombuffer(b"{}", dtype=np.uint8),
+        object_payload=np.asarray([object()], dtype=object),
+    )
     with pytest.raises(ValueError, match="Object arrays cannot be loaded"):
         recipes.model_from_bytes(buffer.getvalue())
 

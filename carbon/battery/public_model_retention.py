@@ -36,17 +36,24 @@ CHALLENGE = "battery-fastcharge-ageing-development-v1"
 _FIELDS = {"schema", "campaign_id", "scope", "program_version", "source_commit"}
 _PROFILES = {
     "graphite": (
-        OPT_IN_SCHEMA, "PUBLIC_GRAPHITE_TEST", PROGRAM_VERSION,
-        INVENTORY_SCHEMA, GRAPHITE_ARTIFACT_SCHEMA,
+        OPT_IN_SCHEMA,
+        "PUBLIC_GRAPHITE_TEST",
+        PROGRAM_VERSION,
+        INVENTORY_SCHEMA,
+        GRAPHITE_ARTIFACT_SCHEMA,
     ),
     "autonomous": (
-        AUTONOMOUS_OPT_IN_SCHEMA, "PUBLIC_AUTONOMOUS_TEST",
-        AUTONOMOUS_PROGRAM_VERSION, AUTONOMOUS_INVENTORY_SCHEMA,
+        AUTONOMOUS_OPT_IN_SCHEMA,
+        "PUBLIC_AUTONOMOUS_TEST",
+        AUTONOMOUS_PROGRAM_VERSION,
+        AUTONOMOUS_INVENTORY_SCHEMA,
         AUTONOMOUS_ARTIFACT_SCHEMA,
     ),
     "none": (
-        OWNER_OPT_IN_SCHEMA, "PUBLIC_OWNER_DRIVEN_TEST",
-        OWNER_PROGRAM_VERSION, OWNER_INVENTORY_SCHEMA,
+        OWNER_OPT_IN_SCHEMA,
+        "PUBLIC_OWNER_DRIVEN_TEST",
+        OWNER_PROGRAM_VERSION,
+        OWNER_INVENTORY_SCHEMA,
         OWNER_ARTIFACT_SCHEMA,
     ),
 }
@@ -111,10 +118,9 @@ def frozen_opt_in(manifest, *, owner):
     result = _descriptor(value, manifest.get("campaign_id"), agent)
     if agent in {"autonomous", "none"}:
         implementation = manifest.get("implementation")
-        if (
-            type(implementation) is not dict
-            or value["source_commit"] != implementation.get("revision")
-        ):
+        if type(implementation) is not dict or value[
+            "source_commit"
+        ] != implementation.get("revision"):
             raise ValueError("retention source revision differs from campaign")
     return result
 
