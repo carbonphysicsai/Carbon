@@ -51,6 +51,11 @@ def test_new_direct_campaign_fails_closed_through_both_doors(
     assert not {"construction_level", "arm", "construction_variant_digest"} & set(
         recorded
     )
+    manifest = json.loads(
+        (battery.campaign_root(identity) / "campaign-manifest.json").read_bytes()
+    )
+    assert manifest["construction_mode"] == "direct"
+    assert manifest["challenge"] == {"id": BATTERY, "version": "1.0"}
 
     practice = call(
         "practice",

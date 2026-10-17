@@ -131,7 +131,7 @@ def test_signed_recipe_receiver_admits_and_retains_owner_bound_task(
             "POST", SUBMIT_PATH, status_headers, status_body, "127.0.0.1"
         )
         assert replay.status == 401
-        assert replay.body["code"] == "AUTH_REPLAY"
+        assert replay.body["refused"] == "AUTH_REPLAY"
 
         altered_headers = _headers(status_body, NOW + 3)
         altered_headers["body"] = "sha256:" + "0" * 64
@@ -139,7 +139,7 @@ def test_signed_recipe_receiver_admits_and_retains_owner_bound_task(
             "POST", SUBMIT_PATH, altered_headers, status_body, "127.0.0.1"
         )
         assert invalid_signature.status == 401
-        assert invalid_signature.body["code"] == "AUTH_BAD_SIGNATURE"
+        assert invalid_signature.body["refused"] == "AUTH_BAD_SIGNATURE"
 
         tampered = json.loads(json.dumps(request.recipe))
         tampered["challenge"]["train_digest"] = "sha256:" + "f" * 64

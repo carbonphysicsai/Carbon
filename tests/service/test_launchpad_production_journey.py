@@ -904,6 +904,7 @@ def battery_prepare(patch, *, miner_key=None):
                 implementation={"revision": BATTERY_REVISION},
                 images=BATTERY_IMAGES,
                 selection=selection,
+                construction_mode=getattr(args, "construction_mode", None),
                 **frozen,
             )
             write_once(path, canonical(manifest))
