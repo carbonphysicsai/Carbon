@@ -19,7 +19,10 @@ from carbon.development_session.construction_recipe import (
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def _recipe(submission_digest):
+def _recipe(submission_digest, *, precision=None):
+    training = {"steps": 16, "batch_size": 8}
+    if precision is not None:
+        training["precision"] = precision
     return ConstructionRecipe.from_dict(
         {
             "schema": "carbon.construction-recipe.v1",
@@ -33,7 +36,7 @@ def _recipe(submission_digest):
             "source": {"kind": "graph", "submission_digest": submission_digest},
             "procedure": {
                 "entrypoint": None,
-                "configuration": {"training": {"steps": 16, "batch_size": 8}},
+                "configuration": {"training": training},
                 "train_use": {
                     "dataset": direct_graph.TRAIN_USE,
                     "train_fraction": 0.1,
@@ -72,7 +75,10 @@ def test_unsupported_training_configuration_refuses_precisely():
 @pytest.mark.skipif(
     os.name == "nt", reason="G3 isolated graph parse needs POSIX rlimits"
 )
-def test_novel_affine_graph_is_rebuilt_and_trained_from_pinned_train(tmp_path):
+@pytest.mark.parametrize("precision", ["float32", "float64"])
+def test_novel_affine_graph_is_rebuilt_and_trained_from_pinned_train(
+    tmp_path, precision
+):
     import hashlib
     import json
     import shutil
@@ -80,6 +86,7 @@ def test_novel_affine_graph_is_rebuilt_and_trained_from_pinned_train(tmp_path):
     import sys
     from types import SimpleNamespace
 
+    import jax
     import jax.numpy as jnp
     import numpy as np
 
@@ -100,21 +107,25 @@ def test_novel_affine_graph_is_rebuilt_and_trained_from_pinned_train(tmp_path):
     from carbon.level4.tooling import through_bprime
 
     registry = allowlist.load()
-    settings = direct_graph.training_settings(_recipe("sha256:" + "a" * 64))
+    settings = direct_graph.training_settings(
+        _recipe("sha256:" + "a" * 64, precision=precision)
+    )
     interface = direct_graph.graph_interface(settings)
     batch = 8
-    _, forward, _ = through_bprime(
-        lambda w, b, x: x @ w + b,
-        (
-            jnp.ones((4, 247), jnp.float32),
-            jnp.zeros((247,), jnp.float32),
-            jnp.ones((batch, 4), jnp.float32),
-        ),
-        role="forward",
-        allowlist=registry,
-        input_names=["params/0", "params/1", "inputs/features"],
-        max_bytes=intake.BOUNDS["document_bytes"],
-    )
+    with jax.enable_x64(precision == "float64"):
+        dtype = jnp.float64 if precision == "float64" else jnp.float32
+        _, forward, _ = through_bprime(
+            lambda w, b, x: x @ w + b,
+            (
+                jnp.ones((4, 247), dtype),
+                jnp.zeros((247,), dtype),
+                jnp.ones((batch, 4), dtype),
+            ),
+            role="forward",
+            allowlist=registry,
+            input_names=["params/0", "params/1", "inputs/features"],
+            max_bytes=intake.BOUNDS["document_bytes"],
+        )
     init_spec = {
         "schema": initializers.SCHEMA,
         "graph": graph.digest(forward),
@@ -141,7 +152,7 @@ def test_novel_affine_graph_is_rebuilt_and_trained_from_pinned_train(tmp_path):
         init_spec=init_spec,
     )
     raw = submission.canonical(manifest)
-    recipe = _recipe(submission.digest(manifest))
+    recipe = _recipe(submission.digest(manifest), precision=precision)
     model = direct_graph.build_validated_graph(
         recipe,
         raw,
@@ -150,8 +161,11 @@ def test_novel_affine_graph_is_rebuilt_and_trained_from_pinned_train(tmp_path):
         train_cases=challenge.TRAIN_V1_CASES,
     )
     material = challenge.PublicMaterial.load(ROOT)
-    result = model.fit(material.train, seed=7)
-    predictions = model.predict(material.train.x[:2])
+    with jax.enable_x64(False):
+        result = model.fit(material.train, seed=7)
+        predictions = model.predict(material.train.x[:2])
+    assert not jax.config.jax_enable_x64
+    assert all(value.dtype == np.dtype(precision) for value in predictions.values())
     assert result["n_params"] == 4 * 247 + 247
     assert result["recipe_digest"] == recipe.digest
     assert predictions["v"].shape == (2, 121)
@@ -168,13 +182,18 @@ def test_novel_affine_graph_is_rebuilt_and_trained_from_pinned_train(tmp_path):
         assert header["submission_digest"] == submission.digest(manifest)
         assert header["parameter_count"] == 2
         assert np.array_equal(data["manifest"], np.frombuffer(raw, dtype=np.uint8))
-    restored = direct_graph.load_frozen_state(
-        state,
-        recipe=recipe,
-        max_bytes=128 * 1024 * 1024,
-        train_cases=challenge.TRAIN_V1_CASES,
+    with jax.enable_x64(False):
+        restored = direct_graph.load_frozen_state(
+            state,
+            recipe=recipe,
+            max_bytes=128 * 1024 * 1024,
+            train_cases=challenge.TRAIN_V1_CASES,
+        )
+        restored_predictions = restored.predict(material.train.x[:2])
+    assert not jax.config.jax_enable_x64
+    assert all(
+        value.dtype == np.dtype(precision) for value in restored_predictions.values()
     )
-    restored_predictions = restored.predict(material.train.x[:2])
     for name in predictions:
         np.testing.assert_allclose(restored_predictions[name], predictions[name])
     with pytest.raises(RecipeRefused, match="battery_graph_state_identity_invalid"):

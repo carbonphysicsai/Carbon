@@ -201,6 +201,7 @@ class DirectGraphModel:
         }
 
     def predict(self, x: np.ndarray) -> dict:
+        import jax
         import jax.numpy as jnp
 
         if self.params is None:
@@ -209,9 +210,10 @@ class DirectGraphModel:
         x = np.asarray(x, dtype=dtype)
         if x.ndim != 2 or x.shape[1] != len(domain.INPUTS) or not np.isfinite(x).all():
             raise RecipeRefused("battery_graph_input_invalid")
-        normalized = np.asarray(
-            self.prepared.predict(list(self.params), jnp.asarray(x))[0]
-        )
+        with jax.enable_x64(dtype is np.float64):
+            normalized = np.asarray(
+                self.prepared.predict(list(self.params), jnp.asarray(x))[0]
+            )
         y = normalized * self.sd + self.mu
         g = domain.GRID_POINTS
         return {
@@ -436,7 +438,11 @@ def load_frozen_state(
                 train_cases=train_cases,
                 resolved_settings=resolved_settings,
             )
-            template = model.prepared.init(jax.random.PRNGKey(0))
+            dtype = (
+                np.float64 if model.settings["precision"] == "float64" else np.float32
+            )
+            with jax.enable_x64(dtype is np.float64):
+                template = model.prepared.init(jax.random.PRNGKey(0))
             leaves, structure = jax.tree_util.tree_flatten(template)
             if len(leaves) != header["parameter_count"]:
                 raise RecipeRefused("battery_graph_state_parameter_invalid")
@@ -452,9 +458,6 @@ def load_frozen_state(
                     raise RecipeRefused("battery_graph_state_parameter_invalid")
                 parameters.append(value)
             width = 2 * domain.GRID_POINTS + 1 + len(domain.CAPACITY_CYCLES)
-            dtype = (
-                np.float64 if model.settings["precision"] == "float64" else np.float32
-            )
             mu, sd = data["mu"], data["sd"]
             if any(
                 value.shape != (width,)

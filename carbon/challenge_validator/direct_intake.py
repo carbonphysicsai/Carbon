@@ -18,6 +18,7 @@ from carbon.battery.intake import (
     IntakeUnavailable,
     SNAPSHOT_MAX_AGE_S,
     SnapshotWindow,
+    _Pinned,
     _handler,
     _refused,
     hardened_listener,
@@ -27,29 +28,23 @@ from carbon.battery.intake import (
 )
 from carbon.chain.auth import AuthFailure
 from carbon.transport.gateway import AuthenticatedGateway
-from carbon.transport.models import MAX_BODY, TransportCode, TransportFailure
+from carbon.transport.models import (
+    MAX_BODY,
+    PATH,
+    TransportCode,
+    TransportFailure,
+    parse_message,
+)
 
 from .dispatch import Adapters, Validator
 from .interface import Submission
 from .lean_recipe import LeanRecipeAdapter
 
 INFO_PATH = "/carbon/v1/construction/intake"
+SUBMIT_PATH = PATH
 SUBMIT_TOOL = "construction_submit"
 STATUS_TOOL = "construction_status"
 PUBLIC_SCHEMA = "carbon.construction.intake-public.v1"
-
-
-class _CurrentSnapshot:
-    """The trusted window's current snapshot for the existing gateway."""
-
-    def __init__(self, window):
-        self.window = window
-
-    async def observe(self, *, minimum_finalized_block):
-        snapshot = self.window.latest()
-        if snapshot is None or snapshot.finalized_block < minimum_finalized_block:
-            raise TransportFailure(TransportCode.STALE)
-        return snapshot
 
 
 class DirectRecipeIntake(BatteryIntake):
@@ -84,15 +79,6 @@ class DirectRecipeIntake(BatteryIntake):
         )
         self.challenge = discovery.info.challenge_key
         self.adapter = adapter
-        self.gateway = AuthenticatedGateway(
-            context,
-            self.challenge,
-            receiver,
-            _CurrentSnapshot(window),
-            verifier,
-            journal,
-            clock_ns=clock_ns,
-        )
 
     def public(self):
         snapshot = self.window.latest()
@@ -115,7 +101,8 @@ class DirectRecipeIntake(BatteryIntake):
                     "finalized_block": snapshot.finalized_block,
                     "timestamp_ms": snapshot.timestamp_ms,
                 },
-                "path": INFO_PATH,
+                "discovery_path": INFO_PATH,
+                "path": SUBMIT_PATH,
                 "tools": [SUBMIT_TOOL, STATUS_TOOL],
                 "served_contracts": self.door.served_contracts(),
                 "limits": {
@@ -132,13 +119,32 @@ class DirectRecipeIntake(BatteryIntake):
     def route(self, method, path, headers, body):
         if method == "GET" and path == INFO_PATH:
             return self.public()
-        if method != "POST" or path != INFO_PATH:
+        if method != "POST" or path != SUBMIT_PATH:
             return _refused(404, "not_found")
         return asyncio.run(self._post(headers, body))
 
     async def _post(self, headers, body):
         try:
-            received = await self.gateway.receive(body, headers)
+            envelope = parse_message(body)
+        except TransportFailure as failure:
+            self._malformed_diagnostics.note(failure, headers)
+            return _refused(400, failure.code.value)
+        snapshot = self.window.get(envelope["snapshot"])
+        if snapshot is None:
+            return _refused(409, "snapshot_unknown")
+        gateway = AuthenticatedGateway(
+            self.context,
+            self.challenge,
+            self.receiver,
+            _Pinned(snapshot),
+            self.verifier,
+            self.journal,
+            clock_ns=self.clock_ns,
+        )
+        try:
+            received = await gateway.receive(
+                body, headers, method="POST", path=SUBMIT_PATH
+            )
         except TransportFailure as failure:
             self._malformed_diagnostics.note(failure, headers)
             return _refused(

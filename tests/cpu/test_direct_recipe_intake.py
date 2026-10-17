@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
+from dataclasses import replace
 
 import pytest
 from test_c08_authenticated_miner_mcp import (
@@ -21,6 +22,7 @@ from carbon.challenge_validator import AttemptLedger
 from carbon.challenge_validator.direct_intake import (
     INFO_PATH,
     STATUS_TOOL,
+    SUBMIT_PATH,
     SUBMIT_TOOL,
     DirectRecipeIntake,
     serve_loopback,
@@ -75,6 +77,19 @@ def test_signed_recipe_receiver_admits_and_retains_owner_bound_task(
         ]
         assert public.body["score_pack"] is None
         assert public.body["qualification"] is public.body["reward"] is False
+        assert public.body["discovery_path"] == INFO_PATH
+        assert public.body["path"] == SUBMIT_PATH
+
+        # A newer observation may arrive after discovery; the still-fresh
+        # signed request remains bound to the snapshot the miner actually saw.
+        window.add(
+            replace(
+                state,
+                finalized_block=state.finalized_block + 1,
+                block_hash="0x" + "3" * 64,
+                timestamp_ms=state.timestamp_ms + 1000,
+            )
+        )
 
         body, headers = _signed(
             state,
@@ -86,7 +101,9 @@ def test_signed_recipe_receiver_admits_and_retains_owner_bound_task(
             },
             request="signed-recipe-submit-0001",
         )
-        admitted = intake.handle("POST", INFO_PATH, headers, body, "127.0.0.1")
+        wrong_path = intake.handle("POST", INFO_PATH, headers, body, "127.0.0.1")
+        assert wrong_path.status == 404
+        admitted = intake.handle("POST", SUBMIT_PATH, headers, body, "127.0.0.1")
         assert admitted.status == 202
         assert admitted.body["kind"] == "OUTCOME"
         assert admitted.body["outcome"]["state"] == "ADMITTED"
@@ -103,7 +120,7 @@ def test_signed_recipe_receiver_admits_and_retains_owner_bound_task(
             nonce=NOW + 1,
         )
         observed = intake.handle(
-            "POST", INFO_PATH, status_headers, status_body, "127.0.0.1"
+            "POST", SUBMIT_PATH, status_headers, status_body, "127.0.0.1"
         )
         assert observed.status == 200
         assert observed.body["kind"] == "OUTCOME"
@@ -111,7 +128,7 @@ def test_signed_recipe_receiver_admits_and_retains_owner_bound_task(
         assert observed.body["outcome"]["state"] == "ADMITTED"
 
         replay = intake.handle(
-            "POST", INFO_PATH, status_headers, status_body, "127.0.0.1"
+            "POST", SUBMIT_PATH, status_headers, status_body, "127.0.0.1"
         )
         assert replay.status == 401
         assert replay.body["code"] == "AUTH_REPLAY"
@@ -119,7 +136,7 @@ def test_signed_recipe_receiver_admits_and_retains_owner_bound_task(
         altered_headers = _headers(status_body, NOW + 3)
         altered_headers["body"] = "sha256:" + "0" * 64
         invalid_signature = intake.handle(
-            "POST", INFO_PATH, altered_headers, status_body, "127.0.0.1"
+            "POST", SUBMIT_PATH, altered_headers, status_body, "127.0.0.1"
         )
         assert invalid_signature.status == 401
         assert invalid_signature.body["code"] == "AUTH_BAD_SIGNATURE"
@@ -137,7 +154,7 @@ def test_signed_recipe_receiver_admits_and_retains_owner_bound_task(
             request="signed-recipe-wrong-train-0001",
             nonce=NOW + 2,
         )
-        refused = intake.handle("POST", INFO_PATH, bad_headers, bad_body, "127.0.0.1")
+        refused = intake.handle("POST", SUBMIT_PATH, bad_headers, bad_body, "127.0.0.1")
         assert refused.status == 400
         assert (refused.body["kind"], refused.body["code"]) == (
             "REFUSED",
