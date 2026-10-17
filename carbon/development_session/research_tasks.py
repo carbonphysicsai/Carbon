@@ -1141,6 +1141,8 @@ class DirectDevelopmentTasksV3:
                 raise ResearchTaskProviderError(ResearchServiceErrorCode.TASK_NOT_FOUND)
             if view.state in (
                 DirectTaskStateV3.SUCCEEDED,
+                DirectTaskStateV3.REFUSED,
+                DirectTaskStateV3.UNRESOLVED,
                 DirectTaskStateV3.FAILED_INFRA,
                 DirectTaskStateV3.CANCELLED,
             ):
@@ -1328,7 +1330,8 @@ class DirectDevelopmentTasksV3:
                     allowlist_bytes=material["allowlist_bytes"],
                     expected_output_dtype=(
                         material["interface_document"]["outputs"]["dtype"]
-                        if task_id.value in self._measured_tasks
+                        if kit["version"] == "1.3"
+                        or task_id.value in self._measured_tasks
                         else None
                     ),
                     measure_query=task_id.value in self._measured_tasks,

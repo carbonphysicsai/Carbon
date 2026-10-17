@@ -305,6 +305,50 @@ def test_direct_v3_typed_candidate_failure_is_not_infrastructure(tmp_path, monke
         tasks.close()
 
 
+@pytest.mark.parametrize(
+    ("state", "refusal_code"),
+    [
+        (research.DirectTaskStateV3.REFUSED, "candidate_program_failed"),
+        (research.DirectTaskStateV3.UNRESOLVED, "unresolved_execution"),
+    ],
+)
+def test_direct_cancel_preserves_terminal_refusal_or_unresolved_receipt(
+    tmp_path, monkeypatch, state, refusal_code
+):
+    request, provider, _ = _fixture(tmp_path, monkeypatch)
+    tasks = provider()
+    try:
+        started = tasks.start_research_task(request).task
+        receipt = tasks._receipt(started, state, refusal_code=refusal_code)
+        terminal = tasks._transition(started, state, receipt=receipt)
+        cancellation = research.DirectCancelTaskRequestV3(
+            request.challenge_key, terminal.task_id, "terminal-cancel-001"
+        )
+        result = tasks.cancel_research_task(cancellation)
+        assert result.disposition is research.CancellationDisposition.TOO_LATE
+        assert result.task == terminal
+        assert (
+            tasks.get_research_result(
+                research.DirectGetTaskRequestV3(request.challenge_key, terminal.task_id)
+            ).task
+            == terminal
+        )
+    finally:
+        tasks.close()
+    reopened = provider()
+    try:
+        retained = reopened.get_research_result(
+            research.DirectGetTaskRequestV3(request.challenge_key, terminal.task_id)
+        ).task
+        assert retained == terminal
+        assert digest(research.canonical_bytes(retained.terminal_receipt)) == digest(
+            research.canonical_bytes(receipt)
+        )
+        assert reopened.cancel_research_task(cancellation).task == terminal
+    finally:
+        reopened.close()
+
+
 def test_direct_v3_settled_infrastructure_child_is_typed_at_parent(
     tmp_path, monkeypatch
 ):
@@ -539,6 +583,36 @@ def test_direct_measured_query_profile_survives_restart_and_cannot_switch(
         assert seen["expected_output_dtype"] == "float32"
     finally:
         reopened.close()
+
+
+@pytest.mark.parametrize("version", ["1.1", "1.3"])
+def test_direct_unmeasured_v13_still_enforces_registered_output_dtype(
+    tmp_path, monkeypatch, version
+):
+    from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
+
+    material = bundle_material_v5() if version == "1.3" else bundle_material_v3()
+    request, provider, _ = _fixture(tmp_path, monkeypatch, material=material)
+    tasks = provider()
+    try:
+        started = tasks.start_research_task(request).task
+        seen = {}
+
+        def stopped(*args, **kwargs):
+            seen.update(kwargs)
+            raise ValueError("test-only worker stop")
+
+        monkeypatch.setattr(
+            bundle_construction_worker, "reconstruct_and_infer_public", stopped
+        )
+        result = tasks.run_queued_task(started.task_id)
+        assert result.state is research.DirectTaskStateV3.UNRESOLVED
+        assert seen["measure_query"] is False
+        assert seen["expected_output_dtype"] == (
+            "float32" if version == "1.3" else None
+        )
+    finally:
+        tasks.close()
 
 
 def test_retained_v2_measurement_is_bound_to_profile_and_shape(tmp_path, monkeypatch):

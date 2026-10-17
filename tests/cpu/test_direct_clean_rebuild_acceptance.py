@@ -246,6 +246,47 @@ def test_fixed_train_clean_rebuild_then_source_free_public_inference(tmp_path):
     assert "train.npz" not in runner.calls[2][1]
 
 
+def test_unmeasured_inference_rejects_shape_correct_wrong_dtype(tmp_path):
+    material = bundle_material()
+    image, installed = _source_bundle(tmp_path)
+    recipe = _recipe(material, image)
+    ledger = CampaignLedger(tmp_path / "campaign")
+    runner = LocalProcessRunner(installed)
+    built = reconstruct_public(
+        ledger,
+        owner="miner",
+        identity="wrong-dtype-build",
+        image=image,
+        recipe=recipe,
+        challenge_binding=_binding(material),
+        train=material["train"],
+        example=material["example"],
+        seed=11,
+        allowlist_bytes=material["allowlist_bytes"],
+        runner=runner,
+    )
+    # The valid bundle emits float32 with the expected shape. An int32
+    # contract must reject that output even without measurement.
+    with pytest.raises(
+        AssertionError, match="bundle inference output contract differs"
+    ):
+        infer_public(
+            ledger,
+            owner="miner",
+            identity="wrong-dtype-inference",
+            image=image,
+            inference_image=image.parent,
+            recipe=recipe,
+            challenge_binding=_binding(material),
+            build=built,
+            inputs=material["practice_inputs"],
+            expected_output_shape=material["expected_output_shape"],
+            expected_output_dtype="int32",
+            allowlist_bytes=material["allowlist_bytes"],
+            runner=runner,
+        )
+
+
 def test_changed_train_recipe_image_or_state_refuses_before_inference(tmp_path):
     material = bundle_material()
     image, installed = _source_bundle(tmp_path)
