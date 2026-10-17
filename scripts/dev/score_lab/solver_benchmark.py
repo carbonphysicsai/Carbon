@@ -65,6 +65,25 @@ def _sum(values):
         raise BenchmarkRefused("derived_nonfinite") from exc
 
 
+def _latency_distribution(values):
+    """Descriptive serial per-query seconds; p95 uses the nearest rank."""
+    ordered = sorted(values)
+    if not ordered:
+        raise BenchmarkRefused("latency_empty")
+    middle = len(ordered) // 2
+    median = (
+        ordered[middle]
+        if len(ordered) % 2
+        else _derived(ordered[middle - 1] / 2 + ordered[middle] / 2)
+    )
+    return {
+        "min_s": ordered[0],
+        "median_s": median,
+        "p95_s": ordered[math.ceil(0.95 * len(ordered)) - 1],
+        "max_s": ordered[-1],
+    }
+
+
 def register(body):
     """Bind a declared workload; registration does not attest physical truth."""
     if type(body) is not dict or set(body) != {
@@ -375,6 +394,12 @@ def compare(registration, references, models, *, score_pack=None):
                 "mean_absolute_error": mean_error,
                 "solver_seconds": solver_total,
                 "model_seconds": model_total,
+                "solver_query_latency": (
+                    _latency_distribution(solver_times) if complete else None
+                ),
+                "model_query_latency": (
+                    _latency_distribution(model_times) if complete else None
+                ),
                 "model_phase_seconds": phase_seconds if complete else None,
                 "paired_speedup": (
                     _derived(solver_total / model_total) if complete else None

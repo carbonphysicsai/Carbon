@@ -7,7 +7,8 @@ digest-bound attempted roster, one common reference panel, and complete
 per-model rows. The producer measures solver and model runs; the receiver runs
 neither. It reports registered mean absolute error in output units, mandatory
 gate failures, complete-query timing (preprocess, export, inference and
-postprocess), observed serial throughput, peak model memory, separately
+postprocess), per-query min/median/p95/max latency for model and solver
+(nearest-rank p95), observed serial throughput, peak model memory, separately
 reported build time and paired solver/model speedup. `P` and `Q` have separate
 results. Missing references or infrastructure failures withhold affected
 aggregates; an invalid model output or mandatory gate failure cannot disappear

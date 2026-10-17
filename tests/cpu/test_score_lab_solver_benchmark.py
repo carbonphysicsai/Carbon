@@ -103,6 +103,30 @@ def test_accuracy_and_speed_are_separate_without_a_policy_winner():
     assert [m["pareto_p"] for m in result["models"]] == [True, True]
 
 
+def test_latency_distribution_is_descriptive_and_uses_complete_queries():
+    registration, references, model = fixture()
+    references[0]["elapsed_s"] = 3.0
+    references[1]["elapsed_s"] = 9.0
+    measured = model("varied", [1.0, 3.0], 2.0)
+    measured["cases"][0]["timing_s"]["inference"] = 0.7  # total 1 second
+    measured["cases"][1]["timing_s"]["inference"] = 4.7  # total 5 seconds
+    role = bench.compare(registration, references, [measured])["models"][0]["by_role"][
+        "P"
+    ]
+    assert role["solver_query_latency"] == {
+        "min_s": 3.0,
+        "median_s": 6.0,
+        "p95_s": 9.0,
+        "max_s": 9.0,
+    }
+    assert role["model_query_latency"] == {
+        "min_s": pytest.approx(1.0),
+        "median_s": pytest.approx(3.0),
+        "p95_s": pytest.approx(5.0),
+        "max_s": pytest.approx(5.0),
+    }
+
+
 def test_mandatory_gate_failure_cannot_be_offset_by_speed():
     registration, references, model = fixture()
     unsafe = model("unsafe", [1.0, 3.0], 0.5, gate=False)
