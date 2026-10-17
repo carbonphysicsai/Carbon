@@ -23,6 +23,10 @@ AUTONOMOUS_OPT_IN_SCHEMA = "carbon.battery.public-model-retention-opt-in.v2"
 AUTONOMOUS_PROGRAM_VERSION = "carbon.battery.public-autonomous-model-retention.v1"
 AUTONOMOUS_INVENTORY_SCHEMA = "carbon.battery.public-autonomous-model-inventory.v1"
 AUTONOMOUS_ARTIFACT_SCHEMA = "carbon.battery.public-autonomous-model-artifact.v1"
+OWNER_OPT_IN_SCHEMA = "carbon.battery.public-model-retention-opt-in.v3"
+OWNER_PROGRAM_VERSION = "carbon.battery.public-owner-model-retention.v1"
+OWNER_INVENTORY_SCHEMA = "carbon.battery.public-owner-model-inventory.v1"
+OWNER_ARTIFACT_SCHEMA = "carbon.battery.public-owner-model-artifact.v1"
 GRAPHITE_ARTIFACT_SCHEMA = "carbon.battery.public-graphite-model-artifact.v1"
 STATE_FILE = "state.npz"
 SIDECAR_FILE = "model-retention.json"
@@ -39,6 +43,11 @@ _PROFILES = {
         AUTONOMOUS_OPT_IN_SCHEMA, "PUBLIC_AUTONOMOUS_TEST",
         AUTONOMOUS_PROGRAM_VERSION, AUTONOMOUS_INVENTORY_SCHEMA,
         AUTONOMOUS_ARTIFACT_SCHEMA,
+    ),
+    "none": (
+        OWNER_OPT_IN_SCHEMA, "PUBLIC_OWNER_DRIVEN_TEST",
+        OWNER_PROGRAM_VERSION, OWNER_INVENTORY_SCHEMA,
+        OWNER_ARTIFACT_SCHEMA,
     ),
 }
 
@@ -100,7 +109,7 @@ def frozen_opt_in(manifest, *, owner):
         raise ValueError("retention opt-in campaign binding differs")
     agent = manifest.get("agent")
     result = _descriptor(value, manifest.get("campaign_id"), agent)
-    if agent == "autonomous":
+    if agent in {"autonomous", "none"}:
         implementation = manifest.get("implementation")
         if (
             type(implementation) is not dict
@@ -237,7 +246,7 @@ _retention_fit_wall, _retention_fit_cpu = time.monotonic(), time.process_time()
         + (
             _WRITER
             if agent == "graphite"
-            else _WRITER.replace(GRAPHITE_ARTIFACT_SCHEMA, AUTONOMOUS_ARTIFACT_SCHEMA)
+            else _WRITER.replace(GRAPHITE_ARTIFACT_SCHEMA, _PROFILES[agent][4])
         )
     )
     provenance = {

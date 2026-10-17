@@ -1,6 +1,7 @@
 """Prospective own-agent public practice retention, with a fixture carrier only."""
 
 import io
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -30,6 +31,15 @@ def opt_in():
     }
 
 
+def owner_opt_in():
+    return {
+        **opt_in(),
+        "schema": retention.OWNER_OPT_IN_SCHEMA,
+        "scope": "PUBLIC_OWNER_DRIVEN_TEST",
+        "program_version": retention.OWNER_PROGRAM_VERSION,
+    }
+
+
 def manifest():
     return {
         "campaign_id": "cmp-battery-julia",
@@ -40,6 +50,73 @@ def manifest():
         "implementation": {"revision": REVISION},
         "public_model_retention": opt_in(),
     }
+
+
+def test_normal_owner_launch_freezes_distinct_opt_in(tmp_path, monkeypatch):
+    from carbon.battery import campaign, research
+    from test_battery_research_images import IMAGES, launch, runtime
+
+    marker = tmp_path / retention.OPT_IN_FILE
+    marker.write_bytes(canonical(owner_opt_in()))
+    selected = retention.launch_opt_in(
+        tmp_path, campaign_id="cmp-battery-julia", agent="none"
+    )
+    document = campaign.manifest_document(
+        launch(runtime()),
+        owner="miner-requester",
+        implementation={"revision": REVISION},
+        images=list(IMAGES),
+        **selected,
+    )
+    assert document["agent"] == "none"
+    assert retention.frozen_opt_in(document, owner="miner-requester") == owner_opt_in()
+    (tmp_path / "campaign-manifest.json").write_bytes(canonical(document))
+    seen = []
+
+    class Captured(Exception):
+        pass
+
+    def capture(**kwargs):
+        seen.append(kwargs)
+        raise Captured
+
+    monkeypatch.setattr(research, "BatteryPractice", capture)
+    with pytest.raises(Captured):
+        campaign.compose(
+            ledger=SimpleNamespace(root=tmp_path),
+            owner="miner-requester",
+            image=None,
+            analysis=None,
+            connection=None,
+        )
+    assert seen[-1]["model_retention"] == owner_opt_in()
+    for agent in ("graphite", "autonomous"):
+        with pytest.raises(ValueError):
+            retention.launch_opt_in(
+                tmp_path, campaign_id="cmp-battery-julia", agent=agent
+            )
+    with pytest.raises(ValueError, match="revision"):
+        campaign.manifest_document(
+            launch(runtime()),
+            owner="miner-requester",
+            implementation={"revision": "b" * 40},
+            images=list(IMAGES),
+            **selected,
+        )
+    marker.unlink()
+    assert retention.launch_opt_in(
+        tmp_path, campaign_id="cmp-battery-julia", agent="none"
+    ) == {}
+
+
+def test_normal_owner_practice_retains_model(tmp_path):
+    ledger, practice = practice_fixture(tmp_path)
+    practice.model_retention = owner_opt_in()
+    practice("normal-owner-trial", STRATEGY)
+    row = retention.inventory(ledger, owner="miner-requester")[0]
+    assert row["schema"] == retention.OWNER_INVENTORY_SCHEMA
+    assert row["state"]["status"] == "RETAINED"
+    assert row["artifact_provenance"]["schema"] == retention.OWNER_ARTIFACT_SCHEMA
 
 
 def test_autonomous_opt_in_is_explicit_frozen_and_revision_bound(tmp_path):

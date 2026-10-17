@@ -5,10 +5,13 @@ Status: prospective engineering candidate; no runtime adoption or qualification.
 The normal battery campaign already freezes an optional public model retention
 descriptor, and its practice runner already has an accounted snapshot and
 private producer inventory. Reuse those seams for `agent=autonomous` with an
-explicit v2 descriptor (`PUBLIC_AUTONOMOUS_TEST`). The accepted campaign
-implementation revision must equal its declared source commit. The default
-remains no retention; existing Graphite v1 descriptors, programs, inventory,
-and artifacts retain their schemas and bytes.
+explicit v2 descriptor (`PUBLIC_AUTONOMOUS_TEST`) and the miner's own agent
+mode `agent=none` with a distinct v3 descriptor (`PUBLIC_OWNER_DRIVEN_TEST`).
+Product's actual c897 JAX/Torch manifests record `agent=none`; v2 alone would
+refuse the opt-in before manifest freeze and never retain those new models.
+The accepted campaign implementation revision must equal its declared source
+commit. The default remains no retention; existing Graphite v1 descriptors,
+programs, inventory, and artifacts retain their schemas and bytes.
 
 The retained program only wraps the pinned public battery practice stage, stores
 bounded `state.npz` from `recipes.state_bytes`, and binds recipe, image, public
