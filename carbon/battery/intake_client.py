@@ -18,6 +18,10 @@ and sends bytes with headers the miner produced, for example::
 A signature is valid for 10 seconds and the snapshot for 60, so sign and send
 straight after building. Poll with `status_message` the same way.
 
+Callers with a configured ``ChainContext`` pass ``context=...`` to message
+builders. The historical no-argument path keeps Carbon's testnet context;
+public intake facts never select a chain on the miner's behalf.
+
 The Launchpad signs for `facts["receiver"]` only once it equals the receiver
 the miner's profile pins for the Challenge (`remote_submission.check_receiver`,
 LAUNCHPAD-ACCEPT-03): an intake reporting another is refused
@@ -51,10 +55,14 @@ def read_intake(url, *, timeout=10.0):
     return facts
 
 
-def _context(facts):
+def _context(facts, *, context=None):
+    from carbon.chain.models import ChainContext
     from carbon.development_session.chain_onboarding import carbon_testnet_context
 
-    context = carbon_testnet_context()
+    if context is None:
+        context = carbon_testnet_context()
+    if type(context) is not ChainContext:
+        raise IntakeMismatch("a configured chain context is required")
     if (context.network, context.genesis_hash, context.netuid) != (
         facts["network"],
         facts["genesis"],
@@ -75,9 +83,9 @@ def _challenge(facts):
     return CHALLENGE
 
 
-def _body(facts, tool, fields, request):
+def _body(facts, tool, fields, request, *, context=None):
     return message(
-        _context(facts),
+        _context(facts, context=context),
         facts["snapshot"]["id"],
         _challenge(facts),
         session="carbon-battery-intake",
@@ -87,7 +95,7 @@ def _body(facts, tool, fields, request):
     )
 
 
-def submission_message(facts, strategy, contract_digest, *, request=None):
+def submission_message(facts, strategy, contract_digest, *, request=None, context=None):
     """The exact bytes of one `battery_submit`, ready for the miner to sign."""
     return _body(
         facts,
@@ -99,15 +107,20 @@ def submission_message(facts, strategy, contract_digest, *, request=None):
             "contract_digest": contract_digest,
         },
         request,
+        context=context,
     )
 
 
-def status_message(facts, submission_id, *, request=None):
+def status_message(facts, submission_id, *, request=None, context=None):
     """The exact bytes of one status request for the miner's own submission."""
-    return _body(facts, STATUS_TOOL, {"submission_id": submission_id}, request)
+    return _body(
+        facts, STATUS_TOOL, {"submission_id": submission_id}, request, context=context
+    )
 
 
-def level4_part_message(facts, submission, part, parts, data, *, request=None):
+def level4_part_message(
+    facts, submission, part, parts, data, *, request=None, context=None
+):
     """The exact bytes of one `battery_level4_part`: part `part` of `parts`
     of the Level 4 envelope named `submission`, its bytes `data` (one slice
     of `level4_parts.split`) sent base64, ready for the miner to sign."""
@@ -125,15 +138,22 @@ def level4_part_message(facts, submission, part, parts, data, *, request=None):
             "data": base64.b64encode(data).decode("ascii"),
         },
         request,
+        context=context,
     )
 
 
-def level4_status_message(facts, submission, *, request=None):
+def level4_status_message(facts, submission, *, request=None, context=None):
     """The exact bytes of one `battery_level4_status`: which parts of the
     envelope named `submission` the intake holds."""
     from .level4_parts import STATUS_TOOL as LEVEL4_STATUS_TOOL
 
-    return _body(facts, LEVEL4_STATUS_TOOL, {"submission": submission}, request)
+    return _body(
+        facts,
+        LEVEL4_STATUS_TOOL,
+        {"submission": submission},
+        request,
+        context=context,
+    )
 
 
 def submission_id(hotkey, strategy, contract_digest):
@@ -368,9 +388,10 @@ REFUSALS = {
         "verdict on your recipe and your epoch is not used."
     ),
     "intake_changed_since_submission": (
-        "This epoch's candidate was submitted to another validator intake than "
-        "the one now configured. Configure that intake again to read its "
-        "result; a candidate is never submitted twice."
+        "This epoch's candidate was submitted to another validator intake or "
+        "under another chain context than the one now configured. Restore "
+        "that intake and context to read its result; a candidate is never "
+        "submitted twice."
     ),
     "intake_answer_unrecognised": (
         "The validator answered in a way this client does not recognise. "

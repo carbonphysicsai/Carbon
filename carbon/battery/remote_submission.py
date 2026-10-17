@@ -22,6 +22,7 @@ import json
 import os
 import tempfile
 import time
+from dataclasses import asdict
 from pathlib import Path
 
 from . import intake_client
@@ -51,6 +52,40 @@ class IntakeRefusal(Exception):
 
 def _record_path(root, epoch):
     return Path(root) / f"intake-submission-epoch-{int(epoch)}.json"
+
+
+CONTEXT_RECORD_SCHEMA = "carbon.battery.intake-submission.v2"
+
+
+def _record_context(recorded, context):
+    """Recover the public chain identity used for this exact submission."""
+    from carbon.chain.models import ChainContext, ChainFailure
+    from carbon.development_session.chain_onboarding import carbon_testnet_context
+
+    if type(recorded) is not dict:
+        raise IntakeRefusal("intake_changed_since_submission")
+    if "schema" not in recorded:
+        # Records made before context pinning were only ever sent to testnet.
+        if "context" in recorded:
+            raise IntakeRefusal("intake_changed_since_submission")
+        saved = carbon_testnet_context()
+        if context is None:
+            return None
+    else:
+        raw = recorded.get("context")
+        if (
+            recorded["schema"] != CONTEXT_RECORD_SCHEMA
+            or type(raw) is not dict
+            or set(raw) != {"network", "endpoint", "provider", "genesis_hash", "netuid"}
+        ):
+            raise IntakeRefusal("intake_changed_since_submission")
+        try:
+            saved = ChainContext(**raw)
+        except (ChainFailure, TypeError, ValueError):
+            raise IntakeRefusal("intake_changed_since_submission") from None
+    if context is not None and (type(context) is not ChainContext or context != saved):
+        raise IntakeRefusal("intake_changed_since_submission")
+    return saved
 
 
 def _signed(signer, facts, body):
@@ -97,11 +132,17 @@ def check_receiver(facts, receiver):
 LEVEL4_TRANSPORT_UNAVAILABLE = "level4_envelope_transport_unavailable"
 
 
-def _level4_held(url, signer, submission, read, post, receiver):
+def _context_kw(context):
+    return {} if context is None else {"context": context}
+
+
+def _level4_held(url, signer, submission, read, post, receiver, context=None):
     """`(held indices, part count or None)` the intake answers for the
     envelope named `submission`; `IntakeRefusal` for any refusal."""
     facts = check_receiver(read(url), receiver)
-    body = intake_client.level4_status_message(facts, submission)
+    body = intake_client.level4_status_message(
+        facts, submission, **_context_kw(context)
+    )
     status, answer = post(url, body, _signed(signer, facts, body))
     if "refused" in answer:
         raise IntakeRefusal(answer["refused"], intake_client.describe(status, answer))
@@ -126,6 +167,7 @@ def send_level4_envelope(
     read=intake_client.read_intake,
     post=intake_client.post,
     receiver=None,
+    context=None,
 ):
     """A Level 4 candidate's frozen staging envelope, sent ahead of its
     `battery_submit` as signed `battery_level4_part` calls
@@ -153,7 +195,7 @@ def send_level4_envelope(
             LEVEL4_TRANSPORT_UNAVAILABLE,
             intake_client.explain(LEVEL4_TRANSPORT_UNAVAILABLE),
         )
-    held, parts = _level4_held(url, signer, submission, read, post, receiver)
+    held, parts = _level4_held(url, signer, submission, read, post, receiver, context)
     if parts is not None and parts != len(chunks):
         code = "level4_parts_mismatch"
         raise IntakeRefusal(code, intake_client.explain(code))
@@ -163,7 +205,7 @@ def send_level4_envelope(
             continue
         facts = check_receiver(read(url), receiver)
         body = intake_client.level4_part_message(
-            facts, submission, index, len(chunks), data
+            facts, submission, index, len(chunks), data, **_context_kw(context)
         )
         status, answer = post(url, body, _signed(signer, facts, body))
         if "refused" in answer:
@@ -173,7 +215,7 @@ def send_level4_envelope(
         if status != 200:
             raise IntakeRefusal("intake_answer_unrecognised")
         sent += 1
-    held, parts = _level4_held(url, signer, submission, read, post, receiver)
+    held, parts = _level4_held(url, signer, submission, read, post, receiver, context)
     if parts != len(chunks) or held != set(range(len(chunks))):
         code = "level4_envelope_incomplete"
         raise IntakeRefusal(code, intake_client.explain(code))
@@ -194,6 +236,7 @@ def submit_and_wait(
     sleep=time.sleep,
     wait_s=WAIT_S,
     receiver=None,
+    context=None,
 ):
     """Submit once (or recall the epoch's submission), then poll for a verdict.
 
@@ -208,10 +251,14 @@ def submit_and_wait(
 
     record = _record_path(root, epoch)
     if record.exists():
-        submission_id = json.loads(record.read_bytes())["submission_id"]
+        recorded = json.loads(record.read_bytes())
+        context = _record_context(recorded, context)
+        submission_id = recorded["submission_id"]
     else:
         facts = check_receiver(read(url), receiver)
-        body = intake_client.submission_message(facts, strategy, contract_digest)
+        body = intake_client.submission_message(
+            facts, strategy, contract_digest, **_context_kw(context)
+        )
         status, answer = post(url, body, _signed(signer, facts, body))
         if status != 202 or "submission_id" not in answer:
             raise IntakeRefusal(
@@ -219,18 +266,20 @@ def submit_and_wait(
                 intake_client.describe(status, answer),
             )
         submission_id = answer["submission_id"]
-        write_once(
-            record,
-            json.dumps(
-                {"url": url, "epoch": epoch, "submission_id": submission_id},
-                sort_keys=True,
-            ).encode(),
-        )
+        saved = {"url": url, "epoch": epoch, "submission_id": submission_id}
+        if context is not None:
+            saved.update(
+                schema=CONTEXT_RECORD_SCHEMA,
+                context=asdict(intake_client._context(facts, context=context)),
+            )
+        write_once(record, json.dumps(saved, sort_keys=True).encode())
         record.chmod(0o600)
     deadline = clock() + wait_s
     while True:
         facts = check_receiver(read(url), receiver)
-        body = intake_client.status_message(facts, submission_id)
+        body = intake_client.status_message(
+            facts, submission_id, **_context_kw(context)
+        )
         status, answer = post(url, body, _signed(signer, facts, body))
         if "refused" in answer:
             raise IntakeRefusal(
@@ -327,6 +376,7 @@ def read_status_once(
     post=intake_client.post,
     receiver=None,
     once_per_tempo=False,
+    context=None,
 ):
     """One read-only status read of the epoch's recorded submission (LA-F18).
 
@@ -346,11 +396,12 @@ def read_status_once(
     recorded = json.loads(record.read_bytes())
     if recorded.get("url") != url:
         raise IntakeRefusal("intake_changed_since_submission")
+    context = _record_context(recorded, context)
     submission_id = recorded["submission_id"]
     facts = check_receiver(read(url), receiver)
     if once_per_tempo and not _claim_tempo(root, epoch, facts):
         return None
-    body = intake_client.status_message(facts, submission_id)
+    body = intake_client.status_message(facts, submission_id, **_context_kw(context))
     status, answer = post(url, body, _status_read_signed(signer, facts, body))
     if type(answer) is not dict:
         raise IntakeRefusal("intake_answer_unrecognised")

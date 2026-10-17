@@ -1111,7 +1111,15 @@ def intake_outcome(code):
 
 
 def _resend(
-    url, signer, submission_id, failure, strategy, contract_digest, io, receiver=None
+    url,
+    signer,
+    submission_id,
+    failure,
+    strategy,
+    contract_digest,
+    io,
+    receiver=None,
+    context=None,
 ):
     """Send the epoch's frozen candidate again, so the intake receives it
     again under the same submission id. The intake's facts are read again
@@ -1145,7 +1153,12 @@ def _resend(
             "hotkey_window_used",
             intake_client.describe(200, {"state": "REFUSED", "failure": failure}),
         )
-    body = intake_client.submission_message(facts, strategy, contract_digest)
+    body = intake_client.submission_message(
+        facts,
+        strategy,
+        contract_digest,
+        **({} if context is None else {"context": context}),
+    )
     status, answer = io["post"](url, body, rs._signed(signer, facts, body))
     if status != 202 or "submission_id" not in answer:
         raise rs.IntakeRefusal(
@@ -1170,6 +1183,7 @@ def submit_through_intake(
     read=None,
     post=None,
     receiver=None,
+    context=None,
     construction_level=None,
     level4_envelope=None,
 ):
@@ -1244,9 +1258,6 @@ def submit_through_intake(
         facts = rs.check_receiver((read or intake_client.read_intake)(url), receiver)
         if not lists_digest(facts, contract_digest):
             raise rs.IntakeRefusal(DEVELOPMENT_VARIANT_NOT_SERVED)
-    passed = {} if read is None else {"read": read, "post": post}
-    if receiver is not None:
-        passed["receiver"] = receiver
     io = {
         "read": read or intake_client.read_intake,
         "post": post or intake_client.post,
@@ -1255,6 +1266,13 @@ def submit_through_intake(
     recorded = json.loads(record.read_bytes()) if record.exists() else None
     if recorded is not None and recorded.get("url") != url:
         raise rs.IntakeRefusal("intake_changed_since_submission")
+    if recorded is not None:
+        context = rs._record_context(recorded, context)
+    passed = {} if read is None else {"read": read, "post": post}
+    if receiver is not None:
+        passed["receiver"] = receiver
+    if context is not None:
+        passed["context"] = context
 
     def envelope_held():
         if level4_envelope is None:
@@ -1267,6 +1285,7 @@ def submit_through_intake(
             submission=strategy["parameters"][FIELD],
             envelope=level4_envelope,
             receiver=receiver,
+            context=context,
             **io,
         )
 
@@ -1290,14 +1309,24 @@ def submit_through_intake(
             raise
         sid = recorded["submission_id"]
         envelope_held()
-        _resend(url, signer, sid, None, strategy, contract_digest, io, receiver)
+        _resend(
+            url, signer, sid, None, strategy, contract_digest, io, receiver, context
+        )
         return wait()
     failure = answer.get("failure") or {}
     if answer.get("state") != "REFUSED" or failure.get("code") not in RECEIVED_AGAIN:
         return status, answer, submission_id
     envelope_held()
     _resend(
-        url, signer, submission_id, failure, strategy, contract_digest, io, receiver
+        url,
+        signer,
+        submission_id,
+        failure,
+        strategy,
+        contract_digest,
+        io,
+        receiver,
+        context,
     )
     return wait()
 
@@ -1537,6 +1566,7 @@ async def _evaluate_through_intake(
                 contract_digest=record.get("contract_digest")
                 or prepared.manifest["contract_digest"],
                 receiver=_receiver(prepared),
+                context=getattr(prepared.sdk.connection, "chain_context", None),
                 construction_level=record.get("construction_level"),
                 level4_envelope=level4_envelope,
             )
