@@ -14,6 +14,8 @@ import pytest
 from carbon.battery import recipes
 from carbon.battery.domain import TrainingData
 from carbon.battery.recipes import Structure
+from scripts.dev.score_lab import model_entry_admission
+from scripts.dev.score_lab.__main__ import main as score_lab_main
 
 ROOT = Path(__file__).resolve().parents[2]
 INTAKE_PATH = ROOT / "scripts/dev/score_lab/knn_intake_replay.py"
@@ -184,6 +186,108 @@ def test_prospective_replay_uses_existing_safe_loader_without_fit(tmp_path, monk
     assert report["placement"] == "PROSPECTIVE_OUTSIDE_FROZEN18"
     assert report["historical_original_output_recovered"] is False
     assert set(report["outputs"]) == {"eta", "q", "t", "v"}
+
+
+def test_receiver_admission_writes_content_bound_create_only_receipt(tmp_path, monkeypatch):
+    manifest, artifact_root = _synthetic_bundle(tmp_path)
+    original_manifest = manifest.read_bytes()
+    receipt_path = tmp_path / "receiver" / "prospective-entry.json"
+
+    def forbidden_fit(*_args, **_kwargs):
+        raise AssertionError("receiver admission must not fit or refit")
+
+    monkeypatch.setattr(recipes.KNN, "fit", forbidden_fit)
+    first = model_entry_admission.admit_public_train_entry(
+        manifest,
+        artifact_root=artifact_root,
+        receipt_path=receipt_path,
+    )
+    receipt = first["receipt"]
+    assert first["created"] is True
+    assert first["status"] == "ADMITTED_PROSPECTIVE_PUBLIC_TRAIN_ENTRY"
+    assert first["receipt_sha256"] == _sha(receipt_path.read_bytes())
+    assert receipt["schema"] == model_entry_admission.RECEIPT_SCHEMA
+    assert receipt["status"] == "ACK_PROSPECTIVE_PUBLIC_TRAIN_ENTRY"
+    assert receipt["source_addendum"]["sha256"] == _sha(original_manifest)
+    assert receipt["entry"]["model_id"] == (
+        "battery-public-train-knn-retention-smoke-20261016"
+    )
+    assert receipt["entry"]["training_data"]["scope"] == "PUBLIC_TRAIN_ONLY"
+    assert receipt["artifact_bindings"]["native_state"]["sha256"] == json.loads(
+        original_manifest
+    )["entry"]["artifacts"]["native_state"]["sha256"]
+    assert receipt["receiver_replay"]["status"] == "PASS"
+    assert receipt["receiver_replay"]["output_bindings"]
+    assert receipt["placement"] == "PROSPECTIVE_OUTSIDE_FROZEN18"
+    assert receipt["effects"] == {
+        "prospective_entry_admitted": True,
+        "ingested": True,
+        "frozen18_modified": False,
+        "scored": False,
+        "score_or_truth_join_created": False,
+        "qualification_claimed": False,
+    }
+    assert manifest.read_bytes() == original_manifest
+    producer_record = json.loads(original_manifest)
+    assert producer_record["entry"]["ingested"] is False
+    retry = model_entry_admission.admit_public_train_entry(
+        manifest,
+        artifact_root=artifact_root,
+        receipt_path=receipt_path,
+    )
+    assert retry["created"] is False
+    assert retry["receipt_sha256"] == first["receipt_sha256"]
+
+
+def test_receiver_admission_refuses_tamper_and_never_overwrites_receipt(tmp_path):
+    manifest, artifact_root = _synthetic_bundle(tmp_path)
+    state_path = artifact_root / "state.npz"
+    state_path.write_bytes(state_path.read_bytes() + b"tamper")
+    receipt_path = tmp_path / "receiver" / "entry.json"
+    with pytest.raises(model_entry_admission.ModelEntryRefused, match="replay_refused"):
+        model_entry_admission.admit_public_train_entry(
+            manifest,
+            artifact_root=artifact_root,
+            receipt_path=receipt_path,
+        )
+    assert not receipt_path.exists()
+
+    second_dir = tmp_path / "second"
+    second_dir.mkdir()
+    manifest, artifact_root = _synthetic_bundle(second_dir)
+    receipt_path.parent.mkdir(parents=True)
+    receipt_path.write_text("existing", encoding="utf-8")
+    with pytest.raises(
+        model_entry_admission.ModelEntryRefused,
+        match="receipt_exists_with_different_bytes",
+    ):
+        model_entry_admission.admit_public_train_entry(
+            manifest,
+            artifact_root=artifact_root,
+            receipt_path=receipt_path,
+        )
+    assert receipt_path.read_text(encoding="utf-8") == "existing"
+
+
+def test_score_lab_cli_admits_only_by_writing_receiver_receipt(tmp_path, capsys):
+    manifest, artifact_root = _synthetic_bundle(tmp_path)
+    receipt_path = tmp_path / "receiver" / "entry.json"
+    code = score_lab_main(
+        [
+            "model-entry-admit",
+            "--manifest",
+            str(manifest),
+            "--artifact-root",
+            str(artifact_root),
+            "--receipt",
+            str(receipt_path),
+        ]
+    )
+    result = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert result["status"] == "ADMITTED_PROSPECTIVE_PUBLIC_TRAIN_ENTRY"
+    assert result["created"] is True
+    assert json.loads(receipt_path.read_text(encoding="utf-8"))["effects"]["ingested"]
 
 
 @pytest.mark.parametrize(
