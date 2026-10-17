@@ -1,4 +1,4 @@
-"""Opt-in, miner-owned public Graphite test inventory; never an upload/admission.
+"""Opt-in, miner-owned public practice model inventory; never an upload/admission.
 
 The fixed public practice stages and programs define the accessible material.
 This module grants no evaluator access and never loads a model on the host.
@@ -19,29 +19,70 @@ OPT_IN_FILE = "public-model-retention-opt-in.json"
 OPT_IN_SCHEMA = "carbon.battery.public-model-retention-opt-in.v1"
 PROGRAM_VERSION = "carbon.battery.public-graphite-model-retention.v1"
 INVENTORY_SCHEMA = "carbon.battery.public-graphite-model-inventory.v1"
+AUTONOMOUS_OPT_IN_SCHEMA = "carbon.battery.public-model-retention-opt-in.v2"
+AUTONOMOUS_PROGRAM_VERSION = "carbon.battery.public-autonomous-model-retention.v1"
+AUTONOMOUS_INVENTORY_SCHEMA = "carbon.battery.public-autonomous-model-inventory.v1"
+AUTONOMOUS_ARTIFACT_SCHEMA = "carbon.battery.public-autonomous-model-artifact.v1"
+OWNER_OPT_IN_SCHEMA = "carbon.battery.public-model-retention-opt-in.v3"
+OWNER_PROGRAM_VERSION = "carbon.battery.public-owner-model-retention.v1"
+OWNER_INVENTORY_SCHEMA = "carbon.battery.public-owner-model-inventory.v1"
+OWNER_ARTIFACT_SCHEMA = "carbon.battery.public-owner-model-artifact.v1"
+GRAPHITE_ARTIFACT_SCHEMA = "carbon.battery.public-graphite-model-artifact.v1"
 STATE_FILE = "state.npz"
 SIDECAR_FILE = "model-retention.json"
 STAGED_FILE = "public-model-retention.json"
 MAX_STATE_BYTES = 64 * 1024**2
 CHALLENGE = "battery-fastcharge-ageing-development-v1"
 _FIELDS = {"schema", "campaign_id", "scope", "program_version", "source_commit"}
+_PROFILES = {
+    "graphite": (
+        OPT_IN_SCHEMA,
+        "PUBLIC_GRAPHITE_TEST",
+        PROGRAM_VERSION,
+        INVENTORY_SCHEMA,
+        GRAPHITE_ARTIFACT_SCHEMA,
+    ),
+    "autonomous": (
+        AUTONOMOUS_OPT_IN_SCHEMA,
+        "PUBLIC_AUTONOMOUS_TEST",
+        AUTONOMOUS_PROGRAM_VERSION,
+        AUTONOMOUS_INVENTORY_SCHEMA,
+        AUTONOMOUS_ARTIFACT_SCHEMA,
+    ),
+    "none": (
+        OWNER_OPT_IN_SCHEMA,
+        "PUBLIC_OWNER_DRIVEN_TEST",
+        OWNER_PROGRAM_VERSION,
+        OWNER_INVENTORY_SCHEMA,
+        OWNER_ARTIFACT_SCHEMA,
+    ),
+}
+
+
+def _opt_in_agent(value):
+    if type(value) is dict:
+        for agent, profile in _PROFILES.items():
+            if value.get("schema") == profile[0]:
+                return agent
+    raise ValueError("unknown public model retention opt-in schema")
 
 
 def _descriptor(value, campaign_id, agent):
+    profile = _PROFILES.get(agent)
     if (
-        type(value) is not dict
+        profile is None
+        or type(value) is not dict
         or set(value) != _FIELDS
-        or value.get("schema") != OPT_IN_SCHEMA
+        or value.get("schema") != profile[0]
         or value.get("campaign_id") != campaign_id
         or type(campaign_id) is not str
         or not campaign_id
-        or value.get("scope") != "PUBLIC_GRAPHITE_TEST"
-        or value.get("program_version") != PROGRAM_VERSION
-        or agent != "graphite"
+        or value.get("scope") != profile[1]
+        or value.get("program_version") != profile[2]
         or type(value.get("source_commit")) is not str
         or re.fullmatch(r"[0-9a-f]{40}", value["source_commit"]) is None
     ):
-        raise ValueError("exact public Graphite test retention opt-in required")
+        raise ValueError("exact public test retention opt-in required")
     return dict(value)
 
 
@@ -70,10 +111,18 @@ def frozen_opt_in(manifest, *, owner):
     if (
         manifest.get("owner") != owner
         or manifest.get("challenge", {}).get("id") != CHALLENGE
-        or manifest.get("provider", {}).get("agent") != "graphite"
+        or manifest.get("provider", {}).get("agent") != manifest.get("agent")
     ):
         raise ValueError("retention opt-in campaign binding differs")
-    return _descriptor(value, manifest.get("campaign_id"), manifest.get("agent"))
+    agent = manifest.get("agent")
+    result = _descriptor(value, manifest.get("campaign_id"), agent)
+    if agent in {"autonomous", "none"}:
+        implementation = manifest.get("implementation")
+        if type(implementation) is not dict or value[
+            "source_commit"
+        ] != implementation.get("revision"):
+            raise ValueError("retention source revision differs from campaign")
+    return result
 
 
 # Appended to a NEW program identity. Existing CPU/GPU program bytes and
@@ -137,8 +186,9 @@ def retained_program(source, files, *, opt_in, identity, image):
         STAGED_MODULES,
     )
 
+    agent = _opt_in_agent(opt_in)
     opt_in = _descriptor(
-        opt_in, opt_in.get("campaign_id") if type(opt_in) is dict else None, "graphite"
+        opt_in, opt_in.get("campaign_id") if type(opt_in) is dict else None, agent
     )
     if type(image) is not str or re.fullmatch(r"sha256:[0-9a-f]{64}", image) is None:
         raise ValueError("retention requires an exact worker image identity")
@@ -199,13 +249,17 @@ _retention_fit_wall, _retention_fit_cpu = time.monotonic(), time.process_time()
 }
 """,
         )
-        + _WRITER
+        + (
+            _WRITER
+            if agent == "graphite"
+            else _WRITER.replace(GRAPHITE_ARTIFACT_SCHEMA, _PROFILES[agent][4])
+        )
     )
     provenance = {
         "opt_in": dict(opt_in),
         "trial_identity": identity,
         "image": image,
-        "program_version": PROGRAM_VERSION,
+        "program_version": opt_in["program_version"],
         "program_sha256": digest(program.encode()),
         "base_program_sha256": digest(source.encode()),
         "staged": {name: digest(body) for name, body in sorted(files.items())},
@@ -287,10 +341,11 @@ class Trial:
     """
 
     def __init__(self, ledger, owner, identity, strategy, opt_in):
+        agent = _opt_in_agent(opt_in)
         opt_in = _descriptor(
             opt_in,
             opt_in.get("campaign_id") if type(opt_in) is dict else None,
-            "graphite",
+            agent,
         )
         self.ledger = ledger
         self.workspace = ResearchWorkspace(ledger, owner)
@@ -299,7 +354,7 @@ class Trial:
         if manifest.is_symlink():
             raise ValueError("retention campaign manifest symlink rejected")
         self.record = {
-            "schema": INVENTORY_SCHEMA,
+            "schema": _PROFILES[agent][3],
             "campaign_id": opt_in["campaign_id"],
             "trial_identity": identity,
             "requested_strategy_sha256": digest(canonical(strategy)),
@@ -364,7 +419,7 @@ class Trial:
         if (
             type(sidecar) is not dict
             or sidecar.get("schema")
-            != "carbon.battery.public-graphite-model-artifact.v1"
+            != _PROFILES[_opt_in_agent(self.record["opt_in"])][4]
             or sidecar.get("state_schema") != "carbon.battery.model-state.v1"
             or any(sidecar.get(k) != v for k, v in provenance.items())
             or sidecar.get("state")
