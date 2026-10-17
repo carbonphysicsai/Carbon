@@ -3221,7 +3221,7 @@
       box = el("section"); box.id = "wizard-construction-options";
       anchor.parentElement.append(box);
     }
-    const document = launchOptions?.construction_options?.[wizard.challenge];
+    const document = launchOptions?.construction_options?.[wizard.challenge?.id];
     box.hidden = !document;
     if (!document) return;
     rebuild(box, JSON.stringify(document), target => {
