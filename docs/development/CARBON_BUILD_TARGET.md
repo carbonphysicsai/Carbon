@@ -5,8 +5,8 @@ vision into the system. Four workstreams deliver one flow: Construction Path,
 Launchpad capabilities, ScoreLab and Emissions design. This guides implementation;
 it is not another framework or a claim that the target is delivered. Existing
 scientific, security, economic and release authorities retain their scope. The
-economic preference below remains a proposal; this direction does not approve
-the pending instruction-policy cleanup.
+replacement simplification below is prospective engineering; this direction
+does not approve the pending instruction-policy cleanup.
 
 ## The purpose
 
@@ -141,12 +141,23 @@ lean protocol or that end-to-end mainnet equivalence has been demonstrated.
 Any test-only exception must be named explicitly and cannot serve as evidence
 of mainnet equivalence.
 
-Ryan's preferred proposal is pure per-Challenge king of the hill: one eligible
-incumbent holds that Challenge's share until replaced. Strictly better replacement,
-ties preserving the incumbent and removal of current age decay have been
-discussed; they are not approved live economics. Existing adopted policy remains
-in force. Bittensor consensus still determines chain payout; an application share
-or target is not a guaranteed payout.
+Keep per-Challenge king of the hill with the existing daily halving and 1/N
+allocation, where N is the policy's total registered Challenge count. A newly
+eligible winner receives its full Challenge share for the first 24 hours; that
+share halves every further 24 hours until replacement. Preserve existing
+eligibility and burn treatment for unpaid allocation and integer remainders.
+Bittensor consensus still determines chain payout; an application share or target
+is not a guaranteed payout.
+
+Simpler replacement is prospective engineering until implemented and tested.
+Use the shared evaluation/promotion path with the current valid versioned private
+Challenge bank, still-valid pinned references and same-version incumbent score.
+Do not require a separate fresh-case/promotion tournament for every would-be
+winner. Refresh evidence on the Challenge's actual cadence for anti-leak controls
+and reference maintenance, not merely because the leader changes. Winner clockkeeping
+and rank are separate from bank generation. This direction adopts no new tie
+rule, margin, self-improvement factor or LIVE change. Existing scientific and
+publication safeguards remain.
 
 ## Guided autonomy and the finish line
 
