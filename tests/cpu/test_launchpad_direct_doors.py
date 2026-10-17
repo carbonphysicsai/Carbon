@@ -85,6 +85,17 @@ def test_new_direct_campaign_fails_closed_through_both_doors(
     assert call("observe", {"campaign": identity})["id"] == identity
     assert call("launch", _launch("direct-door-new-0001"))["id"] == identity
     assert (
+        call(
+            "launch",
+            _launch("direct-door-new-0001", construction_level=0),
+        )["error"]
+        == "construction_selector_retired"
+    )
+    assert (
+        call("launch", _launch("direct-door-new-0001", arm=None))["error"]
+        == "construction_selector_retired"
+    )
+    assert (
         call("launch", _launch("direct-door-retired-0001", arm="signed"))["error"]
         == "construction_selector_retired"
     )

@@ -1088,6 +1088,16 @@ def perform(host, name, request):
         elif gate == "replay":
             replayed = host.replayed(profile, request, op.name)
             if replayed is not None:
+                if retired_launch_selector:
+                    # Level 0 and a null arm were historically normalized
+                    # before the keyed lookup. They may replay an old row,
+                    # but must not become aliases for a new direct campaign.
+                    identity = replayed.get("id") if type(replayed) is dict else None
+                    if type(identity) is not str:
+                        raise Rejected("research_launch_replay_conflict", 409)
+                    recorded = host.owned_campaign(identity)
+                    if recorded.get("construction_binding_version") == 4:
+                        raise Rejected("construction_selector_retired", 409)
                 return replayed
             if retired_launch_selector:
                 raise Rejected("construction_selector_retired", 409)

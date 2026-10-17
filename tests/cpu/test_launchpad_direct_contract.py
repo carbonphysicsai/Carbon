@@ -27,8 +27,9 @@ def test_new_launch_schema_has_no_level_arm_or_variant_selector():
 
 def test_old_selector_can_only_replay_an_existing_launch():
     class Host:
-        def __init__(self, result):
+        def __init__(self, result, version=0):
             self.result = result
+            self.version = version
 
         def configured(self):
             return {"profile_id": "test"}
@@ -37,10 +38,17 @@ def test_old_selector_can_only_replay_an_existing_launch():
             assert operation == "launch"
             return self.result
 
+        def owned_campaign(self, identity):
+            assert identity == self.result["id"]
+            return {"id": identity, "construction_binding_version": self.version}
+
     request = {"agent": "none", "idempotency_key": "old", "construction_level": 0}
-    assert operations.perform(Host({"campaign": "prior"}), "launch", request) == {
-        "campaign": "prior"
-    }
+    for historical_version in (0, 1, 2, 3):
+        assert operations.perform(
+            Host({"id": "prior"}, historical_version), "launch", request
+        ) == {"id": "prior"}
+    with pytest.raises(Rejected, match="construction_selector_retired"):
+        operations.perform(Host({"id": "direct"}, 4), "launch", request)
     with pytest.raises(Rejected, match="construction_selector_retired"):
         operations.perform(Host(None), "launch", request)
 
