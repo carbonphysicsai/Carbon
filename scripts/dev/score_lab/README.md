@@ -1,5 +1,29 @@
 # Scorelab (OPT-15)
 
+## Current model-versus-solver receiver (DEVELOPMENT)
+
+`solver_benchmark.register` and `solver_benchmark.compare` accept one
+digest-bound attempted roster, one common reference panel, and complete
+per-model rows. The producer measures solver and model runs; the receiver runs
+neither. It reports registered mean absolute error in output units, mandatory
+gate failures, complete-query timing (preprocess, export, inference and
+postprocess), observed serial throughput, peak model memory, separately
+reported build time and paired solver/model speedup. `P` and `Q` have separate
+results. Missing references or infrastructure failures withhold affected
+aggregates; an invalid model output or mandatory gate failure cannot disappear
+by dropping a case. Cached reference lookup and cached predictions are refused
+as timing sources. Only complete `P` results with passing mandatory gates
+receive a descriptive Pareto label;
+there is no adopted scalar, winner, physical qualification or LIVE result.
+
+This receiver is an internal ScoreLab interface, not a miner disclosure
+projection. Its registration is a binding for supplied development evidence,
+not proof that a solver result is physically adequate. The older value/N1 and
+menu commands below remain historical diagnostics and are not prerequisites
+for the new model-versus-solver path. The first tests use synthetic complete
+references only; a real Challenge must supply its existing registered job,
+TRAIN identity, output/gate contract and adequate measured reference evidence.
+
 ## OPT-16: V2 bank producer workflow
 
 `bank-plan` consumes a registered V2 definition, a digest-bound committed draw
