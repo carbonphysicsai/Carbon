@@ -12,6 +12,7 @@ from test_c03_worker_contract import _image, _sha
 from test_fixed_practice_failure_diagnostics import harness as _diagnostic_harness
 
 from carbon.development_session import research_carrier as carrier
+from carbon.reconstruction import accelerators
 from carbon.reconstruction.accelerators import (
     AcceleratorRole,
     miner_lane_assurance,
@@ -212,6 +213,80 @@ def test_fixed_practice_diagnoses_gpu_label_and_nested_observer(
     with pytest.raises(WorkerFailure) as default_error:
         docker.inspect_effective_controls(cli=probe.cli, **probe.options)
     assert default_error.value is original
+
+
+@pytest.mark.parametrize(
+    "stage,predicate",
+    [
+        ("adapter", "GPU_ADAPTER_RECHECK"),
+        ("request", "DEVICE_REQUEST_RECHECK"),
+        ("arguments", "CREATE_ARGUMENTS_RECHECK"),
+        ("host_record", "GPU_HOST_RECORD_RECHECK"),
+        ("environment", "GPU_ENVIRONMENT_RECHECK"),
+    ],
+)
+def test_fixed_practice_names_nested_policy_without_changing_default_refusal(
+    installed, tmp_path, monkeypatch, stage, predicate
+):
+    _, record = installed
+    probe = controls(tmp_path, record, self_service(record))
+    original = WorkerFailure(WorkerCode.POLICY)
+
+    def refuse(*_, **__):
+        raise original
+
+    if stage == "adapter":
+        monkeypatch.setattr(docker, "_require_supported_device_adapter", refuse)
+    elif stage == "request":
+        monkeypatch.setattr(runtime, "device_request", refuse)
+    else:
+        # Keep earlier rechecks fixed so each assertion reaches its named site.
+        expected_request = runtime.device_request()
+        expected_arguments = docker.create_arguments(**probe.options)
+        monkeypatch.setattr(runtime, "device_request", lambda: expected_request)
+        if stage == "arguments":
+            monkeypatch.setattr(docker, "create_arguments", refuse)
+        else:
+            monkeypatch.setattr(
+                docker, "create_arguments", lambda **_: expected_arguments
+            )
+            if stage == "host_record":
+                monkeypatch.setattr(runtime, "host_device", refuse)
+            else:
+                monkeypatch.setattr(accelerators, "worker_environment", refuse)
+
+    with pytest.raises(WorkerFailure) as diagnosed:
+        docker.inspect_effective_controls(
+            cli=probe.cli, diagnose_policy=True, **probe.options
+        )
+    assert diagnosed.value.code is WorkerCode.POLICY
+    assert docker.controls_predicate(diagnosed.value) == predicate
+    with pytest.raises(WorkerFailure) as default:
+        docker.inspect_effective_controls(cli=probe.cli, **probe.options)
+    assert default.value is original
+    assert default.value.private_diagnostic == b""
+
+
+@pytest.mark.parametrize(
+    "diagnostic", [b"unknown-private-marker", b"carbon.controls.predicate.v1:MEMORY"]
+)
+def test_fixed_practice_preserves_existing_nested_policy_diagnostic(
+    installed, tmp_path, monkeypatch, diagnostic
+):
+    _, record = installed
+    probe = controls(tmp_path, record, self_service(record))
+    original = WorkerFailure(WorkerCode.POLICY, private_diagnostic=diagnostic)
+
+    def refuse():
+        raise original
+
+    monkeypatch.setattr(runtime, "device_request", refuse)
+    with pytest.raises(WorkerFailure) as caught:
+        docker.inspect_effective_controls(
+            cli=probe.cli, diagnose_policy=True, **probe.options
+        )
+    assert caught.value is original
+    assert caught.value.private_diagnostic == diagnostic
 
 
 @pytest.mark.parametrize(

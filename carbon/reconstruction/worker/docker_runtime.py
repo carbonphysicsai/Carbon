@@ -12,6 +12,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypeVar
 
 from carbon.reconstruction.worker.model import (
     CLEANUP_CONFIRMATION_SECONDS,
@@ -40,10 +41,16 @@ _SCRATCH_TMPFS_BYTES = SCRATCH_BYTES - _SHM_BYTES
 # Only fixed battery practice opts in. The prefix is never copied to a public
 # result; the carrier accepts exact enum membership in its owner-only record.
 _CONTROL_PREDICATE_PREFIX = b"carbon.controls.predicate.v1:"
+_T = TypeVar("_T")
 _CONTROL_PREDICATES = frozenset(
     {
         "INSPECT_DOCUMENT",
         "INSPECT_SHAPE",
+        "GPU_ADAPTER_RECHECK",
+        "DEVICE_REQUEST_RECHECK",
+        "CREATE_ARGUMENTS_RECHECK",
+        "GPU_HOST_RECORD_RECHECK",
+        "GPU_ENVIRONMENT_RECHECK",
         "IMAGE",
         "USER",
         "LAUNCH_LABEL",
@@ -126,6 +133,22 @@ def _policy_refusal(diagnose: bool, name: str) -> WorkerFailure:
         WorkerCode.POLICY,
         private_diagnostic=_CONTROL_PREDICATE_PREFIX + selected.encode("ascii"),
     )
+
+
+def _diagnose_policy_recheck(
+    check: Callable[[], _T], *, diagnose: bool, name: str
+) -> _T:
+    """Name a nested policy refusal only for the private practice diagnostic."""
+    try:
+        return check()
+    except WorkerFailure as error:
+        if (
+            diagnose
+            and error.code is WorkerCode.POLICY
+            and error.private_diagnostic == b""
+        ):
+            raise _policy_refusal(True, name) from None
+        raise
 
 
 def _first_failed(checks: tuple[tuple[str, Callable[[], bool]], ...]) -> str:
@@ -722,7 +745,11 @@ def inspect_effective_controls(
     diagnose_policy: bool = False,
 ) -> tuple[str, dict[str, object]]:
     """Verify daemon config and kernel-visible controls after create/start."""
-    _require_supported_device_adapter(worker_profile)
+    _diagnose_policy_recheck(
+        lambda: _require_supported_device_adapter(worker_profile),
+        diagnose=diagnose_policy,
+        name="GPU_ADAPTER_RECHECK",
+    )
     value = cli.json(["inspect", container_name, "--format", "{{json .}}"])
     if type(value) is not dict:
         raise _policy_refusal(diagnose_policy, "INSPECT_DOCUMENT")
@@ -739,7 +766,13 @@ def inspect_effective_controls(
     if worker_profile.accelerator_profile_id is not None:
         from carbon.reconstruction.worker.accelerator_runtime import device_request
 
-        expected_requests = [device_request()]
+        expected_requests = [
+            _diagnose_policy_recheck(
+                device_request,
+                diagnose=diagnose_policy,
+                name="DEVICE_REQUEST_RECHECK",
+            )
+        ]
     expected_label = f"org.opencontainers.image.carbon.c03.launch={launch_digest}"
     security = host.get("SecurityOpt") or []
     ulimits = {
@@ -803,13 +836,17 @@ def inspect_effective_controls(
         or unexpected_mounts
         or tmpfs_options != expected_tmpfs
         or expected_label
-        not in create_arguments(
-            container_name=container_name,
-            image_id=image_id,
-            input_directory=input_directory,
-            cpuset=cpuset,
-            launch_digest=launch_digest,
-            worker_profile=worker_profile,
+        not in _diagnose_policy_recheck(
+            lambda: create_arguments(
+                container_name=container_name,
+                image_id=image_id,
+                input_directory=input_directory,
+                cpuset=cpuset,
+                launch_digest=launch_digest,
+                worker_profile=worker_profile,
+            ),
+            diagnose=diagnose_policy,
+            name="CREATE_ARGUMENTS_RECHECK",
         )
     ):
         predicate = "UNCLASSIFIED"
@@ -922,15 +959,23 @@ def inspect_effective_controls(
             inspect_gpu_device,
         )
 
-        record = host_device()
+        record = _diagnose_policy_recheck(
+            host_device,
+            diagnose=diagnose_policy,
+            name="GPU_HOST_RECORD_RECHECK",
+        )
         device = worker_profile.accelerator_device_uuid
         if device != record.device_uuid:
             raise _policy_refusal(diagnose_policy, "HOST_DEVICE_RECORD")
         env = dict(item.split("=", 1) for item in config.get("Env", []) if "=" in item)
-        required = worker_environment(
-            GPU_PROFILE,
-            AcceleratorRole(worker_profile.accelerator_role),
-            host_device=record,
+        required = _diagnose_policy_recheck(
+            lambda: worker_environment(
+                GPU_PROFILE,
+                AcceleratorRole(worker_profile.accelerator_role),
+                host_device=record,
+            ),
+            diagnose=diagnose_policy,
+            name="GPU_ENVIRONMENT_RECHECK",
         )
         required.update(
             NVIDIA_VISIBLE_DEVICES=device,
