@@ -3,7 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import sys
+
+
+def __getattr__(name):
+    """Preserve the existing Python CLI patch points without eager imports."""
+    if name in {"candidates", "campaign_feedback", "campaign_goodhart"}:
+        return importlib.import_module(f".{name}", __package__)
+    raise AttributeError(name)
 
 
 def main(argv=None):
@@ -16,6 +24,10 @@ def main(argv=None):
         from .legacy_cli import main as legacy_main
 
         return legacy_main(args[1:])
+    if args:
+        from .legacy_cli import main as legacy_main
+
+        return legacy_main(args)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", nargs="?", choices=("benchmark", "legacy"))
     if not args:
