@@ -169,6 +169,8 @@ def test_autonomous_writer_versions_without_changing_graphite(public_stage):
 
 
 def test_autonomous_trial_retains_native_state_and_bound_sidecar(tmp_path):
+    from test_battery_research_images import ANALYSIS
+
     ledger, practice = practice_fixture(tmp_path)
     practice.model_retention = opt_in()
     result = practice("own-trial", STRATEGY)
@@ -184,7 +186,8 @@ def test_autonomous_trial_retains_native_state_and_bound_sidecar(tmp_path):
     sidecar = row["artifact_provenance"]
     assert sidecar["schema"] == retention.AUTONOMOUS_ARTIFACT_SCHEMA
     assert sidecar["opt_in"]["source_commit"] == REVISION
-    assert sidecar["image"] == IMAGE
+    assert practice.image.image_id == ANALYSIS.parent_image
+    assert sidecar["image"] == practice.image.image_id
     assert sidecar["files"]["fit.json"] == row["artifacts"]["fit.json"]["sha256"]
     assert sidecar["files"]["predictions.json"] == row["artifacts"][
         "predictions.json"
