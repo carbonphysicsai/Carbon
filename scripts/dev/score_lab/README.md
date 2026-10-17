@@ -1,5 +1,242 @@
 # Scorelab (OPT-15)
 
+## Current model-versus-solver receiver (DEVELOPMENT)
+
+`solver_benchmark.register` and `solver_benchmark.compare` accept one
+digest-bound attempted roster, one common reference panel, and complete
+per-model rows. The producer measures solver and model runs; the receiver runs
+neither. It reports registered mean absolute error in output units, mandatory
+gate failures, complete-query timing (preprocess, export, inference and
+postprocess), per-query min/median/p95/max latency for model and solver
+(nearest-rank p95), observed serial throughput, peak model memory, separately
+reported build time and paired solver/model speedup. `P` and `Q` have separate
+results. Missing references or infrastructure failures withhold affected
+aggregates; an invalid model output or mandatory gate failure cannot disappear
+by dropping a case. Cached reference lookup and cached predictions are refused
+as timing sources. Only complete `P` results with passing mandatory gates
+receive a descriptive Pareto label;
+there is no adopted scalar, winner, physical qualification or LIVE result.
+
+The registration also carries the **full versioned Challenge-owned physics
+definition** as `physics_contract: {version, definition}`. The definition is
+Challenge-specific data; this receiver does not impose a universal equation
+schema or decide its scientific adequacy. Its canonical digest must match on
+each resolved reference row and each model row. The result exposes only the
+version and digest, which the prospective Score Pack binds along with the
+registration digest. Reusing the same gate names with a changed governing
+relation, condition, unit, applicability statement or acceptance rule therefore
+refuses old evidence. Missing contract material refuses the registration;
+missing reference evidence stays indeterminate, never a candidate gate fail.
+The trusted Challenge/evaluation owner supplies and registers the definition
+and pack; miner-supplied declarations do not establish physics authority.
+
+This receiver is an internal ScoreLab interface, not a miner disclosure
+projection. Its registration is a binding for supplied development evidence,
+not proof that a solver result is physically adequate. The optional prospective
+`carbon.scoring.solver_benchmark_v3` pack binds the same Challenge, gate IDs,
+full physics-definition identity, output metric/unit, explicit accuracy ceiling
+and performance objective. When
+the ceiling is absent, it is unready and ranks nobody. ScoreLab and a validator
+caller use the same `ScoreEngine.score_solver_benchmark_v3` method; A5/v1 score
+bytes and meanings are unchanged. No physical threshold or production scalar
+is adopted by this development code.
+
+The physics-bound receiver uses registration/result schema **v2** for serial
+batch-one queries, and a prospective registration **v3** for whole-batch
+queries. V3 binds input and output shapes, batch size, and an explicit
+engineering-reference kind. It charges the full measured time of each batch;
+it never divides wall time by the sample count or calls a saved label lookup a
+reference run. V3 permits `peak_memory_bytes: null` only when peak memory was
+not measured, and reports the corresponding aggregate as null. A saved model
+with no measured construction time likewise reports `build_seconds: null` in
+v3; that value is never inferred from inference time. V2 retains its
+numeric-memory and build-time requirements and exact historical meaning. Both registration
+versions use the Score Pack/result schema **v3**. Earlier development benchmark v1 and pack v2 records
+remain historical; this path refuses them rather than implying that they
+carried the new physics binding.
+
+The producer can call the pure receiver or run
+`python -m scripts.dev.score_lab benchmark --input EVIDENCE.json --out RESULT.json`.
+The default `--help` shows only `benchmark` and `legacy`; historical commands
+are available through the explicit `legacy` route. The input contains
+`registration`, `references`, `models` and optionally
+`score_pack`; both files stay in producer custody. The command prints only the
+model count. The older value/N1 and menu commands below remain historical
+diagnostics and are not prerequisites for this path. The first tests use
+synthetic complete references only; a real Challenge must supply its existing
+registered job, TRAIN identity, output/gate contract and adequate measured
+reference evidence. The v2 profile supports one output quantity and serial
+batch size 1. The v3 profile supports a registered complete batch with one
+output quantity and the same mean-absolute-error metric. Other output metrics
+or units need another explicit registration version.
+
+`bundle_benchmark.benchmark_saved_entry` binds an independently retained v5
+public bundle entry and custody receipt to the trusted Challenge job, complete
+benchmark registration, measured model rows, and common reference rows before
+calling the same `ScoreEngine`. Custody alone yields `NOT_READY`; a complete
+measurement with no registered accuracy ceiling yields `PACK_NOT_READY`. The
+Challenge owner supplies the physics and the producer supplies actual measured
+rows. This development reducer does not run a model, reference, or solver.
+`bundle_benchmark.measurement_from_saved_inference` accepts a trusted Platform
+v2 timed worker result for one registered complete-batch query. It checks the
+retained fixture, recipe, state and prediction digests, output shape and timing
+scope before mapping the worker's four timing phases to the measured-model row.
+The caller still supplies Challenge-owned gate verdicts and independently
+measured same-batch reference rows; a retained prediction or label is never a
+timing measurement.
+
+## Prospective real design-task value test (development plan)
+
+**Question.** On the same buyer job and compute allowance, does a higher
+proposed ScoreLab score select a model whose recommended design is more useful
+when the independent solver checks it? Keep three visible measurements:
+
+1. **Broad fidelity:** error on the Challenge's required physical outputs and
+   conditions, with units and registered aggregation. Required output validity
+   and accuracy minima remain noncompensable gates.
+2. **Optimization-limit fidelity:** for each important registered limit,
+   compare predicted and reference *signed margins in that limit's own unit*.
+   Report correct-side rate, false-feasible and false-infeasible rates
+   separately, and signed/absolute margin error overall and in a registered
+   near-limit stratum. A solver-valid action that exceeds a buyer's limit is a
+   valid negative example: correctly predicting its breach is model success,
+   not a physical-law failure. Uncertain reference sides remain unresolved.
+3. **Achieved design outcome:** after the same Carbon-controlled optimizer
+   commits its pick without reference access, independently verify that pick's
+   feasibility and objective in buyer units. Report per-index results and the
+   buyer-mix aggregate only if every mandatory index is resolved; a zero-weight
+   band still has hard limits. Record `NONE_FEASIBLE`, abstention, and
+   unresolved picks without turning reference or infrastructure failure into
+   model failure. Report actual model/build/verification CPU time, wall time,
+   device and query counts separately from decision value.
+
+**First authentic job definition.** The owner registered the DEVELOPMENT-only
+`battery-v3-job-dev-v1`: 10% start to 80% objective, five mandatory ambient
+bands, and its P, Q-stratum proportions, buyer mix and hard limits. Its
+`Business/research/score-lab-campaign-01/owner-dev-v1/REGISTRATION.json` still
+marks runtime `BLOCKED_OBSERVER_IMPLEMENTATION_RECEIPT_AND_COMPATIBLE_EVIDENCE`:
+the observer implementation, action menu, model/environment and compatible
+evidence receipts are absent, and the Test Lead has not registered Q bands.
+Do not call that registered definition a runnable or scientifically qualified
+job until accepted later receipts resolve those exact gaps. Separately, the
+existing exposed **32 original VALUE questions** and retained model panels
+allow an *exploratory operational* component readout now. The selected-design
+report in
+`codex-queue/reports/scorelab-selected-time-run-20261017/` already compares
+operationally reference-resolved selected minutes for nine common-pass models.
+Those numerical enclosures are not physical qualification. Its guard was
+applied retrospectively and its bank is exposed; neither its ordering nor its
+postreference guard is confirmation or an adopted score. The native all-menu
+reference mask resolves only VALUE 2/64 and LEG 0/64 in the registered P128
+panel. In particular the fast 15 °C x1 action's plating verdict is unsettled;
+do not turn its mesh-160 point into truth. A *selected-pick* value test needs
+accepted reference outcomes for the picks actually made, plus a guard frozen
+before a new question batch is opened. It does not require claiming a fully
+solved menu or relabelling the registered D2
+half-minute regret. Keep Q's boundary diagnostic separate from P's value
+estimate. If either model in a paired comparison selects an unresolved action,
+that question is unscored for that pair on its common mask, with coverage
+reported; other independently resolved pairs need not lose it. New requirement
+draws over the same exposed 60 physical tuples remain *same-bank* evidence.
+Pairwise masks can describe only their own pairs; a global model ranking or
+score-value alignment claim needs one preregistered shared resolved task set
+across its whole roster (or a registered missingness estimator), otherwise it
+is `INSUFFICIENT_EVIDENCE`.
+Independent confirmation needs a preregistered disjoint physical/source/task
+unit with accepted reference applicability; if none exists, report only the
+same-bank diagnostic and do not claim confirmed score alignment.
+
+**Pairing with proposed Challenge briefs.** The [benchmark brief index](../../../Business/research/benchmark-challenge-briefs/README.md),
+its [CFD brief](../../../Business/research/benchmark-challenge-briefs/BACKWARD_FACING_STEP.md),
+[full-3D optics brief](../../../Business/research/benchmark-challenge-briefs/METAGRATING_3D.md),
+and `briefs.json` are `PROPOSED / NOT RUN`: they do not register P/Q/w,
+numeric buyer limits, novelty distances, acceptance bands, or spend. They
+suggest CFD first and original full-3D optics next; battery's exposed
+operational diagnostic is a separate development job, not transferable
+physics or reference adequacy for either brief.
+
+| Proposed job | Broad fidelity and native-unit limit readout | Verified picked-design value and realistic competitors | Reference boundary |
+| --- | --- | --- | --- |
+| 2D backward-facing-step recovery contour | Compare mass-flow-weighted total-pressure loss, bottom-wall `Cf`, wall `Cp`, reattachment `x/H`, and selected flow/turbulence profiles. Keep the loss definition/pressure unit and source-shifted `Cp` distinct. A prospective separation/recovery margin is `registered maximum x/H − observed x/H`; false-feasible means a predicted nonnegative margin but a negative reference margin, while false-infeasible reverses those sides. A buyer pressure-loss cap, geometric and manufacturing limits need their own registered observables and units. | After solver checking, report the feasible contour's pressure loss under each operating scenario. Compare equal-resource model screening with cached response maps/correlations, coarse-to-fine or adjoint/DoE SU2 search and direct solver search, charging construction, caching, retries and final verification. | NASA `x/H=6.26±0.10` and wall/profile data check the **published anchor**, not a buyer limit or novel-contour truth. Carbon's full SU2 deck, convergence/BC sensitivity, variant applicability, numeric limits and P/Q/w are not yet accepted. |
+| Full-3D periodic metagrating mask/thickness | Preserve x/y periodicity and full x/y/z Maxwell fields. Compare normalized desired transmitted `+1` order power, every propagating unwanted transmitted/reflected order, total `R/T`, energy residual and convergence. Prospective margins are `desired efficiency − registered minimum` and `registered unwanted/reflection cap − observed power`, all dimensionless; report false-feasible and false-infeasible separately for each. Fabrication feature/thickness/etch rules need registered observables before testing. | Verify the selected mask's feasible desired-order efficiency with full-3D Meep, against source-mask lookup, pattern libraries/response maps, converged S4 RCWA, direct RCWA or Meep optimization at measured equal total resources. | The source script's separate normalization run currently covers desired-order power, not all-order/energy reduction. Agreement on published masks does not validate novel masks, fabrication, or a 2D/effective-index substitute. Geometry, numerical adequacy, fabrication limits and P/Q/w remain unregistered. |
+
+For both, a physically valid reference output that breaches a buyer limit is a
+correct negative design case, not a physics failure. A missing or uncertain
+reference remains unresolved and cannot establish `NONE_FEASIBLE`. Start with
+one bounded question whose observable, reference applicability and cheap
+competitor can actually be checked; the briefs' 32/64/128-case and euro
+figures are planning assumptions, not a mandate for a full-grid run or spend.
+Retain original model bytes, lineage and native state; a saved fixture digest
+is not the separately staged inference-input digest. Preserve the old failed
+and exposed runs as versioned evidence rather than silently rescoring them.
+
+**One controlled experiment.** Freeze the task, action grammar, starts, seed,
+optimizer version, tie rule, query budget, condition panel and bank identity.
+Run each reconstructed model and each control through that same prediction-only
+runner; snap and charge attempted queries as `design_search.tasks` already
+does. Commit picks before opening accepted reference outcomes. Compare the
+model-screen-then-solver-verify arm with solver-alone adaptive search and the
+registered cheap-baseline screen under the *same registered budget ledger*;
+`design_search.equal_budget` already replays those arms and their ledger; it
+does not run a model or solver and can accept assumed costs. A real
+matched-compute claim additionally requires source-measured, enforced model,
+solver and verification cost receipts under the same registered hardware and
+budget policy. Report the best verified feasible objective and actual
+feasibility, plus paired differences at the registered budget. Do not price an
+infeasible design as a fast feasible one, use cached solver labels as runtime,
+or compare unequal compute without marking it diagnostic.
+
+**Failure probes.** On settled reference cases, keep a known-good reference
+predictor and the existing unit-matched edge-optimist, over-cautious,
+localized sign-error and
+path/lattice-aware controls in `design_search.controls`. Add toy-only probes
+for low broad error with a near-limit bias, accurate limits with biased
+objective, fast but inaccurate inference, slow but accurate inference, and
+always-abstain/trivial search. Register severities per quantity and cost
+assumptions before the simulated run. The report must show which probes pass
+hard gates, which make unsafe picks, which miss feasible opportunities, and
+what verified value each obtains. Synthetic controls test sensitivity and
+failure classification; they are not real physical value evidence.
+
+**Score test and decision.** Keep broad, limit and achieved-value components
+separate first. Prospective candidate transforms and weights may be proposed
+only as versioned Challenge-local Score Packs, with unit scales, asymmetry,
+near-limit bands and eligibility gates registered by their owners. Evaluate
+candidate packs on development score questions, while measuring each model's
+achieved utility on physically disjoint design questions when available;
+cluster resampling by shared physical bank/task and model recipe. A changed
+requirement over an exposed solved bank tests transfer only within that bank.
+Freeze the search rule, guard, short list, transforms, weights and decision
+criterion before one independent confirmation set is opened. Report score
+ordering and paired achieved value against the current registered rule and
+strongest admissible competitor
+where their evidence is available; otherwise mark that comparison unmeasured.
+Report uncertainty and control failures. A candidate that rewards an unsafe
+or false-feasible pick, or fails the registered prospective value criterion,
+does not replace the current rule; insufficient coverage yields
+`INSUFFICIENT_EVIDENCE`. No value
+from the exposed bank can be tuned into a confirmation claim. Historical v3
+speedup packs and scores keep their meaning; any three-axis score is a new
+version, never a silent rescore.
+
+**Smallest implementation and cost boundary.** Reuse `design_search.tasks`,
+`indexed`, `controls`, `task_measures`, `score_bridge` and `equal_budget` for
+task identity, picks, references, controls and solver-verified outcomes. The
+missing source measurement is one producer-only per-case/per-limit margin
+diagnostic over digest-bound predictions and accepted reference quantities;
+it is a readout before any Score Pack aggregation, not a second score engine.
+First run toy fixture tests (no solver), then the existing exposed public bank
+as a labelled same-bank diagnostic (no new solves), then at most one separately
+registered pilot on a disjoint physical/source/task unit under an explicit
+query/CPU/wall/spend cap and reference acceptance rule. Product/Root dispatch
+that pilot only after its cap and custody are registered. Research checks
+physical applicability. The Challenge's scientific owner registers real
+limit bands, gates, buyer weights and any score adoption; the Test Lead
+coordinates registered execution, evidence masks and operational caps within
+that authority. Until those inputs and accepted references exist, the real value
+claim is `INSUFFICIENT_EVIDENCE`, while the fixture and exposed diagnostic can
+still identify concrete software or reference gaps.
+
 ## OPT-16: V2 bank producer workflow
 
 `bank-plan` consumes a registered V2 definition, a digest-bound committed draw
@@ -23,18 +260,18 @@ it cannot silently apply battery's minimization arithmetic to a maximizing
 Challenge.
 
 ```sh
-python -m scripts.dev.score_lab bank-plan \
+python -m scripts.dev.score_lab legacy bank-plan \
   --registration REGISTRATION.json --draws COMMITTED_DRAWS.json \
   --definition docs/development/value-metric-v2/definition.v2.json \
   --split-seed-file PRODUCER_SEED.txt --out PRODUCER_PLAN.json \
   --jobs-out PRODUCER_WORKER_JOBS.json
-python -m scripts.dev.score_lab bank-cost \
+python -m scripts.dev.score_lab legacy bank-cost \
   --plan PRODUCER_PLAN.json --registration REGISTRATION.json \
   --draws COMMITTED_DRAWS.json --split-seed-file PRODUCER_SEED.txt \
   --definition docs/development/value-metric-v2/definition.v2.json \
   --policy REFERENCE_COST_POLICY.json \
   --coarse COARSE_MARGIN_RECORDS.json --jobs-out PRODUCER_REFINEMENT_JOBS.json
-python -m scripts.dev.score_lab bank-solved-check \
+python -m scripts.dev.score_lab legacy bank-solved-check \
   --plan PRODUCER_PLAN.json --registration REGISTRATION.json \
   --draws COMMITTED_DRAWS.json --split-seed-file PRODUCER_SEED.txt \
   --records PRODUCER_SOLVED.jsonl \
@@ -113,7 +350,7 @@ exclusions among the configured top fraction of true-value members. A
 one-factor table reports which candidate positions change at each switch.
 
 ```sh
-python -m scripts.dev.score_lab physics \
+python -m scripts.dev.score_lab legacy physics \
   --config scripts/dev/score_lab/physics-example.json \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
   --out /tmp/scorelab-physics-toy.json
@@ -132,10 +369,10 @@ The source hashes and coverage appear in JSON. Every real trait limit and
 blend weight in the example remains an uncalibrated **ASSUMPTION**.
 
 ```sh
-python -m scripts.dev.score_lab prepare-ev4 \
+python -m scripts.dev.score_lab legacy prepare-ev4 \
   --public-dir codex-queue/inputs/ev4-public-proof \
   --repository . --out /tmp/scorelab-ev4-public.json.gz
-python -m scripts.dev.score_lab physics \
+python -m scripts.dev.score_lab legacy physics \
   --config scripts/dev/score_lab/physics-example.json \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
   --public-cache /tmp/scorelab-ev4-public.json.gz \
@@ -169,24 +406,24 @@ predictions on score and value questions are disjoint.
 ```sh
 # All ten Validator candidates in eight families, from the owner's read-only
 # local copy. This file is not committed to the Score Lab PR.
-python -m scripts.dev.score_lab synthetic \
+python -m scripts.dev.score_lab legacy synthetic \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
   --value-workflow v2-shortlist --buyer-cap 3 --buyer-unit 1.0 \
   --out /tmp/scorelab-all-ten.json
 
 # A registry-v9 single-leg example. This executes score_tuning's candidate.
-python -m scripts.dev.score_lab synthetic \
+python -m scripts.dev.score_lab legacy synthetic \
   --registry docs/development/evidence/battery-score-tuning/registry-v9.json \
   --candidate A --out /tmp/scorelab-v9-a.json
 
 # Old in-force family, on analytic toys only. No historical rescore.
-python -m scripts.dev.score_lab synthetic \
+python -m scripts.dev.score_lab legacy synthetic \
   --registry docs/development/evidence/battery-score-tuning/registry-v5.json \
   --candidate 'G-FEAS/A-Q>@0.05' --out /tmp/scorelab-old.json
 
 # Prospective VALUE-METRIC-V2 rev 2. Every number below is an ASSUMPTION
 # for sensitivity, not an owner-selected value. The gate is explicit.
-python -m scripts.dev.score_lab synthetic \
+python -m scripts.dev.score_lab legacy synthetic \
   --v2-definition docs/development/value-metric-v2/definition.v2.json \
   --kappa 0.1 --cap 3 --unit 1.0 \
   --value-workflow v2-shortlist --verification-costs 0.1 \
@@ -245,7 +482,7 @@ group still missing from the toy grammar; no partial sample is a campaign
 verdict.
 
 ```sh
-python -m scripts.dev.score_lab campaign-stress \
+python -m scripts.dev.score_lab legacy campaign-stress \
   --base-config scripts/dev/score_lab/physics-example.json \
   --scenarios scripts/dev/score_lab/campaign-stress-example.json \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
@@ -257,7 +494,7 @@ each measured row to the plan and candidate digests and records the sampled
 axis values. Rows are diagnostics, not a final score-rule ranking.
 
 ```sh
-python -m scripts.dev.score_lab campaign-run \
+python -m scripts.dev.score_lab legacy campaign-run \
   --plan /tmp/scorelab-campaign-plan.json \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
   --candidate N1-DECISION-RELEVANCE-ERROR \
@@ -276,7 +513,7 @@ The `campaign-run --plan` and `campaign-atlas --result` readers accept plain
 JSON or deterministic `.json.gz` evidence files.
 
 ```sh
-python -m scripts.dev.score_lab campaign-atlas \
+python -m scripts.dev.score_lab legacy campaign-atlas \
   --result /tmp/scorelab-campaign-results.json \
   --out /tmp/scorelab-atlas.json
 ```
@@ -289,17 +526,17 @@ and Jansen total-order estimators. An unresolved toy tau makes the estimate
 and are never clipped. A complete run costs `(2 + axes) * count` toy profiles.
 
 ```sh
-python -m scripts.dev.score_lab campaign-sobol-plan \
+python -m scripts.dev.score_lab legacy campaign-sobol-plan \
   --base-config scripts/dev/score_lab/physics-error-example.json \
   --axes scripts/dev/score_lab/campaign-axes-error-example.json \
   --count 4 --seed 97 --switch-index 0 --scope neighbourhood_blend \
   --out /tmp/scorelab-sobol-plan.json
-python -m scripts.dev.score_lab campaign-sobol-run \
+python -m scripts.dev.score_lab legacy campaign-sobol-run \
   --plan /tmp/scorelab-sobol-plan.json \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
   --candidate N1-DECISION-RELEVANCE-ERROR \
   --out /tmp/scorelab-sobol-results.json
-python -m scripts.dev.score_lab campaign-sobol-atlas \
+python -m scripts.dev.score_lab legacy campaign-sobol-atlas \
   --result /tmp/scorelab-sobol-results.json \
   --out /tmp/scorelab-sobol-atlas.json
 ```
@@ -350,7 +587,7 @@ margins. A vector `small-grid` is a sampled finite lattice; vector
 reference on the offered set, not a global continuous optimum.
 
 ```sh
-python -m scripts.dev.score_lab campaign-feedback \
+python -m scripts.dev.score_lab legacy campaign-feedback \
   --config scripts/dev/score_lab/physics-example.json \
   --search scripts/dev/score_lab/feedback-search-example.json \
   --disclosure scripts/dev/score_lab/feedback-disclosure-example.json \
@@ -359,7 +596,7 @@ python -m scripts.dev.score_lab campaign-feedback \
 ```
 
 ```sh
-python -m scripts.dev.score_lab campaign-goodhart \
+python -m scripts.dev.score_lab legacy campaign-goodhart \
   --config scripts/dev/score_lab/physics-example.json \
   --search scripts/dev/score_lab/goodhart-search-example.json \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
@@ -368,7 +605,7 @@ python -m scripts.dev.score_lab campaign-goodhart \
 ```
 
 ```sh
-python -m scripts.dev.score_lab campaign-plan \
+python -m scripts.dev.score_lab legacy campaign-plan \
   --base-config scripts/dev/score_lab/physics-example.json \
   --axes scripts/dev/score_lab/campaign-axes-example.json \
   --count 8 --seed 17 --shard 0 --shards 2 \
@@ -376,7 +613,7 @@ python -m scripts.dev.score_lab campaign-plan \
 ```
 
 ```sh
-python -m scripts.dev.score_lab synthetic \
+python -m scripts.dev.score_lab legacy synthetic \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
   --components scripts/dev/score_lab/components-example.json \
   --quick --out /tmp/scorelab-components-toy.json
@@ -400,7 +637,7 @@ are not equalized. `NO_OBSERVED_DIFFERENCE_ON_SLATE` reports an exact tie in
 this toy slate, with no statistical-power claim.
 
 ```sh
-python -m scripts.dev.score_lab campaign-robustness \
+python -m scripts.dev.score_lab legacy campaign-robustness \
   --config scripts/dev/score_lab/physics-shape-example.json \
   --search scripts/dev/score_lab/robustness-search-example.json \
   --levers scripts/dev/score_lab/robustness-levers-example.json \
@@ -424,10 +661,10 @@ cases for decision value. Their historical use makes this **retrospective**.
 The cache is never committed.
 
 ```sh
-python -m scripts.dev.score_lab prepare-ev4 \
+python -m scripts.dev.score_lab legacy prepare-ev4 \
   --public-dir codex-queue/inputs/ev4-public-proof \
   --repository . --out /tmp/scorelab-ev4-public.json.gz
-python -m scripts.dev.score_lab replay \
+python -m scripts.dev.score_lab legacy replay \
   --cache /tmp/scorelab-ev4-public.json.gz \
   --registry docs/development/evidence/battery-score-tuning/registry-v9.json \
   --candidate A --out /tmp/scorelab-ev4-a.json
