@@ -62,7 +62,7 @@ def fixture():
         "bundle_digest": "sha256:toy-bundle",
         "recipe_digest": "sha256:toy-recipe",
         "state_digest": "sha256:toy-state",
-        "fixture_digest": "sha256:toy-inputs",
+        "fixture_digest": "sha256:" + "f" * 64,
         "prediction_digest": "sha256:toy-predictions",
         "role_manifest_sha256": "sha256:toy-roles",
         "physics_contract": {
@@ -70,7 +70,18 @@ def fixture():
             "definition_digest": None,
             "authenticity": "PENDING",
         },
-        "roles": [],
+        "roles": {
+            "fixture": {
+                "file": "stage/example.npz",
+                "codec": "numeric_npz",
+                "sha256": "sha256:" + "f" * 64,
+            },
+            "inputs": {
+                "file": "infer/inputs.npz",
+                "codec": "numeric_npz",
+                "sha256": "sha256:" + "e" * 64,
+            },
+        },
         "original_files": [],
         "custody_state": "PUBLIC_BYTES_REHASHED",
         "official_eligible": False,
@@ -294,7 +305,7 @@ def test_saved_v2_worker_receipt_maps_to_one_measured_v3_query():
             "schema": "carbon.development.bundle-inference.v2",
             "recipe_digest": entry["recipe_digest"],
             "state_digest": entry["state_digest"],
-            "inputs_digest": entry["fixture_digest"],
+            "inputs_digest": entry["roles"]["inputs"]["sha256"],
             "predictions_digest": bundle._sha(prediction_bytes),
             "measurement": {
                 "scope": "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE",
@@ -324,6 +335,7 @@ def test_saved_v2_worker_receipt_maps_to_one_measured_v3_query():
     measured = bundle.measurement_from_saved_inference(
         entry, registration, WorkerResult(**inference), gates={"toy_gate": True}
     )
+    assert entry["fixture_digest"] != inference["receipt"]["inputs_digest"]
     assert measured["build_seconds"] is None
     assert measured["cases"][0]["peak_memory_bytes"] is None
     result = bundle.benchmark_saved_entry(
@@ -334,10 +346,16 @@ def test_saved_v2_worker_receipt_maps_to_one_measured_v3_query():
     assert result["benchmark"]["models"][0]["by_role"]["P"]["paired_speedup"] == 4.0
 
     broken = deepcopy(inference)
-    broken["receipt"]["inputs_digest"] = "sha256:other-fixture"
+    broken["receipt"]["inputs_digest"] = entry["fixture_digest"]
     with pytest.raises(bundle.BundleBenchmarkRefused, match="saved_inference_binding"):
         bundle.measurement_from_saved_inference(
             entry, registration, broken, gates={"toy_gate": True}
+        )
+    missing_role = deepcopy(entry)
+    del missing_role["roles"]["inputs"]
+    with pytest.raises(bundle.BundleBenchmarkRefused, match="saved_inference_binding"):
+        bundle.measurement_from_saved_inference(
+            missing_role, registration, inference, gates={"toy_gate": True}
         )
     broken = deepcopy(inference)
     broken["predictions"][0][0][0][0] = 9.0

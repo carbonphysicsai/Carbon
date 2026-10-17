@@ -276,8 +276,17 @@ def measurement_from_saved_inference(
     ):
         raise BundleBenchmarkRefused("saved_inference_shape")
     receipt = inference["receipt"]
+    roles = entry.get("roles")
+    input_role = roles.get("inputs") if type(roles) is dict else None
     if (
-        type(receipt) is not dict
+        type(input_role) is not dict
+        or set(input_role) != {"file", "codec", "sha256"}
+        or input_role["codec"] != "numeric_npz"
+        or type(input_role["file"]) is not str
+        or not input_role["file"]
+        or type(input_role["sha256"]) is not str
+        or re.fullmatch(r"sha256:[0-9a-f]{64}", input_role["sha256"]) is None
+        or type(receipt) is not dict
         or set(receipt)
         != {
             "schema",
@@ -292,7 +301,7 @@ def measurement_from_saved_inference(
             inference[field] != entry.get(field) or receipt[field] != inference[field]
             for field in ("recipe_digest", "state_digest")
         )
-        or receipt["inputs_digest"] != entry.get("fixture_digest")
+        or receipt["inputs_digest"] != input_role["sha256"]
         or receipt["predictions_digest"] != inference["predictions_digest"]
     ):
         raise BundleBenchmarkRefused("saved_inference_binding")
