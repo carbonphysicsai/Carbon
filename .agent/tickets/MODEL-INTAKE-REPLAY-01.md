@@ -1,6 +1,8 @@
 # MODEL-INTAKE-REPLAY-01 — prospective saved-state intake
 
-**Scope:** Add one prospective public-TRAIN KNN replay entry to the existing ScoreLab model-bank intake, using the retained public model bytes and saved-state replay. Preserve all prior intake records and historical dispositions.
+**Scope:** Produce one prospective, content-bound public-TRAIN KNN replay addendum and its development-only saved-state verifier. Preserve all prior intake records and historical dispositions. This ticket does not register or ingest a model into a ScoreLab model bank.
+
+**Integration finding:** Optimizer's read-only receiver audit found no existing ScoreLab trained-model-bank consumer or admission schema. `scripts/dev/score_lab/__main__.py` operates on question/reference banks, while `carbon.battery.recipes.model_from_bytes` is only a safe state codec. The single missing receiver operation is a versioned admission of a prospective public-TRAIN model entry that binds the addendum digest, exact state/artifact digests, and replay result, records prospective placement outside frozen18, and emits a separately bound receiver receipt without rewriting the historical parent. That operation is not part of this producer ticket and must be implemented/owned by the receiver before any ingestion claim.
 
 **Authority:** Owner direction `OWNER_TEST_MODELS_TO_SCORELAB_20261016.md`; Root's 2026-10-17 assignment to register a new prospective existing-bank entry without editing the prior manifest. Packets owns producer lineage and the prospective manifest; Optimizer owns the receiver interface, independent reload/comparison, and separate ACK; Product owns any runtime execution. This ticket is source/artifact engineering only.
 

@@ -29,3 +29,12 @@ existing safe `recipes.model_from_bytes` codec. It emits a local prospective
 replay check only; it is not an integrated intake service or formal ACK.
 Optimizer owns the separate receiver ACK and any later acceptance decision.
 This directory must not be treated as an accepted model-bank entry.
+
+Optimizer's independent audit found no existing ScoreLab trained-model-bank
+consumer or admission schema: the ScoreLab CLI handles question/reference
+banks, and `recipes.model_from_bytes` is a codec, not an admission route. The
+single missing receiver operation is versioned admission of a prospective
+public-TRAIN model entry bound to this addendum, the exact saved-state/artifact
+digests, and the replay result, with an immutable receiver receipt and
+prospective placement outside frozen18. That receiver-side operation is not
+implemented here; `ingested` therefore remains false.
