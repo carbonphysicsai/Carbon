@@ -2495,11 +2495,32 @@
   }
   // A Challenge's own practice feedback (battery's summary, fit and backend),
   // as recorded; a field it does not report is shown as unavailable.
-  // One Challenge's own model families (its construction contract), or the
-  // historical list when the controller predates the per-Challenge field.
+  // Family rows belong to historical launch-options.v1 only. The v2 response
+  // reports serving paths; it is not a catalogue of admissible architectures.
   function familiesFor(challengeId) {
+    if (launchOptions?.schema === "carbon.launchpad.launch-options.v2") return [];
     const by = launchOptions && launchOptions.families_by_challenge;
-    return (by && challengeId && by[challengeId]) || (launchOptions ? launchOptions.families : []);
+    const rows = (by && challengeId && by[challengeId]) || launchOptions?.families;
+    return Array.isArray(rows) ? rows : [];
+  }
+  function constructionPathsFor(challenge) {
+    if (launchOptions?.schema !== "carbon.launchpad.launch-options.v2" || !challenge?.id) return null;
+    const document = launchOptions.construction_paths?.[challenge.id];
+    if (document?.schema !== "carbon.launchpad.construction-paths.v1"
+        || document.challenge?.id !== challenge.id
+        || document.challenge?.version !== challenge.version
+        || !Array.isArray(document.paths)) return null;
+    return document;
+  }
+  function renderConstructionPaths(target, document) {
+    researchNote(target, "Construction is checked from your bounded recipe at use time; these are serving paths, not a list of permitted model families.", "hint");
+    const labels = {public_reconstruction: "Public reconstruction", official_submission: "Official submission"};
+    for (const path of document.paths) {
+      if (!Object.prototype.hasOwnProperty.call(labels, path?.id)) continue;
+      const availability = path.availability === "available" ? "available for a compatible bounded recipe" : "unserved";
+      researchNote(target, labels[path.id] + " · " + availability + (path.reason ? " · " + words(path.reason) : ""), path.availability === "available" ? "hint" : "reason");
+    }
+    if (document.qualification !== true) researchNote(target, "Scientific qualification: untested.", "hint");
   }
   function renderChallengePractice(section, experiment) {
     const s = experiment.summary, fit = experiment.fit || {}, backend = experiment.backend || {};
@@ -2669,7 +2690,7 @@
     researchNote(box, "A short check that the recipe builds and trains, with no score. A passed check lets you freeze that exact recipe.", "hint");
     if (issue) researchNote(box, practiceMessage(issue) + ".", "reason");
     operationLine(box, run, ["practice"]);
-    if (launchOptions) {
+    if (launchOptions && launchOptions.schema !== "carbon.launchpad.launch-options.v2") {
       // Each family's true availability now, by its registry verdict.
       const byVerdict = {};
       for (const family of familiesFor(run.challenge && run.challenge.id)) (byVerdict[family.verdict] ||= []).push(family.selector || family.id.split(".")[1]);
@@ -3221,11 +3242,17 @@
       box = el("section"); box.id = "wizard-construction-options";
       anchor.parentElement.append(box);
     }
-    const document = launchOptions?.construction_options?.[wizard.challenge?.id];
+    const v2 = launchOptions?.schema === "carbon.launchpad.launch-options.v2";
+    const paths = constructionPathsFor(wizard.challenge);
+    const document = v2
+      ? (wizard.challenge ? paths || {unavailable: true} : null)
+      : launchOptions?.construction_options?.[wizard.challenge?.id];
     box.hidden = !document;
     if (!document) return;
     rebuild(box, JSON.stringify(document), target => {
-      target.append(el("h3", "What you can change"));
+      target.append(el("h3", v2 ? "Construction serving paths" : "What you can change"));
+      if (paths) { renderConstructionPaths(target, paths); return; }
+      if (v2) { researchNote(target, "Construction path status unavailable for this Challenge; no served path is claimed.", "reason"); return; }
       researchNote(target, "Carbon reads what your model changes. You do not choose a level.", "hint");
       for (const change of document.types || []) {
         researchNote(target, change.label + " · " + change.status + " · " + acceptanceText(change) + ": " + change.reason);
@@ -3665,13 +3692,24 @@
     $("launch-advanced").hidden = launchPath !== "advanced";
     const availability = $("launch-availability");
     const chosen = wizard.challenge ? wizard.challenge.id : "";
-    if (launchOptions && availability.dataset.built !== chosen) {
+    const availabilityKey = launchOptions && JSON.stringify([
+      chosen, launchOptions.schema, launchOptions.construction_paths?.[chosen],
+      launchOptions.families_by_challenge?.[chosen], launchOptions.families,
+      launchOptions.research_lanes,
+    ]);
+    if (launchOptions && availability.dataset.built !== availabilityKey) {
       availability.replaceChildren();
       const families = {};
-      for (const family of familiesFor(chosen)) (families[family.verdict] ||= []).push(family.selector || family.id.split(".")[1]);
-      for (const [verdict, names] of Object.entries(families)) researchNote(availability, "Model families · " + words(verdict) + ": " + names.join(", "));
-      for (const [lane, state] of Object.entries(launchOptions.research_lanes)) researchNote(availability, "Research lane " + lane + " · " + state.availability + (state.reason ? ": " + words(state.reason) : ""));
-      availability.dataset.built = chosen;
+      if (launchOptions.schema === "carbon.launchpad.launch-options.v2") {
+        const paths = constructionPathsFor(wizard.challenge);
+        if (paths) renderConstructionPaths(availability, paths);
+        else if (chosen) researchNote(availability, "Construction path status unavailable for this Challenge; no served path is claimed.", "reason");
+      } else {
+        for (const family of familiesFor(chosen)) (families[family.verdict] ||= []).push(family.selector || family.id.split(".")[1]);
+        for (const [verdict, names] of Object.entries(families)) researchNote(availability, "Model families · " + words(verdict) + ": " + names.join(", "));
+      }
+      for (const [lane, state] of Object.entries(launchOptions.research_lanes || {})) researchNote(availability, "Research lane " + lane + " · " + state.availability + (state.reason ? ": " + words(state.reason) : ""));
+      availability.dataset.built = availabilityKey;
     }
     const problem = compositionProblem(composition);
     setText($("composition-summary"), describeComposition(composition) + (problem ? " · cannot launch: " + problem : ""));

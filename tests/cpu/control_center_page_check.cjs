@@ -126,6 +126,52 @@ scenario("normal challenge selection shows only its registered construction opti
   clean(second);
 });
 
+scenario("v2 construction paths render without family admission claims", async () => {
+  const challenge = selectable();
+  const state = launchable(world());
+  const pathDocument = {
+    schema: "carbon.launchpad.construction-paths.v1",
+    challenge: {id: challenge.challenge_id, version: challenge.version},
+    construction_kit: null,
+    paths: [
+      {id: "public_reconstruction", availability: "available", reason: "isolated_public_worker_served_for_supported_recipe_operations"},
+      {id: "official_submission", availability: "unserved", reason: "receiver_paired_direct_reconstruction_unserved"},
+    ],
+    qualification: false,
+  };
+  state.options = {
+    ...state.options,
+    schema: "carbon.launchpad.launch-options.v2",
+    construction_paths: {[challenge.challenge_id]: pathDocument},
+  };
+  delete state.options.families;
+  delete state.options.families_by_challenge;
+  delete state.options.construction_options;
+  const page = await open(state);
+  await wizardTo(page, "review");
+  const notice = page.text("wizard-construction-options");
+  assert.match(notice, /Construction serving paths/);
+  assert.match(notice, /Public reconstruction · available for a compatible bounded recipe/);
+  assert.match(notice, /Official submission · unserved/);
+  assert.match(notice, /Scientific qualification: untested/);
+  assert.doesNotMatch(notice, /Families you can freeze|What you can change/);
+  const availability = page.text("launch-availability");
+  assert.match(availability, /Official submission · unserved/);
+  assert.doesNotMatch(availability, /Model families/);
+  clean(page);
+
+  const unrelated = launchable(world());
+  unrelated.options = {...state.options, construction_paths: {other: pathDocument}};
+  const second = await open(unrelated);
+  second.go("#launch");
+  await second.advance(0);
+  await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id));
+  assert.match(second.text("wizard-construction-options"), /Construction path status unavailable/);
+  assert.doesNotMatch(second.text("wizard-construction-options"), /Public reconstruction · available/,
+    "another Challenge's path document cannot be shown for this choice");
+  clean(second);
+});
+
 scenario("acceptance labels name a revision and never follow availability", async () => {
   const state = launchable(world());
   const agent = state.caps.agents.choices.find(row => row.id === "manual");
