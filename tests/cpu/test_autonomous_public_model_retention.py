@@ -17,6 +17,7 @@ from carbon.battery.practice import PROGRAM
 from carbon.development_session.profile import canonical, digest
 
 REVISION = "a" * 40
+pytest_plugins = ("test_graphite_public_model_retention",)
 
 
 def opt_in():
