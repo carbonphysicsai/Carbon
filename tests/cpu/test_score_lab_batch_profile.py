@@ -113,6 +113,21 @@ def test_complete_batches_are_whole_queries_not_divided_by_batch_size():
     assert role["model_query_latency"]["median_s"] == pytest.approx(2.0)
 
 
+def test_v3_unmeasured_peak_memory_does_not_block_measured_accuracy_and_speed():
+    registration, references, model = fixture()
+    for row in references:
+        row["peak_memory_bytes"] = None
+    for row in model["cases"]:
+        row["peak_memory_bytes"] = None
+    result = bench.compare(registration, references, [model])
+    p = result["models"][0]["by_role"]["P"]
+    assert p["status"] == "MEASURED_DEVELOPMENT"
+    assert p["mean_absolute_error"] == 0.0
+    assert p["paired_speedup"] == pytest.approx(5.0)
+    assert p["model_peak_memory_bytes"] is None
+    assert p["solver_peak_memory_bytes"] is None
+
+
 def test_complete_batch_result_keeps_score_engine_v3_parity():
     registration, references, model = fixture()
     pack = register_pack(

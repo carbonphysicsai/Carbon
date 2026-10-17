@@ -274,3 +274,12 @@ def test_forged_custody_or_score_pack_is_refused():
         bundle.benchmark_saved_entry(
             entry, receipt, job, registration, refs, measurement, changed
         )
+
+
+def test_v2_still_requires_numeric_memory_evidence():
+    entry, receipt, job, registration, refs, measurement, pack = fixture()
+    refs[0]["peak_memory_bytes"] = None
+    with pytest.raises(bench.BenchmarkRefused, match="nonfinite_measurement"):
+        bundle.benchmark_saved_entry(
+            entry, receipt, job, registration, refs, measurement, pack
+        )

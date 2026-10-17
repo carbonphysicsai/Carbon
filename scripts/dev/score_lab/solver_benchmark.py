@@ -70,6 +70,13 @@ def _number(value, *, positive=False, nonnegative=False):
     return number
 
 
+def _peak_memory(value, registration):
+    """Only v3 may report memory as unmeasured; zero remains a measurement."""
+    if registration["schema"] == SCHEMA_V3 and value is None:
+        return None
+    return _number(value, nonnegative=True)
+
+
 def _derived(value):
     if type(value) not in (int, float):
         raise BenchmarkRefused("derived_nonfinite")
@@ -336,8 +343,8 @@ def compare(registration, references, models, *, score_pack=None):
             reference_rows[cid] = {
                 "outputs": _outputs(row["outputs"], registration["output"]["size"]),
                 "elapsed_s": _number(row["elapsed_s"], positive=True),
-                "peak_memory_bytes": _number(
-                    row["peak_memory_bytes"], nonnegative=True
+                "peak_memory_bytes": _peak_memory(
+                    row["peak_memory_bytes"], registration
                 ),
             }
         elif set(row) != {"id", "status"}:
@@ -449,7 +456,7 @@ def compare(registration, references, models, *, score_pack=None):
                 total = _sum(_number(v, nonnegative=True) for v in timing.values())
                 if total <= 0:
                     raise BenchmarkRefused("complete_query_timing")
-                peak = _number(row["peak_memory_bytes"], nonnegative=True)
+                peak = _peak_memory(row["peak_memory_bytes"], registration)
                 for gate, passed in row["gates"].items():
                     gate_failures[gate] += not passed
                 if any(not passed for passed in row["gates"].values()):
@@ -505,10 +512,18 @@ def compare(registration, references, models, *, score_pack=None):
                 "observed_serial_queries_per_second": (
                     _derived(len(selected) / model_total) if complete else None
                 ),
-                "model_peak_memory_bytes": max(memories) if complete else None,
+                "model_peak_memory_bytes": (
+                    max(memories)
+                    if complete and all(value is not None for value in memories)
+                    else None
+                ),
                 "solver_peak_memory_bytes": (
                     max(reference_rows[c["id"]]["peak_memory_bytes"] for c in selected)
                     if complete
+                    and all(
+                        reference_rows[c["id"]]["peak_memory_bytes"] is not None
+                        for c in selected
+                    )
                     else None
                 ),
             }
