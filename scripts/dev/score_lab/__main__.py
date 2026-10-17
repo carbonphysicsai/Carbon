@@ -24,6 +24,7 @@ from . import (
     campaign_stress,
     campaign_sweep,
     candidates,
+    model_entry_admission,
     physics,
     public_ev4,
     public_physics,
@@ -303,6 +304,13 @@ def main(argv=None):
     bank_cost.add_argument("--coarse", type=Path)
     bank_cost.add_argument("--jobs-out", type=Path)
     bank_cost.add_argument("--out", type=Path)
+    model_entry = commands.add_parser(
+        "model-entry-admit",
+        help="append one content-bound prospective public-TRAIN model receipt",
+    )
+    model_entry.add_argument("--manifest", type=Path, required=True)
+    model_entry.add_argument("--artifact-root", type=Path, required=True)
+    model_entry.add_argument("--receipt", type=Path, required=True)
     phys = commands.add_parser(
         "physics", help="OPT-15b analytic physics and neighbour sweep"
     )
@@ -851,6 +859,18 @@ def main(argv=None):
         )
         print(json.dumps(result, indent=2, sort_keys=True))
         _write(args.out, result)
+        return 0
+    if args.command == "model-entry-admit":
+        try:
+            receipt = model_entry_admission.admit_public_train_entry(
+                args.manifest,
+                artifact_root=args.artifact_root,
+                receipt_path=args.receipt,
+            )
+        except (model_entry_admission.ModelEntryRefused, OSError) as exc:
+            print(json.dumps({"status": "REFUSED", "reason": str(exc)}, sort_keys=True))
+            return 2
+        print(json.dumps(receipt, sort_keys=True, separators=(",", ":")))
         return 0
     component_bytes = args.components.read_bytes() if args.components else None
     component_spec = json.loads(component_bytes) if component_bytes else None

@@ -1,0 +1,113 @@
+{
+  "schema": "carbon.scorelab.testing-model-bank-reference.v1",
+  "record_revision": 2,
+  "record_role": "PRODUCER_PROSPECTIVE_PUBLIC_TRAIN_ADDENDUM",
+  "status": "RECEIVER_ACK_PENDING",
+  "scope": "PUBLIC_TRAIN_ONLY_DEVELOPMENT_OUTSIDE_FROZEN_18",
+  "historical_record": {
+    "status": "INCOMPLETE",
+    "parent_manifest": {
+      "path": "codex-queue/reports/optimizer-20261017-RESPONSE-SURFACE-SCORELAB-INTAKE.json",
+      "sha256": "f6ca73307d9cdb1ff639e65b9fbcdf74ead826dda2a2e523db1d6ce3433c0c18",
+      "bytes": 11761
+    },
+    "original_producer_output_recovered": false,
+    "note": "The original producer output chronology remains incomplete. The replay below is prospective and does not repair or replace the historical record. Any receiver ACK embedded in the parent manifest binds only the parent manifest's previously acknowledged digest, not this addendum."
+  },
+  "entry": {
+    "model_id": "battery-public-train-knn-retention-smoke-20261016",
+    "classification": "PUBLIC_DEVELOPMENT_EXPLORATORY_NOT_SCORED",
+    "challenge": {
+      "id": "battery-fastcharge-ageing-development-v1",
+      "version": "1.0",
+      "contract_sha256": "eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e"
+    },
+    "recipe": {
+      "family": "knn",
+      "neighbours": 4,
+      "train_fraction": 1.0,
+      "strategy": {
+        "schema_version": "1.0",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "backbone": "knn",
+        "parameters": {
+          "neighbours": 4
+        }
+      },
+      "recipe_digest": "7c3f0e5a46d8b0a9d1d9ac762ba4c85862ee219d46cb39a434ec927de89f55e6",
+      "strategy_hash": "2138b121fdb52846cf91ac2fbd224f79049a874d6c0093b44e08b32231f9f7a3",
+      "plan_digest": "4d5109ff1ac4a643f7eed90c5cee03a197111eda017070f0dd1c830742e62001"
+    },
+    "source": {
+      "commit": "2ec54fee8bffe08d521847290982e2b147be55ba",
+      "recipes_git_blob": "13dd0182b698551554496d59700d0a265b315d7b",
+      "runtime": {
+        "device": "cpu",
+        "python": "3.12.14",
+        "numpy": "2.3.5"
+      }
+    },
+    "training_data": {
+      "scope": "PUBLIC_TRAIN_ONLY",
+      "challenge": "battery-fastcharge-ageing-development-v1@1.0",
+      "dataset_version": "battery public TRAIN v1",
+      "dataset_sha256": "3a7c763cca272df729268759e3062abd79e104a5c527c17314aef663944cf0e3",
+      "subset": "first 32 cases",
+      "rows": 32,
+      "public_seed": 11
+    },
+    "artifacts": {
+      "native_state": {
+        "path": "codex-queue/reports/packets2-20261016-retention-smoke-knn-state.npz",
+        "schema": "carbon.battery.model-state.v1",
+        "sha256": "4f61c73282b18766249aafc947a59ea70dc76adc7db8d19befcfd8ef39f481e0",
+        "bytes": 129158
+      },
+      "producer_lineage": {
+        "path": "codex-queue/reports/packets2-20261016-retention-smoke-knn-sidecar.json",
+        "sha256": "773d1dd6f972c68e4d1336d8569d1040c50725c909680f82852a12c60b8978b5",
+        "bytes": 1632
+      },
+      "prospective_saved_state_replay": {
+        "kind": "NEW_REPLAY_NOT_HISTORICAL_PRODUCER_OUTPUT",
+        "fixture": {
+          "path": "codex-queue/reports/packets2-20261016-retention-smoke-knn-replay-fixture.npz",
+          "sha256": "41cdc6b11371ebc1b7773f67fea57489f04e62e0f977ddda67b484bee80fe345",
+          "bytes": 7922
+        },
+        "lineage": {
+          "path": "codex-queue/reports/packets2-20261016-retention-smoke-knn-replay.json",
+          "sha256": "2f1ffebe9e64e666c297afad65da2c5cee29a5406f7be1f58fbca0e1c8de3ac4",
+          "bytes": 1320
+        },
+        "no_fit_or_new_model": true
+      }
+    },
+    "receiver_evidence": {
+      "scope": "INDEPENDENT_PUBLIC_TRAIN_SCRATCH_CHECK_ONLY",
+      "receiver_check": {
+        "path": "codex-queue/reports/optimizer-20261017-knn-receiver/receiver-check.json",
+        "sha256": "45737d44482d053da251c90e92279d6a1242a453e50e81c808e370ba1f8397c8",
+        "bytes": 2296
+      },
+      "replay_comparison": {
+        "path": "codex-queue/reports/optimizer-20261017-knn-receiver/replay-comparison.json",
+        "sha256": "0d1ca08181cdafcf98a4ae29aa8c75d04c0531e0211ef5a4c3c5f365184315a6",
+        "bytes": 1232
+      },
+      "formal_receiver_ack": "PENDING_OPTIMIZER_IMPLEMENTATION",
+      "integrated_intake_acceptance": false
+    },
+    "placement": "PROSPECTIVE_OUTSIDE_FROZEN18",
+    "ingested": false,
+    "scored": false,
+    "qualification_claimed": false,
+    "frozen_18_modified": false,
+    "score_or_truth_join_created": false,
+    "limitations": [
+      "Receiver scratch replay is evidence only; it is not a formal ACK or integrated intake acceptance.",
+      "The original producer output chronology remains INCOMPLETE and is not reconstructed.",
+      "No refit, solver run, hidden/EVAL/reference access, score use, or qualification claim is part of this entry."
+    ]
+  }
+}
