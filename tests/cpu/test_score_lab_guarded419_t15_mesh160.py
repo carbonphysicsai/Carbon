@@ -116,6 +116,52 @@ class Mesh160DiagnosticTest(unittest.TestCase):
         self.assertTrue(captured["steps"][0][0].startswith("Rest for 2 minutes"))
         self.assertIn("Hold at 4.19 V", captured["steps"][0][3])
 
+    def test_legacy_rung3_keeps_80_point_solver_and_no_diagnostic_claim(self):
+        captured = {}
+
+        class Values(dict):
+            def __init__(self, _name):
+                super().__init__(
+                    {
+                        feasibility02.H_NAME: 2.0,
+                        feasibility02.AREA_NAME: 1.0,
+                        feasibility02.CAPACITY_NAME: 1.0,
+                    }
+                )
+
+        fake = types.SimpleNamespace(
+            lithium_ion=types.SimpleNamespace(DFN=lambda _options: object()),
+            ParameterValues=Values,
+            IDAKLUSolver=lambda **kwargs: captured.setdefault("solver", kwargs),
+            Experiment=lambda steps: captured.setdefault("steps", steps),
+            Simulation=lambda _model, **kwargs: captured.setdefault(
+                "simulation", kwargs
+            ),
+        )
+        old_job = {
+            "c1": 1.25,
+            "c2": 0.70,
+            "switch_voltage_v": 4.10,
+            "t_amb_c": 15.0,
+            "soc0": 0.1,
+            "h_multiplier": 1.0,
+            "refined": True,
+            "rung": 3,
+        }
+        with mock.patch.dict(sys.modules, {"pybamm": fake}):
+            _, cooling = feasibility02._simulation(old_job)
+        self.assertEqual(
+            captured["simulation"]["var_pts"],
+            {name: 80 for name in ("x_n", "x_s", "x_p", "r_n", "r_p")},
+        )
+        self.assertEqual(
+            {key: captured["solver"][key] for key in ("rtol", "atol")},
+            {"rtol": 1e-7, "atol": 1e-9},
+        )
+        self.assertNotIn("numerical_configuration", cooling)
+        self.assertNotIn("experiment_model_mode", captured["simulation"])
+        self.assertIn("Hold at 4.2 V", captured["steps"][0][3])
+
     @staticmethod
     def record(value):
         cycles = [
