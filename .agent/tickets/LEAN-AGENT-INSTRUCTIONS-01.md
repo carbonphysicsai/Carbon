@@ -11,8 +11,9 @@ instructions for agents that could cause this type of issue". This accompanies
 his direction to remove unnecessary machinery and build the lean reproducible
 construction and common model-versus-solver scoring path, preserving Bittensor.
 Ryan subsequently directed us to engrain this operating vision and give teams
-strong guided autonomy, including cleanup authority within owned scope. Keep that target in one tracked document linked from
-AGENTS, with concrete ownership and engineering freedom inside boundaries.
+strong guided autonomy, including cleanup authority within owned scope. Keep
+that target in one tracked document linked from AGENTS, with concrete ownership
+and engineering freedom inside boundaries.
 This authorizes instruction cleanup, not waiver of his current task-specific
 conditions or enforced release protections.
 
@@ -38,15 +39,20 @@ Owned paths: `AGENTS.md`, `.agent/DELIVERY_PROTOCOL.md`,
 `.agent/DELEGATED_DECISION_PROTOCOL.md`, `agent_pack/EXECUTION_PROTOCOL.md`,
 `agent_pack/CODEX_TICKET_LAUNCHER.md`, `agent_pack/README.md`,
 `agent_pack/PLANS.md`, the stale delivery paragraph in
-`agent_pack/executors/hoh/PROTOCOL.md`, `docs/development/CARBON_BUILD_TARGET.md`, and this contract.
+`agent_pack/executors/hoh/PROTOCOL.md`, `docs/development/CARBON_BUILD_TARGET.md`,
+the current-routing/workflow prose in `.agent/WAVE.md`, and this contract.
+WAVE points to the lean mission and current scoped assignment without changing
+recorded statuses, evidence identities or domain boundaries. It does not select
+a successor or renew a runtime campaign.
 No frozen Hub/decision history is edited. AGENTS sections 7, 13, 14, 15 and 16
 retain their exact domain-boundary text. Core section 6 invariants remain, with
 only its stale Wave-A applicability sentence generalized to current work.
 
-Current direct human delivery conditions are stricter than repository DX03
-workflow defaults. This audit does not settle that existing policy question,
-remove actual protected requirements, or authorize a merge. No duplicate owner
-question is created. Source work and validation are independent of that hold.
+Current direct human delivery conditions control over conflicting repository
+DX03 workflow defaults. This proposed update is not an operational waiver;
+adoption requires proper delivery under those current conditions. It removes no
+actual protected requirement and authorizes no merge. No additional policy-choice
+question is required for instruction priority. Source work and validation continue.
 
 ## Validation and completion
 
@@ -59,7 +65,9 @@ only its duplicated repository delivery lifecycle is removed.
 Expected commands: `git diff --check`,
 `python scripts/dev/check_delivery_hygiene.py --base 54aa139c916ab23681d5a75e48ea2aa34b537424`,
 `python scripts/dev/check_diff_hygiene.py --base 54aa139c916ab23681d5a75e48ea2aa34b537424`,
-and classified canonical `./scripts/dev/ci_contract_authority.sh` before delivery.
+and classified canonical `./scripts/dev/canonical.sh ./scripts/dev/ci_contract_authority.sh`
+before delivery. Product owns that canonical run; native source/link/hygiene
+results from this slice are diagnostics, not canonical acceptance.
 Report unavailable or failed acceptance honestly. Implementation and local
 checks do not imply merge, scientific qualification or security acceptance.
 

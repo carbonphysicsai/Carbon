@@ -9,6 +9,7 @@ add another checklist.
 | --- | --- |
 | [Constitution](../CONSTITUTION.md) | Domain authority and durable boundaries |
 | [Invariants](../.agent/INVARIANTS.md) | Scientific/security constraints |
+| [Build target](../docs/development/CARBON_BUILD_TARGET.md) | Current lean construction, independent evaluation and shared scoring outcome |
 | [Wave record](../.agent/WAVE.md) | Status/dependencies; new direct assignments may supersede old selection |
 | [Delivery](../.agent/DELIVERY_PROTOCOL.md) | One source for checks and merge defaults |
 | [Decisions](../.agent/DELEGATED_DECISION_PROTOCOL.md) | Delegated engineering and reserved human decisions |

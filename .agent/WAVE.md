@@ -1,6 +1,30 @@
 # Carbon Agent Wave Status
 
-> **OWNER-C0-REWARD-01 current execution authority:**
+## Current engineering direction — 17 October 2026
+
+Ryan's current assignment is to build [the lean Carbon flow](../docs/development/CARBON_BUILD_TARGET.md):
+one pinned construction recipe, independent fresh reconstruction from fixed
+Challenge TRAIN, separate inert-model evaluation, and one scoring core for
+ScoreLab and validators. Preserve the working Bittensor boundaries. Teams own
+reversible implementation and coherent removal of obsolete callers in their
+assigned areas; Root coordinates scope and shared dependencies.
+
+Use the current direct assignment and designated integration handoff for owned
+work. The instruction-cleanup slice is
+[`LEAN-AGENT-INSTRUCTIONS-01`](tickets/LEAN-AGENT-INSTRUCTIONS-01.md).
+Do not select a successor from an old queue or restart a cancelled campaign,
+runtime job, schedule, budget or public-network authorization.
+
+The recorded selections, statuses and evidence below keep their original
+meaning. Superseded execution-routing prose does not select current work.
+Scientific, hidden-data, isolation, security, qualification and economic
+boundaries remain binding. Delivery follows the
+[delivery protocol](DELIVERY_PROTOCOL.md), current direct human conditions and
+actual enforced protections; this proposal waives none of them.
+
+## Recorded wave selections and evidence
+
+> **OWNER-C0-REWARD-01 recorded C0 execution authority:**
 > NET-1 merged in PR #120 as 6dad22db26e4b8babadf73c4de2527a17485a2b1.
 > NET-2 merged in PR #121 as 97725a1f4c6c8c65234e96770c847622273fc55e.
 > NET-3 merged in PR #122 as d55fdeb4d9be6f25f963eac0ed608414dbf0b4e6.
@@ -27,11 +51,10 @@
 > operation. `OWNER-C-W1-DEV-TESTNET-01` separately permits only its bounded
 > public/synthetic DEVELOPMENT testnet scenario after exact transaction gates.
 
-> **OWNER-DX-03 delivery override (2026-09-06):** Follow the current
-> `.agent/DELIVERY_PROTOCOL.md` for engineering delivery. No mandatory human
-> reviewer, GPT receipt, repeated full-diff review, or post-merge full-CI gate
-> applies. Older process descriptions below are superseded; ticket scope,
-> historical evidence, and human-reserved scientific/security authority remain.
+> **Delivery policy:** `.agent/DELIVERY_PROTOCOL.md` is the repository source
+> for delivery defaults. Current direct human conditions and actual enforced
+> controls take precedence. Historical delivery records below preserve what
+> happened under their original rules; they add no new approval stage or waiver.
 
 **Current wave:** C
 **Current phase:** C-W1-D5 finite research program closed
@@ -627,22 +650,10 @@ completed.
 
 ## Workflow
 
-```text
-current authority
-→ one ticket / one PR by default
-→ working contract and vertical implementation slices
-→ focused development validation
-→ one applicable ready-revision automated acceptance
-→ required Merge gate
-→ normal exact-expected-head merge
-→ brief completion confirmation / next ready ticket
-```
-
-- Sequential by default.
-- Dedicated worktrees/branches required by default; use
-  `./scripts/dev/canonical.sh` on noncanonical hosts.
-- Model routing is **not** part of this board (optional under `agent_pack/executors/`).
-- Future waves in the Agentic Master Plan are planning authority, not current implementation authorization.
+Use [AGENTS.md](../AGENTS.md) for engineering and the
+[delivery protocol](DELIVERY_PROTOCOL.md) for validation and delivery. This
+board does not duplicate their lifecycle or automatically select the next task.
+Future-wave plans remain compatibility context, not implementation authority.
 
 ## Wave A checklist
 
@@ -738,10 +749,9 @@ future ticket, or authorize implementation or launch.
 
 ## Notes
 
-- Do not mark done without applicable ready-revision automated acceptance,
-  successful `Merge gate`, normal exact-expected-head merge, and brief
-  completion confirmation. OWNER-DX-03 requires no review receipt, mandatory
-  human/GPT approval, or post-merge full-CI ceremony.
+- Report completion only under the current task's applicable delivery
+  conditions and the [delivery protocol](DELIVERY_PROTOCOL.md). Preserve the
+  bounded meaning of every recorded status; this routing update closes no ticket.
 - B-01E implementation evidence is recorded in
   `.agent/evidence/wave_b/b-01e.md`. Ordinary ticket evidence runs through
   `./scripts/dev/ci.sh` in the canonical Linux environment. On a noncanonical

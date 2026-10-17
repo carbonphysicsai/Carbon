@@ -5,6 +5,10 @@ Start with [AGENTS.md](../AGENTS.md) and the current authorized task. Follow the
 copied into old tickets. [EXECUTION_PROTOCOL.md](EXECUTION_PROTOCOL.md) is the
 short executor-independent overview.
 
+Follow [the lean build target](../docs/development/CARBON_BUILD_TARGET.md) within
+the current assignment. Take scope from that assignment and its integration
+handoff; an old board or empty queue does not replace it or select extra work.
+
 Verify the task's base and relevant code/specification versions. Use an approved
 suitable branch/worktree; a new latest-main checkout is not required solely
 because main advanced. Preserve other worktrees and changes.
