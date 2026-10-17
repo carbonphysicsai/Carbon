@@ -149,15 +149,18 @@ eligibility and burn treatment for unpaid allocation and integer remainders.
 Bittensor consensus still determines chain payout; an application share or target
 is not a guaranteed payout.
 
-Simpler replacement is prospective engineering until implemented and tested.
-Use the shared evaluation/promotion path with the current valid versioned private
-Challenge bank, still-valid pinned references and same-version incumbent score.
+The replacement design is approved; implementation and testing remain to be done.
+Use standard independent rebuild and evaluation through the shared path, with the
+current valid versioned private Challenge bank, still-valid pinned references and
+same-version incumbent score. A genuinely new evaluation version needs a comparable
+incumbent result once, which compatible contenders reuse.
 Do not require a separate fresh-case/promotion tournament for every would-be
 winner. Refresh evidence on the Challenge's actual cadence for anti-leak controls
-and reference maintenance, not merely because the leader changes. Winner clockkeeping
-and rank are separate from bank generation. This direction adopts no new tie
-rule, margin, self-improvement factor or LIVE change. Existing scientific and
-publication safeguards remain.
+and reference maintenance, not merely because the leader changes. Bank refresh
+does not reset the reward clock; retain existing same-miner clock safeguards.
+Winner clockkeeping and rank are separate from bank generation. This direction
+adopts no new tie rule, margin, self-improvement factor or LIVE change. Existing
+scientific and publication safeguards remain.
 
 ## Guided autonomy and the finish line
 
