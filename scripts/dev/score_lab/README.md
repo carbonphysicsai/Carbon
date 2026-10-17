@@ -85,6 +85,133 @@ The caller still supplies Challenge-owned gate verdicts and independently
 measured same-batch reference rows; a retained prediction or label is never a
 timing measurement.
 
+## Prospective real design-task value test (development plan)
+
+**Question.** On the same buyer job and compute allowance, does a higher
+proposed ScoreLab score select a model whose recommended design is more useful
+when the independent solver checks it? Keep three visible measurements:
+
+1. **Broad fidelity:** error on the Challenge's required physical outputs and
+   conditions, with units and registered aggregation. Required output validity
+   and accuracy minima remain noncompensable gates.
+2. **Optimization-limit fidelity:** for each important registered limit,
+   compare predicted and reference *signed margins in that limit's own unit*.
+   Report correct-side rate, false-feasible and false-infeasible rates
+   separately, and signed/absolute margin error overall and in a registered
+   near-limit stratum. A solver-valid action that exceeds a buyer's limit is a
+   valid negative example: correctly predicting its breach is model success,
+   not a physical-law failure. Uncertain reference sides remain unresolved.
+3. **Achieved design outcome:** after the same Carbon-controlled optimizer
+   commits its pick without reference access, independently verify that pick's
+   feasibility and objective in buyer units. Report per-index results and the
+   buyer-mix aggregate only if every mandatory index is resolved; a zero-weight
+   band still has hard limits. Record `NONE_FEASIBLE`, abstention, and
+   unresolved picks without turning reference or infrastructure failure into
+   model failure. Report actual model/build/verification CPU time, wall time,
+   device and query counts separately from decision value.
+
+**First authentic job definition.** The owner registered the DEVELOPMENT-only
+`battery-v3-job-dev-v1`: 10% start to 80% objective, five mandatory ambient
+bands, and its P, Q-stratum proportions, buyer mix and hard limits. Its
+`Business/research/score-lab-campaign-01/owner-dev-v1/REGISTRATION.json` still
+marks runtime `BLOCKED_OBSERVER_IMPLEMENTATION_RECEIPT_AND_COMPATIBLE_EVIDENCE`:
+the observer implementation, action menu, model/environment and compatible
+evidence receipts are absent, and the Test Lead has not registered Q bands.
+Do not call that registered definition a runnable or scientifically qualified
+job until accepted later receipts resolve those exact gaps. Separately, the
+existing exposed **32 original VALUE questions** and retained model panels
+allow an *exploratory operational* component readout now. The selected-design
+report in
+`codex-queue/reports/scorelab-selected-time-run-20261017/` already compares
+operationally reference-resolved selected minutes for nine common-pass models.
+Those numerical enclosures are not physical qualification. Its guard was
+applied retrospectively and its bank is exposed; neither its ordering nor its
+postreference guard is confirmation or an adopted score. The native all-menu
+reference mask resolves only VALUE 2/64 and LEG 0/64 in the registered P128
+panel. In particular the fast 15 °C x1 action's plating verdict is unsettled;
+do not turn its mesh-160 point into truth. A *selected-pick* value test needs
+accepted reference outcomes for the picks actually made, plus a guard frozen
+before a new question batch is opened. It does not require claiming a fully
+solved menu or relabelling the registered D2
+half-minute regret. Keep Q's boundary diagnostic separate from P's value
+estimate. If either model in a paired comparison selects an unresolved action,
+that question is unscored for that pair on its common mask, with coverage
+reported; other independently resolved pairs need not lose it. New requirement
+draws over the same exposed 60 physical tuples remain *same-bank* evidence.
+Pairwise masks can describe only their own pairs; a global model ranking or
+score-value alignment claim needs one preregistered shared resolved task set
+across its whole roster (or a registered missingness estimator), otherwise it
+is `INSUFFICIENT_EVIDENCE`.
+Independent confirmation needs a preregistered disjoint physical/source/task
+unit with accepted reference applicability; if none exists, report only the
+same-bank diagnostic and do not claim confirmed score alignment.
+
+**One controlled experiment.** Freeze the task, action grammar, starts, seed,
+optimizer version, tie rule, query budget, condition panel and bank identity.
+Run each reconstructed model and each control through that same prediction-only
+runner; snap and charge attempted queries as `design_search.tasks` already
+does. Commit picks before opening accepted reference outcomes. Compare the
+model-screen-then-solver-verify arm with solver-alone adaptive search and the
+registered cheap-baseline screen under the *same registered budget ledger*;
+`design_search.equal_budget` already replays those arms and their ledger; it
+does not run a model or solver and can accept assumed costs. A real
+matched-compute claim additionally requires source-measured, enforced model,
+solver and verification cost receipts under the same registered hardware and
+budget policy. Report the best verified feasible objective and actual
+feasibility, plus paired differences at the registered budget. Do not price an
+infeasible design as a fast feasible one, use cached solver labels as runtime,
+or compare unequal compute without marking it diagnostic.
+
+**Failure probes.** On settled reference cases, keep a known-good reference
+predictor and the existing unit-matched edge-optimist, over-cautious,
+localized sign-error and
+path/lattice-aware controls in `design_search.controls`. Add toy-only probes
+for low broad error with a near-limit bias, accurate limits with biased
+objective, fast but inaccurate inference, slow but accurate inference, and
+always-abstain/trivial search. Register severities per quantity and cost
+assumptions before the simulated run. The report must show which probes pass
+hard gates, which make unsafe picks, which miss feasible opportunities, and
+what verified value each obtains. Synthetic controls test sensitivity and
+failure classification; they are not real physical value evidence.
+
+**Score test and decision.** Keep broad, limit and achieved-value components
+separate first. Prospective candidate transforms and weights may be proposed
+only as versioned Challenge-local Score Packs, with unit scales, asymmetry,
+near-limit bands and eligibility gates registered by their owners. Evaluate
+candidate packs on development score questions, while measuring each model's
+achieved utility on physically disjoint design questions when available;
+cluster resampling by shared physical bank/task and model recipe. A changed
+requirement over an exposed solved bank tests transfer only within that bank.
+Freeze the search rule, guard, short list, transforms, weights and decision
+criterion before one independent confirmation set is opened. Report score
+ordering and paired achieved value against the current registered rule and
+strongest admissible competitor
+where their evidence is available; otherwise mark that comparison unmeasured.
+Report uncertainty and control failures. A candidate that rewards an unsafe
+or false-feasible pick, or fails the registered prospective value criterion,
+does not replace the current rule; insufficient coverage yields
+`INSUFFICIENT_EVIDENCE`. No value
+from the exposed bank can be tuned into a confirmation claim. Historical v3
+speedup packs and scores keep their meaning; any three-axis score is a new
+version, never a silent rescore.
+
+**Smallest implementation and cost boundary.** Reuse `design_search.tasks`,
+`indexed`, `controls`, `task_measures`, `score_bridge` and `equal_budget` for
+task identity, picks, references, controls and solver-verified outcomes. The
+missing source measurement is one producer-only per-case/per-limit margin
+diagnostic over digest-bound predictions and accepted reference quantities;
+it is a readout before any Score Pack aggregation, not a second score engine.
+First run toy fixture tests (no solver), then the existing exposed public bank
+as a labelled same-bank diagnostic (no new solves), then at most one separately
+registered pilot on a disjoint physical/source/task unit under an explicit
+query/CPU/wall/spend cap and reference acceptance rule. Product/Root dispatch
+that pilot only after its cap and custody are registered. Research checks
+physical applicability;
+Test Lead/owner controls real bands, gate values, weights, stopping and score
+adoption. Until those inputs and accepted references exist, the real value
+claim is `INSUFFICIENT_EVIDENCE`, while the fixture and exposed diagnostic can
+still identify concrete software or reference gaps.
+
 ## OPT-16: V2 bank producer workflow
 
 `bank-plan` consumes a registered V2 definition, a digest-bound committed draw
