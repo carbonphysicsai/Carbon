@@ -35,7 +35,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PARENT = "sha256:" + "2" * 64
 CHILD = "sha256:" + "3" * 64
 SOURCE = "sha256:" + "a" * 64
-TORCH_KINDS = ("torch", "torch-analysis", "accelerator")
+TORCH_KINDS = ("torch", "torch-analysis", "accelerator", "torch-gpu")
 
 
 @pytest.fixture
@@ -66,6 +66,31 @@ def test_local_install_builds_torch_and_passes_that_parent_to_analysis(
     assert f"--image-manifest {primary}" in recorded
 
 
+def test_local_torch_gpu_install_uses_the_separate_torch_builder(sandbox):
+    sandbox._executable(
+        sandbox.work / "scripts/dev/torch_worker_image.sh",
+        '#!/bin/sh\nmkdir -p "$(dirname "$1")"\n'
+        'echo "{\\"image_id\\":\\"sha256:torch-$(git rev-parse HEAD)\\"}" > "$1"\n'
+        'echo "torch worker" >> "$CARBON_TEST_LOG"\n',
+    )
+    sandbox._executable(
+        sandbox.work / "scripts/dev/torch_gpu_worker_image.sh",
+        '#!/bin/sh\nmkdir -p "$(dirname "$1")"\n'
+        'echo "{\\"image_id\\":\\"sha256:torch-gpu-$(git rev-parse HEAD)\\"}" > "$1"\n'
+        'echo "torch gpu worker" >> "$CARBON_TEST_LOG"\n',
+    )
+    sandbox.publish("fixture Torch GPU builders")
+    result = sandbox.run("--pytorch", "--gpu", "--no-start")
+    assert result.returncode == 0, result.stderr
+    log = sandbox.logged()
+    assert "torch worker" in log
+    assert "torch gpu worker" in log
+    assert "gpu worker" not in log
+    (recorded,) = [line for line in log if "installed write" in line]
+    gpu = sandbox.clone / ".carbon-artifacts/torch-gpu-worker-image.json"
+    assert f"--gpu-image-manifest {gpu}" in recorded
+
+
 def test_release_installs_the_complete_torch_pair_without_a_build(
     sandbox,
 ):
@@ -85,6 +110,44 @@ def test_release_installs_the_complete_torch_pair_without_a_build(
         f"--analysis-image-manifest {directory}/torch-analysis-worker-image.json"
         in recorded
     )
+
+
+def test_release_torch_gpu_selection_pulls_and_records_its_exact_kind(sandbox):
+    publish_release(sandbox, kinds=TORCH_KINDS)
+    result = run_release(
+        sandbox, "--pytorch", "--gpu", "--release", RELEASE, "--no-start"
+    )
+    assert result.returncode == 0, result.stderr
+    log = sandbox.logged()
+    assert built(log) == []
+    assert pulled(log) == [
+        "torch-worker-image.release.json",
+        "torch-analysis-worker-image.release.json",
+        "torch-gpu-worker-image.release.json",
+    ]
+    (recorded,) = [line for line in log if "installed write" in line]
+    directory = sandbox.clone / ".carbon-artifacts/releases" / RELEASE
+    assert f"--gpu-image-manifest {directory}/torch-gpu-worker-image.json" in recorded
+    assert (
+        f"--gpu-release-record {directory}/torch-gpu-worker-image.release.json"
+        in recorded
+    )
+
+
+def test_missing_torch_gpu_record_refuses_before_checkout_or_pull(sandbox):
+    before = sandbox.head()
+    publish_release(
+        sandbox,
+        commit=sandbox.publish("newer fixture source"),
+        kinds=("torch", "torch-analysis", "accelerator"),
+    )
+    result = run_release(
+        sandbox, "--pytorch", "--gpu", "--release", RELEASE, "--no-start"
+    )
+    assert result.returncode == 2
+    assert "could not download the torch-gpu release record" in result.stderr
+    assert sandbox.head() == before
+    assert sandbox.logged() == []
 
 
 def test_missing_torch_companion_stops_before_checkout_bootstrap_or_pull(
