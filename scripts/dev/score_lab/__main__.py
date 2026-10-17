@@ -27,6 +27,7 @@ from . import (
     physics,
     public_ev4,
     public_physics,
+    solver_benchmark,
     synthetic,
 )
 from .core import LabRefused, analyze, registry_rule, v2_rule
@@ -225,6 +226,11 @@ def _analyze(panel, rule, args):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
+    benchmark = commands.add_parser(
+        "benchmark", help="producer-only measured model versus solver receiver"
+    )
+    benchmark.add_argument("--input", type=Path, required=True)
+    benchmark.add_argument("--out", type=Path, required=True)
     synth = commands.add_parser("synthetic", help="32 analytic knob profiles")
     _rule_args(synth)
     synth.add_argument("--quick", action="store_true", help="first four profiles")
@@ -422,6 +428,24 @@ def main(argv=None):
     sobol_atlas.add_argument("--result", type=Path, required=True, action="append")
     sobol_atlas.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
+    if args.command == "benchmark":
+        evidence = _read_campaign_json(args.input)
+        if type(evidence) is not dict or set(evidence) not in (
+            {"registration", "references", "models"},
+            {"registration", "references", "models", "score_pack"},
+        ):
+            raise solver_benchmark.BenchmarkRefused("benchmark_input_shape")
+        report = solver_benchmark.compare(
+            evidence["registration"],
+            evidence["references"],
+            evidence["models"],
+            score_pack=evidence.get("score_pack"),
+        )
+        _write(args.out, report)
+        print(
+            f"development benchmark: {len(report['models'])} models; producer output written"
+        )
+        return 0
     if args.command == "campaign-sobol-plan":
         plan = {
             "schema": campaign_sobol.PLAN_SCHEMA,

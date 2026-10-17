@@ -18,11 +18,25 @@ there is no adopted scalar, winner, physical qualification or LIVE result.
 
 This receiver is an internal ScoreLab interface, not a miner disclosure
 projection. Its registration is a binding for supplied development evidence,
-not proof that a solver result is physically adequate. The older value/N1 and
-menu commands below remain historical diagnostics and are not prerequisites
-for the new model-versus-solver path. The first tests use synthetic complete
-references only; a real Challenge must supply its existing registered job,
-TRAIN identity, output/gate contract and adequate measured reference evidence.
+not proof that a solver result is physically adequate. The optional prospective
+`carbon.scoring.solver_benchmark_v2` pack binds the same Challenge, gate IDs,
+output metric/unit, explicit accuracy ceiling and performance objective. When
+the ceiling is absent, it is unready and ranks nobody. ScoreLab and a validator
+caller use the same `ScoreEngine.score_solver_benchmark_v2` method; A5/v1 score
+bytes and meanings are unchanged. No physical threshold or production scalar
+is adopted by this development code.
+
+The producer can call the pure receiver or run
+`python -m scripts.dev.score_lab benchmark --input EVIDENCE.json --out RESULT.json`.
+The input contains `registration`, `references`, `models` and optionally
+`score_pack`; both files stay in producer custody. The command prints only the
+model count. The older value/N1 and menu commands below remain historical
+diagnostics and are not prerequisites for this path. The first tests use
+synthetic complete references only; a real Challenge must supply its existing
+registered job, TRAIN identity, output/gate contract and adequate measured
+reference evidence. This v1 measurement profile supports one output quantity
+and serial batch size 1; other output metrics, units or batching need an
+explicit registered extension, not reinterpretation of these results.
 
 ## OPT-16: V2 bank producer workflow
 

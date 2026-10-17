@@ -1,10 +1,14 @@
 """Synthetic-only receiver checks; no Challenge physics or solver execution."""
 
 from copy import deepcopy
+import json
 
 import pytest
 
+from carbon.scoring.engine import ScoreEngine
+from carbon.scoring.solver_benchmark_v2 import BenchmarkScoreRefused, register_pack
 from scripts.dev.score_lab import solver_benchmark as bench
+from scripts.dev.score_lab.__main__ import main
 
 
 def fixture():
@@ -192,3 +196,135 @@ def test_reference_and_model_infrastructure_failures_are_distinct():
     assert role["counts"]["candidate_infra"] == 1
     assert role["counts"]["scientific_inadmissible"] == 0
     assert role["paired_speedup"] is None
+
+
+def test_scorelab_and_direct_scoring_engine_use_the_same_versioned_rule():
+    registration, references, model = fixture()
+    pack = register_pack(
+        {
+            "schema": "carbon.scoring.solver-benchmark-pack.v2",
+            "scope": "SYNTHETIC_DEVELOPMENT",
+            "challenge": "toy-field",
+            "benchmark_registration_digest": registration["registration_digest"],
+            "output": {
+                "quantity": "field",
+                "unit": "toy-unit",
+                "metric": "mean_absolute_error",
+            },
+            "hard_gates": ["physics"],
+            "accuracy_ceiling": 0.25,
+            "performance_objective": "maximize_paired_speedup",
+        }
+    )
+    accurate = model("accurate", [1.0, 3.0], 2.0)
+    too_inaccurate = model("too-inaccurate", [1.5, 3.5], 0.5)
+    unsafe = model("unsafe", [1.0, 3.0], 0.5, gate=False)
+    workbench = bench.compare(
+        registration, references, [accurate, too_inaccurate, unsafe], score_pack=pack
+    )
+    unscored = bench.compare(
+        registration, references, [accurate, too_inaccurate, unsafe]
+    )
+    direct_validator_style = ScoreEngine.score_solver_benchmark_v2(unscored, pack)
+    assert workbench["scoring"] == direct_validator_style
+    assert direct_validator_style["ranking"] == ["accurate"]
+    assert [row["status"] for row in direct_validator_style["models"]] == [
+        "SCORED_DEVELOPMENT",
+        "ACCURACY_INELIGIBLE",
+        "SCIENTIFIC_INADMISSIBLE",
+    ]
+
+
+def test_unready_pack_refuses_to_select_a_model():
+    registration, references, model = fixture()
+    pack = register_pack(
+        {
+            "schema": "carbon.scoring.solver-benchmark-pack.v2",
+            "scope": "SYNTHETIC_DEVELOPMENT",
+            "challenge": "toy-field",
+            "benchmark_registration_digest": registration["registration_digest"],
+            "output": {
+                "quantity": "field",
+                "unit": "toy-unit",
+                "metric": "mean_absolute_error",
+            },
+            "hard_gates": ["physics"],
+            "accuracy_ceiling": None,
+            "performance_objective": "maximize_paired_speedup",
+        }
+    )
+    result = bench.compare(
+        registration, references, [model("fast", [1.0, 3.0], 0.5)], score_pack=pack
+    )
+    assert result["scoring"]["status"] == "PACK_NOT_READY"
+    assert result["scoring"]["ranking"] is None
+
+
+def test_direct_engine_refuses_a_forged_gate_pass():
+    registration, references, model = fixture()
+    pack = register_pack(
+        {
+            "schema": "carbon.scoring.solver-benchmark-pack.v2",
+            "scope": "SYNTHETIC_DEVELOPMENT",
+            "challenge": "toy-field",
+            "benchmark_registration_digest": registration["registration_digest"],
+            "output": {
+                "quantity": "field",
+                "unit": "toy-unit",
+                "metric": "mean_absolute_error",
+            },
+            "hard_gates": ["physics"],
+            "accuracy_ceiling": 0.25,
+            "performance_objective": "maximize_paired_speedup",
+        }
+    )
+    measured = bench.compare(
+        registration, references, [model("unsafe", [1.0, 3.0], 0.5, gate=False)]
+    )
+    forged = deepcopy(measured)
+    forged["models"][0]["by_role"]["P"]["status"] = "MEASURED_DEVELOPMENT"
+    forged["models"][0]["by_role"]["P"]["mandatory_gates_pass"] = True
+    with pytest.raises(BenchmarkScoreRefused, match="benchmark_status"):
+        ScoreEngine.score_solver_benchmark_v2(forged, pack)
+
+
+def test_finite_inputs_cannot_overflow_into_a_retained_result():
+    registration, references, model = fixture()
+    huge_time = model("huge-time", [1.0, 3.0], 2.0)
+    huge_time["cases"][0]["timing_s"] = {
+        "preprocess": 1e308,
+        "export": 1e308,
+        "inference": 1e308,
+        "postprocess": 1e308,
+    }
+    with pytest.raises(bench.BenchmarkRefused, match="derived_nonfinite"):
+        bench.compare(registration, references, [huge_time])
+    huge_error = model("huge-error", [1.0, 3.0], 2.0)
+    huge_error["cases"][0]["outputs"] = [1e308, -1e308]
+    references[0]["outputs"] = [-1e308, 1e308]
+    with pytest.raises(bench.BenchmarkRefused, match="derived_nonfinite"):
+        bench.compare(registration, references, [huge_error])
+
+
+def test_producer_cli_uses_the_same_receiver_without_printing_case_ids(
+    tmp_path, capsys
+):
+    registration, references, model = fixture()
+    evidence = tmp_path / "evidence.json"
+    output = tmp_path / "result.json"
+    evidence.write_text(
+        json.dumps(
+            {
+                "registration": registration,
+                "references": references,
+                "models": [model("toy-model", [1.0, 3.0], 2.0)],
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert main(["benchmark", "--input", str(evidence), "--out", str(output)]) == 0
+    assert (
+        json.loads(output.read_text(encoding="utf-8"))["models"][0]["artifact_digest"]
+        == "toy-model"
+    )
+    assert "p1" not in capsys.readouterr().out

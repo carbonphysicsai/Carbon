@@ -11,6 +11,8 @@ import json
 import math
 import statistics
 
+from carbon.scoring.solver_benchmark_v2 import measurement_status
+
 SCHEMA = "carbon.score-lab.solver-benchmark.v1"
 RESULT_SCHEMA = "carbon.score-lab.solver-benchmark-result.v1"
 ROLES = frozenset({"P", "Q"})
@@ -36,6 +38,19 @@ def _number(value, *, positive=False, nonnegative=False):
     if positive and value <= 0 or nonnegative and value < 0:
         raise BenchmarkRefused("measurement_out_of_range")
     return float(value)
+
+
+def _derived(value):
+    if type(value) not in (int, float) or not math.isfinite(value):
+        raise BenchmarkRefused("derived_nonfinite")
+    return float(value)
+
+
+def _sum(values):
+    try:
+        return _derived(math.fsum(values))
+    except OverflowError as exc:
+        raise BenchmarkRefused("derived_nonfinite") from exc
 
 
 def register(body):
@@ -147,7 +162,7 @@ def _outputs(values, size):
     return [_number(value) for value in values]
 
 
-def compare(registration, references, models):
+def compare(registration, references, models, *, score_pack=None):
     """Report paired accuracy, gates and measured speed on the full roster.
 
     The same registered reference map is used for every model. An unresolved
@@ -287,7 +302,7 @@ def compare(registration, references, models):
                     "postprocess",
                 }:
                     raise BenchmarkRefused("complete_query_timing")
-                total = sum(_number(v, nonnegative=True) for v in timing.values())
+                total = _sum(_number(v, nonnegative=True) for v in timing.values())
                 if total <= 0:
                     raise BenchmarkRefused("complete_query_timing")
                 peak = _number(row["peak_memory_bytes"], nonnegative=True)
@@ -296,51 +311,49 @@ def compare(registration, references, models):
                 if any(not passed for passed in row["gates"].values()):
                     counts["scientific_inadmissible"] += 1
                 reference = reference_rows[cid]
-                errors.append(
-                    statistics.fmean(
-                        abs(a - b)
+                try:
+                    case_error = statistics.fmean(
+                        _derived(abs(a - b))
                         for a, b in zip(prediction, reference["outputs"], strict=True)
                     )
-                )
+                except OverflowError as exc:
+                    raise BenchmarkRefused("derived_nonfinite") from exc
+                errors.append(_derived(case_error))
                 weights.append(float(case["weight"]))
                 solver_times.append(reference["elapsed_s"])
                 model_times.append(total)
                 for phase, elapsed in timing.items():
-                    phase_seconds[phase] += elapsed
+                    phase_seconds[phase] = _derived(phase_seconds[phase] + elapsed)
                 memories.append(peak)
                 counts["resolved"] += 1
             complete = counts["resolved"] == len(selected)
             mandatory_gates_pass = complete and counts["scientific_inadmissible"] == 0
-            if counts["reference_infra"] or counts["candidate_infra"]:
-                status = "FAILED_INFRA"
-            elif counts["reference_unresolved"]:
-                status = "INDETERMINATE_EVIDENCE"
-            elif counts["scientific_inadmissible"]:
-                status = "SCIENTIFIC_INADMISSIBLE"
-            elif counts["candidate_invalid"]:
-                status = "CANDIDATE_INVALID"
-            else:
-                status = "MEASURED_DEVELOPMENT"
+            status = measurement_status(counts)
+            solver_total = _sum(solver_times) if complete else None
+            model_total = _sum(model_times) if complete else None
+            mean_error = (
+                _derived(
+                    _sum(w * e for w, e in zip(weights, errors, strict=True))
+                    / _sum(weights)
+                )
+                if complete
+                else None
+            )
             by_role[role] = {
                 "status": status,
                 "mandatory_gates_pass": mandatory_gates_pass,
                 "attempted": len(selected),
                 "counts": counts,
                 "gate_failures": gate_failures,
-                "mean_absolute_error": (
-                    sum(w * e for w, e in zip(weights, errors, strict=True))
-                    / sum(weights)
-                    if complete
-                    else None
-                ),
-                "solver_seconds": sum(solver_times) if complete else None,
-                "model_seconds": sum(model_times) if complete else None,
+                "mean_absolute_error": mean_error,
+                "solver_seconds": solver_total,
+                "model_seconds": model_total,
                 "model_phase_seconds": phase_seconds if complete else None,
-                "paired_speedup": (
-                    sum(solver_times) / sum(model_times) if complete else None
-                ),
+                "paired_speedup": _derived(solver_total / model_total)
+                if complete
+                else None,
                 "observed_serial_queries_per_second": (
-                    len(selected) / sum(model_times) if complete else None
+                    _derived(len(selected) / model_total) if complete else None
                 ),
                 "model_peak_memory_bytes": max(memories) if complete else None,
                 "solver_peak_memory_bytes": (
@@ -380,10 +393,19 @@ def compare(registration, references, models):
                 for other in eligible_p
             )
         )
-    return {
+    result = {
         "schema": RESULT_SCHEMA,
         "scope": registration["scope"],
+        "challenge": registration["challenge"],
+        "output": {
+            key: registration["output"][key] for key in ("quantity", "unit", "metric")
+        },
         "registration_digest": registration["registration_digest"],
         "ranking": None,
         "models": results,
     }
+    if score_pack is not None:
+        from carbon.scoring.engine import ScoreEngine
+
+        result["scoring"] = ScoreEngine.score_solver_benchmark_v2(result, score_pack)
+    return result
