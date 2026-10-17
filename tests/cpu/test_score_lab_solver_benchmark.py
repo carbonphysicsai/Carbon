@@ -53,6 +53,8 @@ def fixture():
             "outputs": [1.0, 3.0],
             "elapsed_s": 10.0,
             "source": "MEASURED_SOLVER_RUN",
+            "solver_digest": "sha256:toy-solver",
+            "fidelity_digest": "sha256:toy-fidelity",
             "applicability_digest": "sha256:toy-claim",
             "peak_memory_bytes": 1024,
         }
@@ -62,6 +64,7 @@ def fixture():
     def model(name, prediction, seconds, gate=True):
         return {
             "artifact_digest": name,
+            "job_digest": "sha256:toy-job",
             "train_digest": "sha256:toy-train",
             "build_seconds": 60.0,
             "cases": [
@@ -155,11 +158,19 @@ def test_changed_registration_identity_refused():
 
 def test_train_and_reference_claim_must_match_registration():
     registration, references, model = fixture()
+    wrong_job = model("wrong-job", [1.0, 3.0], 2.0)
+    wrong_job["job_digest"] = "sha256:other-job"
+    with pytest.raises(bench.BenchmarkRefused, match="model_job_identity"):
+        bench.compare(registration, references, [wrong_job])
     wrong_train = model("wrong-train", [1.0, 3.0], 2.0)
     wrong_train["train_digest"] = "sha256:other-train"
     with pytest.raises(bench.BenchmarkRefused, match="model_train_identity"):
         bench.compare(registration, references, [wrong_train])
     references[0]["applicability_digest"] = "sha256:other-claim"
+    with pytest.raises(bench.BenchmarkRefused, match="solver_measurement_required"):
+        bench.compare(registration, references, [model("good", [1.0, 3.0], 2.0)])
+    references[0]["applicability_digest"] = "sha256:toy-claim"
+    references[0]["fidelity_digest"] = "sha256:other-fidelity"
     with pytest.raises(bench.BenchmarkRefused, match="solver_measurement_required"):
         bench.compare(registration, references, [model("good", [1.0, 3.0], 2.0)])
 

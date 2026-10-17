@@ -194,10 +194,14 @@ def compare(registration, references, models, *, score_pack=None):
                     "outputs",
                     "elapsed_s",
                     "source",
+                    "solver_digest",
+                    "fidelity_digest",
                     "applicability_digest",
                     "peak_memory_bytes",
                 }
                 or row["source"] != "MEASURED_SOLVER_RUN"
+                or row["solver_digest"] != registration["reference"]["solver_digest"]
+                or row["fidelity_digest"] != registration["reference"]["fidelity_digest"]
                 or row["applicability_digest"]
                 != registration["reference"]["applicability_digest"]
             ):
@@ -219,12 +223,14 @@ def compare(registration, references, models, *, score_pack=None):
         if (
             type(model) is not dict
             or set(model)
-            != {"artifact_digest", "train_digest", "build_seconds", "cases"}
+            != {"artifact_digest", "job_digest", "train_digest", "build_seconds", "cases"}
             or type(model["artifact_digest"]) is not str
             or not model["artifact_digest"]
             or model["artifact_digest"] in seen
         ):
             raise BenchmarkRefused("model_roster")
+        if model["job_digest"] != registration["job_digest"]:
+            raise BenchmarkRefused("model_job_identity")
         if model["train_digest"] != registration["train_digest"]:
             raise BenchmarkRefused("model_train_identity")
         seen.add(model["artifact_digest"])
