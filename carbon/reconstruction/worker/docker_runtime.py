@@ -9,8 +9,10 @@ import selectors
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypeVar
 
 from carbon.reconstruction.worker.model import (
     CLEANUP_CONFIRMATION_SECONDS,
@@ -35,6 +37,129 @@ from carbon.reconstruction.worker.model import (
 
 _SHM_BYTES = 8 * 1024**2
 _SCRATCH_TMPFS_BYTES = SCRATCH_BYTES - _SHM_BYTES
+
+# Only fixed battery practice opts in. The prefix is never copied to a public
+# result; the carrier accepts exact enum membership in its owner-only record.
+_CONTROL_PREDICATE_PREFIX = b"carbon.controls.predicate.v1:"
+_T = TypeVar("_T")
+_CONTROL_PREDICATES = frozenset(
+    {
+        "INSPECT_DOCUMENT",
+        "INSPECT_SHAPE",
+        "GPU_ADAPTER_RECHECK",
+        "DEVICE_REQUEST_RECHECK",
+        "CREATE_ARGUMENTS_RECHECK",
+        "GPU_HOST_RECORD_RECHECK",
+        "GPU_ENVIRONMENT_RECHECK",
+        "IMAGE",
+        "USER",
+        "LAUNCH_LABEL",
+        "ROOT_READ_ONLY",
+        "PRIVILEGED",
+        "NETWORK",
+        "IPC",
+        "PID",
+        "RESTART",
+        "LOG_CONFIG",
+        "PIDS_LIMIT",
+        "MEMORY",
+        "MEMORY_SWAP",
+        "CPU_QUOTA",
+        "CPUSET",
+        "SHM",
+        "CAP_ADD",
+        "CAP_DROP",
+        "DEVICES",
+        "DEVICE_REQUESTS",
+        "PORT_BINDINGS",
+        "PUBLISH_PORTS",
+        "NO_NEW_PRIVILEGES",
+        "NOFILE_ULIMIT",
+        "CORE_ULIMIT",
+        "INPUT_MOUNT_COUNT",
+        "INPUT_MOUNT_SOURCE",
+        "INPUT_MOUNT_READ_ONLY",
+        "UNEXPECTED_MOUNT",
+        "SCRATCH_TMPFS_OPTIONS",
+        "CREATE_LAUNCH_LABEL",
+        "HOST_DEVICE_RECORD",
+        "GPU_RUNTIME",
+        "GPU_ENVIRONMENT",
+        "GPU_LD_LIBRARY_PATH",
+        "GPU_SKIP_CUDA_CHECK",
+        "GPU_DEVICE_LABEL",
+        "GPU_AUTHORITY_LABEL",
+        "GPU_CONFLICTING_AUTHORITY_LABEL",
+        "GPU_POLICY_LABEL",
+        "GPU_DEVICE_OBSERVATION",
+        "PROCESS_CAPABILITIES",
+        "PROCESS_NO_NEW_PRIVILEGES",
+        "PROCESS_SECCOMP",
+        "KERNEL_CPUSET_FORMAT",
+        "KERNEL_CPU_MAX_SHAPE",
+        "KERNEL_CPU_QUOTA",
+        "KERNEL_CPUSET",
+        "KERNEL_MEMORY",
+        "KERNEL_SWAP",
+        "KERNEL_PIDS",
+        "SCRATCH_BYTES",
+        "SCRATCH_INODES",
+        "SHM_BYTES",
+        "SCRATCH_PLUS_SHM",
+        "UNCLASSIFIED",
+    }
+)
+
+
+def controls_predicate(error: WorkerFailure) -> str | None:
+    """Decode only a known fixed name; never interpret arbitrary diagnostics."""
+    if error.code is not WorkerCode.POLICY:
+        return None
+    raw = error.private_diagnostic
+    if not raw.startswith(_CONTROL_PREDICATE_PREFIX):
+        return None
+    try:
+        value = raw[len(_CONTROL_PREDICATE_PREFIX) :].decode("ascii", "strict")
+    except UnicodeError:
+        return None
+    return value if value in _CONTROL_PREDICATES else None
+
+
+def _policy_refusal(diagnose: bool, name: str) -> WorkerFailure:
+    if not diagnose:
+        return WorkerFailure(WorkerCode.POLICY)
+    selected = name if name in _CONTROL_PREDICATES else "UNCLASSIFIED"
+    return WorkerFailure(
+        WorkerCode.POLICY,
+        private_diagnostic=_CONTROL_PREDICATE_PREFIX + selected.encode("ascii"),
+    )
+
+
+def _diagnose_policy_recheck(
+    check: Callable[[], _T], *, diagnose: bool, name: str
+) -> _T:
+    """Name a nested policy refusal only for the private practice diagnostic."""
+    try:
+        return check()
+    except WorkerFailure as error:
+        if (
+            diagnose
+            and error.code is WorkerCode.POLICY
+            and error.private_diagnostic == b""
+        ):
+            raise _policy_refusal(True, name) from None
+        raise
+
+
+def _first_failed(checks: tuple[tuple[str, Callable[[], bool]], ...]) -> str:
+    """Diagnose an already-refused control without changing its policy path."""
+    try:
+        for name, fails in checks:
+            if fails():
+                return name
+    except Exception:  # noqa: BLE001 - diagnosis must not replace refusal
+        return "UNCLASSIFIED"
+    return "UNCLASSIFIED"
 
 
 def _stop_process(process: subprocess.Popen[bytes]) -> None:
@@ -426,12 +551,18 @@ def _require_supported_device_adapter(profile: DevelopmentWorkerProfile) -> None
 
 STRICT_GRANT_LABEL = "carbon.accelerator.grant"
 LOCAL_APPROVAL_LABEL = "carbon.accelerator.approval"
+SELF_SERVICE_RECORD_LABEL = "carbon.accelerator.host-record"
 
 
 def _authority_label_key(worker_profile) -> str:
     """Which container label carries this profile's accelerator authority."""
-    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        MINER_HOST_AUTHORITY,
+    )
 
+    if worker_profile.accelerator_authority == MINER_HOST_AUTHORITY:
+        return SELF_SERVICE_RECORD_LABEL
     if worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
         return LOCAL_APPROVAL_LABEL
     return STRICT_GRANT_LABEL
@@ -611,12 +742,17 @@ def inspect_effective_controls(
     cpuset: str,
     launch_digest: str,
     worker_profile: DevelopmentWorkerProfile,
+    diagnose_policy: bool = False,
 ) -> tuple[str, dict[str, object]]:
     """Verify daemon config and kernel-visible controls after create/start."""
-    _require_supported_device_adapter(worker_profile)
+    _diagnose_policy_recheck(
+        lambda: _require_supported_device_adapter(worker_profile),
+        diagnose=diagnose_policy,
+        name="GPU_ADAPTER_RECHECK",
+    )
     value = cli.json(["inspect", container_name, "--format", "{{json .}}"])
     if type(value) is not dict:
-        raise WorkerFailure(WorkerCode.POLICY)
+        raise _policy_refusal(diagnose_policy, "INSPECT_DOCUMENT")
     host = value.get("HostConfig")
     config = value.get("Config")
     state = value.get("State")
@@ -625,12 +761,18 @@ def inspect_effective_controls(
         not all(type(item) is dict for item in (host, config, state))
         or type(mounts) is not list
     ):
-        raise WorkerFailure(WorkerCode.POLICY)
+        raise _policy_refusal(diagnose_policy, "INSPECT_SHAPE")
     expected_requests = []
     if worker_profile.accelerator_profile_id is not None:
         from carbon.reconstruction.worker.accelerator_runtime import device_request
 
-        expected_requests = [device_request()]
+        expected_requests = [
+            _diagnose_policy_recheck(
+                device_request,
+                diagnose=diagnose_policy,
+                name="DEVICE_REQUEST_RECHECK",
+            )
+        ]
     expected_label = f"org.opencontainers.image.carbon.c03.launch={launch_digest}"
     security = host.get("SecurityOpt") or []
     ulimits = {
@@ -694,16 +836,117 @@ def inspect_effective_controls(
         or unexpected_mounts
         or tmpfs_options != expected_tmpfs
         or expected_label
-        not in create_arguments(
-            container_name=container_name,
-            image_id=image_id,
-            input_directory=input_directory,
-            cpuset=cpuset,
-            launch_digest=launch_digest,
-            worker_profile=worker_profile,
+        not in _diagnose_policy_recheck(
+            lambda: create_arguments(
+                container_name=container_name,
+                image_id=image_id,
+                input_directory=input_directory,
+                cpuset=cpuset,
+                launch_digest=launch_digest,
+                worker_profile=worker_profile,
+            ),
+            diagnose=diagnose_policy,
+            name="CREATE_ARGUMENTS_RECHECK",
         )
     ):
-        raise WorkerFailure(WorkerCode.POLICY)
+        predicate = "UNCLASSIFIED"
+        if diagnose_policy:
+            predicate = _first_failed(
+                (
+                    ("IMAGE", lambda: value.get("Image") != image_id),
+                    (
+                        "USER",
+                        lambda: config.get("User") != f"{WORKER_UID}:{WORKER_GID}",
+                    ),
+                    (
+                        "LAUNCH_LABEL",
+                        lambda: config.get("Labels", {}).get(
+                            "org.opencontainers.image.carbon.c03.launch"
+                        )
+                        != launch_digest,
+                    ),
+                    ("ROOT_READ_ONLY", lambda: not host.get("ReadonlyRootfs")),
+                    ("PRIVILEGED", lambda: bool(host.get("Privileged"))),
+                    ("NETWORK", lambda: host.get("NetworkMode") != "none"),
+                    ("IPC", lambda: host.get("IpcMode") not in ("private", "")),
+                    ("PID", lambda: host.get("PidMode") not in ("", "private")),
+                    (
+                        "RESTART",
+                        lambda: host.get("RestartPolicy", {}).get("Name") != "no",
+                    ),
+                    (
+                        "LOG_CONFIG",
+                        lambda: host.get("LogConfig")
+                        != {
+                            "Type": "local",
+                            "Config": {
+                                "compress": "false",
+                                "max-file": "1",
+                                "max-size": "1m",
+                            },
+                        },
+                    ),
+                    ("PIDS_LIMIT", lambda: host.get("PidsLimit") != PIDS_LIMIT),
+                    (
+                        "MEMORY",
+                        lambda: host.get("Memory")
+                        != worker_profile.effective_memory_bytes,
+                    ),
+                    (
+                        "MEMORY_SWAP",
+                        lambda: host.get("MemorySwap")
+                        != worker_profile.effective_memory_bytes,
+                    ),
+                    (
+                        "CPU_QUOTA",
+                        lambda: host.get("NanoCpus") != CPU_COUNT * 1_000_000_000,
+                    ),
+                    ("CPUSET", lambda: host.get("CpusetCpus") != cpuset),
+                    ("SHM", lambda: host.get("ShmSize") != _SHM_BYTES),
+                    ("CAP_ADD", lambda: bool(host.get("CapAdd"))),
+                    ("CAP_DROP", lambda: sorted(host.get("CapDrop") or []) != ["ALL"]),
+                    ("DEVICES", lambda: bool(host.get("Devices"))),
+                    (
+                        "DEVICE_REQUESTS",
+                        lambda: (host.get("DeviceRequests") or []) != expected_requests,
+                    ),
+                    ("PORT_BINDINGS", lambda: bool(host.get("PortBindings"))),
+                    ("PUBLISH_PORTS", lambda: bool(host.get("PublishAllPorts"))),
+                    (
+                        "NO_NEW_PRIVILEGES",
+                        lambda: "no-new-privileges=true" not in security,
+                    ),
+                    (
+                        "NOFILE_ULIMIT",
+                        lambda: ulimits.get("nofile") != (NOFILE_LIMIT, NOFILE_LIMIT),
+                    ),
+                    ("CORE_ULIMIT", lambda: ulimits.get("core") != (0, 0)),
+                    ("INPUT_MOUNT_COUNT", lambda: len(input_mounts) != 1),
+                    (
+                        "INPUT_MOUNT_SOURCE",
+                        lambda: input_mounts[0].get("Source") != str(input_directory),
+                    ),
+                    (
+                        "INPUT_MOUNT_READ_ONLY",
+                        lambda: input_mounts[0].get("RW") is not False,
+                    ),
+                    ("UNEXPECTED_MOUNT", lambda: bool(unexpected_mounts)),
+                    ("SCRATCH_TMPFS_OPTIONS", lambda: tmpfs_options != expected_tmpfs),
+                    (
+                        "CREATE_LAUNCH_LABEL",
+                        lambda: expected_label
+                        not in create_arguments(
+                            container_name=container_name,
+                            image_id=image_id,
+                            input_directory=input_directory,
+                            cpuset=cpuset,
+                            launch_digest=launch_digest,
+                            worker_profile=worker_profile,
+                        ),
+                    ),
+                )
+            )
+        raise _policy_refusal(diagnose_policy, predicate)
     gpu_observation = None
     if worker_profile.accelerator_profile_id is not None:
         from carbon.reconstruction.accelerators import (
@@ -716,15 +959,23 @@ def inspect_effective_controls(
             inspect_gpu_device,
         )
 
-        record = host_device()
+        record = _diagnose_policy_recheck(
+            host_device,
+            diagnose=diagnose_policy,
+            name="GPU_HOST_RECORD_RECHECK",
+        )
         device = worker_profile.accelerator_device_uuid
         if device != record.device_uuid:
-            raise WorkerFailure(WorkerCode.POLICY)
+            raise _policy_refusal(diagnose_policy, "HOST_DEVICE_RECORD")
         env = dict(item.split("=", 1) for item in config.get("Env", []) if "=" in item)
-        required = worker_environment(
-            GPU_PROFILE,
-            AcceleratorRole(worker_profile.accelerator_role),
-            host_device=record,
+        required = _diagnose_policy_recheck(
+            lambda: worker_environment(
+                GPU_PROFILE,
+                AcceleratorRole(worker_profile.accelerator_role),
+                host_device=record,
+            ),
+            diagnose=diagnose_policy,
+            name="GPU_ENVIRONMENT_RECHECK",
         )
         required.update(
             NVIDIA_VISIBLE_DEVICES=device,
@@ -738,29 +989,105 @@ def inspect_effective_controls(
             or (config.get("Labels") or {}).get("carbon.accelerator.device") != device
             or (config.get("Labels") or {}).get(_authority_label_key(worker_profile))
             != worker_profile.accelerator_grant_digest
-            # A local container must not also carry a strict grant label, and a
-            # strict container must not carry a local approval label.
-            or (config.get("Labels") or {}).get(
-                _other_authority_label_key(worker_profile)
+            # Each authority has exactly its own label namespace. A second
+            # authority label must never silently downgrade the checks.
+            or any(
+                (config.get("Labels") or {}).get(key) is not None
+                for key in {
+                    STRICT_GRANT_LABEL,
+                    LOCAL_APPROVAL_LABEL,
+                    SELF_SERVICE_RECORD_LABEL,
+                }
+                - {_authority_label_key(worker_profile)}
             )
-            is not None
         ):
-            raise WorkerFailure(WorkerCode.POLICY)
-        from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
-
-        gpu_observation = inspect_gpu_device(
-            cli=cli,
-            container_name=container_name,
-            # The approved diagnostic plan, not the approval record digest.
-            # accelerator_grant_digest identifies the authority record; the plan
-            # it authorizes is a separate identity and the observation records
-            # that one.
-            development_plan_digest=(
-                worker_profile.accelerator_plan_digest
-                if worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY
-                else None
-            ),
+            predicate = "UNCLASSIFIED"
+            if diagnose_policy:
+                predicate = _first_failed(
+                    (
+                        ("GPU_RUNTIME", lambda: host.get("Runtime") != "nvidia"),
+                        (
+                            "GPU_ENVIRONMENT",
+                            lambda: any(env.get(k) != v for k, v in required.items()),
+                        ),
+                        (
+                            "GPU_LD_LIBRARY_PATH",
+                            lambda: bool(env.get("LD_LIBRARY_PATH")),
+                        ),
+                        (
+                            "GPU_SKIP_CUDA_CHECK",
+                            lambda: bool(env.get("JAX_SKIP_CUDA_CONSTRAINTS_CHECK")),
+                        ),
+                        (
+                            "GPU_DEVICE_LABEL",
+                            lambda: (config.get("Labels") or {}).get(
+                                "carbon.accelerator.device"
+                            )
+                            != device,
+                        ),
+                        (
+                            "GPU_AUTHORITY_LABEL",
+                            lambda: (config.get("Labels") or {}).get(
+                                _authority_label_key(worker_profile)
+                            )
+                            != worker_profile.accelerator_grant_digest,
+                        ),
+                        (
+                            "GPU_CONFLICTING_AUTHORITY_LABEL",
+                            lambda: any(
+                                (config.get("Labels") or {}).get(key) is not None
+                                for key in {
+                                    STRICT_GRANT_LABEL,
+                                    LOCAL_APPROVAL_LABEL,
+                                    SELF_SERVICE_RECORD_LABEL,
+                                }
+                                - {_authority_label_key(worker_profile)}
+                            ),
+                        ),
+                    )
+                )
+            raise _policy_refusal(diagnose_policy, predicate)
+        from carbon.reconstruction.worker.model import (
+            LOCAL_DEVELOPMENT_AUTHORITY,
+            MINER_HOST_AUTHORITY,
         )
+
+        if worker_profile.accelerator_authority == MINER_HOST_AUTHORITY:
+            # The label and the complete profile digest must agree; a foreign
+            # authority cannot be relabelled as host self-service.
+            if (config.get("Labels") or {}).get(
+                "org.opencontainers.image.carbon.c03.policy"
+            ) != worker_profile.digest:
+                raise _policy_refusal(diagnose_policy, "GPU_POLICY_LABEL")
+            from carbon.reconstruction.worker.accelerator_runtime import (
+                inspect_self_service_device,
+            )
+
+            try:
+                gpu_observation = inspect_self_service_device(
+                    cli=cli,
+                    container_name=container_name,
+                    worker_profile=worker_profile,
+                )
+            except WorkerFailure as error:
+                if diagnose_policy and error.code is WorkerCode.POLICY:
+                    raise _policy_refusal(True, "GPU_DEVICE_OBSERVATION") from None
+                raise
+        else:
+            gpu_observation = inspect_gpu_device(
+                cli=cli,
+                container_name=container_name,
+                # The approved diagnostic plan, not the approval record digest.
+                # accelerator_grant_digest identifies the authority record; the plan
+                # it authorizes is a separate identity and the observation records
+                # that one.
+                development_plan_digest=(
+                    worker_profile.accelerator_plan_digest
+                    if worker_profile.accelerator_authority
+                    == LOCAL_DEVELOPMENT_AUTHORITY
+                    else None
+                ),
+            )
     status = cli.run(
         ["exec", container_name, "/bin/cat", "/proc/1/status"], timeout=10
     ).stdout.decode("ascii", "replace")
@@ -770,7 +1097,22 @@ def inspect_effective_controls(
             key, value_text = line.split(":", 1)
             facts[key] = value_text.strip()
     if facts != {"CapEff": "0000000000000000", "NoNewPrivs": "1", "Seccomp": "2"}:
-        raise WorkerFailure(WorkerCode.POLICY)
+        predicate = "UNCLASSIFIED"
+        if diagnose_policy:
+            predicate = _first_failed(
+                (
+                    (
+                        "PROCESS_CAPABILITIES",
+                        lambda: facts.get("CapEff") != "0000000000000000",
+                    ),
+                    (
+                        "PROCESS_NO_NEW_PRIVILEGES",
+                        lambda: facts.get("NoNewPrivs") != "1",
+                    ),
+                    ("PROCESS_SECCOMP", lambda: facts.get("Seccomp") != "2"),
+                )
+            )
+        raise _policy_refusal(diagnose_policy, predicate)
     cgroup: dict[str, str] = {}
     for name in (
         "cpu.max",
@@ -794,7 +1136,7 @@ def inspect_effective_controls(
     try:
         observed_cpuset = set(parse_cpuset(cgroup["cpuset.cpus.effective"]))
     except WorkerFailure:
-        raise WorkerFailure(WorkerCode.POLICY) from None
+        raise _policy_refusal(diagnose_policy, "KERNEL_CPUSET_FORMAT") from None
     if (
         len(cpu_quota) != 2
         or int(cpu_quota[0]) != len(eligible) * int(cpu_quota[1])
@@ -803,7 +1145,26 @@ def inspect_effective_controls(
         or cgroup["memory.swap.max"] != "0"
         or cgroup["pids.max"] != str(PIDS_LIMIT)
     ):
-        raise WorkerFailure(WorkerCode.POLICY)
+        predicate = "UNCLASSIFIED"
+        if diagnose_policy:
+            predicate = _first_failed(
+                (
+                    ("KERNEL_CPU_MAX_SHAPE", lambda: len(cpu_quota) != 2),
+                    (
+                        "KERNEL_CPU_QUOTA",
+                        lambda: int(cpu_quota[0]) != len(eligible) * int(cpu_quota[1]),
+                    ),
+                    ("KERNEL_CPUSET", lambda: observed_cpuset != eligible),
+                    (
+                        "KERNEL_MEMORY",
+                        lambda: cgroup["memory.max"]
+                        != str(worker_profile.effective_memory_bytes),
+                    ),
+                    ("KERNEL_SWAP", lambda: cgroup["memory.swap.max"] != "0"),
+                    ("KERNEL_PIDS", lambda: cgroup["pids.max"] != str(PIDS_LIMIT)),
+                )
+            )
+        raise _policy_refusal(diagnose_policy, predicate)
     scratch_size = int(
         cli.run(
             ["exec", container_name, "/bin/df", "-B1", "--output=size", "/scratch"],
@@ -834,7 +1195,20 @@ def inspect_effective_controls(
         or shm_size > _SHM_BYTES
         or scratch_size + shm_size > SCRATCH_BYTES
     ):
-        raise WorkerFailure(WorkerCode.POLICY)
+        predicate = "UNCLASSIFIED"
+        if diagnose_policy:
+            predicate = _first_failed(
+                (
+                    ("SCRATCH_BYTES", lambda: scratch_size > _SCRATCH_TMPFS_BYTES),
+                    ("SCRATCH_INODES", lambda: scratch_inodes > SCRATCH_INODES),
+                    ("SHM_BYTES", lambda: shm_size > _SHM_BYTES),
+                    (
+                        "SCRATCH_PLUS_SHM",
+                        lambda: scratch_size + shm_size > SCRATCH_BYTES,
+                    ),
+                )
+            )
+        raise _policy_refusal(diagnose_policy, predicate)
     evidence = {
         "schema": "carbon.c03.effective-controls.v1",
         "image_id": image_id,

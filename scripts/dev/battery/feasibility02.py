@@ -100,12 +100,131 @@ def plan(out):
     return len(jobs)
 
 
-def _simulation(job):
+def _guarded_job_context(
+    job, *, stage_binding=None, expected_stage_binding_digest=None
+):
+    """Closed registered DEVELOPMENT stages; metadata is not physical proof.
+
+    EVAL alone needs Root-pinned serializable context. Its controller must also
+    check genuine CAL/pretruth/resource eligibility before submitting workers.
+    """
+    if type(job) is not dict:
+        raise ValueError("registered job mapping required")
+    keys = {
+        "reference_method",
+        "reference_method_digest",
+        "reference_admission",
+        "reference_dataset",
+        "reference_role",
+    }
+    guarded = bool(keys & set(job))
+    if not guarded and stage_binding is None and expected_stage_binding_digest is None:
+        return None
+    from carbon.design_search import tasks
+
+    admission = job.get("reference_admission")
+    if admission == "carbon.scorelab.guarded419.eval-admission.v1":
+        from scripts.dev.score_lab import guarded419_context as context_module
+        from scripts.dev.score_lab import guarded419_eval as evaluation
+
+        fields = {
+            "schema",
+            "registration_sha256",
+            "plan",
+            "plan_digest",
+            "source_pins",
+            "source_pins_digest",
+            "refinement_job_ids",
+        }
+        if (
+            type(stage_binding) is not dict
+            or set(stage_binding) != fields
+            or stage_binding["schema"]
+            != "carbon.battery.guarded419.eval-worker-context.v1"
+            or type(expected_stage_binding_digest) is not str
+            or tasks.digest(stage_binding) != expected_stage_binding_digest
+        ):
+            raise tasks.TaskError(
+                "independently bound closed EVAL worker context required"
+            )
+        context = context_module.load(
+            expected_sha256=stage_binding["registration_sha256"]
+        )
+        result = evaluation.job_context(
+            job,
+            plan=stage_binding["plan"],
+            expected_plan_digest=stage_binding["plan_digest"],
+            source_pins=stage_binding["source_pins"],
+            expected_source_pins_digest=stage_binding["source_pins_digest"],
+            context=context,
+            refinement_job_ids=stage_binding["refinement_job_ids"],
+        )
+        # The adapter first validates its closed inventory. Only its registered
+        # repository-relative named files can reach this local-byte comparison.
+        for path, expected in stage_binding["source_pins"]["files"].items():
+            if hashlib.sha256((ROOT / path).read_bytes()).hexdigest() != expected:
+                raise tasks.TaskError("actual EVAL worker source bytes differ")
+        if (
+            type(result) is not dict
+            or set(result) != {"record_schema", "reference_identity"}
+            or result["record_schema"] != evaluation.RECORD
+        ):
+            raise tasks.TaskError("closed registered EVAL worker metadata required")
+        return {
+            "schema": result["record_schema"],
+            "reference_identity": result["reference_identity"],
+        }
+    if stage_binding is not None or expected_stage_binding_digest is not None:
+        raise tasks.TaskError("EVAL worker context cannot enter another stage")
+    if not guarded:
+        return None
+    if admission == "carbon.scorelab.guarded419.t9-admission.v1":
+        from scripts.dev.score_lab import guarded419_t9 as adapter
+
+        adapter.validate_job(job)
+        return {"schema": adapter.RECORD, "reference_identity": adapter.observer()}
+    if admission == "carbon.scorelab.guarded419.cal15-admission.v1":
+        from scripts.dev.score_lab import guarded419_calibration_continue as adapter
+
+        adapter.validate_job(job)
+        return {"schema": adapter.RECORD, "reference_identity": adapter.observer()}
+    if admission == "carbon.scorelab.guarded419.t128-admission.v1":
+        from scripts.dev.score_lab import guarded419_t128 as adapter
+
+        adapter.validate_job(job)
+        return {
+            "schema": adapter.RECORD,
+            "reference_identity": adapter.observer(job["reference_role"]),
+        }
+    if admission is not None:
+        raise tasks.TaskError("unknown guarded worker stage")
+    from scripts.dev.battery import guarded_reference
+
+    guarded_reference.validate_job(job)
+    return {
+        "schema": guarded_reference.RECORD,
+        "reference_identity": guarded_reference.observer({}),
+    }
+
+
+def _simulation(job, *, stage_binding=None, expected_stage_binding_digest=None):
+    guarded = (
+        _guarded_job_context(
+            job,
+            stage_binding=stage_binding,
+            expected_stage_binding_digest=expected_stage_binding_digest,
+        )
+        is not None
+    )
+    if guarded:
+        from scripts.dev.battery import guarded_reference
+
     import pybamm
 
     from carbon.battery import reference as ref
 
     spec = ref.SPEC
+    control_voltage = guarded_reference.CONTROL_V if guarded else spec["v_max"]
     model = pybamm.lithium_ion.DFN(dict(spec["options"]))
     params = pybamm.ParameterValues(spec["parameter_set"])
     t_k = 273.15 + job["t_amb_c"]
@@ -137,8 +256,8 @@ def _simulation(job):
     )
     body = (
         f"Charge at {job['c1']}C until {job['switch_voltage_v']} V",
-        f"Charge at {job['c2']}C until {spec['v_max']} V",
-        f"Hold at {spec['v_max']} V until {spec['cv_cutoff']}",
+        f"Charge at {job['c2']}C until {control_voltage} V",
+        f"Hold at {control_voltage} V until {spec['cv_cutoff']}",
         "Rest for 10 minutes",
         f"Discharge at {spec['discharge_rate']} until {spec['v_min']} V",
         "Rest for 10 minutes",
@@ -151,6 +270,7 @@ def _simulation(job):
         experiment=experiment,
         var_pts=var_pts,
         solver=solver,
+        **({"experiment_model_mode": "legacy"} if guarded else {}),
     )
     return sim, {
         "h0_w_m2k": float(h0),
@@ -254,6 +374,20 @@ def _observation_source_metadata(sim):
         ("base_solver", getattr(pybamm, "BaseSolver", None)),
         ("solution", getattr(pybamm, "Solution", None)),
         ("experiment", getattr(pybamm, "Experiment", None)),
+        (
+            "voltage_termination",
+            getattr(getattr(pybamm, "step", None), "VoltageTermination", None),
+        ),
+        ("voltage_step", getattr(getattr(pybamm, "step", None), "Voltage", None)),
+        ("base_step", getattr(getattr(pybamm, "step", None), "BaseStep", None)),
+        (
+            "voltage_control",
+            getattr(
+                getattr(pybamm, "external_circuit", None),
+                "VoltageFunctionControl",
+                None,
+            ),
+        ),
     ):
         entry = {
             "module": getattr(obj, "__module__", None),
@@ -270,6 +404,22 @@ def _observation_source_metadata(sim):
         except (OSError, TypeError, ValueError):
             pass
         sources[role] = entry
+    voltage_scale = {
+        "status": "PARAMETER_VALUE_UNAVAILABLE",
+        "series_cells": None,
+        "basis": "ACTUAL_SIMULATION_PARAMETER_VALUE_NOT_A_BOUND_CERTIFICATE",
+    }
+    try:
+        voltage_scale.update(
+            series_cells=_finite_scalar(
+                sim.parameter_values[
+                    "Number of cells connected in series to make a battery"
+                ]
+            ),
+            status="OBSERVED_PARAMETER_VALUE",
+        )
+    except (AttributeError, KeyError, TypeError, ValueError, OverflowError):
+        pass
     return {
         "schema": "carbon.battery.observation-source-inventory.v1",
         "installed_python_sources": sources,
@@ -279,6 +429,7 @@ def _observation_source_metadata(sim):
         "wheel_authenticity_verification": "NOT_PERFORMED_BY_THIS_DIAGNOSTIC",
         "native_solver_source_verification": "NOT_PERFORMED",
         "expected_environment_identity": "SEPARATE_SOLVER_PROVENANCE_AND_OVERLAY_LOCK",
+        "runtime_voltage_scale": voltage_scale,
         "output_time_configuration": {
             "experiment_period_argument": "OMITTED",
             "solve_t_interp_argument": "OMITTED",
@@ -286,6 +437,328 @@ def _observation_source_metadata(sim):
             "basis": "ACTUAL_RECORDED_POINTS_LIBRARY_DEFAULTS_NOT_A_FIXED_PERIOD_CLAIM",
         },
     }
+
+
+def _finite_scalar(value):
+    import numpy as np
+
+    values = np.asarray(value, dtype=float).reshape(-1)
+    if len(values) != 1 or not math.isfinite(float(values[0])):
+        raise ValueError("one finite scalar required")
+    return float(values[0])
+
+
+def _cv_equation_normalization(
+    model, variable, expression, target, *, time_s, state, inputs, scaled_residual
+):
+    """Observe the actual algebraic key's scale; never infer it from a residual.
+
+    The pinned discretisation divides equations by their processed key scale.
+    PyBaMM's symbolic identity includes array bytes, unlike str(expression).
+    This is a runtime witness, not proof for historical matrices or states.
+    """
+    import numpy as np
+
+    result = {
+        "schema": "carbon.battery.cv-equation-normalization.v2",
+        "status": "UNAVAILABLE",
+        "scale_source": "OPERATIVE_ALGEBRAIC_VARIABLE_SCALE",
+        "parameter_source": "OPERATIVE_MODEL_SYMBOL_PROCESSOR_PARAMETER_VALUES",
+        "parameter_name": "Nominal cell capacity [A.h]",
+        "scale_is_constant": None,
+        "scale": None,
+        "nominal_capacity_ah": None,
+        "target_v": target,
+        "normalized_residual_units": "SOLVER_NORMALIZED",
+        "voltage_residual_units": "V",
+        "signed_voltage_residual_v": None,
+        "independent_voltage_residual_v": None,
+    }
+    try:
+        if model.algebraic.get(variable) is not expression:
+            raise ValueError("NOT_THE_OPERATIVE_ALGEBRAIC_EQUATION")
+        scale_symbol = variable.scale
+        if scale_symbol.is_constant() is not True:
+            raise ValueError("CURRENT_SCALE_IS_NOT_CONSTANT")
+        raw_scale = np.asarray(scale_symbol.evaluate())
+        raw_capacity = np.asarray(
+            model.symbol_processor.parameter_values["Nominal cell capacity [A.h]"]
+        )
+        if raw_scale.dtype.kind not in "iuf" or raw_capacity.dtype.kind not in "iuf":
+            raise ValueError("CURRENT_SCALE_OR_CAPACITY_IS_NOT_NUMERIC")
+        scale, capacity = _finite_scalar(raw_scale), _finite_scalar(raw_capacity)
+        if scale <= 0 or capacity <= 0 or scale != capacity:
+            raise ValueError("CURRENT_SCALE_DIFFERS_FROM_ACTUAL_NOMINAL_CAPACITY")
+        result.update(
+            scale_is_constant=True,
+            scale=scale,
+            nominal_capacity_ah=capacity,
+            scale_expression_class=type(scale_symbol).__name__,
+            scale_expression_module=type(scale_symbol).__module__,
+        )
+        voltage = model.get_processed_variable_or_event("Voltage [V]")
+        voltage_relation = voltage - target
+        # Process the independently defined voltage under the actual current
+        # key. Its scalar broadcast, domains and scale must follow the pinned
+        # discretisation order; post-processing division distributes matrices.
+        raw_voltage = model._resolve_coupled_variables(model.variables["Voltage [V]"])
+        if model.symbol_processor(name="Voltage [V]", symbol=raw_voltage) != voltage:
+            raise ValueError("RAW_VOLTAGE_DOES_NOT_REPRODUCE_PROCESSED_VOLTAGE")
+        expected = model.symbol_processor(name=variable, symbol=raw_voltage - target)
+        if expression != expected:
+            raise ValueError("NOT_THE_SCALED_PROCESSED_VOLTAGE_RELATION")
+        result.update(
+            status="VERIFIED_SYMBOLIC_RELATION",
+            symbolic_equality_basis="PINNED_PYBAMM_FULL_SYMBOL_IDENTITY",
+            relation_construction="ACTUAL_CURRENT_KEY_PARAMETER_BROADCAST_DISCRETISATION_AND_SCALE",
+            signed_voltage_residual_v=_finite_scalar(scaled_residual * scale),
+            independent_voltage_residual_v=_finite_scalar(
+                voltage_relation.evaluate(t=time_s, y=state, inputs=inputs)
+            ),
+        )
+    except (
+        AttributeError,
+        KeyError,
+        NotImplementedError,
+        TypeError,
+        ValueError,
+        OverflowError,
+    ) as exc:
+        result["status"] = "UNAVAILABLE"
+        result["reason"] = (
+            str(exc) if isinstance(exc, ValueError) else type(exc).__name__
+        )
+    return result
+
+
+def _voltage_extrema(times, values, *, start_index=0):
+    """Summarize actual points in order; do not interpolate or certify a bound."""
+    points = [
+        {"index": k, "time_s": t, "value_v": v}
+        for k, (t, v) in enumerate(zip(times, values, strict=True), start=start_index)
+    ]
+    if not points:
+        return None
+    return {
+        "count": len(points),
+        "minimum": min(points, key=lambda p: p["value_v"]),
+        "maximum": max(points, key=lambda p: p["value_v"]),
+    }
+
+
+def _voltage_contact_observation(step, descriptor):
+    """Add evidence only. Missing evidence cannot change legacy solve/reduction.
+
+    Per-step `t_event` is also populated on final-time returns by pinned IDAKLU;
+    its presence alone never means a voltage event fired. `closest_event_idx`
+    is a library nearest-residual guess, not an independent root certificate.
+    """
+    import numpy as np
+
+    result = {
+        "schema": "carbon.battery.voltage-contact-observation.v1",
+        "status": "UNAVAILABLE",
+        "termination": getattr(step, "termination", None),
+        "closest_event_idx": getattr(step, "closest_event_idx", None),
+        "descriptor": None,
+        "samples": None,
+        "cv_voltage_minus_target": None,
+        "terminal_state": {"status": "UNAVAILABLE"},
+        "continuous_voltage_bound": "NOT_ESTABLISHED",
+        "acceptance_effect": "NONE_DIAGNOSTIC_ONLY",
+    }
+    try:
+        if descriptor is not None:
+            terminations = []
+            for term in descriptor.termination:
+                terminations.append(
+                    {
+                        "class": type(term).__name__,
+                        "module": type(term).__module__,
+                        "value": _finite_scalar(term.value),
+                        "operator": term.operator,
+                        "event_name": term.get_event_name(descriptor),
+                    }
+                )
+            kind = getattr(descriptor, "control_kind", None)
+            result["descriptor"] = {
+                "class": type(descriptor).__name__,
+                "module": type(descriptor).__module__,
+                "description": descriptor.description,
+                "direction": descriptor.direction,
+                "control_kind": getattr(kind, "value", kind),
+                "value": _finite_scalar(descriptor.value),
+                "duration_s": getattr(descriptor, "duration", None),
+                "terminations": terminations,
+            }
+        times = [float(t) for t in step["Time [s]"].entries]
+        volts = [float(v) for v in step["Voltage [V]"].entries]
+        if len(times) != len(volts) or not times:
+            raise ValueError("missing or mismatched voltage/time samples")
+        if not all(math.isfinite(v) for v in times + volts):
+            raise ValueError("nonfinite voltage/time samples")
+        if any(b <= a for a, b in pairwise(times)):
+            raise ValueError("voltage times must be strictly increasing")
+        # Hash the actual paired arrays, including endpoints and original order.
+        # This inventory is not a stored full trajectory or loaded-code attestation.
+        paired = np.asarray(list(zip(times, volts)), dtype="<f8")
+        interior = [(t, v) for t, v in zip(times, volts) if times[0] < t < times[-1]]
+        result["samples"] = {
+            "all": _voltage_extrema(times, volts),
+            "strict_interior": _voltage_extrema(
+                [p[0] for p in interior], [p[1] for p in interior], start_index=1
+            ),
+            "first": {"time_s": times[0], "voltage_v": volts[0]},
+            "terminal": {"time_s": times[-1], "voltage_v": volts[-1]},
+            "penultimate": (
+                {"time_s": times[-2], "voltage_v": volts[-2]}
+                if len(times) > 1
+                else None
+            ),
+            "paired_float64_le_sha256": hashlib.sha256(paired.tobytes()).hexdigest(),
+            "full_trajectory_retained_by_this_diagnostic": False,
+        }
+        definition = result["descriptor"]
+        if definition is not None and definition["control_kind"] == "voltage":
+            target = definition["value"]
+            residuals = [v - target for v in volts]
+            if not all(math.isfinite(v) for v in residuals):
+                raise ValueError("nonfinite voltage residual arithmetic")
+            result["cv_voltage_minus_target"] = {
+                "definition": "observed Voltage [V] minus actual experiment step.value",
+                "target_v": target,
+                "extrema": _voltage_extrema(times, residuals),
+                "positive_count": sum(v > 0 for v in residuals),
+                "negative_count": sum(v < 0 for v in residuals),
+                "zero_count": sum(v == 0 for v in residuals),
+                "full_dae_residual": "NOT_ESTABLISHED_BY_SAMPLE_SUBTRACTION",
+            }
+        result["status"] = (
+            "OBSERVED" if definition is not None else "DESCRIPTOR_UNAVAILABLE"
+        )
+    except Exception as exc:  # noqa: BLE001 -- optional evidence, never reference PASS
+        result.update(
+            status="INVALID_OR_UNAVAILABLE_OBSERVATION", error_type=type(exc).__name__
+        )
+
+    try:
+        event_time = _finite_scalar(step.t_event)
+        state = np.asarray(step.y_event, dtype="<f8")
+        if (
+            state.ndim != 2
+            or state.shape[1] != 1
+            or not state.size
+            or not np.isfinite(state).all()
+        ):
+            raise ValueError("one finite terminal state vector required")
+        model = step.all_models[-1]
+        inputs = step.all_inputs[-1]
+        events = []
+        for event in model.events:
+            if getattr(event.event_type, "name", None) == "TERMINATION":
+                events.append(
+                    {
+                        "name": event.name,
+                        "signed_residual": _finite_scalar(
+                            event.expression.evaluate(
+                                t=event_time, y=state, inputs=inputs
+                            )
+                        ),
+                    }
+                )
+        index = result["closest_event_idx"]
+        if index is not None:
+            index = int(index)
+            result["closest_event_idx"] = index
+        circuit = getattr(model, "submodels", {}).get("external circuit")
+        terminal = {
+            "status": "OBSERVED",
+            "time_s": event_time,
+            "state_count": int(state.size),
+            "state_float64_le_sha256": hashlib.sha256(state.tobytes()).hexdigest(),
+            "full_state_retained_by_this_diagnostic": False,
+            "matches_last_observed_time": (
+                event_time == result["samples"]["terminal"]["time_s"]
+                if result["samples"] is not None
+                else None
+            ),
+            "termination_events": events,
+            "library_closest_event_name": (
+                events[index]["name"]
+                if index is not None and 0 <= index < len(events)
+                else None
+            ),
+            "event_identity_basis": "LIBRARY_NEAREST_RESIDUAL_NOT_ROOT_CERTIFICATION",
+            "model_class": type(model).__name__,
+            "external_circuit_class": (
+                type(circuit).__name__ if circuit is not None else None
+            ),
+            "external_circuit_control": getattr(circuit, "control", None),
+            "current_control_equations": [],
+        }
+        for variable, expression in getattr(model, "algebraic", {}).items():
+            if variable.name == "Current variable [A]":
+                equation = str(expression)
+                identity = "NOT_A_VERIFIED_VOLTAGE_RELATION"
+                scaled_residual = _finite_scalar(
+                    expression.evaluate(t=event_time, y=state, inputs=inputs)
+                )
+                normalization = None
+                if (
+                    result["descriptor"]
+                    and result["descriptor"]["control_kind"] == "voltage"
+                ):
+                    normalization = _cv_equation_normalization(
+                        model,
+                        variable,
+                        expression,
+                        result["descriptor"]["value"],
+                        time_s=event_time,
+                        state=state,
+                        inputs=inputs,
+                        scaled_residual=scaled_residual,
+                    )
+                    if normalization["status"] == "VERIFIED_SYMBOLIC_RELATION":
+                        identity = "PROCESSED_VOLTAGE_MINUS_TARGET_OVER_CURRENT_SCALE"
+                terminal["current_control_equations"].append(
+                    {
+                        "variable": variable.name,
+                        "collection": "model.algebraic",
+                        "expression": equation[:2048],
+                        "expression_truncated": len(equation) > 2048,
+                        "identity": identity,
+                        "expression_utf8_sha256": hashlib.sha256(
+                            equation.encode("utf-8")
+                        ).hexdigest(),
+                        "signed_residual": scaled_residual,
+                        "normalization": normalization,
+                    }
+                )
+        for key in ("Voltage [V]", "Battery voltage [V]"):
+            # Delayed variable processing in the pinned release requires this
+            # public accessor; the raw variables mapping may be unprocessed.
+            variable = (
+                model.get_processed_variable_or_event(key)
+                if hasattr(model, "get_processed_variable_or_event")
+                else model.variables[key]
+            )
+            terminal[key] = _finite_scalar(
+                variable.evaluate(t=event_time, y=state, inputs=inputs)
+            )
+        result["terminal_state"] = terminal
+    except Exception as exc:  # noqa: BLE001 -- unavailable evidence remains explicit
+        result["terminal_state"] = {
+            "status": "UNAVAILABLE",
+            "error_type": type(exc).__name__,
+        }
+    return result
+
+
+def _experiment_descriptor(sim, index):
+    try:
+        return sim.experiment.steps[index]
+    except (AttributeError, IndexError, TypeError):
+        return None
 
 
 def _step_summary(step, cooling):
@@ -370,19 +843,56 @@ def _soc_clock(cycle1, soc0, capacity):
     }
 
 
-def solve_one(job):
+def solve_one(job, *, stage_binding=None, expected_stage_binding_digest=None):
     import pybamm
 
     pybamm.set_logging_level("ERROR")
-    record = {**job, "schema": "carbon.battery.feasibility02-record.v1"}
+    requested = {
+        "carbon.scorelab.guarded419.t9-admission.v1": "carbon.battery.guarded419-t9-feasibility-record.v1",
+        "carbon.scorelab.guarded419.cal15-admission.v1": "carbon.battery.guarded419-cal15-feasibility-record.v1",
+        "carbon.scorelab.guarded419.t128-admission.v1": "carbon.battery.guarded419-t128-feasibility-record.v1",
+        "carbon.scorelab.guarded419.eval-admission.v1": "carbon.battery.guarded419-eval-feasibility-record.v1",
+    }
+    record = {
+        **job,
+        "schema": requested.get(
+            job.get("reference_admission"),
+            (
+                "carbon.battery.guarded419-feasibility-record.v1"
+                if job.get("reference_method") is not None
+                else "carbon.battery.feasibility02-record.v1"
+            ),
+        ),
+    }
+    if job.get("reference_admission") == "carbon.scorelab.guarded419.t9-admission.v1":
+        from scripts.dev.score_lab import guarded419_t9
+
+        # Requested context identifies failures, never successful execution.
+        record["reference_identity"] = guarded419_t9.observer()
     started = time.perf_counter()
     try:
-        sim, cooling = _simulation(job)
+        context = _guarded_job_context(
+            job,
+            stage_binding=stage_binding,
+            expected_stage_binding_digest=expected_stage_binding_digest,
+        )
+        if context is not None and job.get("reference_admission") is not None:
+            record.update(context)
+        if stage_binding is None and expected_stage_binding_digest is None:
+            sim, cooling = _simulation(job)
+        else:
+            sim, cooling = _simulation(
+                job,
+                stage_binding=stage_binding,
+                expected_stage_binding_digest=expected_stage_binding_digest,
+            )
         sol = sim.solve(initial_soc=job["soc0"], calc_esoh=False)
-    except Exception as exc:  # noqa: BLE001 -- typed below
+    except Exception as exc:  # noqa: BLE001 -- typed reference outcome
         return {**record, "status": "REFERENCE_SOLVER_FAILED", "error": repr(exc)[:300],
                 "wall_s": time.perf_counter() - started}  # fmt: skip
     record["cooling"] = cooling
+    if context is not None:
+        record.update(context)
     record["observation_provenance"] = _observation_source_metadata(sim)
     cycles = list(sol.cycles)
     if len(cycles) < N_CYCLES or any(c is None for c in cycles):
@@ -391,6 +901,7 @@ def solve_one(job):
                 "wall_s": time.perf_counter() - started}  # fmt: skip
     try:
         per_cycle, capacity = [], {}
+        descriptor_index = 1  # flattened Experiment.steps starts with initial rest
         for k, cycle in enumerate(cycles, start=1):
             steps = list(cycle.steps)
             if k == 1:
@@ -398,9 +909,19 @@ def solve_one(job):
             if len(steps) != len(PHASES):
                 raise ValueError(f"cycle {k} has {len(steps)} steps")
             phases = {name: _step_summary(s, cooling) for name, s in zip(PHASES, steps)}
+            for offset, (name, step) in enumerate(zip(PHASES, steps)):
+                phases[name]["voltage_contact_observation"] = (
+                    _voltage_contact_observation(
+                        step, _experiment_descriptor(sim, descriptor_index + offset)
+                    )
+                )
+            descriptor_index += len(steps)
             capacity[k] = -phases["discharge"]["charge_ah"]
             per_cycle.append({"cycle": k, "phases": phases})
         initial_rest = _step_summary(cycles[0].steps[0], cooling)
+        initial_rest["voltage_contact_observation"] = _voltage_contact_observation(
+            cycles[0].steps[0], _experiment_descriptor(sim, 0)
+        )
         flat = [("initial_rest", 1, initial_rest)] + [
             (name, c["cycle"], p) for c in per_cycle for name, p in c["phases"].items()
         ]
@@ -443,11 +964,18 @@ def solve_one(job):
     return record
 
 
-def _timed(job):
+def _timed(job, *, stage_binding=None, expected_stage_binding_digest=None):
     """`solve_one` in its worker, with the worker's CPU core-seconds (user +
     system, every thread) for this case beside `wall_s`."""
     started = time.process_time()
-    record = solve_one(job)
+    if stage_binding is None and expected_stage_binding_digest is None:
+        record = solve_one(job)
+    else:
+        record = solve_one(
+            job,
+            stage_binding=stage_binding,
+            expected_stage_binding_digest=expected_stage_binding_digest,
+        )
     return {**record, "core_s": time.process_time() - started}
 
 
@@ -456,6 +984,20 @@ def solve(jobs_path, records_path, workers):
 
     solver_provenance = truth_env.provenance(".")
     jobs = json.loads(Path(jobs_path).read_text())["jobs"]
+    if any(
+        {
+            "reference_method",
+            "reference_method_digest",
+            "reference_admission",
+            "reference_dataset",
+            "reference_role",
+        }
+        & set(job)
+        for job in jobs
+    ):
+        raise ValueError(
+            "guarded reference jobs require the prospectively bound calibration path"
+        )
     records = Path(records_path)
     done = set()
     if records.exists():
@@ -489,6 +1031,12 @@ def _calibration_contract(jobs_path, binding_path, expected_sha256):
     if hashlib.sha256(raw).hexdigest() != expected_sha256:
         raise tasks.TaskError("calibration binding bytes differ")
     binding = json.loads(raw)
+    if binding.get("schema") == "carbon.scorelab.guarded419-calibration-execution.v1":
+        from scripts.dev.battery import guarded_reference
+
+        return guarded_reference.validate_binding(
+            binding, json.loads(Path(jobs_path).read_text(encoding="utf-8")), root=ROOT
+        )
     producer._fields(
         binding,
         (
@@ -599,6 +1147,10 @@ def solve_calibration(jobs_path, records_path, workers, binding_path, expected_s
     if type(workers) is not int or not 1 <= workers <= 2:
         raise tasks.TaskError("calibration requires one or two workers")
     binding, groups = _calibration_contract(jobs_path, binding_path, expected_sha256)
+    guarded = binding["schema"] == "carbon.scorelab.guarded419-calibration-execution.v1"
+    if guarded:
+        from scripts.dev.battery import guarded_reference
+    guarded_records = []
     provenance = truth_env.provenance(".")
     plan = binding["plan"]
     if (
@@ -618,7 +1170,11 @@ def solve_calibration(jobs_path, records_path, workers, binding_path, expected_s
     triples = {}
     states = {j["case_id"]: "NOT_DISPATCHED" for g in groups for j in g}
     receipt = {
-        "schema": "carbon.scorelab.calibration-execution-receipt.v1",
+        "schema": (
+            "carbon.scorelab.guarded419-calibration-execution-receipt.v1"
+            if guarded
+            else "carbon.scorelab.calibration-execution-receipt.v1"
+        ),
         "scope": binding["scope"],
         "binding_sha256": expected_sha256,
         "execution_source": binding["execution_source"],
@@ -634,10 +1190,14 @@ def solve_calibration(jobs_path, records_path, workers, binding_path, expected_s
     }
 
     def save():
-        receipt["calibration"] = numerics.calibration_report(
-            triples,
-            expected_cases=cases,
-            expected_policy_digest=binding["policy_digest"],
+        receipt["calibration"] = (
+            guarded_reference.calibration_report(binding, guarded_records)
+            if guarded
+            else numerics.calibration_report(
+                triples,
+                expected_cases=cases,
+                expected_policy_digest=binding["policy_digest"],
+            )
         )
         receipt["records_sha256"] = hashlib.sha256(records.read_bytes()).hexdigest()
         temporary = receipt_path.with_name(receipt_path.name + ".tmp")
@@ -667,7 +1227,11 @@ def solve_calibration(jobs_path, records_path, workers, binding_path, expected_s
                         # Preserve worker infrastructure failure, not science failure.
                         record = {
                             **job,
-                            "schema": "carbon.battery.feasibility02-record.v1",
+                            "schema": (
+                                "carbon.battery.guarded419-feasibility-record.v1"
+                                if guarded
+                                else "carbon.battery.feasibility02-record.v1"
+                            ),
                             "status": "FAILED_INFRA",
                             "error": repr(exc)[:300],
                         }
@@ -677,16 +1241,23 @@ def solve_calibration(jobs_path, records_path, workers, binding_path, expected_s
                         handle.flush()
                         os.fsync(handle.fileno())
                     rows.append(record)
+                    if guarded:
+                        guarded_records.append(record)
                     states[job["case_id"]] = record.get("status", "MALFORMED_RECORD")
                     save()
                 # Assessment occurs only after the current triple is durable;
                 # no futures for a later physical tuple exist yet.
-                triples[case] = _calibration_rows(binding, group, rows)
-                current = numerics.calibration_report(
-                    {case: triples[case]},
-                    expected_cases=[case],
-                    expected_policy_digest=binding["policy_digest"],
-                )
+                if guarded:
+                    current = guarded_reference.calibration_report(
+                        binding, guarded_records
+                    )
+                else:
+                    triples[case] = _calibration_rows(binding, group, rows)
+                    current = numerics.calibration_report(
+                        {case: triples[case]},
+                        expected_cases=[case],
+                        expected_policy_digest=binding["policy_digest"],
+                    )
                 receipt["per_completed_triple"].append(current)
                 if current["status"] != "COMPATIBLE_FOR_REGISTERED_CALIBRATION_CASES":
                     receipt["status"] = current["status"]
@@ -697,7 +1268,9 @@ def solve_calibration(jobs_path, records_path, workers, binding_path, expected_s
         receipt["status"] = "INTERRUPTED_OR_INVALID_REFERENCE"
         save()
         raise
-    receipt["status"] = "COMPATIBLE_PILOT_ONLY"
+    receipt["status"] = (
+        "COMPATIBLE_GUARDED_FIRST_TRIPLE_ONLY" if guarded else "COMPATIBLE_PILOT_ONLY"
+    )
     save()
     return 0
 

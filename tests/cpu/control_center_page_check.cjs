@@ -100,6 +100,32 @@ function lastPost(state, url) { return [...state.posted].reverse().find(entry =>
 const scenarios = [];
 const scenario = (name, run) => scenarios.push([name, run]);
 
+scenario("normal challenge selection shows only its registered construction options", async () => {
+  const challenge = selectable();
+  const state = world();
+  const document = state.options.construction_options?.[challenge.challenge_id];
+  assert.ok(document?.types?.length, "the actual options response names this Challenge's construction changes");
+  const page = await open(state);
+  page.go("#launch");
+  await page.advance(0);
+  assert.equal(one(page, "#wizard-construction-options").hidden, true);
+  await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id));
+  assert.equal(one(page, "#wizard-construction-options").hidden, false);
+  assert.match(page.text("wizard-construction-options"), /What you can change/);
+  assert.ok(page.text("wizard-construction-options").includes(document.types[0].label));
+  clean(page);
+
+  const unknown = world();
+  unknown.options.construction_options = {"another-challenge": document};
+  const second = await open(unknown);
+  second.go("#launch");
+  await second.advance(0);
+  await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id));
+  assert.equal(one(second, "#wizard-construction-options").hidden, true,
+    "an unrelated response key must not supply construction options for this Challenge");
+  clean(second);
+});
+
 scenario("acceptance labels name a revision and never follow availability", async () => {
   const state = launchable(world());
   const agent = state.caps.agents.choices.find(row => row.id === "manual");
@@ -138,6 +164,25 @@ scenario("acceptance defaults label offered Agents Compute and Connections catal
     assert.ok(page.text(id).includes("Untested"), id + " labels the offered choice");
     assert.ok(!page.text(id).includes("Tested at"), id + " does not infer a PASS");
   }
+  clean(page);
+});
+
+scenario("toolbox visibly stays untested without a PASS cell", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/tools");
+  await page.advance(0);
+  const label = () => one(page, "#campaign-detail .rs-toolbox-acceptance").textContent;
+  assert.equal(label(), "Untested");
+  state.view.toolbox.acceptance = {
+    status: "UNTESTED", result: "BLOCKED", cell: null, revision: null,
+    scope: "NAMED_CELL_REVISION_ONLY", evidence: null,
+  };
+  await refresh(page);
+  assert.equal(label(), "Untested");
   clean(page);
 });
 
@@ -1307,7 +1352,7 @@ async function toAgentStep(page) {
   page.window.CarbonControlCenter.goWizard("agent");
   await page.advance(0);
 }
-const GRAPHITE_KEYS = ["graphite_mode", "research_share", "plan", "hunt", "limits"];
+const GRAPHITE_KEYS = ["graphite_mode", "research_share", "plan", "hunt", "limits", "submission_policy"];
 const planHref = digest => "#library/plans/" + encodeURIComponent(digest);
 const usd = nano => "$" + String(Number((nano / 1e9).toPrecision(2)));
 
@@ -1426,7 +1471,7 @@ scenario("Graphite: each mode launches with exactly its own fields; the hunt is 
   assert.ok(!("hunt" in body), "a Build from a plan never hunts");
   page.window.CarbonControlCenter.goWizard("review");
   await page.advance(0);
-  assert.match(page.text("wizard-review"), /Build mode · plan /);
+  assert.match(page.text("wizard-review"), /Build mode · normal submission behavior · plan /);
   // Back to Full: the plan chosen for Build stays with Build.
   await toAgentStep(page);
   await page.press(one(page, "#wizard-graphite-mode-full"));
@@ -1444,6 +1489,58 @@ scenario("Graphite: each mode launches with exactly its own fields; the hunt is 
   await toAgentStep(page);
   assert.match(page.text("wizard-research-share-note"), /% of your model budget: \$[0-9.]+ of your .* model spend\. When that is used, research stops \(research share reached\)/);
   clean(page);
+});
+
+scenario("Graphite: retain before submit is visible, opt-in, and sent only when declared", async () => {
+  const state = graphiteWorld();
+  state.operations = state.operations.map(op => op.operation === "launch" ? {...op, optional: [...op.optional, "submission_policy"]} : op);
+  const page = await open(state);
+  await wizardTo(page, "agent", "graphite");
+  const retain = page.$("wizard-retain-before-submit");
+  assert.equal(retain.checked, false);
+  assert.match(page.text("wizard-graphite-retain"), /no commitment or validator submission; off by default/);
+  let body = await launchNow(page, state);
+  assert.ok(!("submission_policy" in body), "the historical default omits the field");
+  await toAgentStep(page);
+  await page.press(retain);
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  assert.match(page.text("wizard-review"), /retain selected candidate for review; no commit or validator submission/);
+  body = await launchNow(page, state);
+  assert.equal(body.submission_policy, "retain_only_v1");
+  await toAgentStep(page);
+  await page.press(one(page, "#wizard-graphite-mode-research"));
+  assert.equal(page.$("wizard-graphite-retain").hidden, true);
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  assert.match(page.text("wizard-review"), /research plan only; no selected candidate or submission/);
+  assert.doesNotMatch(page.text("wizard-review"), /retain selected candidate/);
+  body = await launchNow(page, state);
+  assert.equal(body.graphite_mode, "RESEARCH");
+  assert.ok(!("submission_policy" in body), "Research cannot retain a selected candidate");
+  await toAgentStep(page);
+  await page.press(one(page, "#wizard-graphite-mode-build"));
+  assert.equal(page.$("wizard-retain-before-submit").checked, true, "the hidden choice survives mode changes");
+  body = await launchNow(page, state);
+  assert.equal(body.graphite_mode, "BUILD");
+  assert.equal(body.submission_policy, "retain_only_v1", "Build carries the same explicit choice");
+  await toAgentStep(page);
+  await page.press(page.$("wizard-retain-before-submit"));
+  body = await launchNow(page, state);
+  assert.ok(!("submission_policy" in body), "turning retain off restores omission");
+  clean(page);
+
+  const old = graphiteWorld();
+  old.operations = old.operations.map(op => op.operation === "launch"
+    ? {...op, optional: op.optional.filter(name => name !== "submission_policy")}
+    : op);
+  const olderPage = await open(old);
+  await wizardTo(olderPage, "agent", "graphite");
+  await olderPage.press(olderPage.$("wizard-retain-before-submit"));
+  assert.equal(olderPage.$("wizard-next").disabled, true);
+  assert.match(olderPage.text("wizard-next-reason"), /launch does not take submission_policy/);
+  assert.equal(posts(old, "/api/v1/research").length, 0);
+  clean(olderPage);
 });
 
 scenario("Graphite: a choice the controller's launch does not take blocks the launch, never dropped", async () => {

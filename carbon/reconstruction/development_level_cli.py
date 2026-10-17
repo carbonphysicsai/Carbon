@@ -62,9 +62,10 @@ STRATEGY_REFUSED = "level_strategy_refused"
 
 
 class Refused(Exception):
-    def __init__(self, code, issues=()):
+    def __init__(self, code, issues=(), *, required_check_report=None):
         super().__init__(code)
         self.code, self.issues = code, list(issues)
+        self.required_check_report = required_check_report
 
 
 def _variant(request):
@@ -108,7 +109,11 @@ def _required(request, found):
         try:
             check(request["strategy"], found)
         except ChecksUnavailable as unavailable:
-            raise Refused(unavailable.code, unavailable.issues) from None
+            raise Refused(
+                unavailable.code,
+                unavailable.issues,
+                required_check_report=unavailable.required_check_report,
+            ) from None
         except ValueError as refused:
             raise Refused(
                 STRATEGY_REFUSED,
@@ -282,7 +287,16 @@ def answer(request):
     try:
         return OPERATIONS[request["op"]](request)
     except Refused as refused:
-        return {"ok": False, "code": refused.code, "issues": refused.issues}
+        return {
+            "ok": False,
+            "code": refused.code,
+            "issues": refused.issues,
+            **(
+                {"required_check_report": refused.required_check_report}
+                if refused.required_check_report is not None
+                else {}
+            ),
+        }
 
 
 def main():

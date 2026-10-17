@@ -1,0 +1,7 @@
+## 2026-10-16 — LAUNCHPAD-F06-PUBLIC-PROVISIONS-01: one public provision projection for both doors
+
+**Ticket:** LAUNCHPAD-F06-MCP-PROVISIONS-01. **Classification:** IMPLEMENTATION_LAG under OWNER-RESEARCH-ENVIRONMENT-01 and Launchpad acceptance F06.
+
+The Control Center already projected `ENVIRONMENTS` into public `provided` or named `gap` rows, while the MCP Challenge description omitted them. Move that projection to `carbon.challenge_kit.standard.public_provisions` and have both doors call it. The MCP description gains one `provisions` field with the existing Control Center shape. The projection excludes `Provided.evidence` import references; it reports only status/note or gap reason/next step. The registry still refuses a retired, reserved, deferred, or wrong-version selection before it describes anything; retired history is kept in the standard rather than presented as an open gap.
+
+An alternative duplicate MCP projection would allow door drift; importing the Control Center's script into the registry would reverse the library dependency. This change is additive and reversible by removing the field/helper. It changes no scientific decision, cost calculation, submission contract, runtime permission, qualification, or official/private data boundary. If a domain lead changes the public shape, revise the one projection and its two-door tests. No human-reserved input is required for this bounded engineering repair. F06 still needs real installed-door and reservation evidence.

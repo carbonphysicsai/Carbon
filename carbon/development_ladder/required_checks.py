@@ -12,9 +12,10 @@ from __future__ import annotations
 class ChecksUnavailable(RuntimeError):
     code = "construction_checks_unavailable"
 
-    def __init__(self, issues=()):
+    def __init__(self, issues=(), *, required_check_report=None):
         super().__init__(self.code)
         self.issues = tuple(issues)
+        self.required_check_report = required_check_report
 
 
 def _source(challenge):
@@ -93,18 +94,50 @@ def check(strategy, composition):
     pins = {variant.level: variant.digest for variant in composition.variants}
     parameters = strategy.get("parameters") or {}
     issues = []
+    report_checks = []
+    subject_matched = True
     for row in doc["types"]:
         if row["type"] not in binding["change_set"]:
             continue
         paths = ["/parameters/" + name for name in row["fields"] if name in parameters]
         if binding["arms"][row["type"]]["variant_digest"] != pins.get(row["label"]):
+            subject_matched = False
             issues.extend(
                 {"code": "construction_check_subject_unmatched", "path": path}
                 for path in paths
             )
         for required in row["checks"]:
+            report_checks.append(
+                {
+                    "id": required["id"],
+                    "status": required["status"],
+                    "paths": list(paths),
+                }
+            )
             if required["status"] != "PASS":
                 issues.extend({"code": required["id"], "path": path} for path in paths)
     if issues:
-        raise ChecksUnavailable(issues)
+        # Only a completely authenticated subject/roster/arm may carry a report.
+        # This is the original provider's aggregate, never new acceptance.
+        report = None
+        if subject_matched:
+            report = {
+                "schema": "carbon.development.required-check-report.v1",
+                "challenge": composition.challenge,
+                "composition_digest": composition.digest,
+                "base_contract_digest": composition.base_contract_digest,
+                "checks": report_checks,
+                "aggregate_status": (
+                    "FAIL"
+                    if any(c["status"] == "FAIL" for c in report_checks)
+                    else "UNAVAILABLE"
+                ),
+                "compiler_security_components": "NOT_SEPARATELY_MEASURED",
+                "development_authorization": {
+                    "decision": "NOT_BOUND",
+                    "execution": "NOT_DISPATCHED",
+                },
+                "admission_allowed": False,
+            }
+        raise ChecksUnavailable(issues, required_check_report=report)
     return binding

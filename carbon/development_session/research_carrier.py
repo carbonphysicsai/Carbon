@@ -18,6 +18,7 @@ from functools import partial
 from carbon.reconstruction.worker import liveness_reaper
 from carbon.reconstruction.worker.docker_runtime import (
     DockerCLI,
+    controls_predicate,
     create_arguments,
     doctor,
     inspect_effective_controls,
@@ -235,6 +236,111 @@ def _cancel_active_intent(ledger, *, owner, identity):
         remove_exact_container(cli=cli, container_name=name, launch_digest=launch)
 
 
+_PRACTICE_FAILURE_STAGES = frozenset(
+    {
+        "STAGING",
+        "HOST_READINESS",
+        "PROFILE",
+        "DEVICE_LEASE",
+        "CHECK_CANCEL",
+        "CREATE",
+        "WATCHDOG",
+        "START",
+        "CONTROLS",
+        "PROGRAM",
+        "OBSERVE",
+        "EXPORT",
+        "RESOURCES",
+        "CLEANUP",
+        "LEASE_RELEASE",
+        "DECODE",
+        "VALIDATE",
+        "ASSOCIATE",
+    }
+)
+_PRACTICE_FAILURE_MARKERS = {
+    b"CUDA_ERROR_OUT_OF_MEMORY": "CUDA_ERROR_OUT_OF_MEMORY",
+    b"CUDA_ERROR_NO_DEVICE": "CUDA_ERROR_NO_DEVICE",
+    b"CUDA_ERROR_INSUFFICIENT_DRIVER": "CUDA_ERROR_INSUFFICIENT_DRIVER",
+    b"CUDA_ERROR_SYSTEM_DRIVER_MISMATCH": "CUDA_ERROR_SYSTEM_DRIVER_MISMATCH",
+    b"CUDA_ERROR_UNSUPPORTED_PTX_VERSION": "CUDA_ERROR_UNSUPPORTED_PTX_VERSION",
+    b"CUBLAS_STATUS_ALLOC_FAILED": "CUBLAS_STATUS_ALLOC_FAILED",
+    b"CUDNN_STATUS_NOT_INITIALIZED": "CUDNN_STATUS_NOT_INITIALIZED",
+    b"nvidia-container-cli: initialization error": "NVIDIA_INITIALIZATION_ERROR",
+    b"driver/library version mismatch": "NVIDIA_DRIVER_LIBRARY_MISMATCH",
+    b"unsatisfied condition: cuda": "NVIDIA_CUDA_REQUIREMENT_UNSATISFIED",
+    b"stream command timed out": "STREAM_TIMEOUT",
+    b"stream output exceeded cap": "STREAM_OUTPUT_CAP",
+}
+
+
+def _retain_practice_failure(operation, stage, error):
+    """Best-effort closed metadata, never exception text or a result artifact."""
+    try:
+        if stage not in _PRACTICE_FAILURE_STAGES:
+            return
+        category = next(
+            (
+                name
+                for kind, name in (
+                    (WorkerFailure, "WorkerFailure"),
+                    (ValueError, "ValueError"),
+                    (TimeoutError, "TimeoutError"),
+                    (OSError, "OSError"),
+                    (RuntimeError, "RuntimeError"),
+                )
+                if isinstance(error, kind)
+            ),
+            "Exception",
+        )
+        code = error.code if isinstance(error, WorkerFailure) else None
+        diagnostic = (
+            error.private_diagnostic if isinstance(error, WorkerFailure) else b""
+        )
+        diagnostic = diagnostic[:65536] if type(diagnostic) is bytes else b""
+        # A marker is an untrusted hint from a fixed vocabulary, not a proven
+        # cause. No captured substring, arbitrary name or diagnostic is stored.
+        markers = sorted(
+            {
+                value
+                for token, value in _PRACTICE_FAILURE_MARKERS.items()
+                if token.lower() in diagnostic.lower()
+            }
+        )
+        controls = (
+            controls_predicate(error)
+            if stage == "CONTROLS"
+            and isinstance(error, WorkerFailure)
+            and error.code is WorkerCode.POLICY
+            else None
+        )
+        write_once(
+            operation / ("failure-" + stage + ".json"),
+            canonical(
+                {
+                    "schema": "carbon.autoresearch.fixed-practice-failure.v1",
+                    "stage": stage,
+                    "exception_class": category,
+                    "worker_code": code.value if type(code) is WorkerCode else None,
+                    "diagnostic_markers": markers,
+                    **({} if controls is None else {"controls_predicate": controls}),
+                }
+            ),
+        )
+    except Exception:  # noqa: BLE001 - diagnostics must not replace the failure
+        return
+
+
+@contextmanager
+def _fixed_practice_stage(operation, provenance, stage):
+    try:
+        yield
+    except Exception as error:
+        if provenance == "BATTERY_PUBLIC_PRACTICE":
+            _retain_practice_failure(operation, stage, error)
+        raise
+
+
 def _run_locked(
     ledger,
     *,
@@ -383,42 +489,49 @@ def _run_locked(
     stage = operation / "input"
     cli = DockerCLI()
     try:
-        stage.mkdir(mode=0o755)
-        stage.chmod(0o755)
-        for filename, body in {**files, program_name: source.encode()}.items():
-            path = stage / filename
-            write_once(path, body)
-            path.chmod(0o444)
-        if provenance == "MINER_SELF_REPORTED":
-            from .julia_analysis import JuliaResearchImageIdentity, verify_julia_image
-            from .research_image import verify_image
+        with _fixed_practice_stage(operation, provenance, "STAGING"):
+            stage.mkdir(mode=0o755)
+            stage.chmod(0o755)
+            for filename, body in {**files, program_name: source.encode()}.items():
+                path = stage / filename
+                write_once(path, body)
+                path.chmod(0o444)
+        with _fixed_practice_stage(operation, provenance, "HOST_READINESS"):
+            if provenance == "MINER_SELF_REPORTED":
+                from .julia_analysis import (
+                    JuliaResearchImageIdentity,
+                    verify_julia_image,
+                )
+                from .research_image import verify_image
 
-            if device is not None and type(image) is JuliaResearchImageIdentity:
-                # A Julia GPU code cell (JULIA-GPU-01): the composed image and
-                # its depot, checked as every Julia run is, and the host's GPU
-                # readiness without the Python GPU worker's lock.
-                verify_julia_image(image, cli)
-                checked = doctor(image_id=image.image_id, cli=cli)
-                _check_gpu_host(cli, None, device)
-            elif device is not None:
-                # A GPU code cell: the pinned GPU worker and the host's GPU
-                # readiness, checked as GPU practice checks them.
-                checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
-                _check_gpu_host(cli, image, device, _gpu_pins(image, accelerator))
-            elif type(image) is JuliaResearchImageIdentity:
-                verify_julia_image(image, cli)
-                checked = doctor(image_id=image.image_id, cli=cli)
+                if device is not None and type(image) is JuliaResearchImageIdentity:
+                    # A Julia GPU code cell (JULIA-GPU-01): the composed image and
+                    # its depot, checked as every Julia run is, and the host's GPU
+                    # readiness without the Python GPU worker's lock.
+                    verify_julia_image(image, cli)
+                    checked = doctor(image_id=image.image_id, cli=cli)
+                    _check_gpu_host(cli, None, device)
+                elif device is not None:
+                    # A GPU code cell: the pinned GPU worker and the host's GPU
+                    # readiness, checked as GPU practice checks them.
+                    checked = doctor(
+                        image_id=image.image_id, image_identity=image, cli=cli
+                    )
+                    _check_gpu_host(cli, image, device, _gpu_pins(image, accelerator))
+                elif type(image) is JuliaResearchImageIdentity:
+                    verify_julia_image(image, cli)
+                    checked = doctor(image_id=image.image_id, cli=cli)
+                else:
+                    verify_image(image, cli)
+                    checked = doctor(image_id=image.image_id, cli=cli)
             else:
-                verify_image(image, cli)
-                checked = doctor(image_id=image.image_id, cli=cli)
-        else:
-            checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
-            if device is not None:
-                _check_gpu_host(cli, image, device, _gpu_pins(image, accelerator))
-        if not checked.eligible:
-            # No attempt is automatically retried and its reservation remains
-            # visible.
-            raise ValueError("research host ineligible")
+                checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
+                if device is not None:
+                    _check_gpu_host(cli, image, device, _gpu_pins(image, accelerator))
+            if not checked.eligible:
+                # No attempt is automatically retried and its reservation remains
+                # visible.
+                raise ValueError("research host ineligible")
     except Exception:
         _settle_nothing_created(
             ledger,
@@ -453,106 +566,148 @@ def _run_locked(
             before_finish=before_finish,
             device=device,
         )
-    worker = _worker_profile(device, provenance)
+    with _fixed_practice_stage(operation, provenance, "PROFILE"):
+        worker = _worker_profile(device, provenance)
     create_attempted = False
     output = operation / "export.stream"
     lease = ExitStack()
+    slot = ExitStack()
     try:
-        if device is not None:
-            from carbon.reconstruction.worker.accelerator_runtime import (
-                miner_device_lease,
-                reject_existing_device_containers,
-            )
+        with _fixed_practice_stage(operation, provenance, "DEVICE_LEASE"):
+            if device is not None:
+                from carbon.reconstruction.worker.accelerator_runtime import (
+                    miner_device_lease,
+                    reject_existing_device_containers,
+                    shared_host_lease,
+                )
 
-            # This host's own concurrent runs on the device, and Carbon's own
-            # retained work on it; nothing about anyone else's use of the GPU.
-            lease.enter_context(miner_device_lease(device.device_uuid))
-            reject_existing_device_containers(cli=cli)
-        _check_cancel(ledger, owner, identity)
-        create_attempted = True
-        cli.run(
-            create_arguments(
+                # This host's own concurrent runs on the device, and Carbon's own
+                # retained work on it; nothing about anyone else's use of the GPU.
+                lease.enter_context(miner_device_lease(device.device_uuid))
+                # Serialize only check/record/create against Carbon's own
+                # launches. This is not an exclusive GPU lease or assurance.
+                slot.enter_context(shared_host_lease())
+                reject_existing_device_containers(cli=cli)
+        with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
+            _check_cancel(ledger, owner, identity)
+        with _fixed_practice_stage(operation, provenance, "CREATE"):
+            try:
+                if device is not None:
+                    from carbon.reconstruction.worker.accelerator_runtime import (
+                        mark_device_allocation,
+                    )
+
+                    # The same task-owned provenance the existing miner-script
+                    # and reconstruction paths persist before create. Cleanup
+                    # may complete only the authority that owns this launch.
+                    mark_device_allocation(
+                        container_name=name,
+                        launch_digest=launch,
+                        authority=worker.accelerator_authority,
+                    )
+                create_attempted = True
+                cli.run(
+                    create_arguments(
+                        container_name=name,
+                        image_id=image.image_id,
+                        input_directory=stage,
+                        cpuset=checked.cpuset,
+                        launch_digest=launch,
+                        worker_profile=worker,
+                    ),
+                    timeout=30,
+                )
+            finally:
+                slot.close()
+        with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
+            _check_cancel(ledger, owner, identity)
+        with _fixed_practice_stage(operation, provenance, "WATCHDOG"):
+            spawn_watchdog(
+                container_name=name,
+                launch_digest=launch,
+                deadline_unix=float(started_unix + seconds - 30),
+            )
+        with _fixed_practice_stage(operation, provenance, "START"):
+            cli.run(["start", name], timeout=20)
+        with _fixed_practice_stage(operation, provenance, "CONTROLS"):
+            control_digest, controls = inspect_effective_controls(
+                cli=cli,
                 container_name=name,
                 image_id=image.image_id,
                 input_directory=stage,
                 cpuset=checked.cpuset,
                 launch_digest=launch,
                 worker_profile=worker,
-            ),
-            timeout=30,
-        )
-        _check_cancel(ledger, owner, identity)
-        spawn_watchdog(
-            container_name=name,
-            launch_digest=launch,
-            deadline_unix=float(started_unix + seconds - 30),
-        )
-        cli.run(["start", name], timeout=20)
-        control_digest, controls = inspect_effective_controls(
-            cli=cli,
-            container_name=name,
-            image_id=image.image_id,
-            input_directory=stage,
-            cpuset=checked.cpuset,
-            launch_digest=launch,
-            worker_profile=worker,
-        )
-        cli.stream_to_file(
-            ["exec", name, "/opt/carbon-worker/bin/python", "-I", "-c", bootstrap],
-            operation / "stdout.txt",
-            maximum=1024**2,
-            timeout=max(1, seconds - 45 - (time.monotonic() - started)),
-        )
-        observed = observe_effective_resources(cli=cli, container_name=name)
-        cli.stream_to_file(
-            [
-                "exec",
-                name,
-                "/opt/carbon-worker/bin/python",
-                "-I",
-                "-m",
-                "carbon.reconstruction.worker.exporter",
-            ],
-            output,
-            maximum=OUTPUT_BYTES + 2 * CONTROL_BYTES,
-            timeout=max(1, seconds - 35 - (time.monotonic() - started)),
-        )
-        write_once(
-            operation / "resources.json",
-            canonical(
-                {
-                    "controls": controls,
-                    "controls_digest": control_digest,
-                    "resources": observed,
-                }
-            ),
-        )
+                diagnose_policy=provenance == "BATTERY_PUBLIC_PRACTICE",
+            )
+        with _fixed_practice_stage(operation, provenance, "PROGRAM"):
+            cli.stream_to_file(
+                ["exec", name, "/opt/carbon-worker/bin/python", "-I", "-c", bootstrap],
+                operation / "stdout.txt",
+                maximum=1024**2,
+                timeout=max(1, seconds - 45 - (time.monotonic() - started)),
+            )
+        with _fixed_practice_stage(operation, provenance, "OBSERVE"):
+            observed = observe_effective_resources(cli=cli, container_name=name)
+        with _fixed_practice_stage(operation, provenance, "EXPORT"):
+            cli.stream_to_file(
+                [
+                    "exec",
+                    name,
+                    "/opt/carbon-worker/bin/python",
+                    "-I",
+                    "-m",
+                    "carbon.reconstruction.worker.exporter",
+                ],
+                output,
+                maximum=OUTPUT_BYTES + 2 * CONTROL_BYTES,
+                timeout=max(1, seconds - 35 - (time.monotonic() - started)),
+            )
+        with _fixed_practice_stage(operation, provenance, "RESOURCES"):
+            write_once(
+                operation / "resources.json",
+                canonical(
+                    {
+                        "controls": controls,
+                        "controls_digest": control_digest,
+                        "resources": observed,
+                    }
+                ),
+            )
     finally:
         try:
-            if create_attempted:
-                # C-03 checks the exact launch label, removes the entire
-                # container, and confirms absence before any output becomes an
-                # associated result.
-                remove_exact_container(
-                    cli=cli, container_name=name, launch_digest=launch
-                )
-                # Require a successful daemon query too: an inspect transport
-                # error alone is not evidence that the container and descendants
-                # are gone.
-                remaining = cli.run(
-                    ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
-                )
-                if remaining.stdout.strip():
-                    raise ValueError(
-                        "research cleanup uncertain; capacity stays reserved"
+            with _fixed_practice_stage(operation, provenance, "CLEANUP"):
+                if create_attempted:
+                    # C-03 checks the exact launch label, removes the entire
+                    # container, and confirms absence before any output becomes an
+                    # associated result.
+                    remove_exact_container(
+                        cli=cli, container_name=name, launch_digest=launch
                     )
+                    # Require a successful daemon query too: an inspect transport
+                    # error alone is not evidence that the container and descendants
+                    # are gone.
+                    remaining = cli.run(
+                        ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
+                    )
+                    if remaining.stdout.strip():
+                        raise ValueError(
+                            "research cleanup uncertain; capacity stays reserved"
+                        )
         finally:
-            lease.close()
-    _check_cancel(ledger, owner, identity)
+            with _fixed_practice_stage(operation, provenance, "LEASE_RELEASE"):
+                try:
+                    slot.close()
+                finally:
+                    lease.close()
+    with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
+        _check_cancel(ledger, owner, identity)
     snapshot = operation / "snapshot"
-    decode_output_stream(output, snapshot)
-    if output_validator is not None:
-        output_validator(snapshot)
+    with _fixed_practice_stage(operation, provenance, "DECODE"):
+        decode_output_stream(output, snapshot)
+    with _fixed_practice_stage(operation, provenance, "VALIDATE"):
+        if output_validator is not None:
+            output_validator(snapshot)
     result = {
         "schema": "carbon.autoresearch.worker-result.v1",
         "provenance": provenance,
@@ -574,10 +729,11 @@ def _run_locked(
             p.stat().st_size for p in operation.rglob("*") if p.is_file()
         ),
     }
-    before_finish()
-    ledger.finish(
-        identity, owner=owner, state="SUCCEEDED", actual=actual, result=result
-    )
+    with _fixed_practice_stage(operation, provenance, "ASSOCIATE"):
+        before_finish()
+        ledger.finish(
+            identity, owner=owner, state="SUCCEEDED", actual=actual, result=result
+        )
     return result
 
 

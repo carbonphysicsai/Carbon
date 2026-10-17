@@ -53,6 +53,29 @@ analysis_manifest="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1])[
 [[ "$(field "${analysis_manifest}" parent_image)" == "${c03}" ]] \
   || fail "the analysis image is not built on the pushed C-03 image"
 analysis="$(field "${analysis_manifest}" image_id)"
+# Exercise the second real parent chain too: published Torch primary and its
+# own analysis child. The C-03 analysis above cannot stand in for this child.
+torch_repository="${registry}/carbon-torch-worker"
+docker tag "${torch}" "${torch_repository}:rehearsal"
+docker push --quiet "${torch_repository}:rehearsal" >/dev/null
+docker pull --quiet "${torch_repository}@${torch}" >/dev/null
+torch_analysis_built="$("${repo_root}/.venv/bin/python" -m carbon.development_session.research_image \
+  --parent-manifest "${artifacts}/rehearsal-torch-worker-image.json" \
+  --parent-repository "${torch_repository}" \
+  --root "${artifacts}/rehearsal-research-images")"
+torch_analysis_manifest="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1])["manifest"])' "${torch_analysis_built}")"
+[[ "$(field "${torch_analysis_manifest}" parent_image)" == "${torch}" ]] \
+  || fail "the Torch analysis image is not built on the pushed Torch image"
+torch_analysis="$(field "${torch_analysis_manifest}" image_id)"
+python3 - "$(docker image inspect --format '{{json .RootFS.Layers}}' "${torch}")" \
+  "$(docker image inspect --format '{{json .RootFS.Layers}}' "${torch_analysis}")" <<'PY' \
+  || fail "the Torch analysis child is not layered on the pushed Torch image"
+import json
+import sys
+
+parent, child = (json.loads(value) for value in sys.argv[1:])
+assert parent and child[: len(parent)] == parent
+PY
 # The children's filesystems start with the pushed parent's layers.
 python3 - "$(docker image inspect --format '{{json .RootFS.Layers}}' "${c03}")" \
   "$(docker image inspect --format '{{json .RootFS.Layers}}' "${torch}")" \
@@ -64,4 +87,4 @@ import sys
 parent, *children = (json.loads(value) for value in sys.argv[1:])
 assert parent and all(child[: len(parent)] == parent for child in children)
 PY
-echo "Rehearsal passed: the PyTorch worker and the analysis image build on ${reference}."
+echo "Rehearsal passed: C-03 and Torch analysis pairs have their exact pushed parents."

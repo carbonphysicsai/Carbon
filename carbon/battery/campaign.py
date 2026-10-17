@@ -467,6 +467,10 @@ async def prepare_battery(args, *, ledger=None, campaign):
     if args.command == "resume" and not manifest_path.exists():
         raise ValueError("no frozen campaign to resume")
     frozen = json.loads(manifest_path.read_bytes()) if manifest_path.exists() else None
+    from carbon.development_session import submission_policy
+
+    if frozen is not None:
+        submission_policy.retains(frozen, root=root)
     product = getattr(args, "product", None)
     if frozen is None and product is None:
         raise ValueError("a battery campaign is a product campaign")
@@ -932,11 +936,13 @@ async def evaluate_candidate(prepared, epoch, record):
 
     from carbon.development_session import research_tools
     from carbon.development_session.research_campaign import OperationRefused
+    from carbon.development_session.submission_policy import require_submission
     from carbon.transport.models import message
 
     from .daemon import SUBMIT_TOOL, AuthenticatedSubmission
     from .deployment import EvaluationUnavailable, evaluate, validator
 
+    require_submission(prepared)
     config = evaluation_config(prepared)
     intake = _intake(prepared)
     _level_record_bound(prepared, record)
@@ -1369,7 +1375,18 @@ async def _committed(gate, root, epoch, record, manifest, *, request, recommit=F
     commitment at the finalized head (`CommitmentGate.before_submit`)."""
     from carbon.development_session import construction_level as cl
     from carbon.development_session.research_campaign import OperationRefused
+    from carbon.development_session.submission_policy import (
+        INVALID,
+        RETAINED,
+        PolicyInvalid,
+        retains,
+    )
 
+    try:
+        if retains(manifest, root=root):
+            raise OperationRefused(RETAINED)
+    except PolicyInvalid:
+        raise OperationRefused(INVALID) from None
     try:
         cl.checks_current(cl.binding(manifest), record["strategy"])
     except cl.LevelRefused as refused:
@@ -1463,9 +1480,11 @@ async def _evaluate_through_intake(
     from carbon.chain.commitment_poster import STALE
     from carbon.chain.external_signer import SignerFailure
     from carbon.development_session.research_campaign import OperationRefused
+    from carbon.development_session.submission_policy import require_submission
 
     from .remote_submission import IntakeRefusal
 
+    require_submission(prepared)
     root = prepared.ledger.root
     _level_record_bound(prepared, record)
     if "composition_graphs" in (record["strategy"].get("parameters") or {}):

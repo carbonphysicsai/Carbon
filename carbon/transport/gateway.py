@@ -16,6 +16,7 @@ from .models import (
     AuthenticatedReceipt,
     TransportCode,
     TransportFailure,
+    _MalformedBranch,
     canonical,
     digest,
     parse_message,
@@ -59,23 +60,38 @@ class AuthenticatedGateway:
     ):
         if method != METHOD or path != PATH:
             raise TransportFailure(TransportCode.CONTEXT)
-        if type(headers) is not dict or len(headers) > 16:
-            raise TransportFailure(TransportCode.MALFORMED)
+        if type(headers) is not dict:
+            raise TransportFailure(
+                TransportCode.MALFORMED, _branch=_MalformedBranch.HEADERS_TYPE
+            )
+        if len(headers) > 16:
+            raise TransportFailure(
+                TransportCode.MALFORMED, _branch=_MalformedBranch.HEADER_COUNT
+            )
         lowered = set()
         size = 0
         for key, value in headers.items():
             if type(key) is not str or type(value) is not str:
-                raise TransportFailure(TransportCode.MALFORMED)
+                raise TransportFailure(
+                    TransportCode.MALFORMED, _branch=_MalformedBranch.HEADER_VALUE_TYPE
+                )
             size += len(key) + len(value)
-            if (
-                size > MAX_HEADERS
-                or not key.isascii()
-                or not value.isascii()
-                or "\n" in value
-                or "\r" in value
-                or key.lower() in lowered
-            ):
-                raise TransportFailure(TransportCode.MALFORMED)
+            if size > MAX_HEADERS:
+                raise TransportFailure(
+                    TransportCode.MALFORMED, _branch=_MalformedBranch.HEADER_BUDGET
+                )
+            if not key.isascii() or not value.isascii():
+                raise TransportFailure(
+                    TransportCode.MALFORMED, _branch=_MalformedBranch.HEADER_ASCII
+                )
+            if "\n" in value or "\r" in value:
+                raise TransportFailure(
+                    TransportCode.MALFORMED, _branch=_MalformedBranch.HEADER_LINE_BREAK
+                )
+            if key.lower() in lowered:
+                raise TransportFailure(
+                    TransportCode.MALFORMED, _branch=_MalformedBranch.HEADER_DUPLICATE
+                )
             lowered.add(key.lower())
         envelope = parse_message(body)
         expected = (

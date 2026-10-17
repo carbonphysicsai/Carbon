@@ -250,8 +250,19 @@ def test_capture_release_door_surfaces(tmp_path, monkeypatch, journey):
             tool.name: tool for tool in mcp_operations.make_operation_tools(journey)
         }["carbon_options"]
         offered = asyncio.run(options.fn()).model_dump(mode="json")
+        toolbox_request = {
+            "challenge": "battery-fastcharge-ageing-development-v1",
+            "challenge_version": "1.0",
+        }
+        toolbox = {
+            tool.name: tool for tool in mcp_operations.make_operation_tools(journey)
+        }["carbon_toolbox"]
+        toolbox_result = asyncio.run(toolbox.fn(**toolbox_request)).model_dump(
+            mode="json"
+        )
         surfaces = {
             "MCP:carbon_options": offered,
+            "MCP:carbon_toolbox": toolbox_result,
             "MCP:carbon_setup_begin": began,
             "MCP:carbon_setup_status": state,
         }
@@ -261,13 +272,27 @@ def test_capture_release_door_surfaces(tmp_path, monkeypatch, journey):
             "/api/v1/setup",
             "/api/v1/setup/status",
             "/api/v1/operations/options",
+            "/api/v1/operations/toolbox",
         ):
-            post = path.endswith("/operations/options")
+            post = path.startswith("/api/v1/operations/")
+            body = None
+            if post:
+                body = toolbox_request if path.endswith("/toolbox") else {}
             code, _, raw = request(
-                server, path, "POST" if post else "GET", {} if post else None, auth()
+                server,
+                path,
+                "POST" if post else "GET",
+                body,
+                auth(),
             )
             assert code == 200
             surfaces["HTTP:" + path] = json.loads(raw)
+        assert surfaces["HTTP:/api/v1/operations/toolbox"] == toolbox_result["payload"]
+        assert toolbox_result["acceptance_status"] == "UNTESTED"
+        assert (
+            toolbox_result["acceptance_choices"]
+            == toolbox_result["payload"]["acceptance_choices"]
+        )
     finally:
         server.shutdown()
         server.server_close()
@@ -295,6 +320,16 @@ def test_capture_release_door_surfaces(tmp_path, monkeypatch, journey):
         path.write_text(json.dumps(broken))
         with pytest.raises(ValueError):
             acceptance.main(args)
+    broken = copy.deepcopy(capture)
+    del broken["surfaces"]["HTTP:/api/v1/operations/toolbox"]["acceptance"]
+    path.write_text(json.dumps(broken))
+    with pytest.raises(ValueError):
+        acceptance.main(args)
+    broken = copy.deepcopy(capture)
+    broken["surfaces"]["MCP:carbon_toolbox"]["acceptance_status"] = "TESTED"
+    path.write_text(json.dumps(broken))
+    with pytest.raises(ValueError):
+        acceptance.main(args)
     path.write_text(json.dumps(capture))
     if os.environ.get("CARBON_LAUNCHPAD_DOOR_CAPTURE"):
         destination = Path(os.environ["CARBON_LAUNCHPAD_DOOR_CAPTURE"])

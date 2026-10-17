@@ -427,6 +427,112 @@ def dispatches(root, campaign):
         ]
 
 
+def resume_failure_evidence(root, campaign, children):
+    """Bounded public lifecycle facts; no request, prompt, env or raw child log."""
+    import sqlite3
+
+    from scripts.dev.miner_launchpad import supervisor as supervision
+
+    known_codes = frozenset(supervision.NEXT_ACTIONS)
+    known_outcomes = frozenset(
+        {None, "finished", "refused", "superseded", "interrupted"}
+    )
+    evidence = {"children": {name: child.poll() for name, child in children.items()}}
+    try:
+        evidence["agent_run_count"] = len(agent_runs(root))
+    except (OSError, ValueError):
+        evidence["agent_run_count"] = "UNAVAILABLE"
+    try:
+        campaign_db = root / "campaigns" / campaign / "campaign.sqlite3"
+        if not campaign_db.is_file() or campaign_db.is_symlink():
+            raise OSError("campaign database unavailable")
+        with contextlib.closing(
+            sqlite3.connect(campaign_db.resolve().as_uri() + "?mode=ro", uri=True)
+        ) as db:
+            db.execute("PRAGMA query_only=ON")
+            row = db.execute(
+                "SELECT desired,observed FROM launchpad_control WHERE id=1"
+            ).fetchone()
+        if row is None:
+            raise ValueError("campaign control unavailable")
+        desired, state = row
+        evidence["control"] = {
+            "desired": desired if desired in ("RUN", "PAUSE", "STOP") else "OTHER",
+            "state": (
+                state
+                if state
+                in {
+                    "READY",
+                    "RUNNING",
+                    "PAUSE_REQUESTED",
+                    "PAUSED",
+                    "RESUME_REQUESTED",
+                    "STOPPING",
+                    "STOPPED",
+                    "COMPLETED",
+                    "INTERRUPTED",
+                    "RECONCILIATION_REQUIRED",
+                }
+                else "OTHER"
+            ),
+        }
+    except (OSError, ValueError, sqlite3.Error):
+        evidence["control"] = "UNAVAILABLE"
+    try:
+        db_path = root / "runner.sqlite3"
+        if not db_path.is_file() or db_path.is_symlink():
+            raise OSError("runner database unavailable")
+        with contextlib.closing(
+            sqlite3.connect(db_path.resolve().as_uri() + "?mode=ro", uri=True)
+        ) as db:
+            db.execute("PRAGMA query_only=ON")
+            rows = db.execute(
+                "SELECT operation,state,outcome FROM launchpad_dispatch "
+                "WHERE campaign=? ORDER BY seq DESC LIMIT 8",
+                (campaign,),
+            ).fetchall()
+            row = db.execute(
+                "SELECT last_refusal FROM launchpad_campaigns WHERE id=?", (campaign,)
+            ).fetchone()
+        evidence["dispatch"] = [
+            {
+                "operation": op if op == "run" else "OTHER",
+                "state": state if state in ("QUEUED", "RUNNING", "DONE") else "OTHER",
+                "outcome": (
+                    outcome
+                    if (outcome is None or type(outcome) is str)
+                    and outcome in known_outcomes
+                    else "OTHER"
+                ),
+            }
+            for op, state, outcome in reversed(rows)
+        ]
+        refusal = json.loads(row[0]) if row and row[0] else None
+        code = refusal.get("code") if type(refusal) is dict else None
+        evidence["last_refusal_present"] = refusal is not None
+        if type(code) is str and code in known_codes:
+            evidence["last_refusal_code"] = code
+        else:
+            evidence["last_refusal_code"] = "OTHER" if code else None
+    except (OSError, ValueError, TypeError, sqlite3.Error):
+        evidence["dispatch"] = "UNAVAILABLE"
+        evidence["last_refusal_present"] = "UNAVAILABLE"
+        evidence["last_refusal_code"] = "UNAVAILABLE"
+    found = set()
+    for path in sorted((root / "logs").glob("control-center-*.log"))[-6:]:
+        if not path.is_file() or path.is_symlink():
+            continue
+        try:
+            with path.open("rb") as stream:
+                stream.seek(max(0, path.stat().st_size - 16_384))
+                tail = stream.read(16_384)
+            found.update(code for code in known_codes if code.encode() in tail)
+        except OSError:
+            continue
+    evidence["known_codes_across_owned_child_logs"] = sorted(found)[:8]
+    return evidence
+
+
 def launch_body(key, agent="none"):
     return {
         "challenge": FIXTURE_CHALLENGE["id"],
@@ -1890,6 +1996,12 @@ def test_7_closing_pauses_restarting_flags_nothing_and_resume_survives(
             return idle, busy
 
     idle, busy = asyncio.run(launch_both())
+    from carbon.development_session import submission_policy
+
+    campaign_root = root / "campaigns" / busy
+    frozen = json.loads((campaign_root / "campaign-manifest.json").read_bytes())
+    assert "submission_policy" not in frozen["provider"]["graphite"]
+    assert not submission_policy.retains(frozen, root=campaign_root)
     # The client closed: nothing it launched was paused or stopped.
     assert ledger_status(root, busy)[0] == "RUN"
     close_control_center(root, first)
@@ -1955,7 +2067,19 @@ def test_7_closing_pauses_restarting_flags_nothing_and_resume_survives(
     third = start_control_center(root, processes, "unrelated")
     resumed = asyncio.run(resume("unrelated"))
     assert not resumed.is_error, resumed.content
-    wait_for(lambda: third.pid in agent_runs(root), "the agent to carry on")
+    try:
+        wait_for(lambda: third.pid in agent_runs(root), "the agent to carry on")
+    except AssertionError as failure:
+        try:
+            evidence = resume_failure_evidence(
+                root, busy, {"first": first, "second": second, "third": third}
+            )
+        except Exception:  # noqa: BLE001 -- diagnostic failure cannot mask timeout
+            evidence = {"diagnostic": "UNAVAILABLE"}
+        raise AssertionError(
+            "timed out waiting for the agent to carry on; "
+            + json.dumps(evidence, sort_keys=True)
+        ) from failure
     (root / "release-agent").touch()
     wait_for(
         lambda: ledger_status(root, busy)[1] == "COMPLETED",
@@ -1966,6 +2090,9 @@ def test_7_closing_pauses_restarting_flags_nothing_and_resume_survives(
     assert done["state"] == "COMPLETED" and done["last_refusal"] is None
     assert agent_runs(root) == [first.pid, third.pid]
     close_control_center(root, third)
+    (campaign_root / "graphite" / "launch.json").unlink()
+    with pytest.raises(submission_policy.PolicyInvalid):
+        submission_policy.retains(frozen, root=campaign_root)
 
 
 # --- 8. Graphite, the agent miners run ----------------------------------------
