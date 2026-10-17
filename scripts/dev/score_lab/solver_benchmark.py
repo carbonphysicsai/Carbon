@@ -252,9 +252,11 @@ def compare(registration, references, models, *, score_pack=None):
                 ref_status = refs[cid]["status"]
                 if ref_status != "RESOLVED":
                     counts[
-                        "reference_infra"
-                        if ref_status == "FAILED_INFRA"
-                        else "reference_unresolved"
+                        (
+                            "reference_infra"
+                            if ref_status == "FAILED_INFRA"
+                            else "reference_unresolved"
+                        )
                     ] += 1
                     continue
                 row = measured[cid]
@@ -349,9 +351,9 @@ def compare(registration, references, models, *, score_pack=None):
                 "solver_seconds": solver_total,
                 "model_seconds": model_total,
                 "model_phase_seconds": phase_seconds if complete else None,
-                "paired_speedup": _derived(solver_total / model_total)
-                if complete
-                else None,
+                "paired_speedup": (
+                    _derived(solver_total / model_total) if complete else None
+                ),
                 "observed_serial_queries_per_second": (
                     _derived(len(selected) / model_total) if complete else None
                 ),
