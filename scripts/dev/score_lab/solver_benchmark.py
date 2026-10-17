@@ -1,7 +1,10 @@
-"""Pure DEVELOPMENT model-versus-solver benchmark receiver.
+"""Pure DEVELOPMENT model-versus-reference benchmark receiver.
 
-The producer measures the solver and model; this reducer executes neither. It
-does not select a winner or turn a fixture result into a Challenge score.
+The producer measures the reference and model; this reducer executes neither.
+The v3 registration measures each declared complete batch as one query and
+labels engineering reference compute separately from qualified solver evidence.
+The result.v2 bridge to ScoreEngine remains stable. No fixture result becomes
+a qualified Challenge score.
 """
 
 from __future__ import annotations
@@ -14,8 +17,10 @@ import statistics
 from carbon.scoring.solver_benchmark_v3 import measurement_status
 
 SCHEMA = "carbon.score-lab.solver-benchmark.v2"
+SCHEMA_V3 = "carbon.score-lab.solver-benchmark.v3"
 RESULT_SCHEMA = "carbon.score-lab.solver-benchmark-result.v2"
 ROLES = frozenset({"P", "Q"})
+ENGINEERING_REFERENCE = "ENGINEERING_REFERENCE_COMPUTE"
 
 
 class BenchmarkRefused(ValueError):
@@ -103,6 +108,16 @@ def _latency_distribution(values):
     }
 
 
+def _shape(value):
+    if (
+        type(value) is not list
+        or not value
+        or any(type(axis) is not int or axis < 1 for axis in value)
+    ):
+        raise BenchmarkRefused("batch_shape")
+    return math.prod(value)
+
+
 def register(body):
     """Bind a declared workload; registration does not attest physical truth."""
     if type(body) is not dict or set(body) != {
@@ -119,7 +134,7 @@ def register(body):
         "timing_profile",
     }:
         raise BenchmarkRefused("registration_shape")
-    if body["schema"] != SCHEMA or body["scope"] not in {
+    if body["schema"] not in {SCHEMA, SCHEMA_V3} or body["scope"] not in {
         "SYNTHETIC_DEVELOPMENT",
         "PUBLIC_DEVELOPMENT",
     }:
@@ -131,7 +146,12 @@ def register(body):
     output = body["output"]
     if (
         type(output) is not dict
-        or set(output) != {"quantity", "unit", "size", "metric"}
+        or set(output)
+        != (
+            {"quantity", "unit", "size", "metric", "shape"}
+            if body["schema"] == SCHEMA_V3
+            else {"quantity", "unit", "size", "metric"}
+        )
         or any(
             type(output[k]) is not str or not output[k] for k in ("quantity", "unit")
         )
@@ -140,27 +160,68 @@ def register(body):
         or output["metric"] != "mean_absolute_error"
     ):
         raise BenchmarkRefused("output_contract")
+    if body["schema"] == SCHEMA_V3 and _shape(output["shape"]) != output["size"]:
+        raise BenchmarkRefused("output_contract")
     reference = body["reference"]
     if (
         type(reference) is not dict
         or set(reference)
-        != {"solver_digest", "fidelity_digest", "applicability_digest"}
-        or any(type(v) is not str or not v for v in reference.values())
+        != (
+            {
+                "solver_digest",
+                "fidelity_digest",
+                "applicability_digest",
+                "evidence_kind",
+            }
+            if body["schema"] == SCHEMA_V3
+            else {"solver_digest", "fidelity_digest", "applicability_digest"}
+        )
+        or any(
+            type(reference[k]) is not str or not reference[k]
+            for k in ("solver_digest", "fidelity_digest", "applicability_digest")
+        )
+        or (
+            body["schema"] == SCHEMA_V3
+            and reference["evidence_kind"] != ENGINEERING_REFERENCE
+        )
     ):
         raise BenchmarkRefused("reference_contract")
     profile = body["timing_profile"]
     if (
         type(profile) is not dict
-        or set(profile) != {"basis", "model_device", "solver_device", "batch_size"}
+        or set(profile)
+        != (
+            {
+                "basis",
+                "model_device",
+                "solver_device",
+                "batch_size",
+                "query_unit",
+                "input_shape",
+            }
+            if body["schema"] == SCHEMA_V3
+            else {"basis", "model_device", "solver_device", "batch_size"}
+        )
         or profile["basis"] != "ready_input_to_comparable_output"
         or any(
             type(profile[k]) is not str or not profile[k]
             for k in ("model_device", "solver_device")
         )
         or type(profile["batch_size"]) is not int
-        or profile["batch_size"] != 1
+        or (
+            profile["batch_size"] != 1
+            if body["schema"] == SCHEMA
+            else profile["batch_size"] < 1 or profile["query_unit"] != "complete_batch"
+        )
     ):
         raise BenchmarkRefused("timing_profile")
+    if body["schema"] == SCHEMA_V3:
+        _shape(profile["input_shape"])
+        if (
+            profile["input_shape"][0] != profile["batch_size"]
+            or output["shape"][0] != profile["batch_size"]
+        ):
+            raise BenchmarkRefused("batch_shape")
     gates = body["mandatory_gates"]
     if (
         type(gates) is not list
@@ -253,7 +314,12 @@ def compare(registration, references, models, *, score_pack=None):
                     "physics_contract_digest",
                     "peak_memory_bytes",
                 }
-                or row["source"] != "MEASURED_SOLVER_RUN"
+                or row["source"]
+                != (
+                    "MEASURED_ENGINEERING_REFERENCE_RUN"
+                    if registration["schema"] == SCHEMA_V3
+                    else "MEASURED_SOLVER_RUN"
+                )
                 or row["solver_digest"] != registration["reference"]["solver_digest"]
                 or row["fidelity_digest"]
                 != registration["reference"]["fidelity_digest"]
@@ -262,7 +328,11 @@ def compare(registration, references, models, *, score_pack=None):
                 or row["physics_contract_digest"]
                 != physics_identity["definition_digest"]
             ):
-                raise BenchmarkRefused("solver_measurement_required")
+                raise BenchmarkRefused(
+                    "engineering_reference_measurement_required"
+                    if registration["schema"] == SCHEMA_V3
+                    else "solver_measurement_required"
+                )
             reference_rows[cid] = {
                 "outputs": _outputs(row["outputs"], registration["output"]["size"]),
                 "elapsed_s": _number(row["elapsed_s"], positive=True),
@@ -485,6 +555,16 @@ def compare(registration, references, models, *, score_pack=None):
         "ranking": None,
         "models": results,
     }
+    if registration["schema"] == SCHEMA_V3:
+        result["measurement_profile"] = {
+            "registration_schema": SCHEMA_V3,
+            "query_unit": "complete_batch",
+            "batch_size": registration["timing_profile"]["batch_size"],
+            "input_shape": registration["timing_profile"]["input_shape"],
+            "output_shape": registration["output"]["shape"],
+            "reference_evidence_kind": ENGINEERING_REFERENCE,
+            "reference_physics_qualified": False,
+        }
     if score_pack is not None:
         from carbon.scoring.engine import ScoreEngine
 
