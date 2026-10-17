@@ -332,20 +332,35 @@ def test_producer_cli_uses_the_same_receiver_without_printing_case_ids(
     assert "p1" not in capsys.readouterr().out
 
 
-def test_active_benchmark_import_does_not_load_historical_battery_lab():
+def test_active_benchmark_import_does_not_load_historical_battery_lab(tmp_path):
     code = (
         "import sys; "
         "from scripts.dev.score_lab.__main__ import main; "
-        "main(['benchmark', '--help']); "
+        "main(['--help']); "
     )
     help_run = subprocess.run(
         [sys.executable, "-c", code], capture_output=True, text=True, check=False
     )
     assert help_run.returncode == 0
-    assert "producer-only" in help_run.stdout.lower()
+    assert "benchmark" in help_run.stdout
+    assert "legacy" in help_run.stdout
+    registration, references, model = fixture()
+    evidence = tmp_path / "minimal.json"
+    result = tmp_path / "result.json"
+    evidence.write_text(
+        json.dumps(
+            {
+                "registration": registration,
+                "references": references,
+                "models": [model("toy", [1.0, 3.0], 2.0)],
+            }
+        ),
+        encoding="utf-8",
+    )
     boundary_code = (
         "import sys; from scripts.dev.score_lab.__main__ import main; "
-        "from scripts.dev.score_lab import solver_benchmark; "
+        "main([]); "
+        "main(sys.argv[1:]); "
         "assert not any(name.startswith('carbon.battery.value') or "
         "name.startswith('scripts.dev.score_lab.campaign_') or "
         "name == 'scripts.dev.score_lab.legacy_cli' "
@@ -356,9 +371,15 @@ def test_active_benchmark_import_does_not_load_historical_battery_lab():
             sys.executable,
             "-c",
             boundary_code,
+            "benchmark",
+            "--input",
+            str(evidence),
+            "--out",
+            str(result),
         ],
         capture_output=True,
         text=True,
         check=False,
     )
     assert boundary.returncode == 0, boundary.stderr
+    assert result.is_file()

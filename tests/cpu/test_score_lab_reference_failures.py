@@ -8,7 +8,7 @@ import json
 import pytest
 
 from scripts.dev.score_lab import campaign_reference as reference
-from scripts.dev.score_lab.__main__ import main
+from scripts.dev.score_lab.legacy_cli import main
 from scripts.dev.score_lab.core import SCHEMA, LabRefused, analyze
 
 

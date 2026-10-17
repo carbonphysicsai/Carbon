@@ -28,7 +28,9 @@ is adopted by this development code.
 
 The producer can call the pure receiver or run
 `python -m scripts.dev.score_lab benchmark --input EVIDENCE.json --out RESULT.json`.
-The input contains `registration`, `references`, `models` and optionally
+The default `--help` shows only `benchmark` and `legacy`; historical commands
+are available through the explicit `legacy` route. The input contains
+`registration`, `references`, `models` and optionally
 `score_pack`; both files stay in producer custody. The command prints only the
 model count. The older value/N1 and menu commands below remain historical
 diagnostics and are not prerequisites for this path. The first tests use
@@ -61,18 +63,18 @@ it cannot silently apply battery's minimization arithmetic to a maximizing
 Challenge.
 
 ```sh
-python -m scripts.dev.score_lab bank-plan \
+python -m scripts.dev.score_lab legacy bank-plan \
   --registration REGISTRATION.json --draws COMMITTED_DRAWS.json \
   --definition docs/development/value-metric-v2/definition.v2.json \
   --split-seed-file PRODUCER_SEED.txt --out PRODUCER_PLAN.json \
   --jobs-out PRODUCER_WORKER_JOBS.json
-python -m scripts.dev.score_lab bank-cost \
+python -m scripts.dev.score_lab legacy bank-cost \
   --plan PRODUCER_PLAN.json --registration REGISTRATION.json \
   --draws COMMITTED_DRAWS.json --split-seed-file PRODUCER_SEED.txt \
   --definition docs/development/value-metric-v2/definition.v2.json \
   --policy REFERENCE_COST_POLICY.json \
   --coarse COARSE_MARGIN_RECORDS.json --jobs-out PRODUCER_REFINEMENT_JOBS.json
-python -m scripts.dev.score_lab bank-solved-check \
+python -m scripts.dev.score_lab legacy bank-solved-check \
   --plan PRODUCER_PLAN.json --registration REGISTRATION.json \
   --draws COMMITTED_DRAWS.json --split-seed-file PRODUCER_SEED.txt \
   --records PRODUCER_SOLVED.jsonl \
@@ -151,7 +153,7 @@ exclusions among the configured top fraction of true-value members. A
 one-factor table reports which candidate positions change at each switch.
 
 ```sh
-python -m scripts.dev.score_lab physics \
+python -m scripts.dev.score_lab legacy physics \
   --config scripts/dev/score_lab/physics-example.json \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
   --out /tmp/scorelab-physics-toy.json
@@ -170,10 +172,10 @@ The source hashes and coverage appear in JSON. Every real trait limit and
 blend weight in the example remains an uncalibrated **ASSUMPTION**.
 
 ```sh
-python -m scripts.dev.score_lab prepare-ev4 \
+python -m scripts.dev.score_lab legacy prepare-ev4 \
   --public-dir codex-queue/inputs/ev4-public-proof \
   --repository . --out /tmp/scorelab-ev4-public.json.gz
-python -m scripts.dev.score_lab physics \
+python -m scripts.dev.score_lab legacy physics \
   --config scripts/dev/score_lab/physics-example.json \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
   --public-cache /tmp/scorelab-ev4-public.json.gz \
@@ -207,24 +209,24 @@ predictions on score and value questions are disjoint.
 ```sh
 # All ten Validator candidates in eight families, from the owner's read-only
 # local copy. This file is not committed to the Score Lab PR.
-python -m scripts.dev.score_lab synthetic \
+python -m scripts.dev.score_lab legacy synthetic \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
   --value-workflow v2-shortlist --buyer-cap 3 --buyer-unit 1.0 \
   --out /tmp/scorelab-all-ten.json
 
 # A registry-v9 single-leg example. This executes score_tuning's candidate.
-python -m scripts.dev.score_lab synthetic \
+python -m scripts.dev.score_lab legacy synthetic \
   --registry docs/development/evidence/battery-score-tuning/registry-v9.json \
   --candidate A --out /tmp/scorelab-v9-a.json
 
 # Old in-force family, on analytic toys only. No historical rescore.
-python -m scripts.dev.score_lab synthetic \
+python -m scripts.dev.score_lab legacy synthetic \
   --registry docs/development/evidence/battery-score-tuning/registry-v5.json \
   --candidate 'G-FEAS/A-Q>@0.05' --out /tmp/scorelab-old.json
 
 # Prospective VALUE-METRIC-V2 rev 2. Every number below is an ASSUMPTION
 # for sensitivity, not an owner-selected value. The gate is explicit.
-python -m scripts.dev.score_lab synthetic \
+python -m scripts.dev.score_lab legacy synthetic \
   --v2-definition docs/development/value-metric-v2/definition.v2.json \
   --kappa 0.1 --cap 3 --unit 1.0 \
   --value-workflow v2-shortlist --verification-costs 0.1 \
@@ -283,7 +285,7 @@ group still missing from the toy grammar; no partial sample is a campaign
 verdict.
 
 ```sh
-python -m scripts.dev.score_lab campaign-stress \
+python -m scripts.dev.score_lab legacy campaign-stress \
   --base-config scripts/dev/score_lab/physics-example.json \
   --scenarios scripts/dev/score_lab/campaign-stress-example.json \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
@@ -295,7 +297,7 @@ each measured row to the plan and candidate digests and records the sampled
 axis values. Rows are diagnostics, not a final score-rule ranking.
 
 ```sh
-python -m scripts.dev.score_lab campaign-run \
+python -m scripts.dev.score_lab legacy campaign-run \
   --plan /tmp/scorelab-campaign-plan.json \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
   --candidate N1-DECISION-RELEVANCE-ERROR \
@@ -314,7 +316,7 @@ The `campaign-run --plan` and `campaign-atlas --result` readers accept plain
 JSON or deterministic `.json.gz` evidence files.
 
 ```sh
-python -m scripts.dev.score_lab campaign-atlas \
+python -m scripts.dev.score_lab legacy campaign-atlas \
   --result /tmp/scorelab-campaign-results.json \
   --out /tmp/scorelab-atlas.json
 ```
@@ -327,17 +329,17 @@ and Jansen total-order estimators. An unresolved toy tau makes the estimate
 and are never clipped. A complete run costs `(2 + axes) * count` toy profiles.
 
 ```sh
-python -m scripts.dev.score_lab campaign-sobol-plan \
+python -m scripts.dev.score_lab legacy campaign-sobol-plan \
   --base-config scripts/dev/score_lab/physics-error-example.json \
   --axes scripts/dev/score_lab/campaign-axes-error-example.json \
   --count 4 --seed 97 --switch-index 0 --scope neighbourhood_blend \
   --out /tmp/scorelab-sobol-plan.json
-python -m scripts.dev.score_lab campaign-sobol-run \
+python -m scripts.dev.score_lab legacy campaign-sobol-run \
   --plan /tmp/scorelab-sobol-plan.json \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
   --candidate N1-DECISION-RELEVANCE-ERROR \
   --out /tmp/scorelab-sobol-results.json
-python -m scripts.dev.score_lab campaign-sobol-atlas \
+python -m scripts.dev.score_lab legacy campaign-sobol-atlas \
   --result /tmp/scorelab-sobol-results.json \
   --out /tmp/scorelab-sobol-atlas.json
 ```
@@ -388,7 +390,7 @@ margins. A vector `small-grid` is a sampled finite lattice; vector
 reference on the offered set, not a global continuous optimum.
 
 ```sh
-python -m scripts.dev.score_lab campaign-feedback \
+python -m scripts.dev.score_lab legacy campaign-feedback \
   --config scripts/dev/score_lab/physics-example.json \
   --search scripts/dev/score_lab/feedback-search-example.json \
   --disclosure scripts/dev/score_lab/feedback-disclosure-example.json \
@@ -397,7 +399,7 @@ python -m scripts.dev.score_lab campaign-feedback \
 ```
 
 ```sh
-python -m scripts.dev.score_lab campaign-goodhart \
+python -m scripts.dev.score_lab legacy campaign-goodhart \
   --config scripts/dev/score_lab/physics-example.json \
   --search scripts/dev/score_lab/goodhart-search-example.json \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
@@ -406,7 +408,7 @@ python -m scripts.dev.score_lab campaign-goodhart \
 ```
 
 ```sh
-python -m scripts.dev.score_lab campaign-plan \
+python -m scripts.dev.score_lab legacy campaign-plan \
   --base-config scripts/dev/score_lab/physics-example.json \
   --axes scripts/dev/score_lab/campaign-axes-example.json \
   --count 8 --seed 17 --shard 0 --shards 2 \
@@ -414,7 +416,7 @@ python -m scripts.dev.score_lab campaign-plan \
 ```
 
 ```sh
-python -m scripts.dev.score_lab synthetic \
+python -m scripts.dev.score_lab legacy synthetic \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
   --components scripts/dev/score_lab/components-example.json \
   --quick --out /tmp/scorelab-components-toy.json
@@ -438,7 +440,7 @@ are not equalized. `NO_OBSERVED_DIFFERENCE_ON_SLATE` reports an exact tie in
 this toy slate, with no statistical-power claim.
 
 ```sh
-python -m scripts.dev.score_lab campaign-robustness \
+python -m scripts.dev.score_lab legacy campaign-robustness \
   --config scripts/dev/score_lab/physics-shape-example.json \
   --search scripts/dev/score_lab/robustness-search-example.json \
   --levers scripts/dev/score_lab/robustness-levers-example.json \
@@ -462,10 +464,10 @@ cases for decision value. Their historical use makes this **retrospective**.
 The cache is never committed.
 
 ```sh
-python -m scripts.dev.score_lab prepare-ev4 \
+python -m scripts.dev.score_lab legacy prepare-ev4 \
   --public-dir codex-queue/inputs/ev4-public-proof \
   --repository . --out /tmp/scorelab-ev4-public.json.gz
-python -m scripts.dev.score_lab replay \
+python -m scripts.dev.score_lab legacy replay \
   --cache /tmp/scorelab-ev4-public.json.gz \
   --registry docs/development/evidence/battery-score-tuning/registry-v9.json \
   --candidate A --out /tmp/scorelab-ev4-a.json

@@ -17,7 +17,7 @@ from scripts.dev.score_lab import (
     public_physics,
     synthetic,
 )
-from scripts.dev.score_lab.__main__ import _report
+from scripts.dev.score_lab.legacy_cli import _report
 from scripts.dev.score_lab.core import (
     LabRefused,
     analyze,

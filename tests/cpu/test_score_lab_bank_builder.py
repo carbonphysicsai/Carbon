@@ -9,7 +9,7 @@ import json
 import pytest
 
 from scripts.dev.score_lab import bank, bank_builder
-from scripts.dev.score_lab.__main__ import main
+from scripts.dev.score_lab.legacy_cli import main
 from scripts.dev.score_lab.core import LabRefused
 
 
