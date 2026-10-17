@@ -32,6 +32,25 @@ def _digest(body):
     return "sha256:" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
+def physics_contract_identity(contract):
+    """Identify the complete Challenge-owned definition, without interpreting it.
+
+    The trusted producer supplies the versioned definition. This receiver only
+    binds its exact bytes through canonical JSON; it does not certify the
+    definition, its acceptance rules, or physical truth.
+    """
+    if (
+        type(contract) is not dict
+        or set(contract) != {"version", "definition"}
+        or type(contract["version"]) is not str
+        or not contract["version"]
+        or type(contract["definition"]) is not dict
+        or not contract["definition"]
+    ):
+        raise BenchmarkRefused("physics_contract_missing")
+    return {"version": contract["version"], "definition_digest": _digest(contract)}
+
+
 def _number(value, *, positive=False, nonnegative=False):
     if type(value) not in (int, float):
         raise BenchmarkRefused("nonfinite_measurement")
@@ -92,6 +111,7 @@ def register(body):
         "challenge",
         "job_digest",
         "train_digest",
+        "physics_contract",
         "output",
         "reference",
         "cases",
@@ -107,6 +127,7 @@ def register(body):
     for key in ("challenge", "job_digest", "train_digest"):
         if type(body[key]) is not str or not body[key]:
             raise BenchmarkRefused("registration_identity")
+    physics_contract_identity(body["physics_contract"])
     output = body["output"]
     if (
         type(output) is not dict
@@ -205,6 +226,7 @@ def compare(registration, references, models, *, score_pack=None):
     ) != _digest({k: v for k, v in registration.items() if k != "registration_digest"}):
         raise BenchmarkRefused("registration_digest")
     register({k: v for k, v in registration.items() if k != "registration_digest"})
+    physics_identity = physics_contract_identity(registration["physics_contract"])
     roster = {case["id"] for case in registration["cases"]}
     refs = _case_map(references, roster, "reference_roster")
     reference_rows = {}
@@ -228,6 +250,7 @@ def compare(registration, references, models, *, score_pack=None):
                     "solver_digest",
                     "fidelity_digest",
                     "applicability_digest",
+                    "physics_contract_digest",
                     "peak_memory_bytes",
                 }
                 or row["source"] != "MEASURED_SOLVER_RUN"
@@ -236,6 +259,8 @@ def compare(registration, references, models, *, score_pack=None):
                 != registration["reference"]["fidelity_digest"]
                 or row["applicability_digest"]
                 != registration["reference"]["applicability_digest"]
+                or row["physics_contract_digest"]
+                != physics_identity["definition_digest"]
             ):
                 raise BenchmarkRefused("solver_measurement_required")
             reference_rows[cid] = {
@@ -259,6 +284,7 @@ def compare(registration, references, models, *, score_pack=None):
                 "artifact_digest",
                 "job_digest",
                 "train_digest",
+                "physics_contract_digest",
                 "build_seconds",
                 "cases",
             }
@@ -271,6 +297,8 @@ def compare(registration, references, models, *, score_pack=None):
             raise BenchmarkRefused("model_job_identity")
         if model["train_digest"] != registration["train_digest"]:
             raise BenchmarkRefused("model_train_identity")
+        if model["physics_contract_digest"] != physics_identity["definition_digest"]:
+            raise BenchmarkRefused("model_physics_contract_identity")
         seen.add(model["artifact_digest"])
         build_seconds = _number(model["build_seconds"], nonnegative=True)
         measured = _case_map(model["cases"], roster, "model_case_roster")
@@ -453,6 +481,7 @@ def compare(registration, references, models, *, score_pack=None):
             key: registration["output"][key] for key in ("quantity", "unit", "metric")
         },
         "registration_digest": registration["registration_digest"],
+        "physics_contract": physics_identity,
         "ranking": None,
         "models": results,
     }

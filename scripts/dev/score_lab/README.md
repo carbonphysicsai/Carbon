@@ -17,11 +17,25 @@ as timing sources. Only complete `P` results with passing mandatory gates
 receive a descriptive Pareto label;
 there is no adopted scalar, winner, physical qualification or LIVE result.
 
+The registration also carries the **full versioned Challenge-owned physics
+definition** as `physics_contract: {version, definition}`. The definition is
+Challenge-specific data; this receiver does not impose a universal equation
+schema or decide its scientific adequacy. Its canonical digest must match on
+each resolved reference row and each model row. The result exposes only the
+version and digest, which the prospective Score Pack binds along with the
+registration digest. Reusing the same gate names with a changed governing
+relation, condition, unit, applicability statement or acceptance rule therefore
+refuses old evidence. Missing contract material refuses the registration;
+missing reference evidence stays indeterminate, never a candidate gate fail.
+The trusted Challenge/evaluation owner supplies and registers the definition
+and pack; miner-supplied declarations do not establish physics authority.
+
 This receiver is an internal ScoreLab interface, not a miner disclosure
 projection. Its registration is a binding for supplied development evidence,
 not proof that a solver result is physically adequate. The optional prospective
 `carbon.scoring.solver_benchmark_v2` pack binds the same Challenge, gate IDs,
-output metric/unit, explicit accuracy ceiling and performance objective. When
+full physics-definition identity, output metric/unit, explicit accuracy ceiling
+and performance objective. When
 the ceiling is absent, it is unready and ranks nobody. ScoreLab and a validator
 caller use the same `ScoreEngine.score_solver_benchmark_v2` method; A5/v1 score
 bytes and meanings are unchanged. No physical threshold or production scalar

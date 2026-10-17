@@ -15,6 +15,22 @@ from carbon.scoring.solver_benchmark_v2 import (
 )
 from scripts.dev.score_lab import solver_benchmark as bench
 
+TOY_PHYSICS = {
+    "version": "synthetic-charge-v1",
+    "definition": {
+        "scope": "synthetic-charge-time",
+        "governing_relation": "toy minutes",
+        "assumptions": ["synthetic only"],
+        "initial_conditions": {"charge": 0},
+        "boundary_conditions": {"charge": 1},
+        "constraints": {"duration": "nonnegative"},
+        "output_units": {"charging_minutes": "min"},
+        "reference_applicability": "toy-applicability",
+        "acceptance_rules": {"synthetic_physics": "toy boolean fixture"},
+    },
+}
+TOY_PHYSICS_ID = bench.physics_contract_identity(TOY_PHYSICS)
+
 
 def _toy_workload():
     registration = bench.register(
@@ -24,6 +40,7 @@ def _toy_workload():
             "challenge": "synthetic-charge-time",
             "job_digest": "sha256:synthetic-job",
             "train_digest": "sha256:fixed-synthetic-train",
+            "physics_contract": TOY_PHYSICS,
             "output": {
                 "quantity": "charging_minutes",
                 "unit": "min",
@@ -59,6 +76,7 @@ def _toy_workload():
             "solver_digest": "sha256:toy-solver",
             "fidelity_digest": "sha256:toy-fidelity",
             "applicability_digest": "sha256:toy-applicability",
+            "physics_contract_digest": TOY_PHYSICS_ID["definition_digest"],
             "peak_memory_bytes": 2048,
         }
         for cid, answer, seconds in (
@@ -73,6 +91,7 @@ def _toy_workload():
             "artifact_digest": f"sha256:{name}",
             "job_digest": "sha256:synthetic-job",
             "train_digest": "sha256:fixed-synthetic-train",
+            "physics_contract_digest": TOY_PHYSICS_ID["definition_digest"],
             "build_seconds": 60.0,
             "cases": [
                 {
@@ -117,6 +136,7 @@ def _toy_workload():
             "scope": "SYNTHETIC_DEVELOPMENT",
             "challenge": "synthetic-charge-time",
             "benchmark_registration_digest": registration["registration_digest"],
+            "physics_contract": TOY_PHYSICS_ID,
             "output": {
                 "quantity": "charging_minutes",
                 "unit": "min",
@@ -210,3 +230,56 @@ def test_synthetic_acceptance_requires_exact_source_and_identity_bindings():
         ScoreEngine.score_solver_benchmark_v2(
             bench.compare(registration, references, models), changed_pack
         )
+
+
+def test_same_gate_names_cannot_reuse_evidence_under_different_physics():
+    registration, references, models, old_pack = _toy_workload()
+    changed = deepcopy(registration)
+    changed.pop("registration_digest")
+    changed["physics_contract"]["definition"][
+        "governing_relation"
+    ] = "different toy relation"
+    updated = bench.register(changed)
+    updated_id = bench.physics_contract_identity(updated["physics_contract"])
+    assert updated["mandatory_gates"] == registration["mandatory_gates"]
+    assert updated_id != old_pack["physics_contract"]
+    with pytest.raises(bench.BenchmarkRefused, match="solver_measurement_required"):
+        bench.compare(updated, references, models)
+    for row in references:
+        row["physics_contract_digest"] = updated_id["definition_digest"]
+    with pytest.raises(bench.BenchmarkRefused, match="model_physics_contract_identity"):
+        bench.compare(updated, references, models)
+    for row in models:
+        row["physics_contract_digest"] = updated_id["definition_digest"]
+    new_result = bench.compare(updated, references, models)
+    with pytest.raises(BenchmarkScoreRefused, match="benchmark_binding"):
+        ScoreEngine.score_solver_benchmark_v2(new_result, old_pack)
+    stale_physics = deepcopy(old_pack)
+    stale_physics.pop("pack_digest")
+    stale_physics["benchmark_registration_digest"] = updated["registration_digest"]
+    stale_physics = register_pack(stale_physics)
+    with pytest.raises(BenchmarkScoreRefused, match="benchmark_binding"):
+        ScoreEngine.score_solver_benchmark_v2(new_result, stale_physics)
+
+
+def test_missing_physics_contract_is_unready_not_a_candidate_failure():
+    registration, references, models, _ = _toy_workload()
+    missing = deepcopy(registration)
+    missing.pop("registration_digest")
+    missing.pop("physics_contract")
+    with pytest.raises(bench.BenchmarkRefused, match="registration_shape"):
+        bench.register(missing)
+    missing["physics_contract"] = {"version": "toy", "definition": {}}
+    with pytest.raises(bench.BenchmarkRefused, match="physics_contract_missing"):
+        bench.register(missing)
+    unresolved = deepcopy(references)
+    unresolved[0] = {"id": "p-cool", "status": "UNRESOLVED"}
+    result = bench.compare(registration, unresolved, models[:2])
+    assert all(
+        row["by_role"]["P"]["status"] == "INDETERMINATE_EVIDENCE"
+        for row in result["models"]
+    )
+    assert all(
+        row["by_role"]["P"]["counts"]["scientific_inadmissible"] == 0
+        for row in result["models"]
+    )

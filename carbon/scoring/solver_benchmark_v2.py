@@ -77,6 +77,7 @@ def register_pack(body):
         "scope",
         "challenge",
         "benchmark_registration_digest",
+        "physics_contract",
         "output",
         "hard_gates",
         "accuracy_ceiling",
@@ -92,6 +93,16 @@ def register_pack(body):
         or not body["benchmark_registration_digest"]
     ):
         raise BenchmarkScoreRefused("pack_identity")
+    physics = body["physics_contract"]
+    if (
+        type(physics) is not dict
+        or set(physics) != {"version", "definition_digest"}
+        or any(type(v) is not str or not v for v in physics.values())
+        or not physics["definition_digest"].startswith("sha256:")
+        or len(physics["definition_digest"]) != 71
+        or any(c not in "0123456789abcdef" for c in physics["definition_digest"][7:])
+    ):
+        raise BenchmarkScoreRefused("pack_physics_contract")
     output = body["output"]
     if (
         type(output) is not dict
@@ -129,6 +140,7 @@ def score(benchmark, pack):
         or benchmark.get("registration_digest") != pack["benchmark_registration_digest"]
         or benchmark.get("scope") != pack["scope"]
         or benchmark.get("challenge") != pack["challenge"]
+        or benchmark.get("physics_contract") != pack["physics_contract"]
         or benchmark.get("output") != pack["output"]
         or benchmark.get("ranking") is not None
         or type(benchmark.get("models")) is not list

@@ -12,6 +12,22 @@ from carbon.scoring.solver_benchmark_v2 import BenchmarkScoreRefused, register_p
 from scripts.dev.score_lab import solver_benchmark as bench
 from scripts.dev.score_lab.__main__ import main
 
+TOY_PHYSICS = {
+    "version": "toy-physics-v1",
+    "definition": {
+        "scope": "toy-field",
+        "governing_relation": "toy linear field",
+        "assumptions": ["synthetic only"],
+        "initial_conditions": {"field": 1},
+        "boundary_conditions": {"field": 3},
+        "constraints": {"field": "finite"},
+        "output_units": {"field": "toy-unit"},
+        "reference_applicability": "toy-claim",
+        "acceptance_rules": {"physics": "toy boolean fixture"},
+    },
+}
+TOY_PHYSICS_ID = bench.physics_contract_identity(TOY_PHYSICS)
+
 
 def fixture():
     registration = bench.register(
@@ -21,6 +37,7 @@ def fixture():
             "challenge": "toy-field",
             "job_digest": "sha256:toy-job",
             "train_digest": "sha256:toy-train",
+            "physics_contract": TOY_PHYSICS,
             "output": {
                 "quantity": "field",
                 "unit": "toy-unit",
@@ -56,6 +73,7 @@ def fixture():
             "solver_digest": "sha256:toy-solver",
             "fidelity_digest": "sha256:toy-fidelity",
             "applicability_digest": "sha256:toy-claim",
+            "physics_contract_digest": TOY_PHYSICS_ID["definition_digest"],
             "peak_memory_bytes": 1024,
         }
         for cid in ("p1", "p2", "q1")
@@ -66,6 +84,7 @@ def fixture():
             "artifact_digest": name,
             "job_digest": "sha256:toy-job",
             "train_digest": "sha256:toy-train",
+            "physics_contract_digest": TOY_PHYSICS_ID["definition_digest"],
             "build_seconds": 60.0,
             "cases": [
                 {
@@ -243,6 +262,7 @@ def test_scorelab_and_direct_scoring_engine_use_the_same_versioned_rule():
             "scope": "SYNTHETIC_DEVELOPMENT",
             "challenge": "toy-field",
             "benchmark_registration_digest": registration["registration_digest"],
+            "physics_contract": TOY_PHYSICS_ID,
             "output": {
                 "quantity": "field",
                 "unit": "toy-unit",
@@ -280,6 +300,7 @@ def test_unready_pack_refuses_to_select_a_model():
             "scope": "SYNTHETIC_DEVELOPMENT",
             "challenge": "toy-field",
             "benchmark_registration_digest": registration["registration_digest"],
+            "physics_contract": TOY_PHYSICS_ID,
             "output": {
                 "quantity": "field",
                 "unit": "toy-unit",
@@ -305,6 +326,7 @@ def test_direct_engine_refuses_a_forged_gate_pass():
             "scope": "SYNTHETIC_DEVELOPMENT",
             "challenge": "toy-field",
             "benchmark_registration_digest": registration["registration_digest"],
+            "physics_contract": TOY_PHYSICS_ID,
             "output": {
                 "quantity": "field",
                 "unit": "toy-unit",
@@ -363,6 +385,7 @@ def test_oversized_integer_scoring_inputs_refuse_with_typed_errors():
         "scope": "SYNTHETIC_DEVELOPMENT",
         "challenge": "toy-field",
         "benchmark_registration_digest": registration["registration_digest"],
+        "physics_contract": TOY_PHYSICS_ID,
         "output": {
             "quantity": "field",
             "unit": "toy-unit",
