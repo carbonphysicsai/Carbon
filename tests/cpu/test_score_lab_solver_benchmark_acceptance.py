@@ -9,7 +9,7 @@ from copy import deepcopy
 import pytest
 
 from carbon.scoring.engine import ScoreEngine
-from carbon.scoring.solver_benchmark_v2 import (
+from carbon.scoring.solver_benchmark_v3 import (
     BenchmarkScoreRefused,
     register_pack,
 )
@@ -132,7 +132,7 @@ def _toy_workload():
     ]
     pack = register_pack(
         {
-            "schema": "carbon.scoring.solver-benchmark-pack.v2",
+            "schema": "carbon.scoring.solver-benchmark-pack.v3",
             "scope": "SYNTHETIC_DEVELOPMENT",
             "challenge": "synthetic-charge-time",
             "benchmark_registration_digest": registration["registration_digest"],
@@ -153,7 +153,7 @@ def _toy_workload():
 def test_complete_synthetic_workload_accuracy_gates_speed_and_engine_parity():
     registration, references, models, pack = _toy_workload()
     workbench = bench.compare(registration, references, models, score_pack=pack)
-    direct = ScoreEngine.score_solver_benchmark_v2(
+    direct = ScoreEngine.score_solver_benchmark_v3(
         bench.compare(registration, references, models), pack
     )
     assert workbench["scoring"] == direct
@@ -227,7 +227,7 @@ def test_synthetic_acceptance_requires_exact_source_and_identity_bindings():
     changed_pack = deepcopy(pack)
     changed_pack["benchmark_registration_digest"] = "sha256:other-job"
     with pytest.raises(BenchmarkScoreRefused, match="pack_digest"):
-        ScoreEngine.score_solver_benchmark_v2(
+        ScoreEngine.score_solver_benchmark_v3(
             bench.compare(registration, references, models), changed_pack
         )
 
@@ -253,13 +253,13 @@ def test_same_gate_names_cannot_reuse_evidence_under_different_physics():
         row["physics_contract_digest"] = updated_id["definition_digest"]
     new_result = bench.compare(updated, references, models)
     with pytest.raises(BenchmarkScoreRefused, match="benchmark_binding"):
-        ScoreEngine.score_solver_benchmark_v2(new_result, old_pack)
+        ScoreEngine.score_solver_benchmark_v3(new_result, old_pack)
     stale_physics = deepcopy(old_pack)
     stale_physics.pop("pack_digest")
     stale_physics["benchmark_registration_digest"] = updated["registration_digest"]
     stale_physics = register_pack(stale_physics)
     with pytest.raises(BenchmarkScoreRefused, match="benchmark_binding"):
-        ScoreEngine.score_solver_benchmark_v2(new_result, stale_physics)
+        ScoreEngine.score_solver_benchmark_v3(new_result, stale_physics)
 
 
 def test_missing_physics_contract_is_unready_not_a_candidate_failure():
@@ -283,3 +283,21 @@ def test_missing_physics_contract_is_unready_not_a_candidate_failure():
         row["by_role"]["P"]["counts"]["scientific_inadmissible"] == 0
         for row in result["models"]
     )
+
+
+def test_earlier_development_wire_versions_are_not_reinterpreted():
+    registration, references, models, pack = _toy_workload()
+    old_registration = deepcopy(registration)
+    old_registration.pop("registration_digest")
+    old_registration["schema"] = "carbon.score-lab.solver-benchmark.v1"
+    with pytest.raises(bench.BenchmarkRefused, match="registration_scope"):
+        bench.register(old_registration)
+    old_pack = deepcopy(pack)
+    old_pack.pop("pack_digest")
+    old_pack["schema"] = "carbon.scoring.solver-benchmark-pack.v2"
+    with pytest.raises(BenchmarkScoreRefused, match="pack_identity"):
+        register_pack(old_pack)
+    old_result = bench.compare(registration, references, models)
+    old_result["schema"] = "carbon.score-lab.solver-benchmark-result.v1"
+    with pytest.raises(BenchmarkScoreRefused, match="benchmark_binding"):
+        ScoreEngine.score_solver_benchmark_v3(old_result, pack)

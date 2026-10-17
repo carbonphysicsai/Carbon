@@ -1,4 +1,4 @@
-"""Prospective DEVELOPMENT Score Pack v2 for measured model/solver benchmarks.
+"""Prospective DEVELOPMENT Score Pack v3 for measured model/solver benchmarks.
 
 This closed rule never changes A5/v1 scoring. A Challenge must register its
 own physics gate IDs and accuracy ceiling before any candidate is ranked.
@@ -10,9 +10,9 @@ import hashlib
 import json
 import math
 
-PACK_SCHEMA = "carbon.scoring.solver-benchmark-pack.v2"
-RESULT_SCHEMA = "carbon.scoring.solver-benchmark-score.v2"
-BENCHMARK_SCHEMA = "carbon.score-lab.solver-benchmark-result.v1"
+PACK_SCHEMA = "carbon.scoring.solver-benchmark-pack.v3"
+RESULT_SCHEMA = "carbon.scoring.solver-benchmark-score.v3"
+BENCHMARK_SCHEMA = "carbon.score-lab.solver-benchmark-result.v2"
 
 
 class BenchmarkScoreRefused(ValueError):

@@ -8,7 +8,7 @@ from copy import deepcopy
 import pytest
 
 from carbon.scoring.engine import ScoreEngine
-from carbon.scoring.solver_benchmark_v2 import BenchmarkScoreRefused, register_pack
+from carbon.scoring.solver_benchmark_v3 import BenchmarkScoreRefused, register_pack
 from scripts.dev.score_lab import solver_benchmark as bench
 from scripts.dev.score_lab.__main__ import main
 
@@ -258,7 +258,7 @@ def test_scorelab_and_direct_scoring_engine_use_the_same_versioned_rule():
     registration, references, model = fixture()
     pack = register_pack(
         {
-            "schema": "carbon.scoring.solver-benchmark-pack.v2",
+            "schema": "carbon.scoring.solver-benchmark-pack.v3",
             "scope": "SYNTHETIC_DEVELOPMENT",
             "challenge": "toy-field",
             "benchmark_registration_digest": registration["registration_digest"],
@@ -282,7 +282,7 @@ def test_scorelab_and_direct_scoring_engine_use_the_same_versioned_rule():
     unscored = bench.compare(
         registration, references, [accurate, too_inaccurate, unsafe]
     )
-    direct_validator_style = ScoreEngine.score_solver_benchmark_v2(unscored, pack)
+    direct_validator_style = ScoreEngine.score_solver_benchmark_v3(unscored, pack)
     assert workbench["scoring"] == direct_validator_style
     assert direct_validator_style["ranking"] == ["accurate"]
     assert [row["status"] for row in direct_validator_style["models"]] == [
@@ -296,7 +296,7 @@ def test_unready_pack_refuses_to_select_a_model():
     registration, references, model = fixture()
     pack = register_pack(
         {
-            "schema": "carbon.scoring.solver-benchmark-pack.v2",
+            "schema": "carbon.scoring.solver-benchmark-pack.v3",
             "scope": "SYNTHETIC_DEVELOPMENT",
             "challenge": "toy-field",
             "benchmark_registration_digest": registration["registration_digest"],
@@ -322,7 +322,7 @@ def test_direct_engine_refuses_a_forged_gate_pass():
     registration, references, model = fixture()
     pack = register_pack(
         {
-            "schema": "carbon.scoring.solver-benchmark-pack.v2",
+            "schema": "carbon.scoring.solver-benchmark-pack.v3",
             "scope": "SYNTHETIC_DEVELOPMENT",
             "challenge": "toy-field",
             "benchmark_registration_digest": registration["registration_digest"],
@@ -344,7 +344,7 @@ def test_direct_engine_refuses_a_forged_gate_pass():
     forged["models"][0]["by_role"]["P"]["status"] = "MEASURED_DEVELOPMENT"
     forged["models"][0]["by_role"]["P"]["mandatory_gates_pass"] = True
     with pytest.raises(BenchmarkScoreRefused, match="benchmark_status"):
-        ScoreEngine.score_solver_benchmark_v2(forged, pack)
+        ScoreEngine.score_solver_benchmark_v3(forged, pack)
 
 
 def test_finite_inputs_cannot_overflow_into_a_retained_result():
@@ -381,7 +381,7 @@ def test_oversized_integer_measurements_refuse_with_typed_errors():
 def test_oversized_integer_scoring_inputs_refuse_with_typed_errors():
     registration, references, model = fixture()
     body = {
-        "schema": "carbon.scoring.solver-benchmark-pack.v2",
+        "schema": "carbon.scoring.solver-benchmark-pack.v3",
         "scope": "SYNTHETIC_DEVELOPMENT",
         "challenge": "toy-field",
         "benchmark_registration_digest": registration["registration_digest"],
@@ -402,7 +402,7 @@ def test_oversized_integer_scoring_inputs_refuse_with_typed_errors():
     measured = bench.compare(registration, references, [model("toy", [1.0, 3.0], 2.0)])
     measured["models"][0]["by_role"]["P"]["paired_speedup"] = 10**1000
     with pytest.raises(BenchmarkScoreRefused, match="benchmark_measurement"):
-        ScoreEngine.score_solver_benchmark_v2(measured, pack)
+        ScoreEngine.score_solver_benchmark_v3(measured, pack)
 
 
 def test_producer_cli_uses_the_same_receiver_without_printing_case_ids(

@@ -564,9 +564,9 @@ class ScoreEngine:
     """Stateless evaluator for one validated A5 fixture Score Pack."""
 
     @staticmethod
-    def score_solver_benchmark_v2(benchmark: dict, pack: dict) -> dict:
+    def score_solver_benchmark_v3(benchmark: dict, pack: dict) -> dict:
         """Prospective development benchmark rule; A5/v1 remains unchanged."""
-        from carbon.scoring.solver_benchmark_v2 import score
+        from carbon.scoring.solver_benchmark_v3 import score
 
         return score(benchmark, pack)
 

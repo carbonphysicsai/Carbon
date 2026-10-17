@@ -11,10 +11,10 @@ import json
 import math
 import statistics
 
-from carbon.scoring.solver_benchmark_v2 import measurement_status
+from carbon.scoring.solver_benchmark_v3 import measurement_status
 
-SCHEMA = "carbon.score-lab.solver-benchmark.v1"
-RESULT_SCHEMA = "carbon.score-lab.solver-benchmark-result.v1"
+SCHEMA = "carbon.score-lab.solver-benchmark.v2"
+RESULT_SCHEMA = "carbon.score-lab.solver-benchmark-result.v2"
 ROLES = frozenset({"P", "Q"})
 
 
@@ -488,5 +488,5 @@ def compare(registration, references, models, *, score_pack=None):
     if score_pack is not None:
         from carbon.scoring.engine import ScoreEngine
 
-        result["scoring"] = ScoreEngine.score_solver_benchmark_v2(result, score_pack)
+        result["scoring"] = ScoreEngine.score_solver_benchmark_v3(result, score_pack)
     return result
