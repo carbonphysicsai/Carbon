@@ -428,7 +428,12 @@ case "$2" in
     cp "$5" "$7" ;;
 esac
 """
-FAKE_CONTROL_CENTER = '#!/bin/sh\necho "control center $*" >> "$CARBON_TEST_LOG"\n'
+FAKE_CONTROL_CENTER = (
+    "#!/bin/sh\n"
+    'if [ "${CARBON_TEST_ASSERT_NO_BYTECODE:-}" = 1 ] && '
+    '[ "${PYTHONDONTWRITEBYTECODE:-}" != 1 ]; then exit 14; fi\n'
+    'echo "control center $*" >> "$CARBON_TEST_LOG"\n'
+)
 
 
 class Sandbox:
@@ -641,6 +646,11 @@ def test_explicit_development_candidate_builds_only_the_exact_local_tree(sandbox
     assert any("verify-development-source" in line for line in sandbox.logged())
     assert any("bind-development-candidate" in line for line in sandbox.logged())
     assert any(line.startswith("worker ") for line in sandbox.logged())
+    assert (
+        "PYTHONDONTWRITEBYTECODE=1 "
+        f"{sandbox.clone}/.venv/bin/carbon-control-center --state-dir "
+        f"{state} --port 8788"
+    ) in built.stdout
 
 
 def _local_development_identity(sandbox):
@@ -929,6 +939,7 @@ def test_an_install_syncs_every_documented_group_and_prints_the_start_command(
     assert "What this install changed: (fixture)" in completed.stdout
     assert "Start it again later with:" in completed.stdout
     assert (
+        f"PYTHONDONTWRITEBYTECODE=1 "
         f"{sandbox.clone}/.venv/bin/carbon-control-center --state-dir "
         f"{sandbox.state} --port 8788"
     ) in completed.stdout
@@ -937,7 +948,7 @@ def test_an_install_syncs_every_documented_group_and_prints_the_start_command(
 
 
 def test_an_install_prints_the_restart_command_before_it_starts(sandbox):
-    completed = sandbox.run()
+    completed = sandbox.run(CARBON_TEST_ASSERT_NO_BYTECODE="1")
     assert completed.returncode == 0, completed.stderr
     assert "Start it again later with:" in completed.stdout
     assert sandbox.logged()[-1] == (
@@ -1766,3 +1777,4 @@ def test_the_service_unit_runs_unbuffered():
 
     text = service_unit(Path("/srv/miner/state"), 8788, Path("/srv/miner/carbon"))
     assert "Environment=PYTHONUNBUFFERED=1\n" in text
+    assert "Environment=PYTHONDONTWRITEBYTECODE=1\n" in text

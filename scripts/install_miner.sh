@@ -701,7 +701,7 @@ step "6/6 Starting the Control Center"
 launcher=("${repo_root}/.venv/bin/carbon-control-center")
 [[ -x "${launcher[0]}" ]] \
   || launcher=("${python}" "${repo_root}/scripts/dev/miner_launchpad/controller.py")
-start_command="${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
+start_command="PYTHONDONTWRITEBYTECODE=1 ${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
 
 # Units written before LA-F15 all had the default service's name, so one may
 # run another state directory than its name's. This install never rewrites
@@ -725,7 +725,7 @@ if [[ "${service_mode}" == 1 ]]; then
     unit_port="$(sed -n 's/^ExecStart=.* --port \([0-9]*\)$/\1/p' -- "${UNIT}" | head -n 1)"
     if [[ -n "${unit_port}" ]]; then
       PORT="${unit_port}"
-      start_command="${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
+      start_command="PYTHONDONTWRITEBYTECODE=1 ${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
     fi
   fi
   command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1 \
@@ -789,4 +789,5 @@ echo "  ${start_command}"
 if [[ "${START}" == 0 || "${UPDATE}" == 1 ]]; then
   exit 0
 fi
+export PYTHONDONTWRITEBYTECODE=1
 exec "${launcher[@]}" --state-dir "${STATE_DIR}" --port "${PORT}"

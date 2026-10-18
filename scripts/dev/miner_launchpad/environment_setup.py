@@ -1786,6 +1786,7 @@ def service_unit(state_dir, port, repo=REPO) -> str:
         f"WorkingDirectory={repo}\n"
         f"ExecStart={binary} --state-dir {state_dir} --port {port}\n"
         "Environment=PYTHONUNBUFFERED=1\n"
+        "Environment=PYTHONDONTWRITEBYTECODE=1\n"
         "UMask=0077\n"
         f"StandardOutput=append:{log}\n"
         "StandardError=inherit\n"
