@@ -110,7 +110,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
         self._identities = self._bound_identities(contract)
 
     def _bound_identities(self, contract):
-        from carbon.development_session.profile import canonical, digest as sha
+        from carbon.development_session.profile import canonical
+        from carbon.development_session.profile import digest as sha
         from carbon.research import canonical_digest
 
         key = self.discovery.info.challenge_key
@@ -167,7 +168,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
         return provider
 
     def _request(self, hotkey, recipe):
-        from carbon.development_session.profile import canonical, digest as sha
+        from carbon.development_session.profile import canonical
+        from carbon.development_session.profile import digest as sha
         from carbon.research import DirectStartTaskRequestV3
 
         info = self.discovery.info
@@ -337,6 +339,15 @@ class LeanRecipeAdapter(ChallengeAdapter):
         ).task
         return self._project(task, provider)
 
+    def _active_owner(self, submission_id):
+        try:
+            return self.owner(submission_id)
+        except Unavailable as unavailable:
+            if unavailable.code != "direct_provider_registration_unavailable":
+                raise
+            # Retained cleanup custody is not fresh dispatch authority.
+            return None
+
     def advance(self):
         from carbon.research import (
             DirectGetTaskRequestV3,
@@ -348,7 +359,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
 
         moved = 0
         for submission_id in self.ledger.submitted_outcomes(self.contract_digest):
-            owner = self.owner(submission_id)
+            owner = self._active_owner(submission_id)
             if owner is None:
                 continue
             provider = self._provider(owner)
@@ -395,7 +406,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
             "schema": "carbon.lean-recipe-adapter-status.v1",
             "contract_digest": self.contract_digest,
             "submissions": sum(
-                self.owner(submission_id) is not None
+                self._active_owner(submission_id) is not None
                 for submission_id in self.ledger.submitted_outcomes(
                     self.contract_digest
                 )

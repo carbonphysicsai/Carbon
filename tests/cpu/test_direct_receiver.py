@@ -40,6 +40,27 @@ def _config(tmp_path):
     }
 
 
+def _allow_windows_receiver_fixture(monkeypatch):
+    if os.name != "nt":
+        return
+    # The ledger transaction remains real. POSIX runs use the actual flock,
+    # owner-only mode gate, and private JSON reader.
+    monkeypatch.setitem(
+        sys.modules,
+        "fcntl",
+        SimpleNamespace(LOCK_EX=2, LOCK_NB=4, flock=lambda *_: None),
+    )
+
+    def directory(path):
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    monkeypatch.setattr(receiver, "_private_directory", directory)
+    monkeypatch.setattr(
+        receiver, "private_json", lambda path: json.loads(path.read_bytes())
+    )
+
+
 @pytest.mark.parametrize(
     "field,value",
     [
@@ -166,7 +187,9 @@ def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
     tmp_path, monkeypatch
 ):
     from test_c08_authenticated_miner_mcp import CONTEXT, _snapshot
+    from test_direct_v3_durable_tasks import _fixture
 
+    from carbon import research
     from carbon.chain.models import (
         CARBON_NETUID,
         CARBON_NETWORK,
@@ -174,27 +197,13 @@ def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
         Participant,
     )
     from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
+    from carbon.challenge_validator.interface import Unavailable
     from carbon.development_session import research_carrier
     from carbon.development_session.research_service import DirectFixtureDiscovery
+    from carbon.miner_mcp.standard_cli import DirectOwnerImageResolver
     from carbon.reconstruction.worker.model import WorkerImageIdentity
 
-    if os.name == "nt":
-        # Windows lacks flock; the ledger transaction and controlled reservation
-        # remain real. POSIX runs use the actual supervisor lock and mode gate.
-        monkeypatch.setitem(
-            sys.modules,
-            "fcntl",
-            SimpleNamespace(LOCK_EX=2, LOCK_NB=4, flock=lambda *_: None),
-        )
-
-        def directory(path):
-            path.mkdir(parents=True, exist_ok=True)
-            return path
-
-        monkeypatch.setattr(receiver, "_private_directory", directory)
-        monkeypatch.setattr(
-            receiver, "private_json", lambda path: json.loads(path.read_bytes())
-        )
+    _allow_windows_receiver_fixture(monkeypatch)
     context = ChainContext(
         CARBON_NETWORK,
         CONTEXT.endpoint,
@@ -267,6 +276,15 @@ def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
         )
     with ledger.db() as db:
         assert db.execute("SELECT COUNT(*) FROM operations").fetchone()[0] == 1
+    request, fixed_factory, _ = _fixture(
+        tmp_path, monkeypatch, material=bundle_material_v5()
+    )
+    fixed = fixed_factory()
+    image = fixed.image
+    fixed.close()
+    monkeypatch.setattr(DirectOwnerImageResolver, "__call__", lambda *_: image)
+    queued = provider.start_research_task(request).task
+    assert queued.state is research.DirectTaskStateV3.QUEUED
     first.close()
 
     advanced = replace(
@@ -278,6 +296,7 @@ def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
     resumed = pool(advanced)
     resumed.restore()
     assert resumed(OWNER).ledger.generation > ledger.generation
+    assert resumed(OWNER).queued_tasks() == (queued.task_id,)
     with resumed(OWNER).ledger.db() as db:
         retained = json.loads(db.execute("SELECT manifest FROM campaign").fetchone()[0])
     assert retained == frozen
@@ -291,10 +310,86 @@ def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
             advanced.participants[2],
         ),
     )
-    with pytest.raises(
-        ValueError, match="retained direct owner campaign binding changed"
-    ):
-        pool(recycled).restore()
+    cleanup = pool(recycled)
+    cleanup.restore()
+    assert (
+        cleanup._providers[OWNER].ledger.operation_state(
+            "first-build-child", owner=OWNER
+        )
+        == "FAILED_INFRA"
+    )
+    retained = (
+        cleanup._providers[OWNER]
+        .get_research_result(
+            research.DirectGetTaskRequestV3(
+                discovery.info.challenge_key, queued.task_id
+            )
+        )
+        .task
+    )
+    assert retained.state is research.DirectTaskStateV3.CANCELLED
+    with pytest.raises(Unavailable, match="direct_provider_registration_unavailable"):
+        cleanup(OWNER)
+    # Revocation of one retained owner does not stop a second registered
+    # miner from opening a fresh campaign through the same receiver.
+    assert cleanup(OTHER).owner == OTHER
+    cleanup.close()
+
+
+def test_new_owner_uses_refreshed_finalized_snapshot_not_startup_registration(
+    tmp_path, monkeypatch
+):
+    from test_c08_authenticated_miner_mcp import CONTEXT, _snapshot
+
+    _allow_windows_receiver_fixture(monkeypatch)
+    from carbon.battery.intake import SnapshotWindow
+    from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK, ChainContext
+    from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
+    from carbon.challenge_validator.interface import Unavailable
+    from carbon.development_session.research_service import DirectFixtureDiscovery
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    context = ChainContext(
+        CARBON_NETWORK,
+        CONTEXT.endpoint,
+        CONTEXT.provider,
+        CONTEXT.genesis_hash,
+        CARBON_NETUID,
+    )
+    now = time.time()
+    startup = replace(
+        _snapshot(sender=OTHER, receiver=RECEIVER, context=context),
+        timestamp_ms=int(now * 1000),
+    )
+    window = SnapshotWindow(clock=lambda: now)
+    window.add(startup)
+    root = receiver._private_directory(tmp_path / "owners")
+    pool = receiver.OwnerProviders(
+        root,
+        DirectFixtureDiscovery(bundle_material_v5(), task_admission=True),
+        WorkerImageIdentity(*("sha256:" + "4" * 64 for _ in range(8))),
+        tmp_path / "cache",
+        implementation={"revision": "a" * 40},
+        snapshot=startup,
+        window=window,
+        receiver=RECEIVER,
+    )
+    with pytest.raises(Unavailable, match="direct_provider_registration_unavailable"):
+        pool(OWNER)
+    assert list(root.iterdir()) == []
+    refreshed = replace(
+        _snapshot(sender=OWNER, receiver=RECEIVER, context=context),
+        finalized_block=startup.finalized_block + 1,
+        block_hash="0x" + "3" * 64,
+        timestamp_ms=int(now * 1000) + 1000,
+    )
+    window.add(refreshed)
+    provider = pool(OWNER)
+    with provider.ledger.db() as db:
+        frozen = json.loads(db.execute("SELECT manifest FROM campaign").fetchone()[0])
+    assert frozen["admission"]["snapshot_id"] == refreshed.snapshot_id
+    assert frozen["admission"]["registered_at_block"] == 2
+    pool.close()
 
 
 @POSIX

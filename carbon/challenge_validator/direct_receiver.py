@@ -117,31 +117,65 @@ class OwnerProviders:
         *,
         implementation=None,
         snapshot=None,
+        window=None,
         receiver=None,
     ):
         self.root, self.discovery = root, discovery
         self.parent, self.cache_root = parent, cache_root
-        self.implementation, self.snapshot, self.receiver = (
+        self.implementation, self.snapshot, self.window, self.receiver = (
             implementation,
             snapshot,
+            window,
             receiver,
         )
         self._lock = threading.RLock()
         self._providers = {}
         self._controls = {}
+        self._admissions = {}
         self._closing = False
 
-    def _manifest(self, hotkey, ledger):
+    def _admission(self, hotkey):
+        """Recheck registration against the current finalized receiver window."""
+        from carbon.development_session.chain_onboarding import (
+            OnboardingFailure,
+            PublicAddress,
+            RegisteredMiner,
+        )
+
+        observed = self.window.latest() if self.window is not None else self.snapshot
+        if (
+            observed is None
+            or self.snapshot is None
+            or observed.context != self.snapshot.context
+        ):
+            return None
+        try:
+            return RegisteredMiner(observed, PublicAddress(hotkey)).record()
+        except OnboardingFailure:
+            return None
+
+    @staticmethod
+    def _same_registration(frozen, current):
+        return current is not None and all(
+            frozen.get(field) == current[field]
+            for field in (
+                "admission",
+                "network",
+                "netuid",
+                "hotkey",
+                "uid",
+                "registered_at_block",
+            )
+        )
+
+    def _manifest(self, hotkey, ledger, *, restoring):
         """Freeze the signed owner's one DEVELOPMENT receiver campaign.
 
         Registration is observed, not asserted by an operator or a recipe. A
         restart keeps the first observation while checking the same registered
         identity is still present in the current finalized snapshot.
         """
-        from carbon.development_session.chain_onboarding import (
-            PublicAddress,
-            RegisteredMiner,
-        )
+        from carbon.challenge_validator.interface import Unavailable
         from carbon.development_session.product_campaign import AUTHORITY
         from carbon.development_session.research_ledger import PRODUCT
 
@@ -151,7 +185,7 @@ class OwnerProviders:
             or self.receiver is None
         ):
             raise ValueError("direct receiver authority binding required")
-        admission = RegisteredMiner(self.snapshot, PublicAddress(hotkey)).record()
+        admission = self._admission(hotkey)
         challenge = self.discovery.info.challenge_key
         binding = {
             "schema": "carbon.construction.direct-receiver-run.v1",
@@ -188,30 +222,22 @@ class OwnerProviders:
             row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
         if row is not None:
             frozen = json.loads(row[0])
-            observed = frozen.get("admission", {})
-            if (
-                set(frozen) != set(candidate)
-                or any(
-                    frozen.get(field) != candidate[field]
-                    for field in candidate.keys() - {"admission"}
-                )
-                or any(
-                    observed.get(field) != admission[field]
-                    for field in (
-                        "admission",
-                        "network",
-                        "netuid",
-                        "hotkey",
-                        "uid",
-                        "registered_at_block",
-                    )
-                )
+            candidate["admission"] = frozen.get("admission")
+            if set(frozen) != set(candidate) or any(
+                frozen.get(field) != candidate[field] for field in candidate
             ):
                 raise ValueError("retained direct owner campaign binding changed")
             candidate = frozen
+        elif restoring:
+            raise ValueError("retained direct owner campaign manifest missing")
+        elif admission is None:
+            raise Unavailable("direct_provider_registration_unavailable")
         ledger.freeze(candidate)
+        return candidate["admission"], self._same_registration(
+            candidate["admission"], admission
+        )
 
-    def __call__(self, hotkey):
+    def _open(self, hotkey, *, restoring):
         from carbon.challenge_validator.interface import Unavailable
         from carbon.development_session.research_control import CampaignControl
         from carbon.development_session.research_ledger import CampaignLedger
@@ -224,11 +250,17 @@ class OwnerProviders:
             if self._closing:
                 raise Unavailable("direct_receiver_stopping")
             if hotkey not in self._providers:
+                if not restoring and self._admission(hotkey) is None:
+                    raise Unavailable("direct_provider_registration_unavailable")
                 directory = _private_directory(
                     self.root / hashlib.sha256(hotkey.encode()).hexdigest()
                 )
                 ledger = CampaignLedger(directory / "ledger")
-                self._manifest(hotkey, ledger)
+                frozen_admission, live = self._manifest(
+                    hotkey, ledger, restoring=restoring
+                )
+                if not restoring and not live:
+                    raise Unavailable("direct_provider_registration_unavailable")
                 write_once(directory / "owner.json", canonical({"hotkey": hotkey}))
                 provider = DirectDevelopmentTasksV3(
                     root=directory / "tasks",
@@ -250,7 +282,22 @@ class OwnerProviders:
                     raise
                 self._providers[hotkey] = provider
                 self._controls[hotkey] = control
+                self._admissions[hotkey] = frozen_admission
+                if restoring and not live:
+                    # A revoked/recycled miner retains cleanup custody, never
+                    # the right to launch a queued child from old authority.
+                    for task_id in provider.queued_tasks():
+                        provider.cancel_observed_task(
+                            task_id, self.discovery.info.challenge_key
+                        )
+            if not restoring and not self._same_registration(
+                self._admissions[hotkey], self._admission(hotkey)
+            ):
+                raise Unavailable("direct_provider_registration_unavailable")
             return self._providers[hotkey]
+
+    def __call__(self, hotkey):
+        return self._open(hotkey, restoring=False)
 
     def restore(self):
         """Reopen every retained owner before listening, including interrupted work."""
@@ -265,7 +312,7 @@ class OwnerProviders:
                 != directory.name
             ):
                 raise ValueError("retained receiver owner binding differs")
-            self(owner["hotkey"])
+            self._open(owner["hotkey"], restoring=True)
 
     def cancel(self):
         """Close admission and request only our providers' domain cancellation."""
@@ -361,6 +408,7 @@ def serve(config_path: Path, *, stop=None, reader=None, verifier=None, ready=Non
             cache,
             implementation=implementation,
             snapshot=snapshot,
+            window=window,
             receiver=cfg["receiver_hotkey"],
         )
         timer = threading.Timer(cfg["lifetime_seconds"], stop.set)

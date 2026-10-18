@@ -1,6 +1,7 @@
 """The served recipe reaches one durable DEVELOPMENT task, never a score."""
 
 import json
+from types import SimpleNamespace
 
 import pytest
 from test_direct_v3_durable_tasks import _fixture
@@ -9,6 +10,38 @@ from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
 from carbon.challenge_validator import Adapters, AttemptLedger, Submission, Validator
 from carbon.challenge_validator.interface import Admitted, Unavailable
 from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+
+
+def test_revoked_retained_owner_does_not_starve_registered_owner_progress(
+    tmp_path, monkeypatch
+):
+    from carbon.research import DirectTaskStateV3
+
+    _, _, discovery = _fixture(tmp_path, monkeypatch, material=bundle_material_v5())
+    revoked = "rtsk_" + "1" * 64
+    active = "rtsk_" + "2" * 64
+    adapter = object.__new__(LeanRecipeAdapter)
+    adapter.contract_digest = "sha256:" + "3" * 64
+    adapter.discovery = discovery
+    adapter.ledger = SimpleNamespace(submitted_outcomes=lambda _: (revoked, active))
+    dispatched = []
+    provider = SimpleNamespace(
+        get_research_result=lambda _: SimpleNamespace(
+            task=SimpleNamespace(state=DirectTaskStateV3.QUEUED)
+        ),
+        run_queued_task=lambda task_id: dispatched.append(task_id.value),
+    )
+
+    def owner(submission_id):
+        if submission_id == revoked:
+            raise Unavailable("direct_provider_registration_unavailable")
+        return "registered"
+
+    adapter.owner = owner
+    adapter._provider = lambda _: provider
+    assert adapter.advance() == 1
+    assert dispatched == [active]
+    assert adapter.status()["submissions"] == 1
 
 
 def test_signed_door_screens_and_admits_one_bound_v13_task(tmp_path, monkeypatch):
