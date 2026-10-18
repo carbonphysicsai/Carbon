@@ -212,6 +212,10 @@ class DirectDevelopmentTasksV3:
         rb"(aten\.[A-Za-z_][A-Za-z_0-9]{0,63}\."
         rb"[A-Za-z_][A-Za-z_0-9]{0,63})\r?$"
     )
+    _SCATTER_INDEX_OP = re.compile(
+        rb"(?m)^carbon\.level4\.graph\.GraphRefused: "
+        rb"aten_scatter_index_not_static at (aten\.scatter_add\.default)\r?$"
+    )
 
     def __init__(
         self,
@@ -1064,10 +1068,13 @@ class DirectDevelopmentTasksV3:
             or child_states[1] is not None
         ):
             return None
-        matches = cls._EXPORT_OP.findall(error.private_diagnostic)
-        if len(matches) != 1:
+        generic = cls._EXPORT_OP.findall(error.private_diagnostic)
+        static_index = cls._SCATTER_INDEX_OP.findall(error.private_diagnostic)
+        if len(generic) + len(static_index) != 1:
             return None
-        return matches[0].decode("ascii")
+        if static_index:
+            return static_index[0].decode("ascii")
+        return generic[0].decode("ascii")
 
     def _transition(
         self, view, state, *, receipt=None, cancellation=None, export_gap=None

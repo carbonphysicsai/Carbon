@@ -382,8 +382,21 @@ def test_direct_v3_settled_infrastructure_child_is_typed_at_parent(
         tasks.close()
 
 
+@pytest.mark.parametrize(
+    ("refusal", "operation"),
+    [
+        (
+            b"aten_op_not_lowered at aten._softmax.default",
+            "aten._softmax.default",
+        ),
+        (
+            b"aten_scatter_index_not_static at aten.scatter_add.default",
+            "aten.scatter_add.default",
+        ),
+    ],
+)
 def test_direct_v3_export_gap_has_bounded_durable_public_feedback(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, refusal, operation
 ):
     request, provider, _discovery = _fixture(tmp_path, monkeypatch)
     tasks = provider()
@@ -401,8 +414,7 @@ def test_direct_v3_export_gap_has_bounded_durable_public_feedback(
 
         private = (
             b"private host path and traceback must stay private\n"
-            b"carbon.level4.graph.GraphRefused: aten_op_not_lowered "
-            b"at aten._softmax.default\n"
+            b"carbon.level4.graph.GraphRefused: " + refusal + b"\n"
         )
 
         def failing(*args, **kwargs):
@@ -425,7 +437,7 @@ def test_direct_v3_export_gap_has_bounded_durable_public_feedback(
             "failed_stage": "BUILD_EXPORT",
             "reason_code": "REPORTED_CARBON_EXPORT_OPERATION_GAP",
             "diagnostic_provenance": "WORKER_DIAGNOSTIC_ADVISORY",
-            "reported_operation": "aten._softmax.default",
+            "reported_operation": operation,
             "next_step": "CHECK_CARBON_ADAPTER_SUPPORT",
             "official_eligible": False,
         }
@@ -443,14 +455,20 @@ def test_direct_v3_export_gap_has_bounded_durable_public_feedback(
         reopened.close()
 
 
-def test_direct_v3_export_gap_does_not_echo_arbitrary_worker_text():
+@pytest.mark.parametrize(
+    "refusal",
+    [
+        b"aten_op_not_lowered at aten._softmax.default",
+        b"aten_scatter_index_not_static at aten.scatter_add.default",
+    ],
+)
+def test_direct_v3_export_gap_does_not_echo_arbitrary_worker_text(refusal):
     from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 
     failure = WorkerFailure(
         WorkerCode.RUNTIME,
         private_diagnostic=(
-            b"carbon.level4.graph.GraphRefused: aten_op_not_lowered "
-            b"at aten._softmax.default;private-data\n"
+            b"carbon.level4.graph.GraphRefused: " + refusal + b";private-data\n"
         ),
     )
     assert (
@@ -461,6 +479,57 @@ def test_direct_v3_export_gap_does_not_echo_arbitrary_worker_text():
         DirectDevelopmentTasksV3._reported_export_gap(failure, ["FAILED_MINER", None])
         is None
     )
+
+
+@pytest.mark.parametrize(
+    "diagnostic",
+    [
+        (
+            b"carbon.level4.graph.GraphRefused: "
+            b"aten_scatter_index_not_static at aten.scatter.default\n"
+        ),
+        (
+            b"carbon.level4.graph.GraphRefused: "
+            b"aten_scatter_index_not_lowered at aten.scatter_add.default\n"
+        ),
+        (
+            b"carbon.level4.graph.GraphRefused: "
+            b"aten_scatter_index_not_static at aten.scatter_add.default\n"
+            b"carbon.level4.graph.GraphRefused: "
+            b"aten_scatter_index_not_static at aten.scatter_add.default\n"
+        ),
+        (
+            b"carbon.level4.graph.GraphRefused: "
+            b"aten_op_not_lowered at aten._softmax.default\n"
+            b"carbon.level4.graph.GraphRefused: "
+            b"aten_scatter_index_not_static at aten.scatter_add.default\n"
+        ),
+    ],
+)
+def test_direct_v3_scatter_index_advisory_requires_one_exact_refusal(diagnostic):
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    failure = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=diagnostic)
+    assert (
+        DirectDevelopmentTasksV3._reported_export_gap(failure, ["FAILED_INFRA", None])
+        is None
+    )
+
+
+def test_direct_v3_scatter_index_advisory_preserves_worker_guards():
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    diagnostic = (
+        b"carbon.level4.graph.GraphRefused: "
+        b"aten_scatter_index_not_static at aten.scatter_add.default\n"
+    )
+    for code, states in (
+        (WorkerCode.INVALID, ["FAILED_INFRA", None]),
+        (WorkerCode.RUNTIME, ["FAILED_MINER", None]),
+        (WorkerCode.RUNTIME, ["FAILED_INFRA", "FAILED_INFRA"]),
+    ):
+        failure = WorkerFailure(code, private_diagnostic=diagnostic)
+        assert DirectDevelopmentTasksV3._reported_export_gap(failure, states) is None
 
 
 def test_direct_v3_success_evidence_tamper_fails_closed_on_read_and_reload(
