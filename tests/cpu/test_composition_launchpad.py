@@ -176,7 +176,8 @@ def test_new_launch_writer_refuses_selected_legacy_subject_before_dispatch(
         with pytest.raises(Rejected, match="construction_selector_retired"):
             host.launch_admitted(admitted, request)
         with host.db() as db:
-            assert db.execute("SELECT COUNT(*) FROM launchpad_campaigns").fetchone()[0] == 0
+            count = db.execute("SELECT COUNT(*) FROM launchpad_campaigns").fetchone()[0]
+        assert count == 0
         assert dispatches == []
     finally:
         host.close()
