@@ -12,9 +12,28 @@ from test_score_lab_private_evaluation_evidence import (
     _source_receipt,
 )
 
+from carbon.challenge_validator.evaluation_pack import (
+    PRIVATE_ROLES,
+    PUBLIC_ROLES,
+    SCHEMA,
+    parse_pack,
+)
 from carbon.scoring import benchmark_evidence, dual_score
 from carbon.scoring import private_evaluation_evidence as private
 from carbon.scoring.engine import ScoreEngine
+
+
+def _seal(case, manifest):
+    raw = private._canonical(manifest)
+    snapshot = parse_pack(
+        raw,
+        expected_digest=private._sha(raw),
+        challenge_id=case["entry"]["challenge"],
+        challenge_version=case["entry"]["challenge_version"],
+    )
+    case["manifest"] = manifest
+    case["snapshot"] = snapshot
+    case["pack_pin"] = snapshot.manifest_digest
 
 
 def _case(tmp_path):
@@ -77,8 +96,30 @@ def _case(tmp_path):
             },
         }
     )
-    case["pack_pin"] = private._sha(b"synthetic-sealed-pack-fixture")
     case["basis"] = basis
+    manifest = {
+        "schema": SCHEMA,
+        "challenge": {
+            "id": case["entry"]["challenge"],
+            "version": case["entry"]["challenge_version"],
+        },
+        "pack_version": "inert-v4-test",
+        "public": {
+            role: {"path": f"inert/{role}.json", "sha256": private._sha(role.encode())}
+            for role in PUBLIC_ROLES
+        },
+        "private": {
+            role: {"path": f"inert/{role}.json", "sha256": private._sha(role.encode())}
+            for role in PRIVATE_ROLES
+        },
+    }
+    for role in (
+        "accuracy_definition",
+        "important_limit_definition",
+        "design_objective",
+    ):
+        manifest["public"][role]["sha256"] = basis[role + "_sha256"]
+    _seal(case, manifest)
     return case
 
 
@@ -173,6 +214,7 @@ def _arguments(case, *, benchmark_changes=None):
         "evaluation_source_receipt_raw": source_raw,
         "registered_source_receipt_sha256": private._sha(source_raw),
         "expected_evaluation_pack_digest": case["pack_pin"],
+        "selected_evaluation_pack": case["snapshot"],
         "dual_measurement_receipt_raw": raw,
         "registered_dual_measurement_sha256": private._sha(raw),
     }, scoring
@@ -305,6 +347,40 @@ def test_caller_producer_label_cannot_replace_pack_bound_contract(tmp_path):
     )
     with pytest.raises(
         private.PrivateEvaluationEvidenceRefused, match="dual_measurement_contract"
+    ):
+        private.bind_private_evaluation_evidence(**args)
+
+
+def test_definition_hashes_must_match_the_actual_selected_manifest(tmp_path):
+    case = _case(tmp_path)
+    changed = deepcopy(case["manifest"])
+    changed["public"]["accuracy_definition"]["sha256"] = "sha256:" + "a" * 64
+    _seal(case, changed)
+    args, _ = _arguments(case)
+    with pytest.raises(
+        private.PrivateEvaluationEvidenceRefused,
+        match="dual_selected_definition_binding",
+    ):
+        private.bind_private_evaluation_evidence(**args)
+
+
+def test_unavailable_grading_role_does_not_become_a_passing_packet(tmp_path):
+    case = _case(tmp_path)
+    changed = deepcopy(case["manifest"])
+    changed["private"]["score_pack"] = "HUMAN_INPUT"
+    _seal(case, changed)
+    args, _ = _arguments(case)
+    with pytest.raises(
+        private.PrivateEvaluationEvidenceRefused, match="dual_selected_pack_unavailable"
+    ):
+        private.bind_private_evaluation_evidence(**args)
+
+
+def test_opaque_manifest_digest_alone_cannot_replace_trusted_snapshot(tmp_path):
+    args, _ = _arguments(_case(tmp_path))
+    args["selected_evaluation_pack"] = None
+    with pytest.raises(
+        private.PrivateEvaluationEvidenceRefused, match="dual_selected_pack_binding"
     ):
         private.bind_private_evaluation_evidence(**args)
 
