@@ -291,3 +291,76 @@ def test_public_factory_preserves_actual_elapsed_and_explicit_unranked_state(
         "model": None,
     }
     assert prepared["speedup_comparability"] == "NOT_ESTABLISHED"
+
+
+def test_public_reducer_binds_source_and_derives_gates_from_saved_predictions(
+    monkeypatch,
+):
+    _, _, query, material = _registered_public_query()
+    prepared = source.prepare_public_measurement(
+        query_bytes=query, model_device="test-cpu", reference_device="test-cpu"
+    )
+    predictions = fixture.public_reference(material["practice_inputs"]).tolist()
+    inference = {
+        "predictions": predictions,
+        "receipt": {
+            "measurement": {
+                "scope": "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
+            }
+        },
+    }
+    captured = {}
+
+    def measured(entry, registration, saved, *, gates):
+        captured["gates"] = gates
+        assert saved is inference
+        return {"actual_worker": True}
+
+    def reduced(entry, custody, job, registration, refs, model, *, graph_originals):
+        assert refs == [prepared["reference_row"]]
+        assert model == {"actual_worker": True}
+        assert graph_originals == {"exact": "originals"}
+        return {"score_status": "PACK_NOT_READY"}
+
+    monkeypatch.setattr(
+        source.bundle_benchmark, "measurement_from_saved_inference", measured
+    )
+    monkeypatch.setattr(source.bundle_benchmark, "benchmark_saved_entry", reduced)
+    args = {
+        "entry": {},
+        "custody_receipt_raw": b"exact custody",
+        "source_registration_raw": prepared["source_registration_raw"],
+        "source_receipt_raw": prepared["source_receipt_raw"],
+        "reference_row_raw": prepared["reference_row_raw"],
+        "query_bytes": query,
+        "inference": inference,
+        "graph_originals": {"exact": "originals"},
+    }
+    result = source.reduce_public_measurement(**args)
+    assert captured["gates"] == {
+        "public_output_shape": True,
+        "public_output_finite": True,
+    }
+    assert result["measurement_state"] == "DEVELOPMENT_UNRANKED"
+    assert result["speedup_comparability"] == "NOT_ESTABLISHED"
+    assert result["source_state"] == "MEASURED_ENGINEERING_REFERENCE_UNPINNED"
+    assert result["accuracy_ceiling"] is None and result["ranking"] is None
+
+    bad = dict(args)
+    bad["reference_row_raw"] = prepared["reference_row_raw"].replace(
+        b"RESOLVED", b"REFUSED"
+    )
+    with pytest.raises(source.SyntheticReferenceRefused, match="public_source_binding"):
+        source.reduce_public_measurement(**bad)
+    bad = dict(args)
+    bad["inference"] = {**inference, "predictions": predictions[:-1]}
+    with pytest.raises(
+        source.SyntheticReferenceRefused, match="public_prediction_shape_or_finite"
+    ):
+        source.reduce_public_measurement(**bad)
+    bad = dict(args)
+    changed = json.loads(prepared["source_registration_raw"])
+    changed["benchmark_registration"]["timing_profile"]["model_device"] = "forged"
+    bad["source_registration_raw"] = source._canonical(changed)
+    with pytest.raises(source.SyntheticReferenceRefused, match="registration_mismatch"):
+        source.reduce_public_measurement(**bad)

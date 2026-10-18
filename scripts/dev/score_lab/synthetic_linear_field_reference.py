@@ -23,6 +23,7 @@ import numpy as np
 
 from carbon.challenge_kit import synthetic_linear_field_2d as fixture
 from carbon.scoring import benchmark_evidence as benchmark
+from carbon.scoring import bundle_benchmark_core as bundle_benchmark
 from carbon.scoring.private_evaluation_evidence import SOURCE_SCHEMA
 
 
@@ -172,6 +173,135 @@ def prepare_public_measurement(
         },
         "speedup_comparability": "NOT_ESTABLISHED",
     }
+
+
+def reduce_public_measurement(
+    *,
+    entry: dict,
+    custody_receipt_raw: bytes,
+    source_registration_raw: bytes,
+    source_receipt_raw: bytes,
+    reference_row_raw: bytes,
+    query_bytes: bytes,
+    inference: dict,
+    graph_originals: dict,
+) -> dict:
+    """Reduce original saved inference against the registered public P query.
+
+    Source and model custody are checked independently. The two descriptive
+    conformance verdicts come from the saved prediction values, never a caller
+    assertion. The returned numerical timing ratio has incompatible scopes and
+    must not be presented as solver speedup.
+    """
+    try:
+        envelope = _parse_canonical(source_registration_raw)
+        source = _parse_canonical(source_receipt_raw)
+        row = _parse_canonical(reference_row_raw)
+        registration = envelope["benchmark_registration"]
+        job = envelope["trusted_job"]
+        if (
+            envelope["schema"] != "carbon.challenge-evaluation-source-registration.v1"
+            or envelope["evaluation_version"] != PUBLIC_MEASUREMENT_VERSION
+            or source["schema"] != SOURCE_SCHEMA
+            or source["challenge"] != job["challenge"]
+            or source["challenge_version"] != job["challenge_version"]
+            or source["evaluation_version"] != PUBLIC_MEASUREMENT_VERSION
+            or source["interface_digest"] != job["interface_digest"]
+            or source["train_digest"] != job["train_digest"]
+            or source["job_digest"] != job["job_digest"]
+            or source["registration_digest"] != registration["registration_digest"]
+            or source["cases"]
+            != [
+                {
+                    "id": registration["cases"][0]["id"],
+                    "role": "P",
+                    "weight": 1.0,
+                    "query_sha256": _sha(query_bytes),
+                    "reference_row_sha256": _sha(reference_row_raw),
+                    "reference_status": "RESOLVED",
+                }
+            ]
+            or row["status"] != "RESOLVED"
+            or row["id"] != registration["cases"][0]["id"]
+        ):
+            raise SyntheticReferenceRefused("public_source_binding")
+        expected = public_measurement_registration(
+            query_bytes=query_bytes,
+            model_device=registration["timing_profile"]["model_device"],
+            reference_device=registration["timing_profile"]["solver_device"],
+        )
+        if envelope != expected:
+            raise SyntheticReferenceRefused("public_registration_mismatch")
+        material = fixture.bundle_material_v5()
+        _registered_job(job, registration, material)
+        inputs = _checked_query(query_bytes, material, registration)
+        if (
+            source["physics_contract"]
+            != benchmark.physics_contract_identity(material["physics_contract"])
+            or row["outputs"] != fixture.public_reference(inputs).reshape(-1).tolist()
+            or type(row["elapsed_s"]) not in (int, float)
+            or not math.isfinite(row["elapsed_s"])
+            or row["elapsed_s"] <= 0
+        ):
+            raise SyntheticReferenceRefused("public_reference_binding")
+        predictions = inference["predictions"]
+        expected_shape = registration["output"]["shape"]
+        if not _predictions_conform(predictions, expected_shape):
+            raise SyntheticReferenceRefused("public_prediction_shape_or_finite")
+        gates = {gate: True for gate in PUBLIC_MEASUREMENT_GATES}
+        measured = bundle_benchmark.measurement_from_saved_inference(
+            entry, registration, inference, gates=gates
+        )
+        result = bundle_benchmark.benchmark_saved_entry(
+            entry,
+            custody_receipt_raw,
+            job,
+            registration,
+            [row],
+            measured,
+            graph_originals=graph_originals,
+        )
+        if result["score_status"] != "PACK_NOT_READY":
+            raise SyntheticReferenceRefused("public_unranked_status")
+    except (KeyError, IndexError, TypeError, ValueError) as exc:
+        if isinstance(exc, SyntheticReferenceRefused):
+            raise
+        raise SyntheticReferenceRefused("public_measurement_refused") from exc
+    return {
+        "measurement_state": "DEVELOPMENT_UNRANKED",
+        "source_state": "MEASURED_ENGINEERING_REFERENCE_UNPINNED",
+        "accuracy_ceiling": None,
+        "ranking": None,
+        "source_registration_sha256": _sha(source_registration_raw),
+        "source_receipt_sha256": _sha(source_receipt_raw),
+        "reference_row_sha256": _sha(reference_row_raw),
+        "model_timing_scope": inference["receipt"]["measurement"]["scope"],
+        "reference_timing_scope": "IN_PROCESS_PUBLIC_REFERENCE_ARRAY_ONLY",
+        "speedup_comparability": "NOT_ESTABLISHED",
+        "result": result,
+    }
+
+
+def _parse_canonical(raw: bytes) -> dict:
+    if type(raw) is not bytes or len(raw) > 1024 * 1024:
+        raise SyntheticReferenceRefused("public_source_bytes")
+    try:
+        value = json.loads(raw)
+    except (ValueError, UnicodeError) as exc:
+        raise SyntheticReferenceRefused("public_source_json") from exc
+    if type(value) is not dict or _canonical(value) != raw:
+        raise SyntheticReferenceRefused("public_source_canonical")
+    return value
+
+
+def _predictions_conform(value, shape) -> bool:
+    if not shape:
+        return type(value) in (int, float) and math.isfinite(value)
+    return (
+        type(value) is list
+        and len(value) == shape[0]
+        and all(_predictions_conform(item, shape[1:]) for item in value)
+    )
 
 
 def _canonical(value) -> bytes:
