@@ -114,6 +114,52 @@ def candidate_implementation(state_dir, *, repository=None) -> dict | None:
     )
 
 
+def profile_candidate(profile_path, profile=None, *, repository=None) -> dict | None:
+    """Resolve a candidate only from the exact owner-private installed profile.
+
+    A caller's configuration cannot grant DEVELOPMENT source authority: the
+    on-disk profile and separate operator pin must both agree with it.
+    """
+    from carbon.development_session.private_records import private_json
+    from scripts.dev.miner_launchpad.runner import validated_profile
+
+    path = Path(profile_path)
+    candidate_declared = (
+        type(profile) is dict
+        and (profile.get("runtime") or {})
+        .get("implementation", {})
+        .get("source_authority")
+        == "DEVELOPMENT_CANDIDATE"
+    )
+    if (
+        not path.is_absolute()
+        or path.is_symlink()
+        or path.resolve() != path
+        or path.name != "runner-profile.json"
+        or path.parent.name != "environment"
+    ):
+        if candidate_declared:
+            raise ValueError("exact installed development profile required")
+        return None
+    candidate = candidate_implementation(
+        path.parent.parent,
+        **({} if repository is None else {"repository": repository}),
+    )
+    if candidate is None:
+        if candidate_declared:
+            raise ValueError("development candidate operator pin required")
+        return None
+    actual = validated_profile(private_json(path))
+    if (
+        (profile is not None and actual != profile)
+        or actual["campaigns_root"] != str(path.parent / "campaigns")
+        or actual["accepted_revision"] != candidate["revision"]
+        or actual["runtime"]["implementation"] != candidate
+    ):
+        raise ValueError("development candidate profile differs")
+    return candidate
+
+
 def bind_development_candidate(
     state_dir, *, revision, tree, source_tree_digest, repository=None
 ) -> dict:
@@ -295,14 +341,52 @@ def main(argv=None):
     record.add_argument("--gpu-release-record")
     reuse = commands.add_parser("current")
     reuse.add_argument("--manifest", type=Path, required=True)
+    reuse.add_argument("--candidate-revision")
+    reuse.add_argument("--candidate-tree")
+    reuse.add_argument("--candidate-source-tree-digest")
+    verify = commands.add_parser("verify-development-source")
+    verify.add_argument("--revision", required=True)
+    verify.add_argument("--tree", required=True)
+    verify.add_argument("--source-tree-digest", required=True)
     candidate = commands.add_parser("bind-development-candidate")
     candidate.add_argument("--state-dir", type=Path, required=True)
     candidate.add_argument("--revision", required=True)
     candidate.add_argument("--tree", required=True)
     candidate.add_argument("--source-tree-digest", required=True)
     args = parser.parse_args(argv)
+    if args.command == "verify-development-source":
+        from carbon.development_session.research_campaign import (
+            development_candidate_implementation,
+        )
+
+        development_candidate_implementation(
+            args.revision,
+            expected_tree=args.tree,
+            expected_source_tree_digest=args.source_tree_digest,
+        )
+        print("Exact clean DEVELOPMENT source verified.")
+        return
     if args.command == "current":
-        print("yes" if current(args.manifest) else "no")
+        candidate_fields = (
+            args.candidate_revision,
+            args.candidate_tree,
+            args.candidate_source_tree_digest,
+        )
+        if any(value is not None for value in candidate_fields):
+            if any(value is None for value in candidate_fields):
+                raise ValueError("complete development source identity required")
+            from carbon.development_session.research_campaign import (
+                development_candidate_implementation,
+            )
+
+            implementation = development_candidate_implementation(
+                args.candidate_revision,
+                expected_tree=args.candidate_tree,
+                expected_source_tree_digest=args.candidate_source_tree_digest,
+            )
+        else:
+            implementation = None
+        print("yes" if current(args.manifest, implementation=implementation) else "no")
         return
     if args.command == "bind-development-candidate":
         bind_development_candidate(

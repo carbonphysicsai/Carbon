@@ -221,27 +221,12 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
         raise AttachRefused("runner_profile_unusable", "private direct root differs")
     paths = {name: Path(value) for name, value in cfg["paths"].items()}
     with _check("carbon_updated_rerun_installer"):
-        implementation = None
-        development_candidate = False
-        profile_path = Path(configuration)
-        if (
-            version == "1.3"
-            and profile_path.is_absolute()
-            and profile_path.resolve() == profile_path
-            and profile_path.name == "runner-profile.json"
-            and profile_path.parent.name == "environment"
-        ):
-            implementation = installed.candidate_implementation(
-                profile_path.parent.parent
-            )
-            if implementation is not None:
-                development_candidate = True
-                if (
-                    cfg.get("runtime", {}).get("implementation") != implementation
-                    or cfg["accepted_revision"] != implementation["revision"]
-                    or base != profile_path.parent / "campaigns"
-                ):
-                    raise ValueError("development candidate profile differs")
+        implementation = (
+            installed.profile_candidate(configuration, cfg)
+            if version == "1.3"
+            else None
+        )
+        development_candidate = implementation is not None
         if implementation is None:
             implementation = accepted_implementation(cfg["accepted_revision"])
         parent = load_image_identity(paths["image_manifest"])
@@ -435,13 +420,17 @@ def _runtime(profile):
         verify_image,
     )
     from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
+    from scripts.dev.miner_launchpad import installed
 
     cfg = profile.document
     paths = {name: Path(value) for name, value in cfg["paths"].items()}
     # This checkout and its worker images are the ones the profile accepted:
     # not, after an update the installer has not accepted yet.
     with _check("carbon_updated_rerun_installer"):
-        implementation = accepted_implementation(cfg["accepted_revision"])
+        implementation = installed.profile_candidate(profile.path, cfg)
+        development_candidate = implementation is not None
+        if implementation is None:
+            implementation = accepted_implementation(cfg["accepted_revision"])
         image = load_image_identity(paths["image_manifest"])
         verify_current_worker(image, implementation)
     with _check("runtime_unavailable"):
@@ -459,6 +448,13 @@ def _runtime(profile):
     if analysis.parent_image != image.image_id:
         raise AttachRefused(
             "carbon_updated_rerun_installer", "analysis image parent differs"
+        )
+    if development_candidate and cfg["runtime"].get("images") != [
+        image.image_id,
+        analysis.image_id,
+    ]:
+        raise AttachRefused(
+            "carbon_updated_rerun_installer", "development candidate images differ"
         )
     runtime = {
         "implementation": implementation,

@@ -549,7 +549,19 @@ async def prepare_battery(args, *, ledger=None, campaign):
             ResponsesTransport(args.api_key_file)
         else:
             SelectionTransport(selection)
-    implementation = accepted_implementation(args.accepted_revision)
+    implementation = None
+    source_profile = getattr(args, "source_profile", None)
+    if source_profile is not None:
+        from scripts.dev.miner_launchpad import installed
+
+        implementation = installed.profile_candidate(source_profile)
+        if implementation is not None and (
+            root.parent != Path(source_profile).parent / "campaigns"
+            or args.accepted_revision != implementation["revision"]
+        ):
+            raise ValueError("development candidate campaign differs from profile")
+    if implementation is None:
+        implementation = accepted_implementation(args.accepted_revision)
     image = load_image_identity(args.image_manifest)
     verify_current_worker(image, implementation)
     if not doctor(image_id=image.image_id, image_identity=image).eligible:

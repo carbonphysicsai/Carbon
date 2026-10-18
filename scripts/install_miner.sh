@@ -7,6 +7,11 @@
 #   ~/carbon/scripts/install_miner.sh --update   # later: the latest main
 #   ~/carbon/scripts/install_miner.sh --release worker-images-vN
 #                                                # Carbon's released images
+#   CARBON_STATE_DIR=~/.carbon/s5-candidate ~/carbon/scripts/install_miner.sh \
+#     --development-candidate "$(git -C ~/carbon rev-parse HEAD)" \
+#     "$(git -C ~/carbon rev-parse 'HEAD^{tree}')" \
+#     "sha256:$(git -C ~/carbon archive --format=tar HEAD | sha256sum | cut -d' ' -f1)" \
+#     --no-start                                # local DEVELOPMENT only
 #
 # What it does, in order, and nothing else:
 #   1. checks this machine: Linux x86-64, git, curl, a running Docker (for
@@ -15,9 +20,10 @@
 #      Center is running from the state directory this install changes;
 #   2. brings the checkout to the requested ref (the latest main by default).
 #      The checkout must be clean, because an image's identity is the exact
-#      source tree, and the ref must be in Carbon's main, because setup
-#      accepts only a revision in main. When the installer itself changed at
-#      that ref, the new installer carries on from here;
+#      source tree, and the ordinary ref must be in Carbon's main. An explicit
+#      DEVELOPMENT candidate instead verifies exact local revision/tree/archive
+#      identities in its own owner state directory. When the installer itself
+#      changed at an ordinary ref, the new installer carries on from here;
 #   3. installs the pinned uv if missing and syncs Carbon's locked
 #      environment (scripts/dev/bootstrap.sh) with the groups the documented
 #      commands use: science, chain, archive and MCP;
@@ -63,6 +69,9 @@ UPDATE=0
 SERVICE=0
 REF_GIVEN=0
 RELEASE=""
+DEVELOPMENT_REVISION=""
+DEVELOPMENT_TREE=""
+DEVELOPMENT_SOURCE_TREE_DIGEST=""
 #: Where each release's records are published: the assets of its GitHub
 #: release (.github/workflows/release-worker-images.yml). Public; no login.
 RELEASE_URL="${CARBON_RELEASE_URL:-https://github.com/carbonphysicsai/Carbon/releases/download}"
@@ -87,6 +96,8 @@ usage() {
   cat <<'EOF'
 usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --release TAG]
                                 [--no-start] [--service] [--port PORT]
+       scripts/install_miner.sh --development-candidate REVISION TREE SOURCE_DIGEST
+                                [--gpu] [--pytorch] [--no-start] [--port PORT]
 
   --update     update an installed checkout: move it to REF (default: the
                latest main), build its images again (or use the ones already
@@ -106,6 +117,11 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --re
                (worker-images-vN, cut from main) and pull each image its
                release records name, by digest. With --update, TAG must be
                this install's revision or newer
+  --development-candidate REVISION TREE SOURCE_DIGEST
+               build this exact clean local DEVELOPMENT checkout's images;
+               all three identities must match the local commit, tree and
+               Git archive SHA-256. Requires its own state directory and
+               cannot be combined with --ref, --release or --update.
   --no-start   build everything, but do not start the Control Center
   --service    run the Control Center as a systemd user service, so this
                terminal stays free: carbon-control-center for the default
@@ -124,6 +140,11 @@ while [[ $# -gt 0 ]]; do
     --pytorch) PYTORCH=1 ;;
     --ref) REF="${2:?--ref needs a value}"; REF_GIVEN=1; shift ;;
     --release) RELEASE="${2:?--release needs a value}"; shift ;;
+    --development-candidate)
+      DEVELOPMENT_REVISION="${2:?--development-candidate needs a revision}"
+      DEVELOPMENT_TREE="${3:?--development-candidate needs a tree}"
+      DEVELOPMENT_SOURCE_TREE_DIGEST="${4:?--development-candidate needs a source digest}"
+      shift 3 ;;
     --no-start) START=0 ;;
     --service) SERVICE=1 ;;
     --port) PORT="${2:?--port needs a value}"; PORT_GIVEN=1; shift ;;
@@ -160,6 +181,15 @@ artifacts="${repo_root}/.carbon-artifacts"
 # same directory throughout.
 STATE_DIR="$(realpath -ms -- "${STATE_DIR}")"
 state_real="$(realpath -m -- "${STATE_DIR}")"
+if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
+  [[ "${REF_GIVEN}" == 0 && "${REF}" == main && -z "${RELEASE}" && "${UPDATE}" == 0 ]] \
+    || fail "--development-candidate cannot be combined with --ref, --release or --update."
+  [[ "${STATE_DIR}" != "$(realpath -m -- "${DEFAULT_STATE_DIR}")" ]] \
+    || fail "--development-candidate requires its own CARBON_STATE_DIR."
+  case "${state_real}/" in
+    "${repo_root}/"*) fail "DEVELOPMENT state must be outside the source checkout." ;;
+  esac
+fi
 if [[ "${state_real}" == "$(realpath -m -- "${DEFAULT_STATE_DIR}")" ]]; then
   SERVICE_NAME="${DEFAULT_SERVICE}"
 else
@@ -344,6 +374,11 @@ else
 then run this again. git -C ${repo_root} stash pop brings them back."
   fi
   previous="$(git rev-parse HEAD)"
+  if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
+    target="${previous}"
+    [[ "${target}" == "${DEVELOPMENT_REVISION}" ]] \
+      || fail "--development-candidate revision differs from this checkout. Nothing was changed."
+  else
   git fetch --quiet origin "+refs/heads/main:refs/remotes/origin/main" \
     || fail "could not fetch Carbon's main from origin."
   if [[ -n "${RELEASE}" ]]; then
@@ -365,6 +400,7 @@ then run this again. git -C ${repo_root} stash pop brings them back."
   fi
   git merge-base --is-ancestor "${target}" refs/remotes/origin/main \
     || fail "--ref ${REF} (${target:0:12}) is not in Carbon's main, and setup accepts only a revision in main (clean_accepted_checkout_required). Use --ref main, or a commit or tag on main."
+  fi
   if [[ "${PYTORCH}" == 1 ]]; then
     target_installer="$(git show "${target}:scripts/install_miner.sh" 2>/dev/null || true)"
     pytorch_label="--pytorch"
@@ -423,11 +459,25 @@ fi
 CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/bootstrap.sh
 python="${repo_root}/.venv/bin/python"
 setup_cli=("${python}" -m scripts.dev.miner_launchpad.environment_setup)
+if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
+  "${python}" -m scripts.dev.miner_launchpad.installed verify-development-source \
+    --revision "${DEVELOPMENT_REVISION}" \
+    --tree "${DEVELOPMENT_TREE}" \
+    --source-tree-digest "${DEVELOPMENT_SOURCE_TREE_DIGEST}" \
+    || fail "local DEVELOPMENT source identity differs. No image was built."
+fi
 
 #: current_image MANIFEST: whether MANIFEST names a worker built from this
 #: checkout's exact source tree that Docker still holds (installed.current).
 current_image() {
-  [[ "$("${python}" -m scripts.dev.miner_launchpad.installed current --manifest "$1" 2>/dev/null)" == "yes" ]]
+  if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
+    [[ "$("${python}" -m scripts.dev.miner_launchpad.installed current --manifest "$1" \
+      --candidate-revision "${DEVELOPMENT_REVISION}" \
+      --candidate-tree "${DEVELOPMENT_TREE}" \
+      --candidate-source-tree-digest "${DEVELOPMENT_SOURCE_TREE_DIGEST}" 2>/dev/null)" == "yes" ]]
+  else
+    [[ "$("${python}" -m scripts.dev.miner_launchpad.installed current --manifest "$1" 2>/dev/null)" == "yes" ]]
+  fi
 }
 
 # Every install, not only --update: a plain run moves the checkout to the
@@ -514,6 +564,13 @@ chmod 700 "${STATE_DIR}"
   --analysis-image-manifest "${analysis}" \
   ${gpu_manifest:+--gpu-image-manifest "${gpu_manifest}"} \
   ${gpu_release_record:+--gpu-release-record "${gpu_release_record}"}
+if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
+  "${python}" -m scripts.dev.miner_launchpad.installed bind-development-candidate \
+    --state-dir "${STATE_DIR}" \
+    --revision "${DEVELOPMENT_REVISION}" \
+    --tree "${DEVELOPMENT_TREE}" \
+    --source-tree-digest "${DEVELOPMENT_SOURCE_TREE_DIGEST}"
+fi
 "${setup_cli[@]}" after-install --state-dir "${STATE_DIR}"
 
 cat <<EOF

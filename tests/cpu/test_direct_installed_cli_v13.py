@@ -50,6 +50,7 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     from carbon.development_session import (
         gpu_practice,
         miner_network,
+        private_records,
         research_campaign,
         research_image,
     )
@@ -96,6 +97,7 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
         kit, "bundle_material_v5", lambda: {"challenge_key": "v13"}, raising=False
     )
     monkeypatch.setattr(cli, "private_json", lambda _path: cfg)
+    monkeypatch.setattr(private_records, "private_json", lambda _path: cfg)
     monkeypatch.setattr(runner, "validated_profile", lambda value: value)
     monkeypatch.setattr(
         research_campaign,
@@ -154,6 +156,7 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
 
 
 def test_v13_candidate_profile_mismatch_refuses_before_image_use(monkeypatch, tmp_path):
+    from carbon.development_session import private_records
     from scripts.dev.miner_launchpad import installed, runner
 
     base = tmp_path / "campaigns"
@@ -166,6 +169,7 @@ def test_v13_candidate_profile_mismatch_refuses_before_image_use(monkeypatch, tm
         "runtime": {"implementation": {"revision": "a" * 40}},
     }
     monkeypatch.setattr(cli, "private_json", lambda _path: cfg)
+    monkeypatch.setattr(private_records, "private_json", lambda _path: cfg)
     monkeypatch.setattr(runner, "validated_profile", lambda value: value)
     monkeypatch.setattr(
         installed,
@@ -184,6 +188,78 @@ def test_v13_candidate_profile_mismatch_refuses_before_image_use(monkeypatch, tm
             tmp_path / "environment" / "runner-profile.json", version="1.3"
         )
     assert cli.refusal_code(refused.value) == "carbon_updated_rerun_installer"
+
+
+def test_normal_attachment_runtime_uses_exact_installed_candidate(
+    monkeypatch, tmp_path
+):
+    from carbon.challenge_registry import campaigns
+    from carbon.development_session import research_campaign, research_image
+    from carbon.reconstruction.worker import docker_runtime
+    from scripts.dev.miner_launchpad import installed
+
+    digest = "sha256:" + "a" * 64
+    implementation = {
+        "revision": "b" * 40,
+        "tree": "c" * 40,
+        "source_tree_digest": "sha256:" + "d" * 64,
+        "source_authority": "DEVELOPMENT_CANDIDATE",
+    }
+    profile_path = tmp_path / "environment" / "runner-profile.json"
+    parent = SimpleNamespace(image_id=digest)
+    analysis = SimpleNamespace(image_id=digest, parent_image=digest)
+    cfg = {
+        "accepted_revision": implementation["revision"],
+        "paths": {
+            "image_manifest": str(tmp_path / "worker.json"),
+            "analysis_image_manifest": str(tmp_path / "analysis.json"),
+        },
+        "runtime": {"implementation": implementation, "images": [digest, digest]},
+    }
+    profile = cli.OperatorProfile(
+        profile_path,
+        cfg,
+        "e" * 32,
+        tmp_path / "environment" / "campaigns" / ("e" * 32),
+        {"runtime": cfg["runtime"]},
+    )
+    monkeypatch.setattr(
+        installed,
+        "profile_candidate",
+        lambda path, document: (
+            implementation if path == profile_path and document == cfg else None
+        ),
+    )
+    monkeypatch.setattr(
+        research_campaign,
+        "accepted_implementation",
+        lambda _revision: pytest.fail("normal attach must not claim main acceptance"),
+    )
+    monkeypatch.setattr(research_campaign, "verify_current_worker", lambda *_: None)
+    monkeypatch.setattr(docker_runtime, "load_image_identity", lambda _path: parent)
+    monkeypatch.setattr(
+        docker_runtime, "doctor", lambda **_kwargs: SimpleNamespace(eligible=True)
+    )
+    monkeypatch.setattr(research_image, "load_analysis_image", lambda _path: analysis)
+    monkeypatch.setattr(research_image, "verify_image", lambda _image: None)
+    monkeypatch.setattr(cli, "_authored_image", lambda *_args: None)
+    monkeypatch.setattr(cli, "_connection", lambda *_args: "connection")
+    seen = []
+    monkeypatch.setattr(
+        campaigns,
+        "campaign_for_manifest",
+        lambda _manifest: SimpleNamespace(
+            check_attached=lambda *_args, **kwargs: seen.append(kwargs),
+            gpu_image=lambda *_args: None,
+        ),
+    )
+    assert cli._runtime(profile) == ("connection", parent, analysis, None)
+    assert seen[0]["implementation"] == implementation
+
+    cfg["runtime"]["images"] = ["sha256:" + "f" * 64, digest]
+    with pytest.raises(cli.AttachRefused) as refused:
+        cli._runtime(profile)
+    assert refused.value.code == "carbon_updated_rerun_installer"
 
 
 def test_old_direct_kit_keeps_main_accepted_source_rule(monkeypatch, tmp_path):

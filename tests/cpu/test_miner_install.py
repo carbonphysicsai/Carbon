@@ -126,6 +126,30 @@ def test_operator_candidate_pin_is_private_exact_and_cleared_by_install(
         "tree",
         "source_tree_digest",
     }
+    from carbon.development_session.profile import canonical
+    from scripts.dev.miner_launchpad import runner
+    from scripts.dev.miner_launchpad.environment_setup import write_private
+
+    environment = state / "environment"
+    environment.mkdir(mode=0o700)
+    profile_path = environment / "runner-profile.json"
+    profile = {
+        "accepted_revision": revision,
+        "campaigns_root": str(environment / "campaigns"),
+        "runtime": {"implementation": expected},
+    }
+    write_private(profile_path, canonical(profile))
+    monkeypatch.setattr(runner, "validated_profile", lambda value: value)
+    assert (
+        installed.profile_candidate(profile_path, profile, repository=tmp_path)
+        == expected
+    )
+    with pytest.raises(ValueError, match="profile differs"):
+        installed.profile_candidate(
+            profile_path,
+            {**profile, "accepted_revision": "d" * 40},
+            repository=tmp_path,
+        )
     installed.write(state, image_manifest=worker, analysis_image_manifest=analysis)
     assert not pin.exists()
     assert installed.candidate_implementation(state, repository=tmp_path) is None
@@ -152,6 +176,67 @@ def test_released_images_cannot_bind_development_candidate(tmp_path):
             tree="b" * 40,
             source_tree_digest="sha256:" + "c" * 64,
             repository=tmp_path,
+        )
+
+
+def test_development_installer_cli_checks_all_source_pins(
+    monkeypatch, capsys, tmp_path
+):
+    from carbon.development_session import research_campaign
+
+    revision, tree, source = "a" * 40, "b" * 40, "sha256:" + "c" * 64
+    expected = {"source_authority": "DEVELOPMENT_CANDIDATE"}
+    seen = []
+
+    def checked(given, *, expected_tree, expected_source_tree_digest):
+        seen.append((given, expected_tree, expected_source_tree_digest))
+        return expected
+
+    monkeypatch.setattr(
+        research_campaign, "development_candidate_implementation", checked
+    )
+    monkeypatch.setattr(
+        installed,
+        "current",
+        lambda manifest, *, implementation=None: (
+            manifest == tmp_path / "worker.json" and implementation is expected
+        ),
+    )
+    installed.main(
+        [
+            "verify-development-source",
+            "--revision",
+            revision,
+            "--tree",
+            tree,
+            "--source-tree-digest",
+            source,
+        ]
+    )
+    installed.main(
+        [
+            "current",
+            "--manifest",
+            str(tmp_path / "worker.json"),
+            "--candidate-revision",
+            revision,
+            "--candidate-tree",
+            tree,
+            "--candidate-source-tree-digest",
+            source,
+        ]
+    )
+    assert seen == [(revision, tree, source)] * 2
+    assert capsys.readouterr().out.splitlines()[-1] == "yes"
+    with pytest.raises(ValueError, match="complete development source identity"):
+        installed.main(
+            [
+                "current",
+                "--manifest",
+                str(tmp_path / "worker.json"),
+                "--candidate-revision",
+                revision,
+            ]
         )
 
 
@@ -477,6 +562,56 @@ def test_a_ref_outside_main_is_refused_before_anything_moves(sandbox):
     assert "clean_accepted_checkout_required" in completed.stderr
     assert sandbox.head() == before
     assert sandbox.logged() == []
+
+
+def test_explicit_development_candidate_builds_only_the_exact_local_tree(sandbox):
+    """The unmerged route is explicit and leaves the normal main guard intact."""
+    import hashlib
+
+    sandbox.git("checkout", "--quiet", "-b", "candidate", cwd=sandbox.clone)
+    (sandbox.clone / ".gitignore").write_text(
+        ".venv/\n.carbon-artifacts/\n# candidate\n"
+    )
+    sandbox.git("add", ".gitignore", cwd=sandbox.clone)
+    sandbox.git("commit", "--quiet", "-m", "candidate", cwd=sandbox.clone)
+    revision = sandbox.head()
+    tree = sandbox.git("rev-parse", "HEAD^{tree}", cwd=sandbox.clone)
+    archive = subprocess.check_output(
+        ["git", "archive", "--format=tar", "HEAD"], cwd=sandbox.clone
+    )
+    source = "sha256:" + hashlib.sha256(archive).hexdigest()
+    state = sandbox.tmp / "home" / ".carbon" / "s5-candidate"
+
+    ordinary = sandbox.run("--ref", revision, "--no-start")
+    assert ordinary.returncode == 2
+    assert "is not in Carbon's main" in ordinary.stderr
+    assert sandbox.logged() == []
+
+    wrong = sandbox.run(
+        "--development-candidate",
+        "f" * 40,
+        tree,
+        source,
+        "--no-start",
+        CARBON_STATE_DIR=str(state),
+    )
+    assert wrong.returncode == 2
+    assert "revision differs" in wrong.stderr
+    assert sandbox.logged() == []
+
+    built = sandbox.run(
+        "--development-candidate",
+        revision,
+        tree,
+        source,
+        "--no-start",
+        CARBON_STATE_DIR=str(state),
+    )
+    assert built.returncode == 0, built.stderr
+    assert sandbox.head() == revision
+    assert any("verify-development-source" in line for line in sandbox.logged())
+    assert any("bind-development-candidate" in line for line in sandbox.logged())
+    assert any(line.startswith("worker ") for line in sandbox.logged())
 
 
 def test_too_little_disk_stops_the_install_before_it_builds(sandbox):
