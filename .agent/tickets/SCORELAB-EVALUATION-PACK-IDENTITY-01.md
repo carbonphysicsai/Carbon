@@ -33,3 +33,13 @@ Additional owned paths: `carbon/scoring/solver_benchmark_v3.py`, the thin
 `carbon/scoring/engine.py` delegate, and synthetic public-rule tests. NewChallenge
 owns pack loading and removal of unused-prose readiness requirements. Product
 runs public-rule and existing benchmark tests; authors check syntax/diff only.
+
+Lead's normal-path follow-up assigns `scripts/dev/score_lab/public_unbound_custody.py`
+to this author: accept the prospective bundle-build.v2 native prediction proof,
+require its original numeric artifact and exact example bytes, preserve v1
+custody, and accept Battery's registered original gzip TRAIN only through its
+existing pinned decoder. Platform owns original-byte retention; Lead owns the
+worker's three-file build and receipt; no scientific export tolerance is added.
+Native values remain evidence, not a declaration of native/export agreement.
+Product validates the composed source with the native and Battery decoder
+dependencies before claiming canonical success.
