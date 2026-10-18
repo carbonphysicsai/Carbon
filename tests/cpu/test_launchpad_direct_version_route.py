@@ -57,7 +57,12 @@ def test_direct_browser_session_selects_exact_installed_kit(
     class Host:
         def __init__(self):
             self.configuration = configuration
-            self.tool_sessions = SimpleNamespace(open=lambda value: {"open": True})
+            self.tool_sessions = SimpleNamespace(open=self.open_session)
+
+        def open_session(self, value, *, exclusive_token):
+            assert value == session
+            assert exclusive_token is None
+            return {"open": True}
 
         def owned_campaign(self, _campaign):
             raise AssertionError("direct session must not open a product campaign")
@@ -150,11 +155,23 @@ def test_direct_v13_tools_action_uses_exact_installed_signer_and_pinned_receiver
     assert captured[1][2]["ledger"] is adapter.composition.tasks.ledger
     assert captured[1][2]["receiver"] == target["receiver_hotkey"]
 
+    def submit_session(campaign, value, *, exclusive_token):
+        assert campaign == tool_door.DIRECT_DEVELOPMENT_V13_SESSION
+        assert value["recipe"] == _recipe().to_dict()
+        assert exclusive_token is None
+        return result
+
+    def stage_session(campaign, value, *, exclusive_token):
+        assert campaign == tool_door.DIRECT_DEVELOPMENT_V13_SESSION
+        assert value["recipe"] == _recipe().to_dict()
+        assert exclusive_token is None
+        return stage
+
     class Host:
         configuration = tmp_path / "operator-profile.json"
         tool_sessions = SimpleNamespace(
-            submit_construction=lambda _, value: result,
-            stage_construction_graph=lambda _, value: stage,
+            submit_construction=submit_session,
+            stage_construction_graph=stage_session,
         )
 
         def owned_campaign(self, _):
