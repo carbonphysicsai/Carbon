@@ -137,6 +137,11 @@ def _safe_wheel_assets(body):
     trailer = body.rfind(b"PK\x05\x06", max(0, len(body) - 65557))
     if trailer < 0 or trailer + 22 > len(body):
         raise ValueError("invalid wheel archive")
+    # ZipFile probes the 20 bytes immediately before EOCD for a ZIP64 locator.
+    # A locator hidden in an ordinary member comment can make it trust a
+    # different, unbounded directory after our EOCD checks, so refuse it first.
+    if trailer >= 20 and body[trailer - 20 : trailer - 16] == b"PK\x06\x07":
+        raise ValueError("bounded wheel directory required")
     _, disk, start_disk, disk_count, count, size, offset, comment = struct.unpack_from(
         "<4s4H2IH", body, trailer
     )

@@ -633,6 +633,30 @@ def test_wheel_member_bound_precedes_zip_metadata_parse():
         bundles._safe_wheel_assets(bytes(body))
 
 
+def test_adjacent_zip64_locator_refused_before_zipfile(monkeypatch):
+    output = io.BytesIO()
+    locator = struct.pack("<4sIQI", b"PK\x06\x07", 0, 1 << 40, 1)
+    with zipfile.ZipFile(output, "w") as wheel:
+        member = zipfile.ZipInfo("package/__init__.py")
+        member.comment = locator
+        wheel.writestr(member, b"VALUE = 1\n")
+    body = output.getvalue()
+    trailer = body.rfind(b"PK\x05\x06")
+    assert body[trailer - 20 : trailer] == locator
+    _, disk, start_disk, disk_count, count, size, offset, comment = (
+        struct.unpack_from("<4s4H2IH", body, trailer)
+    )
+    assert (disk, start_disk, disk_count, count, comment) == (0, 0, 1, 1, 0)
+    assert offset + size == trailer
+    monkeypatch.setattr(
+        bundles.zipfile,
+        "ZipFile",
+        lambda *_args, **_kwargs: pytest.fail("ZipFile opened adjacent ZIP64 locator"),
+    )
+    with pytest.raises(ValueError, match="bounded wheel directory required"):
+        bundles._safe_wheel_assets(body)
+
+
 def test_source_rejects_multiple_roots_and_nested_only_license():
     for members, error in (
         ((("source/LICENSE", b"MIT\n"), ("other/model.py", b"x")), "single-root"),
