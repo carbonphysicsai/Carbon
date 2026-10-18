@@ -278,10 +278,10 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
         verify_image(analysis)
         if analysis.parent_image != parent.image_id:
             raise ValueError("analysis image parent differs")
-        if development_candidate and cfg["runtime"].get("images") != [
-            parent.image_id,
-            analysis.image_id,
-        ]:
+        if (
+            development_candidate
+            or (version == "1.3" and direct_parent_backend(parent) == "torch_cpu")
+        ) and cfg["runtime"].get("images") != [parent.image_id, analysis.image_id]:
             raise ValueError("development candidate profile images differ")
         gpu_manifest = cfg.get("gpu_image")
         if (

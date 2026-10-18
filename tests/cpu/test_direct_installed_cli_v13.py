@@ -45,6 +45,7 @@ def test_missing_prospective_material_fails_closed_without_affecting_old_kits(
     [
         (False, False, False, False),
         (False, False, False, True),
+        (False, True, False, True),
         (True, False, False, False),
         (True, False, False, True),
         (True, True, False, False),
@@ -136,6 +137,7 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     }
     if candidate_mode:
         cfg["runtime"]["implementation"] = candidate
+    if candidate_mode or torch_cpu:
         cfg["runtime"]["images"] = [
             "sha256:" + "d" * 64 if bad_images else parent.image_id,
             digest,
@@ -163,11 +165,14 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     )
     monkeypatch.setattr(research_campaign, "private_file", lambda path: path)
     verified_workers = []
-    monkeypatch.setattr(
-        research_campaign,
-        "verify_current_worker",
-        lambda *args: verified_workers.append(args),
-    )
+    actual_worker_check = research_campaign.verify_current_worker
+
+    def check_worker(*args):
+        verified_workers.append(args)
+        if torch_cpu and not candidate_mode:
+            return actual_worker_check(*args)
+
+    monkeypatch.setattr(research_campaign, "verify_current_worker", check_worker)
     compatible_parents = []
     actual_parent_check = cli._direct_development_parent_compatible
 
@@ -196,7 +201,7 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     monkeypatch.setattr(
         gpu_practice,
         "gpu_image_backend",
-        lambda _parent: "jax" if candidate_mode else (None if torch_cpu else "pytorch"),
+        lambda _parent: None if torch_cpu else ("jax" if candidate_mode else "pytorch"),
     )
     monkeypatch.setattr(
         miner_network,
@@ -218,6 +223,11 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
         with pytest.raises(ValueError, match="profile images differ") as refused:
             cli.load_direct_installed_source(profile, version="1.3")
         assert cli.refusal_code(refused.value) == "carbon_updated_rerun_installer"
+        assert checked_parents == []
+        if torch_cpu and not candidate_mode:
+            assert verified_workers == [(parent, {"source_tree_digest": digest})]
+            assert parent.source_tree_digest == digest
+            assert cfg["runtime"]["images"][0] != parent.image_id
         return
     source = cli.load_direct_installed_source(profile, version="1.3")
     assert source.root == (
@@ -237,14 +247,6 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     assert seen_candidate == ([tmp_path] if candidate_mode else [])
     assert checked_parents == [direct_parent]
     if torch_cpu and not candidate_mode:
-
-        def exact_worker(image, implementation):
-            if image.source_tree_digest != implementation["source_tree_digest"]:
-                raise ValueError(
-                    "trusted worker must be built from this exact accepted source revision"
-                )
-
-        monkeypatch.setattr(research_campaign, "verify_current_worker", exact_worker)
         parent = replace(parent, source_tree_digest="sha256:" + "2" * 64)
         with pytest.raises(ValueError, match="exact accepted source revision"):
             cli.load_direct_installed_source(profile, version="1.3")
