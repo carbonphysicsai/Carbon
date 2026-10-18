@@ -195,12 +195,17 @@ def prepare(
     overlay.mkdir(parents=True, exist_ok=False)
     site = overlay / "site-packages"
     site.mkdir()
+    temporary = output_dir.parent / "tmp"
+    temporary.mkdir(mode=0o700, exist_ok=True)
+    if not stat.S_ISDIR(temporary.lstat().st_mode):
+        raise ValueError("preparation temporary directory is not regular")
     environment = {
         **os.environ,
         "UV_NO_CONFIG": "1",
         "UV_NO_PROGRESS": "1",
         "UV_LINK_MODE": "copy",
         "UV_CACHE_DIR": str(output_dir.parent / "cache"),
+        "TMPDIR": str(temporary),
         "PYTHONNOUSERSITE": "1",
     }
     subprocess.run(

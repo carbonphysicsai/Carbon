@@ -271,6 +271,7 @@ def test_exact_offline_wheel_prep_exports_inert_bounded_overlay(
     )
     output = tmp_path / "output"
     output.mkdir()
+    monkeypatch.setenv("TMPDIR", str(tmp_path / "absent-inherited-temp"))
     actual_run = library_overlay_prep.subprocess.run
     installer_calls = []
 
@@ -278,6 +279,10 @@ def test_exact_offline_wheel_prep_exports_inert_bounded_overlay(
         # Keep real offline UV execution while checking that its failure
         # diagnostics reach the enclosing bounded carrier stream.
         installer_calls.append(kwargs)
+        temporary = Path(kwargs["env"]["TMPDIR"])
+        assert temporary == output.parent / "tmp"
+        assert temporary.is_dir() and not temporary.is_symlink()
+        assert temporary.stat().st_mode & 0o077 == 0
         return actual_run(*args, **kwargs)
 
     monkeypatch.setattr(library_overlay_prep.subprocess, "run", observed_install)
