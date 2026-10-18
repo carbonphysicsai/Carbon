@@ -142,12 +142,25 @@ class DirectFixtureDiscovery:
     This is discovery for synthetic development, not a qualified Challenge.
     """
 
-    def __init__(self, material, *, task_admission=False, pack_check=None):
+    def __init__(
+        self,
+        material,
+        *,
+        task_admission=False,
+        pack_check=None,
+        evaluation_pack_digest=None,
+    ):
         if type(task_admission) is not bool:
             raise TypeError("exact direct task admission selection required")
+        if evaluation_pack_digest is not None:
+            from carbon.registry.digest import is_sha256_digest
+
+            if pack_check is None or not is_sha256_digest(evaluation_pack_digest):
+                raise ValueError("verified evaluation pack binding required")
         self._material = material
         self._task_admission = task_admission
         self._pack_check = pack_check
+        self.evaluation_pack_digest = evaluation_pack_digest
         self.info, self.manifest = self._snapshot()
 
     def _snapshot(self):

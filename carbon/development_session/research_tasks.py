@@ -229,6 +229,7 @@ class DirectDevelopmentTasksV3:
         inference_image,
         image_resolver=None,
         construction_parent=None,
+        evaluation_pack_digest=None,
     ) -> None:
         if (
             not isinstance(root, Path)
@@ -238,6 +239,16 @@ class DirectDevelopmentTasksV3:
             or not requester
             or type(owner) is not str
             or not owner
+            or evaluation_pack_digest
+            != getattr(discovery, "evaluation_pack_digest", None)
+            or (
+                evaluation_pack_digest is not None
+                and (
+                    type(evaluation_pack_digest) is not str
+                    or re.fullmatch(r"sha256:[0-9a-f]{64}", evaluation_pack_digest)
+                    is None
+                )
+            )
         ):
             raise ValueError("private direct task root and requester required")
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -256,6 +267,7 @@ class DirectDevelopmentTasksV3:
         self._lock = threading.RLock()
         self.ledger, self.owner = ledger, owner
         self.discovery = discovery
+        self.evaluation_pack_digest = evaluation_pack_digest
         self.image, self.inference_image = image, inference_image
         self.image_resolver = image_resolver
         self.construction_parent = (
@@ -304,6 +316,11 @@ class DirectDevelopmentTasksV3:
                                 if self.construction_parent != inference_image
                                 else []
                             ),
+                            *(
+                                ["EVALUATION_PACK", evaluation_pack_digest]
+                                if evaluation_pack_digest is not None
+                                else []
+                            ),
                         ],
                         separators=(",", ":"),
                     )
@@ -316,6 +333,11 @@ class DirectDevelopmentTasksV3:
                             image.parent.image_id,
                             inference_image.image_id,
                             image.bundle_ref,
+                            *(
+                                ["EVALUATION_PACK", evaluation_pack_digest]
+                                if evaluation_pack_digest is not None
+                                else []
+                            ),
                         ],
                         sort_keys=True,
                         separators=(",", ":"),

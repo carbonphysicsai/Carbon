@@ -606,6 +606,7 @@ class OwnerProviders:
                     image=None,
                     inference_image=self.inference_image,
                     construction_parent=self.parent,
+                    evaluation_pack_digest=self.evaluation_pack_digest,
                     image_resolver=DirectOwnerImageResolver(
                         self.cache_root,
                         self.parent,
@@ -763,7 +764,10 @@ def serve(
                 root, cfg["evaluation_pack"], challenge
             )
         discovery = DirectFixtureDiscovery(
-            material, task_admission=True, pack_check=pack_check
+            material,
+            task_admission=True,
+            pack_check=pack_check,
+            evaluation_pack_digest=pack_digest,
         )
         immutable = {
             "schema": SCHEMA,

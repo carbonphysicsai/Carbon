@@ -292,6 +292,56 @@ def _retain_graph_artifacts(
     }
 
 
+def _retain_private_pack_binding(adapter, provider, submission_id, task, result):
+    """Keep the selected pack identity beside one trusted retained task."""
+    digest = provider.evaluation_pack_digest
+    if digest is None:
+        if adapter.discovery.evaluation_pack_digest is not None:
+            raise RetentionUnavailable("evaluation_pack_task_binding_changed")
+        return result
+    if digest != adapter.discovery.evaluation_pack_digest:
+        raise RetentionUnavailable("evaluation_pack_task_binding_changed")
+    adapter.discovery._checked(adapter.discovery.info.challenge_key)
+    with provider.ledger.db() as db:
+        row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+    if row is None:
+        raise RetentionUnavailable("evaluation_pack_campaign_unavailable")
+    try:
+        campaign = json.loads(row[0])
+        binding = campaign["receiver_binding"]
+        if binding["evaluation_pack_digest"] != digest:
+            raise ValueError("pack differs")
+        campaign_id = campaign["campaign_id"]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise RetentionUnavailable("evaluation_pack_campaign_changed") from exc
+    from carbon.development_session.data import write_once
+
+    task_root = _owner_directory(result["artifact_path"], "task_artifacts")
+    sidecar = task_root / "evaluation-pack-binding.json"
+    document = {
+        "schema": "carbon.lean-recipe.private-evaluation-pack-binding.v1",
+        "task_id": submission_id,
+        "challenge": {
+            "id": adapter.challenge_id,
+            "version": adapter.challenge_version,
+        },
+        "campaign_id": campaign_id,
+        "evaluation_pack_digest": digest,
+        "entry_id": result["entry_id"],
+        "state_digest": task.terminal_receipt.state_digest,
+        "predictions_digest": task.terminal_receipt.predictions_digest,
+    }
+    try:
+        write_once(sidecar, _json(document))
+    except (OSError, ValueError) as exc:
+        raise RetentionUnavailable("evaluation_pack_binding_unavailable") from exc
+    return {
+        **result,
+        "evaluation_pack_digest": digest,
+        "evaluation_pack_binding_path": sidecar,
+    }
+
+
 def retain_served_result(
     adapter, submission_id: str, *, artifact_directory: Path, entry_directory: Path
 ) -> dict:
@@ -343,11 +393,14 @@ def retain_served_result(
         artifacts = _collect_graph_artifacts(
             provider, submission_id, task, evidence, recipe, adapter.discovery._material
         )
-        return _retain_graph_artifacts(
+        result = _retain_graph_artifacts(
             artifacts,
             submission_id,
             artifact_directory=artifact_directory,
             entry_directory=entry_directory,
+        )
+        return _retain_private_pack_binding(
+            adapter, provider, submission_id, task, result
         )
     if recipe.to_dict()["source"]["kind"] != "bundle":
         raise RetentionUnavailable("source_kind_unavailable")
@@ -518,7 +571,7 @@ def retain_served_result(
         saved = create_entry_v5(task_root, manifest_path, custody_path, entries)
     except (OSError, ValueError) as exc:
         raise RetentionUnavailable("operator_bank_custody_unavailable") from exc
-    return {
+    result = {
         "status": saved["status"],
         "entry_id": saved["entry"]["entry_id"],
         "entry_path": entries / saved["path"],
@@ -526,6 +579,7 @@ def retain_served_result(
         "score_state": saved["entry"]["score_state"],
         "official_eligible": False,
     }
+    return _retain_private_pack_binding(adapter, provider, submission_id, task, result)
 
 
 def retain_served_bundle_result(
