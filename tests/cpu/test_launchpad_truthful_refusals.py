@@ -802,6 +802,7 @@ def test_failure_answers_are_closed():
         "profile_changed_since_launch",
         CARBON_UPDATED,
         "evaluation_unavailable",
+        "design_not_yet_rebuildable",
         "task_left_running",
         "the_agent_selects_in_this_campaign",
         "final_exams_used",

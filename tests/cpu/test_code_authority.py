@@ -1151,6 +1151,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "./scripts/dev/bootstrap.sh",
         "./scripts/dev/c03_worker_image.sh",
         "./scripts/dev/c03_worker_service.sh",
+        ".venv/bin/python -m pytest -q tests/cpu/test_development_image_artifact.py",
     )
     assert _inline_run_commands(jobs["julia-service"]) == (
         "./scripts/dev/bootstrap.sh",
