@@ -348,13 +348,13 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id):
     Bank custody succeeds independently. A missing or invalid measurement is
     explicit and cannot change the immutable entry or its NOT_COMPUTED score.
     """
-    from carbon.development_session.data import write_once
-    from scripts.dev.score_lab.synthetic_linear_field_reference import (
-        prepare_public_measurement,
-        reduce_public_measurement,
-    )
-
     try:
+        from carbon.development_session.data import write_once
+        from scripts.dev.score_lab.synthetic_linear_field_reference import (
+            prepare_public_measurement,
+            reduce_public_measurement,
+        )
+
         task_root = _owner_directory(result["artifact_path"], "task_artifacts")
         entry_path = result["entry_path"]
         if entry_path.is_symlink() or not entry_path.is_file():
@@ -428,7 +428,7 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id):
             **reduced,
         }
         write_once(result_path, _json(document))
-    except (OSError, ValueError, KeyError, TypeError) as exc:
+    except (ImportError, OSError, ValueError, KeyError, TypeError) as exc:
         return {
             **result,
             "measurement_state": "UNAVAILABLE",
