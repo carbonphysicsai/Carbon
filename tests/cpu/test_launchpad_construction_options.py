@@ -12,7 +12,7 @@ from carbon.development_session.unified_construction import (
 )
 from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 from scripts.dev.miner_launchpad import construction_options as options
-from scripts.dev.miner_launchpad import operations, runner
+from scripts.dev.miner_launchpad import construction_paths, operations, runner
 from scripts.dev.miner_launchpad.controller import Rejected
 
 
@@ -71,14 +71,18 @@ def test_options_operation_exposes_the_same_document_the_page_reads(monkeypatch)
     monkeypatch.setattr(host, "_model_providers", lambda cfg: [])
     monkeypatch.setattr(runner, "graphite_options", lambda cfg: {})
     shown = host.options_admitted(SimpleNamespace(), {})
-    assert shown["construction_options"] == options.for_profile(cfg, lambda url: {})
-    assert "Coming soon" in str(shown["construction_options"])
+    assert shown["schema"] == "carbon.launchpad.launch-options.v2"
+    assert shown["construction_paths"] == construction_paths.for_challenges()
+    assert "construction_options" not in shown
 
 
-def test_launch_retains_level_fields_until_s3_returns_the_composed_summary():
-    assert {"construction_level", "arm"} <= operations.OPERATIONS["launch"].optional
+def test_launch_retires_level_fields_for_new_keys_but_keeps_historical_replay_shape():
+    launch = operations.OPERATIONS["launch"]
+    retired = {"construction_level", "construction_variant_digest", "arm"}
+    assert retired <= launch.replay_optional
+    assert retired.isdisjoint(launch.optional)
     operations._closed(
-        operations.OPERATIONS["launch"],
+        launch,
         {
             "profile": "p",
             "agent": "none",
