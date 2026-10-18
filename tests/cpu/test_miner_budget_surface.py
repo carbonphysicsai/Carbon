@@ -300,7 +300,13 @@ def test_only_an_agent_can_reach_the_no_campaign_refusal():
     assert "ResearchMinerTools" not in _names(tool_door.__file__)
     # The runner's opener is the campaign attach, for the campaign's own root.
     opener = inspect.getsource(tool_door.runner_opener)
-    assert "standard_cli import attached" in opener
+    imports = [
+        node
+        for node in ast.walk(ast.parse(opener))
+        if isinstance(node, ast.ImportFrom)
+        and node.module == "carbon.miner_mcp.standard_cli"
+    ]
+    assert any("attached" in {alias.name for alias in node.names} for node in imports)
     assert "owned_campaign(campaign)" in opener
     # Every SDK the attach builds carries the campaign's ledger.
     from carbon.miner_mcp import standard_cli
