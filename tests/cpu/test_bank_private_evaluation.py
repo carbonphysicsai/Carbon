@@ -320,9 +320,11 @@ def test_cached_private_data_is_rejoined_to_current_owner_and_retained_state(
         match=(
             "private_evaluation_owner_changed"
             if mutation == "owner"
-            else "private_evaluation_corrupt"
-            if mutation in {"role", "body"}
-            else "private_evaluation_model_binding"
+            else (
+                "private_evaluation_corrupt"
+                if mutation in {"role", "body"}
+                else "private_evaluation_model_binding"
+            )
         ),
     ):
         flow.private_pair("m", saved["evaluation_key"])

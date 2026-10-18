@@ -157,10 +157,7 @@ def test_tiny_npy_member_with_huge_declared_shape_refuses_before_allocation(
         b"'shape': (1000000000, 8, 8, 1), }\n"
     )
     member = (
-        b"\x93NUMPY\x01\x00"
-        + len(header).to_bytes(2, "little")
-        + header
-        + b"\x00" * 4
+        b"\x93NUMPY\x01\x00" + len(header).to_bytes(2, "little") + header + b"\x00" * 4
     )
     archive = io.BytesIO()
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_STORED) as saved:

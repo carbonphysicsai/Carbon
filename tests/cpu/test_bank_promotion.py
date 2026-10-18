@@ -5,9 +5,9 @@ Pure config/factory and scheduling tests use test sources, without private
 file access or solve jobs. Canonical acceptance belongs to the composition owner.
 """
 
+import hashlib
 from dataclasses import replace
 from types import SimpleNamespace
-import hashlib
 
 import pytest
 
@@ -182,7 +182,7 @@ def test_real_common_score_engine_output_lacks_bank_evidence(store):
 
 def test_old_cache_is_readable_but_cannot_replay_a_promotion(store):
     flow = BankPromotion(store)
-    first, second = scored(store, "m1"), scored(store, "m2")
+    first, _second = scored(store, "m1"), scored(store, "m2")
     # Simulate an eef80 development cache. Historical rows are readable,
     # never grandfathered into accepted evidence by their old decision.
     with store.transaction() as db:
@@ -232,9 +232,11 @@ def test_old_same_pack_score_cannot_be_relabelled_as_a_new_bank(store, change):
             db.execute("UPDATE batches SET references_digest=?", (digest("new refs"),))
     bank = BankVersion.current(
         store,
-        evaluation_digest=digest("new evaluation")
-        if change == "evaluation"
-        else old.version.evaluation_digest,
+        evaluation_digest=(
+            digest("new evaluation")
+            if change == "evaluation"
+            else old.version.evaluation_digest
+        ),
         pack_digest=old.version.pack_digest,
     )
     assert bank != old.version
@@ -434,7 +436,8 @@ def test_unknown_comparison_mode_is_refused(mode):
 
 @pytest.mark.parametrize("mode", [None, "fresh_final", "cached_bank"])
 def test_real_config_factory_selects_comparison_routing(tmp_path, monkeypatch, mode):
-    from carbon.challenge_validator import family_source, producer as pr
+    from carbon.challenge_validator import family_source
+    from carbon.challenge_validator import producer as pr
 
     # Exercise the real owner approval and factory routing with a synthetic
     # source constructor, without opening any deployment or bank state.
@@ -445,9 +448,11 @@ def test_real_config_factory_selects_comparison_routing(tmp_path, monkeypatch, m
     monkeypatch.setattr(
         family_source,
         "family_source_class",
-        lambda cid: (lambda deployment, repository: source)
-        if cid == source.challenge_id
-        else None,
+        lambda cid: (
+            (lambda deployment, repository: source)
+            if cid == source.challenge_id
+            else None
+        ),
     )
     spec = {
         "deployment": "unused-fixture-deployment",

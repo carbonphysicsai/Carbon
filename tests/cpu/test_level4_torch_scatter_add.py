@@ -56,7 +56,7 @@ def test_ordered_repeats_forward_gradient_and_source_free_state_parity():
     jax = pytest.importorskip("jax")
     import numpy as np
 
-    torch, module, x, program = _static_program()
+    _torch, module, x, program = _static_program()
     allowed = _prospective()
     doc, _ = lower_torch.lower(program, allowlist=allowed)
     assert any(entry["name"] == "params/0" for entry in doc["graphs"]["main"]["inputs"])

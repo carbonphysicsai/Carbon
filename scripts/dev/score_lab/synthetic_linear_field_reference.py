@@ -89,8 +89,7 @@ def _registered_job(trusted_job, registration, material):
     if (
         len(registration["cases"]) != 1
         or registration["cases"][0]["role"] != "P"
-        or registration["reference"]["evidence_kind"]
-        != benchmark.ENGINEERING_REFERENCE
+        or registration["reference"]["evidence_kind"] != benchmark.ENGINEERING_REFERENCE
     ):
         raise SyntheticReferenceRefused("single_registered_p_query_required")
 
