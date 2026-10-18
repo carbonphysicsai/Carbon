@@ -1627,7 +1627,6 @@ class _RemoteBatteryConnection:
 @contextlib.asynccontextmanager
 async def attached_remote_material_stage(configuration: Path, *, challenge):
     """Authenticate a signed upload without requiring local execution images."""
-    from carbon.battery.challenge import CHALLENGE as BATTERY_CHALLENGE
     from carbon.chain.external_signer import miner_signer
     from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
     from carbon.development_session.direct_research_composition import (
@@ -1636,10 +1635,15 @@ async def attached_remote_material_stage(configuration: Path, *, challenge):
     from carbon.development_session.intake_targets import validate
     from carbon.development_session.miner_network import binding
     from carbon.development_session.research_campaign import private_file
+    from carbon.reconstruction.capability_registry import (
+        BATTERY_CHALLENGE,
+        BATTERY_CONTRACT,
+    )
+    from carbon.registry.model import ChallengeKey
     from scripts.dev.miner_launchpad.controller import owner_lock
     from scripts.dev.miner_launchpad.runner import validated_profile
 
-    if challenge == BATTERY_CHALLENGE:
+    if challenge == ChallengeKey(BATTERY_CHALLENGE, BATTERY_CONTRACT.version):
         synthetic = False
         state_name = "remote-stage-battery-v1.0"
     else:
