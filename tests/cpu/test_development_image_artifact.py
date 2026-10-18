@@ -180,6 +180,59 @@ def test_export_then_verify_detects_archive_and_receipt_tamper(
         )
 
 
+@pytest.mark.parametrize("swap_kind", ["replace", "symlink"])
+def test_export_uses_validated_private_manifest_after_original_path_swap(
+    pair, tmp_path, monkeypatch, swap_kind
+):
+    if swap_kind == "symlink" and os.name != "posix":
+        pytest.skip("POSIX symlink race fixture")
+    c03_path, analysis_path, docker = pair
+    original_c03 = c03_path.read_bytes()
+    original_analysis = analysis_path.read_bytes()
+    original_pair = handoff._docker_pair
+
+    def swap_after_validation(c03, analysis, cli):
+        original_pair(c03, analysis, cli)
+        replacement = tmp_path / "host-secret"
+        replacement.write_bytes(b"private host bytes must never enter CI export")
+        if swap_kind == "symlink":
+            c03_path.unlink()
+            c03_path.symlink_to(replacement)
+            analysis_path.unlink()
+            analysis_path.symlink_to(replacement)
+        else:
+            os.replace(replacement, c03_path)
+            replacement.write_bytes(b"substituted analysis bytes")
+            os.replace(replacement, analysis_path)
+
+    def fake_save(path, *_):
+        path.write_bytes(b"fixture compressed archive")
+        return handoff._sha_file(path), path.stat().st_size, 100
+
+    monkeypatch.setattr(handoff, "_docker_pair", swap_after_validation)
+    monkeypatch.setattr(handoff, "_save_compressed", fake_save)
+    bundle = tmp_path / "bundle"
+    result = handoff.export_bundle(
+        bundle_dir=bundle,
+        c03_manifest=c03_path,
+        analysis_manifest=analysis_path,
+        cli=docker,
+        **_identity_args(tmp_path),
+    )
+    assert (bundle / "c03-worker-image.json").read_bytes() == original_c03
+    assert (bundle / "analysis-image.json").read_bytes() == original_analysis
+    assert result["c03_manifest_sha256"] == digest(original_c03)
+    assert result["analysis_manifest_sha256"] == digest(original_analysis)
+    assert (
+        handoff.verify_bundle(
+            bundle_dir=bundle,
+            receipt_sha256=result["receipt_sha256"],
+            **_identity_args(tmp_path),
+        )["source_commit"]
+        == COMMIT
+    )
+
+
 def test_relabelled_source_fails_before_export(pair, tmp_path):
     c03_path, analysis_path, docker = pair
     # The source label is checked before an archive can be exported.

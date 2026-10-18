@@ -139,6 +139,26 @@ def _write_new(path: Path, body: bytes) -> None:
         os.fsync(stream.fileno())
 
 
+def _snapshot_manifest_bytes(path: Path) -> bytes:
+    """Pin bounded input bytes once; later validation and export use this copy."""
+    _regular(path, limit=MAX_MANIFEST_BYTES)
+    try:
+        descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError as error:
+        raise Refused(f"manifest_open_refused:{path.name}") from error
+    with os.fdopen(descriptor, "rb") as source:
+        details = os.fstat(source.fileno())
+        if (
+            not stat.S_ISREG(details.st_mode)
+            or not 0 < details.st_size <= MAX_MANIFEST_BYTES
+        ):
+            raise Refused(f"manifest_not_regular_or_bounded:{path.name}")
+        body = source.read(MAX_MANIFEST_BYTES + 1)
+        if len(body) != details.st_size:
+            raise Refused(f"manifest_changed_during_snapshot:{path.name}")
+    return body
+
+
 def _save_compressed(path: Path, c03_id: str, analysis_id: str) -> tuple[str, int, int]:
     with tempfile.TemporaryFile() as errors, path.open("xb") as destination:
         process = subprocess.Popen(
@@ -190,7 +210,16 @@ def export_bundle(
 ) -> dict:
     """Export one compressed archive and closed receipt from existing images."""
     implementation = _source(revision, tree, source_tree_digest, repository)
-    c03, analysis = _manifests(c03_manifest, analysis_manifest, implementation)
+    # Parse only private bytes that will also be copied into the public bundle.
+    # Original ignored-artifact paths are never reopened after validation.
+    with tempfile.TemporaryDirectory() as private:
+        c03_bytes = _snapshot_manifest_bytes(c03_manifest)
+        analysis_bytes = _snapshot_manifest_bytes(analysis_manifest)
+        private_c03 = Path(private) / "c03-worker-image.json"
+        private_analysis = Path(private) / "analysis-image.json"
+        _write_new(private_c03, c03_bytes)
+        _write_new(private_analysis, analysis_bytes)
+        c03, analysis = _manifests(private_c03, private_analysis, implementation)
     _docker_pair(c03, analysis, cli or DockerCLI())
     _directory(bundle_dir)
     if bundle_dir.exists():
@@ -198,8 +227,6 @@ def export_bundle(
             raise Refused("bundle_output_not_empty")
     else:
         bundle_dir.mkdir(mode=0o700, parents=True)
-    c03_bytes = c03_manifest.read_bytes()
-    analysis_bytes = analysis_manifest.read_bytes()
     _write_new(bundle_dir / "c03-worker-image.json", c03_bytes)
     _write_new(bundle_dir / "analysis-image.json", analysis_bytes)
     archive_sha, archive_bytes, raw_bytes = _save_compressed(
