@@ -49,7 +49,10 @@ def test_public_definition_matches_shared_rule_and_keeps_unapplied_legs_explicit
     assert result["models"][0]["by_role"]["P"]["mean_absolute_error"] == 1.75
     assert result["models"][0]["by_role"]["P"]["paired_speedup"] == 20.0 / 5.0
     assert view["performance"]["model_query_phases"] == [
-        "preprocess", "export", "inference", "postprocess"
+        "preprocess",
+        "export",
+        "inference",
+        "postprocess",
     ]
     assert view["performance"]["build_cost_in_score"] is False
     assert result["scoring"]["models"][2]["status"] == "SCIENTIFIC_INADMISSIBLE"
@@ -66,33 +69,52 @@ def test_ceiling_equality_and_missing_value_match_actual_scorer():
     assert result["scoring"]["models"][1]["status"] == "ACCURACY_INELIGIBLE"
     pending = _repack(pack, accuracy_ceiling=None)
     assert public_rule_definition(registration, pending)["status"] == "PACK_NOT_READY"
-    assert bench.compare(registration, references, models, score_pack=pending)[
-        "scoring"
-    ]["status"] == "PACK_NOT_READY"
+    assert (
+        bench.compare(registration, references, models, score_pack=pending)["scoring"][
+            "status"
+        ]
+        == "PACK_NOT_READY"
+    )
 
 
 def test_projection_omits_private_material_even_when_same_rule_has_a_new_bank():
     registration, _, _, pack = _toy_workload()
     original = public_rule_definition(registration, pack)
-    body = {k: v for k, v in deepcopy(registration).items() if k != "registration_digest"}
+    body = {
+        k: v for k, v in deepcopy(registration).items() if k != "registration_digest"
+    }
     body["cases"] = [{"id": "private-draw-sentinel", "role": "P", "weight": 71}]
     body["job_digest"] = "private-job-sentinel"
     body["train_digest"] = "private-train-sentinel"
     body["timing_profile"]["model_device"] = "private-host-sentinel"
     changed = bench.register(body)
-    changed_pack = _repack(pack, benchmark_registration_digest=changed["registration_digest"])
+    changed_pack = _repack(
+        pack, benchmark_registration_digest=changed["registration_digest"]
+    )
     projected = public_rule_definition(changed, changed_pack)
     assert projected == original
     encoded = json.dumps(projected)
     for private_value in (
-        "private-", registration["registration_digest"], pack["pack_digest"],
+        "private-",
+        registration["registration_digest"],
+        pack["pack_digest"],
         pack["physics_contract"]["definition_digest"],
     ):
         assert private_value not in encoded
     assert set(projected) == {
-        "schema", "score_schema", "scope", "challenge", "status", "output",
-        "population", "hard_gates", "accuracy_definition", "performance",
-        "incomplete_reference_evidence", "important_limit_definition", "design_objective",
+        "schema",
+        "score_schema",
+        "scope",
+        "challenge",
+        "status",
+        "output",
+        "population",
+        "hard_gates",
+        "accuracy_definition",
+        "performance",
+        "incomplete_reference_evidence",
+        "important_limit_definition",
+        "design_objective",
     }
     projected["hard_gates"]["ids"].append("not-an-input-mutation")
     assert pack["hard_gates"] == ["synthetic_physics"]
@@ -103,13 +125,20 @@ def test_complete_batch_contract_is_public_but_host_profiles_are_not():
     body = {k: v for k, v in registration.items() if k != "registration_digest"}
     body["schema"] = bench.SCHEMA_V3
     body["output"] = {**body["output"], "size": 2, "shape": [2, 1]}
-    body["reference"] = {**body["reference"], "evidence_kind": bench.ENGINEERING_REFERENCE}
+    body["reference"] = {
+        **body["reference"],
+        "evidence_kind": bench.ENGINEERING_REFERENCE,
+    }
     body["timing_profile"] = {
-        **body["timing_profile"], "batch_size": 2,
-        "query_unit": "complete_batch", "input_shape": [2, 3],
+        **body["timing_profile"],
+        "batch_size": 2,
+        "query_unit": "complete_batch",
+        "input_shape": [2, 3],
     }
     registration = bench.register(body)
-    pack = _repack(pack, benchmark_registration_digest=registration["registration_digest"])
+    pack = _repack(
+        pack, benchmark_registration_digest=registration["registration_digest"]
+    )
     view = public_rule_definition(registration, pack)
     assert view["output"]["shape"] == [2, 1]
     assert view["performance"]["query_unit"] == "complete_batch"
@@ -118,13 +147,19 @@ def test_complete_batch_contract_is_public_but_host_profiles_are_not():
     assert "solver_device" not in view["performance"]
 
 
-@pytest.mark.parametrize("field", ["scope", "challenge", "output", "physics_contract", "hard_gates"])
+@pytest.mark.parametrize(
+    "field", ["scope", "challenge", "output", "physics_contract", "hard_gates"]
+)
 def test_registered_but_mismatched_pack_cannot_describe_another_rule(field):
     registration, _, _, pack = _toy_workload()
     replacements = {
-        "scope": "PUBLIC_DEVELOPMENT", "challenge": "other-challenge",
+        "scope": "PUBLIC_DEVELOPMENT",
+        "challenge": "other-challenge",
         "output": {**pack["output"], "unit": "other-unit"},
-        "physics_contract": {**pack["physics_contract"], "definition_digest": "sha256:" + "f" * 64},
+        "physics_contract": {
+            **pack["physics_contract"],
+            "definition_digest": "sha256:" + "f" * 64,
+        },
         "hard_gates": ["other-gate"],
     }
     mismatched = _repack(pack, **{field: replacements[field]})
