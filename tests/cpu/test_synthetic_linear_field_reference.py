@@ -33,7 +33,7 @@ def _registered_public_query():
             "train_digest": trusted_job["train_digest"],
             "physics_contract": trusted_job["physics_contract"],
             "output": {
-                "quantity": "fixture_target",
+                "quantity": material["interface_document"]["outputs"]["name"],
                 "unit": "dimensionless",
                 "size": int(material["practice_inputs"].size),
                 "metric": "mean_absolute_error",
@@ -124,6 +124,24 @@ def test_changed_query_or_registration_refuses_before_reference():
         source.prepare_reference(
             trusted_job=job,
             registration=registration,
+            query_bytes=query,
+            evaluation_version="fixture-only-v1",
+        )
+
+
+def test_registered_quantity_cannot_relabel_public_target():
+    job, registration, query, _ = _registered_public_query()
+    body = {
+        key: value
+        for key, value in registration.items()
+        if key != "registration_digest"
+    }
+    body["output"] = {**body["output"], "quantity": "unrelated_quantity"}
+    relabeled = benchmark.register(body)
+    with pytest.raises(source.SyntheticReferenceRefused, match="target_measurement"):
+        source.prepare_reference(
+            trusted_job=job,
+            registration=relabeled,
             query_bytes=query,
             evaluation_version="fixture-only-v1",
         )

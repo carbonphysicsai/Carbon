@@ -80,6 +80,12 @@ def _registered_job(trusted_job, registration, material):
     ):
         raise SyntheticReferenceRefused("registration_job_mismatch")
     if (
+        registration["output"]["quantity"]
+        != material["interface_document"]["outputs"]["name"]
+        or registration["output"]["unit"] != "dimensionless"
+    ):
+        raise SyntheticReferenceRefused("public_target_measurement_mismatch")
+    if (
         len(registration["cases"]) != 1
         or registration["cases"][0]["role"] != "P"
         or registration["reference"]["evidence_kind"]
