@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from carbon.development_session.profile import canonical, digest
-from scripts.dev.miner_launchpad import levels
+from scripts.dev.miner_launchpad import levels, supervisor
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "service"))
 
@@ -89,21 +89,14 @@ def test_new_direct_campaign_fails_closed_through_both_doors(
     call = door(battery)
     assert call("observe", {"campaign": identity})["id"] == identity
     assert call("launch", _launch("direct-door-new-0001"))["id"] == identity
-    assert (
-        call(
-            "launch",
-            _launch("direct-door-new-0001", construction_level=0),
-        )["error"]
-        == "construction_selector_retired"
-    )
-    assert (
-        call("launch", _launch("direct-door-new-0001", arm=None))["error"]
-        == "construction_selector_retired"
-    )
-    assert (
-        call("launch", _launch("direct-door-retired-0001", arm="signed"))["error"]
-        == "construction_selector_retired"
-    )
+    for request in (
+        _launch("direct-door-new-0001", construction_level=0),
+        _launch("direct-door-new-0001", arm=None),
+        _launch("direct-door-retired-0001", arm="signed"),
+    ):
+        refused = call("launch", request)
+        assert refused["error"] == "construction_selector_retired"
+        assert refused["next_step"] == supervisor.NEXT_ACTIONS[refused["error"]]
 
 
 def test_wrong_train_binding_refused_before_practice_through_both_doors(battery, door):

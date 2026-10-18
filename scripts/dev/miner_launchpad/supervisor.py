@@ -142,6 +142,13 @@ NEXT_ACTIONS = {
         "base settings or wait for the named check; changing a level label "
         "does not resolve it."
     ),
+    "construction_selector_retired": (
+        "Remove construction_level, construction_variant_digest, and arm from "
+        "the launch request (carbon_launch). For a new direct campaign, supply "
+        "the construction recipe when practicing (carbon_practice). A campaign "
+        "created with the retired selectors cannot be replayed as a direct "
+        "campaign; launch a new one."
+    ),
     # The campaign's own lock and state.
     "campaign_busy": (
         "Another session holds this campaign: an attached agent, the "
