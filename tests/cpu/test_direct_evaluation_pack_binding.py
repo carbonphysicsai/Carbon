@@ -9,8 +9,10 @@ from types import SimpleNamespace
 
 import pytest
 from test_direct_v3_durable_tasks import _fixture
+from test_score_lab_private_evaluation_evidence import _graph_case
 
 from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
+from carbon.challenge_validator import lean_recipe_retention
 from carbon.challenge_validator.direct_receiver import _pack_check, _sealed_pack
 from carbon.challenge_validator.evaluation_pack import (
     PRIVATE_ROLES,
@@ -23,6 +25,7 @@ from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
 from carbon.challenge_validator.lean_recipe_retention import (
     RetentionUnavailable,
     _retain_private_pack_binding,
+    register_served_pack_source,
 )
 from carbon.challenge_validator.ledger import AttemptLedger
 from carbon.development_session.construction_recipe import ConstructionRecipe
@@ -106,7 +109,7 @@ def test_restart_uses_original_sealed_pack_after_draft_edit(tmp_path):
     receiver_root = tmp_path / "receiver"
     receiver_root.mkdir(mode=0o700)
     challenge = material["challenge_key"]
-    digest, check = _sealed_pack(receiver_root, selection, challenge)
+    digest, check, _snapshot = _sealed_pack(receiver_root, selection, challenge)
     check(material)
     write_once(
         receiver_root / "receiver-binding.json",
@@ -116,7 +119,7 @@ def test_restart_uses_original_sealed_pack_after_draft_edit(tmp_path):
     changed = json.loads(draft.read_text(encoding="utf-8"))
     changed["pack_version"] = "edited-after-admission"
     draft.write_text(json.dumps(changed), encoding="utf-8")
-    restarted_digest, restarted_check = _sealed_pack(
+    restarted_digest, restarted_check, _snapshot = _sealed_pack(
         receiver_root, selection, challenge
     )
     assert restarted_digest == digest
@@ -217,3 +220,136 @@ def test_pack_pin_changes_private_task_identity_without_public_contract_change(
         assert "evaluation_pack_digest" not in adapter.identities()
     finally:
         provider.close()
+
+
+def test_operator_registers_source_from_selected_pack_and_retained_entry(
+    tmp_path, monkeypatch
+):
+    case = _graph_case(tmp_path)
+    draft = tmp_path / "pack-draft"
+    public = tmp_path / "pack-public"
+    private = tmp_path / "pack-private"
+    for root in (draft, public, private):
+        root.mkdir(mode=0o700)
+    (public / "train.bin").write_bytes(case["originals"]["stage/train.npz"])
+    (public / "interface.bin").write_bytes(b"synthetic-2d-interface")
+    (private / "case-bank.bin").write_bytes(case["ordered_query_bytes"][0])
+    (private / "references.json").write_text(
+        json.dumps(case["references"]), encoding="utf-8"
+    )
+    (private / "solver.json").write_text(
+        json.dumps(case["registration"]["reference"]), encoding="utf-8"
+    )
+    (private / "score-pack.json").write_text(json.dumps(case["pack"]), encoding="utf-8")
+    public_roles = {role: {"inline": {"test": role}} for role in PUBLIC_ROLES}
+    public_roles["train"] = {"path": "train.bin"}
+    public_roles["interface"] = {"path": "interface.bin"}
+    public_roles["physics_contract"] = {"inline": case["job"]["physics_contract"]}
+    private_roles = {
+        "case_bank": {"path": "case-bank.bin"},
+        "reference_rows": {"path": "references.json"},
+        "solver_evidence": {"path": "solver.json"},
+        "score_pack": {"path": "score-pack.json"},
+    }
+    manifest = {
+        "schema": SCHEMA,
+        "challenge": {
+            "id": case["entry"]["challenge"],
+            "version": case["entry"]["challenge_version"],
+        },
+        "pack_version": "test-only",
+        "public": public_roles,
+        "private": private_roles,
+    }
+    (draft / "evaluation-pack.json").write_text(json.dumps(manifest), encoding="utf-8")
+    selected = prepare_pack(
+        draft,
+        "evaluation-pack.json",
+        public_root=public,
+        private_root=private,
+        challenge_id=case["entry"]["challenge"],
+        challenge_version=case["entry"]["challenge_version"],
+    ).snapshot
+    discovery = SimpleNamespace(
+        evaluation_pack_snapshot=selected,
+        evaluation_pack_digest=selected.manifest_digest,
+        evaluation_pack_public_root=public,
+        evaluation_pack_private_root=private,
+    )
+    adapter = object.__new__(LeanRecipeAdapter)
+    adapter.discovery = discovery
+    task_root = tmp_path / "retained-task"
+    task_root.mkdir(mode=0o700)
+    entry_path = tmp_path / "retained-entry.json"
+    entry_path.write_text(json.dumps(case["entry"]), encoding="utf-8")
+    retained = {
+        "evaluation_pack_digest": selected.manifest_digest,
+        "entry_id": case["entry"]["entry_id"],
+        "entry_path": entry_path,
+        "artifact_path": task_root,
+    }
+    monkeypatch.setattr(
+        lean_recipe_retention, "retain_served_result", lambda *args, **kwargs: retained
+    )
+    task_id = "rtsk_" + "7" * 64
+    arguments = {
+        "artifact_directory": tmp_path,
+        "entry_directory": tmp_path,
+        "trusted_job": case["job"],
+        "registration": case["registration"],
+        "ordered_query_bytes": case["ordered_query_bytes"],
+        "evaluation_version": "test-evaluation-v1",
+    }
+    source = register_served_pack_source(adapter, task_id, **arguments)
+    assert source["expected_evaluation_pack_digest"] == selected.manifest_digest
+    assert source["score_pack"]["pack_digest"] == case["pack"]["pack_digest"]
+    assert source["references"] == case["references"]
+    registration_record = json.loads(source["source_registration_path"].read_bytes())
+    assert (
+        registration_record["source_receipt_sha256"]
+        == source["registered_source_receipt_sha256"]
+    )
+    assert (
+        register_served_pack_source(adapter, task_id, **arguments)[
+            "registered_source_receipt_sha256"
+        ]
+        == source["registered_source_receipt_sha256"]
+    )
+    wrong_bank = tmp_path / "wrong-bank"
+    wrong_bank.mkdir(mode=0o700)
+    (wrong_bank / "case-bank.bin").write_bytes(b"different query")
+    (wrong_bank / "references.json").write_text(
+        json.dumps(case["references"]), encoding="utf-8"
+    )
+    (wrong_bank / "solver.json").write_text(
+        json.dumps(case["registration"]["reference"]), encoding="utf-8"
+    )
+    (wrong_bank / "score-pack.json").write_text(
+        json.dumps(case["pack"]), encoding="utf-8"
+    )
+    wrong_draft = tmp_path / "wrong-draft"
+    wrong_draft.mkdir(mode=0o700)
+    (wrong_draft / "evaluation-pack.json").write_text(
+        json.dumps({**manifest, "pack_version": "wrong-material"}), encoding="utf-8"
+    )
+    wrong = prepare_pack(
+        wrong_draft,
+        "evaluation-pack.json",
+        public_root=public,
+        private_root=wrong_bank,
+        challenge_id=case["entry"]["challenge"],
+        challenge_version=case["entry"]["challenge_version"],
+    ).snapshot
+    discovery.evaluation_pack_snapshot = wrong
+    discovery.evaluation_pack_digest = wrong.manifest_digest
+    discovery.evaluation_pack_private_root = wrong_bank
+    retained["evaluation_pack_digest"] = wrong.manifest_digest
+    with pytest.raises(RetentionUnavailable, match="registered_material_mismatch"):
+        register_served_pack_source(adapter, task_id, **arguments)
+    discovery.evaluation_pack_snapshot = selected
+    discovery.evaluation_pack_digest = selected.manifest_digest
+    discovery.evaluation_pack_private_root = private
+    retained["evaluation_pack_digest"] = selected.manifest_digest
+    (private / "references.json").write_bytes(b"[]")
+    with pytest.raises(RetentionUnavailable, match="material_unavailable"):
+        register_served_pack_source(adapter, task_id, **arguments)

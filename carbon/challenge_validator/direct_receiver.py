@@ -193,15 +193,19 @@ def _sealed_pack(root, selection, challenge):
         digest = prepared.snapshot.manifest_digest
         write_once(pack_root / (digest[7:] + ".json"), prepared.sealed_bytes)
     relative_path = digest[7:] + ".json"
-    load_pack(
+    snapshot = load_pack(
         pack_root,
         relative_path,
         expected_digest=digest,
         challenge_id=challenge.challenge_id,
         challenge_version=challenge.version,
     )
-    return digest, _pack_check(
-        pack_root, relative_path, digest, public_root, private_root, challenge
+    return (
+        digest,
+        _pack_check(
+            pack_root, relative_path, digest, public_root, private_root, challenge
+        ),
+        snapshot,
     )
 
 
@@ -759,8 +763,9 @@ def serve(
     with owner_lock(root):
         pack_check = None
         pack_digest = None
+        pack_snapshot = None
         if "evaluation_pack" in cfg:
-            pack_digest, pack_check = _sealed_pack(
+            pack_digest, pack_check, pack_snapshot = _sealed_pack(
                 root, cfg["evaluation_pack"], challenge
             )
         discovery = DirectFixtureDiscovery(
@@ -768,6 +773,17 @@ def serve(
             task_admission=True,
             pack_check=pack_check,
             evaluation_pack_digest=pack_digest,
+            evaluation_pack_snapshot=pack_snapshot,
+            evaluation_pack_public_root=(
+                Path(cfg["evaluation_pack"]["public_root"])
+                if pack_snapshot is not None
+                else None
+            ),
+            evaluation_pack_private_root=(
+                Path(cfg["evaluation_pack"]["private_root"])
+                if pack_snapshot is not None
+                else None
+            ),
         )
         immutable = {
             "schema": SCHEMA,

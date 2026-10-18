@@ -592,3 +592,190 @@ def retain_served_bundle_result(
         artifact_directory=artifact_directory,
         entry_directory=entry_directory,
     )
+
+
+def register_served_pack_source(
+    adapter,
+    submission_id: str,
+    *,
+    artifact_directory: Path,
+    entry_directory: Path,
+    trusted_job: dict,
+    registration: dict,
+    ordered_query_bytes: list[bytes],
+    evaluation_version: str,
+    hidden_store=None,
+    fingerprint=None,
+    expected_references_digest=None,
+) -> dict:
+    """Register actual v2 source bytes under an already retained private task.
+
+    The selected pack comes from receiver admission, and reference rows and
+    ScorePack are read again from its verified private roles. The returned
+    source pin is read back from owner-only write-once custody; callers pass
+    that registered value to the existing private ScoreLab binder.
+    """
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.development_session.data import write_once
+    from carbon.scoring.private_evaluation_source import (
+        PrivateEvaluationSourceRefused,
+        build_pack_source_receipt,
+    )
+    from carbon.scoring.solver_benchmark_v3 import (
+        BenchmarkScoreRefused,
+        register_pack,
+    )
+
+    if type(adapter) is not LeanRecipeAdapter or type(submission_id) is not str:
+        raise TypeError("trusted served adapter and task identity required")
+    discovery = adapter.discovery
+    snapshot = discovery.evaluation_pack_snapshot
+    if snapshot is None or discovery.evaluation_pack_digest != snapshot.manifest_digest:
+        raise RetentionUnavailable("evaluation_pack_not_selected")
+    retained = retain_served_result(
+        adapter,
+        submission_id,
+        artifact_directory=artifact_directory,
+        entry_directory=entry_directory,
+    )
+    if retained.get("evaluation_pack_digest") != snapshot.manifest_digest:
+        raise RetentionUnavailable("evaluation_pack_retention_changed")
+    public_root = discovery.evaluation_pack_public_root
+    private_root = discovery.evaluation_pack_private_root
+    try:
+        missing = snapshot.verify_available(
+            public_root, private_root, hidden_store=hidden_store
+        )
+        if missing["public"] or missing["private"]:
+            raise RetentionUnavailable("evaluation_pack_roles_unavailable")
+        # This caller only has the registered single-query, static-bank
+        # contract. A dynamic bank needs its own Challenge-specific adapter.
+        if (
+            snapshot.run_bindings_required()
+            or snapshot.private["case_bank"].get("kind") == "hidden_batch_store"
+        ):
+            raise RetentionUnavailable("evaluation_pack_bank_adapter_unavailable")
+        train = snapshot.read_role(
+            public_root, "public", "train", max_bytes=16 * 1024 * 1024
+        )
+        interface = snapshot.read_role(
+            public_root, "public", "interface", max_bytes=65536
+        )
+        physics = snapshot.read_json_role(
+            public_root, "public", "physics_contract", max_bytes=65536
+        )
+        case_bank = snapshot.read_role(
+            private_root, "private", "case_bank", max_bytes=16 * 1024 * 1024
+        )
+        solver = snapshot.read_json_role(
+            private_root, "private", "solver_evidence", max_bytes=65536
+        )
+        references = snapshot.read_json_role(
+            private_root, "private", "reference_rows", max_bytes=16 * 1024 * 1024
+        )
+        score_document = snapshot.read_json_role(
+            private_root, "private", "score_pack", max_bytes=65536
+        )
+    except RetentionUnavailable:
+        raise
+    except ValueError as exc:
+        raise RetentionUnavailable("evaluation_pack_material_unavailable") from exc
+    if type(references) is not list or type(registration) is not dict:
+        raise RetentionUnavailable("evaluation_pack_reference_rows_invalid")
+    reference_identity = registration.get("reference")
+    if (
+        type(trusted_job) is not dict
+        or _sha(train) != trusted_job.get("train_digest")
+        or _sha(interface) != trusted_job.get("interface_digest")
+        or physics != trusted_job.get("physics_contract")
+        or type(ordered_query_bytes) is not list
+        or len(ordered_query_bytes) != 1
+        or type(ordered_query_bytes[0]) is not bytes
+        or case_bank != ordered_query_bytes[0]
+        or type(reference_identity) is not dict
+        or type(solver) is not dict
+        or solver != reference_identity
+    ):
+        raise RetentionUnavailable("evaluation_pack_registered_material_mismatch")
+    if type(score_document) is not dict:
+        raise RetentionUnavailable("evaluation_pack_score_pack_invalid")
+    declared_pack_digest = score_document.get("pack_digest")
+    body = {key: value for key, value in score_document.items() if key != "pack_digest"}
+    try:
+        score_pack = register_pack(body)
+    except BenchmarkScoreRefused as exc:
+        raise RetentionUnavailable("evaluation_pack_score_pack_invalid") from exc
+    if (
+        declared_pack_digest is not None
+        and declared_pack_digest != score_pack["pack_digest"]
+    ):
+        raise RetentionUnavailable("evaluation_pack_score_pack_invalid")
+    if (
+        score_pack["challenge"] != snapshot.challenge_id
+        or score_pack["benchmark_registration_digest"]
+        != registration.get("registration_digest")
+        or score_pack["accuracy_ceiling"] is None
+    ):
+        raise RetentionUnavailable("evaluation_pack_score_pack_unready")
+    entry_path = Path(retained["entry_path"])
+    if (
+        entry_path.is_symlink()
+        or not entry_path.is_file()
+        or entry_path.stat().st_size > 1024 * 1024
+    ):
+        raise RetentionUnavailable("evaluation_pack_entry_unavailable")
+    try:
+        entry = json.loads(entry_path.read_bytes())
+    except (UnicodeError, ValueError) as exc:
+        raise RetentionUnavailable("evaluation_pack_entry_unavailable") from exc
+    if type(entry) is not dict or entry.get("entry_id") != retained["entry_id"]:
+        raise RetentionUnavailable("evaluation_pack_entry_changed")
+    try:
+        prepared = build_pack_source_receipt(
+            selected_pack=snapshot,
+            entry=entry,
+            trusted_job=trusted_job,
+            registration=registration,
+            references=references,
+            ordered_query_bytes=ordered_query_bytes,
+            evaluation_version=evaluation_version,
+        )
+    except PrivateEvaluationSourceRefused as exc:
+        raise RetentionUnavailable("evaluation_pack_source_" + exc.code) from exc
+    task_root = _owner_directory(retained["artifact_path"], "task_artifacts")
+    source_path = task_root / "evaluation-source-receipt.json"
+    registration_path = task_root / "evaluation-source-registration.json"
+    try:
+        write_once(source_path, prepared.raw)
+        if source_path.is_symlink():
+            raise ValueError("source receipt link")
+        registered_sha256 = _sha(source_path.read_bytes())
+        if registered_sha256 != prepared.sha256:
+            raise ValueError("source receipt changed")
+        write_once(
+            registration_path,
+            _json(
+                {
+                    "schema": "carbon.lean-recipe.private-source-registration.v2",
+                    "task_id": submission_id,
+                    "entry_id": retained["entry_id"],
+                    "evaluation_pack_digest": snapshot.manifest_digest,
+                    "source_receipt_sha256": registered_sha256,
+                    "registration_digest": registration["registration_digest"],
+                }
+            ),
+        )
+    except (OSError, ValueError) as exc:
+        raise RetentionUnavailable(
+            "evaluation_pack_source_registration_unavailable"
+        ) from exc
+    return {
+        "entry": entry,
+        "retained": retained,
+        "references": references,
+        "score_pack": score_pack,
+        "evaluation_source_receipt_raw": source_path.read_bytes(),
+        "registered_source_receipt_sha256": registered_sha256,
+        "expected_evaluation_pack_digest": snapshot.manifest_digest,
+        "source_registration_path": registration_path,
+    }
