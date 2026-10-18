@@ -41,10 +41,16 @@ def test_missing_prospective_material_fails_closed_without_affecting_old_kits(
 
 
 @pytest.mark.parametrize(
-    ("candidate_mode", "bad_images"), [(False, False), (True, False), (True, True)]
+    ("candidate_mode", "bad_images", "cpu_only"),
+    [
+        (False, False, False),
+        (True, False, False),
+        (True, True, False),
+        (True, False, True),
+    ],
 )
 def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
-    monkeypatch, tmp_path, candidate_mode, bad_images
+    monkeypatch, tmp_path, candidate_mode, bad_images, cpu_only
 ):
     from carbon.chain import external_signer
     from carbon.development_session import (
@@ -79,9 +85,14 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
         "campaigns_root": str(base),
         "paths": paths,
         "accepted_revision": "a" * 40,
-        "gpu_image": str(tmp_path / "gpu-image.json"),
+        "runtime": {
+            "implementation": {"revision": "a" * 40},
+            "images": [digest, digest],
+        },
         "principal": "owner",
     }
+    if not cpu_only:
+        cfg["gpu_image"] = str(tmp_path / "gpu-image.json")
     candidate = {
         "revision": "a" * 40,
         "tree": "b" * 40,
@@ -89,10 +100,11 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
         "source_authority": "DEVELOPMENT_CANDIDATE",
     }
     if candidate_mode:
-        cfg["runtime"] = {
-            "implementation": candidate,
-            "images": ["sha256:" + "d" * 64 if bad_images else digest, digest],
-        }
+        cfg["runtime"]["implementation"] = candidate
+        cfg["runtime"]["images"] = [
+            "sha256:" + "d" * 64 if bad_images else digest,
+            digest,
+        ]
     monkeypatch.setattr(
         kit, "bundle_material_v5", lambda: {"challenge_key": "v13"}, raising=False
     )
@@ -105,7 +117,7 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
         (
             (lambda _rev: pytest.fail("candidate must not claim main acceptance"))
             if candidate_mode
-            else (lambda _rev: object())
+            else (lambda _rev: {"source_tree_digest": digest})
         ),
     )
     seen_candidate = []
@@ -119,10 +131,12 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     monkeypatch.setattr(research_image, "load_analysis_image", lambda _path: analysis)
     monkeypatch.setattr(research_image, "verify_image", lambda _image: None)
     monkeypatch.setattr(docker_runtime, "load_image_identity", lambda _path: parent)
+    checked_parents = []
     monkeypatch.setattr(
         docker_runtime,
         "doctor",
-        lambda **_kwargs: SimpleNamespace(eligible=True),
+        lambda **kwargs: checked_parents.append(kwargs["image_identity"])
+        or SimpleNamespace(eligible=True),
     )
     monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _parent: "jax")
     monkeypatch.setattr(
@@ -153,6 +167,11 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     assert source.parent is parent
     assert source.signer is signer
     assert seen_candidate == ([tmp_path] if candidate_mode else [])
+    assert checked_parents == [parent]
+    if cpu_only:
+        cfg["runtime"]["gpu_research"] = {}
+        with pytest.raises(ValueError, match="declared GPU direct parent is missing"):
+            cli.load_direct_installed_source(profile, version="1.3")
 
 
 def test_v13_candidate_profile_mismatch_refuses_before_image_use(monkeypatch, tmp_path):

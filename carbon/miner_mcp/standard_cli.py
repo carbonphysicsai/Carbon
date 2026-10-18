@@ -245,14 +245,23 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
         ]:
             raise ValueError("development candidate profile images differ")
         gpu_manifest = cfg.get("gpu_image")
-        if type(gpu_manifest) is not str:
-            raise ValueError("installed GPU parent required for direct development")
-        gpu_parent = load_image_identity(Path(gpu_manifest))
-        verify_current_worker(gpu_parent, implementation)
-        if gpu_image_backend(gpu_parent) not in {"jax", "pytorch"}:
-            raise ValueError("installed direct parent backend is unregistered")
+        if gpu_manifest is None and version == "1.3" and development_candidate:
+            # A verified CPU-only candidate uses the same accepted C-03 parent
+            # for direct inference; it does not acquire GPU authority.
+            if "gpu_research" in cfg["runtime"]:
+                raise ValueError("declared GPU direct parent is missing")
+            direct_parent = parent
+        else:
+            if type(gpu_manifest) is not str:
+                raise ValueError("installed GPU parent required for direct development")
+            direct_parent = load_image_identity(Path(gpu_manifest))
+            verify_current_worker(direct_parent, implementation)
+            if gpu_image_backend(direct_parent) not in {"jax", "pytorch"}:
+                raise ValueError("installed direct parent backend is unregistered")
     with _check("runtime_unavailable"):
-        if not doctor(image_id=gpu_parent.image_id, image_identity=gpu_parent).eligible:
+        if not doctor(
+            image_id=direct_parent.image_id, image_identity=direct_parent
+        ).eligible:
             raise ValueError("installed direct parent unavailable")
     with _check("runner_profile_unusable"):
         network = binding(
@@ -270,15 +279,27 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
             )
         signer = miner_signer(public, paths.get("signer_socket"))
     return DirectInstalledSource(
-        root=state / ("kit-" + version) / gpu_parent.image_id[7:],
+        root=state / ("kit-" + version) / direct_parent.image_id[7:],
         cache_root=state / "library-cache",
         version=version,
-        parent=gpu_parent,
+        parent=direct_parent,
         context=network.context,
         publisher=network.publisher_hotkey,
         signer=signer,
         implementation=implementation,
-        profile_digest=digest(canonical(cfg)),
+        profile_digest=digest(
+            canonical(
+                {
+                    "accepted_revision": cfg["accepted_revision"],
+                    "principal": cfg["principal"],
+                    "implementation": implementation,
+                    "worker_image": parent.image_id,
+                    "analysis_image": analysis.image_id,
+                    "direct_parent_image": direct_parent.image_id,
+                    "gpu_research": cfg["runtime"].get("gpu_research"),
+                }
+            )
+        ),
         worker_image_id=parent.image_id,
         analysis_image_id=analysis.image_id,
     )

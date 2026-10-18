@@ -188,7 +188,7 @@ state_real="$(realpath -m -- "${STATE_DIR}")"
 if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
   [[ "${REF_GIVEN}" == 0 && "${REF}" == main && -z "${RELEASE}" && "${UPDATE}" == 0 ]] \
     || fail "--development-candidate cannot be combined with --ref, --release or --update."
-  [[ "${STATE_DIR}" != "$(realpath -m -- "${DEFAULT_STATE_DIR}")" ]] \
+  [[ "${state_real}" != "$(realpath -m -- "${DEFAULT_STATE_DIR}")" ]] \
     || fail "--development-candidate requires its own CARBON_STATE_DIR."
   case "${state_real}/" in
     "${repo_root}/"*) fail "DEVELOPMENT state must be outside the source checkout." ;;

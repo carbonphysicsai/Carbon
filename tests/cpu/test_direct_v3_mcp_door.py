@@ -628,7 +628,7 @@ def test_installed_direct_development_uses_profile_signer_and_refuses_missing_ch
         assert frozen["implementation"] == {
             "source_tree_digest": parent.source_tree_digest
         }
-        assert frozen["provider"]["profile_digest"] == digest(canonical(cfg))
+        assert frozen["provider"]["profile_digest"] == source.profile_digest
         assert frozen["images"] == [
             parent.image_id,
             "sha256:" + "c" * 64,
@@ -648,6 +648,24 @@ def test_installed_direct_development_uses_profile_signer_and_refuses_missing_ch
                 "DELETE FROM operations WHERE id=?",
                 ("first-direct-worker-probe",),
             )
+        # Setup may add an intake target without changing this worker's
+        # execution identity. Reopening the same immutable ledger must work.
+        configuration.write_bytes(canonical({**cfg, "direct_intake_target": target}))
+        try:
+            changed_source = load_direct_installed_source(configuration, version="1.1")
+            assert changed_source.profile_digest == source.profile_digest
+
+            async def reopen_with_intake_target():
+                async with attached_installed_direct_development(
+                    configuration, version="1.1"
+                ) as (adapter, _selected):
+                    return await adapter.call(
+                        "get_challenge_info", {}, "installed-direct-reopen-001"
+                    )
+
+            assert asyncio.run(reopen_with_intake_target())["reply"]["status"] == "OK"
+        finally:
+            configuration.write_bytes(canonical(cfg))
         installed_child = LibraryWorkerImage(
             replace(old_image.provisioned, parent_image=gpu_parent.image_id),
             gpu_parent,

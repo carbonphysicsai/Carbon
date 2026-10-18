@@ -628,6 +628,31 @@ def test_explicit_development_candidate_builds_only_the_exact_local_tree(sandbox
     assert any(line.startswith("worker ") for line in sandbox.logged())
 
 
+def test_development_candidate_refuses_symlink_alias_of_default_state_before_write(
+    sandbox,
+):
+    sandbox.state.mkdir(parents=True, mode=0o700)
+    installed_record = sandbox.state / "installed-images.json"
+    installed_record.write_text("default install stays intact\n")
+    alias = sandbox.tmp / "alias-home"
+    alias.symlink_to(sandbox.tmp / "home", target_is_directory=True)
+    before = sandbox.head()
+
+    completed = sandbox.run(
+        "--development-candidate",
+        "a" * 40,
+        "b" * 40,
+        "sha256:" + "c" * 64,
+        "--no-start",
+        CARBON_STATE_DIR=str(alias / ".carbon" / "development-launchpad"),
+    )
+    assert completed.returncode == 2
+    assert "requires its own CARBON_STATE_DIR" in completed.stderr
+    assert installed_record.read_text() == "default install stays intact\n"
+    assert sandbox.head() == before
+    assert sandbox.logged() == []
+
+
 @pytest.mark.parametrize(
     ("pair_status", "gpu_installed", "path_status", "images_gone", "expected_result"),
     [
