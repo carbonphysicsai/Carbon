@@ -162,7 +162,7 @@ def challenge_kit_files(repo):
     )
     modules = _json.loads(
         subprocess.run(
-            [sys.executable, "-I", "-c", probe],
+            [sys.executable, "-B", "-I", "-c", probe],
             cwd=repo,
             env={"PYTHONPATH": str(repo), "PATH": "/usr/bin:/bin"},
             check=True,
