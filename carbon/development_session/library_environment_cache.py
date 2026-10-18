@@ -10,6 +10,7 @@ from __future__ import annotations
 import errno
 import hashlib
 import json
+import math
 import os
 import re
 import secrets
@@ -17,6 +18,7 @@ import shutil
 import stat
 import tarfile
 import tempfile
+import time
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
@@ -73,11 +75,36 @@ class VerifiedLibraryOverlay:
     total_bytes: int
 
 
-def pinned_uv_bytes(cli: DockerCLI) -> bytes:
+def pinned_uv_bytes(
+    cli: DockerCLI,
+    *,
+    deadline: float | None = None,
+    cancel: Callable[[], None] | None = None,
+) -> bytes:
     """Copy /uv from the exact locally pinned image without starting it."""
     if not all(hasattr(cli, name) for name in ("json", "run", "stream_to_file")):
         raise ValueError("trusted Docker adapter required")
-    image = cli.json(["image", "inspect", UV_IMAGE, "--format", "{{json .}}"])
+    if deadline is not None and (
+        type(deadline) not in (int, float) or not math.isfinite(deadline)
+    ):
+        raise ValueError("absolute monotonic uv copy deadline required")
+    if cancel is not None and not callable(cancel):
+        raise ValueError("uv copy cancellation callback required")
+
+    def remaining(maximum: float) -> float:
+        if cancel is not None:
+            cancel()
+        if deadline is None:
+            return maximum
+        left = deadline - time.monotonic()
+        if left <= 0:
+            raise TimeoutError("pinned uv copy deadline exceeded")
+        return min(maximum, left)
+
+    image = cli.json(
+        ["image", "inspect", UV_IMAGE, "--format", "{{json .}}"],
+        timeout=remaining(30),
+    )
     uv_name, _, uv_digest = UV_IMAGE.partition("@")
     repository_digest = uv_name.rsplit(":", 1)[0] + "@" + uv_digest
     if (
@@ -117,7 +144,8 @@ def pinned_uv_bytes(cli: DockerCLI) -> bytes:
                     "--entrypoint",
                     "/bin/true",
                     image["Id"],
-                ]
+                ],
+                timeout=remaining(30),
             )
             .stdout.decode("ascii")
             .strip()
@@ -125,7 +153,10 @@ def pinned_uv_bytes(cli: DockerCLI) -> bytes:
         created = True
         if re.fullmatch(r"[0-9a-f]{64}", container) is None:
             raise ValueError("pinned uv container identity invalid")
-        held = cli.json(["container", "inspect", name, "--format", "{{json .}}"])
+        held = cli.json(
+            ["container", "inspect", name, "--format", "{{json .}}"],
+            timeout=remaining(30),
+        )
         if not owned(held) or held["Id"] != container:
             raise ValueError("pinned uv container identity differs")
         with tempfile.TemporaryDirectory(prefix="carbon-uv-copy-") as temporary:
@@ -134,8 +165,9 @@ def pinned_uv_bytes(cli: DockerCLI) -> bytes:
                 ["cp", f"{container}:/uv", "-"],
                 archive_path,
                 maximum=64 * 1024**2 + 1024**2,
-                timeout=120,
+                timeout=remaining(120),
             )
+            remaining(120)
             with tarfile.open(archive_path, mode="r:") as archive:
                 members = archive.getmembers()
                 if (
@@ -151,17 +183,21 @@ def pinned_uv_bytes(cli: DockerCLI) -> bytes:
                 body = stream.read(64 * 1024**2 + 1)
                 if len(body) != members[0].size:
                     raise ValueError("pinned uv bytes changed")
+                remaining(120)
                 return body
     finally:
         try:
-            held = cli.json(["container", "inspect", name, "--format", "{{json .}}"])
+            held = cli.json(
+                ["container", "inspect", name, "--format", "{{json .}}"],
+                timeout=30,
+            )
         except WorkerFailure:
             if created:
                 raise ValueError("owned uv cleanup identity unavailable") from None
         else:
             if not owned(held):
                 raise ValueError("owned uv cleanup identity differs")
-            cli.run(["rm", "--force", held["Id"]])
+            cli.run(["rm", "--force", held["Id"]], timeout=30)
 
 
 def staged_bundle_material_directory(

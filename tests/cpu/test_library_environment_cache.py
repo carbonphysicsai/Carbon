@@ -176,13 +176,16 @@ def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(tmp_path):
     uv = b"synthetic-uv-binary"
     container = "a" * 64
     calls = []
+    timeouts = []
 
     class Docker:
-        def __init__(self, *, malformed=False):
+        def __init__(self, *, malformed=False, slow_copy=False):
             self.create = None
             self.malformed = malformed
+            self.slow_copy = slow_copy
 
-        def json(self, arguments):
+        def json(self, arguments, *, timeout=30):
+            timeouts.append((arguments[0], timeout))
             if arguments[:2] == ["image", "inspect"]:
                 return {
                     "Id": "sha256:" + "b" * 64,
@@ -207,7 +210,8 @@ def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(tmp_path):
                 "Config": {"Labels": {label: intent}},
             }
 
-        def run(self, arguments):
+        def run(self, arguments, *, timeout=30):
+            timeouts.append((arguments[0], timeout))
             calls.append(arguments)
             if arguments[0] == "create":
                 self.create = arguments
@@ -220,6 +224,9 @@ def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(tmp_path):
         def stream_to_file(self, arguments, destination, **bounds):
             assert arguments == ["cp", f"{container}:/uv", "-"]
             assert bounds["maximum"] <= 65 * 1024**2
+            timeouts.append(("cp", bounds["timeout"]))
+            if self.slow_copy:
+                time.sleep(0.04)
             with tarfile.open(
                 destination, mode="w", format=tarfile.USTAR_FORMAT
             ) as archive:
@@ -240,6 +247,33 @@ def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(tmp_path):
     assert calls[1] == ["rm", "--force", container]
     with pytest.raises(ValueError, match="container identity invalid"):
         cache.pinned_uv_bytes(Docker(malformed=True))
+    assert calls[-1] == ["rm", "--force", container]
+
+    callbacks = []
+    start = len(timeouts)
+    assert (
+        cache.pinned_uv_bytes(
+            Docker(),
+            deadline=time.monotonic() + 1.0,
+            cancel=lambda: callbacks.append(True),
+        )
+        == uv
+    )
+    bounded = timeouts[start:]
+    assert callbacks
+    assert [name for name, _ in bounded] == [
+        "image",
+        "create",
+        "container",
+        "cp",
+        "container",
+        "rm",
+    ]
+    assert all(0 < value <= 1.0 for _, value in bounded[:4])
+    assert bounded[-2:] == [("container", 30), ("rm", 30)]
+
+    with pytest.raises(TimeoutError, match="pinned uv copy deadline exceeded"):
+        cache.pinned_uv_bytes(Docker(slow_copy=True), deadline=time.monotonic() + 0.02)
     assert calls[-1] == ["rm", "--force", container]
 
 
