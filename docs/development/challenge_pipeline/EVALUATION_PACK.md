@@ -27,7 +27,7 @@ new Challenge copy Motor, Cold Plate or synthetic fixture values.
 | --- | --- | --- |
 | **1. Brief and valid scope** | Name the physical job, assumptions, valid operating envelope, model inputs and outputs with units/shapes, design actions, and important optimization limits with direction and signed margin. Distinguish the target population `P`, draw/proposal `Q`, and evidence weights `w`; identify whole-question masks, independent problem clusters and difficult or OOD strata **inside** the valid envelope. Out-of-envelope stress is a separate diagnostic. | Public `construction_kit`, `interface` and `physics_contract` carry the served construction meaning. Public accuracy, important-limit and design-objective roles can explain it, but their availability alone does not make a scoring rule. |
 | **2. Noncompensable gates** | Declare and implement physical/output validity, finite/repeat and required accuracy/coverage gates with source-owned predicates and versions. A gate name alone cannot certify its predicate. An accurate prediction of an infeasible design is not a physics failure. Missing owner-set floors remain `HUMAN_INPUT`; failed or ambiguous reference evidence is unresolved, never a candidate gate failure. | The selected registered Score Pack names applied gates; trusted Challenge measurements supply their verdicts. The receiver and ScoreLab use the same registered predicates and shared scorer. |
-| **3. Eligible TOP rule** | After gates, the owner-directed dual-score target allocates **50% to physics quality `A`** (broad accuracy, robustness and predeclared in-envelope OOD performance) and **50% to verified design quality `D`**. `D` measures the solver-verified feasible design outcome against the declared objective and comparator, not proximity to a limit or a model-predicted optimum. Within-leg measures, transforms, aggregation and floors still need evidence and explicit registration. | One selected Score Pack and the shared ScoreEngine own the applied rule; public descriptions must be checked against that rule and allow-listed. The current v3 MAE/gate/paired-speedup path does **not** implement the dual `A`/`D` target and keeps its historical meaning. |
+| **3. Eligible TOP rule** | After gates, the owner-directed dual-score target allocates **50% to physics quality `A`** (broad accuracy, robustness and predeclared in-envelope OOD performance) and **50% to verified design quality `D`**. `D` measures the solver-verified feasible design outcome against the declared objective and comparator, not proximity to a limit or a model-predicted optimum. Register named component units, directions, transforms, scales, within-leg aggregation, per-leg minima and typed decision-outcome policy only when backed by trusted measurements and evidence. | One selected Score Pack and the shared ScoreEngine own the applied rule; the public allow-listed view explains the applied definitions and shows gate/status, `A`, `D` and TOP without hidden case identities. The current v3 MAE/gate/paired-speedup path does **not** implement the dual `A`/`D` target and keeps its historical meaning. |
 | **4. Solver and data plan** | Work backward from those gates and legs to the cases and accepted references needed for complete `P`/`Q` questions, difficult/OOD coverage, signed limit margins, feasible comparator and design verification. Pin solver source/fidelity/applicability and numerical ambiguity; account separately for acquisition, model inference and verification resources. Keep false-feasible, missed-feasible, abstention and typed reference/infra failures visible. | Private `case_bank`, `reference_rows` and `solver_evidence` hold protected source roles; private `score_pack` and optional `source_registration` bind the applied rule and exact registered job. Their file hashes prove identity, not reference adequacy or scientific qualification. |
 | **5. Receiver and bank lifecycle** | Admit one exact Challenge/pack/source version, independently reconstruct the submitted model, and evaluate it on the selected protected material. Add, rotate and retire hidden batches on a cost- and exposure-aware schedule separate from KOTH ranking, while retaining draw roles, `P`/`Q`/`w`, masks, reference status, exact run pins and historical interpretations. A new batch is not a fresh-case finalist tournament. | The trusted receiver seals this manifest, checks each used role and run-specific hidden-bank fingerprint/reference digest, then passes authorized measurements to the same ScoreEngine used by ScoreLab. Public results use an allow-list; private paths, answers, draw IDs and full pack digest stay private. |
 
@@ -41,13 +41,16 @@ population/mask rule, solver fidelity, gate, score transform or outcome policy
 needs a prospective version; old results are never silently rescored.
 
 The present private v3 binder handles registered MAE, gates and paired
-speedup. A normal receiver path that produces authenticated `A` and `D`
-measurements and binds them to one selected dual Score Pack is still a
-separate implementation gap for ScoreLab and Platform. Until that path and
-each Challenge's measurement and gate contracts exist, the 50/50 target is
-an onboarding rule design, not an applied grade. Keep missing scales, floors
-and evidence roles explicit rather than translating v3 speedup into design
-quality.
+speedup. The existing prospective dual reducer can validate declared metric
+and gate names, units, transforms, scales, minima and outcome policy, but it
+does not attest the trusted producer or reference adequacy. A normal receiver
+path that produces authenticated `A` and `D` measurements and binds their
+source, common mask and whole-question outcome to one selected dual Score
+Pack is still a separate implementation gap for ScoreLab and Platform. Until
+that path and each Challenge's measurement and gate contracts exist, the
+50/50 target is an onboarding rule design, not an applied grade. Keep missing
+scales, floors and evidence roles explicit rather than translating v3 speedup
+into design quality.
 
 ## Manifest and data roles
 
