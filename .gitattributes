@@ -5,3 +5,4 @@
 *.yaml text eol=lf
 Dockerfile text eol=lf
 carbon/miner_mcp/apps_ui/workbench.html text eol=lf
+docs/history/WAVE_2026-09-22_90dd9670.md whitespace=-trailing-space
