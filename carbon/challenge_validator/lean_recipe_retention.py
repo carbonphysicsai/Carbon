@@ -631,6 +631,12 @@ def retain_served_result(
         "build_receipt": ("build-receipt.json", "json"),
     }
     if evidence["build_receipt"].get("schema") == "carbon.development.bundle-build.v2":
+        from carbon.development_session.bundle_construction_worker import (
+            BundleBuildResult,
+            BundleInferenceResult,
+            compare_build_inference_predictions,
+        )
+
         native = _snapshot(
             build / "native-predictions.json",
             limit=16 * 1024**2,
@@ -655,6 +661,35 @@ def retain_served_result(
         artifacts["native-predictions.json"] = native
         artifacts["example.npz"] = example
         roles["native_predictions"] = ("native-predictions.json", "json")
+        try:
+            comparison = compare_build_inference_predictions(
+                BundleBuildResult(
+                    recipe.digest,
+                    task.terminal_receipt.state_digest,
+                    build / "state.npz",
+                    evidence["build_operation"],
+                    evidence["build_receipt"],
+                ),
+                BundleInferenceResult(
+                    recipe.digest,
+                    task.terminal_receipt.state_digest,
+                    task.terminal_receipt.predictions_digest,
+                    json.loads(predictions),
+                    evidence["inference_operation"],
+                    evidence["inference_receipt"],
+                ),
+                expected_output_dtype=material["interface_document"]["outputs"][
+                    "dtype"
+                ],
+            )
+        except (ValueError, TypeError, KeyError) as exc:
+            raise RetentionUnavailable("native_comparison_unavailable") from exc
+        if comparison is None or (
+            "prediction_comparison" in evidence
+            and evidence["prediction_comparison"] != comparison
+        ):
+            raise RetentionUnavailable("native_comparison_changed")
+        artifacts["prediction-comparison.json"] = _json(comparison)
     # Measured v2 is kept verbatim, never relabeled as the bank's v1 role.
     if (
         evidence["inference_receipt"]["schema"]
