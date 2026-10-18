@@ -262,6 +262,36 @@ def test_normal_cpu_source_only_task_cold_prepares_builds_and_retains(tmp_path):
         assert saved["status"] == "CREATED"
         assert saved["score_state"] == "NOT_COMPUTED"
         assert saved["official_eligible"] is False
+        assert saved["measurement_state"] == "DEVELOPMENT_UNRANKED"
+        measured_path = saved["measurement_path"]
+        assert measured_path.parent != saved["artifact_path"]
+        assert measured_path.stat().st_mode & 0o077 == 0
+        measured = json.loads(measured_path.read_bytes())
+        entry = json.loads(saved["entry_path"].read_bytes())
+        assert (
+            measured["schema"] == "carbon.lean-recipe.public-development-measurement.v1"
+        )
+        assert measured["task_id"] == task_id
+        assert measured["entry_id"] == entry["entry_id"] == saved["entry_id"]
+        assert entry["state_digest"] == finished.terminal_receipt.state_digest
+        assert (
+            entry["prediction_digest"] == finished.terminal_receipt.predictions_digest
+        )
+        assert entry["prediction_digest"] == evidence["predictions_digest"]
+        reduced = measured["result"]
+        assert reduced["entry_id"] == entry["entry_id"]
+        assert reduced["state_digest"] == entry["state_digest"]
+        assert reduced["status"] == "BENCHMARK_REDUCED"
+        assert reduced["score_status"] == "PACK_NOT_READY"
+        assert measured["accuracy_ceiling"] is None and measured["ranking"] is None
+        assert measured["speedup_comparability"] == "NOT_ESTABLISHED"
+        assert measured["model_timing_scope"] == (
+            "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
+        )
+        assert (
+            measured["reference_timing_scope"]
+            == "IN_PROCESS_PUBLIC_REFERENCE_ARRAY_ONLY"
+        )
         assert (saved["artifact_path"] / "state.npz").read_bytes() == (
             build / "snapshot/state.npz"
         ).read_bytes()
