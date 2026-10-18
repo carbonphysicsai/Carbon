@@ -478,6 +478,18 @@ def retain_served_result(
     train = material["train"]
     if _sha(train) != recipe.to_dict()["challenge"]["train_digest"]:
         raise RetentionUnavailable("public_train_changed")
+    from carbon.battery import challenge as battery_challenge
+
+    battery = adapter.discovery.info.challenge_key == battery_challenge.CHALLENGE
+    if battery and _sha(train) != "sha256:" + battery_challenge.TRAIN_V1_SHA256:
+        raise RetentionUnavailable("public_battery_train_changed")
+    train_name = "train-v1.jsonl.gz" if battery else "train.npz"
+    train_codec = "raw_bytes" if battery else "numeric_npz"
+    public_scope = (
+        "PUBLIC_BATTERY_DEVELOPMENT_ONLY"
+        if battery
+        else "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"
+    )
     if "practice_inputs" not in material or "practice_reference" not in material:
         raise RetentionUnavailable("public_input_target_unavailable")
     inputs = _tensors(inputs=material["practice_inputs"])
@@ -490,7 +502,7 @@ def retain_served_result(
 
     artifacts = {
         "recipe.json": recipe.canonical_bytes,
-        "train.npz": train,
+        train_name: train,
         "fixture.npz": fixture,
         "inputs.npz": inputs,
         "state.npz": state,
@@ -510,7 +522,7 @@ def retain_served_result(
         "lineage.json": _json(
             {
                 "schema": "carbon.lean-recipe-bank-lineage.v1",
-                "scope": "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY",
+                "scope": public_scope,
                 "task_id": submission_id,
                 "recipe_digest": recipe.digest,
                 "state_digest": task.terminal_receipt.state_digest,
@@ -523,7 +535,7 @@ def retain_served_result(
     }
     roles = {
         "recipe": ("recipe.json", "json"),
-        "train": ("train.npz", "numeric_npz"),
+        "train": (train_name, train_codec),
         "fixture": ("fixture.npz", "numeric_npz"),
         "inputs": ("inputs.npz", "numeric_npz"),
         "state": ("state.npz", "bundle_graph_npz"),
@@ -533,6 +545,31 @@ def retain_served_result(
         "image": ("image.json", "json"),
         "build_receipt": ("build-receipt.json", "json"),
     }
+    if evidence["build_receipt"].get("schema") == "carbon.development.bundle-build.v2":
+        native = _snapshot(
+            build / "native-predictions.json",
+            limit=16 * 1024**2,
+            digest=evidence["build_receipt"]["native_predictions_digest"],
+            label="native_prediction_snapshot",
+        )
+        example_path = root / evidence["build_operation"] / "input" / "example.npz"
+        if example_path.exists() or example_path.is_symlink():
+            example = _snapshot(
+                example_path,
+                limit=16 * 1024**2,
+                digest=evidence["build_receipt"]["example_digest"],
+                label="build_example_snapshot",
+            )
+        else:
+            # Legacy local runners retain only the output snapshot. Their
+            # trusted example may stand in only at the exact worker receipt
+            # digest; a distinct or changed probe remains unavailable.
+            example = _tensors(inputs=material["example"])
+            if _sha(example) != evidence["build_receipt"]["example_digest"]:
+                raise RetentionUnavailable("build_example_snapshot_unavailable")
+        artifacts["native-predictions.json"] = native
+        artifacts["example.npz"] = example
+        roles["native_predictions"] = ("native-predictions.json", "json")
     # Measured v2 is kept verbatim, never relabeled as the bank's v1 role.
     if (
         evidence["inference_receipt"]["schema"]

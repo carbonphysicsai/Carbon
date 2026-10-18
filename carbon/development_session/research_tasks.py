@@ -26,6 +26,7 @@ import time
 from pathlib import Path
 
 from carbon.authoring.model import EvidenceRole
+from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 from carbon.research import (
     CancellationDisposition,
@@ -1638,7 +1639,8 @@ class DirectDevelopmentTasksV3:
                     allowlist_bytes=material["allowlist_bytes"],
                     expected_output_dtype=(
                         material["interface_document"]["outputs"]["dtype"]
-                        if kit["version"] == "1.3"
+                        if (kit["id"] == BATTERY_CHALLENGE and kit["version"] == "1.0")
+                        or kit["version"] == "1.3"
                         or task_id.value in self._measured_tasks
                         else None
                     ),
