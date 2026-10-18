@@ -772,6 +772,7 @@ def register_served_pack_source(
     source pin is read back from owner-only write-once custody; callers pass
     that registered value to the existing private ScoreLab binder.
     """
+    from carbon.challenge_validator.evaluation_pack import PRIVATE_ROLES
     from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
     from carbon.development_session.data import write_once
     from carbon.scoring.engine import ScoreEngine
@@ -807,7 +808,7 @@ def register_served_pack_source(
         if (
             set(missing["public"])
             & {"construction_kit", "interface", "train", "physics_contract"}
-            or missing["private"]
+            or set(missing["private"]) & PRIVATE_ROLES
         ):
             raise RetentionUnavailable("evaluation_pack_roles_unavailable")
         # This caller only has the registered single-query, static-bank

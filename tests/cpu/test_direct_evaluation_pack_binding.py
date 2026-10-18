@@ -257,6 +257,7 @@ def test_operator_registers_source_from_selected_pack_and_retained_entry(
         "reference_rows": {"path": "references.json"},
         "solver_evidence": {"path": "solver.json"},
         "score_pack": {"path": "score-pack.json"},
+        "source_registration": "HUMAN_INPUT",
     }
     manifest = {
         "schema": SCHEMA,
