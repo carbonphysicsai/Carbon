@@ -41,3 +41,27 @@ def gpu_image_backend(image):
     if image.lock_digest == torch_profile.GPU_LOCK_DIGEST:
         return "pytorch"
     return None
+
+
+def direct_bundle_accelerator(construction_parent, inference_image):
+    """Select one control for the already-verified direct build/infer image pair.
+
+    The normal bundle route sends the same accelerator to both phases. A GPU
+    constructor paired with a CPU inference worker cannot make a CUDA predict
+    result, so refuse that pair before reserving either phase. Image admission
+    and Docker doctor remain the private receiver's responsibility.
+    """
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    from .research_carrier import MINER_GPU
+
+    if (
+        type(construction_parent) is not WorkerImageIdentity
+        or type(inference_image) is not WorkerImageIdentity
+    ):
+        raise ValueError("exact direct worker image pair required")
+    build_backend = gpu_image_backend(construction_parent)
+    infer_backend = gpu_image_backend(inference_image)
+    if build_backend != infer_backend:
+        raise ValueError("direct build and inference accelerator backends differ")
+    return MINER_GPU if build_backend is not None else None
