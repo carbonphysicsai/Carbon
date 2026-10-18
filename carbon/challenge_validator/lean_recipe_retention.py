@@ -342,6 +342,105 @@ def _retain_private_pack_binding(adapter, provider, submission_id, task, result)
     }
 
 
+def _retain_public_synthetic_measurement(result, artifacts, submission_id):
+    """Keep a separate private, descriptive v1.3 measurement beside the bank.
+
+    Bank custody succeeds independently. A missing or invalid measurement is
+    explicit and cannot change the immutable entry or its NOT_COMPUTED score.
+    """
+    from carbon.development_session.data import write_once
+    from scripts.dev.score_lab.synthetic_linear_field_reference import (
+        prepare_public_measurement,
+        reduce_public_measurement,
+    )
+
+    try:
+        task_root = _owner_directory(result["artifact_path"], "task_artifacts")
+        entry_path = result["entry_path"]
+        if entry_path.is_symlink() or not entry_path.is_file():
+            raise ValueError("entry unavailable")
+        entry = json.loads(entry_path.read_bytes())
+        kit = json.loads(artifacts["construction-kit.json"])
+        if (kit["id"], kit["version"]) != ("synthetic-linear-field-2d", "1.3"):
+            return {**result, "measurement_state": "NOT_APPLICABLE"}
+        if result.get("evaluation_pack_digest") is not None:
+            return {**result, "measurement_state": "NOT_APPLICABLE"}
+        sidecar_root = task_root.parent / (submission_id + ".public-measurement")
+        sidecar_root.mkdir(mode=0o700, exist_ok=True)
+        _owner_directory(sidecar_root, "public_measurement_directory")
+        source_path = sidecar_root / "source-registration.json"
+        receipt_path = sidecar_root / "source-receipt.json"
+        reference_path = sidecar_root / "reference-row.json"
+        result_path = sidecar_root / "result.json"
+        if source_path.exists() or receipt_path.exists() or reference_path.exists():
+            if not all(
+                path.is_file() and not path.is_symlink()
+                for path in (source_path, receipt_path, reference_path)
+            ):
+                raise ValueError("incomplete public source")
+            source_raw = source_path.read_bytes()
+            receipt_raw = receipt_path.read_bytes()
+            reference_raw = reference_path.read_bytes()
+        else:
+            prepared = prepare_public_measurement(
+                query_bytes=artifacts["inputs.npz"],
+                model_device="C03_DOCKER_CPU_WORKER",
+                reference_device="IN_PROCESS_NUMPY_CPU",
+            )
+            source_raw = prepared["source_registration_raw"]
+            receipt_raw = prepared["source_receipt_raw"]
+            reference_raw = prepared["reference_row_raw"]
+            write_once(source_path, source_raw)
+            write_once(receipt_path, receipt_raw)
+            write_once(reference_path, reference_raw)
+        worker = json.loads(artifacts["worker-evidence.json"])
+        inference_receipt = json.loads(artifacts["inference-receipt.json"])
+        inference = {
+            "recipe_digest": entry["recipe_digest"],
+            "state_digest": entry["state_digest"],
+            "predictions_digest": entry["prediction_digest"],
+            "predictions": json.loads(artifacts["predictions.json"]),
+            "worker_operation": worker["inference_operation"],
+            "receipt": inference_receipt,
+            "inference_receipt_raw": artifacts["inference-receipt.json"],
+            "worker_evidence_raw": artifacts["worker-evidence.json"],
+        }
+        custody_path = task_root.parent / (submission_id + ".custody.json")
+        if custody_path.is_symlink() or not custody_path.is_file():
+            raise ValueError("custody unavailable")
+        reduced = reduce_public_measurement(
+            entry=entry,
+            custody_receipt_raw=custody_path.read_bytes(),
+            source_registration_raw=source_raw,
+            source_receipt_raw=receipt_raw,
+            reference_row_raw=reference_raw,
+            query_bytes=artifacts["inputs.npz"],
+            inference=inference,
+            graph_originals={
+                "inference_receipt_raw": artifacts["inference-receipt.json"],
+                "worker_evidence_raw": artifacts["worker-evidence.json"],
+            },
+        )
+        document = {
+            "schema": "carbon.lean-recipe.public-development-measurement.v1",
+            "task_id": submission_id,
+            "entry_id": result["entry_id"],
+            **reduced,
+        }
+        write_once(result_path, _json(document))
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return {
+            **result,
+            "measurement_state": "UNAVAILABLE",
+            "measurement_reason": type(exc).__name__,
+        }
+    return {
+        **result,
+        "measurement_state": "DEVELOPMENT_UNRANKED",
+        "measurement_path": result_path,
+    }
+
+
 def retain_served_result(
     adapter, submission_id: str, *, artifact_directory: Path, entry_directory: Path
 ) -> dict:
@@ -399,9 +498,10 @@ def retain_served_result(
             artifact_directory=artifact_directory,
             entry_directory=entry_directory,
         )
-        return _retain_private_pack_binding(
+        bound = _retain_private_pack_binding(
             adapter, provider, submission_id, task, result
         )
+        return _retain_public_synthetic_measurement(bound, artifacts, submission_id)
     if recipe.to_dict()["source"]["kind"] != "bundle":
         raise RetentionUnavailable("source_kind_unavailable")
     admitted_binding = provider._task_image_bindings.get(submission_id)

@@ -602,6 +602,37 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
             assert first["status"] == "CREATED"
             assert first["score_state"] == "NOT_COMPUTED"
             assert first["official_eligible"] is False
+            assert first["measurement_state"] == "DEVELOPMENT_UNRANKED"
+            measured = json.loads(first["measurement_path"].read_bytes())
+            assert measured["task_id"] == task_id
+            assert measured["entry_id"] == first["entry_id"]
+            assert measured["source_state"] == (
+                "MEASURED_ENGINEERING_REFERENCE_UNPINNED"
+            )
+            assert measured["result"]["status"] == "BENCHMARK_REDUCED"
+            assert measured["result"]["score_status"] == "PACK_NOT_READY"
+            assert measured["accuracy_ceiling"] is None
+            assert measured["ranking"] is None
+            assert measured["speedup_comparability"] == "NOT_ESTABLISHED"
+            assert first["measurement_path"].parent != first["artifact_path"]
+            import scripts.dev.score_lab.synthetic_linear_field_reference as public_source
+
+            with monkeypatch.context() as unavailable_measurement:
+                unavailable_measurement.setattr(
+                    public_source,
+                    "reduce_public_measurement",
+                    lambda **_kwargs: (_ for _ in ()).throw(ValueError("not ready")),
+                )
+                retry = retain_served_result(
+                    adapter,
+                    task_id,
+                    artifact_directory=artifact_root,
+                    entry_directory=entry_root,
+                )
+                assert retry["status"] == "ALREADY_PRESENT_IDENTICAL"
+                assert retry["score_state"] == "NOT_COMPUTED"
+                assert retry["measurement_state"] == "UNAVAILABLE"
+                assert first["measurement_path"].read_bytes() == canonical(measured)
             manifest = json.loads(
                 (artifact_root / (task_id + ".roles.json")).read_bytes()
             )
