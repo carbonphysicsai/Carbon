@@ -4,6 +4,7 @@ import json
 import hashlib
 import io
 import tarfile
+from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
@@ -46,7 +47,9 @@ def _image(context):
     return LibraryWorkerImage(environment, parent, bundle.to_dict())
 
 
-def test_verified_overlay_seals_exact_archive_and_rejects_changed_cache(tmp_path):
+def test_verified_overlay_seals_exact_archive_and_rejects_changed_cache(
+    tmp_path, monkeypatch
+):
     snapshot = tmp_path / "snapshot"
     snapshot.mkdir()
     root = tmp_path / "private-cache"
@@ -80,11 +83,54 @@ def test_verified_overlay_seals_exact_archive_and_rejects_changed_cache(tmp_path
         expected_bundle=image.provisioned.bundle,
         expected_parent=image.parent,
         expected_receipt=receipt,
+        material_cache_bytes=10 * 1024**2,
     )
     selected = cache.cache_verified_overlay(snapshot, root, **args)
     assert selected.path.name == receipt["tree_digest"][7:]
     assert (selected.path / relative).read_bytes() == content
     assert cache.cache_verified_overlay(snapshot, root, **args) == selected
+    original_exists = type(selected.path).exists
+    race = [2]
+
+    def publish_race(path):
+        if path == selected.path and race[0]:
+            race[0] -= 1
+            return False
+        return original_exists(path)
+
+    with monkeypatch.context() as patched:
+        patched.setattr(type(selected.path), "exists", publish_race)
+        assert cache.cache_verified_overlay(snapshot, root, **args) == selected
+    second_parent = replace(image.parent, image_id=_sha("9"), config_digest=_sha("9"))
+    second_receipt = {**receipt, "parent_image_id": second_parent.image_id}
+    (snapshot / "overlay.json").write_text(json.dumps(second_receipt), encoding="utf-8")
+    from carbon.development_session.direct_material_staging import _cache_bytes
+
+    used = _cache_bytes(root)
+    second_bytes = len(content) + len(
+        json.dumps(second_receipt, sort_keys=True, separators=(",", ":")).encode()
+    )
+    with pytest.raises(ValueError, match="cache capacity exceeded"):
+        cache.cache_verified_overlay(
+            snapshot,
+            root,
+            expected_bundle=image.provisioned.bundle,
+            expected_parent=second_parent,
+            expected_receipt=second_receipt,
+            material_cache_bytes=used + second_bytes - 1,
+        )
+    assert _cache_bytes(root) == used
+    second = cache.cache_verified_overlay(
+        snapshot,
+        root,
+        expected_bundle=image.provisioned.bundle,
+        expected_parent=second_parent,
+        expected_receipt=second_receipt,
+        material_cache_bytes=10 * 1024**2,
+    )
+    assert second.path != selected.path
+    assert (second.path / relative).read_bytes() == content
+    (snapshot / "overlay.json").write_text(json.dumps(receipt), encoding="utf-8")
     changed = selected.path / relative
     changed.chmod(0o600)
     changed.write_bytes(b"VALUE = 2\n")
@@ -105,6 +151,23 @@ def test_verified_overlay_seals_exact_archive_and_rejects_changed_cache(tmp_path
         cache.cache_verified_overlay(
             snapshot, root, **{**args, "expected_receipt": receipt}
         )
+    for unsafe in (r"source/..\..\outside", "source/C:outside"):
+        with tarfile.open(
+            snapshot / "overlay.tar", mode="w", format=tarfile.USTAR_FORMAT
+        ) as archive:
+            member = tarfile.TarInfo(unsafe)
+            member.size = len(content)
+            member.mode = 0o444
+            archive.addfile(member, io.BytesIO(content))
+        body = (snapshot / "overlay.tar").read_bytes()
+        receipt["archive_sha256"] = "sha256:" + hashlib.sha256(body).hexdigest()
+        receipt["archive_bytes"] = len(body)
+        (snapshot / "overlay.json").write_text(json.dumps(receipt), encoding="utf-8")
+        with pytest.raises(ValueError, match="overlay archive member differs"):
+            cache.cache_verified_overlay(
+                snapshot, root, **{**args, "expected_receipt": receipt}
+            )
+    assert not (tmp_path / "outside").exists()
 
 
 def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(tmp_path):
@@ -113,21 +176,42 @@ def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(tmp_path):
     calls = []
 
     class Docker:
+        def __init__(self, *, malformed=False):
+            self.create = None
+            self.malformed = malformed
+
         def json(self, arguments):
-            assert arguments[:2] == ["image", "inspect"]
+            if arguments[:2] == ["image", "inspect"]:
+                return {
+                    "Id": "sha256:" + "b" * 64,
+                    "RepoDigests": [
+                        UV_IMAGE.split("@", 1)[0].rsplit(":", 1)[0]
+                        + "@"
+                        + UV_IMAGE.split("@", 1)[1]
+                    ],
+                }
+            assert arguments == [
+                "container",
+                "inspect",
+                self.create[2],
+                "--format",
+                "{{json .}}",
+            ]
+            label, intent = self.create[4].split("=", 1)
             return {
-                "Id": "sha256:" + "b" * 64,
-                "RepoDigests": [
-                    UV_IMAGE.split("@", 1)[0].rsplit(":", 1)[0]
-                    + "@"
-                    + UV_IMAGE.split("@", 1)[1]
-                ],
+                "Id": container,
+                "Name": "/" + self.create[2],
+                "Image": "sha256:" + "b" * 64,
+                "Config": {"Labels": {label: intent}},
             }
 
         def run(self, arguments):
             calls.append(arguments)
             if arguments[0] == "create":
-                return SimpleNamespace(stdout=(container + "\n").encode())
+                self.create = arguments
+                return SimpleNamespace(
+                    stdout=("bad\n" if self.malformed else container + "\n").encode()
+                )
             assert arguments == ["rm", "--force", container]
             return SimpleNamespace(stdout=b"")
 
@@ -142,17 +226,19 @@ def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(tmp_path):
                 archive.addfile(member, io.BytesIO(uv))
 
     assert cache.pinned_uv_bytes(Docker()) == uv
-    assert calls == [
-        [
-            "create",
-            "--network",
-            "none",
-            "--entrypoint",
-            "/bin/true",
-            "sha256:" + "b" * 64,
-        ],
-        ["rm", "--force", container],
+    assert calls[0][:2] == ["create", "--name"]
+    assert calls[0][3] == "--label"
+    assert calls[0][-5:] == [
+        "--network",
+        "none",
+        "--entrypoint",
+        "/bin/true",
+        "sha256:" + "b" * 64,
     ]
+    assert calls[1] == ["rm", "--force", container]
+    with pytest.raises(ValueError, match="container identity invalid"):
+        cache.pinned_uv_bytes(Docker(malformed=True))
+    assert calls[-1] == ["rm", "--force", container]
 
 
 def test_cache_round_trip_requires_verification_and_trusted_bindings(

@@ -15,6 +15,7 @@ import shutil
 import stat
 import tempfile
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 from carbon.research.errors import ResearchServiceErrorCode
@@ -80,10 +81,14 @@ def _verified(path: Path, total: int, fingerprint: str) -> bool:
 
 
 def _cache_bytes(root: Path) -> int:
-    """Count all owners' partial and completed material bytes."""
+    """Count all owners' partial, completed, and prepared overlay bytes."""
     total = 0
     seen = set()
-    for subdir in (root / "material-uploads", root / "materials"):
+    for subdir in (
+        root / "material-uploads",
+        root / "materials",
+        root / "overlays",
+    ):
         if subdir.is_symlink():
             raise ResearchTaskProviderError(ResearchServiceErrorCode.REFERENCE_MISMATCH)
         if not subdir.exists():
@@ -464,14 +469,9 @@ def _stage_material_locked(
     )
 
 
-def stage_material(
-    provider, request: DirectStageMaterialRequestV1
-) -> DirectStageMaterialResultV1:
-    """Serialize the shared material budget across all authenticated owners."""
-    resolver = getattr(provider, "image_resolver", None)
-    cache_root = getattr(resolver, "cache_root", None)
-    if not isinstance(cache_root, Path) or not cache_root.is_absolute():
-        raise ResearchTaskProviderError(ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE)
+@contextmanager
+def _cache_lock(cache_root: Path):
+    """One cross-process reservation lock for signed materials and overlays."""
     cache_root = _private(cache_root)
     lock_path = cache_root / ".material-cap.lock"
     descriptor = os.open(
@@ -493,7 +493,7 @@ def stage_material(
 
             fcntl.flock(descriptor, fcntl.LOCK_EX)
         acquired = True
-        return _stage_material_locked(provider, request)
+        yield cache_root
     finally:
         if acquired and os.name == "nt":
             os.lseek(descriptor, 0, os.SEEK_SET)
@@ -501,3 +501,15 @@ def stage_material(
         elif acquired:
             fcntl.flock(descriptor, fcntl.LOCK_UN)
         os.close(descriptor)
+
+
+def stage_material(
+    provider, request: DirectStageMaterialRequestV1
+) -> DirectStageMaterialResultV1:
+    """Serialize the shared material budget across all authenticated owners."""
+    resolver = getattr(provider, "image_resolver", None)
+    cache_root = getattr(resolver, "cache_root", None)
+    if not isinstance(cache_root, Path) or not cache_root.is_absolute():
+        raise ResearchTaskProviderError(ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE)
+    with _cache_lock(cache_root):
+        return _stage_material_locked(provider, request)

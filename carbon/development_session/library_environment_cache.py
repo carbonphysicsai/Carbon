@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import json
 import hashlib
+import errno
 import os
 import re
+import secrets
 import shutil
 import stat
 import tarfile
@@ -84,16 +86,47 @@ def pinned_uv_bytes(cli: DockerCLI) -> bytes:
         or repository_digest not in image.get("RepoDigests", ())
     ):
         raise ValueError("pinned local uv image differs")
-    container = (
-        cli.run(
-            ["create", "--network", "none", "--entrypoint", "/bin/true", image["Id"]]
+    intent = secrets.token_hex(16)
+    name = "carbon-overlay-uv-" + intent
+    label = "org.carbonphysicsai.overlay-uv-intent"
+    created = False
+
+    def owned(held):
+        return (
+            type(held) is dict
+            and held.get("Name") == "/" + name
+            and held.get("Image") == image["Id"]
+            and re.fullmatch(r"[0-9a-f]{64}", str(held.get("Id"))) is not None
+            and type(held.get("Config")) is dict
+            and type(held["Config"].get("Labels")) is dict
+            and held["Config"]["Labels"].get(label) == intent
         )
-        .stdout.decode("ascii")
-        .strip()
-    )
-    if re.fullmatch(r"[0-9a-f]{64}", container) is None:
-        raise ValueError("pinned uv container identity invalid")
+
     try:
+        container = (
+            cli.run(
+                [
+                    "create",
+                    "--name",
+                    name,
+                    "--label",
+                    f"{label}={intent}",
+                    "--network",
+                    "none",
+                    "--entrypoint",
+                    "/bin/true",
+                    image["Id"],
+                ]
+            )
+            .stdout.decode("ascii")
+            .strip()
+        )
+        created = True
+        if re.fullmatch(r"[0-9a-f]{64}", container) is None:
+            raise ValueError("pinned uv container identity invalid")
+        held = cli.json(["container", "inspect", name, "--format", "{{json .}}"])
+        if not owned(held) or held["Id"] != container:
+            raise ValueError("pinned uv container identity differs")
         with tempfile.TemporaryDirectory(prefix="carbon-uv-copy-") as temporary:
             archive_path = Path(temporary) / "uv.tar"
             cli.stream_to_file(
@@ -119,7 +152,15 @@ def pinned_uv_bytes(cli: DockerCLI) -> bytes:
                     raise ValueError("pinned uv bytes changed")
                 return body
     finally:
-        cli.run(["rm", "--force", container])
+        try:
+            held = cli.json(["container", "inspect", name, "--format", "{{json .}}"])
+        except WorkerFailure:
+            if created:
+                raise ValueError("owned uv cleanup identity unavailable") from None
+        else:
+            if not owned(held):
+                raise ValueError("owned uv cleanup identity differs")
+            cli.run(["rm", "--force", held["Id"]])
 
 
 def staged_bundle_material_directory(
@@ -169,6 +210,8 @@ def _overlay_rows(root: Path) -> list[list[object]]:
             or len(parts) < 2
             or parts[0] not in {"site-packages", "source"}
             or any(part in {"", ".", ".."} for part in parts)
+            or "\\" in relative
+            or ":" in relative
         ):
             raise ValueError("overlay file role differs")
         size = entry.stat().st_size
@@ -204,13 +247,14 @@ def _verified_overlay_tree(root: Path, receipt: dict) -> None:
         raise ValueError("cached overlay content differs")
 
 
-def cache_verified_overlay(
+def _cache_verified_overlay_locked(
     snapshot: Path,
     cache_root: Path,
     *,
     expected_bundle: LibraryBundleRef,
     expected_parent: WorkerImageIdentity,
     expected_receipt: dict,
+    material_cache_bytes: int,
 ) -> VerifiedLibraryOverlay:
     """Verify bounded C03 output and atomically seal an inert private overlay."""
     if (
@@ -276,8 +320,45 @@ def cache_verified_overlay(
     overlays = root / "overlays"
     overlays.mkdir(mode=0o700, exist_ok=True)
     overlays = _private_cache_directory(overlays, "private overlay root required")
-    target = overlays / receipt["tree_digest"][7:]
-    temporary = Path(tempfile.mkdtemp(prefix=".pending-", dir=overlays))
+    # The same extracted tree may belong to different pinned bundles or
+    # parents. Keep the immutable preparation receipt in the CAS identity.
+    bucket = overlays
+    for identity in (
+        expected_bundle.bundle_digest,
+        expected_parent.image_id,
+        receipt["archive_sha256"],
+    ):
+        child = bucket / identity[7:]
+        child.mkdir(mode=0o700, exist_ok=True)
+        bucket = _private_cache_directory(child, "private overlay binding required")
+    target = bucket / receipt["tree_digest"][7:]
+    from .direct_material_staging import _cache_bytes
+
+    retained = _cache_bytes(root)
+    if target.exists() or target.is_symlink():
+        if target.is_symlink() or not target.is_dir():
+            raise ValueError("cached overlay path differs")
+        if retained > material_cache_bytes:
+            raise ValueError("operator material and overlay cache capacity exceeded")
+        _verified_overlay_tree(target, receipt)
+        return VerifiedLibraryOverlay(
+            target,
+            receipt["tree_digest"],
+            expected_bundle,
+            expected_parent.image_id,
+            receipt["archive_sha256"],
+            receipt["file_count"],
+            receipt["total_file_bytes"],
+        )
+    receipt_bytes = len(
+        json.dumps(receipt, sort_keys=True, separators=(",", ":")).encode()
+    )
+    additional = receipt["total_file_bytes"] + receipt_bytes
+    if retained + additional > material_cache_bytes:
+        raise ValueError("operator material and overlay cache capacity exceeded")
+    if shutil.disk_usage(root).free < additional + 16 * 1024**2:
+        raise ValueError("overlay cache physical capacity unavailable")
+    temporary = Path(tempfile.mkdtemp(prefix=".pending-", dir=bucket))
     try:
         with tarfile.open(archive_path, mode="r:") as archive:
             names: set[str] = set()
@@ -291,6 +372,8 @@ def cache_verified_overlay(
                     or len(parts) < 2
                     or parts[0] not in {"site-packages", "source"}
                     or any(part in {"", ".", ".."} for part in parts)
+                    or "\\" in member.name
+                    or ":" in member.name
                     or relative.as_posix() != member.name
                     or member.name in names
                     or member.mode != 0o444
@@ -302,7 +385,10 @@ def cache_verified_overlay(
                     raise ValueError("overlay archive member differs")
                 names.add(member.name)
                 total += member.size
-                if total > MAX_OVERLAY_BYTES or len(names) > MAX_OVERLAY_FILES:
+                if (
+                    total > receipt["total_file_bytes"]
+                    or len(names) > receipt["file_count"]
+                ):
                     raise ValueError("overlay archive exceeds bound")
                 destination = temporary.joinpath(*parts)
                 destination.parent.mkdir(parents=True, exist_ok=True)
@@ -335,7 +421,11 @@ def cache_verified_overlay(
         else:
             try:
                 temporary.rename(target)
-            except FileExistsError:
+            except OSError as error:
+                if error.errno not in {errno.EEXIST, errno.ENOTEMPTY}:
+                    raise
+                if target.is_symlink() or not target.is_dir():
+                    raise ValueError("cached overlay path differs") from error
                 _verified_overlay_tree(target, receipt)
             else:
                 for path in target.rglob("*"):
@@ -353,6 +443,31 @@ def cache_verified_overlay(
     finally:
         if temporary.exists():
             shutil.rmtree(temporary)
+
+
+def cache_verified_overlay(
+    snapshot: Path,
+    cache_root: Path,
+    *,
+    expected_bundle: LibraryBundleRef,
+    expected_parent: WorkerImageIdentity,
+    expected_receipt: dict,
+    material_cache_bytes: int,
+) -> VerifiedLibraryOverlay:
+    """Share the operator's material/overlay reservation with signed intake."""
+    if type(material_cache_bytes) is not int or material_cache_bytes <= 0:
+        raise ValueError("trusted material and overlay cache capacity required")
+    from .direct_material_staging import _cache_lock
+
+    with _cache_lock(cache_root) as root:
+        return _cache_verified_overlay_locked(
+            snapshot,
+            root,
+            expected_bundle=expected_bundle,
+            expected_parent=expected_parent,
+            expected_receipt=expected_receipt,
+            material_cache_bytes=material_cache_bytes,
+        )
 
 
 def stage_pinned_bundle_material(directory: Path, cache_root: Path) -> LibraryBundleRef:
