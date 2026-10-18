@@ -19,11 +19,15 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 if str(REPOSITORY) not in sys.path:
     sys.path.insert(0, str(REPOSITORY))
 
-from carbon.development_session.gpu_practice import gpu_image_backend
+from carbon.development_session.gpu_practice import (
+    direct_parent_backend,
+    gpu_image_backend,
+)
 from carbon.development_session.library_bundles import (
     bundle_ref,
     load_pinned_bundle_directory,
     prepare_pinned_bundle_directory,
+    verify_bundle_parent_environment,
 )
 from carbon.development_session.library_environment_cache import (
     install_pinned_library_worker_image,
@@ -123,6 +127,7 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR):
         expected_backend = {
             "jax-cuda13-py311": "jax",
             "torch-cu130-py311": "pytorch",
+            "torch-cpu-py311": "torch_cpu",
         }.get(selected.runtime_profile_id)
         if expected_backend is None:
             raise ValueError("pinned bundle runtime has no registered parent")
@@ -132,8 +137,10 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR):
                 "compatible installed parent missing for " + selected.runtime_profile_id
             )
         parent = load_image_identity(Path(parent_manifest))
-        if gpu_image_backend(parent) != expected_backend:
+        if direct_parent_backend(parent) != expected_backend:
             raise ValueError("installed parent backend differs from pinned bundle")
+        if selected.runtime_profile_id == "torch-cpu-py311":
+            verify_bundle_parent_environment(material[0], parent)
     campaigns = Path(profile["campaigns_root"])
     owner_root = _private_dir(campaigns / ".direct-development")
     cache_root = _private_dir(owner_root / "library-cache")

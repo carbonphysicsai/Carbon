@@ -189,7 +189,7 @@ def _retained_direct_parent(encoded, expected_image_id):
 
 
 def _direct_development_parent_compatible(image, implementation):
-    """Check an older Torch base for this public v1.3 construction route.
+    """Check an older registered base for this public v1.3 construction route.
 
     The fixed construction program is staged from the current source. The
     embedded entrypoint still runs, and the embedded exporter must emit the
@@ -197,9 +197,17 @@ def _direct_development_parent_compatible(image, implementation):
     bounded run. This check grants no official or general installed-runtime
     compatibility.
     """
+    from carbon.development_session.gpu_practice import direct_parent_backend
     from carbon.development_session.research_campaign import verify_direct_v13_worker
 
-    verify_direct_v13_worker(image, implementation, role="torch_gpu")
+    role = {
+        "jax": "jax_gpu",
+        "pytorch": "torch_gpu",
+        "torch_cpu": "torch_cpu",
+    }.get(direct_parent_backend(image))
+    if role is None:
+        raise ValueError("installed direct parent backend is unregistered")
+    verify_direct_v13_worker(image, implementation, role=role)
 
 
 def load_direct_installed_source(configuration: Path, *, version="1.2"):
@@ -209,7 +217,10 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
     frozen product campaign to that kit or grant a validator authority.
     """
     from carbon.chain.external_signer import miner_signer
-    from carbon.development_session.gpu_practice import gpu_image_backend
+    from carbon.development_session.gpu_practice import (
+        direct_parent_backend,
+        gpu_image_backend,
+    )
     from carbon.development_session.miner_network import binding
     from carbon.development_session.research_campaign import (
         accepted_implementation,
@@ -279,7 +290,16 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
                 _direct_development_parent_compatible(direct_parent, implementation)
             else:
                 verify_current_worker(direct_parent, implementation)
-            if gpu_image_backend(direct_parent) not in {"jax", "pytorch"}:
+            registered = (
+                direct_parent_backend(direct_parent)
+                if version == "1.3"
+                else gpu_image_backend(direct_parent)
+            )
+            if registered not in (
+                {"jax", "pytorch", "torch_cpu"}
+                if version == "1.3"
+                else {"jax", "pytorch"}
+            ):
                 raise ValueError("installed direct parent backend is unregistered")
     with _check("runtime_unavailable"):
         if not doctor(

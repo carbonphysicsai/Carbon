@@ -504,6 +504,7 @@ def test_owner_install_cli_uses_checked_gpu_profile_without_private_path_args(
     )
     monkeypatch.setattr(command, "load_image_identity", lambda _: parent)
     monkeypatch.setattr(command, "gpu_image_backend", lambda _: "pytorch")
+    monkeypatch.setattr(command, "direct_parent_backend", lambda _: "pytorch")
     monkeypatch.setattr(command, "_private_dir", lambda path: path)
     monkeypatch.setattr(command, "DockerCLI", lambda: adapter)
 
@@ -532,6 +533,7 @@ def test_owner_install_cli_uses_checked_gpu_profile_without_private_path_args(
     ]
 
     monkeypatch.setattr(command, "gpu_image_backend", lambda _: "jax")
+    monkeypatch.setattr(command, "direct_parent_backend", lambda _: "jax")
     assert command.main(["install", str(directory), "--state-dir", str(tmp_path)]) == 2
     assert len(calls) == 1
 
@@ -634,6 +636,70 @@ def test_owner_install_cpu_uses_checked_installed_worker_identity(
     profile["runtime"]["images"][0] = image_id
     monkeypatch.setattr(command, "load_image_identity", lambda path: None)
     with pytest.raises(ValueError, match="direct v1.3 worker role"):
+        command.install_bundle(directory, tmp_path)
+    assert len(calls) == 1
+
+
+def test_owner_install_selects_only_profile_pinned_torch_cpu_parent(
+    tmp_path, monkeypatch
+):
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+    from scripts.dev import library_bundle as command
+
+    directory, _ = user_directory(tmp_path)
+    material = torch_cpu_fixture()
+    (directory / "bundle.json").write_text(json.dumps(material[0]), encoding="utf-8")
+    selected = bundle_ref(*material)
+    root = Path(__file__).resolve().parents[2]
+    parent = WorkerImageIdentity(
+        *("sha256:" + character * 64 for character in "00123456")
+    )
+    parent = replace(
+        parent,
+        lock_digest=material[0]["base_environment_digest"],
+        build_recipe_digest=sha((root / ".devcontainer/torch/Dockerfile").read_bytes()),
+        entrypoint_digest=sha(
+            (root / "carbon/reconstruction/worker/entrypoint.py").read_bytes()
+        ),
+    )
+    profile = {
+        "gpu_image": str(tmp_path / "pinned-construction.json"),
+        "campaigns_root": str(tmp_path / "campaigns"),
+    }
+    monkeypatch.setattr(
+        command,
+        "EnvironmentSetup",
+        lambda state_dir, onboarding: SimpleNamespace(profile=lambda: profile),
+    )
+    selected_parent = [parent]
+    monkeypatch.setattr(command, "load_image_identity", lambda _: selected_parent[0])
+    monkeypatch.setattr(command, "_private_dir", lambda path: path)
+    monkeypatch.setattr(command, "DockerCLI", lambda: object())
+    calls = []
+
+    def install(input_directory, cache_root, image, *, expected_bundle, cli):
+        calls.append((input_directory, cache_root, image, expected_bundle))
+        return SimpleNamespace(bundle_ref=expected_bundle.to_dict())
+
+    monkeypatch.setattr(command, "install_pinned_library_worker_image", install)
+    assert (
+        command.install_bundle(directory, tmp_path)["bundle_ref"] == selected.to_dict()
+    )
+    assert calls == [
+        (
+            directory,
+            tmp_path / "campaigns" / ".direct-development" / "library-cache",
+            parent,
+            selected,
+        )
+    ]
+    selected_parent[0] = replace(parent, build_recipe_digest=sha(b"different recipe"))
+    with pytest.raises(ValueError, match="parent environment or ABI differs"):
+        command.install_bundle(directory, tmp_path)
+    selected_parent[0] = replace(
+        parent, lock_digest=sha((root / "uv.lock").read_bytes())
+    )
+    with pytest.raises(ValueError, match="backend differs"):
         command.install_bundle(directory, tmp_path)
     assert len(calls) == 1
 
