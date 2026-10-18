@@ -1289,7 +1289,7 @@ def prepare_custody_v3(artifact_root: Path) -> dict:
 
 GRAPH_ROLE_SCHEMA_V1 = "carbon.scorelab.public-model-artifact-roles.v1"
 GRAPH_CUSTODY_SCHEMA_V4 = "carbon.scorelab.public-model-custody-receipt.v4"
-_GRAPH_ROLE_CODECS = {
+_GRAPH_V4_ROLE_CODECS = {
     "recipe": "json",
     "train": "raw_bytes",
     "source": "json",
@@ -1304,7 +1304,7 @@ _GRAPH_ROLE_CODECS = {
     "selected_recipe": "json",
     "feedback": "json",
 }
-_GRAPH_CORE_ROLES = frozenset(
+_GRAPH_V4_CORE_ROLES = frozenset(
     {"recipe", "train", "source", "image", "state", "inputs", "predictions"}
 )
 
@@ -1329,14 +1329,14 @@ def prepare_custody_v4(artifact_root: Path, role_manifest_path: Path) -> dict:
     roles = manifest["roles"]
     if (
         type(roles) is not dict
-        or not _GRAPH_CORE_ROLES <= set(roles) <= set(_GRAPH_ROLE_CODECS)
-        or len(roles) > len(_GRAPH_ROLE_CODECS)
+        or not _GRAPH_V4_CORE_ROLES <= set(roles) <= set(_GRAPH_V4_ROLE_CODECS)
+        or len(roles) > len(_GRAPH_V4_ROLE_CODECS)
     ):
         raise CustodyRefused("graph_roles")
     role_paths = {}
     for role, declaration in roles.items():
         _exact_keys(declaration, {"file", "codec"}, f"graph_role_{role}")
-        if declaration["codec"] != _GRAPH_ROLE_CODECS[role]:
+        if declaration["codec"] != _GRAPH_V4_ROLE_CODECS[role]:
             raise CustodyRefused("graph_role_codec")
         _graph_file(root, declaration["file"])
         role_paths[role] = declaration["file"]
@@ -1391,7 +1391,7 @@ def prepare_custody_v4(artifact_root: Path, role_manifest_path: Path) -> dict:
     decoded = {
         role: _graph_json(body, role)
         for role, body in by_role.items()
-        if _GRAPH_ROLE_CODECS[role] == "json"
+        if _GRAPH_V4_ROLE_CODECS[role] == "json"
     }
     recipe = decoded["recipe"]
     challenge = recipe.get("challenge")
