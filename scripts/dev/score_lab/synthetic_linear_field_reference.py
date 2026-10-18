@@ -8,6 +8,7 @@ receipt hash before it can be used as evaluation evidence.
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import io
 import json
@@ -104,23 +105,59 @@ def _checked_query(query_bytes: bytes, material, registration):
                 len(members) != 1
                 or members[0].filename != "inputs.npy"
                 or members[0].file_size > 4096
+                or members[0].compress_size > 4096
                 or members[0].compress_type != zipfile.ZIP_STORED
                 or members[0].flag_bits & 1
             ):
                 raise SyntheticReferenceRefused("query_archive_members")
-        with np.load(io.BytesIO(query_bytes), allow_pickle=False) as archive:
-            if set(archive.files) != {"inputs"}:
-                raise SyntheticReferenceRefused("query_members")
-            inputs = archive["inputs"]
+            member = container.read(members[0])
     except (OSError, ValueError, KeyError, zipfile.BadZipFile) as exc:
         if isinstance(exc, SyntheticReferenceRefused):
             raise
         raise SyntheticReferenceRefused("query_archive") from exc
+    expected = material["practice_inputs"]
+    if len(member) != members[0].file_size or not member.startswith(b"\x93NUMPY"):
+        raise SyntheticReferenceRefused("query_npy_header")
+    if len(member) < 10:
+        raise SyntheticReferenceRefused("query_npy_header")
+    version = (member[6], member[7])
+    if version == (1, 0):
+        prefix, width = 8, 2
+    elif version in {(2, 0), (3, 0)}:
+        prefix, width = 8, 4
+    else:
+        raise SyntheticReferenceRefused("query_npy_version")
+    if len(member) < prefix + width:
+        raise SyntheticReferenceRefused("query_npy_header")
+    header_size = int.from_bytes(member[prefix : prefix + width], "little")
+    start = prefix + width
+    if header_size > 1024 or start + header_size > len(member):
+        raise SyntheticReferenceRefused("query_npy_header")
+    try:
+        header = ast.literal_eval(
+            member[start : start + header_size].decode(
+                "utf-8" if version[0] == 3 else "latin1"
+            )
+        )
+    except (SyntaxError, ValueError, UnicodeError, MemoryError) as exc:
+        raise SyntheticReferenceRefused("query_npy_header") from exc
+    if (
+        type(header) is not dict
+        or set(header) != {"descr", "fortran_order", "shape"}
+        or header["descr"] != expected.dtype.str
+        or header["fortran_order"] is not False
+        or header["shape"] != expected.shape
+    ):
+        raise SyntheticReferenceRefused("query_npy_type_or_shape")
+    payload = member[start + header_size :]
+    if len(payload) != expected.nbytes:
+        raise SyntheticReferenceRefused("query_npy_payload")
+    inputs = np.frombuffer(payload, dtype=expected.dtype).reshape(expected.shape)
     if (
         inputs.dtype != np.float32
-        or inputs.shape != material["practice_inputs"].shape
+        or inputs.shape != expected.shape
         or not np.isfinite(inputs).all()
-        or not np.array_equal(inputs, material["practice_inputs"])
+        or not np.array_equal(inputs, expected)
         or registration["timing_profile"]["input_shape"] != list(inputs.shape)
         or registration["timing_profile"]["batch_size"] != len(inputs)
         or registration["output"]["shape"] != list(inputs.shape)

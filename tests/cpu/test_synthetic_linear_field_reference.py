@@ -3,6 +3,7 @@
 import hashlib
 import io
 import json
+import zipfile
 
 import numpy as np
 import pytest
@@ -145,6 +146,33 @@ def test_registered_quantity_cannot_relabel_public_target():
             query_bytes=query,
             evaluation_version="fixture-only-v1",
         )
+
+
+def test_tiny_npy_member_with_huge_declared_shape_refuses_before_allocation(
+    monkeypatch,
+):
+    _, registration, _, material = _registered_public_query()
+    header = (
+        b"{'descr': '<f4', 'fortran_order': False, "
+        b"'shape': (1000000000, 8, 8, 1), }\n"
+    )
+    member = (
+        b"\x93NUMPY\x01\x00"
+        + len(header).to_bytes(2, "little")
+        + header
+        + b"\x00" * 4
+    )
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_STORED) as saved:
+        saved.writestr("inputs.npy", member)
+    assert len(archive.getvalue()) < 4096
+    monkeypatch.setattr(
+        source.np, "frombuffer", lambda *_args, **_kwargs: pytest.fail("allocated")
+    )
+    with pytest.raises(
+        source.SyntheticReferenceRefused, match="query_npy_type_or_shape"
+    ):
+        source._checked_query(archive.getvalue(), material, registration)
 
 
 def test_unmeasured_elapsed_refuses_without_receipt(monkeypatch):
