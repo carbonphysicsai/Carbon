@@ -3,6 +3,7 @@
 import gzip
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -278,6 +279,12 @@ def test_import_requires_capacity_before_load_and_writes_only_verified_pair(
     assert loaded == []
     assert list(root.iterdir()) == []
     claims = []
+    if os.name != "posix":
+        with pytest.raises(handoff.Refused, match="posix_nofollow_install_required"):
+            handoff.import_bundle(before_load=claims.append, **args)
+        assert claims == [3 * 10 + 1024**3]
+        assert list(root.iterdir()) == []
+        return
     result = handoff.import_bundle(before_load=claims.append, **args)
     assert claims == [3 * 10 + 1024**3]
     assert loaded == [(bundle / "images.tar.gz", 10)]
@@ -290,6 +297,51 @@ def test_import_requires_capacity_before_load_and_writes_only_verified_pair(
         )
         == "VERIFIED"
     )
+
+
+@pytest.mark.skipif(os.name != "posix", reason="no-follow directory fds need POSIX")
+@pytest.mark.parametrize("swapped_parent", ["root", "research-images"])
+def test_import_refuses_post_load_parent_swap_without_external_manifest_write(
+    pair, tmp_path, monkeypatch, swapped_parent
+):
+    c03_path, analysis_path, docker = pair
+
+    def fake_save(path, *_):
+        path.write_bytes(b"archive")
+        return handoff._sha_file(path), 7, 10
+
+    monkeypatch.setattr(handoff, "_save_compressed", fake_save)
+    bundle = tmp_path / "bundle"
+    export = handoff.export_bundle(
+        bundle_dir=bundle,
+        c03_manifest=c03_path,
+        analysis_manifest=analysis_path,
+        cli=docker,
+        **_identity_args(tmp_path),
+    )
+    root = tmp_path / "installed"
+    root.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+
+    def swap_after_load(*_):
+        if swapped_parent == "root":
+            root.rename(tmp_path / "old-installed")
+            root.symlink_to(outside, target_is_directory=True)
+        else:
+            (root / "research-images").symlink_to(outside, target_is_directory=True)
+
+    monkeypatch.setattr(handoff, "_docker_load", swap_after_load)
+    with pytest.raises(handoff.Refused):
+        handoff.import_bundle(
+            bundle_dir=bundle,
+            receipt_sha256=export["receipt_sha256"],
+            artifacts_root=root,
+            cli=docker,
+            before_load=lambda required: None,
+            **_identity_args(tmp_path),
+        )
+    assert list(outside.iterdir()) == []
 
 
 def test_stream_load_refuses_gzip_expansion_beyond_receipt(tmp_path, monkeypatch):

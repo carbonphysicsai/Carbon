@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import stat
 import subprocess
 import sys
 import tempfile
@@ -345,11 +346,91 @@ def _docker_load(archive: Path, expected_raw_bytes: int) -> None:
             raise
 
 
-def _same_or_new(path: Path, expected: bytes) -> None:
-    if path.is_symlink() or (path.exists() and path.read_bytes() != expected):
-        raise Refused(f"installed_manifest_conflict:{path.name}")
-    if not path.exists():
-        _write_new(path, expected)
+def _open_directory(parent_fd: int, name: str) -> int:
+    """Anchor a cache child below an already opened directory, without links."""
+    try:
+        os.mkdir(name, mode=0o700, dir_fd=parent_fd)
+    except FileExistsError:
+        pass
+    try:
+        return os.open(
+            name,
+            os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+            dir_fd=parent_fd,
+        )
+    except OSError as error:
+        raise Refused(f"installed_cache_directory_invalid:{name}") from error
+
+
+def _write_under(directory_fd: int, name: str, expected: bytes) -> None:
+    """Compare or create an exact manifest relative to a no-follow dir fd."""
+    try:
+        existing_fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory_fd)
+    except FileNotFoundError:
+        existing_fd = None
+    except OSError as error:
+        raise Refused(f"installed_manifest_conflict:{name}") from error
+    if existing_fd is not None:
+        with os.fdopen(existing_fd, "rb") as source:
+            if not stat.S_ISREG(os.fstat(source.fileno()).st_mode):
+                raise Refused(f"installed_manifest_conflict:{name}")
+            if source.read(MAX_MANIFEST_BYTES + 1) != expected:
+                raise Refused(f"installed_manifest_conflict:{name}")
+        return
+    try:
+        new_fd = os.open(
+            name,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            0o600,
+            dir_fd=directory_fd,
+        )
+    except OSError as error:
+        raise Refused(f"installed_manifest_conflict:{name}") from error
+    with os.fdopen(new_fd, "wb") as destination:
+        destination.write(expected)
+        destination.flush()
+        os.fsync(destination.fileno())
+
+
+def _install_pair_nofollow(
+    artifacts_root: Path, c03_bytes: bytes, analysis_bytes: bytes, runtime_digest: str
+) -> None:
+    """Post-load manifest install with anchored, no-follow parent traversal."""
+    if os.name != "posix" or not all(
+        hasattr(os, flag) for flag in ("O_DIRECTORY", "O_NOFOLLOW")
+    ):
+        raise Refused("posix_nofollow_install_required")
+    # Open each component from / so a changed ancestor cannot redirect the
+    # final open into an unrelated cache between the precheck and Docker load.
+    root_fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        for part in artifacts_root.absolute().parts[1:]:
+            try:
+                next_fd = os.open(
+                    part,
+                    os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                    dir_fd=root_fd,
+                )
+            except OSError as error:
+                raise Refused("artifacts_root_changed") from error
+            os.close(root_fd)
+            root_fd = next_fd
+    except BaseException:
+        os.close(root_fd)
+        raise
+    try:
+        research_fd = _open_directory(root_fd, "research-images")
+        try:
+            runtime_fd = _open_directory(research_fd, runtime_digest[7:])
+            try:
+                _write_under(runtime_fd, "analysis-image.json", analysis_bytes)
+            finally:
+                os.close(runtime_fd)
+        finally:
+            os.close(research_fd)
+        _write_under(root_fd, "c03-worker-image.json", c03_bytes)
+    finally:
+        os.close(root_fd)
 
 
 def import_bundle(
@@ -417,9 +498,21 @@ def import_bundle(
         implementation,
     )
     _docker_pair(c03, analysis, cli or DockerCLI())
-    analysis_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-    _same_or_new(c03_path, c03_bytes)
-    _same_or_new(analysis_path, analysis_bytes)
+    _install_pair_nofollow(
+        artifacts_root, c03_bytes, analysis_bytes, analysis_manifest.runtime_digest
+    )
+    if (
+        installed_pair_status(
+            artifacts_root=artifacts_root,
+            revision=revision,
+            tree=tree,
+            source_tree_digest=source_tree_digest,
+            repository=repository,
+            cli=cli or DockerCLI(),
+        )
+        != "VERIFIED"
+    ):
+        raise Refused("post_import_pair_not_verified")
     return {
         "status": "VERIFIED_IMPORT",
         "c03_manifest": str(c03_path),
