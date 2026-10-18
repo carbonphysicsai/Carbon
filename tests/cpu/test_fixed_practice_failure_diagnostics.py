@@ -497,7 +497,7 @@ def test_direct_phase_records_closed_control_reason_without_changing_failure(
     )
 
 
-def test_prep_program_diagnostic_is_closed_bounded_and_best_effort(
+def test_prep_program_diagnostic_is_private_bounded_and_best_effort(
     tmp_path, monkeypatch
 ):
     original = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=SECRET * 5000)
@@ -513,7 +513,11 @@ def test_prep_program_diagnostic_is_closed_bounded_and_best_effort(
     assert caught.value is original
     record = (tmp_path / "failure-PROGRAM.json").read_bytes()
     assert SECRET not in record and len(record) < 2048
-    assert list(tmp_path.iterdir()) == [tmp_path / "failure-PROGRAM.json"]
+    private_path = tmp_path / "private-prep-program-diagnostic.bin"
+    assert private_path.read_bytes() == original.private_diagnostic[:65536]
+    assert set(tmp_path.iterdir()) == {tmp_path / "failure-PROGRAM.json", private_path}
+    if os.name != "nt":
+        assert private_path.stat().st_mode & 0o777 == 0o600
     assert not (tmp_path / "snapshot").exists()
     assert not (tmp_path / "export.stream").exists()
 
@@ -525,3 +529,4 @@ def test_prep_program_diagnostic_is_closed_bounded_and_best_effort(
         fail()
     assert caught.value is original
     assert (tmp_path / "failure-PROGRAM.json").read_bytes() == record
+    assert private_path.read_bytes() == original.private_diagnostic[:65536]

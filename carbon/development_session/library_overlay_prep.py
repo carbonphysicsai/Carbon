@@ -225,7 +225,10 @@ def prepare(
         env=environment,
         check=True,
         timeout=540,
-        capture_output=True,
+        # The outer C03 stream enforces its finite output cap. Inheriting
+        # those streams preserves installer errors without an unbounded
+        # subprocess buffer or publishing them in the overlay snapshot.
+        capture_output=False,
     )
     _source_into(source, overlay)
     rows = _overlay_rows(overlay)

@@ -409,20 +409,25 @@ def _fixed_practice_stage(operation, provenance, stage):
         if provenance in _FIXED_DIAGNOSTIC_PROVENANCES:
             _retain_practice_failure(operation, stage, error)
         if (
-            provenance == LIBRARY_BUILD_PROVENANCE
+            provenance in {LIBRARY_PREP_PROVENANCE, LIBRARY_BUILD_PROVENANCE}
             and stage == "PROGRAM"
             and isinstance(error, WorkerFailure)
         ):
             # The fixed Docker stream removes its partial stdout on failure.
             # Keep the bounded, private controller diagnostic for a failed
-            # source-bundle build so an operator can distinguish an import,
-            # fit, or export fault before admitting another run. This file is
+            # fixed offline preparation or source-bundle build so an operator
+            # can diagnose the actual program fault before admitting another run. This file is
             # not part of the returned/public result or model snapshot.
             try:
                 diagnostic = error.private_diagnostic
                 if type(diagnostic) is bytes and diagnostic:
                     write_once(
-                        operation / "private-build-program-diagnostic.bin",
+                        operation
+                        / (
+                            "private-prep-program-diagnostic.bin"
+                            if provenance == LIBRARY_PREP_PROVENANCE
+                            else "private-build-program-diagnostic.bin"
+                        ),
                         diagnostic[:65536],
                     )
             except Exception:  # noqa: BLE001, S110 - preserve worker failure
