@@ -97,3 +97,31 @@ and a mandatory failure with otherwise high A/D. Fixtures are inert synthetic
 data, not Motor/Battery truth. Product owns canonical runtime; author runs
 static checks. Hub remains frozen. No physics tolerance, production rule,
 solver campaign, hidden access or scientific qualification is authorized.
+
+## Fresh standalone receiver material-cache initialization (18 October)
+
+Lead owns the bounded normal receiver repair after an actual signed staging
+attempt on a fresh remote installation failed before its first material chunk.
+The configured campaigns directory exists, but the local miner attachment that
+normally creates `.direct-development` has never run on that receiver host.
+The material stager creates its own cache leaf without creating its parent.
+
+Before advertising signed staging, the receiver initializes only its derived
+cache parent and cache with the existing exact-path, symlink and private-mode
+checks. No request chooses a path, changes cache capacity, selects code for the
+grader, supplies fitted state, or bypasses source/owner/chain/resource checks.
+The operational recovery can use these same existing directory checks without
+upgrading the frozen construction campaign or its verified worker images.
+
+Additional owned manifest: `carbon/challenge_validator/direct_receiver.py`
+and `tests/cpu/test_direct_receiver.py`. The existing real signed loopback
+bootstrap fixture starts with an absent nested cache parent, requires both
+private directories before readiness, stages one real incomplete material
+chunk through the normal gateway/filesystem/ledger, and then retains its
+existing graph admission/cancellation and no-model-dispatch assertions. This
+fixture proves ingress/bootstrap behavior, never actual model reconstruction.
+
+Validation remains conditional on canonical focused receiver/material-staging
+acceptance, relevant subsystem checks and the normal exact-head CI/review gate.
+Authors run pinned static checks; Product owns runtime. The frozen Hub and all
+scientific, security, production and model-matrix maturity ceilings remain.

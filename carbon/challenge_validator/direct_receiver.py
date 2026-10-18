@@ -865,6 +865,10 @@ def serve(
     ):
         raise ValueError("registered receiver snapshot required")
     root = _private_directory(Path(cfg["root"]))
+    # A standalone receiver has no local miner attachment to create the
+    # shared cache parent before its first authenticated material chunk.
+    _private_directory(cache.parent)
+    _private_directory(cache)
     material = (
         battery_bundle_material()
         if cfg.get("challenge", {}).get("id")
