@@ -447,6 +447,11 @@ def retain_served_result(
                 != provider.construction_parent.image_id
                 or evidence.get("inference_image_id")
                 != provider.inference_image.image_id
+                or any(
+                    type(evidence.get(name)) is not str
+                    or re.fullmatch(r"sha256:[0-9a-f]{64}", evidence[name]) is None
+                    for name in ("overlay_tree_digest", "overlay_archive_digest")
+                )
                 or re.fullmatch(r"operation-[0-9a-f]{64}", evidence["prep_operation"])
                 is None
             ):
