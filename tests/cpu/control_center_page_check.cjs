@@ -125,7 +125,9 @@ scenario("normal challenge selection shows only its construction serving paths",
   second.go("#launch");
   await second.advance(0);
   await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id));
-  assert.equal(one(second, "#wizard-construction-options").hidden, true,
+  assert.equal(one(second, "#wizard-construction-options").hidden, false);
+  assert.match(second.text("wizard-construction-options"), /Construction path status unavailable/);
+  assert.doesNotMatch(second.text("wizard-construction-options"), /Official submission · unserved/,
     "an unrelated response key must not supply construction paths for this Challenge");
   clean(second);
 });
