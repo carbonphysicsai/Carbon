@@ -25,7 +25,20 @@ def _sha(raw):
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
-def _selected_pack(case, *, version="1"):
+def _selected_pack(case, *, version="1", incomplete=False, wrong_train=False):
+    public = {
+        role: {"path": role + ".bin", "sha256": _sha(role.encode())}
+        for role in PUBLIC_ROLES
+    }
+    public["train"]["sha256"] = (
+        _sha(b"wrong-train") if wrong_train else case["entry"]["train_digest"]
+    )
+    private = {
+        role: {"path": role + ".bin", "sha256": _sha(role.encode())}
+        for role in PRIVATE_ROLES
+    }
+    if incomplete:
+        private["solver_evidence"] = UNAVAILABLE
     manifest = {
         "schema": SCHEMA,
         "challenge": {
@@ -33,8 +46,8 @@ def _selected_pack(case, *, version="1"):
             "version": case["entry"]["challenge_version"],
         },
         "pack_version": version,
-        "public": {role: UNAVAILABLE for role in PUBLIC_ROLES},
-        "private": {role: UNAVAILABLE for role in PRIVATE_ROLES},
+        "public": public,
+        "private": private,
     }
     raw = (json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n").encode()
     return parse_pack(
@@ -84,6 +97,17 @@ def test_new_pack_changes_prospective_source_identity_without_rewriting_old(tmp_
     assert old.evaluation_pack_digest != new.evaluation_pack_digest
     assert old.sha256 != new.sha256
     assert json.loads(old.raw)["evaluation_pack_digest"] == old.evaluation_pack_digest
+
+
+def test_unfinished_or_wrong_train_pack_refuses_same_challenge(tmp_path):
+    case = _graph_case(tmp_path)
+    for selected, code in (
+        (_selected_pack(case, incomplete=True), "selected_pack_incomplete"),
+        (_selected_pack(case, wrong_train=True), "selected_pack_train_mismatch"),
+    ):
+        with pytest.raises(PrivateEvaluationSourceRefused) as raised:
+            _build(case, selected)
+        assert raised.value.code == code
 
 
 def test_cross_challenge_or_wrong_case_originals_refuse(tmp_path):

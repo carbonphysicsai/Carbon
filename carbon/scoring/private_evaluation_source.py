@@ -67,14 +67,20 @@ def build_pack_source_receipt(
     """Prepare v2 bytes for one selected, frozen pack and registered case list.
 
     ``selected_pack`` must come from the operator's retained ``load_pack``
-    result. This function validates the relationship of supplied originals; it
-    cannot by itself attest the caller's custody of that object. The trusted
-    task path retains ``raw`` and registers ``sha256`` independently.
+    result. The trusted caller must verify role bytes against the actual run
+    using each role's existing validator before this function is called. This
+    function checks required role availability, the TRAIN pin, and supplied
+    original identities; it cannot attest caller custody or prove the other
+    pack role relationships by itself. The task path retains ``raw`` and
+    registers ``sha256`` independently.
     """
     if type(selected_pack) is not EvaluationPackSnapshot or not is_sha256_digest(
         selected_pack.manifest_digest
     ):
         raise PrivateEvaluationSourceRefused("selected_pack_missing")
+    missing = selected_pack.missing_roles()
+    if missing["public"] or missing["private"]:
+        raise PrivateEvaluationSourceRefused("selected_pack_incomplete")
     if type(evaluation_version) is not str or not evaluation_version:
         raise PrivateEvaluationSourceRefused("evaluation_version_missing")
     if any(type(value) is not dict for value in (entry, trusted_job, registration)):
@@ -102,6 +108,8 @@ def build_pack_source_receipt(
         )
     ):
         raise PrivateEvaluationSourceRefused("source_identity")
+    if selected_pack.public["train"]["sha256"] != entry["train_digest"]:
+        raise PrivateEvaluationSourceRefused("selected_pack_train_mismatch")
     try:
         physics = physics_contract_identity(trusted_job["physics_contract"])
     except (BenchmarkRefused, KeyError, TypeError, ValueError) as exc:

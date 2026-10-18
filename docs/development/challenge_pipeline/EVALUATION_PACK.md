@@ -130,6 +130,12 @@ cases, actual reference rows and ordered original query bytes. It returns v2
 private source-receipt bytes and their SHA-256. The operator stores those bytes
 write-once and independently registers their digest; the existing private
 evidence binder verifies the exact source and selected pack pin. This helper
-does not select a pack, run a solver, expose private rows publicly, score a
-candidate or make the source receipt authoritative by itself. The legacy
+refuses an unfinished pack or a selected TRAIN digest that differs from the
+trusted entry. The normal caller must also reload and verify the selected
+role bytes against the actual construction, case, reference, solver and
+ScorePack materials; a matching Challenge ID/version and manifest digest
+alone do not prove that relationship. Missing role-specific provenance is
+typed source unavailability. The helper does not select a pack, run a solver,
+expose private rows publicly, score a candidate or make the source receipt
+authoritative by itself. The legacy
 no-pack v1 source path keeps its historical meaning.
