@@ -1,8 +1,8 @@
 """The owner cache preserves a child image binding without granting runtime authority."""
 
-import json
 import hashlib
 import io
+import json
 import tarfile
 from dataclasses import replace
 from types import SimpleNamespace
@@ -11,9 +11,9 @@ import pytest
 
 from carbon.development_session import library_environment_cache as cache
 from carbon.development_session.library_bundles import (
+    UV_IMAGE,
     LibraryBundleRef,
     ProvisionedLibraryEnvironment,
-    UV_IMAGE,
 )
 from carbon.development_session.research_image import LibraryWorkerImage
 from carbon.reconstruction.worker.model import WorkerImageIdentity
@@ -79,12 +79,12 @@ def test_verified_overlay_seals_exact_archive_and_rejects_changed_cache(
         "total_file_bytes": len(content),
     }
     (snapshot / "overlay.json").write_text(json.dumps(receipt), encoding="utf-8")
-    args = dict(
-        expected_bundle=image.provisioned.bundle,
-        expected_parent=image.parent,
-        expected_receipt=receipt,
-        material_cache_bytes=10 * 1024**2,
-    )
+    args = {
+        "expected_bundle": image.provisioned.bundle,
+        "expected_parent": image.parent,
+        "expected_receipt": receipt,
+        "material_cache_bytes": 10 * 1024**2,
+    }
     selected = cache.cache_verified_overlay(snapshot, root, **args)
     assert selected.path.name == receipt["tree_digest"][7:]
     assert (selected.path / relative).read_bytes() == content

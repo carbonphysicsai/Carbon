@@ -7,9 +7,9 @@ the runtime must call ``verify_library_worker_image`` before use.
 
 from __future__ import annotations
 
-import json
-import hashlib
 import errno
+import hashlib
+import json
 import os
 import re
 import secrets
@@ -21,9 +21,9 @@ from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
 
 from carbon.development_session.library_bundles import (
+    UV_IMAGE,
     LibraryBundleRef,
     ProvisionedLibraryEnvironment,
-    UV_IMAGE,
     _context_digest,
     _private_cache_directory,
     bundle_ref,
@@ -35,8 +35,8 @@ from carbon.development_session.research_image import (
     LibraryWorkerImage,
     verify_library_worker_image,
 )
-from carbon.reconstruction.worker.model import WorkerFailure, WorkerImageIdentity
 from carbon.reconstruction.worker.docker_runtime import DockerCLI
+from carbon.reconstruction.worker.model import WorkerFailure, WorkerImageIdentity
 
 SCHEMA = "carbon.library-worker-image-cache.v1"
 MAX_RECORD_BYTES = 64 * 1024
