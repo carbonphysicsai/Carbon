@@ -210,6 +210,84 @@ def test_the_page_holds_the_campaign_until_it_closes(tmp_path):
         pass
 
 
+def test_exclusive_open_refuses_an_existing_page_task_without_closing_it():
+    sessions = tool_door.ToolSessions(lambda _campaign: None)
+
+    class Existing:
+        def __init__(self):
+            self.used = self.opened = sessions.clock()
+            self.tasks = ["foreign-running-task"]
+            self.closed = False
+            self.door = self
+
+        def close(self):
+            self.closed = True
+
+        def describe(self):
+            return {}
+
+    existing = Existing()
+    sessions.sessions["c"] = existing
+    with pytest.raises(Rejected) as refused:
+        sessions.open("c", exclusive_token="a" * 32)
+    assert refused.value.code == "tools_session_already_open"
+    assert sessions.sessions["c"] is existing
+    assert existing.tasks == ["foreign-running-task"]
+    assert existing.closed is False
+    assert sessions.state("c")["open"] is True
+    existing.used = sessions.clock() - sessions.idle - 1
+    with pytest.raises(Rejected, match="tools_session_already_open"):
+        sessions.open("c", exclusive_token="a" * 32)
+    assert sessions.sessions["c"] is existing and existing.closed is False
+    sessions.close("c")
+
+
+def test_agent_lease_refuses_foreign_page_open_close_and_call():
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    sessions = tool_door.ToolSessions(lambda _campaign: None)
+
+    class AgentTask:
+        def __init__(self):
+            self.used = self.opened = sessions.clock() - sessions.idle - 1
+            self.tasks = ["agent-running-task"]
+            self.exclusive_token = "b" * 32
+            self.closed = False
+            self.door = self
+
+        def close(self):
+            self.closed = True
+
+        def describe(self):
+            return {}
+
+    task = AgentTask()
+    sessions.sessions["direct-development-1.3"] = task
+    host = object.__new__(RunnerAdapter)
+    host.tool_sessions = sessions
+    host.configuration = {}
+    with pytest.raises(Rejected, match="tools_session_already_open"):
+        tool_door.route(host, "direct-development-1.3", "open", {})
+    with pytest.raises(Rejected, match="tools_session_owned_elsewhere"):
+        tool_door.route(host, "direct-development-1.3", "close", {})
+    with pytest.raises(Rejected, match="tools_session_owned_elsewhere"):
+        tool_door.route(
+            host,
+            "direct-development-1.3",
+            "call",
+            {"tool": "any", "arguments": {}},
+        )
+    assert task.closed is False and task.tasks == ["agent-running-task"]
+    assert sessions.sessions["direct-development-1.3"] is task
+    assert tool_door.route(
+        host, "direct-development-1.3", "open", {"exclusive_token": "b" * 32}
+    )["open"]
+    tool_door.route(
+        host, "direct-development-1.3", "close", {"exclusive_token": "b" * 32}
+    )
+    assert task.closed is True
+
+
 def test_an_idle_session_is_released(tmp_path):
     now = [0.0]
     sessions = tool_door.ToolSessions(

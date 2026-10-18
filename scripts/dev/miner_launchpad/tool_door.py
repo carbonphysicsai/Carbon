@@ -554,7 +554,12 @@ class ToolSessions:
         """Close every session idle for `idle` seconds."""
         now = self.clock()
         with self.lock:
-            stale = [c for c, s in self.sessions.items() if now - s.used >= self.idle]
+            stale = [
+                c
+                for c, s in self.sessions.items()
+                if getattr(s, "exclusive_token", None) is None
+                and now - s.used >= self.idle
+            ]
             for campaign in stale:
                 self.sessions.pop(campaign).close()
 
@@ -582,13 +587,17 @@ class ToolSessions:
                 ),
             }
 
-    def open(self, campaign):
+    def open(self, campaign, *, exclusive_token=None):
         from scripts.dev.miner_launchpad.controller import Rejected
 
-        self.reap()
+        if exclusive_token is None:
+            self.reap()
         with self.lock:
             if campaign in self.sessions:
-                self.sessions[campaign].used = self.clock()
+                session = self.sessions[campaign]
+                if getattr(session, "exclusive_token", None) != exclusive_token:
+                    raise Rejected("tools_session_already_open", 409)
+                session.used = self.clock()
                 return self.state(campaign)
             session = _Session(campaign)
             try:
@@ -610,12 +619,21 @@ class ToolSessions:
                 ) from None
             session.used = self.clock()
             session.tasks = list(self.seed_tasks)
+            session.exclusive_token = exclusive_token
             self.sessions[campaign] = session
             return self.state(campaign)
 
-    def close(self, campaign):
+    def close(self, campaign, *, exclusive_token=None):
+        from scripts.dev.miner_launchpad.controller import Rejected
+
         with self.lock:
-            session = self.sessions.pop(campaign, None)
+            session = self.sessions.get(campaign)
+            if (
+                session is not None
+                and getattr(session, "exclusive_token", None) != exclusive_token
+            ):
+                raise Rejected("tools_session_owned_elsewhere", 409)
+            self.sessions.pop(campaign, None)
         if session is not None:
             session.close()
         return {"open": False, "closed": session is not None}
@@ -627,7 +645,7 @@ class ToolSessions:
             with contextlib.suppress(Exception):
                 session.close()
 
-    def _session(self, campaign):
+    def _session(self, campaign, *, exclusive_token=None):
         from scripts.dev.miner_launchpad.controller import Rejected
 
         self.reap()
@@ -635,25 +653,27 @@ class ToolSessions:
             session = self.sessions.get(campaign)
             if session is None:
                 raise Rejected("tools_session_not_open", 409)
+            if getattr(session, "exclusive_token", None) != exclusive_token:
+                raise Rejected("tools_session_owned_elsewhere", 409)
             session.used = self.clock()
             return session
 
-    def call(self, campaign, value):
+    def call(self, campaign, value, *, exclusive_token=None):
         from scripts.dev.miner_launchpad.controller import Rejected
 
         if type(value) is not dict or set(value) != {"tool", "arguments"}:
             raise Rejected("closed_tool_call_required")
-        session = self._session(campaign)
+        session = self._session(campaign, exclusive_token=exclusive_token)
         return session.run(
             session.door.call(value["tool"], value["arguments"]), CALL_SECONDS
         )
 
-    def start(self, campaign, value):
+    def start(self, campaign, value, *, exclusive_token=None):
         from scripts.dev.miner_launchpad.controller import Rejected
 
         if type(value) is not dict or set(value) != {"arguments"}:
             raise Rejected("closed_task_start_required")
-        session = self._session(campaign)
+        session = self._session(campaign, exclusive_token=exclusive_token)
         result = session.run(session.door.start(value["arguments"]), CALL_SECONDS)
         if result.get("ok") and result.get("task"):
             with self.lock:
@@ -661,28 +681,28 @@ class ToolSessions:
                 session.tasks = ([result["task"]["taskId"]] + session.tasks)[:50]
         return result
 
-    def observe(self, campaign, value, *, cancel=False):
+    def observe(self, campaign, value, *, cancel=False, exclusive_token=None):
         from scripts.dev.miner_launchpad.controller import Rejected
 
         if type(value) is not dict or set(value) != {"task_id"}:
             raise Rejected("closed_task_id_required")
-        session = self._session(campaign)
+        session = self._session(campaign, exclusive_token=exclusive_token)
         return session.run(
             session.door.observe(value["task_id"], cancel=cancel), CALL_SECONDS
         )
 
-    def submit_construction(self, campaign, value):
+    def submit_construction(self, campaign, value, *, exclusive_token=None):
         from scripts.dev.miner_launchpad.controller import Rejected
 
-        session = self._session(campaign)
+        session = self._session(campaign, exclusive_token=exclusive_token)
         if type(session.door) is not DirectToolDoor:
             raise Rejected("construction_session_required", 409)
         return session.run(session.door.submit_construction(value), CALL_SECONDS)
 
-    def stage_construction_graph(self, campaign, value):
+    def stage_construction_graph(self, campaign, value, *, exclusive_token=None):
         from scripts.dev.miner_launchpad.controller import Rejected
 
-        session = self._session(campaign)
+        session = self._session(campaign, exclusive_token=exclusive_token)
         if type(session.door) is not DirectToolDoor:
             raise Rejected("construction_session_required", 409)
         return session.run(session.door.stage_construction_graph(value), CALL_SECONDS)
@@ -728,17 +748,30 @@ def route(host, campaign, action, value):
     row = None if direct else host.owned_campaign(campaign)
     if action == "state":
         return {"campaign": campaign, **sessions.state(campaign)}
+    exclusive_token = None
+    if direct and type(value) is dict and "exclusive_token" in value:
+        exclusive_token = value["exclusive_token"]
+        if (
+            type(exclusive_token) is not str
+            or len(exclusive_token) != 32
+            or any(char not in "0123456789abcdef" for char in exclusive_token)
+        ):
+            raise Rejected("invalid_tools_session_token", 409)
+        value = {key: item for key, item in value.items() if key != "exclusive_token"}
     if action == "close":
         if value != {}:
             raise Rejected("control_body_must_be_empty_object")
-        return sessions.close(campaign)
+        return sessions.close(campaign, exclusive_token=exclusive_token)
     if action == "open":
         if value != {}:
             raise Rejected("control_body_must_be_empty_object")
         if direct:
             if host.configuration is None:
                 raise Rejected("research_profile_unavailable", 409)
-            return {"campaign": campaign, **sessions.open(campaign)}
+            return {
+                "campaign": campaign,
+                **sessions.open(campaign, exclusive_token=exclusive_token),
+            }
         if row.get("kind") == "fixture":
             # The demo's synthetic session (RSURF-D18): no profile, chain or
             # lock exists to check, and it runs nothing.
@@ -755,18 +788,24 @@ def route(host, campaign, action, value):
         _signer_reachable(host, profile)
         return {"campaign": campaign, **sessions.open(campaign)}
     if action == "call":
-        return sessions.call(campaign, value)
+        return sessions.call(campaign, value, exclusive_token=exclusive_token)
     if action == "start":
-        return sessions.start(campaign, value)
+        return sessions.start(campaign, value, exclusive_token=exclusive_token)
     if action == "submit_construction":
         if campaign != DIRECT_DEVELOPMENT_V13_SESSION:
             raise Rejected("construction_session_required", 409)
-        return sessions.submit_construction(campaign, value)
+        return sessions.submit_construction(
+            campaign, value, exclusive_token=exclusive_token
+        )
     if action == "stage_construction_graph":
         if campaign != DIRECT_DEVELOPMENT_V13_SESSION:
             raise Rejected("construction_session_required", 409)
-        return sessions.stage_construction_graph(campaign, value)
-    return sessions.observe(campaign, value, cancel=action == "cancel")
+        return sessions.stage_construction_graph(
+            campaign, value, exclusive_token=exclusive_token
+        )
+    return sessions.observe(
+        campaign, value, cancel=action == "cancel", exclusive_token=exclusive_token
+    )
 
 
 def runner_opener(host):

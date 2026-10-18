@@ -41,6 +41,7 @@ from pathlib import Path
 from .profile import canonical, digest
 
 VERSION = "carbon.autoresearch.campaign.v1"
+DIRECT_AGENT = "carbon.autoresearch.direct-agent-campaign.v1"
 
 #: A product campaign: launched by a miner through a product surface, admitted
 #: by subnet registration alone (C-MLP-02-D11), and controlled - pause, stop,
@@ -164,7 +165,7 @@ def _final_reserve(manifest):
     """
     if manifest.get("final_reserve") is True:
         return SUGGESTED_FINAL_RESERVE
-    if manifest["schema"] not in (VERSION, PRODUCT):
+    if manifest["schema"] not in (VERSION, PRODUCT, DIRECT_AGENT):
         # The development grant path keeps the reserve it was built with.
         return SUGGESTED_FINAL_RESERVE
     return {}
@@ -193,6 +194,60 @@ def _check_budget(manifest):
         raise ValueError("elapsed budget must be a positive whole number")
     if manifest.get("final_reserve") not in (None, True, False):
         raise ValueError("final_reserve is the miner's choice, true or false")
+
+
+def _check_direct_agent(manifest):
+    """A finite synthetic DEVELOPMENT agent campaign has no exam fields."""
+    if set(manifest) != {
+        "schema",
+        "campaign_id",
+        "canonical_root",
+        "owner",
+        "agent",
+        "challenge",
+        "direct_development_session",
+        "profile_digest",
+        "implementation",
+        "challenge_info_digest",
+        "interaction_manifest_digest",
+        "provider",
+        "ceilings",
+        "retained_bytes_scope",
+        "elapsed_seconds",
+    } or any(
+        type(manifest.get(field)) is not str or not manifest[field]
+        for field in (
+            "campaign_id",
+            "canonical_root",
+            "owner",
+            "profile_digest",
+            "implementation",
+            "challenge_info_digest",
+            "interaction_manifest_digest",
+        )
+    ):
+        raise ValueError("finite direct agent manifest required")
+    challenge = manifest["challenge"]
+    ceilings = manifest["ceilings"]
+    if (
+        manifest["agent"] != "graphite-direct"
+        or manifest["direct_development_session"] != "direct-development-1.3"
+        or type(challenge) is not dict
+        or set(challenge) != {"id", "version"}
+        or any(
+            type(challenge[key]) is not str or not challenge[key] for key in challenge
+        )
+        or type(manifest["provider"]) is not dict
+        or manifest["retained_bytes_scope"] != "agent_provider_journal_reservation"
+        or type(ceilings) is not dict
+        or set(ceilings)
+        != {"provider_attempts", "provider_nanodollars", "retained_bytes"}
+        or any(type(value) is not int or value < 1 for value in ceilings.values())
+        or type(manifest["elapsed_seconds"]) is not int
+        or manifest["elapsed_seconds"] < 1
+    ):
+        raise ValueError("bounded direct agent manifest required")
+    _check_budget(manifest)
 
 
 def _check_product(manifest):
@@ -311,7 +366,7 @@ def manifest_basis(manifest):
     schema = manifest.get("schema") if type(manifest) is dict else None
     if schema == PRODUCT:
         return "miner_launch_budget"
-    if schema == VERSION:
+    if schema in (VERSION, DIRECT_AGENT):
         return "development_campaign"
     return "development_grant"
 
@@ -517,6 +572,7 @@ class CampaignLedger:
 
         if type(manifest) is not dict or manifest.get("schema") not in {
             VERSION,
+            DIRECT_AGENT,
             MANIFEST,
             PRODUCT,
         }:
@@ -532,19 +588,22 @@ class CampaignLedger:
                     "a product campaign never consumes a development grant"
                 )
             _check_product(manifest)
-        for key in (
-            "campaign_id",
-            "implementation",
-            "objective",
-            "sampling",
-            "control",
-            "selection",
-            "replica_policy",
-            "provider",
-            "owner",
-        ):
-            if not manifest.get(key):
-                raise ValueError("incomplete prospective campaign manifest")
+        if manifest["schema"] == DIRECT_AGENT:
+            _check_direct_agent(manifest)
+        else:
+            for key in (
+                "campaign_id",
+                "implementation",
+                "objective",
+                "sampling",
+                "control",
+                "selection",
+                "replica_policy",
+                "provider",
+                "owner",
+            ):
+                if not manifest.get(key):
+                    raise ValueError("incomplete prospective campaign manifest")
         payload = canonical(manifest)
         with self.db() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -639,6 +698,8 @@ class CampaignLedger:
                 raise ValueError("freeze before dispatch")
             manifest = json.loads(frozen[0])
             self._check_admission_mode(manifest)
+            if manifest.get("schema") == DIRECT_AGENT and owner != manifest["owner"]:
+                raise ValueError("direct agent campaign owner differs")
             caps, elapsed = _caps(manifest), _elapsed(manifest)
             expiry = None
             controlled = self.controlled(manifest)
