@@ -13,12 +13,12 @@ import gzip
 import hashlib
 import json
 import os
-from pathlib import Path
 import stat
 import subprocess
 import sys
 import tempfile
-from typing import Callable
+from collections.abc import Callable
+from pathlib import Path
 
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_campaign import (
@@ -36,7 +36,6 @@ from carbon.reconstruction.worker.docker_runtime import (
     load_image_identity,
 )
 from carbon.reconstruction.worker.model import WorkerFailure
-
 
 SCHEMA = "carbon.development-image-artifact.v1"
 SCOPE = "UNQUALIFIED_PUBLIC_DEVELOPMENT"
@@ -141,38 +140,37 @@ def _write_new(path: Path, body: bytes) -> None:
 
 
 def _save_compressed(path: Path, c03_id: str, analysis_id: str) -> tuple[str, int, int]:
-    with tempfile.TemporaryFile() as errors:
-        with path.open("xb") as destination:
-            process = subprocess.Popen(
-                ["docker", "image", "save", c03_id, analysis_id],
-                stdout=subprocess.PIPE,
-                stderr=errors,
+    with tempfile.TemporaryFile() as errors, path.open("xb") as destination:
+        process = subprocess.Popen(
+            ["docker", "image", "save", c03_id, analysis_id],
+            stdout=subprocess.PIPE,
+            stderr=errors,
+        )
+        raw_bytes = 0
+        assert process.stdout is not None
+        try:
+            with gzip.GzipFile(
+                filename="", mode="wb", fileobj=destination, mtime=0
+            ) as compressed:
+                for chunk in iter(lambda: process.stdout.read(1024 * 1024), b""):
+                    raw_bytes += len(chunk)
+                    if raw_bytes > MAX_ARCHIVE_BYTES:
+                        raise Refused("uncompressed_archive_too_large")
+                    compressed.write(chunk)
+        except BaseException:
+            if process.poll() is None:
+                process.kill()
+            process.wait()
+            raise
+        finally:
+            process.stdout.close()
+        if process.wait() != 0:
+            errors.seek(0)
+            raise Refused(
+                "docker_save_failed:" + errors.read(4096).decode("utf-8", "replace")
             )
-            raw_bytes = 0
-            assert process.stdout is not None
-            try:
-                with gzip.GzipFile(
-                    filename="", mode="wb", fileobj=destination, mtime=0
-                ) as compressed:
-                    for chunk in iter(lambda: process.stdout.read(1024 * 1024), b""):
-                        raw_bytes += len(chunk)
-                        if raw_bytes > MAX_ARCHIVE_BYTES:
-                            raise Refused("uncompressed_archive_too_large")
-                        compressed.write(chunk)
-            except BaseException:
-                if process.poll() is None:
-                    process.kill()
-                process.wait()
-                raise
-            finally:
-                process.stdout.close()
-            if process.wait() != 0:
-                errors.seek(0)
-                raise Refused(
-                    "docker_save_failed:" + errors.read(4096).decode("utf-8", "replace")
-                )
-            destination.flush()
-            os.fsync(destination.fileno())
+        destination.flush()
+        os.fsync(destination.fileno())
     size = path.stat().st_size
     if size == 0 or size > MAX_ARCHIVE_BYTES:
         raise Refused("compressed_archive_size_invalid")

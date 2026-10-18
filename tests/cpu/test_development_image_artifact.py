@@ -4,16 +4,15 @@ import gzip
 import hashlib
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from carbon.development_session.profile import canonical, digest
 from scripts.dev import development_image_artifact as handoff
-
 
 COMMIT = "a" * 40
 TREE = "b" * 40
