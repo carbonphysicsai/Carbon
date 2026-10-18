@@ -94,6 +94,120 @@ def test_configuration_retains_explicit_finite_measurement_policy(
     assert receiver.load_config(tmp_path / "config.json")["measure_query"] is True
 
 
+def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session import (
+        miner_network,
+        research_campaign,
+        research_image,
+    )
+    from carbon.reconstruction.worker import docker_runtime
+    from scripts.dev.miner_launchpad import installed, runner
+
+    state = tmp_path / "state"
+    profile = state / "environment" / "runner-profile.json"
+    campaigns = profile.parent / "campaigns"
+    accepted = {"revision": "a" * 40, "source_tree_digest": "sha256:" + "a" * 64}
+    candidate = {
+        "revision": "b" * 40,
+        "tree": "c" * 40,
+        "source_tree_digest": "sha256:" + "b" * 64,
+        "source_authority": "DEVELOPMENT_CANDIDATE",
+    }
+    worker = SimpleNamespace(
+        image_id="sha256:" + "1" * 64,
+        source_tree_digest=candidate["source_tree_digest"],
+    )
+    analysis = SimpleNamespace(
+        image_id="sha256:" + "2" * 64, parent_image=worker.image_id
+    )
+    gpu = SimpleNamespace(
+        image_id="sha256:" + "3" * 64,
+        source_tree_digest=candidate["source_tree_digest"],
+    )
+    cfg = {
+        "enabled": True,
+        "accepted_revision": candidate["revision"],
+        "campaigns_root": str(campaigns),
+        "runtime": {
+            "implementation": candidate,
+            "images": [worker.image_id, analysis.image_id],
+        },
+        "paths": {
+            "image_manifest": str(tmp_path / "worker.json"),
+            "analysis_image_manifest": str(tmp_path / "analysis.json"),
+        },
+        "gpu_image": str(tmp_path / "gpu.json"),
+    }
+    calls = []
+    monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
+    monkeypatch.setattr(runner, "validated_profile", lambda value: value)
+    monkeypatch.setattr(
+        installed,
+        "candidate_implementation",
+        lambda selected: calls.append(("candidate", selected)) or candidate,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        research_campaign,
+        "accepted_implementation",
+        lambda revision: calls.append(("accepted", revision)) or accepted,
+    )
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda path: {"worker.json": worker, "gpu.json": gpu}[path.name],
+    )
+    monkeypatch.setattr(research_image, "load_analysis_image", lambda _: analysis)
+    monkeypatch.setattr(research_image, "verify_image", lambda _: None)
+    monkeypatch.setattr(
+        docker_runtime,
+        "doctor",
+        lambda **_: SimpleNamespace(eligible=True),
+    )
+    monkeypatch.setattr(miner_network, "binding", lambda **_: "installed-network")
+    implementation, parent, network, cache = receiver.installed_source(profile)
+    assert (implementation, parent, network) == (candidate, gpu, "installed-network")
+    assert cache == campaigns / ".direct-development" / "library-cache"
+    assert calls == [("candidate", state)]
+
+    # A present but invalid candidate pin cannot silently use accepted main.
+    def invalid_candidate(_):
+        raise ValueError("development candidate record differs")
+
+    monkeypatch.setattr(installed, "candidate_implementation", invalid_candidate)
+    with pytest.raises(ValueError, match="candidate record differs"):
+        receiver.installed_source(profile)
+    assert calls == [("candidate", state)]
+
+    monkeypatch.setattr(installed, "candidate_implementation", lambda _: candidate)
+    cfg["runtime"]["implementation"] = accepted
+    with pytest.raises(ValueError, match="candidate profile differs"):
+        receiver.installed_source(profile)
+    cfg["runtime"]["implementation"] = candidate
+    cfg["runtime"]["images"] = [worker.image_id, gpu.image_id]
+    with pytest.raises(ValueError, match="candidate installed images differ"):
+        receiver.installed_source(profile)
+
+    # An exact installed profile with no candidate pin remains main-only.
+    cfg["accepted_revision"] = accepted["revision"]
+    cfg["runtime"]["implementation"] = accepted
+    cfg["runtime"]["images"] = [worker.image_id, analysis.image_id]
+    gpu.source_tree_digest = accepted["source_tree_digest"]
+    monkeypatch.setattr(installed, "candidate_implementation", lambda _: None)
+    implementation, parent, _, _ = receiver.installed_source(profile)
+    assert (implementation, parent) == (accepted, gpu)
+    assert calls[-1] == ("accepted", accepted["revision"])
+
+    # A profile outside the exact installed state path never reads the pin.
+    monkeypatch.setattr(installed, "candidate_implementation", invalid_candidate)
+    regular = tmp_path / "other-profile.json"
+    implementation, parent, _, _ = receiver.installed_source(regular)
+    assert (implementation, parent) == (accepted, gpu)
+    assert calls[-1] == ("accepted", accepted["revision"])
+
+
 def test_main_uses_process_stop_and_closed_failure_without_private_text(
     tmp_path, monkeypatch, capsys
 ):

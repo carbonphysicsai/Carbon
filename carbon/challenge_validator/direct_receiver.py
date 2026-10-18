@@ -204,14 +204,47 @@ def installed_source(profile_path: Path):
         accepted_implementation,
         verify_current_worker,
     )
+    from carbon.development_session.research_image import (
+        load_analysis_image,
+        verify_image,
+    )
     from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
+    from scripts.dev.miner_launchpad import installed
     from scripts.dev.miner_launchpad.runner import validated_profile
 
     cfg = validated_profile(private_json(profile_path))
     if cfg["enabled"] is not True:
         raise ValueError("installed dispatch is disabled")
-    implementation = accepted_implementation(cfg["accepted_revision"])
+    implementation = None
+    development_candidate = False
+    if (
+        profile_path.is_absolute()
+        and profile_path.resolve() == profile_path
+        and profile_path.name == "runner-profile.json"
+        and profile_path.parent.name == "environment"
+    ):
+        implementation = installed.candidate_implementation(profile_path.parent.parent)
+        development_candidate = implementation is not None
+        if development_candidate and (
+            cfg["runtime"]["implementation"] != implementation
+            or cfg["accepted_revision"] != implementation["revision"]
+            or Path(cfg["campaigns_root"]) != profile_path.parent / "campaigns"
+        ):
+            raise ValueError("development candidate profile differs")
+    if implementation is None:
+        implementation = accepted_implementation(cfg["accepted_revision"])
     paths = {name: Path(value) for name, value in cfg["paths"].items()}
+    if development_candidate:
+        worker = load_image_identity(paths["image_manifest"])
+        verify_current_worker(worker, implementation)
+        analysis = load_analysis_image(paths["analysis_image_manifest"])
+        verify_image(analysis)
+        if (
+            analysis.parent_image != worker.image_id
+            or cfg["runtime"].get("images") != [worker.image_id, analysis.image_id]
+            or type(cfg.get("gpu_image")) is not str
+        ):
+            raise ValueError("development candidate installed images differ")
     parent = load_image_identity(Path(cfg.get("gpu_image", paths["image_manifest"])))
     verify_current_worker(parent, implementation)
     if not doctor(image_id=parent.image_id, image_identity=parent).eligible:
