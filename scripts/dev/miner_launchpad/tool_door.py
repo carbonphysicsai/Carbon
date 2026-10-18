@@ -215,9 +215,7 @@ def _direct_task_projection(view, public_result=None):
         else (
             "completed"
             if state == "SUCCEEDED"
-            else "cancelled"
-            if state == "CANCELLED"
-            else "failed"
+            else "cancelled" if state == "CANCELLED" else "failed"
         )
     )
     return {
@@ -408,61 +406,6 @@ class DirectToolDoor:
             return {"ok": False, "error": refused.code}
         except (OSError, ValueError, LookupError):
             return {"ok": False, "error": "construction_source_staging_unavailable"}
-
-    async def stage_construction_material(self, value):
-        """CLI-owned finite bundle transfer through the same signed receiver.
-
-        This method is intentionally absent from the page's 120-second HTTP
-        actions. The attached CLI calls it synchronously while it holds the
-        owner's session lock, so interruption cannot leave a background upload.
-        """
-        from pathlib import Path
-
-        from carbon.development_session.construction_recipe import (
-            ConstructionRecipe,
-            RecipeRefused,
-        )
-        from carbon.development_session.direct_source_submission import stage_bundle
-        from carbon.development_session.direct_submission import DirectIntakeRefusal
-        from carbon.reconstruction.served_recipe_contract import registered
-
-        if self.intake_target is None:
-            return {"ok": False, "error": "construction_intake_unconfigured"}
-        if type(value) is not dict or set(value) != {"recipe", "directory"}:
-            return {"ok": False, "error": "construction_bundle_request_required"}
-        directory = value["directory"]
-        if (
-            type(directory) is not str
-            or not directory
-            or not Path(directory).is_absolute()
-            or ".." in Path(directory).parts
-        ):
-            return {"ok": False, "error": "construction_bundle_directory_invalid"}
-        try:
-            recipe = ConstructionRecipe.from_dict(value["recipe"])
-            challenge = recipe.to_dict()["challenge"]
-            if (
-                self.adapter.challenge.challenge_id,
-                self.adapter.challenge.version,
-            ) != (challenge["id"], challenge["version"]):
-                raise DirectIntakeRefusal("construction_recipe_challenge_mismatch")
-            if recipe.to_dict()["source"]["kind"] != "bundle":
-                raise DirectIntakeRefusal("construction_bundle_source_required")
-            contract = registered(challenge["id"], challenge["version"])
-            result = stage_bundle(
-                self.intake_target["intake_url"],
-                self.adapter.connection.miner_key,
-                directory=Path(directory),
-                recipe=recipe,
-                contract_digest=contract.digest,
-                receiver=self.intake_target["receiver_hotkey"],
-                context=self.adapter.connection.chain_context,
-            )
-            return {"ok": True, "result": result, "official_eligible": False}
-        except (DirectIntakeRefusal, RecipeRefused) as refused:
-            return {"ok": False, "error": refused.code}
-        except (OSError, ValueError, LookupError):
-            return {"ok": False, "error": "construction_material_staging_unavailable"}
 
     async def call(self, name, arguments):
         from mcp.server.mcpserver.exceptions import ToolError

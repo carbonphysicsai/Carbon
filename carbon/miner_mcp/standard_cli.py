@@ -1519,6 +1519,73 @@ async def serve_installed_direct_development(configuration: Path, *, version="1.
         await create_direct_stdio_server(adapter).run_async()
 
 
+@contextlib.asynccontextmanager
+async def attached_remote_material_stage(configuration: Path):
+    """Authenticate a signed upload without requiring local execution images."""
+    from carbon.chain.external_signer import miner_signer
+    from carbon.development_session.direct_research_composition import (
+        DirectDevelopmentConnection,
+    )
+    from carbon.development_session.intake_targets import validate
+    from carbon.development_session.miner_network import binding
+    from carbon.development_session.research_campaign import private_file
+    from scripts.dev.miner_launchpad.controller import owner_lock
+    from scripts.dev.miner_launchpad.runner import validated_profile
+
+    _direct_material("1.3")
+    with _check("runner_profile_unusable"):
+        cfg = validated_profile(private_json(configuration))
+    if cfg["enabled"] is not True:
+        raise AttachRefused(
+            "research_dispatch_disabled", "closed enabled operator profile required"
+        )
+    base = Path(cfg["campaigns_root"])
+    if not base.is_dir() or base.is_symlink() or base.resolve(strict=True) != base:
+        raise AttachRefused("runner_profile_unusable", "private owner root required")
+    state = base / ".direct-development" / "remote-stage-v1.3"
+    if any(part.is_symlink() for part in (state.parent, state)):
+        raise AttachRefused("runner_profile_unusable", "private direct root differs")
+    if state.exists() and not state.is_dir():
+        raise AttachRefused("runner_profile_unusable", "private direct root differs")
+    paths = {name: Path(value) for name, value in cfg["paths"].items()}
+    with _check("runner_profile_unusable"):
+        network = binding(
+            operator_config=paths.get("operator_config"),
+            miner_network=paths.get("miner_network"),
+        )
+        public = json.loads(private_file(paths["miner_public"]).read_bytes())
+        if (
+            public["netuid"] != CARBON_NETUID
+            or network.netuid != CARBON_NETUID
+            or public["hotkey"] != cfg["principal"]
+        ):
+            raise AttachRefused(
+                "registration_wrong_network", "installed miner identity differs"
+            )
+        signer = miner_signer(public, paths.get("signer_socket"))
+    if "direct_intake_target" not in cfg:
+        raise AttachRefused(
+            "construction_intake_unconfigured", "pinned receiver required"
+        )
+    with _check("runner_profile_unusable"):
+        target = validate([cfg["direct_intake_target"]])[0]
+    with owner_lock(state):
+        connection = DirectDevelopmentConnection(
+            root=state / "research-auth",
+            version="1.3",
+            chain_context=network.context,
+            publisher=network.publisher_hotkey,
+            miner_key=signer,
+        )
+        with _check("registration_check_failed"):
+            owner = await _requester(connection, challenge=connection.challenge)
+        if owner != cfg["principal"]:
+            raise AttachRefused(
+                "campaign_owner_changed", "authenticated direct owner changed"
+            )
+        yield connection, target
+
+
 async def stage_installed_direct_bundle(
     configuration: Path, directory: Path, recipe_path: Path
 ) -> dict:
@@ -1528,12 +1595,9 @@ async def stage_installed_direct_bundle(
     transfer. An interruption stops this synchronous upload; a rerun uses
     the receiver's acknowledged digest-bound offsets.
     """
-    from scripts.dev.miner_launchpad.runner import RunnerAdapter
-    from scripts.dev.miner_launchpad.tool_door import (
-        DIRECT_DEVELOPMENT_V13_SESSION,
-        DirectToolDoor,
-        runner_opener,
-    )
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.development_session.direct_source_submission import stage_bundle
+    from carbon.reconstruction.served_recipe_contract import registered
 
     if (
         not recipe_path.is_absolute()
@@ -1547,18 +1611,37 @@ async def stage_installed_direct_bundle(
     recipe_bytes = recipe_path.read_bytes()
     if not 0 < len(recipe_bytes) <= 128 * 1024:
         raise ValueError("bounded regular recipe file required")
-    recipe = json.loads(recipe_bytes)
-    host = RunnerAdapter.for_profile(configuration)
-    try:
-        async with runner_opener(host)(DIRECT_DEVELOPMENT_V13_SESSION) as attachment:
-            door = DirectToolDoor(
-                attachment.adapter, intake_target=attachment.intake_target
+    if not directory.is_absolute() or ".." in directory.parts:
+        raise AttachRefused(
+            "construction_bundle_directory_invalid",
+            "absolute bundle directory required",
+        )
+    recipe = ConstructionRecipe.from_dict(json.loads(recipe_bytes))
+    source = recipe.to_dict()
+    if source["source"]["kind"] != "bundle":
+        raise AttachRefused(
+            "construction_bundle_source_required", "bundle source required"
+        )
+    async with attached_remote_material_stage(configuration) as (connection, target):
+        challenge = source["challenge"]
+        if (challenge["id"], challenge["version"]) != (
+            connection.challenge.challenge_id,
+            connection.challenge.version,
+        ):
+            raise AttachRefused(
+                "construction_recipe_challenge_mismatch", "recipe challenge differs"
             )
-            return await door.stage_construction_material(
-                {"recipe": recipe, "directory": str(directory)}
-            )
-    finally:
-        host.close()
+        contract = registered(challenge["id"], challenge["version"])
+        result = stage_bundle(
+            target["intake_url"],
+            connection.miner_key,
+            directory=directory,
+            recipe=recipe,
+            contract_digest=contract.digest,
+            receiver=target["receiver_hotkey"],
+            context=connection.chain_context,
+        )
+        return {"ok": True, "result": result, "official_eligible": False}
 
 
 def _setup_door(server, state_dir=None, *, operations=True):

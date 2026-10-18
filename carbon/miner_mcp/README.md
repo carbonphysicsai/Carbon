@@ -538,11 +538,12 @@ python -m carbon.miner_mcp.standard_cli \
   --recipe /private/pinned-bundle/cr02_recipe.json
 ```
 
-This holds the existing authenticated owner attachment for the finite signed
-transfer. It checks the recipe against the exact local source, lock, license and
-wheels. If interrupted, rerun the same command to resume at receiver-acknowledged
-digest-bound offsets. The command stages bytes only; construction and evaluation
-remain separate operations.
+This holds an authenticated owner lock for the finite signed transfer and checks
+the recipe against the exact local source, lock, license and wheels. The sending
+host needs its valid profile, chain registration, external signer and pinned
+receiver; it does not need a local execution image or Docker. If interrupted,
+rerun the same command to resume at receiver-acknowledged digest-bound offsets.
+The command stages bytes only; construction and evaluation remain separate.
 
 ## Private Streamable HTTP composition
 
