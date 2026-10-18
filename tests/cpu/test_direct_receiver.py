@@ -805,12 +805,11 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
         assert db.execute(
             "SELECT profile FROM direct_task_measurements"
         ).fetchall() == [("COLD_QUERY_V2",)]
-        assert (
-            json.loads(db.execute("SELECT view FROM direct_tasks").fetchone()[0])[
-                "state"
-            ]
-            == "CANCELLED"
+        view = research.load_canonical(
+            db.execute("SELECT view FROM direct_tasks").fetchone()[0],
+            research.DirectTaskViewV3,
         )
+        assert view.state is research.DirectTaskStateV3.CANCELLED
 
 
 @POSIX
