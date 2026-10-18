@@ -22,8 +22,9 @@ def _candidate(tmp_path):
     _git(repo, "init", "-q")
     _git(repo, "config", "user.name", "Carbon Test")
     _git(repo, "config", "user.email", "carbon-test@example.invalid")
+    (repo / ".gitignore").write_text("*.pyc\nbuild/\ndist/\n")
     (repo / "source.txt").write_text("main\n")
-    _git(repo, "add", "source.txt")
+    _git(repo, "add", ".gitignore", "source.txt")
     _git(repo, "commit", "-qm", "base")
     _git(
         repo, "update-ref", "refs/remotes/origin/main", _git(repo, "rev-parse", "HEAD")
@@ -94,6 +95,20 @@ def test_candidate_rejects_tracked_and_untracked_drift(tmp_path):
     _git(repo, "restore", "source.txt")
     (repo / "untracked.py").write_text("print('extra source')\n")
     with pytest.raises(ValueError, match="exact clean revision"):
+        _checked(repo, revision, tree, source_digest)
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["carbon/hidden.pyc", "carbon/build/extension.so", "scripts/dist/override.py"],
+)
+def test_candidate_rejects_ignored_runtime_bytes(tmp_path, path):
+    repo, revision, tree, source_digest = _candidate(tmp_path)
+    ignored = repo / path
+    ignored.parent.mkdir(parents=True)
+    ignored.write_bytes(b"untracked runtime bytes")
+    assert not _git(repo, "status", "--porcelain", "--untracked-files=all")
+    with pytest.raises(ValueError, match="ignored runtime source"):
         _checked(repo, revision, tree, source_digest)
 
 
