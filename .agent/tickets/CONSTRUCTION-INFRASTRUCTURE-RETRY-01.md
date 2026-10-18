@@ -43,7 +43,16 @@ new work. Repeated retries and concurrent calls for the same predecessor return
 the same child, including after process restart or response loss. Preserve the
 failed parent receipt/children and all old status queries.
 
-Client retry uses a distinct retained attempt journal, records the predecessor
+Before fresh bundle retry, a bounded successful read-only Docker query must
+establish that no Carbon UV-copy helper remains. This closes the legacy auxiliary
+cleanup uncertainty that main-child terminal states alone do not establish. The
+request never removes containers or reconciles workers; busy or unknown helper
+state refuses fresh work. An already admitted retry child remains observable
+without repeating fresh-admission checks.
+
+Client retry uses a distinct retained attempt journal keyed by the same local
+epoch plus the actual predecessor identity; the ordinary journal filename stays
+unchanged. It records the predecessor
 binding before observation and polls only the admitted child after admission.
 It never silently turns polling into another attempt, mutates the recipe, resets
 a database or blindly resubmits. Existing rate pacing/deadlines still apply.
