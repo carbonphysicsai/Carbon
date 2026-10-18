@@ -39,6 +39,7 @@ from carbon.development_session.library_bundles import (
 )
 from carbon.development_session.research_image import LibraryWorkerImage
 from carbon.development_session.research_ledger import CampaignLedger
+from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
 from carbon.reconstruction.worker.model import WorkerImageIdentity
 
 
@@ -132,6 +133,17 @@ def _binding(material):
         "interface_digest": kit["interface_digest"],
         "construction_limits_digest": kit["construction_limits_digest"],
     }
+
+
+def test_direct_task_accepts_distinct_construction_and_inference_parents(tmp_path):
+    image, _ = _source_bundle(tmp_path)
+    provider = object.__new__(DirectDevelopmentTasksV3)
+    provider.image = image
+    provider.inference_image = WorkerImageIdentity(
+        *("sha256:" + "4" * 64 for _ in range(8))
+    )
+    provider.image_resolver = None
+    provider._check_image_identity()
 
 
 class LocalProcessRunner:
@@ -434,9 +446,7 @@ def test_saved_graph_inference_preserves_exact_tensor_contract_and_source_bounda
             identity="wrong-inference-image",
             **{
                 **common,
-                "inference_image": WorkerImageIdentity(
-                    *("sha256:" + "4" * 64 for _ in range(8))
-                ),
+                "inference_image": image,
             },
         )
     with pytest.raises(RecipeRefused, match="bundle_allowlist_unregistered"):
@@ -476,3 +486,13 @@ def test_saved_graph_inference_preserves_exact_tensor_contract_and_source_bounda
     assert runner.calls[1][2] == image.parent
     assert "train.npz" not in runner.calls[1][1]
     assert "source.tar.gz" not in runner.calls[1][1]
+    alternate_inference = WorkerImageIdentity(*("sha256:" + "4" * 64 for _ in range(8)))
+    alternate = infer_saved_bundle(
+        ledger,
+        identity="distinct-inference-parent",
+        **{**common, "inference_image": alternate_inference},
+    )
+    assert alternate.state_digest == built.state_digest
+    assert runner.calls[2][2] == alternate_inference
+    assert "train.npz" not in runner.calls[2][1]
+    assert "source.tar.gz" not in runner.calls[2][1]

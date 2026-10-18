@@ -643,7 +643,6 @@ def infer_saved_bundle(
     if (
         type(image) is not LibraryWorkerImage
         or type(inference_image) is not WorkerImageIdentity
-        or inference_image != image.parent
         or type(recipe) is not ConstructionRecipe
         or recipe.to_dict()["source"]["kind"] != "bundle"
         or image.bundle_ref != recipe.to_dict()["source"]["bundle_ref"]

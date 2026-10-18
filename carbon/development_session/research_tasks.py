@@ -400,10 +400,7 @@ class DirectDevelopmentTasksV3:
         if self.image_resolver is not None:
             if self.image is not None or not callable(self.image_resolver):
                 raise ValueError("one trusted per-recipe library resolver required")
-        elif (
-            type(self.image) is not LibraryWorkerImage
-            or self.image.parent != self.inference_image
-        ):
+        elif type(self.image) is not LibraryWorkerImage:
             raise ValueError("exact C-03 library child and parent images required")
 
     def _verify_images(self) -> None:
@@ -435,7 +432,6 @@ class DirectDevelopmentTasksV3:
         if (
             type(image) is not LibraryWorkerImage
             or image.bundle_ref != source["bundle_ref"]
-            or image.parent != self.inference_image
         ):
             raise ValueError("resolved library worker identity differs")
         verify_library_worker_image(image)
@@ -975,7 +971,8 @@ class DirectDevelopmentTasksV3:
                     evidence.get("schema") != "carbon.direct-private-attempt.v3"
                     or evidence.get("image_id") != image_id
                     or evidence.get("parent_image_id") != parent["image_id"]
-                    or evidence.get("inference_image_id") != parent["image_id"]
+                    or evidence.get("inference_image_id")
+                    != self.inference_image.image_id
                     or evidence.get("bundle_digest") != bundle_ref["bundle_digest"]
                     or evidence.get("context_digest") != context_digest
                 ):
