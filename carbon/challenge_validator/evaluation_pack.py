@@ -74,7 +74,9 @@ def _strict_json(payload: bytes) -> object:
             object_pairs_hook=unique,
             parse_constant=constant,
         )
-    except (UnicodeError, json.JSONDecodeError) as exc:
+    except EvaluationPackUnavailable:
+        raise
+    except (UnicodeError, RecursionError, ValueError) as exc:
         raise EvaluationPackUnavailable("evaluation_pack.json") from exc
 
 

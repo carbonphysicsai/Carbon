@@ -128,6 +128,30 @@ def test_duplicate_json_key_refused():
         )
 
 
+def test_excessive_json_nesting_is_a_typed_refusal():
+    payload = b"[" * 1200 + b"0" + b"]" * 1200
+    with pytest.raises(EvaluationPackUnavailable) as raised:
+        parse_pack(
+            payload,
+            expected_digest=_digest(payload),
+            challenge_id="test-challenge",
+            challenge_version="1.0",
+        )
+    assert raised.value.code == "evaluation_pack.json"
+
+
+def test_excessive_json_integer_is_a_typed_refusal():
+    payload = b'{"n":' + b"9" * 5000 + b"}"
+    with pytest.raises(EvaluationPackUnavailable) as raised:
+        parse_pack(
+            payload,
+            expected_digest=_digest(payload),
+            challenge_id="test-challenge",
+            challenge_version="1.0",
+        )
+    assert raised.value.code == "evaluation_pack.json"
+
+
 def test_role_read_is_exact_byte_verified_and_infra_typed():
     document = _manifest()
     document["private"]["reference_rows"] = {
