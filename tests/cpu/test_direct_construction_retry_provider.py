@@ -278,7 +278,19 @@ def test_retry_refuses_changed_registered_material(
     tasks = provider()
     try:
         parent = _failed(tasks, request, monkeypatch)
-        retry = replace(_request(request, parent), **{field: "sha256:" + "0" * 64})
+        changed = "sha256:" + "0" * 64
+        recipe = deepcopy(request.recipe)
+        recipe_field = {
+            "public_train_digest": "train_digest",
+            "interface_digest": "interface_digest",
+        }.get(field)
+        if recipe_field is not None:
+            # Reach the provider's registered-binding check with a valid wire
+            # request, rather than failing in its nominal constructor.
+            recipe["challenge"][recipe_field] = changed
+            if field == "interface_digest":
+                recipe["output"]["interface_digest"] = changed
+        retry = replace(_request(request, parent), recipe=recipe, **{field: changed})
         _refused(
             research.ResearchServiceErrorCode.REFERENCE_MISMATCH,
             lambda: tasks.retry_research_task(retry, predecessor_id=parent.task_id),
@@ -505,7 +517,7 @@ def test_retry_reuses_existing_child_at_capacity_but_new_child_keeps_normal_boun
         child = tasks.retry_research_task(retry, predecessor_id=parent.task_id).task
         for number in range(254):
             tasks.start_research_task(
-                replace(request, idempotency_key=f"capacity-{number}")
+                replace(request, idempotency_key=f"capacity-task-{number:04d}")
             )
         assert len(tasks._views) == 256
         repeated = tasks.retry_research_task(retry, predecessor_id=parent.task_id)

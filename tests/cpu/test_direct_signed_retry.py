@@ -228,7 +228,9 @@ def test_real_signed_retry_response_loss_restart_and_observation_keep_one_child(
     assert len(fixture.wires) == 3  # ordinary submit, response loss, idempotent replay
     fixture.provider().cancel_research_task(
         research.DirectCancelTaskRequestV3(
-            fixture.provider().discovery.info.challenge_key, child, "retry-test-stop"
+            fixture.provider().discovery.info.challenge_key,
+            child,
+            "retry-test-stop-0001",
         )
     )
     terminal = client.submit_and_wait(

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from copy import deepcopy
 from dataclasses import replace
 from types import SimpleNamespace
 
@@ -232,8 +233,21 @@ def test_retained_full_request_tamper_cannot_keep_owner_or_retry(
 ):
     parent, _ = _parent(lane, monkeypatch)
     provider = lane.provider()
+    changed = "sha256:" + "f" * 64
+    recipe = deepcopy(provider._requests[parent].recipe)
+    recipe_field = {
+        "public_train_digest": "train_digest",
+        "interface_digest": "interface_digest",
+        "construction_limits_digest": "construction_limits_digest",
+    }.get(field)
+    if recipe_field is not None:
+        # Preserve the nominal request's internal identities so the adapter
+        # itself must reject the changed retained candidate and ownership.
+        recipe["challenge"][recipe_field] = changed
+        if field == "interface_digest":
+            recipe["output"]["interface_digest"] = changed
     provider._requests[parent] = replace(
-        provider._requests[parent], **{field: "sha256:" + "f" * 64}
+        provider._requests[parent], recipe=recipe, **{field: changed}
     )
     assert lane.adapter.owner(parent) is None
     with pytest.raises(Unavailable, match="construction_retry_predecessor_unavailable"):
