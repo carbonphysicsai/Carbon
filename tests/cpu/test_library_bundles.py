@@ -643,8 +643,8 @@ def test_adjacent_zip64_locator_refused_before_zipfile(monkeypatch):
     body = output.getvalue()
     trailer = body.rfind(b"PK\x05\x06")
     assert body[trailer - 20 : trailer] == locator
-    _, disk, start_disk, disk_count, count, size, offset, comment = (
-        struct.unpack_from("<4s4H2IH", body, trailer)
+    _, disk, start_disk, disk_count, count, size, offset, comment = struct.unpack_from(
+        "<4s4H2IH", body, trailer
     )
     assert (disk, start_disk, disk_count, count, comment) == (0, 0, 1, 1, 0)
     assert offset + size == trailer

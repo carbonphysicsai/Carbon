@@ -494,7 +494,9 @@ def test_installed_direct_development_uses_profile_signer_and_refuses_missing_ch
         lambda path: (
             other_gpu_parent
             if path.name == "other-gpu-worker-image.json"
-            else gpu_parent if path.name == "gpu-worker-image.json" else parent
+            else gpu_parent
+            if path.name == "gpu-worker-image.json"
+            else parent
         ),
     )
     monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _image: "jax")
@@ -636,13 +638,16 @@ def test_installed_direct_development_uses_profile_signer_and_refuses_missing_ch
         ]
         # This is the first reservation on a fresh installed ledger. The
         # maintained dispatch API must have a frozen campaign before use.
-        assert old_ledger.reserve(
-            "first-direct-worker-probe",
-            owner=old_owner,
-            phase="research",
-            request={"kit": frozen["selection"]},
-            resources={"numerical_milliseconds": 1},
-        )["dispatch"] is True
+        assert (
+            old_ledger.reserve(
+                "first-direct-worker-probe",
+                owner=old_owner,
+                phase="research",
+                request={"kit": frozen["selection"]},
+                resources={"numerical_milliseconds": 1},
+            )["dispatch"]
+            is True
+        )
         with old_ledger.db() as db:
             db.execute(
                 "DELETE FROM operations WHERE id=?",
