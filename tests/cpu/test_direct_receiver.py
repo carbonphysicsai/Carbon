@@ -392,6 +392,125 @@ def test_new_owner_uses_refreshed_finalized_snapshot_not_startup_registration(
     pool.close()
 
 
+def test_lagged_refresh_cannot_restore_revoked_owner_or_background_dispatch(
+    tmp_path, monkeypatch
+):
+    from test_c08_authenticated_miner_mcp import CONTEXT, _snapshot
+
+    from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK, ChainContext
+    from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
+    from carbon.challenge_validator.interface import Unavailable
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.development_session.research_service import DirectFixtureDiscovery
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    _allow_windows_receiver_fixture(monkeypatch)
+    context = ChainContext(
+        CARBON_NETWORK,
+        CONTEXT.endpoint,
+        CONTEXT.provider,
+        CONTEXT.genesis_hash,
+        CARBON_NETUID,
+    )
+    now = time.time()
+    old = replace(
+        _snapshot(sender=OWNER, receiver=RECEIVER, context=context),
+        timestamp_ms=int(now * 1000),
+    )
+    revoked = replace(
+        old,
+        finalized_block=old.finalized_block + 2,
+        block_hash="0x" + "4" * 64,
+        timestamp_ms=int(now * 1000) + 2000,
+        participants=tuple(p for p in old.participants if p.hotkey != OWNER),
+    )
+    lagged = replace(
+        old,
+        finalized_block=old.finalized_block + 1,
+        block_hash="0x" + "3" * 64,
+        timestamp_ms=int(now * 1000) + 1000,
+    )
+    root = receiver._private_directory(tmp_path / "receiver")
+    owners = receiver._private_directory(root / "owners")
+    window = receiver.ReceiverSnapshotWindow(root, context, RECEIVER, clock=lambda: now)
+    window.add(old)
+    discovery = DirectFixtureDiscovery(bundle_material_v5(), task_admission=True)
+    authority = {
+        "implementation": {"revision": "a" * 40},
+        "snapshot": old,
+        "window": window,
+        "receiver": RECEIVER,
+    }
+    parent = WorkerImageIdentity(*("sha256:" + "4" * 64 for _ in range(8)))
+    pool = receiver.OwnerProviders(
+        owners, discovery, parent, tmp_path / "cache", **authority
+    )
+    assert pool(OWNER).owner == OWNER
+    record = window._record
+
+    def failed_record(*_, **__):
+        raise OSError("test-only durable write failure")
+
+    monkeypatch.setattr(window, "_record", failed_record)
+    with pytest.raises(OSError, match="durable write failure"):
+        window.add(revoked)
+    assert window.latest() is None
+    with pytest.raises(Unavailable, match="direct_provider_registration_unavailable"):
+        pool(OWNER)
+    monkeypatch.setattr(window, "_record", record)
+    window.add(revoked)
+    window.add(lagged)
+    assert window.latest() == revoked
+    with pytest.raises(Unavailable, match="direct_provider_registration_unavailable"):
+        pool(OWNER)
+
+    # The operator advance loop has no new HTTP request. It still cannot
+    # dispatch a retained queued child from the old owner's authority.
+    adapter = object.__new__(LeanRecipeAdapter)
+    adapter.contract_digest = "sha256:" + "7" * 64
+    adapter.ledger = SimpleNamespace(submitted_outcomes=lambda _: ("rtsk_" + "1" * 64,))
+    adapter.owner = lambda _: pool(OWNER).owner
+    adapter._provider = lambda _: pytest.fail("revoked owner dispatched")
+    assert adapter.advance() == 0
+    pool.close()
+
+    # Restarting against the lagged read cannot roll back the durable block.
+    restarted_window = receiver.ReceiverSnapshotWindow(
+        root, context, RECEIVER, clock=lambda: now
+    )
+    restarted_window.add(lagged)
+    assert restarted_window.latest() is None
+    restarted = receiver.OwnerProviders(
+        owners,
+        discovery,
+        parent,
+        tmp_path / "cache",
+        **{**authority, "snapshot": lagged, "window": restarted_window},
+    )
+    restarted.restore()
+    with pytest.raises(Unavailable, match="direct_provider_registration_unavailable"):
+        restarted(OWNER)
+    restarted.close()
+
+    # A contradictory identity at the same finalized block fails closed,
+    # including after another restart; only a higher block can recover it.
+    restarted_window.add(replace(revoked, block_hash="0x" + "5" * 64))
+    assert restarted_window.latest() is None
+    conflicted = receiver.ReceiverSnapshotWindow(
+        root, context, RECEIVER, clock=lambda: now
+    )
+    conflicted.add(revoked)
+    assert conflicted.latest() is None
+    recovered = replace(
+        revoked,
+        finalized_block=revoked.finalized_block + 1,
+        block_hash="0x" + "6" * 64,
+        timestamp_ms=int(now * 1000) + 3000,
+    )
+    conflicted.add(recovered)
+    assert conflicted.latest() == recovered
+
+
 @POSIX
 def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_dispatch(
     tmp_path, monkeypatch

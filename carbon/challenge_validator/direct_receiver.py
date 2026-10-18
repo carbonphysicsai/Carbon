@@ -11,8 +11,12 @@ import argparse
 import asyncio
 import hashlib
 import json
+import os
 import signal
+import tempfile
 import threading
+import time
+from dataclasses import asdict
 from pathlib import Path
 
 from carbon.development_session.data import write_once
@@ -74,6 +78,123 @@ def _private_directory(path: Path) -> Path:
     if not path.is_dir() or path.stat().st_mode & 0o077:
         raise ValueError("owner-only operator directory required")
     return path
+
+
+class ReceiverSnapshotWindow:
+    """Persist the highest finalized observation before it can grant work.
+
+    The intake's ordinary snapshot window retains request-pinned snapshots.
+    It does not order refreshes, so a lagged chain read must never restore an
+    earlier registration after a newer revocation or recycled identity.
+    """
+
+    _SCHEMA = "carbon.construction.receiver-snapshot-high-water.v1"
+
+    def __init__(self, root, context, receiver, *, clock=time.time):
+        from carbon.battery.intake import SnapshotWindow
+
+        self._window = SnapshotWindow(clock=clock)
+        self._lock = threading.RLock()
+        self._path = root / "snapshot-high-water.json"
+        self._binding = {"context": asdict(context), "receiver": receiver}
+        self._unavailable = False
+        if self._path.is_symlink():
+            raise ValueError("receiver snapshot high-water link refused")
+        self._state = private_json(self._path) if self._path.exists() else None
+        if self._state is not None and (
+            type(self._state) is not dict
+            or set(self._state)
+            != {
+                "schema",
+                "context",
+                "receiver",
+                "finalized_block",
+                "snapshot_id",
+                "conflict",
+            }
+            or self._state["schema"] != self._SCHEMA
+            or any(
+                self._state[field] != value for field, value in self._binding.items()
+            )
+            or type(self._state["finalized_block"]) is not int
+            or self._state["finalized_block"] < 0
+            or type(self._state["snapshot_id"]) is not str
+            or not self._state["snapshot_id"].startswith("sha256:")
+            or len(self._state["snapshot_id"]) != 71
+            or any(
+                digit not in "0123456789abcdef"
+                for digit in self._state["snapshot_id"][7:]
+            )
+            or type(self._state["conflict"]) is not bool
+        ):
+            raise ValueError("retained receiver snapshot high-water differs")
+
+    def _record(self, snapshot, *, conflict):
+        state = {
+            "schema": self._SCHEMA,
+            **self._binding,
+            "finalized_block": snapshot.finalized_block,
+            "snapshot_id": snapshot.snapshot_id,
+            "conflict": conflict,
+        }
+        descriptor, staged = tempfile.mkstemp(
+            prefix=f".{self._path.name}.", dir=self._path.parent
+        )
+        try:
+            with os.fdopen(descriptor, "wb") as stream:
+                stream.write(canonical(state))
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.chmod(staged, 0o600)
+            if self._path.is_symlink():
+                raise ValueError("receiver snapshot high-water link refused")
+            os.replace(staged, self._path)
+            if os.name != "nt":
+                directory = os.open(self._path.parent, os.O_RDONLY)
+                try:
+                    os.fsync(directory)
+                finally:
+                    os.close(directory)
+        finally:
+            if os.path.exists(staged):
+                os.unlink(staged)
+        self._state = state
+
+    def add(self, snapshot):
+        if asdict(snapshot.context) != self._binding["context"]:
+            raise ValueError("receiver snapshot context differs")
+        with self._lock:
+            try:
+                prior = self._state
+                if prior is not None:
+                    if snapshot.finalized_block < prior["finalized_block"]:
+                        return
+                    if snapshot.finalized_block == prior["finalized_block"]:
+                        if snapshot.snapshot_id != prior["snapshot_id"]:
+                            if not prior["conflict"]:
+                                self._record(snapshot, conflict=True)
+                            return
+                        if prior["conflict"]:
+                            return
+                        self._window.add(snapshot)
+                        return
+                self._record(snapshot, conflict=False)
+                self._window.add(snapshot)
+                self._unavailable = False
+            except Exception:
+                # A fresher read without a durable watermark is never allowed
+                # to leave earlier registration usable for background dispatch.
+                self._unavailable = True
+                raise
+
+    def get(self, snapshot_id):
+        return self._window.get(snapshot_id)
+
+    def latest(self):
+        with self._lock:
+            if self._state is None or self._state["conflict"] or self._unavailable:
+                return None
+            return self._window.latest()
 
 
 def installed_source(profile_path: Path):
@@ -354,9 +475,6 @@ class OwnerProviders:
 
 def serve(config_path: Path, *, stop=None, reader=None, verifier=None, ready=None):
     """Run the same signed intake/task loop with finite admission and owned stop."""
-    from dataclasses import asdict
-
-    from carbon.battery.intake import SnapshotWindow
     from carbon.chain.auth import BittensorHotkeyVerifier
     from carbon.chain.sdk import BittensorReader
     from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
@@ -383,8 +501,6 @@ def serve(config_path: Path, *, stop=None, reader=None, verifier=None, ready=Non
         or snapshot.resolve(cfg["receiver_hotkey"]) is None
     ):
         raise ValueError("registered receiver snapshot required")
-    window = SnapshotWindow()
-    window.add(snapshot)
     root = _private_directory(Path(cfg["root"]))
     discovery = DirectFixtureDiscovery(bundle_material_v5(), task_admission=True)
     immutable = {
@@ -401,6 +517,8 @@ def serve(config_path: Path, *, stop=None, reader=None, verifier=None, ready=Non
     }
     with owner_lock(root):
         write_once(root / "receiver-binding.json", canonical(immutable))
+        window = ReceiverSnapshotWindow(root, network.context, cfg["receiver_hotkey"])
+        window.add(snapshot)
         providers = OwnerProviders(
             _private_directory(root / "owners"),
             discovery,
