@@ -64,18 +64,29 @@ class DirectIntakeRefusal(ValueError):
         self.code = code
 
 
+class DirectIntakeRateLimit(DirectIntakeRefusal):
+    """Only the receiver's explicit pre-admission HTTP 429 rate envelope."""
+
+    def __init__(self):
+        super().__init__("rate")
+
+
 def retry_rate_limited(operation, *, deadline, clock=time.monotonic, sleep=time.sleep):
     """Retry only an explicit pre-admission HTTP rate refusal, within a deadline.
 
     The operation must rebuild and sign its request on every attempt. Other
     refusals and ambiguous network failures propagate without replay.
     """
+    last = None
     for attempt in range(31):
+        if clock() >= deadline:
+            if last is not None:
+                raise last
+            raise DirectIntakeRefusal("construction_request_deadline")
         try:
             return operation()
-        except DirectIntakeRefusal as refused:
-            if refused.code != "rate":
-                raise
+        except DirectIntakeRateLimit as refused:
+            last = refused
             remaining = deadline - clock()
             if remaining <= 0 or attempt == 30:
                 raise
@@ -98,7 +109,7 @@ def read_intake(url: str, *, timeout: float = 10.0) -> dict:
         if refused.code == 429:
             answer = json.loads(refused.read(65536) or b"{}")
             if type(answer) is dict and answer.get("refused") == "rate":
-                raise DirectIntakeRefusal("rate") from None
+                raise DirectIntakeRateLimit() from None
         raise
     if type(facts) is not dict or facts.get("schema") != PUBLIC_SCHEMA:
         raise DirectIntakeRefusal("construction_intake_wrong_schema")
@@ -344,9 +355,14 @@ def submit_and_wait(
         ):
             raise DirectIntakeRefusal("construction_intake_record_invalid")
     else:
+        admission_deadline = clock() + min(WAIT_S, max(30.0, wait_s))
 
         def admit():
-            facts = read(url)
+            facts = (
+                read(url, timeout=min(10.0, admission_deadline - clock()))
+                if read is read_intake
+                else read(url)
+            )
             body = _body(
                 facts,
                 recipe=recipe,
@@ -363,7 +379,20 @@ def submit_and_wait(
             headers = BittensorMessageSigner(signer).sign(
                 body, receiver=receiver, nonce_ns=time.time_ns()
             )
-            status, answer = send(url, body, headers)
+            remaining = admission_deadline - clock()
+            if remaining <= 0:
+                raise DirectIntakeRefusal("construction_request_deadline")
+            status, answer = (
+                send(url, body, headers, timeout=min(30.0, remaining))
+                if send is post
+                else send(url, body, headers)
+            )
+            if (
+                status == 429
+                and type(answer) is dict
+                and answer.get("refused") == "rate"
+            ):
+                raise DirectIntakeRateLimit()
             if (
                 status != 202
                 or type(answer) is not dict
@@ -379,7 +408,7 @@ def submit_and_wait(
 
         outcome, pinned = retry_rate_limited(
             admit,
-            deadline=clock() + min(WAIT_S, max(30.0, wait_s)),
+            deadline=admission_deadline,
             clock=clock,
             sleep=sleep,
         )
@@ -401,7 +430,11 @@ def submit_and_wait(
     while True:
 
         def observe():
-            facts = read(url)
+            facts = (
+                read(url, timeout=min(10.0, deadline - clock()))
+                if read is read_intake
+                else read(url)
+            )
             body = _body(
                 facts,
                 recipe=recipe,
@@ -417,7 +450,20 @@ def submit_and_wait(
             headers = BittensorMessageSigner(signer).sign(
                 body, receiver=receiver, nonce_ns=time.time_ns()
             )
-            status, answer = send(url, body, headers)
+            remaining = deadline - clock()
+            if remaining <= 0:
+                raise DirectIntakeRefusal("construction_request_deadline")
+            status, answer = (
+                send(url, body, headers, timeout=min(30.0, remaining))
+                if send is post
+                else send(url, body, headers)
+            )
+            if (
+                status == 429
+                and type(answer) is dict
+                and answer.get("refused") == "rate"
+            ):
+                raise DirectIntakeRateLimit()
             if (
                 status != 200
                 or type(answer) is not dict
@@ -445,3 +491,5 @@ def submit_and_wait(
         if clock() >= deadline:
             raise DirectIntakeRefusal("construction_task_queued")
         sleep(min(POLL_S, max(0.0, deadline - clock())))
+        if clock() >= deadline:
+            raise DirectIntakeRefusal("construction_task_queued")

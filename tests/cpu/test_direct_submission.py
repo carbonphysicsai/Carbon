@@ -488,7 +488,7 @@ def test_rate_retry_preserves_task_and_refreshes_signed_exchange(
         target = "admit_read" if not sent else "status_read"
         if phase == target and not refused[0]:
             refused[0] = True
-            raise client.DirectIntakeRefusal("rate")
+            raise client.DirectIntakeRateLimit()
         return _facts()
 
     def send(url, body, headers):
@@ -577,3 +577,38 @@ def test_status_rate_deadline_or_auth_refusal_keeps_original_admission(
         ]
         == "task-1"
     )
+
+
+@pytest.mark.parametrize("status", [200, 401, 500])
+def test_non_429_rate_payload_never_replays_submission(tmp_path, monkeypatch, status):
+    calls = []
+
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def send(url, body, headers):
+        calls.append(json.loads(body)["tool"])
+        return status, {"refused": "rate"}
+
+    with pytest.raises(client.DirectIntakeRefusal, match="rate"):
+        client.submit_and_wait(
+            _URL,
+            "external-signer",
+            root=tmp_path,
+            epoch=1,
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            read=lambda url: _facts(),
+            send=send,
+            sleep=lambda seconds: pytest.fail("non-429 must not retry"),
+        )
+    assert calls == [client.SUBMIT_TOOL]
+    assert not (tmp_path / "construction-intake-epoch-1.json").exists()
