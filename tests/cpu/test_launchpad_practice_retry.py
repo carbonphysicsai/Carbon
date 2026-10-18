@@ -62,7 +62,7 @@ RETRY = {"action": "retry_interrupted", "operation": "resume"}
 @pytest.fixture
 def journey(tmp_path, monkeypatch):
     tmp_path.chmod(0o700)
-    host = journey_host(tmp_path, patch=monkeypatch.setattr)
+    host = journey_host(tmp_path, patch=monkeypatch.setattr, historical_launch=True)
     monkeypatch.setattr(RunnerAdapter, "spawn", staticmethod(lambda _: None))
     sent = []
     fixture_practice = research_campaign.practice_recipe

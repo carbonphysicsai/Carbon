@@ -357,7 +357,9 @@ def test_practice_is_never_refused_by_the_budget(declared, tmp_path):
     started = []
     host._design_refusal = lambda s: None
     host._background = lambda *args, **kw: started.append(args[1]) or {"state": "x"}
-    admitted = SimpleNamespace(campaign={"id": "c", "root": str(tmp_path)})
+    admitted = SimpleNamespace(
+        campaign={"id": "c", "root": str(tmp_path)}, profile=None
+    )
     host.practice_admitted(admitted, {"strategy": strategy(), "hypothesis": "h"})
     assert started == ["practice"]
 
@@ -445,7 +447,9 @@ def _host(tmp_path, monkeypatch):
     (tmp_path / "epoch-1" / "selected-recipe.json").write_text(
         json.dumps({"strategy": strategy()}), encoding="utf-8"
     )
-    return host, SimpleNamespace(campaign={"id": "c", "root": str(tmp_path)})
+    return host, SimpleNamespace(
+        campaign={"id": "c", "root": str(tmp_path)}, profile=None
+    )
 
 
 def test_freeze_is_refused_over_budget_with_the_numbers(

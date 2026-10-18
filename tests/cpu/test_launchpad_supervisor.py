@@ -59,7 +59,7 @@ RECONCILE = {"action": "reconcile", "operation": "halt"}
 @pytest.fixture
 def journey(tmp_path, monkeypatch):
     tmp_path.chmod(0o700)
-    host = journey_host(tmp_path, patch=monkeypatch.setattr)
+    host = journey_host(tmp_path, patch=monkeypatch.setattr, historical_launch=True)
     spawned = []
     monkeypatch.setattr(
         RunnerAdapter, "spawn", staticmethod(lambda configuration: spawned.append(1))
