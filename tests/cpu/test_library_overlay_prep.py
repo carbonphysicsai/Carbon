@@ -260,7 +260,21 @@ def test_exact_offline_wheel_prep_exports_inert_bounded_overlay(
     )
     output = tmp_path / "output"
     output.mkdir()
+    actual_run = library_overlay_prep.subprocess.run
+    installer_calls = []
+
+    def observed_install(*args, **kwargs):
+        # Keep real offline UV execution while checking that its failure
+        # diagnostics reach the enclosing bounded carrier stream.
+        installer_calls.append(kwargs)
+        return actual_run(*args, **kwargs)
+
+    monkeypatch.setattr(library_overlay_prep.subprocess, "run", observed_install)
     receipt = prepare(inputs, output, python_path=sys.executable)
+    assert len(installer_calls) == 1
+    assert installer_calls[0]["capture_output"] is False
+    assert installer_calls[0]["check"] is True
+    assert installer_calls[0]["timeout"] == 540
     assert json.loads((output / "overlay.json").read_bytes()) == receipt
     assert receipt["bundle_ref"] == reference.to_dict()
     assert receipt["file_count"] >= 5
