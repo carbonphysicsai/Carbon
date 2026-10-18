@@ -570,7 +570,7 @@ def test_status_rate_deadline_or_auth_refusal_keeps_original_admission(
         )
     assert sent.count(client.SUBMIT_TOOL) == 1
     assert sent.count(client.STATUS_TOOL) == 1
-    assert sleeps == ([1.0] if code == "rate" else [])
+    assert sleeps == ([1.0, 1.0] if code == "rate" else [])
     assert (
         json.loads((tmp_path / "construction-intake-epoch-1.json").read_bytes())[
             "submission_id"
