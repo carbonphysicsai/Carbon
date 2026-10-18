@@ -1,0 +1,33 @@
+{
+  "challenge": {
+    "construction_limits_digest": "sha256:e4486fb177124c6e3db12096855db5601791264df8123a74f26a0747b0f7a158",
+    "id": "synthetic-linear-field-2d",
+    "interface_digest": "sha256:7413bab4aa4c549c416a687b380dc9ef0731f6471030e451fe9242539a45d504",
+    "train_digest": "sha256:95aec24fe064b05bbb8750820c2c95bfac7117ba56496a58bdcc570b8438b867",
+    "version": "1.3"
+  },
+  "output": {
+    "format": "carbon.numeric-graph.v1",
+    "interface_digest": "sha256:7413bab4aa4c549c416a687b380dc9ef0731f6471030e451fe9242539a45d504"
+  },
+  "procedure": {
+    "configuration": {
+      "training": {
+        "learning_rate": 0.001,
+        "optimizer": "adam",
+        "steps": 1
+      }
+    },
+    "entrypoint": null,
+    "initial_state": null,
+    "train_use": {
+      "coverage": "all",
+      "dataset": "synthetic-linear-field-2d-public-train"
+    }
+  },
+  "schema": "carbon.construction-recipe.v1",
+  "source": {
+    "kind": "graph",
+    "submission_digest": "sha256:abd00ef408eb45c0ccac91adf64b79e94f38e6e56d7772cf06f433e8ee6fe47d"
+  }
+}
