@@ -530,3 +530,39 @@ def test_remote_observation_door_is_recipe_bound_status_only_and_registered(
         tool_door.route(
             Host(), tool_door.DIRECT_DEVELOPMENT_SESSION, "observe_construction", value
         )
+
+
+def test_queued_tool_result_uses_validated_id_without_rereading_journal(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session import direct_submission
+    from carbon.registry.model import ChallengeKey
+
+    door = object.__new__(tool_door.DirectToolDoor)
+    door.intake_target = {
+        "intake_url": "http://127.0.0.1:9080",
+        "receiver_hotkey": "5" + "a" * 47,
+    }
+    door.adapter = SimpleNamespace(
+        challenge=ChallengeKey("synthetic-linear-field-2d", "1.3"),
+        connection=SimpleNamespace(miner_key=object(), chain_context=object()),
+        composition=SimpleNamespace(
+            tasks=SimpleNamespace(ledger=SimpleNamespace(root=tmp_path))
+        ),
+    )
+    task_id = "rtsk_" + "a" * 64
+
+    def pending(_url, _signer, **kwargs):
+        # The checked STATUS exchange can race a replacement of the journal.
+        record = direct_submission._record_path(kwargs["root"], kwargs["epoch"])
+        record.write_bytes(b"{}")
+        raise direct_submission.DirectConstructionPending(task_id)
+
+    monkeypatch.setattr(direct_submission, "submit_and_wait", pending)
+    answer = asyncio.run(door.observe_construction({"recipe": _recipe().to_dict()}))
+    assert answer == {
+        "ok": True,
+        "result": {"state": "ADMITTED", "task_id": task_id},
+        "score_status": "SCORE_UNAVAILABLE",
+        "official_eligible": False,
+    }

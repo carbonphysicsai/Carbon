@@ -64,6 +64,14 @@ class DirectIntakeRefusal(ValueError):
         self.code = code
 
 
+class DirectConstructionPending(DirectIntakeRefusal):
+    """Admission is pending for this already validated remote task identity."""
+
+    def __init__(self, task_id: str):
+        super().__init__("construction_task_queued")
+        self.task_id = task_id
+
+
 class DirectIntakeRateLimit(DirectIntakeRefusal):
     """Only the receiver's explicit pre-admission HTTP 429 rate envelope."""
 
@@ -450,7 +458,7 @@ def submit_and_wait(
     if wait_s == 0:
         # The tool door requests admission only. A same-moment STATUS call can
         # hit the signed transport's rate limit, even though SUBMIT succeeded.
-        raise DirectIntakeRefusal("construction_task_queued")
+        raise DirectConstructionPending(task_id)
     deadline = clock() + wait_s
     while True:
         observation_attempts = 0
@@ -523,7 +531,7 @@ def submit_and_wait(
         if outcome.get("state") != "ADMITTED":
             raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
         if clock() >= deadline:
-            raise DirectIntakeRefusal("construction_task_queued")
+            raise DirectConstructionPending(task_id)
         sleep(min(POLL_S, max(0.0, deadline - clock())))
         if clock() >= deadline:
-            raise DirectIntakeRefusal("construction_task_queued")
+            raise DirectConstructionPending(task_id)
