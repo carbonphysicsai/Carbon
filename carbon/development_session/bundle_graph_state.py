@@ -7,9 +7,13 @@ bounded bytes and verifies their digest. This grants no judge admission.
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import io
 import json
+import math
+import re
+import struct
 import zipfile
 
 import numpy as np
@@ -35,6 +39,61 @@ GRAPH_SCHEMA = "carbon.development.graph-source-state.v1"
 MAX_BYTES = 64 * 1024**2
 MAX_GRAPH_BYTES = 1024**2
 MAX_PARAMETERS = 4096
+_NPY_DTYPE = re.compile(r"[<>=|]?[fiuc][0-9]{1,2}")
+
+
+def _preflight_npy(archive: zipfile.ZipFile, member: zipfile.ZipInfo):
+    """Check a stored numeric member's exact payload before NumPy loads it."""
+    with archive.open(member) as stream:
+        if stream.read(6) != b"\x93NUMPY":
+            raise RecipeRefused("bundle_state_archive_invalid")
+        version = stream.read(2)
+        if version == b"\x01\x00":
+            width = 2
+            encoding = "latin1"
+        elif version == b"\x02\x00":
+            width = 4
+            encoding = "latin1"
+        elif version == b"\x03\x00":
+            width = 4
+            encoding = "utf-8"
+        else:
+            raise RecipeRefused("bundle_state_archive_invalid")
+        size = stream.read(width)
+        if len(size) != width:
+            raise RecipeRefused("bundle_state_archive_invalid")
+        header_size = struct.unpack("<H" if width == 2 else "<I", size)[0]
+        if not 1 <= header_size <= 4096:
+            raise RecipeRefused("bundle_state_archive_invalid")
+        header_raw = stream.read(header_size)
+        if len(header_raw) != header_size:
+            raise RecipeRefused("bundle_state_archive_invalid")
+        try:
+            header = ast.literal_eval(header_raw.decode(encoding).strip())
+        except (RecursionError, SyntaxError, ValueError, UnicodeError):
+            raise RecipeRefused("bundle_state_archive_invalid") from None
+        if (
+            type(header) is not dict
+            or set(header) != {"descr", "fortran_order", "shape"}
+            or type(header["descr"]) is not str
+            or _NPY_DTYPE.fullmatch(header["descr"]) is None
+            or type(header["fortran_order"]) is not bool
+            or type(header["shape"]) is not tuple
+            or len(header["shape"]) > 32
+            or any(
+                type(dim) is not int or not 0 <= dim <= MAX_BYTES
+                for dim in header["shape"]
+            )
+        ):
+            raise RecipeRefused("bundle_state_archive_invalid")
+        try:
+            dtype = np.dtype(header["descr"])
+        except (TypeError, ValueError):
+            raise RecipeRefused("bundle_state_archive_invalid") from None
+        payload = math.prod(header["shape"]) * dtype.itemsize
+        if dtype.kind not in "fiuc" or stream.tell() + payload != member.file_size:
+            raise RecipeRefused("bundle_state_archive_invalid")
+        return header["shape"], dtype
 
 
 def _source_header(recipe: ConstructionRecipe) -> dict:
@@ -129,10 +188,28 @@ def load(raw: bytes, recipe: ConstructionRecipe, allowlist):
             names = [entry.filename for entry in members]
             if (
                 len(names) != len(set(names))
+                or len(names) > MAX_PARAMETERS + 2
+                or any(not name.endswith(".npy") for name in names)
                 or any(entry.compress_type != zipfile.ZIP_STORED for entry in members)
+                or any(entry.flag_bits & 1 for entry in members)
                 or sum(entry.file_size for entry in members) > MAX_BYTES
             ):
                 raise RecipeRefused("bundle_state_archive_invalid")
+            descriptors = {
+                member.filename: _preflight_npy(archive, member) for member in members
+            }
+            for name, limit in (
+                ("__header__.npy", 65536),
+                ("graph.npy", MAX_GRAPH_BYTES),
+            ):
+                shape, dtype = descriptors.get(name, (None, None))
+                if (
+                    dtype != np.dtype("uint8")
+                    or shape is None
+                    or len(shape) != 1
+                    or not 0 < shape[0] <= limit
+                ):
+                    raise RecipeRefused("bundle_state_archive_invalid")
         with np.load(io.BytesIO(raw), allow_pickle=False) as state:
             if "__header__" not in state or "graph" not in state:
                 raise RecipeRefused("bundle_state_archive_invalid")

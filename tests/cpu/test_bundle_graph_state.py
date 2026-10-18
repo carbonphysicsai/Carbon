@@ -1,6 +1,7 @@
 """Frozen bundle inference contains only a bounded graph and numeric arrays."""
 
 import io
+import zipfile
 from pathlib import Path
 
 import numpy as np
@@ -191,3 +192,44 @@ def test_prospective_fno_spectral_graph_freezes_real_weights_and_reopens():
         *(jnp.asarray(p) for p in parameters), x
     )[0]
     np.testing.assert_array_equal(np.asarray(actual), np.asarray(spectral(*weights, x)))
+
+
+@pytest.mark.parametrize(
+    ("member", "descr", "shape", "payload"),
+    [
+        ("parameter0000.npy", "<f4", (1_000_000_000,), b"\0" * 4),
+        ("parameter0000.npy", "<f4", (2,), b"\0" * 4),
+        ("parameter0000.npy", "|O8", (1,), b"\0" * 8),
+        ("graph.npy", "|u1", (1_000_000_000,), b"{}"),
+    ],
+)
+def test_forged_npy_header_refuses_before_numpy_materializes(
+    monkeypatch, member, descr, shape, payload
+):
+    def numeric(array):
+        output = io.BytesIO()
+        np.save(output, array)
+        return output.getvalue()
+
+    forged = io.BytesIO()
+    np.lib.format.write_array_header_1_0(
+        forged,
+        {"descr": descr, "fortran_order": False, "shape": shape},
+    )
+    forged.write(payload)
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_STORED) as archive:
+        for name, body in {
+            "__header__.npy": numeric(np.frombuffer(b"{}", dtype=np.uint8)),
+            "graph.npy": numeric(np.frombuffer(b"{}", dtype=np.uint8)),
+            "parameter0000.npy": numeric(np.asarray([1.0], dtype=np.float32)),
+            member: forged.getvalue(),
+        }.items():
+            archive.writestr(name, body)
+
+    def never_load(*_args, **_kwargs):
+        pytest.fail("NumPy materialized a member before the NPY preflight")
+
+    monkeypatch.setattr(bundle_graph_state.np, "load", never_load)
+    with pytest.raises(RecipeRefused, match="bundle_state_archive_invalid"):
+        bundle_graph_state.load(output.getvalue(), _recipe(), allowlist.load())
