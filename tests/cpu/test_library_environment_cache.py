@@ -4,12 +4,14 @@ import hashlib
 import io
 import json
 import tarfile
+import time
 from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
 
 from carbon.development_session import library_environment_cache as cache
+from carbon.development_session.direct_material_staging import _cache_lock
 from carbon.development_session.library_bundles import (
     UV_IMAGE,
     LibraryBundleRef,
@@ -419,3 +421,47 @@ def test_admitted_install_reuses_verified_hit_and_reprovisions_for_new_parent(
             import_path, cache_root, image.parent, expected_bundle=selected, cli=adapter
         )
     assert len(provisions) == 2  # A corrupt hit never silently rebuilds.
+
+
+def test_overlay_cache_lock_obeys_contended_deadline_and_task_cancel(
+    tmp_path, monkeypatch
+):
+    root = tmp_path / "private-cache"
+    root.mkdir(mode=0o700)
+    root.chmod(0o700)
+    called = []
+    monkeypatch.setattr(
+        cache,
+        "_cache_verified_overlay_locked",
+        lambda *args, **kwargs: called.append(True),
+    )
+    args = {
+        "expected_bundle": None,
+        "expected_parent": None,
+        "expected_receipt": {},
+        "material_cache_bytes": 1024,
+    }
+    with _cache_lock(root):
+        start = time.monotonic()
+        with pytest.raises(TimeoutError, match="material cache lock deadline exceeded"):
+            cache.cache_verified_overlay(
+                tmp_path / "unused",
+                root,
+                deadline=start + 0.12,
+                **args,
+            )
+        assert 0.10 <= time.monotonic() - start < 1.0
+
+        callbacks = []
+
+        def cancelled():
+            callbacks.append(True)
+            if len(callbacks) == 3:
+                raise InterruptedError("task cancelled")
+
+        with pytest.raises(InterruptedError, match="task cancelled"):
+            cache.cache_verified_overlay(
+                tmp_path / "unused", root, cancel=cancelled, **args
+            )
+        assert len(callbacks) == 3
+    assert not called

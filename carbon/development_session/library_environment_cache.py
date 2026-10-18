@@ -17,6 +17,7 @@ import shutil
 import stat
 import tarfile
 import tempfile
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath
 
@@ -453,13 +454,15 @@ def cache_verified_overlay(
     expected_parent: WorkerImageIdentity,
     expected_receipt: dict,
     material_cache_bytes: int,
+    deadline: float | None = None,
+    cancel: Callable[[], None] | None = None,
 ) -> VerifiedLibraryOverlay:
     """Share the operator's material/overlay reservation with signed intake."""
     if type(material_cache_bytes) is not int or material_cache_bytes <= 0:
         raise ValueError("trusted material and overlay cache capacity required")
     from .direct_material_staging import _cache_lock
 
-    with _cache_lock(cache_root) as root:
+    with _cache_lock(cache_root, deadline=deadline, cancel=cancel) as root:
         return _cache_verified_overlay_locked(
             snapshot,
             root,

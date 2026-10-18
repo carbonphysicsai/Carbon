@@ -8,13 +8,16 @@ is promoted through the ordinary owner cache helper before admission can use it.
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import json
+import math
 import os
 import shutil
 import stat
 import tempfile
 import time
+from collections.abc import Callable
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -470,8 +473,19 @@ def _stage_material_locked(
 
 
 @contextmanager
-def _cache_lock(cache_root: Path):
+def _cache_lock(
+    cache_root: Path,
+    *,
+    deadline: float | None = None,
+    cancel: Callable[[], None] | None = None,
+):
     """One cross-process reservation lock for signed materials and overlays."""
+    if deadline is not None and (
+        type(deadline) not in (int, float) or not math.isfinite(deadline)
+    ):
+        raise ValueError("absolute monotonic cache lock deadline required")
+    if cancel is not None and not callable(cancel):
+        raise ValueError("cache lock cancellation callback required")
     cache_root = _private(cache_root)
     lock_path = cache_root / ".material-cap.lock"
     descriptor = os.open(
@@ -487,12 +501,39 @@ def _cache_lock(cache_root: Path):
             if os.fstat(descriptor).st_size == 0:
                 os.write(descriptor, b"\0")
             os.lseek(descriptor, 0, os.SEEK_SET)
-            msvcrt.locking(descriptor, msvcrt.LK_LOCK, 1)
         else:
             import fcntl
 
-            fcntl.flock(descriptor, fcntl.LOCK_EX)
+        bounded = deadline is not None or cancel is not None
+        while True:
+            if bounded:
+                if cancel is not None:
+                    cancel()
+                if deadline is not None and time.monotonic() >= deadline:
+                    raise TimeoutError("material cache lock deadline exceeded")
+            try:
+                if os.name == "nt":
+                    msvcrt.locking(
+                        descriptor, msvcrt.LK_NBLCK if bounded else msvcrt.LK_LOCK, 1
+                    )
+                else:
+                    fcntl.flock(
+                        descriptor,
+                        fcntl.LOCK_EX | (fcntl.LOCK_NB if bounded else 0),
+                    )
+                break
+            except OSError as error:
+                if not bounded or error.errno not in {errno.EACCES, errno.EAGAIN}:
+                    raise
+                wait = 0.05
+                if deadline is not None:
+                    wait = min(wait, max(0.0, deadline - time.monotonic()))
+                time.sleep(wait)
         acquired = True
+        if cancel is not None:
+            cancel()
+        if deadline is not None and time.monotonic() >= deadline:
+            raise TimeoutError("material cache lock deadline exceeded")
         yield cache_root
     finally:
         if acquired and os.name == "nt":
