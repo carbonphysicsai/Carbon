@@ -571,6 +571,13 @@ class ScoreEngine:
         return score(benchmark, pack)
 
     @staticmethod
+    def score_dual_benchmark_v4(benchmark: dict, pack: dict) -> dict:
+        """Prospective dual A/D candidates; existing v1/v3 rules are unchanged."""
+        from carbon.scoring.dual_score import score
+
+        return score(benchmark, pack)
+
+    @staticmethod
     def score(
         score_input: ScoreInput | None,
         pack: LoadedScorePack,
