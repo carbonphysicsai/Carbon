@@ -235,7 +235,11 @@ def test_direct_v13_submission_and_staging_refuse_before_receiver_contact():
     recipe = _recipe().to_dict()
     wrong_challenge = {**recipe, "challenge": {**recipe["challenge"], "version": "1.2"}}
 
-    for operation in (door.submit_construction, door.stage_construction_graph):
+    for operation in (
+        door.submit_construction,
+        door.observe_construction,
+        door.stage_construction_graph,
+    ):
         door.intake_target = None
         assert asyncio.run(operation({"recipe": recipe})) == {
             "ok": False,
@@ -458,3 +462,71 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
     with pytest.raises(standard_cli.AttachRefused) as changed_owner:
         asyncio.run(exercise())
     assert changed_owner.value.code == "campaign_owner_changed"
+
+
+def test_remote_observation_door_is_recipe_bound_status_only_and_registered(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session import direct_submission
+    from carbon.registry.model import ChallengeKey
+
+    target = {"intake_url": "http://127.0.0.1:9080", "receiver_hotkey": "5" + "a" * 47}
+    connection = SimpleNamespace(miner_key=object(), chain_context=object())
+    door = object.__new__(tool_door.DirectToolDoor)
+    door.intake_target = target
+    door.adapter = SimpleNamespace(
+        challenge=ChallengeKey("synthetic-linear-field-2d", "1.3"),
+        connection=connection,
+        composition=SimpleNamespace(
+            tasks=SimpleNamespace(ledger=SimpleNamespace(root=tmp_path))
+        ),
+    )
+    observed = []
+
+    def status(url, signer, **kwargs):
+        observed.append((url, signer, kwargs))
+        assert kwargs["observe_only"] is True
+        assert kwargs["wait_s"] == 10
+        assert kwargs["root"] == tmp_path
+        assert kwargs["epoch"] == int(_recipe().digest[7:23], 16)
+        return {"task_id": "rtsk_" + "a" * 64, "state": "RECONSTRUCTED"}
+
+    monkeypatch.setattr(direct_submission, "submit_and_wait", status)
+    value = {"recipe": _recipe().to_dict()}
+    result = asyncio.run(door.observe_construction(value))
+    assert result["ok"] and result["official_eligible"] is False
+    assert observed[0][0] == target["intake_url"]
+    assert observed[0][1] is connection.miner_key
+    assert observed[0][2]["receiver"] == target["receiver_hotkey"]
+    assert observed[0][2]["context"] is connection.chain_context
+
+    class Host:
+        configuration = tmp_path / "profile.json"
+
+        def __init__(self):
+            self.tool_sessions = SimpleNamespace(
+                observe_construction=lambda campaign, passed, **kwargs: (
+                    result
+                    if campaign == tool_door.DIRECT_DEVELOPMENT_V13_SESSION
+                    and passed == value
+                    else pytest.fail("wrong route")
+                )
+            )
+
+    monkeypatch.setattr(runner, "RunnerAdapter", Host)
+    assert "observe_construction" in tool_door.ACTIONS
+    assert (
+        tool_door.route(
+            Host(),
+            tool_door.DIRECT_DEVELOPMENT_V13_SESSION,
+            "observe_construction",
+            value,
+        )
+        == result
+    )
+    from scripts.dev.miner_launchpad.controller import Rejected
+
+    with pytest.raises(Rejected, match="construction_session_required"):
+        tool_door.route(
+            Host(), tool_door.DIRECT_DEVELOPMENT_SESSION, "observe_construction", value
+        )

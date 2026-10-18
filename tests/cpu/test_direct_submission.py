@@ -815,3 +815,139 @@ def test_discovery_exhausting_deadline_never_starts_signing(
     assert (tmp_path / "construction-intake-epoch-1.json").exists() == (
         phase == "observation"
     )
+
+
+def test_remote_observation_requires_retained_admission_before_signing_or_contact(
+    tmp_path, monkeypatch
+):
+    def forbidden(*_args, **_kwargs):
+        pytest.fail("observation may not submit, sign, or contact without admission")
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", forbidden)
+    with pytest.raises(client.DirectIntakeRefusal, match="admission_record_required"):
+        client.submit_and_wait(
+            _URL,
+            "external-signer",
+            root=tmp_path,
+            epoch=1,
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            read=forbidden,
+            send=forbidden,
+            observe_only=True,
+            wait_s=10,
+        )
+
+
+def test_remote_observation_is_signed_status_only_and_keeps_original_pins(
+    tmp_path, monkeypatch
+):
+    record = client._record_path(tmp_path, 1)
+    record.write_text(
+        json.dumps(
+            {
+                **client._binding(_URL, _recipe(), _CONTRACT, _RECEIVER, _CONTEXT, 1),
+                "submission_id": "task-1",
+                "pinned": _PINNED,
+            }
+        )
+    )
+    calls = []
+
+    class Signer:
+        def __init__(self, signer):
+            assert signer == "external-signer"
+
+        def sign(self, body, *, receiver, nonce_ns):
+            assert receiver == _RECEIVER
+            calls.append(json.loads(body))
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def send(url, body, headers):
+        assert url == _URL
+        assert json.loads(body)["tool"] == client.STATUS_TOOL
+        return 200, _answer("RECONSTRUCTED")
+
+    args = {
+        "root": tmp_path,
+        "epoch": 1,
+        "recipe": _recipe(),
+        "contract_digest": _CONTRACT,
+        "receiver": _RECEIVER,
+        "context": _CONTEXT,
+        "read": lambda _url: _facts(),
+        "send": send,
+        "observe_only": True,
+        "wait_s": 10,
+    }
+    original = record.read_bytes()
+    result = client.submit_and_wait(_URL, "external-signer", **args)
+    assert result["state"] == "RECONSTRUCTED"
+    assert [request["tool"] for request in calls] == [client.STATUS_TOOL]
+    assert calls[0]["fields"] == {"submission_id": "task-1"}
+    assert record.read_bytes() == original
+
+    with pytest.raises(client.DirectIntakeRefusal, match="changed_since_submission"):
+        client.submit_and_wait(
+            _URL, "external-signer", **{**args, "receiver": "another-receiver"}
+        )
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("wait_s", [0, -1, 31, float("inf"), float("nan"), True])
+def test_remote_observation_rejects_unbounded_wait_before_contact(tmp_path, wait_s):
+    def forbidden(*_args, **_kwargs):
+        pytest.fail("invalid observation budget must refuse before contact")
+
+    with pytest.raises(client.DirectIntakeRefusal, match="observation_wait_invalid"):
+        client.submit_and_wait(
+            _URL,
+            "external-signer",
+            root=tmp_path,
+            epoch=1,
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            read=forbidden,
+            send=forbidden,
+            observe_only=True,
+            wait_s=wait_s,
+        )
+
+
+def test_remote_observation_cannot_submit_if_admission_disappears_after_preflight(
+    tmp_path, monkeypatch
+):
+    from pathlib import Path
+
+    record = client._record_path(tmp_path, 1)
+    record.write_text("{}")
+    exists = Path.exists
+    monkeypatch.setattr(
+        Path, "exists", lambda path: False if path == record else exists(path)
+    )
+
+    def forbidden(*_args, **_kwargs):
+        pytest.fail("read-only observation reached a submission exchange")
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", forbidden)
+    with pytest.raises(client.DirectIntakeRefusal, match="admission_record_required"):
+        client.submit_and_wait(
+            _URL,
+            "external-signer",
+            root=tmp_path,
+            epoch=1,
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            read=forbidden,
+            send=forbidden,
+            observe_only=True,
+            wait_s=10,
+        )

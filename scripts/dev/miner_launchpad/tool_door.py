@@ -279,6 +279,13 @@ class DirectToolDoor:
         }
 
     async def submit_construction(self, value):
+        return await self._construction(value, observe_only=False)
+
+    async def observe_construction(self, value):
+        """Read only the exact recipe's previously admitted remote task."""
+        return await self._construction(value, observe_only=True)
+
+    async def _construction(self, value, *, observe_only):
         """One exact 1.3 recipe through its profile-pinned signed receiver.
 
         The local research tools remain a separate workspace. In particular,
@@ -324,7 +331,8 @@ class DirectToolDoor:
                 contract_digest=contract.digest,
                 receiver=self.intake_target["receiver_hotkey"],
                 context=self.adapter.connection.chain_context,
-                wait_s=0,
+                wait_s=10 if observe_only else 0,
+                **({"observe_only": True} if observe_only else {}),
             )
             return {
                 "ok": True,
@@ -699,6 +707,14 @@ class ToolSessions:
             raise Rejected("construction_session_required", 409)
         return session.run(session.door.submit_construction(value), CALL_SECONDS)
 
+    def observe_construction(self, campaign, value, *, exclusive_token=None):
+        from scripts.dev.miner_launchpad.controller import Rejected
+
+        session = self._session(campaign, exclusive_token=exclusive_token)
+        if type(session.door) is not DirectToolDoor:
+            raise Rejected("construction_session_required", 409)
+        return session.run(session.door.observe_construction(value), CALL_SECONDS)
+
     def stage_construction_graph(self, campaign, value, *, exclusive_token=None):
         from scripts.dev.miner_launchpad.controller import Rejected
 
@@ -717,6 +733,7 @@ ACTIONS = (
     "observe",
     "cancel",
     "submit_construction",
+    "observe_construction",
     "stage_construction_graph",
 )
 DIRECT_DEVELOPMENT_SESSION = "direct-development"
@@ -795,6 +812,12 @@ def route(host, campaign, action, value):
         if campaign != DIRECT_DEVELOPMENT_V13_SESSION:
             raise Rejected("construction_session_required", 409)
         return sessions.submit_construction(
+            campaign, value, exclusive_token=exclusive_token
+        )
+    if action == "observe_construction":
+        if campaign != DIRECT_DEVELOPMENT_V13_SESSION:
+            raise Rejected("construction_session_required", 409)
+        return sessions.observe_construction(
             campaign, value, exclusive_token=exclusive_token
         )
     if action == "stage_construction_graph":
