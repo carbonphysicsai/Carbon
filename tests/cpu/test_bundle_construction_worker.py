@@ -15,6 +15,7 @@ from carbon.development_session.bundle_construction_worker import (
     INFER_PROGRAM,
     _checked_binding,
     _digest,
+    _stage_bundle_modules,
     _stage_modules,
     _tensors,
     _trusted_allowlist,
@@ -254,7 +255,7 @@ def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_on
     recipe = _recipe(_digest(train))
     binding = _binding(recipe)
     allowed = allowlist.load(Path(allowlist.PATH).with_name("allowlist_v2.json"))
-    build_files, build_modules = _stage_modules(binding, training=True)
+    build_files, build_modules = _stage_bundle_modules(binding, training=True)
     build_files.update(
         {
             "recipe.json": recipe.canonical_bytes,
@@ -291,6 +292,13 @@ def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_on
     build_receipt = json.loads((build_work.parent / "output/receipt.json").read_bytes())
     assert build_receipt["state_digest"] == _digest(state)
     assert build_receipt["framework"] == "jax"
+    assert build_receipt["schema"] == "carbon.development.bundle-build.v2"
+    native_raw = (build_work.parent / "output/native-predictions.json").read_bytes()
+    assert build_receipt["native_predictions_digest"] == _digest(native_raw)
+    assert build_receipt["example_digest"] == _digest(example)
+    np.testing.assert_array_equal(np.asarray(json.loads(native_raw)), 3 * x)
+    assert build_receipt["native_dtype"] == "float32"
+    assert build_receipt["native_shape"] == [2, 2]
 
     rebuilt_work = _stage(tmp_path / "independent-rebuild", build_files)
     rebuilt = subprocess.run(
@@ -306,7 +314,7 @@ def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_on
     assert (rebuilt_work.parent / "output/state.npz").read_bytes() == state
 
     requested = _tensors(inputs=np.asarray([[5.0, 6.0], [7.0, 8.0]], dtype=np.float32))
-    infer_files, infer_modules = _stage_modules(binding, training=False)
+    infer_files, infer_modules = _stage_bundle_modules(binding, training=False)
     infer_files.update(
         {
             "recipe.json": recipe.canonical_bytes,
@@ -372,7 +380,7 @@ def test_fixed_bundle_build_decodes_pinned_battery_train_before_source_factory(
     recipe_body["output"]["interface_digest"] = kit["interface_digest"]
     recipe = ConstructionRecipe.from_dict(recipe_body)
     binding = _binding(recipe)
-    files, modules = _stage_modules(binding, training=True)
+    files, modules = _stage_bundle_modules(binding, training=True)
     assert "carbon.battery.construction_material.py" in files
     example = _tensors(inputs=x[:1])
     allowed = allowlist.load(Path(allowlist.PATH).with_name("allowlist_v2.json"))
@@ -421,3 +429,58 @@ def test_fixed_bundle_build_decodes_pinned_battery_train_before_source_factory(
     )
     assert run.returncode != 0
     assert "BATTERY_CODEC_REACHED_FACTORY" in run.stderr
+
+
+@pytest.mark.parametrize("delta", [0.0, 0.5])
+def test_host_compares_original_native_artifact_on_exact_same_public_probe(
+    tmp_path, delta
+):
+    recipe = _recipe(_sha("a"))
+    native = np.asarray([[1.0, 2.0]], dtype=np.float32)
+    native_raw = json.dumps(native.tolist()).encode()
+    path = tmp_path / "native-predictions.json"
+    path.write_bytes(native_raw)
+    state_digest = _sha("f")
+    probe = _sha("b")
+    receipt = {
+        "schema": "carbon.development.bundle-build.v2",
+        "recipe_digest": recipe.digest,
+        "state_digest": state_digest,
+        "example_digest": probe,
+        "native_predictions_digest": _digest(native_raw),
+        "native_shape": [1, 2],
+        "native_dtype": "float32",
+    }
+    build = bundle_worker.BundleBuildResult(
+        recipe.digest, state_digest, tmp_path / "state.npz", "build", receipt
+    )
+    inference = bundle_worker.BundleInferenceResult(
+        recipe.digest,
+        state_digest,
+        _sha("e"),
+        [[1.0 + delta, 2.0]],
+        "infer",
+        {"inputs_digest": probe},
+    )
+    result = bundle_worker.compare_build_inference_predictions(
+        build, inference, expected_output_dtype="float32"
+    )
+    assert result["exact_equal"] is (delta == 0.0)
+    assert result["max_abs_delta"] == delta
+    assert "pass" not in result and "qualified" not in result
+    # No comparison of unrelated public probes can appear to be a fidelity pass.
+    inference.receipt["inputs_digest"] = _sha("c")
+    unavailable = bundle_worker.compare_build_inference_predictions(
+        build, inference, expected_output_dtype="float32"
+    )
+    assert unavailable["reason_code"] == "different_public_probe"
+    path.write_bytes(b"[[9.0, 2.0]]")
+    with pytest.raises(ValueError, match="snapshot changed"):
+        bundle_worker.native_build_predictions(build)
+
+
+def test_shared_graph_stage_keeps_its_existing_no_argument_contract():
+    files = _stage_modules()
+    assert type(files) is dict
+    assert set(files) == {name + ".py" for name in bundle_worker.STAGED_MODULES}
+    assert "carbon.development_session.construction_tensor_codec.py" not in files
