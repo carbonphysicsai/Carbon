@@ -43,6 +43,7 @@ def _regular_file(path: Path, maximum: int, *, allow_empty: bool = False) -> byt
 
 
 def _source_into(source: bytes, root: Path) -> None:
+    source_root = None
     with tarfile.open(fileobj=io.BytesIO(source), mode="r:gz") as archive:
         for member in archive:
             name = PurePosixPath(member.name)
@@ -50,11 +51,18 @@ def _source_into(source: bytes, root: Path) -> None:
                 not name.parts
                 or name.is_absolute()
                 or any(part in {"", ".", ".."} for part in name.parts)
-                or name.parts[0] != "source"
                 or not (member.isfile() or member.isdir())
             ):
                 raise ValueError("source overlay member differs")
-            target = root.joinpath(*name.parts)
+            if source_root is None:
+                source_root = name.parts[0]
+            if name.parts[0] != source_root:
+                raise ValueError("source overlay root differs")
+            if len(name.parts) == 1:
+                if not member.isdir():
+                    raise ValueError("source overlay root differs")
+                continue
+            target = root.joinpath("source", *name.parts[1:])
             if member.isdir():
                 target.mkdir(parents=True, exist_ok=True)
                 continue

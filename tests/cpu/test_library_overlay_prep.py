@@ -30,12 +30,15 @@ def _digest(body: bytes) -> str:
     return "sha256:" + hashlib.sha256(body).hexdigest()
 
 
-def _source() -> bytes:
+def _source(archive_root: str) -> bytes:
     output = io.BytesIO()
     with tarfile.open(fileobj=output, mode="w:gz") as archive:
         for name, body in (
-            ("source/candidate/__init__.py", b"raise RuntimeError('not imported')\n"),
-            ("source/LICENSE", b"MIT\n"),
+            (
+                f"{archive_root}/candidate/__init__.py",
+                b"raise RuntimeError('not imported')\n",
+            ),
+            (f"{archive_root}/LICENSE", b"MIT\n"),
         ):
             item = tarfile.TarInfo(name)
             item.size = len(body)
@@ -68,11 +71,14 @@ def _wheel() -> bytes:
 
 
 @pytest.mark.skipif(os.name == "nt", reason="executable uv test uses POSIX mode")
-def test_exact_offline_wheel_prep_exports_inert_bounded_overlay(tmp_path):
+@pytest.mark.parametrize(
+    "archive_root", ["source", "transolver-original-stock-75e0f676-v1"]
+)
+def test_exact_offline_wheel_prep_exports_inert_bounded_overlay(tmp_path, archive_root):
     uv = shutil.which("uv")
     if uv is None:
         pytest.skip("uv binary unavailable in this diagnostic environment")
-    source, wheel, license_text = _source(), _wheel(), b"MIT\n"
+    source, wheel, license_text = _source(archive_root), _wheel(), b"MIT\n"
     wheel_name = "overlaydep-1-py3-none-any.whl"
     lock = (
         b"overlaydep==1 --hash=sha256:"
