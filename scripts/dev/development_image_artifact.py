@@ -311,8 +311,8 @@ def verify_bundle(
     return receipt
 
 
-def _docker_load(archive: Path, expected_raw_bytes: int) -> None:
-    """Stream one verified gzip archive to Docker without an extracted copy."""
+def _docker_load(archive_stream, expected_raw_bytes: int) -> None:
+    """Stream one private, verified gzip object to Docker."""
     with tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as errors:
         process = subprocess.Popen(
             ["docker", "image", "load"],
@@ -323,7 +323,7 @@ def _docker_load(archive: Path, expected_raw_bytes: int) -> None:
         raw_bytes = 0
         assert process.stdin is not None
         try:
-            with gzip.open(archive, "rb") as source:
+            with gzip.GzipFile(fileobj=archive_stream, mode="rb") as source:
                 for chunk in iter(lambda: source.read(1024 * 1024), b""):
                     raw_bytes += len(chunk)
                     if raw_bytes > expected_raw_bytes:
@@ -342,6 +342,53 @@ def _docker_load(archive: Path, expected_raw_bytes: int) -> None:
                 process.kill()
             process.wait()
             raise
+
+
+def _pinned_manifest_bytes(path: Path, expected_sha256: str) -> bytes:
+    """Read one bounded regular manifest without following its final path."""
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    except OSError as error:
+        raise Refused(f"manifest_open_refused:{path.name}") from error
+    with os.fdopen(descriptor, "rb") as source:
+        details = os.fstat(source.fileno())
+        if not stat.S_ISREG(details.st_mode) or details.st_size > MAX_MANIFEST_BYTES:
+            raise Refused(f"manifest_not_regular_or_bounded:{path.name}")
+        body = source.read(MAX_MANIFEST_BYTES + 1)
+    if SHA + hashlib.sha256(body).hexdigest() != _sha(expected_sha256):
+        raise Refused(f"manifest_receipt_mismatch:{path.name}")
+    return body
+
+
+def _stage_verified_archive(path: Path, receipt: dict, destination) -> None:
+    """Copy exact checked bytes into an unnamed private file before Docker load."""
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    except OSError as error:
+        raise Refused("archive_open_refused") from error
+    value = hashlib.sha256()
+    copied = 0
+    with os.fdopen(descriptor, "rb") as source:
+        details = os.fstat(source.fileno())
+        if (
+            not stat.S_ISREG(details.st_mode)
+            or details.st_size != receipt["archive_bytes"]
+        ):
+            raise Refused("archive_receipt_mismatch")
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            copied += len(chunk)
+            if copied > receipt["archive_bytes"]:
+                raise Refused("archive_receipt_mismatch")
+            value.update(chunk)
+            destination.write(chunk)
+    if (
+        copied != receipt["archive_bytes"]
+        or SHA + value.hexdigest() != receipt["archive_sha256"]
+    ):
+        raise Refused("archive_receipt_mismatch")
+    destination.flush()
+    os.fsync(destination.fileno())
+    destination.seek(0)
 
 
 def _open_directory(parent_fd: int, name: str) -> int:
@@ -487,36 +534,46 @@ def import_bundle(
     if not callable(before_load):
         raise Refused("physical_capacity_admission_required")
     _require_posix_nofollow()
-    # The archive is already staged and gzip is streamed without an extracted
-    # host copy. Reserve three raw-tar equivalents for daemon import staging,
-    # retained image content and unpacked snapshots, plus 1 GiB for metadata.
-    # This is a conservative prospective claim, not a measured peak; the host
-    # callback can require more and must keep monitoring physical free space.
-    required = 3 * receipt["uncompressed_bytes"] + 1024**3
+    # The bundle is already staged. A private unnamed archive copy is needed
+    # to close the verification-to-load path race. Reserve that compressed copy,
+    # three raw-tar equivalents for daemon staging/content/snapshots, and 1 GiB
+    # for metadata. The host callback can require more and must keep monitoring.
+    required = receipt["archive_bytes"] + 3 * receipt["uncompressed_bytes"] + 1024**3
     before_load(required)
-    _docker_load(bundle_dir / "images.tar.gz", receipt["uncompressed_bytes"])
-    implementation = _source(revision, tree, source_tree_digest, repository)
-    c03, analysis = _manifests(
-        bundle_dir / "c03-worker-image.json",
-        bundle_dir / "analysis-image.json",
-        implementation,
-    )
-    _docker_pair(c03, analysis, cli or DockerCLI())
-    _install_pair_nofollow(
-        artifacts_root, c03_bytes, analysis_bytes, analysis_manifest.runtime_digest
-    )
-    if (
-        installed_pair_status(
-            artifacts_root=artifacts_root,
-            revision=revision,
-            tree=tree,
-            source_tree_digest=source_tree_digest,
-            repository=repository,
-            cli=cli or DockerCLI(),
-        )
-        != "VERIFIED"
+    with (
+        tempfile.TemporaryFile() as archive_copy,
+        tempfile.TemporaryDirectory() as private,
     ):
-        raise Refused("post_import_pair_not_verified")
+        _stage_verified_archive(bundle_dir / "images.tar.gz", receipt, archive_copy)
+        c03_bytes = _pinned_manifest_bytes(
+            bundle_dir / "c03-worker-image.json", receipt["c03_manifest_sha256"]
+        )
+        analysis_bytes = _pinned_manifest_bytes(
+            bundle_dir / "analysis-image.json", receipt["analysis_manifest_sha256"]
+        )
+        private_c03 = Path(private) / "c03-worker-image.json"
+        private_analysis = Path(private) / "analysis-image.json"
+        _write_new(private_c03, c03_bytes)
+        _write_new(private_analysis, analysis_bytes)
+        implementation = _source(revision, tree, source_tree_digest, repository)
+        c03, analysis = _manifests(private_c03, private_analysis, implementation)
+        _docker_load(archive_copy, receipt["uncompressed_bytes"])
+        _docker_pair(c03, analysis, cli or DockerCLI())
+        _install_pair_nofollow(
+            artifacts_root, c03_bytes, analysis_bytes, analysis_manifest.runtime_digest
+        )
+        if (
+            installed_pair_status(
+                artifacts_root=artifacts_root,
+                revision=revision,
+                tree=tree,
+                source_tree_digest=source_tree_digest,
+                repository=repository,
+                cli=cli or DockerCLI(),
+            )
+            != "VERIFIED"
+        ):
+            raise Refused("post_import_pair_not_verified")
     return {
         "status": "VERIFIED_IMPORT",
         "c03_manifest": str(c03_path),

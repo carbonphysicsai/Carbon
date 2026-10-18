@@ -259,7 +259,7 @@ def test_import_requires_capacity_before_load_and_writes_only_verified_pair(
     monkeypatch.setattr(
         handoff,
         "_docker_load",
-        lambda archive, size: loaded.append((archive, size)),
+        lambda archive, size: loaded.append((archive.read(), size)),
     )
     args = {
         "bundle_dir": bundle,
@@ -277,7 +277,7 @@ def test_import_requires_capacity_before_load_and_writes_only_verified_pair(
         return
 
     def deny(required):
-        assert required == 3 * 10 + 1024**3
+        assert required == 7 + 3 * 10 + 1024**3
         raise handoff.Refused("physical_capacity_insufficient")
 
     with pytest.raises(handoff.Refused, match="physical_capacity_insufficient"):
@@ -286,8 +286,8 @@ def test_import_requires_capacity_before_load_and_writes_only_verified_pair(
     assert list(root.iterdir()) == []
     claims = []
     result = handoff.import_bundle(before_load=claims.append, **args)
-    assert claims == [3 * 10 + 1024**3]
-    assert loaded == [(bundle / "images.tar.gz", 10)]
+    assert claims == [7 + 3 * 10 + 1024**3]
+    assert loaded == [(b"archive", 10)]
     assert result["status"] == "VERIFIED_IMPORT"
     assert Path(result["c03_manifest"]).read_bytes() == c03_path.read_bytes()
     assert Path(result["analysis_manifest"]).read_bytes() == analysis_path.read_bytes()
@@ -344,6 +344,101 @@ def test_import_refuses_post_load_parent_swap_without_external_manifest_write(
     assert list(outside.iterdir()) == []
 
 
+@pytest.mark.skipif(os.name != "posix", reason="private import staging needs POSIX")
+@pytest.mark.parametrize(
+    "member", ["images.tar.gz", "c03-worker-image.json", "analysis-image.json"]
+)
+def test_import_refuses_bundle_member_replaced_during_capacity_callback(
+    pair, tmp_path, monkeypatch, member
+):
+    c03_path, analysis_path, docker = pair
+
+    def fake_save(path, *_):
+        path.write_bytes(b"archive")
+        return handoff._sha_file(path), 7, 10
+
+    monkeypatch.setattr(handoff, "_save_compressed", fake_save)
+    bundle = tmp_path / "bundle"
+    export = handoff.export_bundle(
+        bundle_dir=bundle,
+        c03_manifest=c03_path,
+        analysis_manifest=analysis_path,
+        cli=docker,
+        **_identity_args(tmp_path),
+    )
+    root = tmp_path / "installed"
+    root.mkdir()
+    loaded = []
+    monkeypatch.setattr(handoff, "_docker_load", lambda *_: loaded.append(True))
+
+    def swap(required):
+        assert required == 7 + 3 * 10 + 1024**3
+        target = bundle / member
+        target.rename(bundle / "saved-member")
+        target.write_bytes(b"X" * (bundle / "saved-member").stat().st_size)
+
+    with pytest.raises(
+        handoff.Refused, match="archive_receipt_mismatch|manifest_receipt_mismatch"
+    ):
+        handoff.import_bundle(
+            bundle_dir=bundle,
+            receipt_sha256=export["receipt_sha256"],
+            artifacts_root=root,
+            cli=docker,
+            before_load=swap,
+            **_identity_args(tmp_path),
+        )
+    assert loaded == []
+    assert list(root.iterdir()) == []
+
+
+@pytest.mark.skipif(os.name != "posix", reason="private import staging needs POSIX")
+def test_import_loads_pinned_copy_after_original_archive_path_changes(
+    pair, tmp_path, monkeypatch
+):
+    c03_path, analysis_path, docker = pair
+
+    def fake_save(path, *_):
+        path.write_bytes(b"archive")
+        return handoff._sha_file(path), 7, 10
+
+    monkeypatch.setattr(handoff, "_save_compressed", fake_save)
+    bundle = tmp_path / "bundle"
+    export = handoff.export_bundle(
+        bundle_dir=bundle,
+        c03_manifest=c03_path,
+        analysis_manifest=analysis_path,
+        cli=docker,
+        **_identity_args(tmp_path),
+    )
+    root = tmp_path / "installed"
+    root.mkdir()
+    staged = handoff._stage_verified_archive
+
+    def stage_then_replace(path, receipt, destination):
+        staged(path, receipt, destination)
+        path.rename(bundle / "old-images.tar.gz")
+        path.write_bytes(b"X" * 7)
+
+    monkeypatch.setattr(handoff, "_stage_verified_archive", stage_then_replace)
+    loaded = []
+    monkeypatch.setattr(
+        handoff,
+        "_docker_load",
+        lambda stream, size: loaded.append((stream.read(), size)),
+    )
+    result = handoff.import_bundle(
+        bundle_dir=bundle,
+        receipt_sha256=export["receipt_sha256"],
+        artifacts_root=root,
+        cli=docker,
+        before_load=lambda required: None,
+        **_identity_args(tmp_path),
+    )
+    assert result["status"] == "VERIFIED_IMPORT"
+    assert loaded == [(b"archive", 10)]
+
+
 def test_stream_load_refuses_gzip_expansion_beyond_receipt(tmp_path, monkeypatch):
     archive = tmp_path / "images.tar.gz"
     payload = b"oci-image-bytes" * 4096
@@ -358,9 +453,13 @@ def test_stream_load_refuses_gzip_expansion_beyond_receipt(tmp_path, monkeypatch
         )
 
     monkeypatch.setattr(handoff.subprocess, "Popen", fake_popen)
-    handoff._docker_load(archive, len(payload))
-    with pytest.raises(handoff.Refused, match="archive_expanded_beyond_receipt"):
-        handoff._docker_load(archive, len(payload) - 1)
+    with archive.open("rb") as source:
+        handoff._docker_load(source, len(payload))
+    with (
+        pytest.raises(handoff.Refused, match="archive_expanded_beyond_receipt"),
+        archive.open("rb") as source,
+    ):
+        handoff._docker_load(source, len(payload) - 1)
 
 
 def test_export_stream_is_one_bounded_compressed_archive(tmp_path, monkeypatch):
