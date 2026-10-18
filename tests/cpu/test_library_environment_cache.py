@@ -190,19 +190,29 @@ def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(
 
     class Docker:
         def __init__(
-            self, *, malformed=False, slow_copy=False, repo_digest=repository_digest
+            self,
+            *,
+            malformed=False,
+            slow_copy=False,
+            repo_digest=repository_digest,
+            malformed_repo_digests=False,
         ):
             self.create = None
             self.malformed = malformed
             self.slow_copy = slow_copy
             self.repo_digest = repo_digest
+            self.malformed_repo_digests = malformed_repo_digests
 
         def json(self, arguments, *, timeout=30):
             timeouts.append((arguments[0], timeout))
             if arguments[:2] == ["image", "inspect"]:
                 return {
                     "Id": "sha256:" + "b" * 64,
-                    "RepoDigests": [self.repo_digest],
+                    "RepoDigests": (
+                        self.repo_digest
+                        if self.malformed_repo_digests
+                        else [self.repo_digest]
+                    ),
                 }
             assert arguments == [
                 "container",
@@ -295,6 +305,11 @@ def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(
     ):
         with pytest.raises(ValueError, match="pinned local uv image differs"):
             cache.pinned_uv_bytes(Docker(repo_digest=refused))
+    for malformed in (repository_digest, {repository_digest: True}, None):
+        with pytest.raises(ValueError, match="pinned local uv image differs"):
+            cache.pinned_uv_bytes(
+                Docker(repo_digest=malformed, malformed_repo_digests=True)
+            )
     assert len(calls) == before  # No create, copy or cleanup for an unpinned image.
 
 

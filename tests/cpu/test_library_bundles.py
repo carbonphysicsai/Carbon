@@ -1212,6 +1212,7 @@ class FakeLocalDocker:
         tag_mismatch=False,
         uv_digest_mismatch=False,
         uv_repository_digest=UV_IMAGE,
+        malformed_uv_repo_digests=False,
     ):
         self.parent, self.bundle = parent, bundle
         self.missing_uv, self.missing_parent, self.tag_mismatch = (
@@ -1221,6 +1222,7 @@ class FakeLocalDocker:
         )
         self.uv_digest_mismatch = uv_digest_mismatch
         self.uv_repository_digest = uv_repository_digest
+        self.malformed_uv_repo_digests = malformed_uv_repo_digests
         self.uv_id = "sha256:" + "d" * 64
         self.built_id = "sha256:" + "e" * 64
         self.tags = {}
@@ -1236,7 +1238,14 @@ class FakeLocalDocker:
                 if self.uv_digest_mismatch
                 else self.uv_repository_digest
             )
-            return {"Id": self.uv_id, "RepoDigests": [repository_digest]}
+            return {
+                "Id": self.uv_id,
+                "RepoDigests": (
+                    repository_digest
+                    if self.malformed_uv_repo_digests
+                    else [repository_digest]
+                ),
+            }
         if ref in self.tags:
             image_id = self.tags[ref]
             return {"Id": "sha256:" + "f" * 64 if self.tag_mismatch else image_id}
@@ -1423,6 +1432,23 @@ def test_offline_builder_refuses_unpinned_uv_before_any_image_mutation(
     parent = "sha256:" + "b" * 64
     context, bundle, seal = prepare_offline_context(tmp_path, *fixture(), parent)
     cli = FakeLocalDocker(parent, bundle, uv_repository_digest=uv_repository_digest)
+    with pytest.raises(ValueError, match="pinned local uv image differs"):
+        build_offline_bundle(context, bundle, parent, seal, cli=cli)
+    assert cli.calls == []
+
+
+@pytest.mark.parametrize("repo_digests", [UV_IMAGE, {UV_IMAGE: True}, None])
+def test_offline_builder_refuses_malformed_uv_digests_before_mutation(
+    tmp_path, repo_digests
+):
+    parent = "sha256:" + "b" * 64
+    context, bundle, seal = prepare_offline_context(tmp_path, *fixture(), parent)
+    cli = FakeLocalDocker(
+        parent,
+        bundle,
+        uv_repository_digest=repo_digests,
+        malformed_uv_repo_digests=True,
+    )
     with pytest.raises(ValueError, match="pinned local uv image differs"):
         build_offline_bundle(context, bundle, parent, seal, cli=cli)
     assert cli.calls == []
