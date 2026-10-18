@@ -290,6 +290,24 @@ def _cancel_active_intent(ledger, *, owner, identity):
             or path.parent.name != "operation-" + launch[7:]
         ):
             raise ValueError("cancellation intent conflict")
+        try:
+            if (
+                type(intent["request"]) is dict
+                and intent["request"].get("provenance") == LIBRARY_PREP_PROVENANCE
+            ):
+                _retain_fixed_program_evidence(
+                    path.parent,
+                    "private-owned-cancel-observation.json",
+                    {
+                        "schema": "carbon.autoresearch.owned-cancel-observation.v1",
+                        "launch_digest": launch,
+                        "observed_unix": time.time(),
+                        "action": "CANCEL_CLEANUP_REQUESTED",
+                        "interpretation": "Request observed; cleanup outcome is separate.",
+                    },
+                )
+        except Exception:  # noqa: BLE001, S110 - observation never gates cleanup
+            pass
         remove_exact_container(cli=cli, container_name=name, launch_digest=launch)
 
 
@@ -399,6 +417,139 @@ def _retain_practice_failure(operation, stage, error):
         )
     except Exception:  # noqa: BLE001 - diagnostics must not replace the failure
         return
+
+
+_PROGRAM_STATE_FORMAT = (
+    '{"launch_digest":{{json (index .Config.Labels '
+    '"org.opencontainers.image.carbon.c03.launch")}},'
+    '"image_id":{{json .Image}},"running":{{json .State.Running}},'
+    '"oom_killed":{{json .State.OOMKilled}},"exit_code":{{json .State.ExitCode}}}'
+)
+_PRIVATE_PROGRAM_FILES = frozenset(
+    {
+        "private-program-baseline.json",
+        "private-program-failure-evidence.json",
+        "private-owned-cancel-observation.json",
+    }
+)
+
+
+def _retain_fixed_program_evidence(operation, filename, value):
+    """A private observation never replaces the worker outcome or cleanup."""
+    try:
+        if filename not in _PRIVATE_PROGRAM_FILES:
+            return None
+        raw = canonical(value)
+        if len(raw) > 4096:
+            return None
+        write_once(operation / filename, raw)
+        return digest(raw)
+    except Exception:  # noqa: BLE001 - failure diagnostics are best effort
+        return None
+
+
+def _fixed_program_container_observation(
+    cli, *, container_name, launch_digest, image_id, deadline
+):
+    """At most two bounded reads of this exact launch; no causal inference."""
+    unknown = {"status": "UNKNOWN", "state": None, "memory": None}
+
+    def budget():
+        remaining = deadline - time.monotonic()
+        if not math.isfinite(remaining) or remaining <= 0:
+            raise TimeoutError("private observation budget elapsed")
+        return min(0.5, remaining)
+
+    def integer(value):
+        return type(value) is int and 0 <= value < 2**64
+
+    try:
+        if (
+            type(deadline) not in (int, float)
+            or not math.isfinite(deadline)
+            or type(launch_digest) is not str
+            or re.fullmatch(r"sha256:[0-9a-f]{64}", launch_digest) is None
+            or type(image_id) is not str
+            or re.fullmatch(r"sha256:[0-9a-f]{64}", image_id) is None
+            or container_name != "carbon-d4-" + launch_digest[7:31]
+        ):
+            return unknown
+        value = cli.json(
+            ["inspect", container_name, "--format", _PROGRAM_STATE_FORMAT],
+            timeout=budget(),
+        )
+        if (
+            type(value) is not dict
+            or set(value)
+            != {"launch_digest", "image_id", "running", "oom_killed", "exit_code"}
+            or value["launch_digest"] != launch_digest
+            or value["image_id"] != image_id
+            or type(value["running"]) is not bool
+            or type(value["oom_killed"]) is not bool
+            or not integer(value["exit_code"])
+            or value["exit_code"] > 255
+        ):
+            return unknown
+        result = {
+            "status": "OBSERVED",
+            "state": {
+                "running": value["running"],
+                "oom_killed": value["oom_killed"],
+                "exit_code": value["exit_code"],
+            },
+            "memory": None,
+        }
+        if not value["running"]:
+            return result
+        try:
+            raw = cli.run(
+                [
+                    "exec",
+                    container_name,
+                    "/bin/cat",
+                    "/sys/fs/cgroup/memory.events",
+                    "/sys/fs/cgroup/memory.peak",
+                    "/sys/fs/cgroup/memory.current",
+                ],
+                timeout=budget(),
+            ).stdout
+            if type(raw) is not bytes or not 0 < len(raw) <= 4096:
+                return result
+            lines = raw.decode("ascii", "strict").splitlines()
+            if not 4 <= len(lines) <= 16:
+                return result
+            events = {}
+            allowed = {"low", "high", "max", "oom", "oom_kill", "oom_group_kill"}
+            for line in lines[:-2]:
+                key, number = line.split()
+                if key not in allowed or key in events or not number.isdecimal():
+                    return result
+                count = int(number)
+                if not integer(count):
+                    return result
+                events[key] = count
+            peak, current = lines[-2:]
+            if not peak.isdecimal() or not current.isdecimal():
+                return result
+            peak, current = int(peak), int(current)
+            if not {"oom", "oom_kill"} <= set(events) or not all(
+                integer(item) for item in (peak, current)
+            ):
+                return result
+            result["memory"] = {
+                "current_bytes": current,
+                "peak_bytes": peak,
+                "events": {
+                    key: events[key]
+                    for key in ("oom", "oom_kill", "oom_group_kill")
+                    if key in events
+                },
+            }
+        except Exception:  # noqa: BLE001, S110 - private counters remain unknown
+            pass
+        return result
+    except Exception:  # noqa: BLE001 - unknown is never absence or a new failure
+        return unknown
 
 
 @contextmanager
@@ -845,6 +996,11 @@ def _run_locked(
                 container_name=name,
                 launch_digest=launch,
                 deadline_unix=float(started_unix + seconds - 30),
+                **(
+                    {"intent_path": operation / "intent.json"}
+                    if provenance == LIBRARY_PREP_PROVENANCE
+                    else {}
+                ),
             )
         with _fixed_practice_stage(operation, provenance, "START"):
             cli.run(["start", name], timeout=20)
@@ -859,13 +1015,97 @@ def _run_locked(
                 worker_profile=worker,
                 diagnose_policy=provenance in _FIXED_DIAGNOSTIC_PROVENANCES,
             )
+        baseline_digest = None
+        if provenance == LIBRARY_PREP_PROVENANCE:
+            try:
+                baseline_digest = _retain_fixed_program_evidence(
+                    operation,
+                    "private-program-baseline.json",
+                    {
+                        "schema": "carbon.autoresearch.program-resource-baseline.v1",
+                        "launch_digest": launch,
+                        "observed_unix": time.time(),
+                        "observation": _fixed_program_container_observation(
+                            cli,
+                            container_name=name,
+                            launch_digest=launch,
+                            image_id=image.image_id,
+                            deadline=min(time.monotonic() + 1, started + seconds - 45),
+                        ),
+                    },
+                )
+            except Exception:  # noqa: BLE001, S110 - diagnostics never gate work
+                pass
         with _fixed_practice_stage(operation, provenance, "PROGRAM"):
-            cli.stream_to_file(
-                ["exec", name, "/opt/carbon-worker/bin/python", "-I", "-c", bootstrap],
-                operation / "stdout.txt",
-                maximum=1024**2,
-                timeout=max(1, seconds - 45 - (time.monotonic() - started)),
-            )
+            program_started = time.monotonic()
+            program_timeout = max(1, seconds - 45 - (program_started - started))
+            program_deadline = program_started + program_timeout
+            try:
+                cli.stream_to_file(
+                    [
+                        "exec",
+                        name,
+                        "/opt/carbon-worker/bin/python",
+                        "-I",
+                        "-c",
+                        bootstrap,
+                    ],
+                    operation / "stdout.txt",
+                    maximum=1024**2,
+                    timeout=program_timeout,
+                )
+            except Exception as error:
+                if provenance == LIBRARY_PREP_PROVENANCE:
+                    try:
+                        diagnostic = (
+                            error.private_diagnostic
+                            if isinstance(error, WorkerFailure)
+                            else b""
+                        )
+                        exited = (
+                            re.match(rb"exit=([0-9]{1,3})\n", diagnostic)
+                            if type(diagnostic) is bytes
+                            else None
+                        )
+                        observed_exit = None if exited is None else int(exited.group(1))
+                        if observed_exit is not None and observed_exit > 255:
+                            observed_exit = None
+                        _retain_fixed_program_evidence(
+                            operation,
+                            "private-program-failure-evidence.json",
+                            {
+                                "schema": "carbon.autoresearch.program-failure-evidence.v1",
+                                "launch_digest": launch,
+                                "baseline_digest": baseline_digest,
+                                "observed_unix": time.time(),
+                                "elapsed_milliseconds": int(
+                                    max(0, time.monotonic() - program_started) * 1000
+                                ),
+                                "program_timeout_seconds": program_timeout,
+                                "program_deadline_reached": time.monotonic()
+                                >= program_deadline,
+                                "watchdog_deadline_unix": started_unix + seconds - 30,
+                                "watchdog_deadline_reached": time.time()
+                                >= started_unix + seconds - 30,
+                                "cancel_flag_observed": _cancel_path(
+                                    ledger, owner, identity
+                                ).exists(),
+                                "observed_exec_exit": observed_exit,
+                                "observation": _fixed_program_container_observation(
+                                    cli,
+                                    container_name=name,
+                                    launch_digest=launch,
+                                    image_id=image.image_id,
+                                    deadline=min(
+                                        time.monotonic() + 1, started + seconds - 30
+                                    ),
+                                ),
+                                "interpretation": "Observations only; no inferred kill cause.",
+                            },
+                        )
+                    except Exception:  # noqa: BLE001, S110 - preserve original failure
+                        pass
+                raise
         with _fixed_practice_stage(operation, provenance, "OBSERVE"):
             observed = observe_effective_resources(cli=cli, container_name=name)
         with _fixed_practice_stage(operation, provenance, "EXPORT"):
