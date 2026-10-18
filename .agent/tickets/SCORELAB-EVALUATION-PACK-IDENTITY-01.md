@@ -125,3 +125,23 @@ Validation remains conditional on canonical focused receiver/material-staging
 acceptance, relevant subsystem checks and the normal exact-head CI/review gate.
 Authors run pinned static checks; Product owns runtime. The frozen Hub and all
 scientific, security, production and model-matrix maturity ceilings remain.
+
+
+## Actual cold PREP UV identity repair, 2026-10-18
+
+The real signed CR03 task reached cold dependency PREP and failed at STAGING
+with ValueError before model execution. Product's exact read-only image receipt
+`d1b8df2c575ca473ddf6f343ce3edf5cfddbb3cb79b6ac1cc1d76af4e8f69157`
+shows the fixed UV digest present only as its tag-qualified repository digest.
+Both UV consumers previously required only the untagged spelling of that same
+immutable repository/digest. Root delegates the smallest source repair here.
+
+Accept exactly the frozen `UV_IMAGE` spelling or its existing normalized
+repository/digest spelling in a list of repository digests. Both include the
+identical registered SHA256; tag-only, other repositories and changed digests
+still refuse. Keep stopped-container ownership, bounded regular-file copy,
+deadline/cancellation, cleanup, offline preparation and inference separation.
+Actual-shaped positive and negative fixtures cover both consumers. Source/static
+review is followed by Product's canonical and real normal-path continuation;
+no successful model or scientific result is inferred from this repair. The
+active frozen campaign need not adopt unrelated prospective source changes.

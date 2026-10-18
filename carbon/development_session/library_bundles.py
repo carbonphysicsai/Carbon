@@ -1040,7 +1040,9 @@ def build_offline_bundle(
     uv = local_image(UV_IMAGE)
     uv_name, _, uv_digest = UV_IMAGE.partition("@")
     uv_repo_digest = uv_name.rsplit(":", 1)[0] + "@" + uv_digest
-    if uv_repo_digest not in uv.get("RepoDigests", []):
+    if type(uv.get("RepoDigests")) is not list or not any(
+        reference in uv["RepoDigests"] for reference in (UV_IMAGE, uv_repo_digest)
+    ):
         raise ValueError("pinned local uv image differs")
     parent_tag = parent_stage_tag(bundle_digest, parent_image)
     uv_tag = uv_stage_tag(bundle_digest)
