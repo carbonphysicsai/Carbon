@@ -353,19 +353,27 @@ def _checked_overlay_snapshot(snapshot: Path, expected_bundle: dict, parent_id: 
         raise ValueError("overlay preparation identity differs")
     rows = []
     seen = set()
+    total = 0
     with tarfile.open(archive_path, mode="r:") as archive:
         for member in archive:
             name = member.name
             if (
-                not member.isfile()
+                member.type != tarfile.REGTYPE
+                or member.issparse()
                 or not name.startswith(("site-packages/", "source/"))
                 or name.startswith("/")
                 or any(part in {"", ".", ".."} for part in name.split("/"))
+                or "\\" in name
+                or ":" in name
                 or name.casefold() in seen
                 or len(rows) >= MAX_OVERLAY_FILES
+                or type(member.size) is not int
+                or member.size < 0
+                or total + member.size > MAX_OVERLAY_BYTES
             ):
                 raise ValueError("overlay archive member differs")
             seen.add(name.casefold())
+            total += member.size
             item = archive.extractfile(member)
             if item is None:
                 raise ValueError("overlay archive member unavailable")
@@ -375,7 +383,7 @@ def _checked_overlay_snapshot(snapshot: Path, expected_bundle: dict, parent_id: 
             rows.append([name, member.size, _digest(body)])
     rows.sort(key=lambda row: row[0])
     if (
-        sum(row[1] for row in rows) != receipt["total_file_bytes"]
+        total != receipt["total_file_bytes"]
         or len(rows) != receipt["file_count"]
         or receipt["tree_digest"]
         != _digest(json.dumps(rows, separators=(",", ":")).encode())

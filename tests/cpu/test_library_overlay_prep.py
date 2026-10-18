@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from carbon.development_session import bundle_construction_worker
 from carbon.development_session.bundle_construction_worker import (
     _checked_overlay_snapshot,
 )
@@ -74,7 +75,9 @@ def _wheel() -> bytes:
 @pytest.mark.parametrize(
     "archive_root", ["source", "transolver-original-stock-75e0f676-v1"]
 )
-def test_exact_offline_wheel_prep_exports_inert_bounded_overlay(tmp_path, archive_root):
+def test_exact_offline_wheel_prep_exports_inert_bounded_overlay(
+    tmp_path, archive_root, monkeypatch
+):
     uv = shutil.which("uv")
     if uv is None:
         pytest.skip("uv binary unavailable in this diagnostic environment")
@@ -142,6 +145,41 @@ def test_exact_offline_wheel_prep_exports_inert_bounded_overlay(tmp_path, archiv
         _checked_overlay_snapshot(output, reference.to_dict(), "sha256:" + "4" * 64)
         == receipt
     )
+
+    class DeclaredArchive:
+        def __init__(self, member):
+            self.member = member
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def __iter__(self):
+            yield self.member
+
+        def extractfile(self, _):
+            raise AssertionError("unsafe member must be refused before materializing")
+
+    for kind, size in (
+        (tarfile.GNUTYPE_SPARSE, 1),
+        (tarfile.REGTYPE, 128 * 1024**2),
+    ):
+        member = tarfile.TarInfo("source/candidate.py")
+        member.type = kind
+        member.size = size
+        with monkeypatch.context() as patch:
+            patch.setattr(
+                bundle_construction_worker.tarfile,
+                "open",
+                lambda *_args, member=member, **_kwargs: DeclaredArchive(member),
+            )
+            with pytest.raises(ValueError, match="member differs"):
+                _checked_overlay_snapshot(
+                    output, reference.to_dict(), "sha256:" + "4" * 64
+                )
+
     tampered = {**receipt, "parent_image_id": "sha256:" + "5" * 64}
     (output / "overlay.json").write_text(json.dumps(tampered))
     with pytest.raises(ValueError, match="identity differs"):
