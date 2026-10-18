@@ -308,6 +308,7 @@ def submit_and_wait(
     clock=time.monotonic,
     sleep=time.sleep,
     wait_s=WAIT_S,
+    observe_only=False,
 ):
     """Submit one frozen recipe, then poll its owner-bound DEVELOPMENT task.
 
@@ -315,6 +316,10 @@ def submit_and_wait(
     submission. A lost HTTP response can be retried because the validator's
     task identity is derived from owner and recipe, not this request nonce.
     """
+    if type(observe_only) is not bool:
+        raise DirectIntakeRefusal("construction_observation_mode_invalid")
+    if observe_only and (type(wait_s) not in (int, float) or not 0 < wait_s <= 30):
+        raise DirectIntakeRefusal("construction_observation_wait_invalid")
     if type(recipe) is not ConstructionRecipe:
         recipe = ConstructionRecipe.from_dict(recipe)
     if type(context) is not ChainContext:
@@ -337,6 +342,12 @@ def submit_and_wait(
         raise DirectIntakeRefusal("construction_contract_binding_mismatch")
     binding = _binding(url, recipe, contract_digest, receiver, context, epoch)
     record_path = _record_path(root, epoch)
+    if observe_only and (
+        record_path.is_symlink()
+        or not record_path.is_file()
+        or not 0 < record_path.stat().st_size <= 65536
+    ):
+        raise DirectIntakeRefusal("construction_admission_record_required")
     if record_path.exists():
         recorded = json.loads(record_path.read_bytes())
         if type(recorded) is not dict or any(
@@ -355,6 +366,10 @@ def submit_and_wait(
         ):
             raise DirectIntakeRefusal("construction_intake_record_invalid")
     else:
+        # Even if a retained file disappears after preflight, an observation
+        # must never enter the submission branch.
+        if observe_only:
+            raise DirectIntakeRefusal("construction_admission_record_required")
         admission_deadline = clock() + min(WAIT_S, max(30.0, wait_s))
 
         admission_attempts = 0

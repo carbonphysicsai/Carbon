@@ -27,6 +27,7 @@ from .miner.toolbox import protected, refusal
 
 SESSION = "direct-development-1.3"
 SUBMIT = DIRECT_PREFIX + "submit_construction"
+OBSERVE_CONSTRUCTION = DIRECT_PREFIX + "observe_construction"
 STAGE_GRAPH = DIRECT_PREFIX + "stage_construction_graph"
 _START = DIRECT_PREFIX + "start_research_task"
 _OBSERVE = DIRECT_PREFIX + "get_research_result"
@@ -52,6 +53,7 @@ _IDENTITY = re.compile(r"[A-Za-z0-9._:-]{16,114}\Z")
 _CAMPAIGN_IDENTITY = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _TASK_ID = re.compile(r"rtsk_[0-9a-f]{64}\Z")
 _MAX_RECIPE_JSON = 32768
+_REMOTE_STATES = {"ADMITTED", "RECONSTRUCTED", "RECONSTRUCTION_FAILED", "FAILED_INFRA"}
 
 
 def _schema(properties):
@@ -111,7 +113,9 @@ _CONSTRUCTION_TOOLS = (
                 "recipe_json": _RECIPE,
                 "expected_manifest_digest": {
                     "type": ["string", "null"],
-                    "description": "Previously published receiver manifest digest, or null.",
+                    "description": (
+                        "Previously published receiver manifest digest, or null."
+                    ),
                 },
             }
         ),
@@ -123,6 +127,17 @@ _CONSTRUCTION_TOOLS = (
             "Submit one registered construction recipe through the miner's "
             "profile-pinned signed DEVELOPMENT intake. The resulting task is "
             "not an official grade."
+        ),
+        "strict": True,
+        "parameters": _schema({"recipe_json": _RECIPE}),
+    },
+    {
+        "type": "function",
+        "name": OBSERVE_CONSTRUCTION,
+        "description": (
+            "Observe a previously submitted recipe at the pinned remote receiver. "
+            "Supply the same recipe JSON; this never submits new work. "
+            "ADMITTED is pending, not reconstruction success."
         ),
         "strict": True,
         "parameters": _schema({"recipe_json": _RECIPE}),
@@ -214,7 +229,7 @@ def _campaign_lease_token(ledger, campaign_identity):
 
 def _dispatch_request(name, arguments, operation_id):
     """Build only a request that passes the local pre-route argument checks."""
-    if name in (STAGE_GRAPH, SUBMIT):
+    if name in (STAGE_GRAPH, SUBMIT, OBSERVE_CONSTRUCTION):
         expected = (
             {"recipe_json", "expected_manifest_digest"}
             if name == STAGE_GRAPH
@@ -228,9 +243,11 @@ def _dispatch_request(name, arguments, operation_id):
             if expected_digest is not None and type(expected_digest) is not str:
                 raise ValueError("manifest digest must be text or null")
             value["expected_manifest_digest"] = expected_digest
-        action = (
-            "stage_construction_graph" if name == STAGE_GRAPH else "submit_construction"
-        )
+        action = {
+            STAGE_GRAPH: "stage_construction_graph",
+            SUBMIT: "submit_construction",
+            OBSERVE_CONSTRUCTION: "observe_construction",
+        }[name]
     else:
         if "operation_id" in arguments:
             raise ValueError("operation identity is loop-owned")
@@ -246,13 +263,53 @@ def _dispatch_request(name, arguments, operation_id):
     return action, value
 
 
+def _remember_construction(known, arguments, result):
+    """Retain remote recipe/task identity separately from local task custody."""
+    recipe_json = json.dumps(
+        _recipe(arguments["recipe_json"]), sort_keys=True, separators=(",", ":")
+    )
+    outcome = result.get("result") if type(result) is dict else None
+    if (
+        type(result) is not dict
+        or result.get("ok") is not True
+        or result.get("official_eligible") is not False
+        or result.get("score_status") != "SCORE_UNAVAILABLE"
+        or type(outcome) is not dict
+        or type(outcome.get("task_id")) is not str
+        or _TASK_ID.fullmatch(outcome["task_id"]) is None
+        or type(outcome.get("state")) is not str
+        or outcome["state"] not in _REMOTE_STATES
+    ):
+        raise UncertainDirectToolDispatch(
+            "remote construction result requires reconciliation"
+        )
+    previous = known.get(recipe_json)
+    if previous is not None and (
+        previous["task_id"] != outcome["task_id"]
+        or (previous["state"] != "ADMITTED" and previous["state"] != outcome["state"])
+    ):
+        raise UncertainDirectToolDispatch("remote construction identity changed")
+    if any(
+        other != recipe_json and record["task_id"] == outcome["task_id"]
+        for other, record in known.items()
+    ):
+        raise UncertainDirectToolDispatch("remote construction recipe changed")
+    known[recipe_json] = {"task_id": outcome["task_id"], "state": outcome["state"]}
+
+
 def _journaled_tasks(
-    ledger, campaign_identity, *, before_epoch=None, offered_names=None
+    ledger,
+    campaign_identity,
+    *,
+    before_epoch=None,
+    offered_names=None,
+    remote_constructions=None,
 ):
     """Restore only tasks from the loop's canonical intent/result pairs."""
     from carbon.development_session.profile import canonical
 
     known = {}
+    remote = {} if remote_constructions is None else remote_constructions
     count = 0
     for epoch in (1, 2):
         if before_epoch is not None and epoch >= before_epoch:
@@ -323,6 +380,21 @@ def _journaled_tasks(
             result = json.loads(raw_result)
             if raw_result != canonical(result):
                 raise ValueError("direct agent journal canonical record differs")
+            if name in {SUBMIT, OBSERVE_CONSTRUCTION}:
+                arguments = intent.get("arguments")
+                if (
+                    name not in planned_names
+                    or type(arguments) is not dict
+                    or _IDENTITY.fullmatch(identity) is None
+                ):
+                    raise ValueError("remote construction journal binding differs")
+                if type(result) is not dict or result.get("ok") is not True:
+                    continue
+                _dispatch_request(
+                    name, arguments, _operation_id(campaign_identity, identity)
+                )
+                _remember_construction(remote, arguments, result)
+                continue
             if name not in {_START, _OBSERVE, _CANCEL}:
                 continue
             if type(result) is not dict or result.get("ok") is not True:
@@ -476,6 +548,7 @@ class DirectToolSession:
         campaign_identity,
         admit_new_work=None,
         known_tasks=None,
+        known_constructions=None,
         lease_token=None,
     ):
         if lease_token is None:
@@ -524,6 +597,18 @@ class DirectToolSession:
             for task_id, state in (known_tasks or {}).items()
             if state in _ACTIVE_TASK_STATES
         }
+        self._remote_constructions = {}
+        for recipe_json, record in (known_constructions or {}).items():
+            _remember_construction(
+                self._remote_constructions,
+                {"recipe_json": recipe_json},
+                {
+                    "ok": True,
+                    "result": record,
+                    "official_eligible": False,
+                    "score_status": "SCORE_UNAVAILABLE",
+                },
+            )
         self._offered = {}
         tools = []
         for entry in opened["tools"]:
@@ -538,7 +623,7 @@ class DirectToolSession:
                 or type(schema) is not dict
                 or schema.get("type") != "object"
                 or name in self._offered
-                or name in (SUBMIT, STAGE_GRAPH)
+                or name in (SUBMIT, STAGE_GRAPH, OBSERVE_CONSTRUCTION)
             ):
                 raise ValueError("malformed direct tool description")
             self._offered[name] = True
@@ -556,7 +641,9 @@ class DirectToolSession:
             )
         if opened.get("construction_intake_configured") is True:
             tools.extend(deepcopy(_CONSTRUCTION_TOOLS))
-            self._offered.update({STAGE_GRAPH: True, SUBMIT: True})
+            self._offered.update(
+                {STAGE_GRAPH: True, SUBMIT: True, OBSERVE_CONSTRUCTION: True}
+            )
         self.tools = tools
 
     @classmethod
@@ -567,6 +654,7 @@ class DirectToolSession:
         campaign_identity,
         admit_new_work=None,
         known_tasks=None,
+        known_constructions=None,
         lease_token=None,
     ):
         """Open through admission and bind a trusted frozen campaign digest."""
@@ -580,6 +668,7 @@ class DirectToolSession:
                 campaign_identity=campaign_identity,
                 admit_new_work=admit_new_work,
                 known_tasks=known_tasks,
+                known_constructions=known_constructions,
                 lease_token=lease_token,
             )
         except ValueError:
@@ -663,6 +752,8 @@ class DirectToolSession:
             raise UncertainDirectToolDispatch(
                 "direct tool outcome requires reconciliation"
             )
+        if name in {SUBMIT, OBSERVE_CONSTRUCTION}:
+            _remember_construction(self._remote_constructions, arguments, result)
         direct = result.get("result")
         if action == "call" and not _direct_result(direct, name, operation_id):
             raise UncertainDirectToolDispatch(
@@ -752,7 +843,11 @@ DIRECT_AGENT_INSTRUCTIONS = (
     "it by its returned task_id before starting more work. "
     "Stage owner graph source before remote "
     "graph staging when your recipe needs it. Submit only through the offered "
-    "direct construction action. A result is DEVELOPMENT evidence, not an "
+    "direct construction action. Poll an admitted remote recipe with "
+    "observe_construction using the same recipe_json until terminal; local "
+    "get_research_result cannot read remote construction IDs. Remote execution "
+    "remains bounded and owned by the receiver. "
+    "A result is DEVELOPMENT evidence, not an "
     "official grade or scientific qualification. Stop when no safe action remains."
 )
 
@@ -895,7 +990,10 @@ async def prepare_direct_agent_campaign(
     old = json.loads(row[0]) if row is not None else None
     campaign_id = old["campaign_id"] if type(old) is dict else uuid.uuid4().hex
     identity = digest(canonical([owner, campaign_id]))
-    bound_route = lambda action, value: route(host, SESSION, action, value)
+
+    def bound_route(action, value):
+        return route(host, SESSION, action, value)
+
     session = await asyncio.to_thread(
         DirectToolSession.open, bound_route, campaign_identity=identity
     )
@@ -1027,14 +1125,25 @@ async def _run_direct_epoch_owned(
         manifest["provider"], credential_file=credential_file
     )
     campaign_digest = digest(canonical(manifest))
-    admit_new_work = lambda: _new_work_within_deadline(
-        ledger, campaign_digest, manifest["elapsed_seconds"]
-    )
-    bound_route = lambda action, value: route(host, SESSION, action, value)
+
+    def admit_new_work():
+        return _new_work_within_deadline(
+            ledger, campaign_digest, manifest["elapsed_seconds"]
+        )
+
+    def bound_route(action, value):
+        return route(host, SESSION, action, value)
+
     # Validate retained custody before taking an attachment whose close can
     # cancel tasks. A corrupt journal must never trigger that close.
-    known_tasks = _journaled_tasks(ledger, identity)
-    prior_tasks = _journaled_tasks(ledger, identity, before_epoch=epoch)
+    known_constructions = {}
+    known_tasks = _journaled_tasks(
+        ledger, identity, remote_constructions=known_constructions
+    )
+    prior_constructions = {}
+    prior_tasks = _journaled_tasks(
+        ledger, identity, before_epoch=epoch, remote_constructions=prior_constructions
+    )
     lease_token = _campaign_lease_token(ledger, identity)
     session = await asyncio.to_thread(
         DirectToolSession.open,
@@ -1042,15 +1151,32 @@ async def _run_direct_epoch_owned(
         campaign_identity=identity,
         admit_new_work=admit_new_work,
         known_tasks=known_tasks,
+        known_constructions=known_constructions,
         lease_token=lease_token,
     )
     try:
         offered_names = {tool["name"] for tool in [*session.tools, STOP_TOOL]}
-        checked = _journaled_tasks(ledger, identity, offered_names=offered_names)
-        checked_prior = _journaled_tasks(
-            ledger, identity, before_epoch=epoch, offered_names=offered_names
+        checked_constructions = {}
+        checked = _journaled_tasks(
+            ledger,
+            identity,
+            offered_names=offered_names,
+            remote_constructions=checked_constructions,
         )
-        if checked != known_tasks or checked_prior != prior_tasks:
+        checked_prior_constructions = {}
+        checked_prior = _journaled_tasks(
+            ledger,
+            identity,
+            before_epoch=epoch,
+            offered_names=offered_names,
+            remote_constructions=checked_prior_constructions,
+        )
+        if (
+            checked != known_tasks
+            or checked_prior != prior_tasks
+            or checked_constructions != known_constructions
+            or checked_prior_constructions != prior_constructions
+        ):
             raise ValueError("direct agent journal changed during attachment")
     except BaseException as error:
         if (
@@ -1085,6 +1211,11 @@ async def _run_direct_epoch_owned(
         "retained_bytes_scope": manifest["retained_bytes_scope"],
         "official_eligible": False,
     }
+    if prior_constructions:
+        observation["known_constructions"] = [
+            {"recipe_json": recipe_json, **record}
+            for recipe_json, record in sorted(prior_constructions.items())[-50:]
+        ]
     plan_path = ledger.root / f"epoch-{epoch}" / "direct" / "plan.json"
     try:
         if plan_path.exists():
@@ -1174,6 +1305,27 @@ async def _run_direct_epoch_owned(
     if result.get("status") == "RECONCILIATION_REQUIRED":
         return result
     await asyncio.to_thread(session.close)
+    if session._remote_constructions:
+        return {
+            "status": (
+                "REMOTE_CONSTRUCTION_PENDING"
+                if any(
+                    record["state"] == "ADMITTED"
+                    for record in session._remote_constructions.values()
+                )
+                else "REMOTE_CONSTRUCTION_OBSERVED"
+            ),
+            "remote_constructions": [
+                {"recipe_json": recipe_json, **record}
+                for recipe_json, record in sorted(
+                    session._remote_constructions.items()
+                )[-50:]
+            ],
+            "remote_constructions_count": len(session._remote_constructions),
+            "epoch_outcome": result,
+            "local_task_supervision": supervised,
+            "official_eligible": False,
+        }
     if supervised is not None:
         observed, expired = supervised
         return {

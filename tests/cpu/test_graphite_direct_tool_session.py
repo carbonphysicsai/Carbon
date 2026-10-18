@@ -12,6 +12,7 @@ import pytest
 
 from carbon.agent_campaign.graphite.direct_tool_session import (
     DIRECT_PREFIX,
+    OBSERVE_CONSTRUCTION,
     SESSION,
     STAGE_GRAPH,
     SUBMIT,
@@ -75,6 +76,13 @@ def route(calls, *, intake=True):
                     "state": "SUCCEEDED",
                 }
             return {"ok": True, "result": result}
+        if action in {"submit_construction", "observe_construction"}:
+            return {
+                "ok": True,
+                "result": {"task_id": TASK_ID, "state": "ADMITTED"},
+                "score_status": "SCORE_UNAVAILABLE",
+                "official_eligible": False,
+            }
         return {"ok": True, "result": value}
 
     return invoke
@@ -100,7 +108,12 @@ def test_open_uses_normal_session_and_exposes_only_offered_tools():
     assert set(calls[0][1]) == {"exclusive_token"}
     assert len(calls[0][1]["exclusive_token"]) == 32
     names = {tool["name"] for tool in session.tools}
-    assert names == {DIRECT_PREFIX + "get_challenge_info", STAGE_GRAPH, SUBMIT}
+    assert names == {
+        DIRECT_PREFIX + "get_challenge_info",
+        STAGE_GRAPH,
+        SUBMIT,
+        OBSERVE_CONSTRUCTION,
+    }
     assert "operation_id" not in session.tools[0]["parameters"]["properties"]
     assert all(tool["strict"] is True for tool in session.tools)
 
@@ -1497,3 +1510,92 @@ def test_cancelled_epoch_holds_run_fence_until_threaded_route_settles(
         assert completed == ["route", "epoch-1", "epoch-2"]
 
     asyncio.run(competing())
+
+
+def test_remote_observation_uses_same_recipe_after_deadline_without_local_task_poll():
+    calls = []
+    state = {"value": "ADMITTED"}
+
+    def invoke(action, value):
+        calls.append((action, value))
+        if action == "open":
+            return opened()
+        assert action in {"submit_construction", "observe_construction"}
+        return {
+            "ok": True,
+            "result": {"state": state["value"], "task_id": TASK_ID},
+            "score_status": "SCORE_UNAVAILABLE",
+            "official_eligible": False,
+        }
+
+    alive = {"value": True}
+    session = DirectToolSession.open(
+        invoke,
+        campaign_identity=CAMPAIGN_A,
+        admit_new_work=lambda: alive["value"],
+    )
+    args = {"recipe_json": '{"source":{"kind":"graph"}}'}
+    asyncio.run(session.call(SUBMIT, args, "epoch-1-direct-tool-001"))
+    assert session._active_tasks == set()
+    alive["value"] = False
+    state["value"] = "RECONSTRUCTED"
+    observed = asyncio.run(
+        session.call(OBSERVE_CONSTRUCTION, args, "epoch-1-direct-tool-002")
+    )
+    assert observed["result"]["state"] == "RECONSTRUCTED"
+    assert [action for action, _ in calls] == [
+        "open",
+        "submit_construction",
+        "observe_construction",
+    ]
+    assert calls[1][1]["recipe"] == calls[2][1]["recipe"]
+    assert list(session._remote_constructions.values()) == [
+        {"state": "RECONSTRUCTED", "task_id": TASK_ID}
+    ]
+    assert session._active_tasks == set()
+
+
+def test_remote_journal_restores_recipe_task_and_refuses_changed_id(tmp_path):
+    from types import SimpleNamespace
+
+    from carbon.agent_campaign.graphite.direct_tool_session import _journaled_tasks
+    from carbon.development_session.profile import canonical
+
+    directory = tmp_path / "epoch-1" / "direct"
+    directory.mkdir(parents=True)
+    (directory / "plan.json").write_bytes(
+        canonical({"tools": [{"name": SUBMIT}, {"name": OBSERVE_CONSTRUCTION}]})
+    )
+    args = {"recipe_json": '{"source":{"kind":"graph"}}'}
+
+    def record(number, name, state, task_id=TASK_ID):
+        stem = directory / f"epoch-1-direct-tool-{number:03}"
+        stem.with_name(stem.name + "-intent.json").write_bytes(
+            canonical({"name": name, "arguments": args})
+        )
+        result = {
+            "ok": True,
+            "result": {"task_id": task_id, "state": state},
+            "score_status": "SCORE_UNAVAILABLE",
+            "official_eligible": False,
+        }
+        stem.with_name(stem.name + "-result.json").write_bytes(canonical(result))
+
+    record(1, SUBMIT, "ADMITTED")
+    record(2, OBSERVE_CONSTRUCTION, "RECONSTRUCTED")
+    remote = {}
+    assert (
+        _journaled_tasks(
+            SimpleNamespace(root=tmp_path), CAMPAIGN_A, remote_constructions=remote
+        )
+        == {}
+    )
+    restored = DirectToolSession(
+        route([]), opened(), campaign_identity=CAMPAIGN_A, known_constructions=remote
+    )
+    assert list(restored._remote_constructions.values()) == [
+        {"task_id": TASK_ID, "state": "RECONSTRUCTED"}
+    ]
+    record(2, OBSERVE_CONSTRUCTION, "RECONSTRUCTED", "rtsk_" + "b" * 64)
+    with pytest.raises(UncertainDirectToolDispatch, match="identity changed"):
+        _journaled_tasks(SimpleNamespace(root=tmp_path), CAMPAIGN_A)
