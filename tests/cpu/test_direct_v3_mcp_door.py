@@ -494,9 +494,7 @@ def test_installed_direct_development_uses_profile_signer_and_refuses_missing_ch
         lambda path: (
             other_gpu_parent
             if path.name == "other-gpu-worker-image.json"
-            else gpu_parent
-            if path.name == "gpu-worker-image.json"
-            else parent
+            else gpu_parent if path.name == "gpu-worker-image.json" else parent
         ),
     )
     monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _image: "jax")
