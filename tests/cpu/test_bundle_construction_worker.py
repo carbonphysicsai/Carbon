@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+import carbon.development_session.bundle_construction_worker as bundle_worker
 from carbon.development_session.bundle_construction_worker import (
     BUILD_PROGRAM,
     INFER_PROGRAM,
@@ -23,6 +24,7 @@ from carbon.development_session.construction_recipe import (
     ConstructionRecipe,
     RecipeRefused,
 )
+from carbon.development_session.research_carrier import MINER_GPU
 from carbon.level4 import allowlist
 
 
@@ -127,6 +129,68 @@ def test_direct_child_identities_are_stable_distinct_and_within_ledger_bound():
     assert all(len(item) <= 128 for item in (prep, build, inference))
     with pytest.raises(RecipeRefused, match="bundle_child_identity_invalid"):
         direct_child_identity(long_task, "unknown")
+
+
+@pytest.mark.parametrize("accelerator", [None, MINER_GPU])
+def test_composed_bundle_forwards_only_explicit_selected_gpu(monkeypatch, accelerator):
+    recipe = _recipe(_sha("a"))
+    calls = []
+    state_digest = _sha("f")
+    build = bundle_worker.BundleBuildResult(
+        recipe.digest, state_digest, Path("unused-state.npz"), "build-operation", {}
+    )
+    inference = bundle_worker.BundleInferenceResult(
+        recipe.digest, state_digest, _sha("e"), [], "infer-operation", {}
+    )
+
+    def build_phase(ledger, **kwargs):
+        calls.append(("build", kwargs))
+        return build
+
+    def infer_phase(ledger, **kwargs):
+        calls.append(("infer", kwargs))
+        return inference
+
+    monkeypatch.setattr(bundle_worker, "reconstruct_public", build_phase)
+    monkeypatch.setattr(bundle_worker, "infer_public", infer_phase)
+    monkeypatch.setattr(
+        bundle_worker,
+        "verify_direct_resource_policy",
+        lambda binding, limits: _sha("c"),
+    )
+    policy = {
+        "reconstruction_resource_policy": {
+            "build_wall_seconds_max": 600,
+            "inference_wall_seconds_max": 600,
+            "total_reconstruction_wall_seconds_max": 1800,
+        }
+    }
+    result = bundle_worker.reconstruct_and_infer_public(
+        object(),
+        owner="operator",
+        identity="task",
+        image=object(),
+        inference_image=object(),
+        recipe=recipe,
+        challenge_binding=_binding(recipe),
+        limits_document=policy,
+        train=b"training",
+        example=np.zeros((1, 1), dtype=np.float32),
+        seed=0,
+        inputs=np.zeros((1, 1), dtype=np.float32),
+        expected_output_shape=(1, 1),
+        allowlist_bytes=b"allowlist",
+        accelerator=accelerator,
+        runner=object(),
+    )
+    assert result.execution_boundary == "TEST_ONLY_LOCAL_RUNNER"
+    assert [phase for phase, _ in calls] == ["build", "infer"]
+    assert all((kwargs.get("accelerator") == accelerator) for _, kwargs in calls)
+    assert all(
+        ("accelerator" in kwargs) == (accelerator is not None) for _, kwargs in calls
+    )
+    with pytest.raises(RecipeRefused, match="bundle_accelerator_invalid"):
+        bundle_worker._accelerator_kwargs("unregistered-device")
 
 
 def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_only(

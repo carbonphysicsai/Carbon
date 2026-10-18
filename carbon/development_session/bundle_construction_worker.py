@@ -32,10 +32,22 @@ from .research_carrier import (
     LIBRARY_BUILD_PROVENANCE,
     LIBRARY_OVERLAY_BUILD_PROVENANCE,
     LIBRARY_PREP_PROVENANCE,
+    MINER_GPU,
     PRECHARGED_TRIAL,
+    VALIDATOR_GPU,
     _run,
 )
 from .research_image import LibraryWorkerImage
+
+
+def _accelerator_kwargs(accelerator: str | None) -> dict:
+    """Omit the historical CPU field; let the carrier verify explicit GPU pins."""
+    if accelerator is None:
+        return {}
+    if type(accelerator) is not str or accelerator not in (MINER_GPU, VALIDATOR_GPU):
+        raise RecipeRefused("bundle_accelerator_invalid")
+    return {"accelerator": accelerator}
+
 
 PREP_PROGRAM = r'''"""Fixed, source-free C03 offline material preparation."""
 import os, shutil, sys
@@ -438,6 +450,7 @@ def prepare_library_overlay(
     seconds: int = 600,
     deadline: float | None = None,
     cancel: Callable[[], None] | None = None,
+    accelerator: str | None = None,
     runner=None,
 ) -> BundleOverlayPrepResult:
     """Install exact offline wheels only inside a controlled C03 operation."""
@@ -525,6 +538,7 @@ def prepare_library_overlay(
         trusted_stage_provider=stage_uv,
         trusted_stage_identity=stage_identity,
         bootstrap=PREP_BOOTSTRAP,
+        **_accelerator_kwargs(accelerator),
     )
     snapshot = ledger.root / worker["operation"] / "snapshot"
     receipt = checked(snapshot)
@@ -706,6 +720,7 @@ def reconstruct_public(
     allowlist_bytes: bytes,
     limits_document: dict | None = None,
     seconds: int = 600,
+    accelerator: str | None = None,
     runner=None,
 ) -> BundleBuildResult:
     """Run an exact source entrypoint only in the provisioned child worker."""
@@ -822,6 +837,7 @@ def reconstruct_public(
             {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
         ),
         output_validator=checked,
+        **_accelerator_kwargs(accelerator),
         **(
             {"trusted_overlay": overlay, "bootstrap": OVERLAY_BUILD_BOOTSTRAP}
             if overlay is not None
@@ -871,6 +887,7 @@ def infer_public(
     expected_output_dtype: str | None = None,
     measure_query: bool = False,
     seconds: int = 600,
+    accelerator: str | None = None,
     runner=None,
 ) -> BundleInferenceResult:
     """Reopen inert state in the base C-03 image with input-only tensors."""
@@ -928,6 +945,7 @@ def infer_public(
         measure_query=measure_query,
         allowlist_bytes=allowlist_bytes,
         seconds=seconds,
+        **_accelerator_kwargs(accelerator),
         runner=runner,
     )
 
@@ -951,6 +969,7 @@ def infer_saved_bundle(
     allowlist_bytes: bytes,
     limits_document: dict | None = None,
     seconds: int = 600,
+    accelerator: str | None = None,
     runner=None,
 ) -> BundleInferenceResult:
     """Infer from a separately validated saved graph; never stage source or TRAIN.
@@ -1012,6 +1031,7 @@ def infer_saved_bundle(
         allowlist_bytes=allowlist_bytes,
         measure_query=True,
         seconds=seconds,
+        **_accelerator_kwargs(accelerator),
         runner=runner,
     )
 
@@ -1044,6 +1064,7 @@ def _infer_state(
     input_name: str = "inputs/x",
     provenance: str = "DIRECT_BUNDLE_PUBLIC_INFERENCE",
     seconds: int = 600,
+    accelerator: str | None = None,
     runner=None,
 ) -> BundleInferenceResult:
     if provenance not in (
@@ -1168,6 +1189,7 @@ def _infer_state(
             {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
         ),
         output_validator=checked,
+        **_accelerator_kwargs(accelerator),
     )
     snapshot = ledger.root / worker["operation"] / "snapshot"
     raw, predictions, receipt = checked(snapshot)
@@ -1288,13 +1310,16 @@ def reconstruct_and_infer_public(
     expected_output_dtype: str | None = None,
     measure_query: bool = False,
     total_deadline_started: float | None = None,
+    accelerator: str | None = None,
     runner=None,
 ) -> DirectReconstructionResult:
     """Fresh build and source-free inference under the fixture's finite policy.
 
     Both carrier calls confirm cleanup before returning. Each phase gets at
     most its registered wall allowance and at most the remaining aggregate
-    allowance. A test runner proves bytes and custody, never C-03 isolation.
+    allowance. A checked caller selects an accelerator and matching images;
+    this route never infers GPU permission from the bundle's runtime label.
+    A test runner proves bytes and custody, never C-03 isolation.
     """
     binding = _checked_binding(recipe, challenge_binding)
     policy_digest = verify_direct_resource_policy(binding, limits_document)
@@ -1330,6 +1355,7 @@ def reconstruct_and_infer_public(
         allowlist_bytes=allowlist_bytes,
         limits_document=limits_document,
         seconds=phase_seconds("build_wall_seconds_max"),
+        **_accelerator_kwargs(accelerator),
         runner=runner,
     )
     inference = infer_public(
@@ -1348,6 +1374,7 @@ def reconstruct_and_infer_public(
         allowlist_bytes=allowlist_bytes,
         limits_document=limits_document,
         seconds=phase_seconds("inference_wall_seconds_max"),
+        **_accelerator_kwargs(accelerator),
         runner=runner,
     )
     elapsed = time.monotonic() - started
