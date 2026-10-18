@@ -17,6 +17,7 @@ import collections
 import math
 import operator
 
+from .. import allowlist as allowlist_module
 from .. import graph
 
 #: Torch dtypes to Carbon dtypes. `int64` narrows to `int32`: Carbon's JAX
@@ -442,6 +443,135 @@ def _sum_dim(b, node, env):
     )
 
 
+def _scatter_add_static(b, node, env):
+    """Order static-index updates without a GPU atomic scatter primitive.
+
+    Only a prospective allowlist admitting this ATen op can reach this emitter;
+    pinned v5 bytes remain unchanged. Input-derived indices are refused:
+    Carbon's graph interpreter has no typed runtime index-bounds refusal yet.
+    Each source position contributes in increasing order, including repeats.
+    """
+    target = str(node.target)
+    args = node.args
+    if (
+        len(args) != 4
+        or node.kwargs
+        or not hasattr(args[0], "op")
+        or type(args[1]) is not int
+        or not hasattr(args[2], "op")
+        or not hasattr(args[3], "op")
+    ):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    base, index_value, source = env[args[0]], env[args[2]], env[args[3]]
+    dtype, shape = b.avals[base]
+    source_dtype, source_shape = b.avals[source]
+    index_dtype, index_shape = b.avals[index_value]
+    rank = len(shape)
+    dim = _norm(args[1], rank)
+    if (
+        rank == 0
+        or not 0 <= dim < rank
+        or dtype not in ("float32", "float64")
+        or source_dtype != dtype
+        or index_dtype != "int32"
+        or str(getattr(args[2].meta.get("val"), "dtype", None)) != "torch.int64"
+        or index_shape != source_shape
+        or len(source_shape) != rank
+        or any(source_shape[axis] != shape[axis] for axis in range(rank) if axis != dim)
+    ):
+        raise graph.GraphRefused("aten_scatter_shape_or_dtype_not_supported", target)
+    if _aval(node) != (dtype, shape):
+        raise graph.GraphRefused("aten_result_metadata_not_supported", target)
+    index_entry = next(
+        (entry for entry in b.constants if entry["value"] == index_value), None
+    )
+    if index_entry is None:
+        raise graph.GraphRefused("aten_scatter_index_not_static", target)
+    index = graph.decode_array(index_entry, target)
+    if (index < 0).any() or (index >= shape[dim]).any():
+        raise graph.GraphRefused("aten_scatter_index_out_of_bounds", target)
+    if index.size == 0:
+        return base
+
+    count = source_shape[dim]
+    # One iota and one zero broadcast, then seven existing primitive nodes
+    # per ordered update. Both bounds come from the registered graph caps.
+    nodes = 2 + 7 * count
+    bytes_per_result = math.prod(shape) * max(graph.itemsize(dtype), 4)
+    if (
+        len(b.nodes) + nodes > allowlist_module.CAPS["nodes_executed"]
+        or nodes * bytes_per_result
+        > allowlist_module.CAPS["largest_intermediate_bytes"]
+        or sum(c["bytes"] for c in b.constants) + index.nbytes
+        > allowlist_module.CAPS["constant_bytes"]
+    ):
+        raise graph.GraphRefused("aten_scatter_registered_resource_bound", target)
+    import numpy as np
+
+    coordinates = b.emit(
+        "iota",
+        [],
+        "int32",
+        shape,
+        dimension=dim,
+        dtype="int32",
+        shape=shape,
+        sharding=None,
+    )
+    zero = b.broadcast(b.scalar(0, dtype), shape)
+    other_axes = [axis for axis in range(rank) if axis != dim]
+    without_dim = [shape[axis] for axis in other_axes]
+    result = base
+    for position in range(count):
+        selected_index = b.const(np.take(index, position, axis=dim))
+        selected_index = b.emit(
+            "broadcast_in_dim",
+            [selected_index],
+            "int32",
+            shape,
+            broadcast_dimensions=other_axes,
+            shape=shape,
+            sharding=None,
+        )
+        matches = b.emit("eq", [coordinates, selected_index], "bool", shape)
+        starts = [position if axis == dim else 0 for axis in range(rank)]
+        limits = [
+            position + 1 if axis == dim else size for axis, size in enumerate(shape)
+        ]
+        sliced_shape = list(source_shape)
+        sliced_shape[dim] = 1
+        selected_source = b.emit(
+            "slice",
+            [source],
+            dtype,
+            sliced_shape,
+            start_indices=starts,
+            limit_indices=limits,
+            strides=None,
+        )
+        selected_source = b.emit(
+            "reshape",
+            [selected_source],
+            dtype,
+            without_dim,
+            dimensions=None,
+            new_sizes=without_dim,
+            sharding=None,
+        )
+        selected_source = b.emit(
+            "broadcast_in_dim",
+            [selected_source],
+            dtype,
+            shape,
+            broadcast_dimensions=other_axes,
+            shape=shape,
+            sharding=None,
+        )
+        update = b.emit("select_n", [matches, zero, selected_source], dtype, shape)
+        result = b.emit("add", [result, update], dtype, shape)
+    return result
+
+
 def _emit(b, node, env):
     """The Carbon value for one Core ATen call, or `GraphRefused`."""
     target = str(node.target)
@@ -469,6 +599,8 @@ def _emit(b, node, env):
         return _softmax(b, node, env)
     if target == "aten.sum.dim_IntList":
         return _sum_dim(b, node, env)
+    if target == "aten.scatter_add.default":
+        return _scatter_add_static(b, node, env)
     dtype, shape = (
         _aval(node)
         if "val" in node.meta and node.meta["val"] is not None
