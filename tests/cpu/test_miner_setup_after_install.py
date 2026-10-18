@@ -333,7 +333,11 @@ def test_a_reinstall_sets_the_old_check_aside_and_writes_the_profile_again(
     checks = Reinstalled(REVISION)
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=checks)
     completed(tmp_path, setup)
-    setup.review({"confirm": True})
+    direct_target = {
+        "intake_url": "http://127.0.0.1:9080",
+        "receiver_hotkey": HOTKEY,
+    }
+    setup.review({"confirm": True, "direct_intake_target": direct_target})
     assert profile(setup)["accepted_revision"] == REVISION
 
     head["revision"] = checks.revision = NEW
@@ -351,6 +355,7 @@ def test_a_reinstall_sets_the_old_check_aside_and_writes_the_profile_again(
     assert checks.calls[-1] == ("compute", worker, analysis)
     cfg = profile(setup)
     assert cfg["accepted_revision"] == NEW
+    assert cfg["direct_intake_target"] == direct_target
     assert cfg["runtime"]["implementation"]["revision"] == NEW
     compute = setup.state()["steps"]["compute"]
     assert compute["checked"] is True and "set_aside" not in compute

@@ -121,16 +121,16 @@ def test_signed_direct_submission_records_task_and_restart_only_polls(
             return 202, _answer("ADMITTED")
         return 200, _answer("RECONSTRUCTED")
 
-    args = dict(
-        root=tmp_path,
-        epoch=1,
-        recipe=_recipe(),
-        contract_digest=_CONTRACT,
-        receiver=_RECEIVER,
-        context=_CONTEXT,
-        read=lambda url: _facts(),
-        send=send,
-    )
+    args = {
+        "root": tmp_path,
+        "epoch": 1,
+        "recipe": _recipe(),
+        "contract_digest": _CONTRACT,
+        "receiver": _RECEIVER,
+        "context": _CONTEXT,
+        "read": lambda url: _facts(),
+        "send": send,
+    }
     first = client.submit_and_wait(_URL, "external-signer", **args)
     assert first["state"] == "RECONSTRUCTED"
     record = json.loads((tmp_path / "construction-intake-epoch-1.json").read_bytes())

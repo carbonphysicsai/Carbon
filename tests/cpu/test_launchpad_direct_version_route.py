@@ -9,9 +9,9 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from test_direct_submission import _recipe
 
 from scripts.dev.miner_launchpad import runner, tool_door
-from test_direct_submission import _recipe
 
 
 @pytest.mark.parametrize(

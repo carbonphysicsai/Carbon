@@ -744,7 +744,10 @@ def validated_profile(cfg):
     if "direct_intake_target" in cfg:
         from carbon.development_session.intake_targets import validate
 
-        validate([cfg["direct_intake_target"]])
+        try:
+            validate([cfg["direct_intake_target"]])
+        except ValueError:
+            raise ValueError("direct_intake_target must be receiver-paired") from None
     if "validators" in cfg:
         _registered_challenge_ids(cfg["validators"], "validators")
         if any(

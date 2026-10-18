@@ -510,6 +510,8 @@ def test_review_pins_a_separate_development_construction_receiver(tmp_path, stat
         )
     assert refused.value.field == "direct_intake_target"
     assert json.loads(setup.profile_path.read_bytes())["direct_intake_target"] == target
+    setup.review({"confirm": True, "direct_intake_target": None})
+    assert "direct_intake_target" not in json.loads(setup.profile_path.read_bytes())
 
 
 def test_a_changed_step_needs_a_new_review(tmp_path, state):

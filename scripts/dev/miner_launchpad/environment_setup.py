@@ -2899,6 +2899,7 @@ class EnvironmentSetup:
             target_lists = {k: validate(v) for k, v in target_lists.items()}
         except ValueError:
             raise SetupRefused("intakes", "intake_url_invalid") from None
+        direct_target_supplied = "direct_intake_target" in value
         direct_target = value.get("direct_intake_target")
         if direct_target is not None:
             try:
@@ -3007,6 +3008,16 @@ class EnvironmentSetup:
                 ]
             sources[challenge["id"]] = "published"
         with self.lock:
+            record = self._record()
+            if not direct_target_supplied:
+                direct_target = record.get("direct_intake_target")
+                if direct_target is not None:
+                    try:
+                        direct_target = validate([direct_target])[0]
+                    except ValueError:
+                        raise SetupRefused(
+                            "direct_intake_target", "intake_url_invalid"
+                        ) from None
             cfg = self.profile()
             if intakes:
                 cfg = {**cfg, "intakes": intakes}
@@ -3016,7 +3027,6 @@ class EnvironmentSetup:
                 cfg = {**cfg, "intake_targets": target_lists}
             if direct_target is not None:
                 cfg = {**cfg, "direct_intake_target": direct_target}
-            record = self._record()
             # The miner's auto-retry choice (LAUNCHPAD-PRACTICE-RETRY-01):
             # this Review's when it names one, else the one kept from before,
             # so an update's Review keeps it. Written into the profile only
@@ -3068,6 +3078,10 @@ class EnvironmentSetup:
             }
             if preferences:
                 record["preferences"] = preferences
+            if direct_target is None:
+                record.pop("direct_intake_target", None)
+            else:
+                record["direct_intake_target"] = direct_target
             # A profile an update set aside is replaced by this one.
             record.pop("profile_set_aside", None)
             self._save(record)
