@@ -89,15 +89,15 @@ def test_bundle_material_uses_normal_signed_gateway_and_promotes_closure(
             "owner": "authenticated_hotkey",
         },
     }
-    args = dict(
-        directory=directory,
-        recipe=recipe,
-        contract_digest=_CONTRACT,
-        receiver=_RECEIVER,
-        context=_CONTEXT,
-        read=lambda url: facts,
-        send=send,
-    )
+    args = {
+        "directory": directory,
+        "recipe": recipe,
+        "contract_digest": _CONTRACT,
+        "receiver": _RECEIVER,
+        "context": _CONTEXT,
+        "read": lambda url: facts,
+        "send": send,
+    }
     result = client.stage_bundle(_URL, "external-signer", **args)
     assert result["bundle_ref"] == selected.to_dict()
     assert result["complete"] and not result["official_eligible"]

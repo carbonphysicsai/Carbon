@@ -934,9 +934,7 @@ def test_finite_direct_campaign_prepares_then_calls_existing_loop(
         arguments = (
             {"recipe_json": '{"source":{"kind":"graph"}}'}
             if name.endswith("start_research_task")
-            else {"task_id": TASK_ID}
-            if name.endswith("get_research_result")
-            else {}
+            else {"task_id": TASK_ID} if name.endswith("get_research_result") else {}
         )
         return {
             "model": request["model"],

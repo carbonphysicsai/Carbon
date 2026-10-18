@@ -130,8 +130,7 @@ class TestOnlyAuthorizationProvider(Protocol):
 
     def fixture_authorization(
         self, ref: TestOnlyPriorAuthorizationReceiptRef
-    ) -> TestOnlyPriorAuthorizationReceipt:
-        ...
+    ) -> TestOnlyPriorAuthorizationReceipt: ...
 
 
 def _provider(value: object, method: str) -> None:

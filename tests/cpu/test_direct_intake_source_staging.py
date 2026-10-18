@@ -38,13 +38,13 @@ from carbon.development_session.construction_recipe import (
     RecipeRefused,
     graph_envelope_from_workspace,
 )
-from carbon.development_session.research_workspace import (
-    ResearchWorkspace,
-    WorkspaceFileMissing,
-)
 from carbon.development_session.library_bundles import bundle_ref
 from carbon.development_session.library_environment_cache import (
     inspect_staged_bundle_material,
+)
+from carbon.development_session.research_workspace import (
+    ResearchWorkspace,
+    WorkspaceFileMissing,
 )
 from carbon.level4 import staging, submission
 from carbon.transport.models import MAX_BODY, message

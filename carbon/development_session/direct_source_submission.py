@@ -23,8 +23,6 @@ from carbon.development_session.construction_recipe import (
 from carbon.level4 import staging
 from carbon.transport.models import MAX_BODY, message
 
-from .library_bundles import bundle_ref, load_pinned_bundle_directory
-
 from .direct_submission import (
     SOURCE_TOOL,
     SUBMIT_PATH,
@@ -36,6 +34,7 @@ from .direct_submission import (
     read_intake,
     retry_rate_limited,
 )
+from .library_bundles import bundle_ref, load_pinned_bundle_directory
 
 STAGE_REPLY_SCHEMA = "carbon.construction.source-stage-reply.v1"
 STAGE_OPERATION = "stage_research_source"
@@ -111,7 +110,7 @@ def _stage_one(
     for offset in offsets:
         chunk = body[offset : offset + CHUNK_BYTES]
 
-        def attempt():
+        def attempt(offset=offset, chunk=chunk):
             pacer.before_call()
             try:
                 facts = read(url)
@@ -321,7 +320,7 @@ def _stage_material_one(
     for offset in offsets:
         chunk = body[offset : offset + MATERIAL_CHUNK_BYTES]
 
-        def attempt():
+        def attempt(offset=offset, chunk=chunk):
             pacer.before_call()
             try:
                 facts = read(url)
