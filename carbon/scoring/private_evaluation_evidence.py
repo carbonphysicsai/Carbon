@@ -24,6 +24,8 @@ from carbon.scoring.solver_benchmark_v3 import BenchmarkScoreRefused
 
 SOURCE_SCHEMA = "carbon.scoring.private-evaluation-source.v1"
 SIDECAR_SCHEMA = "carbon.scoring.private-evaluation-binding.v1"
+PACK_SOURCE_SCHEMA = "carbon.scoring.private-evaluation-source.v2"
+PACK_SIDECAR_SCHEMA = "carbon.scoring.private-evaluation-binding.v2"
 _SHA256 = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _SOURCE_FIELDS = {
     "schema",
@@ -88,7 +90,17 @@ def _parse_source(raw):
         )
     except (UnicodeError, ValueError, RecursionError) as exc:
         raise PrivateEvaluationEvidenceRefused("source_receipt_json") from exc
-    if type(result) is not dict or set(result) != _SOURCE_FIELDS:
+    if type(result) is not dict:
+        raise PrivateEvaluationEvidenceRefused("source_receipt_shape")
+    schema = result.get("schema")
+    if type(schema) is not str or schema not in {SOURCE_SCHEMA, PACK_SOURCE_SCHEMA}:
+        raise PrivateEvaluationEvidenceRefused("source_receipt_shape")
+    fields = (
+        _SOURCE_FIELDS | {"evaluation_pack_digest"}
+        if schema == PACK_SOURCE_SCHEMA
+        else _SOURCE_FIELDS
+    )
+    if set(result) != fields:
         raise PrivateEvaluationEvidenceRefused("source_receipt_shape")
     return result
 
@@ -124,12 +136,15 @@ def bind_private_evaluation_evidence(
     ordered_query_bytes,
     evaluation_source_receipt_raw,
     registered_source_receipt_sha256,
+    expected_evaluation_pack_digest=None,
 ):
     """Bind one already reduced result to an independently pinned source.
 
     ``registered_source_receipt_sha256`` must be read from trusted operator
     registration, not copied from ``evaluation_source_receipt_raw``. The
     function verifies equality but cannot attest that caller provenance.
+    A selected evaluation pack requires a v2 source and the exact trusted
+    manifest pin retained by the receiver; a public result label is not a pin.
     No raw cases, query bytes, or reference values enter the returned sidecar.
     """
     if (
@@ -143,6 +158,19 @@ def bind_private_evaluation_evidence(
     ):
         raise PrivateEvaluationEvidenceRefused("source_pin_mismatch")
     source = _parse_source(evaluation_source_receipt_raw)
+    pack_bound = source["schema"] == PACK_SOURCE_SCHEMA
+    if expected_evaluation_pack_digest is not None and (
+        type(expected_evaluation_pack_digest) is not str
+        or _SHA256.fullmatch(expected_evaluation_pack_digest) is None
+    ):
+        raise PrivateEvaluationEvidenceRefused("evaluation_pack_pin_invalid")
+    if pack_bound:
+        if expected_evaluation_pack_digest is None:
+            raise PrivateEvaluationEvidenceRefused("evaluation_pack_pin_missing")
+        if source["evaluation_pack_digest"] != expected_evaluation_pack_digest:
+            raise PrivateEvaluationEvidenceRefused("evaluation_pack_pin_mismatch")
+    elif expected_evaluation_pack_digest is not None:
+        raise PrivateEvaluationEvidenceRefused("evaluation_pack_source_missing")
     if type(score_pack) is not dict:
         raise PrivateEvaluationEvidenceRefused("score_compatibility_unavailable")
     if (
@@ -219,7 +247,7 @@ def bind_private_evaluation_evidence(
     if type(trusted_job) is not dict:
         raise PrivateEvaluationEvidenceRefused("evaluation_identity")
     expected_identity = {
-        "schema": SOURCE_SCHEMA,
+        "schema": source["schema"],
         "challenge": trusted_job["challenge"],
         "challenge_version": trusted_job["challenge_version"],
         "interface_digest": trusted_job["interface_digest"],
@@ -302,7 +330,12 @@ def bind_private_evaluation_evidence(
         )
     )
     return {
-        "schema": SIDECAR_SCHEMA,
+        "schema": PACK_SIDECAR_SCHEMA if pack_bound else SIDECAR_SCHEMA,
+        **(
+            {"evaluation_pack_digest": expected_evaluation_pack_digest}
+            if pack_bound
+            else {}
+        ),
         "scope": "PRIVATE_OPERATOR_DEVELOPMENT",
         "status": "BOUND_DEVELOPMENT_ONLY",
         "source_receipt_sha256": registered_source_receipt_sha256,

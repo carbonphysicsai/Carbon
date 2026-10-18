@@ -26,7 +26,12 @@ def private_evaluation_key(evidence):
     """
     if (
         type(evidence) is not dict
-        or evidence.get("schema") != "carbon.scoring.private-evaluation-binding.v1"
+        or type(evidence.get("schema")) is not str
+        or evidence.get("schema")
+        not in {
+            "carbon.scoring.private-evaluation-binding.v1",
+            "carbon.scoring.private-evaluation-binding.v2",
+        }
         or evidence.get("scope") != "PRIVATE_OPERATOR_DEVELOPMENT"
         or evidence.get("status") != "BOUND_DEVELOPMENT_ONLY"
         or any(
@@ -51,6 +56,12 @@ def private_evaluation_key(evidence):
         )
     ):
         raise StateError("private_evaluation_invalid")
+    pack_bound = evidence["schema"] == "carbon.scoring.private-evaluation-binding.v2"
+    if pack_bound:
+        if not is_digest(evidence.get("evaluation_pack_digest")):
+            raise StateError("evaluation_pack_pin_missing")
+    elif "evaluation_pack_digest" in evidence:
+        raise StateError("evaluation_pack_source_version")
     compatibility = evidence.get("score_compatibility")
     if (
         type(compatibility) is not dict
@@ -72,6 +83,11 @@ def private_evaluation_key(evidence):
             "evaluation_version": evidence["evaluation_version"],
             "evaluation_version_digest": evidence["evaluation_version_digest"],
             "score_compatibility": compatibility,
+            **(
+                {"evaluation_pack_digest": evidence["evaluation_pack_digest"]}
+                if pack_bound
+                else {}
+            ),
         }
     )
 
