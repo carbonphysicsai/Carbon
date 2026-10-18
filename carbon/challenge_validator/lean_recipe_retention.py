@@ -292,6 +292,18 @@ def _retain_graph_artifacts(
     }
 
 
+def _private_evaluation_directory(result, submission_id):
+    if (
+        type(submission_id) is not str
+        or re.fullmatch(r"rtsk_[0-9a-f]{64}", submission_id) is None
+    ):
+        raise RetentionUnavailable("task_identity_invalid")
+    task_root = _owner_directory(result["artifact_path"], "task_artifacts")
+    directory = task_root.parent / (submission_id + ".evaluation")
+    directory.mkdir(mode=0o700, exist_ok=True)
+    return _owner_directory(directory, "private_evaluation_directory")
+
+
 def _retain_private_pack_binding(adapter, provider, submission_id, task, result):
     """Keep the selected pack identity beside one trusted retained task."""
     digest = provider.evaluation_pack_digest
@@ -316,8 +328,8 @@ def _retain_private_pack_binding(adapter, provider, submission_id, task, result)
         raise RetentionUnavailable("evaluation_pack_campaign_changed") from exc
     from carbon.development_session.data import write_once
 
-    task_root = _owner_directory(result["artifact_path"], "task_artifacts")
-    sidecar = task_root / "evaluation-pack-binding.json"
+    directory = _private_evaluation_directory(result, submission_id)
+    sidecar = directory / "evaluation-pack-binding.json"
     document = {
         "schema": "carbon.lean-recipe.private-evaluation-pack-binding.v1",
         "task_id": submission_id,
@@ -1034,9 +1046,9 @@ def register_served_pack_source(
         )
     except BenchmarkScoreRefused as exc:
         raise RetentionUnavailable("evaluation_pack_public_rule_invalid") from exc
-    task_root = _owner_directory(retained["artifact_path"], "task_artifacts")
-    source_path = task_root / "evaluation-source-receipt.json"
-    registration_path = task_root / "evaluation-source-registration.json"
+    directory = _private_evaluation_directory(retained, submission_id)
+    source_path = directory / "evaluation-source-receipt.json"
+    registration_path = directory / "evaluation-source-registration.json"
     try:
         write_once(source_path, prepared.raw)
         if source_path.is_symlink():

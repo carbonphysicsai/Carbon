@@ -177,6 +177,8 @@ def test_private_retention_sidecar_binds_owner_campaign_and_task(tmp_path):
     assert retained["evaluation_pack_digest"] == digest
     assert retained["official_eligible"] is False
     sidecar = json.loads(retained["evaluation_pack_binding_path"].read_bytes())
+    assert retained["evaluation_pack_binding_path"].parent != artifact_root
+    assert not list(artifact_root.iterdir())
     assert sidecar["task_id"] == task_id
     assert sidecar["campaign_id"] == campaign["campaign_id"]
     assert sidecar["evaluation_pack_digest"] == digest
@@ -286,8 +288,8 @@ def test_operator_registers_source_from_selected_pack_and_retained_entry(
     )
     adapter = object.__new__(LeanRecipeAdapter)
     adapter.discovery = discovery
-    task_root = tmp_path / "retained-task"
-    task_root.mkdir(mode=0o700)
+    task_root = case["root"]
+    task_root.chmod(0o700)
     entry_path = tmp_path / "retained-entry.json"
     entry_path.write_text(json.dumps(case["entry"]), encoding="utf-8")
     retained = {
@@ -319,6 +321,12 @@ def test_operator_registers_source_from_selected_pack_and_retained_entry(
     assert "digest" not in json.dumps(source["public_rule_definition"])
     assert source["references"] == case["references"]
     registration_record = json.loads(source["source_registration_path"].read_bytes())
+    assert source["source_registration_path"].parent != task_root
+    from scripts.dev.score_lab.public_unbound_custody import prepare_custody_v5
+
+    assert prepare_custody_v5(task_root, case["manifest"]) == json.loads(
+        case["custody_receipt_raw"]
+    )
     assert (
         registration_record["source_receipt_sha256"]
         == source["registered_source_receipt_sha256"]
