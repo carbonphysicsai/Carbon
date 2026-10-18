@@ -6,6 +6,7 @@ explicit and no verdict or ranking is produced.
 """
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -25,6 +26,9 @@ from carbon.challenge_validator.evaluation_pack import (
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical
 from carbon.development_session.research_service import DirectFixtureDiscovery
+from scripts.dev.battery.prepare_evaluation_pack_v1 import materialize_draft
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _sealed_material(tmp_path, material):
@@ -73,6 +77,44 @@ def _sealed_material(tmp_path, material):
         challenge,
     )
     return roots, selection, selected.snapshot, check
+
+
+def test_operator_battery_v1_draft_binds_served_material_without_scoring(tmp_path):
+    operator_root = tmp_path / "operator"
+    prepared = materialize_draft(operator_root)
+    snapshot = prepared.snapshot
+    material = battery_material()
+    assert (snapshot.challenge_id, snapshot.challenge_version) == (
+        material["challenge_key"].challenge_id,
+        material["challenge_key"].version,
+    )
+    assert snapshot.missing_roles() == {
+        "public": (
+            "accuracy_definition",
+            "design_objective",
+            "important_limit_definition",
+        ),
+        "private": tuple(sorted(PRIVATE_ROLES | {"source_registration"})),
+    }
+    sealed_root = tmp_path / "sealed"
+    sealed_root.mkdir()
+    sealed_name = snapshot.manifest_digest[7:] + ".json"
+    write_once(sealed_root / sealed_name, prepared.sealed_bytes)
+    _pack_check(
+        sealed_root,
+        sealed_name,
+        snapshot.manifest_digest,
+        REPOSITORY_ROOT,
+        operator_root,
+        material["challenge_key"],
+    )(material)
+    assert "private" not in snapshot.public_projection()
+    assert "reference_rows" not in json.dumps(snapshot.public_projection())
+
+
+def test_operator_battery_v1_draft_refuses_repository_destination():
+    with pytest.raises(ValueError, match="outside the repository"):
+        materialize_draft(REPOSITORY_ROOT / "docs")
 
 
 @pytest.mark.parametrize("kind", ("synthetic", "battery"))

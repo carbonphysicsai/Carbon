@@ -111,6 +111,45 @@ Research owns physical applicability, ScoreLab the score proposal, Packets2
 the Battery inventory, the Challenge-pack owner the other seven data maps,
 and Product any finite authorized job dispatch.
 
+### Active Battery v1 public-material draft
+
+From the repository root, an operator can run:
+
+```bash
+python scripts/dev/battery/prepare_evaluation_pack_v1.py --operator-root <owner-only-directory-outside-the-repository>
+```
+
+The command checks the served
+Battery 1.0 source and writes one editable `evaluation-pack.json` in that
+operator directory. It uses the current kit and interface, the pinned public
+400-row TRAIN archive and physics contract. The normal receiver, when given
+the trusted selection below, performs the existing seal-at-admission path:
+
+```json
+{
+  "root": "<operator-directory>",
+  "manifest": "evaluation-pack.json",
+  "public_root": "<repository-checkout>",
+  "private_root": "<operator-directory>"
+}
+```
+
+The selection is operator-controlled, never participant-supplied. All public
+scoring definitions and private bank/reference/solver/Score Pack/source-registration
+roles remain `HUMAN_INPUT`; the draft is usable for source binding and
+construction, not a graded Battery decision. Public PRACTICE stays separate
+from the pack and never supplies protected truth.
+
+The next custody-host action is a **metadata-only inventory** of an existing
+Battery v1 `HiddenBatchStore`: identify whether a batch is `COMPLETE` and has
+its exact fingerprint and references digest. Only then may the operator bind
+that selected batch through the existing run-pin path; no hidden row belongs
+in this draft or repository. A v1-specific buyer Design objective, complete
+pick/baseline action panel, accepted reference/solver evidence and Score Pack
+are still absent, so this command does not authorize a new solver batch or a
+dual score. A future finite generation request must name those exact v1
+decisions and the missing whole-question references first.
+
 ## Manifest and data roles
 
 The manifest is a small index over existing material, not another bank or
