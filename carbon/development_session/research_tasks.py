@@ -431,7 +431,7 @@ class DirectDevelopmentTasksV3:
     def _check_image_identity(self) -> None:
         from carbon.reconstruction.worker.model import WorkerImageIdentity
 
-        from .gpu_practice import direct_bundle_accelerator
+        from .gpu_practice import direct_bundle_accelerators
         from .research_image import LibraryWorkerImage
 
         if (
@@ -447,7 +447,7 @@ class DirectDevelopmentTasksV3:
             or self.image.parent != self.construction_parent
         ):
             raise ValueError("exact C-03 library child and parent images required")
-        self.accelerator = direct_bundle_accelerator(
+        self.build_accelerator, self.inference_accelerator = direct_bundle_accelerators(
             self.construction_parent, self.inference_image
         )
 
@@ -548,7 +548,7 @@ class DirectDevelopmentTasksV3:
         # bundle must use the checked parent plus a verified source overlay,
         # even when a CPU-style child image happens to be cached.
         image = None
-        if self.accelerator is None:
+        if self.build_accelerator is None:
             try:
                 image = self.image_resolver.provision_admitted(
                     bundle, parent=self.construction_parent, cli=DockerCLI()
@@ -594,7 +594,11 @@ class DirectDevelopmentTasksV3:
             seconds=min(600, remaining),
             deadline=deadline,
             cancel=check_cancel,
-            **({} if self.accelerator is None else {"accelerator": self.accelerator}),
+            **(
+                {}
+                if self.build_accelerator is None
+                else {"accelerator": self.build_accelerator}
+            ),
         )
         if prep.controls_digest is None:
             raise ValueError("completed C03 preparation controls unavailable")
@@ -1521,7 +1525,10 @@ class DirectDevelopmentTasksV3:
             try:
                 recipe = ConstructionRecipe.from_dict(request.recipe)
                 source_kind = recipe.to_dict()["source"]["kind"]
-                if source_kind == "graph" and self.accelerator is not None:
+                if source_kind == "graph" and (
+                    self.build_accelerator is not None
+                    or self.inference_accelerator is not None
+                ):
                     raise ValueError("direct graph GPU construction is unavailable")
                 retained_image = self._task_image_bindings.get(task_id.value)
                 retained_binding = (
@@ -1662,8 +1669,13 @@ class DirectDevelopmentTasksV3:
                     total_deadline_started=total_deadline_started,
                     **(
                         {}
-                        if self.accelerator is None
-                        else {"accelerator": self.accelerator}
+                        if self.build_accelerator is None
+                        else {"accelerator": self.build_accelerator}
+                    ),
+                    **(
+                        {}
+                        if self.inference_accelerator is None
+                        else {"inference_accelerator": self.inference_accelerator}
                     ),
                 )
             if (

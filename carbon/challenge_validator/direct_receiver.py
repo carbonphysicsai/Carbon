@@ -768,7 +768,7 @@ def serve(
         verify_direct_v13_worker,
     )
     from carbon.development_session.gpu_practice import (
-        direct_bundle_accelerator,
+        direct_bundle_accelerators,
         gpu_image_backend,
     )
     from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
@@ -796,8 +796,8 @@ def serve(
             verify_current_worker(inference_image, implementation)
         else:
             raise ValueError("private inference worker backend is unregistered")
-    accelerator = direct_bundle_accelerator(parent, inference_image)
-    if accelerator is not None and "material_cache_bytes" not in cfg:
+    build_accelerator, _ = direct_bundle_accelerators(parent, inference_image)
+    if build_accelerator is not None and "material_cache_bytes" not in cfg:
         raise ReceiverUnavailable("gpu_overlay_cache_unconfigured")
     if not doctor(
         image_id=inference_image.image_id, image_identity=inference_image

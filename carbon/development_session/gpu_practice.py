@@ -43,13 +43,12 @@ def gpu_image_backend(image):
     return None
 
 
-def direct_bundle_accelerator(construction_parent, inference_image):
-    """Select one control for the already-verified direct build/infer image pair.
+def direct_bundle_accelerators(construction_parent, inference_image):
+    """Select independent controls for the verified build and inference images.
 
-    The normal bundle route sends the same accelerator to both phases. A GPU
-    constructor paired with a CPU inference worker cannot make a CUDA predict
-    result, so refuse that pair before reserving either phase. Image admission
-    and Docker doctor remain the private receiver's responsibility.
+    The fixed inference program uses JAX, including for a graph built with
+    PyTorch. The separate PyTorch CUDA image does not carry the JAX runtime.
+    Image admission and Docker doctor remain the private receiver's duty.
     """
     from carbon.reconstruction.worker.model import WorkerImageIdentity
 
@@ -62,6 +61,9 @@ def direct_bundle_accelerator(construction_parent, inference_image):
         raise ValueError("exact direct worker image pair required")
     build_backend = gpu_image_backend(construction_parent)
     infer_backend = gpu_image_backend(inference_image)
-    if build_backend != infer_backend:
-        raise ValueError("direct build and inference accelerator backends differ")
-    return MINER_GPU if build_backend is not None else None
+    if infer_backend == "pytorch":
+        raise ValueError("fixed direct inference requires JAX worker")
+    return (
+        MINER_GPU if build_backend is not None else None,
+        MINER_GPU if infer_backend == "jax" else None,
+    )

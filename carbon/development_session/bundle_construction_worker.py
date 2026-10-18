@@ -1498,14 +1498,16 @@ def reconstruct_and_infer_public(
     measure_query: bool = False,
     total_deadline_started: float | None = None,
     accelerator: str | None = None,
+    inference_accelerator: str | None = None,
     runner=None,
 ) -> DirectReconstructionResult:
     """Fresh build and source-free inference under the fixture's finite policy.
 
     Both carrier calls confirm cleanup before returning. Each phase gets at
     most its registered wall allowance and at most the remaining aggregate
-    allowance. A checked caller selects an accelerator and matching images;
-    this route never infers GPU permission from the bundle's runtime label.
+    allowance. A checked caller selects the construction and inference controls
+    independently from their pinned images; this route never infers GPU
+    permission from the bundle's runtime label.
     A test runner proves bytes and custody, never C-03 isolation.
     """
     binding = _checked_binding(recipe, challenge_binding)
@@ -1561,7 +1563,7 @@ def reconstruct_and_infer_public(
         allowlist_bytes=allowlist_bytes,
         limits_document=limits_document,
         seconds=phase_seconds("inference_wall_seconds_max"),
-        **_accelerator_kwargs(accelerator),
+        **_accelerator_kwargs(inference_accelerator),
         runner=runner,
     )
     elapsed = time.monotonic() - started

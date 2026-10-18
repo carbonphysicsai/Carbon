@@ -138,8 +138,13 @@ def test_direct_child_identities_are_stable_distinct_and_within_ledger_bound():
         direct_child_identity(long_task, "unknown")
 
 
-@pytest.mark.parametrize("accelerator", [None, MINER_GPU])
-def test_composed_bundle_forwards_only_explicit_selected_gpu(monkeypatch, accelerator):
+@pytest.mark.parametrize(
+    "accelerator,inference_accelerator",
+    [(None, None), (MINER_GPU, None), (MINER_GPU, MINER_GPU), (None, MINER_GPU)],
+)
+def test_composed_bundle_forwards_each_phase_control(
+    monkeypatch, accelerator, inference_accelerator
+):
     recipe = _recipe(_sha("a"))
     calls = []
     state_digest = _sha("f")
@@ -188,14 +193,15 @@ def test_composed_bundle_forwards_only_explicit_selected_gpu(monkeypatch, accele
         expected_output_shape=(1, 1),
         allowlist_bytes=b"allowlist",
         accelerator=accelerator,
+        inference_accelerator=inference_accelerator,
         runner=object(),
     )
     assert result.execution_boundary == "TEST_ONLY_LOCAL_RUNNER"
     assert [phase for phase, _ in calls] == ["build", "infer"]
-    assert all((kwargs.get("accelerator") == accelerator) for _, kwargs in calls)
-    assert all(
-        ("accelerator" in kwargs) == (accelerator is not None) for _, kwargs in calls
-    )
+    assert calls[0][1].get("accelerator") == accelerator
+    assert ("accelerator" in calls[0][1]) == (accelerator is not None)
+    assert calls[1][1].get("accelerator") == inference_accelerator
+    assert ("accelerator" in calls[1][1]) == (inference_accelerator is not None)
     with pytest.raises(RecipeRefused, match="bundle_accelerator_invalid"):
         bundle_worker._accelerator_kwargs("unregistered-device")
 

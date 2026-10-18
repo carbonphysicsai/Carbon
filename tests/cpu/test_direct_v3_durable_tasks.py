@@ -359,9 +359,12 @@ def test_direct_v3_inspects_source_then_provisions_only_after_durable_queue(
         tasks.close()
 
 
-@pytest.mark.parametrize("gpu", (False, True))
+@pytest.mark.parametrize(
+    "build_backend,infer_backend",
+    (("cpu", "cpu"), ("jax", "jax"), ("torch", "jax"), ("torch", "cpu")),
+)
 def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(
-    tmp_path, monkeypatch, gpu
+    tmp_path, monkeypatch, build_backend, infer_backend
 ):
     from carbon.development_session import library_bundles, library_environment_cache
     from carbon.development_session.research_carrier import MINER_GPU
@@ -369,13 +372,23 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(
         BundleOverlayPrepResult,
     )
     from carbon.reconstruction.accelerators import GPU_PROFILE
+    from carbon.reconstruction.torch_profile import GPU_LOCK_DIGEST
 
     request, fixed_provider, discovery = _fixture(tmp_path, monkeypatch)
     fixed = fixed_provider()
     image, parent, ledger = fixed.image, fixed.inference_image, fixed.ledger
     fixed.close()
-    if gpu:
-        parent = replace(parent, lock_digest=GPU_PROFILE.environment_lock_digest)
+    cpu_inference = parent
+    locks = {"jax": GPU_PROFILE.environment_lock_digest, "torch": GPU_LOCK_DIGEST}
+    if build_backend != "cpu":
+        parent = replace(parent, lock_digest=locks[build_backend])
+    inference_image = (
+        cpu_inference
+        if infer_backend == "cpu"
+        else replace(cpu_inference, lock_digest=locks[infer_backend])
+    )
+    build_gpu = build_backend != "cpu"
+    infer_gpu = infer_backend != "cpu"
     bundle = LibraryBundleRef.from_dict(image.bundle_ref)
     overlay = library_environment_cache.VerifiedLibraryOverlay(
         tmp_path / "sealed-overlay",
@@ -431,8 +444,8 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(
 
     def fixed_prep(_ledger, **kwargs):
         assert kwargs["parent"] == parent
-        assert kwargs.get("accelerator") == (MINER_GPU if gpu else None)
-        assert ("accelerator" in kwargs) is gpu
+        assert kwargs.get("accelerator") == (MINER_GPU if build_gpu else None)
+        assert ("accelerator" in kwargs) is build_gpu
         assert kwargs["identity"].endswith("-prep")
         assert "uv_binary" not in kwargs
         assert 40 <= kwargs["seconds"] <= 600
@@ -459,8 +472,10 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(
     )
 
     def construction(*_args, **kwargs):
-        assert kwargs.get("accelerator") == (MINER_GPU if gpu else None)
-        assert ("accelerator" in kwargs) is gpu
+        assert kwargs.get("accelerator") == (MINER_GPU if build_gpu else None)
+        assert ("accelerator" in kwargs) is build_gpu
+        assert kwargs.get("inference_accelerator") == (MINER_GPU if infer_gpu else None)
+        assert ("inference_accelerator" in kwargs) is infer_gpu
         calls.append("construction")
         return {"claimed": kwargs["image"]}
 
@@ -474,7 +489,7 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(
         owner="miner",
         discovery=discovery,
         image=None,
-        inference_image=parent,
+        inference_image=inference_image,
         construction_parent=parent,
         image_resolver=Resolver(),
     )
@@ -489,7 +504,7 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(
             "inspect",
             "inspect",
             "parent-verified",
-            *([] if gpu else ["cache-miss"]),
+            *([] if build_gpu else ["cache-miss"]),
             "bounded-prep",
             "sealed-cache",
             "construction",
