@@ -11,25 +11,33 @@ import math
 import statistics
 from pathlib import Path
 
-from . import (
-    bank,
-    bank_builder,
-    campaign_atlas,
-    campaign_feedback,
-    campaign_gate,
-    campaign_goodhart,
-    campaign_reference,
-    campaign_robustness,
-    campaign_sobol,
-    campaign_stress,
-    campaign_sweep,
-    candidates,
-    physics,
-    public_ev4,
-    public_physics,
-    synthetic,
-)
-from .core import LabRefused, analyze, registry_rule, v2_rule
+
+def _legacy_modules():
+    """Keep historical battery analysis outside the shared benchmark path."""
+    global bank, bank_builder, campaign_atlas, campaign_feedback, campaign_gate
+    global campaign_goodhart, campaign_reference, campaign_robustness
+    global campaign_sobol, campaign_stress, campaign_sweep, candidates
+    global physics, public_ev4, public_physics, synthetic
+    global LabRefused, analyze, registry_rule, v2_rule
+    from . import (
+        bank,
+        bank_builder,
+        campaign_atlas,
+        campaign_feedback,
+        campaign_gate,
+        campaign_goodhart,
+        campaign_reference,
+        campaign_robustness,
+        campaign_sobol,
+        campaign_stress,
+        campaign_sweep,
+        candidates,
+        physics,
+        public_ev4,
+        public_physics,
+        synthetic,
+    )
+    from .core import LabRefused, analyze, registry_rule, v2_rule
 
 
 def _load_rule(args):
@@ -223,7 +231,47 @@ def _analyze(panel, rule, args):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
+    if argv is None:
+        import sys
+
+        argv = sys.argv[1:]
+    if not argv:
+        print(
+            "SCORE LAB — DEVELOPMENT ONLY; use --help for benchmark or legacy commands"
+        )
+        return 0
+    if argv[0] == "benchmark":
+        parser = argparse.ArgumentParser(description="Shared DEVELOPMENT benchmark")
+        parser.add_argument("--input", type=Path, required=True)
+        parser.add_argument("--out", type=Path, required=True)
+        args = parser.parse_args(argv[1:])
+        from . import solver_benchmark
+
+        evidence = json.loads(args.input.read_text(encoding="utf-8"))
+        if type(evidence) is not dict or not {
+            "registration",
+            "references",
+            "models",
+        } <= set(evidence):
+            parser.error(
+                "benchmark evidence requires registration, references and models"
+            )
+        report = solver_benchmark.compare(
+            evidence["registration"],
+            evidence["references"],
+            evidence["models"],
+            score_pack=evidence.get("score_pack"),
+        )
+        args.out.write_text(
+            json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        print("DEVELOPMENT benchmark reduced")
+        return 0
+    _legacy_modules()
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        epilog="benchmark: shared receiver; other commands: legacy ScoreLab",
+    )
     commands = parser.add_subparsers(dest="command", required=True)
     synth = commands.add_parser("synthetic", help="32 analytic knob profiles")
     _rule_args(synth)
@@ -975,5 +1023,8 @@ def score_gate_valid(gate):
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except LabRefused as exc:
-        raise SystemExit(f"SCORE_LAB_REFUSED: {exc.code}") from None
+    except Exception as exc:
+        lab_refused = globals().get("LabRefused")
+        if lab_refused is not None and isinstance(exc, lab_refused):
+            raise SystemExit(f"SCORE_LAB_REFUSED: {exc.code}") from None
+        raise

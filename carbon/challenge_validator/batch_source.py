@@ -90,6 +90,14 @@ class BatchSource(abc.ABC):
         given finalist batches it would solve and never score."""
         return SERVED_KINDS
 
+    def for_comparison(self, mode):
+        """Select the registered producer path without changing the source."""
+        if mode == "fresh_final" and type(mode) is str:
+            return self
+        if mode == "cached_bank" and type(mode) is str:
+            return _ScreeningOnlySource(self)
+        raise ProducerRefused("producer_comparison_refused")
+
     def cadence(self):
         """`{"every_blocks", "active"}` from the Challenge's own registered
         rule, or None: then no batch is scheduled (the cadence is
@@ -147,3 +155,22 @@ def quiz_digests(quiz):
 
 #: The quiz commitment fields: all three, or none (a batch without a quiz).
 QUIZ_COMMITMENT_FIELDS = ("quiz_digest", "quiz_references_digest", "quiz_panel_version")
+
+
+class _ScreeningOnlySource:
+    """Keep one source's identities and maintenance, but never draw finals."""
+
+    def __init__(self, source):
+        self._source = source
+        self.challenge_id = source.challenge_id
+
+    def kinds(self):
+        return ("screening",)
+
+    def draw(self, role, *, kind, size=None):
+        if kind != "screening":
+            raise ProducerRefused("producer_kind_refused")
+        return self._source.draw(role, kind=kind, size=size)
+
+    def __getattr__(self, name):
+        return getattr(self._source, name)
