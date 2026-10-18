@@ -506,7 +506,9 @@ def test_installed_direct_development_uses_profile_signer_and_refuses_missing_ch
     monkeypatch.setattr(
         research_image,
         "load_analysis_image",
-        lambda _path: SimpleNamespace(parent_image=parent.image_id),
+        lambda _path: SimpleNamespace(
+            parent_image=parent.image_id, image_id="sha256:" + "c" * 64
+        ),
     )
     monkeypatch.setattr(research_image, "verify_image", lambda _image: None)
     monkeypatch.setattr(
@@ -618,6 +620,34 @@ def test_installed_direct_development_uses_profile_signer_and_refuses_missing_ch
         assert "REFERENCE_NOT_FOUND" in json.dumps(missing["reply"])
 
         old_ledger = CampaignLedger(source.root / "ledger")
+        with old_ledger.db() as db:
+            frozen = json.loads(
+                db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()[0]
+            )
+        assert frozen["owner"] == old_owner
+        assert frozen["implementation"] == {
+            "source_tree_digest": parent.source_tree_digest
+        }
+        assert frozen["provider"]["profile_digest"] == digest(canonical(cfg))
+        assert frozen["images"] == [
+            parent.image_id,
+            "sha256:" + "c" * 64,
+            gpu_parent.image_id,
+        ]
+        # This is the first reservation on a fresh installed ledger. The
+        # maintained dispatch API must have a frozen campaign before use.
+        assert old_ledger.reserve(
+            "first-direct-worker-probe",
+            owner=old_owner,
+            phase="research",
+            request={"kit": frozen["selection"]},
+            resources={"numerical_milliseconds": 1},
+        )["dispatch"] is True
+        with old_ledger.db() as db:
+            db.execute(
+                "DELETE FROM operations WHERE id=?",
+                ("first-direct-worker-probe",),
+            )
         installed_child = LibraryWorkerImage(
             replace(old_image.provisioned, parent_image=gpu_parent.image_id),
             gpu_parent,
@@ -865,7 +895,10 @@ def test_installed_direct_development_uses_profile_signer_and_refuses_missing_ch
             upgraded.setattr(
                 research_image,
                 "load_analysis_image",
-                lambda _path: SimpleNamespace(parent_image=new_base.image_id),
+                lambda _path: SimpleNamespace(
+                    parent_image=new_base.image_id,
+                    image_id="sha256:" + "d" * 64,
+                ),
             )
             updated_configuration = tmp_path / "updated-runner-profile.json"
             updated_cfg = {

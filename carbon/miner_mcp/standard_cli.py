@@ -31,9 +31,9 @@ from pathlib import Path
 from carbon import research
 from carbon.chain.models import CARBON_NETUID
 from carbon.development_session.private_records import private_json
-from carbon.development_session.profile import CHALLENGE, canonical
+from carbon.development_session.profile import CHALLENGE, canonical, digest
 from carbon.development_session.research_control import CampaignControl
-from carbon.development_session.research_ledger import PRODUCT, CampaignLedger
+from carbon.development_session.research_ledger import PRODUCT, VERSION, CampaignLedger
 from carbon.development_session.research_material import PublicMaterial
 from carbon.development_session.research_tools import (
     DirectResearchMinerTools,
@@ -147,6 +147,10 @@ class DirectInstalledSource:
     context: object
     publisher: str
     signer: object
+    implementation: dict
+    profile_digest: str
+    worker_image_id: str
+    analysis_image_id: str
 
 
 DIRECT_KIT_VERSIONS = ("1.1", "1.2", "1.3")
@@ -273,7 +277,52 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
         context=network.context,
         publisher=network.publisher_hotkey,
         signer=signer,
+        implementation=implementation,
+        profile_digest=digest(canonical(cfg)),
+        worker_image_id=parent.image_id,
+        analysis_image_id=analysis.image_id,
     )
+
+
+def _installed_direct_manifest(source: DirectInstalledSource, owner: str) -> dict:
+    """Bind a local direct kit to the validated install before worker dispatch."""
+    material = _direct_material(source.version)()
+    kit = material["construction_kit"]
+    if kit["version"] != source.version:
+        raise ValueError("installed direct kit version differs")
+    return {
+        "schema": VERSION,
+        "campaign_id": (
+            "direct-development-" + source.version + "-" + source.parent.image_id[7:]
+        ),
+        "owner": owner,
+        "implementation": source.implementation,
+        "objective": {"scope": "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY", "kit": kit},
+        "sampling": {"train_digest": kit["train_digest"]},
+        "control": {
+            "mode": "installed_direct_development",
+            "admission": "chain_registration",
+        },
+        "selection": {
+            "challenge_id": kit["id"],
+            "challenge_version": kit["version"],
+        },
+        "replica_policy": {"mode": "one_recipe_per_task"},
+        "provider": {
+            "profile_digest": source.profile_digest,
+            "publisher_hotkey": source.publisher,
+            "network": source.context.network,
+            "genesis_hash": source.context.genesis_hash,
+            "netuid": source.context.netuid,
+        },
+        "images": [
+            source.worker_image_id,
+            source.analysis_image_id,
+            source.parent.image_id,
+        ],
+        "construction_limits_digest": kit["construction_limits_digest"],
+        "allowlist_digest": material["allowlist_digest"],
+    }
 
 
 class DirectOwnerImageResolver:
@@ -1159,6 +1208,8 @@ async def attached_installed_direct_development(configuration: Path, *, version=
         with _check("registration_check_failed"):
             owner = await _requester(connection, challenge=connection.challenge)
         ledger = CampaignLedger(source.root / "ledger")
+        with _check("campaign_manifest_differs"):
+            ledger.freeze(_installed_direct_manifest(source, owner))
         attachment = DirectDevelopmentAttachment(
             root=source.root,
             version=source.version,
