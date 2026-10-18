@@ -213,15 +213,9 @@ class LeanRecipeAdapter(ChallengeAdapter):
                 graph_envelope_from_workspace(provider.ledger, provider.owner, recipe)
             except RecipeRefused as refused:
                 raise Unavailable(refused.code) from None
-        else:
-            try:
-                provider._resolved_image(self._request(submission.hotkey, recipe))
-            except FileNotFoundError:
-                raise Unavailable("construction_recipe_bundle_not_found") from None
-            except ValueError:
-                raise Unavailable(
-                    "construction_recipe_bundle_binding_mismatch"
-                ) from None
+        # The durable task provider owns source inspection and admitted
+        # environment preparation. A missing preinstalled image is not a
+        # separate construction-admission rule at the signed door.
         request = self._request(submission.hotkey, recipe)
         task_id = provider._task_id(request)
         from carbon.research import canonical_bytes

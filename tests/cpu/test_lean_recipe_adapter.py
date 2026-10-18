@@ -49,6 +49,24 @@ def test_signed_door_screens_and_admits_one_bound_v13_task(tmp_path, monkeypatch
         tmp_path, monkeypatch, material=bundle_material_v5()
     )
     provider = provider_factory()
+    start_task = provider.start_research_task
+    resolve_image = provider._resolved_image
+    starting_task = False
+
+    def resolve_during_task(request):
+        assert starting_task, "the signed door must not prepare an environment"
+        return resolve_image(request)
+
+    def start_with_source_inspection(*args, **kwargs):
+        nonlocal starting_task
+        starting_task = True
+        try:
+            return start_task(*args, **kwargs)
+        finally:
+            starting_task = False
+
+    monkeypatch.setattr(provider, "_resolved_image", resolve_during_task)
+    monkeypatch.setattr(provider, "start_research_task", start_with_source_inspection)
     try:
         attempt_root = tmp_path / "attempts"
         attempt_root.mkdir(mode=0o700)

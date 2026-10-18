@@ -402,9 +402,7 @@ def test_native_local_graph_v5_retains_originals_without_timing_claim(tmp_path):
     assert receipt["role_schema"] == custody.GRAPH_ROLE_SCHEMA_V4
     assert receipt["challenge"] == "synthetic-linear-field-2d"
     assert receipt["state_digest"] == _sha(originals["build/state.npz"])
-    assert receipt["prediction_digest"] == _sha(
-        originals["inference/predictions.json"]
-    )
+    assert receipt["prediction_digest"] == _sha(originals["inference/predictions.json"])
     assert receipt["provenance_state"] == "LOCAL_UNBOUND"
     assert receipt["measurement_state"] == "NOT_MEASURED"
     assert receipt["image_digest"] is None
@@ -429,7 +427,9 @@ def test_native_local_graph_v5_refuses_unbound_claims_and_mismatched_bytes(tmp_p
     manifest = json.loads(manifest_path.read_bytes())
     manifest["physics_contract"] = {"version": "unsupported", "definition": {}}
     manifest_path.write_bytes(_json(manifest))
-    with pytest.raises(custody.CustodyRefused, match="native_graph_physics_unregistered"):
+    with pytest.raises(
+        custody.CustodyRefused, match="native_graph_physics_unregistered"
+    ):
         custody.prepare_custody_v5(root, manifest_path)
 
     manifest["physics_contract"] = None
@@ -437,7 +437,9 @@ def test_native_local_graph_v5_refuses_unbound_claims_and_mismatched_bytes(tmp_p
     (root / "inference/state.npz").write_bytes(b"different state")
     manifest["retained_files"]["inference/state.npz"] = _sha(b"different state")
     manifest_path.write_bytes(_json(manifest))
-    with pytest.raises(custody.CustodyRefused, match="native_graph_build_inference_bytes"):
+    with pytest.raises(
+        custody.CustodyRefused, match="native_graph_build_inference_bytes"
+    ):
         custody.prepare_custody_v5(root, manifest_path)
 
 
