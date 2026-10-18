@@ -148,12 +148,16 @@ def development_candidate_implementation(
         if repository is not None
         else Path(__file__).resolve().parents[2]
     )
+    if not repo.is_absolute() or repo.is_symlink() or repo.resolve() != repo:
+        raise ValueError("development candidate requires exact repository root")
 
     def git(*args):
         return subprocess.check_output(
             ["git", *args], cwd=repo, text=True, timeout=30
         ).strip()
 
+    if Path(git("rev-parse", "--show-toplevel")).resolve() != repo:
+        raise ValueError("development candidate requires exact repository root")
     head = git("rev-parse", "HEAD")
     if head != revision or git("status", "--porcelain", "--untracked-files=all"):
         raise ValueError("development candidate requires the exact clean revision")

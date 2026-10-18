@@ -24,7 +24,9 @@ def _candidate(tmp_path):
     _git(repo, "config", "user.email", "carbon-test@example.invalid")
     (repo / ".gitignore").write_text("*.pyc\nbuild/\ndist/\n.venv/\n.pytest_cache/\n")
     (repo / "source.txt").write_text("main\n")
-    _git(repo, "add", ".gitignore", "source.txt")
+    (repo / "carbon").mkdir()
+    (repo / "carbon" / "__init__.py").write_text("# committed source\n")
+    _git(repo, "add", ".gitignore", "source.txt", "carbon/__init__.py")
     _git(repo, "commit", "-qm", "base")
     _git(
         repo, "update-ref", "refs/remotes/origin/main", _git(repo, "rev-parse", "HEAD")
@@ -111,7 +113,7 @@ def test_candidate_rejects_tracked_and_untracked_drift(tmp_path):
 def test_candidate_rejects_ignored_runtime_bytes(tmp_path, path):
     repo, revision, tree, source_digest = _candidate(tmp_path)
     ignored = repo / path
-    ignored.parent.mkdir(parents=True)
+    ignored.parent.mkdir(parents=True, exist_ok=True)
     ignored.write_bytes(b"untracked runtime bytes")
     assert not _git(repo, "status", "--porcelain", "--untracked-files=all")
     with pytest.raises(ValueError, match="ignored runtime source"):
@@ -125,6 +127,16 @@ def test_candidate_allows_only_isolated_environment_and_cache(tmp_path):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("isolated tool state\n")
     assert _checked(repo, revision, tree, source_digest)["revision"] == revision
+
+
+def test_candidate_rejects_subdirectory_that_hides_root_ignored_bytes(tmp_path):
+    repo, revision, tree, source_digest = _candidate(tmp_path)
+    ignored = repo / "build" / "extension.so"
+    ignored.parent.mkdir()
+    ignored.write_bytes(b"hidden from a subdirectory scan")
+    assert not _git(repo, "status", "--porcelain", "--untracked-files=all")
+    with pytest.raises(ValueError, match="exact repository root"):
+        _checked(repo / "carbon", revision, tree, source_digest)
 
 
 def test_candidate_rejects_malformed_identity_before_git(tmp_path):
