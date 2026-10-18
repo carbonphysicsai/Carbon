@@ -494,7 +494,9 @@ def test_the_runner_reads_remote_practice_from_the_profile(tmp_path, monkeypatch
 
 def prepare(fixture, command, declared=None, machine=None):
     """`prepare_battery` with the host fixture, and the profile's machine."""
-    public = fixture.root.parent / "miner-public.json"
+    # The host fixture installs this owner-only file at the environment root.
+    # Point at that real 0600 file, rather than an absent campaigns sibling.
+    public = fixture.root.parents[2] / "miner-public.json"
     args = SimpleNamespace(
         root=fixture.root,
         command=command,

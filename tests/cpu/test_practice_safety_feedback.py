@@ -653,11 +653,16 @@ def test_a_provider_calls_the_safety_code_only_inside_its_practice_trial(
     module, provider
 ):
     # The battery validator daemon imports research.py for its feedback field
-    # names, so the module is loaded there; it is called only here. Battery
-    # also loads its practice decision set there, for B4.
+    # names, so the module is loaded there; safety is called only by the two
+    # practice paths. Both Battery paths load the public decision set for B4.
     expected = [(provider, "__call__", "safety")]
     if provider == "BatteryPractice":
-        expected = [(provider, "__call__", "decision_set")] + expected
+        expected = [
+            (provider, "__call__", "decision_set"),
+            *expected,
+            (provider, "_direct_practice", "decision_set"),
+            (provider, "_direct_practice", "safety"),
+        ]
     assert _safety_calls(REPO / module) == expected
 
 

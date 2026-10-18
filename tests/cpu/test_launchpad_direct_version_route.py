@@ -44,7 +44,7 @@ def test_direct_browser_session_selects_exact_installed_kit(
     }
     host = SimpleNamespace(
         configuration=configuration,
-        configured=lambda: {"direct_intake_target": target},
+        _configuration=lambda: {"direct_intake_target": target},
     )
 
     async def open_selected():
@@ -188,3 +188,36 @@ def test_direct_v13_tools_action_uses_exact_installed_signer_and_pinned_receiver
             "stage_construction_graph",
             {"recipe": _recipe().to_dict()},
         )
+
+
+def test_direct_v13_submission_and_staging_refuse_before_receiver_contact():
+    from carbon.registry.model import ChallengeKey
+
+    door = object.__new__(tool_door.DirectToolDoor)
+    door.adapter = SimpleNamespace(
+        challenge=ChallengeKey("synthetic-linear-field-2d", "1.3")
+    )
+    recipe = _recipe().to_dict()
+    wrong_challenge = {**recipe, "challenge": {**recipe["challenge"], "version": "1.2"}}
+
+    for operation in (door.submit_construction, door.stage_construction_graph):
+        door.intake_target = None
+        assert asyncio.run(operation({"recipe": recipe})) == {
+            "ok": False,
+            "error": "construction_intake_unconfigured",
+        }
+
+        # Neither malformed input nor a recipe bound to another Challenge
+        # reaches the profile-pinned receiver.
+        door.intake_target = {
+            "intake_url": "http://127.0.0.1:9080",
+            "receiver_hotkey": "5" + "a" * 47,
+        }
+        assert asyncio.run(operation({})) == {
+            "ok": False,
+            "error": "construction_recipe_required",
+        }
+        assert asyncio.run(operation({"recipe": wrong_challenge})) == {
+            "ok": False,
+            "error": "construction_recipe_challenge_mismatch",
+        }

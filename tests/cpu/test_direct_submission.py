@@ -327,7 +327,19 @@ def test_recorded_task_rejects_receiver_drift_without_contact(tmp_path):
         )
 
 
-def test_intake_unavailable_keeps_typed_receiver_reason(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    ("response", "expected"),
+    [
+        (
+            (503, {"kind": "UNAVAILABLE", "code": "served_recipe_source_changed"}),
+            "served_recipe_source_changed",
+        ),
+        ((503, {}), "construction_intake_unavailable"),
+    ],
+)
+def test_intake_unavailable_keeps_typed_receiver_reason(
+    tmp_path, monkeypatch, response, expected
+):
     class Signer:
         def __init__(self, signer):
             pass
@@ -336,9 +348,7 @@ def test_intake_unavailable_keeps_typed_receiver_reason(tmp_path, monkeypatch):
             return {"signed": "fixture"}
 
     monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
-    with pytest.raises(
-        client.DirectIntakeRefusal, match="served_recipe_source_changed"
-    ):
+    with pytest.raises(client.DirectIntakeRefusal, match=expected):
         client.submit_and_wait(
             _URL,
             "external-signer",
@@ -349,10 +359,7 @@ def test_intake_unavailable_keeps_typed_receiver_reason(tmp_path, monkeypatch):
             receiver=_RECEIVER,
             context=_CONTEXT,
             read=lambda url: _facts(),
-            send=lambda *_: (
-                503,
-                {"kind": "UNAVAILABLE", "code": "served_recipe_source_changed"},
-            ),
+            send=lambda *_: response,
         )
 
 
