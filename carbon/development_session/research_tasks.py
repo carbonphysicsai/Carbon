@@ -1768,6 +1768,8 @@ class DirectDevelopmentTasksV3:
                     "ascii"
                 ),
             }
+            if source_kind == "bundle" and result.prediction_comparison is not None:
+                private["prediction_comparison"] = result.prediction_comparison
             if source_kind == "graph":
                 private["submission_digest"] = recipe.to_dict()["source"][
                     "submission_digest"
