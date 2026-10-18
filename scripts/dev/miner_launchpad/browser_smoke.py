@@ -1363,12 +1363,37 @@ def journey():
                         session,
                         f"document.querySelector('.journey') && document.getElementById('journey-practice-{run_id}').disabled === false",
                     )
-                    families = session.evaluate(
-                        "document.querySelector('.journey').textContent"
+                    recipe_field = "journey-recipe-" + run_id
+                    recipe_label = session.evaluate(
+                        "document.querySelector('label[for="
+                        + json.dumps(recipe_field)
+                        + "]').textContent"
                     )
-                    assert "freeze and submit now: fno" in families, families[:400]
-                    assert "Not yet rebuildable (research only):" in families
-                    assert "unet1d" in families
+                    assert recipe_label == "Recipe to practice (JSON)"
+                    assert "Prefilled with this Challenge's registered example" in (
+                        session.evaluate(
+                            "document.querySelector('.journey').textContent"
+                        )
+                    )
+                    example = json.loads(
+                        session.evaluate(
+                            "document.getElementById("
+                            + json.dumps(recipe_field)
+                            + ").value"
+                        )
+                    )
+                    assert example["parameters"]["steps"] == 512
+                    practiced_recipe = {
+                        **example,
+                        "parameters": {**example["parameters"], "steps": 256},
+                    }
+                    session.evaluate(
+                        "(() => { const field = document.getElementById("
+                        + json.dumps(recipe_field)
+                        + "); field.value = JSON.stringify("
+                        + json.dumps(practiced_recipe)
+                        + "); field.dispatchEvent(new Event('input', {bubbles: true})); })()"
+                    )
                     # The freeze is refused before any practice: a candidate
                     # must have a practice result.
                     journey_tab("submission")
@@ -1384,9 +1409,19 @@ def journey():
                         session,
                         f"document.getElementById('journey-practice-{run_id}').disabled === false",
                     )
+                    draft_recipe = json.loads(
+                        session.evaluate(
+                            "document.getElementById("
+                            + json.dumps(recipe_field)
+                            + ").value"
+                        )
+                    )
+                    assert (
+                        draft_recipe == practiced_recipe
+                    ), "the editable recipe draft survives a tab change"
                     session.evaluate(
                         f"const h=document.getElementById('journey-hypothesis-{run_id}');"
-                        "h.value='wider FNO lowers data loss';h.dispatchEvent(new Event('input'))"
+                        "h.value='fewer updates preserve practice';h.dispatchEvent(new Event('input'))"
                     )
                     click(session, f"journey-practice-{run_id}")
                     # Once practised, the recipe can be frozen under Submission.
@@ -1395,6 +1430,16 @@ def journey():
                         session,
                         f"document.getElementById('journey-freeze-{run_id}') && !document.getElementById('journey-freeze-{run_id}').disabled",
                     )
+                    offered_recipe = json.loads(
+                        session.evaluate(
+                            "document.getElementById("
+                            + json.dumps("journey-candidate-" + run_id)
+                            + ").value"
+                        )
+                    )
+                    assert (
+                        offered_recipe == practiced_recipe
+                    ), "the practiced recipe is offered to freeze"
                     click(session, f"journey-freeze-{run_id}")
                     wait(
                         session,
@@ -1403,6 +1448,7 @@ def journey():
                     selected = json.loads(
                         (campaign / "epoch-1" / "selected-recipe.json").read_bytes()
                     )
+                    assert selected["strategy"] == practiced_recipe
                     assert selected == candidate_record(
                         selected["strategy"], "practiced", False
                     ), "a person's freeze writes the agent's record, by the same builder"
