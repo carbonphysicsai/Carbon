@@ -115,14 +115,14 @@ def launch_with_fixture_challenge(patch):
     return named
 
 
-def journey_host(root, *, patch=setattr):
+def journey_host(root, *, patch=setattr, direct_manifest=False):
     """`patch(target, name, value)` installs each fixture. A process of its own
     (the smoke, a stdio server) uses plain setattr; a test runner passes
     pytest's monkeypatch.setattr so nothing outlives the test."""
-    return _journey_host(root, patch)
+    return _journey_host(root, patch, direct_manifest=direct_manifest)
 
 
-def _journey_host(root, patch):
+def _journey_host(root, patch, *, direct_manifest=False):
     """The real campaign host, over real campaign records, with no agent.
 
     Real: the RunnerAdapter, the operations table and its gates, the launch
@@ -260,7 +260,8 @@ def _journey_host(root, patch):
                 **args.product.manifest_fields(),
                 **(
                     {"construction_mode": "direct"}
-                    if getattr(args, "construction_mode", None) == "direct"
+                    if direct_manifest
+                    and getattr(args, "construction_mode", None) == "direct"
                     else {}
                 ),
                 "owner": "miner-requester",

@@ -8,8 +8,9 @@ The drivers are real: the browser driver posts to the controller's HTTP routes
 on a running server; the MCP driver is a real client talking to a real stdio
 server process. Both reach the same journey host
 (`scripts/dev/miner_launchpad/journey_fixture.py`): real host, operations
-table, gates, ledger and projection. Served direct-worker behavior is covered
-separately by `test_launchpad_direct_doors.py`. The MCP server reads a stub
+table, gates, ledger and projection. Separate Battery direct-door tests cover
+recipe and receiver refusals; this fixture proves no completed reconstruction.
+The MCP server reads a stub
 chain in which the hotkey is registered; the live chain read is covered by the
 testnet onboarding test. Nothing on either path is issued by Carbon.
 """
@@ -119,7 +120,7 @@ class BrowserDriver:
             controller.Controller(root / "launchpad.sqlite3"),
             self.token,
             port=0,
-            research_runner=journey_host(root, patch=patch),
+            research_runner=journey_host(root, patch=patch, direct_manifest=True),
         )
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
@@ -199,7 +200,7 @@ def _serve(root: Path) -> int:
     from scripts.dev.miner_launchpad import runner
     from scripts.dev.miner_launchpad.journey_fixture import journey_host
 
-    host = journey_host(root)
+    host = journey_host(root, direct_manifest=True)
     runner.RunnerAdapter.for_profile = classmethod(lambda cls, *_, **__: host)
     real = open_tier.create_open_tier_server
     open_tier.create_open_tier_server = lambda **kw: real(
