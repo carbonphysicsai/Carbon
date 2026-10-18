@@ -29,6 +29,8 @@ _SOURCE_PATHS = (
     "carbon/development_session/research_tasks.py",
     "carbon/development_session/direct_graph_construction_worker.py",
     "carbon/development_session/bundle_construction_worker.py",
+    "carbon/development_session/library_bundles.py",
+    "carbon/development_session/library_overlay_prep.py",
     "carbon/development_session/synthetic_graph_adapter.py",
     "carbon/development_session/bundle_graph_state.py",
     "carbon/reconstruction/served_recipe_contract.py",

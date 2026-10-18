@@ -469,3 +469,28 @@ def test_verified_export_gap_reaches_bounded_served_failure(tmp_path, monkeypatc
         assert served["qualification"] is served["reward"] is False
     finally:
         provider.close()
+
+
+@pytest.mark.parametrize(
+    "module_name", ["library_bundles.py", "library_overlay_prep.py"]
+)
+def test_served_identity_binds_effective_preparation_module_bytes(
+    monkeypatch, module_name
+):
+    from pathlib import Path
+
+    from carbon.challenge_validator.lean_recipe import _source_identity
+
+    baseline = _source_identity()
+    read_bytes = Path.read_bytes
+
+    def changed(path):
+        body = read_bytes(path)
+        return (
+            body + b"\n# prospective preparation change\n"
+            if path.name == module_name
+            else body
+        )
+
+    monkeypatch.setattr(Path, "read_bytes", changed)
+    assert _source_identity() != baseline
