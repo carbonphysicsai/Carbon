@@ -152,6 +152,35 @@ def test_excessive_json_integer_is_a_typed_refusal():
     assert raised.value.code == "evaluation_pack.json"
 
 
+@pytest.mark.parametrize(
+    "payload,code",
+    [
+        (b'{"x":1,"x":2}', "evaluation_pack.duplicate_key"),
+        (b'{"x":NaN}', "evaluation_pack.nonfinite"),
+        (b"[" * 1200 + b"0" + b"]" * 1200, "evaluation_pack.json"),
+    ],
+)
+def test_verified_json_role_reuses_typed_parser(payload, code):
+    document = _manifest()
+    document["public"]["interface"] = {
+        "path": "interface.json",
+        "sha256": _digest(payload),
+    }
+    snapshot = _parse(document)
+    with (
+        patch(
+            "carbon.challenge_validator.evaluation_pack.read_verified_artifact_bytes",
+            return_value=payload,
+        ) as reader,
+        pytest.raises(EvaluationPackUnavailable) as raised,
+    ):
+        snapshot.read_json_role(Path("/public"), "public", "interface", max_bytes=4096)
+    assert raised.value.code == code
+    reader.assert_called_once_with(
+        Path("/public"), "interface.json", _digest(payload), max_bytes=4096
+    )
+
+
 def test_role_read_is_exact_byte_verified_and_infra_typed():
     document = _manifest()
     document["private"]["reference_rows"] = {

@@ -88,6 +88,12 @@ paths, identities, answers and the full manifest digest. The validator retains
 requires a new external digest and prospective registration; old results keep
 their old pack identity. There is no latest-file fallback.
 
+For JSON roles, `snapshot.read_json_role(root, scope, role,
+max_bytes=...)` applies the same verified read and strict decoder, including
+typed duplicate-key, nonfinite and malformed-input refusals. The consumer
+still applies the role's existing semantic validator. Use `read_role` for an
+exact-byte Score Pack so its established loader controls parsing and pinning.
+
 At admission, call `snapshot.verify_available(public_root, private_root,
 hidden_store=...)`. It verifies each supplied role and returns the sorted
 `HUMAN_INPUT` roles still missing. The caller checks the roles required for its

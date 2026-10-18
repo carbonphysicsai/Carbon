@@ -274,6 +274,16 @@ class EvaluationPackSnapshot:
         except ArtifactAccessError as exc:
             raise EvaluationPackUnavailable("evaluation_pack." + exc.code) from exc
 
+    def read_json_role(
+        self, root: Path, scope: str, role: str, *, max_bytes: int
+    ) -> object:
+        """Decode a verified JSON role without a second consumer parser.
+
+        This checks JSON syntax only. Existing role-specific contracts still
+        validate its meaning; Score Packs keep their exact-byte loader.
+        """
+        return _strict_json(self.read_role(root, scope, role, max_bytes=max_bytes))
+
     def resolve_hidden_batch(
         self,
         store,
