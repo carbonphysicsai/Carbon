@@ -35,6 +35,7 @@ _FIELDS = {
     "lifetime_seconds",
     "measure_query",
 }
+_OPTIONAL_FIELDS = {"material_cache_bytes"}
 
 
 class ReceiverUnavailable(RuntimeError):
@@ -50,7 +51,7 @@ def load_config(path: Path) -> dict:
     value = private_json(path)
     if (
         type(value) is not dict
-        or set(value) != _FIELDS
+        or not _FIELDS <= set(value) <= _FIELDS | _OPTIONAL_FIELDS
         or value.get("schema") != SCHEMA
         or value.get("host") not in ("127.0.0.1", "localhost")
         or type(value.get("port")) is not int
@@ -60,6 +61,13 @@ def load_config(path: Path) -> dict:
         or type(value.get("measure_query")) is not bool
         or type(value.get("receiver_hotkey")) is not str
         or not ADDRESS.fullmatch(value["receiver_hotkey"])
+        or (
+            "material_cache_bytes" in value
+            and (
+                type(value["material_cache_bytes"]) is not int
+                or value["material_cache_bytes"] < 1
+            )
+        )
     ):
         raise ValueError("invalid DEVELOPMENT receiver configuration")
     for name in ("root", "runner_profile"):
@@ -281,6 +289,7 @@ class OwnerProviders:
         cache_root,
         *,
         inference_image=None,
+        material_cache_bytes=None,
         implementation=None,
         snapshot=None,
         window=None,
@@ -289,6 +298,7 @@ class OwnerProviders:
         self.root, self.discovery = root, discovery
         self.parent, self.cache_root = parent, cache_root
         self.inference_image = parent if inference_image is None else inference_image
+        self.material_cache_bytes = material_cache_bytes
         self.implementation, self.snapshot, self.window, self.receiver = (
             implementation,
             snapshot,
@@ -364,6 +374,8 @@ class OwnerProviders:
         }
         if self.inference_image != self.parent:
             binding["inference_image"] = self.inference_image.image_id
+        if self.material_cache_bytes is not None:
+            binding["material_cache_bytes"] = self.material_cache_bytes
         candidate = {
             "schema": PRODUCT,
             "authority": AUTHORITY,
@@ -448,7 +460,13 @@ class OwnerProviders:
                     inference_image=self.inference_image,
                     construction_parent=self.parent,
                     image_resolver=DirectOwnerImageResolver(
-                        self.cache_root, self.parent
+                        self.cache_root,
+                        self.parent,
+                        **(
+                            {"material_cache_bytes": self.material_cache_bytes}
+                            if self.material_cache_bytes is not None
+                            else {}
+                        ),
                     ),
                 )
                 try:
@@ -592,6 +610,8 @@ def serve(
     }
     if inference_image != parent:
         immutable["inference_image"] = asdict(inference_image)
+    if "material_cache_bytes" in cfg:
+        immutable["material_cache_bytes"] = cfg["material_cache_bytes"]
     with owner_lock(root):
         write_once(root / "receiver-binding.json", canonical(immutable))
         window = ReceiverSnapshotWindow(root, network.context, cfg["receiver_hotkey"])
@@ -602,6 +622,7 @@ def serve(
             parent,
             cache,
             inference_image=inference_image,
+            material_cache_bytes=cfg.get("material_cache_bytes"),
             implementation=implementation,
             snapshot=snapshot,
             window=window,

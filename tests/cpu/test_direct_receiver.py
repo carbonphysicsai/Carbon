@@ -70,6 +70,9 @@ def _allow_windows_receiver_fixture(monkeypatch):
         ("lifetime_seconds", 0),
         ("lifetime_seconds", True),
         ("measure_query", 1),
+        ("material_cache_bytes", 0),
+        ("material_cache_bytes", True),
+        ("material_cache_bytes", "1024"),
         ("receiver_hotkey", "validator"),
         ("root", "relative"),
         ("runner_profile", None),
@@ -92,6 +95,14 @@ def test_configuration_retains_explicit_finite_measurement_policy(
     monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
     assert receiver.load_config(tmp_path / "config.json") == cfg
     assert receiver.load_config(tmp_path / "config.json")["measure_query"] is True
+
+
+def test_optional_material_capacity_is_exact_private_operator_input(
+    tmp_path, monkeypatch
+):
+    cfg = {**_config(tmp_path), "material_cache_bytes": 1024**3}
+    monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
+    assert receiver.load_config(tmp_path / "config.json") == cfg
 
 
 def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
