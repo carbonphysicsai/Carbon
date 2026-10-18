@@ -41,9 +41,10 @@ def public_measurement_registration(
     """Name the existing public batch without adopting an accuracy ceiling.
 
     This is one complete, already published practice query with unit weight,
-    not a new population draw. Device descriptions must come from the actual
-    operator. The exact input archive is supplied so retained inference bytes
-    can be reused without relabelling a different query or a historical task.
+    not a new population draw. Execution descriptions must identify the actual
+    retained worker image or device and the reference environment; an image
+    identity alone does not assert physical GPU use or speed comparability.
+    The exact input archive prevents relabelling a different historical query.
     """
     if any(
         type(value) is not str or not value.strip()

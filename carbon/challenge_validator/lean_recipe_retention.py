@@ -342,7 +342,13 @@ def _retain_private_pack_binding(adapter, provider, submission_id, task, result)
     }
 
 
-def _retain_public_synthetic_measurement(result, artifacts, submission_id):
+def _private_measurement_bytes(path, limit):
+    if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= limit:
+        raise RetentionUnavailable("public_measurement_bytes_unavailable")
+    return path.read_bytes()
+
+
+def _retain_public_synthetic_measurement(result, artifacts, submission_id, evidence):
     """Keep a separate private, descriptive v1.3 measurement beside the bank.
 
     Bank custody succeeds independently. A missing or invalid measurement is
@@ -356,15 +362,17 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id):
         )
 
         task_root = _owner_directory(result["artifact_path"], "task_artifacts")
-        entry_path = result["entry_path"]
-        if entry_path.is_symlink() or not entry_path.is_file():
-            raise ValueError("entry unavailable")
-        entry = json.loads(entry_path.read_bytes())
-        kit = json.loads(artifacts["construction-kit.json"])
+        entry = json.loads(_private_measurement_bytes(result["entry_path"], 1024**2))
+        graph = "worker-evidence.json" in artifacts
+        kit = (
+            json.loads(artifacts["construction-kit.json"])
+            if graph
+            else json.loads(artifacts["recipe.json"])["challenge"]
+        )
         if (kit["id"], kit["version"]) != ("synthetic-linear-field-2d", "1.3"):
-            return {**result, "measurement_state": "NOT_APPLICABLE"}
+            return result
         if result.get("evaluation_pack_digest") is not None:
-            return {**result, "measurement_state": "NOT_APPLICABLE"}
+            return result
         sidecar_root = task_root.parent / (submission_id + ".public-measurement")
         sidecar_root.mkdir(mode=0o700, exist_ok=True)
         _owner_directory(sidecar_root, "public_measurement_directory")
@@ -378,13 +386,20 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id):
                 for path in (source_path, receipt_path, reference_path)
             ):
                 raise ValueError("incomplete public source")
-            source_raw = source_path.read_bytes()
-            receipt_raw = receipt_path.read_bytes()
-            reference_raw = reference_path.read_bytes()
+            source_raw = _private_measurement_bytes(source_path, 1024**2)
+            receipt_raw = _private_measurement_bytes(receipt_path, 1024**2)
+            reference_raw = _private_measurement_bytes(reference_path, 1024**2)
         else:
+            if (
+                type(evidence) is not dict
+                or type(evidence.get("inference_image_id")) is not str
+                or re.fullmatch(r"sha256:[0-9a-f]{64}", evidence["inference_image_id"])
+                is None
+            ):
+                raise ValueError("inference image identity unavailable")
             prepared = prepare_public_measurement(
                 query_bytes=artifacts["inputs.npz"],
-                model_device="C03_DOCKER_CPU_WORKER",
+                model_device="C03_DOCKER_IMAGE_" + evidence["inference_image_id"],
                 reference_device="IN_PROCESS_NUMPY_CPU",
             )
             source_raw = prepared["source_registration_raw"]
@@ -393,7 +408,7 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id):
             write_once(source_path, source_raw)
             write_once(receipt_path, receipt_raw)
             write_once(reference_path, reference_raw)
-        worker = json.loads(artifacts["worker-evidence.json"])
+        worker = json.loads(artifacts["worker-evidence.json"]) if graph else evidence
         inference_receipt = json.loads(artifacts["inference-receipt.json"])
         inference = {
             "recipe_digest": entry["recipe_digest"],
@@ -402,24 +417,27 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id):
             "predictions": json.loads(artifacts["predictions.json"]),
             "worker_operation": worker["inference_operation"],
             "receipt": inference_receipt,
-            "inference_receipt_raw": artifacts["inference-receipt.json"],
-            "worker_evidence_raw": artifacts["worker-evidence.json"],
         }
+        if graph:
+            inference["inference_receipt_raw"] = artifacts["inference-receipt.json"]
+            inference["worker_evidence_raw"] = artifacts["worker-evidence.json"]
         custody_path = task_root.parent / (submission_id + ".custody.json")
-        if custody_path.is_symlink() or not custody_path.is_file():
-            raise ValueError("custody unavailable")
         reduced = reduce_public_measurement(
             entry=entry,
-            custody_receipt_raw=custody_path.read_bytes(),
+            custody_receipt_raw=_private_measurement_bytes(custody_path, 1024**2),
             source_registration_raw=source_raw,
             source_receipt_raw=receipt_raw,
             reference_row_raw=reference_raw,
             query_bytes=artifacts["inputs.npz"],
             inference=inference,
-            graph_originals={
-                "inference_receipt_raw": artifacts["inference-receipt.json"],
-                "worker_evidence_raw": artifacts["worker-evidence.json"],
-            },
+            graph_originals=(
+                {
+                    "inference_receipt_raw": artifacts["inference-receipt.json"],
+                    "worker_evidence_raw": artifacts["worker-evidence.json"],
+                }
+                if graph
+                else None
+            ),
         )
         document = {
             "schema": "carbon.lean-recipe.public-development-measurement.v1",
@@ -501,7 +519,9 @@ def retain_served_result(
         bound = _retain_private_pack_binding(
             adapter, provider, submission_id, task, result
         )
-        return _retain_public_synthetic_measurement(bound, artifacts, submission_id)
+        return _retain_public_synthetic_measurement(
+            bound, artifacts, submission_id, evidence
+        )
     if recipe.to_dict()["source"]["kind"] != "bundle":
         raise RetentionUnavailable("source_kind_unavailable")
     admitted_binding = provider._task_image_bindings.get(submission_id)
@@ -836,7 +856,10 @@ def retain_served_result(
         "score_state": saved["entry"]["score_state"],
         "official_eligible": False,
     }
-    return _retain_private_pack_binding(adapter, provider, submission_id, task, result)
+    bound = _retain_private_pack_binding(adapter, provider, submission_id, task, result)
+    return _retain_public_synthetic_measurement(
+        bound, artifacts, submission_id, evidence
+    )
 
 
 def retain_served_bundle_result(

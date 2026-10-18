@@ -262,6 +262,18 @@ def test_real_local_result_enters_existing_pending_bank_create_only(
         assert first["status"] == "CREATED"
         assert first["score_state"] == "NOT_COMPUTED"
         assert first["official_eligible"] is False
+        if measure_query:
+            assert first["measurement_state"] == "DEVELOPMENT_UNRANKED"
+            measured = json.loads(first["measurement_path"].read_bytes())
+            assert measured["entry_id"] == first["entry_id"]
+            assert measured["result"]["status"] == "BENCHMARK_REDUCED"
+            assert measured["result"]["score_status"] == "PACK_NOT_READY"
+            assert measured["accuracy_ceiling"] is None
+            assert measured["ranking"] is None
+            assert measured["speedup_comparability"] == "NOT_ESTABLISHED"
+            assert first["measurement_path"].parent != first["artifact_path"]
+        else:
+            assert first["measurement_state"] == "UNAVAILABLE"
         assert first["entry_path"].is_file()
         assert (
             first["artifact_path"].joinpath("state.npz").read_bytes()
