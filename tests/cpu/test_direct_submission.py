@@ -145,6 +145,59 @@ def test_signed_direct_submission_records_task_and_restart_only_polls(
     assert len(signed) == len(sent)
 
 
+def test_zero_wait_retains_admitted_task_without_immediate_signed_status(
+    tmp_path, monkeypatch
+):
+    signed, sent = [], []
+
+    class Signer:
+        def __init__(self, signer):
+            assert signer == "external-signer"
+
+        def sign(self, body, *, receiver, nonce_ns):
+            assert receiver == _RECEIVER
+            signed.append(json.loads(body)["tool"])
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def send(url, body, headers):
+        assert url == _URL and headers == {"signed": "fixture"}
+        tool = json.loads(body)["tool"]
+        sent.append(tool)
+        return (202 if tool == client.SUBMIT_TOOL else 200), _answer(
+            "ADMITTED" if tool == client.SUBMIT_TOOL else "RECONSTRUCTED"
+        )
+
+    args = {
+        "root": tmp_path,
+        "epoch": 1,
+        "recipe": _recipe(),
+        "contract_digest": _CONTRACT,
+        "receiver": _RECEIVER,
+        "context": _CONTEXT,
+        "read": lambda url: _facts(),
+        "send": send,
+    }
+    for _ in range(2):
+        with pytest.raises(
+            client.DirectIntakeRefusal, match="construction_task_queued"
+        ):
+            client.submit_and_wait(_URL, "external-signer", wait_s=0, **args)
+    assert sent == signed == [client.SUBMIT_TOOL]
+    assert (
+        json.loads((tmp_path / "construction-intake-epoch-1.json").read_bytes())[
+            "submission_id"
+        ]
+        == "task-1"
+    )
+    assert (
+        client.submit_and_wait(_URL, "external-signer", wait_s=30, **args)["state"]
+        == "RECONSTRUCTED"
+    )
+    assert sent == signed == [client.SUBMIT_TOOL, client.STATUS_TOOL]
+
+
 def test_retried_submit_accepts_an_already_reconstructed_idempotent_task(
     tmp_path, monkeypatch
 ):

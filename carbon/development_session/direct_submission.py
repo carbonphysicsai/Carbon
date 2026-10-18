@@ -350,6 +350,10 @@ def submit_and_wait(
             ).encode(),
         )
         record_path.chmod(0o600)
+    if wait_s == 0:
+        # The tool door requests admission only. A same-moment STATUS call can
+        # hit the signed transport's rate limit, even though SUBMIT succeeded.
+        raise DirectIntakeRefusal("construction_task_queued")
     deadline = clock() + wait_s
     while True:
         facts = read(url)
