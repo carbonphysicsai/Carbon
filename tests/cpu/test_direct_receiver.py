@@ -700,7 +700,7 @@ def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
 
     battery_discovery = DirectFixtureDiscovery(battery_material(), task_admission=True)
     battery_pool = receiver.OwnerProviders(
-        receiver._private_directory(root / "battery"),
+        receiver._private_directory(tmp_path / "battery-owners"),
         battery_discovery,
         parent,
         tmp_path / "cache",
@@ -708,7 +708,7 @@ def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
         snapshot=snapshot,
         receiver=RECEIVER,
     )
-    battery_ledger = CampaignLedger(root / "battery-ledger")
+    battery_ledger = CampaignLedger(tmp_path / "battery-ledger")
     battery_pool._manifest(OWNER, battery_ledger, restoring=False)
     with battery_ledger.db() as db:
         battery_frozen = json.loads(
