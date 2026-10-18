@@ -351,47 +351,138 @@ def retain_served_result(
         )
     if recipe.to_dict()["source"]["kind"] != "bundle":
         raise RetentionUnavailable("source_kind_unavailable")
-    try:
-        image = provider._resolved_image(provider._requests[submission_id])
-    except (FileNotFoundError, ValueError) as exc:
-        raise RetentionUnavailable("source_image_unavailable") from exc
     admitted_binding = provider._task_image_bindings.get(submission_id)
     if provider.image_resolver is not None and admitted_binding is None:
         raise RetentionUnavailable("admitted_image_binding_unavailable")
-    if (
-        admitted_binding is not None
-        and provider._image_binding(image) != admitted_binding
-    ) or any(
-        evidence.get(field) != value
-        for field, value in (
-            ("image_id", image.image_id),
-            ("parent_image_id", image.parent.image_id),
-            ("inference_image_id", provider.inference_image.image_id),
-            ("context_digest", image.provisioned.context_digest),
-            ("bundle_digest", image.provisioned.bundle.bundle_digest),
+    overlay = evidence.get("schema") == "carbon.direct-private-attempt.overlay.v1"
+    if overlay:
+        from carbon.development_session.library_bundles import (
+            LibraryBundleRef,
+            load_pinned_bundle_directory,
+            verify_bundle_parent_environment,
         )
-    ):
-        raise RetentionUnavailable("admitted_image_changed")
-    context = image.provisioned.context
-    try:
-        if context.is_symlink() or not context.is_dir():
-            raise ValueError("context unavailable")
-        if _context_digest(context) != image.provisioned.context_digest:
-            raise ValueError("context changed")
-        manifest_raw = (context / "bundle.json").read_bytes()
-        manifest = json.loads(manifest_raw)
-        source, wheels, lock, license_text = load_cached_bundle_material(
-            context, manifest
+        from carbon.development_session.library_environment_cache import (
+            _verified_overlay_tree,
+            inspect_staged_bundle_material,
         )
+
+        try:
+            selected = LibraryBundleRef.from_dict(
+                recipe.to_dict()["source"]["bundle_ref"]
+            )
+            binding = json.loads(admitted_binding)
+            receipt = evidence["prep_receipt"]
+            if (
+                type(binding) is not list
+                or len(binding) != 2
+                or binding[0] != "BUNDLE_OVERLAY"
+                or type(binding[1]) is not dict
+                or binding[1]
+                != {
+                    "parent_image_id": provider.construction_parent.image_id,
+                    "bundle_ref": selected.to_dict(),
+                    "tree_digest": evidence["overlay_tree_digest"],
+                    "archive_digest": evidence["overlay_archive_digest"],
+                }
+                or receipt.get("bundle_ref") != selected.to_dict()
+                or receipt.get("parent_image_id")
+                != provider.construction_parent.image_id
+                or receipt.get("tree_digest") != evidence["overlay_tree_digest"]
+                or receipt.get("archive_sha256") != evidence["overlay_archive_digest"]
+                or evidence.get("image_id") != provider.construction_parent.image_id
+                or evidence.get("parent_image_id")
+                != provider.construction_parent.image_id
+                or evidence.get("inference_image_id")
+                != provider.inference_image.image_id
+                or any(
+                    type(evidence.get(name)) is not str
+                    or re.fullmatch(r"sha256:[0-9a-f]{64}", evidence[name]) is None
+                    for name in ("overlay_tree_digest", "overlay_archive_digest")
+                )
+                or re.fullmatch(r"operation-[0-9a-f]{64}", evidence["prep_operation"])
+                is None
+            ):
+                raise ValueError("admitted overlay identity changed")
+            cache_root = provider.image_resolver.cache_root
+            directory = inspect_staged_bundle_material(cache_root, selected)
+            manifest, source, wheels, lock, license_text = load_pinned_bundle_directory(
+                directory
+            )
+            verify_bundle_parent_environment(manifest, provider.construction_parent)
+            if bundle_ref(manifest, source, wheels, lock, license_text) != selected:
+                raise ValueError("staged bundle identity changed")
+            manifest_raw = (directory / "bundle.json").read_bytes()
+            prep = provider.ledger.root / evidence["prep_operation"] / "snapshot"
+            _receipt_snapshot(prep / "overlay.json", receipt, "prep_receipt")
+            _snapshot(
+                prep / "overlay.tar",
+                limit=128 * 1024**2,
+                digest=evidence["overlay_archive_digest"],
+                label="prep_archive",
+            )
+            target = cache_root / "overlays"
+            for identity in (
+                selected.bundle_digest,
+                provider.construction_parent.image_id,
+                evidence["overlay_archive_digest"],
+                evidence["overlay_tree_digest"],
+            ):
+                target = target / identity[7:]
+            if target.is_symlink() or not target.is_dir():
+                raise ValueError("cached overlay unavailable")
+            _verified_overlay_tree(target, receipt)
+            image_record = {
+                "parent_image_id": provider.construction_parent.image_id,
+                "bundle_digest": selected.bundle_digest,
+                "overlay_tree_digest": evidence["overlay_tree_digest"],
+                "overlay_archive_digest": evidence["overlay_archive_digest"],
+            }
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            raise RetentionUnavailable("source_overlay_unavailable") from exc
+    else:
+        try:
+            image = provider._resolved_image(provider._requests[submission_id])
+        except (FileNotFoundError, ValueError) as exc:
+            raise RetentionUnavailable("source_image_unavailable") from exc
         if (
-            bundle_ref(manifest, source, wheels, lock, license_text)
-            != image.provisioned.bundle
-            or image.provisioned.bundle.to_dict()
-            != recipe.to_dict()["source"]["bundle_ref"]
+            admitted_binding is not None
+            and provider._image_binding(image) != admitted_binding
+        ) or any(
+            evidence.get(field) != value
+            for field, value in (
+                ("image_id", image.image_id),
+                ("parent_image_id", image.parent.image_id),
+                ("inference_image_id", provider.inference_image.image_id),
+                ("context_digest", image.provisioned.context_digest),
+                ("bundle_digest", image.provisioned.bundle.bundle_digest),
+            )
         ):
-            raise ValueError("bundle ref changed")
-    except (OSError, ValueError, KeyError, TypeError) as exc:
-        raise RetentionUnavailable("source_context_unavailable") from exc
+            raise RetentionUnavailable("admitted_image_changed")
+        context = image.provisioned.context
+        try:
+            if context.is_symlink() or not context.is_dir():
+                raise ValueError("context unavailable")
+            if _context_digest(context) != image.provisioned.context_digest:
+                raise ValueError("context changed")
+            manifest_raw = (context / "bundle.json").read_bytes()
+            manifest = json.loads(manifest_raw)
+            source, wheels, lock, license_text = load_cached_bundle_material(
+                context, manifest
+            )
+            if (
+                bundle_ref(manifest, source, wheels, lock, license_text)
+                != image.provisioned.bundle
+                or image.provisioned.bundle.to_dict()
+                != recipe.to_dict()["source"]["bundle_ref"]
+            ):
+                raise ValueError("bundle ref changed")
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            raise RetentionUnavailable("source_context_unavailable") from exc
+        image_record = {
+            "image_id": image.image_id,
+            "parent_image_id": image.parent.image_id,
+            "context_digest": image.provisioned.context_digest,
+        }
 
     root = provider.ledger.root
     if any(
@@ -444,13 +535,7 @@ def retain_served_result(
         "predictions.json": predictions,
         "source.tar.gz": source,
         "environment.json": manifest_raw,
-        "image.json": _json(
-            {
-                "image_id": image.image_id,
-                "parent_image_id": image.parent.image_id,
-                "context_digest": image.provisioned.context_digest,
-            }
-        ),
+        "image.json": _json(image_record),
         "build-receipt.json": build_receipt,
         "inference-receipt.json": inference_receipt,
         "task-receipt.json": canonical_bytes(task.terminal_receipt),
