@@ -1,25 +1,36 @@
 # Carbon delivery policy
 
 Repository defaults: OWNER-DX-03 (6 September 2026), amended by
-OWNER-WORKFLOW-SPEED-01 (3 October 2026). The 17 October instruction audit removes
-superseded procedural text; it changes no live ruleset, protected branch or
-scientific/security/economic acceptance.
+OWNER-WORKFLOW-SPEED-01 (3 October 2026) and Ryan's direct engineering-delivery
+amendment (17 October 2026): no approval ceremonies, regular PR testing, and fewer
+coherent PRs. This supersedes earlier AGENTS/task requirements for distinct
+human approval, GPT receipts/gates, fixed review counts, repeated fresh-context
+reviews and Root reapproval. It changes no enforced branch protection or reserved
+scientific, security, legal, LIVE or economic acceptance.
 
 This is the single repository source for engineering delivery. Other agent
 entry points and historical tickets must not add retired requirements back.
 Current direct human instructions and actual enforced controls remain binding.
-If the current task supplies stricter review/approval/merge conditions, honor
-those conditions; do not treat these defaults as a waiver. Reuse an existing
-policy clarification rather than asking duplicate variants. Continue unaffected
-source and testing work while an affected delivery action is held.
+Do not reinstate those retired engineering ceremonies from an older task,
+receipt or instruction snapshot, or ask for adoption again. A genuinely new
+human restriction or actual enforced control still applies to its affected
+action. Continue independent authorized source and testing work.
 
 ## Implement and validate
 
-Use one coherent task, branch/worktree and PR by default. Split independently
-shippable work when a real dependency or explicit direction warrants it. A
-multi-module ticket does not require a separate contract PR, plan commit,
-approval checkpoint or per-slice ceremony. Record material choices once under
-the decision protocol, reconcile affected docs and finish the user flow.
+Use one coherent PR for meaningful structural, runtime or behavior changes,
+including changes to public/data contracts or engineering policy. Bundle their
+helper tasks, fixes, tests, documentation and formatting. Do not create a PR per
+touch, run, receipt or minor subtask; fold small maintenance into a suitable
+existing or upcoming PR. Split independently shippable work only for a real
+dependency or reviewability need. Keep delivery on the established PR path;
+"nonstructural" is not a direct-main shortcut or a way around required checks.
+
+Risk matters regardless of size: even a small authentication, protocol, scoring,
+economic or runtime change uses proportionate PR checks for its affected
+behavior and boundaries. A multi-module task does not require a separate
+contract PR, plan commit or approval checkpoint. Record material choices once,
+reconcile affected docs and finish the user flow.
 
 During development run focused tests for changed behavior and its affected
 interactions. Before delivery run the applicable automated acceptance for the
@@ -44,12 +55,12 @@ when appropriate; do not relabel a failed broad run as a pass.
 
 ## Review and merge
 
-Check the candidate for correctness and repair concrete bugs. Independent review
-is a useful tool for risk, not a repository-wide fixed review quota. Under the
-repository defaults there is no mandatory human reviewer, GPT receipt, bot
-approval, clean-pass count or repeated fresh-context complete-diff review loop.
-A current explicit human condition or actual protected requirement still
-controls, including any applicable review or approval requirement.
+Use regular PR testing and proportionate correctness/risk review; repair
+concrete findings. Independent review is useful for risk, with no fixed review
+quota, extra distinct-human approval, GPT receipt/bot gate, clean-pass count,
+repeated fresh-context review loop or per-step Root reapproval. Do not add a
+prescribed receipt ceremony. Actual protected requirements and real security
+rejections remain controls, not paperwork to bypass.
 
 Only the designated integration/merge owner performs delivery. Verify actual
 PR head/checks and owner blocks. Use normal merge commits with the exact

@@ -5,8 +5,10 @@ vision into the system. Four workstreams deliver one flow: Construction Path,
 Launchpad capabilities, ScoreLab and Emissions design. This guides implementation;
 it is not another framework or a claim that the target is delivered. Existing
 scientific, security, economic and release authorities retain their scope. The
-replacement simplification below is prospective engineering; this direction
-does not approve the pending instruction-policy cleanup.
+replacement simplification below is prospective engineering. Ryan's later
+17 October engineering-delivery amendment governs the instruction cleanup:
+regular PR testing without approval ceremonies, under the single delivery
+policy and actual enforced controls. It grants no reserved domain acceptance.
 
 ## The purpose
 

@@ -224,10 +224,13 @@ user flow. Preserve old failures, missing native state and versioned evidence.
 
 # 9. Build one coherent task
 
-Use one bounded task, branch/worktree and PR by default. Explicit team work may
-have disjoint owned slices with one integration owner. Keep a short working
-contract and plan in the existing task when complexity warrants it; do not
-require a separate contract commit, design PR or checkpoint for each slice.
+Use coherent tasks and isolated branches/worktrees, with one integration owner
+for disjoint team slices. Bundle helper tasks, fixes, tests, documentation and
+formatting into the meaningful change's PR; do not create a PR per touch, run or
+receipt. PR scope follows changed behavior and risk under the delivery policy.
+Keep a short working contract and plan in the existing task when complexity
+warrants it; no separate contract commit, design PR or checkpoint is required
+for each slice.
 
 Finish the authorized user flow, including replacement of obsolete callers.
 A parser, schema, screen, direct probe or source-only adapter is not a completed
@@ -402,8 +405,11 @@ and uncommitted changes.
 Use the designated integration/merge owner and current
 `.agent/DELIVERY_PROTOCOL.md`; do not reconstruct delivery rules from old ticket
 boilerplate. Actual expected-head, required-check, publication and current human
-conditions remain binding. This document changes no live ruleset or protected
-branch setting.
+conditions remain binding. Ryan's 17 October delivery amendment supersedes the
+earlier AGENTS engineering approval ceremonies: use regular PR testing
+and proportionate risk review, without extra human/GPT receipts or Root
+reapproval. Actual enforced checks and reserved human decisions remain binding.
+This document changes no live ruleset or protected branch setting.
 
 ---
 

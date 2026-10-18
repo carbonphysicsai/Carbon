@@ -14,8 +14,13 @@ Ryan subsequently directed us to engrain this operating vision and give teams
 strong guided autonomy, including cleanup authority within owned scope. Keep
 that target in one tracked document linked from AGENTS, with concrete ownership
 and engineering freedom inside boundaries.
-This authorizes instruction cleanup, not waiver of his current task-specific
-conditions or enforced release protections.
+Ryan's subsequent direct engineering-policy amendment says: "No approval
+ceremonies. Just regular PR testing." Prefer fewer coherent PRs for meaningful
+structural/runtime/behavior work; bundle helper tasks, fixes, tests, docs and
+formatting. Small high-risk changes still receive proportionate PR checks.
+This supersedes prior engineering approval/receipt ceremonies in AGENTS and task
+instructions, while preserving actual enforced protections and science, security
+acceptance, legal, LIVE and economic authority.
 
 The audit found current entry points with top-of-file DX03/Hub-retirement
 notices but contradictory active body instructions: mandatory human/GPT review
@@ -48,11 +53,11 @@ No frozen Hub/decision history is edited. AGENTS sections 7, 13, 14, 15 and 16
 retain their exact domain-boundary text. Core section 6 invariants remain, with
 only its stale Wave-A applicability sentence generalized to current work.
 
-Current direct human delivery conditions control over conflicting repository
-DX03 workflow defaults. This proposed update is not an operational waiver;
-adoption requires proper delivery under those current conditions. It removes no
-actual protected requirement and authorizes no merge. No additional policy-choice
-question is required for instruction priority. Source work and validation continue.
+The latest amendment is authorized; no further owner adoption question or Root
+reapproval is required. Deliver this coherent update through existing PR #1419
+and regular applicable CI, with Launchpad as sole publisher/merger. Do not open
+another policy PR or bypass a real required check, security rejection or reserved
+decision. This source task itself performs no publication or merge.
 
 ## Validation and completion
 
