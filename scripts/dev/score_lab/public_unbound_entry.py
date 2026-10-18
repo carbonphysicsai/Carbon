@@ -494,7 +494,7 @@ def create_entry_v4(
 def create_entry_v5(
     artifacts_path, role_manifest_path, custody_receipt_path, entry_directory
 ) -> dict:
-    """Create a pending common-bundle entry from its original, rehashed bytes."""
+    """Create a pending model entry from its original, rehashed bytes."""
     try:
         expected = custody.prepare_custody_v5(artifacts_path, role_manifest_path)
     except custody.CustodyRefused as exc:
@@ -549,6 +549,8 @@ def create_entry_v5(
             role_schema=expected["role_schema"],
             submission_digest=expected["submission_digest"],
         )
+    if expected.get("role_schema") == custody.GRAPH_ROLE_SCHEMA_V4:
+        core["measurement_state"] = expected["measurement_state"]
     record = {**core, "entry_id": _sha(_canonical(core))}
     body = _canonical(record)
     if len(body) > MAX_ENTRY_BYTES:

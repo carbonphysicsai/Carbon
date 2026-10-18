@@ -1603,6 +1603,7 @@ def prepare_custody_v4(artifact_root: Path, role_manifest_path: Path) -> dict:
 
 BUNDLE_ROLE_SCHEMA_V2 = "carbon.scorelab.public-model-artifact-roles.v2"
 GRAPH_ROLE_SCHEMA_V3 = "carbon.scorelab.public-model-artifact-roles.v3"
+GRAPH_ROLE_SCHEMA_V4 = "carbon.scorelab.public-model-artifact-roles.v4"
 BUNDLE_CUSTODY_SCHEMA_V5 = "carbon.scorelab.public-model-custody-receipt.v5"
 BUNDLE_STATE_SCHEMA = "carbon.development.bundle-graph-state.v1"
 GRAPH_SOURCE_STATE_SCHEMA = "carbon.development.graph-source-state.v1"
@@ -1659,6 +1660,20 @@ _GRAPH_CORE_ROLES = frozenset(
         "inference_receipt",
     }
 )
+_NATIVE_GRAPH_ROLE_CODECS = {
+    "recipe": "json",
+    "train": "numeric_npz",
+    "state": "bundle_graph_npz",
+    "source": "json",
+    "inputs": "numeric_npz",
+    "predictions": "json",
+    "build_receipt": "json",
+    "inference_receipt": "json",
+    "build_program": "raw_bytes",
+    "inference_program": "raw_bytes",
+    "inference_recipe": "json",
+    "inference_state": "bundle_graph_npz",
+}
 
 
 def _bundle_header(state: bytes, *, graph_source: bool = False) -> tuple[dict, dict]:
@@ -2178,6 +2193,227 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
     }
 
 
+def _prepare_native_graph_custody_v5(root, manifest_raw, manifest):
+    """Rehash a normal local graph task without inventing worker measurements.
+
+    The installed task retains its original build and inference bytes, but its
+    inference receipt is v1 and has no timing. This is custody only: it does
+    not turn a local practice result into a measured or admitted model.
+    """
+    from carbon.level4 import staging
+    from carbon.level4.graph import GraphRefused
+
+    if manifest["source_schema"] != GRAPH_SOURCE_STATE_SCHEMA:
+        raise CustodyRefused("native_graph_source_schema")
+    if manifest["physics_contract"] is not None:
+        raise CustodyRefused("native_graph_physics_unregistered")
+    roles = manifest["roles"]
+    if type(roles) is not dict or set(roles) != set(_NATIVE_GRAPH_ROLE_CODECS):
+        raise CustodyRefused("native_graph_roles")
+    role_paths = {}
+    for role, declaration in roles.items():
+        _exact_keys(declaration, {"file", "codec"}, f"native_graph_role_{role}")
+        if declaration["codec"] != _NATIVE_GRAPH_ROLE_CODECS[role]:
+            raise CustodyRefused("native_graph_role_codec")
+        _graph_file(root, declaration["file"])
+        role_paths[role] = declaration["file"]
+    if len(set(role_paths.values())) != len(role_paths):
+        raise CustodyRefused("native_graph_role_duplicate_file")
+    observed, raw = _graph_rehash_inventory(
+        root,
+        manifest["retained_files"],
+        frozenset(role_paths.values()),
+        lineage_name=None,
+    )
+    by_role = {role: raw[path] for role, path in role_paths.items()}
+    if (
+        by_role["recipe"] != by_role["inference_recipe"]
+        or by_role["state"] != by_role["inference_state"]
+    ):
+        raise CustodyRefused("native_graph_build_inference_bytes")
+
+    recipe = _graph_json(by_role["recipe"], "native_recipe")
+    challenge = recipe.get("challenge")
+    source = recipe.get("source")
+    procedure = recipe.get("procedure")
+    output = recipe.get("output")
+    if (
+        set(recipe) != {"schema", "challenge", "source", "procedure", "output"}
+        or recipe["schema"] != "carbon.construction-recipe.v1"
+        or type(challenge) is not dict
+        or set(challenge)
+        != {
+            "id",
+            "version",
+            "interface_digest",
+            "train_digest",
+            "construction_limits_digest",
+        }
+        or type(challenge["id"]) is not str
+        or not challenge["id"]
+        or type(challenge["version"]) is not str
+        or not challenge["version"]
+        or type(source) is not dict
+        or set(source) != {"kind", "submission_digest"}
+        or source["kind"] != "graph"
+        or type(procedure) is not dict
+        or set(procedure)
+        != {"entrypoint", "configuration", "train_use", "initial_state"}
+        or procedure["entrypoint"] is not None
+        or procedure["initial_state"] is not None
+        or type(procedure["configuration"]) is not dict
+        or type(procedure["train_use"]) is not dict
+        or type(output) is not dict
+        or set(output) != {"format", "interface_digest"}
+        or output["format"] != "carbon.numeric-graph.v1"
+        or output["interface_digest"] != challenge["interface_digest"]
+    ):
+        raise CustodyRefused("native_graph_recipe")
+    for field in ("interface_digest", "train_digest", "construction_limits_digest"):
+        _digest(challenge[field], f"native_graph_{field}")
+    _digest(source["submission_digest"], "native_graph_submission")
+    recipe_canonical = json.dumps(
+        recipe,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+    if by_role["recipe"] != recipe_canonical:
+        raise CustodyRefused("native_graph_recipe_noncanonical")
+    recipe_digest = _sha(recipe_canonical)
+
+    envelope = _graph_json(by_role["source"], "native_source_envelope")
+    try:
+        submission_digest, manifest_bytes, documents = staging.from_envelope(envelope)
+        canonical_envelope = json.dumps(
+            staging.envelope(manifest_bytes, documents),
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    except (GraphRefused, ValueError, TypeError, UnicodeError) as exc:
+        raise CustodyRefused("native_graph_source_envelope") from exc
+    if (
+        submission_digest != source["submission_digest"]
+        or by_role["source"] != canonical_envelope
+    ):
+        raise CustodyRefused("native_graph_source_identity")
+
+    header, state_arrays = _bundle_header(by_role["state"], graph_source=True)
+    for value, expected, label in (
+        (header["recipe_digest"], recipe_digest, "recipe"),
+        (header["submission_digest"], submission_digest, "submission"),
+        (header["train_digest"], challenge["train_digest"], "train"),
+        (header["train_digest"], _sha(by_role["train"]), "train_bytes"),
+        (header["interface_digest"], challenge["interface_digest"], "interface"),
+    ):
+        _graph_digest_equal(value, expected, label)
+    train_arrays = inspect_numeric_npz(by_role["train"], max_bytes=MAX_FIXTURE_BYTES)
+    input_arrays = inspect_numeric_npz(by_role["inputs"], max_bytes=MAX_FIXTURE_BYTES)
+    if not train_arrays or set(input_arrays) != {"inputs"}:
+        raise CustodyRefused("native_graph_input_members")
+    predictions = _bundle_json(by_role["predictions"], "native_predictions")
+    if type(predictions) not in (dict, list) or not predictions:
+        raise CustodyRefused("native_graph_predictions")
+
+    build = _graph_json(by_role["build_receipt"], "native_build_receipt")
+    if (
+        set(build)
+        != {
+            "schema",
+            "recipe_digest",
+            "submission_digest",
+            "train_digest",
+            "state_digest",
+            "allowlist_digest",
+            "framework",
+            "fit",
+        }
+        or build["schema"] != "carbon.development.graph-build.v1"
+        or build["recipe_digest"] != recipe_digest
+        or build["submission_digest"] != submission_digest
+        or build["train_digest"] != challenge["train_digest"]
+        or build["state_digest"] != _sha(by_role["state"])
+        or build["framework"] != "jax"
+        or type(build["fit"]) is not dict
+        or not build["fit"]
+    ):
+        raise CustodyRefused("native_graph_build_receipt")
+    _graph_digest_equal(
+        header["allowlist_digest"], build["allowlist_digest"], "allowlist"
+    )
+
+    inference = _graph_json(by_role["inference_receipt"], "native_inference_receipt")
+    if (
+        set(inference)
+        != {
+            "schema",
+            "recipe_digest",
+            "state_digest",
+            "inputs_digest",
+            "predictions_digest",
+        }
+        or inference["schema"] != "carbon.development.bundle-inference.v1"
+        or inference["recipe_digest"] != recipe_digest
+        or inference["state_digest"] != _sha(by_role["state"])
+        or inference["inputs_digest"] != _sha(by_role["inputs"])
+        or inference["predictions_digest"] != _sha(by_role["predictions"])
+    ):
+        raise CustodyRefused("native_graph_inference_receipt")
+
+    role_records = {
+        role: {
+            "file": path,
+            "codec": roles[role]["codec"],
+            "sha256": observed[path]["sha256"],
+        }
+        for role, path in sorted(role_paths.items())
+    }
+    return {
+        "schema": BUNDLE_CUSTODY_SCHEMA_V5,
+        "source_kind": "graph",
+        "role_schema": GRAPH_ROLE_SCHEMA_V4,
+        "source_schema": GRAPH_SOURCE_STATE_SCHEMA,
+        "scope": BUNDLE_SCOPE,
+        "challenge": challenge["id"],
+        "challenge_version": challenge["version"],
+        "interface_digest": challenge["interface_digest"],
+        "train_digest": challenge["train_digest"],
+        "submission_digest": submission_digest,
+        "bundle_digest": None,
+        "environment_ref_digest": None,
+        "source_digest": _sha(by_role["source"]),
+        "environment_digest": None,
+        "image_digest": None,
+        "recipe_digest": recipe_digest,
+        "state_digest": _sha(by_role["state"]),
+        "fixture_digest": None,
+        "fixture_evidence": "PENDING",
+        "prediction_digest": _sha(by_role["predictions"]),
+        "prediction_evidence": "BYTE_BOUND_UNVERIFIED",
+        "seed_digest": None,
+        "seed_provenance": "PENDING",
+        "physics_contract": {
+            "version": None,
+            "definition_digest": None,
+            "authenticity": "PENDING",
+        },
+        "role_manifest_sha256": _sha(manifest_raw),
+        "roles": role_records,
+        "state_members": {name: state_arrays[name] for name in sorted(state_arrays)},
+        "original_files": observed,
+        "provenance_state": "LOCAL_UNBOUND",
+        "measurement_state": "NOT_MEASURED",
+        "custody_state": "PUBLIC_BYTES_REHASHED",
+        "admission_state": "NOT_ADMITTED",
+        "score_state": "NOT_COMPUTED",
+        "receiver_ack_state": "RECEIVER_ACK_PENDING",
+        "replay_state": "NOT_ATTEMPTED",
+        "official_eligible": False,
+    }
+
+
 def prepare_custody_v5(artifact_root: Path, role_manifest_path: Path) -> dict:
     """Index original common-bundle bytes; official physics and replay stay pending."""
     root = _artifact_root(artifact_root)
@@ -2200,6 +2436,8 @@ def prepare_custody_v5(artifact_root: Path, role_manifest_path: Path) -> dict:
     )
     if manifest["scope"] != BUNDLE_SCOPE:
         raise CustodyRefused("bundle_role_scope")
+    if manifest["schema"] == GRAPH_ROLE_SCHEMA_V4:
+        return _prepare_native_graph_custody_v5(root, manifest_raw, manifest)
     if manifest["schema"] == GRAPH_ROLE_SCHEMA_V3:
         return _prepare_graph_custody_v5(root, manifest_raw, manifest)
     if (

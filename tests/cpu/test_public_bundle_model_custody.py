@@ -337,6 +337,125 @@ def _graph_retain_mutation(root, manifest_path, role, changed):
     manifest_path.write_bytes(_json(manifest))
 
 
+def _native_graph_fixture(tmp_path):
+    """Original local build/infer bytes without a measured worker v2 receipt."""
+    _root, _manifest, graph = _graph_fixture(tmp_path)
+    root = tmp_path / "native-originals"
+    root.mkdir()
+    inference = json.loads(graph["infer/output/receipt.json"])
+    inference["schema"] = "carbon.development.bundle-inference.v1"
+    del inference["measurement"]
+    originals = {
+        "build/program.py": b"# retained effective build program\n",
+        "build/receipt.json": graph["build/output/receipt.json"],
+        "build/recipe.json": graph["stage/recipe.json"],
+        "build/source-envelope.json": graph["stage/source-envelope.json"],
+        "build/state.npz": graph["build/output/state.npz"],
+        "build/train.npz": graph["stage/train.npz"],
+        "inference/inputs.npz": graph["infer/inputs.npz"],
+        "inference/predictions.json": graph["infer/output/predictions.json"],
+        "inference/program.py": b"# retained effective inference program\n",
+        "inference/receipt.json": _json(inference),
+        "inference/recipe.json": graph["stage/recipe.json"],
+        "inference/state.npz": graph["build/output/state.npz"],
+    }
+    role_paths = {
+        "recipe": "build/recipe.json",
+        "train": "build/train.npz",
+        "state": "build/state.npz",
+        "source": "build/source-envelope.json",
+        "inputs": "inference/inputs.npz",
+        "predictions": "inference/predictions.json",
+        "build_receipt": "build/receipt.json",
+        "inference_receipt": "inference/receipt.json",
+        "build_program": "build/program.py",
+        "inference_program": "inference/program.py",
+        "inference_recipe": "inference/recipe.json",
+        "inference_state": "inference/state.npz",
+    }
+    for name, raw in originals.items():
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(raw)
+    manifest = {
+        "schema": custody.GRAPH_ROLE_SCHEMA_V4,
+        "scope": custody.BUNDLE_SCOPE,
+        "source_schema": custody.GRAPH_SOURCE_STATE_SCHEMA,
+        "roles": {
+            role: {
+                "file": path,
+                "codec": custody._NATIVE_GRAPH_ROLE_CODECS[role],
+            }
+            for role, path in role_paths.items()
+        },
+        "retained_files": {name: _sha(raw) for name, raw in originals.items()},
+        "physics_contract": None,
+    }
+    manifest_path = tmp_path / "native.roles.json"
+    manifest_path.write_bytes(_json(manifest))
+    return root, manifest_path, originals
+
+
+def test_native_local_graph_v5_retains_originals_without_timing_claim(tmp_path):
+    root, manifest_path, originals = _native_graph_fixture(tmp_path)
+    receipt = custody.prepare_custody_v5(root, manifest_path)
+    assert receipt["role_schema"] == custody.GRAPH_ROLE_SCHEMA_V4
+    assert receipt["challenge"] == "synthetic-linear-field-2d"
+    assert receipt["state_digest"] == _sha(originals["build/state.npz"])
+    assert receipt["prediction_digest"] == _sha(
+        originals["inference/predictions.json"]
+    )
+    assert receipt["provenance_state"] == "LOCAL_UNBOUND"
+    assert receipt["measurement_state"] == "NOT_MEASURED"
+    assert receipt["image_digest"] is None
+    assert receipt["replay_state"] == "NOT_ATTEMPTED"
+    assert receipt["score_state"] == "NOT_COMPUTED"
+    assert receipt["official_eligible"] is False
+    receipt_path = tmp_path / "native.custody.json"
+    receipt_path.write_bytes(_json(receipt))
+    entries = tmp_path / "entries"
+    entries.mkdir()
+    created = entry.create_entry_v5(root, manifest_path, receipt_path, entries)
+    saved = created["entry"]
+    assert saved["role_schema"] == custody.GRAPH_ROLE_SCHEMA_V4
+    assert saved["measurement_state"] == "NOT_MEASURED"
+    assert saved["provenance_state"] == "LOCAL_UNBOUND"
+    assert saved["receiver_ack_state"] == "RECEIVER_ACK_PENDING"
+    assert saved["official_eligible"] is False
+
+
+def test_native_local_graph_v5_refuses_unbound_claims_and_mismatched_bytes(tmp_path):
+    root, manifest_path, _originals = _native_graph_fixture(tmp_path)
+    manifest = json.loads(manifest_path.read_bytes())
+    manifest["physics_contract"] = {"version": "unsupported", "definition": {}}
+    manifest_path.write_bytes(_json(manifest))
+    with pytest.raises(custody.CustodyRefused, match="native_graph_physics_unregistered"):
+        custody.prepare_custody_v5(root, manifest_path)
+
+    manifest["physics_contract"] = None
+    manifest_path.write_bytes(_json(manifest))
+    (root / "inference/state.npz").write_bytes(b"different state")
+    manifest["retained_files"]["inference/state.npz"] = _sha(b"different state")
+    manifest_path.write_bytes(_json(manifest))
+    with pytest.raises(custody.CustodyRefused, match="native_graph_build_inference_bytes"):
+        custody.prepare_custody_v5(root, manifest_path)
+
+
+def test_native_local_graph_v5_refuses_fabricated_measured_receipt(tmp_path):
+    root, manifest_path, _originals = _native_graph_fixture(tmp_path)
+    receipt_path = root / "inference/receipt.json"
+    receipt = json.loads(receipt_path.read_bytes())
+    receipt["schema"] = "carbon.development.bundle-inference.v2"
+    receipt["measurement"] = {"timing_s": {"inference": 0.001}}
+    raw = _json(receipt)
+    receipt_path.write_bytes(raw)
+    manifest = json.loads(manifest_path.read_bytes())
+    manifest["retained_files"]["inference/receipt.json"] = _sha(raw)
+    manifest_path.write_bytes(_json(manifest))
+    with pytest.raises(custody.CustodyRefused, match="native_graph_inference_receipt"):
+        custody.prepare_custody_v5(root, manifest_path)
+
+
 def test_v4_raw_train_and_optional_fit_survive_v5_registration(tmp_path):
     """A historical V4 role map keeps its raw TRAIN codec after V5 is loaded."""
     root = tmp_path / "v4-originals"
