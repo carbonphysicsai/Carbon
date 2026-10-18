@@ -124,9 +124,10 @@ def development_candidate_implementation(
     """Pin a clean local DEVELOPMENT candidate without granting main acceptance.
 
     The caller supplies all three immutable identities from a trusted operator
-    record. Ignored files in the live runtime packages are refused too: Git's
-    ordinary clean status omits them, while Python or a worker build could read
-    them. Callers still check the actual worker image, profile, and host.
+    record. Ignored source/build paths are refused too: Git's ordinary clean
+    status omits them, while Python or a worker build could read them. Only
+    isolated tool environments and caches are excepted; callers still check
+    the actual worker image, profile, and host.
     """
     hex_digits = frozenset("0123456789abcdef")
     if (
@@ -156,15 +157,20 @@ def development_candidate_implementation(
     head = git("rev-parse", "HEAD")
     if head != revision or git("status", "--porcelain", "--untracked-files=all"):
         raise ValueError("development candidate requires the exact clean revision")
-    if git(
-        "ls-files",
-        "--others",
-        "--ignored",
-        "--exclude-standard",
-        "--",
-        "carbon",
-        "scripts",
-    ):
+    ignored = git(
+        "ls-files", "--others", "--ignored", "--exclude-standard", "--directory"
+    ).splitlines()
+    isolated = {
+        ".venv/",
+        ".venv-jax-macos/",
+        ".carbon-local/",
+        ".pytest_cache/",
+        ".ruff_cache/",
+        ".carbon-artifacts/",
+        ".agent/runtime/",
+        "website/ask-carbon/.wrangler/",
+    }
+    if any(path not in isolated for path in ignored):
         raise ValueError("development candidate has ignored runtime source")
     tree = git("rev-parse", "HEAD^{tree}")
     if tree != expected_tree:
