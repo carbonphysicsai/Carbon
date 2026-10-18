@@ -3282,9 +3282,10 @@ class RunnerAdapter:
     def options_admitted(self, admitted, request):
         """Host choices and separate public/official construction path status.
 
-        A path status describes installed serving, not which recipe, graph,
-        backbone or library a miner may submit. Construction admission is
-        checked from the bound recipe and worker contract at use time.
+        Registration describes a Challenge capability, not installed host
+        serving or which recipe, graph, backbone or library a miner may submit.
+        The options read does not run Docker checks; actual construction
+        admission is checked from the bound recipe and worker at use time.
         """
         from carbon.development_session.product_campaign import BUDGET_KEYS
         from carbon.development_session.research_ledger import DIMENSIONS

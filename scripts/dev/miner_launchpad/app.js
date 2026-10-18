@@ -2527,7 +2527,11 @@
     const labels = {public_reconstruction: "Public reconstruction", official_submission: "Official submission"};
     for (const path of document.paths) {
       if (!Object.prototype.hasOwnProperty.call(labels, path?.id)) continue;
-      const availability = path.availability === "available" ? "available for a compatible bounded recipe" : "unserved";
+      const availability = path.availability === "available"
+        ? "available for a compatible bounded recipe"
+        : path.reason === "public_reconstruction_registered_host_readiness_unverified"
+          ? "registered capability; host serving unverified"
+          : "unserved";
       researchNote(target, labels[path.id] + " · " + availability + (path.reason ? " · " + words(path.reason) : ""), path.availability === "available" ? "hint" : "reason");
     }
     if (document.qualification !== true) researchNote(target, "Scientific qualification: untested.", "hint");

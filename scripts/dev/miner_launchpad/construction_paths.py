@@ -1,9 +1,8 @@
-"""Truthful direct construction availability for both Launchpad doors.
+"""Truthful direct construction registration for both Launchpad doors.
 
-This is a status projection, not an admission table. A public worker being
-installed says nothing about official validator serving or scientific
-qualification. Recipe source, architecture and library names are not choices
-in this projection.
+This is a status projection, not an admission table or a Docker probe. A
+registered kit and callback do not prove that this host can run its worker.
+Recipe source, architecture and library names are not choices here.
 """
 
 from __future__ import annotations
@@ -47,7 +46,7 @@ def for_challenges():
                     kit = dict(proposed)
             except (ValueError, OSError, TypeError, KeyError):
                 pass
-        public = kit is not None and callable(
+        registered = kit is not None and callable(
             getattr(campaign, "construction_reconstruct", None)
         )
         found[entry.challenge_id] = {
@@ -57,10 +56,10 @@ def for_challenges():
             "paths": [
                 {
                     "id": "public_reconstruction",
-                    "availability": "available" if public else "unserved",
+                    "availability": "unserved",
                     "reason": (
-                        "isolated_public_worker_served_for_supported_recipe_operations"
-                        if public
+                        "public_reconstruction_registered_host_readiness_unverified"
+                        if registered
                         else "isolated_public_worker_unserved"
                     ),
                 },

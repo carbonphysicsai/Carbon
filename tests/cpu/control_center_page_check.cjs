@@ -166,6 +166,28 @@ scenario("v2 construction paths render without family admission claims", async (
   assert.doesNotMatch(availability, /Model families/);
   clean(page);
 
+  const registered = launchable(world());
+  registered.options = {
+    ...state.options,
+    construction_paths: {
+      [challenge.challenge_id]: {
+        ...pathDocument,
+        paths: [
+          {id: "public_reconstruction", availability: "unserved",
+            reason: "public_reconstruction_registered_host_readiness_unverified"},
+          pathDocument.paths[1],
+        ],
+      },
+    },
+  };
+  const pending = await open(registered);
+  await wizardTo(pending, "review");
+  assert.match(pending.text("wizard-construction-options"),
+    /Public reconstruction · registered capability; host serving unverified/);
+  assert.doesNotMatch(pending.text("wizard-construction-options"),
+    /Public reconstruction · available/);
+  clean(pending);
+
   const unrelated = launchable(world());
   unrelated.options = {...state.options, construction_paths: {other: pathDocument}};
   const second = await open(unrelated);

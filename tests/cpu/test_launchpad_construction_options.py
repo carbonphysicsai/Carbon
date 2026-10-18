@@ -74,6 +74,42 @@ def test_options_operation_exposes_the_same_document_the_page_reads(monkeypatch)
     assert shown["schema"] == "carbon.launchpad.launch-options.v2"
     assert shown["construction_paths"] == construction_paths.for_challenges()
     assert "construction_options" not in shown
+    public = shown["construction_paths"][BATTERY_CHALLENGE]["paths"][0]
+    assert public == {
+        "id": "public_reconstruction",
+        "availability": "unserved",
+        "reason": "public_reconstruction_registered_host_readiness_unverified",
+    }
+
+
+def test_complete_image_manifest_profile_is_not_a_host_readiness_probe(monkeypatch):
+    cfg = {
+        "paths": {
+            "image_manifest": "worker.json",
+            "analysis_image_manifest": "analysis.json",
+        },
+        "runtime": {
+            "implementation": {"source_tree_digest": "sha256:" + "a" * 64},
+            "images": ["sha256:" + "b" * 64, "sha256:" + "c" * 64],
+        },
+    }
+    host = runner.RunnerAdapter.__new__(runner.RunnerAdapter)
+    monkeypatch.setattr(host, "configured", lambda: cfg)
+    monkeypatch.setattr(host, "read_intake_facts", lambda url: {})
+    monkeypatch.setattr(host, "_model_providers", lambda cfg: [])
+    monkeypatch.setattr(runner, "graphite_options", lambda cfg: {})
+    monkeypatch.setattr(
+        runner,
+        "_worker_image",
+        lambda path: pytest.fail("options must not inspect Docker or image records"),
+    )
+    public = host.options_admitted(SimpleNamespace(), {})["construction_paths"][
+        BATTERY_CHALLENGE
+    ]["paths"][0]
+    assert public["availability"] == "unserved"
+    assert public["reason"] == (
+        "public_reconstruction_registered_host_readiness_unverified"
+    )
 
 
 def test_launch_retires_level_fields_for_new_keys_but_keeps_historical_replay_shape():
