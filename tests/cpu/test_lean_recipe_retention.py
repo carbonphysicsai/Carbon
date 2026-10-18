@@ -24,6 +24,7 @@ from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
 from carbon.challenge_validator.lean_recipe_retention import (
     RetentionUnavailable,
     _collect_graph_artifacts,
+    _retain_public_synthetic_measurement,
     retain_served_bundle_result,
     retain_served_result,
 )
@@ -60,6 +61,32 @@ class _RealLocalRunner(LocalProcessRunner):
         operation = f"operation-{len(self.calls):064x}"
         (ledger.root / result["operation"]).rename(ledger.root / operation)
         return {**result, "operation": operation}
+
+
+def test_public_measurement_skips_other_challenge_and_selected_pack(tmp_path):
+    artifacts_root = tmp_path / "retained"
+    artifacts_root.mkdir(mode=0o700)
+    entry = tmp_path / "entry.json"
+    entry.write_bytes(b"{}")
+    result = {
+        "entry_path": entry,
+        "artifact_path": artifacts_root,
+        "entry_id": "sha256:" + "a" * 64,
+        "score_state": "NOT_COMPUTED",
+        "official_eligible": False,
+    }
+    battery = {
+        "recipe.json": canonical({"challenge": {"id": "battery", "version": "1.0"}})
+    }
+    assert _retain_public_synthetic_measurement(result, battery, "task", {}) == result
+    selected = {
+        "recipe.json": canonical(
+            {"challenge": {"id": "synthetic-linear-field-2d", "version": "1.3"}}
+        )
+    }
+    bound = {**result, "evaluation_pack_digest": "sha256:" + "b" * 64}
+    assert _retain_public_synthetic_measurement(bound, selected, "task", {}) == bound
+    assert not list(tmp_path.glob("*.public-measurement"))
 
 
 def _source_image(tmp_path):

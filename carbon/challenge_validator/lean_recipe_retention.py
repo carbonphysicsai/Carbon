@@ -355,12 +355,6 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id, evide
     explicit and cannot change the immutable entry or its NOT_COMPUTED score.
     """
     try:
-        from carbon.development_session.data import write_once
-        from scripts.dev.score_lab.synthetic_linear_field_reference import (
-            prepare_public_measurement,
-            reduce_public_measurement,
-        )
-
         task_root = _owner_directory(result["artifact_path"], "task_artifacts")
         entry = json.loads(_private_measurement_bytes(result["entry_path"], 1024**2))
         graph = "worker-evidence.json" in artifacts
@@ -373,6 +367,12 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id, evide
             return result
         if result.get("evaluation_pack_digest") is not None:
             return result
+        from carbon.development_session.data import write_once
+        from scripts.dev.score_lab.synthetic_linear_field_reference import (
+            prepare_public_measurement,
+            reduce_public_measurement,
+        )
+
         sidecar_root = task_root.parent / (submission_id + ".public-measurement")
         sidecar_root.mkdir(mode=0o700, exist_ok=True)
         _owner_directory(sidecar_root, "public_measurement_directory")
