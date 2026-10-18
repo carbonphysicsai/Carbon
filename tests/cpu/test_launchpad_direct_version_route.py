@@ -769,6 +769,48 @@ def test_remote_observation_door_is_recipe_bound_status_only_and_registered(
         )
 
 
+def test_explicit_infra_retry_passes_parent_without_changing_recipe_or_epoch(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session import direct_submission
+    from carbon.registry.model import ChallengeKey
+
+    door = object.__new__(tool_door.DirectToolDoor)
+    door.intake_target = {
+        "intake_url": "http://127.0.0.1:9080",
+        "receiver_hotkey": "5" + "a" * 47,
+    }
+    door.adapter = SimpleNamespace(
+        challenge=ChallengeKey("synthetic-linear-field-2d", "1.3"),
+        connection=SimpleNamespace(miner_key=object(), chain_context=object()),
+        composition=SimpleNamespace(
+            tasks=SimpleNamespace(ledger=SimpleNamespace(root=tmp_path))
+        ),
+    )
+    calls = []
+    parent = "rtsk_" + "a" * 64
+
+    def submitted(_url, _signer, **kwargs):
+        calls.append(kwargs)
+        return {"state": "ADMITTED", "task_id": "rtsk_" + "b" * 64}
+
+    monkeypatch.setattr(direct_submission, "submit_and_wait", submitted)
+    recipe = _recipe()
+    ordinary = {"recipe": recipe.to_dict()}
+    retry = {**ordinary, "retry_of_submission_id": parent}
+    assert asyncio.run(door.submit_construction(ordinary))["ok"] is True
+    assert asyncio.run(door.submit_construction(retry))["ok"] is True
+    assert asyncio.run(door.observe_construction(retry))["ok"] is True
+    assert [call.get("retry_of") for call in calls] == [None, parent, parent]
+    assert [call["epoch"] for call in calls] == [int(recipe.digest[7:23], 16)] * 3
+    assert calls[-1]["observe_only"] is True
+    assert all(call["recipe"].digest == recipe.digest for call in calls)
+    assert asyncio.run(
+        door.submit_construction({**ordinary, "retry_of_submission_id": None})
+    ) == {"ok": False, "error": "construction_retry_predecessor_invalid"}
+    assert len(calls) == 3
+
+
 def test_queued_tool_result_uses_validated_id_without_rereading_journal(
     tmp_path, monkeypatch
 ):
