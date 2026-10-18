@@ -250,31 +250,41 @@ def test_public_v13_direct_torch_parent_reuses_exact_abi_not_old_tree():
     )
 
 
-def test_public_v13_cpu_inference_worker_reuses_only_exact_abi():
+@pytest.mark.parametrize("role", ("cpu", "jax_gpu"))
+def test_public_v13_inference_worker_reuses_only_exact_abi(role):
     from carbon.development_session.research_campaign import verify_direct_v13_worker
+    from carbon.reconstruction.accelerators import GPU_PROFILE
 
     def sha(char):
         return "sha256:" + char * 64
 
     root = Path(cli.__file__).resolve().parents[2]
+    lock = (
+        cli.digest((root / "uv.lock").read_bytes())
+        if role == "cpu"
+        else GPU_PROFILE.environment_lock_digest
+    )
+    recipe = (
+        ".devcontainer/Dockerfile.reconstruction-worker"
+        if role == "cpu"
+        else ".devcontainer/accelerators/Dockerfile"
+    )
     image = WorkerImageIdentity(
         sha("1"),
         sha("1"),
         sha("2"),
         sha("3"),
-        cli.digest((root / "uv.lock").read_bytes()),
+        lock,
         sha("4"),
-        cli.digest(
-            (root / ".devcontainer/Dockerfile.reconstruction-worker").read_bytes()
-        ),
+        cli.digest((root / recipe).read_bytes()),
         cli.digest((root / "carbon/reconstruction/worker/entrypoint.py").read_bytes()),
     )
     current = {"source_tree_digest": sha("5")}
-    verify_direct_v13_worker(image, current, role="cpu")
+    verify_direct_v13_worker(image, current, role=role)
     for field in ("lock_digest", "entrypoint_digest", "build_recipe_digest"):
         with pytest.raises(ValueError, match="ABI or entrypoint differs"):
             verify_direct_v13_worker(
-                replace(image, **{field: sha("f")}), current, role="cpu"
+                replace(image, **{field: sha("f")}), current, role=role
             )
     with pytest.raises(ValueError, match="role required"):
         verify_direct_v13_worker(image, current, role="unknown")

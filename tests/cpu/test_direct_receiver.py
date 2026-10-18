@@ -362,10 +362,46 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
     )
     with pytest.raises(ValueError, match="ABI or entrypoint differs"):
         receiver.installed_source(profile)
+
+    from carbon.reconstruction.accelerators import GPU_PROFILE
+
+    older_jax = replace(
+        older_torch,
+        lock_digest=GPU_PROFILE.environment_lock_digest,
+        build_recipe_digest="sha256:"
+        + hashlib.sha256(
+            (root / ".devcontainer/accelerators/Dockerfile").read_bytes()
+        ).hexdigest(),
+    )
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda path: worker if path.name == "worker.json" else older_jax,
+    )
+    monkeypatch.setattr(
+        gpu_practice,
+        "gpu_image_backend",
+        lambda image: "jax" if type(image) is WorkerImageIdentity else None,
+    )
+    implementation, parent, _, _ = receiver.installed_source(profile)
+    assert (implementation, parent) == (accepted, older_jax)
+    wrong_jax = replace(older_jax, build_recipe_digest="sha256:" + "f" * 64)
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda path: worker if path.name == "worker.json" else wrong_jax,
+    )
+    with pytest.raises(ValueError, match="ABI or entrypoint differs"):
+        receiver.installed_source(profile)
     monkeypatch.setattr(
         docker_runtime,
         "load_image_identity",
         lambda path: worker if path.name == "worker.json" else older_torch,
+    )
+    monkeypatch.setattr(
+        gpu_practice,
+        "gpu_image_backend",
+        lambda image: "pytorch" if type(image) is WorkerImageIdentity else None,
     )
 
     # A private receiver may pin the older Torch constructor for a candidate
@@ -451,6 +487,98 @@ def test_serve_forwards_only_private_constructor_manifest(tmp_path, monkeypatch)
     monkeypatch.setattr(receiver, "installed_source", installed)
     with pytest.raises(Seen):
         receiver.serve(tmp_path / "config.json")
+
+
+@pytest.mark.parametrize(
+    "inference_backend,accepted",
+    (
+        ("jax_gpu", True),
+        ("cpu", True),
+        ("jax_bad", False),
+        ("torch_gpu", False),
+        ("unknown", False),
+    ),
+)
+def test_selected_inference_image_admits_only_compatible_jax_or_cpu(
+    tmp_path, monkeypatch, inference_backend, accepted
+):
+    _allow_windows_receiver_fixture(monkeypatch)
+    from carbon.development_session import research_campaign
+    from carbon.reconstruction.accelerators import GPU_PROFILE
+    from carbon.reconstruction.torch_profile import GPU_LOCK_DIGEST
+    from carbon.reconstruction.worker import docker_runtime
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+    from scripts.dev.miner_launchpad import runner
+
+    def sha(char):
+        return "sha256:" + char * 64
+
+    repo = Path(receiver.__file__).resolve().parents[2]
+
+    def image(lock, recipe):
+        return WorkerImageIdentity(
+            sha("1"),
+            sha("1"),
+            sha("2"),
+            sha("3"),
+            lock,
+            sha("4"),
+            research_campaign.digest((repo / recipe).read_bytes()),
+            research_campaign.digest(
+                (repo / "carbon/reconstruction/worker/entrypoint.py").read_bytes()
+            ),
+        )
+
+    jax = image(
+        GPU_PROFILE.environment_lock_digest,
+        ".devcontainer/accelerators/Dockerfile",
+    )
+    cpu = image(
+        research_campaign.digest((repo / "uv.lock").read_bytes()),
+        ".devcontainer/Dockerfile.reconstruction-worker",
+    )
+    torch = image(GPU_LOCK_DIGEST, ".devcontainer/torch/Dockerfile.gpu")
+    jax_bad = replace(jax, entrypoint_digest=sha("e"))
+    unknown = replace(cpu, lock_digest=sha("e"))
+    selected = {
+        "jax_gpu": jax,
+        "cpu": cpu,
+        "jax_bad": jax_bad,
+        "torch_gpu": torch,
+        "unknown": unknown,
+    }[inference_backend]
+    cfg = {
+        **_config(tmp_path),
+        "inference_image_manifest": str(tmp_path / "selected.json"),
+        "material_cache_bytes": 1024,
+    }
+    implementation = {"source_tree_digest": sha("f")}
+    monkeypatch.setattr(receiver, "load_config", lambda _: cfg)
+    monkeypatch.setattr(
+        receiver,
+        "installed_source",
+        lambda *_args, **_kwargs: (implementation, jax, None, tmp_path),
+    )
+    monkeypatch.setattr(receiver, "private_json", lambda _: {})
+    monkeypatch.setattr(
+        runner, "validated_profile", lambda _: {"paths": {"image_manifest": "cpu.json"}}
+    )
+    monkeypatch.setattr(docker_runtime, "load_image_identity", lambda _: selected)
+
+    class ReachedDoctor(Exception):
+        pass
+
+    def doctor(**kwargs):
+        assert kwargs["image_identity"] is selected
+        raise ReachedDoctor
+
+    monkeypatch.setattr(docker_runtime, "doctor", doctor)
+    if accepted:
+        with pytest.raises(ReachedDoctor):
+            receiver.serve(tmp_path / "config.json")
+    else:
+        with pytest.raises(ValueError):
+            receiver.serve(tmp_path / "config.json")
 
 
 def test_main_uses_process_stop_and_closed_failure_without_private_text(

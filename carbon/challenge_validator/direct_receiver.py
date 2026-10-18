@@ -22,7 +22,7 @@ from pathlib import Path
 from carbon.development_session.data import write_once
 from carbon.development_session.intake_targets import ADDRESS, intake_url
 from carbon.development_session.private_records import private_json
-from carbon.development_session.profile import canonical
+from carbon.development_session.profile import canonical, digest
 
 SCHEMA = "carbon.construction.direct-receiver-operator.v1"
 _FIELDS = {
@@ -431,7 +431,10 @@ def installed_source(
         if backend == "pytorch":
             verify_direct_v13_worker(parent, implementation, role="torch_gpu")
         else:
-            verify_current_worker(parent, implementation)
+            try:
+                verify_current_worker(parent, implementation)
+            except ValueError:
+                verify_direct_v13_worker(parent, implementation, role="jax_gpu")
     if not doctor(image_id=parent.image_id, image_identity=parent).eligible:
         raise ReceiverUnavailable("installed_reconstruction_worker_unavailable")
     network = binding(
@@ -783,17 +786,26 @@ def serve(
             else selected_inference
         )
     )
-    if selected_inference is None:
+    backend = gpu_image_backend(inference_image)
+    if selected_inference is None or backend is None:
+        if selected_inference is not None and inference_image.lock_digest != digest(
+            (Path(__file__).resolve().parents[2] / "uv.lock").read_bytes()
+        ):
+            raise ValueError("private inference worker backend is unregistered")
         try:
             verify_current_worker(inference_image, implementation)
         except ValueError:
             verify_direct_v13_worker(inference_image, implementation, role="cpu")
     else:
-        backend = gpu_image_backend(inference_image)
         if backend == "pytorch":
-            verify_direct_v13_worker(inference_image, implementation, role="torch_gpu")
+            raise ValueError("fixed direct inference requires JAX worker")
         elif backend == "jax":
-            verify_current_worker(inference_image, implementation)
+            try:
+                verify_current_worker(inference_image, implementation)
+            except ValueError:
+                verify_direct_v13_worker(
+                    inference_image, implementation, role="jax_gpu"
+                )
         else:
             raise ValueError("private inference worker backend is unregistered")
     build_accelerator, _ = direct_bundle_accelerators(parent, inference_image)
