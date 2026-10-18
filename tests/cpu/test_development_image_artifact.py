@@ -439,6 +439,63 @@ def test_import_loads_pinned_copy_after_original_archive_path_changes(
     assert loaded == [(b"archive", 10)]
 
 
+@pytest.mark.skipif(os.name != "posix", reason="private import staging needs POSIX")
+def test_import_cache_path_uses_pinned_manifest_after_early_swap(
+    pair, tmp_path, monkeypatch
+):
+    c03_path, analysis_path, docker = pair
+
+    def fake_save(path, *_):
+        path.write_bytes(b"archive")
+        return handoff._sha_file(path), 7, 10
+
+    monkeypatch.setattr(handoff, "_save_compressed", fake_save)
+    bundle = tmp_path / "bundle"
+    export = handoff.export_bundle(
+        bundle_dir=bundle,
+        c03_manifest=c03_path,
+        analysis_manifest=analysis_path,
+        cli=docker,
+        **_identity_args(tmp_path),
+    )
+    target = bundle / "analysis-image.json"
+    original = target.read_bytes()
+    original_digest = json.loads(original)["runtime_digest"]
+    false_digest = "sha256:" + "f" * 64
+    false_manifest = dict(json.loads(original), runtime_digest=false_digest)
+    verified = handoff.verify_bundle
+
+    def verified_then_swap(**kwargs):
+        receipt = verified(**kwargs)
+        target.write_bytes(canonical(false_manifest))
+        return receipt
+
+    monkeypatch.setattr(handoff, "verify_bundle", verified_then_swap)
+    loaded = []
+    monkeypatch.setattr(
+        handoff,
+        "_docker_load",
+        lambda stream, size: loaded.append((stream.read(), size)),
+    )
+    root = tmp_path / "installed"
+    root.mkdir()
+
+    result = handoff.import_bundle(
+        bundle_dir=bundle,
+        receipt_sha256=export["receipt_sha256"],
+        artifacts_root=root,
+        cli=docker,
+        before_load=lambda required: target.write_bytes(original),
+        **_identity_args(tmp_path),
+    )
+    expected = root / "research-images" / original_digest[7:] / "analysis-image.json"
+    false_path = root / "research-images" / false_digest[7:] / "analysis-image.json"
+    assert result["analysis_manifest"] == str(expected)
+    assert expected.read_bytes() == original
+    assert not false_path.exists()
+    assert loaded == [(b"archive", 10)]
+
+
 def test_stream_load_refuses_gzip_expansion_beyond_receipt(tmp_path, monkeypatch):
     archive = tmp_path / "images.tar.gz"
     payload = b"oci-image-bytes" * 4096

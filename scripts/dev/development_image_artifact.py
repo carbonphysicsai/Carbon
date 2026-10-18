@@ -514,23 +514,6 @@ def import_bundle(
     if not artifacts_root.is_dir():
         raise Refused("artifacts_root_missing")
     c03_path = artifacts_root / "c03-worker-image.json"
-    # The normal analysis cache is keyed by the runtime digest, not image ID.
-    analysis_manifest = load_analysis_image(bundle_dir / "analysis-image.json")
-    analysis_path = (
-        artifacts_root
-        / "research-images"
-        / analysis_manifest.runtime_digest[7:]
-        / "analysis-image.json"
-    )
-    c03_bytes = (bundle_dir / "c03-worker-image.json").read_bytes()
-    analysis_bytes = (bundle_dir / "analysis-image.json").read_bytes()
-    for path, body in ((c03_path, c03_bytes), (analysis_path, analysis_bytes)):
-        if (
-            path.is_symlink()
-            or path.resolve() != path
-            or (path.exists() and path.read_bytes() != body)
-        ):
-            raise Refused(f"installed_manifest_conflict:{path.name}")
     if not callable(before_load):
         raise Refused("physical_capacity_admission_required")
     _require_posix_nofollow()
@@ -557,10 +540,25 @@ def import_bundle(
         _write_new(private_analysis, analysis_bytes)
         implementation = _source(revision, tree, source_tree_digest, repository)
         c03, analysis = _manifests(private_c03, private_analysis, implementation)
+        # Cache identity and conflicts must come from the same receipt-pinned
+        # manifest bytes that Docker's loaded pair will be checked against.
+        analysis_path = (
+            artifacts_root
+            / "research-images"
+            / analysis.runtime_digest[7:]
+            / "analysis-image.json"
+        )
+        for path, body in ((c03_path, c03_bytes), (analysis_path, analysis_bytes)):
+            if (
+                path.is_symlink()
+                or path.resolve() != path
+                or (path.exists() and path.read_bytes() != body)
+            ):
+                raise Refused(f"installed_manifest_conflict:{path.name}")
         _docker_load(archive_copy, receipt["uncompressed_bytes"])
         _docker_pair(c03, analysis, cli or DockerCLI())
         _install_pair_nofollow(
-            artifacts_root, c03_bytes, analysis_bytes, analysis_manifest.runtime_digest
+            artifacts_root, c03_bytes, analysis_bytes, analysis.runtime_digest
         )
         if (
             installed_pair_status(
