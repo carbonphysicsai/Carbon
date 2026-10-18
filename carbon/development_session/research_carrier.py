@@ -44,6 +44,7 @@ PRECHARGED_TRIAL = ContextVar("carbon_precharged_trial", default=None)
 # A fixed public TRAIN build in a separately provisioned offline library child.
 # This stays in the bounded Carbon worker lane, never the miner script lane.
 LIBRARY_BUILD_PROVENANCE = "DIRECT_BUNDLE_PUBLIC_RECONSTRUCTION"
+LIBRARY_PREP_PROVENANCE = "DIRECT_BUNDLE_DEPENDENCY_PREP"
 
 ACTIVE_TASK = ContextVar("carbon_public_research_task", default=None)
 
@@ -384,6 +385,7 @@ def _run_locked(
     before_finish=None,
     accelerator=None,
     network=None,
+    executable_files=(),
 ):
     before_finish = before_finish or (lambda: None)
     # The miner's own research has no Carbon limits (owner direction): any
@@ -403,6 +405,10 @@ def _run_locked(
         raise ValueError("bounded worker wall allowance required")
     if type(files) is not dict or "program.py" in files or program_name in files:
         raise ValueError("closed stage required")
+    if executable_files not in ((), ("uv-bin",)) or (
+        executable_files and provenance != LIBRARY_PREP_PROVENANCE
+    ):
+        raise ValueError("trusted preparation executable role required")
     for name, body in files.items():
         ResearchWorkspace.name(name)
         if type(body) is not bytes:
@@ -414,6 +420,8 @@ def _run_locked(
         "seconds": seconds,
         "provenance": provenance,
     }
+    if executable_files:
+        request["executable_files"] = list(executable_files)
     if execution_contract is not None:
         # Prospective language routes bind their complete reviewed environment.
         # Leaving this absent preserves historical Python operation identities.
@@ -518,7 +526,7 @@ def _run_locked(
             for filename, body in {**files, program_name: source.encode()}.items():
                 path = stage / filename
                 write_once(path, body)
-                path.chmod(0o444)
+                path.chmod(0o555 if filename in executable_files else 0o444)
         with _fixed_practice_stage(operation, provenance, "HOST_READINESS"):
             if provenance == LIBRARY_BUILD_PROVENANCE:
                 from .research_image import verify_library_worker_image

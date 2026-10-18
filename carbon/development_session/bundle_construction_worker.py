@@ -13,6 +13,7 @@ import io
 import json
 import math
 import re
+import tarfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -23,10 +24,43 @@ from carbon.challenge_validator.strict_json import MalformedStrategy, parse_stra
 
 from .bundle_graph_state import MAX_BYTES as MAX_STATE_BYTES
 from .construction_recipe import ConstructionRecipe, RecipeRefused, bind_recipe
-from .library_bundles import LibraryBundleRef
+from .library_bundles import LibraryBundleRef, bundle_ref
 from .profile import canonical
-from .research_carrier import LIBRARY_BUILD_PROVENANCE, PRECHARGED_TRIAL, _run
+from .research_carrier import (
+    LIBRARY_BUILD_PROVENANCE,
+    LIBRARY_PREP_PROVENANCE,
+    PRECHARGED_TRIAL,
+    _run,
+)
 from .research_image import LibraryWorkerImage
+
+PREP_PROGRAM = r'''"""Fixed, source-free C03 offline material preparation."""
+import os, shutil, sys
+from pathlib import Path
+
+work = Path('/scratch/workspace')
+for package in ('carbon', 'carbon/development_session'):
+    directory = work / package
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / '__init__.py').write_text('')
+for name in ('library_bundles', 'library_overlay_prep'):
+    shutil.copyfile(
+        Path('/input') / ('carbon.development_session.' + name + '.py'),
+        work / 'carbon' / 'development_session' / (name + '.py'),
+    )
+sys.path.insert(0, str(work))
+from carbon.development_session.library_overlay_prep import prepare
+prepare(Path('/input'), Path('/scratch/output'))
+'''
+
+PREP_BOOTSTRAP = """
+import os
+from pathlib import Path
+Path('/scratch/workspace').mkdir()
+Path('/scratch/output').mkdir()
+os.chdir('/scratch/workspace')
+os.execv('/opt/carbon-worker/bin/python', ['python', '-I', '/input/program.py'])
+"""
 
 BUILD_PROGRAM = r'''"""Fixed isolated source-bundle build; no judge or hidden data."""
 import hashlib, importlib, io, json, shutil, sys
@@ -267,6 +301,190 @@ INFER_PROGRAM = INFER_PROGRAM.replace("__STAGED_MODULES__", repr(STAGED_MODULES)
 
 def _digest(body: bytes) -> str:
     return "sha256:" + hashlib.sha256(body).hexdigest()
+
+
+@dataclass(frozen=True)
+class BundleOverlayPrepResult:
+    snapshot: Path
+    receipt: dict
+    worker_operation: str
+    controls_digest: str | None
+
+
+def _checked_overlay_snapshot(snapshot: Path, expected_bundle: dict, parent_id: str):
+    from .library_overlay_prep import (
+        MAX_OVERLAY_BYTES,
+        MAX_OVERLAY_FILES,
+        OVERLAY_SCHEMA,
+    )
+
+    if {path.name for path in snapshot.iterdir()} != {"overlay.tar", "overlay.json"}:
+        raise ValueError("bounded overlay output set differs")
+    receipt_raw = (snapshot / "overlay.json").read_bytes()
+    archive_path = snapshot / "overlay.tar"
+    if (
+        archive_path.is_symlink()
+        or not archive_path.is_file()
+        or (snapshot / "overlay.json").is_symlink()
+        or not 0 < archive_path.stat().st_size <= MAX_OVERLAY_BYTES
+        or not 0 < len(receipt_raw) <= 65536
+    ):
+        raise ValueError("bounded overlay output required")
+    receipt = json.loads(receipt_raw)
+    if (
+        type(receipt) is not dict
+        or set(receipt)
+        != {
+            "schema",
+            "bundle_ref",
+            "parent_image_id",
+            "archive_sha256",
+            "archive_bytes",
+            "tree_digest",
+            "file_count",
+            "total_file_bytes",
+        }
+        or receipt["schema"] != OVERLAY_SCHEMA
+        or receipt["bundle_ref"] != expected_bundle
+        or receipt["parent_image_id"] != parent_id
+        or receipt["archive_bytes"] != archive_path.stat().st_size
+        or receipt["archive_sha256"] != _digest(archive_path.read_bytes())
+    ):
+        raise ValueError("overlay preparation identity differs")
+    rows = []
+    seen = set()
+    with tarfile.open(archive_path, mode="r:") as archive:
+        for member in archive:
+            name = member.name
+            if (
+                not member.isfile()
+                or not name.startswith(("site-packages/", "source/"))
+                or name.startswith("/")
+                or any(part in {"", ".", ".."} for part in name.split("/"))
+                or name.casefold() in seen
+                or len(rows) >= MAX_OVERLAY_FILES
+            ):
+                raise ValueError("overlay archive member differs")
+            seen.add(name.casefold())
+            item = archive.extractfile(member)
+            if item is None:
+                raise ValueError("overlay archive member unavailable")
+            body = item.read(MAX_OVERLAY_BYTES + 1)
+            if len(body) != member.size:
+                raise ValueError("overlay archive member changed")
+            rows.append([name, member.size, _digest(body)])
+    rows.sort(key=lambda row: row[0])
+    if (
+        sum(row[1] for row in rows) != receipt["total_file_bytes"]
+        or len(rows) != receipt["file_count"]
+        or receipt["tree_digest"]
+        != _digest(json.dumps(rows, separators=(",", ":")).encode())
+    ):
+        raise ValueError("overlay preparation tree differs")
+    return receipt
+
+
+def prepare_library_overlay(
+    ledger,
+    *,
+    owner: str,
+    identity: str,
+    parent,
+    recipe: ConstructionRecipe,
+    challenge_binding: dict,
+    limits_document: dict,
+    material: tuple,
+    uv_binary: bytes,
+    seconds: int = 600,
+    runner=None,
+) -> BundleOverlayPrepResult:
+    """Install exact offline wheels only inside a controlled C03 operation."""
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    from .library_overlay_prep import MAX_OVERLAY_BYTES
+
+    binding = _checked_binding(recipe, challenge_binding)
+    verify_direct_resource_policy(binding, limits_document)
+    if (
+        type(parent) is not WorkerImageIdentity
+        or type(material) is not tuple
+        or len(material) != 5
+        or type(uv_binary) is not bytes
+        or not 0 < len(uv_binary) <= 64 * 1024**2
+    ):
+        raise RecipeRefused("bundle_overlay_prep_binding_invalid")
+    selected = bundle_ref(*material)
+    if selected.to_dict() != recipe.to_dict()["source"].get("bundle_ref"):
+        raise RecipeRefused("bundle_overlay_prep_source_changed")
+    manifest, source, wheels, lock, license_text = material
+    files = {
+        "bundle.json": json.dumps(manifest, sort_keys=True).encode(),
+        "source.tar.gz": source,
+        "requirements.txt": lock,
+        "LICENSE": license_text,
+        "uv-bin": uv_binary,
+        "carbon.development_session.library_bundles.py": (
+            Path(__file__).with_name("library_bundles.py").read_bytes()
+        ),
+        "carbon.development_session.library_overlay_prep.py": (
+            Path(__file__).with_name("library_overlay_prep.py").read_bytes()
+        ),
+        "control.json": json.dumps(
+            {
+                "bundle_ref": selected.to_dict(),
+                "parent_image_id": parent.image_id,
+                "uv_sha256": _digest(uv_binary),
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode(),
+    }
+    files.update(wheels)
+    if sum(map(len, files.values())) + len(PREP_PROGRAM) > MAX_OVERLAY_BYTES:
+        raise RecipeRefused("bundle_overlay_prep_input_oversized")
+
+    def checked(snapshot: Path):
+        return _checked_overlay_snapshot(snapshot, selected.to_dict(), parent.image_id)
+
+    worker = (runner or _run)(
+        ledger,
+        owner=owner,
+        identity=identity,
+        source=PREP_PROGRAM,
+        files=files,
+        image=parent,
+        seconds=seconds,
+        provenance=LIBRARY_PREP_PROVENANCE,
+        extra_resources=(
+            {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
+        ),
+        output_validator=checked,
+        executable_files=("uv-bin",),
+        bootstrap=PREP_BOOTSTRAP,
+    )
+    snapshot = ledger.root / worker["operation"] / "snapshot"
+    receipt = checked(snapshot)
+    if any(
+        _digest((snapshot / name).read_bytes()) != worker["files"].get(name)
+        for name in ("overlay.tar", "overlay.json")
+    ):
+        raise ValueError("overlay preparation snapshot changed")
+    return BundleOverlayPrepResult(
+        snapshot,
+        receipt,
+        worker["operation"],
+        (
+            _private_controls_digest(
+                ledger,
+                owner=owner,
+                identity=identity,
+                operation=worker["operation"],
+                provenance=LIBRARY_PREP_PROVENANCE,
+            )
+            if runner is None
+            else None
+        ),
+    )
 
 
 def _tensors(**arrays) -> bytes:
@@ -931,7 +1149,16 @@ def _private_controls_digest(
 
 def direct_child_identity(identity: str, phase: str) -> str:
     """Derive bounded, distinct ledger identities for a direct task's phases."""
-    if type(identity) is not str or not identity or phase not in ("build", "inference"):
+    if (
+        type(identity) is not str
+        or not identity
+        or phase
+        not in (
+            "prep",
+            "build",
+            "inference",
+        )
+    ):
         raise RecipeRefused("bundle_child_identity_invalid")
     return (
         "direct-" + hashlib.sha256(identity.encode("utf-8")).hexdigest() + "-" + phase

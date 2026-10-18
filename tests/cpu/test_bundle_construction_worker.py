@@ -121,9 +121,10 @@ def test_direct_child_identities_are_stable_distinct_and_within_ledger_bound():
     long_task = "task-" + "a" * 123
     build = direct_child_identity(long_task, "build")
     inference = direct_child_identity(long_task, "inference")
+    prep = direct_child_identity(long_task, "prep")
     assert build == direct_child_identity(long_task, "build")
-    assert build != inference
-    assert len(build) <= 128 and len(inference) <= 128
+    assert len({prep, build, inference}) == 3
+    assert all(len(item) <= 128 for item in (prep, build, inference))
     with pytest.raises(RecipeRefused, match="bundle_child_identity_invalid"):
         direct_child_identity(long_task, "unknown")
 
