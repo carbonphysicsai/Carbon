@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 from copy import deepcopy
+from unittest import mock
 
 import pytest
+import test_public_bundle_model_custody as custody_fixtures
 from test_score_lab_private_evaluation_evidence import (
     _bind,
     _graph_case,
@@ -23,6 +25,37 @@ from carbon.scoring import private_evaluation_evidence as private
 from carbon.scoring.engine import ScoreEngine
 
 
+def inert_dual_graph_case(tmp_path):
+    """Rekey inert originals *before* graph/state/custody are generated.
+
+    This test-only factory never registers an actual Challenge or a producer
+    in runtime. The normal caller test can reuse its unchanged original bytes.
+    """
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    original_factory = custody_fixtures._fixture
+
+    def distinct_fixture(*args, **kwargs):
+        root, manifest, originals = original_factory(*args, **kwargs)
+        recipe = json.loads(originals["stage/recipe.json"])
+        recipe["challenge"].update(
+            {
+                "id": "inert-dual-software-fixture",
+                "version": "fixture-v1",
+                "interface_digest": private._sha(b"inert-dual-fixture-interface"),
+                "construction_limits_digest": private._sha(
+                    b"inert-dual-fixture-limits"
+                ),
+            }
+        )
+        recipe["output"]["interface_digest"] = recipe["challenge"]["interface_digest"]
+        originals["stage/recipe.json"] = custody_fixtures._json(recipe)
+        (root / "stage/recipe.json").write_bytes(originals["stage/recipe.json"])
+        return root, manifest, originals
+
+    with mock.patch.object(custody_fixtures, "_fixture", side_effect=distinct_fixture):
+        return _graph_case(tmp_path)
+
+
 def _seal(case, manifest):
     raw = private._canonical(manifest)
     snapshot = parse_pack(
@@ -37,8 +70,7 @@ def _seal(case, manifest):
 
 
 def _case(tmp_path):
-    tmp_path.mkdir(parents=True, exist_ok=True)
-    case = _graph_case(tmp_path)
+    case = inert_dual_graph_case(tmp_path)
     case["references"][0]["outputs"] = [
         0.5
     ]  # Inert fixture target; retained model predicts 0.25.
