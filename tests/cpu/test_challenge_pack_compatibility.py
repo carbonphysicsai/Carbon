@@ -177,6 +177,7 @@ def test_selected_pack_changes_private_result_key_without_rewriting_history(
     projected_adapter = object.__new__(LeanRecipeAdapter)
     projected_adapter.challenge_id = case["entry"]["challenge"]
     projected_adapter.challenge_version = case["entry"]["challenge_version"]
+    projected_adapter._evidence_label = "DEVELOPMENT_PUBLIC_SYNTHETIC"
     task = SimpleNamespace(
         state=DirectTaskStateV3.SUCCEEDED,
         task_id=SimpleNamespace(value="rtsk_" + "c" * 64),
@@ -192,9 +193,9 @@ def test_selected_pack_changes_private_result_key_without_rewriting_history(
             "evaluation_pack_digest": old.manifest_digest,
         }
     )
-    assert old.manifest_digest not in json.dumps(
-        projected_adapter._project(task, provider)
-    )
+    projected = projected_adapter._project(task, provider)
+    assert projected["evidence"] == "DEVELOPMENT_PUBLIC_SYNTHETIC"
+    assert old.manifest_digest not in json.dumps(projected)
 
     new, new_public, new_private = _selected_pack(tmp_path / "new-pack", case, "2")
     assert new.manifest_digest != old.manifest_digest
