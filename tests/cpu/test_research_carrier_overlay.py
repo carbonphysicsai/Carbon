@@ -7,7 +7,13 @@ import stat
 
 import pytest
 
-from carbon.development_session.research_carrier import _stage_verified_overlay
+from carbon.development_session.library_bundles import UV_IMAGE
+from carbon.development_session.research_carrier import (
+    LIBRARY_PREP_PROVENANCE,
+    _run_locked,
+    _stage_verified_overlay,
+)
+from carbon.reconstruction.worker.model import WorkerImageIdentity
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX container UID mode check")
@@ -49,3 +55,36 @@ def test_stage_overlay_preserves_private_cas_and_verifies_readable_copy(tmp_path
     (copied / "source" / "candidate.py").write_bytes(b"changed\n")
     with pytest.raises(ValueError, match="cached overlay content differs"):
         _stage_verified_overlay(copied, tmp_path / "bad-copy", receipt)
+
+
+def test_pinned_uv_copy_does_not_run_before_ledger_reservation(tmp_path):
+    class RefusingLedger:
+        root = tmp_path
+
+        def reserve(self, *_args, **_kwargs):
+            raise ValueError("ledger admission refused")
+
+    called = []
+    parent_id = "sha256:" + "4" * 64
+    parent = WorkerImageIdentity(*(parent_id for _ in range(8)))
+    with pytest.raises(ValueError, match="ledger admission refused"):
+        _run_locked(
+            RefusingLedger(),
+            owner="miner",
+            identity="direct-prep-fixture",
+            source="print('fixed')",
+            files={},
+            image=parent,
+            seconds=600,
+            provenance=LIBRARY_PREP_PROVENANCE,
+            extra_resources={},
+            executable_files=("uv-bin",),
+            trusted_stage_identity={
+                "schema": "carbon.development.pinned-uv-stage.v1",
+                "uv_image": UV_IMAGE,
+                "bundle_ref": {},
+                "parent_image_id": parent_id,
+            },
+            trusted_stage_provider=lambda _cli: called.append(True),
+        )
+    assert called == []

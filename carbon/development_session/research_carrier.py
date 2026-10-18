@@ -404,6 +404,8 @@ def _run_locked(
     network=None,
     executable_files=(),
     trusted_overlay=None,
+    trusted_stage_provider=None,
+    trusted_stage_identity=None,
 ):
     before_finish = before_finish or (lambda: None)
     # The miner's own research has no Carbon limits (owner direction): any
@@ -431,6 +433,32 @@ def _run_locked(
         ResearchWorkspace.name(name)
         if type(body) is not bytes:
             raise ValueError("stage accepts bytes, never paths")
+    trusted_stage_bound = 0
+    if trusted_stage_provider is not None:
+        from .library_bundles import UV_IMAGE
+
+        if (
+            provenance != LIBRARY_PREP_PROVENANCE
+            or not callable(trusted_stage_provider)
+            or type(trusted_stage_identity) is not dict
+            or set(trusted_stage_identity)
+            != {"schema", "uv_image", "bundle_ref", "parent_image_id"}
+            or trusted_stage_identity["schema"]
+            != "carbon.development.pinned-uv-stage.v1"
+            or trusted_stage_identity["uv_image"] != UV_IMAGE
+            or type(trusted_stage_identity["bundle_ref"]) is not dict
+            or type(trusted_stage_identity["parent_image_id"]) is not str
+            or {"uv-bin", "control.json"} & set(files)
+        ):
+            raise ValueError("trusted pinned UV stage required")
+        trusted_stage_bound = 64 * 1024**2 + 65536
+        if (
+            sum(map(len, files.values())) + len(source.encode()) + trusted_stage_bound
+            > INPUT_BYTES
+        ):
+            raise ValueError("bounded preparation input exceeded")
+    elif trusted_stage_identity is not None:
+        raise ValueError("trusted stage identity without provider")
     overlay_receipt = None
     if trusted_overlay is not None:
         from carbon.reconstruction.worker.model import WorkerImageIdentity
@@ -479,6 +507,8 @@ def _run_locked(
     }
     if executable_files:
         request["executable_files"] = list(executable_files)
+    if trusted_stage_provider is not None:
+        request["trusted_stage_identity"] = trusted_stage_identity
     if trusted_overlay is not None:
         request["verified_overlay"] = {
             "tree_digest": trusted_overlay.tree_digest,
@@ -534,6 +564,7 @@ def _run_locked(
         # Account stored input, provisional stream and decoded bounded output.
         reservation_bytes = (
             sum(map(len, files.values()))
+            + trusted_stage_bound
             + (trusted_overlay.total_bytes if trusted_overlay is not None else 0)
             + 2 * OUTPUT_BYTES
             + 2 * CONTROL_BYTES
@@ -591,7 +622,36 @@ def _run_locked(
         with _fixed_practice_stage(operation, provenance, "STAGING"):
             stage.mkdir(mode=0o755)
             stage.chmod(0o755)
-            for filename, body in {**files, program_name: source.encode()}.items():
+            staged_files = files
+            if trusted_stage_provider is not None:
+                _check_cancel(ledger, owner, identity)
+                added = trusted_stage_provider(cli)
+                if type(added) is not dict or set(added) != {"uv-bin", "control.json"}:
+                    raise ValueError("closed pinned UV stage output required")
+                uv_binary, control_raw = added["uv-bin"], added["control.json"]
+                if (
+                    type(uv_binary) is not bytes
+                    or not 0 < len(uv_binary) <= 64 * 1024**2
+                    or type(control_raw) is not bytes
+                    or not 0 < len(control_raw) <= 65536
+                ):
+                    raise ValueError("bounded pinned UV stage required")
+                control = json.loads(control_raw)
+                if (
+                    type(control) is not dict
+                    or set(control) != {"bundle_ref", "parent_image_id", "uv_sha256"}
+                    or control["bundle_ref"] != trusted_stage_identity["bundle_ref"]
+                    or control["parent_image_id"]
+                    != trusted_stage_identity["parent_image_id"]
+                    or control["uv_sha256"] != digest(uv_binary)
+                ):
+                    raise ValueError("pinned UV stage control differs")
+                _check_cancel(ledger, owner, identity)
+                staged_files = {**files, **added}
+            for filename, body in {
+                **staged_files,
+                program_name: source.encode(),
+            }.items():
                 path = stage / filename
                 write_once(path, body)
                 path.chmod(0o555 if filename in executable_files else 0o444)

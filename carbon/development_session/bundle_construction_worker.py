@@ -404,14 +404,14 @@ def prepare_library_overlay(
     challenge_binding: dict,
     limits_document: dict,
     material: tuple,
-    uv_binary: bytes,
     seconds: int = 600,
     runner=None,
 ) -> BundleOverlayPrepResult:
     """Install exact offline wheels only inside a controlled C03 operation."""
     from carbon.reconstruction.worker.model import WorkerImageIdentity
 
-    from .library_overlay_prep import MAX_OVERLAY_BYTES
+    from .library_bundles import UV_IMAGE
+    from .library_environment_cache import pinned_uv_bytes
 
     binding = _checked_binding(recipe, challenge_binding)
     verify_direct_resource_policy(binding, limits_document)
@@ -419,8 +419,6 @@ def prepare_library_overlay(
         type(parent) is not WorkerImageIdentity
         or type(material) is not tuple
         or len(material) != 5
-        or type(uv_binary) is not bytes
-        or not 0 < len(uv_binary) <= 64 * 1024**2
     ):
         raise RecipeRefused("bundle_overlay_prep_binding_invalid")
     selected = bundle_ref(*material)
@@ -432,26 +430,35 @@ def prepare_library_overlay(
         "source.tar.gz": source,
         "requirements.txt": lock,
         "LICENSE": license_text,
-        "uv-bin": uv_binary,
         "carbon.development_session.library_bundles.py": (
             Path(__file__).with_name("library_bundles.py").read_bytes()
         ),
         "carbon.development_session.library_overlay_prep.py": (
             Path(__file__).with_name("library_overlay_prep.py").read_bytes()
         ),
-        "control.json": json.dumps(
-            {
-                "bundle_ref": selected.to_dict(),
-                "parent_image_id": parent.image_id,
-                "uv_sha256": _digest(uv_binary),
-            },
-            sort_keys=True,
-            separators=(",", ":"),
-        ).encode(),
     }
     files.update(wheels)
-    if sum(map(len, files.values())) + len(PREP_PROGRAM) > MAX_OVERLAY_BYTES:
-        raise RecipeRefused("bundle_overlay_prep_input_oversized")
+    stage_identity = {
+        "schema": "carbon.development.pinned-uv-stage.v1",
+        "uv_image": UV_IMAGE,
+        "bundle_ref": selected.to_dict(),
+        "parent_image_id": parent.image_id,
+    }
+
+    def stage_uv(cli):
+        uv_binary = pinned_uv_bytes(cli)
+        return {
+            "uv-bin": uv_binary,
+            "control.json": json.dumps(
+                {
+                    "bundle_ref": selected.to_dict(),
+                    "parent_image_id": parent.image_id,
+                    "uv_sha256": _digest(uv_binary),
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode(),
+        }
 
     def checked(snapshot: Path):
         return _checked_overlay_snapshot(snapshot, selected.to_dict(), parent.image_id)
@@ -470,6 +477,8 @@ def prepare_library_overlay(
         ),
         output_validator=checked,
         executable_files=("uv-bin",),
+        trusted_stage_provider=stage_uv,
+        trusted_stage_identity=stage_identity,
         bootstrap=PREP_BOOTSTRAP,
     )
     snapshot = ledger.root / worker["operation"] / "snapshot"

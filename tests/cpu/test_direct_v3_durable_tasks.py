@@ -384,14 +384,11 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(tmp_path, monke
         "load_pinned_bundle_directory",
         lambda _path: (object(), b"source", {}, b"lock", b"license"),
     )
-    monkeypatch.setattr(
-        library_environment_cache, "pinned_uv_bytes", lambda _cli: b"pinned-uv"
-    )
 
     def fixed_prep(_ledger, **kwargs):
         assert kwargs["parent"] == parent
         assert kwargs["identity"].endswith("-prep")
-        assert kwargs["uv_binary"] == b"pinned-uv"
+        assert "uv_binary" not in kwargs
         calls.append("bounded-prep")
         return prep
 

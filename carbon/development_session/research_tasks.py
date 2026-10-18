@@ -483,7 +483,6 @@ class DirectDevelopmentTasksV3:
         from .library_environment_cache import (
             cache_verified_overlay,
             inspect_staged_bundle_material,
-            pinned_uv_bytes,
         )
         from .research_image import LibraryWorkerImage, verify_library_worker_image
 
@@ -525,7 +524,6 @@ class DirectDevelopmentTasksV3:
                     "construction_limits_document"
                 ],
                 material=material,
-                uv_binary=pinned_uv_bytes(cli),
             )
             if prep.controls_digest is None:
                 raise ValueError("completed C03 preparation controls unavailable")
