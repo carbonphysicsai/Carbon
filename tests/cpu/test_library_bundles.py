@@ -410,6 +410,40 @@ def test_owner_install_cli_uses_checked_gpu_profile_without_private_path_args(
     assert len(calls) == 1
 
 
+def test_owner_stage_cli_precedes_compute_and_agent_setup(
+    tmp_path, monkeypatch, capsys
+):
+    from scripts.dev import library_bundle as command
+
+    directory, _ = user_directory(tmp_path)
+    state = tmp_path / "launchpad-state"
+    monkeypatch.setattr(
+        command.EnvironmentSetup,
+        "profile",
+        lambda self: (_ for _ in ()).throw(AssertionError("profile was read")),
+    )
+
+    def private_dir(path):
+        path.mkdir(mode=0o700, parents=True, exist_ok=True)
+        return path
+
+    monkeypatch.setattr(command, "_private_dir", private_dir)
+    assert command.main(["stage", str(directory), "--state-dir", str(state)]) == 0
+    result = json.loads(capsys.readouterr().out)
+    expected = bundle_ref(*load_pinned_bundle_directory(directory))
+    assert result["bundle_ref"] == expected.to_dict()
+    staged = (
+        state
+        / "environment"
+        / "campaigns"
+        / ".direct-development"
+        / "library-cache"
+        / "materials"
+        / expected.bundle_digest[7:]
+    )
+    assert bundle_ref(*load_pinned_bundle_directory(staged)) == expected
+
+
 def test_user_import_refuses_changed_wheel_before_preparing_context(tmp_path):
     directory, manifest = user_directory(tmp_path)
     wheel = directory / "wheels" / next(iter(manifest["wheels"]))

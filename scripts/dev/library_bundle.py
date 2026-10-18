@@ -114,8 +114,18 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR):
 
 def stage_bundle(directory, state_dir=DEFAULT_STATE_DIR):
     """Place an exact closure where direct admission can find its digest."""
-    profile = EnvironmentSetup(state_dir, onboarding=None).profile()
-    campaigns = Path(profile["campaigns_root"])
+    # Source staging precedes compute, agent and image setup. The launchpad's
+    # campaigns path is fixed by its owner state directory, so no ready runner
+    # profile is needed to store inert bytes there.
+    root = Path(state_dir)
+    for part in ("environment", "campaigns"):
+        if root.is_symlink():
+            raise ValueError("staging state path must not be a link")
+        root = _private_dir(root)
+        root = root / part
+    if root.is_symlink():
+        raise ValueError("staging campaigns path must not be a link")
+    campaigns = _private_dir(root)
     owner_root = _private_dir(campaigns / ".direct-development")
     cache_root = _private_dir(owner_root / "library-cache")
     selected = stage_pinned_bundle_material(directory, cache_root)
