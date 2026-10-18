@@ -216,6 +216,7 @@ def _bind_dual_evaluation(
     expected_evaluation_pack_digest,
     dual_measurement_receipt_raw,
     registered_dual_measurement_sha256,
+    selected_evaluation_pack,
 ):
     """Authenticate operator-produced measurements, then use the same v4 core.
 
@@ -224,6 +225,11 @@ def _bind_dual_evaluation(
     caller provenance, producer execution, or scientific adequacy by itself.
     No participant-supplied measurement/gate dictionary is accepted as a pin.
     """
+    from carbon.challenge_validator.evaluation_pack import (
+        PRIVATE_ROLES,
+        PUBLIC_ROLES,
+        EvaluationPackSnapshot,
+    )
     from carbon.scoring.engine import ScoreEngine
 
     if (
@@ -231,6 +237,18 @@ def _bind_dual_evaluation(
         or expected_evaluation_pack_digest is None
     ):
         raise PrivateEvaluationEvidenceRefused("evaluation_pack_source_missing")
+    if (
+        type(selected_evaluation_pack) is not EvaluationPackSnapshot
+        or selected_evaluation_pack.manifest_digest != expected_evaluation_pack_digest
+        or selected_evaluation_pack.challenge_id != source["challenge"]
+        or selected_evaluation_pack.challenge_version != source["challenge_version"]
+    ):
+        raise PrivateEvaluationEvidenceRefused("dual_selected_pack_binding")
+    missing = selected_evaluation_pack.missing_roles()
+    if PUBLIC_ROLES.intersection(missing["public"]) or PRIVATE_ROLES.intersection(
+        missing["private"]
+    ):
+        raise PrivateEvaluationEvidenceRefused("dual_selected_pack_unavailable")
     if (
         type(dual_measurement_receipt_raw) is not bytes
         or type(registered_dual_measurement_sha256) is not str
@@ -310,6 +328,14 @@ def _bind_dual_evaluation(
         or evidence["producer_digest"] != basis["producer_digest"]
     ):
         raise PrivateEvaluationEvidenceRefused("dual_measurement_contract")
+    for role in (
+        "accuracy_definition",
+        "important_limit_definition",
+        "design_objective",
+    ):
+        selected = selected_evaluation_pack.public[role]
+        if type(selected) is str or basis[role + "_sha256"] != selected.get("sha256"):
+            raise PrivateEvaluationEvidenceRefused("dual_selected_definition_binding")
     expected = {
         "source_receipt_sha256": registered_source_receipt_sha256,
         "evaluation_pack_digest": expected_evaluation_pack_digest,
@@ -458,6 +484,7 @@ def bind_private_evaluation_evidence(
     expected_evaluation_pack_digest=None,
     dual_measurement_receipt_raw=None,
     registered_dual_measurement_sha256=None,
+    selected_evaluation_pack=None,
 ):
     """Bind one already reduced result to an independently pinned source.
 
@@ -521,6 +548,7 @@ def bind_private_evaluation_evidence(
             expected_evaluation_pack_digest=expected_evaluation_pack_digest,
             dual_measurement_receipt_raw=dual_measurement_receipt_raw,
             registered_dual_measurement_sha256=registered_dual_measurement_sha256,
+            selected_evaluation_pack=selected_evaluation_pack,
         )
     if (
         dual_measurement_receipt_raw is not None
