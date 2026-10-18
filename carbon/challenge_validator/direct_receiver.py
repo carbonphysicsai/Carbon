@@ -35,7 +35,7 @@ _FIELDS = {
     "lifetime_seconds",
     "measure_query",
 }
-_OPTIONAL_FIELDS = {"material_cache_bytes"}
+_OPTIONAL_FIELDS = {"material_cache_bytes", "construction_image_manifest"}
 
 
 class ReceiverUnavailable(RuntimeError):
@@ -76,6 +76,18 @@ def load_config(path: Path) -> dict:
         selected = Path(value[name])
         if not selected.is_absolute() or selected.resolve() != selected:
             raise ValueError("exact private operator path required")
+    if "construction_image_manifest" in value:
+        selected = value["construction_image_manifest"]
+        if type(selected) is not str:
+            raise ValueError("exact construction image manifest required")
+        selected = Path(selected)
+        if (
+            not selected.is_absolute()
+            or selected.is_symlink()
+            or not selected.is_file()
+            or selected.resolve() != selected
+        ):
+            raise ValueError("exact construction image manifest required")
     return value
 
 
@@ -205,8 +217,10 @@ class ReceiverSnapshotWindow:
             return self._window.latest()
 
 
-def installed_source(profile_path: Path):
-    """Verify maintained accepted source/image/chain without opening a signer."""
+def installed_source(
+    profile_path: Path, *, construction_image_manifest: Path | None = None
+):
+    """Verify installed source/images; a private candidate may pin its constructor."""
     from carbon.development_session.gpu_practice import gpu_image_backend
     from carbon.development_session.miner_network import binding
     from carbon.development_session.research_campaign import (
@@ -245,6 +259,19 @@ def installed_source(profile_path: Path):
         implementation = accepted_implementation(cfg["accepted_revision"])
     paths = {name: Path(value) for name, value in cfg["paths"].items()}
     gpu_image_path = cfg.get("gpu_image")
+    if construction_image_manifest is not None:
+        if (
+            not development_candidate
+            or not isinstance(construction_image_manifest, Path)
+            or not construction_image_manifest.is_absolute()
+            or construction_image_manifest.is_symlink()
+            or not construction_image_manifest.is_file()
+            or construction_image_manifest.resolve() != construction_image_manifest
+            or gpu_image_path is not None
+            or "gpu_research" in cfg["runtime"]
+        ):
+            raise ValueError("private construction parent conflicts with profile")
+        gpu_image_path = str(construction_image_manifest)
     if development_candidate:
         worker = load_image_identity(paths["image_manifest"])
         try:
@@ -578,8 +605,13 @@ def serve(
     from scripts.dev.miner_launchpad.controller import owner_lock
 
     cfg = load_config(config_path)
+    selected_parent = (
+        {"construction_image_manifest": Path(cfg["construction_image_manifest"])}
+        if "construction_image_manifest" in cfg
+        else {}
+    )
     implementation, parent, network, cache = installed_source(
-        Path(cfg["runner_profile"])
+        Path(cfg["runner_profile"]), **selected_parent
     )
     from carbon.development_session.research_campaign import (
         verify_current_worker,

@@ -76,6 +76,8 @@ def _allow_windows_receiver_fixture(monkeypatch):
         ("receiver_hotkey", "validator"),
         ("root", "relative"),
         ("runner_profile", None),
+        ("construction_image_manifest", "relative-torch.json"),
+        ("construction_image_manifest", None),
         ("exposure", {}),
     ],
 )
@@ -103,6 +105,22 @@ def test_optional_material_capacity_is_exact_private_operator_input(
     cfg = {**_config(tmp_path), "material_cache_bytes": 1024**3}
     monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
     assert receiver.load_config(tmp_path / "config.json") == cfg
+
+
+def test_private_construction_image_manifest_requires_exact_regular_file(
+    tmp_path, monkeypatch
+):
+    manifest = tmp_path / "torch.json"
+    manifest.write_text("{}")
+    cfg = {**_config(tmp_path), "construction_image_manifest": str(manifest)}
+    monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
+    assert receiver.load_config(tmp_path / "config.json") == cfg
+    cfg["construction_image_manifest"] = str(tmp_path / "missing.json")
+    with pytest.raises(ValueError, match="construction image manifest"):
+        receiver.load_config(tmp_path / "config.json")
+    cfg["construction_image_manifest"] = str(tmp_path)
+    with pytest.raises(ValueError, match="construction image manifest"):
+        receiver.load_config(tmp_path / "config.json")
 
 
 def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
@@ -304,12 +322,81 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
         lambda path: worker if path.name == "worker.json" else older_torch,
     )
 
+    # A private receiver may pin the older Torch constructor for a candidate
+    # CPU setup, while retaining the separately verified CPU inference image.
+    torch_manifest = tmp_path / "torch.json"
+    torch_manifest.write_text("{}")
+    cfg["accepted_revision"] = candidate["revision"]
+    cfg["runtime"]["implementation"] = candidate
+    cfg["gpu_image"] = None
+    monkeypatch.setattr(installed, "candidate_implementation", lambda _: candidate)
+    implementation, parent, _, _ = receiver.installed_source(
+        profile, construction_image_manifest=torch_manifest
+    )
+    assert (implementation, parent) == (candidate, older_torch)
+    assert checked_images[-1] is older_torch
+    monkeypatch.setattr(
+        docker_runtime,
+        "doctor",
+        lambda **_: SimpleNamespace(eligible=False),
+    )
+    with pytest.raises(receiver.ReceiverUnavailable, match="worker_unavailable"):
+        receiver.installed_source(profile, construction_image_manifest=torch_manifest)
+    monkeypatch.setattr(
+        docker_runtime,
+        "doctor",
+        lambda **kwargs: checked_images.append(kwargs["image_identity"])
+        or SimpleNamespace(eligible=True),
+    )
+    cfg["gpu_image"] = str(tmp_path / "other-gpu.json")
+    with pytest.raises(ValueError, match="conflicts with profile"):
+        receiver.installed_source(profile, construction_image_manifest=torch_manifest)
+    cfg["gpu_image"] = None
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda path: worker if path.name == "worker.json" else wrong_torch,
+    )
+    with pytest.raises(ValueError, match="ABI or entrypoint differs"):
+        receiver.installed_source(profile, construction_image_manifest=torch_manifest)
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda path: worker if path.name == "worker.json" else older_torch,
+    )
+    monkeypatch.setattr(installed, "candidate_implementation", lambda _: None)
+    with pytest.raises(ValueError, match="conflicts with profile"):
+        receiver.installed_source(profile, construction_image_manifest=torch_manifest)
+
     # A profile outside the exact installed state path never reads the pin.
+    cfg["accepted_revision"] = accepted["revision"]
+    cfg["runtime"]["implementation"] = accepted
+    cfg["gpu_image"] = str(tmp_path / "gpu.json")
     monkeypatch.setattr(installed, "candidate_implementation", invalid_candidate)
     regular = tmp_path / "other-profile.json"
     implementation, parent, _, _ = receiver.installed_source(regular)
     assert (implementation, parent) == (accepted, older_torch)
     assert calls[-1] == ("accepted", accepted["revision"])
+
+
+def test_serve_forwards_only_private_constructor_manifest(tmp_path, monkeypatch):
+    _allow_windows_receiver_fixture(monkeypatch)
+    manifest = tmp_path / "torch.json"
+    manifest.write_text("{}")
+    cfg = {**_config(tmp_path), "construction_image_manifest": str(manifest)}
+    monkeypatch.setattr(receiver, "load_config", lambda _: cfg)
+
+    class Seen(Exception):
+        pass
+
+    def installed(profile, **kwargs):
+        assert profile == Path(cfg["runner_profile"])
+        assert kwargs == {"construction_image_manifest": manifest}
+        raise Seen
+
+    monkeypatch.setattr(receiver, "installed_source", installed)
+    with pytest.raises(Seen):
+        receiver.serve(tmp_path / "config.json")
 
 
 def test_main_uses_process_stop_and_closed_failure_without_private_text(
