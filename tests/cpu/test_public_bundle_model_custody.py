@@ -502,6 +502,28 @@ def test_graph_v3_malformed_numeric_or_dtype_refuses_before_entry(
     assert not list(entries.iterdir())
 
 
+@pytest.mark.parametrize("dtype,value", [("float16", 1e-25), ("float32", 1e-100)])
+def test_graph_v3_refuses_predictions_below_declared_dtype_range(
+    tmp_path, dtype, value
+):
+    root, manifest_path, originals = _graph_fixture(tmp_path)
+    predictions = _json([[[[value]]]])
+    inference = json.loads(originals["infer/output/receipt.json"])
+    inference["predictions_digest"] = _sha(predictions)
+    inference["measurement"]["output_dtype"] = dtype
+    worker = json.loads(originals["stage/worker-evidence.json"])
+    worker["predictions_digest"] = _sha(predictions)
+    worker["predictions_raw_base64"] = base64.b64encode(predictions).decode("ascii")
+    worker["inference_receipt"] = inference
+    _graph_retain_mutation(root, manifest_path, "predictions", predictions)
+    _graph_retain_mutation(root, manifest_path, "inference_receipt", _json(inference))
+    _graph_retain_mutation(root, manifest_path, "worker_evidence", _json(worker))
+    with pytest.raises(
+        custody.CustodyRefused, match="graph_measured_inference_receipt"
+    ):
+        custody.prepare_custody_v5(root, manifest_path)
+
+
 def test_graph_v3_entry_refuses_forged_custody_receipt(tmp_path):
     root, manifest_path, _ = _graph_fixture(tmp_path)
     receipt = custody.prepare_custody_v5(root, manifest_path)

@@ -1795,9 +1795,11 @@ def _graph_prediction_shape(value, shape, dtype):
             )
             return type(value) is int and lower <= value <= upper
         if dtype == "float16":
-            return abs(value) <= 65504
+            magnitude = abs(value)
+            return magnitude == 0 or 2**-24 <= magnitude <= 65504
         if dtype == "float32":
-            return abs(value) <= 3.4028234663852886e38
+            magnitude = abs(value)
+            return magnitude == 0 or 2**-149 <= magnitude <= 3.4028234663852886e38
         return True
     return (
         type(value) is list
