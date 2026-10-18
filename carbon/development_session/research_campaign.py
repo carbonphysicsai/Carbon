@@ -118,6 +118,60 @@ def accepted_implementation(revision):
     }
 
 
+def development_candidate_implementation(
+    revision, *, expected_tree, expected_source_tree_digest, repository=None
+):
+    """Pin a clean local DEVELOPMENT candidate without granting main acceptance.
+
+    The caller supplies all three immutable identities from a trusted operator
+    record. This helper only checks source identity; callers still have to check
+    the actual worker image, profile, and host before any dispatch.
+    """
+    hex_digits = frozenset("0123456789abcdef")
+    if (
+        type(revision) is not str
+        or len(revision) != 40
+        or set(revision) - hex_digits
+        or type(expected_tree) is not str
+        or len(expected_tree) != 40
+        or set(expected_tree) - hex_digits
+        or type(expected_source_tree_digest) is not str
+        or not expected_source_tree_digest.startswith("sha256:")
+        or len(expected_source_tree_digest) != 71
+        or set(expected_source_tree_digest[7:]) - hex_digits
+    ):
+        raise ValueError("development candidate identity is malformed")
+    repo = (
+        Path(repository)
+        if repository is not None
+        else Path(__file__).resolve().parents[2]
+    )
+
+    def git(*args):
+        return subprocess.check_output(
+            ["git", *args], cwd=repo, text=True, timeout=30
+        ).strip()
+
+    head = git("rev-parse", "HEAD")
+    if head != revision or git("status", "--porcelain", "--untracked-files=all"):
+        raise ValueError("development candidate requires the exact clean revision")
+    tree = git("rev-parse", "HEAD^{tree}")
+    if tree != expected_tree:
+        raise ValueError("development candidate tree differs")
+    archive = subprocess.check_output(
+        ["git", "archive", "--format=tar", "HEAD"], cwd=repo, timeout=30
+    )
+    archive_digest = digest(archive)
+    if archive_digest != expected_source_tree_digest:
+        raise ValueError("development candidate source archive differs")
+    return {
+        "revision": head,
+        "tree": tree,
+        "source_tree_digest": archive_digest,
+        "source_authority": "DEVELOPMENT_CANDIDATE",
+    }
+
+
 def verify_current_worker(image, implementation):
     if image.source_tree_digest != implementation["source_tree_digest"]:
         raise ValueError(
