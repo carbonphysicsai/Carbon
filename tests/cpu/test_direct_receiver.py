@@ -374,6 +374,7 @@ def test_owner_provider_restart_shares_exact_ledger_and_refuses_work_during_stop
 
     discovery = DirectFixtureDiscovery(bundle_material_v5(), task_admission=True)
     parent = WorkerImageIdentity(*("sha256:" + "4" * 64 for _ in range(8)))
+    inference_image = WorkerImageIdentity(*("sha256:" + "5" * 64 for _ in range(8)))
     context = ChainContext(
         CARBON_NETWORK,
         CONTEXT.endpoint,
@@ -393,12 +394,23 @@ def test_owner_provider_restart_shares_exact_ledger_and_refuses_work_during_stop
     }
     root = receiver._private_directory(tmp_path / "owners")
     pool = receiver.OwnerProviders(
-        root, discovery, parent, tmp_path / "cache", **authority
+        root,
+        discovery,
+        parent,
+        tmp_path / "cache",
+        inference_image=inference_image,
+        **authority,
     )
     one, two = pool(OWNER), pool(OTHER)
     assert pool(OWNER) is one
     assert one.discovery is two.discovery is discovery
     assert one.owner == OWNER and two.owner == OTHER
+    assert one.construction_parent == parent
+    assert one.inference_image == inference_image
+    with one.ledger.db() as db:
+        frozen = json.loads(db.execute("SELECT manifest FROM campaign").fetchone()[0])
+    assert frozen["runtime"]["images"] == [parent.image_id, inference_image.image_id]
+    assert frozen["receiver_binding"]["inference_image"] == inference_image.image_id
     assert one.ledger.root != two.ledger.root
     first_root = one.ledger.root
     pool.cancel()
@@ -406,7 +418,12 @@ def test_owner_provider_restart_shares_exact_ledger_and_refuses_work_during_stop
         pool(OWNER)
     pool.close()
     restarted = receiver.OwnerProviders(
-        root, discovery, parent, tmp_path / "cache", **authority
+        root,
+        discovery,
+        parent,
+        tmp_path / "cache",
+        inference_image=inference_image,
+        **authority,
     )
     restarted.restore()
     assert restarted(OWNER).ledger.root == first_root

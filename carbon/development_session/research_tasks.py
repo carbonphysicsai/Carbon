@@ -228,6 +228,7 @@ class DirectDevelopmentTasksV3:
         image=None,
         inference_image,
         image_resolver=None,
+        construction_parent=None,
     ) -> None:
         if (
             not isinstance(root, Path)
@@ -257,6 +258,11 @@ class DirectDevelopmentTasksV3:
         self.discovery = discovery
         self.image, self.inference_image = image, inference_image
         self.image_resolver = image_resolver
+        self.construction_parent = (
+            construction_parent
+            if construction_parent is not None
+            else image.parent if image is not None else inference_image
+        )
         self._requests: dict[str, DirectStartTaskRequestV3] = {}
         self._views: dict[str, DirectTaskViewV3] = {}
         self._task_image_bindings: dict[str, str] = {}
@@ -293,6 +299,11 @@ class DirectDevelopmentTasksV3:
                             owner,
                             "PER_RECIPE_LIBRARY_IMAGE",
                             inference_image.image_id,
+                            *(
+                                [self.construction_parent.image_id]
+                                if self.construction_parent != inference_image
+                                else []
+                            ),
                         ],
                         separators=(",", ":"),
                     )
@@ -395,12 +406,18 @@ class DirectDevelopmentTasksV3:
 
         from .research_image import LibraryWorkerImage
 
-        if type(self.inference_image) is not WorkerImageIdentity:
+        if (
+            type(self.inference_image) is not WorkerImageIdentity
+            or type(self.construction_parent) is not WorkerImageIdentity
+        ):
             raise ValueError("exact C-03 library child and parent images required")
         if self.image_resolver is not None:
             if self.image is not None or not callable(self.image_resolver):
                 raise ValueError("one trusted per-recipe library resolver required")
-        elif type(self.image) is not LibraryWorkerImage:
+        elif (
+            type(self.image) is not LibraryWorkerImage
+            or self.image.parent != self.construction_parent
+        ):
             raise ValueError("exact C-03 library child and parent images required")
 
     def _verify_images(self) -> None:
@@ -432,6 +449,7 @@ class DirectDevelopmentTasksV3:
         if (
             type(image) is not LibraryWorkerImage
             or image.bundle_ref != source["bundle_ref"]
+            or image.parent != self.construction_parent
         ):
             raise ValueError("resolved library worker identity differs")
         verify_library_worker_image(image)
@@ -461,12 +479,12 @@ class DirectDevelopmentTasksV3:
 
         bundle = LibraryBundleRef.from_dict(request.recipe["source"]["bundle_ref"])
         image = self.image_resolver.provision_admitted(
-            bundle, parent=self.inference_image, cli=DockerCLI()
+            bundle, parent=self.construction_parent, cli=DockerCLI()
         )
         if (
             type(image) is not LibraryWorkerImage
             or image.bundle_ref != bundle.to_dict()
-            or image.parent != self.inference_image
+            or image.parent != self.construction_parent
         ):
             raise ValueError("provisioned direct library image differs")
         verify_library_worker_image(image)

@@ -280,6 +280,7 @@ class OwnerProviders:
         parent,
         cache_root,
         *,
+        inference_image=None,
         implementation=None,
         snapshot=None,
         window=None,
@@ -287,6 +288,7 @@ class OwnerProviders:
     ):
         self.root, self.discovery = root, discovery
         self.parent, self.cache_root = parent, cache_root
+        self.inference_image = parent if inference_image is None else inference_image
         self.implementation, self.snapshot, self.window, self.receiver = (
             implementation,
             snapshot,
@@ -360,6 +362,8 @@ class OwnerProviders:
             "challenge": {"id": challenge.challenge_id, "version": challenge.version},
             "owner": hotkey,
         }
+        if self.inference_image != self.parent:
+            binding["inference_image"] = self.inference_image.image_id
         candidate = {
             "schema": PRODUCT,
             "authority": AUTHORITY,
@@ -370,7 +374,14 @@ class OwnerProviders:
             "implementation": self.implementation,
             "runtime": {
                 "implementation": self.implementation,
-                "images": [self.parent.image_id],
+                "images": [
+                    self.parent.image_id,
+                    *(
+                        [self.inference_image.image_id]
+                        if self.inference_image != self.parent
+                        else []
+                    ),
+                ],
             },
             "admission": admission,
             "agent": "none",
@@ -434,7 +445,8 @@ class OwnerProviders:
                     ledger=ledger,
                     discovery=self.discovery,
                     image=None,
-                    inference_image=self.parent,
+                    inference_image=self.inference_image,
+                    construction_parent=self.parent,
                     image_resolver=DirectOwnerImageResolver(
                         self.cache_root, self.parent
                     ),
@@ -543,6 +555,17 @@ def serve(
     implementation, parent, network, cache = installed_source(
         Path(cfg["runner_profile"])
     )
+    from carbon.development_session.research_campaign import verify_current_worker
+    from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
+    from scripts.dev.miner_launchpad.runner import validated_profile
+
+    runner = validated_profile(private_json(Path(cfg["runner_profile"])))
+    inference_image = load_image_identity(Path(runner["paths"]["image_manifest"]))
+    verify_current_worker(inference_image, implementation)
+    if not doctor(
+        image_id=inference_image.image_id, image_identity=inference_image
+    ).eligible:
+        raise ReceiverUnavailable("installed_inference_worker_unavailable")
     if cfg["receiver_hotkey"] != network.publisher_hotkey:
         raise ValueError("receiver differs from installed network publisher")
     stop = threading.Event() if stop is None else stop
@@ -567,6 +590,8 @@ def serve(
         },
         "measure_query": cfg["measure_query"],
     }
+    if inference_image != parent:
+        immutable["inference_image"] = asdict(inference_image)
     with owner_lock(root):
         write_once(root / "receiver-binding.json", canonical(immutable))
         window = ReceiverSnapshotWindow(root, network.context, cfg["receiver_hotkey"])
@@ -576,6 +601,7 @@ def serve(
             discovery,
             parent,
             cache,
+            inference_image=inference_image,
             implementation=implementation,
             snapshot=snapshot,
             window=window,

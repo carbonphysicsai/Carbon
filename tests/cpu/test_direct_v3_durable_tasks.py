@@ -246,6 +246,7 @@ def test_direct_v3_inspects_source_then_provisions_only_after_durable_queue(
             return image
 
     resolver = Resolver()
+    inference_image = WorkerImageIdentity(*("sha256:" + "9" * 64 for _ in range(8)))
     tasks = DirectDevelopmentTasksV3(
         root=tmp_path / "admitted-tasks",
         requester="miner",
@@ -253,7 +254,8 @@ def test_direct_v3_inspects_source_then_provisions_only_after_durable_queue(
         owner="miner",
         discovery=discovery,
         image=None,
-        inference_image=parent,
+        inference_image=inference_image,
+        construction_parent=parent,
         image_resolver=resolver,
     )
     try:
@@ -267,6 +269,13 @@ def test_direct_v3_inspects_source_then_provisions_only_after_durable_queue(
                 (started.task_id.value,),
             ).fetchone()[0]
         assert json.loads(retained) == ["BUNDLE_SOURCE", image.bundle_ref]
+        with tasks._db() as db:
+            identity = json.loads(
+                db.execute("SELECT identity FROM direct_binding WHERE id=1").fetchone()[
+                    0
+                ]
+            )
+        assert identity[-2:] == [inference_image.image_id, parent.image_id]
 
         def claimed(*args, **kwargs):
             assert resolver.provisioned == 1
