@@ -1169,3 +1169,109 @@ async def _run_direct_epoch_owned(
             "official_eligible": False,
         }
     return result
+
+
+def _positive_cli_integer(raw):
+    import argparse
+
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError("a positive integer is required") from None
+    if value < 1:
+        raise argparse.ArgumentTypeError("a positive integer is required")
+    return value
+
+
+def cli_parser():
+    """The finite operator entry for the installed direct-development route."""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="python -m carbon.agent_campaign.graphite direct-agent"
+    )
+    modes = parser.add_subparsers(dest="action", required=True)
+    for action in ("prepare", "run"):
+        mode = modes.add_parser(action)
+        mode.add_argument("--profile", type=Path, required=True)
+        mode.add_argument("--database", type=Path, required=True)
+        mode.add_argument("--root", type=Path, required=True)
+        if action == "prepare":
+            for flag in (
+                "provider-attempts",
+                "provider-nanodollars",
+                "retained-bytes",
+                "elapsed-seconds",
+            ):
+                mode.add_argument(
+                    "--" + flag, type=_positive_cli_integer, required=True
+                )
+        else:
+            mode.add_argument("--epoch", type=int, choices=(1, 2), required=True)
+            mode.add_argument(
+                "--max-provider-calls", type=_positive_cli_integer, required=True
+            )
+    return parser
+
+
+def cli_main(argv=None):
+    """Use the normal installed host; never choose budgets or a provider."""
+    from carbon.development_session.research_ledger import CampaignLedger
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    args = cli_parser().parse_args(argv)
+    if not args.root.is_absolute():
+        print(
+            json.dumps(
+                {"direct_agent": "REFUSED", "reason_code": "absolute_root_required"}
+            )
+        )
+        return 2
+    try:
+        host = RunnerAdapter(args.database, configuration=args.profile)
+        if args.action == "prepare":
+            asyncio.run(
+                prepare_direct_agent_campaign(
+                    host,
+                    args.root,
+                    provider_attempts=args.provider_attempts,
+                    provider_nanodollars=args.provider_nanodollars,
+                    retained_bytes=args.retained_bytes,
+                    elapsed_seconds=args.elapsed_seconds,
+                )
+            )
+            print(json.dumps({"direct_agent": "PREPARED", "official_eligible": False}))
+            return 0
+        result = asyncio.run(
+            run_direct_epoch(
+                host,
+                CampaignLedger(args.root),
+                epoch=args.epoch,
+                max_provider_calls=args.max_provider_calls,
+            )
+        )
+        status = result.get("status") if type(result) is dict else None
+        if type(status) is not str:
+            raise ValueError("direct agent epoch result required")
+        print(json.dumps({"direct_agent": status, "official_eligible": False}))
+        return 0 if status in {"STOPPED", "TASK_OBSERVED"} else 2
+    except UncertainDirectToolDispatch:
+        print(
+            json.dumps(
+                {"direct_agent": "RECONCILIATION_REQUIRED", "official_eligible": False}
+            )
+        )
+        return 2
+    except Exception as error:  # noqa: BLE001 - no private exception text on CLI
+        from carbon.miner_mcp.standard_cli import refusal_code
+
+        print(
+            json.dumps(
+                {
+                    "direct_agent": "REFUSED",
+                    "reason_code": refusal_code(error) or "direct_agent_unavailable",
+                    "official_eligible": False,
+                }
+            )
+        )
+        return 2

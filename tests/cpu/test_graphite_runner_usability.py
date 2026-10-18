@@ -14,12 +14,198 @@ from decimal import Decimal
 import pytest
 from graphite_phase3_fixtures import GRANT_FILE, SCORING, snapshot_file
 
-from carbon.agent_campaign.graphite import cli_usage, phase3, phase4, run_checked
+from carbon.agent_campaign.graphite import (
+    __main__ as graphite_cli,
+)
+from carbon.agent_campaign.graphite import (
+    cli_usage,
+    direct_tool_session,
+    phase3,
+    phase4,
+    run_checked,
+)
 from carbon.agent_campaign.graphite import experiment as ex
 from carbon.challenge_validator import scoring as challenge_scoring
 from carbon.development_session.profile import canonical
 
 TOKENS = challenge_scoring.registered()
+
+
+def test_direct_agent_cli_dispatch_preserves_historical_run_checked(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        run_checked,
+        "main",
+        lambda argv: calls.append(("historical", argv)) or 7,
+    )
+    monkeypatch.setattr(
+        direct_tool_session,
+        "cli_main",
+        lambda argv: calls.append(("direct", argv)) or 8,
+    )
+
+    assert graphite_cli.main(["run-checked", "--plan"]) == 7
+    assert graphite_cli.main(["direct-agent", "prepare"]) == 8
+    assert calls == [
+        ("historical", ["run-checked", "--plan"]),
+        ("direct", ["prepare"]),
+    ]
+
+
+def test_direct_agent_cli_requires_explicit_finite_limits(tmp_path):
+    base = [
+        "prepare",
+        "--profile",
+        str(tmp_path / "profile.json"),
+        "--database",
+        str(tmp_path / "runner.sqlite3"),
+        "--root",
+        str(tmp_path / "direct-agent-one"),
+        "--provider-attempts",
+        "0",
+        "--provider-nanodollars",
+        "1",
+        "--retained-bytes",
+        "1",
+        "--elapsed-seconds",
+        "1",
+    ]
+    with pytest.raises(SystemExit) as refused:
+        direct_tool_session.cli_parser().parse_args(base)
+    assert refused.value.code == 2
+    with pytest.raises(SystemExit) as refused:
+        direct_tool_session.cli_parser().parse_args(
+            ["run", "--profile", "p", "--database", "d", "--root", "r"]
+        )
+    assert refused.value.code == 2
+
+
+def test_direct_agent_cli_refuses_relative_root_before_host_creation(
+    tmp_path, monkeypatch, capsys
+):
+    from scripts.dev.miner_launchpad import runner
+
+    monkeypatch.setattr(
+        runner,
+        "RunnerAdapter",
+        lambda *_args, **_kwargs: pytest.fail("host must not be created"),
+    )
+    assert (
+        direct_tool_session.cli_main(
+            [
+                "run",
+                "--profile",
+                str(tmp_path / "profile.json"),
+                "--database",
+                str(tmp_path / "runner.sqlite3"),
+                "--root",
+                "relative-root",
+                "--epoch",
+                "1",
+                "--max-provider-calls",
+                "1",
+            ]
+        )
+        == 2
+    )
+    assert json.loads(capsys.readouterr().out) == {
+        "direct_agent": "REFUSED",
+        "reason_code": "absolute_root_required",
+    }
+
+
+def test_direct_agent_cli_uses_installed_host_and_frozen_ledger(
+    tmp_path, monkeypatch, capsys
+):
+    from carbon.development_session import research_ledger
+    from scripts.dev.miner_launchpad import runner
+
+    profile = tmp_path / "profile.json"
+    database = tmp_path / "runner.sqlite3"
+    root = tmp_path / "direct-agent-one"
+    host = object()
+    calls = []
+    monkeypatch.setattr(
+        runner,
+        "RunnerAdapter",
+        lambda db, *, configuration: calls.append(("host", db, configuration)) or host,
+    )
+
+    async def prepare(given_host, given_root, **limits):
+        calls.append(("prepare", given_host, given_root, limits))
+
+    async def run(given_host, ledger, *, epoch, max_provider_calls):
+        calls.append(("run", given_host, ledger, epoch, max_provider_calls))
+        return {"status": "TASK_OBSERVED", "official_eligible": False}
+
+    monkeypatch.setattr(direct_tool_session, "prepare_direct_agent_campaign", prepare)
+    monkeypatch.setattr(direct_tool_session, "run_direct_epoch", run)
+    monkeypatch.setattr(
+        research_ledger, "CampaignLedger", lambda path: ("ledger", path)
+    )
+    common = [
+        "--profile",
+        str(profile),
+        "--database",
+        str(database),
+        "--root",
+        str(root),
+    ]
+    assert (
+        direct_tool_session.cli_main(
+            [
+                "prepare",
+                *common,
+                "--provider-attempts",
+                "2",
+                "--provider-nanodollars",
+                "3",
+                "--retained-bytes",
+                "4",
+                "--elapsed-seconds",
+                "5",
+            ]
+        )
+        == 0
+    )
+    assert (
+        direct_tool_session.cli_main(
+            ["run", *common, "--epoch", "1", "--max-provider-calls", "2"]
+        )
+        == 0
+    )
+    assert calls == [
+        ("host", database, profile),
+        (
+            "prepare",
+            host,
+            root,
+            {
+                "provider_attempts": 2,
+                "provider_nanodollars": 3,
+                "retained_bytes": 4,
+                "elapsed_seconds": 5,
+            },
+        ),
+        ("host", database, profile),
+        ("run", host, ("ledger", root), 1, 2),
+    ]
+    assert '"official_eligible": false' in capsys.readouterr().out
+
+    async def unresolved(_host, _ledger, *, epoch, max_provider_calls):
+        return {"status": "RECONCILIATION_REQUIRED", "official_eligible": False}
+
+    monkeypatch.setattr(direct_tool_session, "run_direct_epoch", unresolved)
+    assert (
+        direct_tool_session.cli_main(
+            ["run", *common, "--epoch", "1", "--max-provider-calls", "2"]
+        )
+        == 2
+    )
+    assert json.loads(capsys.readouterr().out) == {
+        "direct_agent": "RECONCILIATION_REQUIRED",
+        "official_eligible": False,
+    }
 
 
 def _ledger(path, rows):
