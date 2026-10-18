@@ -646,7 +646,11 @@ def register_served_pack_source(
         missing = snapshot.verify_available(
             public_root, private_root, hidden_store=hidden_store
         )
-        if missing["public"] or missing["private"]:
+        if (
+            set(missing["public"])
+            & {"construction_kit", "interface", "train", "physics_contract"}
+            or missing["private"]
+        ):
             raise RetentionUnavailable("evaluation_pack_roles_unavailable")
         # This caller only has the registered single-query, static-bank
         # contract. A dynamic bank needs its own Challenge-specific adapter.

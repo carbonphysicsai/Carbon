@@ -241,7 +241,13 @@ def test_operator_registers_source_from_selected_pack_and_retained_entry(
         json.dumps(case["registration"]["reference"]), encoding="utf-8"
     )
     (private / "score-pack.json").write_text(json.dumps(case["pack"]), encoding="utf-8")
-    public_roles = {role: {"inline": {"test": role}} for role in PUBLIC_ROLES}
+    public_roles = {role: "HUMAN_INPUT" for role in PUBLIC_ROLES}
+    public_roles["construction_kit"] = {
+        "inline": {
+            "id": case["entry"]["challenge"],
+            "version": case["entry"]["challenge_version"],
+        }
+    }
     public_roles["train"] = {"path": "train.bin"}
     public_roles["interface"] = {"path": "interface.bin"}
     public_roles["physics_contract"] = {"inline": case["job"]["physics_contract"]}
