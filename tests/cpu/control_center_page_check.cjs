@@ -100,29 +100,33 @@ function lastPost(state, url) { return [...state.posted].reverse().find(entry =>
 const scenarios = [];
 const scenario = (name, run) => scenarios.push([name, run]);
 
-scenario("normal challenge selection shows only its registered construction options", async () => {
+scenario("normal challenge selection shows only its construction serving paths", async () => {
   const challenge = selectable();
   const state = world();
-  const document = state.options.construction_options?.[challenge.challenge_id];
-  assert.ok(document?.types?.length, "the actual options response names this Challenge's construction changes");
+  const document = state.options.construction_paths?.[challenge.challenge_id];
+  assert.equal(state.options.schema, "carbon.launchpad.launch-options.v2");
+  assert.equal(document?.challenge?.id, challenge.challenge_id,
+    "the actual options response binds paths to this Challenge");
+  assert.ok(document?.paths?.some(path => path.id === "official_submission"),
+    "the actual options response names this Challenge's submission path");
   const page = await open(state);
   page.go("#launch");
   await page.advance(0);
   assert.equal(one(page, "#wizard-construction-options").hidden, true);
   await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id));
   assert.equal(one(page, "#wizard-construction-options").hidden, false);
-  assert.match(page.text("wizard-construction-options"), /What you can change/);
-  assert.ok(page.text("wizard-construction-options").includes(document.types[0].label));
+  assert.match(page.text("wizard-construction-options"), /Construction serving paths/);
+  assert.match(page.text("wizard-construction-options"), /Official submission · unserved/);
   clean(page);
 
   const unknown = world();
-  unknown.options.construction_options = {"another-challenge": document};
+  unknown.options.construction_paths = {"another-challenge": document};
   const second = await open(unknown);
   second.go("#launch");
   await second.advance(0);
   await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id));
   assert.equal(one(second, "#wizard-construction-options").hidden, true,
-    "an unrelated response key must not supply construction options for this Challenge");
+    "an unrelated response key must not supply construction paths for this Challenge");
   clean(second);
 });
 
