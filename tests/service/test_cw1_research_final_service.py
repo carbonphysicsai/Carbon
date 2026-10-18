@@ -157,43 +157,49 @@ def _observe_final_reference(execute, target):
         result = execute(request)
         if target is None or result.result.outcome is ReferenceRunOutcome.SUPPORTED:
             return result
-        record = {
-            "schema": "carbon.c04.engineering-reference-failure.v1",
-            "kind": "synthetic_final_reference_failure",
-            "phase": "final",
-            "request_digest": request.request_digest,
-            "outcome": result.result.outcome.value,
-            "failure_reason": result.result.failure_reason.value,
-            "diagnostics": [
-                [key, value]
-                for key, value in result.result.diagnostics
-                if key in {"method", "environment"}
-            ],
-            "image_id": result.image_id,
-            "launch_digest": result.launch_digest,
-            "snapshot_digest": result.snapshot_digest,
-            "controls_digest": result.controls_digest,
-            "controls": {
-                key: result.controls[key]
-                for key in ("cgroup_v2", "process", "container_id")
-                if key in result.controls
-            },
-            "timings": {
-                key: result.timings[key]
-                for key in (
-                    "staging",
-                    "create",
-                    "numerical",
-                    "export",
-                    "cleanup",
-                    "validation",
-                    "total",
-                )
-                if key in result.timings
-            },
-            "candidate_judged": False,
-            "reproduction": "exact request only; no redraw or retry authorized",
-        }
+        try:
+            record = {
+                "schema": "carbon.c04.engineering-reference-failure.v1",
+                "kind": "synthetic_final_reference_failure",
+                "phase": "final",
+                "request_digest": request.request_digest,
+                "outcome": result.result.outcome.value,
+                "failure_reason": result.result.failure_reason.value,
+                "diagnostics": [
+                    [key, value]
+                    for key, value in result.result.diagnostics
+                    if key in {"method", "environment"}
+                ],
+                "image_id": result.image_id,
+                "launch_digest": result.launch_digest,
+                "snapshot_digest": result.snapshot_digest,
+                "controls_digest": result.controls_digest,
+                "controls": {
+                    key: result.controls[key]
+                    for key in ("cgroup_v2", "process", "container_id")
+                    if key in result.controls
+                },
+                "timings": {
+                    key: result.timings[key]
+                    for key in (
+                        "staging",
+                        "create",
+                        "numerical",
+                        "export",
+                        "cleanup",
+                        "validation",
+                        "total",
+                    )
+                    if key in result.timings
+                },
+                "candidate_judged": False,
+                "reproduction": "exact request only; no redraw or retry authorized",
+            }
+        except (ValueError, TypeError, AttributeError, OverflowError):
+            print(
+                "Engineering FINAL diagnostics unavailable; original outcome retained."
+            )
+            return result
         _append_reference_failure(target, record, "FINAL")
         return result
 
@@ -273,7 +279,7 @@ def test_engineering_reference_failure_trace_preserves_result_and_public_binding
 
 
 def test_final_reference_failure_trace_excludes_private_case_and_preserves_result(
-    tmp_path,
+    tmp_path, capsys
 ):
     target = tmp_path / "trace.jsonl"
     request = SimpleNamespace(request_digest="private-request")
@@ -303,6 +309,20 @@ def test_final_reference_failure_trace_excludes_private_case_and_preserves_resul
     before = target.read_bytes()
     result.result.outcome = ReferenceRunOutcome.SUPPORTED
     assert observed(request) is result
+    assert target.read_bytes() == before
+    result.result.outcome = ReferenceRunOutcome.NUMERICAL_FAILURE
+    result.result.diagnostics = (("method", "malformed", "never-export"),)
+    assert observed(request) is result
+    assert target.read_bytes() == before
+    assert "original outcome retained" in capsys.readouterr().out
+    original_error = RuntimeError("existing final controller failure")
+
+    def failed(value):
+        raise original_error
+
+    with pytest.raises(RuntimeError) as failure:
+        _observe_final_reference(failed, target)(request)
+    assert failure.value is original_error
     assert target.read_bytes() == before
 
 
