@@ -1060,9 +1060,7 @@ def _graph_rehash_inventory(
         file_limit = (
             4 * 1024 * 1024
             if name.endswith((".json", ".py"))
-            else 128 * 1024 * 1024
-            if name.endswith(".gz")
-            else MAX_GRAPH_FILE_BYTES
+            else 128 * 1024 * 1024 if name.endswith(".gz") else MAX_GRAPH_FILE_BYTES
         )
         body = _read_bounded(_graph_file(root, name), file_limit, "graph_artifact")
         total += len(body)

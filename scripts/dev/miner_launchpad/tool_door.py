@@ -215,9 +215,7 @@ def _direct_task_projection(view, public_result=None):
         else (
             "completed"
             if state == "SUCCEEDED"
-            else "cancelled"
-            if state == "CANCELLED"
-            else "failed"
+            else "cancelled" if state == "CANCELLED" else "failed"
         )
     )
     return {

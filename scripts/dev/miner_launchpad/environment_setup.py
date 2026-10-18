@@ -2181,9 +2181,7 @@ class EnvironmentSetup:
             targets = (
                 mine.get("targets")
                 if type(written) is dict and type(mine) is dict
-                else entry.get("validators")
-                if entry is not None
-                else None
+                else entry.get("validators") if entry is not None else None
             )
             if type(targets) is list:
                 item["validators"] = [
