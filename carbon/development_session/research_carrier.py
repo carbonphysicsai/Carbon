@@ -34,6 +34,7 @@ from carbon.reconstruction.worker.model import (
     DevelopmentWorkerProfile,
     WorkerCode,
     WorkerFailure,
+    WorkerImageIdentity,
 )
 from carbon.reconstruction.worker.protocol import decode_output_stream
 
@@ -50,6 +51,40 @@ LIBRARY_PREP_PROVENANCE = "DIRECT_BUNDLE_DEPENDENCY_PREP"
 LIBRARY_OVERLAY_BUILD_PROVENANCE = "DIRECT_BUNDLE_OVERLAY_RECONSTRUCTION"
 
 ACTIVE_TASK = ContextVar("carbon_public_research_task", default=None)
+
+
+def _checked_pinned_uv_stage(added, identity):
+    """Validate the bytes produced after admission against its frozen binding."""
+    if type(added) is not dict or set(added) != {"uv-bin", "control.json"}:
+        raise ValueError("closed pinned UV stage output required")
+    uv_binary, control_raw = added["uv-bin"], added["control.json"]
+    if (
+        type(uv_binary) is not bytes
+        or not 0 < len(uv_binary) <= 64 * 1024**2
+        or type(control_raw) is not bytes
+        or not 0 < len(control_raw) <= 65536
+    ):
+        raise ValueError("bounded pinned UV stage required")
+    try:
+        control = json.loads(control_raw)
+    except (UnicodeError, ValueError, RecursionError) as error:
+        raise ValueError("pinned UV stage control differs") from error
+    fields = {"bundle_ref", "parent_image_id", "uv_sha256"}
+    if "parent_build" in identity:
+        fields.add("parent_build")
+    if (
+        type(control) is not dict
+        or set(control) != fields
+        or control["bundle_ref"] != identity["bundle_ref"]
+        or control["parent_image_id"] != identity["parent_image_id"]
+        or control["uv_sha256"] != digest(uv_binary)
+        or (
+            "parent_build" in identity
+            and control["parent_build"] != identity["parent_build"]
+        )
+    ):
+        raise ValueError("pinned UV stage control differs")
+    return added
 
 
 def _stage_verified_overlay(source, target, receipt):
@@ -442,7 +477,10 @@ def _run_locked(
             or not callable(trusted_stage_provider)
             or type(trusted_stage_identity) is not dict
             or set(trusted_stage_identity)
-            != {"schema", "uv_image", "bundle_ref", "parent_image_id"}
+            not in (
+                {"schema", "uv_image", "bundle_ref", "parent_image_id"},
+                {"schema", "uv_image", "bundle_ref", "parent_image_id", "parent_build"},
+            )
             or trusted_stage_identity["schema"]
             != "carbon.development.pinned-uv-stage.v1"
             or trusted_stage_identity["uv_image"] != UV_IMAGE
@@ -451,6 +489,21 @@ def _run_locked(
             or {"uv-bin", "control.json"} & set(files)
         ):
             raise ValueError("trusted pinned UV stage required")
+        if "parent_build" in trusted_stage_identity and (
+            type(image) is not WorkerImageIdentity
+            or trusted_stage_identity["parent_image_id"] != image.image_id
+            or trusted_stage_identity["parent_build"]
+            != {
+                "schema": "carbon.c03.worker-image-build.v1",
+                "source_tree_digest": image.source_tree_digest,
+                "wheel_digest": image.wheel_digest,
+                "lock_digest": image.lock_digest,
+                "base_image_digest": image.base_image_digest,
+                "build_recipe_digest": image.build_recipe_digest,
+                "entrypoint_digest": image.entrypoint_digest,
+            }
+        ):
+            raise ValueError("pinned UV stage parent differs")
         trusted_stage_bound = 64 * 1024**2 + 65536
         if (
             sum(map(len, files.values())) + len(source.encode()) + trusted_stage_bound
@@ -461,8 +514,6 @@ def _run_locked(
         raise ValueError("trusted stage identity without provider")
     overlay_receipt = None
     if trusted_overlay is not None:
-        from carbon.reconstruction.worker.model import WorkerImageIdentity
-
         from .library_environment_cache import (
             VerifiedLibraryOverlay,
             _verified_overlay_tree,
@@ -625,27 +676,9 @@ def _run_locked(
             staged_files = files
             if trusted_stage_provider is not None:
                 _check_cancel(ledger, owner, identity)
-                added = trusted_stage_provider(cli)
-                if type(added) is not dict or set(added) != {"uv-bin", "control.json"}:
-                    raise ValueError("closed pinned UV stage output required")
-                uv_binary, control_raw = added["uv-bin"], added["control.json"]
-                if (
-                    type(uv_binary) is not bytes
-                    or not 0 < len(uv_binary) <= 64 * 1024**2
-                    or type(control_raw) is not bytes
-                    or not 0 < len(control_raw) <= 65536
-                ):
-                    raise ValueError("bounded pinned UV stage required")
-                control = json.loads(control_raw)
-                if (
-                    type(control) is not dict
-                    or set(control) != {"bundle_ref", "parent_image_id", "uv_sha256"}
-                    or control["bundle_ref"] != trusted_stage_identity["bundle_ref"]
-                    or control["parent_image_id"]
-                    != trusted_stage_identity["parent_image_id"]
-                    or control["uv_sha256"] != digest(uv_binary)
-                ):
-                    raise ValueError("pinned UV stage control differs")
+                added = _checked_pinned_uv_stage(
+                    trusted_stage_provider(cli), trusted_stage_identity
+                )
                 _check_cancel(ledger, owner, identity)
                 staged_files = {**files, **added}
             for filename, body in {
