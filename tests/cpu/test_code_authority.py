@@ -8,12 +8,11 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 import zipfile
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PATH = REPOSITORY_ROOT / ".agent" / "CODE_AUTHORITY.toml"
@@ -1095,6 +1094,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "canonical",
         "dev-image",
         "c03-worker",
+        "development-worker-image-bundle",
         "julia-service",
         "workbench",
         "contract-authority",
@@ -1112,6 +1112,12 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert _yaml_scalar(jobs["canonical"], "needs") == "preflight"
     assert _yaml_scalar(jobs["dev-image"], "needs") == "preflight"
     assert _yaml_scalar(jobs["c03-worker"], "needs") == "preflight"
+    bundle = jobs["development-worker-image-bundle"]
+    assert _yaml_scalar(bundle, "name") == "Development worker image bundle"
+    assert _yaml_scalar(bundle, "needs") == "preflight"
+    assert "development-worker-images" in _yaml_scalar(bundle, "if")
+    assert "pull_request.head.repo.full_name == github.repository" in bundle
+    assert "github.event.pull_request.draft == false" in bundle
     assert (
         _yaml_scalar(jobs["julia-service"], "name")
         == "Authored-Julia isolated service acceptance"
@@ -1151,8 +1157,22 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "./scripts/dev/bootstrap.sh",
         "./scripts/dev/c03_worker_image.sh",
         "./scripts/dev/c03_worker_service.sh",
-        "./scripts/dev/c03_worker_service.sh tests/cpu/test_development_image_artifact.py",
     )
+    assert _inline_run_commands(bundle) == (
+        "./scripts/dev/bootstrap.sh",
+        "./scripts/dev/c03_worker_image.sh",
+        "./scripts/dev/c03_worker_service.sh tests/cpu/test_development_image_artifact.py tests/cpu/test_development_candidate_implementation.py tests/cpu/test_miner_install.py tests/cpu/test_challenge_kit.py",
+    )
+    assert "./scripts/dev/c03_worker_service.sh\n" in jobs["c03-worker"]
+    assert "./scripts/dev/c03_worker.sh reconcile" in jobs["c03-worker"]
+    assert (
+        "development-worker-images-${{ needs.preflight.outputs.candidate_sha }}"
+        not in jobs["c03-worker"]
+    )
+    assert "git worktree add --detach" in bundle
+    assert "scripts.dev.development_image_artifact export" in bundle
+    assert "retention-days: 1" in bundle
+    assert "development-worker-image-bundle" not in jobs["merge-gate"]
     assert _inline_run_commands(jobs["julia-service"]) == (
         "./scripts/dev/bootstrap.sh",
         "bash ./scripts/dev/julia_worker_image.sh",
@@ -1234,9 +1254,9 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert 'gh api "${endpoint}" --jq .base.sha' in workflow
     assert '"${candidate_sha}" != "${EVENT_PR_HEAD}"' in workflow
     assert "ref: ${{ steps.candidate.outputs.candidate_sha }}" in workflow
-    assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 9
-    assert workflow.count("fetch-depth: 0") == 10
-    assert workflow.count("persist-credentials: false") == 11
+    assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 10
+    assert workflow.count("fetch-depth: 0") == 11
+    assert workflow.count("persist-credentials: false") == 12
     assert "Install pinned uv" not in jobs["preflight"]
     assert "github.event.pull_request.draft == false" in jobs["preflight"]
     assert "dev_image_required == 'true'" in jobs["dev-image"]
