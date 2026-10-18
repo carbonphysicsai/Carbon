@@ -438,11 +438,12 @@ def test_both_doors_answer_and_show_the_same_commitment(wired, tmp_path):
 
 
 def test_a_commit_refusal_is_the_same_closed_code_on_both_doors(wired, tmp_path):
-    from test_launchpad_truthful_refusals import launch
+    from test_launchpad_truthful_refusals import historical_v0_campaign, launch
 
     host = wired.host
     identity = launch(host)["id"]
     join(host)
+    historical_v0_campaign(host, identity)
     body = {"campaign": identity}
     server, thread = serve(tmp_path, host)
     try:

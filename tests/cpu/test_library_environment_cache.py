@@ -122,7 +122,8 @@ def test_admitted_install_reuses_verified_hit_and_reprovisions_for_new_parent(
 ):
     import_path = tmp_path / "user-input"
     cache_root = tmp_path / "owner-cache"
-    cache_root.mkdir()
+    cache_root.mkdir(mode=0o700)
+    cache_root.chmod(0o700)
     image = _image(tmp_path / "placeholder")
     selected = image.provisioned.bundle
     material = ({"language": "python"}, b"source", {}, b"lock", b"license")
