@@ -539,7 +539,7 @@ def test_selected_inference_image_admits_only_compatible_jax_or_cpu(
     )
     torch = image(GPU_LOCK_DIGEST, ".devcontainer/torch/Dockerfile.gpu")
     jax_bad = replace(jax, entrypoint_digest=sha("e"))
-    unknown = replace(cpu, lock_digest=sha("e"))
+    unknown = replace(cpu, lock_digest=sha("e"), source_tree_digest=sha("f"))
     selected = {
         "jax_gpu": jax,
         "cpu": cpu,
