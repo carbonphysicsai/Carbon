@@ -59,9 +59,8 @@ def decode_train(raw: bytes) -> domain.TrainingData:
                 raise challenge.MaterialMismatch(
                     "train_v1 tensor shape or value differs"
                 )
-        if (
-            len(set(train.case_ids)) != count
-            or any(type(case) is not str or not case for case in train.case_ids)
+        if len(set(train.case_ids)) != count or any(
+            type(case) is not str or not case for case in train.case_ids
         ):
             raise challenge.MaterialMismatch("train_v1 case identities differ")
         return train
