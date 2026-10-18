@@ -258,6 +258,11 @@ def _journey_host(root, patch):
                     provider.update(agent="graphite", graphite=block)
             manifest = {
                 **args.product.manifest_fields(),
+                **(
+                    {"construction_mode": "direct"}
+                    if getattr(args, "construction_mode", None) == "direct"
+                    else {}
+                ),
                 "owner": "miner-requester",
                 "implementation": runtime["implementation"],
                 "images": runtime["images"],
