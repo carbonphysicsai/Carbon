@@ -389,6 +389,7 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(tmp_path, monke
         assert kwargs["parent"] == parent
         assert kwargs["identity"].endswith("-prep")
         assert "uv_binary" not in kwargs
+        assert 40 <= kwargs["seconds"] <= 600
         calls.append("bounded-prep")
         return prep
 
@@ -397,6 +398,8 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(tmp_path, monke
         assert kwargs["expected_parent"] == parent
         assert kwargs["expected_receipt"] == prep.receipt
         assert kwargs["material_cache_bytes"] == Resolver.material_cache_bytes
+        assert type(kwargs["deadline"]) is float
+        kwargs["cancel"]()
         calls.append("sealed-cache")
         return overlay
 

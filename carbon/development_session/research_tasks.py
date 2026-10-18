@@ -470,7 +470,7 @@ class DirectDevelopmentTasksV3:
             separators=(",", ":"),
         )
 
-    def _provision_admitted_image(self, request):
+    def _provision_admitted_image(self, request, *, deadline: float):
         """Resolve a child or prepare exact dependencies after durable admission."""
         from carbon.reconstruction.worker.docker_runtime import DockerCLI
 
@@ -478,7 +478,7 @@ class DirectDevelopmentTasksV3:
             direct_child_identity,
             prepare_library_overlay,
         )
-        from .construction_recipe import ConstructionRecipe
+        from .construction_recipe import ConstructionRecipe, RecipeRefused
         from .library_bundles import LibraryBundleRef, load_pinned_bundle_directory
         from .library_environment_cache import (
             cache_verified_overlay,
@@ -487,6 +487,19 @@ class DirectDevelopmentTasksV3:
         from .research_image import LibraryWorkerImage, verify_library_worker_image
 
         bundle = LibraryBundleRef.from_dict(request.recipe["source"]["bundle_ref"])
+        task = self._task_id(request)
+
+        def check_cancel():
+            with self._lock:
+                current = self._views.get(task.value)
+                if current is None or current.state is not DirectTaskStateV3.RUNNING:
+                    raise ValueError(
+                        "direct task cancelled during dependency preparation"
+                    )
+            if time.monotonic() >= deadline:
+                raise RecipeRefused("construction_total_deadline_reached")
+
+        check_cancel()
         cli = DockerCLI()
         try:
             image = self.image_resolver.provision_admitted(
@@ -500,10 +513,12 @@ class DirectDevelopmentTasksV3:
             capacity = getattr(self.image_resolver, "material_cache_bytes", None)
             if type(capacity) is not int or capacity < 1:
                 raise ValueError("trusted overlay cache capacity unavailable") from None
+            check_cancel()
             directory = inspect_staged_bundle_material(
                 self.image_resolver.cache_root, bundle
             )
             material = load_pinned_bundle_directory(directory)
+            check_cancel()
             kit = self.discovery._material["construction_kit"]
             binding = {
                 "challenge_id": kit["id"],
@@ -512,7 +527,9 @@ class DirectDevelopmentTasksV3:
                 "interface_digest": kit["interface_digest"],
                 "construction_limits_digest": kit["construction_limits_digest"],
             }
-            task = self._task_id(request)
+            remaining = int(deadline - time.monotonic())
+            if remaining < 40:
+                raise RecipeRefused("construction_total_deadline_reached")
             prep = prepare_library_overlay(
                 self.ledger,
                 owner=self.owner,
@@ -524,6 +541,7 @@ class DirectDevelopmentTasksV3:
                     "construction_limits_document"
                 ],
                 material=material,
+                seconds=min(600, remaining),
             )
             if prep.controls_digest is None:
                 raise ValueError("completed C03 preparation controls unavailable")
@@ -534,6 +552,8 @@ class DirectDevelopmentTasksV3:
                 expected_parent=self.construction_parent,
                 expected_receipt=prep.receipt,
                 material_cache_bytes=capacity,
+                deadline=deadline,
+                cancel=check_cancel,
             )
             return overlay, prep
         if (
@@ -1503,7 +1523,16 @@ class DirectDevelopmentTasksV3:
             if staged_source:
                 provisioning = True
                 total_deadline_started = time.monotonic()
-                provisioned = self._provision_admitted_image(request)
+                policy = self.discovery._material["construction_limits_document"][
+                    "reconstruction_resource_policy"
+                ]
+                provisioned = self._provision_admitted_image(
+                    request,
+                    deadline=(
+                        total_deadline_started
+                        + policy["total_reconstruction_wall_seconds_max"]
+                    ),
+                )
                 if type(provisioned) is tuple:
                     image, overlay_prep = provisioned
                 else:
