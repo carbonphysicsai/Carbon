@@ -612,3 +612,92 @@ def test_non_429_rate_payload_never_replays_submission(tmp_path, monkeypatch, st
         )
     assert calls == [client.SUBMIT_TOOL]
     assert not (tmp_path / "construction-intake-epoch-1.json").exists()
+
+
+def test_observation_deadline_never_starts_a_late_exchange(tmp_path, monkeypatch):
+    now, reads, signed, sent = [0.0], [], [], []
+
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            signed.append(json.loads(body)["tool"])
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def read(url):
+        reads.append(url)
+        return _facts()
+
+    def send(url, body, headers):
+        tool = json.loads(body)["tool"]
+        sent.append(tool)
+        return (202 if tool == client.SUBMIT_TOOL else 200), _answer("ADMITTED")
+
+    def sleep(seconds):
+        now[0] += seconds
+
+    with pytest.raises(client.DirectIntakeRefusal, match="construction_task_queued"):
+        client.submit_and_wait(
+            _URL,
+            "external-signer",
+            root=tmp_path,
+            epoch=1,
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            read=read,
+            send=send,
+            clock=lambda: now[0],
+            sleep=sleep,
+            wait_s=2,
+        )
+    assert now == [2.0]
+    assert reads == [_URL, _URL]
+    assert signed == sent == [client.SUBMIT_TOOL, client.STATUS_TOOL]
+    assert (
+        json.loads((tmp_path / "construction-intake-epoch-1.json").read_bytes())[
+            "submission_id"
+        ]
+        == "task-1"
+    )
+
+
+@pytest.mark.parametrize(
+    "error", [TimeoutError("fixture"), client.urllib.error.URLError("fixture")]
+)
+def test_ambiguous_send_failure_never_replays_submission(tmp_path, monkeypatch, error):
+    sent = []
+
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def send(url, body, headers):
+        sent.append(json.loads(body)["tool"])
+        raise error
+
+    with pytest.raises(type(error)):
+        client.submit_and_wait(
+            _URL,
+            "external-signer",
+            root=tmp_path,
+            epoch=1,
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            read=lambda url: _facts(),
+            send=send,
+            sleep=lambda seconds: pytest.fail("ambiguous send must not retry"),
+        )
+    assert sent == [client.SUBMIT_TOOL]
+    assert not (tmp_path / "construction-intake-epoch-1.json").exists()
