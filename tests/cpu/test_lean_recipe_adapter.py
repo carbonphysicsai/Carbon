@@ -7,6 +7,7 @@ from test_direct_v3_durable_tasks import _fixture
 
 from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
 from carbon.challenge_validator import Adapters, AttemptLedger, Submission, Validator
+from carbon.challenge_validator.interface import Admitted, Unavailable
 from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
 
 
@@ -143,6 +144,144 @@ def test_signed_door_screens_and_admits_one_bound_v13_task(tmp_path, monkeypatch
         )
     finally:
         provider.close()
+
+
+def test_trusted_query_measurement_is_prospective_and_keeps_default_unbound(
+    tmp_path, monkeypatch
+):
+    request, provider_factory, discovery = _fixture(
+        tmp_path, monkeypatch, material=bundle_material_v5()
+    )
+    provider = provider_factory()
+    try:
+        root = tmp_path / "attempts"
+        root.mkdir(mode=0o700)
+        root.chmod(0o700)
+        ledger = AttemptLedger(root / "ledger.sqlite3")
+        owner_provider = lambda owner: provider if owner == "miner" else None
+        default = LeanRecipeAdapter(discovery, owner_provider, ledger)
+        measured = LeanRecipeAdapter(
+            discovery, owner_provider, ledger, measure_query=True
+        )
+        with pytest.raises(TypeError, match="verified discovery"):
+            LeanRecipeAdapter(discovery, owner_provider, ledger, measure_query=1)
+        recipe = default.validate_strategy(request.recipe)
+        assert (
+            default.identities()["rule_digest"] != measured.identities()["rule_digest"]
+        )
+        assert (
+            default._request("miner", recipe).idempotency_key
+            != measured._request("miner", recipe).idempotency_key
+        )
+        submission = Admitted(
+            "miner",
+            {},
+            default.challenge_id,
+            default.challenge_version,
+            request.recipe,
+            default.contract_digest,
+        )
+        historical = default.evaluate(submission)
+        prospective = measured.evaluate(submission)
+        assert historical["state"] == prospective["state"] == "ADMITTED"
+        assert historical["task_id"] != prospective["task_id"]
+        assert historical["task_id"] not in provider._measured_tasks
+        assert prospective["task_id"] in provider._measured_tasks
+        assert default.owner(historical["task_id"]) == "miner"
+        assert measured.owner(prospective["task_id"]) == "miner"
+        assert default.owner(prospective["task_id"]) is None
+        assert measured.owner(historical["task_id"]) is None
+        assert default.status()["submissions"] == 1
+        assert measured.status()["submissions"] == 1
+        assert default.status()["score_pack"] is None
+        assert measured.status()["score_pack"] is None
+        with pytest.raises(LookupError, match="score_pack_unbound"):
+            measured.score_record(prospective["submission_id"])
+    finally:
+        provider.close()
+    reopened = provider_factory()
+    try:
+        retained_ledger = AttemptLedger(root / "ledger.sqlite3")
+        retained_provider = lambda owner: reopened if owner == "miner" else None
+        measured_reopened = LeanRecipeAdapter(
+            discovery, retained_provider, retained_ledger, measure_query=True
+        )
+        assert measured_reopened.owner(prospective["task_id"]) == "miner"
+        assert measured_reopened.owner(historical["task_id"]) is None
+        assert measured_reopened.status()["submissions"] == 1
+    finally:
+        reopened.close()
+
+
+@pytest.mark.parametrize("measure_query", [False, True])
+def test_retained_owner_rejects_opposite_measurement_profile_after_refused_start(
+    tmp_path, monkeypatch, measure_query
+):
+    request, provider_factory, discovery = _fixture(
+        tmp_path, monkeypatch, material=bundle_material_v5()
+    )
+    root = tmp_path / "attempts"
+    root.mkdir(mode=0o700)
+    root.chmod(0o700)
+    ledger_path = root / "ledger.sqlite3"
+    first = provider_factory()
+    try:
+        ledger = AttemptLedger(ledger_path)
+        adapter = LeanRecipeAdapter(
+            discovery,
+            lambda owner: first if owner == "miner" else None,
+            ledger,
+            measure_query=measure_query,
+        )
+        recipe = adapter.validate_strategy(request.recipe)
+        same_request = adapter._request("miner", recipe)
+        task = first.start_research_task(
+            same_request, measure_query=not measure_query
+        ).task
+        submission = Admitted(
+            "miner",
+            {},
+            adapter.challenge_id,
+            adapter.challenge_version,
+            request.recipe,
+            adapter.contract_digest,
+        )
+        with pytest.raises(Unavailable, match="direct_provider_unavailable"):
+            adapter.evaluate(submission)
+        assert ledger.submitted_outcomes(adapter.contract_digest) == (
+            task.task_id.value,
+        )
+        assert adapter.owner(task.task_id.value) is None
+        assert adapter.status()["submissions"] == 0
+        with pytest.raises(LookupError, match="unknown_submission"):
+            adapter.outcome(task.task_id.value)
+        assert adapter.advance() == 0
+        assert first._views[task.task_id.value].state == task.state
+    finally:
+        first.close()
+
+    reopened = provider_factory()
+    try:
+        retained_ledger = AttemptLedger(ledger_path)
+        retained = LeanRecipeAdapter(
+            discovery,
+            lambda owner: reopened if owner == "miner" else None,
+            retained_ledger,
+            measure_query=measure_query,
+        )
+        assert (task.task_id.value in reopened._measured_tasks) is not measure_query
+        assert retained.owner(task.task_id.value) is None
+        assert retained.status()["submissions"] == 0
+        with pytest.raises(LookupError, match="unknown_submission"):
+            retained.outcome(task.task_id.value)
+        dispatched = []
+        monkeypatch.setattr(
+            reopened, "run_queued_task", lambda identity: dispatched.append(identity)
+        )
+        assert retained.advance() == 0
+        assert dispatched == []
+    finally:
+        reopened.close()
 
 
 def test_owner_intent_recovers_persisted_task_before_validator_outcome(

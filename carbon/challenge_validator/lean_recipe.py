@@ -76,7 +76,9 @@ class LeanRecipeAdapter(ChallengeAdapter):
     strategy_schema = RECIPE_SCHEMA
     disclosure_fields = frozenset({"task_id", "state_digest", "predictions_digest"})
 
-    def __init__(self, discovery, provider_for: Callable, ledger):
+    def __init__(
+        self, discovery, provider_for: Callable, ledger, *, measure_query: bool = False
+    ):
         from carbon.challenge_validator.ledger import AttemptLedger
         from carbon.development_session.research_service import DirectFixtureDiscovery
         from carbon.transport.models import MAX_BODY
@@ -85,6 +87,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
             type(discovery) is not DirectFixtureDiscovery
             or type(ledger) is not AttemptLedger
             or not callable(provider_for)
+            or type(measure_query) is not bool
         ):
             raise TypeError(
                 "verified discovery, owner provider and attempt ledger required"
@@ -98,6 +101,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
         self.discovery = discovery
         self.provider_for = provider_for
         self.ledger = ledger
+        self._measure_query = measure_query
         self.challenge_id = contract.challenge_id
         self.challenge_version = contract.version
         self.contract_digest = contract.digest
@@ -115,12 +119,17 @@ class LeanRecipeAdapter(ChallengeAdapter):
         policy = material["construction_limits_document"][
             "reconstruction_resource_policy"
         ]
+        rule = {"schema": "carbon.lean-recipe-score-binding.v1", "score_pack": None}
+        if self._measure_query:
+            rule = {
+                "schema": "carbon.lean-recipe-score-binding.v2",
+                "score_pack": None,
+                "measurement_profile": "COLD_QUERY_V2",
+            }
         return {
             "schema": "carbon.lean-recipe-adapter-identities.v1",
             "contract_digest": contract.digest,
-            "rule_digest": digest(
-                {"schema": "carbon.lean-recipe-score-binding.v1", "score_pack": None}
-            ),
+            "rule_digest": digest(rule),
             "implementation_digest": _implementation_identity(),
             "construction_kit_digest": sha(canonical(self._kit)),
             "challenge_info_digest": canonical_digest(info),
@@ -162,11 +171,10 @@ class LeanRecipeAdapter(ChallengeAdapter):
         from carbon.research import DirectStartTaskRequestV3
 
         info = self.discovery.info
-        identity = hashlib.sha256(
-            (hotkey + "\0" + self.contract_digest + "\0" + recipe.digest).encode(
-                "utf-8"
-            )
-        ).hexdigest()
+        task_binding = hotkey + "\0" + self.contract_digest + "\0" + recipe.digest
+        if self._measure_query:
+            task_binding += "\0" + self._identities["rule_digest"]
+        identity = hashlib.sha256(task_binding.encode("utf-8")).hexdigest()
         return DirectStartTaskRequestV3(
             info.challenge_key,
             "lean-recipe-" + identity,
@@ -223,7 +231,9 @@ class LeanRecipeAdapter(ChallengeAdapter):
             "sha256:" + hashlib.sha256(canonical_bytes(request)).hexdigest(),
         )
         try:
-            task = provider.start_research_task(request).task
+            task = provider.start_research_task(
+                request, measure_query=self._measure_query
+            ).task
         except ResearchTaskProviderError as refused:
             if refused.code in (
                 ResearchServiceErrorCode.REFERENCE_NOT_FOUND,
@@ -294,7 +304,24 @@ class LeanRecipeAdapter(ChallengeAdapter):
         return outcome
 
     def owner(self, submission_id):
-        return self.ledger.owned_outcome(self.contract_digest, submission_id)
+        owner = self.ledger.owned_outcome(self.contract_digest, submission_id)
+        if owner is None:
+            return None
+        from carbon.development_session.construction_recipe import ConstructionRecipe
+
+        provider = self._provider(owner)
+        retained = provider._requests.get(submission_id)
+        if retained is None:
+            return None
+        recipe = ConstructionRecipe.from_dict(retained.recipe)
+        expected = self._request(owner, recipe)
+        if (
+            expected != retained
+            or provider._task_id(expected).value != submission_id
+            or (submission_id in provider._measured_tasks) != self._measure_query
+        ):
+            return None
+        return owner
 
     def outcome(self, submission_id):
         from carbon.research import DirectGetTaskRequestV3, ResearchTaskId
@@ -367,7 +394,12 @@ class LeanRecipeAdapter(ChallengeAdapter):
         return {
             "schema": "carbon.lean-recipe-adapter-status.v1",
             "contract_digest": self.contract_digest,
-            "submissions": len(self.ledger.submitted_outcomes(self.contract_digest)),
+            "submissions": sum(
+                self.owner(submission_id) is not None
+                for submission_id in self.ledger.submitted_outcomes(
+                    self.contract_digest
+                )
+            ),
             "score_pack": None,
             "qualification": False,
         }
