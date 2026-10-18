@@ -13,9 +13,17 @@ import urllib.error
 import urllib.request
 from dataclasses import asdict
 from pathlib import Path
+from types import SimpleNamespace
 
 from carbon.chain.auth import BittensorMessageSigner
 from carbon.chain.models import ChainContext
+from carbon.challenge_validator.dispatch import RESULT_SCHEMA
+from carbon.challenge_validator.interface import (
+    OutcomeContractViolation,
+    check_outcome,
+    is_digest,
+)
+from carbon.challenge_validator.lean_recipe import OUTCOME_SCHEMA
 from carbon.development_session.construction_recipe import ConstructionRecipe
 from carbon.development_session.data import write_once
 from carbon.registry.model import ChallengeKey
@@ -29,6 +37,21 @@ SUBMIT_TOOL = "construction_submit"
 STATUS_TOOL = "construction_status"
 SOURCE_TOOL = "carbon_research_v2"
 TERMINAL = frozenset({"RECONSTRUCTED", "RECONSTRUCTION_FAILED", "FAILED_INFRA"})
+PINNED_FIELDS = frozenset(
+    {"contract_digest", "rule_digest", "implementation_digest", "identities_digest"}
+)
+RESULT_FIELDS = frozenset(
+    {
+        "schema",
+        "kind",
+        "code",
+        "pinned",
+        "outcome",
+        "evidence",
+        "qualification",
+        "reward",
+    }
+)
 WAIT_S = 1800.0
 POLL_S = 30.0
 
@@ -118,6 +141,78 @@ def _refusal_code(answer, fallback):
     return fallback
 
 
+def _outcome(answer, *, contract_digest, challenge, task_id=None, pinned=None):
+    """Check the existing public validator envelope and lean outcome contract."""
+    if (
+        type(answer) is not dict
+        or set(answer) != RESULT_FIELDS
+        or answer.get("schema") != RESULT_SCHEMA
+        or answer.get("kind") != "OUTCOME"
+        or answer.get("code") is not None
+        or answer.get("evidence") != "DEVELOPMENT"
+        or answer.get("qualification") is not False
+        or answer.get("reward") is not False
+    ):
+        raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
+    identities = answer.get("pinned")
+    if (
+        type(identities) is not dict
+        or set(identities) != PINNED_FIELDS
+        or identities.get("contract_digest") != contract_digest
+        or not all(is_digest(value) for value in identities.values())
+        or (pinned is not None and identities != pinned)
+    ):
+        raise DirectIntakeRefusal("construction_intake_identity_mismatch")
+    result = answer.get("outcome")
+    try:
+        check_outcome(
+            result,
+            SimpleNamespace(
+                challenge_id=challenge.challenge_id,
+                challenge_version=challenge.version,
+                disclosure_fields=frozenset(
+                    {"task_id", "state_digest", "predictions_digest"}
+                ),
+            ),
+        )
+    except OutcomeContractViolation:
+        raise DirectIntakeRefusal("construction_intake_answer_unrecognised") from None
+    if (
+        result.get("schema") != OUTCOME_SCHEMA
+        or result.get("evidence") != "DEVELOPMENT_PUBLIC_SYNTHETIC"
+        or result.get("state") not in (TERMINAL | {"ADMITTED"})
+        or type(result.get("task_id")) is not str
+        or not result["task_id"]
+        or result.get("submission_id") != result["task_id"]
+        or (task_id is not None and result["task_id"] != task_id)
+    ):
+        raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
+    state = result["state"]
+    if state == "RECONSTRUCTED":
+        if (
+            not is_digest(result.get("state_digest"))
+            or not is_digest(result.get("predictions_digest"))
+            or "failure" in result
+        ):
+            raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
+    elif state == "ADMITTED":
+        if any(
+            key in result for key in ("state_digest", "predictions_digest", "failure")
+        ):
+            raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
+    else:
+        failure = result.get("failure")
+        if (
+            type(failure) is not dict
+            or type(failure.get("code")) is not str
+            or not 0 < len(failure["code"]) <= 128
+            or not failure["code"].isprintable()
+            or any(key in result for key in ("state_digest", "predictions_digest"))
+        ):
+            raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
+    return result, identities
+
+
 def _body(facts, *, recipe, contract_digest, receiver, context, tool, fields, request):
     challenge, snapshot = _checked(
         facts,
@@ -192,6 +287,7 @@ def submit_and_wait(
     if not intake_url(url):
         raise DirectIntakeRefusal("construction_intake_url_invalid")
     challenge = recipe.to_dict()["challenge"]
+    expected_challenge = ChallengeKey(challenge["id"], challenge["version"])
     try:
         registered_contract = registered(challenge["id"], challenge["version"])
     except LookupError:
@@ -210,7 +306,15 @@ def submit_and_wait(
         ):
             raise DirectIntakeRefusal("construction_intake_changed_since_submission")
         task_id = recorded.get("submission_id")
-        if type(task_id) is not str or not task_id:
+        pinned = recorded.get("pinned")
+        if (
+            type(task_id) is not str
+            or not task_id
+            or type(pinned) is not dict
+            or set(pinned) != PINNED_FIELDS
+            or pinned.get("contract_digest") != contract_digest
+            or not all(is_digest(value) for value in pinned.values())
+        ):
             raise DirectIntakeRefusal("construction_intake_record_invalid")
     else:
         facts = read(url)
@@ -235,17 +339,15 @@ def submit_and_wait(
             raise DirectIntakeRefusal(
                 _refusal_code(answer, "construction_intake_unavailable")
             )
-        outcome = answer.get("outcome")
-        if type(outcome) is not dict or outcome.get("state") not in (
-            TERMINAL | {"ADMITTED"}
-        ):
-            raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
-        task_id = outcome.get("task_id")
-        if type(task_id) is not str or not task_id:
-            raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
+        outcome, pinned = _outcome(
+            answer, contract_digest=contract_digest, challenge=expected_challenge
+        )
+        task_id = outcome["task_id"]
         write_once(
             record_path,
-            json.dumps({**binding, "submission_id": task_id}, sort_keys=True).encode(),
+            json.dumps(
+                {**binding, "submission_id": task_id, "pinned": pinned}, sort_keys=True
+            ).encode(),
         )
         record_path.chmod(0o600)
     deadline = clock() + wait_s
@@ -271,14 +373,13 @@ def submit_and_wait(
             raise DirectIntakeRefusal(
                 _refusal_code(answer, "construction_status_unavailable")
             )
-        outcome = answer.get("outcome")
-        if type(outcome) is not dict or outcome.get("task_id") != task_id:
-            raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
-        if (
-            outcome.get("qualification") is not False
-            or outcome.get("reward") is not False
-        ):
-            raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
+        outcome, _ = _outcome(
+            answer,
+            contract_digest=contract_digest,
+            challenge=expected_challenge,
+            task_id=task_id,
+            pinned=pinned,
+        )
         if outcome.get("state") in TERMINAL:
             return outcome
         if outcome.get("state") != "ADMITTED":

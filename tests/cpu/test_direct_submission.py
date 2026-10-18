@@ -19,6 +19,12 @@ _URL = "http://127.0.0.1:9080"
 _CONTEXT = ChainContext(
     "testnet", "wss://chain.example", "fixture", "0x" + "1" * 64, 567
 )
+_PINNED = {
+    "contract_digest": _CONTRACT,
+    "rule_digest": "sha256:" + "b" * 64,
+    "implementation_digest": "sha256:" + "c" * 64,
+    "identities_digest": "sha256:" + "d" * 64,
+}
 
 
 def _recipe():
@@ -62,6 +68,33 @@ def _facts():
     }
 
 
+def _answer(state, *, task_id="task-1", **outcome_fields):
+    outcome = {
+        "schema": client.OUTCOME_SCHEMA,
+        "submission_id": task_id,
+        "challenge": {"id": "synthetic-linear-field-2d", "version": "1.3"},
+        "state": state,
+        "evidence": "DEVELOPMENT_PUBLIC_SYNTHETIC",
+        "qualification": False,
+        "reward": False,
+        "task_id": task_id,
+        **outcome_fields,
+    }
+    if state == "RECONSTRUCTED":
+        outcome.setdefault("state_digest", "sha256:" + "e" * 64)
+        outcome.setdefault("predictions_digest", "sha256:" + "f" * 64)
+    return {
+        "schema": client.RESULT_SCHEMA,
+        "kind": "OUTCOME",
+        "code": None,
+        "pinned": dict(_PINNED),
+        "outcome": outcome,
+        "evidence": "DEVELOPMENT",
+        "qualification": False,
+        "reward": False,
+    }
+
+
 def test_signed_direct_submission_records_task_and_restart_only_polls(
     tmp_path, monkeypatch
 ):
@@ -85,19 +118,8 @@ def test_signed_direct_submission_records_task_and_restart_only_polls(
         if request["tool"] == client.SUBMIT_TOOL:
             assert request["fields"]["contract_digest"] == _CONTRACT
             assert json.loads(request["fields"]["strategy_json"]) == _recipe().to_dict()
-            return 202, {
-                "kind": "OUTCOME",
-                "outcome": {"state": "ADMITTED", "task_id": "task-1"},
-            }
-        return 200, {
-            "kind": "OUTCOME",
-            "outcome": {
-                "state": "RECONSTRUCTED",
-                "task_id": "task-1",
-                "qualification": False,
-                "reward": False,
-            },
-        }
+            return 202, _answer("ADMITTED")
+        return 200, _answer("RECONSTRUCTED")
 
     args = dict(
         root=tmp_path,
@@ -139,16 +161,9 @@ def test_retried_submit_accepts_an_already_reconstructed_idempotent_task(
     def send(url, body, headers):
         tool = json.loads(body)["tool"]
         calls.append(tool)
-        outcome = {
-            "state": "RECONSTRUCTED",
-            "task_id": "same-task",
-            "qualification": False,
-            "reward": False,
-        }
-        return (202 if tool == client.SUBMIT_TOOL else 200), {
-            "kind": "OUTCOME",
-            "outcome": outcome,
-        }
+        return (202 if tool == client.SUBMIT_TOOL else 200), _answer(
+            "RECONSTRUCTED", task_id="same-task"
+        )
 
     result = client.submit_and_wait(
         _URL,
@@ -170,6 +185,93 @@ def test_retried_submit_accepts_an_already_reconstructed_idempotent_task(
         ]
         == "same-task"
     )
+
+
+@pytest.mark.parametrize(
+    ("changed", "reason"),
+    [
+        ("missing_state_digest", "construction_intake_answer_unrecognised"),
+        ("wrong_outcome_schema", "construction_intake_answer_unrecognised"),
+        ("wrong_challenge", "construction_intake_answer_unrecognised"),
+        ("wrong_task_identity", "construction_intake_answer_unrecognised"),
+        ("wrong_pinned_identity", "construction_intake_identity_mismatch"),
+        ("extra_private_field", "construction_intake_answer_unrecognised"),
+    ],
+)
+def test_incomplete_or_different_terminal_result_never_becomes_success(
+    tmp_path, monkeypatch, changed, reason
+):
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def send(url, body, headers):
+        if json.loads(body)["tool"] == client.SUBMIT_TOOL:
+            return 202, _answer("ADMITTED")
+        result = _answer("RECONSTRUCTED")
+        if changed == "missing_state_digest":
+            del result["outcome"]["state_digest"]
+        elif changed == "wrong_outcome_schema":
+            result["outcome"]["schema"] = "other.outcome"
+        elif changed == "wrong_challenge":
+            result["outcome"]["challenge"]["version"] = "1.2"
+        elif changed == "wrong_task_identity":
+            result["outcome"]["submission_id"] = "another-task"
+        elif changed == "wrong_pinned_identity":
+            result["pinned"]["implementation_digest"] = "sha256:" + "1" * 64
+        else:
+            result["outcome"]["private_seed"] = "must-not-appear"
+        return 200, result
+
+    with pytest.raises(client.DirectIntakeRefusal, match=reason):
+        client.submit_and_wait(
+            _URL,
+            "external-signer",
+            root=tmp_path,
+            epoch=1,
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            read=lambda url: _facts(),
+            send=send,
+        )
+
+
+def test_incomplete_terminal_submit_does_not_create_a_success_record(
+    tmp_path, monkeypatch
+):
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+    incomplete = _answer("RECONSTRUCTED")
+    del incomplete["outcome"]["predictions_digest"]
+    with pytest.raises(
+        client.DirectIntakeRefusal, match="construction_intake_answer_unrecognised"
+    ):
+        client.submit_and_wait(
+            _URL,
+            "external-signer",
+            root=tmp_path,
+            epoch=1,
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            read=lambda url: _facts(),
+            send=lambda *_: (202, incomplete),
+        )
+    assert not (tmp_path / "construction-intake-epoch-1.json").exists()
 
 
 def test_wrong_registered_contract_refuses_before_contact(tmp_path, monkeypatch):
@@ -202,6 +304,7 @@ def test_recorded_task_rejects_receiver_drift_without_contact(tmp_path):
             {
                 **client._binding(_URL, recipe, _CONTRACT, _RECEIVER, _CONTEXT, 1),
                 "submission_id": "task-1",
+                "pinned": dict(_PINNED),
             }
         ),
         encoding="utf-8",
