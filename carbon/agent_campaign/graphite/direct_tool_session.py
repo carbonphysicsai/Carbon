@@ -249,7 +249,11 @@ class DirectToolSession:
             raise UncertainDirectToolDispatch(
                 "direct tool outcome requires reconciliation"
             ) from None
-        if type(result) is not dict or protected(result):
+        if (
+            type(result) is not dict
+            or result.get("ok") is not True
+            or protected(result)
+        ):
             raise UncertainDirectToolDispatch(
                 "direct tool outcome requires reconciliation"
             )

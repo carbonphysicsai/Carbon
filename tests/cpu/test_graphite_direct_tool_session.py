@@ -264,7 +264,9 @@ def test_real_direct_envelope_promotes_reconciliation_to_loop_top_level():
     assert len(calls) == 2
 
 
-@pytest.mark.parametrize("outcome", ["timeout", "malformed", "protected"])
+@pytest.mark.parametrize(
+    "outcome", ["timeout", "malformed", "protected", "operational_stop"]
+)
 def test_post_route_uncertainty_never_claims_nondispatch(outcome):
     calls = []
 
@@ -276,6 +278,8 @@ def test_post_route_uncertainty_never_claims_nondispatch(outcome):
             raise TimeoutError("private route diagnostic")
         if outcome == "protected":
             return {"ok": True, "result": {"official_seed": "private"}}
+        if outcome == "operational_stop":
+            return {"ok": False, "error": "DIRECT_OPERATIONAL_STOP"}
         return None
 
     session = DirectToolSession.open(uncertain, campaign_identity=CAMPAIGN_A)
