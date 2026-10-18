@@ -305,10 +305,16 @@ def test_staging_transport_and_chunk_bounds_remain_enforced(receiver):
     assert not ResearchWorkspace(provider.ledger, provider.owner).inventory()
 
 
-def test_signed_material_staging_promotes_only_full_owner_closure(receiver, tmp_path):
+def test_signed_material_staging_promotes_only_full_owner_closure(
+    receiver, tmp_path, monkeypatch
+):
     from test_library_bundles import fixture
 
     intake, request, provider, _state = receiver
+    # Exercise authentication replay after admission to the separate rate guard.
+    # A deterministic rate clock avoids consuming the entire burst in this loop.
+    rate_time = [0.0]
+    monkeypatch.setattr(intake.limits, "clock", lambda: rate_time[0])
     cache = tmp_path / "owner-material-cache"
     cache.mkdir(mode=0o700)
     cache.chmod(0o700)
@@ -337,6 +343,7 @@ def test_signed_material_staging_promotes_only_full_owner_closure(receiver, tmp_
         ),
     ]
     for index, (name, body) in enumerate(files, start=1):
+        rate_time[0] += 2.0
         call = research.ServiceCall(
             research.RESEARCH_NAMESPACE,
             "stage_research_material",
