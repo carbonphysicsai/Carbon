@@ -98,6 +98,7 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
     tmp_path, monkeypatch
 ):
     from carbon.development_session import (
+        gpu_practice,
         miner_network,
         research_campaign,
         research_image,
@@ -162,6 +163,11 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
     monkeypatch.setattr(research_image, "load_analysis_image", lambda _: analysis)
     monkeypatch.setattr(research_image, "verify_image", lambda _: None)
     monkeypatch.setattr(
+        gpu_practice,
+        "gpu_image_backend",
+        lambda image: "jax" if image is gpu else None,
+    )
+    monkeypatch.setattr(
         docker_runtime,
         "doctor",
         lambda **_: SimpleNamespace(eligible=True),
@@ -172,6 +178,16 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
     assert cache == campaigns / ".direct-development" / "library-cache"
     assert calls == [("candidate", state)]
 
+    # The source-matched CPU worker is not a registered direct GPU parent.
+    monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _: None)
+    with pytest.raises(ValueError, match="direct parent backend is unregistered"):
+        receiver.installed_source(profile)
+    monkeypatch.setattr(
+        gpu_practice,
+        "gpu_image_backend",
+        lambda image: "jax" if image is gpu else None,
+    )
+
     # A present but invalid candidate pin cannot silently use accepted main.
     def invalid_candidate(_):
         raise ValueError("development candidate record differs")
@@ -179,7 +195,7 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
     monkeypatch.setattr(installed, "candidate_implementation", invalid_candidate)
     with pytest.raises(ValueError, match="candidate record differs"):
         receiver.installed_source(profile)
-    assert calls == [("candidate", state)]
+    assert calls == [("candidate", state)] * 2
 
     monkeypatch.setattr(installed, "candidate_implementation", lambda _: candidate)
     cfg["runtime"]["implementation"] = accepted

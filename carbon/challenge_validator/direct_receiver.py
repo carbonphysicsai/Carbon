@@ -199,6 +199,7 @@ class ReceiverSnapshotWindow:
 
 def installed_source(profile_path: Path):
     """Verify maintained accepted source/image/chain without opening a signer."""
+    from carbon.development_session.gpu_practice import gpu_image_backend
     from carbon.development_session.miner_network import binding
     from carbon.development_session.research_campaign import (
         accepted_implementation,
@@ -247,6 +248,8 @@ def installed_source(profile_path: Path):
             raise ValueError("development candidate installed images differ")
     parent = load_image_identity(Path(cfg.get("gpu_image", paths["image_manifest"])))
     verify_current_worker(parent, implementation)
+    if gpu_image_backend(parent) not in {"jax", "pytorch"}:
+        raise ValueError("installed direct parent backend is unregistered")
     if not doctor(image_id=parent.image_id, image_identity=parent).eligible:
         raise ReceiverUnavailable("installed_reconstruction_worker_unavailable")
     network = binding(
