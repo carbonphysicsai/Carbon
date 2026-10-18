@@ -26,6 +26,23 @@ SOURCE_SCHEMA = "carbon.scoring.private-evaluation-source.v1"
 SIDECAR_SCHEMA = "carbon.scoring.private-evaluation-binding.v1"
 PACK_SOURCE_SCHEMA = "carbon.scoring.private-evaluation-source.v2"
 PACK_SIDECAR_SCHEMA = "carbon.scoring.private-evaluation-binding.v2"
+DUAL_SIDECAR_SCHEMA = "carbon.scoring.private-evaluation-binding.v3"
+DUAL_MEASUREMENT_SCHEMA = "carbon.scoring.private-dual-measurement.v1"
+_DUAL_MEASUREMENT_FIELDS = {
+    "schema",
+    "source_receipt_sha256",
+    "evaluation_pack_digest",
+    "score_pack_digest",
+    "measurement_contract_digest",
+    "measurement_contract",
+    "producer_digest",
+    "entry_id",
+    "state_digest",
+    "measured_model_sha256",
+    "inference_receipt_sha256",
+    "worker_evidence_sha256",
+    "benchmark",
+}
 _SHA256 = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _SOURCE_FIELDS = {
     "schema",
@@ -67,20 +84,20 @@ def _sha(raw):
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
-def _parse_source(raw):
+def _parse_receipt_json(raw, prefix="source_receipt"):
     if type(raw) is not bytes or not 0 < len(raw) <= 1024 * 1024:
-        raise PrivateEvaluationEvidenceRefused("source_receipt_bytes")
+        raise PrivateEvaluationEvidenceRefused(f"{prefix}_bytes")
 
     def unique_pairs(pairs):
         result = {}
         for key, value in pairs:
             if key in result:
-                raise PrivateEvaluationEvidenceRefused("source_receipt_duplicate_key")
+                raise PrivateEvaluationEvidenceRefused(f"{prefix}_duplicate_key")
             result[key] = value
         return result
 
     def reject_constant(_value):
-        raise PrivateEvaluationEvidenceRefused("source_receipt_nonfinite")
+        raise PrivateEvaluationEvidenceRefused(f"{prefix}_nonfinite")
 
     try:
         result = json.loads(
@@ -89,9 +106,14 @@ def _parse_source(raw):
             parse_constant=reject_constant,
         )
     except (UnicodeError, ValueError, RecursionError) as exc:
-        raise PrivateEvaluationEvidenceRefused("source_receipt_json") from exc
+        raise PrivateEvaluationEvidenceRefused(f"{prefix}_json") from exc
     if type(result) is not dict:
-        raise PrivateEvaluationEvidenceRefused("source_receipt_shape")
+        raise PrivateEvaluationEvidenceRefused(f"{prefix}_shape")
+    return result
+
+
+def _parse_source(raw):
+    result = _parse_receipt_json(raw)
     schema = result.get("schema")
     if type(schema) is not str or schema not in {SOURCE_SCHEMA, PACK_SOURCE_SCHEMA}:
         raise PrivateEvaluationEvidenceRefused("source_receipt_shape")
@@ -122,6 +144,303 @@ def _reference_rows(registration, references):
     return cases
 
 
+def _dual_source_binding(
+    source, entry, trusted_job, registration, references, queries, physics
+):
+    expected = {
+        "challenge": trusted_job["challenge"],
+        "challenge_version": trusted_job["challenge_version"],
+        "interface_digest": trusted_job["interface_digest"],
+        "train_digest": trusted_job["train_digest"],
+        "job_digest": trusted_job["job_digest"],
+        "registration_digest": registration["registration_digest"],
+        "physics_contract": physics,
+    }
+    if (
+        any(source.get(key) != value for key, value in expected.items())
+        or type(source["evaluation_version"]) is not str
+        or not source["evaluation_version"]
+    ):
+        raise PrivateEvaluationEvidenceRefused("evaluation_identity")
+    cases = _reference_rows(registration, references)
+    if (
+        type(queries) is not list
+        or len(queries) != len(cases)
+        or type(source["cases"]) is not list
+        or len(source["cases"]) != len(cases)
+    ):
+        raise PrivateEvaluationEvidenceRefused("query_roster")
+    for case, reference, query, original in zip(
+        cases, references, queries, source["cases"], strict=True
+    ):
+        if type(query) is not bytes:
+            raise PrivateEvaluationEvidenceRefused("query_bytes")
+        if (
+            type(original) is not dict
+            or set(original) != _CASE_FIELDS
+            or type(original["weight"]) is not type(case["weight"])
+            or original
+            != {
+                "id": case["id"],
+                "role": case["role"],
+                "weight": case["weight"],
+                "query_sha256": _sha(query),
+                "reference_row_sha256": _sha(_canonical(reference)),
+                "reference_status": reference["status"],
+            }
+        ):
+            raise PrivateEvaluationEvidenceRefused("source_case_binding")
+    roles = entry.get("roles")
+    if (
+        type(roles) is not dict
+        or type(roles.get("inputs")) is not dict
+        or _sha(queries[0]) != roles["inputs"].get("sha256")
+    ):
+        raise PrivateEvaluationEvidenceRefused("graph_query_original_binding")
+
+
+def _bind_dual_evaluation(
+    *,
+    source,
+    entry,
+    custody_receipt_raw,
+    trusted_job,
+    registration,
+    references,
+    measured_model,
+    score_pack,
+    graph_originals,
+    expected_result_digest,
+    ordered_query_bytes,
+    registered_source_receipt_sha256,
+    expected_evaluation_pack_digest,
+    dual_measurement_receipt_raw,
+    registered_dual_measurement_sha256,
+):
+    """Authenticate operator-produced measurements, then use the same v4 core.
+
+    The independently registered receipt pin must come from the normal trusted
+    producer's write-once operator custody. Hash equality cannot attest that
+    caller provenance, producer execution, or scientific adequacy by itself.
+    No participant-supplied measurement/gate dictionary is accepted as a pin.
+    """
+    from carbon.scoring.engine import ScoreEngine
+
+    if (
+        source["schema"] != PACK_SOURCE_SCHEMA
+        or expected_evaluation_pack_digest is None
+    ):
+        raise PrivateEvaluationEvidenceRefused("evaluation_pack_source_missing")
+    if (
+        type(dual_measurement_receipt_raw) is not bytes
+        or type(registered_dual_measurement_sha256) is not str
+        or _SHA256.fullmatch(registered_dual_measurement_sha256) is None
+    ):
+        raise PrivateEvaluationEvidenceRefused("dual_measurement_unavailable")
+    if _sha(dual_measurement_receipt_raw) != registered_dual_measurement_sha256:
+        raise PrivateEvaluationEvidenceRefused("dual_measurement_pin_mismatch")
+    evidence = _parse_receipt_json(dual_measurement_receipt_raw, "dual_measurement")
+    if (
+        set(evidence) != _DUAL_MEASUREMENT_FIELDS
+        or evidence["schema"] != DUAL_MEASUREMENT_SCHEMA
+    ):
+        raise PrivateEvaluationEvidenceRefused("dual_measurement_shape")
+    if (
+        type(entry) is not dict
+        or entry.get("source_kind") != "graph"
+        or type(registration) is not dict
+        or type(registration.get("cases")) is not list
+        or len(registration["cases"]) != 1
+        or type(graph_originals) is not dict
+        or set(graph_originals) != {"inference_receipt_raw", "worker_evidence_raw"}
+        or any(type(raw) is not bytes for raw in graph_originals.values())
+    ):
+        raise PrivateEvaluationEvidenceRefused("model_query_originals_unavailable")
+    # This existing reducer authenticates retained originals and raw reference
+    # rows. Its descriptive MAE/speed outputs are never used as A or D here.
+    try:
+        raw_result = benchmark_saved_entry(
+            entry,
+            custody_receipt_raw,
+            trusted_job,
+            registration,
+            references,
+            measured_model,
+            None,
+            graph_originals=graph_originals,
+        )
+    except (
+        BundleBenchmarkRefused,
+        BenchmarkRefused,
+        BenchmarkScoreRefused,
+        KeyError,
+        TypeError,
+        ValueError,
+        OverflowError,
+    ) as exc:
+        raise PrivateEvaluationEvidenceRefused("benchmark_reduction_refused") from exc
+    if raw_result["status"] != "BENCHMARK_REDUCED":
+        raise PrivateEvaluationEvidenceRefused("model_query_originals_unavailable")
+    _dual_source_binding(
+        source,
+        entry,
+        trusted_job,
+        registration,
+        references,
+        ordered_query_bytes,
+        raw_result["physics_contract"],
+    )
+    basis = evidence["measurement_contract"]
+    basis_fields = {
+        "schema",
+        "producer_digest",
+        "accuracy_definition_sha256",
+        "important_limit_definition_sha256",
+        "design_objective_sha256",
+    }
+    if (
+        type(basis) is not dict
+        or set(basis) != basis_fields
+        or basis["schema"] != "carbon.scoring.dual-measurement-contract.v1"
+        or any(
+            type(basis[key]) is not str or _SHA256.fullmatch(basis[key]) is None
+            for key in basis_fields - {"schema"}
+        )
+        or _sha(_canonical(basis)) != score_pack.get("measurement_contract_digest")
+        or evidence["producer_digest"] != basis["producer_digest"]
+    ):
+        raise PrivateEvaluationEvidenceRefused("dual_measurement_contract")
+    expected = {
+        "source_receipt_sha256": registered_source_receipt_sha256,
+        "evaluation_pack_digest": expected_evaluation_pack_digest,
+        "score_pack_digest": score_pack.get("pack_digest"),
+        "measurement_contract_digest": score_pack.get("measurement_contract_digest"),
+        "entry_id": entry["entry_id"],
+        "state_digest": entry["state_digest"],
+        "measured_model_sha256": _sha(_canonical(measured_model)),
+        "inference_receipt_sha256": _sha(graph_originals["inference_receipt_raw"]),
+        "worker_evidence_sha256": _sha(graph_originals["worker_evidence_raw"]),
+    }
+    if any(evidence.get(key) != value for key, value in expected.items()):
+        raise PrivateEvaluationEvidenceRefused("dual_measurement_original_binding")
+    benchmark = evidence["benchmark"]
+    models = benchmark.get("models") if type(benchmark) is dict else None
+    mask = _sha(_canonical(source["cases"]))
+    if (
+        type(benchmark) is not dict
+        or type(models) is not list
+        or len(models) != 1
+        or type(models[0]) is not dict
+        or models[0].get("artifact_digest") != entry["entry_id"]
+        or benchmark.get("challenge") != source["challenge"]
+        or benchmark.get("scope") != registration["scope"]
+        or benchmark.get("physics_contract_digest")
+        != raw_result["physics_contract"]["definition_digest"]
+        or benchmark.get("common_mask_digest") != mask
+        or benchmark.get("population_role") != source["cases"][0]["role"]
+    ):
+        raise PrivateEvaluationEvidenceRefused("dual_benchmark_binding")
+    gates = models[0].get("gates")
+    if type(gates) is not dict or not set(registration["mandatory_gates"]) <= set(
+        gates
+    ):
+        raise PrivateEvaluationEvidenceRefused("dual_gate_original_binding")
+    if references[0]["status"] == "RESOLVED":
+        native = measured_model["cases"][0].get("gates")
+        if type(native) is not dict or any(
+            gates[name] != ("PASS" if native[name] else "FAIL")
+            for name in registration["mandatory_gates"]
+        ):
+            raise PrivateEvaluationEvidenceRefused("dual_gate_original_binding")
+    try:
+        scoring = ScoreEngine.score_dual_benchmark_v4(benchmark, score_pack)
+    except (KeyError, TypeError, ValueError, OverflowError) as exc:
+        raise PrivateEvaluationEvidenceRefused("dual_reduction_refused") from exc
+    row = scoring["models"][0]
+    expected_reference = {
+        "UNRESOLVED": "INDETERMINATE_EVIDENCE",
+        "FAILED_INFRA": "FAILED_INFRA",
+    }
+    if (
+        references[0]["status"] in expected_reference
+        and row["status"] != expected_reference[references[0]["status"]]
+    ):
+        raise PrivateEvaluationEvidenceRefused("dual_reference_status_binding")
+    score_digest = _sha(_canonical(scoring))
+    if score_digest != expected_result_digest:
+        raise PrivateEvaluationEvidenceRefused("result_digest_mismatch")
+    coverage = {
+        status: sum(ref["status"] == status for ref in references)
+        for status in ("RESOLVED", "UNRESOLVED", "FAILED_INFRA")
+    }
+    return {
+        "schema": DUAL_SIDECAR_SCHEMA,
+        "scope": "PRIVATE_OPERATOR_DEVELOPMENT",
+        "status": "BOUND_DEVELOPMENT_ONLY",
+        "official_score": False,
+        "official_eligible": False,
+        **{
+            key: source[key]
+            for key in (
+                "challenge",
+                "challenge_version",
+                "evaluation_version",
+                "registration_digest",
+            )
+        },
+        "evaluation_pack_digest": expected_evaluation_pack_digest,
+        "source_receipt_sha256": registered_source_receipt_sha256,
+        "dual_measurement_receipt_sha256": registered_dual_measurement_sha256,
+        "evaluation_version_digest": _sha(_canonical(source)),
+        "entry_id": entry["entry_id"],
+        "state_digest": entry["state_digest"],
+        "measurement_contract_digest": score_pack["measurement_contract_digest"],
+        "producer_digest": basis["producer_digest"],
+        "common_mask_digest": mask,
+        "ordered_query_material_digest": _sha(
+            _canonical([_sha(query) for query in ordered_query_bytes])
+        ),
+        "reference_rows_digest": _sha(_canonical(references)),
+        "reference_coverage": coverage,
+        "reference_coverage_digest": _sha(
+            _canonical(
+                [{"id": ref["id"], "status": ref["status"]} for ref in references]
+            )
+        ),
+        "score_compatibility": {
+            "score_pack_digest": score_pack["pack_digest"],
+            "scoring_version": score_pack["schema"],
+            "execution_profile_digest": _sha(
+                _canonical(registration["timing_profile"])
+            ),
+        },
+        "score_result_digest": score_digest,
+        "model_result_digest": _sha(
+            _canonical(
+                {
+                    "source": source,
+                    "entry_id": entry["entry_id"],
+                    "state_digest": entry["state_digest"],
+                    "measurement_receipt": evidence,
+                    "scoring": scoring,
+                }
+            )
+        ),
+        "scoring": scoring,
+        "model_p": {
+            "measurement_status": raw_result["benchmark"]["models"][0]["by_role"]["P"][
+                "status"
+            ],
+            "gate_outcomes": row["gates"],
+            "score_status": row["status"],
+            "physics_benefit": row["legs"]["A"],
+            "design_benefit": row["legs"]["D"],
+            "total_score": row["score"],
+            "decision_outcome": row["decision_outcome"],
+        },
+    }
+
+
 def bind_private_evaluation_evidence(
     *,
     entry,
@@ -137,6 +456,8 @@ def bind_private_evaluation_evidence(
     evaluation_source_receipt_raw,
     registered_source_receipt_sha256,
     expected_evaluation_pack_digest=None,
+    dual_measurement_receipt_raw=None,
+    registered_dual_measurement_sha256=None,
 ):
     """Bind one already reduced result to an independently pinned source.
 
@@ -145,6 +466,11 @@ def bind_private_evaluation_evidence(
     function verifies equality but cannot attest that caller provenance.
     A selected evaluation pack requires a v2 source and the exact trusted
     manifest pin retained by the receiver; a public result label is not a pin.
+    A prospective v4 pack additionally requires the independent operator pin
+    of its trusted dual-measurement receipt. For v4, expected_result_digest is
+    SHA256 of the same core's scoring result, canonical JSON plus LF; v3 keeps
+    its existing bundle-result digest. The returned v4 binding remains private
+    and nonofficial even when its measured candidate passes the rule.
     No raw cases, query bytes, or reference values enter the returned sidecar.
     """
     if (
@@ -178,6 +504,29 @@ def bind_private_evaluation_evidence(
         or _SHA256.fullmatch(expected_result_digest) is None
     ):
         raise PrivateEvaluationEvidenceRefused("result_digest_missing")
+    if score_pack.get("schema") == "carbon.scoring.dual-benchmark-pack.v4":
+        return _bind_dual_evaluation(
+            source=source,
+            entry=entry,
+            custody_receipt_raw=custody_receipt_raw,
+            trusted_job=trusted_job,
+            registration=registration,
+            references=references,
+            measured_model=measured_model,
+            score_pack=score_pack,
+            graph_originals=graph_originals,
+            expected_result_digest=expected_result_digest,
+            ordered_query_bytes=ordered_query_bytes,
+            registered_source_receipt_sha256=registered_source_receipt_sha256,
+            expected_evaluation_pack_digest=expected_evaluation_pack_digest,
+            dual_measurement_receipt_raw=dual_measurement_receipt_raw,
+            registered_dual_measurement_sha256=registered_dual_measurement_sha256,
+        )
+    if (
+        dual_measurement_receipt_raw is not None
+        or registered_dual_measurement_sha256 is not None
+    ):
+        raise PrivateEvaluationEvidenceRefused("dual_measurements_for_nondual_pack")
     if (
         type(entry) is not dict
         or entry.get("source_kind") != "graph"

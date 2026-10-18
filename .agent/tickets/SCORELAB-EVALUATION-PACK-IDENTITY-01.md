@@ -60,3 +60,40 @@ from Platform's caller. Reference timing covers only the in-process array
 operation; a cold worker time is a distinct scope. Report raw times separately,
 with speedup comparability NOT_ESTABLISHED, rather than interpreting a numeric
 ratio from the shared unready reducer as comparable solver acceleration.
+
+## Normal trusted Gate / Physics / Design dispatch (18 October)
+
+Root assigns a backwards-compatible v4 evidence-binding extension. Lead's
+acknowledged base is f36223cc230a19f5120d0fcfc601693b449df709. Optimizer owns
+`private_evaluation_evidence.py` and disjoint tests; NewChallenge owns the
+trusted source producer; Platform owns the normal retention/caller. Lead
+composes the coherent changes without cancelling current valid checks/jobs.
+
+Keep the existing v2 source identity receipt and v3/unranked behavior. A new
+private, independently registered measurement receipt binds the selected pack,
+source receipt, exact raw model/originals, whole source-case mask, and one
+existing dual-benchmark input. A v4-only static measurement-contract basis
+binds the three applied public definition roles plus their declared Carbon
+producer identity; its canonical digest must equal the selected Score Pack's
+measurement-contract digest. These definitions become required only when
+actually applying v4. Source/registration hashes are read from trusted operator
+custody, never obtained as authority from a participant's request.
+
+The binder authenticates the existing original raw reference/model/query
+bindings and delegates all Gate/A/D grading to the same `ScoreEngine` dual
+entry point. No new formula or Challenge default is added. The original
+single-query graph custody scope supplies the first positive normal fixture;
+unverifiable bundle originals remain typed unavailable. No raw-output MAE or
+speed ratio is substituted for the named physics or verified-design measures.
+Reference/infra failure is separate from candidate failure, hard gates cannot
+be compensated, and missing trusted measurements remain unavailable/not ready.
+The private prospective sidecar is DEVELOPMENT-only, never official eligibility,
+bank score mutation or KOTH entitlement.
+
+Validation: one normal sealed public-development pack through a trusted v4
+producer/binder to the same core; v3 compatibility; wrong Challenge/material,
+source or mask refusal; malformed/missing provenance; reference/infra typing;
+and a mandatory failure with otherwise high A/D. Fixtures are inert synthetic
+data, not Motor/Battery truth. Product owns canonical runtime; author runs
+static checks. Hub remains frozen. No physics tolerance, production rule,
+solver campaign, hidden access or scientific qualification is authorized.
