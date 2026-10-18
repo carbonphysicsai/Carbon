@@ -10,11 +10,13 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import socket
 import threading
 import time
 
 from carbon.battery.intake import (
     SNAPSHOT_MAX_AGE_S,
+    SOCKET_TIMEOUT_S,
     Answer,
     BatteryIntake,
     IntakeUnavailable,
@@ -70,9 +72,12 @@ class DirectRecipeIntake(BatteryIntake):
         discovery,
         provider_for,
         attempt_ledger,
+        measure_query: bool = False,
         clock_ns=time.time_ns,
     ):
-        adapter = LeanRecipeAdapter(discovery, provider_for, attempt_ledger)
+        adapter = LeanRecipeAdapter(
+            discovery, provider_for, attempt_ledger, measure_query=measure_query
+        )
         door = Validator(Adapters([adapter]), attempt_ledger)
         super().__init__(
             context=context,
@@ -264,8 +269,40 @@ class DirectRecipeIntake(BatteryIntake):
         )
 
 
+def _header_bounded_handler(intake):
+    """The maintained handler with an absolute deadline through header parsing."""
+
+    class Handler(_handler(intake)):
+        def setup(self):
+            super().setup()
+            self._header_expired = threading.Event()
+            self._header_timer = threading.Timer(SOCKET_TIMEOUT_S, self._expire_header)
+            self._header_timer.daemon = True
+            self._header_timer.start()
+
+        def _expire_header(self):
+            self._header_expired.set()
+            try:
+                self.connection.shutdown(socket.SHUT_RD)
+            except OSError:
+                pass
+
+        def parse_request(self):
+            try:
+                parsed = super().parse_request()
+            finally:
+                self._header_timer.cancel()
+            return parsed and not self._header_expired.is_set()
+
+        def finish(self):
+            self._header_timer.cancel()
+            super().finish()
+
+    return Handler
+
+
 def serve_loopback(
-    intake: DirectRecipeIntake, config, *, stop, reader=None, ready=None
+    intake: DirectRecipeIntake, config, *, stop, reader=None, ready=None, closing=None
 ):
     """Serve the prospective receiver on a trusted loopback test host."""
     host = config.get("host")
@@ -277,7 +314,12 @@ def serve_loopback(
         raise IntakeUnavailable("direct_intake_loopback_required")
     if config.get("exposure") is not None:
         raise IntakeUnavailable("direct_intake_exposure_unserved")
-    httpd = hardened_listener(config, _handler(intake), service="construction-intake")
+    httpd = hardened_listener(
+        config, _header_bounded_handler(intake), service="construction-intake"
+    )
+    # Join already-authenticated bounded handlers before taking the final
+    # cancellation snapshot. Otherwise a submit may queue after cancellation.
+    httpd.daemon_threads = False
     threads = [
         threading.Thread(
             target=refresher,
@@ -287,19 +329,36 @@ def serve_loopback(
         ),
         threading.Thread(target=_advance_loop, args=(intake, stop), daemon=True),
     ]
-    for thread in threads:
-        thread.start()
     host, port = httpd.server_address[:2]
+    serving = threading.Thread(target=httpd.serve_forever, daemon=True)
+    started = []
     try:
-        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        serving.start()
+        for thread in threads:
+            thread.start()
+            started.append(thread)
         if ready is not None:
             ready((host, port))
         stop.wait()
     finally:
-        httpd.shutdown()
-        httpd.server_close()
-        for thread in threads:
-            thread.join(5)
+        stop.set()
+        try:
+            if serving.is_alive():
+                httpd.shutdown()
+            httpd.server_close()
+        finally:
+            try:
+                if closing is not None:
+                    closing()
+            finally:
+                # Cancel through the durable task API, then retain provider
+                # ownership until the finite carrier observes stop.
+                if threads[1] in started:
+                    threads[1].join()
+                if threads[0] in started:
+                    threads[0].join(5)
+                if serving.ident is not None:
+                    serving.join(5)
 
 
 def _advance_loop(intake, stop):

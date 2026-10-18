@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import argparse
 import ast
+import base64
+import binascii
 import hashlib
 import io
 import json
@@ -1600,8 +1602,10 @@ def prepare_custody_v4(artifact_root: Path, role_manifest_path: Path) -> dict:
 
 
 BUNDLE_ROLE_SCHEMA_V2 = "carbon.scorelab.public-model-artifact-roles.v2"
+GRAPH_ROLE_SCHEMA_V3 = "carbon.scorelab.public-model-artifact-roles.v3"
 BUNDLE_CUSTODY_SCHEMA_V5 = "carbon.scorelab.public-model-custody-receipt.v5"
 BUNDLE_STATE_SCHEMA = "carbon.development.bundle-graph-state.v1"
+GRAPH_SOURCE_STATE_SCHEMA = "carbon.development.graph-source-state.v1"
 BUNDLE_SCOPE = "PUBLIC_DEVELOPMENT_BUNDLE_MODEL"
 _BUNDLE_ROLE_CODECS = {
     "recipe": "json",
@@ -1628,9 +1632,36 @@ _BUNDLE_CORE_ROLES = frozenset(
         "image",
     }
 )
+_GRAPH_ROLE_CODECS = {
+    **{
+        role: codec
+        for role, codec in _BUNDLE_ROLE_CODECS.items()
+        if role != "environment"
+    },
+    "source": "json",
+    "construction_kit": "json",
+    "worker_evidence": "json",
+    "task_receipt": "raw_bytes",
+}
+_GRAPH_CORE_ROLES = frozenset(
+    {
+        "recipe",
+        "construction_kit",
+        "train",
+        "state",
+        "source",
+        "image",
+        "allowlist",
+        "build_receipt",
+        "worker_evidence",
+        "inputs",
+        "predictions",
+        "inference_receipt",
+    }
+)
 
 
-def _bundle_header(state: bytes) -> tuple[dict, dict]:
+def _bundle_header(state: bytes, *, graph_source: bool = False) -> tuple[dict, dict]:
     """Inspect the producer's inert graph NPZ without loading or executing it."""
     arrays = inspect_numeric_npz(
         state,
@@ -1668,19 +1699,21 @@ def _bundle_header(state: bytes) -> tuple[dict, dict]:
     ):
         raise CustodyRefused("bundle_state_member_size")
     header = _graph_json(header_raw, "bundle_header")
+    source_field = "submission_digest" if graph_source else "bundle_digest"
+    source_schema = GRAPH_SOURCE_STATE_SCHEMA if graph_source else BUNDLE_STATE_SCHEMA
     if (
         set(header)
         != {
             "schema",
             "recipe_digest",
-            "bundle_digest",
+            source_field,
             "train_digest",
             "interface_digest",
             "graph_digest",
             "allowlist_digest",
             "parameter_count",
         }
-        or header["schema"] != BUNDLE_STATE_SCHEMA
+        or header["schema"] != source_schema
         or type(header["parameter_count"]) is not int
         or not 0 <= header["parameter_count"] <= 4096
         or set(arrays)
@@ -1690,7 +1723,7 @@ def _bundle_header(state: bytes) -> tuple[dict, dict]:
         raise CustodyRefused("bundle_state_header")
     for field in (
         "recipe_digest",
-        "bundle_digest",
+        source_field,
         "train_digest",
         "interface_digest",
         "graph_digest",
@@ -1730,6 +1763,419 @@ def _bundle_json(raw: bytes, label: str):
         raise CustodyRefused(f"bundle_{label}_json") from exc
 
 
+def _graph_finite_number(value, *, nonnegative=False):
+    if type(value) not in (int, float):
+        return False
+    try:
+        number = float(value)
+    except (OverflowError, ValueError):
+        return False
+    return math.isfinite(number) and (not nonnegative or number >= 0)
+
+
+def _graph_positive_timing(values):
+    if not all(_graph_finite_number(value, nonnegative=True) for value in values):
+        return False
+    try:
+        total = math.fsum(values)
+    except (OverflowError, ValueError):
+        return False
+    return math.isfinite(total) and total > 0
+
+
+def _graph_prediction_shape(value, shape, dtype):
+    if not shape:
+        if not _graph_finite_number(value):
+            return False
+        if dtype.startswith(("int", "uint")):
+            bits = int(dtype[4:] if dtype.startswith("uint") else dtype[3:])
+            lower = 0 if dtype.startswith("uint") else -(1 << (bits - 1))
+            upper = (
+                (1 << bits) - 1 if dtype.startswith("uint") else (1 << (bits - 1)) - 1
+            )
+            return type(value) is int and lower <= value <= upper
+        if dtype == "float16":
+            return abs(value) <= 65504
+        if dtype == "float32":
+            return abs(value) <= 3.4028234663852886e38
+        return True
+    return (
+        type(value) is list
+        and len(value) == shape[0]
+        and all(_graph_prediction_shape(item, shape[1:], dtype) for item in value)
+    )
+
+
+def _prepare_graph_custody_v5(root, manifest_raw, manifest):
+    """Bind a measured direct graph without executing its source or state."""
+    from carbon.level4 import staging
+    from carbon.level4.graph import GraphRefused
+
+    if manifest["source_schema"] != GRAPH_SOURCE_STATE_SCHEMA:
+        raise CustodyRefused("graph_role_scope")
+    roles = manifest["roles"]
+    if type(roles) is not dict or not _GRAPH_CORE_ROLES <= set(roles) <= set(
+        _GRAPH_ROLE_CODECS
+    ):
+        raise CustodyRefused("graph_roles")
+    role_paths = {}
+    for role, declaration in roles.items():
+        _exact_keys(declaration, {"file", "codec"}, f"graph_role_{role}")
+        if declaration["codec"] != _GRAPH_ROLE_CODECS[role]:
+            raise CustodyRefused("graph_role_codec")
+        _graph_file(root, declaration["file"])
+        role_paths[role] = declaration["file"]
+    if len(set(role_paths.values())) != len(role_paths):
+        raise CustodyRefused("graph_role_duplicate_file")
+    observed, raw = _graph_rehash_inventory(
+        root,
+        manifest["retained_files"],
+        frozenset(role_paths.values()),
+        lineage_name=None,
+    )
+    by_role = {role: raw[path] for role, path in role_paths.items()}
+    recipe = _graph_json(by_role["recipe"], "source_recipe")
+    kit = _graph_json(by_role["construction_kit"], "construction_kit")
+    challenge = recipe.get("challenge")
+    source = recipe.get("source")
+    procedure = recipe.get("procedure")
+    output = recipe.get("output")
+    if (
+        set(recipe) != {"schema", "challenge", "source", "procedure", "output"}
+        or recipe["schema"] != "carbon.construction-recipe.v1"
+        or type(challenge) is not dict
+        or set(challenge)
+        != {
+            "id",
+            "version",
+            "interface_digest",
+            "train_digest",
+            "construction_limits_digest",
+        }
+        or type(challenge["id"]) is not str
+        or not challenge["id"]
+        or type(challenge["version"]) is not str
+        or not challenge["version"]
+        or type(source) is not dict
+        or set(source) != {"kind", "submission_digest"}
+        or source["kind"] != "graph"
+        or type(procedure) is not dict
+        or set(procedure)
+        != {"entrypoint", "configuration", "train_use", "initial_state"}
+        or procedure["entrypoint"] is not None
+        or procedure["initial_state"] is not None
+        or type(procedure["configuration"]) is not dict
+        or type(procedure["train_use"]) is not dict
+        or type(output) is not dict
+        or set(output) != {"format", "interface_digest"}
+        or output["format"] != "carbon.numeric-graph.v1"
+        or output["interface_digest"] != challenge["interface_digest"]
+        or set(kit)
+        != {
+            "id",
+            "version",
+            "train_digest",
+            "interface_digest",
+            "construction_limits_digest",
+        }
+        or kit
+        != {
+            "id": challenge["id"],
+            "version": challenge["version"],
+            "train_digest": challenge["train_digest"],
+            "interface_digest": challenge["interface_digest"],
+            "construction_limits_digest": challenge["construction_limits_digest"],
+        }
+    ):
+        raise CustodyRefused("graph_recipe_kit_identity")
+    for field in ("train_digest", "interface_digest", "construction_limits_digest"):
+        _digest(challenge[field], f"graph_{field}")
+    _digest(source["submission_digest"], "graph_submission")
+    recipe_canonical = json.dumps(
+        recipe,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
+    if by_role["recipe"] != recipe_canonical:
+        raise CustodyRefused("graph_recipe_noncanonical")
+    recipe_digest = _sha(recipe_canonical)
+    envelope = _graph_json(by_role["source"], "source_envelope")
+    try:
+        submission_digest, manifest_bytes, documents = staging.from_envelope(envelope)
+        canonical_envelope = json.dumps(
+            staging.envelope(manifest_bytes, documents),
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    except (GraphRefused, ValueError, TypeError, UnicodeError) as exc:
+        raise CustodyRefused("graph_source_envelope") from exc
+    if (
+        submission_digest != source["submission_digest"]
+        or by_role["source"] != canonical_envelope
+    ):
+        raise CustodyRefused("graph_source_identity")
+    header, state_arrays = _bundle_header(by_role["state"], graph_source=True)
+    for value, expected, label in (
+        (header["recipe_digest"], recipe_digest, "recipe"),
+        (header["submission_digest"], submission_digest, "submission"),
+        (header["train_digest"], challenge["train_digest"], "train"),
+        (header["train_digest"], _sha(by_role["train"]), "train_bytes"),
+        (header["interface_digest"], challenge["interface_digest"], "interface"),
+        (header["allowlist_digest"], _sha(by_role["allowlist"]), "allowlist"),
+    ):
+        _graph_digest_equal(value, expected, label)
+    input_arrays = None
+    for role in ("train", "inputs", "fixture"):
+        if role in by_role:
+            arrays = inspect_numeric_npz(by_role[role], max_bytes=MAX_FIXTURE_BYTES)
+            if role == "inputs" and set(arrays) != {"inputs"}:
+                raise CustodyRefused("graph_inputs_members")
+            if role == "inputs":
+                input_arrays = arrays
+    predictions = _bundle_json(by_role["predictions"], "graph_predictions")
+    image = _graph_json(by_role["image"], "worker_image")
+    image_fields = {
+        "image_id",
+        "config_digest",
+        "source_tree_digest",
+        "wheel_digest",
+        "lock_digest",
+        "base_image_digest",
+        "build_recipe_digest",
+        "entrypoint_digest",
+    }
+    if set(image) != image_fields or image["image_id"] != image["config_digest"]:
+        raise CustodyRefused("graph_image_identity")
+    for field in image_fields:
+        _digest(image[field], f"graph_image_{field}")
+    build = _graph_json(by_role["build_receipt"], "build_receipt")
+    fit = build.get("fit")
+    if (
+        set(build)
+        != {
+            "schema",
+            "recipe_digest",
+            "submission_digest",
+            "train_digest",
+            "state_digest",
+            "allowlist_digest",
+            "framework",
+            "fit",
+        }
+        or build["schema"] != "carbon.development.graph-build.v1"
+        or build["recipe_digest"] != recipe_digest
+        or build["submission_digest"] != submission_digest
+        or build["train_digest"] != challenge["train_digest"]
+        or build["state_digest"] != _sha(by_role["state"])
+        or build["allowlist_digest"] != _sha(by_role["allowlist"])
+        or build["framework"] != "jax"
+        or type(fit) is not dict
+        or not 1 <= len(fit) <= 32
+        or any(
+            type(key) is not str
+            or re.fullmatch(r"[a-z][a-z0-9_]{0,63}", key) is None
+            or not (
+                _graph_finite_number(value)
+                or type(value) is bool
+                or type(value) is str
+                and _SHA.fullmatch(value)
+            )
+            for key, value in fit.items()
+        )
+    ):
+        raise CustodyRefused("graph_build_receipt")
+    inference = _graph_json(by_role["inference_receipt"], "inference_receipt")
+    measured = inference.get("measurement")
+    if (
+        set(inference)
+        != {
+            "schema",
+            "recipe_digest",
+            "state_digest",
+            "inputs_digest",
+            "predictions_digest",
+            "measurement",
+        }
+        or inference["schema"] != "carbon.development.bundle-inference.v2"
+        or inference["recipe_digest"] != recipe_digest
+        or inference["state_digest"] != _sha(by_role["state"])
+        or inference["inputs_digest"] != _sha(by_role["inputs"])
+        or inference["predictions_digest"] != _sha(by_role["predictions"])
+        or type(measured) is not dict
+        or set(measured)
+        != {
+            "scope",
+            "timing_s",
+            "input_shape",
+            "input_dtype",
+            "output_shape",
+            "output_dtype",
+        }
+        or measured["scope"]
+        != "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
+        or type(measured["timing_s"]) is not dict
+        or set(measured["timing_s"])
+        != {"preprocess", "inference", "postprocess", "export"}
+        or not _graph_positive_timing(measured["timing_s"].values())
+        or any(
+            type(measured[field]) is not list
+            or not measured[field]
+            or len(measured[field]) > 32
+            or any(type(n) is not int or n < 1 for n in measured[field])
+            for field in ("input_shape", "output_shape")
+        )
+        or type(measured["input_dtype"]) is not str
+        or type(measured["output_dtype"]) is not str
+        or measured["output_dtype"]
+        not in {
+            "float16",
+            "float32",
+            "float64",
+            "int8",
+            "int16",
+            "int32",
+            "int64",
+            "uint8",
+            "uint16",
+            "uint32",
+            "uint64",
+        }
+        or measured["input_dtype"] != input_arrays["inputs"]["dtype"]
+        or measured["input_shape"] != input_arrays["inputs"]["shape"]
+        or not _graph_prediction_shape(
+            predictions, measured["output_shape"], measured["output_dtype"]
+        )
+    ):
+        raise CustodyRefused("graph_measured_inference_receipt")
+    worker = _graph_json(by_role["worker_evidence"], "worker_evidence")
+    worker_fields = {
+        "schema",
+        "image_id",
+        "parent_image_id",
+        "inference_image_id",
+        "build_operation",
+        "inference_operation",
+        "build_controls_digest",
+        "inference_controls_digest",
+        "state_digest",
+        "predictions_digest",
+        "build_receipt",
+        "inference_receipt",
+        "predictions_raw_base64",
+        "submission_digest",
+    }
+    if (
+        set(worker) != worker_fields
+        or worker["schema"] != "carbon.direct-private-attempt.graph.v1"
+        or any(
+            worker[field] != image["image_id"]
+            for field in ("image_id", "parent_image_id", "inference_image_id")
+        )
+        or worker["submission_digest"] != submission_digest
+        or worker["state_digest"] != _sha(by_role["state"])
+        or worker["predictions_digest"] != _sha(by_role["predictions"])
+        or worker["build_receipt"] != build
+        or worker["inference_receipt"] != inference
+        or any(
+            type(worker[field]) is not str
+            or re.fullmatch(r"operation-[0-9a-f]{64}", worker[field]) is None
+            for field in ("build_operation", "inference_operation")
+        )
+        or worker["build_operation"] == worker["inference_operation"]
+    ):
+        raise CustodyRefused("graph_worker_lineage")
+    for field in ("build_controls_digest", "inference_controls_digest"):
+        _digest(worker[field], f"graph_{field}")
+    try:
+        encoded = worker["predictions_raw_base64"].encode("ascii")
+        worker_predictions = base64.b64decode(encoded, validate=True)
+    except (AttributeError, UnicodeError, ValueError, binascii.Error) as exc:
+        raise CustodyRefused("graph_worker_predictions") from exc
+    if (
+        base64.b64encode(worker_predictions) != encoded
+        or worker_predictions != by_role["predictions"]
+    ):
+        raise CustodyRefused("graph_worker_predictions")
+    if "seed" in by_role:
+        seed = _graph_json(by_role["seed"], "seed")
+        if set(seed) != {"seed"} or type(seed["seed"]) is not int or seed["seed"] < 0:
+            raise CustodyRefused("graph_seed")
+    physics = manifest["physics_contract"]
+    if physics is not None:
+        _exact_keys(physics, {"version", "definition"}, "graph_physics")
+        if (
+            type(physics["version"]) is not str
+            or not physics["version"]
+            or type(physics["definition"]) is not dict
+        ):
+            raise CustodyRefused("graph_physics")
+        physics_digest = _sha(
+            json.dumps(
+                physics,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+                allow_nan=False,
+            ).encode("utf-8")
+        )
+    else:
+        physics_digest = None
+    role_records = {
+        role: {
+            "file": path,
+            "codec": roles[role]["codec"],
+            "sha256": observed[path]["sha256"],
+        }
+        for role, path in sorted(role_paths.items())
+    }
+    return {
+        "schema": BUNDLE_CUSTODY_SCHEMA_V5,
+        "source_kind": "graph",
+        "role_schema": GRAPH_ROLE_SCHEMA_V3,
+        "source_schema": GRAPH_SOURCE_STATE_SCHEMA,
+        "scope": BUNDLE_SCOPE,
+        "challenge": challenge["id"],
+        "challenge_version": challenge["version"],
+        "interface_digest": challenge["interface_digest"],
+        "train_digest": challenge["train_digest"],
+        "submission_digest": submission_digest,
+        "bundle_digest": None,
+        "environment_ref_digest": None,
+        "source_digest": _sha(by_role["source"]),
+        "environment_digest": None,
+        "image_digest": _sha(by_role["image"]),
+        "recipe_digest": recipe_digest,
+        "state_digest": _sha(by_role["state"]),
+        "fixture_digest": _sha(by_role["fixture"]) if "fixture" in by_role else None,
+        "fixture_evidence": (
+            "BYTE_BOUND_UNVERIFIED" if "fixture" in by_role else "PENDING"
+        ),
+        "prediction_digest": _sha(by_role["predictions"]),
+        "prediction_evidence": "BYTE_BOUND_UNVERIFIED",
+        "seed_digest": _sha(by_role["seed"]) if "seed" in by_role else None,
+        "seed_provenance": "DECLARED_UNVERIFIED" if "seed" in by_role else "PENDING",
+        "physics_contract": {
+            "version": physics["version"] if physics else None,
+            "definition_digest": physics_digest,
+            "authenticity": "DECLARED_UNVERIFIED" if physics else "PENDING",
+        },
+        "role_manifest_sha256": _sha(manifest_raw),
+        "roles": role_records,
+        "state_members": {name: state_arrays[name] for name in sorted(state_arrays)},
+        "original_files": observed,
+        "provenance_state": "TRUSTED_CHALLENGE_AND_PHYSICS_PENDING",
+        "custody_state": "PUBLIC_BYTES_REHASHED",
+        "admission_state": "NOT_ADMITTED",
+        "score_state": "NOT_COMPUTED",
+        "receiver_ack_state": "RECEIVER_ACK_PENDING",
+        "replay_state": "NOT_ATTEMPTED",
+        "official_eligible": False,
+    }
+
+
 def prepare_custody_v5(artifact_root: Path, role_manifest_path: Path) -> dict:
     """Index original common-bundle bytes; official physics and replay stay pending."""
     root = _artifact_root(artifact_root)
@@ -1750,9 +2196,12 @@ def prepare_custody_v5(artifact_root: Path, role_manifest_path: Path) -> dict:
         },
         "bundle_roles",
     )
+    if manifest["scope"] != BUNDLE_SCOPE:
+        raise CustodyRefused("bundle_role_scope")
+    if manifest["schema"] == GRAPH_ROLE_SCHEMA_V3:
+        return _prepare_graph_custody_v5(root, manifest_raw, manifest)
     if (
         manifest["schema"] != BUNDLE_ROLE_SCHEMA_V2
-        or manifest["scope"] != BUNDLE_SCOPE
         or manifest["source_schema"] != BUNDLE_STATE_SCHEMA
     ):
         raise CustodyRefused("bundle_role_scope")

@@ -543,6 +543,12 @@ def create_entry_v5(
         "receiver_ack_state": "RECEIVER_ACK_PENDING",
         "official_eligible": False,
     }
+    if expected["source_schema"] == custody.GRAPH_SOURCE_STATE_SCHEMA:
+        core.update(
+            source_kind=expected["source_kind"],
+            role_schema=expected["role_schema"],
+            submission_digest=expected["submission_digest"],
+        )
     record = {**core, "entry_id": _sha(_canonical(core))}
     body = _canonical(record)
     if len(body) > MAX_ENTRY_BYTES:

@@ -12,6 +12,7 @@ import json
 import os
 import re
 import stat
+from dataclasses import asdict
 from pathlib import Path
 
 
@@ -74,16 +75,232 @@ def _receipt_snapshot(path: Path, expected: dict, label: str) -> bytes:
     return raw
 
 
-def retain_served_bundle_result(
+def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, material):
+    """Gather only the graph task's original, verified DEVELOPMENT bytes."""
+    from carbon.development_session.bundle_construction_worker import _tensors
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+    from carbon.research import canonical_bytes
+
+    worker_fields = {
+        "schema",
+        "image_id",
+        "parent_image_id",
+        "inference_image_id",
+        "build_operation",
+        "inference_operation",
+        "build_controls_digest",
+        "inference_controls_digest",
+        "state_digest",
+        "predictions_digest",
+        "build_receipt",
+        "inference_receipt",
+        "predictions_raw_base64",
+        "submission_digest",
+    }
+    if (
+        type(evidence) is not dict
+        or set(evidence) != worker_fields | {"predictions"}
+        or type(evidence["build_receipt"]) is not dict
+        or type(evidence["inference_receipt"]) is not dict
+        or any(
+            type(evidence[field]) is not str
+            or re.fullmatch(r"sha256:[0-9a-f]{64}", evidence[field]) is None
+            for field in ("build_controls_digest", "inference_controls_digest")
+        )
+    ):
+        raise RetentionUnavailable("graph_worker_evidence_unavailable")
+    request = provider._requests[submission_id]
+    try:
+        image = provider._resolved_image(request)
+    except (FileNotFoundError, ValueError) as exc:
+        raise RetentionUnavailable("source_image_unavailable") from exc
+    admitted_binding = provider._task_image_bindings.get(submission_id)
+    if admitted_binding is None:
+        raise RetentionUnavailable("admitted_image_binding_unavailable")
+    if (
+        type(image) is not WorkerImageIdentity
+        or provider._image_binding(image) != admitted_binding
+        or image != provider.inference_image
+        or evidence.get("schema") != "carbon.direct-private-attempt.graph.v1"
+        or any(
+            evidence.get(field) != image.image_id
+            for field in ("image_id", "parent_image_id", "inference_image_id")
+        )
+    ):
+        raise RetentionUnavailable("admitted_image_changed")
+    source_digest = recipe.to_dict()["source"]["submission_digest"]
+    if evidence.get("submission_digest") != source_digest:
+        raise RetentionUnavailable("admitted_graph_source_changed")
+    challenge = recipe.to_dict()["challenge"]
+    build_evidence = evidence["build_receipt"]
+    if (
+        set(build_evidence)
+        != {
+            "schema",
+            "recipe_digest",
+            "submission_digest",
+            "train_digest",
+            "state_digest",
+            "allowlist_digest",
+            "framework",
+            "fit",
+        }
+        or build_evidence["schema"] != "carbon.development.graph-build.v1"
+        or build_evidence["recipe_digest"] != recipe.digest
+        or build_evidence["submission_digest"] != source_digest
+        or build_evidence["train_digest"] != challenge["train_digest"]
+        or build_evidence["state_digest"] != task.terminal_receipt.state_digest
+        or build_evidence["allowlist_digest"] != _sha(material["allowlist_bytes"])
+        or build_evidence["framework"] != "jax"
+        or type(build_evidence["fit"]) is not dict
+    ):
+        raise RetentionUnavailable("graph_build_receipt_changed")
+    try:
+        source = provider._source_envelope(submission_id, recipe)
+    except (OSError, ValueError) as exc:
+        raise RetentionUnavailable("admitted_graph_source_unavailable") from exc
+
+    root = provider.ledger.root
+    if any(
+        type(evidence.get(name)) is not str
+        or re.fullmatch(r"operation-[0-9a-f]{64}", evidence[name]) is None
+        for name in ("build_operation", "inference_operation")
+    ):
+        raise RetentionUnavailable("worker_operation_invalid")
+    build = root / evidence["build_operation"] / "snapshot"
+    inference = root / evidence["inference_operation"] / "snapshot"
+    state = _snapshot(
+        build / "state.npz",
+        limit=64 * 1024**2,
+        digest=task.terminal_receipt.state_digest,
+        label="state_snapshot",
+    )
+    predictions = _snapshot(
+        inference / "predictions.json",
+        limit=16 * 1024**2,
+        digest=task.terminal_receipt.predictions_digest,
+        label="prediction_snapshot",
+    )
+    build_receipt = _receipt_snapshot(
+        build / "receipt.json", evidence["build_receipt"], "build_receipt"
+    )
+    inference_receipt = _receipt_snapshot(
+        inference / "receipt.json", evidence["inference_receipt"], "inference_receipt"
+    )
+    train = material["train"]
+    if _sha(train) != recipe.to_dict()["challenge"]["train_digest"]:
+        raise RetentionUnavailable("public_train_changed")
+    if "practice_inputs" not in material or "practice_reference" not in material:
+        raise RetentionUnavailable("public_input_target_unavailable")
+    inputs = _tensors(inputs=material["practice_inputs"])
+    fixture = _tensors(
+        inputs=material["practice_inputs"],
+        targets=material["practice_reference"],
+    )
+    if evidence["inference_receipt"].get("inputs_digest") != _sha(inputs):
+        raise RetentionUnavailable("practice_inputs_changed")
+    worker = dict(evidence)
+    worker.pop("predictions", None)
+    artifacts = {
+        "recipe.json": recipe.canonical_bytes,
+        "construction-kit.json": _json(material["construction_kit"]),
+        "train.npz": train,
+        "fixture.npz": fixture,
+        "inputs.npz": inputs,
+        "state.npz": state,
+        "predictions.json": predictions,
+        "source-envelope.json": source,
+        "image.json": _json(asdict(image)),
+        "allowlist.json": material["allowlist_bytes"],
+        "build-receipt.json": build_receipt,
+        "inference-receipt.json": inference_receipt,
+        "worker-evidence.json": _json(worker),
+        "task-receipt.json": canonical_bytes(task.terminal_receipt),
+    }
+    return artifacts
+
+
+def _retain_graph_artifacts(
+    artifacts, submission_id, *, artifact_directory, entry_directory
+):
+    from carbon.development_session.data import write_once
+
+    try:
+        from scripts.dev.score_lab.public_unbound_custody import (
+            GRAPH_ROLE_SCHEMA_V3,
+            prepare_custody_v5,
+        )
+        from scripts.dev.score_lab.public_unbound_entry import create_entry_v5
+    except ImportError as exc:
+        raise RetentionUnavailable("graph_bank_role_contract_unavailable") from exc
+    if GRAPH_ROLE_SCHEMA_V3 != "carbon.scorelab.public-model-artifact-roles.v3":
+        raise RetentionUnavailable("graph_bank_role_contract_unavailable")
+    if json.loads(artifacts["inference-receipt.json"]).get("schema") != (
+        "carbon.development.bundle-inference.v2"
+    ):
+        raise RetentionUnavailable("graph_measured_receipt_unavailable")
+    roles = {
+        "recipe": ("recipe.json", "json"),
+        "construction_kit": ("construction-kit.json", "json"),
+        "train": ("train.npz", "numeric_npz"),
+        "fixture": ("fixture.npz", "numeric_npz"),
+        "inputs": ("inputs.npz", "numeric_npz"),
+        "state": ("state.npz", "bundle_graph_npz"),
+        "predictions": ("predictions.json", "json"),
+        "source": ("source-envelope.json", "json"),
+        "image": ("image.json", "json"),
+        "allowlist": ("allowlist.json", "json"),
+        "build_receipt": ("build-receipt.json", "json"),
+        "inference_receipt": ("inference-receipt.json", "json"),
+        "worker_evidence": ("worker-evidence.json", "json"),
+        "task_receipt": ("task-receipt.json", "raw_bytes"),
+    }
+    role_manifest = {
+        "schema": GRAPH_ROLE_SCHEMA_V3,
+        "scope": "PUBLIC_DEVELOPMENT_BUNDLE_MODEL",
+        "source_schema": "carbon.development.graph-source-state.v1",
+        "roles": {
+            role: {"file": name, "codec": codec}
+            for role, (name, codec) in sorted(roles.items())
+        },
+        "retained_files": {name: _sha(raw) for name, raw in sorted(artifacts.items())},
+        "physics_contract": None,
+    }
+    base = _owner_directory(artifact_directory, "artifact_directory")
+    entries = _owner_directory(entry_directory, "entry_directory")
+    task_root = base / submission_id
+    task_root.mkdir(mode=0o700, exist_ok=True)
+    _owner_directory(task_root, "task_artifacts")
+    try:
+        for name, raw in artifacts.items():
+            write_once(task_root / name, raw)
+        manifest_path = base / (submission_id + ".roles.json")
+        write_once(manifest_path, _json(role_manifest))
+        custody = prepare_custody_v5(task_root, manifest_path)
+        custody_path = base / (submission_id + ".custody.json")
+        write_once(custody_path, _json(custody))
+        saved = create_entry_v5(task_root, manifest_path, custody_path, entries)
+    except (OSError, ValueError) as exc:
+        raise RetentionUnavailable("operator_bank_custody_unavailable") from exc
+    return {
+        "status": saved["status"],
+        "entry_id": saved["entry"]["entry_id"],
+        "entry_path": entries / saved["path"],
+        "artifact_path": task_root,
+        "score_state": saved["entry"]["score_state"],
+        "official_eligible": False,
+    }
+
+
+def retain_served_result(
     adapter, submission_id: str, *, artifact_directory: Path, entry_directory: Path
 ) -> dict:
     """Create one pending bank entry from trusted, already-successful task bytes.
 
     Directory arguments are selected by the operator, never from a submitted
     recipe or signed client request. Original files and manifests are create-only;
-    an identical retry returns the existing entry. Only the named bundle roles
-    have a v5 bank contract today. A graph result without that role contract is
-    left unavailable rather than translated into a bundle or Battery record.
+    an identical retry returns the existing entry. The bundle and graph source
+    variants use the same create-only v5 bank; missing graph roles fail closed.
     """
     from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
     from carbon.development_session.bundle_construction_worker import _tensors
@@ -122,8 +339,18 @@ def retain_served_bundle_result(
     if evidence is None:
         raise RetentionUnavailable("verified_attempt_unavailable")
     recipe = ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
+    if recipe.to_dict()["source"]["kind"] == "graph":
+        artifacts = _collect_graph_artifacts(
+            provider, submission_id, task, evidence, recipe, adapter.discovery._material
+        )
+        return _retain_graph_artifacts(
+            artifacts,
+            submission_id,
+            artifact_directory=artifact_directory,
+            entry_directory=entry_directory,
+        )
     if recipe.to_dict()["source"]["kind"] != "bundle":
-        raise RetentionUnavailable("bundle_bank_role_contract_unavailable")
+        raise RetentionUnavailable("source_kind_unavailable")
     try:
         image = provider._resolved_image(provider._requests[submission_id])
     except (FileNotFoundError, ValueError) as exc:
@@ -299,3 +526,15 @@ def retain_served_bundle_result(
         "score_state": saved["entry"]["score_state"],
         "official_eligible": False,
     }
+
+
+def retain_served_bundle_result(
+    adapter, submission_id: str, *, artifact_directory: Path, entry_directory: Path
+) -> dict:
+    """Compatibility name for the original bundle-only operator call site."""
+    return retain_served_result(
+        adapter,
+        submission_id,
+        artifact_directory=artifact_directory,
+        entry_directory=entry_directory,
+    )
