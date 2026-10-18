@@ -64,6 +64,24 @@ os.chdir('/scratch/workspace')
 os.execv('/opt/carbon-worker/bin/python', ['python', '-I', '/input/program.py'])
 """
 
+OVERLAY_BUILD_BOOTSTRAP = """
+import os, shutil
+from pathlib import Path
+work = Path('/scratch/workspace'); work.mkdir()
+Path('/scratch/output').mkdir()
+overlay = Path('/input/overlay')
+if not overlay.is_dir():
+    raise ValueError('verified build overlay missing')
+for item in Path('/input').iterdir():
+    if item.name in ('program.py', 'overlay'):
+        continue
+    if not item.is_file():
+        raise ValueError('closed build input required')
+    shutil.copyfile(item, work / item.name)
+os.chdir(work)
+os.execv('/opt/carbon-worker/bin/python', ['python', '-I', '/input/program.py'])
+"""
+
 BUILD_PROGRAM = r'''"""Fixed isolated source-bundle build; no judge or hidden data."""
 import hashlib, importlib, io, json, shutil, sys
 from pathlib import Path
@@ -95,6 +113,18 @@ bind_recipe(recipe.to_dict(), **control["binding"])
 source = recipe.to_dict()["source"]
 if source["kind"] != "bundle" or source["bundle_ref"] != control["bundle_ref"]:
     raise ValueError("bundle build source differs")
+overlay_digest = control.get("overlay_tree_digest")
+if overlay_digest is not None:
+    overlay = Path('/input/overlay')
+    if (type(overlay_digest) is not str or len(overlay_digest) != 71
+        or not overlay_digest.startswith('sha256:') or not overlay.is_dir()
+        or not (overlay / '.overlay.json').is_file()):
+        raise ValueError('verified bundle overlay missing')
+    receipt = json.loads((overlay / '.overlay.json').read_bytes())
+    if (receipt.get('tree_digest') != overlay_digest
+        or receipt.get('bundle_ref') != control['bundle_ref']):
+        raise ValueError('bundle overlay binding differs')
+    sys.path[0:0] = [str(overlay / 'source'), str(overlay / 'site-packages')]
 train_raw = (work / "train.npz").read_bytes()
 if digest(train_raw) != control["binding"]["train_digest"]:
     raise ValueError("bundle build TRAIN differs")
