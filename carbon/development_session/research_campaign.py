@@ -200,6 +200,40 @@ def verify_current_worker(image, implementation):
         )
 
 
+def verify_direct_v13_worker(image, implementation, *, role):
+    """Permit only the registered older image ABI for fixed direct v1.3 code.
+
+    The direct route stages its current C03 program; this does not relax the
+    whole-source requirement of campaigns or older direct kits. Docker doctor
+    still verifies the selected immutable image and its recorded labels.
+    """
+    from carbon.reconstruction import torch_profile
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    if type(image) is not WorkerImageIdentity or role not in {"cpu", "torch_gpu"}:
+        raise ValueError("exact direct v1.3 worker role required")
+    if image.source_tree_digest == implementation["source_tree_digest"]:
+        return
+    root = Path(__file__).resolve().parents[2]
+    expected_lock = (
+        digest((root / "uv.lock").read_bytes())
+        if role == "cpu"
+        else torch_profile.GPU_LOCK_DIGEST
+    )
+    recipe = (
+        ".devcontainer/Dockerfile.reconstruction-worker"
+        if role == "cpu"
+        else ".devcontainer/torch/Dockerfile.gpu"
+    )
+    if (
+        image.lock_digest != expected_lock
+        or image.entrypoint_digest
+        != digest((root / "carbon/reconstruction/worker/entrypoint.py").read_bytes())
+        or image.build_recipe_digest != digest((root / recipe).read_bytes())
+    ):
+        raise ValueError("direct v1.3 worker ABI or entrypoint differs")
+
+
 def private_file(path):
     if (
         not path.is_absolute()

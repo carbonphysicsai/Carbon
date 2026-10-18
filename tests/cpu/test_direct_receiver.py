@@ -256,11 +256,59 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
     assert (implementation, parent) == (accepted, gpu)
     assert calls[-1] == ("accepted", accepted["revision"])
 
+    # The signed v1.3 receiver accepts an older Torch image only when its
+    # registered lock, entrypoint and build recipe match the current ABI.
+    from carbon.reconstruction import torch_profile
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    root = Path(receiver.__file__).resolve().parents[2]
+    older_torch = WorkerImageIdentity(
+        "sha256:" + "3" * 64,
+        "sha256:" + "3" * 64,
+        "sha256:" + "4" * 64,
+        "sha256:" + "5" * 64,
+        torch_profile.GPU_LOCK_DIGEST,
+        "sha256:" + "6" * 64,
+        "sha256:"
+        + hashlib.sha256(
+            (root / ".devcontainer/torch/Dockerfile.gpu").read_bytes()
+        ).hexdigest(),
+        "sha256:"
+        + hashlib.sha256(
+            (root / "carbon/reconstruction/worker/entrypoint.py").read_bytes()
+        ).hexdigest(),
+    )
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda path: worker if path.name == "worker.json" else older_torch,
+    )
+    monkeypatch.setattr(
+        gpu_practice,
+        "gpu_image_backend",
+        lambda image: "pytorch" if type(image) is WorkerImageIdentity else None,
+    )
+    implementation, parent, _, _ = receiver.installed_source(profile)
+    assert (implementation, parent) == (accepted, older_torch)
+    wrong_torch = replace(older_torch, entrypoint_digest="sha256:" + "f" * 64)
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda path: worker if path.name == "worker.json" else wrong_torch,
+    )
+    with pytest.raises(ValueError, match="ABI or entrypoint differs"):
+        receiver.installed_source(profile)
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda path: worker if path.name == "worker.json" else older_torch,
+    )
+
     # A profile outside the exact installed state path never reads the pin.
     monkeypatch.setattr(installed, "candidate_implementation", invalid_candidate)
     regular = tmp_path / "other-profile.json"
     implementation, parent, _, _ = receiver.installed_source(regular)
-    assert (implementation, parent) == (accepted, gpu)
+    assert (implementation, parent) == (accepted, older_torch)
     assert calls[-1] == ("accepted", accepted["revision"])
 
 
@@ -809,7 +857,25 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
     cfg["port"] = 0
     monkeypatch.setattr(receiver, "load_config", lambda _: cfg)
     parent = WorkerImageIdentity(*("sha256:" + "4" * 64 for _ in range(8)))
-    inference_image = WorkerImageIdentity(*("sha256:" + "5" * 64 for _ in range(8)))
+    source_root = Path(receiver.__file__).resolve().parents[2]
+    inference_image = WorkerImageIdentity(
+        "sha256:" + "5" * 64,
+        "sha256:" + "5" * 64,
+        "sha256:" + "5" * 64,  # Older source; the fixed C03 program is staged.
+        "sha256:" + "5" * 64,
+        "sha256:" + hashlib.sha256((source_root / "uv.lock").read_bytes()).hexdigest(),
+        "sha256:" + "5" * 64,
+        "sha256:"
+        + hashlib.sha256(
+            (
+                source_root / ".devcontainer/Dockerfile.reconstruction-worker"
+            ).read_bytes()
+        ).hexdigest(),
+        "sha256:"
+        + hashlib.sha256(
+            (source_root / "carbon/reconstruction/worker/entrypoint.py").read_bytes()
+        ).hexdigest(),
+    )
     # This ingress-only fixture supplies the separately read private profile.
     # Profile/image correctness has its own tests; model dispatch remains forbidden.
     from carbon.development_session import research_campaign
@@ -828,11 +894,13 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
 
     monkeypatch.setattr(docker_runtime, "load_image_identity", load_inference)
     checked = []
-    monkeypatch.setattr(
-        research_campaign,
-        "verify_current_worker",
-        lambda image, implementation: checked.append((image, implementation)),
-    )
+    verify_exact_source = research_campaign.verify_current_worker
+
+    def check_source(image, implementation):
+        checked.append((image, implementation))
+        verify_exact_source(image, implementation)
+
+    monkeypatch.setattr(research_campaign, "verify_current_worker", check_source)
     monkeypatch.setattr(
         docker_runtime,
         "doctor",

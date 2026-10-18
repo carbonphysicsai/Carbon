@@ -212,6 +212,7 @@ def installed_source(profile_path: Path):
     from carbon.development_session.research_campaign import (
         accepted_implementation,
         verify_current_worker,
+        verify_direct_v13_worker,
     )
     from carbon.development_session.research_image import (
         load_analysis_image,
@@ -246,7 +247,10 @@ def installed_source(profile_path: Path):
     gpu_image_path = cfg.get("gpu_image")
     if development_candidate:
         worker = load_image_identity(paths["image_manifest"])
-        verify_current_worker(worker, implementation)
+        try:
+            verify_current_worker(worker, implementation)
+        except ValueError:
+            verify_direct_v13_worker(worker, implementation, role="cpu")
         analysis = load_analysis_image(paths["analysis_image_manifest"])
         verify_image(analysis)
         if analysis.parent_image != worker.image_id or cfg["runtime"].get("images") != [
@@ -263,9 +267,13 @@ def installed_source(profile_path: Path):
         if type(gpu_image_path) is not str:
             raise ValueError("installed GPU parent required for direct development")
         parent = load_image_identity(Path(gpu_image_path))
-        verify_current_worker(parent, implementation)
-        if gpu_image_backend(parent) not in {"jax", "pytorch"}:
+        backend = gpu_image_backend(parent)
+        if backend not in {"jax", "pytorch"}:
             raise ValueError("installed direct parent backend is unregistered")
+        if backend == "pytorch":
+            verify_direct_v13_worker(parent, implementation, role="torch_gpu")
+        else:
+            verify_current_worker(parent, implementation)
     if not doctor(image_id=parent.image_id, image_identity=parent).eligible:
         raise ReceiverUnavailable("installed_reconstruction_worker_unavailable")
     network = binding(
@@ -573,13 +581,19 @@ def serve(
     implementation, parent, network, cache = installed_source(
         Path(cfg["runner_profile"])
     )
-    from carbon.development_session.research_campaign import verify_current_worker
+    from carbon.development_session.research_campaign import (
+        verify_current_worker,
+        verify_direct_v13_worker,
+    )
     from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
     from scripts.dev.miner_launchpad.runner import validated_profile
 
     runner = validated_profile(private_json(Path(cfg["runner_profile"])))
     inference_image = load_image_identity(Path(runner["paths"]["image_manifest"]))
-    verify_current_worker(inference_image, implementation)
+    try:
+        verify_current_worker(inference_image, implementation)
+    except ValueError:
+        verify_direct_v13_worker(inference_image, implementation, role="cpu")
     if not doctor(
         image_id=inference_image.image_id, image_identity=inference_image
     ).eligible:

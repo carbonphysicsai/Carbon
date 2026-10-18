@@ -197,22 +197,9 @@ def _direct_development_parent_compatible(image, implementation):
     bounded run. This check grants no official or general installed-runtime
     compatibility.
     """
-    from carbon.reconstruction import torch_profile
-    from carbon.reconstruction.worker.model import WorkerImageIdentity
+    from carbon.development_session.research_campaign import verify_direct_v13_worker
 
-    if type(image) is not WorkerImageIdentity:
-        raise ValueError("exact direct construction parent required")
-    if image.source_tree_digest == implementation["source_tree_digest"]:
-        return
-    root = Path(__file__).resolve().parents[2]
-    if (
-        image.lock_digest != torch_profile.GPU_LOCK_DIGEST
-        or image.entrypoint_digest
-        != digest((root / "carbon/reconstruction/worker/entrypoint.py").read_bytes())
-        or image.build_recipe_digest
-        != digest((root / ".devcontainer/torch/Dockerfile.gpu").read_bytes())
-    ):
-        raise ValueError("direct construction parent ABI or entrypoint differs")
+    verify_direct_v13_worker(image, implementation, role="torch_gpu")
 
 
 def load_direct_installed_source(configuration: Path, *, version="1.2"):
@@ -228,6 +215,7 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
         accepted_implementation,
         private_file,
         verify_current_worker,
+        verify_direct_v13_worker,
     )
     from carbon.development_session.research_image import (
         load_analysis_image,
@@ -261,7 +249,12 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
         if implementation is None:
             implementation = accepted_implementation(cfg["accepted_revision"])
         parent = load_image_identity(paths["image_manifest"])
-        verify_current_worker(parent, implementation)
+        try:
+            verify_current_worker(parent, implementation)
+        except ValueError:
+            if version != "1.3":
+                raise
+            verify_direct_v13_worker(parent, implementation, role="cpu")
         analysis = load_analysis_image(paths["analysis_image_manifest"])
         verify_image(analysis)
         if analysis.parent_image != parent.image_id:
@@ -282,7 +275,7 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
             if type(gpu_manifest) is not str:
                 raise ValueError("installed GPU parent required for direct development")
             direct_parent = load_image_identity(Path(gpu_manifest))
-            if version == "1.3" and development_candidate:
+            if version == "1.3":
                 _direct_development_parent_compatible(direct_parent, implementation)
             else:
                 verify_current_worker(direct_parent, implementation)
