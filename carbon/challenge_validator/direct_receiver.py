@@ -220,7 +220,7 @@ class ReceiverSnapshotWindow:
 def installed_source(
     profile_path: Path, *, construction_image_manifest: Path | None = None
 ):
-    """Verify installed source/images; a private candidate may pin its constructor."""
+    """Verify installed source/images; a private operator may pin its constructor."""
     from carbon.development_session.gpu_practice import gpu_image_backend
     from carbon.development_session.miner_network import binding
     from carbon.development_session.research_campaign import (
@@ -261,8 +261,7 @@ def installed_source(
     gpu_image_path = cfg.get("gpu_image")
     if construction_image_manifest is not None:
         if (
-            not development_candidate
-            or not isinstance(construction_image_manifest, Path)
+            not isinstance(construction_image_manifest, Path)
             or not construction_image_manifest.is_absolute()
             or construction_image_manifest.is_symlink()
             or not construction_image_manifest.is_file()
@@ -272,11 +271,13 @@ def installed_source(
         ):
             raise ValueError("private construction parent conflicts with profile")
         gpu_image_path = str(construction_image_manifest)
-    if development_candidate:
+    if development_candidate or construction_image_manifest is not None:
         worker = load_image_identity(paths["image_manifest"])
         try:
             verify_current_worker(worker, implementation)
         except ValueError:
+            if not development_candidate:
+                raise
             verify_direct_v13_worker(worker, implementation, role="cpu")
         analysis = load_analysis_image(paths["analysis_image_manifest"])
         verify_image(analysis)
@@ -284,7 +285,9 @@ def installed_source(
             worker.image_id,
             analysis.image_id,
         ]:
-            raise ValueError("development candidate installed images differ")
+            if development_candidate:
+                raise ValueError("development candidate installed images differ")
+            raise ValueError("installed CPU and analysis images differ")
     if gpu_image_path is None:
         if not development_candidate or "gpu_research" in cfg["runtime"]:
             raise ValueError("installed GPU parent required for direct development")

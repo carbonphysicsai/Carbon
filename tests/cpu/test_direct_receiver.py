@@ -365,12 +365,20 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
         lambda path: worker if path.name == "worker.json" else older_torch,
     )
     monkeypatch.setattr(installed, "candidate_implementation", lambda _: None)
-    with pytest.raises(ValueError, match="conflicts with profile"):
-        receiver.installed_source(profile, construction_image_manifest=torch_manifest)
-
-    # A profile outside the exact installed state path never reads the pin.
     cfg["accepted_revision"] = accepted["revision"]
     cfg["runtime"]["implementation"] = accepted
+    worker.source_tree_digest = accepted["source_tree_digest"]
+    implementation, parent, _, _ = receiver.installed_source(
+        profile, construction_image_manifest=torch_manifest
+    )
+    assert (implementation, parent) == (accepted, older_torch)
+    assert checked_images[-1] is older_torch
+    worker.source_tree_digest = candidate["source_tree_digest"]
+    with pytest.raises(ValueError, match="exact accepted source revision"):
+        receiver.installed_source(profile, construction_image_manifest=torch_manifest)
+    worker.source_tree_digest = accepted["source_tree_digest"]
+
+    # A profile outside the exact installed state path never reads the pin.
     cfg["gpu_image"] = str(tmp_path / "gpu.json")
     monkeypatch.setattr(installed, "candidate_implementation", invalid_candidate)
     regular = tmp_path / "other-profile.json"
