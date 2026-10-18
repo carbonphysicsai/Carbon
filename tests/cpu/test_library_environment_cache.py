@@ -136,7 +136,8 @@ def test_admitted_install_reuses_verified_hit_and_reprovisions_for_new_parent(
     def prepare(root, *args):
         parent_id = args[-1]
         context = root / selected.bundle_digest[7:] / parent_id[7:]
-        context.mkdir(parents=True, exist_ok=True)
+        context.mkdir(parents=True, exist_ok=True, mode=0o700)
+        context.parent.chmod(0o700)
         return context, selected.bundle_digest, _sha("3")
 
     def provision(root, expected_ref, *args, cli):
