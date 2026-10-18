@@ -146,6 +146,38 @@ def test_static_out_of_bounds_and_registered_cost_refuse():
         allowlist_module.CAPS["nodes_executed"] = original
     assert refused.value.code == "aten_scatter_registered_resource_bound"
 
+    original = allowlist_module.CAPS["largest_intermediate_bytes"]
+    allowlist_module.CAPS["largest_intermediate_bytes"] = 31
+    try:
+        with pytest.raises(graph.GraphRefused) as refused:
+            lower_torch.lower(program, allowlist=_prospective())
+    finally:
+        allowlist_module.CAPS["largest_intermediate_bytes"] = original
+    assert refused.value.code == "aten_scatter_registered_resource_bound"
+
+
+def test_large_ordered_graph_uses_registered_single_intermediate_bound():
+    torch = pytest.importorskip("torch")
+
+    class Wide(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.register_buffer("index", torch.arange(256, dtype=torch.int64) // 2)
+
+        def forward(self, base, source):
+            return base.scatter_add(0, self.index, source)
+
+    program = torch.export.export(
+        Wide(), (torch.zeros(65536), torch.ones(256))
+    ).run_decompositions()
+    doc, _ = lower_torch.lower(program, allowlist=_prospective())
+    measured = graph.measure(doc)
+    assert measured["nodes_executed"] == 2 + 7 * 256
+    assert measured["largest_intermediate_bytes"] == 65536 * 4
+    assert all(
+        verdict == "pass" for verdict in allowlist_module.check_caps(measured).values()
+    )
+
 
 @pytest.mark.parametrize("case", ["dimension", "index_dtype", "source_shape"])
 def test_static_scatter_refuses_invalid_dimension_dtype_or_shape(case):

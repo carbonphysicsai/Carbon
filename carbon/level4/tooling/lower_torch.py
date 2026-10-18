@@ -495,13 +495,13 @@ def _scatter_add_static(b, node, env):
 
     count = source_shape[dim]
     # One iota and one zero broadcast, then seven existing primitive nodes
-    # per ordered update. Both bounds come from the registered graph caps.
+    # per ordered update. The byte cap measures one emitted output, not the
+    # sum of all outputs; graph.measure applies that same registered meaning.
     nodes = 2 + 7 * count
     bytes_per_result = math.prod(shape) * max(graph.itemsize(dtype), 4)
     if (
         len(b.nodes) + nodes > allowlist_module.CAPS["nodes_executed"]
-        or nodes * bytes_per_result
-        > allowlist_module.CAPS["largest_intermediate_bytes"]
+        or bytes_per_result > allowlist_module.CAPS["largest_intermediate_bytes"]
         or sum(c["bytes"] for c in b.constants) + index.nbytes
         > allowlist_module.CAPS["constant_bytes"]
     ):
