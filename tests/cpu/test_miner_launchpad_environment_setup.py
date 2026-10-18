@@ -91,6 +91,75 @@ def test_live_compute_source_without_candidate_keeps_main_rule(tmp_path, monkeyp
     assert len(seen[0]) == 40
 
 
+def test_live_compute_checks_old_cpu_abi_only_for_pinned_development(
+    tmp_path, monkeypatch
+):
+    from dataclasses import replace
+    from types import SimpleNamespace
+
+    from carbon.development_session import research_image
+    from carbon.development_session.profile import digest
+    from carbon.reconstruction.worker import docker_runtime
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    source = Path(__file__).resolve().parents[2]
+    old = "sha256:" + "a" * 64
+    image = WorkerImageIdentity(
+        old,
+        old,
+        "sha256:" + "b" * 64,
+        old,
+        digest((source / "uv.lock").read_bytes()),
+        old,
+        digest(
+            (source / ".devcontainer/Dockerfile.reconstruction-worker").read_bytes()
+        ),
+        digest((source / "carbon/reconstruction/worker/entrypoint.py").read_bytes()),
+    )
+    analysis = SimpleNamespace(image_id="sha256:" + "c" * 64, parent_image=old)
+    selected = {"value": image}
+    eligible = {"value": True}
+    monkeypatch.setattr(
+        docker_runtime, "load_image_identity", lambda _path: selected["value"]
+    )
+    monkeypatch.setattr(
+        docker_runtime,
+        "doctor",
+        lambda **kwargs: SimpleNamespace(
+            eligible=eligible["value"]
+            and kwargs["image_identity"] is selected["value"]
+            and kwargs["image_id"] == selected["value"].image_id
+        ),
+    )
+    monkeypatch.setattr(research_image, "load_analysis_image", lambda _path: analysis)
+    monkeypatch.setattr(research_image, "verify_image", lambda _image: None)
+    checks = LiveChecks()
+    candidate = {
+        "source_tree_digest": "sha256:" + "d" * 64,
+        "source_authority": "DEVELOPMENT_CANDIDATE",
+    }
+    implementation = {"value": candidate}
+    monkeypatch.setattr(checks, "revision", lambda: implementation["value"])
+    paths = (tmp_path / "worker.json", tmp_path / "analysis.json")
+    assert checks.compute(*paths)["images"] == [old, analysis.image_id]
+
+    implementation["value"] = {"source_tree_digest": candidate["source_tree_digest"]}
+    with pytest.raises(SetupRefused, match="worker_image_unverified"):
+        checks.compute(*paths)
+    implementation["value"] = candidate
+    selected["value"] = replace(image, entrypoint_digest="sha256:" + "e" * 64)
+    with pytest.raises(SetupRefused, match="worker_image_unverified"):
+        checks.compute(*paths)
+    selected["value"] = image
+    eligible["value"] = False
+    with pytest.raises(SetupRefused, match="worker_image_unverified"):
+        checks.compute(*paths)
+    eligible["value"] = True
+    analysis.parent_image = analysis.image_id
+    with pytest.raises(SetupRefused, match="analysis_image_unverified"):
+        checks.compute(*paths)
+
+
 def test_after_install_refuses_stale_development_pin_before_writing_stamp(
     tmp_path, monkeypatch
 ):

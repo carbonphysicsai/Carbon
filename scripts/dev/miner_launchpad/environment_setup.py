@@ -1175,7 +1175,10 @@ class LiveChecks:
             ) from None
 
     def compute(self, image_manifest: Path, analysis_manifest: Path) -> dict:
-        from carbon.development_session.research_campaign import verify_current_worker
+        from carbon.development_session.research_campaign import (
+            verify_current_worker,
+            verify_direct_v13_worker,
+        )
         from carbon.development_session.research_image import (
             load_analysis_image,
             verify_image,
@@ -1188,7 +1191,15 @@ class LiveChecks:
         implementation = self.revision()
         try:
             image = load_image_identity(image_manifest)
-            verify_current_worker(image, implementation)
+            try:
+                verify_current_worker(image, implementation)
+            except ValueError:
+                # Only an operator-pinned DEVELOPMENT candidate may use the
+                # direct v1.3 ABI. Accepted-main setup and each campaign's
+                # own exact-source admission rule remain unchanged.
+                if implementation.get("source_authority") != "DEVELOPMENT_CANDIDATE":
+                    raise
+                verify_direct_v13_worker(image, implementation, role="cpu")
             if not doctor(image_id=image.image_id, image_identity=image).eligible:
                 raise ValueError("host not eligible")
         except Exception:  # noqa: BLE001 - never echo a local path or error.
