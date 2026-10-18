@@ -270,6 +270,13 @@ def test_import_requires_capacity_before_load_and_writes_only_verified_pair(
         **_identity_args(tmp_path),
     }
 
+    if os.name != "posix":
+        with pytest.raises(handoff.Refused, match="posix_nofollow_install_required"):
+            handoff.import_bundle(before_load=lambda required: None, **args)
+        assert loaded == []
+        assert list(root.iterdir()) == []
+        return
+
     def deny(required):
         assert required == 3 * 10 + 1024**3
         raise handoff.Refused("physical_capacity_insufficient")
@@ -279,12 +286,6 @@ def test_import_requires_capacity_before_load_and_writes_only_verified_pair(
     assert loaded == []
     assert list(root.iterdir()) == []
     claims = []
-    if os.name != "posix":
-        with pytest.raises(handoff.Refused, match="posix_nofollow_install_required"):
-            handoff.import_bundle(before_load=claims.append, **args)
-        assert claims == [3 * 10 + 1024**3]
-        assert list(root.iterdir()) == []
-        return
     result = handoff.import_bundle(before_load=claims.append, **args)
     assert claims == [3 * 10 + 1024**3]
     assert loaded == [(bundle / "images.tar.gz", 10)]

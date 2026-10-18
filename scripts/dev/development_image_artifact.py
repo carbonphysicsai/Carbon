@@ -396,10 +396,7 @@ def _install_pair_nofollow(
     artifacts_root: Path, c03_bytes: bytes, analysis_bytes: bytes, runtime_digest: str
 ) -> None:
     """Post-load manifest install with anchored, no-follow parent traversal."""
-    if os.name != "posix" or not all(
-        hasattr(os, flag) for flag in ("O_DIRECTORY", "O_NOFOLLOW")
-    ):
-        raise Refused("posix_nofollow_install_required")
+    _require_posix_nofollow()
     # Open each component from / so a changed ancestor cannot redirect the
     # final open into an unrelated cache between the precheck and Docker load.
     root_fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY)
@@ -431,6 +428,14 @@ def _install_pair_nofollow(
         _write_under(root_fd, "c03-worker-image.json", c03_bytes)
     finally:
         os.close(root_fd)
+
+
+def _require_posix_nofollow() -> None:
+    """Reject a host that cannot use the only supported safe cache installer."""
+    if os.name != "posix" or not all(
+        hasattr(os, flag) for flag in ("O_DIRECTORY", "O_NOFOLLOW")
+    ):
+        raise Refused("posix_nofollow_install_required")
 
 
 def import_bundle(
@@ -483,6 +488,7 @@ def import_bundle(
             raise Refused(f"installed_manifest_conflict:{path.name}")
     if not callable(before_load):
         raise Refused("physical_capacity_admission_required")
+    _require_posix_nofollow()
     # The archive is already staged and gzip is streamed without an extracted
     # host copy. Reserve three raw-tar equivalents for daemon import staging,
     # retained image content and unpacked snapshots, plus 1 GiB for metadata.
