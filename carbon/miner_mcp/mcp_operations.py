@@ -207,7 +207,7 @@ def make_operation_tools(host, *, guard=None):
     from mcp.server.mcpserver.exceptions import ToolError
     from mcp.server.mcpserver.tools import Tool
     from mcp.server.mcpserver.utilities.func_metadata import ArgModelBase, FuncMetadata
-    from pydantic import BaseModel, ConfigDict, Field, JsonValue, create_model
+    from pydantic import BaseModel, ConfigDict, Field, JsonValue, StrictBool, create_model
 
     from scripts.dev.miner_launchpad.controller import Rejected
     from scripts.dev.miner_launchpad.operations import (
@@ -224,6 +224,16 @@ def make_operation_tools(host, *, guard=None):
 
     class ExactMetadata(FuncMetadata):
         def pre_parse_json(self, data):
+            if type(data) is dict:
+                # Pydantic fills omitted optional fields with None. Carry
+                # presence separately so an explicit legacy selector:null
+                # reaches the shared exact-replay gate instead of vanishing.
+                markers = {
+                    name: name.removeprefix("replay_present_") in data
+                    for name in self.arg_model.model_fields
+                    if name.startswith("replay_present_")
+                }
+                return {**data, **markers}
             return data
 
         def convert_result(self, result):
@@ -268,6 +278,10 @@ def make_operation_tools(host, *, guard=None):
                         json_schema_extra={"deprecated": True},
                     ),
                 )
+                parameters["replay_present_" + field] = (
+                    StrictBool,
+                    Field(False),
+                )
             else:
                 parameters[field] = (annotation, Field(default, description=meaning))
         model = create_model(
@@ -278,11 +292,20 @@ def make_operation_tools(host, *, guard=None):
         # normal tool discovery must not offer retired construction selectors.
         for field in op.replay_optional:
             schema["properties"].pop(field, None)
+            schema["properties"].pop("replay_present_" + field, None)
 
         async def invoke(ctx=None, **arguments):
             if guard is not None:
                 guard()
-            request = {k: v for k, v in arguments.items() if v is not None}
+            replay_present = {
+                field: arguments.pop("replay_present_" + field, False)
+                for field in op.replay_optional
+            }
+            request = {
+                k: v
+                for k, v in arguments.items()
+                if v is not None or replay_present.get(k, False)
+            }
             if op.name in GENERATES_KEY and "idempotency_key" not in request:
                 request["idempotency_key"] = generated_key()
             attachment = _attachment(ctx)

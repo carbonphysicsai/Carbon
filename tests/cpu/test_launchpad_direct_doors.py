@@ -132,7 +132,14 @@ def test_wrong_train_binding_refused_before_practice_through_both_doors(battery,
 
 
 @pytest.mark.parametrize(
-    "changed", [{"construction_level": 2}, {"arm": "inert_fields"}]
+    "changed",
+    [
+        {"construction_level": 2},
+        {"arm": "inert_fields"},
+        {"construction_level": None},
+        {"construction_variant_digest": None},
+        {"arm": None},
+    ],
 )
 def test_archived_level_arm_key_replays_only_exactly_after_restart(
     battery, door, changed
