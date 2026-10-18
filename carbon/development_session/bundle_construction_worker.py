@@ -25,9 +25,11 @@ from carbon.challenge_validator.strict_json import MalformedStrategy, parse_stra
 from .bundle_graph_state import MAX_BYTES as MAX_STATE_BYTES
 from .construction_recipe import ConstructionRecipe, RecipeRefused, bind_recipe
 from .library_bundles import LibraryBundleRef, bundle_ref
+from .library_environment_cache import VerifiedLibraryOverlay
 from .profile import canonical
 from .research_carrier import (
     LIBRARY_BUILD_PROVENANCE,
+    LIBRARY_OVERLAY_BUILD_PROVENANCE,
     LIBRARY_PREP_PROVENANCE,
     PRECHARGED_TRIAL,
     _run,
@@ -640,7 +642,8 @@ def reconstruct_public(
     *,
     owner: str,
     identity: str,
-    image: LibraryWorkerImage,
+    image: LibraryWorkerImage | VerifiedLibraryOverlay,
+    construction_parent=None,
     recipe: ConstructionRecipe,
     challenge_binding: dict,
     train: bytes,
@@ -652,13 +655,32 @@ def reconstruct_public(
     runner=None,
 ) -> BundleBuildResult:
     """Run an exact source entrypoint only in the provisioned child worker."""
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    overlay = image if type(image) is VerifiedLibraryOverlay else None
+    image_ref = (
+        overlay.bundle_ref.to_dict() if overlay is not None else image.bundle_ref
+    )
+    worker_image = construction_parent if overlay is not None else image
     if (
-        type(image) is not LibraryWorkerImage
+        (
+            overlay is None
+            and (
+                type(image) is not LibraryWorkerImage
+                or image.provisioned.bundle != LibraryBundleRef.from_dict(image_ref)
+            )
+        )
+        or (
+            overlay is not None
+            and (
+                type(construction_parent) is not WorkerImageIdentity
+                or overlay.parent_image_id != construction_parent.image_id
+            )
+        )
         or type(recipe) is not ConstructionRecipe
         or recipe.to_dict()["source"]["kind"] != "bundle"
         or recipe.to_dict()["output"]["format"] != "carbon.numeric-graph.v1"
-        or image.bundle_ref != recipe.to_dict()["source"]["bundle_ref"]
-        or image.provisioned.bundle != LibraryBundleRef.from_dict(image.bundle_ref)
+        or image_ref != recipe.to_dict()["source"]["bundle_ref"]
         or type(seed) is not int
         or seed < 0
         or type(train) is not bytes
@@ -683,7 +705,12 @@ def reconstruct_public(
             "control.json": json.dumps(
                 {
                     "recipe_digest": recipe.digest,
-                    "bundle_ref": image.bundle_ref,
+                    "bundle_ref": image_ref,
+                    **(
+                        {"overlay_tree_digest": overlay.tree_digest}
+                        if overlay is not None
+                        else {}
+                    ),
                     "binding": binding,
                     "example_digest": _digest(example_bytes),
                     "allowlist_digest": allowed.digest,
@@ -715,7 +742,7 @@ def reconstruct_public(
         if receipt != {
             "schema": "carbon.development.bundle-build.v1",
             "recipe_digest": recipe.digest,
-            "bundle_digest": image.bundle_ref["bundle_digest"],
+            "bundle_digest": image_ref["bundle_digest"],
             "train_digest": binding["train_digest"],
             "state_digest": _digest(state),
             "allowlist_digest": allowed.digest,
@@ -730,13 +757,22 @@ def reconstruct_public(
         identity=identity,
         source=BUILD_PROGRAM,
         files=files,
-        image=image,
+        image=worker_image,
         seconds=seconds,
-        provenance=LIBRARY_BUILD_PROVENANCE,
+        provenance=(
+            LIBRARY_OVERLAY_BUILD_PROVENANCE
+            if overlay is not None
+            else LIBRARY_BUILD_PROVENANCE
+        ),
         extra_resources=(
             {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
         ),
         output_validator=checked,
+        **(
+            {"trusted_overlay": overlay, "bootstrap": OVERLAY_BUILD_BOOTSTRAP}
+            if overlay is not None
+            else {}
+        ),
     )
     snapshot = ledger.root / worker["operation"] / "snapshot"
     state, receipt = checked(snapshot)
@@ -769,7 +805,7 @@ def infer_public(
     *,
     owner: str,
     identity: str,
-    image: LibraryWorkerImage,
+    image: LibraryWorkerImage | VerifiedLibraryOverlay,
     inference_image,
     recipe: ConstructionRecipe,
     challenge_binding: dict,
@@ -793,12 +829,17 @@ def infer_public(
     if type(build) is not BundleBuildResult:
         raise RecipeRefused("bundle_inference_custody_invalid")
     expected = ledger.root / build.worker_operation / "snapshot" / "state.npz"
+    image_ref = (
+        image.bundle_ref.to_dict()
+        if type(image) is VerifiedLibraryOverlay
+        else image.bundle_ref
+    )
     if (
-        type(image) is not LibraryWorkerImage
+        type(image) not in (LibraryWorkerImage, VerifiedLibraryOverlay)
         or type(inference_image) is not WorkerImageIdentity
         or type(recipe) is not ConstructionRecipe
         or recipe.to_dict()["source"]["kind"] != "bundle"
-        or image.bundle_ref != recipe.to_dict()["source"]["bundle_ref"]
+        or image_ref != recipe.to_dict()["source"]["bundle_ref"]
         or recipe.to_dict()["output"]["format"] != "carbon.numeric-graph.v1"
         or build.recipe_digest != recipe.digest
         or build.state_path != expected
@@ -1178,8 +1219,9 @@ def reconstruct_and_infer_public(
     *,
     owner: str,
     identity: str,
-    image: LibraryWorkerImage,
+    image: LibraryWorkerImage | VerifiedLibraryOverlay,
     inference_image,
+    construction_parent=None,
     recipe: ConstructionRecipe,
     challenge_binding: dict,
     limits_document: dict,
@@ -1225,6 +1267,7 @@ def reconstruct_and_infer_public(
         owner=owner,
         identity=build_identity,
         image=image,
+        construction_parent=construction_parent,
         recipe=recipe,
         challenge_binding=binding,
         train=train,
@@ -1265,7 +1308,11 @@ def reconstruct_and_infer_public(
                 owner=owner,
                 identity=build_identity,
                 operation=build.worker_operation,
-                provenance=LIBRARY_BUILD_PROVENANCE,
+                provenance=(
+                    LIBRARY_OVERLAY_BUILD_PROVENANCE
+                    if type(image) is VerifiedLibraryOverlay
+                    else LIBRARY_BUILD_PROVENANCE
+                ),
             ),
             _private_controls_digest(
                 ledger,

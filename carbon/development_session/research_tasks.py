@@ -471,16 +471,73 @@ class DirectDevelopmentTasksV3:
         )
 
     def _provision_admitted_image(self, request):
-        """Provision only after the direct task is durable and RUNNING."""
+        """Resolve a child or prepare exact dependencies after durable admission."""
         from carbon.reconstruction.worker.docker_runtime import DockerCLI
 
-        from .library_bundles import LibraryBundleRef
+        from .bundle_construction_worker import (
+            direct_child_identity,
+            prepare_library_overlay,
+        )
+        from .construction_recipe import ConstructionRecipe
+        from .library_bundles import LibraryBundleRef, load_pinned_bundle_directory
+        from .library_environment_cache import (
+            cache_verified_overlay,
+            inspect_staged_bundle_material,
+            pinned_uv_bytes,
+        )
         from .research_image import LibraryWorkerImage, verify_library_worker_image
 
         bundle = LibraryBundleRef.from_dict(request.recipe["source"]["bundle_ref"])
-        image = self.image_resolver.provision_admitted(
-            bundle, parent=self.construction_parent, cli=DockerCLI()
-        )
+        cli = DockerCLI()
+        try:
+            image = self.image_resolver.provision_admitted(
+                bundle, parent=self.construction_parent, cli=cli
+            )
+        except FileNotFoundError as error:
+            if str(error) != (
+                "bounded automatic dependency build unavailable; verified child missing"
+            ):
+                raise
+            capacity = getattr(self.image_resolver, "material_cache_bytes", None)
+            if type(capacity) is not int or capacity < 1:
+                raise ValueError("trusted overlay cache capacity unavailable") from None
+            directory = inspect_staged_bundle_material(
+                self.image_resolver.cache_root, bundle
+            )
+            material = load_pinned_bundle_directory(directory)
+            kit = self.discovery._material["construction_kit"]
+            binding = {
+                "challenge_id": kit["id"],
+                "challenge_version": kit["version"],
+                "train_digest": kit["train_digest"],
+                "interface_digest": kit["interface_digest"],
+                "construction_limits_digest": kit["construction_limits_digest"],
+            }
+            task = self._task_id(request)
+            prep = prepare_library_overlay(
+                self.ledger,
+                owner=self.owner,
+                identity=direct_child_identity(task.value, "prep"),
+                parent=self.construction_parent,
+                recipe=ConstructionRecipe.from_dict(request.recipe),
+                challenge_binding=binding,
+                limits_document=self.discovery._material[
+                    "construction_limits_document"
+                ],
+                material=material,
+                uv_binary=pinned_uv_bytes(cli),
+            )
+            if prep.controls_digest is None:
+                raise ValueError("completed C03 preparation controls unavailable")
+            overlay = cache_verified_overlay(
+                prep.snapshot,
+                self.image_resolver.cache_root,
+                expected_bundle=bundle,
+                expected_parent=self.construction_parent,
+                expected_receipt=prep.receipt,
+                material_cache_bytes=capacity,
+            )
+            return overlay, prep
         if (
             type(image) is not LibraryWorkerImage
             or image.bundle_ref != bundle.to_dict()
@@ -496,9 +553,26 @@ class DirectDevelopmentTasksV3:
 
         from carbon.reconstruction.worker.model import WorkerImageIdentity
 
+        from .library_environment_cache import VerifiedLibraryOverlay
+
         if type(image) is WorkerImageIdentity:
             return json.dumps(
                 ["GRAPH_PARENT", asdict(image)],
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+
+        if type(image) is VerifiedLibraryOverlay:
+            return json.dumps(
+                [
+                    "BUNDLE_OVERLAY",
+                    {
+                        "parent_image_id": image.parent_image_id,
+                        "bundle_ref": image.bundle_ref.to_dict(),
+                        "tree_digest": image.tree_digest,
+                        "archive_digest": image.archive_digest,
+                    },
+                ],
                 sort_keys=True,
                 separators=(",", ":"),
             )
@@ -907,7 +981,7 @@ class DirectDevelopmentTasksV3:
                 return True
         return any(
             self.ledger.operation_state(child, owner=self.owner) == "RESERVED"
-            for child in self._children(task_id)
+            for child in self._all_children(task_id)
         )
 
     def public_result(self, task):
@@ -1033,6 +1107,42 @@ class DirectDevelopmentTasksV3:
                     or "context_digest" in evidence
                 ):
                     raise ValueError("retained direct worker image custody differs")
+            elif (
+                type(image_binding) is list
+                and len(image_binding) == 2
+                and image_binding[0] == "BUNDLE_OVERLAY"
+            ):
+                binding = image_binding[1]
+                prep_receipt = evidence.get("prep_receipt")
+                if (
+                    type(binding) is not dict
+                    or set(binding)
+                    != {
+                        "parent_image_id",
+                        "bundle_ref",
+                        "tree_digest",
+                        "archive_digest",
+                    }
+                    or binding["bundle_ref"] != source["bundle_ref"]
+                    or evidence.get("schema")
+                    != "carbon.direct-private-attempt.overlay.v1"
+                    or evidence.get("image_id") != binding["parent_image_id"]
+                    or evidence.get("parent_image_id") != binding["parent_image_id"]
+                    or evidence.get("inference_image_id")
+                    != self.inference_image.image_id
+                    or evidence.get("bundle_digest")
+                    != binding["bundle_ref"]["bundle_digest"]
+                    or evidence.get("overlay_tree_digest") != binding["tree_digest"]
+                    or evidence.get("overlay_archive_digest")
+                    != binding["archive_digest"]
+                    or type(prep_receipt) is not dict
+                    or prep_receipt.get("bundle_ref") != binding["bundle_ref"]
+                    or prep_receipt.get("parent_image_id") != binding["parent_image_id"]
+                    or prep_receipt.get("tree_digest") != binding["tree_digest"]
+                    or prep_receipt.get("archive_sha256") != binding["archive_digest"]
+                    or "context_digest" in evidence
+                ):
+                    raise ValueError("retained direct overlay custody differs")
             else:
                 image_id, parent, bundle_ref, context_digest = image_binding
                 if (
@@ -1200,6 +1310,15 @@ class DirectDevelopmentTasksV3:
             for phase in ("build", "inference")
         )
 
+    def _all_children(self, task_id):
+        from .bundle_construction_worker import direct_child_identity
+
+        children = self._children(task_id)
+        request = self._requests.get(task_id.value)
+        if request is not None and request.recipe["source"]["kind"] == "bundle":
+            return (*children, direct_child_identity(task_id.value, "prep"))
+        return children
+
     def cancel_research_task(self, request):
         if type(request) is not DirectCancelTaskRequestV3:
             raise ResearchTaskProviderError(
@@ -1222,7 +1341,7 @@ class DirectDevelopmentTasksV3:
                     raise ResearchTaskProviderError(
                         ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
                     )
-                for child in self._children(view.task_id):
+                for child in self._all_children(view.task_id):
                     request_cancel(self.ledger, owner=self.owner, identity=child)
                 return DirectCancelTaskResultV3(
                     view, CancellationDisposition.ALREADY_ACCEPTED
@@ -1241,7 +1360,7 @@ class DirectDevelopmentTasksV3:
                     DirectTaskStateV3.CANCEL_REQUESTED,
                     cancellation=request.cancellation_id,
                 )
-                for child in self._children(view.task_id):
+                for child in self._all_children(view.task_id):
                     request_cancel(self.ledger, owner=self.owner, identity=child)
             return DirectCancelTaskResultV3(view, CancellationDisposition.ACCEPTED)
 
@@ -1255,10 +1374,10 @@ class DirectDevelopmentTasksV3:
             ):
                 continue
             if view.state is DirectTaskStateV3.CANCEL_REQUESTED:
-                for child in self._children(view.task_id):
+                for child in self._all_children(view.task_id):
                     request_cancel(self.ledger, owner=self.owner, identity=child)
             child_states = []
-            for child in self._children(view.task_id):
+            for child in self._all_children(view.task_id):
                 state = self.ledger.operation_state(child, owner=self.owner)
                 if state == "RESERVED":
                     reconcile_worker(self.ledger, owner=self.owner, identity=child)
@@ -1375,10 +1494,15 @@ class DirectDevelopmentTasksV3:
         provisioning = False
         try:
             total_deadline_started = None
+            overlay_prep = None
             if staged_source:
                 provisioning = True
                 total_deadline_started = time.monotonic()
-                image = self._provision_admitted_image(request)
+                provisioned = self._provision_admitted_image(request)
+                if type(provisioned) is tuple:
+                    image, overlay_prep = provisioned
+                else:
+                    image = provisioned
                 actual_binding = self._image_binding(image)
                 with self._lock:
                     with self._db() as db:
@@ -1436,6 +1560,7 @@ class DirectDevelopmentTasksV3:
                     identity=task_id.value,
                     image=image,
                     inference_image=self.inference_image,
+                    construction_parent=self.construction_parent,
                     recipe=recipe,
                     challenge_binding=binding,
                     limits_document=material["construction_limits_document"],
@@ -1471,12 +1596,26 @@ class DirectDevelopmentTasksV3:
                 raise ValueError("direct C-03 two-phase evidence incomplete")
             # A replacement callback cannot yield success without both settled
             # real child operations and their retained effective controls.
-            from .research_carrier import LIBRARY_BUILD_PROVENANCE
+            from .library_environment_cache import VerifiedLibraryOverlay
+            from .research_carrier import (
+                LIBRARY_BUILD_PROVENANCE,
+                LIBRARY_OVERLAY_BUILD_PROVENANCE,
+                LIBRARY_PREP_PROVENANCE,
+            )
+
+            overlay_run = type(image) is VerifiedLibraryOverlay
 
             build_provenance, inference_provenance = (
                 (GRAPH_BUILD_PROVENANCE, GRAPH_INFERENCE_PROVENANCE)
                 if source_kind == "graph"
-                else (LIBRARY_BUILD_PROVENANCE, "DIRECT_BUNDLE_PUBLIC_INFERENCE")
+                else (
+                    (
+                        LIBRARY_OVERLAY_BUILD_PROVENANCE
+                        if overlay_run
+                        else LIBRARY_BUILD_PROVENANCE
+                    ),
+                    "DIRECT_BUNDLE_PUBLIC_INFERENCE",
+                )
             )
 
             controls = (
@@ -1500,6 +1639,18 @@ class DirectDevelopmentTasksV3:
                 result.inference_controls_digest,
             ):
                 raise ValueError("direct worker controls changed")
+            if overlay_run:
+                if overlay_prep is None or overlay_prep.controls_digest is None:
+                    raise ValueError("direct overlay preparation evidence unavailable")
+                prep_controls = _private_controls_digest(
+                    self.ledger,
+                    owner=self.owner,
+                    identity=self._all_children(task_id)[2],
+                    operation=overlay_prep.worker_operation,
+                    provenance=LIBRARY_PREP_PROVENANCE,
+                )
+                if prep_controls != overlay_prep.controls_digest:
+                    raise ValueError("direct overlay preparation controls changed")
             snapshot = (
                 self.ledger.root
                 / result.inference.worker_operation
@@ -1522,11 +1673,19 @@ class DirectDevelopmentTasksV3:
                 "schema": (
                     "carbon.direct-private-attempt.graph.v1"
                     if source_kind == "graph"
-                    else "carbon.direct-private-attempt.v3"
+                    else (
+                        "carbon.direct-private-attempt.overlay.v1"
+                        if overlay_run
+                        else "carbon.direct-private-attempt.v3"
+                    )
                 ),
-                "image_id": image.image_id,
+                "image_id": (image.parent_image_id if overlay_run else image.image_id),
                 "parent_image_id": (
-                    image.image_id if source_kind == "graph" else image.parent.image_id
+                    image.image_id
+                    if source_kind == "graph"
+                    else (
+                        image.parent_image_id if overlay_run else image.parent.image_id
+                    )
                 ),
                 "inference_image_id": self.inference_image.image_id,
                 "build_operation": result.build.worker_operation,
@@ -1545,6 +1704,17 @@ class DirectDevelopmentTasksV3:
                 private["submission_digest"] = recipe.to_dict()["source"][
                     "submission_digest"
                 ]
+            elif overlay_run:
+                private.update(
+                    {
+                        "bundle_digest": image.bundle_ref.bundle_digest,
+                        "overlay_tree_digest": image.tree_digest,
+                        "overlay_archive_digest": image.archive_digest,
+                        "prep_operation": overlay_prep.worker_operation,
+                        "prep_controls_digest": overlay_prep.controls_digest,
+                        "prep_receipt": overlay_prep.receipt,
+                    }
+                )
             else:
                 private["bundle_digest"] = image.provisioned.bundle.bundle_digest
                 private["context_digest"] = image.provisioned.context_digest
@@ -1587,7 +1757,7 @@ class DirectDevelopmentTasksV3:
             from .research_carrier import reconcile_worker
 
             child_states = []
-            for child in self._children(task_id):
+            for child in self._all_children(task_id):
                 child_state = self.ledger.operation_state(child, owner=self.owner)
                 if child_state == "RESERVED":
                     reconcile_worker(self.ledger, owner=self.owner, identity=child)

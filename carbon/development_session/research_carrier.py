@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import math
 import re
+import shutil
 import time
 from contextlib import ExitStack, contextmanager
 from contextvars import ContextVar
@@ -28,6 +29,7 @@ from carbon.reconstruction.worker.docker_runtime import (
 )
 from carbon.reconstruction.worker.model import (
     CONTROL_BYTES,
+    INPUT_BYTES,
     OUTPUT_BYTES,
     DevelopmentWorkerProfile,
     WorkerCode,
@@ -45,8 +47,23 @@ PRECHARGED_TRIAL = ContextVar("carbon_precharged_trial", default=None)
 # This stays in the bounded Carbon worker lane, never the miner script lane.
 LIBRARY_BUILD_PROVENANCE = "DIRECT_BUNDLE_PUBLIC_RECONSTRUCTION"
 LIBRARY_PREP_PROVENANCE = "DIRECT_BUNDLE_DEPENDENCY_PREP"
+LIBRARY_OVERLAY_BUILD_PROVENANCE = "DIRECT_BUNDLE_OVERLAY_RECONSTRUCTION"
 
 ACTIVE_TASK = ContextVar("carbon_public_research_task", default=None)
+
+
+def _stage_verified_overlay(source, target, receipt):
+    """Copy sealed CAS bytes into the read-only, container-readable input mount."""
+    from .library_environment_cache import _verified_overlay_tree
+
+    _verified_overlay_tree(source, receipt)
+    shutil.copytree(source, target, symlinks=False)
+    _verified_overlay_tree(target, receipt)
+    for entry in target.rglob("*"):
+        entry.chmod(0o555 if entry.is_dir() else 0o444)
+    target.chmod(0o555)
+    _verified_overlay_tree(target, receipt)
+
 
 BOOTSTRAP = """
 import os,shutil
@@ -386,6 +403,7 @@ def _run_locked(
     accelerator=None,
     network=None,
     executable_files=(),
+    trusted_overlay=None,
 ):
     before_finish = before_finish or (lambda: None)
     # The miner's own research has no Carbon limits (owner direction): any
@@ -413,6 +431,45 @@ def _run_locked(
         ResearchWorkspace.name(name)
         if type(body) is not bytes:
             raise ValueError("stage accepts bytes, never paths")
+    overlay_receipt = None
+    if trusted_overlay is not None:
+        from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+        from .library_environment_cache import (
+            VerifiedLibraryOverlay,
+            _verified_overlay_tree,
+        )
+
+        if (
+            provenance != LIBRARY_OVERLAY_BUILD_PROVENANCE
+            or type(image) is not WorkerImageIdentity
+            or type(trusted_overlay) is not VerifiedLibraryOverlay
+            or trusted_overlay.parent_image_id != image.image_id
+        ):
+            raise ValueError("trusted construction-only overlay required")
+        overlay_path = trusted_overlay.path
+        if overlay_path.is_symlink() or not overlay_path.is_dir():
+            raise ValueError("trusted overlay path differs")
+        overlay_receipt = json.loads((overlay_path / ".overlay.json").read_bytes())
+        if (
+            type(overlay_receipt) is not dict
+            or overlay_receipt.get("tree_digest") != trusted_overlay.tree_digest
+            or overlay_receipt.get("bundle_ref") != trusted_overlay.bundle_ref.to_dict()
+            or overlay_receipt.get("parent_image_id") != image.image_id
+            or overlay_receipt.get("archive_sha256") != trusted_overlay.archive_digest
+        ):
+            raise ValueError("trusted overlay receipt differs")
+        _verified_overlay_tree(overlay_path, overlay_receipt)
+        if (
+            sum(map(len, files.values()))
+            + len(source.encode())
+            + trusted_overlay.total_bytes
+            + (overlay_path / ".overlay.json").stat().st_size
+            > INPUT_BYTES
+        ):
+            raise ValueError("bounded construction input exceeded")
+    elif provenance == LIBRARY_OVERLAY_BUILD_PROVENANCE:
+        raise ValueError("verified construction overlay required")
     request = {
         "source": digest(source.encode()),
         "files": {n: digest(b) for n, b in files.items()},
@@ -422,6 +479,13 @@ def _run_locked(
     }
     if executable_files:
         request["executable_files"] = list(executable_files)
+    if trusted_overlay is not None:
+        request["verified_overlay"] = {
+            "tree_digest": trusted_overlay.tree_digest,
+            "bundle_ref": trusted_overlay.bundle_ref.to_dict(),
+            "parent_image_id": trusted_overlay.parent_image_id,
+            "archive_digest": trusted_overlay.archive_digest,
+        }
     if execution_contract is not None:
         # Prospective language routes bind their complete reviewed environment.
         # Leaving this absent preserves historical Python operation identities.
@@ -469,7 +533,11 @@ def _run_locked(
         storage = sum(p.stat().st_size for p in ledger.root.rglob("*") if p.is_file())
         # Account stored input, provisional stream and decoded bounded output.
         reservation_bytes = (
-            sum(map(len, files.values())) + 2 * OUTPUT_BYTES + 2 * CONTROL_BYTES + 65536
+            sum(map(len, files.values()))
+            + (trusted_overlay.total_bytes if trusted_overlay is not None else 0)
+            + 2 * OUTPUT_BYTES
+            + 2 * CONTROL_BYTES
+            + 65536
         )
         if storage + reservation_bytes > 10 * 1024**3:
             raise ValueError("campaign retained storage ceiling")
@@ -527,6 +595,10 @@ def _run_locked(
                 path = stage / filename
                 write_once(path, body)
                 path.chmod(0o555 if filename in executable_files else 0o444)
+            if trusted_overlay is not None:
+                _stage_verified_overlay(
+                    trusted_overlay.path, stage / "overlay", overlay_receipt
+                )
         with _fixed_practice_stage(operation, provenance, "HOST_READINESS"):
             if provenance == LIBRARY_BUILD_PROVENANCE:
                 from .research_image import verify_library_worker_image

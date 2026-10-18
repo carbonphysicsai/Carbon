@@ -327,6 +327,128 @@ def test_direct_v3_inspects_source_then_provisions_only_after_durable_queue(
         tasks.close()
 
 
+def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(tmp_path, monkeypatch):
+    from carbon.development_session import library_bundles, library_environment_cache
+    from carbon.development_session.bundle_construction_worker import (
+        BundleOverlayPrepResult,
+    )
+
+    request, fixed_provider, discovery = _fixture(tmp_path, monkeypatch)
+    fixed = fixed_provider()
+    image, parent, ledger = fixed.image, fixed.inference_image, fixed.ledger
+    fixed.close()
+    bundle = LibraryBundleRef.from_dict(image.bundle_ref)
+    overlay = library_environment_cache.VerifiedLibraryOverlay(
+        tmp_path / "sealed-overlay",
+        "sha256:" + "a" * 64,
+        bundle,
+        parent.image_id,
+        "sha256:" + "b" * 64,
+        1,
+        4,
+    )
+    prep = BundleOverlayPrepResult(
+        tmp_path / "prep-snapshot",
+        {"bundle_ref": bundle.to_dict()},
+        "operation-" + "c" * 64,
+        "sha256:" + "d" * 64,
+    )
+    calls = []
+
+    class Resolver:
+        cache_root = tmp_path / "owner-cache"
+        material_cache_bytes = 10 * 1024**2
+
+        def __call__(self, _bundle):
+            pytest.fail("source-only admission resolved a child")
+
+        def inspect_source(self, selected):
+            assert selected == bundle
+            calls.append("inspect")
+            return selected
+
+        def provision_admitted(self, selected, *, parent, cli):
+            assert selected == bundle and parent == image.parent
+            calls.append("cache-miss")
+            raise FileNotFoundError(
+                "bounded automatic dependency build unavailable; verified child missing"
+            )
+
+    monkeypatch.setattr(
+        library_environment_cache,
+        "inspect_staged_bundle_material",
+        lambda *_args: tmp_path / "source-material",
+    )
+    monkeypatch.setattr(
+        library_bundles,
+        "load_pinned_bundle_directory",
+        lambda _path: (object(), b"source", {}, b"lock", b"license"),
+    )
+    monkeypatch.setattr(
+        library_environment_cache, "pinned_uv_bytes", lambda _cli: b"pinned-uv"
+    )
+
+    def fixed_prep(_ledger, **kwargs):
+        assert kwargs["parent"] == parent
+        assert kwargs["identity"].endswith("-prep")
+        assert kwargs["uv_binary"] == b"pinned-uv"
+        calls.append("bounded-prep")
+        return prep
+
+    def fixed_cache(*_args, **kwargs):
+        assert kwargs["expected_bundle"] == bundle
+        assert kwargs["expected_parent"] == parent
+        assert kwargs["expected_receipt"] == prep.receipt
+        assert kwargs["material_cache_bytes"] == Resolver.material_cache_bytes
+        calls.append("sealed-cache")
+        return overlay
+
+    monkeypatch.setattr(
+        bundle_construction_worker, "prepare_library_overlay", fixed_prep
+    )
+    monkeypatch.setattr(
+        library_environment_cache, "cache_verified_overlay", fixed_cache
+    )
+    monkeypatch.setattr(
+        bundle_construction_worker,
+        "reconstruct_and_infer_public",
+        lambda *_args, **kwargs: (
+            calls.append("construction"),
+            {"claimed": kwargs["image"]},
+        )[1],
+    )
+    tasks = DirectDevelopmentTasksV3(
+        root=tmp_path / "cold-tasks",
+        requester="miner",
+        ledger=ledger,
+        owner="miner",
+        discovery=discovery,
+        image=None,
+        inference_image=parent,
+        construction_parent=parent,
+        image_resolver=Resolver(),
+    )
+    try:
+        started = tasks.start_research_task(request).task
+        assert started.state is research.DirectTaskStateV3.QUEUED
+        assert calls == ["inspect"]
+        ended = tasks.run_queued_task(started.task_id)
+        assert ended.state is research.DirectTaskStateV3.UNRESOLVED
+        assert calls == [
+            "inspect",
+            "inspect",
+            "cache-miss",
+            "bounded-prep",
+            "sealed-cache",
+            "construction",
+        ]
+        assert tasks._task_image_bindings[
+            started.task_id.value
+        ] == tasks._image_binding(overlay)
+    finally:
+        tasks.close()
+
+
 def test_direct_v3_wire_and_durable_idempotency_refuse_changed_material(
     tmp_path, monkeypatch
 ):
@@ -998,7 +1120,7 @@ def test_direct_cancellation_retries_child_flags_after_write_failure(
         assert view.state is research.DirectTaskStateV3.CANCEL_REQUESTED
         retry = tasks.cancel_research_task(cancellation)
         assert retry.disposition is research.CancellationDisposition.ALREADY_ACCEPTED
-        assert calls == 3  # both child flags on the retry
+        assert calls == 4  # prep, build, and inference flags on the retry
     finally:
         tasks.close()
 
