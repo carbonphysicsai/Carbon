@@ -78,6 +78,8 @@ def _allow_windows_receiver_fixture(monkeypatch):
         ("runner_profile", None),
         ("construction_image_manifest", "relative-torch.json"),
         ("construction_image_manifest", None),
+        ("inference_image_manifest", "relative-jax.json"),
+        ("inference_image_manifest", None),
         ("challenge", {"id": "unregistered", "version": "1.0"}),
         (
             "challenge",
@@ -148,19 +150,22 @@ def test_evaluation_pack_selection_is_private_and_closed(tmp_path, monkeypatch):
         receiver.load_config(tmp_path / "config.json")
 
 
-def test_private_construction_image_manifest_requires_exact_regular_file(
-    tmp_path, monkeypatch
+@pytest.mark.parametrize(
+    "field", ("construction_image_manifest", "inference_image_manifest")
+)
+def test_private_direct_image_manifest_requires_exact_regular_file(
+    tmp_path, monkeypatch, field
 ):
     manifest = tmp_path / "torch.json"
     manifest.write_text("{}")
-    cfg = {**_config(tmp_path), "construction_image_manifest": str(manifest)}
+    cfg = {**_config(tmp_path), field: str(manifest)}
     monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
     assert receiver.load_config(tmp_path / "config.json") == cfg
-    cfg["construction_image_manifest"] = str(tmp_path / "missing.json")
-    with pytest.raises(ValueError, match="construction image manifest"):
+    cfg[field] = str(tmp_path / "missing.json")
+    with pytest.raises(ValueError, match=field.replace("_", " ")):
         receiver.load_config(tmp_path / "config.json")
-    cfg["construction_image_manifest"] = str(tmp_path)
-    with pytest.raises(ValueError, match="construction image manifest"):
+    cfg[field] = str(tmp_path)
+    with pytest.raises(ValueError, match=field.replace("_", " ")):
         receiver.load_config(tmp_path / "config.json")
 
 
@@ -687,6 +692,32 @@ def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
     assert frozen["admission"]["hotkey"] == OWNER
     assert frozen["admission"]["snapshot_id"] == snapshot.snapshot_id
     assert "ceilings" not in frozen and "grant" not in frozen
+
+    from carbon.battery.construction_bundle_material import (
+        bundle_material as battery_material,
+    )
+    from carbon.development_session.research_ledger import CampaignLedger
+
+    battery_discovery = DirectFixtureDiscovery(battery_material(), task_admission=True)
+    battery_pool = receiver.OwnerProviders(
+        receiver._private_directory(root / "battery"),
+        battery_discovery,
+        parent,
+        tmp_path / "cache",
+        implementation=implementation,
+        snapshot=snapshot,
+        receiver=RECEIVER,
+    )
+    battery_ledger = CampaignLedger(root / "battery-ledger")
+    battery_pool._manifest(OWNER, battery_ledger, restoring=False)
+    with battery_ledger.db() as db:
+        battery_frozen = json.loads(
+            db.execute("SELECT manifest FROM campaign").fetchone()[0]
+        )
+    assert battery_frozen["scope"] == "DEVELOPMENT_PUBLIC_BATTERY_ONLY"
+    assert battery_frozen["objective"] == (
+        "Battery public direct construction and practice inference"
+    )
 
     # The real C-03 carrier reaches ledger.reserve before host inspection.
     # A deliberately unavailable host settles FAILED_INFRA; no container or

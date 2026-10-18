@@ -359,16 +359,23 @@ def test_direct_v3_inspects_source_then_provisions_only_after_durable_queue(
         tasks.close()
 
 
-def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(tmp_path, monkeypatch):
+@pytest.mark.parametrize("gpu", (False, True))
+def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(
+    tmp_path, monkeypatch, gpu
+):
     from carbon.development_session import library_bundles, library_environment_cache
+    from carbon.development_session.research_carrier import MINER_GPU
     from carbon.development_session.bundle_construction_worker import (
         BundleOverlayPrepResult,
     )
+    from carbon.reconstruction.accelerators import GPU_PROFILE
 
     request, fixed_provider, discovery = _fixture(tmp_path, monkeypatch)
     fixed = fixed_provider()
     image, parent, ledger = fixed.image, fixed.inference_image, fixed.ledger
     fixed.close()
+    if gpu:
+        parent = replace(parent, lock_digest=GPU_PROFILE.environment_lock_digest)
     bundle = LibraryBundleRef.from_dict(image.bundle_ref)
     overlay = library_environment_cache.VerifiedLibraryOverlay(
         tmp_path / "sealed-overlay",
@@ -424,6 +431,8 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(tmp_path, monke
 
     def fixed_prep(_ledger, **kwargs):
         assert kwargs["parent"] == parent
+        assert kwargs.get("accelerator") == (MINER_GPU if gpu else None)
+        assert ("accelerator" in kwargs) is gpu
         assert kwargs["identity"].endswith("-prep")
         assert "uv_binary" not in kwargs
         assert 40 <= kwargs["seconds"] <= 600
@@ -448,13 +457,15 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(tmp_path, monke
     monkeypatch.setattr(
         library_environment_cache, "cache_verified_overlay", fixed_cache
     )
+
+    def construction(*_args, **kwargs):
+        assert kwargs.get("accelerator") == (MINER_GPU if gpu else None)
+        assert ("accelerator" in kwargs) is gpu
+        calls.append("construction")
+        return {"claimed": kwargs["image"]}
+
     monkeypatch.setattr(
-        bundle_construction_worker,
-        "reconstruct_and_infer_public",
-        lambda *_args, **kwargs: (
-            calls.append("construction"),
-            {"claimed": kwargs["image"]},
-        )[1],
+        bundle_construction_worker, "reconstruct_and_infer_public", construction
     )
     tasks = DirectDevelopmentTasksV3(
         root=tmp_path / "cold-tasks",
@@ -478,7 +489,7 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(tmp_path, monke
             "inspect",
             "inspect",
             "parent-verified",
-            "cache-miss",
+            *([] if gpu else ["cache-miss"]),
             "bounded-prep",
             "sealed-cache",
             "construction",

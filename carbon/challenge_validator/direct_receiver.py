@@ -38,6 +38,7 @@ _FIELDS = {
 _OPTIONAL_FIELDS = {
     "material_cache_bytes",
     "construction_image_manifest",
+    "inference_image_manifest",
     "evaluation_pack",
     "challenge",
 }
@@ -81,10 +82,13 @@ def load_config(path: Path) -> dict:
         selected = Path(value[name])
         if not selected.is_absolute() or selected.resolve() != selected:
             raise ValueError("exact private operator path required")
-    if "construction_image_manifest" in value:
-        selected = value["construction_image_manifest"]
+    for field in ("construction_image_manifest", "inference_image_manifest"):
+        if field not in value:
+            continue
+        selected = value[field]
+        refusal = f"exact {field.replace('_', ' ')} required"
         if type(selected) is not str:
-            raise ValueError("exact construction image manifest required")
+            raise ValueError(refusal)
         selected = Path(selected)
         if (
             not selected.is_absolute()
@@ -92,7 +96,7 @@ def load_config(path: Path) -> dict:
             or not selected.is_file()
             or selected.resolve() != selected
         ):
-            raise ValueError("exact construction image manifest required")
+            raise ValueError(refusal)
     if "challenge" in value:
         from carbon.battery import challenge as battery_challenge
         from carbon.challenge_kit.synthetic_linear_field_2d import CHALLENGE
@@ -517,6 +521,7 @@ class OwnerProviders:
         identity is still present in the current finalized snapshot.
         """
         from carbon.challenge_validator.interface import Unavailable
+        from carbon.battery.challenge import CHALLENGE as BATTERY_CHALLENGE
         from carbon.development_session.product_campaign import AUTHORITY
         from carbon.development_session.research_ledger import PRODUCT
 
@@ -528,6 +533,7 @@ class OwnerProviders:
             raise ValueError("direct receiver authority binding required")
         admission = self._admission(hotkey)
         challenge = self.discovery.info.challenge_key
+        battery_selected = challenge == BATTERY_CHALLENGE
         binding = {
             "schema": "carbon.construction.direct-receiver-run.v1",
             "implementation": self.implementation,
@@ -545,7 +551,11 @@ class OwnerProviders:
         candidate = {
             "schema": PRODUCT,
             "authority": AUTHORITY,
-            "scope": "DEVELOPMENT_PUBLIC_SYNTHETIC_ONLY",
+            "scope": (
+                "DEVELOPMENT_PUBLIC_BATTERY_ONLY"
+                if battery_selected
+                else "DEVELOPMENT_PUBLIC_SYNTHETIC_ONLY"
+            ),
             "campaign_id": "direct-" + hashlib.sha256(canonical(binding)).hexdigest(),
             "principal": hotkey,
             "owner": hotkey,
@@ -565,7 +575,11 @@ class OwnerProviders:
             "agent": "none",
             "challenge": binding["challenge"],
             "receiver_binding": binding,
-            "objective": "synthetic direct construction and public practice inference",
+            "objective": (
+                "Battery public direct construction and practice inference"
+                if battery_selected
+                else "synthetic direct construction and public practice inference"
+            ),
             "sampling": "Challenge-owned frozen TRAIN and public practice inputs",
             "control": "authenticated owner direct task supervisor",
             "selection": "owner-submitted ConstructionRecipe",
@@ -753,15 +767,38 @@ def serve(
         verify_current_worker,
         verify_direct_v13_worker,
     )
+    from carbon.development_session.gpu_practice import (
+        direct_bundle_accelerator,
+        gpu_image_backend,
+    )
     from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
     from scripts.dev.miner_launchpad.runner import validated_profile
 
     runner = validated_profile(private_json(Path(cfg["runner_profile"])))
-    inference_image = load_image_identity(Path(runner["paths"]["image_manifest"]))
-    try:
-        verify_current_worker(inference_image, implementation)
-    except ValueError:
-        verify_direct_v13_worker(inference_image, implementation, role="cpu")
+    selected_inference = cfg.get("inference_image_manifest")
+    inference_image = load_image_identity(
+        Path(
+            runner["paths"]["image_manifest"]
+            if selected_inference is None
+            else selected_inference
+        )
+    )
+    if selected_inference is None:
+        try:
+            verify_current_worker(inference_image, implementation)
+        except ValueError:
+            verify_direct_v13_worker(inference_image, implementation, role="cpu")
+    else:
+        backend = gpu_image_backend(inference_image)
+        if backend == "pytorch":
+            verify_direct_v13_worker(inference_image, implementation, role="torch_gpu")
+        elif backend == "jax":
+            verify_current_worker(inference_image, implementation)
+        else:
+            raise ValueError("private inference worker backend is unregistered")
+    accelerator = direct_bundle_accelerator(parent, inference_image)
+    if accelerator is not None and "material_cache_bytes" not in cfg:
+        raise ReceiverUnavailable("gpu_overlay_cache_unconfigured")
     if not doctor(
         image_id=inference_image.image_id, image_identity=inference_image
     ).eligible:
