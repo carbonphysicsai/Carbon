@@ -78,6 +78,12 @@ def _allow_windows_receiver_fixture(monkeypatch):
         ("runner_profile", None),
         ("construction_image_manifest", "relative-torch.json"),
         ("construction_image_manifest", None),
+        ("challenge", {"id": "unregistered", "version": "1.0"}),
+        (
+            "challenge",
+            {"id": "battery-fastcharge-ageing-development-v1", "version": "9.9"},
+        ),
+        ("challenge", "battery-fastcharge-ageing-development-v1"),
         ("exposure", {}),
     ],
 )
@@ -103,6 +109,22 @@ def test_optional_material_capacity_is_exact_private_operator_input(
     tmp_path, monkeypatch
 ):
     cfg = {**_config(tmp_path), "material_cache_bytes": 1024**3}
+    monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
+    assert receiver.load_config(tmp_path / "config.json") == cfg
+
+
+def test_operator_selects_only_registered_public_battery_challenge(
+    tmp_path, monkeypatch
+):
+    from carbon.battery import challenge
+
+    cfg = {
+        **_config(tmp_path),
+        "challenge": {
+            "id": challenge.CHALLENGE.challenge_id,
+            "version": challenge.CHALLENGE.version,
+        },
+    }
     monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
     assert receiver.load_config(tmp_path / "config.json") == cfg
 

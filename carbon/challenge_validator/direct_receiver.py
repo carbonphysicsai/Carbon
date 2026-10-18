@@ -39,6 +39,7 @@ _OPTIONAL_FIELDS = {
     "material_cache_bytes",
     "construction_image_manifest",
     "evaluation_pack",
+    "challenge",
 }
 
 
@@ -92,6 +93,20 @@ def load_config(path: Path) -> dict:
             or selected.resolve() != selected
         ):
             raise ValueError("exact construction image manifest required")
+    if "challenge" in value:
+        from carbon.battery import challenge as battery_challenge
+        from carbon.challenge_kit.synthetic_linear_field_2d import CHALLENGE
+
+        selected = value["challenge"]
+        registered = (
+            {"id": CHALLENGE.challenge_id, "version": "1.3"},
+            {
+                "id": battery_challenge.CHALLENGE.challenge_id,
+                "version": battery_challenge.CHALLENGE.version,
+            },
+        )
+        if type(selected) is not dict or selected not in registered:
+            raise ValueError("registered direct Challenge selection required")
     if "evaluation_pack" in value:
         selected = value["evaluation_pack"]
         if type(selected) is not dict or set(selected) != {
@@ -709,6 +724,10 @@ def serve(
     retention=None,
 ):
     """Run the same signed intake/task loop with finite admission and owned stop."""
+    from carbon.battery import challenge as battery_challenge
+    from carbon.battery.construction_bundle_material import (
+        bundle_material as battery_bundle_material,
+    )
     from carbon.chain.auth import BittensorHotkeyVerifier
     from carbon.chain.sdk import BittensorReader
     from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
@@ -758,7 +777,12 @@ def serve(
     ):
         raise ValueError("registered receiver snapshot required")
     root = _private_directory(Path(cfg["root"]))
-    material = bundle_material_v5()
+    material = (
+        battery_bundle_material()
+        if cfg.get("challenge", {}).get("id")
+        == battery_challenge.CHALLENGE.challenge_id
+        else bundle_material_v5()
+    )
     challenge = material["challenge_key"]
     with owner_lock(root):
         pack_check = None
