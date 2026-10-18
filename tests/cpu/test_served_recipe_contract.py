@@ -4,6 +4,10 @@ from pathlib import Path
 
 import pytest
 
+from carbon.battery import challenge as battery_challenge
+from carbon.battery.construction_bundle_material import (
+    bundle_material as battery_bundle_material,
+)
 from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
 from carbon.challenge_validator.lean_recipe import _source_identity
 from carbon.development_session.construction_recipe import SCHEMA as RECIPE_SCHEMA
@@ -21,6 +25,19 @@ def test_synthetic_v13_registered_recipe_contract_binds_existing_material():
     assert contract.document["scope"] == "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"
     assert contract.digest.startswith("sha256:")
     assert contract.digest != contract_digest(BATTERY_CHALLENGE)
+
+
+def test_battery_v10_served_contract_binds_original_public_bundle_material():
+    material = battery_bundle_material()
+    contract = registered(
+        battery_challenge.CHALLENGE.challenge_id,
+        battery_challenge.CHALLENGE.version,
+    )
+    assert contract.construction_kit == material["construction_kit"]
+    assert contract.allowlist_digest == material["allowlist_digest"]
+    assert contract.document["scope"] == "PUBLIC_BATTERY_DEVELOPMENT_ONLY"
+    assert contract.evidence_label == "DEVELOPMENT_PUBLIC_BATTERY"
+    assert contract.document["score_pack"] is None
 
 
 @pytest.mark.parametrize(

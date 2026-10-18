@@ -107,6 +107,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
         self.challenge_id = contract.challenge_id
         self.challenge_version = contract.version
         self.contract_digest = contract.digest
+        self._evidence_label = contract.evidence_label
         self.max_strategy_bytes = MAX_BODY
         self._kit = dict(contract.construction_kit)
         self._identities = self._bound_identities(contract)
@@ -260,7 +261,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
             "submission_id": task.task_id.value,
             "challenge": {"id": self.challenge_id, "version": self.challenge_version},
             "state": "ADMITTED",
-            "evidence": "DEVELOPMENT_PUBLIC_SYNTHETIC",
+            "evidence": self._evidence_label,
             "qualification": False,
             "reward": False,
             "task_id": task.task_id.value,
