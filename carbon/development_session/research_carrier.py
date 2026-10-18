@@ -293,6 +293,19 @@ def _cancel_active_intent(ledger, *, owner, identity):
         remove_exact_container(cli=cli, container_name=name, launch_digest=launch)
 
 
+# Fixed public construction phases use the same private, closed diagnostic
+# vocabulary. These records never enter the worker snapshot or public task.
+_FIXED_DIAGNOSTIC_PROVENANCES = frozenset(
+    {
+        "BATTERY_PUBLIC_PRACTICE",
+        LIBRARY_PREP_PROVENANCE,
+        LIBRARY_BUILD_PROVENANCE,
+        LIBRARY_OVERLAY_BUILD_PROVENANCE,
+        "DIRECT_BUNDLE_PUBLIC_INFERENCE",
+    }
+)
+
+
 _PRACTICE_FAILURE_STAGES = frozenset(
     {
         "STAGING",
@@ -393,9 +406,9 @@ def _fixed_practice_stage(operation, provenance, stage):
     try:
         yield
     except Exception as error:
-        if provenance == "BATTERY_PUBLIC_PRACTICE":
+        if provenance in _FIXED_DIAGNOSTIC_PROVENANCES:
             _retain_practice_failure(operation, stage, error)
-        elif (
+        if (
             provenance == LIBRARY_BUILD_PROVENANCE
             and stage == "PROGRAM"
             and isinstance(error, WorkerFailure)
@@ -839,7 +852,7 @@ def _run_locked(
                 cpuset=checked.cpuset,
                 launch_digest=launch,
                 worker_profile=worker,
-                diagnose_policy=provenance == "BATTERY_PUBLIC_PRACTICE",
+                diagnose_policy=provenance in _FIXED_DIAGNOSTIC_PROVENANCES,
             )
         with _fixed_practice_stage(operation, provenance, "PROGRAM"):
             cli.stream_to_file(
