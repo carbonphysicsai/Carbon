@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tarfile
 import zipfile
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -171,14 +172,33 @@ def test_owner_staging_is_exact_and_pure_until_admitted(tmp_path):
         stage_pinned_bundle_material(directory, cache_root)
 
 
+@pytest.mark.parametrize(
+    "runtime_profile,backend",
+    [
+        ("python-cpu-py311", None),
+        ("jax-cuda13-py311", "jax"),
+        ("torch-cu130-py311", "pytorch"),
+    ],
+)
 def test_direct_resolver_inspects_source_before_admitted_provision(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, runtime_profile, backend
 ):
     from carbon.development_session import gpu_practice, library_environment_cache
     from carbon.miner_mcp.standard_cli import DirectOwnerImageResolver
     from carbon.reconstruction.worker.model import WorkerImageIdentity
 
-    directory, _ = user_directory(tmp_path)
+    directory, manifest = user_directory(tmp_path)
+    if backend is None:
+        base = sha((Path(__file__).resolve().parents[2] / "uv.lock").read_bytes())
+        manifest.update(
+            runtime_profile_id=runtime_profile,
+            accelerator="cpu",
+            base_environment_digest=base,
+            environment_digest=_environment_digest(base, manifest["lock_sha256"]),
+        )
+    else:
+        manifest["runtime_profile_id"] = runtime_profile
+    (directory / "bundle.json").write_text(json.dumps(manifest), encoding="utf-8")
     cache_root = tmp_path / "owner-cache"
     cache_root.mkdir(mode=0o700)
     cache_root.chmod(0o700)
@@ -192,7 +212,8 @@ def test_direct_resolver_inspects_source_before_admitted_provision(
     parent = WorkerImageIdentity(
         *("sha256:" + character * 64 for character in "00123456")
     )
-    monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _: "pytorch")
+    resolver.parent = parent
+    monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _: backend)
     sentinel = object()
     adapter = object()
     with pytest.raises(FileNotFoundError, match="bounded automatic dependency build"):
@@ -219,10 +240,27 @@ def test_direct_resolver_inspects_source_before_admitted_provision(
     )
     assert resolver.provision_admitted(selected, parent=parent, cli=adapter) is sentinel
     assert calls == [(receipt, selected, parent, cache_root)]
-    with pytest.raises(ValueError, match="parent differs"):
-        monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _: "jax")
-        resolver.provision_admitted(selected, parent=parent, cli=adapter)
-    assert len(calls) == 1
+    assert resolver(selected) is sentinel
+    assert calls == [(receipt, selected, parent, cache_root)] * 2
+
+    # A registered CPU backend is None; an unknown runtime must not be
+    # mistaken for that valid case, even when its parent is CPU too.
+    unknown = replace(selected, runtime_profile_id="unknown-cpu-py311")
+    for resolve in (
+        lambda value: resolver.provision_admitted(value, parent=parent, cli=adapter),
+        resolver,
+    ):
+        with pytest.raises(ValueError, match="parent.*differs"):
+            resolve(unknown)
+    wrong_backend = "pytorch" if backend != "pytorch" else "jax"
+    monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _: wrong_backend)
+    for resolve in (
+        lambda value: resolver.provision_admitted(value, parent=parent, cli=adapter),
+        resolver,
+    ):
+        with pytest.raises(ValueError, match="parent.*differs"):
+            resolve(selected)
+    assert len(calls) == 2
 
 
 def test_catalogue_names_new_and_existing_sources_without_claiming_install():
