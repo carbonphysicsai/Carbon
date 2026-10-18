@@ -419,7 +419,13 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(
     def poison(*args, **kwargs):
         raise AssertionError("remote signed upload touched local Docker/image loader")
 
-    monkeypatch.setattr(standard_cli, "_direct_material", lambda version: dict)
+    direct_versions = []
+
+    def direct_material(version):
+        direct_versions.append(version)
+        return dict
+
+    monkeypatch.setattr(standard_cli, "_direct_material", direct_material)
     monkeypatch.setattr(standard_cli, "private_json", lambda path: cfg)
     monkeypatch.setattr(standard_cli, "load_direct_installed_source", poison)
     monkeypatch.setattr(runner, "validated_profile", lambda value: value)
@@ -455,6 +461,7 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(
 
     class Connection:
         def __init__(self, **kwargs):
+            assert kwargs["version"] == "1.3"
             self.challenge = ChallengeKey("synthetic-linear-field-2d", "1.3")
             self.miner_key = kwargs["miner_key"]
             self.chain_context = kwargs["chain_context"]
@@ -546,6 +553,16 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(
         "registered",
         "unlock",
     ]
+
+    expected_state = (
+        tmp_path
+        / ".direct-development"
+        / ("remote-stage-battery-v1.0" if battery else "remote-stage-v1.3")
+    )
+    assert events[0] == ("lock", expected_state)
+    assert events[1] == ("connection", expected_state / "research-auth")
+    assert events[-1] == ("unlock", expected_state)
+    assert direct_versions == ([] if battery else ["1.3"])
 
     public["hotkey"] = "5" + "d" * 47
     with pytest.raises(standard_cli.AttachRefused) as wrong_owner:
@@ -845,3 +862,45 @@ def test_queued_tool_result_uses_validated_id_without_rereading_journal(
         "score_status": "SCORE_UNAVAILABLE",
         "official_eligible": False,
     }
+
+
+@pytest.mark.parametrize("route", [None, "UNKNOWN"])
+def test_remote_stage_rejects_missing_or_unknown_registry_route_before_profile(
+    tmp_path, monkeypatch, route
+):
+    from dataclasses import replace
+
+    from carbon.miner_mcp import standard_cli
+    from carbon.reconstruction import served_recipe_contract
+    from carbon.registry import ChallengeKey
+
+    selected = ChallengeKey("synthetic-linear-field-2d", "1.3")
+    contract = served_recipe_contract.registered(
+        selected.challenge_id, selected.version
+    )
+    attachment = (
+        None
+        if route is None
+        else served_recipe_contract.RemoteStageAttachment("unused", route)
+    )
+    monkeypatch.setattr(
+        served_recipe_contract,
+        "registered",
+        lambda *_: replace(contract, remote_stage_attachment=attachment),
+    )
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("unknown attachment route must stop before profile/network access")
+
+    monkeypatch.setattr(standard_cli, "private_json", forbidden)
+    monkeypatch.setattr(standard_cli, "_direct_material", forbidden)
+
+    async def attach():
+        async with standard_cli.attached_remote_material_stage(
+            tmp_path / "profile.json", challenge=selected
+        ):
+            pytest.fail("unknown attachment route was admitted")
+
+    with pytest.raises(standard_cli.AttachRefused) as refused:
+        asyncio.run(attach())
+    assert refused.value.code == "construction_recipe_challenge_mismatch"
