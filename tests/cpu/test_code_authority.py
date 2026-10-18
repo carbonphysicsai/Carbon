@@ -1162,7 +1162,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert _inline_run_commands(bundle) == (
         "./scripts/dev/bootstrap.sh",
         "./scripts/dev/c03_worker_image.sh",
-        "./scripts/dev/c03_worker_service.sh tests/cpu/test_development_image_artifact.py tests/cpu/test_development_candidate_implementation.py tests/cpu/test_miner_install.py tests/cpu/test_challenge_kit.py",
+        "./scripts/dev/c03_worker_service.sh tests/cpu/test_development_image_artifact.py tests/cpu/test_development_candidate_implementation.py tests/cpu/test_miner_install.py tests/cpu/test_challenge_kit.py tests/cpu/test_direct_receiver.py",
     )
     assert "./scripts/dev/c03_worker_service.sh\n" in jobs["c03-worker"]
     assert "./scripts/dev/c03_worker.sh reconcile" in jobs["c03-worker"]
