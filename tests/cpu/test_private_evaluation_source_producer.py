@@ -100,6 +100,13 @@ def test_cross_challenge_or_wrong_case_originals_refuse(tmp_path):
         _build(case, selected, references=references)
     assert raised.value.code == "source_case"
 
+    for malformed_status in ([], {}):
+        references = deepcopy(case["references"])
+        references[0]["status"] = malformed_status
+        with pytest.raises(PrivateEvaluationSourceRefused) as raised:
+            _build(case, selected, references=references)
+        assert raised.value.code == "source_case"
+
     with pytest.raises(PrivateEvaluationSourceRefused) as raised:
         _build(case, selected, ordered_query_bytes=[b""])
     assert raised.value.code == "source_case"

@@ -137,6 +137,7 @@ def build_pack_source_receipt(
             or not case["id"]
             or case["id"] in seen
             or reference.get("id") != case["id"]
+            or type(reference.get("status")) is not str
             or reference.get("status") not in _REFERENCE_STATUS
             or type(case.get("role")) is not str
             or not case["role"]
