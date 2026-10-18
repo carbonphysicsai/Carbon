@@ -286,3 +286,8 @@ def test_public_factory_preserves_actual_elapsed_and_explicit_unranked_state(
     assert prepared["accuracy_ceiling"] is None
     assert prepared["ranking"] is None
     assert prepared["score_or_qualification"] is False
+    assert prepared["timing_scopes"] == {
+        "reference": "IN_PROCESS_PUBLIC_REFERENCE_ARRAY_ONLY",
+        "model": None,
+    }
+    assert prepared["speedup_comparability"] == "NOT_ESTABLISHED"

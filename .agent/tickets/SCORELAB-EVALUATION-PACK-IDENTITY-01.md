@@ -55,3 +55,8 @@ producer and None-pack shared core. No accuracy threshold, rank, graded
 sidecar or scientific population claim is adopted. Platform owns the normal
 unranked consumer and Product owns actual execution. The author branch lacks
 the newer synthetic kit, so runtime checks require Lead's composed tree.
+Research's receiving check requires actual model-derived conformance verdicts
+from Platform's caller. Reference timing covers only the in-process array
+operation; a cold worker time is a distinct scope. Report raw times separately,
+with speedup comparability NOT_ESTABLISHED, rather than interpreting a numeric
+ratio from the shared unready reducer as comparable solver acceleration.

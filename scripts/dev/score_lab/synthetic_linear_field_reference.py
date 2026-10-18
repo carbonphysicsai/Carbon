@@ -144,6 +144,9 @@ def prepare_public_measurement(
     The normal caller uses this registration with benchmark_saved_entry's
     score_pack=None path. No scored private sidecar, pool key or qualification
     is created, and missing model measurements are not manufactured here.
+    Reference timing is the in-process array operation only. A caller must
+    retain the actual model timing scope separately and must not advertise
+    their numerical time ratio as comparable solver speed.
     """
     registration = public_measurement_registration(
         query_bytes=query_bytes,
@@ -163,6 +166,11 @@ def prepare_public_measurement(
         "measurement_state": "DEVELOPMENT_UNRANKED",
         "accuracy_ceiling": None,
         "ranking": None,
+        "timing_scopes": {
+            "reference": "IN_PROCESS_PUBLIC_REFERENCE_ARRAY_ONLY",
+            "model": None,
+        },
+        "speedup_comparability": "NOT_ESTABLISHED",
     }
 
 
