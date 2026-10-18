@@ -135,11 +135,11 @@ class Discovery:
 
 
 class DirectFixtureDiscovery:
-    """Public fixture facts on the shared service, with no task admission.
+    """Registered public Challenge facts on the shared service.
 
     Reads the source bytes again at use, so a changed TRAIN, practice array,
     physics document, or resource fact cannot silently retain its old identity.
-    This is discovery for synthetic development, not a qualified Challenge.
+    This is DEVELOPMENT discovery, not a qualified Challenge.
     """
 
     def __init__(
@@ -190,6 +190,13 @@ class DirectFixtureDiscovery:
     def _snapshot(self):
         import numpy as np
 
+        from carbon.battery import challenge as battery_challenge
+        from carbon.battery import construction_material as battery_tensors
+        from carbon.battery import domain as battery_domain
+        from carbon.battery import practice as battery_practice
+        from carbon.battery.construction_bundle_material import (
+            bundle_material as battery_bundle_material,
+        )
         from carbon.challenge_kit.synthetic_linear_field_2d import (
             bundle_material,
             bundle_material_v3,
@@ -224,12 +231,25 @@ class DirectFixtureDiscovery:
         reference = material.get("practice_reference")
         train_ids = material.get("train_case_ids")
         practice_ids = material.get("practice_case_ids")
+        battery = key == battery_challenge.CHALLENGE
+        if type(practice) is not np.ndarray or type(reference) is not np.ndarray:
+            practice_shape_invalid = True
+        elif battery:
+            practice_shape_invalid = practice.shape != (
+                battery_practice.PRACTICE_CASES,
+                len(battery_domain.INPUTS),
+            ) or reference.shape != (
+                battery_practice.PRACTICE_CASES,
+                battery_tensors.OUTPUT_WIDTH,
+            )
+        else:
+            practice_shape_invalid = practice.shape != reference.shape
         if (
             type(practice) is not np.ndarray
             or type(reference) is not np.ndarray
-            or practice.dtype != np.float32
-            or reference.dtype != np.float32
-            or practice.shape != reference.shape
+            or practice.dtype != (np.float64 if battery else np.float32)
+            or reference.dtype != (np.float64 if battery else np.float32)
+            or practice_shape_invalid
             or practice.ndim < 2
             or not np.isfinite(practice).all()
             or not np.isfinite(reference).all()
@@ -238,15 +258,28 @@ class DirectFixtureDiscovery:
             or len(practice_ids) != practice.shape[0]
         ):
             raise ValueError("direct public practice bytes or case IDs differ")
-        registered_material = {
-            "1.0": bundle_material,
-            "1.1": bundle_material_v3,
-            "1.2": bundle_material_v4,
-            "1.3": bundle_material_v5,
-        }.get(key.version)
+        registered_material = (
+            battery_bundle_material
+            if battery
+            else {
+                "1.0": bundle_material,
+                "1.1": bundle_material_v3,
+                "1.2": bundle_material_v4,
+                "1.3": bundle_material_v5,
+            }.get(key.version)
+        )
         if registered_material is None:
             raise ValueError("direct public Challenge version is unregistered")
-        if self._task_admission and key.version not in ("1.1", "1.2", "1.3"):
+        if (
+            self._task_admission
+            and not battery
+            and key.version
+            not in (
+                "1.1",
+                "1.2",
+                "1.3",
+            )
+        ):
             raise ValueError("direct task admission requires prospective kit")
         registered = registered_material()
         if (
@@ -315,7 +348,7 @@ class DirectFixtureDiscovery:
             info.disclosure_digest,
             (
                 research.DIRECT_RECIPE_SOURCE_TASK_OPERATIONS
-                if self._task_admission and key.version == "1.3"
+                if self._task_admission and (battery or key.version == "1.3")
                 else (
                     research.DIRECT_RECIPE_TASK_OPERATIONS
                     if self._task_admission
