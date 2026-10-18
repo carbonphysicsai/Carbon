@@ -35,10 +35,41 @@ scorer. Its complete shape is:
     "case_bank": "HUMAN_INPUT",
     "reference_rows": "HUMAN_INPUT",
     "solver_evidence": "HUMAN_INPUT",
-    "score_pack": "HUMAN_INPUT"
+    "score_pack": "HUMAN_INPUT",
+    "source_registration": "HUMAN_INPUT"
   }
 }
 ```
+
+`source_registration` is an optional private role in this still-prospective
+v1 manifest. The original four-role private manifest remains valid and keeps
+its exact byte identity. Omission or `HUMAN_INPUT` means the normal scoring
+source is unavailable; it does not prevent pack selection, construction, or
+task retention. Unknown roles still fail admission. The role must reference
+an owner-private artifact by relative path, never an inline object or a miner
+path. `prepare_pack` pins its SHA-256 from the file without asking the operator
+to copy a digest into the draft. The pinned artifact has this closed envelope:
+
+```json
+{
+  "schema": "carbon.challenge-evaluation-source-registration.v1",
+  "evaluation_version": "<explicit owner-registered version>",
+  "trusted_job": {"<existing trusted job fields>": "<owner-supplied values>"},
+  "benchmark_registration": {"<existing benchmark v3 fields>": "<owner-supplied values>"}
+}
+```
+
+`snapshot.read_source_registration(private_root)` reads the exact pinned
+artifact and validates only the envelope. The trusted normal caller must
+validate the job against the retained task and selected construction material,
+re-register the benchmark document with the existing benchmark validator,
+check its computed digest and identity, and derive the one static query from
+the verified `case_bank` bytes. A manifest label or fixture registration does
+not provide those proofs. No population, case weight, timing profile, job
+identity, reference rule, or evaluation version is synthesized. This role is
+never included in `public_projection()` or a miner result. A dynamic
+`HiddenBatchStore` remains a separate Challenge-specific adapter, not a
+fallback to this static query path.
 
 Replace a role with `{"path":"relative/file"}` only when the underlying
 existing artifact and its own contract are known. Paths are relative to a

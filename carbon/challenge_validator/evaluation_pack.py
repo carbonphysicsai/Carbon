@@ -27,6 +27,7 @@ from carbon.registry.digest import (
 )
 
 SCHEMA = "carbon.challenge-evaluation-pack.v1"
+SOURCE_REGISTRATION_SCHEMA = "carbon.challenge-evaluation-source-registration.v1"
 MAX_MANIFEST_BYTES = 64 * 1024
 PUBLIC_ROLES = frozenset(
     {
@@ -42,6 +43,7 @@ PUBLIC_ROLES = frozenset(
 PRIVATE_ROLES = frozenset(
     {"case_bank", "reference_rows", "solver_evidence", "score_pack"}
 )
+OPTIONAL_PRIVATE_ROLES = frozenset({"source_registration"})
 INLINE_ROLES = PUBLIC_ROLES - {"train"}
 UNAVAILABLE = "HUMAN_INPUT"
 
@@ -91,8 +93,16 @@ def _inline_bytes(value: object) -> bytes:
         raise EvaluationPackUnavailable("evaluation_pack.inline_value") from exc
 
 
+def _role_names_valid(value: object, names: frozenset[str], scope: str) -> bool:
+    if type(value) is not dict:
+        return False
+    keys = set(value)
+    allowed = names | OPTIONAL_PRIVATE_ROLES if scope == "private" else names
+    return names <= keys <= allowed
+
+
 def _roles(value: object, names: frozenset[str], scope: str) -> dict:
-    if type(value) is not dict or set(value) != names:
+    if not _role_names_valid(value, names, scope):
         raise EvaluationPackUnavailable("evaluation_pack." + scope + "_roles")
     normalized = {}
     for role, entry in value.items():
@@ -283,6 +293,36 @@ class EvaluationPackSnapshot:
         validate its meaning; Score Packs keep their exact-byte loader.
         """
         return _strict_json(self.read_role(root, scope, role, max_bytes=max_bytes))
+
+    def read_source_registration(self, private_root: Path) -> dict:
+        """Read the exact private source envelope; semantic checks stay downstream.
+
+        This validates only the closed envelope. The trusted caller must bind
+        its job and benchmark registration to the selected Challenge, retained
+        task, public material and existing benchmark contract before scoring.
+        """
+        if "source_registration" not in self.private:
+            raise EvaluationPackUnavailable("evaluation_pack.role_unavailable")
+        source = self.read_json_role(
+            private_root, "private", "source_registration", max_bytes=1024 * 1024
+        )
+        if (
+            type(source) is not dict
+            or set(source)
+            != {
+                "schema",
+                "evaluation_version",
+                "trusted_job",
+                "benchmark_registration",
+            }
+            or source["schema"] != SOURCE_REGISTRATION_SCHEMA
+            or type(source["evaluation_version"]) is not str
+            or not source["evaluation_version"]
+            or type(source["trusted_job"]) is not dict
+            or type(source["benchmark_registration"]) is not dict
+        ):
+            raise EvaluationPackUnavailable("evaluation_pack.source_registration_shape")
+        return source
 
     def resolve_hidden_batch(
         self,
@@ -477,10 +517,8 @@ def prepare_pack(
         type(body) is not dict
         or set(body) != {"schema", "challenge", "pack_version", "public", "private"}
         or body["schema"] != SCHEMA
-        or type(body["public"]) is not dict
-        or set(body["public"]) != PUBLIC_ROLES
-        or type(body["private"]) is not dict
-        or set(body["private"]) != PRIVATE_ROLES
+        or not _role_names_valid(body["public"], PUBLIC_ROLES, "public")
+        or not _role_names_valid(body["private"], PRIVATE_ROLES, "private")
     ):
         raise EvaluationPackUnavailable("evaluation_pack.schema")
     for scope, roles, artifact_root in (

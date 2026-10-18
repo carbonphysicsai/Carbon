@@ -13,7 +13,10 @@ import json
 import math
 from dataclasses import dataclass
 
-from carbon.challenge_validator.evaluation_pack import EvaluationPackSnapshot
+from carbon.challenge_validator.evaluation_pack import (
+    PRIVATE_ROLES,
+    EvaluationPackSnapshot,
+)
 from carbon.registry.digest import is_sha256_digest
 from carbon.scoring.benchmark_evidence import (
     BenchmarkRefused,
@@ -82,7 +85,9 @@ def build_pack_source_receipt(
     ):
         raise PrivateEvaluationSourceRefused("selected_pack_missing")
     missing = selected_pack.missing_roles()
-    if _REQUIRED_PUBLIC_ROLES.intersection(missing["public"]) or missing["private"]:
+    if _REQUIRED_PUBLIC_ROLES.intersection(
+        missing["public"]
+    ) or PRIVATE_ROLES.intersection(missing["private"]):
         raise PrivateEvaluationSourceRefused("selected_pack_incomplete")
     if type(evaluation_version) is not str or not evaluation_version:
         raise PrivateEvaluationSourceRefused("evaluation_version_missing")

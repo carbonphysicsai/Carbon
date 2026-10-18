@@ -8,9 +8,11 @@ from unittest.mock import patch
 import pytest
 
 from carbon.challenge_validator.evaluation_pack import (
+    OPTIONAL_PRIVATE_ROLES,
     PRIVATE_ROLES,
     PUBLIC_ROLES,
     SCHEMA,
+    SOURCE_REGISTRATION_SCHEMA,
     UNAVAILABLE,
     EvaluationPackUnavailable,
     freeze_pack,
@@ -71,6 +73,146 @@ def test_private_roles_never_enter_public_projection():
     assert snapshot.private["reference_rows"]["path"] == "protected/exam-reference.json"
     with pytest.raises(TypeError):
         snapshot.private["reference_rows"]["sha256"] = _digest(b"tampered")
+
+
+def test_optional_source_registration_is_private_pinned_and_read_only():
+    document = _manifest()
+    source = json.dumps(
+        {
+            "schema": SOURCE_REGISTRATION_SCHEMA,
+            "evaluation_version": "owner-selected-version",
+            "trusted_job": {"job_digest": _digest(b"owner job")},
+            "benchmark_registration": {
+                "registration_digest": _digest(b"owner registration")
+            },
+        }
+    ).encode()
+    document["private"]["source_registration"] = {
+        "path": "owner/source-registration.json",
+        "sha256": _digest(source),
+    }
+    snapshot = _parse(document)
+    assert set(snapshot.private) == PRIVATE_ROLES | OPTIONAL_PRIVATE_ROLES
+    projection = json.dumps(snapshot.public_projection())
+    assert "source_registration" not in projection
+    assert "owner/source-registration.json" not in projection
+    assert _digest(source) not in projection
+    assert snapshot.manifest_digest not in projection
+    with patch(
+        "carbon.challenge_validator.evaluation_pack.read_verified_artifact_bytes",
+        return_value=source,
+    ) as reader:
+        assert snapshot.read_source_registration(Path("/owner"))["schema"] == (
+            SOURCE_REGISTRATION_SCHEMA
+        )
+    reader.assert_called_once_with(
+        Path("/owner"),
+        "owner/source-registration.json",
+        _digest(source),
+        max_bytes=1024 * 1024,
+    )
+
+
+def test_optional_source_registration_stays_absent_or_explicitly_unavailable():
+    legacy = _parse(_manifest())
+    assert "source_registration" not in legacy.private
+    assert "source_registration" not in legacy.missing_roles()["private"]
+    with pytest.raises(EvaluationPackUnavailable) as raised:
+        legacy.read_source_registration(Path("/owner"))
+    assert raised.value.code == "evaluation_pack.role_unavailable"
+    document = _manifest()
+    document["private"]["source_registration"] = UNAVAILABLE
+    unfinished = _parse(document)
+    assert "source_registration" in unfinished.missing_roles()["private"]
+    with pytest.raises(EvaluationPackUnavailable) as raised:
+        unfinished.read_source_registration(Path("/owner"))
+    assert raised.value.code == "evaluation_pack.role_unavailable"
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        {},
+        {
+            "schema": SOURCE_REGISTRATION_SCHEMA,
+            "evaluation_version": "",
+            "trusted_job": {},
+            "benchmark_registration": {},
+        },
+        {
+            "schema": SOURCE_REGISTRATION_SCHEMA,
+            "evaluation_version": "version",
+            "trusted_job": [],
+            "benchmark_registration": {},
+        },
+    ],
+)
+def test_private_source_envelope_is_closed_and_explicit(source):
+    document = _manifest()
+    raw = json.dumps(source).encode()
+    document["private"]["source_registration"] = {
+        "path": "owner/source.json",
+        "sha256": _digest(raw),
+    }
+    snapshot = _parse(document)
+    with (
+        patch(
+            "carbon.challenge_validator.evaluation_pack.read_verified_artifact_bytes",
+            return_value=raw,
+        ),
+        pytest.raises(EvaluationPackUnavailable) as raised,
+    ):
+        snapshot.read_source_registration(Path("/owner"))
+    assert raised.value.code == "evaluation_pack.source_registration_shape"
+
+
+def test_private_source_registration_refuses_changed_or_duplicate_artifact():
+    document = _manifest()
+    document["private"]["source_registration"] = {
+        "path": "owner/source.json",
+        "sha256": _digest(b"original source"),
+    }
+    snapshot = _parse(document)
+    with (
+        patch(
+            "carbon.challenge_validator.evaluation_pack.read_verified_artifact_bytes",
+            side_effect=ArtifactAccessError(
+                "artifact.digest_mismatch", "source artifact changed"
+            ),
+        ),
+        pytest.raises(EvaluationPackUnavailable) as raised,
+    ):
+        snapshot.read_source_registration(Path("/owner"))
+    assert raised.value.code == "evaluation_pack.artifact.digest_mismatch"
+
+    duplicate = b'{"schema":1,"schema":2}'
+    document["private"]["source_registration"]["sha256"] = _digest(duplicate)
+    snapshot = _parse(document)
+    with (
+        patch(
+            "carbon.challenge_validator.evaluation_pack.read_verified_artifact_bytes",
+            return_value=duplicate,
+        ),
+        pytest.raises(EvaluationPackUnavailable) as raised,
+    ):
+        snapshot.read_source_registration(Path("/owner"))
+    assert raised.value.code == "evaluation_pack.duplicate_key"
+
+
+def test_private_source_registration_rejects_inline_and_unknown_roles():
+    document = _manifest()
+    document["private"]["source_registration"] = {
+        "inline": {"schema": "not-private"},
+        "sha256": _digest(b"not-private"),
+    }
+    with pytest.raises(EvaluationPackUnavailable) as raised:
+        _parse(document)
+    assert raised.value.code == "evaluation_pack.inline_entry"
+    document["private"]["source_registration"] = UNAVAILABLE
+    document["private"]["unexpected_role"] = UNAVAILABLE
+    with pytest.raises(EvaluationPackUnavailable) as raised:
+        _parse(document)
+    assert raised.value.code == "evaluation_pack.private_roles"
 
 
 @pytest.mark.parametrize("changed", ["id", "version"])
@@ -394,6 +536,46 @@ def test_operator_draft_auto_pins_artifacts_into_separate_frozen_bytes():
     new_bytes = json.dumps({**draft, "pack_version": "2"}, sort_keys=True).encode()
     assert _digest(new_bytes) != prepared.draft_digest
     assert _digest(prepared.sealed_bytes) == prepared.snapshot.manifest_digest
+
+
+def test_operator_draft_auto_pins_optional_private_source_without_copying_hash():
+    draft = _manifest()
+    draft["private"]["source_registration"] = {"path": "owner/source.json"}
+    draft_bytes = json.dumps(draft, sort_keys=True).encode()
+    source_bytes = b'{"owner":"private source fixture"}'
+
+    def digester(root, path):
+        if path == "test-challenge/evaluation-pack.json":
+            return _digest(draft_bytes)
+        assert root == Path("/private") and path == "owner/source.json"
+        return _digest(source_bytes)
+
+    with (
+        patch(
+            "carbon.challenge_validator.evaluation_pack.digest_artifact",
+            side_effect=digester,
+        ),
+        patch(
+            "carbon.challenge_validator.evaluation_pack.read_verified_artifact_bytes",
+            return_value=draft_bytes,
+        ),
+    ):
+        prepared = prepare_pack(
+            Path("/private"),
+            "test-challenge/evaluation-pack.json",
+            public_root=Path("/public"),
+            private_root=Path("/private"),
+            challenge_id="test-challenge",
+            challenge_version="1.0",
+        )
+    assert draft["private"]["source_registration"] == {"path": "owner/source.json"}
+    assert prepared.snapshot.private["source_registration"]["sha256"] == _digest(
+        source_bytes
+    )
+    assert json.loads(prepared.sealed_bytes)["private"]["source_registration"] == {
+        "path": "owner/source.json",
+        "sha256": _digest(source_bytes),
+    }
 
 
 def test_small_challenge_rules_can_be_edited_inline_without_manual_hashes():

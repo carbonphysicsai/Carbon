@@ -25,7 +25,9 @@ def _sha(raw):
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
-def _selected_pack(case, *, version="1", incomplete=False, wrong_train=False):
+def _selected_pack(
+    case, *, version="1", incomplete=False, wrong_train=False, unbound_source=False
+):
     public = {
         role: {"path": role + ".bin", "sha256": _sha(role.encode())}
         for role in PUBLIC_ROLES
@@ -45,6 +47,8 @@ def _selected_pack(case, *, version="1", incomplete=False, wrong_train=False):
     }
     if incomplete:
         private["solver_evidence"] = UNAVAILABLE
+    if unbound_source:
+        private["source_registration"] = UNAVAILABLE
     manifest = {
         "schema": SCHEMA,
         "challenge": {
@@ -124,6 +128,15 @@ def test_unapplied_public_rule_documents_do_not_gate_v3_source(tmp_path):
         "important_limit_definition",
         "design_objective",
     }
+    assert _build(case, selected).evaluation_pack_digest == selected.manifest_digest
+
+
+def test_optional_unbound_registration_does_not_change_explicit_source_builder(
+    tmp_path,
+):
+    case = _graph_case(tmp_path)
+    selected = _selected_pack(case, unbound_source=True)
+    assert "source_registration" in selected.missing_roles()["private"]
     assert _build(case, selected).evaluation_pack_digest == selected.manifest_digest
 
 
