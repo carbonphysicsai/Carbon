@@ -186,9 +186,42 @@ def test_normal_cpu_source_only_task_cold_prepares_builds_and_retains(tmp_path):
         assert ledger.status(owner=owner)["operations"] == []
         finished = provider.run_queued_task(queued.task_id)
         operations = ledger.status(owner=owner)["operations"]
-        assert finished.state is DirectTaskStateV3.SUCCEEDED, [
-            (item["phase"], item["state"]) for item in operations
-        ]
+        failure_diagnostic = None
+        if finished.state is not DirectTaskStateV3.SUCCEEDED:
+            closed_states = {
+                None,
+                "RESERVED",
+                "SUCCEEDED",
+                "FAILED_INFRA",
+                "FAILED_MINER",
+                "CANCELLED",
+            }
+            child_states = tuple(
+                (
+                    stage,
+                    state if state in closed_states else "UNKNOWN",
+                )
+                for stage, child in zip(
+                    ("build", "inference", "prep"),
+                    provider._all_children(queued.task_id),
+                )
+                for state in (ledger.operation_state(child, owner=owner),)
+            )
+            receipt = finished.terminal_receipt
+            failure_diagnostic = {
+                "task_state": finished.state.value,
+                "failure_type": (
+                    receipt.infrastructure_failure_class.value
+                    if receipt is not None
+                    and receipt.infrastructure_failure_class is not None
+                    else "NONE"
+                ),
+                "failed_stage": tuple(
+                    stage for stage, state in child_states if state == "FAILED_INFRA"
+                ),
+                "child_states": child_states,
+            }
+        assert finished.state is DirectTaskStateV3.SUCCEEDED, failure_diagnostic
         evidence = provider.private_attempt(queued.task_id)
         assert evidence["schema"] == "carbon.direct-private-attempt.overlay.v1"
         assert evidence["parent_image_id"] == parent.image_id
