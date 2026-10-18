@@ -824,6 +824,37 @@ BATTERY_REVISION = "f" * 40
 BATTERY_IMAGES = ["fixture-cpu", "fixture-analysis"]
 
 
+def intake_fixture_connection(root):
+    """Use one testnet identity for this fixture's miner and loopback intake."""
+    from test_c08_authenticated_miner_mcp import _Adapter, _snapshot, _Verifier
+    from test_standard_mcp_cli import fixture_connection
+
+    from carbon.development_session.chain_onboarding import carbon_testnet_context
+    from carbon.transport.gateway import AuthenticatedGateway
+    from carbon.transport.store import ReceiptJournal
+
+    connection = fixture_connection(root)
+    context = carbon_testnet_context()
+    snapshot = _snapshot(context=context)
+    gateway = connection.service.gateway
+    connection.service.gateway = AuthenticatedGateway(
+        context,
+        gateway.challenge,
+        gateway.receiver,
+        _Adapter(snapshot),
+        _Verifier(),
+        ReceiptJournal(root / "transport-testnet.sqlite3", context),
+        clock_ns=gateway.clock_ns,
+    )
+    connection.chain_context = context
+
+    async def observe():
+        return snapshot
+
+    connection.check_registration = observe
+    return connection
+
+
 def battery_prepare(patch, *, miner_key=None):
     """DEVELOPMENT FIXTURE: prepare a battery product campaign the way
     `battery.campaign.prepare_battery` does - its real manifest
@@ -858,7 +889,11 @@ def battery_prepare(patch, *, miner_key=None):
     ticks = itertools.count(NOW, 50_000_000)
 
     async def prepare(args, *, ledger=None):
-        connection = fixture_connection(args.root)
+        connection = (
+            fixture_connection(args.root)
+            if miner_key is None
+            else intake_fixture_connection(args.root)
+        )
         connection.service.gateway.clock_ns = lambda: next(ticks)
         if miner_key is not None:
             connection.miner_key = miner_key
