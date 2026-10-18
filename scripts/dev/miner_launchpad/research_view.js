@@ -1275,14 +1275,28 @@
     part(box, "stages", JSON.stringify(doc.stages), node => stages(node, doc), "rs-stages-part", "div");
   }
 
+  function directConstructionEntry() {
+    if (route().view !== "campaigns") return;
+    const list = $("research-runs");
+    if (!list || !window.CarbonTools?.mountDirect) return;
+    let slot = $("direct-construction-entry");
+    if (!slot) {
+      slot = el("div", undefined, "rs-direct-entry");
+      slot.id = "direct-construction-entry";
+      list.parentNode.insertBefore(slot, list);
+    }
+    slot.hidden = !CC.state().connected;
+    if (!slot.hidden) window.CarbonTools.mountDirect(slot);
+  }
+
   function render() {
-    try { strip(); activePanel(); } catch (error) { console.error(error); }
+    try { strip(); activePanel(); directConstructionEntry(); } catch (error) { console.error(error); }
     const r = route();
     if (r.view === "campaigns" && r.id) CC.renderCampaigns();
   }
 
   setupShell();
   window.CarbonResearch = {detail, render, TABS};
-  CC.onRender(() => { try { strip(); activePanel(); decorateChallengeCards(); } catch (error) { console.error(error); } });
+  CC.onRender(() => { try { strip(); activePanel(); directConstructionEntry(); decorateChallengeCards(); } catch (error) { console.error(error); } });
   render();
 })();

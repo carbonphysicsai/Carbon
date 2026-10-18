@@ -18,6 +18,7 @@
   const SHOW_MAX = 200000;
   const POLL_MS = 2000;
   const IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+  const DIRECT_SESSION = "direct-development-1.3";
   const MATERIAL = ["objective", "capabilities", "training_data", "practice_data", "reference_method"];
   const REASONS = ["missing_adapter", "missing_data_support", "resource_ceiling", "host_limitation", "contract_incompatibility", "prohibited_authority_or_data"];
   const REQUEST_FIELDS = ["purpose", "operation", "hypothesis", "public_evidence", "expected_benefit", "estimated_cost", "minimal_safe_design", "verification"];
@@ -184,11 +185,14 @@
     const s = w.state || {};
     if (s.open) {
       bar.append(el("strong", "Tools open"), el("span", "Closes after " + Math.round((s.idle_close_seconds || 600) / 60) + " idle minutes.", "hint"), button("Close the tools", "", () => close(w)));
+      if (w.direct) bar.append(button("Refresh session", "", () => refresh(w)));
       parent.append(bar);
       para(parent, s.holds || "", "hint");
     } else {
       const go = button(w.busy ? "Opening…" : "Open the tools", "primary", () => open(w)); go.disabled = Boolean(w.busy);
-      bar.append(go, el("span", "Opening attaches this page to the campaign, as your agent's carbon_attach_campaign does. One holder at a time: while it is open, your agent's attach, practice, freeze and submit wait.", "hint"));
+      bar.append(go, el("span", w.direct
+        ? "Opening attaches the installed direct DEVELOPMENT session. One holder at a time: close it before your MCP agent attaches."
+        : "Opening attaches this page to the campaign, as your agent's carbon_attach_campaign does. One holder at a time: while it is open, your agent's attach, practice, freeze and submit wait.", "hint"));
       parent.append(bar);
     }
     if (w.error) para(parent, w.error, "reason");
@@ -495,6 +499,74 @@
     para(box, "What freeze or submit did shows above the tools, which close first.", "hint");
     body.append(box);
   }
+  function constructionPanel(w, body) {
+    const box = el("details", undefined, "rs-tool"); box.open = true;
+    box.append(el("summary", "Construction: stage graph and submit recipe"));
+    para(box, "The installed direct DEVELOPMENT session sends the recipe to the profile-pinned receiver for a clean rebuild. Evaluation and scoring are separate and currently unavailable on this path. A rebuild result is not a score, verdict, qualification or reward.", "hint");
+    const challenge = w.state.challenge || {};
+    para(box, "Served Challenge: " + (challenge.id || "unavailable") + " · v" + (challenge.version || "unavailable"), "hint");
+    if (w.state.construction_intake_configured !== true) {
+      para(box, "No direct construction receiver is pinned in this profile. Set up the receiver before staging or submitting.", "reason");
+      body.append(box);
+      return;
+    }
+    const progress = w.constructionProgress;
+    const recipe = field(box, "Construction recipe (JSON)", input("textarea", progress?.text || "{}", "Construction recipe JSON"), "Paste a recipe for the served Challenge. No backbone, level or graph is selected by this page.");
+    recipe.className = "rs-code"; recipe.rows = 12;
+    recipe.readOnly = progress?.state === "ADMITTED";
+    const expected = field(box, "Expected graph manifest digest (optional)", input("text", "", "Expected graph manifest digest"), "Use when the recipe references graph source already staged in your owner workspace.");
+    const result = out(box);
+    const parsedRecipe = () => {
+      const parsed = parseJSON(recipe.value);
+      if (parsed.error) { show(result, parsed.error); return null; }
+      if (!parsed.value || Array.isArray(parsed.value) || typeof parsed.value !== "object") { show(result, "A construction recipe must be a JSON object."); return null; }
+      return parsed.value;
+    };
+    async function send(action, bodyValue) {
+      const reply = await post(w, action, bodyValue);
+      return reply.ok ? {value: reply.result} : {error: reply.error};
+    }
+    const actions = el("div", undefined, "rs-actions");
+    actions.append(button("Stage graph source", "", () => {
+      const value = parsedRecipe(); if (!value) return;
+      const request = {recipe: value};
+      if (expected.value.trim()) request.expected_manifest_digest = expected.value.trim();
+      guarded(result, () => send("stage_construction_graph", request));
+    }));
+    const submit = button(progress?.state === "ADMITTED" ? "Check rebuild status" : progress ? "Rebuild ended" : "Submit for clean rebuild", "primary", () => {
+      const value = w.constructionProgress?.state === "ADMITTED" ? w.constructionProgress.recipe : parsedRecipe();
+      if (!value) return;
+      const submittedText = w.constructionProgress?.state === "ADMITTED" ? w.constructionProgress.text : recipe.value;
+      guarded(result, async () => {
+        const reply = await post(w, "submit_construction", {recipe: value});
+        if (reply.ok) {
+          const state = reply.result?.result?.state;
+          if (state === "ADMITTED" && reply.result.result.task_id) {
+            w.constructionProgress = {state, recipe: value, text: submittedText, taskId: reply.result.result.task_id};
+            recipe.value = submittedText; recipe.readOnly = true;
+            submit.textContent = "Check rebuild status";
+          } else if (["RECONSTRUCTED", "RECONSTRUCTION_FAILED", "FAILED_INFRA"].includes(state)) {
+            w.constructionProgress = {state, recipe: value, text: submittedText};
+            recipe.value = submittedText;
+            recipe.readOnly = false;
+            submit.textContent = state === "RECONSTRUCTED" ? "Rebuild complete" : "Rebuild ended";
+            submit.disabled = true;
+          }
+        }
+        return reply.ok ? {value: reply.result} : {error: reply.error};
+      });
+    });
+    submit.disabled = Boolean(progress && progress.state !== "ADMITTED");
+    recipe.addEventListener("input", () => {
+      if (w.constructionProgress?.state === "ADMITTED") return;
+      w.constructionProgress = null;
+      submit.textContent = "Submit for clean rebuild";
+      submit.disabled = false;
+    });
+    actions.append(submit);
+    box.append(actions, result);
+    body.append(box);
+  }
   // The bench's own status line: kept across the tools closing and opening,
   // because freeze and submit close them first.
   function say(w, text, className = "hint") {
@@ -613,12 +685,22 @@
 
   // ---- The bench for one campaign, kept across re-renders. ----
   function draw(w) {
-    w.node.replaceChildren(el("h3", "Use the tools"));
+    w.node.replaceChildren(el("h3", w.direct ? "Direct construction · DEVELOPMENT" : "Use the tools"));
     sessionBar(w, w.node);
     w.node.append(w.opLine, w.opDiscard);
     if (!w.state?.open) return;
     w.resultList = null;
     const body = el("div", undefined, "rs-bench");
+    if (w.direct) {
+      if (w.state.development_only !== true || w.state.campaign !== DIRECT_SESSION) {
+        para(body, "This session did not advertise direct DEVELOPMENT construction.", "reason");
+      } else {
+        constructionPanel(w, body);
+        allToolsPanel(w, body);
+      }
+      w.node.append(body);
+      return;
+    }
     workspacePanel(w, body);
     codePanel(w, body);
     resultsPanel(w, body);
@@ -654,7 +736,28 @@
     // is focused in it, and a refresh must never take focus from an editor.
     if (w.node.parentNode !== panel) panel.append(w.node);
   }
-  window.CarbonTools = {mount, readable, readBytes};
+  let directBench = null;
+  async function mountDirect(panel) {
+    if (!panel || !CC.state().connected) return;
+    if (!directBench) {
+      directBench = {id: DIRECT_SESSION, direct: true, node: el("section", undefined, "rs-panel rs-workbench"),
+        doc: {}, state: null, tasks: [], opLine: el("p", "", "hint"), checked: false};
+      directBench.opLine.setAttribute("role", "status"); directBench.opLine.hidden = true;
+      directBench.opDiscard = el("span"); directBench.opDiscard.hidden = true;
+    }
+    const w = directBench;
+    if (!w.checked && !w.checking && Date.now() - (w.lastProbe || 0) >= 5000) {
+      w.checking = true;
+      w.lastProbe = Date.now();
+      try {
+        const state = await CC.api(path(w));
+        if (state?.campaign === DIRECT_SESSION) { w.state = state; w.checked = true; draw(w); }
+      } catch (_) { /* the host has not offered this session */ }
+      finally { w.checking = false; }
+    }
+    if (w.checked && w.node.parentNode !== panel) panel.append(w.node);
+  }
+  window.CarbonTools = {mount, mountDirect, readable, readBytes};
   // Each page refresh moves a freeze or submit's line on, from the record.
   CC.onRender(() => { for (const w of benches.values()) follow(w); });
 })();

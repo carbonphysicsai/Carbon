@@ -914,6 +914,75 @@ scenario("Tools: a result reads as lines of text", async () => {
   clean(page);
 });
 
+scenario("Construction: a fresh Launchpad uses its offered direct session and pinned receiver actions", async () => {
+  const session = "direct-development-1.3";
+  const base = "/api/v1/tools/" + session;
+  // The exact registered 1.3 kit and recipe shape. The fake stage/submit replies
+  // below exercise browser forwarding only: no graph bytes or receiver run here.
+  const interfaceDigest = "sha256:7413bab4aa4c549c416a687b380dc9ef0731f6471030e451fe9242539a45d504";
+  const recipe = {
+    schema: "carbon.construction-recipe.v1",
+    challenge: {id: "synthetic-linear-field-2d", version: "1.3",
+      train_digest: "sha256:95aec24fe064b05bbb8750820c2c95bfac7117ba56496a58bdcc570b8438b867",
+      interface_digest: interfaceDigest,
+      construction_limits_digest: "sha256:e4486fb177124c6e3db12096855db5601791264df8123a74f26a0747b0f7a158"},
+    source: {kind: "graph", submission_digest: "sha256:" + "a".repeat(64)},
+    procedure: {entrypoint: null, configuration: {}, train_use: {cases: "all"}, initial_state: null},
+    output: {format: "carbon.numeric-graph.v1", interface_digest: interfaceDigest},
+  };
+  const state = world();
+  state.runs = [];
+  state.script.push(
+    {match: r => r.method === "GET" && r.path === base, keep: true, answer: {body: {campaign: session, open: false, idle_close_seconds: 600}}},
+    {match: r => r.method === "POST" && r.path === base + "/open", answer: {body: {campaign: session, open: true, development_only: true,
+      challenge: {id: "synthetic-linear-field-2d", version: "1.3"}, construction_intake_configured: true, tools: [], tasks: []}}},
+    {match: r => r.path === base + "/stage_construction_graph", answer: {body: {ok: true, result: {status: "STAGED", source_digest: "sha256:abc"}}}},
+    {match: r => r.path === base + "/submit_construction", answer: {body: {ok: true, result: {result: {state: "ADMITTED", task_id: "task-1"}, score_status: "SCORE_UNAVAILABLE", official_eligible: false}}}},
+    {match: r => r.path === base + "/submit_construction", answer: {body: {ok: true, result: {result: {state: "RECONSTRUCTED", task_id: "task-1", state_digest: "sha256:" + "e".repeat(64), predictions_digest: "sha256:" + "f".repeat(64)}, score_status: "SCORE_UNAVAILABLE", official_eligible: false}}}},
+  );
+  const page = await open(state);
+  page.go("#campaigns");
+  await page.advance(0);
+  const entry = one(page, "#direct-construction-entry");
+  assert.match(page.text(entry), /Direct construction · DEVELOPMENT/);
+  assert.equal(state.runs.length, 0, "a product campaign is not needed");
+  await page.press([...all(page, "#direct-construction-entry button")].find(b => b.textContent === "Open the tools"));
+  assert.match(page.text(entry), /Evaluation and scoring are separate and currently unavailable/);
+  assert.match(page.text(entry), /rebuild result is not a score, verdict, qualification or reward/);
+  const textarea = [...all(page, "#direct-construction-entry textarea")].find(n => n.getAttribute("aria-label") === "Construction recipe JSON");
+  textarea.value = JSON.stringify(recipe);
+  const digest = [...all(page, "#direct-construction-entry input")].find(n => n.getAttribute("aria-label") === "Expected graph manifest digest");
+  digest.value = "sha256:" + "a".repeat(64);
+  await page.press([...all(page, "#direct-construction-entry button")].find(b => b.textContent === "Stage graph source"));
+  assert.deepEqual(lastPost(state, base + "/stage_construction_graph").body, {recipe, expected_manifest_digest: digest.value});
+  await page.press([...all(page, "#direct-construction-entry button")].find(b => b.textContent === "Submit for clean rebuild"));
+  assert.deepEqual(lastPost(state, base + "/submit_construction").body, {recipe});
+  assert.match(page.text(entry), /ADMITTED/);
+  assert.equal(textarea.readOnly, true);
+  textarea.value = "{}"; // the status control keeps the admitted recipe, not the edited field
+  await page.press([...all(page, "#direct-construction-entry button")].find(b => b.textContent === "Check rebuild status"));
+  assert.deepEqual(lastPost(state, base + "/submit_construction").body, {recipe});
+  assert.deepEqual(JSON.parse(textarea.value), recipe);
+  assert.match(page.text(entry), /RECONSTRUCTED/);
+  assert.ok([...all(page, "#direct-construction-entry button")].some(b => b.textContent === "Rebuild complete" && b.disabled));
+  assert.match(page.text(entry), /SCORE_UNAVAILABLE|SCORE UNAVAILABLE|score status: SCORE_UNAVAILABLE/i);
+  assert.equal(state.posted.some(post => post.path === "/api/v1/operations/submit"), false, "no Battery campaign submission");
+  clean(page);
+
+  const unavailable = world();
+  unavailable.script.push(
+    {match: r => r.method === "GET" && r.path === base, keep: true, answer: {body: {campaign: session, open: false}}},
+    {match: r => r.path === base + "/open", answer: {body: {campaign: session, open: true, development_only: true,
+      challenge: {id: "synthetic-linear-field-2d", version: "1.3"}, construction_intake_configured: false, tools: [], tasks: []}}},
+  );
+  const second = await open(unavailable);
+  second.go("#campaigns"); await second.advance(0);
+  await second.press([...all(second, "#direct-construction-entry button")].find(b => b.textContent === "Open the tools"));
+  assert.match(second.text("direct-construction-entry"), /No direct construction receiver is pinned/);
+  assert.equal([...all(second, "#direct-construction-entry button")].some(b => b.textContent === "Submit for clean rebuild"), false);
+  clean(second);
+});
+
 // ---- 7. Budgets in human units; links; the MCP command. ----
 scenario("limits are typed in dollars and minutes and sent in the ledger's units", async () => {
   const state = launchable(world());
