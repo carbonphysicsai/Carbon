@@ -121,3 +121,15 @@ The loader is a source-level building block. The normal receiver and ScoreLab
 must still be wired to the same trusted snapshot and existing scoring core.
 Until that integration and relevant scientific inputs exist, a manifest alone
 is not a working evaluation or a LIVE qualification.
+
+For a selected pack and an actual registered private evaluation, the trusted
+operator path calls
+`carbon.scoring.private_evaluation_source.build_pack_source_receipt` with the
+retained `EvaluationPackSnapshot`, saved graph entry, trusted job, registered
+cases, actual reference rows and ordered original query bytes. It returns v2
+private source-receipt bytes and their SHA-256. The operator stores those bytes
+write-once and independently registers their digest; the existing private
+evidence binder verifies the exact source and selected pack pin. This helper
+does not select a pack, run a solver, expose private rows publicly, score a
+candidate or make the source receipt authoritative by itself. The legacy
+no-pack v1 source path keeps its historical meaning.
