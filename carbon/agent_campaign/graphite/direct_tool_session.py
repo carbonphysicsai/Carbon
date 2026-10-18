@@ -258,6 +258,10 @@ class DirectToolSession:
                 "direct tool outcome requires reconciliation"
             )
         direct = result.get("result")
+        if action == "call" and not _direct_result(direct, name, operation_id):
+            raise UncertainDirectToolDispatch(
+                "direct tool outcome requires reconciliation"
+            )
         if (
             result.get("ok") is True
             and type(direct) is dict
@@ -269,3 +273,29 @@ class DirectToolSession:
 
 class UncertainDirectToolDispatch(RuntimeError):
     """The route may have dispatched; retain the loop intent for reconciliation."""
+
+
+def _direct_result(value, name, operation_id):
+    """Validate the actual DirectToolDoor.call success envelope, not a guess."""
+    return (
+        type(value) is dict
+        and set(value)
+        == {
+            "schema",
+            "operation",
+            "operation_id",
+            "reply",
+            "task",
+            "public_result",
+            "requires_reconciliation",
+            "official_eligible",
+        }
+        and value["schema"] == "carbon.direct-mcp-result.v3"
+        and value["operation"] == name.removeprefix(DIRECT_PREFIX)
+        and value["operation_id"] == operation_id
+        and type(value["reply"]) is dict
+        and (value["task"] is None or type(value["task"]) is dict)
+        and (value["public_result"] is None or type(value["public_result"]) is dict)
+        and type(value["requires_reconciliation"]) is bool
+        and value["official_eligible"] is False
+    )

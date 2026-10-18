@@ -51,11 +51,26 @@ def opened(*, intake=True):
 def route(calls, *, intake=True):
     def invoke(action, value):
         calls.append((action, value))
-        return (
-            opened(intake=intake) if action == "open" else {"ok": True, "result": value}
-        )
+        if action == "open":
+            return opened(intake=intake)
+        if action == "call":
+            return {"ok": True, "result": direct_result(value)}
+        return {"ok": True, "result": value}
 
     return invoke
+
+
+def direct_result(value, *, reconcile=False):
+    return {
+        "schema": "carbon.direct-mcp-result.v3",
+        "operation": value["tool"].removeprefix(DIRECT_PREFIX),
+        "operation_id": value["arguments"]["operation_id"],
+        "reply": {"status": "OK"},
+        "task": None,
+        "public_result": None,
+        "requires_reconciliation": reconcile,
+        "official_eligible": False,
+    }
 
 
 def test_open_uses_normal_session_and_exposes_only_offered_tools():
@@ -243,15 +258,7 @@ def test_real_direct_envelope_promotes_reconciliation_to_loop_top_level():
         calls.append((action, value))
         if action == "open":
             return opened()
-        return {
-            "ok": True,
-            "result": {
-                "reply": {"status": "OK"},
-                "task": None,
-                "requires_reconciliation": True,
-                "official_eligible": False,
-            },
-        }
+        return {"ok": True, "result": direct_result(value, reconcile=True)}
 
     session = DirectToolSession.open(uncertain, campaign_identity=CAMPAIGN_A)
     result = asyncio.run(
@@ -265,7 +272,17 @@ def test_real_direct_envelope_promotes_reconciliation_to_loop_top_level():
 
 
 @pytest.mark.parametrize(
-    "outcome", ["timeout", "malformed", "protected", "operational_stop"]
+    "outcome",
+    [
+        "timeout",
+        "malformed",
+        "protected",
+        "operational_stop",
+        "missing_result",
+        "null_result",
+        "empty_result",
+        "wrong_reconciliation_type",
+    ],
 )
 def test_post_route_uncertainty_never_claims_nondispatch(outcome):
     calls = []
@@ -280,6 +297,16 @@ def test_post_route_uncertainty_never_claims_nondispatch(outcome):
             return {"ok": True, "result": {"official_seed": "private"}}
         if outcome == "operational_stop":
             return {"ok": False, "error": "DIRECT_OPERATIONAL_STOP"}
+        if outcome == "missing_result":
+            return {"ok": True}
+        if outcome == "null_result":
+            return {"ok": True, "result": None}
+        if outcome == "empty_result":
+            return {"ok": True, "result": {}}
+        if outcome == "wrong_reconciliation_type":
+            result = direct_result(value)
+            result["requires_reconciliation"] = "false"
+            return {"ok": True, "result": result}
         return None
 
     session = DirectToolSession.open(uncertain, campaign_identity=CAMPAIGN_A)
