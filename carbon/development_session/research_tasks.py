@@ -479,7 +479,11 @@ class DirectDevelopmentTasksV3:
             prepare_library_overlay,
         )
         from .construction_recipe import ConstructionRecipe, RecipeRefused
-        from .library_bundles import LibraryBundleRef, load_pinned_bundle_directory
+        from .library_bundles import (
+            LibraryBundleRef,
+            load_pinned_bundle_directory,
+            verify_bundle_parent_environment,
+        )
         from .library_environment_cache import (
             cache_verified_overlay,
             inspect_staged_bundle_material,
@@ -500,6 +504,15 @@ class DirectDevelopmentTasksV3:
                 raise RecipeRefused("construction_total_deadline_reached")
 
         check_cancel()
+        # Check original staged bytes against the actual registered parent
+        # before the resolver can return a cached child. A cache hit must not
+        # bypass the source's declared base environment.
+        directory = inspect_staged_bundle_material(
+            self.image_resolver.cache_root, bundle
+        )
+        material = load_pinned_bundle_directory(directory)
+        verify_bundle_parent_environment(material[0], self.construction_parent)
+        check_cancel()
         cli = DockerCLI()
         try:
             image = self.image_resolver.provision_admitted(
@@ -513,11 +526,6 @@ class DirectDevelopmentTasksV3:
             capacity = getattr(self.image_resolver, "material_cache_bytes", None)
             if type(capacity) is not int or capacity < 1:
                 raise ValueError("trusted overlay cache capacity unavailable") from None
-            check_cancel()
-            directory = inspect_staged_bundle_material(
-                self.image_resolver.cache_root, bundle
-            )
-            material = load_pinned_bundle_directory(directory)
             check_cancel()
             kit = self.discovery._material["construction_kit"]
             binding = {
