@@ -350,6 +350,19 @@ FAKE_CHECKOUT = {
         "mkdir -p .venv/bin\n"
         'cp "$CARBON_TEST_PYTHON" .venv/bin/python\n'
         'cp "$CARBON_TEST_CONTROL_CENTER" .venv/bin/carbon-control-center\n'
+        'if [ "${CARBON_TEST_BOOTSTRAP_METADATA:-}" = normal ]; then\n'
+        '  [ "${PYTHONDONTWRITEBYTECODE:-}" = 1 ] || exit 12\n'
+        '  [ -z "${UV_NO_EDITABLE:-}" ] || exit 13\n'
+        "  mkdir carbon.egg-info\n"
+        "  printf 'editable package metadata\\n' > carbon.egg-info/PKG-INFO\n"
+        "fi\n"
+        'if [ "${CARBON_TEST_BOOTSTRAP_METADATA:-}" = link ]; then\n'
+        '  ln -s "$CARBON_TEST_BOOTSTRAP_LINK_TARGET" carbon.egg-info\n'
+        "fi\n"
+        'if [ "${CARBON_TEST_BOOTSTRAP_METADATA:-}" = unknown ]; then\n'
+        "  mkdir carbon.egg-info\n"
+        "  printf 'unknown bytes\\n' > carbon.egg-info/private.txt\n"
+        "fi\n"
     ),
     "scripts/dev/c03_worker_image.sh": (
         '#!/bin/sh\nmkdir -p "$(dirname "$1")"\n'
@@ -449,7 +462,9 @@ class Sandbox:
         self._executable(self.work / "scripts" / "install_miner.sh", SCRIPT.read_text())
         for name, text in FAKE_CHECKOUT.items():
             self._executable(self.work / name, text)
-        (self.work / ".gitignore").write_text(".venv/\n.carbon-artifacts/\n")
+        (self.work / ".gitignore").write_text(
+            ".venv/\n.carbon-artifacts/\n*.egg-info/\nbuild/\n__pycache__/\n"
+        )
         self.commit("the first revision")
         self.git("remote", "add", "origin", str(self.origin))
         self.git("push", "--quiet", "origin", "main")
@@ -626,6 +641,108 @@ def test_explicit_development_candidate_builds_only_the_exact_local_tree(sandbox
     assert any("verify-development-source" in line for line in sandbox.logged())
     assert any("bind-development-candidate" in line for line in sandbox.logged())
     assert any(line.startswith("worker ") for line in sandbox.logged())
+
+
+def _local_development_identity(sandbox):
+    import hashlib
+
+    sandbox.git("checkout", "--quiet", "-b", "candidate", cwd=sandbox.clone)
+    (sandbox.clone / "candidate.txt").write_text("local development candidate\n")
+    sandbox.git("add", "candidate.txt", cwd=sandbox.clone)
+    sandbox.git("commit", "--quiet", "-m", "candidate", cwd=sandbox.clone)
+    revision = sandbox.head()
+    tree = sandbox.git("rev-parse", "HEAD^{tree}", cwd=sandbox.clone)
+    archive = subprocess.check_output(
+        ["git", "archive", "--format=tar", "HEAD"], cwd=sandbox.clone
+    )
+    source = "sha256:" + hashlib.sha256(archive).hexdigest()
+    state = sandbox.tmp / "home" / ".carbon" / "s5-candidate"
+    return revision, tree, source, state
+
+
+def test_development_editable_bootstrap_removes_only_its_metadata(sandbox):
+    revision, tree, source, state = _local_development_identity(sandbox)
+    completed = sandbox.run(
+        "--development-candidate",
+        revision,
+        tree,
+        source,
+        "--no-start",
+        CARBON_STATE_DIR=str(state),
+        CARBON_TEST_BOOTSTRAP_METADATA="normal",
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert not (sandbox.clone / "carbon.egg-info").exists()
+    assert not (sandbox.clone / "build").exists()
+    assert any("verify-development-source" in line for line in sandbox.logged())
+    assert any("bind-development-candidate" in line for line in sandbox.logged())
+    assert any(line.startswith("worker ") for line in sandbox.logged())
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["carbon.egg-info/rogue.py", "build/extension.so", "carbon/__pycache__/rogue.pyc"],
+)
+def test_development_bootstrap_preserves_preexisting_ignored_source(sandbox, path):
+    revision, tree, source, state = _local_development_identity(sandbox)
+    ignored = sandbox.clone / path
+    ignored.parent.mkdir(parents=True)
+    ignored.write_text("pre-existing ignored runtime source\n")
+    completed = sandbox.run(
+        "--development-candidate",
+        revision,
+        tree,
+        source,
+        "--no-start",
+        CARBON_STATE_DIR=str(state),
+        CARBON_TEST_BOOTSTRAP_METADATA="normal",
+    )
+    assert completed.returncode == 2
+    assert "ignored runtime source before bootstrap" in completed.stderr
+    assert ignored.read_text() == "pre-existing ignored runtime source\n"
+    assert sandbox.logged() == []
+
+
+def test_development_bootstrap_never_removes_linked_metadata_target(sandbox):
+    revision, tree, source, state = _local_development_identity(sandbox)
+    outside = sandbox.tmp / "outside"
+    outside.mkdir()
+    marker = outside / "mine.txt"
+    marker.write_text("keep\n")
+    completed = sandbox.run(
+        "--development-candidate",
+        revision,
+        tree,
+        source,
+        "--no-start",
+        CARBON_STATE_DIR=str(state),
+        CARBON_TEST_BOOTSTRAP_METADATA="link",
+        CARBON_TEST_BOOTSTRAP_LINK_TARGET=str(outside),
+    )
+    assert completed.returncode == 2
+    assert "bootstrap output is not an owned directory" in completed.stderr
+    assert (sandbox.clone / "carbon.egg-info").is_symlink()
+    assert marker.read_text() == "keep\n"
+    assert not any("verify-development-source" in line for line in sandbox.logged())
+
+
+def test_development_bootstrap_refuses_unknown_metadata_without_deleting_it(sandbox):
+    revision, tree, source, state = _local_development_identity(sandbox)
+    completed = sandbox.run(
+        "--development-candidate",
+        revision,
+        tree,
+        source,
+        "--no-start",
+        CARBON_STATE_DIR=str(state),
+        CARBON_TEST_BOOTSTRAP_METADATA="unknown",
+    )
+    assert completed.returncode == 2
+    assert "unexpected metadata" in completed.stderr
+    assert (sandbox.clone / "carbon.egg-info" / "private.txt").read_text() == (
+        "unknown bytes\n"
+    )
+    assert not any("verify-development-source" in line for line in sandbox.logged())
 
 
 def test_development_candidate_refuses_symlink_alias_of_default_state_before_write(

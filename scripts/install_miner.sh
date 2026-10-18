@@ -460,6 +460,39 @@ then run this again. git -C ${repo_root} stash pop brings them back."
   fi
 fi
 
+# Editable uv sync can create ignored egg-info/build metadata in this checkout.
+# Refuse every pre-existing ignored source before that happens, including a
+# pre-existing output directory: only this install's newly created metadata
+# may be removed after bootstrap. The installed Python verifier below still
+# checks the full revision, tree and archive identity before any image build.
+if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
+  [[ "$(git rev-parse HEAD)" == "${DEVELOPMENT_REVISION}" ]] \
+    || fail "local DEVELOPMENT source revision differs before bootstrap."
+  [[ "$(git rev-parse 'HEAD^{tree}')" == "${DEVELOPMENT_TREE}" ]] \
+    || fail "local DEVELOPMENT source tree differs before bootstrap."
+  source_digest="sha256:$(git archive --format=tar HEAD | sha256sum | cut -d' ' -f1)"
+  [[ "${source_digest}" == "${DEVELOPMENT_SOURCE_TREE_DIGEST}" ]] \
+    || fail "local DEVELOPMENT source archive differs before bootstrap."
+  [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]] \
+    || fail "local DEVELOPMENT source has changes before bootstrap."
+  ignored="$(git ls-files --others --ignored --exclude-standard --directory)" \
+    || fail "could not check ignored DEVELOPMENT source before bootstrap."
+  while IFS= read -r path; do
+    case "${path}" in
+      ""|.venv/|.venv-jax-macos/|.carbon-local/|.pytest_cache/|.ruff_cache/|\
+      .carbon-artifacts/|.agent/runtime/|website/ask-carbon/.wrangler/) ;;
+      *) fail "development candidate has ignored runtime source before bootstrap: ${path}" ;;
+    esac
+  done <<< "${ignored}"
+  for output in carbon.egg-info build; do
+    [[ ! -e "${repo_root}/${output}" && ! -L "${repo_root}/${output}" ]] \
+      || fail "development candidate has pre-existing bootstrap output: ${output}"
+  done
+  # Python imports during bootstrap/verification must not make ignored source
+  # caches outside the isolated .venv. This does not change editable install.
+  export PYTHONDONTWRITEBYTECODE=1
+fi
+
 step "3/6 Installing Carbon's locked environment"
 export PATH="${HOME}/.local/bin:${PATH}"
 if ! command -v uv >/dev/null 2>&1 || [[ "$(uv --version | awk '{print $2}')" != "${UV_VERSION}" ]]; then
@@ -469,6 +502,34 @@ fi
 # Every group a documented command runs with (`uv run --group ...`), so none
 # of them re-syncs this environment.
 CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/bootstrap.sh
+if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
+  # These exact root directories were absent at the verified pre-bootstrap
+  # boundary. Refuse links/files and unknown paths rather than deleting them.
+  for output in carbon.egg-info build; do
+    path="${repo_root}/${output}"
+    if [[ -e "${path}" || -L "${path}" ]]; then
+      [[ -d "${path}" && ! -L "${path}" ]] \
+        || fail "bootstrap output is not an owned directory: ${output}"
+      if [[ "${output}" == carbon.egg-info ]]; then
+        while IFS= read -r -d '' entry; do
+          [[ -f "${entry}" && ! -L "${entry}" ]] \
+            || fail "bootstrap created non-file metadata; no output was removed."
+          case "${entry##*/}" in
+            PKG-INFO|SOURCES.txt|dependency_links.txt|entry_points.txt|\
+            requires.txt|top_level.txt|not-zip-safe) ;;
+            *) fail "bootstrap created unexpected metadata; no output was removed." ;;
+          esac
+        done < <(find "${path}" -mindepth 1 -maxdepth 1 -print0)
+        rm -f -- "${path}/PKG-INFO" "${path}/SOURCES.txt" \
+          "${path}/dependency_links.txt" "${path}/entry_points.txt" \
+          "${path}/requires.txt" "${path}/top_level.txt" \
+          "${path}/not-zip-safe"
+      fi
+      rmdir -- "${path}" \
+        || fail "bootstrap output was not empty after owned metadata removal."
+    fi
+  done
+fi
 python="${repo_root}/.venv/bin/python"
 setup_cli=("${python}" -m scripts.dev.miner_launchpad.environment_setup)
 if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
