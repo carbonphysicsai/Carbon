@@ -64,15 +64,42 @@ class DirectIntakeRefusal(ValueError):
         self.code = code
 
 
+def retry_rate_limited(operation, *, deadline, clock=time.monotonic, sleep=time.sleep):
+    """Retry only an explicit pre-admission HTTP rate refusal, within a deadline.
+
+    The operation must rebuild and sign its request on every attempt. Other
+    refusals and ambiguous network failures propagate without replay.
+    """
+    for attempt in range(31):
+        try:
+            return operation()
+        except DirectIntakeRefusal as refused:
+            if refused.code != "rate":
+                raise
+            remaining = deadline - clock()
+            if remaining <= 0 or attempt == 30:
+                raise
+            sleep(min(1.0, remaining))
+            if clock() >= deadline:
+                raise
+
+
 def read_intake(url: str, *, timeout: float = 10.0) -> dict:
     from carbon.development_session.intake_targets import intake_url
 
     if not intake_url(url):
         raise DirectIntakeRefusal("construction_intake_url_invalid")
-    with urllib.request.urlopen(
-        url.rstrip("/") + INFO_PATH, timeout=timeout
-    ) as response:
-        facts = json.loads(response.read(65536))
+    try:
+        with urllib.request.urlopen(
+            url.rstrip("/") + INFO_PATH, timeout=timeout
+        ) as response:
+            facts = json.loads(response.read(65536))
+    except urllib.error.HTTPError as refused:
+        if refused.code == 429:
+            answer = json.loads(refused.read(65536) or b"{}")
+            if type(answer) is dict and answer.get("refused") == "rate":
+                raise DirectIntakeRefusal("rate") from None
+        raise
     if type(facts) is not dict or facts.get("schema") != PUBLIC_SCHEMA:
         raise DirectIntakeRefusal("construction_intake_wrong_schema")
     return facts
@@ -317,30 +344,44 @@ def submit_and_wait(
         ):
             raise DirectIntakeRefusal("construction_intake_record_invalid")
     else:
-        facts = read(url)
-        body = _body(
-            facts,
-            recipe=recipe,
-            contract_digest=contract_digest,
-            receiver=receiver,
-            context=context,
-            tool=SUBMIT_TOOL,
-            fields={
-                "strategy_json": recipe.canonical_bytes.decode("utf-8"),
-                "contract_digest": contract_digest,
-            },
-            request=f"construction-submit-{epoch}-{recipe.digest[7:39]}",
-        )
-        headers = BittensorMessageSigner(signer).sign(
-            body, receiver=receiver, nonce_ns=time.time_ns()
-        )
-        status, answer = send(url, body, headers)
-        if status != 202 or type(answer) is not dict or answer.get("kind") != "OUTCOME":
-            raise DirectIntakeRefusal(
-                _refusal_code(answer, "construction_intake_unavailable")
+
+        def admit():
+            facts = read(url)
+            body = _body(
+                facts,
+                recipe=recipe,
+                contract_digest=contract_digest,
+                receiver=receiver,
+                context=context,
+                tool=SUBMIT_TOOL,
+                fields={
+                    "strategy_json": recipe.canonical_bytes.decode("utf-8"),
+                    "contract_digest": contract_digest,
+                },
+                request=f"construction-submit-{epoch}-{recipe.digest[7:39]}",
             )
-        outcome, pinned = _outcome(
-            answer, contract_digest=contract_digest, challenge=expected_challenge
+            headers = BittensorMessageSigner(signer).sign(
+                body, receiver=receiver, nonce_ns=time.time_ns()
+            )
+            status, answer = send(url, body, headers)
+            if (
+                status != 202
+                or type(answer) is not dict
+                or answer.get("kind") != "OUTCOME"
+            ):
+                raise DirectIntakeRefusal(
+                    _refusal_code(answer, "construction_intake_unavailable")
+                )
+            outcome, pinned = _outcome(
+                answer, contract_digest=contract_digest, challenge=expected_challenge
+            )
+            return outcome, pinned
+
+        outcome, pinned = retry_rate_limited(
+            admit,
+            deadline=clock() + min(WAIT_S, max(30.0, wait_s)),
+            clock=clock,
+            sleep=sleep,
         )
         task_id = outcome["task_id"]
         write_once(
@@ -358,33 +399,44 @@ def submit_and_wait(
         raise DirectIntakeRefusal("construction_task_queued")
     deadline = clock() + wait_s
     while True:
-        facts = read(url)
-        body = _body(
-            facts,
-            recipe=recipe,
-            contract_digest=contract_digest,
-            receiver=receiver,
-            context=context,
-            tool=STATUS_TOOL,
-            fields={"submission_id": task_id},
-            request=f"construction-status-{epoch}-{time.time_ns()}",
-        )
-        # The signer currently has a read-only kind only for battery_status.
-        # This DEVELOPMENT status uses its ordinary signed-call kind.
-        headers = BittensorMessageSigner(signer).sign(
-            body, receiver=receiver, nonce_ns=time.time_ns()
-        )
-        status, answer = send(url, body, headers)
-        if status != 200 or type(answer) is not dict or answer.get("kind") != "OUTCOME":
-            raise DirectIntakeRefusal(
-                _refusal_code(answer, "construction_status_unavailable")
+
+        def observe():
+            facts = read(url)
+            body = _body(
+                facts,
+                recipe=recipe,
+                contract_digest=contract_digest,
+                receiver=receiver,
+                context=context,
+                tool=STATUS_TOOL,
+                fields={"submission_id": task_id},
+                request=f"construction-status-{epoch}-{time.time_ns()}",
             )
-        outcome, _ = _outcome(
-            answer,
-            contract_digest=contract_digest,
-            challenge=expected_challenge,
-            task_id=task_id,
-            pinned=pinned,
+            # The signer currently has a read-only kind only for battery_status.
+            # This DEVELOPMENT status uses its ordinary signed-call kind.
+            headers = BittensorMessageSigner(signer).sign(
+                body, receiver=receiver, nonce_ns=time.time_ns()
+            )
+            status, answer = send(url, body, headers)
+            if (
+                status != 200
+                or type(answer) is not dict
+                or answer.get("kind") != "OUTCOME"
+            ):
+                raise DirectIntakeRefusal(
+                    _refusal_code(answer, "construction_status_unavailable")
+                )
+            outcome, _ = _outcome(
+                answer,
+                contract_digest=contract_digest,
+                challenge=expected_challenge,
+                task_id=task_id,
+                pinned=pinned,
+            )
+            return outcome
+
+        outcome = retry_rate_limited(
+            observe, deadline=deadline, clock=clock, sleep=sleep
         )
         if outcome.get("state") in TERMINAL:
             return outcome
@@ -392,4 +444,4 @@ def submit_and_wait(
             raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
         if clock() >= deadline:
             raise DirectIntakeRefusal("construction_task_queued")
-        sleep(POLL_S)
+        sleep(min(POLL_S, max(0.0, deadline - clock())))

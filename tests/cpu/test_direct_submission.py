@@ -456,3 +456,124 @@ def test_wrong_intake_facts_refuse_before_signing(tmp_path, monkeypatch, changed
             read=lambda url: facts,
             send=lambda *_: pytest.fail("nothing may be sent"),
         )
+
+
+@pytest.mark.parametrize(
+    "phase", ["admit_read", "admit_send", "status_read", "status_send"]
+)
+def test_rate_retry_preserves_task_and_refreshes_signed_exchange(
+    tmp_path, monkeypatch, phase
+):
+    now, sleeps, signed, sent = [0.0], [], [], []
+    reads = [0]
+    refused = [False]
+
+    class Signer:
+        def __init__(self, signer):
+            assert signer == "external-signer"
+
+        def sign(self, body, *, receiver, nonce_ns):
+            assert receiver == _RECEIVER
+            signed.append(json.loads(body)["tool"])
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def sleep(seconds):
+        sleeps.append(seconds)
+        now[0] += seconds
+
+    def read(url):
+        reads[0] += 1
+        target = "admit_read" if not sent else "status_read"
+        if phase == target and not refused[0]:
+            refused[0] = True
+            raise client.DirectIntakeRefusal("rate")
+        return _facts()
+
+    def send(url, body, headers):
+        tool = json.loads(body)["tool"]
+        sent.append(tool)
+        target = "admit_send" if tool == client.SUBMIT_TOOL else "status_send"
+        if phase == target and not refused[0]:
+            refused[0] = True
+            return 429, {"refused": "rate"}
+        return (202 if tool == client.SUBMIT_TOOL else 200), _answer(
+            "ADMITTED" if tool == client.SUBMIT_TOOL else "RECONSTRUCTED"
+        )
+
+    result = client.submit_and_wait(
+        _URL,
+        "external-signer",
+        root=tmp_path,
+        epoch=1,
+        recipe=_recipe(),
+        contract_digest=_CONTRACT,
+        receiver=_RECEIVER,
+        context=_CONTEXT,
+        read=read,
+        send=send,
+        clock=lambda: now[0],
+        sleep=sleep,
+        wait_s=10,
+    )
+    assert result["state"] == "RECONSTRUCTED" and result["task_id"] == "task-1"
+    assert sleeps == [1.0]
+    assert signed == sent
+    assert sent.count(client.SUBMIT_TOOL) == (2 if phase == "admit_send" else 1)
+    assert sent.count(client.STATUS_TOOL) == (2 if phase == "status_send" else 1)
+    record = json.loads((tmp_path / "construction-intake-epoch-1.json").read_bytes())
+    assert record["submission_id"] == "task-1"
+
+
+@pytest.mark.parametrize("code", ["rate", "IDENTITY_INVALID"])
+def test_status_rate_deadline_or_auth_refusal_keeps_original_admission(
+    tmp_path, monkeypatch, code
+):
+    now, sleeps, sent = [0.0], [], []
+
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def sleep(seconds):
+        sleeps.append(seconds)
+        now[0] += seconds
+
+    def send(url, body, headers):
+        tool = json.loads(body)["tool"]
+        sent.append(tool)
+        if tool == client.SUBMIT_TOOL:
+            return 202, _answer("ADMITTED")
+        return (429 if code == "rate" else 401), {"refused": code}
+
+    with pytest.raises(client.DirectIntakeRefusal, match=code):
+        client.submit_and_wait(
+            _URL,
+            "external-signer",
+            root=tmp_path,
+            epoch=1,
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            read=lambda url: _facts(),
+            send=send,
+            clock=lambda: now[0],
+            sleep=sleep,
+            wait_s=2,
+        )
+    assert sent.count(client.SUBMIT_TOOL) == 1
+    assert sent.count(client.STATUS_TOOL) == (2 if code == "rate" else 1)
+    assert sleeps == ([1.0, 1.0] if code == "rate" else [])
+    assert (
+        json.loads((tmp_path / "construction-intake-epoch-1.json").read_bytes())[
+            "submission_id"
+        ]
+        == "task-1"
+    )
