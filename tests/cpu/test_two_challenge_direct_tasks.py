@@ -5,6 +5,7 @@ registered score in this prospective DEVELOPMENT construction test.
 """
 
 import hashlib
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -46,6 +47,9 @@ def test_registered_challenge_train_reaches_same_direct_task_child(
     other_root.mkdir()
     other_request, _other_provider, _other_discovery = _fixture(
         other_root, monkeypatch, material=other
+    )
+    other_request = replace(
+        other_request, idempotency_key="cross-challenge-durable-001"
     )
     assert request.challenge_key == discovery.info.challenge_key
     assert request.public_train_digest == material["construction_kit"]["train_digest"]
