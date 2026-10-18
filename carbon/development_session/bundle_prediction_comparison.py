@@ -26,7 +26,11 @@ def compare_native_lowered_predictions(
     native_identity: dict[str, str],
     lowered_identity: dict[str, str],
 ) -> dict[str, object]:
-    """Return raw deltas for one exact public probe, never a pass/fail verdict."""
+    """Return observed deltas, or an unavailable diagnostic outside numeric range.
+
+    Identity, shape and numeric-artifact validation still fail closed. A finite
+    artifact whose diagnostic arithmetic overflows remains valid evidence.
+    """
     for identity in (native_identity, lowered_identity):
         if (
             type(identity) is not dict
@@ -53,6 +57,15 @@ def compare_native_lowered_predictions(
     if native.shape != lowered.shape:
         raise ValueError("bundle comparison output shapes differ")
 
+    unavailable = {
+        "schema": "carbon.development.bundle-prediction-comparison-unavailable.v1",
+        "reason_code": "comparison_numeric_range",
+        **native_identity,
+        "shape": list(native.shape),
+        "native_dtype": str(native.dtype),
+        "lowered_dtype": str(lowered.dtype),
+        "count": int(native.size),
+    }
     maximum = 0.0
     total = 0.0
     compensation = 0.0
@@ -63,15 +76,19 @@ def compare_native_lowered_predictions(
             mismatch_count += 1
         delta = float(abs(actual_value - frozen_value))
         if not math.isfinite(delta):
-            raise ValueError("bundle comparison delta is nonfinite")
+            return unavailable
         maximum = max(maximum, delta)
         adjusted = delta - compensation
         updated = total + adjusted
+        if not math.isfinite(adjusted) or not math.isfinite(updated):
+            return unavailable
         compensation = (updated - total) - adjusted
+        if not math.isfinite(compensation):
+            return unavailable
         total = updated
     mean = total / native.size
     if not math.isfinite(mean):
-        raise ValueError("bundle comparison mean is nonfinite")
+        return unavailable
     return {
         "schema": "carbon.development.bundle-prediction-comparison.v1",
         **native_identity,
