@@ -32,6 +32,7 @@ from carbon.development_session.construction_recipe import ConstructionRecipe
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical
 from carbon.development_session.research_service import DirectFixtureDiscovery
+from carbon.scoring.engine import ScoreEngine
 
 
 def _bound(tmp_path, *, altered_kit=False):
@@ -309,6 +310,12 @@ def test_operator_registers_source_from_selected_pack_and_retained_entry(
     source = register_served_pack_source(adapter, task_id, **arguments)
     assert source["expected_evaluation_pack_digest"] == selected.manifest_digest
     assert source["score_pack"]["pack_digest"] == case["pack"]["pack_digest"]
+    assert source["public_rule_definition"] == (
+        ScoreEngine.public_solver_benchmark_rule_v3(
+            case["registration"], source["score_pack"]
+        )
+    )
+    assert "digest" not in json.dumps(source["public_rule_definition"])
     assert source["references"] == case["references"]
     registration_record = json.loads(source["source_registration_path"].read_bytes())
     assert (

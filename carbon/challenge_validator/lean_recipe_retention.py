@@ -617,6 +617,7 @@ def register_served_pack_source(
     """
     from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
     from carbon.development_session.data import write_once
+    from carbon.scoring.engine import ScoreEngine
     from carbon.scoring.private_evaluation_source import (
         PrivateEvaluationSourceRefused,
         build_pack_source_receipt,
@@ -746,6 +747,12 @@ def register_served_pack_source(
         )
     except PrivateEvaluationSourceRefused as exc:
         raise RetentionUnavailable("evaluation_pack_source_" + exc.code) from exc
+    try:
+        public_rule = ScoreEngine.public_solver_benchmark_rule_v3(
+            registration, score_pack
+        )
+    except BenchmarkScoreRefused as exc:
+        raise RetentionUnavailable("evaluation_pack_public_rule_invalid") from exc
     task_root = _owner_directory(retained["artifact_path"], "task_artifacts")
     source_path = task_root / "evaluation-source-receipt.json"
     registration_path = task_root / "evaluation-source-registration.json"
@@ -778,6 +785,7 @@ def register_served_pack_source(
         "retained": retained,
         "references": references,
         "score_pack": score_pack,
+        "public_rule_definition": public_rule,
         "evaluation_source_receipt_raw": source_path.read_bytes(),
         "registered_source_receipt_sha256": registered_sha256,
         "expected_evaluation_pack_digest": snapshot.manifest_digest,
