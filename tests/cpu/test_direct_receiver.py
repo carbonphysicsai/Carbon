@@ -542,9 +542,27 @@ def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
     fixed = fixed_factory()
     image = fixed.image
     fixed.close()
-    monkeypatch.setattr(DirectOwnerImageResolver, "__call__", lambda *_: image)
+    inspected = []
+
+    def inspect_source(self, bundle):
+        assert bundle.to_dict() == image.bundle_ref
+        inspected.append(bundle.to_dict())
+        return bundle
+
+    monkeypatch.setattr(DirectOwnerImageResolver, "inspect_source", inspect_source)
+    monkeypatch.setattr(
+        DirectOwnerImageResolver,
+        "__call__",
+        lambda *_: pytest.fail("queued source must not resolve an image"),
+    )
+    monkeypatch.setattr(
+        DirectOwnerImageResolver,
+        "provision_admitted",
+        lambda *_args, **_kwargs: pytest.fail("queue/restart must not provision"),
+    )
     queued = provider.start_research_task(request).task
     assert queued.state is research.DirectTaskStateV3.QUEUED
+    assert inspected == [image.bundle_ref]
     first.close()
 
     advanced = replace(
@@ -791,6 +809,37 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
     cfg["port"] = 0
     monkeypatch.setattr(receiver, "load_config", lambda _: cfg)
     parent = WorkerImageIdentity(*("sha256:" + "4" * 64 for _ in range(8)))
+    inference_image = WorkerImageIdentity(*("sha256:" + "5" * 64 for _ in range(8)))
+    # This ingress-only fixture supplies the separately read private profile.
+    # Profile/image correctness has its own tests; model dispatch remains forbidden.
+    from carbon.development_session import research_campaign
+    from carbon.reconstruction.worker import docker_runtime
+    from scripts.dev.miner_launchpad import runner
+
+    profile = {"paths": {"image_manifest": str(tmp_path / "inference-image.json")}}
+    profile_path = Path(cfg["runner_profile"])
+    profile_path.write_bytes(canonical(profile))
+    profile_path.chmod(0o600)
+    monkeypatch.setattr(runner, "validated_profile", lambda value: value)
+
+    def load_inference(path):
+        assert path == Path(profile["paths"]["image_manifest"])
+        return inference_image
+
+    monkeypatch.setattr(docker_runtime, "load_image_identity", load_inference)
+    checked = []
+    monkeypatch.setattr(
+        research_campaign,
+        "verify_current_worker",
+        lambda image, implementation: checked.append((image, implementation)),
+    )
+    monkeypatch.setattr(
+        docker_runtime,
+        "doctor",
+        lambda **kwargs: SimpleNamespace(
+            eligible=kwargs["image_identity"] == inference_image
+        ),
+    )
     context = ChainContext(
         CARBON_NETWORK,
         CONTEXT.endpoint,
@@ -942,6 +991,10 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
         ready=ready,
     )
     assert retained["task"] and not dispatched
+    assert checked and all(image == inference_image for image, _ in checked)
+    bound = json.loads((Path(cfg["root"]) / "receiver-binding.json").read_bytes())
+    assert bound["parent"]["image_id"] == parent.image_id
+    assert bound["inference_image"]["image_id"] == inference_image.image_id
     owner_root = (
         Path(cfg["root"]) / "owners" / hashlib.sha256(OWNER.encode()).hexdigest()
     )
