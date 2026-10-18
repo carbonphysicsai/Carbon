@@ -27,6 +27,7 @@ from carbon.challenge_validator.lean_recipe import OUTCOME_SCHEMA
 from carbon.development_session.construction_recipe import ConstructionRecipe
 from carbon.development_session.data import write_once
 from carbon.registry.model import ChallengeKey
+from carbon.research.refs import ResearchTaskId
 from carbon.transport.models import MAX_BODY, message
 
 RECORD_SCHEMA = "carbon.construction.intake-submission.v1"
@@ -36,6 +37,12 @@ PUBLIC_SCHEMA = "carbon.construction.intake-public.v1"
 SUBMIT_TOOL = "construction_submit"
 STATUS_TOOL = "construction_status"
 SOURCE_TOOL = "carbon_research_v2"
+RETRY_CAPABILITY = {
+    "schema": "carbon.construction.infrastructure-retry.v1",
+    "field": "retry_of_submission_id",
+    "eligible_state": "FAILED_INFRA",
+    "idempotency": "ONE_CHILD_PER_FAILED_TASK",
+}
 TERMINAL = frozenset({"RECONSTRUCTED", "RECONSTRUCTION_FAILED", "FAILED_INFRA"})
 PINNED_FIELDS = frozenset(
     {"contract_digest", "rule_digest", "implementation_digest", "identities_digest"}
@@ -289,12 +296,13 @@ def _body(facts, *, recipe, contract_digest, receiver, context, tool, fields, re
     return body
 
 
-def _record_path(root, epoch):
-    return Path(root) / f"construction-intake-epoch-{int(epoch)}.json"
+def _record_path(root, epoch, *, retry_of=None):
+    suffix = "" if retry_of is None else f"-retry-{retry_of}"
+    return Path(root) / f"construction-intake-epoch-{int(epoch)}{suffix}.json"
 
 
-def _binding(url, recipe, contract_digest, receiver, context, epoch):
-    return {
+def _binding(url, recipe, contract_digest, receiver, context, epoch, retry_of=None):
+    binding = {
         "schema": RECORD_SCHEMA,
         "url": url,
         "epoch": int(epoch),
@@ -307,6 +315,18 @@ def _binding(url, recipe, contract_digest, receiver, context, epoch):
         "recipe_digest": recipe.digest,
         "contract_digest": contract_digest,
     }
+    if retry_of is not None:
+        binding["retry_of_submission_id"] = retry_of
+    return binding
+
+
+def _retry_child(task_id, retry_of):
+    try:
+        ResearchTaskId(task_id)
+    except (TypeError, ValueError):
+        raise DirectIntakeRefusal("construction_retry_child_invalid") from None
+    if task_id == retry_of:
+        raise DirectIntakeRefusal("construction_retry_child_invalid")
 
 
 def submit_and_wait(
@@ -325,13 +345,23 @@ def submit_and_wait(
     sleep=time.sleep,
     wait_s=WAIT_S,
     observe_only=False,
+    retry_of=None,
 ):
     """Submit one frozen recipe, then poll its owner-bound DEVELOPMENT task.
 
-    A retry after admission polls the recorded task; it never signs another
-    submission. A lost HTTP response can be retried because the validator's
-    task identity is derived from owner and recipe, not this request nonce.
+    Reopening an admitted attempt polls its recorded task. An explicit
+    ``retry_of`` creates one child of an infrastructure-failed task only when
+    the receiver advertises the exact retry capability. A distinct attempt
+    journal binds that predecessor; response-loss replay is idempotent at the
+    receiver. Neither polling nor an ordinary submit starts a new attempt.
     """
+    if retry_of is not None:
+        try:
+            ResearchTaskId(retry_of)
+        except (TypeError, ValueError):
+            raise DirectIntakeRefusal(
+                "construction_retry_predecessor_invalid"
+            ) from None
     if type(observe_only) is not bool:
         raise DirectIntakeRefusal("construction_observation_mode_invalid")
     if observe_only and (type(wait_s) not in (int, float) or not 0 < wait_s <= 30):
@@ -356,8 +386,8 @@ def submit_and_wait(
         or registered_contract.digest != contract_digest
     ):
         raise DirectIntakeRefusal("construction_contract_binding_mismatch")
-    binding = _binding(url, recipe, contract_digest, receiver, context, epoch)
-    record_path = _record_path(root, epoch)
+    binding = _binding(url, recipe, contract_digest, receiver, context, epoch, retry_of)
+    record_path = _record_path(root, epoch, retry_of=retry_of)
     if observe_only and (
         record_path.is_symlink()
         or not record_path.is_file()
@@ -366,8 +396,10 @@ def submit_and_wait(
         raise DirectIntakeRefusal("construction_admission_record_required")
     if record_path.exists():
         recorded = json.loads(record_path.read_bytes())
-        if type(recorded) is not dict or any(
-            recorded.get(key) != value for key, value in binding.items()
+        if (
+            type(recorded) is not dict
+            or any(recorded.get(key) != value for key, value in binding.items())
+            or ("retry_of_submission_id" in recorded) != (retry_of is not None)
         ):
             raise DirectIntakeRefusal("construction_intake_changed_since_submission")
         task_id = recorded.get("submission_id")
@@ -381,6 +413,8 @@ def submit_and_wait(
             or not all(is_digest(value) for value in pinned.values())
         ):
             raise DirectIntakeRefusal("construction_intake_record_invalid")
+        if retry_of is not None:
+            _retry_child(task_id, retry_of)
     else:
         # Even if a retained file disappears after preflight, an observation
         # must never enter the submission branch.
@@ -404,6 +438,17 @@ def submit_and_wait(
                 sleep(1.05)
             if admission_deadline <= clock():
                 raise DirectIntakeRefusal("construction_request_deadline")
+            fields = {
+                "strategy_json": recipe.canonical_bytes.decode("utf-8"),
+                "contract_digest": contract_digest,
+            }
+            if retry_of is not None:
+                if (
+                    type(facts) is not dict
+                    or facts.get("construction_retry") != RETRY_CAPABILITY
+                ):
+                    raise DirectIntakeRefusal("construction_retry_unavailable")
+                fields["retry_of_submission_id"] = retry_of
             body = _body(
                 facts,
                 recipe=recipe,
@@ -411,11 +456,14 @@ def submit_and_wait(
                 receiver=receiver,
                 context=context,
                 tool=SUBMIT_TOOL,
-                fields={
-                    "strategy_json": recipe.canonical_bytes.decode("utf-8"),
-                    "contract_digest": contract_digest,
-                },
-                request=f"construction-submit-{epoch}-{recipe.digest[7:39]}",
+                fields=fields,
+                # A fresh transmission must not replay the gateway receipt.
+                # Only the durable provider key identifies the retry attempt.
+                request=(
+                    f"construction-submit-{epoch}-{recipe.digest[7:39]}-{time.time_ns()}"
+                    if retry_of is None
+                    else f"construction-retry-{epoch}-{time.time_ns()}"
+                ),
             )
             headers = BittensorMessageSigner(signer).sign(
                 body, receiver=receiver, nonce_ns=time.time_ns()
@@ -448,6 +496,8 @@ def submit_and_wait(
                 challenge=expected_challenge,
                 evidence_label=registered_contract.evidence_label,
             )
+            if retry_of is not None:
+                _retry_child(outcome["task_id"], retry_of)
             return outcome, pinned
 
         outcome, pinned = retry_rate_limited(

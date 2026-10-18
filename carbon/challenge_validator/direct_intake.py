@@ -37,6 +37,7 @@ from carbon.research import (
     LocalResearchService,
     canonical_bytes,
 )
+from carbon.research.refs import ResearchTaskId
 from carbon.transport.gateway import AuthenticatedGateway
 from carbon.transport.models import (
     MAX_BODY,
@@ -56,6 +57,12 @@ SUBMIT_TOOL = "construction_submit"
 STATUS_TOOL = "construction_status"
 PUBLIC_SCHEMA = "carbon.construction.intake-public.v1"
 SOURCE_REPLY_SCHEMA = "carbon.construction.source-stage-reply.v1"
+RETRY_CAPABILITY = {
+    "schema": "carbon.construction.infrastructure-retry.v1",
+    "field": "retry_of_submission_id",
+    "eligible_state": "FAILED_INFRA",
+    "idempotency": "ONE_CHILD_PER_FAILED_TASK",
+}
 
 
 class DirectRecipeIntake(BatteryIntake):
@@ -118,6 +125,7 @@ class DirectRecipeIntake(BatteryIntake):
                 "discovery_path": INFO_PATH,
                 "path": SUBMIT_PATH,
                 "tools": [SUBMIT_TOOL, STATUS_TOOL, RESEARCH_NAMESPACE],
+                "construction_retry": dict(RETRY_CAPABILITY),
                 "source_staging": {
                     "tool": RESEARCH_NAMESPACE,
                     "operation": "stage_research_source",
@@ -194,8 +202,15 @@ class DirectRecipeIntake(BatteryIntake):
             return self._stage_source(received)
         fields = {field.name: field.value for field in received.call.fields}
         if received.call.tool == SUBMIT_TOOL:
-            if set(fields) != {"strategy_json", "contract_digest"}:
+            required = {"strategy_json", "contract_digest"}
+            if set(fields) not in (required, required | {"retry_of_submission_id"}):
                 return _refused(400, "submission_fields")
+            retry_of = fields.get("retry_of_submission_id")
+            if "retry_of_submission_id" in fields:
+                try:
+                    ResearchTaskId(retry_of)
+                except (TypeError, ValueError):
+                    return _refused(400, "submission_fields")
             receipt = received.receipt
             submitted = Submission(
                 hotkey=receipt.hotkey,
@@ -209,7 +224,11 @@ class DirectRecipeIntake(BatteryIntake):
                 strategy_json=fields["strategy_json"],
                 contract_digest=fields["contract_digest"],
             )
-            result = self.door.evaluate(submitted)
+            result = (
+                self.door.evaluate(submitted)
+                if retry_of is None
+                else self.door.evaluate(submitted, retry_of=retry_of)
+            )
             if result["kind"] == "OUTCOME":
                 return Answer(202, result)
             return Answer(
