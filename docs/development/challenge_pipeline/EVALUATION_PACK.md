@@ -130,8 +130,13 @@ cases, actual reference rows and ordered original query bytes. It returns v2
 private source-receipt bytes and their SHA-256. The operator stores those bytes
 write-once and independently registers their digest; the existing private
 evidence binder verifies the exact source and selected pack pin. This helper
-refuses an unfinished pack or a selected TRAIN digest that differs from the
-trusted entry. The normal caller must also reload and verify the selected
+refuses missing material used by this v3 source route or a selected TRAIN
+digest that differs from the trusted entry. The public
+`accuracy_definition`, `important_limit_definition`, and `design_objective`
+roles are informational until an actual scoring core consumes them; their
+`HUMAN_INPUT` status does not gate v3 source emission or imply an applied
+rule. The validated ScorePack and benchmark registration define the applied
+v3 rule. The normal caller must also reload and verify the selected
 role bytes against the actual construction, case, reference, solver and
 ScorePack materials; a matching Challenge ID/version and manifest digest
 alone do not prove that relationship. Missing role-specific provenance is

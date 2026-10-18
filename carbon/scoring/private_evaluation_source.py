@@ -22,6 +22,9 @@ from carbon.scoring.benchmark_evidence import (
 
 PACK_SOURCE_SCHEMA = "carbon.scoring.private-evaluation-source.v2"
 _REFERENCE_STATUS = frozenset({"RESOLVED", "UNRESOLVED", "FAILED_INFRA"})
+_REQUIRED_PUBLIC_ROLES = frozenset(
+    {"construction_kit", "interface", "train", "physics_contract"}
+)
 _MAX_RECEIPT_BYTES = 1024 * 1024
 
 
@@ -69,7 +72,7 @@ def build_pack_source_receipt(
     ``selected_pack`` must come from the operator's retained ``load_pack``
     result. The trusted caller must verify role bytes against the actual run
     using each role's existing validator before this function is called. This
-    function checks required role availability, the TRAIN pin, and supplied
+    function checks used role availability, the TRAIN pin, and supplied
     original identities; it cannot attest caller custody or prove the other
     pack role relationships by itself. The task path retains ``raw`` and
     registers ``sha256`` independently.
@@ -79,7 +82,7 @@ def build_pack_source_receipt(
     ):
         raise PrivateEvaluationSourceRefused("selected_pack_missing")
     missing = selected_pack.missing_roles()
-    if missing["public"] or missing["private"]:
+    if _REQUIRED_PUBLIC_ROLES.intersection(missing["public"]) or missing["private"]:
         raise PrivateEvaluationSourceRefused("selected_pack_incomplete")
     if type(evaluation_version) is not str or not evaluation_version:
         raise PrivateEvaluationSourceRefused("evaluation_version_missing")

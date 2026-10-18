@@ -33,6 +33,12 @@ def _selected_pack(case, *, version="1", incomplete=False, wrong_train=False):
     public["train"]["sha256"] = (
         _sha(b"wrong-train") if wrong_train else case["entry"]["train_digest"]
     )
+    for role in (
+        "accuracy_definition",
+        "important_limit_definition",
+        "design_objective",
+    ):
+        public[role] = UNAVAILABLE
     private = {
         role: {"path": role + ".bin", "sha256": _sha(role.encode())}
         for role in PRIVATE_ROLES
@@ -108,6 +114,17 @@ def test_unfinished_or_wrong_train_pack_refuses_same_challenge(tmp_path):
         with pytest.raises(PrivateEvaluationSourceRefused) as raised:
             _build(case, selected)
         assert raised.value.code == code
+
+
+def test_unapplied_public_rule_documents_do_not_gate_v3_source(tmp_path):
+    case = _graph_case(tmp_path)
+    selected = _selected_pack(case)
+    assert set(selected.missing_roles()["public"]) == {
+        "accuracy_definition",
+        "important_limit_definition",
+        "design_objective",
+    }
+    assert _build(case, selected).evaluation_pack_digest == selected.manifest_digest
 
 
 def test_cross_challenge_or_wrong_case_originals_refuse(tmp_path):
