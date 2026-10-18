@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import gzip
 import hashlib
 import io
 import json
@@ -334,6 +335,100 @@ def _graph_retain_mutation(root, manifest_path, role, changed):
     (root / name).write_bytes(changed)
     manifest["retained_files"][name] = _sha(changed)
     manifest_path.write_bytes(_json(manifest))
+
+
+def test_v4_raw_train_and_optional_fit_survive_v5_registration(tmp_path):
+    """A historical V4 role map keeps its raw TRAIN codec after V5 is loaded."""
+    root = tmp_path / "v4-originals"
+    root.mkdir()
+    train = gzip.compress(b'{"fixture_case":"v4-original-train"}\n', mtime=0)
+    graph_digest = _sha(b"v4-fixture-graph")
+    image_id = _sha(b"v4-fixture-image")
+    recipe = {
+        "schema": "carbon.construction-recipe.v1",
+        "challenge": {
+            "id": "v4-custody-fixture",
+            "version": "development",
+            "train_digest": _sha(train),
+            "interface_digest": _sha(b"fixture-interface"),
+            "construction_limits_digest": _sha(b"fixture-limits"),
+        },
+        "source": {"kind": "graph", "submission_digest": graph_digest},
+    }
+    state = _npz(
+        __header__=("|u1", b"{}", (2,)),
+        parameter0000=("<f4", struct.pack("<f", 2.0), (1,)),
+    )
+    originals = {
+        "recipe.json": _json(recipe),
+        "train.jsonl.gz": train,
+        "source.json": _json(
+            {"schema": "carbon.level4.staging-bundle.v1", "submission": graph_digest}
+        ),
+        "image.json": _json(
+            {"schema": "carbon.c03.worker-image.v1", "image_id": image_id}
+        ),
+        "state.npz": state,
+        "inputs.json": _json({"cases": [{"case_id": "fixture-case", "inputs": [1.0]}]}),
+        "predictions.json": _json({"fixture-case": [2.0]}),
+    }
+    for name, raw in originals.items():
+        (root / name).write_bytes(raw)
+    lineage = {
+        "schema": custody.GRAPH_LINEAGE_SCHEMA,
+        "scope": custody.GRAPH_HTTP_SCOPE,
+        "official_eligible": False,
+        "graph_digest": graph_digest,
+        "image_id": image_id,
+        "recipe_digest": _sha(originals["recipe.json"]),
+        "state_digest": _sha(state),
+        "train_digest": _sha(train),
+        "retained_files": {name: _sha(raw) for name, raw in originals.items()},
+    }
+    (root / "lineage.json").write_bytes(_json(lineage))
+    roles = {
+        role: {"file": name, "codec": codec}
+        for role, name, codec in (
+            ("recipe", "recipe.json", "json"),
+            ("train", "train.jsonl.gz", "raw_bytes"),
+            ("source", "source.json", "json"),
+            ("image", "image.json", "json"),
+            ("state", "state.npz", "numeric_npz"),
+            ("inputs", "inputs.json", "json"),
+            ("predictions", "predictions.json", "json"),
+        )
+    }
+    manifest_path = tmp_path / "v4.roles.json"
+    manifest_path.write_bytes(
+        _json(
+            {
+                "schema": custody.GRAPH_ROLE_SCHEMA_V1,
+                "source_schema": lineage["schema"],
+                "scope": lineage["scope"],
+                "roles": roles,
+            }
+        )
+    )
+    receipt = custody.prepare_custody_v4(root, manifest_path)
+    assert receipt["train_digest"] == _sha(train)
+    assert receipt["state_digest"] == _sha(state)
+    assert receipt["evidence_state"] == {
+        "build": "INCOMPLETE",
+        "inference": "INCOMPLETE",
+        "receiver_replay": "NOT_ATTEMPTED",
+    }
+    assert receipt["score_state"] == "NOT_COMPUTED"
+    assert receipt["official_eligible"] is False
+    receipt_path = tmp_path / "v4.custody.json"
+    receipt_path.write_bytes(_json(receipt))
+    entries = tmp_path / "entries"
+    entries.mkdir()
+    first = entry.create_entry_v4(root, manifest_path, receipt_path, entries)
+    retry = entry.create_entry_v4(root, manifest_path, receipt_path, entries)
+    assert first["status"] == "CREATED"
+    assert retry["status"] == "ALREADY_PRESENT_IDENTICAL"
+    assert retry["entry"] == first["entry"]
+    assert {name: (root / name).read_bytes() for name in originals} == originals
 
 
 def test_graph_v3_retains_original_procedure_and_measured_worker_bytes(tmp_path):
