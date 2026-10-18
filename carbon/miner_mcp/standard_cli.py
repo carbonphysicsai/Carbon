@@ -418,11 +418,15 @@ class DirectOwnerImageResolver:
 
         if type(parent) is not WorkerImageIdentity:
             raise ValueError("trusted construction parent required")
-        expected_backend = {
+        expected_backends = {
+            "python-cpu-py311": None,
             "jax-cuda13-py311": "jax",
             "torch-cu130-py311": "pytorch",
-        }.get(bundle.runtime_profile_id)
-        if expected_backend is None or gpu_image_backend(parent) != expected_backend:
+        }
+        if (
+            bundle.runtime_profile_id not in expected_backends
+            or gpu_image_backend(parent) != expected_backends[bundle.runtime_profile_id]
+        ):
             raise ValueError("construction parent differs from bundle runtime")
         inspect_staged_bundle_material(self.cache_root, bundle)
         receipt, context = library_image_cache_paths(self.cache_root, bundle, parent)
@@ -447,13 +451,15 @@ class DirectOwnerImageResolver:
 
         if self.parent is None:
             raise ValueError("trusted construction parent required")
-        expected_backend = {
+        expected_backends = {
+            "python-cpu-py311": None,
             "jax-cuda13-py311": "jax",
             "torch-cu130-py311": "pytorch",
-        }.get(bundle.runtime_profile_id)
+        }
         if (
-            expected_backend is None
-            or gpu_image_backend(self.parent) != expected_backend
+            bundle.runtime_profile_id not in expected_backends
+            or gpu_image_backend(self.parent)
+            != expected_backends[bundle.runtime_profile_id]
         ):
             raise ValueError("installed parent backend differs from recipe bundle")
         if not self.cache_root.is_dir():
