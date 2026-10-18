@@ -72,7 +72,9 @@ def campaign(tmp_path, monkeypatch):
 
     named = register_fixture_challenge(monkeypatch.setattr)
     tmp_path.chmod(0o700)
-    host = journey_host(tmp_path, patch=monkeypatch.setattr)
+    # This lifecycle fixture uses the pre-direct FNO prepare/practice/freeze
+    # flow. Its launch record must be historical as well as its manifest.
+    host = journey_host(tmp_path, patch=monkeypatch.setattr, historical_launch=True)
     launched = perform(
         host,
         "launch",
