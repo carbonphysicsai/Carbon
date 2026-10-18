@@ -344,15 +344,21 @@ def test_direct_bundle_cli_uses_remote_signed_attachment(tmp_path, monkeypatch, 
     assert json.loads(capsys.readouterr().out)["result"]["complete"] is True
 
 
-def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkeypatch):
+@pytest.mark.parametrize("battery", [False, True])
+def test_remote_stage_attachment_needs_no_local_docker_or_image(
+    tmp_path, monkeypatch, battery
+):
     import contextlib
 
+    from carbon.battery.challenge import CHALLENGE as BATTERY_CHALLENGE
     from carbon.chain import external_signer
+    from carbon.challenge_kit import synthetic_linear_field_2d as synthetic_kit
     from carbon.development_session import (
         direct_research_composition,
         intake_targets,
         miner_network,
         research_campaign,
+        service,
     )
     from carbon.miner_mcp import standard_cli
     from carbon.reconstruction.worker import docker_runtime
@@ -380,17 +386,35 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
     )
 
     from carbon.chain import Participant, auth
+    from carbon.chain.models import CARBON_NETWORK
     from carbon.registry import ChallengeKey
     from carbon.transport.gateway import AuthenticatedGateway
     from carbon.transport.store import ReceiptJournal
 
     network = SimpleNamespace(
         netuid=standard_cli.CARBON_NETUID,
-        context=replace(CONTEXT, netuid=standard_cli.CARBON_NETUID),
+        context=replace(
+            CONTEXT, netuid=standard_cli.CARBON_NETUID, network=CARBON_NETWORK
+        ),
         publisher_hotkey="5" + "c" * 47,
     )
-    signer = object()
+    signer = SimpleNamespace(ss58_address=owner)
     events = []
+    challenge = (
+        BATTERY_CHALLENGE
+        if battery
+        else ChallengeKey("synthetic-linear-field-2d", "1.3")
+    )
+    snapshot = _snapshot(
+        sender=owner, receiver=network.publisher_hotkey, context=network.context
+    )
+    snapshot = replace(
+        snapshot,
+        participants=(
+            *snapshot.participants,
+            Participant(2, "5" + "e" * 47, "other-cold", 2),
+        ),
+    )
 
     def poison(*args, **kwargs):
         raise AssertionError("remote signed upload touched local Docker/image loader")
@@ -409,6 +433,8 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
     monkeypatch.setattr(intake_targets, "validate", lambda values: values)
     monkeypatch.setattr(docker_runtime, "doctor", poison)
     monkeypatch.setattr(docker_runtime, "load_image_identity", poison)
+    if battery:
+        monkeypatch.setattr(synthetic_kit, "bundle_material_v5", poison)
 
     @contextlib.contextmanager
     def lock(path):
@@ -435,18 +461,7 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
             self.publisher = kwargs["publisher"]
             root = kwargs["root"]
             root.mkdir(parents=True, exist_ok=True)
-            snapshot = _snapshot(
-                sender=owner,
-                receiver=self.publisher,
-                context=self.chain_context,
-            )
-            self.snapshot = replace(
-                snapshot,
-                participants=(
-                    *snapshot.participants,
-                    Participant(2, "5" + "e" * 47, "other-cold", 2),
-                ),
-            )
+            self.snapshot = snapshot
             self.service = SimpleNamespace(
                 gateway=AuthenticatedGateway(
                     self.chain_context,
@@ -462,6 +477,37 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
 
         async def check_registration(self):
             return self.snapshot
+
+    if battery:
+
+        def battery_gateway(root, context, publisher, selected_challenge):
+            assert selected_challenge == BATTERY_CHALLENGE
+            events.append(("connection", root))
+            return (
+                object(),
+                _Adapter(snapshot),
+                AuthenticatedGateway(
+                    context,
+                    selected_challenge,
+                    publisher,
+                    _Adapter(snapshot),
+                    _Verifier(),
+                    ReceiptJournal(root / "transport.sqlite3", context),
+                    clock_ns=lambda: NOW,
+                ),
+            )
+
+        async def battery_registration(context, selected_signer, publisher, observed):
+            assert context is network.context
+            assert selected_signer is signer
+            assert publisher == network.publisher_hotkey
+            assert isinstance(observed, _Adapter)
+            return snapshot
+
+        monkeypatch.setattr(service, "authenticated_research_gateway", battery_gateway)
+        monkeypatch.setattr(
+            service, "registered_research_snapshot", battery_registration
+        )
 
     actual_requester = standard_cli._requester
 
@@ -486,7 +532,7 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
     async def exercise():
         async with standard_cli.attached_remote_material_stage(
             tmp_path / "profile.json",
-            challenge=ChallengeKey("synthetic-linear-field-2d", "1.3"),
+            challenge=challenge,
         ) as (connection, selected):
             assert connection.miner_key is signer
             assert connection.chain_context is network.context

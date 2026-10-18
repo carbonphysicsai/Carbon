@@ -1639,16 +1639,18 @@ async def attached_remote_material_stage(configuration: Path, *, challenge):
     from scripts.dev.miner_launchpad.controller import owner_lock
     from scripts.dev.miner_launchpad.runner import validated_profile
 
-    synthetic = bundle_material_v5()["challenge_key"]
-    if challenge == synthetic:
-        _direct_material("1.3")
-        state_name = "remote-stage-v1.3"
-    elif challenge == BATTERY_CHALLENGE:
+    if challenge == BATTERY_CHALLENGE:
+        synthetic = False
         state_name = "remote-stage-battery-v1.0"
     else:
-        raise AttachRefused(
-            "construction_recipe_challenge_mismatch", "unregistered recipe challenge"
-        )
+        synthetic = challenge == bundle_material_v5()["challenge_key"]
+        if not synthetic:
+            raise AttachRefused(
+                "construction_recipe_challenge_mismatch",
+                "unregistered recipe challenge",
+            )
+        _direct_material("1.3")
+        state_name = "remote-stage-v1.3"
     with _check("runner_profile_unusable"):
         cfg = validated_profile(private_json(configuration))
     if cfg["enabled"] is not True:
@@ -1694,7 +1696,7 @@ async def attached_remote_material_stage(configuration: Path, *, challenge):
         )
         connection = (
             DirectDevelopmentConnection(version="1.3", **connection_args)
-            if challenge == synthetic
+            if synthetic
             else _RemoteBatteryConnection(challenge=challenge, **connection_args)
         )
         with _check("registration_check_failed"):
