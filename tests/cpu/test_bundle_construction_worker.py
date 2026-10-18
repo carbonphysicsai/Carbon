@@ -24,8 +24,14 @@ from carbon.development_session.construction_recipe import (
     ConstructionRecipe,
     RecipeRefused,
 )
+from carbon.development_session.library_bundles import (
+    LibraryBundleRef,
+    ProvisionedLibraryEnvironment,
+)
 from carbon.development_session.research_carrier import MINER_GPU
+from carbon.development_session.research_image import LibraryWorkerImage
 from carbon.level4 import allowlist
+from carbon.reconstruction.worker.model import WorkerImageIdentity
 
 
 def _sha(char):
@@ -191,6 +197,40 @@ def test_composed_bundle_forwards_only_explicit_selected_gpu(monkeypatch, accele
     )
     with pytest.raises(RecipeRefused, match="bundle_accelerator_invalid"):
         bundle_worker._accelerator_kwargs("unregistered-device")
+
+
+def test_gpu_build_refuses_library_child_before_carrier_reservation():
+    train = b"registered-public-train"
+    recipe = _recipe(_digest(train))
+    ref = recipe.to_dict()["source"]["bundle_ref"]
+    parent_id = _sha("a")
+    parent = WorkerImageIdentity(*(parent_id for _ in range(8)))
+    image = LibraryWorkerImage(
+        ProvisionedLibraryEnvironment(
+            LibraryBundleRef.from_dict(ref),
+            parent.image_id,
+            Path("unused-context"),
+            _sha("b"),
+            _sha("c"),
+        ),
+        parent,
+        ref,
+    )
+    with pytest.raises(RecipeRefused, match="bundle_gpu_overlay_required"):
+        bundle_worker.reconstruct_public(
+            object(),
+            owner="operator",
+            identity="task",
+            image=image,
+            recipe=recipe,
+            challenge_binding=_binding(recipe),
+            train=train,
+            example=np.zeros((1, 1), dtype=np.float32),
+            seed=0,
+            allowlist_bytes=allowlist.load().raw,
+            accelerator=MINER_GPU,
+            runner=lambda *_args, **_kwargs: pytest.fail("reached carrier"),
+        )
 
 
 def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_only(

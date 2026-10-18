@@ -727,6 +727,11 @@ def reconstruct_public(
     from carbon.reconstruction.worker.model import WorkerImageIdentity
 
     overlay = image if type(image) is VerifiedLibraryOverlay else None
+    accelerator_kwargs = _accelerator_kwargs(accelerator)
+    if accelerator_kwargs and overlay is None:
+        # A library child has no WorkerImageIdentity lock/profile fields. GPU
+        # checks must use the exact pinned parent plus its verified overlay.
+        raise RecipeRefused("bundle_gpu_overlay_required")
     image_ref = (
         overlay.bundle_ref.to_dict() if overlay is not None else image.bundle_ref
     )
@@ -837,7 +842,7 @@ def reconstruct_public(
             {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
         ),
         output_validator=checked,
-        **_accelerator_kwargs(accelerator),
+        **accelerator_kwargs,
         **(
             {"trusted_overlay": overlay, "bootstrap": OVERLAY_BUILD_BOOTSTRAP}
             if overlay is not None
