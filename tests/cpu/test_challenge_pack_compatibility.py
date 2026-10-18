@@ -11,6 +11,7 @@ from test_bank_private_evaluation import admitted, inputs
 from test_score_lab_private_evaluation_evidence import _graph_case
 
 from carbon.battery.pool_store import PoolStore, StateError
+from carbon.challenge_validator import lean_recipe_retention
 from carbon.challenge_validator.bank_promotion import BankPromotion
 from carbon.challenge_validator.evaluation_pack import (
     PRIVATE_ROLES,
@@ -20,7 +21,6 @@ from carbon.challenge_validator.evaluation_pack import (
     prepare_pack,
 )
 from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
-from carbon.challenge_validator import lean_recipe_retention
 from carbon.challenge_validator.lean_recipe_retention import (
     RetentionUnavailable,
     register_served_pack_source,
