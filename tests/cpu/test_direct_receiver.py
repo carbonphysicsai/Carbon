@@ -919,6 +919,16 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
             "cancel",
             lambda self: pytest.fail("retention cancelled unrelated work"),
         )
+        one_shot.setattr(
+            receiver.OwnerProviders,
+            "restore",
+            lambda self: pytest.fail("retention restored every owner"),
+        )
+        one_shot.setattr(
+            DirectDevelopmentTasksV3,
+            "cancel_observed_task",
+            lambda *_args, **_kwargs: pytest.fail("retention cancelled a queued task"),
+        )
         with pytest.raises(RetentionUnavailable, match="task_not_succeeded"):
             receiver.serve(
                 tmp_path / "config.json",

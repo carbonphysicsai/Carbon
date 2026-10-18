@@ -595,7 +595,8 @@ def serve(
                 )
 
         try:
-            providers.restore()
+            if retention is None:
+                providers.restore()
             intake = DirectRecipeIntake(
                 context=network.context,
                 receiver=cfg["receiver_hotkey"],
