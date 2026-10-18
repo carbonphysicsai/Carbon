@@ -312,7 +312,9 @@ def test_signed_material_staging_promotes_only_full_owner_closure(receiver, tmp_
     cache = tmp_path / "owner-material-cache"
     cache.mkdir(mode=0o700)
     cache.chmod(0o700)
-    provider.image_resolver = SimpleNamespace(cache_root=cache)
+    provider.image_resolver = SimpleNamespace(
+        cache_root=cache, material_cache_bytes=10 * 1024**2
+    )
     manifest, archive, wheels, lock, license_text = fixture()
     selected = bundle_ref(manifest, archive, wheels, lock, license_text)
     public = intake.handle("GET", INFO_PATH, {}, b"", "127.0.0.1")

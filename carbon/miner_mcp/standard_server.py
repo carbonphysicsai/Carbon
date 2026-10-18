@@ -918,7 +918,7 @@ def _create_direct_server(adapter, *, guard=None, **settings):
                     ),
                 ),
                 total_bytes=(
-                    Annotated[int, Field(ge=1, le=128 * 1024**2)],
+                    Annotated[int, Field(ge=0, le=128 * 1024**2)],
                     Field(..., description="Exact complete material byte count."),
                 ),
                 content_digest=(
@@ -926,8 +926,11 @@ def _create_direct_server(adapter, *, guard=None, **settings):
                     Field(..., description="SHA-256 of the complete material bytes."),
                 ),
                 chunk_base64=(
-                    Annotated[str, Field(min_length=4, max_length=32768)],
-                    Field(..., description="Base64 of 1 to 24576 raw bytes."),
+                    Annotated[str, Field(min_length=0, max_length=32768)],
+                    Field(
+                        ...,
+                        description="Base64 of 0 to 24576 raw bytes; empty only for lock/license.",
+                    ),
                 ),
             )
         elif operation in {"get_research_result", "cancel_research_task"}:

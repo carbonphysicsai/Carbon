@@ -354,7 +354,7 @@ class DirectOwnerImageResolver:
     A miner cannot supply a host path or choose the construction parent.
     """
 
-    def __init__(self, cache_root, parent=None):
+    def __init__(self, cache_root, parent=None, *, material_cache_bytes=None):
         from carbon.reconstruction.worker.model import WorkerImageIdentity
 
         if (
@@ -362,9 +362,14 @@ class DirectOwnerImageResolver:
             or not cache_root.is_absolute()
             or cache_root.is_symlink()
             or (parent is not None and type(parent) is not WorkerImageIdentity)
+            or (
+                material_cache_bytes is not None
+                and (type(material_cache_bytes) is not int or material_cache_bytes <= 0)
+            )
         ):
             raise ValueError("trusted owner cache and optional parent required")
         self.cache_root, self.parent = cache_root, parent
+        self.material_cache_bytes = material_cache_bytes
 
     def inspect_source(self, bundle):
         """Pure preflight: require exact source/lock/wheels, no image receipt."""

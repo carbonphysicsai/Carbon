@@ -79,6 +79,29 @@ def _verified(path: Path, total: int, fingerprint: str) -> bool:
     )
 
 
+def _cache_bytes(root: Path) -> int:
+    """Count all owners' partial and completed material bytes."""
+    total = 0
+    seen = set()
+    for subdir in (root / "material-uploads", root / "materials"):
+        if subdir.is_symlink():
+            raise ResearchTaskProviderError(ResearchServiceErrorCode.REFERENCE_MISMATCH)
+        if not subdir.exists():
+            continue
+        for entry in subdir.rglob("*"):
+            if entry.is_symlink():
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.REFERENCE_MISMATCH
+                )
+            if entry.is_file():
+                record = entry.stat()
+                identity = (record.st_dev, record.st_ino)
+                if identity not in seen:
+                    seen.add(identity)
+                    total += record.st_size
+    return total
+
+
 def _finalized(cache_root: Path, request: DirectStageMaterialRequestV1):
     material_root = cache_root / "materials"
     if material_root.is_symlink() or (
@@ -133,6 +156,16 @@ def _finalized(cache_root: Path, request: DirectStageMaterialRequestV1):
             raise ResearchTaskProviderError(
                 ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
             )
+        try:
+            selected = bundle_ref(*load_pinned_bundle_directory(directory))
+        except (OSError, ValueError):
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
+            ) from None
+        if selected.bundle_digest != request.bundle_digest:
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
+            )
     else:
         declared = (
             manifest.get("wheels", {}).get(request.name)
@@ -150,6 +183,7 @@ def _finalized(cache_root: Path, request: DirectStageMaterialRequestV1):
             or file.is_symlink()
             or not file.is_file()
             or file.stat().st_size != request.total_bytes
+            or _digest(file) != request.content_digest
         ):
             raise ResearchTaskProviderError(
                 ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
@@ -179,7 +213,7 @@ def _ready_file(db, owner: str, bundle: str, root: Path, name: str, fingerprint:
     return path
 
 
-def _promote(provider, cache_root: Path, root: Path, bundle: str) -> None:
+def _promote(provider, cache_root: Path, root: Path, bundle: str, limit: int) -> None:
     owner = provider.owner
     manifest_path = _item(root, "bundle.json", bundle)
     if manifest_path.stat().st_size > 65536:
@@ -242,6 +276,8 @@ def _promote(provider, cache_root: Path, root: Path, bundle: str) -> None:
         selected = bundle_ref(*load_pinned_bundle_directory(temporary))
         if selected.bundle_digest != bundle:
             raise ResearchTaskProviderError(ResearchServiceErrorCode.REFERENCE_MISMATCH)
+        if _cache_bytes(cache_root) > limit:
+            raise ResearchTaskProviderError(ResearchServiceErrorCode.BOUND_EXCEEDED)
         if shutil.disk_usage(cache_root).free < closure_bytes + 16 * 1024**2:
             raise ResearchTaskProviderError(
                 ResearchServiceErrorCode.INFRASTRUCTURE_FAILURE
@@ -258,7 +294,7 @@ def _promote(provider, cache_root: Path, root: Path, bundle: str) -> None:
         shutil.rmtree(temporary)
 
 
-def stage_material(
+def _stage_material_locked(
     provider, request: DirectStageMaterialRequestV1
 ) -> DirectStageMaterialResultV1:
     """Append/replay one bounded chunk; promote only a full validated closure."""
@@ -266,7 +302,10 @@ def stage_material(
         raise TypeError("exact material request required")
     resolver = getattr(provider, "image_resolver", None)
     cache_root = getattr(resolver, "cache_root", None)
+    limit = getattr(resolver, "material_cache_bytes", None)
     if not isinstance(cache_root, Path) or not cache_root.is_absolute():
+        raise ResearchTaskProviderError(ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE)
+    if type(limit) is not int or limit <= 0:
         raise ResearchTaskProviderError(ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE)
     cache_root = _private(cache_root)
     completed = _finalized(cache_root, request)
@@ -352,6 +391,8 @@ def stage_material(
                         ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
                     )
         else:
+            if _cache_bytes(cache_root) + len(request.chunk) > limit:
+                raise ResearchTaskProviderError(ResearchServiceErrorCode.BOUND_EXCEEDED)
             total_pending = 0
             for entry in owner_root.rglob("*"):
                 if entry.is_symlink():
@@ -402,7 +443,7 @@ def stage_material(
             raise ResearchTaskProviderError(ResearchServiceErrorCode.REFERENCE_MISMATCH)
     bundle_complete = False
     if complete and request.name == "bundle.json":
-        _promote(provider, cache_root, bundle_root, request.bundle_digest)
+        _promote(provider, cache_root, bundle_root, request.bundle_digest, limit)
         bundle_complete = True
         # Completed bytes are now in the immutable owner material cache; free
         # partial staging storage. Replays read their exact bytes there.
@@ -415,3 +456,42 @@ def stage_material(
     return DirectStageMaterialResultV1(
         request.name, received, request.content_digest, complete, bundle_complete
     )
+
+
+def stage_material(
+    provider, request: DirectStageMaterialRequestV1
+) -> DirectStageMaterialResultV1:
+    """Serialize the shared material budget across all authenticated owners."""
+    resolver = getattr(provider, "image_resolver", None)
+    cache_root = getattr(resolver, "cache_root", None)
+    if not isinstance(cache_root, Path) or not cache_root.is_absolute():
+        raise ResearchTaskProviderError(ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE)
+    cache_root = _private(cache_root)
+    lock_path = cache_root / ".material-cap.lock"
+    descriptor = os.open(
+        lock_path,
+        os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0),
+        0o600,
+    )
+    acquired = False
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            if os.fstat(descriptor).st_size == 0:
+                os.write(descriptor, b"\0")
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            msvcrt.locking(descriptor, msvcrt.LK_LOCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(descriptor, fcntl.LOCK_EX)
+        acquired = True
+        return _stage_material_locked(provider, request)
+    finally:
+        if acquired and os.name == "nt":
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
+        elif acquired:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        os.close(descriptor)

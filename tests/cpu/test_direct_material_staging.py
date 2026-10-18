@@ -33,7 +33,9 @@ def _provider(tmp_path, owner="alice"):
     return SimpleNamespace(
         owner=owner,
         ledger=_ledger(tmp_path),
-        image_resolver=SimpleNamespace(cache_root=cache),
+        image_resolver=SimpleNamespace(
+            cache_root=cache, material_cache_bytes=10 * 1024**2
+        ),
     )
 
 
@@ -231,3 +233,63 @@ def test_promotion_refuses_insufficient_copy_space_as_infrastructure(
     assert stage_material(
         provider, _request(ref.bundle_digest, *files[-1])
     ).bundle_complete
+
+
+def test_material_staging_requires_trusted_cumulative_capacity(tmp_path):
+    from carbon.development_session.direct_material_staging import _cache_bytes
+
+    provider = _provider(tmp_path)
+    ref, files = _files()
+    provider.image_resolver.material_cache_bytes = None
+    with pytest.raises(research.ResearchTaskProviderError) as missing:
+        stage_material(provider, _request(ref.bundle_digest, *files[0]))
+    assert (
+        missing.value.code is research.ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE
+    )
+
+    provider.image_resolver.material_cache_bytes = 10 * 1024**2
+    for name, body in files:
+        stage_material(provider, _request(ref.bundle_digest, name, body))
+    completed_bytes = _cache_bytes(provider.image_resolver.cache_root)
+    manifest, source, wheels, lock, license_text = fixture()
+    manifest["name"] = "second-bundle"
+    second = bundle_ref(manifest, source, wheels, lock, license_text)
+    second_files = [
+        ("source.tar.gz", source),
+        ("requirements.txt", lock),
+        ("LICENSE", license_text),
+        *wheels.items(),
+        (
+            "bundle.json",
+            json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode(),
+        ),
+    ]
+    provider.image_resolver.material_cache_bytes = (
+        completed_bytes + sum(len(body) for _, body in second_files) - 1
+    )
+    with pytest.raises(research.ResearchTaskProviderError) as full:
+        for name, body in second_files:
+            stage_material(provider, _request(second.bundle_digest, name, body))
+    assert full.value.code is research.ResearchServiceErrorCode.BOUND_EXCEEDED
+    assert _cache_bytes(provider.image_resolver.cache_root) <= (
+        provider.image_resolver.material_cache_bytes
+    )
+
+
+def test_finalized_replay_rejects_same_size_tail_corruption(tmp_path):
+    provider = _provider(tmp_path)
+    ref, files = _files()
+    for name, body in files:
+        stage_material(provider, _request(ref.bundle_digest, name, body))
+    staged = inspect_staged_bundle_material(provider.image_resolver.cache_root, ref)
+    archive = staged / "source.tar.gz"
+    body = archive.read_bytes()
+    archive.write_bytes(body[:-1] + bytes([body[-1] ^ 1]))
+    with pytest.raises(research.ResearchTaskProviderError) as corrupted:
+        stage_material(provider, _request(ref.bundle_digest, *files[0]))
+    assert (
+        corrupted.value.code is research.ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
+    )
+    with pytest.raises(research.ResearchTaskProviderError) as final:
+        stage_material(provider, _request(ref.bundle_digest, *files[-1]))
+    assert final.value.code is research.ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT

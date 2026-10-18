@@ -28,11 +28,13 @@ from .library_bundles import bundle_ref, load_pinned_bundle_directory
 from .direct_submission import (
     SOURCE_TOOL,
     SUBMIT_PATH,
+    DirectIntakeRateLimit,
     DirectIntakeRefusal,
     _checked,
     _refusal_code,
     post,
     read_intake,
+    retry_rate_limited,
 )
 
 STAGE_REPLY_SCHEMA = "carbon.construction.source-stage-reply.v1"
@@ -42,6 +44,34 @@ CHUNK_BYTES = 8192
 MATERIAL_OPERATION = "stage_research_material"
 MATERIAL_REQUEST_SCHEMA = "direct_stage_material_request_v1"
 MATERIAL_CHUNK_BYTES = 24576
+
+
+def _transfer_deadline(files, chunk_bytes):
+    """Finite budget for the actual request count at the intake's 1/s refill."""
+    calls = sum(
+        max(1, (len(body) + chunk_bytes - 1) // chunk_bytes) for _, body in files
+    )
+    return time.monotonic() + max(120.0, 3.0 * calls + 120.0)
+
+
+class _UploadPacer:
+    """Use the receiver's observed 1/s refill after an explicit rate refusal."""
+
+    def __init__(self):
+        self.paced = False
+        self.next_call = 0.0
+
+    def before_call(self):
+        if not self.paced:
+            return
+        delay = self.next_call - time.monotonic()
+        if delay > 0:
+            time.sleep(delay)
+        self.next_call = time.monotonic() + 1.05
+
+    def saw_rate(self):
+        self.paced = True
+        self.next_call = time.monotonic() + 1.05
 
 
 def _stage_offered(facts):
@@ -72,82 +102,102 @@ def _stage_one(
     expected_digest,
     read,
     send,
+    deadline,
+    pacer,
 ):
     fingerprint = "sha256:" + hashlib.sha256(body).hexdigest()
     total = len(body)
     offsets = range(0, total, CHUNK_BYTES) if total else (0,)
     for offset in offsets:
         chunk = body[offset : offset + CHUNK_BYTES]
-        facts = read(url)
-        challenge, snapshot = _checked(
-            facts,
-            recipe=recipe,
-            contract_digest=contract_digest,
-            receiver=receiver,
-            context=context,
-        )
-        _stage_offered(facts)
-        call = research.ServiceCall(
-            research.RESEARCH_NAMESPACE,
-            STAGE_OPERATION,
-            research.DirectStageSourceRequestV1(
+
+        def attempt():
+            pacer.before_call()
+            try:
+                facts = read(url)
+            except DirectIntakeRateLimit:
+                pacer.saw_rate()
+                raise
+            challenge, snapshot = _checked(
+                facts,
+                recipe=recipe,
+                contract_digest=contract_digest,
+                receiver=receiver,
+                context=context,
+            )
+            _stage_offered(facts)
+            call = research.ServiceCall(
+                research.RESEARCH_NAMESPACE,
+                STAGE_OPERATION,
+                research.DirectStageSourceRequestV1(
+                    challenge,
+                    name,
+                    offset,
+                    total,
+                    fingerprint,
+                    expected_digest,
+                    chunk,
+                ),
+            )
+            wire = message(
+                context,
+                snapshot,
                 challenge,
-                name,
-                offset,
-                total,
-                fingerprint,
-                expected_digest,
-                chunk,
-            ),
-        )
-        wire = message(
-            context,
-            snapshot,
-            challenge,
-            session="carbon-construction-source",
-            request=f"construction-source-{time.time_ns()}",
-            tool=SOURCE_TOOL,
-            fields={
-                "call_base64": base64.b64encode(research.canonical_bytes(call)).decode(
-                    "ascii"
+                session="carbon-construction-source",
+                request=f"construction-source-{time.time_ns()}",
+                tool=SOURCE_TOOL,
+                fields={
+                    "call_base64": base64.b64encode(
+                        research.canonical_bytes(call)
+                    ).decode("ascii")
+                },
+            )
+            if len(wire) > MAX_BODY:
+                raise DirectIntakeRefusal("construction_source_chunk_oversized")
+            headers = BittensorMessageSigner(signer).sign(
+                wire, receiver=receiver, nonce_ns=time.time_ns()
+            )
+            pacer.before_call()
+            status, answer = send(url, wire, headers)
+            if (
+                status == 429
+                and type(answer) is dict
+                and answer.get("refused") == "rate"
+            ):
+                pacer.saw_rate()
+                raise DirectIntakeRateLimit()
+            if status != 200 or type(answer) is not dict:
+                raise DirectIntakeRefusal(
+                    _refusal_code(answer, "construction_source_staging_unavailable")
                 )
-            },
-        )
-        if len(wire) > MAX_BODY:
-            raise DirectIntakeRefusal("construction_source_chunk_oversized")
-        headers = BittensorMessageSigner(signer).sign(
-            wire, receiver=receiver, nonce_ns=time.time_ns()
-        )
-        status, answer = send(url, wire, headers)
-        if status != 200 or type(answer) is not dict:
-            raise DirectIntakeRefusal(
-                _refusal_code(answer, "construction_source_staging_unavailable")
-            )
-        if (
-            answer.get("schema") != STAGE_REPLY_SCHEMA
-            or type(answer.get("protocol_reply_base64")) is not str
-        ):
-            raise DirectIntakeRefusal("construction_source_reply_invalid")
-        try:
-            reply = research.load_canonical(
-                base64.b64decode(answer["protocol_reply_base64"], validate=True),
-                research.ServiceReply,
-            )
-        except (ValueError, TypeError):
-            raise DirectIntakeRefusal("construction_source_reply_invalid") from None
-        if reply.status is research.ReplyStatus.ERROR:
-            raise DirectIntakeRefusal(
-                "construction_source_" + reply.result.code.value.lower()
-            )
-        result = reply.result
-        if (
-            type(result) is not research.DirectStageSourceResultV1
-            or result.name != name
-            or result.content_digest != fingerprint
-            or not offset + len(chunk) <= result.received_bytes <= total
-            or result.complete != (result.received_bytes == total)
-        ):
-            raise DirectIntakeRefusal("construction_source_reply_invalid")
+            if (
+                answer.get("schema") != STAGE_REPLY_SCHEMA
+                or type(answer.get("protocol_reply_base64")) is not str
+            ):
+                raise DirectIntakeRefusal("construction_source_reply_invalid")
+            try:
+                reply = research.load_canonical(
+                    base64.b64decode(answer["protocol_reply_base64"], validate=True),
+                    research.ServiceReply,
+                )
+            except (ValueError, TypeError):
+                raise DirectIntakeRefusal("construction_source_reply_invalid") from None
+            if reply.status is research.ReplyStatus.ERROR:
+                raise DirectIntakeRefusal(
+                    "construction_source_" + reply.result.code.value.lower()
+                )
+            result = reply.result
+            if (
+                type(result) is not research.DirectStageSourceResultV1
+                or result.name != name
+                or result.content_digest != fingerprint
+                or not offset + len(chunk) <= result.received_bytes <= total
+                or result.complete != (result.received_bytes == total)
+            ):
+                raise DirectIntakeRefusal("construction_source_reply_invalid")
+            return result
+
+        result = retry_rate_limited(attempt, deadline=deadline)
         if result.complete:
             return fingerprint
     return fingerprint
@@ -200,6 +250,10 @@ def stage_graph(
     files = staging.workspace(manifest, documents)
     ordered = sorted(name for name in files if name != staging.WORKSPACE_MANIFEST)
     ordered.append(staging.WORKSPACE_MANIFEST)
+    deadline = _transfer_deadline(
+        [(name, files[name]) for name in ordered], CHUNK_BYTES
+    )
+    pacer = _UploadPacer()
     digests = {}
     for name in ordered:
         digests[name] = _stage_one(
@@ -216,6 +270,8 @@ def stage_graph(
             ),
             read=read,
             send=send,
+            deadline=deadline,
+            pacer=pacer,
         )
     return {
         "schema": "carbon.construction.source-stage-result.v1",
@@ -257,87 +313,104 @@ def _stage_material_one(
     final,
     read,
     send,
+    deadline,
+    pacer,
 ):
     fingerprint = "sha256:" + hashlib.sha256(body).hexdigest()
-    observed = None
-    refreshed = 0.0
     offsets = range(0, len(body), MATERIAL_CHUNK_BYTES) if body else (0,)
     for offset in offsets:
-        now = time.monotonic()
-        if observed is None or now - refreshed >= 2.0:
-            observed = read(url)
-            refreshed = now
-        challenge, snapshot = _checked(
-            observed,
-            recipe=recipe,
-            contract_digest=contract_digest,
-            receiver=receiver,
-            context=context,
-        )
-        _material_stage_offered(observed)
         chunk = body[offset : offset + MATERIAL_CHUNK_BYTES]
-        call = research.ServiceCall(
-            research.RESEARCH_NAMESPACE,
-            MATERIAL_OPERATION,
-            research.DirectStageMaterialRequestV1(
+
+        def attempt():
+            pacer.before_call()
+            try:
+                facts = read(url)
+            except DirectIntakeRateLimit:
+                pacer.saw_rate()
+                raise
+            challenge, snapshot = _checked(
+                facts,
+                recipe=recipe,
+                contract_digest=contract_digest,
+                receiver=receiver,
+                context=context,
+            )
+            _material_stage_offered(facts)
+            call = research.ServiceCall(
+                research.RESEARCH_NAMESPACE,
+                MATERIAL_OPERATION,
+                research.DirectStageMaterialRequestV1(
+                    challenge,
+                    bundle_digest,
+                    name,
+                    offset,
+                    len(body),
+                    fingerprint,
+                    chunk,
+                ),
+            )
+            wire = message(
+                context,
+                snapshot,
                 challenge,
-                bundle_digest,
-                name,
-                offset,
-                len(body),
-                fingerprint,
-                chunk,
-            ),
-        )
-        wire = message(
-            context,
-            snapshot,
-            challenge,
-            session="carbon-construction-material",
-            request=f"construction-material-{time.time_ns()}",
-            tool=SOURCE_TOOL,
-            fields={
-                "call_base64": base64.b64encode(research.canonical_bytes(call)).decode(
-                    "ascii"
+                session="carbon-construction-material",
+                request=f"construction-material-{time.time_ns()}",
+                tool=SOURCE_TOOL,
+                fields={
+                    "call_base64": base64.b64encode(
+                        research.canonical_bytes(call)
+                    ).decode("ascii")
+                },
+            )
+            if len(wire) > MAX_BODY:
+                raise DirectIntakeRefusal("construction_material_chunk_oversized")
+            headers = BittensorMessageSigner(signer).sign(
+                wire, receiver=receiver, nonce_ns=time.time_ns()
+            )
+            pacer.before_call()
+            status, answer = send(url, wire, headers)
+            if (
+                status == 429
+                and type(answer) is dict
+                and answer.get("refused") == "rate"
+            ):
+                pacer.saw_rate()
+                raise DirectIntakeRateLimit()
+            if status != 200 or type(answer) is not dict:
+                raise DirectIntakeRefusal(
+                    _refusal_code(answer, "construction_material_staging_unavailable")
                 )
-            },
-        )
-        if len(wire) > MAX_BODY:
-            raise DirectIntakeRefusal("construction_material_chunk_oversized")
-        headers = BittensorMessageSigner(signer).sign(
-            wire, receiver=receiver, nonce_ns=time.time_ns()
-        )
-        status, answer = send(url, wire, headers)
-        if status != 200 or type(answer) is not dict:
-            raise DirectIntakeRefusal(
-                _refusal_code(answer, "construction_material_staging_unavailable")
-            )
-        if (
-            answer.get("schema") != STAGE_REPLY_SCHEMA
-            or type(answer.get("protocol_reply_base64")) is not str
-        ):
-            raise DirectIntakeRefusal("construction_material_reply_invalid")
-        try:
-            reply = research.load_canonical(
-                base64.b64decode(answer["protocol_reply_base64"], validate=True),
-                research.ServiceReply,
-            )
-        except (ValueError, TypeError):
-            raise DirectIntakeRefusal("construction_material_reply_invalid") from None
-        if reply.status is research.ReplyStatus.ERROR:
-            raise DirectIntakeRefusal(
-                "construction_material_" + reply.result.code.value.lower()
-            )
-        result = reply.result
-        if (
-            type(result) is not research.DirectStageMaterialResultV1
-            or result.name != name
-            or result.content_digest != fingerprint
-            or not offset + len(chunk) <= result.received_bytes <= len(body)
-            or result.complete != (result.received_bytes == len(body))
-            or (result.bundle_complete and not result.complete)
-        ):
-            raise DirectIntakeRefusal("construction_material_reply_invalid")
+            if (
+                answer.get("schema") != STAGE_REPLY_SCHEMA
+                or type(answer.get("protocol_reply_base64")) is not str
+            ):
+                raise DirectIntakeRefusal("construction_material_reply_invalid")
+            try:
+                reply = research.load_canonical(
+                    base64.b64decode(answer["protocol_reply_base64"], validate=True),
+                    research.ServiceReply,
+                )
+            except (ValueError, TypeError):
+                raise DirectIntakeRefusal(
+                    "construction_material_reply_invalid"
+                ) from None
+            if reply.status is research.ReplyStatus.ERROR:
+                raise DirectIntakeRefusal(
+                    "construction_material_" + reply.result.code.value.lower()
+                )
+            result = reply.result
+            if (
+                type(result) is not research.DirectStageMaterialResultV1
+                or result.name != name
+                or result.content_digest != fingerprint
+                or not offset + len(chunk) <= result.received_bytes <= len(body)
+                or result.complete != (result.received_bytes == len(body))
+                or (result.bundle_complete and not result.complete)
+            ):
+                raise DirectIntakeRefusal("construction_material_reply_invalid")
+            return result
+
+        result = retry_rate_limited(attempt, deadline=deadline)
         if result.complete:
             if final and not result.bundle_complete:
                 raise DirectIntakeRefusal("construction_material_closure_incomplete")
@@ -379,6 +452,8 @@ def stage_bundle(
         *sorted(wheels.items()),
         ("bundle.json", canonical_manifest),
     ]
+    deadline = _transfer_deadline(files, MATERIAL_CHUNK_BYTES)
+    pacer = _UploadPacer()
     for name, body in files:
         _stage_material_one(
             url,
@@ -393,6 +468,8 @@ def stage_bundle(
             final=name == "bundle.json",
             read=read,
             send=send,
+            deadline=deadline,
+            pacer=pacer,
         )
     return {
         "schema": "carbon.construction.material-stage-result.v1",

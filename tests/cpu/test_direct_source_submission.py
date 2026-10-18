@@ -342,3 +342,83 @@ def test_wrong_receiver_staging_capability_refuses_before_signing(monkeypatch):
             read=lambda url: wrong,
             send=lambda *_: pytest.fail("no send"),
         )
+
+
+def test_source_chunk_retries_only_explicit_http_rate_with_fresh_signature(monkeypatch):
+    import time
+
+    signed = []
+    reads = []
+
+    class Signer:
+        def __init__(self, signer):
+            assert signer == "external-signer"
+
+        def sign(self, body, *, receiver, nonce_ns):
+            signed.append((body, nonce_ns))
+            return {"signed": str(len(signed))}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+    body = b"{}"
+
+    def read(url):
+        reads.append(url)
+        return _stage_facts()
+
+    def send(url, wire, headers):
+        if len(signed) == 1:
+            return 429, {"refused": "rate"}
+        request = research.load_canonical(
+            base64.b64decode(json.loads(wire)["fields"]["call_base64"]),
+            research.ServiceCall,
+        ).request
+        reply = research.ServiceReply(
+            research.ReplyStatus.OK,
+            research.DirectStageSourceResultV1(
+                request.name, len(body), request.content_digest, True
+            ),
+        )
+        return 200, {
+            "schema": client.STAGE_REPLY_SCHEMA,
+            "protocol_reply_base64": base64.b64encode(
+                research.canonical_bytes(reply)
+            ).decode(),
+        }
+
+    assert (
+        client._stage_one(
+            _URL,
+            "external-signer",
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            name=staging.WORKSPACE_MANIFEST,
+            body=body,
+            expected_digest=None,
+            read=read,
+            send=send,
+            deadline=time.monotonic() + 10,
+            pacer=client._UploadPacer(),
+        )
+        == "sha256:" + hashlib.sha256(body).hexdigest()
+    )
+    assert len(reads) == len(signed) == 2
+    assert signed[0] != signed[1]
+
+    with pytest.raises(DirectIntakeRefusal, match="rate"):
+        client._stage_one(
+            _URL,
+            "external-signer",
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            name=staging.WORKSPACE_MANIFEST,
+            body=body,
+            expected_digest=None,
+            read=read,
+            send=lambda *_: (403, {"refused": "rate"}),
+            deadline=time.monotonic() + 10,
+            pacer=client._UploadPacer(),
+        )
