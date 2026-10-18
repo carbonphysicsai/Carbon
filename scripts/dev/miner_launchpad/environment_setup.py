@@ -995,12 +995,14 @@ class LiveChecks:
         *,
         opener=None,
         repo: Path = REPO,
+        candidate_state_dir=None,
         host_root=None,
         hermes_home=None,
         ssh=None,
     ):
         self.opener = opener
         self.repo = repo
+        self.candidate_state_dir = candidate_state_dir
         # The miner's own ssh client (`remote_machine.SSHClient` unless a test
         # names a double): it reaches their remote setup and nothing else.
         self.ssh = ssh
@@ -1150,12 +1152,19 @@ class LiveChecks:
         )
 
     def revision(self) -> dict:
-        """This checkout's exact clean accepted revision and its source digest."""
+        """This checkout's exact clean accepted or operator-pinned source."""
         from carbon.development_session.research_campaign import (
             accepted_implementation,
         )
+        from scripts.dev.miner_launchpad import installed
 
         try:
+            if self.candidate_state_dir is not None:
+                candidate = installed.candidate_implementation(
+                    self.candidate_state_dir, repository=self.repo
+                )
+                if candidate is not None:
+                    return candidate
             head = subprocess.check_output(
                 ["git", "rev-parse", "HEAD"], cwd=self.repo, text=True, timeout=30
             ).strip()
@@ -1863,7 +1872,7 @@ class EnvironmentSetup:
     def __init__(self, state_dir: Path, *, onboarding, checks=None, attach=None):
         self.root = Path(state_dir) / "environment"
         self.onboarding = onboarding
-        self.checks = checks or LiveChecks()
+        self.checks = checks or LiveChecks(candidate_state_dir=state_dir)
         self.attach = attach
         self.lock = _SetupLock(self.root)
 
@@ -3191,6 +3200,16 @@ class EnvironmentSetup:
                 "accepted_revision",
                 "clean_accepted_checkout_required",
                 next_step=REINSTALL_STEP,
+            )
+        try:
+            candidate = installed.candidate_implementation(self.root.parent)
+        except (OSError, ValueError, subprocess.SubprocessError):
+            raise SetupRefused(
+                "accepted_revision", "clean_development_candidate_required"
+            ) from None
+        if candidate is not None and candidate["revision"] != head:
+            raise SetupRefused(
+                "accepted_revision", "clean_development_candidate_required"
             )
         images = {}
         for field, path in recorded.items():

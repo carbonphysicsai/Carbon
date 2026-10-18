@@ -75,6 +75,86 @@ def test_the_installed_images_are_recorded_owner_only(tmp_path):
     assert installed.read(tmp_path / "absent") is None
 
 
+def test_operator_candidate_pin_is_private_exact_and_cleared_by_install(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session import research_campaign
+
+    state = tmp_path / "state"
+    state.mkdir(mode=0o700)
+    worker = tmp_path / "worker.json"
+    analysis = tmp_path / "analysis.json"
+    worker.write_text("{}")
+    analysis.write_text("{}")
+    installed.write(state, image_manifest=worker, analysis_image_manifest=analysis)
+    revision, tree, source = "a" * 40, "b" * 40, "sha256:" + "c" * 64
+    expected = {
+        "revision": revision,
+        "tree": tree,
+        "source_tree_digest": source,
+        "source_authority": "DEVELOPMENT_CANDIDATE",
+    }
+
+    def checked(given, *, expected_tree, expected_source_tree_digest, repository):
+        assert (given, expected_tree, expected_source_tree_digest) == (
+            revision,
+            tree,
+            source,
+        )
+        assert repository == tmp_path
+        return expected
+
+    monkeypatch.setattr(
+        research_campaign, "development_candidate_implementation", checked
+    )
+    assert (
+        installed.bind_development_candidate(
+            state,
+            revision=revision,
+            tree=tree,
+            source_tree_digest=source,
+            repository=tmp_path,
+        )
+        == expected
+    )
+    pin = state / installed.DEVELOPMENT_CANDIDATE_FILE
+    assert pin.stat().st_mode & 0o777 == 0o600
+    assert installed.candidate_implementation(state, repository=tmp_path) == expected
+    assert set(json.loads(pin.read_bytes())) == {
+        "schema",
+        "revision",
+        "tree",
+        "source_tree_digest",
+    }
+    installed.write(state, image_manifest=worker, analysis_image_manifest=analysis)
+    assert not pin.exists()
+    assert installed.candidate_implementation(state, repository=tmp_path) is None
+
+
+def test_released_images_cannot_bind_development_candidate(tmp_path):
+    state = tmp_path / "state"
+    state.mkdir(mode=0o700)
+    worker = tmp_path / "worker.json"
+    analysis = tmp_path / "analysis.json"
+    release = tmp_path / "release.json"
+    for path in (worker, analysis, release):
+        path.write_text("{}")
+    installed.write(
+        state,
+        image_manifest=worker,
+        analysis_image_manifest=analysis,
+        gpu_release_record=release,
+    )
+    with pytest.raises(ValueError, match="released image record"):
+        installed.bind_development_candidate(
+            state,
+            revision="a" * 40,
+            tree="b" * 40,
+            source_tree_digest="sha256:" + "c" * 64,
+            repository=tmp_path,
+        )
+
+
 def test_setup_shows_what_the_installer_built(tmp_path):
     from test_miner_launchpad_environment_setup import Checks, Onboarding
 

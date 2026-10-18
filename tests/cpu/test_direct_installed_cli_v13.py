@@ -40,8 +40,11 @@ def test_missing_prospective_material_fails_closed_without_affecting_old_kits(
     assert refused.value.code == "direct_development_kit_unavailable"
 
 
+@pytest.mark.parametrize(
+    ("candidate_mode", "bad_images"), [(False, False), (True, False), (True, True)]
+)
 def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
-    monkeypatch, tmp_path
+    monkeypatch, tmp_path, candidate_mode, bad_images
 ):
     from carbon.chain import external_signer
     from carbon.development_session import (
@@ -51,14 +54,18 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
         research_image,
     )
     from carbon.reconstruction.worker import docker_runtime
-    from scripts.dev.miner_launchpad import runner
+    from scripts.dev.miner_launchpad import installed, runner
 
     digest = "sha256:" + "a" * 64
     parent = SimpleNamespace(image_id=digest)
-    analysis = SimpleNamespace(parent_image=digest)
+    analysis = SimpleNamespace(parent_image=digest, image_id=digest)
     signer = SimpleNamespace(ss58_address="owner")
-    base = tmp_path / "campaigns"
-    base.mkdir()
+    base = (
+        tmp_path / "environment" / "campaigns"
+        if candidate_mode
+        else tmp_path / "campaigns"
+    )
+    base.mkdir(parents=True)
     public = tmp_path / "public.json"
     public.write_text(json.dumps({"netuid": cli.CARBON_NETUID, "hotkey": "owner"}))
     paths = {
@@ -74,13 +81,36 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
         "gpu_image": str(tmp_path / "gpu-image.json"),
         "principal": "owner",
     }
+    candidate = {
+        "revision": "a" * 40,
+        "tree": "b" * 40,
+        "source_tree_digest": "sha256:" + "c" * 64,
+        "source_authority": "DEVELOPMENT_CANDIDATE",
+    }
+    if candidate_mode:
+        cfg["runtime"] = {
+            "implementation": candidate,
+            "images": ["sha256:" + "d" * 64 if bad_images else digest, digest],
+        }
     monkeypatch.setattr(
         kit, "bundle_material_v5", lambda: {"challenge_key": "v13"}, raising=False
     )
     monkeypatch.setattr(cli, "private_json", lambda _path: cfg)
     monkeypatch.setattr(runner, "validated_profile", lambda value: value)
     monkeypatch.setattr(
-        research_campaign, "accepted_implementation", lambda _rev: object()
+        research_campaign,
+        "accepted_implementation",
+        (
+            (lambda _rev: pytest.fail("candidate must not claim main acceptance"))
+            if candidate_mode
+            else (lambda _rev: object())
+        ),
+    )
+    seen_candidate = []
+    monkeypatch.setattr(
+        installed,
+        "candidate_implementation",
+        lambda state: seen_candidate.append(state) or candidate,
     )
     monkeypatch.setattr(research_campaign, "private_file", lambda path: path)
     monkeypatch.setattr(research_campaign, "verify_current_worker", lambda *_args: None)
@@ -104,12 +134,87 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     )
     monkeypatch.setattr(external_signer, "miner_signer", lambda *_args: signer)
 
-    source = cli.load_direct_installed_source(tmp_path / "profile.json", version="1.3")
+    profile = (
+        tmp_path / "environment" / "runner-profile.json"
+        if candidate_mode
+        else tmp_path / "profile.json"
+    )
+    if bad_images:
+        with pytest.raises(ValueError, match="profile images differ") as refused:
+            cli.load_direct_installed_source(profile, version="1.3")
+        assert cli.refusal_code(refused.value) == "carbon_updated_rerun_installer"
+        return
+    source = cli.load_direct_installed_source(profile, version="1.3")
     assert source.root == base / ".direct-development" / "kit-1.3" / ("a" * 64)
     assert source.cache_root == base / ".direct-development" / "library-cache"
     assert source.version == "1.3"
     assert source.parent is parent
     assert source.signer is signer
+    assert seen_candidate == ([tmp_path] if candidate_mode else [])
+
+
+def test_v13_candidate_profile_mismatch_refuses_before_image_use(monkeypatch, tmp_path):
+    from scripts.dev.miner_launchpad import installed, runner
+
+    base = tmp_path / "campaigns"
+    base.mkdir()
+    cfg = {
+        "enabled": True,
+        "campaigns_root": str(base),
+        "paths": {"image_manifest": str(tmp_path / "image.json")},
+        "accepted_revision": "a" * 40,
+        "runtime": {"implementation": {"revision": "a" * 40}},
+    }
+    monkeypatch.setattr(cli, "private_json", lambda _path: cfg)
+    monkeypatch.setattr(runner, "validated_profile", lambda value: value)
+    monkeypatch.setattr(
+        installed,
+        "candidate_implementation",
+        lambda _state: {
+            "revision": "a" * 40,
+            "tree": "b" * 40,
+            "source_tree_digest": "sha256:" + "c" * 64,
+            "source_authority": "DEVELOPMENT_CANDIDATE",
+        },
+    )
+    with pytest.raises(
+        ValueError, match="development candidate profile differs"
+    ) as refused:
+        cli.load_direct_installed_source(
+            tmp_path / "environment" / "runner-profile.json", version="1.3"
+        )
+    assert cli.refusal_code(refused.value) == "carbon_updated_rerun_installer"
+
+
+def test_old_direct_kit_keeps_main_accepted_source_rule(monkeypatch, tmp_path):
+    from carbon.development_session import research_campaign
+    from scripts.dev.miner_launchpad import installed, runner
+
+    base = tmp_path / "campaigns"
+    base.mkdir()
+    cfg = {
+        "enabled": True,
+        "campaigns_root": str(base),
+        "paths": {"image_manifest": str(tmp_path / "image.json")},
+        "accepted_revision": "a" * 40,
+    }
+    monkeypatch.setattr(cli, "private_json", lambda _path: cfg)
+    monkeypatch.setattr(runner, "validated_profile", lambda value: value)
+    monkeypatch.setattr(
+        installed,
+        "candidate_implementation",
+        lambda _state: pytest.fail("old kit must ignore candidate pin"),
+    )
+    monkeypatch.setattr(
+        research_campaign,
+        "accepted_implementation",
+        lambda _rev: (_ for _ in ()).throw(ValueError("not in fetched main")),
+    )
+    with pytest.raises(ValueError, match="not in fetched main") as refused:
+        cli.load_direct_installed_source(
+            tmp_path / "environment" / "runner-profile.json", version="1.2"
+        )
+    assert cli.refusal_code(refused.value) == "carbon_updated_rerun_installer"
 
 
 @pytest.mark.parametrize(("requested", "expected"), [(None, "1.2"), ("1.3", "1.3")])

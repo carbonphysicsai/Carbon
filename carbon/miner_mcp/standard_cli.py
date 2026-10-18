@@ -203,6 +203,7 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
         verify_image,
     )
     from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
+    from scripts.dev.miner_launchpad import installed
     from scripts.dev.miner_launchpad.runner import validated_profile
 
     _direct_material(version)
@@ -220,13 +221,40 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
         raise AttachRefused("runner_profile_unusable", "private direct root differs")
     paths = {name: Path(value) for name, value in cfg["paths"].items()}
     with _check("carbon_updated_rerun_installer"):
-        implementation = accepted_implementation(cfg["accepted_revision"])
+        implementation = None
+        development_candidate = False
+        profile_path = Path(configuration)
+        if (
+            version == "1.3"
+            and profile_path.is_absolute()
+            and profile_path.resolve() == profile_path
+            and profile_path.name == "runner-profile.json"
+            and profile_path.parent.name == "environment"
+        ):
+            implementation = installed.candidate_implementation(
+                profile_path.parent.parent
+            )
+            if implementation is not None:
+                development_candidate = True
+                if (
+                    cfg.get("runtime", {}).get("implementation") != implementation
+                    or cfg["accepted_revision"] != implementation["revision"]
+                    or base != profile_path.parent / "campaigns"
+                ):
+                    raise ValueError("development candidate profile differs")
+        if implementation is None:
+            implementation = accepted_implementation(cfg["accepted_revision"])
         parent = load_image_identity(paths["image_manifest"])
         verify_current_worker(parent, implementation)
         analysis = load_analysis_image(paths["analysis_image_manifest"])
         verify_image(analysis)
         if analysis.parent_image != parent.image_id:
             raise ValueError("analysis image parent differs")
+        if development_candidate and cfg["runtime"].get("images") != [
+            parent.image_id,
+            analysis.image_id,
+        ]:
+            raise ValueError("development candidate profile images differ")
         gpu_manifest = cfg.get("gpu_image")
         if type(gpu_manifest) is not str:
             raise ValueError("installed GPU parent required for direct development")

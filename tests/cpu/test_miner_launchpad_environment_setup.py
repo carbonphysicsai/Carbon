@@ -29,6 +29,95 @@ from scripts.dev.miner_launchpad.environment_setup import (
     choices,
 )
 
+
+def test_live_compute_source_uses_only_owner_pinned_development_candidate(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session import research_campaign
+    from scripts.dev.miner_launchpad import installed
+
+    candidate = {
+        "revision": "a" * 40,
+        "tree": "b" * 40,
+        "source_tree_digest": "sha256:" + "c" * 64,
+        "source_authority": "DEVELOPMENT_CANDIDATE",
+    }
+    seen = []
+
+    def pinned(state_dir, *, repository):
+        seen.append((state_dir, repository))
+        return candidate
+
+    monkeypatch.setattr(installed, "candidate_implementation", pinned)
+    monkeypatch.setattr(
+        research_campaign,
+        "accepted_implementation",
+        lambda _revision: pytest.fail("a pinned candidate cannot fall through to main"),
+    )
+    checks = LiveChecks(
+        repo=Path(__file__).resolve().parents[2], candidate_state_dir=tmp_path
+    )
+    assert checks.revision() is candidate
+    assert seen == [(tmp_path, checks.repo)]
+    monkeypatch.setattr(
+        installed,
+        "candidate_implementation",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("stale pin")),
+    )
+    with pytest.raises(SetupRefused) as refused:
+        checks.revision()
+    assert refused.value.code == "clean_accepted_checkout_required"
+
+
+def test_live_compute_source_without_candidate_keeps_main_rule(tmp_path, monkeypatch):
+    from carbon.development_session import research_campaign
+    from scripts.dev.miner_launchpad import environment_setup, installed
+
+    monkeypatch.setattr(installed, "candidate_implementation", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        environment_setup.subprocess,
+        "check_output",
+        lambda _argv, **_kwargs: "a" * 40,
+    )
+    seen = []
+
+    def accepted(revision):
+        seen.append(revision)
+        return {"revision": revision}
+
+    monkeypatch.setattr(research_campaign, "accepted_implementation", accepted)
+    checks = LiveChecks(repo=tmp_path, candidate_state_dir=tmp_path)
+    assert checks.revision() == {"revision": seen[0]}
+    assert len(seen[0]) == 40
+
+
+def test_after_install_refuses_stale_development_pin_before_writing_stamp(
+    tmp_path, monkeypatch
+):
+    from scripts.dev.miner_launchpad import environment_setup, installed
+
+    state = tmp_path / "state"
+    setup = EnvironmentSetup(state, onboarding=None, checks=Checks())
+    monkeypatch.setattr(
+        installed,
+        "read",
+        lambda _state: {
+            "image_manifest": "worker",
+            "analysis_image_manifest": "analysis",
+        },
+    )
+    monkeypatch.setattr(environment_setup, "checkout_revision", lambda: "a" * 40)
+    monkeypatch.setattr(
+        installed,
+        "candidate_implementation",
+        lambda _state: {"revision": "b" * 40},
+    )
+    with pytest.raises(SetupRefused) as refused:
+        setup.after_install()
+    assert refused.value.code == "clean_development_candidate_required"
+    assert not setup.installation_path.exists()
+
+
 TOKEN = "x" * 40
 HOTKEY = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
 KEY = "sk-fixture-never-echoed-0123456789"

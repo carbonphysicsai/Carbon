@@ -27,6 +27,8 @@ FIELDS = ("image_manifest", "analysis_image_manifest", "gpu_image_manifest")
 GPU_RELEASE_RECORD = "gpu_release_record"
 #: The release kind of the GPU worker remote setup uses.
 GPU_RELEASE_KIND = "accelerator"
+DEVELOPMENT_CANDIDATE_FILE = "development-candidate.json"
+DEVELOPMENT_CANDIDATE_SCHEMA = "carbon.launchpad.development-candidate.v1"
 #: Where `scripts/dev/accelerator_worker_image.sh` writes the GPU worker's
 #: manifest by default. A miner whose controller has no GPU builds it with
 #: that script for their remote setup (`install_miner.sh --gpu` checks for a
@@ -67,9 +69,87 @@ def write(
         if not path.is_file():
             raise SystemExit(f"{field}: no file at {path}")
         record[field] = str(path)
+    candidate = Path(state_dir) / DEVELOPMENT_CANDIDATE_FILE
+    if candidate.is_symlink():
+        raise ValueError("development candidate record is a link")
+    candidate.unlink(missing_ok=True)
     return write_private(
         Path(state_dir) / FILE, json.dumps(record, sort_keys=True).encode()
     )
+
+
+def candidate_implementation(state_dir, *, repository=None) -> dict | None:
+    """Read an operator's exact local DEVELOPMENT source pin, if one exists.
+
+    Absence keeps every ordinary install on the main-accepted path. A present
+    but stale, malformed, or non-private record refuses rather than falling
+    back to main or accepting a caller's asserted source authority.
+    """
+    from carbon.development_session.private_records import private_json
+    from carbon.development_session.research_campaign import (
+        development_candidate_implementation,
+    )
+
+    path = Path(state_dir) / DEVELOPMENT_CANDIDATE_FILE
+    if not path.exists() and not path.is_symlink():
+        return None
+    record = private_json(path)
+    if (
+        type(record) is not dict
+        or set(record)
+        != {
+            "schema",
+            "revision",
+            "tree",
+            "source_tree_digest",
+        }
+        or record["schema"] != DEVELOPMENT_CANDIDATE_SCHEMA
+    ):
+        raise ValueError("development candidate record differs")
+    return development_candidate_implementation(
+        record["revision"],
+        expected_tree=record["tree"],
+        expected_source_tree_digest=record["source_tree_digest"],
+        repository=repository,
+    )
+
+
+def bind_development_candidate(
+    state_dir, *, revision, tree, source_tree_digest, repository=None
+) -> dict:
+    """Operator-only pin for a locally built, unqualified DEVELOPMENT tree."""
+    from carbon.development_session.profile import canonical
+    from carbon.development_session.research_campaign import (
+        development_candidate_implementation,
+    )
+    from scripts.dev.miner_launchpad.environment_setup import write_private
+
+    state = Path(state_dir)
+    if not state.is_absolute() or state.is_symlink() or state.resolve() != state:
+        raise ValueError("exact owner state directory required")
+    recorded = read(state) or {}
+    if not {"image_manifest", "analysis_image_manifest"} <= set(recorded):
+        raise ValueError("installed image records required before candidate pin")
+    if _recorded(state, (GPU_RELEASE_RECORD,)):
+        raise ValueError("released image record cannot use development candidate")
+    implementation = development_candidate_implementation(
+        revision,
+        expected_tree=tree,
+        expected_source_tree_digest=source_tree_digest,
+        repository=repository,
+    )
+    write_private(
+        state / DEVELOPMENT_CANDIDATE_FILE,
+        canonical(
+            {
+                "schema": DEVELOPMENT_CANDIDATE_SCHEMA,
+                "revision": revision,
+                "tree": tree,
+                "source_tree_digest": source_tree_digest,
+            }
+        ),
+    )
+    return implementation
 
 
 def _recorded(state_dir, fields):
@@ -215,9 +295,23 @@ def main(argv=None):
     record.add_argument("--gpu-release-record")
     reuse = commands.add_parser("current")
     reuse.add_argument("--manifest", type=Path, required=True)
+    candidate = commands.add_parser("bind-development-candidate")
+    candidate.add_argument("--state-dir", type=Path, required=True)
+    candidate.add_argument("--revision", required=True)
+    candidate.add_argument("--tree", required=True)
+    candidate.add_argument("--source-tree-digest", required=True)
     args = parser.parse_args(argv)
     if args.command == "current":
         print("yes" if current(args.manifest) else "no")
+        return
+    if args.command == "bind-development-candidate":
+        bind_development_candidate(
+            args.state_dir,
+            revision=args.revision,
+            tree=args.tree,
+            source_tree_digest=args.source_tree_digest,
+        )
+        print("Pinned exact local DEVELOPMENT candidate for setup.")
         return
     path = write(
         args.state_dir,
