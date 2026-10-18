@@ -123,7 +123,8 @@ def historical_v0_campaign(host, identity):
     """
     with host.db() as db:
         row = db.execute(
-            "SELECT launch_request,construction_binding_version "
+            "SELECT request_key,request_digest,config_digest,launch_request,"
+            "construction_binding_version "
             "FROM launchpad_campaigns WHERE id=?",
             (identity,),
         ).fetchone()
@@ -132,6 +133,9 @@ def historical_v0_campaign(host, identity):
         assert request.pop(levels.CONSTRUCTION_ADMISSION)["schema"] == (
             levels.DIRECT_CAPTURE_SCHEMA
         )
+        assert host._launch_identity(
+            host.configured(), {**request, "idempotency_key": row["request_key"]}
+        ) == (identity, row["request_digest"], row["config_digest"])
         db.execute(
             "UPDATE launchpad_campaigns SET launch_request=?, "
             "construction_binding_version=0, construction_binding_digest=NULL "
