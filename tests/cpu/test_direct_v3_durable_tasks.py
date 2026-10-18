@@ -390,6 +390,8 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(tmp_path, monke
         assert kwargs["identity"].endswith("-prep")
         assert "uv_binary" not in kwargs
         assert 40 <= kwargs["seconds"] <= 600
+        assert type(kwargs["deadline"]) is float
+        kwargs["cancel"]()
         calls.append("bounded-prep")
         return prep
 

@@ -542,6 +542,8 @@ class DirectDevelopmentTasksV3:
                 ],
                 material=material,
                 seconds=min(600, remaining),
+                deadline=deadline,
+                cancel=check_cancel,
             )
             if prep.controls_digest is None:
                 raise ValueError("completed C03 preparation controls unavailable")

@@ -15,6 +15,7 @@ import math
 import re
 import tarfile
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -435,6 +436,8 @@ def prepare_library_overlay(
     limits_document: dict,
     material: tuple,
     seconds: int = 600,
+    deadline: float | None = None,
+    cancel: Callable[[], None] | None = None,
     runner=None,
 ) -> BundleOverlayPrepResult:
     """Install exact offline wheels only inside a controlled C03 operation."""
@@ -476,7 +479,7 @@ def prepare_library_overlay(
     }
 
     def stage_uv(cli):
-        uv_binary = pinned_uv_bytes(cli)
+        uv_binary = pinned_uv_bytes(cli, deadline=deadline, cancel=cancel)
         return {
             "uv-bin": uv_binary,
             "control.json": json.dumps(
