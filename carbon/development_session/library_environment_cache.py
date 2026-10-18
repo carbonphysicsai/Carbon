@@ -8,17 +8,20 @@ the runtime must call ``verify_library_worker_image`` before use.
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import re
 import shutil
 import stat
+import tarfile
 import tempfile
-from dataclasses import asdict
-from pathlib import Path
+from dataclasses import asdict, dataclass
+from pathlib import Path, PurePosixPath
 
 from carbon.development_session.library_bundles import (
     LibraryBundleRef,
     ProvisionedLibraryEnvironment,
+    UV_IMAGE,
     _context_digest,
     _private_cache_directory,
     bundle_ref,
@@ -31,6 +34,7 @@ from carbon.development_session.research_image import (
     verify_library_worker_image,
 )
 from carbon.reconstruction.worker.model import WorkerFailure, WorkerImageIdentity
+from carbon.reconstruction.worker.docker_runtime import DockerCLI
 
 SCHEMA = "carbon.library-worker-image-cache.v1"
 MAX_RECORD_BYTES = 64 * 1024
@@ -50,6 +54,72 @@ _PROVISIONED_FIELDS = frozenset(
     {"parent_image", "context", "context_digest", "image_id"}
 )
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
+OVERLAY_SCHEMA = "carbon.development.library-overlay.v1"
+MAX_OVERLAY_BYTES = 128 * 1024**2 - 64 * 1024
+MAX_OVERLAY_FILES = 8192
+
+
+@dataclass(frozen=True)
+class VerifiedLibraryOverlay:
+    path: Path
+    tree_digest: str
+    bundle_ref: LibraryBundleRef
+    parent_image_id: str
+    archive_digest: str
+    file_count: int
+    total_bytes: int
+
+
+def pinned_uv_bytes(cli: DockerCLI) -> bytes:
+    """Copy /uv from the exact locally pinned image without starting it."""
+    if not all(hasattr(cli, name) for name in ("json", "run", "stream_to_file")):
+        raise ValueError("trusted Docker adapter required")
+    image = cli.json(["image", "inspect", UV_IMAGE, "--format", "{{json .}}"])
+    uv_name, _, uv_digest = UV_IMAGE.partition("@")
+    repository_digest = uv_name.rsplit(":", 1)[0] + "@" + uv_digest
+    if (
+        type(image) is not dict
+        or _DIGEST.fullmatch(str(image.get("Id"))) is None
+        or type(image.get("RepoDigests")) is not list
+        or repository_digest not in image.get("RepoDigests", ())
+    ):
+        raise ValueError("pinned local uv image differs")
+    container = (
+        cli.run(
+            ["create", "--network", "none", "--entrypoint", "/bin/true", image["Id"]]
+        )
+        .stdout.decode("ascii")
+        .strip()
+    )
+    if re.fullmatch(r"[0-9a-f]{64}", container) is None:
+        raise ValueError("pinned uv container identity invalid")
+    try:
+        with tempfile.TemporaryDirectory(prefix="carbon-uv-copy-") as temporary:
+            archive_path = Path(temporary) / "uv.tar"
+            cli.stream_to_file(
+                ["cp", f"{container}:/uv", "-"],
+                archive_path,
+                maximum=64 * 1024**2 + 1024**2,
+                timeout=120,
+            )
+            with tarfile.open(archive_path, mode="r:") as archive:
+                members = archive.getmembers()
+                if (
+                    len(members) != 1
+                    or members[0].name not in {"uv", "./uv"}
+                    or not members[0].isfile()
+                    or not 0 < members[0].size <= 64 * 1024**2
+                ):
+                    raise ValueError("pinned uv archive differs")
+                stream = archive.extractfile(members[0])
+                if stream is None:
+                    raise ValueError("pinned uv bytes unavailable")
+                body = stream.read(64 * 1024**2 + 1)
+                if len(body) != members[0].size:
+                    raise ValueError("pinned uv bytes changed")
+                return body
+    finally:
+        cli.run(["rm", "--force", container])
 
 
 def staged_bundle_material_directory(
@@ -76,6 +146,213 @@ def inspect_staged_bundle_material(
     if bundle_ref(*material) != expected_bundle:
         raise ValueError("staged bundle differs from recipe reference")
     return directory
+
+
+def _overlay_digest(body: bytes) -> str:
+    return "sha256:" + hashlib.sha256(body).hexdigest()
+
+
+def _overlay_rows(root: Path) -> list[list[object]]:
+    rows: list[list[object]] = []
+    total = 0
+    for entry in root.rglob("*"):
+        if entry == root / ".overlay.json":
+            continue
+        if entry.is_symlink():
+            raise ValueError("overlay link refused")
+        if entry.is_dir():
+            continue
+        relative = entry.relative_to(root).as_posix()
+        parts = PurePosixPath(relative).parts
+        if (
+            not entry.is_file()
+            or len(parts) < 2
+            or parts[0] not in {"site-packages", "source"}
+            or any(part in {"", ".", ".."} for part in parts)
+        ):
+            raise ValueError("overlay file role differs")
+        size = entry.stat().st_size
+        if size > MAX_OVERLAY_BYTES:
+            raise ValueError("overlay file exceeds bound")
+        hasher = hashlib.sha256()
+        with entry.open("rb") as stream:
+            for block in iter(lambda: stream.read(1024**2), b""):
+                hasher.update(block)
+        total += size
+        rows.append([relative, size, "sha256:" + hasher.hexdigest()])
+        if total > MAX_OVERLAY_BYTES or len(rows) > MAX_OVERLAY_FILES:
+            raise ValueError("overlay content exceeds bound")
+    rows.sort(key=lambda row: row[0])
+    if len({row[0].casefold() for row in rows}) != len(rows):
+        raise ValueError("overlay file names collide")
+    return rows
+
+
+def _verified_overlay_tree(root: Path, receipt: dict) -> None:
+    stored = root / ".overlay.json"
+    if stored.is_symlink() or not stored.is_file() or stored.stat().st_size > 65536:
+        raise ValueError("cached overlay receipt differs")
+    if json.loads(stored.read_bytes()) != receipt:
+        raise ValueError("cached overlay receipt changed")
+    rows = _overlay_rows(root)
+    if (
+        _overlay_digest(json.dumps(rows, separators=(",", ":")).encode())
+        != receipt["tree_digest"]
+        or len(rows) != receipt["file_count"]
+        or sum(row[1] for row in rows) != receipt["total_file_bytes"]
+    ):
+        raise ValueError("cached overlay content differs")
+
+
+def cache_verified_overlay(
+    snapshot: Path,
+    cache_root: Path,
+    *,
+    expected_bundle: LibraryBundleRef,
+    expected_parent: WorkerImageIdentity,
+    expected_receipt: dict,
+) -> VerifiedLibraryOverlay:
+    """Verify bounded C03 output and atomically seal an inert private overlay."""
+    if (
+        not isinstance(snapshot, Path)
+        or not snapshot.is_absolute()
+        or snapshot.is_symlink()
+        or not snapshot.is_dir()
+        or type(expected_bundle) is not LibraryBundleRef
+        or type(expected_parent) is not WorkerImageIdentity
+        or type(expected_receipt) is not dict
+    ):
+        raise ValueError("trusted completed preparation required")
+    entries = {entry.name: entry for entry in snapshot.iterdir()}
+    if set(entries) != {"overlay.json", "overlay.tar"} or any(
+        entry.is_symlink() or not entry.is_file() for entry in entries.values()
+    ):
+        raise ValueError("closed preparation snapshot required")
+    manifest_path = entries["overlay.json"]
+    archive_path = entries["overlay.tar"]
+    if (
+        not 0 < manifest_path.stat().st_size <= 65536
+        or not 0 < archive_path.stat().st_size <= MAX_OVERLAY_BYTES
+    ):
+        raise ValueError("bounded preparation output required")
+    try:
+        receipt = json.loads(manifest_path.read_bytes())
+    except (UnicodeError, json.JSONDecodeError) as error:
+        raise ValueError("invalid preparation receipt") from error
+    if (
+        type(receipt) is not dict
+        or receipt != expected_receipt
+        or set(receipt)
+        != {
+            "schema",
+            "bundle_ref",
+            "parent_image_id",
+            "archive_sha256",
+            "archive_bytes",
+            "tree_digest",
+            "file_count",
+            "total_file_bytes",
+        }
+        or receipt["schema"] != OVERLAY_SCHEMA
+        or receipt["bundle_ref"] != expected_bundle.to_dict()
+        or receipt["parent_image_id"] != expected_parent.image_id
+        or _DIGEST.fullmatch(str(receipt["archive_sha256"])) is None
+        or _DIGEST.fullmatch(str(receipt["tree_digest"])) is None
+        or type(receipt["archive_bytes"]) is not int
+        or receipt["archive_bytes"] != archive_path.stat().st_size
+        or type(receipt["file_count"]) is not int
+        or not 1 <= receipt["file_count"] <= MAX_OVERLAY_FILES
+        or type(receipt["total_file_bytes"]) is not int
+        or not 1 <= receipt["total_file_bytes"] <= MAX_OVERLAY_BYTES
+    ):
+        raise ValueError("preparation receipt binding differs")
+    hasher = hashlib.sha256()
+    with archive_path.open("rb") as archive_bytes:
+        for block in iter(lambda: archive_bytes.read(1024**2), b""):
+            hasher.update(block)
+    if "sha256:" + hasher.hexdigest() != receipt["archive_sha256"]:
+        raise ValueError("preparation archive digest differs")
+    root = _private_cache_directory(cache_root, "private overlay cache required")
+    overlays = root / "overlays"
+    overlays.mkdir(mode=0o700, exist_ok=True)
+    overlays = _private_cache_directory(overlays, "private overlay root required")
+    target = overlays / receipt["tree_digest"][7:]
+    temporary = Path(tempfile.mkdtemp(prefix=".pending-", dir=overlays))
+    try:
+        with tarfile.open(archive_path, mode="r:") as archive:
+            names: set[str] = set()
+            total = 0
+            for member in archive:
+                relative = PurePosixPath(member.name)
+                parts = relative.parts
+                if (
+                    not member.isfile()
+                    or member.pax_headers
+                    or len(parts) < 2
+                    or parts[0] not in {"site-packages", "source"}
+                    or any(part in {"", ".", ".."} for part in parts)
+                    or relative.as_posix() != member.name
+                    or member.name in names
+                    or member.mode != 0o444
+                    or member.uid != 0
+                    or member.gid != 0
+                    or member.mtime != 0
+                    or not 0 <= member.size <= MAX_OVERLAY_BYTES
+                ):
+                    raise ValueError("overlay archive member differs")
+                names.add(member.name)
+                total += member.size
+                if total > MAX_OVERLAY_BYTES or len(names) > MAX_OVERLAY_FILES:
+                    raise ValueError("overlay archive exceeds bound")
+                destination = temporary.joinpath(*parts)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                source = archive.extractfile(member)
+                if source is None:
+                    raise ValueError("overlay archive member unavailable")
+                with destination.open("xb") as output:
+                    remaining = member.size
+                    while remaining:
+                        block = source.read(min(remaining, 1024**2))
+                        if not block:
+                            raise ValueError("overlay archive member truncated")
+                        output.write(block)
+                        remaining -= len(block)
+        rows = _overlay_rows(temporary)
+        if (
+            len(rows) != receipt["file_count"]
+            or sum(row[1] for row in rows) != receipt["total_file_bytes"]
+            or _overlay_digest(json.dumps(rows, separators=(",", ":")).encode())
+            != receipt["tree_digest"]
+        ):
+            raise ValueError("overlay tree digest differs")
+        (temporary / ".overlay.json").write_bytes(
+            json.dumps(receipt, sort_keys=True, separators=(",", ":")).encode()
+        )
+        if target.exists() or target.is_symlink():
+            if target.is_symlink() or not target.is_dir():
+                raise ValueError("cached overlay path differs")
+            _verified_overlay_tree(target, receipt)
+        else:
+            try:
+                temporary.rename(target)
+            except FileExistsError:
+                _verified_overlay_tree(target, receipt)
+            else:
+                for path in target.rglob("*"):
+                    path.chmod(0o500 if path.is_dir() else 0o400)
+                target.chmod(0o500)
+        return VerifiedLibraryOverlay(
+            target,
+            receipt["tree_digest"],
+            expected_bundle,
+            expected_parent.image_id,
+            receipt["archive_sha256"],
+            receipt["file_count"],
+            receipt["total_file_bytes"],
+        )
+    finally:
+        if temporary.exists():
+            shutil.rmtree(temporary)
 
 
 def stage_pinned_bundle_material(directory: Path, cache_root: Path) -> LibraryBundleRef:

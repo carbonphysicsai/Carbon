@@ -1,6 +1,10 @@
 """The owner cache preserves a child image binding without granting runtime authority."""
 
 import json
+import hashlib
+import io
+import tarfile
+from types import SimpleNamespace
 
 import pytest
 
@@ -8,6 +12,7 @@ from carbon.development_session import library_environment_cache as cache
 from carbon.development_session.library_bundles import (
     LibraryBundleRef,
     ProvisionedLibraryEnvironment,
+    UV_IMAGE,
 )
 from carbon.development_session.research_image import LibraryWorkerImage
 from carbon.reconstruction.worker.model import WorkerImageIdentity
@@ -39,6 +44,115 @@ def _image(context):
         bundle, parent.image_id, context, _sha("3"), _sha("4")
     )
     return LibraryWorkerImage(environment, parent, bundle.to_dict())
+
+
+def test_verified_overlay_seals_exact_archive_and_rejects_changed_cache(tmp_path):
+    snapshot = tmp_path / "snapshot"
+    snapshot.mkdir()
+    root = tmp_path / "private-cache"
+    root.mkdir(mode=0o700)
+    root.chmod(0o700)
+    image = _image(tmp_path / "context")
+    content = b"VALUE = 1\n"
+    relative = "source/package.py"
+    row = [relative, len(content), "sha256:" + hashlib.sha256(content).hexdigest()]
+    with tarfile.open(
+        snapshot / "overlay.tar", mode="w", format=tarfile.USTAR_FORMAT
+    ) as archive:
+        member = tarfile.TarInfo(relative)
+        member.size = len(content)
+        member.mode = 0o444
+        archive.addfile(member, io.BytesIO(content))
+    body = (snapshot / "overlay.tar").read_bytes()
+    receipt = {
+        "schema": cache.OVERLAY_SCHEMA,
+        "bundle_ref": image.provisioned.bundle.to_dict(),
+        "parent_image_id": image.parent.image_id,
+        "archive_sha256": "sha256:" + hashlib.sha256(body).hexdigest(),
+        "archive_bytes": len(body),
+        "tree_digest": "sha256:"
+        + hashlib.sha256(json.dumps([row], separators=(",", ":")).encode()).hexdigest(),
+        "file_count": 1,
+        "total_file_bytes": len(content),
+    }
+    (snapshot / "overlay.json").write_text(json.dumps(receipt), encoding="utf-8")
+    args = dict(
+        expected_bundle=image.provisioned.bundle,
+        expected_parent=image.parent,
+        expected_receipt=receipt,
+    )
+    selected = cache.cache_verified_overlay(snapshot, root, **args)
+    assert selected.path.name == receipt["tree_digest"][7:]
+    assert (selected.path / relative).read_bytes() == content
+    assert cache.cache_verified_overlay(snapshot, root, **args) == selected
+    changed = selected.path / relative
+    changed.chmod(0o600)
+    changed.write_bytes(b"VALUE = 2\n")
+    with pytest.raises(ValueError, match="cached overlay content differs"):
+        cache.cache_verified_overlay(snapshot, root, **args)
+    with tarfile.open(
+        snapshot / "overlay.tar", mode="w", format=tarfile.USTAR_FORMAT
+    ) as archive:
+        link = tarfile.TarInfo("source/bad.py")
+        link.type = tarfile.SYMTYPE
+        link.linkname = "../../outside"
+        archive.addfile(link)
+    body = (snapshot / "overlay.tar").read_bytes()
+    receipt["archive_sha256"] = "sha256:" + hashlib.sha256(body).hexdigest()
+    receipt["archive_bytes"] = len(body)
+    (snapshot / "overlay.json").write_text(json.dumps(receipt), encoding="utf-8")
+    with pytest.raises(ValueError, match="overlay archive member differs"):
+        cache.cache_verified_overlay(
+            snapshot, root, **{**args, "expected_receipt": receipt}
+        )
+
+
+def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(tmp_path):
+    uv = b"synthetic-uv-binary"
+    container = "a" * 64
+    calls = []
+
+    class Docker:
+        def json(self, arguments):
+            assert arguments[:2] == ["image", "inspect"]
+            return {
+                "Id": "sha256:" + "b" * 64,
+                "RepoDigests": [
+                    UV_IMAGE.split("@", 1)[0].rsplit(":", 1)[0]
+                    + "@"
+                    + UV_IMAGE.split("@", 1)[1]
+                ],
+            }
+
+        def run(self, arguments):
+            calls.append(arguments)
+            if arguments[0] == "create":
+                return SimpleNamespace(stdout=(container + "\n").encode())
+            assert arguments == ["rm", "--force", container]
+            return SimpleNamespace(stdout=b"")
+
+        def stream_to_file(self, arguments, destination, **bounds):
+            assert arguments == ["cp", f"{container}:/uv", "-"]
+            assert bounds["maximum"] <= 65 * 1024**2
+            with tarfile.open(
+                destination, mode="w", format=tarfile.USTAR_FORMAT
+            ) as archive:
+                member = tarfile.TarInfo("uv")
+                member.size = len(uv)
+                archive.addfile(member, io.BytesIO(uv))
+
+    assert cache.pinned_uv_bytes(Docker()) == uv
+    assert calls == [
+        [
+            "create",
+            "--network",
+            "none",
+            "--entrypoint",
+            "/bin/true",
+            "sha256:" + "b" * 64,
+        ],
+        ["rm", "--force", container],
+    ]
 
 
 def test_cache_round_trip_requires_verification_and_trusted_bindings(
