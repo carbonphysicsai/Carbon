@@ -520,8 +520,8 @@ class OwnerProviders:
         restart keeps the first observation while checking the same registered
         identity is still present in the current finalized snapshot.
         """
-        from carbon.challenge_validator.interface import Unavailable
         from carbon.battery.challenge import CHALLENGE as BATTERY_CHALLENGE
+        from carbon.challenge_validator.interface import Unavailable
         from carbon.development_session.product_campaign import AUTHORITY
         from carbon.development_session.research_ledger import PRODUCT
 
@@ -763,13 +763,13 @@ def serve(
     implementation, parent, network, cache = installed_source(
         Path(cfg["runner_profile"]), **selected_parent
     )
-    from carbon.development_session.research_campaign import (
-        verify_current_worker,
-        verify_direct_v13_worker,
-    )
     from carbon.development_session.gpu_practice import (
         direct_bundle_accelerators,
         gpu_image_backend,
+    )
+    from carbon.development_session.research_campaign import (
+        verify_current_worker,
+        verify_direct_v13_worker,
     )
     from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
     from scripts.dev.miner_launchpad.runner import validated_profile

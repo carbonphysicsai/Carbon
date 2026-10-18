@@ -367,10 +367,10 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(
     tmp_path, monkeypatch, build_backend, infer_backend
 ):
     from carbon.development_session import library_bundles, library_environment_cache
-    from carbon.development_session.research_carrier import MINER_GPU
     from carbon.development_session.bundle_construction_worker import (
         BundleOverlayPrepResult,
     )
+    from carbon.development_session.research_carrier import MINER_GPU
     from carbon.reconstruction.accelerators import GPU_PROFILE
     from carbon.reconstruction.torch_profile import GPU_LOCK_DIGEST
 
