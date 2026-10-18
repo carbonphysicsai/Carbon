@@ -43,3 +43,15 @@ worker's three-file build and receipt; no scientific export tolerance is added.
 Native values remain evidence, not a declaration of native/export agreement.
 Product validates the composed source with the native and Battery decoder
 dependencies before claiming canonical success.
+
+Root's public measurement follow-up assigns the existing
+`synthetic_linear_field_reference.py` producer to this author. Its prospective
+factory names only the exact published synthetic 1.3 practice batch, source,
+TRAIN, interface, toy law and operator-supplied device identities. The one
+complete batch has mechanical unit weight; conformance is shape and finite
+outputs, with descriptive MAE and actual complete-query timing. It generates
+the existing source-registration envelope and feeds the existing reference
+producer and None-pack shared core. No accuracy threshold, rank, graded
+sidecar or scientific population claim is adopted. Platform owns the normal
+unranked consumer and Product owns actual execution. The author branch lacks
+the newer synthetic kit, so runtime checks require Lead's composed tree.

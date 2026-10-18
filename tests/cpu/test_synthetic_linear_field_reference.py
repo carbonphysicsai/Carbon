@@ -4,6 +4,7 @@ import hashlib
 import io
 import json
 import zipfile
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -182,3 +183,106 @@ def test_unmeasured_elapsed_refuses_without_receipt(monkeypatch):
             query_bytes=query,
             evaluation_version="fixture-only-v1",
         )
+
+
+def test_public_measurement_registration_binds_actual_kit_query_and_source():
+    _, _, query, material = _registered_public_query()
+    args = {
+        "query_bytes": query,
+        "model_device": "synthetic-test-model-cpu",
+        "reference_device": "synthetic-test-reference-cpu",
+    }
+    envelope = source.public_measurement_registration(**args)
+    assert envelope == source.public_measurement_registration(**args)
+    assert set(envelope) == {
+        "schema",
+        "evaluation_version",
+        "trusted_job",
+        "benchmark_registration",
+    }
+    assert envelope["schema"] == "carbon.challenge-evaluation-source-registration.v1"
+    job = envelope["trusted_job"]
+    kit = material["construction_kit"]
+    assert job["challenge"] == kit["id"]
+    assert job["challenge_version"] == kit["version"] == "1.3"
+    assert job["train_digest"] == kit["train_digest"]
+    assert job["interface_digest"] == kit["interface_digest"]
+    registration = envelope["benchmark_registration"]
+    assert registration["output"] == {
+        "quantity": "target",
+        "unit": "dimensionless",
+        "metric": "mean_absolute_error",
+        "size": 128,
+        "shape": [2, 8, 8, 1],
+    }
+    assert registration["cases"] == [
+        {"id": "public-practice-batch", "role": "P", "weight": 1.0}
+    ]
+    assert registration["mandatory_gates"] == list(source.PUBLIC_MEASUREMENT_GATES)
+    assert registration["reference"]["solver_digest"] == source._sha(
+        Path(fixture.__file__).read_bytes()
+    )
+    assert "accuracy_ceiling" not in registration
+    assert "score_pack" not in envelope
+    changed_device = source.public_measurement_registration(
+        **{**args, "model_device": "synthetic-test-other-model-cpu"}
+    )
+    assert changed_device["trusted_job"] == job
+    assert changed_device["benchmark_registration"] != registration
+
+
+@pytest.mark.parametrize("device", [None, "", "  ", 1])
+def test_public_measurement_requires_operator_device_descriptions(device):
+    _, _, query, _ = _registered_public_query()
+    with pytest.raises(source.SyntheticReferenceRefused, match="device_descriptions"):
+        source.public_measurement_registration(
+            query_bytes=query, model_device=device, reference_device="test-cpu"
+        )
+    with pytest.raises(source.SyntheticReferenceRefused, match="device_descriptions"):
+        source.public_measurement_registration(
+            query_bytes=query, model_device="test-cpu", reference_device=device
+        )
+
+
+def test_public_measurement_rejects_different_query_before_reference(monkeypatch):
+    _, _, _, material = _registered_public_query()
+    changed = material["practice_inputs"].copy()
+    changed[0, 0, 0, 0] += np.float32(0.125)
+    stream = io.BytesIO()
+    np.savez(stream, inputs=changed)
+    monkeypatch.setattr(
+        source.time, "perf_counter_ns", lambda: pytest.fail("reference must not run")
+    )
+    with pytest.raises(source.SyntheticReferenceRefused, match="public_query_mismatch"):
+        source.prepare_public_measurement(
+            query_bytes=stream.getvalue(),
+            model_device="test-cpu",
+            reference_device="test-cpu",
+        )
+
+
+def test_public_factory_preserves_actual_elapsed_and_explicit_unranked_state(
+    monkeypatch,
+):
+    _, _, query, _ = _registered_public_query()
+    ticks = iter((1_000_000_000, 1_500_000_000))
+    monkeypatch.setattr(source.time, "perf_counter_ns", lambda: next(ticks))
+    prepared = source.prepare_public_measurement(
+        query_bytes=query, model_device="test-cpu", reference_device="test-cpu"
+    )
+    assert prepared["reference_row"]["elapsed_s"] == 0.5
+    assert prepared["reference_row"]["source"] == "MEASURED_ENGINEERING_REFERENCE_RUN"
+    assert prepared["query_bytes"] == query
+    envelope = prepared["source_registration"]
+    assert json.loads(prepared["source_registration_raw"]) == envelope
+    receipt = json.loads(prepared["source_receipt_raw"])
+    assert receipt["job_digest"] == envelope["trusted_job"]["job_digest"]
+    assert (
+        receipt["registration_digest"]
+        == envelope["benchmark_registration"]["registration_digest"]
+    )
+    assert receipt["cases"][0]["query_sha256"] == source._sha(query)
+    assert prepared["measurement_state"] == "DEVELOPMENT_UNRANKED"
+    assert prepared["accuracy_ceiling"] is None
+    assert prepared["ranking"] is None
+    assert prepared["score_or_qualification"] is False

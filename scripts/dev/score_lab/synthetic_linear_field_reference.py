@@ -1,9 +1,11 @@
 """Measured public toy reference source for a separately registered v1.3 job.
 
-This DEVELOPMENT adapter chooses no population, gate, threshold, reference
-applicability, Score Pack, or custody pin. The caller supplies a trusted job and
-registration; an operator must independently register the returned source
-receipt hash before it can be used as evaluation evidence.
+The registered-job adapter preserves its existing caller-supplied contract.
+The public measurement factory additionally names the exact published v1.3
+practice batch for descriptive shape/finite conformance, MAE and timing only.
+It supplies no accuracy threshold, ranking, qualified physics or hidden exam.
+An operator retains the returned exact source bytes; hashes do not substitute
+for an actual reference or inference run.
 """
 
 from __future__ import annotations
@@ -15,6 +17,7 @@ import json
 import math
 import time
 import zipfile
+from pathlib import Path
 
 import numpy as np
 
@@ -25,6 +28,142 @@ from carbon.scoring.private_evaluation_evidence import SOURCE_SCHEMA
 
 class SyntheticReferenceRefused(ValueError):
     """The supplied registration, query, or measured toy reference is unusable."""
+
+
+PUBLIC_MEASUREMENT_VERSION = "synthetic-linear-field-2d-1.3-public-measurement-v1"
+PUBLIC_MEASUREMENT_GATES = ("public_output_shape", "public_output_finite")
+
+
+def public_measurement_registration(
+    *, query_bytes: bytes, model_device: str, reference_device: str
+) -> dict:
+    """Name the existing public batch without adopting an accuracy ceiling.
+
+    This is one complete, already published practice query with unit weight,
+    not a new population draw. Device descriptions must come from the actual
+    operator. The exact input archive is supplied so retained inference bytes
+    can be reused without relabelling a different query or a historical task.
+    """
+    if any(
+        type(value) is not str or not value.strip()
+        for value in (model_device, reference_device)
+    ):
+        raise SyntheticReferenceRefused("actual_device_descriptions_required")
+    material = fixture.bundle_material_v5()
+    kit = material["construction_kit"]
+    if (kit["id"], kit["version"]) != ("synthetic-linear-field-2d", "1.3"):
+        raise SyntheticReferenceRefused("public_measurement_challenge")
+    if type(query_bytes) is not bytes or not 0 < len(query_bytes) <= 1024 * 1024:
+        raise SyntheticReferenceRefused("query_bytes")
+    inputs = material["practice_inputs"]
+    output = {
+        "quantity": material["interface_document"]["outputs"]["name"],
+        "unit": "dimensionless",
+        "size": int(inputs.size),
+        "metric": "mean_absolute_error",
+        "shape": list(inputs.shape),
+    }
+    reference = {
+        "solver_digest": _sha(Path(fixture.__file__).read_bytes()),
+        "fidelity_digest": _sha(_canonical(material["physics_contract"])),
+        "applicability_digest": _sha(
+            _canonical(
+                {
+                    "scope": "EXACT_PUBLIC_PRACTICE_BATCH_ONLY",
+                    "interface_digest": kit["interface_digest"],
+                    "query_sha256": _sha(query_bytes),
+                    "input_shape": list(inputs.shape),
+                    "input_dtype": str(inputs.dtype),
+                }
+            )
+        ),
+        "evidence_kind": benchmark.ENGINEERING_REFERENCE,
+    }
+    definition = {
+        "schema": "carbon.synthetic-linear-field-2d.public-measurement.v1",
+        "scope": "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY",
+        "challenge": kit["id"],
+        "challenge_version": kit["version"],
+        "interface_digest": kit["interface_digest"],
+        "train_digest": kit["train_digest"],
+        "physics_contract": material["physics_contract"],
+        "query_sha256": _sha(query_bytes),
+        "reference": reference,
+        "output": output,
+        "conformance_checks": list(PUBLIC_MEASUREMENT_GATES),
+        "accuracy_ceiling": None,
+        "ranking": None,
+    }
+    trusted_job = {
+        key: definition[key]
+        for key in (
+            "challenge",
+            "challenge_version",
+            "interface_digest",
+            "train_digest",
+            "physics_contract",
+        )
+    }
+    trusted_job["job_digest"] = _sha(_canonical(definition))
+    registration = benchmark.register(
+        {
+            "schema": benchmark.SCHEMA_V3,
+            "scope": "SYNTHETIC_DEVELOPMENT",
+            "challenge": kit["id"],
+            "job_digest": trusted_job["job_digest"],
+            "train_digest": kit["train_digest"],
+            "physics_contract": material["physics_contract"],
+            "output": output,
+            "reference": reference,
+            "cases": [{"id": "public-practice-batch", "role": "P", "weight": 1.0}],
+            "mandatory_gates": list(PUBLIC_MEASUREMENT_GATES),
+            "timing_profile": {
+                "basis": "ready_input_to_comparable_output",
+                "model_device": model_device,
+                "solver_device": reference_device,
+                "batch_size": len(inputs),
+                "query_unit": "complete_batch",
+                "input_shape": list(inputs.shape),
+            },
+        }
+    )
+    _checked_query(query_bytes, material, registration)
+    return {
+        "schema": "carbon.challenge-evaluation-source-registration.v1",
+        "evaluation_version": PUBLIC_MEASUREMENT_VERSION,
+        "trusted_job": trusted_job,
+        "benchmark_registration": registration,
+    }
+
+
+def prepare_public_measurement(
+    *, query_bytes: bytes, model_device: str, reference_device: str
+) -> dict:
+    """Measure the real public reference and expose exact bytes to retain.
+
+    The normal caller uses this registration with benchmark_saved_entry's
+    score_pack=None path. No scored private sidecar, pool key or qualification
+    is created, and missing model measurements are not manufactured here.
+    """
+    registration = public_measurement_registration(
+        query_bytes=query_bytes,
+        model_device=model_device,
+        reference_device=reference_device,
+    )
+    prepared = prepare_reference(
+        trusted_job=registration["trusted_job"],
+        registration=registration["benchmark_registration"],
+        query_bytes=query_bytes,
+        evaluation_version=registration["evaluation_version"],
+    )
+    return {
+        **prepared,
+        "source_registration": registration,
+        "source_registration_raw": _canonical(registration),
+        "measurement_state": "DEVELOPMENT_UNRANKED",
+        "accuracy_ceiling": None,
+        "ranking": None,
+    }
 
 
 def _canonical(value) -> bytes:
