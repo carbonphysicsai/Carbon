@@ -39,6 +39,11 @@ MAX_WHEEL_DIRECTORY_BYTES = MAX_MEMBERS * 1024
 MAX_LOCK_BYTES = 512 * 1024
 MAX_LICENSE_BYTES = 256 * 1024
 UV_IMAGE = "ghcr.io/astral-sh/uv:0.12.7@sha256:95f2aa1fe59274951cfe9b0cbc7972e879ff1004bc8945d130a32eb0dbd85945"
+_RUNTIME_ACCELERATORS = {
+    "jax-cuda13-py311": "cuda13",
+    "torch-cu130-py311": "cuda13",
+    "python-cpu-py311": "cpu",
+}
 
 # These are asset roles, not model-family permissions. Challenge TRAIN is
 # staged separately; reconstruction creates fresh state after source install.
@@ -568,14 +573,15 @@ def validate_bundle(manifest, source, wheels, lock, license_text):
         raise ValueError("closed library bundle manifest required")
     if manifest["schema"] != BUNDLE_SCHEMA or not NAME.fullmatch(manifest["name"]):
         raise ValueError("bundle schema or name invalid")
-    if manifest["runtime_profile_id"] not in {"jax-cuda13-py311", "torch-cu130-py311"}:
+    profile = manifest["runtime_profile_id"]
+    if type(profile) is not str or profile not in _RUNTIME_ACCELERATORS:
         raise ValueError("registered isolated profile required")
     if (
         manifest["language"] != "python"
         or manifest["os"] != "linux"
         or manifest["architecture"] != "amd64"
         or manifest["python_abi"] != "cp311"
-        or manifest["accelerator"] != "cuda13"
+        or manifest["accelerator"] != _RUNTIME_ACCELERATORS[profile]
         or type(manifest["source_bytes"]) is not int
         or manifest["source_bytes"] != len(source)
         or manifest["environment_digest"]
@@ -792,6 +798,12 @@ def prepare_offline_context(
     No source or wheel is installed on the controller by this function.
     """
     bundle_digest = validate_bundle(manifest, source, wheels, lock, license_text)
+    if manifest["runtime_profile_id"] == "python-cpu-py311":
+        repository = Path(__file__).resolve().parents[2]
+        if manifest["base_environment_digest"] != _digest(
+            (repository / "uv.lock").read_bytes()
+        ):
+            raise ValueError("CPU base environment lock differs")
     if type(parent_image) is not str or not SHA256.fullmatch(parent_image):
         raise ValueError("exact verified parent image required")
     base = _private_cache_directory(
@@ -904,6 +916,25 @@ site = pathlib.Path(sysconfig.get_paths()['purelib'])
 import_root = target / next(iter(roots)) if len(roots) == 1 else target
 (site / 'carbon-library-source.pth').write_text(str(import_root) + '\\n')
 """
+    if manifest["runtime_profile_id"] == "python-cpu-py311":
+        repository = Path(__file__).resolve().parents[2]
+        recipe_digest = _digest(
+            (repository / ".devcontainer/Dockerfile.reconstruction-worker").read_bytes()
+        )
+        entrypoint_digest = _digest(
+            (repository / "carbon/reconstruction/worker/entrypoint.py").read_bytes()
+        )
+        cuda_check = """base_lock = {'jax-cuda13-py311': '/opt/carbon/accelerator-requirements.txt', 'torch-cu130-py311': '/opt/carbon/torch-gpu-requirements.txt'}[manifest['runtime_profile_id']]
+if digest(pathlib.Path(base_lock).read_bytes()) != manifest['base_environment_digest']:
+    raise SystemExit('base environment digest differs')
+"""
+        cpu_check = f"""build = json.loads(pathlib.Path('/opt/carbon/worker-image-build.json').read_bytes())
+if build.get('schema') != 'carbon.c03.worker-image-build.v1' or build.get('lock_digest') != manifest['base_environment_digest'] or build.get('build_recipe_digest') != '{recipe_digest}' or build.get('entrypoint_digest') != '{entrypoint_digest}':
+    raise SystemExit('base environment digest differs')
+"""
+        if install.count(cuda_check) != 1:
+            raise ValueError("library installer base-lock check differs")
+        install = install.replace(cuda_check, cpu_check)
     once(root / "Dockerfile", dockerfile.encode())
     once(root / "install-source.py", install.encode())
     return root, bundle_digest, _context_digest(root)
