@@ -50,10 +50,15 @@ def training_settings(recipe: ConstructionRecipe, train_cases: int) -> dict:
     use = procedure["train_use"]
     if (
         type(use) is not dict
-        or set(use) != {"dataset", "coverage"}
-        or use["dataset"] != TRAIN_USE
-        or use["coverage"] != "all"
+        or use.get("dataset") != TRAIN_USE
+        or set(use)
+        not in (
+            {"dataset", "coverage"},
+            {"dataset", "row_indices_by_step"},
+        )
     ):
+        raise RecipeRefused("synthetic_graph_train_use_unavailable")
+    if "coverage" in use and use["coverage"] != "all":
         raise RecipeRefused("synthetic_graph_train_use_unavailable")
     configuration = procedure["configuration"]
     if type(configuration) is not dict or set(configuration) != {"training"}:
@@ -70,10 +75,28 @@ def training_settings(recipe: ConstructionRecipe, train_cases: int) -> dict:
         or not 0 < training["learning_rate"] <= 10
     ):
         raise RecipeRefused("synthetic_graph_training_adapter_unavailable")
+    schedule = use.get("row_indices_by_step")
+    if "row_indices_by_step" in use:
+        if (
+            type(schedule) is not list
+            or len(schedule) != training["steps"]
+            or any(
+                type(rows) is not list
+                or not 1 <= len(rows) <= train_cases
+                or any(
+                    type(index) is not int or not 0 <= index < train_cases
+                    for index in rows
+                )
+                for rows in schedule
+            )
+        ):
+            raise RecipeRefused("synthetic_graph_train_use_invalid")
+        schedule = tuple(tuple(rows) for rows in schedule)
     return {
         "optimizer": training["optimizer"],
         "steps": training["steps"],
         "learning_rate": float(training["learning_rate"]),
+        "row_indices_by_step": schedule,
     }
 
 
@@ -148,16 +171,22 @@ class SyntheticGraphModel:
 
             transform = optax.adam(learning_rate)
             optimizer_state = transform.init(params)
+
+        def loss_fn(values, sample_x, sample_y):
+            predicted = self.prepared.predict(values, sample_x)[0]
+            if self.prepared.loss is not None:
+                return self.prepared.loss(predicted, sample_y, sample_x)
+            return jnp.mean((predicted - sample_y) ** 2)
+
         last_loss = None
-        for _step in range(self.settings["steps"]):
-
-            def loss_fn(values):
-                predicted = self.prepared.predict(values, x)[0]
-                if self.prepared.loss is not None:
-                    return self.prepared.loss(predicted, y, x)
-                return jnp.mean((predicted - y) ** 2)
-
-            last_loss, gradients = jax.value_and_grad(loss_fn)(params)
+        schedule = self.settings["row_indices_by_step"]
+        for step in range(self.settings["steps"]):
+            if schedule is None:
+                step_x, step_y = x, y
+            else:
+                indices = jnp.asarray(schedule[step], dtype=jnp.int32)
+                step_x, step_y = x[indices], y[indices]
+            last_loss, gradients = jax.value_and_grad(loss_fn)(params, step_x, step_y)
             if optimizer == "adam":
                 updates, optimizer_state = transform.update(
                     gradients, optimizer_state, params
@@ -175,6 +204,8 @@ class SyntheticGraphModel:
             ):
                 raise RecipeRefused("synthetic_graph_nonfinite_state")
         self.params = [np.asarray(value) for value in params]
+        if schedule is not None:
+            last_loss = loss_fn(params, x, y)
         return {
             "steps": self.settings["steps"],
             "train_cases": n,

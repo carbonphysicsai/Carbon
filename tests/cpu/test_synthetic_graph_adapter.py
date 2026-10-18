@@ -385,6 +385,71 @@ def test_graph_adapter_reports_procedure_gap_without_backbone_name_gate():
         )
 
 
+@pytest.mark.skipif(os.name == "nt", reason="G3 parser needs POSIX rlimits")
+def test_graph_train_schedule_uses_fixed_rows_in_declared_update_order():
+    material, allowed, recipe, raw_manifest, files = _graph_case()
+    first_half = list(range(4))
+    all_rows = list(range(8))
+    inputs = np.ones((8, 8, 8, 1), dtype=np.float32)
+    targets = np.zeros_like(inputs)
+    targets[4:] = 2.0
+
+    def fit(schedule):
+        changed = recipe.to_dict()
+        changed["procedure"]["configuration"]["training"] = {
+            "optimizer": "sgd",
+            "steps": 2,
+            "learning_rate": 0.25,
+        }
+        changed["procedure"]["train_use"] = {
+            "dataset": synthetic_graph_adapter.TRAIN_USE,
+            "row_indices_by_step": schedule,
+        }
+        selected = ConstructionRecipe.from_dict(changed)
+        model = synthetic_graph_adapter.build_validated_graph(
+            selected,
+            raw_manifest,
+            files,
+            allowlist_bytes=material["allowlist_bytes"],
+            train_cases=len(inputs),
+        )
+        receipt = model.fit(inputs, targets, seed=7)
+        state = model.frozen_state()
+        _forward, parameters = bundle_graph_state.load(state, selected, allowed)
+        return float(parameters[0][0]), receipt, model.predict(inputs[:1])
+
+    scheduled, receipt, prediction = fit([first_half, all_rows])
+    all_only, _, _ = fit([all_rows, all_rows])
+    reversed_steps, _, _ = fit([all_rows, first_half])
+    assert np.isclose(scheduled, 0.5)
+    assert np.isclose(all_only, 0.75)
+    assert np.isclose(reversed_steps, 0.25)
+    assert np.allclose(prediction, scheduled)
+    assert np.isclose(receipt["full_train_loss"], 1.25)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="G3 parser needs POSIX rlimits")
+def test_graph_train_schedule_refuses_invalid_or_over_budget_fixed_row_use():
+    _material, _allowed, recipe, _raw_manifest, _files = _graph_case()
+    changed = recipe.to_dict()
+    changed["procedure"]["configuration"]["training"]["steps"] = 2
+    for schedule in (
+        [[0]],  # One declared update has no row selection.
+        [[], [0]],
+        [[0], [8]],
+        [[0], [True]],
+        [[0], list(range(9))],  # More work than the existing all-row update.
+    ):
+        changed["procedure"]["train_use"] = {
+            "dataset": synthetic_graph_adapter.TRAIN_USE,
+            "row_indices_by_step": schedule,
+        }
+        with pytest.raises(RecipeRefused, match="train_use_invalid"):
+            synthetic_graph_adapter.training_settings(
+                ConstructionRecipe.from_dict(changed), 8
+            )
+
+
 def _build_program_files(material, allowed, recipe, raw_manifest, graph_files):
     source_raw = canonical(staging.envelope(raw_manifest, graph_files))
     named = recipe.to_dict()["challenge"]
