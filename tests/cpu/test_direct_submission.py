@@ -951,3 +951,61 @@ def test_remote_observation_cannot_submit_if_admission_disappears_after_prefligh
             observe_only=True,
             wait_s=10,
         )
+
+
+@pytest.mark.parametrize("replacement", [{"submission_id": "task-swapped"}, {}])
+def test_pending_observation_keeps_validated_id_after_journal_replacement(
+    tmp_path, monkeypatch, replacement
+):
+    record = client._record_path(tmp_path, 1)
+    record.write_text(
+        json.dumps(
+            {
+                **client._binding(_URL, _recipe(), _CONTRACT, _RECEIVER, _CONTEXT, 1),
+                "submission_id": "task-1",
+                "pinned": _PINNED,
+            }
+        ),
+        encoding="utf-8",
+    )
+    now = [0.0]
+    calls = []
+
+    class Signer:
+        def __init__(self, _signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            assert receiver == _RECEIVER
+            calls.append(json.loads(body))
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def send(_url, body, _headers):
+        request = json.loads(body)
+        assert request["tool"] == client.STATUS_TOOL
+        assert request["fields"] == {"submission_id": "task-1"}
+        record.write_text(json.dumps(replacement), encoding="utf-8")
+        now[0] = 10.0
+        return 200, _answer("ADMITTED")
+
+    with pytest.raises(client.DirectConstructionPending) as queued:
+        client.submit_and_wait(
+            _URL,
+            "external-signer",
+            root=tmp_path,
+            epoch=1,
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            read=lambda _url: _facts(),
+            send=send,
+            clock=lambda: now[0],
+            observe_only=True,
+            wait_s=10,
+        )
+    assert queued.value.code == "construction_task_queued"
+    assert queued.value.task_id == "task-1"
+    assert [call["tool"] for call in calls] == [client.STATUS_TOOL]

@@ -296,8 +296,8 @@ class DirectToolDoor:
             RecipeRefused,
         )
         from carbon.development_session.direct_submission import (
+            DirectConstructionPending,
             DirectIntakeRefusal,
-            _record_path,
             submit_and_wait,
         )
         from carbon.reconstruction.served_recipe_contract import registered
@@ -340,22 +340,14 @@ class DirectToolDoor:
                 "score_status": "SCORE_UNAVAILABLE",
                 "official_eligible": False,
             }
+        except DirectConstructionPending as pending:
+            return {
+                "ok": True,
+                "result": {"state": "ADMITTED", "task_id": pending.task_id},
+                "score_status": "SCORE_UNAVAILABLE",
+                "official_eligible": False,
+            }
         except DirectIntakeRefusal as refused:
-            if refused.code == "construction_task_queued":
-                record = _record_path(root, epoch)
-                if record.exists():
-                    import json
-
-                    saved = json.loads(record.read_bytes())
-                    return {
-                        "ok": True,
-                        "result": {
-                            "state": "ADMITTED",
-                            "task_id": saved["submission_id"],
-                        },
-                        "score_status": "SCORE_UNAVAILABLE",
-                        "official_eligible": False,
-                    }
             return {"ok": False, "error": refused.code}
         except RecipeRefused as refused:
             return {"ok": False, "error": refused.code}
