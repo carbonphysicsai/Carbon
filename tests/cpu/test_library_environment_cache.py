@@ -172,28 +172,37 @@ def test_verified_overlay_seals_exact_archive_and_rejects_changed_cache(
     assert not (tmp_path / "outside").exists()
 
 
-def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(tmp_path):
+@pytest.mark.parametrize(
+    "repository_digest",
+    [
+        UV_IMAGE,
+        "ghcr.io/astral-sh/uv@sha256:95f2aa1fe59274951cfe9b0cbc7972e879ff1004bc8945d130a32eb0dbd85945",
+    ],
+    ids=["actual-tag-qualified-digest", "repository-digest"],
+)
+def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(
+    tmp_path, repository_digest
+):
     uv = b"synthetic-uv-binary"
     container = "a" * 64
     calls = []
     timeouts = []
 
     class Docker:
-        def __init__(self, *, malformed=False, slow_copy=False):
+        def __init__(
+            self, *, malformed=False, slow_copy=False, repo_digest=repository_digest
+        ):
             self.create = None
             self.malformed = malformed
             self.slow_copy = slow_copy
+            self.repo_digest = repo_digest
 
         def json(self, arguments, *, timeout=30):
             timeouts.append((arguments[0], timeout))
             if arguments[:2] == ["image", "inspect"]:
                 return {
                     "Id": "sha256:" + "b" * 64,
-                    "RepoDigests": [
-                        UV_IMAGE.split("@", 1)[0].rsplit(":", 1)[0]
-                        + "@"
-                        + UV_IMAGE.split("@", 1)[1]
-                    ],
+                    "RepoDigests": [self.repo_digest],
                 }
             assert arguments == [
                 "container",
@@ -275,6 +284,18 @@ def test_pinned_uv_copy_uses_local_digest_and_never_starts_container(tmp_path):
     with pytest.raises(TimeoutError, match="pinned uv copy deadline exceeded"):
         cache.pinned_uv_bytes(Docker(slow_copy=True), deadline=time.monotonic() + 0.02)
     assert calls[-1] == ["rm", "--force", container]
+
+    before = len(calls)
+    for refused in (
+        "ghcr.io/astral-sh/uv:0.12.7@sha256:" + "0" * 64,
+        "ghcr.io/astral-sh/uv@sha256:" + "0" * 64,
+        "ghcr.io/astral-sh/uv:0.12.7",
+        UV_IMAGE.replace(":0.12.7@", ":different-tag@"),
+        UV_IMAGE.replace("astral-sh/uv", "another-owner/uv"),
+    ):
+        with pytest.raises(ValueError, match="pinned local uv image differs"):
+            cache.pinned_uv_bytes(Docker(repo_digest=refused))
+    assert len(calls) == before  # No create, copy or cleanup for an unpinned image.
 
 
 def test_cache_round_trip_requires_verification_and_trusted_bindings(
