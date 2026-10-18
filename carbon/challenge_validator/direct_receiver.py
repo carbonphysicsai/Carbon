@@ -108,15 +108,112 @@ def installed_source(profile_path: Path):
 class OwnerProviders:
     """One maintained task supervisor and ledger per authenticated hotkey."""
 
-    def __init__(self, root, discovery, parent, cache_root):
+    def __init__(
+        self,
+        root,
+        discovery,
+        parent,
+        cache_root,
+        *,
+        implementation=None,
+        snapshot=None,
+        receiver=None,
+    ):
         self.root, self.discovery = root, discovery
         self.parent, self.cache_root = parent, cache_root
+        self.implementation, self.snapshot, self.receiver = (
+            implementation,
+            snapshot,
+            receiver,
+        )
         self._lock = threading.RLock()
         self._providers = {}
+        self._controls = {}
         self._closing = False
+
+    def _manifest(self, hotkey, ledger):
+        """Freeze the signed owner's one DEVELOPMENT receiver campaign.
+
+        Registration is observed, not asserted by an operator or a recipe. A
+        restart keeps the first observation while checking the same registered
+        identity is still present in the current finalized snapshot.
+        """
+        from carbon.development_session.chain_onboarding import (
+            PublicAddress,
+            RegisteredMiner,
+        )
+        from carbon.development_session.product_campaign import AUTHORITY
+        from carbon.development_session.research_ledger import PRODUCT
+
+        if (
+            self.implementation is None
+            or self.snapshot is None
+            or self.receiver is None
+        ):
+            raise ValueError("direct receiver authority binding required")
+        admission = RegisteredMiner(self.snapshot, PublicAddress(hotkey)).record()
+        challenge = self.discovery.info.challenge_key
+        binding = {
+            "schema": "carbon.construction.direct-receiver-run.v1",
+            "implementation": self.implementation,
+            "parent_image": self.parent.image_id,
+            "receiver": self.receiver,
+            "challenge": {"id": challenge.challenge_id, "version": challenge.version},
+            "owner": hotkey,
+        }
+        candidate = {
+            "schema": PRODUCT,
+            "authority": AUTHORITY,
+            "scope": "DEVELOPMENT_PUBLIC_SYNTHETIC_ONLY",
+            "campaign_id": "direct-" + hashlib.sha256(canonical(binding)).hexdigest(),
+            "principal": hotkey,
+            "owner": hotkey,
+            "implementation": self.implementation,
+            "runtime": {
+                "implementation": self.implementation,
+                "images": [self.parent.image_id],
+            },
+            "admission": admission,
+            "agent": "none",
+            "challenge": binding["challenge"],
+            "receiver_binding": binding,
+            "objective": "synthetic direct construction and public practice inference",
+            "sampling": "Challenge-owned frozen TRAIN and public practice inputs",
+            "control": "authenticated owner direct task supervisor",
+            "selection": "owner-submitted ConstructionRecipe",
+            "replica_policy": "one independent construction per task",
+            "provider": "no model provider selected by receiver",
+        }
+        with ledger.db() as db:
+            row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+        if row is not None:
+            frozen = json.loads(row[0])
+            observed = frozen.get("admission", {})
+            if (
+                set(frozen) != set(candidate)
+                or any(
+                    frozen.get(field) != candidate[field]
+                    for field in candidate.keys() - {"admission"}
+                )
+                or any(
+                    observed.get(field) != admission[field]
+                    for field in (
+                        "admission",
+                        "network",
+                        "netuid",
+                        "hotkey",
+                        "uid",
+                        "registered_at_block",
+                    )
+                )
+            ):
+                raise ValueError("retained direct owner campaign binding changed")
+            candidate = frozen
+        ledger.freeze(candidate)
 
     def __call__(self, hotkey):
         from carbon.challenge_validator.interface import Unavailable
+        from carbon.development_session.research_control import CampaignControl
         from carbon.development_session.research_ledger import CampaignLedger
         from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
         from carbon.miner_mcp.standard_cli import DirectOwnerImageResolver
@@ -130,12 +227,14 @@ class OwnerProviders:
                 directory = _private_directory(
                     self.root / hashlib.sha256(hotkey.encode()).hexdigest()
                 )
+                ledger = CampaignLedger(directory / "ledger")
+                self._manifest(hotkey, ledger)
                 write_once(directory / "owner.json", canonical({"hotkey": hotkey}))
-                self._providers[hotkey] = DirectDevelopmentTasksV3(
+                provider = DirectDevelopmentTasksV3(
                     root=directory / "tasks",
                     requester=hotkey,
                     owner=hotkey,
-                    ledger=CampaignLedger(directory / "ledger"),
+                    ledger=ledger,
                     discovery=self.discovery,
                     image=None,
                     inference_image=self.parent,
@@ -143,6 +242,14 @@ class OwnerProviders:
                         self.cache_root, self.parent
                     ),
                 )
+                try:
+                    control = CampaignControl(ledger)
+                    ledger.generation = control.acquire()
+                except BaseException:
+                    provider.close()
+                    raise
+                self._providers[hotkey] = provider
+                self._controls[hotkey] = control
             return self._providers[hotkey]
 
     def restore(self):
@@ -188,7 +295,13 @@ class OwnerProviders:
             for view in tuple(provider._views.values())
         ):
             raise ReceiverUnavailable("direct_receiver_cleanup_unresolved")
-        for provider in providers:
+        for hotkey, provider in tuple(self._providers.items()):
+            if hotkey in self._controls:
+                state = self._controls[hotkey].settled(
+                    provider.ledger.generation, cleanup_verified=True, ready=True
+                )
+                if state == "RECONCILIATION_REQUIRED":
+                    raise ReceiverUnavailable("direct_receiver_cleanup_unresolved")
             provider.close()
 
 
@@ -242,7 +355,13 @@ def serve(config_path: Path, *, stop=None, reader=None, verifier=None, ready=Non
     with owner_lock(root):
         write_once(root / "receiver-binding.json", canonical(immutable))
         providers = OwnerProviders(
-            _private_directory(root / "owners"), discovery, parent, cache
+            _private_directory(root / "owners"),
+            discovery,
+            parent,
+            cache,
+            implementation=implementation,
+            snapshot=snapshot,
+            receiver=cfg["receiver_hotkey"],
         )
         timer = threading.Timer(cfg["lifetime_seconds"], stop.set)
         timer.daemon = True

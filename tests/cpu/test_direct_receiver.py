@@ -8,6 +8,7 @@ import json
 import os
 import socket
 import sqlite3
+import sys
 import threading
 import time
 import urllib.request
@@ -105,6 +106,14 @@ def test_shutdown_refuses_to_release_unreconciled_provider_lock(tmp_path):
 def test_owner_provider_restart_shares_exact_ledger_and_refuses_work_during_stop(
     tmp_path,
 ):
+    from test_c08_authenticated_miner_mcp import CONTEXT, _snapshot
+
+    from carbon.chain.models import (
+        CARBON_NETUID,
+        CARBON_NETWORK,
+        ChainContext,
+        Participant,
+    )
     from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
     from carbon.challenge_validator.interface import Unavailable
     from carbon.development_session.research_service import DirectFixtureDiscovery
@@ -112,8 +121,27 @@ def test_owner_provider_restart_shares_exact_ledger_and_refuses_work_during_stop
 
     discovery = DirectFixtureDiscovery(bundle_material_v5(), task_admission=True)
     parent = WorkerImageIdentity(*("sha256:" + "4" * 64 for _ in range(8)))
+    context = ChainContext(
+        CARBON_NETWORK,
+        CONTEXT.endpoint,
+        CONTEXT.provider,
+        CONTEXT.genesis_hash,
+        CARBON_NETUID,
+    )
+    snapshot = _snapshot(sender=OWNER, receiver=RECEIVER, context=context)
+    snapshot = replace(
+        snapshot,
+        participants=snapshot.participants + (Participant(2, OTHER, "cold2", 2),),
+    )
+    authority = {
+        "implementation": {"revision": "a" * 40},
+        "snapshot": snapshot,
+        "receiver": RECEIVER,
+    }
     root = receiver._private_directory(tmp_path / "owners")
-    pool = receiver.OwnerProviders(root, discovery, parent, tmp_path / "cache")
+    pool = receiver.OwnerProviders(
+        root, discovery, parent, tmp_path / "cache", **authority
+    )
     one, two = pool(OWNER), pool(OTHER)
     assert pool(OWNER) is one
     assert one.discovery is two.discovery is discovery
@@ -124,12 +152,149 @@ def test_owner_provider_restart_shares_exact_ledger_and_refuses_work_during_stop
     with pytest.raises(Unavailable, match="direct_receiver_stopping"):
         pool(OWNER)
     pool.close()
-    restarted = receiver.OwnerProviders(root, discovery, parent, tmp_path / "cache")
+    restarted = receiver.OwnerProviders(
+        root, discovery, parent, tmp_path / "cache", **authority
+    )
     restarted.restore()
     assert restarted(OWNER).ledger.root == first_root
     assert len(restarted._providers) == 2
     restarted.cancel()
     restarted.close()
+
+
+def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
+    tmp_path, monkeypatch
+):
+    from test_c08_authenticated_miner_mcp import CONTEXT, _snapshot
+
+    from carbon.chain.models import (
+        CARBON_NETUID,
+        CARBON_NETWORK,
+        ChainContext,
+        Participant,
+    )
+    from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
+    from carbon.development_session import research_carrier
+    from carbon.development_session.research_service import DirectFixtureDiscovery
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    if os.name == "nt":
+        # Windows lacks flock; the ledger transaction and controlled reservation
+        # remain real. POSIX runs use the actual supervisor lock and mode gate.
+        monkeypatch.setitem(
+            sys.modules,
+            "fcntl",
+            SimpleNamespace(LOCK_EX=2, LOCK_NB=4, flock=lambda *_: None),
+        )
+
+        def directory(path):
+            path.mkdir(parents=True, exist_ok=True)
+            return path
+
+        monkeypatch.setattr(receiver, "_private_directory", directory)
+        monkeypatch.setattr(
+            receiver, "private_json", lambda path: json.loads(path.read_bytes())
+        )
+    context = ChainContext(
+        CARBON_NETWORK,
+        CONTEXT.endpoint,
+        CONTEXT.provider,
+        CONTEXT.genesis_hash,
+        CARBON_NETUID,
+    )
+    snapshot = _snapshot(sender=OWNER, receiver=RECEIVER, context=context)
+    snapshot = replace(
+        snapshot,
+        participants=snapshot.participants + (Participant(2, OTHER, "cold2", 2),),
+    )
+    discovery = DirectFixtureDiscovery(bundle_material_v5(), task_admission=True)
+    parent = WorkerImageIdentity(*("sha256:" + "4" * 64 for _ in range(8)))
+    implementation = {"revision": "a" * 40}
+    root = receiver._private_directory(tmp_path / "owners")
+
+    def pool(observed):
+        return receiver.OwnerProviders(
+            root,
+            discovery,
+            parent,
+            tmp_path / "cache",
+            implementation=implementation,
+            snapshot=observed,
+            receiver=RECEIVER,
+        )
+
+    first = pool(snapshot)
+    provider = first(OWNER)
+    ledger = provider.ledger
+    with ledger.db() as db:
+        frozen = json.loads(db.execute("SELECT manifest FROM campaign").fetchone()[0])
+    assert frozen["schema"] == "carbon.launchpad.campaign.v1"
+    assert frozen["scope"] == "DEVELOPMENT_PUBLIC_SYNTHETIC_ONLY"
+    assert frozen["owner"] == OWNER
+    assert frozen["admission"]["hotkey"] == OWNER
+    assert frozen["admission"]["snapshot_id"] == snapshot.snapshot_id
+    assert "ceilings" not in frozen and "grant" not in frozen
+
+    # The real C-03 carrier reaches ledger.reserve before host inspection.
+    # A deliberately unavailable host settles FAILED_INFRA; no container or
+    # candidate program is launched and no scientific outcome is inferred.
+    monkeypatch.setattr(research_carrier, "DockerCLI", object)
+    monkeypatch.setattr(
+        research_carrier,
+        "doctor",
+        lambda **_: SimpleNamespace(eligible=False),
+    )
+    with pytest.raises(ValueError, match="research host ineligible"):
+        research_carrier._run_locked(
+            ledger,
+            owner=OWNER,
+            identity="first-build-child",
+            source="pass",
+            files={},
+            image=parent,
+            seconds=40,
+            provenance="DIRECT_GRAPH_PUBLIC_RECONSTRUCTION",
+            extra_resources={},
+        )
+    assert ledger.operation_state("first-build-child", owner=OWNER) == "FAILED_INFRA"
+    with pytest.raises(ValueError, match="authenticated campaign owner differs"):
+        ledger.reserve(
+            "second-owner-child",
+            owner=OTHER,
+            phase="research",
+            request={"kind": "direct"},
+            resources={},
+        )
+    with ledger.db() as db:
+        assert db.execute("SELECT COUNT(*) FROM operations").fetchone()[0] == 1
+    first.close()
+
+    advanced = replace(
+        snapshot,
+        finalized_block=snapshot.finalized_block + 1,
+        block_hash="0x" + "3" * 64,
+        timestamp_ms=snapshot.timestamp_ms + 1000,
+    )
+    resumed = pool(advanced)
+    resumed.restore()
+    assert resumed(OWNER).ledger.generation > ledger.generation
+    with resumed(OWNER).ledger.db() as db:
+        retained = json.loads(db.execute("SELECT manifest FROM campaign").fetchone()[0])
+    assert retained == frozen
+    resumed.close()
+
+    recycled = replace(
+        advanced,
+        participants=(
+            advanced.participants[0],
+            Participant(1, OWNER, "cold", 3),
+            advanced.participants[2],
+        ),
+    )
+    with pytest.raises(
+        ValueError, match="retained direct owner campaign binding changed"
+    ):
+        pool(recycled).restore()
 
 
 @POSIX
@@ -139,6 +304,7 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
     from test_c08_authenticated_miner_mcp import CONTEXT, _headers, _snapshot, _Verifier
 
     from carbon import research
+    from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK, ChainContext
     from carbon.challenge_validator import direct_intake
     from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
     from carbon.level4 import staging, submission
@@ -151,24 +317,32 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
     cfg["port"] = 0
     monkeypatch.setattr(receiver, "load_config", lambda _: cfg)
     parent = WorkerImageIdentity(*("sha256:" + "4" * 64 for _ in range(8)))
+    context = ChainContext(
+        CARBON_NETWORK,
+        CONTEXT.endpoint,
+        CONTEXT.provider,
+        CONTEXT.genesis_hash,
+        CARBON_NETUID,
+    )
     monkeypatch.setattr(
         receiver,
         "installed_source",
         lambda _: (
             {"revision": "a" * 40, "source_tree_digest": "sha256:" + "6" * 64},
             parent,
-            SimpleNamespace(context=CONTEXT, publisher_hotkey=RECEIVER),
+            SimpleNamespace(context=context, publisher_hotkey=RECEIVER),
             tmp_path / "cache",
         ),
     )
     now = time.time_ns()
     snapshot = replace(
-        _snapshot(sender=OWNER, receiver=RECEIVER), timestamp_ms=now // 1_000_000
+        _snapshot(sender=OWNER, receiver=RECEIVER, context=context),
+        timestamp_ms=now // 1_000_000,
     )
     reader = SimpleNamespace()
 
-    async def capture(context):
-        assert context == CONTEXT
+    async def capture(observed_context):
+        assert observed_context == context
         return snapshot
 
     reader.capture = capture
@@ -204,7 +378,7 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
 
         def post(tool, fields, number):
             body = message(
-                CONTEXT,
+                context,
                 public["snapshot"]["id"],
                 key,
                 session="bootstrap-fixture",
