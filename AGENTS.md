@@ -243,6 +243,13 @@ that receiver's artifact or custody, not for unrelated work. Routine choices
 inside the contract do not need new owner phrases, reviews or receipts.
 Delivery requirements live in `.agent/DELIVERY_PROTOCOL.md` only.
 
+When the owner authorizes team coordination, communicate directly with affected
+teammates and delegate independent work within that scope. Keep one author per
+shared area, give each task a concrete outcome, and continue useful work while
+dependencies are pending. Internal handoffs do not require repeated owner or
+lead permission; they do not authorize external publication, spend, deployment
+or reserved scientific, security or economic decisions.
+
 ---
 
 # 10. Validate the behavior changed

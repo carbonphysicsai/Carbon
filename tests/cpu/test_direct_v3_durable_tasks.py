@@ -247,15 +247,19 @@ def test_direct_v3_resolves_each_bundle_and_refuses_changed_child_on_restart(
         reopened.close()
 
 
+@pytest.mark.parametrize("parent_valid", [True, False])
 def test_direct_v3_inspects_source_then_provisions_only_after_durable_queue(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, parent_valid
 ):
+    from carbon.development_session import library_bundles, library_environment_cache
+
     request, fixed_provider, discovery = _fixture(tmp_path, monkeypatch)
     fixed = fixed_provider()
     image, parent, ledger = fixed.image, fixed.inference_image, fixed.ledger
     fixed.close()
 
     class Resolver:
+        cache_root = tmp_path / "owner-cache"
         inspected = 0
         provisioned = 0
 
@@ -269,12 +273,34 @@ def test_direct_v3_inspects_source_then_provisions_only_after_durable_queue(
 
         def provision_admitted(self, bundle, *, parent, cli):
             del cli
+            assert verified == [parent]
             self.provisioned += 1
             assert bundle.to_dict() == image.bundle_ref
             assert parent == image.parent
             return image
 
     resolver = Resolver()
+    verified = []
+    monkeypatch.setattr(
+        library_environment_cache,
+        "inspect_staged_bundle_material",
+        lambda *_args: tmp_path / "source-material",
+    )
+    monkeypatch.setattr(
+        library_bundles,
+        "load_pinned_bundle_directory",
+        lambda _path: ({"base": "fixture"}, b"source", {}, b"lock", b"license"),
+    )
+
+    def check_parent(manifest, parent):
+        assert manifest == {"base": "fixture"}
+        verified.append(parent)
+        if not parent_valid:
+            raise ValueError("staged bundle base differs from registered parent")
+
+    monkeypatch.setattr(
+        library_bundles, "verify_bundle_parent_environment", check_parent
+    )
     inference_image = WorkerImageIdentity(*("sha256:" + "9" * 64 for _ in range(8)))
     tasks = DirectDevelopmentTasksV3(
         root=tmp_path / "admitted-tasks",
@@ -308,6 +334,7 @@ def test_direct_v3_inspects_source_then_provisions_only_after_durable_queue(
 
         def claimed(*args, **kwargs):
             assert resolver.provisioned == 1
+            assert verified == [parent]
             assert type(kwargs["total_deadline_started"]) is float
             return {"claimed": "success"}
 
@@ -315,6 +342,11 @@ def test_direct_v3_inspects_source_then_provisions_only_after_durable_queue(
             bundle_construction_worker, "reconstruct_and_infer_public", claimed
         )
         ended = tasks.run_queued_task(started.task_id)
+        if not parent_valid:
+            assert ended.state is research.DirectTaskStateV3.FAILED_INFRA
+            assert resolver.provisioned == 0
+            assert verified == [parent]
+            return
         assert ended.state is research.DirectTaskStateV3.UNRESOLVED
         with tasks._db() as db:
             actual = db.execute(
@@ -384,6 +416,11 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(tmp_path, monke
         "load_pinned_bundle_directory",
         lambda _path: (object(), b"source", {}, b"lock", b"license"),
     )
+    monkeypatch.setattr(
+        library_bundles,
+        "verify_bundle_parent_environment",
+        lambda _manifest, selected_parent: calls.append("parent-verified"),
+    )
 
     def fixed_prep(_ledger, **kwargs):
         assert kwargs["parent"] == parent
@@ -440,6 +477,7 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(tmp_path, monke
         assert calls == [
             "inspect",
             "inspect",
+            "parent-verified",
             "cache-miss",
             "bounded-prep",
             "sealed-cache",
