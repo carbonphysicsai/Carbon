@@ -488,6 +488,30 @@ def test_review_refuses_until_every_step_is_checked(tmp_path, state):
     assert not setup.profile_path.exists()
 
 
+def test_review_pins_a_separate_development_construction_receiver(tmp_path, state):
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Checks())
+    completed(tmp_path, setup)
+    target = {
+        "intake_url": "http://127.0.0.1:9080",
+        "receiver_hotkey": HOTKEY,
+    }
+    setup.review({"confirm": True, "direct_intake_target": target})
+    profile = runner.validated_profile(json.loads(setup.profile_path.read_bytes()))
+    assert profile["direct_intake_target"] == target
+    assert "synthetic-linear-field-2d" not in profile.get("intakes", {})
+    setup.review({"confirm": True})
+    assert json.loads(setup.profile_path.read_bytes())["direct_intake_target"] == target
+    with pytest.raises(SetupRefused) as refused:
+        setup.review(
+            {
+                "confirm": True,
+                "direct_intake_target": {**target, "receiver_hotkey": "bad"},
+            }
+        )
+    assert refused.value.field == "direct_intake_target"
+    assert json.loads(setup.profile_path.read_bytes())["direct_intake_target"] == target
+
+
 def test_a_changed_step_needs_a_new_review(tmp_path, state):
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Checks())
     completed(tmp_path, setup)

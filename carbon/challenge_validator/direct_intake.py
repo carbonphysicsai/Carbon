@@ -9,17 +9,18 @@ claims a Score Pack, official verdict, qualification or reward.
 from __future__ import annotations
 
 import asyncio
+import base64
 import threading
 import time
 
 from carbon.battery.intake import (
+    SNAPSHOT_MAX_AGE_S,
     Answer,
     BatteryIntake,
     IntakeUnavailable,
-    SNAPSHOT_MAX_AGE_S,
     SnapshotWindow,
-    _Pinned,
     _handler,
+    _Pinned,
     _refused,
     hardened_listener,
     is_loopback,
@@ -27,6 +28,13 @@ from carbon.battery.intake import (
     refresher,
 )
 from carbon.chain.auth import AuthFailure
+from carbon.miner_mcp.research import decode_research_call
+from carbon.research import (
+    RESEARCH_NAMESPACE,
+    DirectPublicResearchContext,
+    LocalResearchService,
+    canonical_bytes,
+)
 from carbon.transport.gateway import AuthenticatedGateway
 from carbon.transport.models import (
     MAX_BODY,
@@ -37,7 +45,7 @@ from carbon.transport.models import (
 )
 
 from .dispatch import Adapters, Validator
-from .interface import Submission
+from .interface import Submission, Unavailable
 from .lean_recipe import LeanRecipeAdapter
 
 INFO_PATH = "/carbon/v1/construction/intake"
@@ -45,6 +53,7 @@ SUBMIT_PATH = PATH
 SUBMIT_TOOL = "construction_submit"
 STATUS_TOOL = "construction_status"
 PUBLIC_SCHEMA = "carbon.construction.intake-public.v1"
+SOURCE_REPLY_SCHEMA = "carbon.construction.source-stage-reply.v1"
 
 
 class DirectRecipeIntake(BatteryIntake):
@@ -103,7 +112,15 @@ class DirectRecipeIntake(BatteryIntake):
                 },
                 "discovery_path": INFO_PATH,
                 "path": SUBMIT_PATH,
-                "tools": [SUBMIT_TOOL, STATUS_TOOL],
+                "tools": [SUBMIT_TOOL, STATUS_TOOL, RESEARCH_NAMESPACE],
+                "source_staging": {
+                    "tool": RESEARCH_NAMESPACE,
+                    "operation": "stage_research_source",
+                    "request_schema": "direct_stage_source_request_v1",
+                    "reply_schema": SOURCE_REPLY_SCHEMA,
+                    "path": SUBMIT_PATH,
+                    "owner": "authenticated_hotkey",
+                },
                 "served_contracts": self.door.served_contracts(),
                 "limits": {
                     "max_body": MAX_BODY,
@@ -153,6 +170,8 @@ class DirectRecipeIntake(BatteryIntake):
             )
         except AuthFailure as failure:
             return _refused(401, failure.code.value)
+        if received.call.tool == RESEARCH_NAMESPACE:
+            return self._stage_source(received)
         fields = {field.name: field.value for field in received.call.fields}
         if received.call.tool == SUBMIT_TOOL:
             if set(fields) != {"strategy_json", "contract_digest"}:
@@ -192,6 +211,42 @@ class DirectRecipeIntake(BatteryIntake):
                 ),
             )
         return _refused(400, "tool")
+
+    def _stage_source(self, received):
+        """Stage graph bytes in the exact receiver-owned construction workspace.
+
+        The existing research codec and service own bounds, digest checks,
+        compare-and-swap and typed failures. No caller can choose an owner,
+        ledger, host path, image or task operation through this route.
+        """
+        try:
+            call = decode_research_call(received.call)
+        except (ValueError, TypeError):
+            return _refused(400, "source_staging_fields")
+        if (
+            call.operation != "stage_research_source"
+            or call.request.challenge_key != self.challenge
+        ):
+            return _refused(400, "source_staging_context")
+        try:
+            provider = self.adapter._provider(received.receipt.hotkey)
+        except Unavailable as unavailable:
+            return _refused(503, unavailable.code)
+        service = LocalResearchService(
+            DirectPublicResearchContext(
+                self.adapter.discovery, self.adapter.discovery, provider
+            )
+        )
+        reply = service.call(call)
+        return Answer(
+            200,
+            {
+                "schema": SOURCE_REPLY_SCHEMA,
+                "protocol_reply_base64": base64.b64encode(
+                    canonical_bytes(reply)
+                ).decode("ascii"),
+            },
+        )
 
     def advance(self):
         """Operator-only single-task progress; the HTTP route never invokes it."""

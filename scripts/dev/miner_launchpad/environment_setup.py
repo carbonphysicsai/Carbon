@@ -2181,7 +2181,9 @@ class EnvironmentSetup:
             targets = (
                 mine.get("targets")
                 if type(written) is dict and type(mine) is dict
-                else entry.get("validators") if entry is not None else None
+                else entry.get("validators")
+                if entry is not None
+                else None
             )
             if type(targets) is list:
                 item["validators"] = [
@@ -2868,6 +2870,7 @@ class EnvironmentSetup:
             {
                 "intakes",
                 "intake_targets",
+                "direct_intake_target",
                 LEGACY_INTAKE,
                 "receiver_hotkey",
                 "receivers",
@@ -2896,6 +2899,14 @@ class EnvironmentSetup:
             target_lists = {k: validate(v) for k, v in target_lists.items()}
         except ValueError:
             raise SetupRefused("intakes", "intake_url_invalid") from None
+        direct_target = value.get("direct_intake_target")
+        if direct_target is not None:
+            try:
+                direct_target = validate([direct_target])[0]
+            except ValueError:
+                raise SetupRefused(
+                    "direct_intake_target", "intake_url_invalid"
+                ) from None
         for challenge_id, targets in target_lists.items():
             if (
                 challenge_id in intakes
@@ -3003,6 +3014,8 @@ class EnvironmentSetup:
                 cfg = {**cfg, "receivers": receivers}
             if target_lists:
                 cfg = {**cfg, "intake_targets": target_lists}
+            if direct_target is not None:
+                cfg = {**cfg, "direct_intake_target": direct_target}
             record = self._record()
             # The miner's auto-retry choice (LAUNCHPAD-PRACTICE-RETRY-01):
             # this Review's when it names one, else the one kept from before,

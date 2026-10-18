@@ -1,0 +1,286 @@
+"""Miner-side signed submission to the bounded DEVELOPMENT recipe receiver.
+
+This client has a separate wire contract from Battery. It records the first
+admitted task before polling so a restart can only ask about that task. A
+reconstructed result is construction evidence, never a scored verdict.
+"""
+
+from __future__ import annotations
+
+import json
+import time
+import urllib.error
+import urllib.request
+from dataclasses import asdict
+from pathlib import Path
+
+from carbon.chain.auth import BittensorMessageSigner
+from carbon.chain.models import ChainContext
+from carbon.development_session.construction_recipe import ConstructionRecipe
+from carbon.development_session.data import write_once
+from carbon.registry.model import ChallengeKey
+from carbon.transport.models import MAX_BODY, message
+
+RECORD_SCHEMA = "carbon.construction.intake-submission.v1"
+INFO_PATH = "/carbon/v1/construction/intake"
+SUBMIT_PATH = "/carbon/v1/mcp"
+PUBLIC_SCHEMA = "carbon.construction.intake-public.v1"
+SUBMIT_TOOL = "construction_submit"
+STATUS_TOOL = "construction_status"
+SOURCE_TOOL = "carbon_research_v2"
+TERMINAL = frozenset({"RECONSTRUCTED", "RECONSTRUCTION_FAILED", "FAILED_INFRA"})
+WAIT_S = 1800.0
+POLL_S = 30.0
+
+
+class DirectIntakeRefusal(ValueError):
+    """Closed reason; neither a model score nor a scientific failure."""
+
+    def __init__(self, code: str):
+        super().__init__(code)
+        self.code = code
+
+
+def read_intake(url: str, *, timeout: float = 10.0) -> dict:
+    from carbon.development_session.intake_targets import intake_url
+
+    if not intake_url(url):
+        raise DirectIntakeRefusal("construction_intake_url_invalid")
+    with urllib.request.urlopen(
+        url.rstrip("/") + INFO_PATH, timeout=timeout
+    ) as response:
+        facts = json.loads(response.read(65536))
+    if type(facts) is not dict or facts.get("schema") != PUBLIC_SCHEMA:
+        raise DirectIntakeRefusal("construction_intake_wrong_schema")
+    return facts
+
+
+def post(url, body, headers, *, timeout=30.0):
+    request = urllib.request.Request(
+        url.rstrip("/") + SUBMIT_PATH,
+        data=body,
+        headers={**headers, "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.status, json.loads(response.read(65536))
+    except urllib.error.HTTPError as refused:
+        return refused.code, json.loads(refused.read(65536) or b"{}")
+
+
+def _checked(facts, *, recipe, contract_digest, receiver, context):
+    if type(facts) is not dict or facts.get("schema") != PUBLIC_SCHEMA:
+        raise DirectIntakeRefusal("construction_intake_wrong_schema")
+    if type(context) is not ChainContext:
+        raise DirectIntakeRefusal("construction_chain_context_required")
+    if type(receiver) is not str or not receiver or facts.get("receiver") != receiver:
+        raise DirectIntakeRefusal("intake_receiver_mismatch")
+    if (facts.get("network"), facts.get("genesis"), facts.get("netuid")) != (
+        context.network,
+        context.genesis_hash,
+        context.netuid,
+    ):
+        raise DirectIntakeRefusal("construction_intake_chain_mismatch")
+    challenge = recipe.to_dict()["challenge"]
+    if facts.get("challenge") != {
+        "id": challenge["id"],
+        "version": challenge["version"],
+    }:
+        raise DirectIntakeRefusal("construction_intake_challenge_mismatch")
+    if (
+        facts.get("discovery_path") != INFO_PATH
+        or facts.get("path") != SUBMIT_PATH
+        or facts.get("tools")
+        not in ([SUBMIT_TOOL, STATUS_TOOL], [SUBMIT_TOOL, STATUS_TOOL, SOURCE_TOOL])
+        or facts.get("score_pack") is not None
+        or facts.get("qualification") is not False
+        or facts.get("reward") is not False
+    ):
+        raise DirectIntakeRefusal("construction_intake_contract_mismatch")
+    served_contracts = facts.get("served_contracts")
+    if type(served_contracts) is not list or not any(
+        type(served) is dict and served.get("digest") == contract_digest
+        for served in served_contracts
+    ):
+        raise DirectIntakeRefusal("construction_contract_not_served")
+    snapshot = facts.get("snapshot")
+    if type(snapshot) is not dict or type(snapshot.get("id")) is not str:
+        raise DirectIntakeRefusal("construction_snapshot_unavailable")
+    return ChallengeKey(challenge["id"], challenge["version"]), snapshot["id"]
+
+
+def _refusal_code(answer, fallback):
+    if type(answer) is dict:
+        code = answer.get("code") or answer.get("refused")
+        if type(code) is str and code:
+            return code
+    return fallback
+
+
+def _body(facts, *, recipe, contract_digest, receiver, context, tool, fields, request):
+    challenge, snapshot = _checked(
+        facts,
+        recipe=recipe,
+        contract_digest=contract_digest,
+        receiver=receiver,
+        context=context,
+    )
+    body = message(
+        context,
+        snapshot,
+        challenge,
+        session="carbon-construction-intake",
+        request=request,
+        tool=tool,
+        fields=fields,
+    )
+    if len(body) > MAX_BODY:
+        raise DirectIntakeRefusal("construction_intake_body_oversized")
+    return body
+
+
+def _record_path(root, epoch):
+    return Path(root) / f"construction-intake-epoch-{int(epoch)}.json"
+
+
+def _binding(url, recipe, contract_digest, receiver, context, epoch):
+    return {
+        "schema": RECORD_SCHEMA,
+        "url": url,
+        "epoch": int(epoch),
+        "receiver": receiver,
+        "context": asdict(context),
+        "challenge": {
+            "id": recipe.to_dict()["challenge"]["id"],
+            "version": recipe.to_dict()["challenge"]["version"],
+        },
+        "recipe_digest": recipe.digest,
+        "contract_digest": contract_digest,
+    }
+
+
+def submit_and_wait(
+    url,
+    signer,
+    *,
+    root,
+    epoch,
+    recipe,
+    contract_digest,
+    receiver,
+    context,
+    read=read_intake,
+    send=post,
+    clock=time.monotonic,
+    sleep=time.sleep,
+    wait_s=WAIT_S,
+):
+    """Submit one frozen recipe, then poll its owner-bound DEVELOPMENT task.
+
+    A retry after admission polls the recorded task; it never signs another
+    submission. A lost HTTP response can be retried because the validator's
+    task identity is derived from owner and recipe, not this request nonce.
+    """
+    if type(recipe) is not ConstructionRecipe:
+        recipe = ConstructionRecipe.from_dict(recipe)
+    if type(context) is not ChainContext:
+        raise DirectIntakeRefusal("construction_chain_context_required")
+    from carbon.development_session.intake_targets import intake_url
+    from carbon.reconstruction.served_recipe_contract import registered
+
+    if not intake_url(url):
+        raise DirectIntakeRefusal("construction_intake_url_invalid")
+    challenge = recipe.to_dict()["challenge"]
+    try:
+        registered_contract = registered(challenge["id"], challenge["version"])
+    except LookupError:
+        raise DirectIntakeRefusal("construction_contract_not_registered") from None
+    if (
+        registered_contract.construction_kit != challenge
+        or registered_contract.digest != contract_digest
+    ):
+        raise DirectIntakeRefusal("construction_contract_binding_mismatch")
+    binding = _binding(url, recipe, contract_digest, receiver, context, epoch)
+    record_path = _record_path(root, epoch)
+    if record_path.exists():
+        recorded = json.loads(record_path.read_bytes())
+        if type(recorded) is not dict or any(
+            recorded.get(key) != value for key, value in binding.items()
+        ):
+            raise DirectIntakeRefusal("construction_intake_changed_since_submission")
+        task_id = recorded.get("submission_id")
+        if type(task_id) is not str or not task_id:
+            raise DirectIntakeRefusal("construction_intake_record_invalid")
+    else:
+        facts = read(url)
+        body = _body(
+            facts,
+            recipe=recipe,
+            contract_digest=contract_digest,
+            receiver=receiver,
+            context=context,
+            tool=SUBMIT_TOOL,
+            fields={
+                "strategy_json": recipe.canonical_bytes.decode("utf-8"),
+                "contract_digest": contract_digest,
+            },
+            request=f"construction-submit-{epoch}-{recipe.digest[7:39]}",
+        )
+        headers = BittensorMessageSigner(signer).sign(
+            body, receiver=receiver, nonce_ns=time.time_ns()
+        )
+        status, answer = send(url, body, headers)
+        if status != 202 or type(answer) is not dict or answer.get("kind") != "OUTCOME":
+            raise DirectIntakeRefusal(
+                _refusal_code(answer, "construction_intake_unavailable")
+            )
+        outcome = answer.get("outcome")
+        if type(outcome) is not dict or outcome.get("state") != "ADMITTED":
+            raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
+        task_id = outcome.get("task_id")
+        if type(task_id) is not str or not task_id:
+            raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
+        write_once(
+            record_path,
+            json.dumps({**binding, "submission_id": task_id}, sort_keys=True).encode(),
+        )
+        record_path.chmod(0o600)
+    deadline = clock() + wait_s
+    while True:
+        facts = read(url)
+        body = _body(
+            facts,
+            recipe=recipe,
+            contract_digest=contract_digest,
+            receiver=receiver,
+            context=context,
+            tool=STATUS_TOOL,
+            fields={"submission_id": task_id},
+            request=f"construction-status-{epoch}-{time.time_ns()}",
+        )
+        # The signer currently has a read-only kind only for battery_status.
+        # This DEVELOPMENT status uses its ordinary signed-call kind.
+        headers = BittensorMessageSigner(signer).sign(
+            body, receiver=receiver, nonce_ns=time.time_ns()
+        )
+        status, answer = send(url, body, headers)
+        if status != 200 or type(answer) is not dict or answer.get("kind") != "OUTCOME":
+            raise DirectIntakeRefusal(
+                _refusal_code(answer, "construction_status_unavailable")
+            )
+        outcome = answer.get("outcome")
+        if type(outcome) is not dict or outcome.get("task_id") != task_id:
+            raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
+        if (
+            outcome.get("qualification") is not False
+            or outcome.get("reward") is not False
+        ):
+            raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
+        if outcome.get("state") in TERMINAL:
+            return outcome
+        if outcome.get("state") != "ADMITTED":
+            raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
+        if clock() >= deadline:
+            raise DirectIntakeRefusal("construction_task_queued")
+        sleep(POLL_S)

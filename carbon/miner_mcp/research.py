@@ -28,6 +28,35 @@ from carbon.research.service import LocalResearchService
 from carbon.transport.gateway import AuthenticatedGateway
 
 
+def decode_research_call(call):
+    """Decode the existing research envelope after a gateway verified its caller.
+
+    This helper grants no identity or execution authority. Receivers must bind
+    the returned Challenge and operation to their authenticated service before
+    dispatching it.
+    """
+    if (
+        call.tool != RESEARCH_NAMESPACE
+        or len(call.fields) != 1
+        or call.fields[0].name != "call_base64"
+    ):
+        raise ValueError("research namespace and exact canonical call required")
+    payload = call.fields[0].value
+    if type(payload) is not str or len(payload.encode()) > 1024**2:
+        raise ValueError("bounded canonical research call required")
+    try:
+        encoded = payload.encode("ascii")
+        raw = base64.b64decode(encoded, validate=True)
+    except (ValueError, UnicodeError, binascii.Error):
+        raise ValueError("canonical base64 research envelope required") from None
+    if base64.b64encode(raw) != encoded:
+        raise ValueError("noncanonical base64 research envelope")
+    decoded = load_canonical(raw, ServiceCall)
+    if decoded.namespace != RESEARCH_NAMESPACE:
+        raise ValueError("research namespace mismatch")
+    return decoded
+
+
 class AuthenticatedResearchService:
     def __init__(self, gateway, services):
         if type(gateway) is not AuthenticatedGateway or type(services) is not dict:
@@ -46,26 +75,7 @@ class AuthenticatedResearchService:
 
     async def _receive(self, body, headers):
         received = await self.gateway.receive(body, headers)
-        call = received.call
-        if (
-            call.tool != RESEARCH_NAMESPACE
-            or len(call.fields) != 1
-            or call.fields[0].name != "call_base64"
-        ):
-            raise ValueError("research namespace and exact canonical call required")
-        payload = call.fields[0].value
-        if type(payload) is not str or len(payload.encode()) > 1024**2:
-            raise ValueError("bounded canonical research call required")
-        try:
-            encoded = payload.encode("ascii")
-            raw = base64.b64decode(encoded, validate=True)
-        except (ValueError, UnicodeError, binascii.Error):
-            raise ValueError("canonical base64 research envelope required") from None
-        if base64.b64encode(raw) != encoded:
-            raise ValueError("noncanonical base64 research envelope")
-        decoded = load_canonical(raw, ServiceCall)
-        if decoded.namespace != RESEARCH_NAMESPACE:
-            raise ValueError("research namespace mismatch")
+        decoded = decode_research_call(received.call)
         service = self._services.get(received.requester.value)
         if service is None:
             raise ValueError("research requester unavailable")

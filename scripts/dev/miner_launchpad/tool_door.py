@@ -30,6 +30,7 @@ import contextlib
 import secrets
 import threading
 import time
+from dataclasses import dataclass
 
 IDLE_SECONDS = 600
 #: How long a blocking tool call may take before the page stops waiting
@@ -228,10 +229,16 @@ def _direct_task_projection(view, public_result=None):
     }
 
 
+@dataclass(frozen=True)
+class DirectToolsAttachment:
+    adapter: object
+    intake_target: dict | None
+
+
 class DirectToolDoor:
     """One local page session on an explicitly supplied direct-v3 adapter."""
 
-    def __init__(self, adapter):
+    def __init__(self, adapter, *, intake_target=None):
         from carbon.development_session.research_tools import (
             DIRECT_PREFIX,
             DirectResearchMinerTools,
@@ -240,7 +247,12 @@ class DirectToolDoor:
 
         if type(adapter) is not DirectResearchMinerTools:
             raise TypeError("trusted direct DEVELOPMENT adapter required")
+        if intake_target is not None:
+            from carbon.development_session.intake_targets import validate
+
+            intake_target = validate([intake_target])[0]
         self.adapter = adapter
+        self.intake_target = intake_target
         self.prefix = DIRECT_PREFIX
         self.server = _create_direct_server(adapter)
         self.tools = dict(self.server._tool_manager._tools)
@@ -265,7 +277,137 @@ class DirectToolDoor:
                 "version": self.adapter.challenge.version,
             },
             "official_eligible": False,
+            "construction_intake_configured": self.intake_target is not None,
         }
+
+    async def submit_construction(self, value):
+        """One exact 1.3 recipe through its profile-pinned signed receiver.
+
+        The local research tools remain a separate workspace. In particular,
+        graph source staged locally is not claimed to be present remotely.
+        """
+        from carbon.development_session.construction_recipe import (
+            ConstructionRecipe,
+            RecipeRefused,
+        )
+        from carbon.development_session.direct_submission import (
+            DirectIntakeRefusal,
+            _record_path,
+            submit_and_wait,
+        )
+        from carbon.reconstruction.served_recipe_contract import registered
+
+        if self.intake_target is None:
+            return {"ok": False, "error": "construction_intake_unconfigured"}
+        if type(value) is not dict or set(value) != {"recipe"}:
+            return {"ok": False, "error": "construction_recipe_required"}
+        try:
+            recipe = ConstructionRecipe.from_dict(value["recipe"])
+            if (
+                self.adapter.challenge.challenge_id,
+                self.adapter.challenge.version,
+            ) != (
+                recipe.to_dict()["challenge"]["id"],
+                recipe.to_dict()["challenge"]["version"],
+            ):
+                raise DirectIntakeRefusal("construction_recipe_challenge_mismatch")
+            contract = registered(
+                self.adapter.challenge.challenge_id, self.adapter.challenge.version
+            )
+            epoch = int(recipe.digest[7:23], 16)
+            root = self.adapter.composition.tasks.ledger.root
+            result = await asyncio.to_thread(
+                submit_and_wait,
+                self.intake_target["intake_url"],
+                self.adapter.connection.miner_key,
+                root=root,
+                epoch=epoch,
+                recipe=recipe,
+                contract_digest=contract.digest,
+                receiver=self.intake_target["receiver_hotkey"],
+                context=self.adapter.connection.chain_context,
+                wait_s=0,
+            )
+            return {
+                "ok": True,
+                "result": result,
+                "score_status": "SCORE_UNAVAILABLE",
+                "official_eligible": False,
+            }
+        except DirectIntakeRefusal as refused:
+            if refused.code == "construction_task_queued":
+                record = _record_path(root, epoch)
+                if record.exists():
+                    import json
+
+                    saved = json.loads(record.read_bytes())
+                    return {
+                        "ok": True,
+                        "result": {
+                            "state": "ADMITTED",
+                            "task_id": saved["submission_id"],
+                        },
+                        "score_status": "SCORE_UNAVAILABLE",
+                        "official_eligible": False,
+                    }
+            return {"ok": False, "error": refused.code}
+        except RecipeRefused as refused:
+            return {"ok": False, "error": refused.code}
+        except (OSError, ValueError, LookupError):
+            return {"ok": False, "error": "construction_intake_unavailable"}
+
+    async def stage_construction_graph(self, value):
+        """Copy this owner's locally staged graph to the pinned receiver."""
+        from carbon.development_session.construction_recipe import (
+            ConstructionRecipe,
+            RecipeRefused,
+        )
+        from carbon.development_session.direct_source_submission import stage_graph
+        from carbon.development_session.direct_submission import DirectIntakeRefusal
+        from carbon.reconstruction.served_recipe_contract import registered
+
+        if self.intake_target is None:
+            return {"ok": False, "error": "construction_intake_unconfigured"}
+        if (
+            type(value) is not dict
+            or not {"recipe"} <= set(value)
+            or set(value)
+            - {
+                "recipe",
+                "expected_manifest_digest",
+            }
+        ):
+            return {"ok": False, "error": "construction_recipe_required"}
+        try:
+            recipe = ConstructionRecipe.from_dict(value["recipe"])
+            if (
+                self.adapter.challenge.challenge_id,
+                self.adapter.challenge.version,
+            ) != (
+                recipe.to_dict()["challenge"]["id"],
+                recipe.to_dict()["challenge"]["version"],
+            ):
+                raise DirectIntakeRefusal("construction_recipe_challenge_mismatch")
+            contract = registered(
+                self.adapter.challenge.challenge_id, self.adapter.challenge.version
+            )
+            result = await asyncio.to_thread(
+                stage_graph,
+                self.intake_target["intake_url"],
+                self.adapter.connection.miner_key,
+                ledger=self.adapter.composition.tasks.ledger,
+                owner=self.adapter.owner,
+                recipe=recipe,
+                contract_digest=contract.digest,
+                receiver=self.intake_target["receiver_hotkey"],
+                context=self.adapter.connection.chain_context,
+                expected_manifest_digest=value.get("expected_manifest_digest"),
+            )
+            return {"ok": True, "result": result, "official_eligible": False}
+        except (DirectIntakeRefusal, RecipeRefused) as refused:
+            return {"ok": False, "error": refused.code}
+        except (OSError, ValueError, LookupError):
+            return {"ok": False, "error": "construction_source_staging_unavailable"}
 
     async def call(self, name, arguments):
         from mcp.server.mcpserver.exceptions import ToolError
@@ -355,9 +497,13 @@ class _Session:
                 DirectResearchMinerTools,
             )
 
+            direct = type(adapter) is DirectToolsAttachment
             door = (
-                DirectToolDoor(adapter)
-                if type(adapter) is DirectResearchMinerTools
+                DirectToolDoor(
+                    adapter.adapter if direct else adapter,
+                    intake_target=adapter.intake_target if direct else None,
+                )
+                if direct or type(adapter) is DirectResearchMinerTools
                 else ToolDoor(adapter)
             )
         except BaseException:
@@ -527,8 +673,34 @@ class ToolSessions:
             session.door.observe(value["task_id"], cancel=cancel), CALL_SECONDS
         )
 
+    def submit_construction(self, campaign, value):
+        from scripts.dev.miner_launchpad.controller import Rejected
 
-ACTIONS = ("state", "open", "close", "call", "start", "observe", "cancel")
+        session = self._session(campaign)
+        if type(session.door) is not DirectToolDoor:
+            raise Rejected("construction_session_required", 409)
+        return session.run(session.door.submit_construction(value), CALL_SECONDS)
+
+    def stage_construction_graph(self, campaign, value):
+        from scripts.dev.miner_launchpad.controller import Rejected
+
+        session = self._session(campaign)
+        if type(session.door) is not DirectToolDoor:
+            raise Rejected("construction_session_required", 409)
+        return session.run(session.door.stage_construction_graph(value), CALL_SECONDS)
+
+
+ACTIONS = (
+    "state",
+    "open",
+    "close",
+    "call",
+    "start",
+    "observe",
+    "cancel",
+    "submit_construction",
+    "stage_construction_graph",
+)
 DIRECT_DEVELOPMENT_SESSION = "direct-development"
 DIRECT_DEVELOPMENT_V13_SESSION = "direct-development-1.3"
 DIRECT_DEVELOPMENT_VERSIONS = {
@@ -588,6 +760,14 @@ def route(host, campaign, action, value):
         return sessions.call(campaign, value)
     if action == "start":
         return sessions.start(campaign, value)
+    if action == "submit_construction":
+        if campaign != DIRECT_DEVELOPMENT_V13_SESSION:
+            raise Rejected("construction_session_required", 409)
+        return sessions.submit_construction(campaign, value)
+    if action == "stage_construction_graph":
+        if campaign != DIRECT_DEVELOPMENT_V13_SESSION:
+            raise Rejected("construction_session_required", 409)
+        return sessions.stage_construction_graph(campaign, value)
     return sessions.observe(campaign, value, cancel=action == "cancel")
 
 
@@ -613,7 +793,8 @@ def runner_opener(host):
                     Path(host.configuration),
                     version=DIRECT_DEVELOPMENT_VERSIONS[campaign],
                 ) as (adapter, _selected):
-                    yield adapter
+                    target = host.configured().get("direct_intake_target")
+                    yield DirectToolsAttachment(adapter, target)
             except LockHeld:
                 raise Busy() from None
             return

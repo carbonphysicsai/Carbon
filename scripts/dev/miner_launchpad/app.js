@@ -1548,6 +1548,10 @@
     // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
     const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver hotkey (its public ss58 address; required with an intake URL)");
     intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
+    const directMore = advanced(review, "Advanced: DEVELOPMENT construction receiver");
+    researchNote(directMore, "For the 1.3 construction-recipe session only. This receiver rebuilds a model but does not return a scored verdict or reward.", "hint");
+    const directIntake = setupField(directMore, "direct_intake_url", "Construction intake URL (https, or loopback)");
+    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Construction receiver hotkey (public ss58 address)");
     evaluationSection(evaluationBox, steps.evaluation, (challengeId, url, hotkey) => {
       // Review writes only the intakes it is given: this one, again.
       intakeChallenge.value = challengeId; intake.value = url; receiver.value = hotkey;
@@ -1572,6 +1576,12 @@
       if (intake.value.trim() && intakeChallenge.value) {
         request.intakes = {[intakeChallenge.value]: intake.value.trim()};
         if (receiver.value.trim()) request.receiver_hotkey = receiver.value.trim();
+      }
+      if (directIntake.value.trim() || directReceiver.value.trim()) {
+        request.direct_intake_target = {
+          intake_url: directIntake.value.trim(),
+          receiver_hotkey: directReceiver.value.trim(),
+        };
       }
       await setupCall("review", request);
     });

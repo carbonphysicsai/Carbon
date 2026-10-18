@@ -113,6 +113,10 @@ OPTIONAL_PROFILE_FIELDS = {
     # LP-04: optional receiver-paired lists. Historical one-intake profiles
     # retain their existing fields and behavior.
     "intake_targets",
+    # Exact, receiver-paired DEVELOPMENT 1.3 recipe intake. This is separate
+    # from the registered product Challenge's Battery intake and never rewrites
+    # a frozen Battery campaign's Challenge or contract identity.
+    "direct_intake_target",
     "validators",
     # Per Challenge (LAUNCHPAD-ACCEPT-03): {challenge_id: ss58}, the receiver
     # hotkey that Challenge's intake must report before anything is signed
@@ -737,6 +741,10 @@ def validated_profile(cfg):
         _registered_challenge_ids(cfg["intake_targets"], "intake_targets")
         for targets in cfg["intake_targets"].values():
             validate(targets)
+    if "direct_intake_target" in cfg:
+        from carbon.development_session.intake_targets import validate
+
+        validate([cfg["direct_intake_target"]])
     if "validators" in cfg:
         _registered_challenge_ids(cfg["validators"], "validators")
         if any(

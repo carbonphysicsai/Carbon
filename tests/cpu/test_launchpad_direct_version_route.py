@@ -11,6 +11,7 @@ from types import SimpleNamespace
 import pytest
 
 from scripts.dev.miner_launchpad import runner, tool_door
+from test_direct_submission import _recipe
 
 
 @pytest.mark.parametrize(
@@ -37,11 +38,18 @@ def test_direct_browser_session_selects_exact_installed_kit(
         "carbon.miner_mcp.standard_cli.attached_installed_direct_development",
         selected,
     )
-    host = SimpleNamespace(configuration=configuration)
+    target = {
+        "intake_url": "http://127.0.0.1:9080",
+        "receiver_hotkey": "5" + "a" * 47,
+    }
+    host = SimpleNamespace(
+        configuration=configuration,
+        configured=lambda: {"direct_intake_target": target},
+    )
 
     async def open_selected():
         async with tool_door.runner_opener(host)(session) as actual:
-            assert actual is attached
+            assert actual == tool_door.DirectToolsAttachment(attached, target)
 
     asyncio.run(open_selected())
     assert seen == [(Path(configuration), version)]
@@ -81,3 +89,102 @@ def test_real_mcp_factory_preserves_historical_launch_replay_shape():
     )
     assert historical.isdisjoint(launch.parameters["properties"])
     assert historical <= set(launch.fn_metadata.arg_model.model_fields)
+
+
+def test_direct_v13_tools_action_uses_exact_installed_signer_and_pinned_receiver(
+    tmp_path, monkeypatch
+):
+    from carbon.registry.model import ChallengeKey
+
+    target = {
+        "intake_url": "http://127.0.0.1:9080",
+        "receiver_hotkey": "5" + "a" * 47,
+    }
+    connection = SimpleNamespace(miner_key=object(), chain_context=object())
+    adapter = SimpleNamespace(
+        challenge=ChallengeKey("synthetic-linear-field-2d", "1.3"),
+        connection=connection,
+        owner="owner-hotkey",
+        composition=SimpleNamespace(
+            tasks=SimpleNamespace(ledger=SimpleNamespace(root=tmp_path))
+        ),
+    )
+    door = object.__new__(tool_door.DirectToolDoor)
+    door.adapter, door.intake_target = adapter, target
+    captured = []
+
+    def submitted(url, signer, **kwargs):
+        captured.append((url, signer, kwargs))
+        return {"state": "RECONSTRUCTED", "task_id": "exact-task"}
+
+    monkeypatch.setattr(
+        "carbon.development_session.direct_submission.submit_and_wait", submitted
+    )
+    result = asyncio.run(door.submit_construction({"recipe": _recipe().to_dict()}))
+    assert result["ok"] is True
+    assert result["result"] == {"state": "RECONSTRUCTED", "task_id": "exact-task"}
+    assert result["score_status"] == "SCORE_UNAVAILABLE"
+    assert result["official_eligible"] is False
+    assert len(captured) == 1
+    assert captured[0][0] == target["intake_url"]
+    assert captured[0][1] is connection.miner_key
+    assert captured[0][2]["receiver"] == target["receiver_hotkey"]
+    assert captured[0][2]["context"] is connection.chain_context
+    assert captured[0][2]["recipe"].digest == _recipe().digest
+
+    def staged(url, signer, **kwargs):
+        captured.append((url, signer, kwargs))
+        return {
+            "schema": "carbon.construction.source-stage-result.v1",
+            "complete": True,
+        }
+
+    monkeypatch.setattr(
+        "carbon.development_session.direct_source_submission.stage_graph", staged
+    )
+    stage = asyncio.run(door.stage_construction_graph({"recipe": _recipe().to_dict()}))
+    assert stage["ok"] is True and stage["official_eligible"] is False
+    assert captured[1][0] == target["intake_url"]
+    assert captured[1][1] is connection.miner_key
+    assert captured[1][2]["owner"] == "owner-hotkey"
+    assert captured[1][2]["ledger"] is adapter.composition.tasks.ledger
+    assert captured[1][2]["receiver"] == target["receiver_hotkey"]
+
+    class Host:
+        configuration = tmp_path / "operator-profile.json"
+        tool_sessions = SimpleNamespace(
+            submit_construction=lambda _, value: result,
+            stage_construction_graph=lambda _, value: stage,
+        )
+
+        def owned_campaign(self, _):
+            raise AssertionError("construction submission must not open Battery")
+
+    monkeypatch.setattr(runner, "RunnerAdapter", Host)
+    assert (
+        tool_door.route(
+            Host(),
+            tool_door.DIRECT_DEVELOPMENT_V13_SESSION,
+            "submit_construction",
+            {"recipe": _recipe().to_dict()},
+        )
+        == result
+    )
+    assert (
+        tool_door.route(
+            Host(),
+            tool_door.DIRECT_DEVELOPMENT_V13_SESSION,
+            "stage_construction_graph",
+            {"recipe": _recipe().to_dict()},
+        )
+        == stage
+    )
+    from scripts.dev.miner_launchpad.controller import Rejected
+
+    with pytest.raises(Rejected, match="construction_session_required"):
+        tool_door.route(
+            Host(),
+            tool_door.DIRECT_DEVELOPMENT_SESSION,
+            "stage_construction_graph",
+            {"recipe": _recipe().to_dict()},
+        )

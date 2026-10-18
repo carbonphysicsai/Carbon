@@ -213,7 +213,9 @@ def test_direct_development_connection_uses_live_signed_gateway(
                     2,
                 ]
             )
-        ).removeprefix("sha256:")
+        ).removeprefix(
+            "sha256:"
+        )
         assert connection.transport.path.is_file()
 
 
@@ -549,6 +551,20 @@ def test_installed_direct_development_uses_profile_signer_and_refuses_missing_ch
             },
         }
         assert validated_profile(cfg) == cfg
+        target = {
+            "intake_url": "http://127.0.0.1:9080",
+            "receiver_hotkey": publisher.ss58_address,
+        }
+        assert (
+            validated_profile({**cfg, "direct_intake_target": target})[
+                "direct_intake_target"
+            ]
+            == target
+        )
+        with pytest.raises(ValueError, match="receiver-paired"):
+            validated_profile(
+                {**cfg, "direct_intake_target": {**target, "receiver_hotkey": "bad"}}
+            )
         configuration.write_bytes(canonical(cfg))
         configuration.chmod(0o600)
         source = load_direct_installed_source(configuration, version="1.1")
