@@ -28,18 +28,31 @@ from carbon.challenge_validator.lean_recipe_retention import (
 from carbon.research import DirectTaskStateV3
 
 
-def _selected_pack(root, case, version, *, bank_bytes=None):
+def _selected_pack(root, case, version, *, wrong_role=None):
     draft, public, private = (root / name for name in ("draft", "public", "private"))
     for directory in (draft, public, private):
         directory.mkdir(parents=True)
-    (public / "train.bin").write_bytes(case["originals"]["stage/train.npz"])
-    (public / "interface.bin").write_bytes(b"synthetic-2d-interface")
-    (private / "case-bank.bin").write_bytes(
-        case["ordered_query_bytes"][0] if bank_bytes is None else bank_bytes
+    (public / "train.bin").write_bytes(
+        b"different train"
+        if wrong_role == "train"
+        else case["originals"]["stage/train.npz"]
     )
+    (public / "interface.bin").write_bytes(
+        b"different interface"
+        if wrong_role == "interface"
+        else b"synthetic-2d-interface"
+    )
+    (private / "case-bank.bin").write_bytes(
+        b"different query"
+        if wrong_role == "case_bank"
+        else case["ordered_query_bytes"][0]
+    )
+    solver = dict(case["registration"]["reference"])
+    if wrong_role == "solver_evidence_kind":
+        solver["evidence_kind"] = "different-evidence-kind"
     for name, value in (
         ("references.json", case["references"]),
-        ("solver.json", case["registration"]["reference"]),
+        ("solver.json", solver),
         ("score-pack.json", case["pack"]),
     ):
         (private / name).write_text(json.dumps(value), encoding="utf-8")
@@ -48,7 +61,13 @@ def _selected_pack(root, case, version, *, bank_bytes=None):
         construction_kit={"inline": {"test": "synthetic-construction-kit"}},
         interface={"path": "interface.bin"},
         train={"path": "train.bin"},
-        physics_contract={"inline": case["job"]["physics_contract"]},
+        physics_contract={
+            "inline": (
+                {**case["job"]["physics_contract"], "fixture_mismatch": True}
+                if wrong_role == "physics_contract"
+                else case["job"]["physics_contract"]
+            )
+        },
     )
     private_roles = {name: UNAVAILABLE for name in PRIVATE_ROLES}
     private_roles.update(
@@ -226,13 +245,19 @@ def test_selected_pack_changes_private_result_key_without_rewriting_history(
         assert db.execute("SELECT since FROM incumbent").fetchone() == incumbent_since
 
 
-def test_same_challenge_and_version_with_different_case_material_refuses(
-    tmp_path, monkeypatch
+@pytest.mark.parametrize(
+    "wrong_role",
+    ("case_bank", "train", "interface", "physics_contract", "solver_evidence_kind"),
+)
+def test_same_challenge_and_version_with_different_material_refuses(
+    tmp_path, monkeypatch, wrong_role
 ):
     case = _graph_case(tmp_path)
     selected, public, private = _selected_pack(
-        tmp_path / "wrong-pack", case, "1", bank_bytes=b"different query"
+        tmp_path / "wrong-pack", case, "1", wrong_role=wrong_role
     )
+    assert selected.challenge_id == case["entry"]["challenge"]
+    assert selected.challenge_version == case["entry"]["challenge_version"]
     with pytest.raises(RetentionUnavailable, match="registered_material_mismatch"):
         _registered_source(
             tmp_path, monkeypatch, case, selected, public, private, "old"
