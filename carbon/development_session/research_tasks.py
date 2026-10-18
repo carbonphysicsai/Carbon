@@ -437,6 +437,41 @@ class DirectDevelopmentTasksV3:
         verify_library_worker_image(image)
         return image
 
+    def _inspected_source_binding(self, request):
+        """Check staged bundle bytes without resolving or building an image."""
+        from .library_bundles import LibraryBundleRef
+
+        source = request.recipe["source"]
+        bundle = LibraryBundleRef.from_dict(source["bundle_ref"])
+        inspected = self.image_resolver.inspect_source(bundle)
+        if inspected != bundle:
+            raise ValueError("inspected direct bundle source differs")
+        return json.dumps(
+            ["BUNDLE_SOURCE", bundle.to_dict()],
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+
+    def _provision_admitted_image(self, request):
+        """Provision only after the direct task is durable and RUNNING."""
+        from carbon.reconstruction.worker.docker_runtime import DockerCLI
+
+        from .library_bundles import LibraryBundleRef
+        from .research_image import LibraryWorkerImage, verify_library_worker_image
+
+        bundle = LibraryBundleRef.from_dict(request.recipe["source"]["bundle_ref"])
+        image = self.image_resolver.provision_admitted(
+            bundle, parent=self.inference_image, cli=DockerCLI()
+        )
+        if (
+            type(image) is not LibraryWorkerImage
+            or image.bundle_ref != bundle.to_dict()
+            or image.parent != self.inference_image
+        ):
+            raise ValueError("provisioned direct library image differs")
+        verify_library_worker_image(image)
+        return image
+
     @staticmethod
     def _image_binding(image):
         from dataclasses import asdict
@@ -731,7 +766,18 @@ class DirectDevelopmentTasksV3:
                 raise ResearchTaskProviderError(ResearchServiceErrorCode.BOUND_EXCEEDED)
             try:
                 self._verify_images()
-                image = self._resolved_image(request)
+                staged_source = (
+                    self.image_resolver is not None
+                    and callable(getattr(self.image_resolver, "inspect_source", None))
+                    and callable(
+                        getattr(self.image_resolver, "provision_admitted", None)
+                    )
+                    and request.recipe["source"]["kind"] == "bundle"
+                )
+                image_binding = (
+                    self._inspected_source_binding(request) if staged_source else None
+                )
+                image = None if staged_source else self._resolved_image(request)
                 source_envelope = None
                 if request.recipe["source"]["kind"] == "graph":
                     from .construction_recipe import graph_envelope_from_workspace
@@ -785,10 +831,14 @@ class DirectDevelopmentTasksV3:
                 request,
                 view,
                 image_binding=(
-                    self._image_binding(image)
-                    if self.image_resolver is not None
-                    or request.recipe["source"]["kind"] == "graph"
-                    else None
+                    image_binding
+                    if staged_source
+                    else (
+                        self._image_binding(image)
+                        if self.image_resolver is not None
+                        or request.recipe["source"]["kind"] == "graph"
+                        else None
+                    )
                 ),
                 source_envelope=source_envelope,
                 measure_query=measure_query,
@@ -1262,18 +1312,29 @@ class DirectDevelopmentTasksV3:
                 )
             request = self._requests[task_id.value]
             try:
-                image = self._resolved_image(request)
                 recipe = ConstructionRecipe.from_dict(request.recipe)
                 source_kind = recipe.to_dict()["source"]["kind"]
+                staged_source = (
+                    source_kind == "bundle"
+                    and self.image_resolver is not None
+                    and callable(getattr(self.image_resolver, "inspect_source", None))
+                    and callable(
+                        getattr(self.image_resolver, "provision_admitted", None)
+                    )
+                )
+                image = None if staged_source else self._resolved_image(request)
                 source_envelope = (
                     self._source_envelope(task_id.value, recipe)
                     if source_kind == "graph"
                     else None
                 )
-                if (
-                    task_id.value in self._task_image_bindings
-                    and self._image_binding(image)
-                    != self._task_image_bindings[task_id.value]
+                expected_binding = (
+                    self._inspected_source_binding(request)
+                    if staged_source
+                    else self._image_binding(image)
+                )
+                if task_id.value in self._task_image_bindings and (
+                    expected_binding != self._task_image_bindings[task_id.value]
                 ):
                     raise ValueError("admitted direct library image changed")
             except (FileNotFoundError, ValueError, OSError, WorkerFailure):
@@ -1286,7 +1347,36 @@ class DirectDevelopmentTasksV3:
                     view, DirectTaskStateV3.FAILED_INFRA, receipt=receipt
                 )
             view = self._transition(view, DirectTaskStateV3.RUNNING)
+        provisioning = False
         try:
+            total_deadline_started = None
+            if staged_source:
+                provisioning = True
+                total_deadline_started = time.monotonic()
+                image = self._provision_admitted_image(request)
+                actual_binding = self._image_binding(image)
+                with self._lock:
+                    with self._db() as db:
+                        changed = db.execute(
+                            "UPDATE direct_task_images SET identity=? "
+                            "WHERE id=? AND identity=?",
+                            (
+                                actual_binding,
+                                task_id.value,
+                                expected_binding,
+                            ),
+                        )
+                        if changed.rowcount != 1:
+                            raise ValueError("admitted direct source custody changed")
+                    self._task_image_bindings[task_id.value] = actual_binding
+                    current = self._views[task_id.value]
+                    if current.state is DirectTaskStateV3.CANCEL_REQUESTED:
+                        return self._transition(
+                            current,
+                            DirectTaskStateV3.CANCELLED,
+                            receipt=self._receipt(current, DirectTaskStateV3.CANCELLED),
+                        )
+                provisioning = False
             self._bindings(request)
             material = self.discovery._material
             kit = material["construction_kit"]
@@ -1337,6 +1427,7 @@ class DirectDevelopmentTasksV3:
                         else None
                     ),
                     measure_query=task_id.value in self._measured_tasks,
+                    total_deadline_started=total_deadline_started,
                 )
             if (
                 type(result) is not DirectReconstructionResult
@@ -1502,7 +1593,7 @@ class DirectDevelopmentTasksV3:
                         if graph_decision is not None
                         else (
                             DirectTaskStateV3.FAILED_INFRA
-                            if "FAILED_INFRA" in child_states
+                            if provisioning or "FAILED_INFRA" in child_states
                             else (
                                 DirectTaskStateV3.REFUSED
                                 if isinstance(exc, MinerProgramFailure)

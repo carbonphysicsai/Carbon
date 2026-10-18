@@ -15,16 +15,19 @@ import subprocess
 import sys
 import tarfile
 from dataclasses import replace
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
 from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material
+from carbon.development_session import bundle_construction_worker
 from carbon.development_session.bundle_construction_worker import (
     BUILD_PROGRAM,
     INFER_PROGRAM,
     infer_public,
     infer_saved_bundle,
+    reconstruct_and_infer_public,
     reconstruct_public,
 )
 from carbon.development_session.construction_recipe import (
@@ -132,6 +135,40 @@ def _binding(material):
         "interface_digest": kit["interface_digest"],
         "construction_limits_digest": kit["construction_limits_digest"],
     }
+
+
+def test_admitted_provisioning_consumes_aggregate_reconstruction_deadline(
+    tmp_path, monkeypatch
+):
+    material = bundle_material()
+    image, installed = _source_bundle(tmp_path)
+    recipe = _recipe(material, image)
+    runner = LocalProcessRunner(installed)
+    monkeypatch.setattr(
+        bundle_construction_worker,
+        "time",
+        SimpleNamespace(monotonic=lambda: 2000.0),
+    )
+    with pytest.raises(RecipeRefused, match="construction_total_deadline_reached"):
+        reconstruct_and_infer_public(
+            CampaignLedger(tmp_path / "campaign"),
+            owner="miner",
+            identity="expired-after-provision",
+            image=image,
+            inference_image=image.parent,
+            recipe=recipe,
+            challenge_binding=_binding(material),
+            limits_document=material["construction_limits_document"],
+            train=material["train"],
+            example=material["example"],
+            seed=11,
+            inputs=material["practice_inputs"],
+            expected_output_shape=tuple(material["expected_output_shape"]),
+            allowlist_bytes=material["allowlist_bytes"],
+            total_deadline_started=200.0,
+            runner=runner,
+        )
+    assert runner.calls == []
 
 
 class LocalProcessRunner:

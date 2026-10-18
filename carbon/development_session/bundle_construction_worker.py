@@ -956,6 +956,7 @@ def reconstruct_and_infer_public(
     allowlist_bytes: bytes,
     expected_output_dtype: str | None = None,
     measure_query: bool = False,
+    total_deadline_started: float | None = None,
     runner=None,
 ) -> DirectReconstructionResult:
     """Fresh build and source-free inference under the fixture's finite policy.
@@ -967,7 +968,13 @@ def reconstruct_and_infer_public(
     binding = _checked_binding(recipe, challenge_binding)
     policy_digest = verify_direct_resource_policy(binding, limits_document)
     policy = limits_document["reconstruction_resource_policy"]
-    started = time.monotonic()
+    now = time.monotonic()
+    if total_deadline_started is not None and (
+        type(total_deadline_started) is not float
+        or not 0 < total_deadline_started <= now
+    ):
+        raise RecipeRefused("construction_total_deadline_invalid")
+    started = now if total_deadline_started is None else total_deadline_started
     deadline = started + policy["total_reconstruction_wall_seconds_max"]
     build_identity = direct_child_identity(identity, "build")
     inference_identity = direct_child_identity(identity, "inference")

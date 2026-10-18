@@ -218,6 +218,77 @@ def test_direct_v3_resolves_each_bundle_and_refuses_changed_child_on_restart(
         reopened.close()
 
 
+def test_direct_v3_inspects_source_then_provisions_only_after_durable_queue(
+    tmp_path, monkeypatch
+):
+    request, fixed_provider, discovery = _fixture(tmp_path, monkeypatch)
+    fixed = fixed_provider()
+    image, parent, ledger = fixed.image, fixed.inference_image, fixed.ledger
+    fixed.close()
+
+    class Resolver:
+        inspected = 0
+        provisioned = 0
+
+        def __call__(self, _bundle):
+            pytest.fail("pre-admission image resolution ran")
+
+        def inspect_source(self, bundle):
+            self.inspected += 1
+            assert bundle.to_dict() == image.bundle_ref
+            return bundle
+
+        def provision_admitted(self, bundle, *, parent, cli):
+            del cli
+            self.provisioned += 1
+            assert bundle.to_dict() == image.bundle_ref
+            assert parent == image.parent
+            return image
+
+    resolver = Resolver()
+    tasks = DirectDevelopmentTasksV3(
+        root=tmp_path / "admitted-tasks",
+        requester="miner",
+        ledger=ledger,
+        owner="miner",
+        discovery=discovery,
+        image=None,
+        inference_image=parent,
+        image_resolver=resolver,
+    )
+    try:
+        started = tasks.start_research_task(request).task
+        assert started.state is research.DirectTaskStateV3.QUEUED
+        assert resolver.inspected == 1
+        assert resolver.provisioned == 0
+        with tasks._db() as db:
+            retained = db.execute(
+                "SELECT identity FROM direct_task_images WHERE id=?",
+                (started.task_id.value,),
+            ).fetchone()[0]
+        assert json.loads(retained) == ["BUNDLE_SOURCE", image.bundle_ref]
+
+        def claimed(*args, **kwargs):
+            assert resolver.provisioned == 1
+            assert type(kwargs["total_deadline_started"]) is float
+            return {"claimed": "success"}
+
+        monkeypatch.setattr(
+            bundle_construction_worker, "reconstruct_and_infer_public", claimed
+        )
+        ended = tasks.run_queued_task(started.task_id)
+        assert ended.state is research.DirectTaskStateV3.UNRESOLVED
+        with tasks._db() as db:
+            actual = db.execute(
+                "SELECT identity FROM direct_task_images WHERE id=?",
+                (started.task_id.value,),
+            ).fetchone()[0]
+        assert actual == tasks._image_binding(image)
+        assert actual != retained
+    finally:
+        tasks.close()
+
+
 def test_direct_v3_wire_and_durable_idempotency_refuse_changed_material(
     tmp_path, monkeypatch
 ):
