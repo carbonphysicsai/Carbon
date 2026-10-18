@@ -912,7 +912,11 @@ def test_incomplete_headers_cannot_hold_graceful_shutdown(monkeypatch):
             intake, {"host": "127.0.0.1", "port": 0}, stop=stop, ready=ready
         )
         assert time.monotonic() - started < 3
-        assert clients[0].recv(1) == b""
+        try:
+            closed = clients[0].recv(1)
+        except ConnectionResetError:
+            closed = b""
+        assert closed == b""
     finally:
         for client in clients:
             client.close()

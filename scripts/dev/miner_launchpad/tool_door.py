@@ -215,7 +215,9 @@ def _direct_task_projection(view, public_result=None):
         else (
             "completed"
             if state == "SUCCEEDED"
-            else "cancelled" if state == "CANCELLED" else "failed"
+            else "cancelled"
+            if state == "CANCELLED"
+            else "failed"
         )
     )
     return {
@@ -791,7 +793,7 @@ def runner_opener(host):
                     Path(host.configuration),
                     version=DIRECT_DEVELOPMENT_VERSIONS[campaign],
                 ) as (adapter, _selected):
-                    target = host.configured().get("direct_intake_target")
+                    target = host._configuration().get("direct_intake_target")
                     yield DirectToolsAttachment(adapter, target)
             except LockHeld:
                 raise Busy() from None
