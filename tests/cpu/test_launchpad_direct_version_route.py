@@ -378,7 +378,7 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
         _Verifier,
     )
 
-    from carbon.chain import auth
+    from carbon.chain import Participant, auth
     from carbon.registry import ChallengeKey
     from carbon.transport.gateway import AuthenticatedGateway
     from carbon.transport.store import ReceiptJournal
@@ -434,10 +434,17 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
             self.publisher = kwargs["publisher"]
             root = kwargs["root"]
             root.mkdir(parents=True, exist_ok=True)
-            self.snapshot = _snapshot(
-                sender=authenticated_hotkey,
+            snapshot = _snapshot(
+                sender=owner,
                 receiver=self.publisher,
                 context=self.chain_context,
+            )
+            self.snapshot = replace(
+                snapshot,
+                participants=(
+                    *snapshot.participants,
+                    Participant(2, "5" + "e" * 47, "other-cold", 2),
+                ),
             )
             self.service = SimpleNamespace(
                 gateway=AuthenticatedGateway(
