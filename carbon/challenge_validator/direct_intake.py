@@ -252,6 +252,17 @@ class DirectRecipeIntake(BatteryIntake):
         """Operator-only single-task progress; the HTTP route never invokes it."""
         return self.adapter.advance()
 
+    def retain_result(self, submission_id, *, artifact_directory, entry_directory):
+        """Operator-only post-outcome bank custody; never an HTTP route."""
+        from .lean_recipe_retention import retain_served_bundle_result
+
+        return retain_served_bundle_result(
+            self.adapter,
+            submission_id,
+            artifact_directory=artifact_directory,
+            entry_directory=entry_directory,
+        )
+
 
 def serve_loopback(
     intake: DirectRecipeIntake, config, *, stop, reader=None, ready=None
