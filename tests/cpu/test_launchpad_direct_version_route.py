@@ -367,9 +367,25 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
         "paths": {"miner_public": str(tmp_path / "public.json")},
         "direct_intake_target": target,
     }
+    from dataclasses import replace
+
+    from test_c08_authenticated_miner_mcp import (
+        CONTEXT,
+        NOW,
+        _Adapter,
+        _headers,
+        _snapshot,
+        _Verifier,
+    )
+
+    from carbon.chain import auth
+    from carbon.registry import ChallengeKey
+    from carbon.transport.gateway import AuthenticatedGateway
+    from carbon.transport.store import ReceiptJournal
+
     network = SimpleNamespace(
         netuid=standard_cli.CARBON_NETUID,
-        context=object(),
+        context=replace(CONTEXT, netuid=standard_cli.CARBON_NETUID),
         publisher_hotkey="5" + "c" * 47,
     )
     signer = object()
@@ -401,18 +417,57 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
         finally:
             events.append(("unlock", path))
 
+    authenticated_hotkey = owner
+
+    class FixtureSigner:
+        def __init__(self, _key):
+            pass
+
+        def sign(self, body, *, nonce_ns, **kwargs):
+            return _headers(body, nonce_ns, authenticated_hotkey)
+
     class Connection:
         def __init__(self, **kwargs):
-            self.challenge = SimpleNamespace(
-                challenge_id="synthetic-linear-field-2d", version="1.3"
-            )
+            self.challenge = ChallengeKey("synthetic-linear-field-2d", "1.3")
             self.miner_key = kwargs["miner_key"]
             self.chain_context = kwargs["chain_context"]
-            events.append(("connection", kwargs["root"]))
+            self.publisher = kwargs["publisher"]
+            root = kwargs["root"]
+            root.mkdir(parents=True, exist_ok=True)
+            self.snapshot = _snapshot(
+                sender=authenticated_hotkey,
+                receiver=self.publisher,
+                context=self.chain_context,
+            )
+            self.service = SimpleNamespace(
+                gateway=AuthenticatedGateway(
+                    self.chain_context,
+                    self.challenge,
+                    self.publisher,
+                    _Adapter(self.snapshot),
+                    _Verifier(),
+                    ReceiptJournal(root / "transport.sqlite3", self.chain_context),
+                    clock_ns=lambda: NOW,
+                )
+            )
+            events.append(("connection", root))
 
-    async def requester(connection, challenge):
+        async def check_registration(self):
+            return self.snapshot
+
+    actual_requester = standard_cli._requester
+
+    async def requester(connection, challenge, *, expected_hotkey):
+        assert expected_hotkey == owner
+        derived = await actual_requester(
+            connection, challenge, expected_hotkey=expected_hotkey
+        )
+        assert derived != owner
+        assert len(derived) == 64
         events.append(("registered", challenge))
-        return owner
+        return derived
+
+    monkeypatch.setattr(auth, "BittensorMessageSigner", FixtureSigner)
 
     monkeypatch.setattr(controller, "owner_lock", lock)
     monkeypatch.setattr(
@@ -455,10 +510,7 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
     assert no_receiver.value.code == "construction_intake_unconfigured"
     cfg["direct_intake_target"] = target
 
-    async def wrong_registration(connection, challenge):
-        return "5" + "e" * 47
-
-    monkeypatch.setattr(standard_cli, "_requester", wrong_registration)
+    authenticated_hotkey = "5" + "e" * 47
     with pytest.raises(standard_cli.AttachRefused) as changed_owner:
         asyncio.run(exercise())
     assert changed_owner.value.code == "campaign_owner_changed"

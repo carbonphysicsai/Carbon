@@ -698,8 +698,8 @@ def _gpu_image(root, runtime, role_root):
     return registered_gpu_image(root, runtime, role_root)
 
 
-async def _requester(connection, challenge=CHALLENGE):
-    """Use the existing signed gateway with a fresh bootstrap transmission ID."""
+async def _requester(connection, challenge=CHALLENGE, *, expected_hotkey=None):
+    """Authenticate a hotkey while preserving its derived A7 requester identity."""
     from carbon.chain.auth import BittensorMessageSigner
     from carbon.transport.models import message
 
@@ -725,7 +725,12 @@ async def _requester(connection, challenge=CHALLENGE):
     headers = BittensorMessageSigner(connection.miner_key).sign(
         body, receiver=connection.publisher, nonce_ns=time.time_ns()
     )
-    return (await connection.service.gateway.receive(body, headers)).requester.value
+    received = await connection.service.gateway.receive(body, headers)
+    if expected_hotkey is not None and received.receipt.hotkey != expected_hotkey:
+        raise AttachRefused(
+            "campaign_owner_changed", "authenticated direct owner changed"
+        )
+    return received.requester.value
 
 
 class _AdmittedConnection:
@@ -1601,10 +1606,10 @@ async def attached_remote_material_stage(configuration: Path):
             miner_key=signer,
         )
         with _check("registration_check_failed"):
-            owner = await _requester(connection, challenge=connection.challenge)
-        if owner != cfg["principal"]:
-            raise AttachRefused(
-                "campaign_owner_changed", "authenticated direct owner changed"
+            await _requester(
+                connection,
+                challenge=connection.challenge,
+                expected_hotkey=cfg["principal"],
             )
         yield connection, target
 
