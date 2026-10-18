@@ -430,7 +430,7 @@ jobs:
         env:
           CARBON_C03_JUNIT_PATH: ${{ runner.temp }}/development-image-custody-junit.xml
           CARBON_C03_TRACE_PATH: ${{ runner.temp }}/development-image-custody-traces.jsonl
-        run: ./scripts/dev/c03_worker_service.sh tests/cpu/test_development_image_artifact.py tests/cpu/test_development_candidate_implementation.py tests/cpu/test_miner_install.py tests/cpu/test_challenge_kit.py
+        run: ./scripts/dev/c03_worker_service.sh tests/cpu/test_development_image_artifact.py tests/cpu/test_development_candidate_implementation.py tests/cpu/test_miner_install.py tests/cpu/test_challenge_kit.py tests/cpu/test_direct_receiver.py
       - name: Build and export the exact DEVELOPMENT image pair
         env:
           CANDIDATE_SHA: ${{ needs.preflight.outputs.candidate_sha }}
