@@ -58,3 +58,37 @@ def test_registered_bundle_material_refuses_changed_public_source(tmp_path, chan
     target.write_bytes(target.read_bytes() + b"\n")
     with pytest.raises((challenge.MaterialMismatch, ValueError)):
         bundle_material(tmp_path)
+
+
+def test_battery_bundle_policy_matches_enforced_c03_and_refuses_reauthored_limit():
+    from carbon.development_session.bundle_construction_worker import (
+        verify_direct_resource_policy,
+    )
+    from carbon.development_session.construction_recipe import RecipeRefused
+    from carbon.development_session.profile import canonical, digest
+
+    material = bundle_material()
+    kit = material["construction_kit"]
+    binding = {
+        "challenge_id": kit["id"],
+        "challenge_version": kit["version"],
+        **{
+            key: kit[key]
+            for key in (
+                "train_digest",
+                "interface_digest",
+                "construction_limits_digest",
+            )
+        },
+    }
+    limits = material["construction_limits_document"]
+    assert (
+        verify_direct_resource_policy(binding, limits)
+        == kit["construction_limits_digest"]
+    )
+    limits["reconstruction_resource_policy"]["memory_bytes_max"] += 1
+    altered = {**binding, "construction_limits_digest": digest(canonical(limits))}
+    with pytest.raises(
+        RecipeRefused, match="construction_resource_policy_binding_invalid"
+    ):
+        verify_direct_resource_policy(altered, limits)

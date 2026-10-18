@@ -621,7 +621,7 @@ def _checked_binding(recipe: ConstructionRecipe, binding: dict) -> dict:
 
 
 def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
-    """Check a Challenge-owned synthetic policy against the actual C-03 lane.
+    """Check a registered Challenge policy against the actual C-03 lane.
 
     A request or operator profile cannot author this policy. The kit's pinned
     limits digest is checked first; the worker profile then proves these
@@ -646,7 +646,20 @@ def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
         and binding["challenge_version"] != binding["version"]
     ):
         raise RecipeRefused("construction_resource_policy_binding_invalid")
-    if version == "1.3":
+    expected_scope = "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"
+    resource_schema = "carbon.synthetic-linear-field-2d.reconstruction-resources.v1"
+    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
+
+    if type(binding) is dict and binding.get("challenge_id") == BATTERY_CHALLENGE:
+        from carbon.battery import challenge, construction_bundle_material
+
+        if version != challenge.CHALLENGE.version:
+            raise RecipeRefused("construction_resource_policy_binding_invalid")
+        trusted_limits = construction_bundle_material.construction_limits_document()
+        expected_schema = "carbon.battery.bundle-construction-limits.v1"
+        expected_scope = "PUBLIC_BATTERY_DEVELOPMENT_ONLY"
+        resource_schema = "carbon.battery.bundle-reconstruction-resources.v1"
+    elif version == "1.3":
         prospective = getattr(
             synthetic_linear_field_2d, "construction_limits_document_v3", None
         )
@@ -666,12 +679,12 @@ def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
         or _digest(canonical(limits_document))
         != binding.get("construction_limits_digest")
         or limits_document.get("schema") != expected_schema
-        or limits_document.get("scope") != "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"
+        or limits_document.get("scope") != expected_scope
     ):
         raise RecipeRefused("construction_resource_policy_binding_invalid")
     profile = _worker_profile(None, LIBRARY_BUILD_PROVENANCE).body
     expected = {
-        "schema": "carbon.synthetic-linear-field-2d.reconstruction-resources.v1",
+        "schema": resource_schema,
         "cpu_count_max": profile["cpu"]["count"],
         "memory_bytes_max": profile["memory"]["bytes"],
         "swap_bytes_max": profile["memory"]["swap_bytes"],
