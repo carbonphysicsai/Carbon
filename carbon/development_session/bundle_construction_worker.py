@@ -96,29 +96,41 @@ os.execv('/opt/carbon-worker/bin/python', ['python', '-I', '/input/program.py'])
 """
 
 BUILD_PROGRAM = r'''"""Fixed isolated source-bundle build; no judge or hidden data."""
-import hashlib, importlib, io, json, shutil, sys
+import hashlib, importlib, json, os, re, shutil, sys
 from pathlib import Path
 import numpy as np
 
 work = Path.cwd()
 out = work.parent / "output"
 for package in ("carbon", "carbon/challenge_validator", "carbon/level4",
-                "carbon/level4/tooling", "carbon/development_session"):
+                "carbon/level4/tooling", "carbon/development_session",
+                "carbon/battery", "carbon/reconstruction",
+                "carbon/reconstruction/worker", "carbon/registry"):
     folder = work / package
     folder.mkdir(parents=True, exist_ok=True)
-    (folder / "__init__.py").write_text("")
-for name in __STAGED_MODULES__:
+    if package != "carbon/registry":
+        (folder / "__init__.py").write_text("")
+control = json.loads((work / "control.json").read_bytes())
+codec_modules = control.get("codec_modules")
+if (type(codec_modules) is not list or len(codec_modules) != len(set(codec_modules))
+    or any(type(name) is not str or re.fullmatch(
+        r"carbon(?:\.[A-Za-z_][A-Za-z_0-9]*){1,5}", name) is None
+        for name in codec_modules)):
+    raise ValueError("bundle build codec module list differs")
+for name in (*__STAGED_MODULES__, *codec_modules):
     destination = work.joinpath(*name.split(".")).with_suffix(".py")
     shutil.copyfile(work / (name + ".py"), destination)
 sys.path.insert(0, str(work))
 
 from carbon.development_session.construction_recipe import ConstructionRecipe, bind_recipe
 from carbon.development_session.bundle_graph_state import freeze
+from carbon.development_session.construction_tensor_codec import (
+    input_tensor, requires_x64, train_tensors,
+)
+from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 from carbon.level4.allowlist import Allowlist
-from carbon.level4.tooling import lower_jax, lower_torch
 
 digest = lambda body: "sha256:" + hashlib.sha256(body).hexdigest()
-control = json.loads((work / "control.json").read_bytes())
 recipe = ConstructionRecipe.from_bytes((work / "recipe.json").read_bytes())
 if recipe.digest != control["recipe_digest"]:
     raise ValueError("bundle build recipe differs")
@@ -138,28 +150,17 @@ if overlay_digest is not None:
         or receipt.get('bundle_ref') != control['bundle_ref']):
         raise ValueError('bundle overlay binding differs')
     sys.path[0:0] = [str(overlay / 'source'), str(overlay / 'site-packages')]
-train_raw = (work / "train.npz").read_bytes()
-if digest(train_raw) != control["binding"]["train_digest"]:
-    raise ValueError("bundle build TRAIN differs")
-with np.load(io.BytesIO(train_raw), allow_pickle=False) as data:
-    if set(data.files) != {"inputs", "targets"}:
-        raise ValueError("bundle build TRAIN tensors differ")
-    train_inputs, train_targets = data["inputs"], data["targets"]
-if (train_inputs.dtype.kind not in "fiu" or train_targets.dtype.kind not in "fiu"
-    or not np.isfinite(train_inputs).all() or not np.isfinite(train_targets).all()
-    or train_inputs.ndim < 2 or train_targets.ndim < 2
-    or len(train_inputs) != len(train_targets) or len(train_inputs) < 1):
-    raise ValueError("bundle build TRAIN tensor contract differs")
+train_name = ("train.gz" if control["binding"]["challenge_id"] == BATTERY_CHALLENGE
+              else "train.npz")
+train_raw = (work / train_name).read_bytes()
+train_inputs, train_targets = train_tensors(train_raw, control["binding"])
 example_raw = (work / "example.npz").read_bytes()
-if digest(example_raw) != control["example_digest"]:
-    raise ValueError("bundle build example differs")
-with np.load(io.BytesIO(example_raw), allow_pickle=False) as data:
-    if set(data.files) != {"inputs"}:
-        raise ValueError("bundle build example contract differs")
-    example = data["inputs"]
-if (example.dtype.kind not in "fiu" or not np.isfinite(example).all()
-    or example.ndim < 2 or example.shape[1:] != train_inputs.shape[1:]):
+example = input_tensor(example_raw, control["example_digest"])
+if example.shape[1:] != train_inputs.shape[1:]:
     raise ValueError("bundle build example shape differs")
+if requires_x64(train_inputs, train_targets, example):
+    os.environ["JAX_ENABLE_X64"] = "1"
+from carbon.level4.tooling import lower_jax, lower_torch
 
 entry = recipe.to_dict()["procedure"]["entrypoint"]
 factory = getattr(importlib.import_module(entry["module"]), entry["name"])
@@ -215,7 +216,7 @@ state = freeze(recipe, doc, arrays, allowed)
 '''
 
 INFER_PROGRAM = r'''"""Fixed input-only graph inference; no source or TRAIN."""
-import hashlib, io, json, shutil, sys, time
+import hashlib, json, os, re, shutil, sys, time
 from pathlib import Path
 import numpy as np
 
@@ -226,19 +227,24 @@ for package in ("carbon", "carbon/challenge_validator", "carbon/level4",
     folder = work / package
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "__init__.py").write_text("")
-for name in __STAGED_MODULES__:
+control = json.loads((work / "control.json").read_bytes())
+codec_modules = control.get("codec_modules")
+if (type(codec_modules) is not list or len(codec_modules) != len(set(codec_modules))
+    or any(type(name) is not str or re.fullmatch(
+        r"carbon(?:\.[A-Za-z_][A-Za-z_0-9]*){1,5}", name) is None
+        for name in codec_modules)):
+    raise ValueError("bundle inference codec module list differs")
+for name in (*__STAGED_MODULES__, *codec_modules):
     destination = work.joinpath(*name.split(".")).with_suffix(".py")
     shutil.copyfile(work / (name + ".py"), destination)
 sys.path.insert(0, str(work))
 
 from carbon.development_session.construction_recipe import ConstructionRecipe, bind_recipe
 from carbon.development_session.bundle_graph_state import load
+from carbon.development_session.construction_tensor_codec import input_tensor, requires_x64
 from carbon.level4.allowlist import Allowlist
-from carbon.level4.interpret import rebuild
-import jax.numpy as jnp
 
 digest = lambda body: "sha256:" + hashlib.sha256(body).hexdigest()
-control = json.loads((work / "control.json").read_bytes())
 recipe = ConstructionRecipe.from_bytes((work / "recipe.json").read_bytes())
 if recipe.digest != control["recipe_digest"]:
     raise ValueError("bundle inference recipe differs")
@@ -256,14 +262,11 @@ if measure:
     preprocess_start = time.perf_counter()
 doc, parameters = load(state, recipe, allowed)
 raw_inputs = (work / "inputs.npz").read_bytes()
-if digest(raw_inputs) != control["inputs_digest"]:
-    raise ValueError("bundle inference inputs differ")
-with np.load(io.BytesIO(raw_inputs), allow_pickle=False) as data:
-    if set(data.files) != {"inputs"}:
-        raise ValueError("bundle inference input contract differs")
-    inputs = data["inputs"]
-if inputs.dtype.kind not in "fiu" or not np.isfinite(inputs).all():
-    raise ValueError("bundle inference nonfinite inputs")
+inputs = input_tensor(raw_inputs, control["inputs_digest"])
+if requires_x64(inputs, control.get("expected_output_dtype") or inputs.dtype):
+    os.environ["JAX_ENABLE_X64"] = "1"
+from carbon.level4.interpret import rebuild
+import jax.numpy as jnp
 declared = doc["graphs"][doc["entry"]]["inputs"]
 if (len(declared) != len(parameters) + 1
     or declared[-1]["name"] != control.get("input_name", "inputs/x")):
@@ -665,13 +668,21 @@ def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
     return binding["construction_limits_digest"]
 
 
-def _stage_modules() -> dict[str, bytes]:
+def _stage_modules(
+    binding: dict, *, training: bool
+) -> tuple[dict[str, bytes], list[str]]:
+    from .construction_tensor_codec import worker_module_files
+
     root = Path(__file__).resolve().parents[2]
     files = {
         name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
         for name in STAGED_MODULES
     }
-    return files
+    codec_files = worker_module_files(binding, training=training)
+    if any(name in files and files[name] != raw for name, raw in codec_files.items()):
+        raise RecipeRefused("bundle_worker_module_closure_changed")
+    files.update(codec_files)
+    return files, sorted(name.removesuffix(".py") for name in codec_files)
 
 
 def _trusted_allowlist(raw: bytes):
@@ -769,11 +780,16 @@ def reconstruct_public(
         verify_direct_resource_policy(binding, limits_document)
     allowed = _trusted_allowlist(allowlist_bytes)
     example_bytes = _tensors(inputs=example)
-    files = _stage_modules()
+    files, codec_modules = _stage_modules(binding, training=True)
+    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
+
+    train_name = (
+        "train.gz" if binding["challenge_id"] == BATTERY_CHALLENGE else "train.npz"
+    )
     files.update(
         {
             "recipe.json": recipe.canonical_bytes,
-            "train.npz": train,
+            train_name: train,
             "example.npz": example_bytes,
             "allowlist.json": allowlist_bytes,
             "control.json": json.dumps(
@@ -786,6 +802,7 @@ def reconstruct_public(
                         else {}
                     ),
                     "binding": binding,
+                    "codec_modules": codec_modules,
                     "example_digest": _digest(example_bytes),
                     "allowlist_digest": allowed.digest,
                     "seed": seed,
@@ -1079,10 +1096,11 @@ def _infer_state(
         raise RecipeRefused("direct_inference_provenance_invalid")
     allowed = _trusted_allowlist(allowlist_bytes)
     inputs_bytes = _tensors(inputs=inputs)
-    files = _stage_modules()
+    files, codec_modules = _stage_modules(binding, training=False)
     control = {
         "recipe_digest": recipe.digest,
         "binding": binding,
+        "codec_modules": codec_modules,
         "state_digest": state_digest,
         "inputs_digest": _digest(inputs_bytes),
         "allowlist_digest": allowed.digest,
@@ -1107,7 +1125,7 @@ def _infer_state(
             ).encode(),
         }
     )
-    if "train.npz" in files or "source.tar.gz" in files:
+    if "train.npz" in files or "train.gz" in files or "source.tar.gz" in files:
         raise ValueError("inference stage contains construction material")
 
     def checked(snapshot: Path):

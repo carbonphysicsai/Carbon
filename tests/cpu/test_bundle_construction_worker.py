@@ -252,8 +252,9 @@ def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_on
     train = _tensors(inputs=x, targets=3 * x)
     example = _tensors(inputs=x)
     recipe = _recipe(_digest(train))
+    binding = _binding(recipe)
     allowed = allowlist.load(Path(allowlist.PATH).with_name("allowlist_v2.json"))
-    build_files = _stage_modules()
+    build_files, build_modules = _stage_modules(binding, training=True)
     build_files.update(
         {
             "recipe.json": recipe.canonical_bytes,
@@ -264,7 +265,8 @@ def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_on
                 {
                     "recipe_digest": recipe.digest,
                     "bundle_ref": recipe.to_dict()["source"]["bundle_ref"],
-                    "binding": _binding(recipe),
+                    "binding": binding,
+                    "codec_modules": build_modules,
                     "example_digest": _digest(example),
                     "allowlist_digest": allowed.digest,
                     "seed": 7,
@@ -304,7 +306,7 @@ def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_on
     assert (rebuilt_work.parent / "output/state.npz").read_bytes() == state
 
     requested = _tensors(inputs=np.asarray([[5.0, 6.0], [7.0, 8.0]], dtype=np.float32))
-    infer_files = _stage_modules()
+    infer_files, infer_modules = _stage_modules(binding, training=False)
     infer_files.update(
         {
             "recipe.json": recipe.canonical_bytes,
@@ -314,7 +316,8 @@ def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_on
             "control.json": json.dumps(
                 {
                     "recipe_digest": recipe.digest,
-                    "binding": _binding(recipe),
+                    "binding": binding,
+                    "codec_modules": infer_modules,
                     "state_digest": _digest(state),
                     "inputs_digest": _digest(requested),
                     "allowlist_digest": allowed.digest,
@@ -343,3 +346,78 @@ def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_on
     np.testing.assert_allclose(predictions, [[15.0, 18.0], [21.0, 24.0]])
     receipt = json.loads((infer_work.parent / "output/receipt.json").read_bytes())
     assert receipt["state_digest"] == build_receipt["state_digest"]
+
+
+def test_fixed_bundle_build_decodes_pinned_battery_train_before_source_factory(
+    tmp_path,
+):
+    from carbon.battery import challenge, construction_kit
+    from carbon.development_session.construction_tensor_codec import train_tensors
+
+    repository = Path(__file__).resolve().parents[2]
+    train = (repository / challenge.TRAIN_V1_PATH).read_bytes()
+    kit = construction_kit.construction_kit()
+    x, _targets = train_tensors(
+        train,
+        {
+            "challenge_id": kit["id"],
+            "challenge_version": kit["version"],
+            "train_digest": kit["train_digest"],
+            "interface_digest": kit["interface_digest"],
+            "construction_limits_digest": kit["construction_limits_digest"],
+        },
+    )
+    recipe_body = _recipe(kit["train_digest"]).to_dict()
+    recipe_body["challenge"] = kit
+    recipe_body["output"]["interface_digest"] = kit["interface_digest"]
+    recipe = ConstructionRecipe.from_dict(recipe_body)
+    binding = _binding(recipe)
+    files, modules = _stage_modules(binding, training=True)
+    assert "carbon.battery.construction_material.py" in files
+    example = _tensors(inputs=x[:1])
+    allowed = allowlist.load(Path(allowlist.PATH).with_name("allowlist_v2.json"))
+    files.update(
+        {
+            "recipe.json": recipe.canonical_bytes,
+            "train.gz": train,
+            "example.npz": example,
+            "allowlist.json": allowed.raw,
+            "control.json": json.dumps(
+                {
+                    "recipe_digest": recipe.digest,
+                    "bundle_ref": recipe.to_dict()["source"]["bundle_ref"],
+                    "binding": binding,
+                    "codec_modules": modules,
+                    "example_digest": _digest(example),
+                    "allowlist_digest": allowed.digest,
+                    "seed": 7,
+                },
+                sort_keys=True,
+            ).encode(),
+        }
+    )
+    library = tmp_path / "installed-library"
+    candidate = library / "candidate"
+    candidate.mkdir(parents=True)
+    (candidate / "__init__.py").write_text("")
+    (candidate / "build.py").write_text(
+        "import os\n"
+        "def build(train_inputs, train_targets, *, seed, configuration, train_use):\n"
+        "    assert train_inputs.shape == (400, 4)\n"
+        "    assert train_targets.shape == (400, 247)\n"
+        "    assert str(train_inputs.dtype) == str(train_targets.dtype) == 'float64'\n"
+        "    assert os.environ.get('JAX_ENABLE_X64') == '1'\n"
+        "    raise ValueError('BATTERY_CODEC_REACHED_FACTORY')\n"
+    )
+    work = _stage(tmp_path / "battery-build", files)
+    run = subprocess.run(
+        [sys.executable, "-c", BUILD_PROGRAM],
+        cwd=work,
+        env={**os.environ, "PYTHONPATH": str(library)},
+        capture_output=True,
+        text=True,
+        timeout=90,
+        check=False,
+    )
+    assert run.returncode != 0
+    assert "BATTERY_CODEC_REACHED_FACTORY" in run.stderr
