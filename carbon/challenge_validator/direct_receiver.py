@@ -235,21 +235,29 @@ def installed_source(profile_path: Path):
     if implementation is None:
         implementation = accepted_implementation(cfg["accepted_revision"])
     paths = {name: Path(value) for name, value in cfg["paths"].items()}
+    gpu_image_path = cfg.get("gpu_image")
     if development_candidate:
         worker = load_image_identity(paths["image_manifest"])
         verify_current_worker(worker, implementation)
         analysis = load_analysis_image(paths["analysis_image_manifest"])
         verify_image(analysis)
-        if (
-            analysis.parent_image != worker.image_id
-            or cfg["runtime"].get("images") != [worker.image_id, analysis.image_id]
-            or type(cfg.get("gpu_image")) is not str
-        ):
+        if analysis.parent_image != worker.image_id or cfg["runtime"].get("images") != [
+            worker.image_id,
+            analysis.image_id,
+        ]:
             raise ValueError("development candidate installed images differ")
-    parent = load_image_identity(Path(cfg.get("gpu_image", paths["image_manifest"])))
-    verify_current_worker(parent, implementation)
-    if gpu_image_backend(parent) not in {"jax", "pytorch"}:
-        raise ValueError("installed direct parent backend is unregistered")
+    if gpu_image_path is None:
+        if not development_candidate or "gpu_research" in cfg["runtime"]:
+            raise ValueError("installed GPU parent required for direct development")
+        # The verified candidate's C-03 worker is the CPU direct parent.
+        parent = worker
+    else:
+        if type(gpu_image_path) is not str:
+            raise ValueError("installed GPU parent required for direct development")
+        parent = load_image_identity(Path(gpu_image_path))
+        verify_current_worker(parent, implementation)
+        if gpu_image_backend(parent) not in {"jax", "pytorch"}:
+            raise ValueError("installed direct parent backend is unregistered")
     if not doctor(image_id=parent.image_id, image_identity=parent).eligible:
         raise ReceiverUnavailable("installed_reconstruction_worker_unavailable")
     network = binding(

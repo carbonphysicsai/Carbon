@@ -167,16 +167,41 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
         "gpu_image_backend",
         lambda image: "jax" if image is gpu else None,
     )
+    checked_images = []
     monkeypatch.setattr(
         docker_runtime,
         "doctor",
-        lambda **_: SimpleNamespace(eligible=True),
+        lambda **kwargs: checked_images.append(kwargs["image_identity"])
+        or SimpleNamespace(eligible=True),
     )
     monkeypatch.setattr(miner_network, "binding", lambda **_: "installed-network")
     implementation, parent, network, cache = receiver.installed_source(profile)
     assert (implementation, parent, network) == (candidate, gpu, "installed-network")
     assert cache == campaigns / ".direct-development" / "library-cache"
     assert calls == [("candidate", state)]
+
+    # Normal CPU Review records a present null GPU path. The same pinned base
+    # worker is the parent; no unregistered GPU image is admitted by fallback.
+    cfg["gpu_image"] = None
+    implementation, parent, network, _ = receiver.installed_source(profile)
+    assert (implementation, parent, network) == (
+        candidate,
+        worker,
+        "installed-network",
+    )
+    assert checked_images[-1] is worker
+    del cfg["gpu_image"]
+    implementation, parent, _, _ = receiver.installed_source(profile)
+    assert (implementation, parent) == (candidate, worker)
+    cfg["runtime"]["gpu_research"] = ["declared"]
+    with pytest.raises(ValueError, match="installed GPU parent required"):
+        receiver.installed_source(profile)
+    del cfg["runtime"]["gpu_research"]
+    cfg["gpu_image"] = 7
+    with pytest.raises(ValueError, match="installed GPU parent required"):
+        receiver.installed_source(profile)
+    calls[:] = [("candidate", state)]
+    cfg["gpu_image"] = str(tmp_path / "gpu.json")
 
     # The source-matched CPU worker is not a registered direct GPU parent.
     monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _: None)
@@ -212,6 +237,10 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
     cfg["runtime"]["images"] = [worker.image_id, analysis.image_id]
     gpu.source_tree_digest = accepted["source_tree_digest"]
     monkeypatch.setattr(installed, "candidate_implementation", lambda _: None)
+    cfg["gpu_image"] = None
+    with pytest.raises(ValueError, match="installed GPU parent required"):
+        receiver.installed_source(profile)
+    cfg["gpu_image"] = str(tmp_path / "gpu.json")
     implementation, parent, _, _ = receiver.installed_source(profile)
     assert (implementation, parent) == (accepted, gpu)
     assert calls[-1] == ("accepted", accepted["revision"])
