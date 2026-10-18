@@ -40,6 +40,40 @@ def _legacy_modules():
     from .core import LabRefused, analyze, registry_rule, v2_rule
 
 
+_LEGACY_EXPORTS = frozenset(
+    {
+        "bank",
+        "bank_builder",
+        "campaign_atlas",
+        "campaign_feedback",
+        "campaign_gate",
+        "campaign_goodhart",
+        "campaign_reference",
+        "campaign_robustness",
+        "campaign_sobol",
+        "campaign_stress",
+        "campaign_sweep",
+        "candidates",
+        "physics",
+        "public_ev4",
+        "public_physics",
+        "synthetic",
+        "LabRefused",
+        "analyze",
+        "registry_rule",
+        "v2_rule",
+    }
+)
+
+
+def __getattr__(name):
+    """Preserve legacy CLI module aliases without loading them for benchmark."""
+    if name not in _LEGACY_EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    _legacy_modules()
+    return globals()[name]
+
+
 def _load_rule(args):
     if args.candidates:
         return None  # loaded as a set after the panels are built
