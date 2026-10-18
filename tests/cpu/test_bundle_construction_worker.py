@@ -516,3 +516,67 @@ def test_large_valid_native_artifact_does_not_add_a_model_admission_cap(tmp_path
     )
     assert result["reason_code"] == "comparison_resource_bound"
     assert "pass" not in result
+
+
+def test_frozen_inference_preserves_wide_internal_math_with_float32_io(tmp_path):
+    import jax
+    import jax.numpy as jnp
+
+    from carbon.development_session.bundle_graph_state import freeze
+    from carbon.level4.tooling import lower_jax
+
+    allowed = allowlist.load(Path(allowlist.PATH).with_name("allowlist_v2.json"))
+    x = np.zeros((2, 2), dtype=np.float32)
+    recipe = _recipe(_sha("a"))
+    binding = _binding(recipe)
+
+    def original(values):
+        wide = values.astype(jnp.float64)
+        return ((wide + 16777217.0) - 16777216.0).astype(jnp.float32)
+
+    with jax.enable_x64():
+        traced = lower_jax.trace(original, jnp.asarray(x))
+        document = lower_jax.lower(
+            traced, role="forward", allowlist=allowed, input_names=["inputs/x"]
+        )
+        state = freeze(recipe, document, [], allowed)
+        expected = np.asarray(original(jnp.asarray(x)))
+    assert np.all(expected == 1.0)
+    requested = _tensors(inputs=x)
+    files, modules = _stage_bundle_modules(binding, training=False)
+    files.update(
+        {
+            "recipe.json": recipe.canonical_bytes,
+            "state.npz": state,
+            "inputs.npz": requested,
+            "allowlist.json": allowed.raw,
+            "control.json": json.dumps(
+                {
+                    "recipe_digest": recipe.digest,
+                    "binding": binding,
+                    "codec_modules": modules,
+                    "state_digest": _digest(state),
+                    "inputs_digest": _digest(requested),
+                    "allowlist_digest": allowed.digest,
+                    "expected_output_shape": [2, 2],
+                    "expected_output_dtype": "float32",
+                }
+            ).encode(),
+        }
+    )
+    work = _stage(tmp_path / "wide-infer", files)
+    result = subprocess.run(
+        [sys.executable, "-c", INFER_PROGRAM],
+        cwd=work,
+        env={**os.environ, "JAX_ENABLE_X64": "0"},
+        capture_output=True,
+        text=True,
+        timeout=90,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    actual = np.asarray(
+        json.loads((work.parent / "output/predictions.json").read_bytes())
+    )
+    np.testing.assert_array_equal(actual, expected)
+    assert "train.npz" not in files and "candidate.build.py" not in files

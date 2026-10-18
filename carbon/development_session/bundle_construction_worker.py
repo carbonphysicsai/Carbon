@@ -272,7 +272,20 @@ if measure:
 doc, parameters = load(state, recipe, allowed)
 raw_inputs = (work / "inputs.npz").read_bytes()
 inputs = input_tensor(raw_inputs, control["inputs_digest"])
-if requires_x64(inputs, control.get("expected_output_dtype") or inputs.dtype):
+pending = [doc]
+graph_x64 = False
+while pending:
+    value = pending.pop()
+    if type(value) is dict:
+        if value.get("dtype") in ("float64", "int64", "uint64", "complex128"):
+            graph_x64 = True
+            break
+        pending.extend(value.values())
+    elif type(value) is list:
+        pending.extend(value)
+if graph_x64 or requires_x64(
+    inputs, control.get("expected_output_dtype") or inputs.dtype, *parameters
+):
     os.environ["JAX_ENABLE_X64"] = "1"
 from carbon.level4.interpret import rebuild
 import jax.numpy as jnp
