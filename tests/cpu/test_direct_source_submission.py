@@ -16,7 +16,9 @@ from carbon.development_session.direct_submission import DirectIntakeRefusal
 from carbon.level4 import staging
 
 
-def test_bundle_uploader_refuses_graph_before_material_or_network(tmp_path, monkeypatch):
+def test_bundle_uploader_refuses_graph_before_material_or_network(
+    tmp_path, monkeypatch
+):
     def unexpected(*_args, **_kwargs):
         pytest.fail("graph refusal must precede material access and network")
 
