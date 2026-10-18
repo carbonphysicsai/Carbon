@@ -998,17 +998,25 @@ def main(argv=None):
         print(json.dumps({"unavailable": code}), flush=True)
         return 1
     if retention is not None:
+        reported = {
+            "schema": SCHEMA,
+            "state": "RETAINED",
+            "status": result["status"],
+            "entry_id": result["entry_id"],
+            "score_state": result["score_state"],
+            "official_eligible": result["official_eligible"],
+        }
+        if "measurement_state" in result:
+            state = result["measurement_state"]
+            if state not in ("DEVELOPMENT_UNRANKED", "UNAVAILABLE"):
+                print(
+                    json.dumps({"unavailable": "direct_receiver_unavailable"}),
+                    flush=True,
+                )
+                return 1
+            reported["measurement_state"] = state
         print(
-            json.dumps(
-                {
-                    "schema": SCHEMA,
-                    "state": "RETAINED",
-                    "status": result["status"],
-                    "entry_id": result["entry_id"],
-                    "score_state": result["score_state"],
-                    "official_eligible": result["official_eligible"],
-                }
-            ),
+            json.dumps(reported),
             flush=True,
         )
         return 0

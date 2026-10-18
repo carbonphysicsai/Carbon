@@ -640,6 +640,48 @@ def test_main_one_shot_retention_uses_operator_paths_and_reports_only_bank_statu
     assert calls == [(tmp_path / "config.json", (task_id, artifacts, entries))] * 2
 
 
+@pytest.mark.parametrize(
+    "measurement_state,expected_code",
+    (("DEVELOPMENT_UNRANKED", 0), ("UNAVAILABLE", 0), ({"raw": "secret"}, 1)),
+)
+def test_operator_retention_reports_only_closed_optional_measurement_state(
+    tmp_path, monkeypatch, capsys, measurement_state, expected_code
+):
+    monkeypatch.setattr(
+        receiver,
+        "serve",
+        lambda *_args, **_kwargs: {
+            "status": "CREATED",
+            "entry_id": "entry-verified",
+            "score_state": "NOT_COMPUTED",
+            "official_eligible": False,
+            "measurement_state": measurement_state,
+            "sidecar": {"raw": "secret"},
+        },
+    )
+    monkeypatch.setattr(receiver.signal, "signal", lambda *_: None)
+    code = receiver.main(
+        [
+            "--config",
+            str(tmp_path / "config.json"),
+            "--retain-task",
+            "rtsk_" + "a" * 64,
+            "--artifact-directory",
+            str(tmp_path / "artifacts"),
+            "--entry-directory",
+            str(tmp_path / "entries"),
+        ]
+    )
+    assert code == expected_code
+    reported = json.loads(capsys.readouterr().out)
+    assert "secret" not in json.dumps(reported)
+    if expected_code == 0:
+        assert reported["measurement_state"] == measurement_state
+        assert reported["score_state"] == "NOT_COMPUTED"
+    else:
+        assert reported == {"unavailable": "direct_receiver_unavailable"}
+
+
 @pytest.mark.parametrize("reason", ["owned_task_unavailable", "task_not_succeeded"])
 def test_main_one_shot_retention_reports_only_closed_refusal(
     tmp_path, monkeypatch, capsys, reason
