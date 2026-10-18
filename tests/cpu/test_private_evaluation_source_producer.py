@@ -5,6 +5,7 @@ import json
 from copy import deepcopy
 
 import pytest
+from test_private_dual_evaluation_evidence import inert_dual_graph_case
 from test_score_lab_private_evaluation_evidence import _graph_case, _source_receipt
 
 from carbon.challenge_validator.evaluation_pack import (
@@ -173,7 +174,7 @@ def test_cross_challenge_or_wrong_case_originals_refuse(tmp_path):
 
 
 def _dual_case(tmp_path):
-    case = _graph_case(tmp_path)
+    case = inert_dual_graph_case(tmp_path)
     producer = _sha(b"synthetic-carbon-producer")
     public = {
         role: {"path": role + ".bin", "sha256": _sha(role.encode())}
