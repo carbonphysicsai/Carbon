@@ -1,0 +1,732 @@
+{
+ "schema": "carbon.reference-triage.frozen-decks.v1",
+ "ticket": "F08-SCIENCE-VALUES-01 bank freeze",
+ "authority": "DEVELOPMENT bank; no LIVE, reward or spend",
+ "image": "sha256:16869c9cb7f14994f3bed3152809efdec14c5b3ec1849730d7b6c8f689d9642b",
+ "mesh_image_f08": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+ "bank": {
+  "registration_digest": "sha256:7ffe292a6a0b1120a9770f58bb06ce1ac175c4fa981ba23394218ebe878c8fbe",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "count": 8,
+  "h_mm": 3.0,
+  "modes": 48,
+  "seed": 0,
+  "role": "pilot",
+  "Q_geometry": "explicit action list",
+  "excluded_manifests": []
+ },
+ "cases": [
+  {
+   "family": "f08",
+   "case": "pilot-0000",
+   "reservation": "pilot",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 51800,
+    "elements": 28554
+   },
+   "estimate_cpu_s": 171.8,
+   "estimate_wall_s": 214.7,
+   "estimate_mem_mib": 1308,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:1fe588f1e73e440acbc5e3aedfe542ec5248a7a41cd24dbb3b10667583ac5bf2",
+   "files": {
+    "case.inp": "c9ebb791fa625cdb5c88442a95c3fea1ef8fdd71a6b66dab6600d34b671a6636",
+    "deck.json": "95fc9fad1ad9c56104678fd068faa767bc34db5aea47fca1c3c6ec143b7a6485",
+    "make_mesh.py": "ef6d7ddc6ca10af04e50583b571d52aad9a4d248b52fc273ff587a2092312627",
+    "mesh.inp": "4c7c992d34e0d61dd02d889942d6f35e5dde04e007028ab95893ff5844e7286e",
+    "mesh.json": "7a5b041819a811610833c74b0ba49bf6eb4460410b3fa9010136a70d769a4e67"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0001",
+   "reservation": "pilot",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 54281,
+    "elements": 30434
+   },
+   "estimate_cpu_s": 184.4,
+   "estimate_wall_s": 230.5,
+   "estimate_mem_mib": 1374,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 8.0,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:f3a6ca62b3d23afac80e5b669aa63f88c03dcc0644d8648fc4636a8e98476b3e",
+   "files": {
+    "case.inp": "cae8d9f010dd713850be19b5aa470352fb975f770828c5379f243a976d404dfe",
+    "deck.json": "c5cdd1602ba214d946469d4ac2bf9e5e2354c1bf8ccada1d970c9c576b674d49",
+    "make_mesh.py": "dbf83b9c03f02cac1bcea4e186d71283a2d12110242ca71d99bae1bfc8ae173c",
+    "mesh.inp": "e79fe7c461fa188737c6b6943aedd87e8eac53020b84f334a0327597da3a9c00",
+    "mesh.json": "16744e01e3e968d22e4f35f5d428e0c5ea2ebfc66b17aaa5ca52dab7a5e6dc78"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0002",
+   "reservation": "pilot",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 49675,
+    "elements": 27277
+   },
+   "estimate_cpu_s": 161.2,
+   "estimate_wall_s": 201.5,
+   "estimate_mem_mib": 1252,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 85.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:2ea09e9830a9dc74ab4214e3b7d3eca050cd989d57f3daa6eb55ffa7355cc424",
+   "files": {
+    "case.inp": "bb1456c929e95b6ebdd3bbd9c415dd66c1a7512b7db547d89f96df1d79d6c14b",
+    "deck.json": "61bea9a525e40aca9a4aca11c976b4120f28452ac20e9416cba6c2cc80761b86",
+    "make_mesh.py": "4337b47a944a17093a605884f5d65c15393db34643e1020d599e9f13cf2f1ced",
+    "mesh.inp": "3f17d8da5bda9794efce3d508f733002bbc135f9565bc25534ea09f29a0137b7",
+    "mesh.json": "48e6d08ba4a8bbd09cfe9ee5b37072035591c14b5700330afde03eb81328be95"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0003",
+   "reservation": "pilot",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 54811,
+    "elements": 30320
+   },
+   "estimate_cpu_s": 187.2,
+   "estimate_wall_s": 234.0,
+   "estimate_mem_mib": 1388,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 95.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:0e9fa5c2c4fcdf5644dc270e1f41e6571ed06b41001807092b011ef301a0863c",
+   "files": {
+    "case.inp": "c36f270a02c7f316a4499fb068d5d191328d38260613a08b2d075ecd32dc44cb",
+    "deck.json": "61ca6698f4dd333a4990d544457ee9b7ed90a8a123e44839370e3b78e91461f8",
+    "make_mesh.py": "39bdc3c93ab934ce32876369cbe8a4a01ba43b8ac61a7f35fbccb516454e5e5d",
+    "mesh.inp": "48c186a92cc3f23f4511a1f5ba259b574bef146c36c84c383c65c3dac97405d8",
+    "mesh.json": "e5aaf4c44a4e2d20b3b11430d07e74bb313f416d61b12b7266fc8906f9234cc2"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0004",
+   "reservation": "pilot",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 53160,
+    "elements": 29317
+   },
+   "estimate_cpu_s": 178.7,
+   "estimate_wall_s": 223.4,
+   "estimate_mem_mib": 1344,
+   "action": {
+    "length_mm": 185.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:00f9e9d68553c93702b6301b109c8a550e828e3f5708fb0ad465167fbdd72e23",
+   "files": {
+    "case.inp": "13888e40b77a6643f89432f9b59f13796a1502a89b00be96a1d41931874a08b7",
+    "deck.json": "eec7901650c7cdcffb8f4d40e99527b4b5cc16ebc440c173fbaed115f906daa5",
+    "make_mesh.py": "c637bf62a5ce23ff76350e10049975517cec1fa16633d0eb9603788dc7ba0a3c",
+    "mesh.inp": "79d02bd0d57a440e33990793bc65389102be7d2556ad505fb70c0f3dc8ce01ba",
+    "mesh.json": "9a9be84d2c5160a9c6970b457020fa6417bb76578fa4a47f8f3c0762dcc98c2d"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0005",
+   "reservation": "pilot",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 51036,
+    "elements": 28173
+   },
+   "estimate_cpu_s": 168.0,
+   "estimate_wall_s": 209.9,
+   "estimate_mem_mib": 1288,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 15.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:21a1dbd4bc6cca5497250f9fe97af51485e774d5f6368c250886e02515dc176a",
+   "files": {
+    "case.inp": "ab8671d43d51789f0e5ef08fe1d1212283451a226729610b8155f9a4c7212a78",
+    "deck.json": "e5c544bb6fe62c788c3d8c25f19320ee1522dc9186f860f81e21f45b73c386ae",
+    "make_mesh.py": "f5958fe12264b4478f7904db3ddb797dea1e43bd6f41f6895bfffb63cd3e3e73",
+    "mesh.inp": "53d4df0c8c34fc33a5fc508c04937d2057cece1e64f2ff9721c59a2523762cc4",
+    "mesh.json": "6ecdc7c5c03a128459b814f2b3140de05f8ec0ce79aa2aa703ac129b6eb744d8"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0006",
+   "reservation": "pilot",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 51780,
+    "elements": 28584
+   },
+   "estimate_cpu_s": 171.7,
+   "estimate_wall_s": 214.6,
+   "estimate_mem_mib": 1308,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 5.0,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:a8d33ad717f763df13887f3e08837d60ed5474194940772c0359e7d72ba726ca",
+   "files": {
+    "case.inp": "749fdb471fe1318b3836f2d835fe04af246bccd1d6d07b3db10ebdf5fb8e4321",
+    "deck.json": "b5a164405d77cdfc6bf347d237df7557c5f93580ca317c956c93554d1c57d1b2",
+    "make_mesh.py": "bbf3d489b6af44f51a819339715f2f9e5e3ecc4d3fd78d89bce239b8e91b65b7",
+    "mesh.inp": "7d32060f1c62c5bb627ea65db3d8aad5880f05c80ef5056431e47eafe4963bd8",
+    "mesh.json": "1ff84b592afcdf01b00b54fe5657a18996074714aea81d8676f0a820588d369e"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0007",
+   "reservation": "pilot",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 51828,
+    "elements": 28581
+   },
+   "estimate_cpu_s": 171.9,
+   "estimate_wall_s": 214.9,
+   "estimate_mem_mib": 1309,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 30.0
+   },
+   "action_digest": "sha256:91e91f8dfb25ca3d446ba0c99f0685285bebc0fdd9118f3a48b73f87bce8ce77",
+   "files": {
+    "case.inp": "2615c0a2a2b8f34ab79bbe9b6fd38600074d18bdfdf19edd6af43e0ddc05da0a",
+    "deck.json": "ef45b31ce2044e5dc7d22e3d68226bb75ca3982c0ad619ae67126fab016ecb6b",
+    "make_mesh.py": "3fefc471e04922b32674c5e16ca7e17482f928d279a7bb4dde22c5f16340df4a",
+    "mesh.inp": "5089c9b9447144f4e223e329ec4439855e5d1e7a0cefaaac47ee9d131856e3ae",
+    "mesh.json": "4c272045459a298cdc42526c86d5921350a8210ad4a95378405797ca46a148e8"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0000-h2.25",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 118052,
+    "elements": 70782
+   },
+   "estimate_cpu_s": 600.2,
+   "estimate_wall_s": 750.3,
+   "estimate_mem_mib": 3149,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:1fe588f1e73e440acbc5e3aedfe542ec5248a7a41cd24dbb3b10667583ac5bf2",
+   "files": {
+    "case.inp": "3cc4d56071ed14b4f4eb27fdbaf1255ea979ec87a95ffc9821011e5c01405a60",
+    "deck.json": "ccb109510d5df4771813755720a0ff1728812af66c4edb8780ac65cea4f38372",
+    "make_mesh.py": "69986de9a387ab4ccf902fcc637bf1d6ea17a6b23ccc43fdbe4d9d5e0a577318",
+    "mesh.inp": "ab5a9a5fc8e82cda1efc52111816497ae7a19b59f5ddf43b4d7b188ba8a442dc",
+    "mesh.json": "3a85cf041eff7fc53a7f35147b847beef68528c076eb731e8cdf1f0eeef62538"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0000-h1.7",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 234398,
+    "elements": 146462
+   },
+   "estimate_cpu_s": 1700.9,
+   "estimate_wall_s": 2126.2,
+   "estimate_mem_mib": 6636,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:1fe588f1e73e440acbc5e3aedfe542ec5248a7a41cd24dbb3b10667583ac5bf2",
+   "files": {
+    "case.inp": "df6964ed49f4bffd05a11c46492dfd3a2000c54cffb411492c30047849ef1564",
+    "deck.json": "99807cc08f2676ae1d6487dc2d53803787c28a84c3f51da4fcab323d506fcb86",
+    "make_mesh.py": "64757e1457763410654fb3ab3d00bcb7cf52ccf37d64ff9f4a46e04e66fd6ff6",
+    "mesh.inp": "05f96c53de5724262d0743e242dd077dbef1a719c0ee97298675165530d815da",
+    "mesh.json": "416292620da982b81200bf4fcb9f73ced8e55199d7a8ba9c9ea4ad73cb1e7260"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0001-h2.25",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 120667,
+    "elements": 72675
+   },
+   "estimate_cpu_s": 620.5,
+   "estimate_wall_s": 775.6,
+   "estimate_mem_mib": 3225,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 8.0,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:f3a6ca62b3d23afac80e5b669aa63f88c03dcc0644d8648fc4636a8e98476b3e",
+   "files": {
+    "case.inp": "7ee5ddadb27e05b24647784ca811357df0982c868ee40b9a91adf2025c76199b",
+    "deck.json": "eeef055c054bbf905568c6170f00e557caea0e747cb943d131d9c7b6102d96db",
+    "make_mesh.py": "19ef6958366e7c2e4d1de07a9743426deb6f23de7f4c2b174d8033187de2528a",
+    "mesh.inp": "e33179d78a06e6169c4d37a3230020d7e9e892acf531ce49cbae74f3a5503e4f",
+    "mesh.json": "af78b3b15073f95a9453cc75ec57327e6fec9eefd6608256c6884732b8aa230a"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0001-h1.7",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 244790,
+    "elements": 154094
+   },
+   "estimate_cpu_s": 1816.8,
+   "estimate_wall_s": 2271.0,
+   "estimate_mem_mib": 6958,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 8.0,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:f3a6ca62b3d23afac80e5b669aa63f88c03dcc0644d8648fc4636a8e98476b3e",
+   "files": {
+    "case.inp": "a6ea6ae6c294c13f9ce3ee585511cf31f63d218b7ae8860d9bee4f113e403456",
+    "deck.json": "568105d9104d1c89f08c793c8679745ab983b9341c9c9de521c5153cd24ac07d",
+    "make_mesh.py": "1ab78d7633f9af9205f292d541e1cbf206dd25a23c2a0179812be7d824f2933a",
+    "mesh.inp": "a12d7516cd98e45fa41cf949d58dae4117f71037a1c7dba581f985ab8b5d2362",
+    "mesh.json": "578b92a1d66bf65db6e1a710deedb236930eb0c993d5f999f00d61a103a15d45"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0002-h2.25",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 112781,
+    "elements": 67431
+   },
+   "estimate_cpu_s": 560.0,
+   "estimate_wall_s": 700.0,
+   "estimate_mem_mib": 2998,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 85.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:2ea09e9830a9dc74ab4214e3b7d3eca050cd989d57f3daa6eb55ffa7355cc424",
+   "files": {
+    "case.inp": "60848ef2da56d387d9b23f2d9e9ecea2ce16ac4b39091eb778d85771ff1adfbf",
+    "deck.json": "a3c698ef80c000cfa4b3acc654aee285aa27137329be8f5068eb888d688b3f5f",
+    "make_mesh.py": "0376aae4f6e0fd8138a43b7393ec2d82212b2e6e79f2ac2c9c9b2a8175722086",
+    "mesh.inp": "3d01f32de4ee192c8db098a7ca97daed989a36df31a3a85406054d6d0eb7cc0b",
+    "mesh.json": "171863ac2d8d72a7268c43120d13c23ef7eaf60a621d2e7c091e07e518bf8f65"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0002-h1.7",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 223141,
+    "elements": 139028
+   },
+   "estimate_cpu_s": 1578.4,
+   "estimate_wall_s": 1973.1,
+   "estimate_mem_mib": 6289,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 85.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:2ea09e9830a9dc74ab4214e3b7d3eca050cd989d57f3daa6eb55ffa7355cc424",
+   "files": {
+    "case.inp": "c118868eeb090d8f498f886ecf1c21750fddedc1cd9c8d1ff435d83f7f9570ca",
+    "deck.json": "dfd02ecfeea34a6b4af02a2f2b7833c1ec4b0ddb3dd75aab37790260666d5ec0",
+    "make_mesh.py": "b2766c7b5e747ff436c3e2ffe793cb7cc2e0b43427c8c25773cd0f94527b3f2b",
+    "mesh.inp": "e01d2087935163de98a578ccfda48582fc594f5bdc8432135304fb6ac8dc2358",
+    "mesh.json": "d36d7f5dea4c846f1a87842e2b98ef95b746b659d2fbd49aef5a3dffe9e2e5bd"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0003-h2.25",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 124150,
+    "elements": 74516
+   },
+   "estimate_cpu_s": 647.9,
+   "estimate_wall_s": 809.9,
+   "estimate_mem_mib": 3325,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 95.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:0e9fa5c2c4fcdf5644dc270e1f41e6571ed06b41001807092b011ef301a0863c",
+   "files": {
+    "case.inp": "359b3722d3ad34be173504312a5712d0319f7259b359bc8f6b06dd7fb4a9012d",
+    "deck.json": "37cb4e6989e675c64719d8ebb7ef6f8d877acc9347f714c893f9ef9774504c05",
+    "make_mesh.py": "fa41714d5a53d6b8a5815ee795bcbf8791d39371677b09ca74e99d95d6b2557c",
+    "mesh.inp": "2ccb98c0d7b340d5f6dfa502fa0532337b0104b41f57a1be3d0e1461603bcef8",
+    "mesh.json": "4b87d6929fb92ce9f2445c72f696470ceb9bc2dde781b8883445628b13eb6a64"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0003-h1.7",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 245334,
+    "elements": 153527
+   },
+   "estimate_cpu_s": 1822.9,
+   "estimate_wall_s": 2278.7,
+   "estimate_mem_mib": 6975,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 95.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:0e9fa5c2c4fcdf5644dc270e1f41e6571ed06b41001807092b011ef301a0863c",
+   "files": {
+    "case.inp": "ab9d7e8645548410c911d04410c337510ec1c0d6f96c94cf3665bb86a07112e4",
+    "deck.json": "8bee1cab3fa9d0975eba3f07d901ae1938d0b8f129b2239b7bf85160fb318dfc",
+    "make_mesh.py": "866a3f816e9a45f3fe2fe867e7570e6d617592bbe57af188a8207fe2f4806702",
+    "mesh.inp": "96063d9f57a3a29ac8b547528d7d888d2027e697b5c26eb87e4d1e1c343ed444",
+    "mesh.json": "5eddea622f9a0dffc163e66d3368556a3bc541292f9f50dc1b3c27428c63361d"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0004-h2.25",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 123118,
+    "elements": 73787
+   },
+   "estimate_cpu_s": 639.8,
+   "estimate_wall_s": 799.7,
+   "estimate_mem_mib": 3295,
+   "action": {
+    "length_mm": 185.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:00f9e9d68553c93702b6301b109c8a550e828e3f5708fb0ad465167fbdd72e23",
+   "files": {
+    "case.inp": "3bca4ffba39a578e6a955e3f67b6d7ae913b6ded235299181b026e807c09d405",
+    "deck.json": "b21e32e50571a039e6a6fd30c1b593197f29a83f3f547ecb0488ec7fcad9e94b",
+    "make_mesh.py": "415897c2afc56019d72467851fb628a4d127bde273d211a01cd192d3df2256ba",
+    "mesh.inp": "19d6de1b62943fb42904e873728819ba1bb375675894541c433c034815368e70",
+    "mesh.json": "5f19af779a7c27ce2118890c20d6d20539bb343484f65e303423ee91d04b369e"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0004-h1.7",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 240679,
+    "elements": 150428
+   },
+   "estimate_cpu_s": 1770.7,
+   "estimate_wall_s": 2213.3,
+   "estimate_mem_mib": 6831,
+   "action": {
+    "length_mm": 185.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:00f9e9d68553c93702b6301b109c8a550e828e3f5708fb0ad465167fbdd72e23",
+   "files": {
+    "case.inp": "79ad972419acaebf0553d6904e0cbf46fd5edca9c816f201754bf7d26e9f57f8",
+    "deck.json": "d44037a94f96b05fddf00c21070fe704d270d72959ffd61cb47ed8f870febc58",
+    "make_mesh.py": "c7e7268d794d808759135fb03d5c1ce6d4bc4253052ee63929fe427befc2a890",
+    "mesh.inp": "513be8c971eea941eeb1333ab3bcaf9eae366d425767084343a71abb7168cdfd",
+    "mesh.json": "e361069daa5fe5272acfaa54b619f85a3a417c51b1ee2b6fb4f8c8f6c106f12c"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0005-h2.25",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 116752,
+    "elements": 70048
+   },
+   "estimate_cpu_s": 590.2,
+   "estimate_wall_s": 737.7,
+   "estimate_mem_mib": 3112,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 15.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:21a1dbd4bc6cca5497250f9fe97af51485e774d5f6368c250886e02515dc176a",
+   "files": {
+    "case.inp": "427db5dd76fe50b59a00ff00eb66a799577d7dd57c3b25dc772bbd37d1c99cc6",
+    "deck.json": "51c1fb0340e77713d4f8e11c1586d9b963be7893d6b146e06ea95f434b99afcf",
+    "make_mesh.py": "5e05565a59dc079836902482d524551c8ed53e76b83924a4156f873d26fd7d8a",
+    "mesh.inp": "6a4fed04b561ffc4f631e504739d2e7c6d93f60f575ab466565a6805d92512a2",
+    "mesh.json": "c0b6aa110a3f37f00ab25773816ad2560a03c069fb015d140831b64f80b40ffe"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0005-h1.7",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 229687,
+    "elements": 143796
+   },
+   "estimate_cpu_s": 1649.3,
+   "estimate_wall_s": 2061.6,
+   "estimate_mem_mib": 6491,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 15.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:21a1dbd4bc6cca5497250f9fe97af51485e774d5f6368c250886e02515dc176a",
+   "files": {
+    "case.inp": "a84829c1196f99199e2db3c43a188d629368218554b3ee543aa4897156aaf9f0",
+    "deck.json": "f55b7fa6d604a747864c8f4508ed78f62392463b468d38210637bea5e634cd8c",
+    "make_mesh.py": "28b6d07e62a11bb3ee96b79e81096d04c099e4b61e5db038782b06f994da4734",
+    "mesh.inp": "59c4d4314093793cf9b7b2a6759d3298119cc5208fba69c2089b72292e0d4e0a",
+    "mesh.json": "a1e53ff51a06eb9238d8c70016ad7c1d49f9ea240a5b5b483990c01016edfa9e"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0006-h2.25",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 118496,
+    "elements": 70985
+   },
+   "estimate_cpu_s": 603.6,
+   "estimate_wall_s": 754.5,
+   "estimate_mem_mib": 3162,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 5.0,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:a8d33ad717f763df13887f3e08837d60ed5474194940772c0359e7d72ba726ca",
+   "files": {
+    "case.inp": "5ac5359d6aec2ded6e58f60b0972c1b51a05db17db258b445e4cc61a94473543",
+    "deck.json": "f69c0da4bbc50b65f8c4fe75e22b222eee9cf0d18e6216a2de085c8d2edbf3f1",
+    "make_mesh.py": "a4b3b134c6435e2990286f3111fc44242146e55a7dde357c7545dc456be750ee",
+    "mesh.inp": "ed2b294da6c4b52e5b610a05dd386eb40eba01710ff8e9a0f9add56d2c5806ea",
+    "mesh.json": "ea11d3b52fb2587128a9fbf7937e3114c0013167d00b29edf3422bf7402fe203"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0006-h1.7",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 241959,
+    "elements": 152055
+   },
+   "estimate_cpu_s": 1785.0,
+   "estimate_wall_s": 2231.2,
+   "estimate_mem_mib": 6871,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 5.0,
+    "relief_length_mm": 35.0
+   },
+   "action_digest": "sha256:a8d33ad717f763df13887f3e08837d60ed5474194940772c0359e7d72ba726ca",
+   "files": {
+    "case.inp": "9398e9adf0ab1e78eb1d414f3405941d040edb8de2f4d7e8c6955052d17aadd6",
+    "deck.json": "b65bae9214bc38ebc64f5f3df9cc98fed1697ac9810b6c450a8b6387dc8dce9e",
+    "make_mesh.py": "c5ed9c6e1f6a63674ef26647859dc2b974803a633a7d91a282853d4eb23870b3",
+    "mesh.inp": "f82830fa69102480d6da92b8a59c98b9bfca82125836a86db71d3088c88ecf8f",
+    "mesh.json": "8a26f86528dae1be96cfd16a295c490fcad9418ad52a6b6b0e534fe7c1f5e9a8"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0007-h2.25",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 118857,
+    "elements": 71343
+   },
+   "estimate_cpu_s": 606.4,
+   "estimate_wall_s": 758.0,
+   "estimate_mem_mib": 3172,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 30.0
+   },
+   "action_digest": "sha256:91e91f8dfb25ca3d446ba0c99f0685285bebc0fdd9118f3a48b73f87bce8ce77",
+   "files": {
+    "case.inp": "1f43a9da39d7ba8a48f2ab499fb3ef98e2be53ad4d9e5bece3a195a8a2bf1296",
+    "deck.json": "668c9ba11b2b8fe5a93b607fcfba1d420236c69c967440ebb4780464f047b7ef",
+    "make_mesh.py": "78dc6a76d80811a7e28bd10614deb0934641a5efa4c86c223cc96faf27c5663a",
+    "mesh.inp": "32ce6f20ee0e40852b46ebb2ad0c9bee28d25323263ec07400e59b3aab348dd2",
+    "mesh.json": "a7786e8ae475bd541e07ed5fbdb02725e00d0c0ab57c19405851b73fe7eff3a4"
+   }
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0007-h1.7",
+   "reservation": "pilot_witness",
+   "command": "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes > cgroup.txt 2>/dev/null; rm -f case.eig; (exit $rc)",
+   "mesh": {
+    "nodes": 235468,
+    "elements": 147174
+   },
+   "estimate_cpu_s": 1712.8,
+   "estimate_wall_s": 2140.9,
+   "estimate_mem_mib": 6669,
+   "action": {
+    "length_mm": 180.0,
+    "width_mm": 90.0,
+    "thickness_mm": 7.5,
+    "rib_height_mm": 16.0,
+    "rib_thickness_mm": 4.5,
+    "relief_length_mm": 30.0
+   },
+   "action_digest": "sha256:91e91f8dfb25ca3d446ba0c99f0685285bebc0fdd9118f3a48b73f87bce8ce77",
+   "files": {
+    "case.inp": "2a3efae423b33738a2e1105dd1f0aac9c6ca3fc5e140cb7bced0fac639bc5c7e",
+    "deck.json": "1dadfaed9dadf256fb5183f2b6a875b9582ff5169a33a8a20507610e151de498",
+    "make_mesh.py": "2c114d2079c31109d837691a2df5bcd906763891f6f63abd4511f27562656305",
+    "mesh.inp": "465d0cb5037a5a83d87a54b0ca3aefeda1d1831bdbf6a5c37180590014ef9ee3",
+    "mesh.json": "3a0c4cf3a7cdcb521ee7e2308cd110b81d1ab09d4496f391df9e0e41820089f9"
+   }
+  }
+ ],
+ "counts": {
+  "pilot": 8,
+  "pilot_witness": 16
+ },
+ "pilot": {
+  "scope": "PUBLIC_DEVELOPMENT_ONLY",
+  "selection": "TRAIN-informed local neighborhood; not independent population",
+  "actions_sha256": "ca9b6c922000dc745da77ee216037f7d0205e8191757c3ca38af3ac5ff4b0c56",
+  "train_manifest_sha256": "ecad1a1205448aedccb4feb037f55663bc6dd96c9aae7f75b3c1251c193fa80c",
+  "geometry_count": 8,
+  "rungs_h_mm": [
+   3.0,
+   2.25,
+   1.7
+  ]
+ }
+}

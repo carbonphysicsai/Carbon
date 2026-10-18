@@ -1,0 +1,62 @@
+{
+ "P": {
+  "0.005": 0.3333333333333333,
+  "0.01": 0.3333333333333333,
+  "0.02": 0.3333333333333333
+ },
+ "Q": {
+  "0.005": 0.3333333333333333,
+  "0.01": 0.3333333333333333,
+  "0.02": 0.3333333333333333
+ },
+ "authority": "F08-SCIENCE-VALUES-01 under OWNER-SOLVER-READINESS-SCIENCE-DELEGATION-01; DEVELOPMENT only",
+ "family": "f08",
+ "grammar": {
+  "length_mm": {
+   "max": 260,
+   "min": 180,
+   "step": 5
+  },
+  "relief_length_mm": {
+   "max": 60,
+   "min": 20,
+   "step": 5
+  },
+  "rib_height_mm": {
+   "max": 16,
+   "min": 8,
+   "step": 1
+  },
+  "rib_thickness_mm": {
+   "max": 5,
+   "min": 3,
+   "step": 0.5
+  },
+  "thickness_mm": {
+   "max": 8,
+   "min": 4,
+   "step": 0.5
+  },
+  "width_mm": {
+   "max": 100,
+   "min": 60,
+   "step": 5
+  }
+ },
+ "pins": {
+  "deck": "sha256:85b0388b49f8466b21f22f0a2705ec70125c902932dd280085df4b23338653a3",
+  "image": "sha256:16869c9cb7f14994f3bed3152809efdec14c5b3ec1849730d7b6c8f689d9642b",
+  "material": "sha256:16808b58a1e0649b4dabe4029f1f313de945d115735f9e476416bc2228f17df7",
+  "mesh_image": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+  "observer": "sha256:2450bbce731237bd3d12171c18b83f222c44b6c136d0e70d1e3ce6d114a5e838",
+  "proof": "sha256:b6debd07dfb55e4e0053949f36cbb86124e5cb92fdcb90e7437b0887f635789b"
+ },
+ "registration_digest": "sha256:7ffe292a6a0b1120a9770f58bb06ce1ac175c4fa981ba23394218ebe878c8fbe",
+ "schema": "carbon.f08-preparation.v1",
+ "scope": "PUBLIC_DEVELOPMENT",
+ "w": {
+  "0.005": 0.3333333333333333,
+  "0.01": 0.3333333333333333,
+  "0.02": 0.3333333333333333
+ }
+}

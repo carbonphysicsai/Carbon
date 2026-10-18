@@ -1,0 +1,111 @@
+{
+ "schema": "carbon.reference-triage.frozen-decks.v1",
+ "ticket": "F02-SCIENCE-VALUES-01",
+ "set": "steps",
+ "image": "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add",
+ "command_contract": "run `command` with bash in the case directory f02/<case>, ElmerSolver 26.2 on PATH, OPENBLAS_NUM_THREADS=1 and OMP_NUM_THREADS=1, one CPU, no network; in the docker image named here or a native build from sources.lock.json accepted under F02-SCIENCE-VALUES-01 section A (A5 lineage via the verification role)",
+ "bands": "docs/development/evidence/reference-packages-01/f02-readiness/bands.json",
+ "counts": {
+  "f02": {
+   "step_responses": 4
+  }
+ },
+ "cases": [
+  {
+   "family": "f02",
+   "case": "step-30C-2500-0.5",
+   "reservation": "step_responses",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "e0dcd53f9a09f37168642655f2129f44fe5a9c8953cf3e2cc92c0956abda9558",
+    "deck.json": "a6483c12562a921219d7fb1ecd9c2333c548d85b8cee2b52a523a491995c1c0b",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 200.0,
+   "estimate_wall_s": 213.0,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "step-30C-2500-0.8",
+   "reservation": "step_responses",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "8cd1d3afa278699a171e439ce74ea3b93155c0b92556e9870fe0a9d26b498472",
+    "deck.json": "5eeb3eca1b99a62c47c70174aadbd3a55436eefa9e4802d29e6f30e530aa3c49",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 200.0,
+   "estimate_wall_s": 213.0,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "step-40C-1500-0.5",
+   "reservation": "step_responses",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "fed1d96d63dff16d3393972f1d895b81cbbbfa6c52603267dd0942f59730d2f8",
+    "deck.json": "f8c7abc7498fe644c4974e8dc587e962cdec6ec0509b9b7e49b9aa7983553eb9",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 200.0,
+   "estimate_wall_s": 213.0,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "step-40C-1500-0.8",
+   "reservation": "step_responses",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "b45e6d2db4d1041079b189ea0955d24ef78a32f15c3422eeba7c9ad6baac36d2",
+    "deck.json": "799d9b7c032b29db1e92a34104ce9b3dc07b2a96fcdaaae9a0821881fbca2d45",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 200.0,
+   "estimate_wall_s": 213.0,
+   "estimate_mem_mib": 25
+  }
+ ]
+}

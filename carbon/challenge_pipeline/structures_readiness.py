@@ -18,7 +18,11 @@ FAMILY = "f08"
 SCHEMA = "carbon.f08-preparation.v1"
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = "scripts/dev/reference_packages/calculix/f08_deck.py"
-IMAGE = "sha256:d9ef68d016226a945c7eefcb6b2261c60a11249ee0f93458ae6c3aca956fd6f8"
+# Re-pinned 2026-10-15 to the local rebuild of the same sources.lock.json after
+# smoke, feature proof, MMS and closed-form rod verification passed on it
+# (docs/development/evidence/reference-packages-01/calculix.json local_rebuilds).
+# The original build was sha256:d9ef68d016226a945c7eefcb6b2261c60a11249ee0f93458ae6c3aca956fd6f8.
+IMAGE = "sha256:16869c9cb7f14994f3bed3152809efdec14c5b3ec1849730d7b6c8f689d9642b"
 MESH_IMAGE = "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05"
 FIELDS = (
     "length_mm",
