@@ -266,9 +266,7 @@ def score(benchmark, pack):
     common = (
         "FAILED_INFRA"
         if "REFERENCE_INFRA" in states
-        else "INDETERMINATE_EVIDENCE"
-        if "REFERENCE_UNRESOLVED" in states
-        else None
+        else "INDETERMINATE_EVIDENCE" if "REFERENCE_UNRESOLVED" in states else None
     )
     rows, digest_models = [], []
     for model in models:
@@ -277,19 +275,23 @@ def score(benchmark, pack):
         if model["decision_outcome"] == "NOT_MEASURED":
             local.add("NOT_MEASURED")
         normalized = {
-            name: _normalize(m["value"], components[name])
-            if m["status"] == "RESOLVED"
-            else None
+            name: (
+                _normalize(m["value"], components[name])
+                if m["status"] == "RESOLVED"
+                else None
+            )
             for name, m in metrics.items()
         }
         legs = {
-            name: None
-            if any(normalized[c["metric"]] is None for c in leg["components"])
-            else min(
-                1.0,
-                math.fsum(
-                    c["weight"] * normalized[c["metric"]] for c in leg["components"]
-                ),
+            name: (
+                None
+                if any(normalized[c["metric"]] is None for c in leg["components"])
+                else min(
+                    1.0,
+                    math.fsum(
+                        c["weight"] * normalized[c["metric"]] for c in leg["components"]
+                    ),
+                )
             )
             for name, leg in pack["legs"].items()
         }
@@ -374,8 +376,10 @@ def score(benchmark, pack):
         "models": rows,
         "combination": pack["combination"],
         "value_weight": pack["value_weight"],
-        "weight_interpretation": "ARITHMETIC_VALUE_COEFFICIENT"
-        if pack["combination"] == "weighted_arithmetic_mean"
-        else "GEOMETRIC_EMPHASIS_NOT_LITERAL_TOTAL_SHARE",
+        "weight_interpretation": (
+            "ARITHMETIC_VALUE_COEFFICIENT"
+            if pack["combination"] == "weighted_arithmetic_mean"
+            else "GEOMETRIC_EMPHASIS_NOT_LITERAL_TOTAL_SHARE"
+        ),
         "official_score": False,
     }

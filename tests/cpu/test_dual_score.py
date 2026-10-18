@@ -1,7 +1,7 @@
 """Synthetic candidate-rule tests; no Challenge policy or physical references."""
 
-from copy import deepcopy
 import math
+from copy import deepcopy
 
 import pytest
 
