@@ -77,6 +77,23 @@ def _bounded_failure_bytes(record):
     return payload + b"\n"
 
 
+def _append_reference_failure(target, record, phase):
+    try:
+        payload = _bounded_failure_bytes(record)
+        path = Path(target)
+        if path.is_symlink() or (
+            path.exists() and path.stat().st_size + len(payload) > 1048576
+        ):
+            raise ValueError("bounded engineering trace file required")
+        with path.open("ab") as stream:
+            stream.write(payload)
+    except (OSError, ValueError, TypeError, AttributeError, OverflowError):
+        # Evidence failure must not replace the existing scientific failure.
+        print(
+            f"Engineering {phase} diagnostics unavailable; original outcome retained."
+        )
+
+
 def _observe_train_reference(execute, allowed, target):
     """Capture only this fixture's existing TRAIN requests; never change results."""
 
@@ -88,59 +105,96 @@ def _observe_train_reference(execute, allowed, target):
             or result.result.outcome is ReferenceRunOutcome.SUPPORTED
         ):
             return result
-        try:
-            record = {
-                "schema": "carbon.c04.engineering-reference-failure.v1",
-                "kind": "synthetic_public_train_reference_failure",
-                "parent_id": allowed[request.request_digest],
-                "request": request.document(),
-                "request_digest": request.request_digest,
-                "outcome": result.result.outcome.value,
-                "failure_reason": result.result.failure_reason.value,
-                "diagnostics": result.result.diagnostics,
-                "image_id": result.image_id,
-                "launch_digest": result.launch_digest,
-                "snapshot_digest": result.snapshot_digest,
-                "controls_digest": result.controls_digest,
-                "controls": {
-                    key: result.controls[key]
-                    for key in ("cgroup_v2", "process", "container_id")
-                    if key in result.controls
-                },
-                "resources": {
-                    key: result.resources[key]
-                    for key in ("cpu", "memory", "pids", "measurement_scope")
-                    if key in result.resources
-                },
-                "timings": {
-                    key: result.timings[key]
-                    for key in (
-                        "staging",
-                        "create",
-                        "numerical",
-                        "export",
-                        "cleanup",
-                        "validation",
-                        "total",
-                    )
-                    if key in result.timings
-                },
-                "candidate_judged": False,
-                "reproduction": "exact request only; no redraw or retry authorized",
-            }
-            payload = _bounded_failure_bytes(record)
-            path = Path(target)
-            if path.is_symlink() or (
-                path.exists() and path.stat().st_size + len(payload) > 1048576
-            ):
-                raise ValueError("bounded engineering trace file required")
-            with path.open("ab") as stream:
-                stream.write(payload)
-        except (OSError, ValueError, TypeError, AttributeError, OverflowError):
-            # Evidence failure must not replace the existing scientific failure.
-            print(
-                "Engineering TRAIN diagnostics unavailable; original outcome retained."
-            )
+        record = {
+            "schema": "carbon.c04.engineering-reference-failure.v1",
+            "kind": "synthetic_public_train_reference_failure",
+            "parent_id": allowed[request.request_digest],
+            "request": request.document(),
+            "request_digest": request.request_digest,
+            "outcome": result.result.outcome.value,
+            "failure_reason": result.result.failure_reason.value,
+            "diagnostics": result.result.diagnostics,
+            "image_id": result.image_id,
+            "launch_digest": result.launch_digest,
+            "snapshot_digest": result.snapshot_digest,
+            "controls_digest": result.controls_digest,
+            "controls": {
+                key: result.controls[key]
+                for key in ("cgroup_v2", "process", "container_id")
+                if key in result.controls
+            },
+            "resources": {
+                key: result.resources[key]
+                for key in ("cpu", "memory", "pids", "measurement_scope")
+                if key in result.resources
+            },
+            "timings": {
+                key: result.timings[key]
+                for key in (
+                    "staging",
+                    "create",
+                    "numerical",
+                    "export",
+                    "cleanup",
+                    "validation",
+                    "total",
+                )
+                if key in result.timings
+            },
+            "candidate_judged": False,
+            "reproduction": "exact request only; no redraw or retry authorized",
+        }
+        _append_reference_failure(target, record, "TRAIN")
+        return result
+
+    return observed
+
+
+def _observe_final_reference(execute, target):
+    """Capture a failed final run without disclosing its case or retrying it."""
+
+    def observed(request):
+        result = execute(request)
+        if target is None or result.result.outcome is ReferenceRunOutcome.SUPPORTED:
+            return result
+        record = {
+            "schema": "carbon.c04.engineering-reference-failure.v1",
+            "kind": "synthetic_final_reference_failure",
+            "phase": "final",
+            "request_digest": request.request_digest,
+            "outcome": result.result.outcome.value,
+            "failure_reason": result.result.failure_reason.value,
+            "diagnostics": [
+                [key, value]
+                for key, value in result.result.diagnostics
+                if key in {"method", "environment"}
+            ],
+            "image_id": result.image_id,
+            "launch_digest": result.launch_digest,
+            "snapshot_digest": result.snapshot_digest,
+            "controls_digest": result.controls_digest,
+            "controls": {
+                key: result.controls[key]
+                for key in ("cgroup_v2", "process", "container_id")
+                if key in result.controls
+            },
+            "timings": {
+                key: result.timings[key]
+                for key in (
+                    "staging",
+                    "create",
+                    "numerical",
+                    "export",
+                    "cleanup",
+                    "validation",
+                    "total",
+                )
+                if key in result.timings
+            },
+            "candidate_judged": False,
+            "reproduction": "exact request only; no redraw or retry authorized",
+        }
+        _append_reference_failure(target, record, "FINAL")
         return result
 
     return observed
@@ -216,6 +270,40 @@ def test_engineering_reference_failure_trace_preserves_result_and_public_binding
     with pytest.raises(RuntimeError) as failure:
         _observe_train_reference(failed, {"request": "parent"}, target)(request)
     assert failure.value is original_error
+
+
+def test_final_reference_failure_trace_excludes_private_case_and_preserves_result(
+    tmp_path,
+):
+    target = tmp_path / "trace.jsonl"
+    request = SimpleNamespace(request_digest="private-request")
+    result = SimpleNamespace(
+        result=SimpleNamespace(
+            outcome=ReferenceRunOutcome.NUMERICAL_FAILURE,
+            failure_reason=ReferenceFailureReason.NUMERICAL_NONCONVERGENCE,
+            diagnostics=(("method", "fixed"), ("private_query", "never-export")),
+        ),
+        image_id="image",
+        launch_digest="launch",
+        snapshot_digest="snapshot",
+        controls_digest="controls",
+        controls={"container_id": "container", "secret": "never-export"},
+        timings={"numerical": 0.5, "secret": "never-export"},
+    )
+    observed = _observe_final_reference(lambda value: result, target)
+    assert observed(request) is result
+    record = json.loads(target.read_bytes())
+    assert record["kind"] == "synthetic_final_reference_failure"
+    assert record["phase"] == "final"
+    assert record["request_digest"] == "private-request"
+    assert record["failure_reason"] == "NUMERICAL_NONCONVERGENCE"
+    assert record["diagnostics"] == [["method", "fixed"]]
+    assert record["candidate_judged"] is False
+    assert b"never-export" not in target.read_bytes()
+    before = target.read_bytes()
+    result.result.outcome = ReferenceRunOutcome.SUPPORTED
+    assert observed(request) is result
+    assert target.read_bytes() == before
 
 
 def test_real_fresh_final_sources_compare_and_resume_without_redispatch(
@@ -311,6 +399,19 @@ def test_real_fresh_final_sources_compare_and_resume_without_redispatch(
                 allowed,
                 os.environ.get("CARBON_C03_TRACE_PATH"),
             ),
+        )
+
+        class ObservedFinalReferenceData(PublicReferenceData):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                if self.phase == "final":
+                    self.controller.execute = _observe_final_reference(
+                        self.controller.execute,
+                        os.environ.get("CARBON_C03_TRACE_PATH"),
+                    )
+
+        monkeypatch.setattr(
+            research_campaign, "PublicReferenceData", ObservedFinalReferenceData
         )
         args = SimpleNamespace(
             image_manifest=manifest,
