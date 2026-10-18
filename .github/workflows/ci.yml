@@ -393,7 +393,11 @@ jobs:
           ./scripts/dev/c03_worker.sh reconcile
       - name: Verify optional development bundle custody before export
         if: success() && env.DEVELOPMENT_WORKER_IMAGES == 'true'
-        run: .venv/bin/python -m pytest -q tests/cpu/test_development_image_artifact.py
+        env:
+          # Keep the required service-control evidence intact.
+          CARBON_C03_JUNIT_PATH: ${{ runner.temp }}/development-image-custody-junit.xml
+          CARBON_C03_TRACE_PATH: ${{ runner.temp }}/development-image-custody-traces.jsonl
+        run: ./scripts/dev/c03_worker_service.sh tests/cpu/test_development_image_artifact.py
       - name: Build and export the optional development image pair
         if: success() && env.DEVELOPMENT_WORKER_IMAGES == 'true'
         env:
