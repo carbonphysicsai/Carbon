@@ -152,29 +152,9 @@ def _pack_check(root, relative_path, digest, public_root, private_root, challeng
             "physics_contract": material["physics_contract"],
         }
         for role, document in expected.items():
-            payload = snapshot.read_role(public_root, "public", role, max_bytes=65536)
-
-            def unique(pairs):
-                value = {}
-                for key, item in pairs:
-                    if key in value:
-                        raise EvaluationPackUnavailable("evaluation_pack.duplicate_key")
-                    value[key] = item
-                return value
-
-            def nonfinite(_value):
-                raise EvaluationPackUnavailable("evaluation_pack.nonfinite")
-
-            try:
-                observed = json.loads(
-                    payload.decode("utf-8"),
-                    object_pairs_hook=unique,
-                    parse_constant=nonfinite,
-                )
-            except (UnicodeError, json.JSONDecodeError) as exc:
-                raise EvaluationPackUnavailable(
-                    "evaluation_pack.construction_document"
-                ) from exc
+            observed = snapshot.read_json_role(
+                public_root, "public", role, max_bytes=65536
+            )
             if canonical(observed) != canonical(document):
                 raise EvaluationPackUnavailable("evaluation_pack.construction_mismatch")
         if (
