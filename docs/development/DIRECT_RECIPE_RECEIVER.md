@@ -66,7 +66,7 @@ unmeasured task. Historical callers retain the default `false` behavior.
 From the accepted installed checkout and its normal Python environment:
 
 ```sh
-python -m carbon.challenge_validator.direct_receiver --config /absolute/private/operator/receiver.json
+python -B -m carbon.challenge_validator.direct_receiver --config /absolute/private/operator/receiver.json
 ```
 
 The process prints one `LISTENING` record containing the exact inert

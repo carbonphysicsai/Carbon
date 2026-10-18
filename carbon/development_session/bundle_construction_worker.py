@@ -200,7 +200,8 @@ else:
     )
     doc, _ = lower_torch.lower(core, allowlist=allowed)
 if (trial.shape != (len(example), *train_targets.shape[1:])
-    or trial.dtype.kind not in "fiu" or not np.isfinite(trial).all()):
+    or trial.dtype.kind not in "fiu" or trial.dtype.itemsize > 8
+    or trial.nbytes > 16 * 1024**2 or not np.isfinite(trial).all()):
     raise ValueError("bundle build output shape or value differs")
 state = freeze(recipe, doc, arrays, allowed)
 (out / "state.npz").write_bytes(state)
@@ -750,7 +751,7 @@ def native_build_predictions(build) -> np.ndarray:
             or not shape
             or len(shape) > 16
             or any(type(n) is not int or n < 1 for n in shape)
-            or math.prod(shape) > 1_000_000
+            or math.prod(shape) * dtype.itemsize > 16 * 1024**2
         ):
             raise ValueError("native prediction tensor contract differs")
         values = json.loads(raw)
@@ -789,6 +790,12 @@ def compare_build_inference_predictions(
             "reason_code": "different_public_probe",
             "native_probe_digest": probe,
             "lowered_probe_digest": inference.receipt.get("inputs_digest"),
+        }
+    if native.size > 1_000_000:
+        return {
+            "schema": "carbon.development.bundle-prediction-comparison-unavailable.v1",
+            "reason_code": "comparison_resource_bound",
+            "probe_digest": probe,
         }
     measured = inference.receipt.get("measurement", {})
     dtype = measured.get("output_dtype", expected_output_dtype)

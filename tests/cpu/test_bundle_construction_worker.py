@@ -484,3 +484,35 @@ def test_shared_graph_stage_keeps_its_existing_no_argument_contract():
     assert type(files) is dict
     assert set(files) == {name + ".py" for name in bundle_worker.STAGED_MODULES}
     assert "carbon.development_session.construction_tensor_codec.py" not in files
+
+
+def test_large_valid_native_artifact_does_not_add_a_model_admission_cap(tmp_path):
+    native_raw = ("[[" + ",".join(["0"] * 1_000_001) + "]]").encode()
+    (tmp_path / "native-predictions.json").write_bytes(native_raw)
+    recipe = _recipe(_sha("a"))
+    state = _sha("f")
+    probe = _sha("b")
+    build = bundle_worker.BundleBuildResult(
+        recipe.digest,
+        state,
+        tmp_path / "state.npz",
+        "build",
+        {
+            "schema": "carbon.development.bundle-build.v2",
+            "recipe_digest": recipe.digest,
+            "state_digest": state,
+            "example_digest": probe,
+            "native_predictions_digest": _digest(native_raw),
+            "native_shape": [1, 1_000_001],
+            "native_dtype": "float32",
+        },
+    )
+    inference = bundle_worker.BundleInferenceResult(
+        recipe.digest, state, _sha("e"), [], "infer", {"inputs_digest": probe}
+    )
+    assert bundle_worker.native_build_predictions(build).shape == (1, 1_000_001)
+    result = bundle_worker.compare_build_inference_predictions(
+        build, inference, expected_output_dtype="float32"
+    )
+    assert result["reason_code"] == "comparison_resource_bound"
+    assert "pass" not in result
