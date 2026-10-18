@@ -432,6 +432,7 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(tmp_path, monke
         started = tasks.start_research_task(request).task
         assert started.state is research.DirectTaskStateV3.QUEUED
         assert calls == ["inspect"]
+        assert len(tasks._all_children(started.task_id)) == 3
         ended = tasks.run_queued_task(started.task_id)
         assert ended.state is research.DirectTaskStateV3.UNRESOLVED
         assert calls == [
@@ -445,6 +446,7 @@ def test_direct_v3_cold_overlay_binds_completed_prep_after_queue(tmp_path, monke
         assert tasks._task_image_bindings[
             started.task_id.value
         ] == tasks._image_binding(overlay)
+        assert len(tasks._all_children(started.task_id)) == 3
     finally:
         tasks.close()
 
@@ -1120,7 +1122,7 @@ def test_direct_cancellation_retries_child_flags_after_write_failure(
         assert view.state is research.DirectTaskStateV3.CANCEL_REQUESTED
         retry = tasks.cancel_research_task(cancellation)
         assert retry.disposition is research.CancellationDisposition.ALREADY_ACCEPTED
-        assert calls == 4  # prep, build, and inference flags on the retry
+        assert calls == 3  # historical image tasks retain both child flags
     finally:
         tasks.close()
 

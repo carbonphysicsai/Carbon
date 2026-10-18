@@ -1315,8 +1315,15 @@ class DirectDevelopmentTasksV3:
 
         children = self._children(task_id)
         request = self._requests.get(task_id.value)
+        retained = self._task_image_bindings.get(task_id.value)
         if request is not None and request.recipe["source"]["kind"] == "bundle":
-            return (*children, direct_child_identity(task_id.value, "prep"))
+            binding = json.loads(retained) if retained is not None else None
+            if (
+                type(binding) is list
+                and len(binding) == 2
+                and binding[0] in {"BUNDLE_SOURCE", "BUNDLE_OVERLAY"}
+            ):
+                return (*children, direct_child_identity(task_id.value, "prep"))
         return children
 
     def cancel_research_task(self, request):
