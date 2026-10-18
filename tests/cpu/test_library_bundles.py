@@ -131,6 +131,82 @@ def user_directory(tmp_path):
     return directory, manifest
 
 
+def test_owner_staging_is_exact_and_pure_until_admitted(tmp_path):
+    from carbon.development_session.library_environment_cache import (
+        inspect_staged_bundle_material,
+        stage_pinned_bundle_material,
+    )
+
+    directory, _ = user_directory(tmp_path)
+    cache_root = tmp_path / "owner-cache"
+    cache_root.mkdir(mode=0o700)
+    cache_root.chmod(0o700)
+    expected = bundle_ref(*load_pinned_bundle_directory(directory))
+    with pytest.raises(FileNotFoundError, match="not staged"):
+        inspect_staged_bundle_material(cache_root, expected)
+
+    assert stage_pinned_bundle_material(directory, cache_root) == expected
+    staged = inspect_staged_bundle_material(cache_root, expected)
+    assert staged == cache_root / "materials" / expected.bundle_digest[7:]
+    assert stage_pinned_bundle_material(directory, cache_root) == expected
+    assert not list(cache_root.rglob("*.image.json"))
+
+    (staged / "wheels" / "package-1-py3-none-any.whl").write_bytes(b"changed")
+    with pytest.raises(ValueError, match="wheel"):
+        inspect_staged_bundle_material(cache_root, expected)
+    with pytest.raises(ValueError, match="wheel"):
+        stage_pinned_bundle_material(directory, cache_root)
+
+
+def test_direct_resolver_inspects_source_before_admitted_provision(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session import gpu_practice, library_environment_cache
+    from carbon.miner_mcp.standard_cli import DirectOwnerImageResolver
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    directory, _ = user_directory(tmp_path)
+    cache_root = tmp_path / "owner-cache"
+    cache_root.mkdir(mode=0o700)
+    cache_root.chmod(0o700)
+    selected = bundle_ref(*load_pinned_bundle_directory(directory))
+    resolver = DirectOwnerImageResolver(cache_root)
+    with pytest.raises(FileNotFoundError, match="not staged"):
+        resolver.inspect_source(selected)
+    library_environment_cache.stage_pinned_bundle_material(directory, cache_root)
+    assert resolver.inspect_source(selected) == selected
+
+    parent = WorkerImageIdentity(
+        *("sha256:" + character * 64 for character in "00123456")
+    )
+    monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _: "pytorch")
+    calls = []
+    sentinel = object()
+
+    def install(path, root, trusted, *, expected_bundle, cli):
+        calls.append((path, root, trusted, expected_bundle, cli))
+        return sentinel
+
+    monkeypatch.setattr(
+        library_environment_cache, "install_pinned_library_worker_image", install
+    )
+    adapter = object()
+    assert resolver.provision_admitted(selected, parent=parent, cli=adapter) is sentinel
+    assert calls == [
+        (
+            cache_root / "materials" / selected.bundle_digest[7:],
+            cache_root,
+            parent,
+            selected,
+            adapter,
+        )
+    ]
+    with pytest.raises(ValueError, match="parent differs"):
+        monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _: "jax")
+        resolver.provision_admitted(selected, parent=parent, cli=adapter)
+    assert len(calls) == 1
+
+
 def test_catalogue_names_new_and_existing_sources_without_claiming_install():
     document = catalogue()
     assert {row["id"] for row in document["libraries"]} >= {

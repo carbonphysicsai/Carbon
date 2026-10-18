@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import stat
 import tempfile
 from dataclasses import asdict
@@ -49,6 +50,79 @@ _PROVISIONED_FIELDS = frozenset(
     {"parent_image", "context", "context_digest", "image_id"}
 )
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
+
+
+def staged_bundle_material_directory(
+    cache_root: Path, expected_bundle: LibraryBundleRef
+) -> Path:
+    """Locate owner-staged source bytes by recipe digest, never by a miner path."""
+    if type(expected_bundle) is not LibraryBundleRef:
+        raise ValueError("closed recipe bundle reference required")
+    root = Path(cache_root) / "materials"
+    if not root.is_dir():
+        raise FileNotFoundError("pinned bundle material is not staged")
+    root = _private_cache_directory(root, "private staged bundle root required")
+    return root / expected_bundle.bundle_digest[7:]
+
+
+def inspect_staged_bundle_material(
+    cache_root: Path, expected_bundle: LibraryBundleRef
+) -> Path:
+    """Check the complete declared closure without creating an image or receipt."""
+    directory = staged_bundle_material_directory(cache_root, expected_bundle)
+    if not directory.exists() and not directory.is_symlink():
+        raise FileNotFoundError("pinned bundle material is not staged")
+    material = load_pinned_bundle_directory(directory)
+    if bundle_ref(*material) != expected_bundle:
+        raise ValueError("staged bundle differs from recipe reference")
+    return directory
+
+
+def stage_pinned_bundle_material(directory: Path, cache_root: Path) -> LibraryBundleRef:
+    """Trusted owner staging of exact material; no image build or execution."""
+    material = load_pinned_bundle_directory(directory)
+    selected = bundle_ref(*material)
+    root = _private_cache_directory(
+        cache_root, "private operator bundle cache required"
+    )
+    material_root = root / "materials"
+    material_root.mkdir(mode=0o700, exist_ok=True)
+    material_root = _private_cache_directory(
+        material_root, "private staged bundle root required"
+    )
+    destination = material_root / selected.bundle_digest[7:]
+    if destination.exists() or destination.is_symlink():
+        inspect_staged_bundle_material(cache_root, selected)
+        return selected
+    manifest, source, wheels, lock, license_text = material
+    temporary = Path(tempfile.mkdtemp(prefix=".pending-", dir=material_root))
+    try:
+        temporary.chmod(0o700)
+        wheel_root = temporary / "wheels"
+        wheel_root.mkdir(mode=0o700)
+        for path, body in (
+            (temporary / "bundle.json", json.dumps(manifest, sort_keys=True).encode()),
+            (temporary / "source.tar.gz", source),
+            (temporary / "requirements.txt", lock),
+            (temporary / "LICENSE", license_text),
+            *((wheel_root / name, body) for name, body in wheels.items()),
+        ):
+            path.write_bytes(body)
+            path.chmod(0o600)
+        if bundle_ref(*load_pinned_bundle_directory(temporary)) != selected:
+            raise ValueError("staged bundle changed while copying")
+        try:
+            temporary.rename(destination)
+        except FileExistsError:
+            inspect_staged_bundle_material(cache_root, selected)
+    finally:
+        if temporary.exists():
+            if temporary.is_symlink() or not temporary.resolve().is_relative_to(
+                material_root.resolve()
+            ):
+                raise ValueError("temporary bundle path escaped owner cache")
+            shutil.rmtree(temporary)
+    return selected
 
 
 def _digest(value: object) -> str:

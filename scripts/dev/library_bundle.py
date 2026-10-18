@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Inspect and import a pinned user library bundle for offline construction.
+"""Inspect or stage a pinned user library bundle for offline construction.
 
 The input directory contains bundle.json, source.tar.gz, requirements.txt,
 LICENSE, and the manifest-named files under wheels/. Its name need not appear
-in Carbon's discovery catalogue. Import only prepares an immutable context;
-the Product host separately verifies local images and the installed dependency
-closure before a model can run.
+in Carbon's discovery catalogue. Staging stores exact source bytes without
+building an image; an admitted task separately verifies its dependency closure
+and child image before a model runs.
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ from carbon.development_session.library_bundles import (
 )
 from carbon.development_session.library_environment_cache import (
     install_pinned_library_worker_image,
+    stage_pinned_bundle_material,
 )
 from carbon.reconstruction.worker.docker_runtime import (
     DockerCLI,
@@ -111,6 +112,21 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR):
     }
 
 
+def stage_bundle(directory, state_dir=DEFAULT_STATE_DIR):
+    """Place an exact closure where direct admission can find its digest."""
+    profile = EnvironmentSetup(state_dir, onboarding=None).profile()
+    campaigns = Path(profile["campaigns_root"])
+    owner_root = _private_dir(campaigns / ".direct-development")
+    cache_root = _private_dir(owner_root / "library-cache")
+    selected = stage_pinned_bundle_material(directory, cache_root)
+    return {
+        "status": "PINNED_MATERIAL_STAGED",
+        "bundle_ref": selected.to_dict(),
+        "image_status": "NOT_BUILT",
+        "qualification": "DEVELOPMENT_ONLY",
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -122,6 +138,11 @@ def main(argv=None):
     imported.add_argument("directory", type=Path)
     imported.add_argument("--cache-root", required=True, type=Path)
     imported.add_argument("--parent-image", required=True)
+    staged = subcommands.add_parser(
+        "stage", help="stage a complete pinned closure without building an image"
+    )
+    staged.add_argument("directory", type=Path)
+    staged.add_argument("--state-dir", type=Path, default=DEFAULT_STATE_DIR)
     installed = subcommands.add_parser(
         "install", help="install a pinned bundle under checked local setup"
     )
@@ -133,6 +154,8 @@ def main(argv=None):
             result = inspect(args.directory)
         elif args.command == "import":
             result = import_bundle(args.directory, args.cache_root, args.parent_image)
+        elif args.command == "stage":
+            result = stage_bundle(args.directory, args.state_dir)
         else:
             result = install_bundle(args.directory, args.state_dir)
     except (OSError, ValueError, SetupRefused, WorkerFailure) as exc:

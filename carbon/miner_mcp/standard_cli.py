@@ -347,24 +347,59 @@ def _installed_direct_manifest(source: DirectInstalledSource, owner: str) -> dic
 
 
 class DirectOwnerImageResolver:
-    """Read one exact owner cache receipt keyed by a recipe's bundle ref.
+    """Resolve owner-staged source first and a verified child after admission.
 
-    The cache record grants no image authority: the direct task provider calls
-    ``verify_library_worker_image`` before queue admission and again before
-    dispatch. A miner cannot supply a host path or choose the installed parent.
+    Source inspection reads no image receipt and performs no build. The admitted
+    task revalidates the closure and verifies or provisions its chosen child.
+    A miner cannot supply a host path or choose the construction parent.
     """
 
-    def __init__(self, cache_root, parent):
+    def __init__(self, cache_root, parent=None):
         from carbon.reconstruction.worker.model import WorkerImageIdentity
 
         if (
             not isinstance(cache_root, Path)
             or not cache_root.is_absolute()
             or cache_root.is_symlink()
-            or type(parent) is not WorkerImageIdentity
+            or (parent is not None and type(parent) is not WorkerImageIdentity)
         ):
-            raise ValueError("trusted owner cache and installed parent required")
+            raise ValueError("trusted owner cache and optional parent required")
         self.cache_root, self.parent = cache_root, parent
+
+    def inspect_source(self, bundle):
+        """Pure preflight: require exact source/lock/wheels, no image receipt."""
+        from carbon.development_session.library_environment_cache import (
+            inspect_staged_bundle_material,
+        )
+
+        inspect_staged_bundle_material(self.cache_root, bundle)
+        return bundle
+
+    def provision_admitted(self, bundle, *, parent, cli):
+        """Build or verify the compatible child inside the admitted task phase."""
+        from carbon.development_session.gpu_practice import gpu_image_backend
+        from carbon.development_session.library_environment_cache import (
+            inspect_staged_bundle_material,
+            install_pinned_library_worker_image,
+        )
+        from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+        if type(parent) is not WorkerImageIdentity:
+            raise ValueError("trusted construction parent required")
+        expected_backend = {
+            "jax-cuda13-py311": "jax",
+            "torch-cu130-py311": "pytorch",
+        }.get(bundle.runtime_profile_id)
+        if expected_backend is None or gpu_image_backend(parent) != expected_backend:
+            raise ValueError("construction parent differs from bundle runtime")
+        directory = inspect_staged_bundle_material(self.cache_root, bundle)
+        return install_pinned_library_worker_image(
+            directory,
+            self.cache_root,
+            parent,
+            expected_bundle=bundle,
+            cli=cli,
+        )
 
     def __call__(self, bundle):
         from carbon.development_session.gpu_practice import gpu_image_backend
@@ -373,6 +408,8 @@ class DirectOwnerImageResolver:
             load_cached_library_worker_image,
         )
 
+        if self.parent is None:
+            raise ValueError("trusted construction parent required")
         expected_backend = {
             "jax-cuda13-py311": "jax",
             "torch-cu130-py311": "pytorch",
