@@ -239,6 +239,79 @@ def test_main_uses_process_stop_and_closed_failure_without_private_text(
     }
 
 
+def test_main_one_shot_retention_uses_operator_paths_and_reports_only_bank_status(
+    tmp_path, monkeypatch, capsys
+):
+    task_id = "rtsk_" + "a" * 64
+    artifacts = tmp_path / "private-artifacts"
+    entries = tmp_path / "private-entries"
+    calls = []
+
+    def retain(config, **kwargs):
+        calls.append((config, kwargs["retention"]))
+        assert isinstance(kwargs["stop"], threading.Event)
+        return {
+            "status": "CREATED" if len(calls) == 1 else "ALREADY_PRESENT_IDENTICAL",
+            "entry_id": "entry-verified",
+            "score_state": "NOT_COMPUTED",
+            "official_eligible": False,
+        }
+
+    monkeypatch.setattr(receiver, "serve", retain)
+    monkeypatch.setattr(receiver.signal, "signal", lambda *_: None)
+    argv = [
+        "--config",
+        str(tmp_path / "config.json"),
+        "--retain-task",
+        task_id,
+        "--artifact-directory",
+        str(artifacts),
+        "--entry-directory",
+        str(entries),
+    ]
+    for expected in ("CREATED", "ALREADY_PRESENT_IDENTICAL"):
+        assert receiver.main(argv) == 0
+        reported = json.loads(capsys.readouterr().out)
+        assert reported == {
+            "schema": receiver.SCHEMA,
+            "state": "RETAINED",
+            "status": expected,
+            "entry_id": "entry-verified",
+            "score_state": "NOT_COMPUTED",
+            "official_eligible": False,
+        }
+    assert calls == [(tmp_path / "config.json", (task_id, artifacts, entries))] * 2
+
+
+@pytest.mark.parametrize("reason", ["owned_task_unavailable", "task_not_succeeded"])
+def test_main_one_shot_retention_reports_only_closed_refusal(
+    tmp_path, monkeypatch, capsys, reason
+):
+    from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
+
+    def refused(*_args, **_kwargs):
+        raise RetentionUnavailable(reason)
+
+    monkeypatch.setattr(receiver, "serve", refused)
+    monkeypatch.setattr(receiver.signal, "signal", lambda *_: None)
+    assert (
+        receiver.main(
+            [
+                "--config",
+                str(tmp_path / "config.json"),
+                "--retain-task",
+                "rtsk_" + "a" * 64,
+                "--artifact-directory",
+                str(tmp_path / "artifacts"),
+                "--entry-directory",
+                str(tmp_path / "entries"),
+            ]
+        )
+        == 1
+    )
+    assert json.loads(capsys.readouterr().out) == {"unavailable": reason}
+
+
 def test_shutdown_refuses_to_release_unreconciled_provider_lock(tmp_path):
     calls = []
     provider = SimpleNamespace(
@@ -826,6 +899,42 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
             research.DirectTaskViewV3,
         )
         assert view.state is research.DirectTaskStateV3.CANCELLED
+
+    # Reopen the signed task under the same receiver identity without
+    # listening, dispatching, or cancelling any retained work. A cancelled
+    # task and an unowned identity cannot enter the existing bank.
+    from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
+
+    artifacts, entries = tmp_path / "bank-artifacts", tmp_path / "bank-entries"
+    artifacts.mkdir(mode=0o700)
+    entries.mkdir(mode=0o700)
+    with monkeypatch.context() as one_shot:
+        one_shot.setattr(
+            direct_intake,
+            "serve_loopback",
+            lambda *_args, **_kwargs: pytest.fail("listener started"),
+        )
+        one_shot.setattr(
+            receiver.OwnerProviders,
+            "cancel",
+            lambda self: pytest.fail("retention cancelled unrelated work"),
+        )
+        with pytest.raises(RetentionUnavailable, match="task_not_succeeded"):
+            receiver.serve(
+                tmp_path / "config.json",
+                reader=reader,
+                verifier=Verifier(),
+                retention=(retained["task"], artifacts, entries),
+            )
+        with pytest.raises(RetentionUnavailable, match="owned_task_unavailable"):
+            receiver.serve(
+                tmp_path / "config.json",
+                reader=reader,
+                verifier=Verifier(),
+                retention=("rtsk_" + "0" * 64, artifacts, entries),
+            )
+    assert not list(artifacts.iterdir())
+    assert not list(entries.iterdir())
 
 
 @POSIX

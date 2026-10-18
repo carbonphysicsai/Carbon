@@ -509,7 +509,15 @@ class OwnerProviders:
             provider.close()
 
 
-def serve(config_path: Path, *, stop=None, reader=None, verifier=None, ready=None):
+def serve(
+    config_path: Path,
+    *,
+    stop=None,
+    reader=None,
+    verifier=None,
+    ready=None,
+    retention=None,
+):
     """Run the same signed intake/task loop with finite admission and owned stop."""
     from carbon.chain.auth import BittensorHotkeyVerifier
     from carbon.chain.sdk import BittensorReader
@@ -599,6 +607,13 @@ def serve(config_path: Path, *, stop=None, reader=None, verifier=None, ready=Non
                 attempt_ledger=AttemptLedger(root / "attempts.sqlite3"),
                 measure_query=cfg["measure_query"],
             )
+            if retention is not None:
+                task_id, artifact_directory, entry_directory = retention
+                return intake.retain_result(
+                    task_id,
+                    artifact_directory=artifact_directory,
+                    entry_directory=entry_directory,
+                )
             timer.start()
             serve_loopback(
                 intake,
@@ -614,7 +629,8 @@ def serve(config_path: Path, *, stop=None, reader=None, verifier=None, ready=Non
             # The shared listener waits for its worker, even if cancellation
             # raises. No worker or carrier is reimplemented here.
             try:
-                providers.cancel()
+                if retention is None:
+                    providers.cancel()
             finally:
                 providers.close()
 
@@ -624,22 +640,58 @@ def main(argv=None):
         prog="python -m carbon.challenge_validator.direct_receiver"
     )
     parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--retain-task")
+    parser.add_argument("--artifact-directory", type=Path)
+    parser.add_argument("--entry-directory", type=Path)
     args = parser.parse_args(argv)
+    retention_args = (
+        args.retain_task,
+        args.artifact_directory,
+        args.entry_directory,
+    )
+    if any(value is not None for value in retention_args) and not all(
+        value is not None for value in retention_args
+    ):
+        parser.error("retention requires task and both operator directories")
+    retention = retention_args if args.retain_task is not None else None
     stop = threading.Event()
     for number in (signal.SIGTERM, signal.SIGINT):
         signal.signal(number, lambda *_: stop.set())
     try:
-        serve(
+        result = serve(
             args.config,
             stop=stop,
             ready=lambda item: print(json.dumps(item), flush=True),
+            retention=retention,
         )
     except Exception as failure:  # noqa: BLE001 - no private exception text
         code = getattr(failure, "code", None)
+        if retention is not None:
+            from carbon.challenge_validator.lean_recipe_retention import (
+                RetentionUnavailable,
+            )
+
+            if isinstance(failure, RetentionUnavailable):
+                code = str(failure)
         if type(code) is not str:
             code = "direct_receiver_unavailable"
         print(json.dumps({"unavailable": code}), flush=True)
         return 1
+    if retention is not None:
+        print(
+            json.dumps(
+                {
+                    "schema": SCHEMA,
+                    "state": "RETAINED",
+                    "status": result["status"],
+                    "entry_id": result["entry_id"],
+                    "score_state": result["score_state"],
+                    "official_eligible": result["official_eligible"],
+                }
+            ),
+            flush=True,
+        )
+        return 0
     print(json.dumps({"schema": SCHEMA, "state": "STOPPED"}), flush=True)
     return 0
 
