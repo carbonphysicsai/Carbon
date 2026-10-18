@@ -385,12 +385,48 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
     monkeypatch.setattr(
         docker_runtime,
         "load_image_identity",
-        lambda path: worker
-        if path.name == "worker.json"
-        else replace(older_torch_cpu, build_recipe_digest="sha256:" + "f" * 64),
+        lambda path: (
+            worker
+            if path.name == "worker.json"
+            else replace(older_torch_cpu, build_recipe_digest="sha256:" + "f" * 64)
+        ),
     )
     with pytest.raises(ValueError, match="ABI or entrypoint differs"):
         receiver.installed_source(profile)
+
+    # install_miner.sh --pytorch records the Torch CPU image as the primary
+    # worker paired with its analysis image; no GPU profile field is present.
+    primary_torch_cpu = replace(
+        older_torch_cpu, source_tree_digest=accepted["source_tree_digest"]
+    )
+    cfg["gpu_image"] = None
+    cfg["runtime"]["images"] = [primary_torch_cpu.image_id, analysis.image_id]
+    analysis.parent_image = primary_torch_cpu.image_id
+    monkeypatch.setattr(
+        docker_runtime, "load_image_identity", lambda _: primary_torch_cpu
+    )
+    implementation, parent, _, _ = receiver.installed_source(profile)
+    assert (implementation, parent) == (accepted, primary_torch_cpu)
+    assert checked_images[-1] is primary_torch_cpu
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda _: replace(primary_torch_cpu, build_recipe_digest="sha256:" + "f" * 64),
+    )
+    with pytest.raises(ValueError, match="ABI or entrypoint differs"):
+        receiver.installed_source(profile)
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda _: replace(
+            primary_torch_cpu, source_tree_digest=candidate["source_tree_digest"]
+        ),
+    )
+    with pytest.raises(ValueError, match="exact accepted source revision"):
+        receiver.installed_source(profile)
+    cfg["gpu_image"] = str(tmp_path / "gpu.json")
+    cfg["runtime"]["images"] = [worker.image_id, analysis.image_id]
+    analysis.parent_image = worker.image_id
 
     from carbon.reconstruction.accelerators import GPU_PROFILE
 
@@ -523,6 +559,11 @@ def test_serve_forwards_only_private_constructor_manifest(tmp_path, monkeypatch)
     (
         ("jax_gpu", True),
         ("cpu", True),
+        ("torch_cpu", True),
+        ("torch_cpu_bad", False),
+        ("torch_cpu_main", True),
+        ("torch_cpu_main_bad_abi", False),
+        ("torch_cpu_main_stale", False),
         ("jax_bad", False),
         ("torch_gpu", False),
         ("unknown", False),
@@ -533,8 +574,8 @@ def test_selected_inference_image_admits_only_compatible_jax_or_cpu(
 ):
     _allow_windows_receiver_fixture(monkeypatch)
     from carbon.development_session import research_campaign
+    from carbon.reconstruction import torch_profile
     from carbon.reconstruction.accelerators import GPU_PROFILE
-    from carbon.reconstruction.torch_profile import GPU_LOCK_DIGEST
     from carbon.reconstruction.worker import docker_runtime
     from carbon.reconstruction.worker.model import WorkerImageIdentity
     from scripts.dev.miner_launchpad import runner
@@ -566,12 +607,22 @@ def test_selected_inference_image_admits_only_compatible_jax_or_cpu(
         research_campaign.digest((repo / "uv.lock").read_bytes()),
         ".devcontainer/Dockerfile.reconstruction-worker",
     )
-    torch = image(GPU_LOCK_DIGEST, ".devcontainer/torch/Dockerfile.gpu")
+    torch = image(torch_profile.GPU_LOCK_DIGEST, ".devcontainer/torch/Dockerfile.gpu")
+    torch_cpu = image(
+        torch_profile.requirements_digest(repo), ".devcontainer/torch/Dockerfile"
+    )
     jax_bad = replace(jax, entrypoint_digest=sha("e"))
     unknown = replace(cpu, lock_digest=sha("e"), source_tree_digest=sha("f"))
     selected = {
         "jax_gpu": jax,
         "cpu": cpu,
+        "torch_cpu": torch_cpu,
+        "torch_cpu_bad": replace(torch_cpu, build_recipe_digest=sha("e")),
+        "torch_cpu_main": replace(torch_cpu, source_tree_digest=sha("f")),
+        "torch_cpu_main_bad_abi": replace(
+            torch_cpu, source_tree_digest=sha("f"), build_recipe_digest=sha("e")
+        ),
+        "torch_cpu_main_stale": torch_cpu,
         "jax_bad": jax_bad,
         "torch_gpu": torch,
         "unknown": unknown,
@@ -581,7 +632,12 @@ def test_selected_inference_image_admits_only_compatible_jax_or_cpu(
         "inference_image_manifest": str(tmp_path / "selected.json"),
         "material_cache_bytes": 1024,
     }
-    implementation = {"source_tree_digest": sha("f")}
+    implementation = {
+        "source_tree_digest": sha("f"),
+        "source_authority": "DEVELOPMENT_CANDIDATE",
+    }
+    if inference_backend.startswith("torch_cpu_main"):
+        del implementation["source_authority"]
     monkeypatch.setattr(receiver, "load_config", lambda _: cfg)
     monkeypatch.setattr(
         receiver,

@@ -278,8 +278,8 @@ def test_direct_resolver_inspects_source_before_admitted_provision(
 
 def test_direct_resolver_distinguishes_torch_cpu_from_generic_cpu(tmp_path):
     from carbon.development_session.gpu_practice import (
-        direct_parent_backend,
         direct_bundle_accelerators,
+        direct_parent_backend,
         gpu_image_backend,
     )
     from carbon.miner_mcp.standard_cli import DirectOwnerImageResolver
@@ -663,8 +663,10 @@ def test_owner_install_selects_only_profile_pinned_torch_cpu_parent(
         ),
     )
     profile = {
-        "gpu_image": str(tmp_path / "pinned-construction.json"),
+        "paths": {"image_manifest": str(tmp_path / "pinned-torch-worker.json")},
+        "gpu_image": str(tmp_path / "decoy-gpu-worker.json"),
         "campaigns_root": str(tmp_path / "campaigns"),
+        "runtime": {"images": [parent.image_id, sha(b"analysis")]},
     }
     monkeypatch.setattr(
         command,
@@ -672,7 +674,13 @@ def test_owner_install_selects_only_profile_pinned_torch_cpu_parent(
         lambda state_dir, onboarding: SimpleNamespace(profile=lambda: profile),
     )
     selected_parent = [parent]
-    monkeypatch.setattr(command, "load_image_identity", lambda _: selected_parent[0])
+    selected_paths = []
+
+    def load_image(path):
+        selected_paths.append(path)
+        return selected_parent[0]
+
+    monkeypatch.setattr(command, "load_image_identity", load_image)
     monkeypatch.setattr(command, "_private_dir", lambda path: path)
     monkeypatch.setattr(command, "DockerCLI", lambda: object())
     calls = []
@@ -685,6 +693,7 @@ def test_owner_install_selects_only_profile_pinned_torch_cpu_parent(
     assert (
         command.install_bundle(directory, tmp_path)["bundle_ref"] == selected.to_dict()
     )
+    assert selected_paths == [Path(profile["paths"]["image_manifest"])]
     assert calls == [
         (
             directory,
@@ -696,10 +705,14 @@ def test_owner_install_selects_only_profile_pinned_torch_cpu_parent(
     selected_parent[0] = replace(parent, build_recipe_digest=sha(b"different recipe"))
     with pytest.raises(ValueError, match="parent environment or ABI differs"):
         command.install_bundle(directory, tmp_path)
+    profile["runtime"]["images"][0] = sha(b"wrong selected worker")
+    with pytest.raises(ValueError, match="differs from profile"):
+        command.install_bundle(directory, tmp_path)
+    profile["runtime"]["images"][0] = parent.image_id
     selected_parent[0] = replace(
         parent, lock_digest=sha((root / "uv.lock").read_bytes())
     )
-    with pytest.raises(ValueError, match="backend differs"):
+    with pytest.raises(ValueError, match="parent environment or ABI differs"):
         command.install_bundle(directory, tmp_path)
     assert len(calls) == 1
 

@@ -46,6 +46,7 @@ def test_missing_prospective_material_fails_closed_without_affecting_old_kits(
         (False, False, False, False),
         (False, False, False, True),
         (True, False, False, False),
+        (True, False, False, True),
         (True, True, False, False),
         (True, False, True, False),
     ],
@@ -67,7 +68,7 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     digest = "sha256:" + "a" * 64
     parent = SimpleNamespace(image_id=digest)
     direct_parent = parent
-    if not candidate_mode:
+    if not candidate_mode or torch_cpu:
         from carbon.reconstruction import torch_profile
 
         root = Path(cli.__file__).resolve().parents[2]
@@ -96,7 +97,10 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
                 (root / "carbon/reconstruction/worker/entrypoint.py").read_bytes()
             ),
         )
-    analysis = SimpleNamespace(parent_image=digest, image_id=digest)
+    if torch_cpu:
+        parent = replace(direct_parent, source_tree_digest=digest)
+        direct_parent = parent
+    analysis = SimpleNamespace(parent_image=parent.image_id, image_id=digest)
     signer = SimpleNamespace(ss58_address="owner")
     base = (
         tmp_path / "environment" / "campaigns"
@@ -122,7 +126,7 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
         },
         "principal": "owner",
     }
-    if not cpu_only:
+    if not cpu_only and not torch_cpu:
         cfg["gpu_image"] = str(tmp_path / "gpu-image.json")
     candidate = {
         "revision": "a" * 40,
@@ -133,7 +137,7 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     if candidate_mode:
         cfg["runtime"]["implementation"] = candidate
         cfg["runtime"]["images"] = [
-            "sha256:" + "d" * 64 if bad_images else digest,
+            "sha256:" + "d" * 64 if bad_images else parent.image_id,
             digest,
         ]
     monkeypatch.setattr(
@@ -228,10 +232,22 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     )
     assert verified_workers == [(parent, expected_implementation)]
     assert compatible_parents == (
-        [] if cpu_only else [(direct_parent, expected_implementation)]
+        [] if cpu_only or torch_cpu else [(direct_parent, expected_implementation)]
     )
     assert seen_candidate == ([tmp_path] if candidate_mode else [])
     assert checked_parents == [direct_parent]
+    if torch_cpu and not candidate_mode:
+
+        def exact_worker(image, implementation):
+            if image.source_tree_digest != implementation["source_tree_digest"]:
+                raise ValueError(
+                    "trusted worker must be built from this exact accepted source revision"
+                )
+
+        monkeypatch.setattr(research_campaign, "verify_current_worker", exact_worker)
+        parent = replace(parent, source_tree_digest="sha256:" + "2" * 64)
+        with pytest.raises(ValueError, match="exact accepted source revision"):
+            cli.load_direct_installed_source(profile, version="1.3")
     if cpu_only:
         cfg["runtime"]["gpu_research"] = {}
         with pytest.raises(ValueError, match="declared GPU direct parent is missing"):

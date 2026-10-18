@@ -263,9 +263,17 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
         try:
             verify_current_worker(parent, implementation)
         except ValueError:
-            if version != "1.3":
+            if version != "1.3" or (
+                direct_parent_backend(parent) == "torch_cpu"
+                and not development_candidate
+            ):
                 raise
-            verify_direct_v13_worker(parent, implementation, role="cpu")
+            role = (
+                "torch_cpu" if direct_parent_backend(parent) == "torch_cpu" else "cpu"
+            )
+            verify_direct_v13_worker(parent, implementation, role=role)
+        if version == "1.3" and direct_parent_backend(parent) == "torch_cpu":
+            verify_direct_v13_worker(parent, implementation, role="torch_cpu")
         analysis = load_analysis_image(paths["analysis_image_manifest"])
         verify_image(analysis)
         if analysis.parent_image != parent.image_id:
@@ -276,9 +284,13 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
         ]:
             raise ValueError("development candidate profile images differ")
         gpu_manifest = cfg.get("gpu_image")
-        if gpu_manifest is None and version == "1.3" and development_candidate:
-            # A verified CPU-only candidate uses the same accepted C-03 parent
-            # for direct inference; it does not acquire GPU authority.
+        if (
+            gpu_manifest is None
+            and version == "1.3"
+            and (development_candidate or direct_parent_backend(parent) == "torch_cpu")
+        ):
+            # A verified primary CPU worker also serves direct inference;
+            # selecting it does not acquire GPU authority.
             if "gpu_research" in cfg["runtime"]:
                 raise ValueError("declared GPU direct parent is missing")
             direct_parent = parent

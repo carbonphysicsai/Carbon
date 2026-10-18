@@ -123,11 +123,25 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR):
     selected = bundle_ref(*material)
     if selected.runtime_profile_id == "python-cpu-py311":
         parent = _checked_cpu_parent(profile, material[0])
+    elif selected.runtime_profile_id == "torch-cpu-py311":
+        paths = profile.get("paths")
+        runtime = profile.get("runtime")
+        if (
+            type(paths) is not dict
+            or type(paths.get("image_manifest")) is not str
+            or type(runtime) is not dict
+            or type(runtime.get("images")) is not list
+            or not runtime["images"]
+        ):
+            raise ValueError("compatible installed Torch CPU parent missing")
+        parent = load_image_identity(Path(paths["image_manifest"]))
+        if parent.image_id != runtime["images"][0]:
+            raise ValueError("installed Torch CPU parent differs from profile")
+        verify_bundle_parent_environment(material[0], parent)
     else:
         expected_backend = {
             "jax-cuda13-py311": "jax",
             "torch-cu130-py311": "pytorch",
-            "torch-cpu-py311": "torch_cpu",
         }.get(selected.runtime_profile_id)
         if expected_backend is None:
             raise ValueError("pinned bundle runtime has no registered parent")
@@ -139,8 +153,6 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR):
         parent = load_image_identity(Path(parent_manifest))
         if direct_parent_backend(parent) != expected_backend:
             raise ValueError("installed parent backend differs from pinned bundle")
-        if selected.runtime_profile_id == "torch-cpu-py311":
-            verify_bundle_parent_environment(material[0], parent)
     campaigns = Path(profile["campaigns_root"])
     owner_root = _private_dir(campaigns / ".direct-development")
     cache_root = _private_dir(owner_root / "library-cache")

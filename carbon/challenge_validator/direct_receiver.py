@@ -399,14 +399,33 @@ def installed_source(
         ):
             raise ValueError("private construction parent conflicts with profile")
         gpu_image_path = str(construction_image_manifest)
-    if development_candidate or construction_image_manifest is not None:
-        worker = load_image_identity(paths["image_manifest"])
+    primary_torch_cpu = None
+    if gpu_image_path is None and not development_candidate:
+        primary_torch_cpu = load_image_identity(paths["image_manifest"])
+        if direct_parent_backend(primary_torch_cpu) != "torch_cpu":
+            raise ValueError("installed GPU parent required for direct development")
+    if (
+        development_candidate
+        or construction_image_manifest is not None
+        or gpu_image_path is None
+    ):
+        worker = primary_torch_cpu or load_image_identity(paths["image_manifest"])
         try:
             verify_current_worker(worker, implementation)
         except ValueError:
             if not development_candidate:
                 raise
-            verify_direct_v13_worker(worker, implementation, role="cpu")
+            verify_direct_v13_worker(
+                worker,
+                implementation,
+                role=(
+                    "torch_cpu"
+                    if direct_parent_backend(worker) == "torch_cpu"
+                    else "cpu"
+                ),
+            )
+        if direct_parent_backend(worker) == "torch_cpu":
+            verify_direct_v13_worker(worker, implementation, role="torch_cpu")
         analysis = load_analysis_image(paths["analysis_image_manifest"])
         verify_image(analysis)
         if analysis.parent_image != worker.image_id or cfg["runtime"].get("images") != [
@@ -417,9 +436,11 @@ def installed_source(
                 raise ValueError("development candidate installed images differ")
             raise ValueError("installed CPU and analysis images differ")
     if gpu_image_path is None:
-        if not development_candidate or "gpu_research" in cfg["runtime"]:
+        if (
+            not development_candidate and direct_parent_backend(worker) != "torch_cpu"
+        ) or "gpu_research" in cfg["runtime"]:
             raise ValueError("installed GPU parent required for direct development")
-        # The verified candidate's C-03 worker is the CPU direct parent.
+        # The verified primary CPU worker is the direct construction parent.
         parent = worker
     else:
         if type(gpu_image_path) is not str:
@@ -770,6 +791,7 @@ def serve(
     )
     from carbon.development_session.gpu_practice import (
         direct_bundle_accelerators,
+        direct_parent_backend,
         gpu_image_backend,
     )
     from carbon.development_session.research_campaign import (
@@ -790,14 +812,29 @@ def serve(
     )
     backend = gpu_image_backend(inference_image)
     if selected_inference is None or backend is None:
-        if selected_inference is not None and inference_image.lock_digest != digest(
-            (Path(__file__).resolve().parents[2] / "uv.lock").read_bytes()
+        torch_cpu = direct_parent_backend(inference_image) == "torch_cpu"
+        if (
+            selected_inference is not None
+            and not torch_cpu
+            and inference_image.lock_digest
+            != digest((Path(__file__).resolve().parents[2] / "uv.lock").read_bytes())
         ):
             raise ValueError("private inference worker backend is unregistered")
         try:
             verify_current_worker(inference_image, implementation)
         except ValueError:
-            verify_direct_v13_worker(inference_image, implementation, role="cpu")
+            if (
+                torch_cpu
+                and implementation.get("source_authority") != "DEVELOPMENT_CANDIDATE"
+            ):
+                raise
+            verify_direct_v13_worker(
+                inference_image,
+                implementation,
+                role="torch_cpu" if torch_cpu else "cpu",
+            )
+        if torch_cpu:
+            verify_direct_v13_worker(inference_image, implementation, role="torch_cpu")
     else:
         if backend == "pytorch":
             raise ValueError("fixed direct inference requires JAX worker")
