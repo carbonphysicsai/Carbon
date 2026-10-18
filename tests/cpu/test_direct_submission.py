@@ -123,6 +123,55 @@ def test_signed_direct_submission_records_task_and_restart_only_polls(
     assert len(signed) == len(sent)
 
 
+def test_retried_submit_accepts_an_already_reconstructed_idempotent_task(
+    tmp_path, monkeypatch
+):
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+    calls = []
+
+    def send(url, body, headers):
+        tool = json.loads(body)["tool"]
+        calls.append(tool)
+        outcome = {
+            "state": "RECONSTRUCTED",
+            "task_id": "same-task",
+            "qualification": False,
+            "reward": False,
+        }
+        return (202 if tool == client.SUBMIT_TOOL else 200), {
+            "kind": "OUTCOME",
+            "outcome": outcome,
+        }
+
+    result = client.submit_and_wait(
+        _URL,
+        "external-signer",
+        root=tmp_path,
+        epoch=1,
+        recipe=_recipe(),
+        contract_digest=_CONTRACT,
+        receiver=_RECEIVER,
+        context=_CONTEXT,
+        read=lambda url: _facts(),
+        send=send,
+    )
+    assert result["state"] == "RECONSTRUCTED"
+    assert calls == [client.SUBMIT_TOOL, client.STATUS_TOOL]
+    assert (
+        json.loads((tmp_path / "construction-intake-epoch-1.json").read_bytes())[
+            "submission_id"
+        ]
+        == "same-task"
+    )
+
+
 def test_wrong_registered_contract_refuses_before_contact(tmp_path, monkeypatch):
     def unexpected_signer(_):
         raise AssertionError("nothing may be signed")

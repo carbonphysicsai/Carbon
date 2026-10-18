@@ -236,7 +236,9 @@ def submit_and_wait(
                 _refusal_code(answer, "construction_intake_unavailable")
             )
         outcome = answer.get("outcome")
-        if type(outcome) is not dict or outcome.get("state") != "ADMITTED":
+        if type(outcome) is not dict or outcome.get("state") not in (
+            TERMINAL | {"ADMITTED"}
+        ):
             raise DirectIntakeRefusal("construction_intake_answer_unrecognised")
         task_id = outcome.get("task_id")
         if type(task_id) is not str or not task_id:
