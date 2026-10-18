@@ -24,6 +24,11 @@ OVERLAY_SCHEMA = "carbon.development.library-overlay.v1"
 # Reserve a fixed 64 KiB for the receipt and stream framing.
 MAX_OVERLAY_BYTES = 128 * 1024**2 - 64 * 1024
 MAX_OVERLAY_FILES = 8192
+PARENT_BUILD_RECORD = Path("/opt/carbon/worker-image-build.json")
+GPU_BASE_LOCK_PATHS = {
+    "jax-cuda13-py311": Path("/opt/carbon/accelerator-requirements.txt"),
+    "torch-cu130-py311": Path("/opt/carbon/torch-gpu-requirements.txt"),
+}
 
 
 def _digest(body: bytes) -> str:
@@ -40,6 +45,46 @@ def _regular_file(path: Path, maximum: int, *, allow_empty: bool = False) -> byt
     if len(body) != metadata.st_size:
         raise ValueError("preparation input changed")
     return body
+
+
+def _verify_parent_environment(manifest: dict, expected: dict) -> None:
+    """Bind the declared base lock to the exact worker selected by the carrier."""
+    try:
+        build = json.loads(_regular_file(PARENT_BUILD_RECORD, 65536))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise ValueError("parent build record unavailable") from error
+    fields = {
+        "schema",
+        "source_tree_digest",
+        "wheel_digest",
+        "lock_digest",
+        "base_image_digest",
+        "build_recipe_digest",
+        "entrypoint_digest",
+    }
+    if (
+        type(build) is not dict
+        or set(build) != fields
+        or build["schema"] != "carbon.c03.worker-image-build.v1"
+        or any(
+            type(build[name]) is not str
+            or len(build[name]) != 71
+            or not build[name].startswith("sha256:")
+            or any(character not in "0123456789abcdef" for character in build[name][7:])
+            for name in fields - {"schema"}
+        )
+        or build != expected
+        or build["lock_digest"] != manifest["base_environment_digest"]
+    ):
+        raise ValueError("prepared bundle base environment differs")
+    lock_path = GPU_BASE_LOCK_PATHS.get(manifest["runtime_profile_id"])
+    if lock_path is not None:
+        try:
+            lock = _regular_file(lock_path, 512 * 1024)
+        except OSError as error:
+            raise ValueError("installed accelerator lock unavailable") from error
+        if _digest(lock) != build["lock_digest"]:
+            raise ValueError("installed accelerator lock differs")
 
 
 def _source_into(source: bytes, root: Path) -> None:
@@ -122,6 +167,7 @@ def prepare(
     if type(control) is not dict or set(control) != {
         "bundle_ref",
         "parent_image_id",
+        "parent_build",
         "uv_sha256",
     }:
         raise ValueError("closed preparation control required")
@@ -140,6 +186,7 @@ def prepare(
     validate_bundle(manifest, source, wheels, lock, license_text)
     if bundle_ref(manifest, source, wheels, lock, license_text) != bundle:
         raise ValueError("prepared bundle reference differs")
+    _verify_parent_environment(manifest, control["parent_build"])
     uv = input_dir / "uv-bin"
     if _digest(_regular_file(uv, 64 * 1024**2)) != control["uv_sha256"]:
         raise ValueError("pinned uv preparation bytes differ")

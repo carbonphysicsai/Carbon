@@ -443,7 +443,7 @@ def prepare_library_overlay(
     """Install exact offline wheels only inside a controlled C03 operation."""
     from carbon.reconstruction.worker.model import WorkerImageIdentity
 
-    from .library_bundles import UV_IMAGE
+    from .library_bundles import UV_IMAGE, verify_bundle_parent_environment
     from .library_environment_cache import pinned_uv_bytes
 
     binding = _checked_binding(recipe, challenge_binding)
@@ -458,6 +458,16 @@ def prepare_library_overlay(
     if selected.to_dict() != recipe.to_dict()["source"].get("bundle_ref"):
         raise RecipeRefused("bundle_overlay_prep_source_changed")
     manifest, source, wheels, lock, license_text = material
+    verify_bundle_parent_environment(manifest, parent)
+    parent_build = {
+        "schema": "carbon.c03.worker-image-build.v1",
+        "source_tree_digest": parent.source_tree_digest,
+        "wheel_digest": parent.wheel_digest,
+        "lock_digest": parent.lock_digest,
+        "base_image_digest": parent.base_image_digest,
+        "build_recipe_digest": parent.build_recipe_digest,
+        "entrypoint_digest": parent.entrypoint_digest,
+    }
     files = {
         "bundle.json": json.dumps(manifest, sort_keys=True).encode(),
         "source.tar.gz": source,
@@ -476,6 +486,7 @@ def prepare_library_overlay(
         "uv_image": UV_IMAGE,
         "bundle_ref": selected.to_dict(),
         "parent_image_id": parent.image_id,
+        "parent_build": parent_build,
     }
 
     def stage_uv(cli):
@@ -486,6 +497,7 @@ def prepare_library_overlay(
                 {
                     "bundle_ref": selected.to_dict(),
                     "parent_image_id": parent.image_id,
+                    "parent_build": parent_build,
                     "uv_sha256": _digest(uv_binary),
                 },
                 sort_keys=True,

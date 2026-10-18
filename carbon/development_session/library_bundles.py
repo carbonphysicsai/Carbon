@@ -394,6 +394,43 @@ def _environment_digest(base, lock):
     )
 
 
+def verify_bundle_parent_environment(manifest, parent):
+    """Refuse a staged source whose declared base is not this registered C03 ABI."""
+    from carbon.reconstruction import torch_profile
+    from carbon.reconstruction.accelerators import GPU_PROFILE
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    from .gpu_practice import gpu_image_backend
+
+    if type(manifest) is not dict or type(parent) is not WorkerImageIdentity:
+        raise ValueError("exact bundle manifest and parent image required")
+    profile = manifest.get("runtime_profile_id")
+    root = Path(__file__).resolve().parents[2]
+    if profile == "python-cpu-py311":
+        expected_lock = _digest((root / "uv.lock").read_bytes())
+        recipe = ".devcontainer/Dockerfile.reconstruction-worker"
+        backend = None
+    elif profile == "jax-cuda13-py311":
+        expected_lock = GPU_PROFILE.environment_lock_digest
+        recipe = ".devcontainer/accelerators/Dockerfile"
+        backend = "jax"
+    elif profile == "torch-cu130-py311":
+        expected_lock = torch_profile.GPU_LOCK_DIGEST
+        recipe = ".devcontainer/torch/Dockerfile.gpu"
+        backend = "pytorch"
+    else:
+        raise ValueError("registered bundle runtime profile required")
+    if (
+        parent.lock_digest != expected_lock
+        or manifest.get("base_environment_digest") != expected_lock
+        or gpu_image_backend(parent) != backend
+        or parent.build_recipe_digest != _digest((root / recipe).read_bytes())
+        or parent.entrypoint_digest
+        != _digest((root / "carbon/reconstruction/worker/entrypoint.py").read_bytes())
+    ):
+        raise ValueError("bundle parent environment or ABI differs")
+
+
 def _locked_wheels(lock):
     """Closed one-hash-per-distribution overlay; no URL or index directives."""
     names = {}
