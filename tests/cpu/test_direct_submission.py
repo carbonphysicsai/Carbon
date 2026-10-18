@@ -198,8 +198,10 @@ def test_zero_wait_retains_admitted_task_without_immediate_signed_status(
     assert sent == signed == [client.SUBMIT_TOOL, client.STATUS_TOOL]
 
 
-def test_retried_submit_accepts_an_already_reconstructed_idempotent_task(
-    tmp_path, monkeypatch
+@pytest.mark.parametrize("wait_s", [0, 30])
+@pytest.mark.parametrize("state", sorted(client.TERMINAL))
+def test_retried_submit_preserves_an_already_terminal_idempotent_task(
+    tmp_path, monkeypatch, wait_s, state
 ):
     class Signer:
         def __init__(self, signer):
@@ -214,9 +216,11 @@ def test_retried_submit_accepts_an_already_reconstructed_idempotent_task(
     def send(url, body, headers):
         tool = json.loads(body)["tool"]
         calls.append(tool)
-        return (202 if tool == client.SUBMIT_TOOL else 200), _answer(
-            "RECONSTRUCTED", task_id="same-task"
+        assert tool == client.SUBMIT_TOOL
+        fields = (
+            {} if state == "RECONSTRUCTED" else {"failure": {"code": "fixture_failure"}}
         )
+        return 202, _answer(state, task_id="same-task", **fields)
 
     result = client.submit_and_wait(
         _URL,
@@ -229,9 +233,13 @@ def test_retried_submit_accepts_an_already_reconstructed_idempotent_task(
         context=_CONTEXT,
         read=lambda url: _facts(),
         send=send,
+        wait_s=wait_s,
     )
-    assert result["state"] == "RECONSTRUCTED"
-    assert calls == [client.SUBMIT_TOOL, client.STATUS_TOOL]
+    expected_fields = (
+        {} if state == "RECONSTRUCTED" else {"failure": {"code": "fixture_failure"}}
+    )
+    assert result == _answer(state, task_id="same-task", **expected_fields)["outcome"]
+    assert calls == [client.SUBMIT_TOOL]
     assert (
         json.loads((tmp_path / "construction-intake-epoch-1.json").read_bytes())[
             "submission_id"

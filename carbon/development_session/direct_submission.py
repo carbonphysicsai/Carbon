@@ -350,6 +350,8 @@ def submit_and_wait(
             ).encode(),
         )
         record_path.chmod(0o600)
+        if outcome["state"] in TERMINAL:
+            return outcome
     if wait_s == 0:
         # The tool door requests admission only. A same-moment STATUS call can
         # hit the signed transport's rate limit, even though SUBMIT succeeded.
