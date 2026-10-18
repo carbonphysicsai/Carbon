@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -128,6 +128,9 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     )
     monkeypatch.setattr(research_campaign, "private_file", lambda path: path)
     monkeypatch.setattr(research_campaign, "verify_current_worker", lambda *_args: None)
+    monkeypatch.setattr(
+        cli, "_direct_development_parent_compatible", lambda *_args: None
+    )
     monkeypatch.setattr(research_image, "load_analysis_image", lambda _path: analysis)
     monkeypatch.setattr(research_image, "verify_image", lambda _image: None)
     monkeypatch.setattr(docker_runtime, "load_image_identity", lambda _path: parent)
@@ -172,6 +175,36 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
         cfg["runtime"]["gpu_research"] = {}
         with pytest.raises(ValueError, match="declared GPU direct parent is missing"):
             cli.load_direct_installed_source(profile, version="1.3")
+
+
+def test_public_v13_direct_torch_parent_reuses_exact_abi_not_old_tree():
+    from carbon.reconstruction import torch_profile
+
+    def sha(char):
+        return "sha256:" + char * 64
+
+    root = Path(cli.__file__).resolve().parents[2]
+    image = WorkerImageIdentity(
+        sha("1"),
+        sha("1"),
+        sha("2"),  # Older Carbon source identity stays in the image record.
+        sha("3"),
+        torch_profile.GPU_LOCK_DIGEST,
+        sha("4"),
+        cli.digest((root / ".devcontainer/torch/Dockerfile.gpu").read_bytes()),
+        cli.digest((root / "carbon/reconstruction/worker/entrypoint.py").read_bytes()),
+    )
+    current = {"source_tree_digest": sha("5")}
+    cli._direct_development_parent_compatible(image, current)
+    for field in ("lock_digest", "entrypoint_digest", "build_recipe_digest"):
+        with pytest.raises(ValueError, match="ABI or entrypoint differs"):
+            cli._direct_development_parent_compatible(
+                replace(image, **{field: sha("f")}), current
+            )
+    # The exact current source remains eligible without this older-base route.
+    cli._direct_development_parent_compatible(
+        replace(image, source_tree_digest=current["source_tree_digest"]), current
+    )
 
 
 def test_v13_candidate_profile_mismatch_refuses_before_image_use(monkeypatch, tmp_path):
