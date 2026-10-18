@@ -16,6 +16,27 @@ from carbon.development_session.direct_submission import DirectIntakeRefusal
 from carbon.level4 import staging
 
 
+def test_bundle_uploader_refuses_graph_before_material_or_network(tmp_path, monkeypatch):
+    def unexpected(*_args, **_kwargs):
+        pytest.fail("graph refusal must precede material access and network")
+
+    monkeypatch.setattr(client, "load_pinned_bundle_directory", unexpected)
+    monkeypatch.setattr(client, "BittensorMessageSigner", unexpected)
+    with pytest.raises(DirectIntakeRefusal) as refused:
+        client.stage_bundle(
+            _URL,
+            "external-signer",
+            directory=tmp_path / "not-read",
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            read=unexpected,
+            send=unexpected,
+        )
+    assert refused.value.code == "construction_bundle_source_required"
+
+
 def test_bundle_material_uses_normal_signed_gateway_and_promotes_closure(
     tmp_path, monkeypatch
 ):
