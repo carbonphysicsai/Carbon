@@ -761,3 +761,57 @@ def test_one_token_per_second_receiver_does_not_starve_post_after_retry(
     assert result["state"] == "RECONSTRUCTED"
     assert accepted == [client.SUBMIT_TOOL, client.STATUS_TOOL]
     assert now[0] < 10
+
+
+@pytest.mark.parametrize("phase", ["admission", "observation"])
+def test_discovery_exhausting_deadline_never_starts_signing(
+    tmp_path, monkeypatch, phase
+):
+    now, signed, sent = [0.0], [], []
+
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            signed.append(json.loads(body)["tool"])
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def send(url, body, headers):
+        sent.append(json.loads(body)["tool"])
+        return 202, _answer("ADMITTED")
+
+    args = {
+        "root": tmp_path,
+        "epoch": 1,
+        "recipe": _recipe(),
+        "contract_digest": _CONTRACT,
+        "receiver": _RECEIVER,
+        "context": _CONTEXT,
+        "send": send,
+        "clock": lambda: now[0],
+    }
+    if phase == "observation":
+        with pytest.raises(
+            client.DirectIntakeRefusal, match="construction_task_queued"
+        ):
+            client.submit_and_wait(
+                _URL, "external-signer", read=lambda url: _facts(), wait_s=0, **args
+            )
+        signed.clear()
+        sent.clear()
+
+    def read(url):
+        now[0] = 30 if phase == "admission" else 2
+        return _facts()
+
+    with pytest.raises(
+        client.DirectIntakeRefusal, match="construction_request_deadline"
+    ):
+        client.submit_and_wait(_URL, "external-signer", read=read, wait_s=2, **args)
+    assert signed == sent == []
+    assert (tmp_path / "construction-intake-epoch-1.json").exists() == (
+        phase == "observation"
+    )

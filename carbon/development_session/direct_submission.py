@@ -371,6 +371,8 @@ def submit_and_wait(
                 if admission_deadline - clock() <= 1.05:
                     raise DirectIntakeRateLimit()
                 sleep(1.05)
+            if admission_deadline <= clock():
+                raise DirectIntakeRefusal("construction_request_deadline")
             body = _body(
                 facts,
                 recipe=recipe,
@@ -450,6 +452,8 @@ def submit_and_wait(
                 if deadline - clock() <= 1.05:
                     raise DirectIntakeRateLimit()
                 sleep(1.05)
+            if deadline <= clock():
+                raise DirectIntakeRefusal("construction_request_deadline")
             body = _body(
                 facts,
                 recipe=recipe,
