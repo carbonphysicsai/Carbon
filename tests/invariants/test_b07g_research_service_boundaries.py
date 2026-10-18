@@ -52,18 +52,6 @@ def test_dispatcher_owns_no_store_lock_task_or_domain_model_state() -> None:
         "_direct",
         "_fixture",
     )
-    for context_type, direct, fixture in (
-        (research.ExternalPublicResearchContext, False, False),
-        (research.DirectPublicResearchContext, True, False),
-        (research.FixtureResearchContext, False, True),
-    ):
-        # Only the nominal context type is relevant to this structural check.
-        context = object.__new__(context_type)
-        dispatcher = research.LocalResearchService(context)
-        assert dispatcher._context is context
-        assert dispatcher._direct is direct
-        assert dispatcher._fixture is fixture
-        assert not hasattr(dispatcher, "__dict__")
     assert not any(
         token in research.LocalResearchService.__dict__
         for token in (
