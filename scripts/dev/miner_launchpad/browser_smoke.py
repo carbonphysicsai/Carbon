@@ -1247,7 +1247,10 @@ def journey():
         root.chmod(0o700)
         token = "browser-smoke-session-token-not-a-real-credential"
         store = controller.Controller(root / "runs.sqlite3")
-        host = journey_host(root)
+        # This UI-only journey edits the pre-direct fixture strategy. The
+        # maintained fixture replays a persisted historical launch record;
+        # current public launches still require a direct construction recipe.
+        host = journey_host(root, historical_launch=True)
         with cdp.launch_browser(cdp.discover_browser(), 20) as (_, browser_port):
             session = cdp._open_page_session(browser_port, 10)
             try:
