@@ -1332,8 +1332,15 @@ class DirectDevelopmentTasksV3:
             try:
                 recipe = ConstructionRecipe.from_dict(request.recipe)
                 source_kind = recipe.to_dict()["source"]["kind"]
+                retained_image = self._task_image_bindings.get(task_id.value)
+                retained_binding = (
+                    json.loads(retained_image) if retained_image is not None else None
+                )
                 staged_source = (
-                    source_kind == "bundle"
+                    type(retained_binding) is list
+                    and len(retained_binding) == 2
+                    and retained_binding[0] == "BUNDLE_SOURCE"
+                    and source_kind == "bundle"
                     and self.image_resolver is not None
                     and callable(getattr(self.image_resolver, "inspect_source", None))
                     and callable(

@@ -120,8 +120,9 @@ def _fixture(tmp_path, monkeypatch, material=None, task_root=None):
     return request, provider, discovery
 
 
+@pytest.mark.parametrize("changed_child", [False, True])
 def test_direct_v3_resolves_each_bundle_and_refuses_changed_child_on_restart(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, changed_child
 ):
     request, fixed_provider, discovery = _fixture(tmp_path, monkeypatch)
     fixed = fixed_provider()
@@ -151,7 +152,7 @@ def test_direct_v3_resolves_each_bundle_and_refuses_changed_child_on_restart(
         except KeyError:
             raise FileNotFoundError("owner cache has no installed bundle") from None
 
-    def provider():
+    def provider(resolver=resolve):
         return DirectDevelopmentTasksV3(
             root=tmp_path / "per-recipe-tasks",
             requester="miner",
@@ -160,7 +161,7 @@ def test_direct_v3_resolves_each_bundle_and_refuses_changed_child_on_restart(
             discovery=discovery,
             image=None,
             inference_image=parent,
-            image_resolver=resolve,
+            image_resolver=resolver,
         )
 
     second_request = replace(
@@ -192,12 +193,33 @@ def test_direct_v3_resolves_each_bundle_and_refuses_changed_child_on_restart(
 
     # A valid-looking but different cached child cannot execute the retained
     # queued task. The other bundle's terminal custody remains readable.
-    installed[first_ref["bundle_digest"]] = LibraryWorkerImage(
-        replace(image.provisioned, image_id="sha256:" + "8" * 64),
-        parent,
-        first_ref,
+    if changed_child:
+        installed[first_ref["bundle_digest"]] = LibraryWorkerImage(
+            replace(image.provisioned, image_id="sha256:" + "8" * 64),
+            parent,
+            first_ref,
+        )
+
+    class UpgradedResolver:
+        def __call__(self, bundle):
+            return resolve(bundle)
+
+        def inspect_source(self, bundle):
+            pytest.fail("historical queued image pin must not become source-only")
+
+        def provision_admitted(self, bundle, *, parent, cli):
+            pytest.fail("historical queued image must not be reprovisioned")
+
+    invoked = []
+
+    def claimed(*args, **kwargs):
+        invoked.append(kwargs["image"])
+        return {"claimed": "success"}
+
+    monkeypatch.setattr(
+        bundle_construction_worker, "reconstruct_and_infer_public", claimed
     )
-    reopened = provider()
+    reopened = provider(UpgradedResolver())
     try:
         assert (
             reopened.get_research_result(
@@ -207,12 +229,19 @@ def test_direct_v3_resolves_each_bundle_and_refuses_changed_child_on_restart(
             ).task.state
             is research.DirectTaskStateV3.CANCELLED
         )
-        refused = reopened.run_queued_task(first.task_id)
-        assert refused.state is research.DirectTaskStateV3.FAILED_INFRA
-        assert (
-            refused.terminal_receipt.infrastructure_failure_class
-            is research.InfrastructureFailureClass.DEPENDENCY_UNAVAILABLE
-        )
+        ended = reopened.run_queued_task(first.task_id)
+        if changed_child:
+            assert ended.state is research.DirectTaskStateV3.FAILED_INFRA
+            assert (
+                ended.terminal_receipt.infrastructure_failure_class
+                is research.InfrastructureFailureClass.DEPENDENCY_UNAVAILABLE
+            )
+            assert invoked == []
+        else:
+            # The unchanged pinned child reaches the existing construction seam;
+            # a mocked return still cannot mint verified model evidence.
+            assert ended.state is research.DirectTaskStateV3.UNRESOLVED
+            assert invoked == [image]
         assert reopened.private_attempt(first.task_id) is None
     finally:
         reopened.close()
