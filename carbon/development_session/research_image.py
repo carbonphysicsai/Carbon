@@ -237,8 +237,7 @@ def verify_library_worker_image(image, cli=None):
         type(image) is not LibraryWorkerImage
         or type(image.provisioned) is not ProvisionedLibraryEnvironment
         or type(image.parent) is not WorkerImageIdentity
-        or image.provisioned.bundle
-        != LibraryBundleRef.from_dict(image.bundle_ref)
+        or image.provisioned.bundle != LibraryBundleRef.from_dict(image.bundle_ref)
         or image.provisioned.bundle.language != "python"
         or image.provisioned.parent_image != image.parent.image_id
     ):
@@ -248,9 +247,7 @@ def verify_library_worker_image(image, cli=None):
         image_id=image.parent.image_id, image_identity=image.parent, cli=cli
     ).eligible:
         raise ValueError("pinned library parent ineligible")
-    child = cli.json(
-        ["image", "inspect", image.image_id, "--format", "{{json .}}"]
-    )
+    child = cli.json(["image", "inspect", image.image_id, "--format", "{{json .}}"])
     parent = cli.json(
         ["image", "inspect", image.parent.image_id, "--format", "{{json .}}"]
     )

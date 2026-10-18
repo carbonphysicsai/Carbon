@@ -207,7 +207,14 @@ def make_operation_tools(host, *, guard=None):
     from mcp.server.mcpserver.exceptions import ToolError
     from mcp.server.mcpserver.tools import Tool
     from mcp.server.mcpserver.utilities.func_metadata import ArgModelBase, FuncMetadata
-    from pydantic import BaseModel, ConfigDict, Field, JsonValue, StrictBool, create_model
+    from pydantic import (
+        BaseModel,
+        ConfigDict,
+        Field,
+        JsonValue,
+        StrictBool,
+        create_model,
+    )
 
     from scripts.dev.miner_launchpad.controller import Rejected
     from scripts.dev.miner_launchpad.operations import (

@@ -19,21 +19,21 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 if str(REPOSITORY) not in sys.path:
     sys.path.insert(0, str(REPOSITORY))
 
-from carbon.development_session.library_bundles import (  # noqa: E402
+from carbon.development_session.gpu_practice import gpu_image_backend
+from carbon.development_session.library_bundles import (
     bundle_ref,
     load_pinned_bundle_directory,
     prepare_pinned_bundle_directory,
 )
-from carbon.development_session.gpu_practice import gpu_image_backend  # noqa: E402
-from carbon.development_session.library_environment_cache import (  # noqa: E402
+from carbon.development_session.library_environment_cache import (
     install_pinned_library_worker_image,
 )
-from carbon.reconstruction.worker.docker_runtime import (  # noqa: E402
+from carbon.reconstruction.worker.docker_runtime import (
     DockerCLI,
     load_image_identity,
 )
-from carbon.reconstruction.worker.model import WorkerFailure  # noqa: E402
-from scripts.dev.miner_launchpad.environment_setup import (  # noqa: E402
+from carbon.reconstruction.worker.model import WorkerFailure
+from scripts.dev.miner_launchpad.environment_setup import (
     DEFAULT_STATE_DIR,
     EnvironmentSetup,
     SetupRefused,

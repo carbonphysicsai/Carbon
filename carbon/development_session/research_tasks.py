@@ -262,8 +262,7 @@ class DirectDevelopmentTasksV3:
         try:
             self._check_image_identity()
             with self._db() as db:
-                db.executescript(
-                    """
+                db.executescript("""
                     CREATE TABLE IF NOT EXISTS direct_binding (
                         id INTEGER PRIMARY KEY CHECK(id=1), identity TEXT NOT NULL,
                         entropy BLOB NOT NULL);
@@ -282,8 +281,7 @@ class DirectDevelopmentTasksV3:
                     CREATE TABLE IF NOT EXISTS direct_task_measurements (
                         id TEXT PRIMARY KEY REFERENCES direct_tasks(id),
                         profile TEXT NOT NULL);
-                """
-                )
+                """)
                 binding = (
                     json.dumps(
                         [

@@ -256,9 +256,9 @@ def test_graph_adapter_selector_is_closed_to_registered_new_kit():
         "synthetic-linear-field-2d-public-jax-graph-v1"
     )
     assert new.graph_adapter_for(old.info.challenge_key) is None
-    new._material["construction_limits_document"]["graph_training_adapter"]["id"] = (
-        "unregistered"
-    )
+    new._material["construction_limits_document"]["graph_training_adapter"][
+        "id"
+    ] = "unregistered"
     with pytest.raises(ValueError, match="fixed public TRAIN differs|material differs"):
         new.graph_adapter_for(new.info.challenge_key)
 

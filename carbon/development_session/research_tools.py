@@ -1572,12 +1572,14 @@ class DirectResearchMinerTools:
                 "chunk_base64",
             }
             if operation == "stage_research_source"
-            else {"recipe"}
-            if operation == "start_research_task"
             else (
-                {"task_id"}
-                if operation in {"get_research_result", "cancel_research_task"}
-                else set()
+                {"recipe"}
+                if operation == "start_research_task"
+                else (
+                    {"task_id"}
+                    if operation in {"get_research_result", "cancel_research_task"}
+                    else set()
+                )
             )
         )
         if set(args) != expected or (

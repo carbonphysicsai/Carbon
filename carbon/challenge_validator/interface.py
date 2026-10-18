@@ -224,7 +224,7 @@ class ChallengeAdapter(abc.ABC):
 
     def validate_strategy(self, strategy):
         """Optional contract-specific strict screen after neutral JSON parsing."""
-        return None
+        return
 
     # --- identities ---------------------------------------------------------
 

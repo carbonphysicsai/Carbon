@@ -178,9 +178,7 @@ receipt = {
     "fit": fit,
 }
 (out / "receipt.json").write_text(json.dumps(receipt, sort_keys=True, allow_nan=False))
-'''.replace(
-    "__STAGED_MODULES__", repr(STAGED_MODULES)
-)
+'''.replace("__STAGED_MODULES__", repr(STAGED_MODULES))
 
 
 def _checked_envelope(recipe: ConstructionRecipe, source_envelope: bytes) -> bytes:

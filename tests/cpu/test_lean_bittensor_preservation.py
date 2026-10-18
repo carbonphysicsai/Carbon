@@ -22,6 +22,7 @@ from test_reward_testnet_winner_publication import (
     POLICY,
     composed,
 )
+
 from carbon import research
 from carbon.chain import Participant
 from carbon.rewards import testnet_winner_publication as publication
@@ -30,7 +31,6 @@ from carbon.rewards.core import Q12
 from carbon.scoring.solver_benchmark_v3 import register_pack
 from carbon.transport.models import TransportFailure, digest
 from scripts.dev.score_lab import solver_benchmark as benchmark
-
 
 TOY_PHYSICS = {
     "version": "toy-physics-v1",

@@ -216,9 +216,11 @@ def checked_capture(row, captured):
     expected = (
         {"schema", "binding"}
         if version == 1
-        else {"schema", "challenge"}
-        if version == 4
-        else {"schema", "binding", "selector"}
+        else (
+            {"schema", "challenge"}
+            if version == 4
+            else {"schema", "binding", "selector"}
+        )
     )
     schema = {
         1: CAPTURE_SCHEMA,

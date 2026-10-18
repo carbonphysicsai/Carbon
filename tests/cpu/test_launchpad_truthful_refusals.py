@@ -31,7 +31,8 @@ from carbon.development_session import research_campaign
 from carbon.development_session.profile import canonical
 from carbon.development_session.research_control import CampaignControl
 from carbon.development_session.research_ledger import CampaignLedger
-from scripts.dev.miner_launchpad import levels, supervisor as supervision
+from scripts.dev.miner_launchpad import levels
+from scripts.dev.miner_launchpad import supervisor as supervision
 from scripts.dev.miner_launchpad.campaign_view import stages
 from scripts.dev.miner_launchpad.controller import (
     Controller,
