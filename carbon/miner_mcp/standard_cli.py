@@ -1519,6 +1519,48 @@ async def serve_installed_direct_development(configuration: Path, *, version="1.
         await create_direct_stdio_server(adapter).run_async()
 
 
+async def stage_installed_direct_bundle(
+    configuration: Path, directory: Path, recipe_path: Path
+) -> dict:
+    """Keep one attached owner lock for a finite signed bundle upload.
+
+    The CLI process, rather than a short browser request, owns the whole
+    transfer. An interruption stops this synchronous upload; a rerun uses
+    the receiver's acknowledged digest-bound offsets.
+    """
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+    from scripts.dev.miner_launchpad.tool_door import (
+        DIRECT_DEVELOPMENT_V13_SESSION,
+        DirectToolDoor,
+        runner_opener,
+    )
+
+    if (
+        not recipe_path.is_absolute()
+        or ".." in recipe_path.parts
+        or recipe_path.is_symlink()
+        or not recipe_path.is_file()
+        or recipe_path.resolve(strict=True) != recipe_path
+        or not 0 < recipe_path.stat().st_size <= 128 * 1024
+    ):
+        raise ValueError("bounded regular recipe file required")
+    recipe_bytes = recipe_path.read_bytes()
+    if not 0 < len(recipe_bytes) <= 128 * 1024:
+        raise ValueError("bounded regular recipe file required")
+    recipe = json.loads(recipe_bytes)
+    host = RunnerAdapter.for_profile(configuration)
+    try:
+        async with runner_opener(host)(DIRECT_DEVELOPMENT_V13_SESSION) as attachment:
+            door = DirectToolDoor(
+                attachment.adapter, intake_target=attachment.intake_target
+            )
+            return await door.stage_construction_material(
+                {"recipe": recipe, "directory": str(directory)}
+            )
+    finally:
+        host.close()
+
+
 def _setup_door(server, state_dir=None, *, operations=True):
     """Miner setup on this live server, over the Control Center's own setup
     records (OWNER-MINER-SETUP-AGENT-FIRST-01): status and the open-tier
@@ -1691,6 +1733,16 @@ def main(argv=None):
         ),
     )
     parser.add_argument(
+        "--stage-bundle",
+        type=Path,
+        help="Transfer one exact local pinned bundle through the signed direct receiver.",
+    )
+    parser.add_argument(
+        "--recipe",
+        type=Path,
+        help="Exact construction recipe JSON for --stage-bundle.",
+    )
+    parser.add_argument(
         "--cleanup-only",
         action="store_true",
         help="Observe/cancel retained owned tasks; cannot start research",
@@ -1713,6 +1765,12 @@ def main(argv=None):
         parser.error("--direct-development needs a profile and no campaign")
     if not args.direct_development and args.direct_version != "1.2":
         parser.error("--direct-version needs --direct-development")
+    if (args.stage_bundle is None) != (args.recipe is None):
+        parser.error("--stage-bundle and --recipe must be supplied together")
+    if args.stage_bundle is not None and (
+        not args.direct_development or args.direct_version != "1.3" or args.cleanup_only
+    ):
+        parser.error("bundle staging needs --direct-development --direct-version 1.3")
     try:
         if args.direct_development and args.direct_version not in DIRECT_KIT_VERSIONS:
             raise AttachRefused(
@@ -1724,6 +1782,14 @@ def main(argv=None):
                 if args.state_dir is None
                 else serve_open_tier(state_dir=args.state_dir)
             )
+        elif args.stage_bundle is not None:
+            result = asyncio.run(
+                stage_installed_direct_bundle(
+                    args.configuration, args.stage_bundle, args.recipe
+                )
+            )
+            print(json.dumps(result, sort_keys=True))
+            return 0 if result.get("ok") is True else 2
         elif args.direct_development and args.cleanup_only:
             print(
                 json.dumps(

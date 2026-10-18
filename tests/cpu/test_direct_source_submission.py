@@ -422,3 +422,85 @@ def test_source_chunk_retries_only_explicit_http_rate_with_fresh_signature(monke
             deadline=time.monotonic() + 10,
             pacer=client._UploadPacer(),
         )
+
+
+@pytest.mark.parametrize("material", [False, True])
+def test_signed_stage_resumes_at_receiver_acknowledged_offset(monkeypatch, material):
+    import time
+
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+    size = client.MATERIAL_CHUNK_BYTES if material else client.CHUNK_BYTES
+    body = b"x" * (2 * size) + b"end"
+    offsets = []
+    facts = _stage_facts()
+    facts["material_staging"] = {
+        "tool": client.SOURCE_TOOL,
+        "operation": client.MATERIAL_OPERATION,
+        "request_schema": client.MATERIAL_REQUEST_SCHEMA,
+        "reply_schema": client.STAGE_REPLY_SCHEMA,
+        "path": client.SUBMIT_PATH,
+        "owner": "authenticated_hotkey",
+    }
+
+    def send(url, wire, headers):
+        request = research.load_canonical(
+            base64.b64decode(json.loads(wire)["fields"]["call_base64"]),
+            research.ServiceCall,
+        ).request
+        offsets.append(request.offset)
+        received = 2 * size if len(offsets) == 1 else len(body)
+        complete = received == len(body)
+        result = (
+            research.DirectStageMaterialResultV1(
+                request.name, received, request.content_digest, complete, False
+            )
+            if material
+            else research.DirectStageSourceResultV1(
+                request.name, received, request.content_digest, complete
+            )
+        )
+        reply = research.ServiceReply(research.ReplyStatus.OK, result)
+        return 200, {
+            "schema": client.STAGE_REPLY_SCHEMA,
+            "protocol_reply_base64": base64.b64encode(
+                research.canonical_bytes(reply)
+            ).decode(),
+        }
+
+    common = {
+        "recipe": _recipe(),
+        "contract_digest": _CONTRACT,
+        "receiver": _RECEIVER,
+        "context": _CONTEXT,
+        "name": (
+            "source.tar.gz"
+            if material
+            else staging.WORKSPACE_PREFIX + "a" * 64 + ".json"
+        ),
+        "body": body,
+        "read": lambda _: facts,
+        "send": send,
+        "deadline": time.monotonic() + 10,
+        "pacer": client._UploadPacer(),
+    }
+    if material:
+        result = client._stage_material_one(
+            _URL,
+            "external-signer",
+            bundle_digest="sha256:" + "b" * 64,
+            final=False,
+            **common,
+        )
+    else:
+        result = client._stage_one(
+            _URL, "external-signer", expected_digest=None, **common
+        )
+    assert result == "sha256:" + hashlib.sha256(body).hexdigest()
+    assert offsets == [0, 2 * size]

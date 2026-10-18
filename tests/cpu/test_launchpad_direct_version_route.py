@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -12,6 +13,23 @@ import pytest
 from test_direct_submission import _recipe
 
 from scripts.dev.miner_launchpad import runner, tool_door
+
+
+def _bundle_recipe():
+    from test_library_bundles import fixture
+
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.development_session.library_bundles import bundle_ref
+
+    manifest, source, wheels, lock, license_text = fixture()
+    selected = bundle_ref(manifest, source, wheels, lock, license_text)
+    definition = _recipe().to_dict()
+    definition["source"] = {"kind": "bundle", "bundle_ref": selected.to_dict()}
+    definition["procedure"]["entrypoint"] = {
+        "module": "carbon_candidate.build",
+        "name": "build",
+    }
+    return ConstructionRecipe.from_dict(definition)
 
 
 @pytest.mark.parametrize(
@@ -238,3 +256,132 @@ def test_direct_v13_submission_and_staging_refuse_before_receiver_contact():
             "ok": False,
             "error": "construction_recipe_challenge_mismatch",
         }
+
+
+def test_direct_bundle_cli_door_uses_attached_signer_and_exact_local_path(
+    tmp_path, monkeypatch
+):
+    from carbon.registry.model import ChallengeKey
+
+    recipe = _bundle_recipe()
+    target = {
+        "intake_url": "http://127.0.0.1:9080",
+        "receiver_hotkey": "5" + "a" * 47,
+    }
+    connection = SimpleNamespace(miner_key=object(), chain_context=object())
+    door = object.__new__(tool_door.DirectToolDoor)
+    door.adapter = SimpleNamespace(
+        challenge=ChallengeKey("synthetic-linear-field-2d", "1.3"),
+        connection=connection,
+    )
+    door.intake_target = target
+    captured = []
+
+    def staged(url, signer, **kwargs):
+        captured.append((url, signer, kwargs))
+        return {
+            "complete": True,
+            "bundle_ref": recipe.to_dict()["source"]["bundle_ref"],
+        }
+
+    monkeypatch.setattr(
+        "carbon.development_session.direct_source_submission.stage_bundle", staged
+    )
+    request = {"recipe": recipe.to_dict(), "directory": str(tmp_path)}
+    result = asyncio.run(door.stage_construction_material(request))
+    assert result["ok"] and result["official_eligible"] is False
+    assert captured[0][0] == target["intake_url"]
+    assert captured[0][1] is connection.miner_key
+    assert captured[0][2]["directory"] == tmp_path
+    assert captured[0][2]["recipe"].digest == recipe.digest
+    assert captured[0][2]["receiver"] == target["receiver_hotkey"]
+    assert captured[0][2]["context"] is connection.chain_context
+    assert asyncio.run(
+        door.stage_construction_material({**request, "directory": "relative"})
+    ) == {"ok": False, "error": "construction_bundle_directory_invalid"}
+    wrong = {
+        **recipe.to_dict(),
+        "challenge": {**recipe.to_dict()["challenge"], "version": "1.2"},
+    }
+    assert asyncio.run(
+        door.stage_construction_material({"recipe": wrong, "directory": str(tmp_path)})
+    ) == {"ok": False, "error": "construction_recipe_challenge_mismatch"}
+    assert len(captured) == 1
+
+
+def test_direct_bundle_cli_holds_maintained_attachment_through_transfer(
+    tmp_path, monkeypatch, capsys
+):
+    from carbon.miner_mcp import standard_cli
+
+    profile = tmp_path / "profile.json"
+    recipe_file = tmp_path / "recipe.json"
+    recipe = _bundle_recipe()
+    recipe_file.write_text(json.dumps(recipe.to_dict()), encoding="utf-8")
+    observed = []
+
+    class Host:
+        def close(self):
+            observed.append("closed")
+
+    host = Host()
+    monkeypatch.setattr(
+        runner.RunnerAdapter, "for_profile", lambda path: observed.append(path) or host
+    )
+
+    @asynccontextmanager
+    async def attached(campaign):
+        assert campaign == tool_door.DIRECT_DEVELOPMENT_V13_SESSION
+        observed.append("entered")
+        try:
+            yield SimpleNamespace(
+                adapter=object(), intake_target={"intake_url": "pinned"}
+            )
+        finally:
+            observed.append("exited")
+
+    monkeypatch.setattr(tool_door, "runner_opener", lambda selected: attached)
+
+    class Door:
+        def __init__(self, adapter, *, intake_target):
+            assert intake_target == {"intake_url": "pinned"}
+
+        async def stage_construction_material(self, value):
+            observed.append((value["recipe"], value["directory"]))
+            return {"ok": True, "result": {"complete": True}}
+
+    monkeypatch.setattr(tool_door, "DirectToolDoor", Door)
+    result = asyncio.run(
+        standard_cli.stage_installed_direct_bundle(profile, tmp_path, recipe_file)
+    )
+    assert result["ok"]
+    assert observed == [
+        profile,
+        "entered",
+        (recipe.to_dict(), str(tmp_path)),
+        "exited",
+        "closed",
+    ]
+
+    async def selected(*args):
+        assert args == (profile, tmp_path, recipe_file)
+        return {"ok": True, "result": {"complete": True}}
+
+    monkeypatch.setattr(standard_cli, "stage_installed_direct_bundle", selected)
+    assert (
+        standard_cli.main(
+            [
+                "--configuration",
+                str(profile),
+                "--direct-development",
+                "--direct-version",
+                "1.3",
+                "--stage-bundle",
+                str(tmp_path),
+                "--recipe",
+                str(recipe_file),
+            ]
+        )
+        == 0
+    )
+    assert json.loads(capsys.readouterr().out)["result"]["complete"] is True

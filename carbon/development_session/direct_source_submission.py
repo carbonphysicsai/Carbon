@@ -106,8 +106,8 @@ def _stage_one(
 ):
     fingerprint = "sha256:" + hashlib.sha256(body).hexdigest()
     total = len(body)
-    offsets = range(0, total, CHUNK_BYTES) if total else (0,)
-    for offset in offsets:
+    offset = 0
+    while True:
         chunk = body[offset : offset + CHUNK_BYTES]
 
         def attempt(offset=offset, chunk=chunk):
@@ -199,7 +199,9 @@ def _stage_one(
         result = retry_rate_limited(attempt, deadline=deadline)
         if result.complete:
             return fingerprint
-    return fingerprint
+        # An earlier interrupted transfer can already hold many chunks. The
+        # receiver's digest-bound offset is the next byte to send.
+        offset = result.received_bytes
 
 
 def stage_graph(
@@ -316,8 +318,8 @@ def _stage_material_one(
     pacer,
 ):
     fingerprint = "sha256:" + hashlib.sha256(body).hexdigest()
-    offsets = range(0, len(body), MATERIAL_CHUNK_BYTES) if body else (0,)
-    for offset in offsets:
+    offset = 0
+    while True:
         chunk = body[offset : offset + MATERIAL_CHUNK_BYTES]
 
         def attempt(offset=offset, chunk=chunk):
@@ -414,7 +416,7 @@ def _stage_material_one(
             if final and not result.bundle_complete:
                 raise DirectIntakeRefusal("construction_material_closure_incomplete")
             return fingerprint
-    raise DirectIntakeRefusal("construction_material_transfer_incomplete")
+        offset = result.received_bytes
 
 
 def stage_bundle(

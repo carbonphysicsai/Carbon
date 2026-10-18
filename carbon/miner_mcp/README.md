@@ -525,6 +525,25 @@ For isolated miner-authored `run_julia`, use the separate
 [authored Julia operator and client guide](../../docs/development/AUTHORED_JULIA_RESEARCH.md).
 Installing its image or starting an MCP client does not amend an existing grant.
 
+## Direct 1.3 pinned bundle transfer
+
+With an installed direct DEVELOPMENT profile and its pinned receiver, stage one
+complete local bundle before submitting its recipe:
+
+```sh
+python -m carbon.miner_mcp.standard_cli \
+  --configuration /private/runner-profile.json \
+  --direct-development --direct-version 1.3 \
+  --stage-bundle /private/pinned-bundle \
+  --recipe /private/pinned-bundle/cr02_recipe.json
+```
+
+This holds the existing authenticated owner attachment for the finite signed
+transfer. It checks the recipe against the exact local source, lock, license and
+wheels. If interrupted, rerun the same command to resume at receiver-acknowledged
+digest-bound offsets. The command stages bytes only; construction and evaluation
+remain separate operations.
+
 ## Private Streamable HTTP composition
 
 `standard_http.create_http_app(adapter, verifier)` creates an ASGI application
