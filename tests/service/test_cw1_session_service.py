@@ -10,15 +10,100 @@ import json
 import os
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
+import pytest
 from bittensor.keyfiles import Keypair
 
 from carbon import audit
 from carbon.chain import ChainContext, MetagraphSnapshot, Participant
 from carbon.chain.sdk import BittensorReader
+from carbon.development_session import data as session_data
 from carbon.development_session.data import prepare
 from carbon.development_session.service import LocalMinerConnection, scaffold
+from carbon.evaluation.enums import ReferenceFailureReason, ReferenceRunOutcome
 from tests.cpu._signer_harness import in_thread_signer
+
+
+def test_reference_failure_retains_private_typed_result_without_redispatch(
+    tmp_path, monkeypatch
+):
+    root = tmp_path / "synthetic-session"
+    calls = []
+    request_digest = "sha256:" + "a" * 64
+    case = SimpleNamespace(coordinates=SimpleNamespace(role="TRAIN"))
+    manifest = {"cases": [{"name": "train-00"}]}
+
+    def freeze(root, image_manifest):
+        root.mkdir(mode=0o700, exist_ok=True)
+        return manifest
+
+    result = SimpleNamespace(
+        result=SimpleNamespace(
+            outcome=ReferenceRunOutcome.NUMERICAL_FAILURE,
+            failure_reason=ReferenceFailureReason.NUMERICAL_NONCONVERGENCE,
+        ),
+        resources={
+            "memory": {
+                "peak_bytes": 4096,
+                "events": {"oom": 0, "oom_kill": 0, "secret": "excluded"},
+            },
+            "pids": {"peak": 2},
+            "secret": "excluded",
+        },
+    )
+
+    class Budget:
+        def __init__(self, path):
+            pass
+
+        def run_worker(self, digest, execute):
+            calls.append(digest)
+            return execute()
+
+    monkeypatch.setattr(session_data, "freeze", freeze)
+    monkeypatch.setattr(session_data, "frozen_cases", lambda root: (case,))
+    monkeypatch.setattr(session_data, "load_image_identity", lambda path: object())
+    monkeypatch.setattr(
+        session_data, "DevelopmentWorkerProfile", lambda *args: object()
+    )
+    monkeypatch.setattr(
+        session_data,
+        "IsolatedBurgersReferenceController",
+        lambda **kw: SimpleNamespace(execute=lambda request: result),
+    )
+    monkeypatch.setattr(session_data, "SessionBudget", Budget)
+    monkeypatch.setattr(
+        session_data,
+        "build_reference_request",
+        lambda *args, **kw: SimpleNamespace(request_digest=request_digest),
+    )
+    monkeypatch.setattr(session_data, "requested_times", lambda *args: ())
+    monkeypatch.setattr(
+        session_data, "runtime_environment_digest", lambda: "sha256:" + "b" * 64
+    )
+
+    for _ in range(2):
+        with pytest.raises(ValueError, match="reference failure; retain run and stop"):
+            session_data.prepare(root, tmp_path / "image.json")
+
+    assert calls == [request_digest]
+    path = root / "train-00-reference-result.json"
+    record = json.loads(path.read_bytes())
+    assert record == {
+        "request_digest": request_digest,
+        "outcome": "NUMERICAL_FAILURE",
+        "failure_reason": "NUMERICAL_NONCONVERGENCE",
+        "candidate_judged": False,
+        "resources": {
+            "memory_peak_bytes": 4096,
+            "memory_oom_events": 0,
+            "memory_oom_kill_events": 0,
+            "pids_peak": 2,
+        },
+    }
+    assert path.stat().st_mode & 0o777 == 0o600
+    assert b"excluded" not in path.read_bytes()
 
 
 def test_authenticated_session_under_private_umask_reaches_signed_feedback(
