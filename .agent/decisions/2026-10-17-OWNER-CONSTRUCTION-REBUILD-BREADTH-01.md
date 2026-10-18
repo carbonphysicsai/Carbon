@@ -10,8 +10,10 @@ no submitted trained weights or fitted state, and no participant executable
 code in the validator's grading/evaluator runtime.
 
 **TRAIN and practice.** Every independent reconstruction of a candidate for a
-given Challenge uses that Challenge's same frozen TRAIN material within its
-registered resource envelope. Miners may practice with their own data or data
+given Challenge receives that Challenge's same frozen TRAIN dataset and
+preprocessing within its registered resource envelope. A recipe may choose
+bounded subsets, order, repetition, and curriculum from that dataset. Miners
+may practice with their own data or data
 generated with the provided solver. Practice data and fitted state are not
 substitutes for the Challenge-owned reconstruction input.
 
