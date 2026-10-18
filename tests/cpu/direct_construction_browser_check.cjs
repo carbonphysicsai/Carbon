@@ -36,10 +36,10 @@ async function panel(configured) {
       if (url === base + "/stage_construction_graph") return {ok: true, result: {status: "STAGED"}};
       if (url === base + "/submit_construction") {
         submitCount++;
-        return {ok: true, result: {result: submitCount === 1
+        return {ok: true, result: submitCount === 1
           ? {state: "ADMITTED", task_id: "task-1"}
           : {state: "RECONSTRUCTED", task_id: "task-1", state_digest: "sha256:" + "e".repeat(64), predictions_digest: "sha256:" + "f".repeat(64)},
-        score_status: "SCORE_UNAVAILABLE", official_eligible: false}};
+        score_status: "SCORE_UNAVAILABLE", official_eligible: false};
       }
       throw new Error("unexpected route " + url);
     },

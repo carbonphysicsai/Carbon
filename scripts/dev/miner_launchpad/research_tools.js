@@ -540,9 +540,9 @@
       guarded(result, async () => {
         const reply = await post(w, "submit_construction", {recipe: value});
         if (reply.ok) {
-          const state = reply.result?.result?.state;
-          if (state === "ADMITTED" && reply.result.result.task_id) {
-            w.constructionProgress = {state, recipe: value, text: submittedText, taskId: reply.result.result.task_id};
+          const state = reply.result?.state;
+          if (state === "ADMITTED" && reply.result.task_id) {
+            w.constructionProgress = {state, recipe: value, text: submittedText, taskId: reply.result.task_id};
             recipe.value = submittedText; recipe.readOnly = true;
             submit.textContent = "Check rebuild status";
           } else if (["RECONSTRUCTED", "RECONSTRUCTION_FAILED", "FAILED_INFRA"].includes(state)) {
@@ -553,7 +553,7 @@
             submit.disabled = true;
           }
         }
-        return reply.ok ? {value: reply.result} : {error: reply.error};
+        return reply.ok ? {value: reply} : {error: reply.error};
       });
     });
     submit.disabled = Boolean(progress && progress.state !== "ADMITTED");

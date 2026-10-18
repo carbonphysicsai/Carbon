@@ -937,8 +937,8 @@ scenario("Construction: a fresh Launchpad uses its offered direct session and pi
     {match: r => r.method === "POST" && r.path === base + "/open", answer: {body: {campaign: session, open: true, development_only: true,
       challenge: {id: "synthetic-linear-field-2d", version: "1.3"}, construction_intake_configured: true, tools: [], tasks: []}}},
     {match: r => r.path === base + "/stage_construction_graph", answer: {body: {ok: true, result: {status: "STAGED", source_digest: "sha256:abc"}}}},
-    {match: r => r.path === base + "/submit_construction", answer: {body: {ok: true, result: {result: {state: "ADMITTED", task_id: "task-1"}, score_status: "SCORE_UNAVAILABLE", official_eligible: false}}}},
-    {match: r => r.path === base + "/submit_construction", answer: {body: {ok: true, result: {result: {state: "RECONSTRUCTED", task_id: "task-1", state_digest: "sha256:" + "e".repeat(64), predictions_digest: "sha256:" + "f".repeat(64)}, score_status: "SCORE_UNAVAILABLE", official_eligible: false}}}},
+    {match: r => r.path === base + "/submit_construction", answer: {body: {ok: true, result: {state: "ADMITTED", task_id: "task-1"}, score_status: "SCORE_UNAVAILABLE", official_eligible: false}}},
+    {match: r => r.path === base + "/submit_construction", answer: {body: {ok: true, result: {state: "RECONSTRUCTED", task_id: "task-1", state_digest: "sha256:" + "e".repeat(64), predictions_digest: "sha256:" + "f".repeat(64)}, score_status: "SCORE_UNAVAILABLE", official_eligible: false}}},
   );
   const page = await open(state);
   page.go("#campaigns");
