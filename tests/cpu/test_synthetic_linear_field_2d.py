@@ -296,7 +296,7 @@ def test_train_archive_rejects_changed_bytes_and_changed_relation(
 ):
     tampered = tmp_path / "train.npz"
     tampered.write_bytes(fixture.train_bytes() + b"x")
-    monkeypatch.setattr(fixture, "TRAIN_PATH", tampered)
+    monkeypatch.setattr(fixture, "_public_train_archive_bytes", tampered.read_bytes)
     with pytest.raises(ValueError, match="bytes differ"):
         fixture.train_bytes()
 

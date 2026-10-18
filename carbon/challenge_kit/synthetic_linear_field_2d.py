@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import zipfile
 from pathlib import Path
 
 from carbon.registry.model import ChallengeKey
@@ -23,9 +24,6 @@ PRACTICE_CASE_IDS = tuple(
     f"synthetic-practice-{index:02d}" for index in range(PRACTICE_CASES)
 )
 FIELD_SHAPE = (8, 8, 1)
-TRAIN_PATH = (
-    Path(__file__).with_name("fixtures") / "synthetic_linear_field_2d_train_v1.npz"
-)
 TRAIN_SHA256 = "95aec24fe064b05bbb8750820c2c95bfac7117ba56496a58bdcc570b8438b867"
 ALLOWLIST_V2_SHA256 = "12a9c047eb5c9e26bd48968ac9d8e2851f8abfc951616ff674eb3998c7e0ede0"
 ALLOWLIST_V3_SHA256 = "fb52a96d4dc145a438970b33978e5487dad65ccb67c28081bffcf86c10510311"
@@ -83,10 +81,31 @@ def public_reference(forcing):
     return forcing * np.float32(0.25)
 
 
+def _public_train_archive_bytes() -> bytes:
+    """Build the versioned public archive from the declared fixed patterns.
+
+    The pinned digest below keeps the existing TRAIN identity exact. No NumPy
+    payload is stored in the source tree or drawn from an evaluation pack.
+    """
+    np = _numpy()
+    inputs = _public_train_inputs()
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_STORED) as container:
+        for name, array in (("inputs", inputs), ("targets", public_reference(inputs))):
+            member = zipfile.ZipInfo(f"{name}.npy")
+            member.create_system = (
+                0  # Preserve the original cross-platform ZIP identity.
+            )
+            member.external_attr = 0o600 << 16
+            with container.open(member, "w", force_zip64=True) as stream:
+                np.lib.format.write_array(stream, array, allow_pickle=False)
+    return archive.getvalue()
+
+
 def train_bytes() -> bytes:
     """Return only the pinned public TRAIN archive after semantic verification."""
     np = _numpy()
-    raw = TRAIN_PATH.read_bytes()
+    raw = _public_train_archive_bytes()
     if hashlib.sha256(raw).hexdigest() != TRAIN_SHA256:
         raise ValueError("synthetic TRAIN bytes differ from fixture version")
     with np.load(io.BytesIO(raw), allow_pickle=False) as data:
