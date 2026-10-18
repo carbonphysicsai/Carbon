@@ -250,25 +250,30 @@ def test_public_v13_direct_torch_parent_reuses_exact_abi_not_old_tree():
     )
 
 
-@pytest.mark.parametrize("role", ("cpu", "jax_gpu"))
+@pytest.mark.parametrize("role", ("cpu", "jax_gpu", "torch_cpu"))
 def test_public_v13_inference_worker_reuses_only_exact_abi(role):
     from carbon.development_session.research_campaign import verify_direct_v13_worker
+    from carbon.reconstruction import torch_profile
     from carbon.reconstruction.accelerators import GPU_PROFILE
 
     def sha(char):
         return "sha256:" + char * 64
 
     root = Path(cli.__file__).resolve().parents[2]
-    lock = (
-        cli.digest((root / "uv.lock").read_bytes())
-        if role == "cpu"
-        else GPU_PROFILE.environment_lock_digest
-    )
-    recipe = (
-        ".devcontainer/Dockerfile.reconstruction-worker"
-        if role == "cpu"
-        else ".devcontainer/accelerators/Dockerfile"
-    )
+    lock, recipe = {
+        "cpu": (
+            cli.digest((root / "uv.lock").read_bytes()),
+            ".devcontainer/Dockerfile.reconstruction-worker",
+        ),
+        "jax_gpu": (
+            GPU_PROFILE.environment_lock_digest,
+            ".devcontainer/accelerators/Dockerfile",
+        ),
+        "torch_cpu": (
+            torch_profile.requirements_digest(root),
+            ".devcontainer/torch/Dockerfile",
+        ),
+    }[role]
     image = WorkerImageIdentity(
         sha("1"),
         sha("1"),

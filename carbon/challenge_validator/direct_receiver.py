@@ -349,7 +349,7 @@ def installed_source(
     profile_path: Path, *, construction_image_manifest: Path | None = None
 ):
     """Verify installed source/images; a private operator may pin its constructor."""
-    from carbon.development_session.gpu_practice import gpu_image_backend
+    from carbon.development_session.gpu_practice import direct_parent_backend
     from carbon.development_session.miner_network import binding
     from carbon.development_session.research_campaign import (
         accepted_implementation,
@@ -425,11 +425,13 @@ def installed_source(
         if type(gpu_image_path) is not str:
             raise ValueError("installed GPU parent required for direct development")
         parent = load_image_identity(Path(gpu_image_path))
-        backend = gpu_image_backend(parent)
-        if backend not in {"jax", "pytorch"}:
+        backend = direct_parent_backend(parent)
+        if backend not in {"jax", "pytorch", "torch_cpu"}:
             raise ValueError("installed direct parent backend is unregistered")
         if backend == "pytorch":
             verify_direct_v13_worker(parent, implementation, role="torch_gpu")
+        elif backend == "torch_cpu":
+            verify_direct_v13_worker(parent, implementation, role="torch_cpu")
         else:
             try:
                 verify_current_worker(parent, implementation)

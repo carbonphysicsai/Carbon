@@ -405,7 +405,7 @@ class DirectOwnerImageResolver:
 
     def provision_admitted(self, bundle, *, parent, cli):
         """Verify a compatible child; bounded cache-miss build is not available."""
-        from carbon.development_session.gpu_practice import gpu_image_backend
+        from carbon.development_session.gpu_practice import direct_parent_backend
         from carbon.development_session.library_environment_cache import (
             inspect_staged_bundle_material,
             library_image_cache_paths,
@@ -422,10 +422,12 @@ class DirectOwnerImageResolver:
             "python-cpu-py311": None,
             "jax-cuda13-py311": "jax",
             "torch-cu130-py311": "pytorch",
+            "torch-cpu-py311": "torch_cpu",
         }
         if (
             bundle.runtime_profile_id not in expected_backends
-            or gpu_image_backend(parent) != expected_backends[bundle.runtime_profile_id]
+            or direct_parent_backend(parent)
+            != expected_backends[bundle.runtime_profile_id]
         ):
             raise ValueError("construction parent differs from bundle runtime")
         inspect_staged_bundle_material(self.cache_root, bundle)
@@ -443,7 +445,7 @@ class DirectOwnerImageResolver:
         return verify_library_worker_image(image, cli)
 
     def __call__(self, bundle):
-        from carbon.development_session.gpu_practice import gpu_image_backend
+        from carbon.development_session.gpu_practice import direct_parent_backend
         from carbon.development_session.library_environment_cache import (
             library_image_cache_paths,
             load_cached_library_worker_image,
@@ -455,10 +457,11 @@ class DirectOwnerImageResolver:
             "python-cpu-py311": None,
             "jax-cuda13-py311": "jax",
             "torch-cu130-py311": "pytorch",
+            "torch-cpu-py311": "torch_cpu",
         }
         if (
             bundle.runtime_profile_id not in expected_backends
-            or gpu_image_backend(self.parent)
+            or direct_parent_backend(self.parent)
             != expected_backends[bundle.runtime_profile_id]
         ):
             raise ValueError("installed parent backend differs from recipe bundle")

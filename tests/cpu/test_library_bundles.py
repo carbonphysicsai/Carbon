@@ -110,6 +110,19 @@ def cpu_fixture():
     return manifest, source, wheels, lock, license_text
 
 
+def torch_cpu_fixture():
+    manifest, source, wheels, lock, license_text = fixture()
+    repository = Path(__file__).resolve().parents[2]
+    base = sha((repository / ".devcontainer/torch/torch-cpu-py311.txt").read_bytes())
+    manifest.update(
+        runtime_profile_id="torch-cpu-py311",
+        accelerator="cpu",
+        base_environment_digest=base,
+        environment_digest=_environment_digest(base, sha(lock)),
+    )
+    return manifest, source, wheels, lock, license_text
+
+
 def cached_fixture(tmp_path):
     args = fixture()
     cache = tmp_path / "private-bundle"
@@ -263,6 +276,45 @@ def test_direct_resolver_inspects_source_before_admitted_provision(
     assert len(calls) == 2
 
 
+def test_direct_resolver_distinguishes_torch_cpu_from_generic_cpu(tmp_path):
+    from carbon.development_session.gpu_practice import (
+        direct_parent_backend,
+        direct_bundle_accelerators,
+        gpu_image_backend,
+    )
+    from carbon.miner_mcp.standard_cli import DirectOwnerImageResolver
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    selected = bundle_ref(*torch_cpu_fixture())
+    root = Path(__file__).resolve().parents[2]
+    image = WorkerImageIdentity(
+        *("sha256:" + character * 64 for character in "00123456")
+    )
+    torch_parent = replace(
+        image,
+        lock_digest=sha(
+            (root / ".devcontainer/torch/torch-cpu-py311.txt").read_bytes()
+        ),
+    )
+    generic_cpu = replace(image, lock_digest=sha((root / "uv.lock").read_bytes()))
+    assert direct_parent_backend(torch_parent) == "torch_cpu"
+    assert gpu_image_backend(torch_parent) is None
+    assert direct_parent_backend(generic_cpu) is None
+    assert direct_bundle_accelerators(torch_parent, generic_cpu) == (None, None)
+    cache = tmp_path / "owner-cache"
+    cache.mkdir(mode=0o700)
+    resolver = DirectOwnerImageResolver(cache, torch_parent)
+    with pytest.raises(FileNotFoundError, match="not staged"):
+        resolver.provision_admitted(selected, parent=torch_parent, cli=object())
+    with pytest.raises(FileNotFoundError, match="receipt is missing"):
+        resolver(selected)
+    with pytest.raises(ValueError, match="parent.*differs"):
+        resolver.provision_admitted(selected, parent=generic_cpu, cli=object())
+    resolver.parent = generic_cpu
+    with pytest.raises(ValueError, match="parent.*differs"):
+        resolver(selected)
+
+
 def test_catalogue_names_new_and_existing_sources_without_claiming_install():
     document = catalogue()
     assert {row["id"] for row in document["libraries"]} >= {
@@ -326,6 +378,23 @@ def test_cpu_bundle_binds_actual_base_lock_and_build_record(tmp_path):
     with pytest.raises(ValueError, match="runtime ABI"):
         validate_bundle(bad, *args[1:])
     bad = dict(args[0], base_environment_digest="sha256:" + "d" * 64)
+    bad["environment_digest"] = _environment_digest(
+        bad["base_environment_digest"], bad["lock_sha256"]
+    )
+    with pytest.raises(ValueError, match="CPU base environment lock differs"):
+        prepare_offline_context(tmp_path, bad, *args[1:], parent)
+
+
+def test_torch_cpu_bundle_binds_its_installed_base_lock(tmp_path):
+    args = torch_cpu_fixture()
+    parent = "sha256:" + "b" * 64
+    assert validate_bundle(*args) == bundle_ref(*args).bundle_digest
+    context, _, _ = prepare_offline_context(tmp_path, *args, parent)
+    installer = (context / "install-source.py").read_text()
+    ast.parse(installer)
+    assert "'/opt/carbon/torch-requirements.txt'" in installer
+    assert "worker-image-build.json" not in installer
+    bad = dict(args[0], base_environment_digest=sha(b"wrong base"))
     bad["environment_digest"] = _environment_digest(
         bad["base_environment_digest"], bad["lock_sha256"]
     )

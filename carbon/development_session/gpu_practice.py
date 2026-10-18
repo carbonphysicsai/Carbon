@@ -43,6 +43,24 @@ def gpu_image_backend(image):
     return None
 
 
+def direct_parent_backend(image):
+    """Recognize the separate pinned Torch CPU construction parent."""
+    backend = gpu_image_backend(image)
+    if backend is not None:
+        return backend
+    from pathlib import Path
+
+    from carbon.reconstruction import torch_profile
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    if type(image) is not WorkerImageIdentity:
+        return None
+    root = Path(__file__).resolve().parents[2]
+    if image.lock_digest == torch_profile.requirements_digest(root):
+        return "torch_cpu"
+    return None
+
+
 def direct_bundle_accelerators(construction_parent, inference_image):
     """Select independent controls for the verified build and inference images.
 

@@ -363,6 +363,35 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
     with pytest.raises(ValueError, match="ABI or entrypoint differs"):
         receiver.installed_source(profile)
 
+    # The distinct Torch CPU lock selects the existing CPU Torch image, not
+    # the generic C-03 CPU parent or either CUDA backend.
+    older_torch_cpu = replace(
+        older_torch,
+        lock_digest=torch_profile.requirements_digest(root),
+        build_recipe_digest="sha256:"
+        + hashlib.sha256(
+            (root / ".devcontainer/torch/Dockerfile").read_bytes()
+        ).hexdigest(),
+    )
+    monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _: None)
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda path: worker if path.name == "worker.json" else older_torch_cpu,
+    )
+    implementation, parent, _, _ = receiver.installed_source(profile)
+    assert (implementation, parent) == (accepted, older_torch_cpu)
+    assert checked_images[-1] is older_torch_cpu
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda path: worker
+        if path.name == "worker.json"
+        else replace(older_torch_cpu, build_recipe_digest="sha256:" + "f" * 64),
+    )
+    with pytest.raises(ValueError, match="ABI or entrypoint differs"):
+        receiver.installed_source(profile)
+
     from carbon.reconstruction.accelerators import GPU_PROFILE
 
     older_jax = replace(
