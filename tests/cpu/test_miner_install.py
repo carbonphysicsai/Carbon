@@ -368,6 +368,20 @@ FAKE_PYTHON = """#!/bin/sh
 echo "python $*" >> "$CARBON_TEST_LOG"
 case "$1" in -c) exec "$CARBON_TEST_REAL_PYTHON" "$@" ;; esac
 case "$2" in
+  scripts.dev.development_image_artifact)
+    case "$*" in
+      *--print-analysis-manifest*)
+        if [ "${CARBON_TEST_DEV_PAIR_PATH_STATUS:-${CARBON_TEST_DEV_PAIR_STATUS:-ABSENT}}" = VERIFIED ]; then
+          echo "$PWD/.carbon-artifacts/research-images/analysis.json"
+        else
+          echo INVALID; exit 2
+        fi
+        exit 0 ;;
+    esac
+    case "${CARBON_TEST_DEV_PAIR_STATUS:-ABSENT}" in
+      INVALID) echo INVALID; exit 2 ;;
+      *) echo "${CARBON_TEST_DEV_PAIR_STATUS:-ABSENT}" ;;
+    esac ;;
   carbon.development_session.research_image)
     mkdir -p .carbon-artifacts/research-images
     echo '{}' > .carbon-artifacts/research-images/analysis.json
@@ -612,6 +626,83 @@ def test_explicit_development_candidate_builds_only_the_exact_local_tree(sandbox
     assert any("verify-development-source" in line for line in sandbox.logged())
     assert any("bind-development-candidate" in line for line in sandbox.logged())
     assert any(line.startswith("worker ") for line in sandbox.logged())
+
+
+@pytest.mark.parametrize(
+    ("pair_status", "gpu_installed", "path_status", "images_gone", "expected_result"),
+    [
+        ("VERIFIED", "no", "VERIFIED", "no", 0),
+        ("VERIFIED", "yes", "VERIFIED", "no", 2),
+        ("VERIFIED", "no", "INVALID", "no", 2),
+        ("VERIFIED", "no", "VERIFIED", "yes", 2),
+        ("ABSENT", "no", "ABSENT", "no", 2),
+        ("INVALID", "no", "INVALID", "no", 2),
+        ("SURPRISE", "no", "SURPRISE", "no", 2),
+    ],
+)
+def test_development_pair_cache_controls_only_the_cpu_build_reserve(
+    sandbox, pair_status, gpu_installed, path_status, images_gone, expected_result
+):
+    """An exact installed pair avoids a new build reserve; a miss or invalid
+    pair cannot silently spend the same 13 GiB as if no build were needed."""
+    import hashlib
+
+    sandbox.git("checkout", "--quiet", "-b", "candidate", cwd=sandbox.clone)
+    (sandbox.clone / ".gitignore").write_text(
+        ".venv/\n.carbon-artifacts/\n# candidate\n"
+    )
+    sandbox.git("add", ".gitignore", cwd=sandbox.clone)
+    sandbox.git("commit", "--quiet", "-m", "candidate", cwd=sandbox.clone)
+    revision = sandbox.head()
+    tree = sandbox.git("rev-parse", "HEAD^{tree}", cwd=sandbox.clone)
+    archive = subprocess.check_output(
+        ["git", "archive", "--format=tar", "HEAD"], cwd=sandbox.clone
+    )
+    source = "sha256:" + hashlib.sha256(archive).hexdigest()
+    state = sandbox.tmp / "home" / ".carbon" / "s5-candidate"
+    fake_df(sandbox, 13 * 1048576)
+
+    # The pure-read verifier is the authority for both existing manifests and
+    # Docker identities. The stand-in current-image check then reuses C-03.
+    manifest = sandbox.clone / ".carbon-artifacts" / "c03-worker-image.json"
+    manifest.parent.mkdir()
+    manifest.write_text(f'{{"image_id": "sha256:{revision}"}}')
+    analysis = sandbox.clone / ".carbon-artifacts" / "research-images" / "analysis.json"
+    analysis.parent.mkdir()
+    analysis.write_text('{"image_id": "sha256:analysis"}')
+    completed = sandbox.run(
+        "--development-candidate",
+        revision,
+        tree,
+        source,
+        "--no-start",
+        CARBON_STATE_DIR=str(state),
+        CARBON_TEST_DEV_PAIR_STATUS=pair_status,
+        CARBON_TEST_DEV_PAIR_PATH_STATUS=path_status,
+        CARBON_TEST_GPU_INSTALLED=gpu_installed,
+        CARBON_TEST_IMAGES_GONE=images_gone,
+    )
+    assert completed.returncode == expected_result, completed.stderr
+    assert any(
+        "development_image_artifact verify-installed" in line
+        for line in sandbox.logged()
+    )
+    assert not any(line.startswith("worker ") for line in sandbox.logged())
+    if pair_status == "ABSENT" or gpu_installed == "yes":
+        assert "need 17 GiB free" in completed.stderr
+    elif pair_status == "INVALID":
+        assert "cache is invalid" in completed.stderr
+    elif pair_status == "SURPRISE":
+        assert "unknown status" in completed.stderr
+    elif path_status == "INVALID" or images_gone == "yes":
+        assert "cache changed" in completed.stderr or "pair changed" in completed.stderr
+    else:
+        assert "need 17 GiB free" not in completed.stderr
+        assert any("--print-analysis-manifest" in line for line in sandbox.logged())
+        assert not any(
+            "carbon.development_session.research_image" in line
+            for line in sandbox.logged()
+        )
 
 
 def test_too_little_disk_stops_the_install_before_it_builds(sandbox):

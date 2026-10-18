@@ -32,7 +32,10 @@
 #      install moves the checkout, so an old GPU worker would no longer match
 #      it). A worker already built here from this exact source tree, which
 #      Docker still holds, is used again rather than rebuilt, so installs
-#      sharing one checkout keep the same images (LA-F16). With --release
+#      sharing one checkout keep the same images (LA-F16).
+#      A DEVELOPMENT C-03 candidate can also reuse a separately verified
+#      already loaded C-03/analysis pair without reserving new CPU build space.
+#      With --release
 #      TAG it builds none: step 2 moves the checkout to
 #      that release tag, cut from main, and this step pulls each image the
 #      release's records name from ghcr.io/carbonphysicsai, by digest, and
@@ -118,7 +121,8 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --re
                release records name, by digest. With --update, TAG must be
                this install's revision or newer
   --development-candidate REVISION TREE SOURCE_DIGEST
-               build this exact clean local DEVELOPMENT checkout's images;
+               use verified cached images or build this exact clean local
+               DEVELOPMENT checkout's images;
                all three identities must match the local commit, tree and
                Git archive SHA-256. Requires its own state directory and
                cannot be combined with --ref, --release or --update.
@@ -335,19 +339,27 @@ if [[ "${GPU}" == 1 ]] \
 fi
 need_space "${repo_root}" "${CHECKOUT_GIB}" "Carbon's locked environment and its cache"
 docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
-images_gib=$(( IMAGES_GIB + gpu_space * GPU_GIB ))
-if [[ -n "${docker_root}" && -d "${docker_root}" ]]; then
-  checkout_mount="$(mount_of "${repo_root}" || true)"
-  docker_mount="$(mount_of "${docker_root}" || true)"
-  if [[ -n "${checkout_mount}" && "${checkout_mount}" == "${docker_mount}" ]]; then
-    # One filesystem holds both (WSL's default): it needs room for both.
-    need_space "${docker_root}" "$(( CHECKOUT_GIB + images_gib ))" \
-      "Carbon's locked environment and images (one filesystem holds both)"
+check_image_space() {
+  local images_gib="$1" checkout_mount docker_mount
+  if [[ -n "${docker_root}" && -d "${docker_root}" ]]; then
+    checkout_mount="$(mount_of "${repo_root}" || true)"
+    docker_mount="$(mount_of "${docker_root}" || true)"
+    if [[ -n "${checkout_mount}" && "${checkout_mount}" == "${docker_mount}" ]]; then
+      # One filesystem holds both (WSL's default): it needs room for both.
+      need_space "${docker_root}" "$(( CHECKOUT_GIB + images_gib ))" \
+        "Carbon's locked environment and images (one filesystem holds both)"
+    else
+      need_space "${docker_root}" "${images_gib}" "Carbon's images"
+    fi
   else
-    need_space "${docker_root}" "${images_gib}" "Carbon's images"
+    echo "Docker keeps its images outside this filesystem (${docker_root:-not reported}); make sure ${images_gib} GiB are free there."
   fi
-else
-  echo "Docker keeps its images outside this filesystem (${docker_root:-not reported}); make sure ${images_gib} GiB are free there."
+}
+# Only an explicit DEVELOPMENT candidate can use a verified, already loaded
+# C-03/analysis pair to avoid reserving space for a new CPU image build. Its
+# exact-source verification and pure-read pair check happen after bootstrap.
+if [[ -z "${DEVELOPMENT_REVISION}" || "${PYTORCH}" == 1 ]]; then
+  check_image_space "$(( IMAGES_GIB + gpu_space * GPU_GIB ))"
 fi
 echo "Linux x86-64, git, curl, Docker and free disk: ready."
 
@@ -494,6 +506,29 @@ if [[ "${GPU}" == 0 ]] \
   gpu_build=1
 fi
 
+if [[ -n "${DEVELOPMENT_REVISION}" && "${PYTORCH}" == 0 ]]; then
+  dev_pair_args=(
+    --artifacts-root "${artifacts}"
+    --revision "${DEVELOPMENT_REVISION}"
+    --tree "${DEVELOPMENT_TREE}"
+    --source-tree-digest "${DEVELOPMENT_SOURCE_TREE_DIGEST}"
+  )
+  # The artifact verifier reads the two normal manifest paths and inspects
+  # Docker. It never loads or builds an image. An invalid cache is a refusal,
+  # not permission to silently rebuild from a different identity.
+  if pair_status="$("${python}" -m scripts.dev.development_image_artifact verify-installed \
+    "${dev_pair_args[@]}")"; then
+    case "${pair_status}" in
+      VERIFIED) cpu_build_gib=0 ;;
+      ABSENT) cpu_build_gib="${IMAGES_GIB}" ;;
+      *) fail "DEVELOPMENT image cache verifier returned an unknown status. No image was built." ;;
+    esac
+  else
+    fail "DEVELOPMENT image cache is invalid or could not be verified. No image was built."
+  fi
+  check_image_space "$(( cpu_build_gib + gpu_build * GPU_GIB ))"
+fi
+
 worker_manifest="${artifacts}/${worker_kind}-worker-image.json"
 gpu_manifest=""
 gpu_release_record=""
@@ -524,27 +559,41 @@ if [[ -n "${RELEASE}" ]]; then
   gpu_release_record="${release_dir}/accelerator-worker-image.release.json"
 else
   step "4/6 Building the pinned images on this machine"
-  # Another install sharing this checkout may have built them at this very
-  # source tree already (LA-F16). A rebuild would be a new image with a new
-  # id, written over the manifest that install recorded, and its analysis
-  # image and compute check would no longer match. So a worker whose
-  # manifest names this exact source tree, and whose image Docker still
-  # holds, is used again; the analysis image built on it then is too.
-  if current_image "${worker_manifest}"; then
-    echo "The worker image built here from this exact source tree is still present; using it again."
+  if [[ "${pair_status:-}" == VERIFIED ]]; then
+    # The build-space reserve was waived only for this exact installed pair.
+    # Recheck it now and select its manifest directly: either builder could
+    # otherwise start a new image if a cache member vanished between steps.
+    current_image "${worker_manifest}" \
+      || fail "verified DEVELOPMENT worker cache changed. No image was built."
+    analysis="$("${python}" -m scripts.dev.development_image_artifact verify-installed \
+      "${dev_pair_args[@]}" --print-analysis-manifest)" \
+      || fail "verified DEVELOPMENT image pair changed. No image was built."
+    [[ -f "${analysis}" ]] \
+      || fail "verified DEVELOPMENT analysis manifest vanished. No image was built."
+    echo "The exact DEVELOPMENT worker and analysis pair is present; using it without a build."
   else
-    if [[ "${PYTORCH}" == 1 ]]; then
-      ./scripts/dev/torch_worker_image.sh "${worker_manifest}"
+    # Another install sharing this checkout may have built them at this very
+    # source tree already (LA-F16). A rebuild would be a new image with a new
+    # id, written over the manifest that install recorded, and its analysis
+    # image and compute check would no longer match. So a worker whose
+    # manifest names this exact source tree, and whose image Docker still
+    # holds, is used again; the analysis image built on it then is too.
+    if current_image "${worker_manifest}"; then
+      echo "The worker image built here from this exact source tree is still present; using it again."
     else
-      ./scripts/dev/c03_worker_image.sh "${worker_manifest}"
+      if [[ "${PYTORCH}" == 1 ]]; then
+        ./scripts/dev/torch_worker_image.sh "${worker_manifest}"
+      else
+        ./scripts/dev/c03_worker_image.sh "${worker_manifest}"
+      fi
     fi
+    analysis="$(
+      "${python}" -m carbon.development_session.research_image \
+        --parent-manifest "${worker_manifest}" \
+        --root "${artifacts}/research-images" \
+      | "${python}" -c 'import json, sys; print(json.load(sys.stdin)["manifest"])'
+    )"
   fi
-  analysis="$(
-    "${python}" -m carbon.development_session.research_image \
-      --parent-manifest "${worker_manifest}" \
-      --root "${artifacts}/research-images" \
-    | "${python}" -c 'import json, sys; print(json.load(sys.stdin)["manifest"])'
-  )"
   if [[ "${gpu_build}" == 1 ]]; then
     if current_image "${artifacts}/accelerator-worker-image.json"; then
       echo "The GPU worker built here from this exact source tree is still present; using it again."
