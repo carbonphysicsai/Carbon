@@ -606,6 +606,7 @@ def test_new_work_on_an_updated_checkout_is_refused_before_it_starts(
 ):
     identity = launch(journey)["id"]
     join(journey)
+    historical_v0_campaign(journey, identity)
     monkeypatch.setattr(
         RunnerAdapter, "checkout_refusal", staticmethod(lambda cfg: CARBON_UPDATED)
     )
