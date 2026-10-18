@@ -96,6 +96,19 @@ def fixture():
     return manifest, source, wheels, lock, license_text
 
 
+def cpu_fixture():
+    manifest, source, wheels, lock, license_text = fixture()
+    repository = Path(__file__).resolve().parents[2]
+    base = sha((repository / "uv.lock").read_bytes())
+    manifest.update(
+        runtime_profile_id="python-cpu-py311",
+        accelerator="cpu",
+        base_environment_digest=base,
+        environment_digest=_environment_digest(base, sha(lock)),
+    )
+    return manifest, source, wheels, lock, license_text
+
+
 def cached_fixture(tmp_path):
     args = fixture()
     cache = tmp_path / "private-bundle"
@@ -258,6 +271,30 @@ def test_offline_context_is_content_addressed_and_replay_checked(tmp_path):
         type(ref).from_dict({**ref.to_dict(), "image_id": parent})
 
 
+def test_cpu_bundle_binds_actual_base_lock_and_build_record(tmp_path):
+    args = cpu_fixture()
+    parent = "sha256:" + "b" * 64
+    assert validate_bundle(*args) == bundle_ref(*args).bundle_digest
+    context, _, _ = prepare_offline_context(tmp_path, *args, parent)
+    installer = (context / "install-source.py").read_text()
+    ast.parse(installer)
+    assert "/opt/carbon/worker-image-build.json" in installer
+    assert "carbon.c03.worker-image-build.v1" in installer
+    assert "build_recipe_digest" in installer
+    assert "entrypoint_digest" in installer
+    assert "accelerator-requirements.txt" not in installer
+
+    bad = dict(args[0], accelerator="cuda13")
+    with pytest.raises(ValueError, match="runtime ABI"):
+        validate_bundle(bad, *args[1:])
+    bad = dict(args[0], base_environment_digest="sha256:" + "d" * 64)
+    bad["environment_digest"] = _environment_digest(
+        bad["base_environment_digest"], bad["lock_sha256"]
+    )
+    with pytest.raises(ValueError, match="CPU base environment lock differs"):
+        prepare_offline_context(tmp_path, bad, *args[1:], parent)
+
+
 def test_cached_wheel_loader_selects_only_pinned_bytes_and_refuses_mutation(tmp_path):
     manifest, _, wheels, _, _ = fixture()
     cache = tmp_path / "private-wheels"
@@ -406,12 +443,91 @@ def test_owner_install_cli_uses_checked_gpu_profile_without_private_path_args(
         selected.schema,
         selected.bundle_digest,
         selected.language,
-        "python-cpu-py311",
+        "unknown-cpu-py311",
         selected.environment_digest,
     )
     monkeypatch.setattr(command, "bundle_ref", lambda *args: unsupported)
     assert command.main(["install", str(directory), "--state-dir", str(tmp_path)]) == 2
     assert "no registered parent" in capsys.readouterr().err
+    assert len(calls) == 1
+
+
+def test_owner_install_cpu_uses_checked_installed_worker_identity(
+    tmp_path, monkeypatch
+):
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+    from scripts.dev import library_bundle as command
+
+    directory, _ = user_directory(tmp_path)
+    manifest, source, wheels, lock, license_text = load_pinned_bundle_directory(
+        directory
+    )
+    repository = Path(__file__).resolve().parents[2]
+    base = sha((repository / "uv.lock").read_bytes())
+    manifest.update(
+        runtime_profile_id="python-cpu-py311",
+        accelerator="cpu",
+        base_environment_digest=base,
+        environment_digest=_environment_digest(base, sha(lock)),
+    )
+    (directory / "bundle.json").write_text(json.dumps(manifest), encoding="utf-8")
+    selected = bundle_ref(manifest, source, wheels, lock, license_text)
+    image_id = "sha256:" + "1" * 64
+    source_tree = "sha256:" + "2" * 64
+    parent = WorkerImageIdentity(
+        image_id,
+        image_id,
+        source_tree,
+        "sha256:" + "3" * 64,
+        sha((repository / "uv.lock").read_bytes()),
+        "sha256:" + "4" * 64,
+        sha(
+            (repository / ".devcontainer/Dockerfile.reconstruction-worker").read_bytes()
+        ),
+        sha((repository / "carbon/reconstruction/worker/entrypoint.py").read_bytes()),
+    )
+    profile = {
+        "paths": {"image_manifest": str(tmp_path / "installed-cpu.json")},
+        "runtime": {
+            "implementation": {"source_tree_digest": source_tree},
+            "images": [image_id, "sha256:" + "5" * 64],
+        },
+        "campaigns_root": str(tmp_path / "campaigns"),
+    }
+    monkeypatch.setattr(
+        command,
+        "EnvironmentSetup",
+        lambda state_dir, onboarding: SimpleNamespace(profile=lambda: profile),
+    )
+    monkeypatch.setattr(command, "load_image_identity", lambda path: parent)
+    monkeypatch.setattr(command, "gpu_image_backend", lambda image: None)
+    monkeypatch.setattr(command, "_private_dir", lambda path: path)
+    monkeypatch.setattr(command, "DockerCLI", lambda: object())
+    calls = []
+
+    def install(input_directory, cache_root, selected_parent, *, expected_bundle, cli):
+        calls.append((input_directory, cache_root, selected_parent, expected_bundle))
+        return SimpleNamespace(bundle_ref=expected_bundle.to_dict())
+
+    monkeypatch.setattr(command, "install_pinned_library_worker_image", install)
+    assert (
+        command.install_bundle(directory, tmp_path)["bundle_ref"] == selected.to_dict()
+    )
+    assert calls == [
+        (
+            directory,
+            tmp_path / "campaigns" / ".direct-development" / "library-cache",
+            parent,
+            selected,
+        )
+    ]
+    profile["runtime"]["images"][0] = "sha256:" + "6" * 64
+    with pytest.raises(ValueError, match="installed CPU parent lock or ABI differs"):
+        command.install_bundle(directory, tmp_path)
+    profile["runtime"]["images"][0] = image_id
+    monkeypatch.setattr(command, "load_image_identity", lambda path: None)
+    with pytest.raises(ValueError, match="direct v1.3 worker role"):
+        command.install_bundle(directory, tmp_path)
     assert len(calls) == 1
 
 
