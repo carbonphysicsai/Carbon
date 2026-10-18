@@ -1424,6 +1424,27 @@ def journey():
                         "h.value='fewer updates preserve practice';h.dispatchEvent(new Event('input'))"
                     )
                     click(session, f"journey-practice-{run_id}")
+                    # Practice is a background operation: its HTTP response
+                    # only says it started. Wait for the fixture's durable
+                    # result before expecting the next poll to offer freeze.
+                    deadline = time.monotonic() + 60
+                    while True:
+                        practiced = host.get(run_id)
+                        if any(
+                            experiment.get("recipe") == practiced_recipe
+                            for experiment in practiced["experiments"]
+                        ):
+                            break
+                        refusal = practiced.get("last_refusal")
+                        assert not (
+                            refusal and refusal.get("operation") == "practice"
+                        ), f"practice refused: {refusal}"
+                        assert time.monotonic() < deadline, (
+                            "practice produced no durable result: "
+                            f"state={practiced['state']} "
+                            f"in_flight={practiced.get('in_flight')}"
+                        )
+                        time.sleep(0.05)
                     # Once practised, the recipe can be frozen under Submission.
                     journey_tab("submission")
                     wait(
