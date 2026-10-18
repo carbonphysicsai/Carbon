@@ -2572,6 +2572,8 @@ def prepare_custody_v5(artifact_root: Path, role_manifest_path: Path) -> dict:
         _BUNDLE_ROLE_CODECS
     ):
         raise CustodyRefused("bundle_roles")
+    if "native_predictions" in roles and "build_receipt" not in roles:
+        raise CustodyRefused("native_predictions_require_build_v2")
     role_paths = {}
     for role, declaration in roles.items():
         _exact_keys(declaration, {"file", "codec"}, f"bundle_role_{role}")

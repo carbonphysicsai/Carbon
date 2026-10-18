@@ -96,6 +96,16 @@ def test_v2_requires_native_role_and_v1_cannot_claim_unbound_native_role(tmp_pat
         custody.prepare_custody_v5(root, path)
 
 
+def test_native_role_without_build_receipt_cannot_skip_validation(tmp_path):
+    root, path, manifest, _ = _native_fixture(tmp_path)
+    del manifest["roles"]["build_receipt"]
+    path.write_bytes(_json(manifest))
+    with pytest.raises(
+        custody.CustodyRefused, match="native_predictions_require_build_v2"
+    ):
+        custody.prepare_custody_v5(root, path)
+
+
 @pytest.mark.parametrize(
     ("values", "dtype", "shape"),
     [
