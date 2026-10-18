@@ -16,10 +16,11 @@ from carbon.challenge_validator.evaluation_pack import (
     freeze_pack,
     load_pack,
     parse_pack,
+    prepare_pack,
 )
-from carbon.registry.digest import ArtifactAccessError
-from carbon.challenge_validator.interface import digest as document_digest
 from carbon.challenge_validator.hidden_batch_store import references_digest
+from carbon.challenge_validator.interface import digest as document_digest
+from carbon.registry.digest import ArtifactAccessError
 
 
 def _digest(payload):
@@ -150,14 +151,14 @@ def test_role_read_is_exact_byte_verified_and_infra_typed():
             _digest(b"original"),
             max_bytes=100,
         )
-    with patch(
-        "carbon.challenge_validator.evaluation_pack.read_verified_artifact_bytes",
-        side_effect=ArtifactAccessError("artifact.digest_mismatch", "changed"),
+    with (
+        patch(
+            "carbon.challenge_validator.evaluation_pack.read_verified_artifact_bytes",
+            side_effect=ArtifactAccessError("artifact.digest_mismatch", "changed"),
+        ),
+        pytest.raises(EvaluationPackUnavailable) as raised,
     ):
-        with pytest.raises(EvaluationPackUnavailable) as raised:
-            snapshot.read_role(
-                Path("/private"), "private", "reference_rows", max_bytes=100
-            )
+        snapshot.read_role(Path("/private"), "private", "reference_rows", max_bytes=100)
     assert raised.value.code == "evaluation_pack.artifact.digest_mismatch"
 
 
@@ -217,6 +218,20 @@ def test_existing_hidden_batch_is_bound_without_copying_database():
         snapshot.resolve_hidden_batch(CrossChallengeStore())
     assert raised.value.code == "evaluation_pack.bank_changed"
 
+    dynamic_manifest = _manifest()
+    dynamic_manifest["private"]["case_bank"] = {"kind": "hidden_batch_store"}
+    dynamic = _parse(dynamic_manifest)
+    assert dynamic.run_bindings_required() == ("case_bank",)
+    with pytest.raises(EvaluationPackUnavailable) as raised:
+        dynamic.resolve_hidden_batch(Store())
+    assert raised.value.code == "evaluation_pack.bank_run_pin"
+    assert (
+        dynamic.resolve_hidden_batch(
+            Store(), fingerprint=fingerprint, expected_references_digest=ref_digest
+        )["references"]
+        == references
+    )
+
 
 def test_admission_verifies_available_artifact_identity_and_reports_missing():
     document = _manifest()
@@ -233,12 +248,14 @@ def test_admission_verifies_available_artifact_identity_and_reports_missing():
     digester.assert_called_once_with(Path("/public"), "public/interface.json")
     assert "interface" not in missing["public"]
     assert "reference_rows" in missing["private"]
-    with patch(
-        "carbon.challenge_validator.evaluation_pack.digest_artifact",
-        return_value=_digest(b"changed"),
+    with (
+        patch(
+            "carbon.challenge_validator.evaluation_pack.digest_artifact",
+            return_value=_digest(b"changed"),
+        ),
+        pytest.raises(EvaluationPackUnavailable) as raised,
     ):
-        with pytest.raises(EvaluationPackUnavailable) as raised:
-            snapshot.verify_available(Path("/public"), Path("/private"))
+        snapshot.verify_available(Path("/public"), Path("/private"))
     assert raised.value.code == "evaluation_pack.artifact.digest_mismatch"
 
 
@@ -284,3 +301,117 @@ def test_trusted_freeze_computes_pin_then_uses_same_verified_loader():
         )
     digester.assert_called_once_with(Path("/private"), "test-challenge/pack.json")
     assert snapshot.manifest_digest == _digest(payload)
+
+
+def test_operator_draft_auto_pins_artifacts_into_separate_frozen_bytes():
+    draft = _manifest()
+    draft["public"]["interface"] = {"path": "interface.json"}
+    draft_bytes = json.dumps(draft, sort_keys=True).encode()
+
+    def digester(root, path):
+        if path == "test-challenge/evaluation-pack.json":
+            return _digest(draft_bytes)
+        assert root == Path("/public") and path == "interface.json"
+        return _digest(b"interface v1")
+
+    with (
+        patch(
+            "carbon.challenge_validator.evaluation_pack.digest_artifact",
+            side_effect=digester,
+        ),
+        patch(
+            "carbon.challenge_validator.evaluation_pack.read_verified_artifact_bytes",
+            return_value=draft_bytes,
+        ),
+    ):
+        prepared = prepare_pack(
+            Path("/private"),
+            "test-challenge/evaluation-pack.json",
+            public_root=Path("/public"),
+            private_root=Path("/private"),
+            challenge_id="test-challenge",
+            challenge_version="1.0",
+        )
+    assert prepared.draft_digest == _digest(draft_bytes)
+    assert prepared.snapshot.manifest_digest == _digest(prepared.sealed_bytes)
+    assert prepared.snapshot.public["interface"]["sha256"] == _digest(b"interface v1")
+    assert draft["public"]["interface"] == {"path": "interface.json"}
+    assert prepared.snapshot.missing_roles()["private"] == tuple(sorted(PRIVATE_ROLES))
+
+    new_bytes = json.dumps({**draft, "pack_version": "2"}, sort_keys=True).encode()
+    assert _digest(new_bytes) != prepared.draft_digest
+    assert _digest(prepared.sealed_bytes) == prepared.snapshot.manifest_digest
+
+
+def test_small_challenge_rules_can_be_edited_inline_without_manual_hashes():
+    draft = _manifest()
+    draft["public"]["interface"] = {
+        "inline": {
+            "inputs": [{"name": "temperature", "unit": "K"}],
+            "outputs": [{"name": "heat_flux", "unit": "W/m2"}],
+        }
+    }
+    draft_bytes = json.dumps(draft, sort_keys=True).encode()
+    with (
+        patch(
+            "carbon.challenge_validator.evaluation_pack.digest_artifact",
+            return_value=_digest(draft_bytes),
+        ),
+        patch(
+            "carbon.challenge_validator.evaluation_pack.read_verified_artifact_bytes",
+            return_value=draft_bytes,
+        ),
+    ):
+        prepared = prepare_pack(
+            Path("/private"),
+            "test-challenge/evaluation-pack.json",
+            public_root=Path("/public"),
+            private_root=Path("/private"),
+            challenge_id="test-challenge",
+            challenge_version="1.0",
+        )
+    interface = prepared.snapshot.read_role(
+        Path("unused"), "public", "interface", max_bytes=1000
+    )
+    assert json.loads(interface)["outputs"][0]["unit"] == "W/m2"
+    with pytest.raises(EvaluationPackUnavailable) as raised:
+        prepared.snapshot.read_role(
+            Path("unused"), "private", "score_pack", max_bytes=1000
+        )
+    assert raised.value.code == "evaluation_pack.role_unavailable"
+    with pytest.raises(EvaluationPackUnavailable) as raised:
+        prepared.snapshot.read_role(Path("unused"), "public", "interface", max_bytes=1)
+    assert raised.value.code == "evaluation_pack.artifact.too_large"
+    draft["public"]["interface"]["inline"]["outputs"][0]["unit"] = "wrong"
+    assert (
+        json.loads(
+            prepared.snapshot.read_role(
+                Path("unused"), "public", "interface", max_bytes=1000
+            )
+        )["outputs"][0]["unit"]
+        == "W/m2"
+    )
+
+    sealed = json.loads(prepared.sealed_bytes)
+    sealed["public"]["interface"]["inline"]["outputs"][0]["unit"] = "wrong"
+    with pytest.raises(
+        EvaluationPackUnavailable, match="evaluation_pack.inline_digest"
+    ):
+        _parse(sealed)
+
+
+def test_hidden_reference_rows_cannot_be_embedded_in_manifest():
+    document = _manifest()
+    document["private"]["reference_rows"] = {
+        "inline": {"secret_answer": 7},
+        "sha256": _digest(b"secret"),
+    }
+    with pytest.raises(EvaluationPackUnavailable, match="evaluation_pack.inline_entry"):
+        _parse(document)
+    document["private"]["reference_rows"] = UNAVAILABLE
+    document["private"]["score_pack"] = {
+        "inline": {"schema": "fixture"},
+        "sha256": _digest(b"x"),
+    }
+    with pytest.raises(EvaluationPackUnavailable, match="evaluation_pack.inline_entry"):
+        _parse(document)

@@ -11,8 +11,8 @@ from carbon.challenge_validator.evaluation_pack import (
     PUBLIC_ROLES,
     SCHEMA,
     EvaluationPackUnavailable,
-    freeze_pack,
     load_pack,
+    prepare_pack,
 )
 
 pytestmark = pytest.mark.skipif(
@@ -41,10 +41,12 @@ def _write_manifest(private_root, document):
     return "operator-fixture/evaluation-pack.json"
 
 
-def _freeze(private_root, relative_path):
-    return freeze_pack(
+def _prepare(private_root, relative_path, public_root):
+    return prepare_pack(
         private_root,
         relative_path,
+        public_root=public_root,
+        private_root=private_root,
         challenge_id="operator-fixture",
         challenge_version="1",
     )
@@ -70,18 +72,29 @@ def test_operator_edits_one_manifest_and_freezes_each_prospective_version(tmp_pa
     (public_root / "interface.json").write_bytes(interface)
     (private_root / "sealed-reference.json").write_bytes(reference)
     document = _pack()
-    document["public"]["interface"] = {
-        "path": "interface.json",
-        "sha256": _digest(interface),
+    document["public"]["interface"] = {"path": "interface.json"}
+    document["public"]["design_objective"] = {
+        "inline": {"fixture_marker": "draft-rule-v1"}
     }
-    document["private"]["reference_rows"] = {
-        "path": "sealed-reference.json",
-        "sha256": _digest(reference),
-    }
-    relative_path = _write_manifest(private_root, document)
+    document["private"]["reference_rows"] = {"path": "sealed-reference.json"}
+    draft_path = _write_manifest(private_root, document)
 
-    admitted = _freeze(private_root, relative_path)
-    run = _load(private_root, relative_path, admitted.manifest_digest)
+    prepared = _prepare(private_root, draft_path, public_root)
+    admitted = prepared.snapshot
+    assert prepared.draft_digest == _digest((private_root / draft_path).read_bytes())
+    assert admitted.public["interface"]["sha256"] == _digest(interface)
+    assert admitted.private["reference_rows"]["sha256"] == _digest(reference)
+    assert admitted.public["design_objective"]["sha256"] == _digest(
+        b'{"fixture_marker":"draft-rule-v1"}'
+    )
+    assert json.loads((private_root / draft_path).read_bytes()) == document
+    sealed_path = (
+        "operator-fixture/frozen/" + admitted.manifest_digest.split(":", 1)[1] + ".json"
+    )
+    sealed_file = private_root / sealed_path
+    sealed_file.parent.mkdir(parents=True)
+    sealed_file.write_bytes(prepared.sealed_bytes)
+    run = _load(private_root, sealed_path, admitted.manifest_digest)
     assert run.manifest_digest == admitted.manifest_digest
     missing = run.verify_available(public_root, private_root)
     assert "interface" not in missing["public"]
@@ -95,6 +108,9 @@ def test_operator_edits_one_manifest_and_freezes_each_prospective_version(tmp_pa
         run.read_role(private_root, "private", "reference_rows", max_bytes=1024)
         == reference
     )
+    assert json.loads(
+        run.read_role(public_root, "public", "design_objective", max_bytes=1024)
+    ) == {"fixture_marker": "draft-rule-v1"}
     projection = json.dumps(run.public_projection(), sort_keys=True)
     assert "interface" in projection
     assert "sealed-reference" not in projection
@@ -103,14 +119,25 @@ def test_operator_edits_one_manifest_and_freezes_each_prospective_version(tmp_pa
     assert admitted.manifest_digest not in projection
 
     document["pack_version"] = "2"
+    document["public"]["design_objective"]["inline"]["fixture_marker"] = "draft-rule-v2"
     _write_manifest(private_root, document)
     with pytest.raises(EvaluationPackUnavailable) as refusal:
-        _load(private_root, relative_path, admitted.manifest_digest)
+        _load(private_root, draft_path, admitted.manifest_digest)
     assert refusal.value.code == "evaluation_pack.artifact.digest_mismatch"
-    prospective = _freeze(private_root, relative_path)
-    assert prospective.manifest_digest != admitted.manifest_digest
-    assert prospective.pack_version == "2"
+    old_run = _load(private_root, sealed_path, admitted.manifest_digest)
+    assert old_run.pack_version == "1"
+    assert json.loads(
+        old_run.read_role(public_root, "public", "design_objective", max_bytes=1024)
+    ) == {"fixture_marker": "draft-rule-v1"}
+    prospective = _prepare(private_root, draft_path, public_root)
+    assert prospective.snapshot.manifest_digest != admitted.manifest_digest
+    assert prospective.snapshot.pack_version == "2"
     assert admitted.pack_version == "1"
+    document["private"]["score_pack"] = {"inline": {"fixture_marker": "invalid"}}
+    _write_manifest(private_root, document)
+    with pytest.raises(EvaluationPackUnavailable) as refusal:
+        _prepare(private_root, draft_path, public_root)
+    assert refusal.value.code == "evaluation_pack.inline_entry"
 
 
 def test_operator_gets_typed_missing_changed_and_unfilled_role_feedback(tmp_path):
@@ -120,17 +147,16 @@ def test_operator_gets_typed_missing_changed_and_unfilled_role_feedback(tmp_path
     private_root.mkdir()
     expected = b"synthetic solver evidence"
     document = _pack()
-    document["private"]["solver_evidence"] = {
-        "path": "solver-evidence.json",
-        "sha256": _digest(expected),
-    }
+    document["private"]["solver_evidence"] = {"path": "solver-evidence.json"}
     relative_path = _write_manifest(private_root, document)
-    snapshot = _freeze(private_root, relative_path)
     with pytest.raises(EvaluationPackUnavailable) as refusal:
-        snapshot.verify_available(public_root, private_root)
+        _prepare(private_root, relative_path, public_root)
     assert refusal.value.code == "evaluation_pack.artifact.missing"
 
     evidence_path = private_root / "solver-evidence.json"
+    evidence_path.write_bytes(expected)
+    snapshot = _prepare(private_root, relative_path, public_root).snapshot
+    assert snapshot.private["solver_evidence"]["sha256"] == _digest(expected)
     evidence_path.write_bytes(b"wrong bytes")
     with pytest.raises(EvaluationPackUnavailable) as refusal:
         snapshot.verify_available(public_root, private_root)
@@ -148,6 +174,3 @@ def test_operator_gets_typed_missing_changed_and_unfilled_role_feedback(tmp_path
     with pytest.raises(EvaluationPackUnavailable) as refusal:
         snapshot.read_role(private_root, "private", "solver_evidence", max_bytes=1024)
     assert refusal.value.code == "evaluation_pack.artifact.digest_mismatch"
-    assert _load(
-        private_root, relative_path, snapshot.manifest_digest
-    ).manifest_digest == (snapshot.manifest_digest)

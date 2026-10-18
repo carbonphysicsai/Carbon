@@ -12,19 +12,19 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import Mapping
 
+from carbon.challenge_validator.hidden_batch_store import references_digest
+from carbon.challenge_validator.interface import digest as document_digest
 from carbon.registry.digest import (
     ArtifactAccessError,
     digest_artifact,
     is_sha256_digest,
     read_verified_artifact_bytes,
 )
-from carbon.challenge_validator.interface import digest as document_digest
-from carbon.challenge_validator.hidden_batch_store import references_digest
 
 SCHEMA = "carbon.challenge-evaluation-pack.v1"
 MAX_MANIFEST_BYTES = 64 * 1024
@@ -42,6 +42,7 @@ PUBLIC_ROLES = frozenset(
 PRIVATE_ROLES = frozenset(
     {"case_bank", "reference_rows", "solver_evidence", "score_pack"}
 )
+INLINE_ROLES = PUBLIC_ROLES - {"train"}
 UNAVAILABLE = "HUMAN_INPUT"
 
 
@@ -77,11 +78,24 @@ def _strict_json(payload: bytes) -> object:
         raise EvaluationPackUnavailable("evaluation_pack.json") from exc
 
 
+def _inline_bytes(value: object) -> bytes:
+    if type(value) is not dict or not value:
+        raise EvaluationPackUnavailable("evaluation_pack.inline_value")
+    try:
+        return json.dumps(
+            value, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+    except (TypeError, ValueError) as exc:
+        raise EvaluationPackUnavailable("evaluation_pack.inline_value") from exc
+
+
 def _roles(value: object, names: frozenset[str], scope: str) -> dict:
     if type(value) is not dict or set(value) != names:
         raise EvaluationPackUnavailable("evaluation_pack." + scope + "_roles")
+    normalized = {}
     for role, entry in value.items():
         if entry == UNAVAILABLE:
+            normalized[role] = entry
             continue
         if (
             scope == "private"
@@ -89,12 +103,28 @@ def _roles(value: object, names: frozenset[str], scope: str) -> dict:
             and type(entry) is dict
             and entry.get("kind") == "hidden_batch_store"
         ):
-            if (
-                set(entry) != {"kind", "fingerprint", "references_digest"}
-                or not is_sha256_digest(entry["fingerprint"])
-                or not is_sha256_digest(entry["references_digest"])
+            if set(entry) not in (
+                {"kind"},
+                {"kind", "fingerprint", "references_digest"},
+            ) or (
+                "fingerprint" in entry
+                and (
+                    not is_sha256_digest(entry["fingerprint"])
+                    or not is_sha256_digest(entry["references_digest"])
+                )
             ):
                 raise EvaluationPackUnavailable("evaluation_pack.bank_entry")
+            normalized[role] = entry
+            continue
+        if type(entry) is dict and "inline" in entry:
+            if role not in INLINE_ROLES or set(entry) != {"inline", "sha256"}:
+                raise EvaluationPackUnavailable("evaluation_pack.inline_entry")
+            payload = _inline_bytes(entry["inline"])
+            if not is_sha256_digest(entry["sha256"]) or not hmac.compare_digest(
+                _digest_bytes(payload), entry["sha256"]
+            ):
+                raise EvaluationPackUnavailable("evaluation_pack.inline_digest")
+            normalized[role] = {"inline_bytes": payload, "sha256": entry["sha256"]}
             continue
         if (
             type(entry) is not dict
@@ -114,7 +144,12 @@ def _roles(value: object, names: frozenset[str], scope: str) -> dict:
             or any(ord(char) < 32 or ord(char) == 127 for char in path)
         ):
             raise EvaluationPackUnavailable("evaluation_pack.artifact_path")
-    return value
+        normalized[role] = entry
+    return normalized
+
+
+def _digest_bytes(payload: bytes) -> str:
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -155,6 +190,17 @@ class EvaluationPackSnapshot:
             ),
         }
 
+    def run_bindings_required(self) -> tuple[str, ...]:
+        """Name roles whose exact data identity is selected per run."""
+        bank = self.private["case_bank"]
+        return (
+            ("case_bank",)
+            if bank != UNAVAILABLE
+            and bank.get("kind") == "hidden_batch_store"
+            and "fingerprint" not in bank
+            else ()
+        )
+
     def verify_available(
         self, public_root: Path, private_root: Path, *, hidden_store=None
     ) -> dict[str, tuple[str, ...]]:
@@ -176,7 +222,14 @@ class EvaluationPackSnapshot:
                         raise EvaluationPackUnavailable(
                             "evaluation_pack.bank_store_unavailable"
                         )
-                    self.resolve_hidden_batch(hidden_store)
+                    if "fingerprint" in entry:
+                        self.resolve_hidden_batch(hidden_store)
+                    continue
+                if "inline_bytes" in entry:
+                    if not hmac.compare_digest(
+                        _digest_bytes(entry["inline_bytes"]), entry["sha256"]
+                    ):
+                        raise EvaluationPackUnavailable("evaluation_pack.inline_digest")
                     continue
                 try:
                     actual = digest_artifact(root, entry["path"])
@@ -195,15 +248,21 @@ class EvaluationPackSnapshot:
         roles = (
             self.public
             if scope == "public"
-            else self.private
-            if scope == "private"
-            else None
+            else self.private if scope == "private" else None
         )
         if roles is None or role not in roles:
             raise EvaluationPackUnavailable("evaluation_pack.role")
         entry = roles[role]
         if entry == UNAVAILABLE:
             raise EvaluationPackUnavailable("evaluation_pack.role_unavailable")
+        if "inline_bytes" in entry:
+            if type(max_bytes) is not int or max_bytes <= 0:
+                raise EvaluationPackUnavailable(
+                    "evaluation_pack.artifact.limit_invalid"
+                )
+            if len(entry["inline_bytes"]) > max_bytes:
+                raise EvaluationPackUnavailable("evaluation_pack.artifact.too_large")
+            return entry["inline_bytes"]
         if "path" not in entry:
             raise EvaluationPackUnavailable("evaluation_pack.role_requires_store")
         try:
@@ -213,7 +272,13 @@ class EvaluationPackSnapshot:
         except ArtifactAccessError as exc:
             raise EvaluationPackUnavailable("evaluation_pack." + exc.code) from exc
 
-    def resolve_hidden_batch(self, store) -> dict:
+    def resolve_hidden_batch(
+        self,
+        store,
+        *,
+        fingerprint: str | None = None,
+        expected_references_digest: str | None = None,
+    ) -> dict:
         """Resolve one immutable existing HiddenBatchStore batch and refs.
 
         The store location and access authority come from the validator, never
@@ -225,16 +290,28 @@ class EvaluationPackSnapshot:
             raise EvaluationPackUnavailable("evaluation_pack.role_unavailable")
         if entry.get("kind") != "hidden_batch_store":
             raise EvaluationPackUnavailable("evaluation_pack.bank_kind")
+        pinned_fingerprint = entry.get("fingerprint", fingerprint)
+        pinned_references = entry.get("references_digest", expected_references_digest)
+        if (
+            not is_sha256_digest(pinned_fingerprint)
+            or not is_sha256_digest(pinned_references)
+            or (fingerprint is not None and fingerprint != pinned_fingerprint)
+            or (
+                expected_references_digest is not None
+                and expected_references_digest != pinned_references
+            )
+        ):
+            raise EvaluationPackUnavailable("evaluation_pack.bank_run_pin")
         try:
-            batch = store.batch(entry["fingerprint"])
-            references = store.references(entry["fingerprint"])
+            batch = store.batch(pinned_fingerprint)
+            references = store.references(pinned_fingerprint)
             if (
                 batch["state"] != "COMPLETE"
-                or batch["references_digest"] != entry["references_digest"]
+                or batch["references_digest"] != pinned_references
                 or batch["document"].get("challenge")
                 != {"id": self.challenge_id, "version": self.challenge_version}
-                or document_digest(batch["document"]) != entry["fingerprint"]
-                or references_digest(references) != entry["references_digest"]
+                or document_digest(batch["document"]) != pinned_fingerprint
+                or references_digest(references) != pinned_references
             ):
                 raise EvaluationPackUnavailable("evaluation_pack.bank_changed")
         except EvaluationPackUnavailable:
@@ -242,6 +319,15 @@ class EvaluationPackSnapshot:
         except Exception as exc:
             raise EvaluationPackUnavailable("evaluation_pack.bank_unavailable") from exc
         return {"document": batch["document"], "references": references}
+
+
+@dataclass(frozen=True)
+class PreparedEvaluationPack:
+    """Internal sealed bytes to retain write-once beside the run receipt."""
+
+    draft_digest: str
+    sealed_bytes: bytes
+    snapshot: EvaluationPackSnapshot
 
 
 def parse_pack(
@@ -256,7 +342,7 @@ def parse_pack(
         raise EvaluationPackUnavailable("evaluation_pack.size")
     if not is_sha256_digest(expected_digest):
         raise EvaluationPackUnavailable("evaluation_pack.expected_digest")
-    actual = "sha256:" + hashlib.sha256(payload).hexdigest()
+    actual = _digest_bytes(payload)
     if actual != expected_digest:
         raise EvaluationPackUnavailable("evaluation_pack.digest_mismatch")
     body = _strict_json(payload)
@@ -348,3 +434,92 @@ def freeze_pack(
         challenge_id=challenge_id,
         challenge_version=challenge_version,
     )
+
+
+def prepare_pack(
+    root: Path,
+    relative_path: str,
+    *,
+    public_root: Path,
+    private_root: Path,
+    challenge_id: str,
+    challenge_version: str,
+) -> PreparedEvaluationPack:
+    """Turn one trusted editable manifest into an immutable, pinned snapshot.
+
+    The editor may use ``{"path": "..."}`` without copying artifact hashes.
+    The trusted caller stores ``sealed_bytes`` write-once under the returned
+    snapshot digest and records that digest in the run. ``load_pack`` consumes
+    only those sealed bytes. Preparing never rewrites the operator's draft or
+    changes an earlier run's snapshot.
+    """
+    try:
+        draft_digest = digest_artifact(root, relative_path)
+        payload = read_verified_artifact_bytes(
+            root, relative_path, draft_digest, max_bytes=MAX_MANIFEST_BYTES
+        )
+    except ArtifactAccessError as exc:
+        raise EvaluationPackUnavailable("evaluation_pack." + exc.code) from exc
+    body = _strict_json(payload)
+    if (
+        type(body) is not dict
+        or set(body) != {"schema", "challenge", "pack_version", "public", "private"}
+        or body["schema"] != SCHEMA
+        or type(body["public"]) is not dict
+        or set(body["public"]) != PUBLIC_ROLES
+        or type(body["private"]) is not dict
+        or set(body["private"]) != PRIVATE_ROLES
+    ):
+        raise EvaluationPackUnavailable("evaluation_pack.schema")
+    for scope, roles, artifact_root in (
+        ("public", body["public"], public_root),
+        ("private", body["private"], private_root),
+    ):
+        for role, entry in roles.items():
+            if entry == UNAVAILABLE or (
+                scope == "private"
+                and role == "case_bank"
+                and type(entry) is dict
+                and entry.get("kind") == "hidden_batch_store"
+            ):
+                continue
+            if type(entry) is dict and "inline" in entry:
+                if role not in INLINE_ROLES or set(entry) not in (
+                    {"inline"},
+                    {"inline", "sha256"},
+                ):
+                    raise EvaluationPackUnavailable("evaluation_pack.inline_entry")
+                roles[role] = {
+                    "inline": entry["inline"],
+                    "sha256": _digest_bytes(_inline_bytes(entry["inline"])),
+                }
+                continue
+            if (
+                type(entry) is not dict
+                or set(entry)
+                not in (
+                    {"path"},
+                    {"path", "sha256"},
+                )
+                or type(entry["path"]) is not str
+            ):
+                raise EvaluationPackUnavailable("evaluation_pack." + scope + "_entry")
+            try:
+                observed = digest_artifact(artifact_root, entry["path"])
+            except ArtifactAccessError as exc:
+                raise EvaluationPackUnavailable("evaluation_pack." + exc.code) from exc
+            roles[role] = {"path": entry["path"], "sha256": observed}
+    try:
+        sealed = (
+            json.dumps(body, sort_keys=True, separators=(",", ":"), allow_nan=False)
+            + "\n"
+        ).encode("utf-8")
+    except (TypeError, ValueError) as exc:
+        raise EvaluationPackUnavailable("evaluation_pack.json") from exc
+    snapshot = parse_pack(
+        sealed,
+        expected_digest=_digest_bytes(sealed),
+        challenge_id=challenge_id,
+        challenge_version=challenge_version,
+    )
+    return PreparedEvaluationPack(draft_digest, sealed, snapshot)

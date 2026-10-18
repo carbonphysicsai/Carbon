@@ -4,10 +4,12 @@ Keep one operator-edited `evaluation-pack.json` under each Challenge's
 validator-owned directory, for example
 `<private-root>/synthetic-linear-field-2d/evaluation-pack.json`. The trusted
 receiver configuration selects this file, Challenge ID and Challenge version.
-At admission, `freeze_pack` computes the exact-byte SHA-256 digest and the
-receiver persists it in the run registration. The run then calls `load_pack`
-with that recorded digest. An operator edits one manifest and runs the normal
-validation/admission flow; they do not copy a digest into a second form.
+At admission, `prepare_pack` reads this one editable draft, derives artifact
+hashes, and returns fully pinned bytes. The receiver retains those bytes
+write-once in its existing private artifact store, records their digest in
+the run registration, and calls `load_pack` on the retained snapshot. An
+operator edits one manifest and runs the normal validation/admission flow;
+they do not copy hashes into a second form.
 Miner requests never select a manifest path, digest or artifact root. Do not
 put a private manifest, case IDs, reference rows, answers or custody paths in
 the repository or a public Challenge kit.
@@ -38,21 +40,42 @@ scorer. Its complete shape is:
 }
 ```
 
-Replace a role with `{"path":"relative/file", "sha256":"sha256:<64 lowercase
-hex digits>"}` only when the underlying existing artifact and its own
-contract are known. Paths are relative to a trusted public or private artifact
-root supplied by the caller. The role bytes are checked on every read and
-returned unchanged; downstream consumers must use their existing interface,
-physics, measurement and ScorePack validators. A digest match does **not**
-qualify the science. `case_bank` may instead be
-`{"kind":"hidden_batch_store","fingerprint":"sha256:...",
-"references_digest":"sha256:..."}`. The validator supplies its existing
-`HiddenBatchStore`; the loader requires that batch to be `COMPLETE` and checks
-its document fingerprint and stored reference digest. This avoids copying or
-hashing a mutable SQLite database as if it were an immutable case snapshot.
+Replace a role with `{"path":"relative/file"}` only when the underlying
+existing artifact and its own contract are known. Paths are relative to a
+trusted public or private artifact root supplied by the caller.
+`prepare_pack` calculates the role's SHA-256 from the actual file and writes
+`{"path":"relative/file","sha256":"sha256:..."}` into the returned
+**sealed bytes**, leaving the editable draft alone. A stale `sha256` in the
+draft is refreshed for a prospective run. `load_pack` accepts only a sealed
+manifest with all provided roles pinned. It checks each role on every read;
+downstream consumers still use their existing interface, physics, measurement
+and ScorePack validators. A digest match does **not** qualify the science.
+Small public definitions (`construction_kit`, `interface`, `physics_contract`,
+`accuracy_definition`, `important_limit_definition`, `design_objective`) may
+instead be edited directly in the one manifest as
+`{"inline": {"existing": "contract fields"}}`. `prepare_pack` derives the
+inline digest automatically and the sealed snapshot retains immutable encoded
+bytes. TRAIN, case banks, reference rows, solver evidence and the exact-byte
+Score Pack cannot be embedded this way. The inline object must still satisfy its existing
+contract-specific parser when the receiver uses it; this loader never
+interprets or invents physical values.
+`case_bank` may instead be `{"kind":"hidden_batch_store"}`. The validator
+supplies its existing `HiddenBatchStore` and separately records the selected
+batch fingerprint and references digest in the run. `resolve_hidden_batch`
+requires those exact run pins, `COMPLETE` state, matching Challenge identity,
+and the stored document/reference digests. This avoids copying or hashing a
+mutable SQLite database as if it were an immutable case snapshot. A sealed
+pack may also contain a fixed fingerprint and references digest for a
+deliberately static development batch.
+`snapshot.run_bindings_required()` names a dynamic `case_bank` until those
+run-specific pins have been selected and checked; storage availability alone
+does not make the run ready to score.
 
-`freeze_pack(root, relative_path, challenge_id=..., challenge_version=...)`
-returns the prospective exact pin to the trusted admission caller.
+`prepare_pack(root, relative_path, public_root=..., private_root=...,
+challenge_id=..., challenge_version=...)` returns `sealed_bytes` and a parsed
+snapshot. The trusted caller retains `sealed_bytes` write-once and records
+`snapshot.manifest_digest` automatically. `freeze_pack` is a narrow helper for
+an already fully pinned manifest.
 `load_pack(root, relative_path, expected_digest=..., challenge_id=...,
 challenge_version=...)` returns `EvaluationPackSnapshot`. Use
 `snapshot.read_role(root, scope, role, max_bytes=...)` for an artifact, or
