@@ -151,7 +151,10 @@ def test_new_base_selector_refuses_before_persisting_or_dispatching(
         with pytest.raises(Rejected, match="construction_selector_retired"):
             host.launch_admitted(admitted, body)
         with host.db() as db:
-            assert db.execute("SELECT COUNT(*) FROM launchpad_campaigns").fetchone()[0] == 0
+            assert (
+                db.execute("SELECT COUNT(*) FROM launchpad_campaigns").fetchone()[0]
+                == 0
+            )
         assert dispatches == []
     finally:
         host.close()

@@ -671,9 +671,8 @@ def test_changing_a_widened_value_changes_the_level_commitment():
     on, compiled_on = _level_commitment(2, strategy(muon_spectral=True))
     off, compiled_off = _level_commitment(2, strategy(muon_spectral=False))
     # The base strategy hash cannot tell them apart; the commitment does.
-    assert (
-        compiled_on["commitment_strategy_hash"]
-        == (compiled_off["commitment_strategy_hash"])
+    assert compiled_on["commitment_strategy_hash"] == (
+        compiled_off["commitment_strategy_hash"]
     )
     assert on != off
 
