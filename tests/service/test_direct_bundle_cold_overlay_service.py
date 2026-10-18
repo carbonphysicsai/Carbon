@@ -291,6 +291,10 @@ def test_normal_cpu_source_only_task_cold_prepares_builds_and_retains(tmp_path):
                 "child_states": child_states,
                 "phase_failures": tuple(phase_failures),
             }
+            print(
+                "C03_CLOSED_FAILURE_DIAGNOSTIC="
+                + json.dumps(failure_diagnostic, sort_keys=True, separators=(",", ":"))
+            )
         assert finished.state is DirectTaskStateV3.SUCCEEDED, failure_diagnostic
         evidence = provider.private_attempt(queued.task_id)
         assert evidence["schema"] == "carbon.direct-private-attempt.overlay.v1"
