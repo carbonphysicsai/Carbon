@@ -31,7 +31,13 @@ STAGE_GRAPH = DIRECT_PREFIX + "stage_construction_graph"
 _START = DIRECT_PREFIX + "start_research_task"
 _OBSERVE = DIRECT_PREFIX + "get_research_result"
 _CANCEL = DIRECT_PREFIX + "cancel_research_task"
-_NEW_WORK = {DIRECT_PREFIX + "stage_research_source", _START, STAGE_GRAPH, SUBMIT}
+_NEW_WORK = {
+    DIRECT_PREFIX + "stage_research_source",
+    DIRECT_PREFIX + "stage_research_material",
+    _START,
+    STAGE_GRAPH,
+    SUBMIT,
+}
 _ACTIVE_TASK_STATES = {"QUEUED", "RUNNING", "CANCEL_REQUESTED"}
 _TERMINAL_TASK_STATES = {
     "SUCCEEDED",
@@ -74,6 +80,16 @@ _DIRECT_PARAMETERS = {
             "total_bytes": {"type": "integer", "minimum": 1},
             "content_digest": _TEXT,
             "expected_digest": {"type": ["string", "null"]},
+            "chunk_base64": _TEXT,
+        }
+    ),
+    "stage_research_material": _schema(
+        {
+            "bundle_digest": _TEXT,
+            "name": _TEXT,
+            "offset": {"type": "integer", "minimum": 0},
+            "total_bytes": {"type": "integer", "minimum": 0},
+            "content_digest": _TEXT,
             "chunk_base64": _TEXT,
         }
     ),

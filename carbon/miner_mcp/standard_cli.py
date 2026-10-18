@@ -376,11 +376,15 @@ class DirectOwnerImageResolver:
         return bundle
 
     def provision_admitted(self, bundle, *, parent, cli):
-        """Build or verify the compatible child inside the admitted task phase."""
+        """Verify a compatible child; bounded cache-miss build is not available."""
         from carbon.development_session.gpu_practice import gpu_image_backend
         from carbon.development_session.library_environment_cache import (
             inspect_staged_bundle_material,
-            install_pinned_library_worker_image,
+            library_image_cache_paths,
+            load_cached_library_worker_image,
+        )
+        from carbon.development_session.research_image import (
+            verify_library_worker_image,
         )
         from carbon.reconstruction.worker.model import WorkerImageIdentity
 
@@ -392,14 +396,19 @@ class DirectOwnerImageResolver:
         }.get(bundle.runtime_profile_id)
         if expected_backend is None or gpu_image_backend(parent) != expected_backend:
             raise ValueError("construction parent differs from bundle runtime")
-        directory = inspect_staged_bundle_material(self.cache_root, bundle)
-        return install_pinned_library_worker_image(
-            directory,
-            self.cache_root,
-            parent,
+        inspect_staged_bundle_material(self.cache_root, bundle)
+        receipt, context = library_image_cache_paths(self.cache_root, bundle, parent)
+        if not receipt.is_file() or receipt.is_symlink():
+            raise FileNotFoundError(
+                "bounded automatic dependency build unavailable; verified child missing"
+            )
+        image = load_cached_library_worker_image(
+            receipt,
             expected_bundle=bundle,
-            cli=cli,
+            expected_parent=parent,
+            context_root=context.parent,
         )
+        return verify_library_worker_image(image, cli)
 
     def __call__(self, bundle):
         from carbon.development_session.gpu_practice import gpu_image_backend

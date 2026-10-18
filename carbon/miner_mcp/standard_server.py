@@ -898,6 +898,38 @@ def _create_direct_server(adapter, *, guard=None, **settings):
                     ),
                 ),
             )
+        elif operation == "stage_research_material":
+            fields.update(
+                bundle_digest=(
+                    Annotated[str, Field(pattern=r"^sha256:[0-9a-f]{64}$")],
+                    Field(..., description="Exact pinned construction bundle digest."),
+                ),
+                name=(
+                    Annotated[str, Field(min_length=1, max_length=200)],
+                    Field(
+                        ...,
+                        description="Flat material filename declared by the bundle.",
+                    ),
+                ),
+                offset=(
+                    Annotated[int, Field(ge=0, le=128 * 1024**2)],
+                    Field(
+                        ..., description="Byte offset; identical bytes may be replayed."
+                    ),
+                ),
+                total_bytes=(
+                    Annotated[int, Field(ge=1, le=128 * 1024**2)],
+                    Field(..., description="Exact complete material byte count."),
+                ),
+                content_digest=(
+                    Annotated[str, Field(pattern=r"^sha256:[0-9a-f]{64}$")],
+                    Field(..., description="SHA-256 of the complete material bytes."),
+                ),
+                chunk_base64=(
+                    Annotated[str, Field(min_length=4, max_length=32768)],
+                    Field(..., description="Base64 of 1 to 24576 raw bytes."),
+                ),
+            )
         elif operation in {"get_research_result", "cancel_research_task"}:
             fields["task_id"] = task_id
             if operation == "cancel_research_task":
@@ -937,10 +969,17 @@ def _create_direct_server(adapter, *, guard=None, **settings):
                 "owner's DEVELOPMENT workspace. The final chunk publishes only exact "
                 "digest-matched bytes; a graph recipe is checked at task admission."
                 if operation == "stage_research_source"
-                else "Direct public DEVELOPMENT construction: "
-                + operation.replace("_", " ")
-                + ". Registered fixed TRAIN, resource policy and owner-bound source "
-                "are selected by the trusted service; no official grade is created."
+                else (
+                    "Upload one exact pinned construction-material chunk to this "
+                    "authenticated owner's private DEVELOPMENT cache. Upload "
+                    "source, lock, license and declared wheels first; bundle.json "
+                    "last promotes only a fully validated closure."
+                    if operation == "stage_research_material"
+                    else "Direct public DEVELOPMENT construction: "
+                    + operation.replace("_", " ")
+                    + ". Registered fixed TRAIN, resource policy and owner-bound source "
+                    "are selected by the trusted service; no official grade is created."
+                )
             ),
             parameters=model.model_json_schema(),
             fn_metadata=ExactMetadata(arg_model=model, output_model=DirectResult),
@@ -966,6 +1005,12 @@ def _create_direct_server(adapter, *, guard=None, **settings):
                 "For graph recipes stage the manifest and digest-named documents "
                 "in bounded chunks before starting the recipe. "
                 if "stage_research_source" in offered
+                else ""
+            )
+            + (
+                "For pinned bundles, stage exact material chunks with "
+                "stage_research_material; bundle.json goes last. "
+                if "stage_research_material" in offered
                 else ""
             )
             + "Start only "

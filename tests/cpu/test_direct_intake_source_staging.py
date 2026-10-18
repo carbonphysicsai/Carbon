@@ -7,8 +7,10 @@ container security, a scored Challenge, or an installed end-to-end result.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 from dataclasses import replace
+from types import SimpleNamespace
 
 import pytest
 from test_c08_authenticated_miner_mcp import (
@@ -39,6 +41,10 @@ from carbon.development_session.construction_recipe import (
 from carbon.development_session.research_workspace import (
     ResearchWorkspace,
     WorkspaceFileMissing,
+)
+from carbon.development_session.library_bundles import bundle_ref
+from carbon.development_session.library_environment_cache import (
+    inspect_staged_bundle_material,
 )
 from carbon.level4 import staging, submission
 from carbon.transport.models import MAX_BODY, message
@@ -297,3 +303,58 @@ def test_staging_transport_and_chunk_bounds_remain_enforced(receiver):
     with pytest.raises(ValueError, match="bounded digest-bound"):
         _source(request.challenge_key, staging.WORKSPACE_MANIFEST, b"x" * 8193)
     assert not ResearchWorkspace(provider.ledger, provider.owner).inventory()
+
+
+def test_signed_material_staging_promotes_only_full_owner_closure(receiver, tmp_path):
+    from test_library_bundles import fixture
+
+    intake, request, provider, _state = receiver
+    cache = tmp_path / "owner-material-cache"
+    cache.mkdir(mode=0o700)
+    cache.chmod(0o700)
+    provider.image_resolver = SimpleNamespace(cache_root=cache)
+    manifest, archive, wheels, lock, license_text = fixture()
+    selected = bundle_ref(manifest, archive, wheels, lock, license_text)
+    public = intake.handle("GET", INFO_PATH, {}, b"", "127.0.0.1")
+    assert public.body["material_staging"] == {
+        "tool": research.RESEARCH_NAMESPACE,
+        "operation": "stage_research_material",
+        "request_schema": "direct_stage_material_request_v1",
+        "reply_schema": SOURCE_REPLY_SCHEMA,
+        "path": SUBMIT_PATH,
+        "owner": "authenticated_hotkey",
+    }
+    files = [
+        ("source.tar.gz", archive),
+        ("requirements.txt", lock),
+        ("LICENSE", license_text),
+        *wheels.items(),
+        (
+            "bundle.json",
+            json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode(),
+        ),
+    ]
+    for index, (name, body) in enumerate(files, start=1):
+        call = research.ServiceCall(
+            research.RESEARCH_NAMESPACE,
+            "stage_research_material",
+            research.DirectStageMaterialRequestV1(
+                request.challenge_key,
+                selected.bundle_digest,
+                name,
+                0,
+                len(body),
+                "sha256:" + hashlib.sha256(body).hexdigest(),
+                body,
+            ),
+        )
+        answer, wire, headers = _send(receiver, call, index=index + 100)
+        assert answer.status == 200
+        reply = _reply(answer)
+        assert reply.status is research.ReplyStatus.OK
+        assert reply.result.complete
+        assert reply.result.bundle_complete == (name == "bundle.json")
+        replay = intake.handle("POST", SUBMIT_PATH, headers, wire, "127.0.0.1")
+        assert replay.status == 401 and replay.body["refused"] == "AUTH_REPLAY"
+    assert inspect_staged_bundle_material(cache, selected).is_dir()
+    assert not provider.queued_tasks()

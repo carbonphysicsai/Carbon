@@ -47,6 +47,8 @@ from carbon.research.model import (
     DirectGetTaskRequestV3,
     DirectGetTaskResultV3,
     DirectRecipeManifest,
+    DirectStageMaterialRequestV1,
+    DirectStageMaterialResultV1,
     DirectStageSourceRequestV1,
     DirectStageSourceResultV1,
     DirectStartTaskRequestV3,
@@ -128,7 +130,8 @@ class TestOnlyAuthorizationProvider(Protocol):
 
     def fixture_authorization(
         self, ref: TestOnlyPriorAuthorizationReceiptRef
-    ) -> TestOnlyPriorAuthorizationReceipt: ...
+    ) -> TestOnlyPriorAuthorizationReceipt:
+        ...
 
 
 def _provider(value: object, method: str) -> None:
@@ -472,6 +475,20 @@ DIRECT_SOURCE_CONTRACT = OperationContract(
     (*_COMMON_ERRORS, ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT),
     ResearchServiceErrorCode.NAMESPACE_MISMATCH,
 )
+DIRECT_MATERIAL_CONTRACT = OperationContract(
+    "stage_research_material",
+    DirectStageMaterialRequestV1,
+    DirectStageMaterialResultV1,
+    "DIRECT_DEVELOPMENT_SOURCE",
+    "research_task_provider",
+    "stage_research_material",
+    ("DIRECT_PUBLIC",),
+    "LOCAL_RESEARCH_ONLY",
+    "OWNER_BOUND_SOURCE_DIGEST_ONLY",
+    "NO_TASK_ACCOUNTING",
+    (*_COMMON_ERRORS, ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT),
+    ResearchServiceErrorCode.NAMESPACE_MISMATCH,
+)
 RESERVED_OPERATION = OperationContract(
     "quote_execution",
     object,
@@ -787,8 +804,14 @@ class LocalResearchService:
         if operation == RESERVED_OPERATION.operation:
             return _failure(ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE)
         contract = (
-            DIRECT_SOURCE_CONTRACT
-            if self._direct and operation == DIRECT_SOURCE_CONTRACT.operation
+            (
+                DIRECT_SOURCE_CONTRACT
+                if operation == DIRECT_SOURCE_CONTRACT.operation
+                else DIRECT_MATERIAL_CONTRACT
+            )
+            if self._direct
+            and operation
+            in (DIRECT_SOURCE_CONTRACT.operation, DIRECT_MATERIAL_CONTRACT.operation)
             else OPERATION_CONTRACTS.get(operation)
         )
         if contract is None:
@@ -937,6 +960,17 @@ class LocalResearchService:
         return None
 
     def _dispatch(self, contract: OperationContract, request: object) -> object:
+        if self._direct and contract.operation == DIRECT_MATERIAL_CONTRACT.operation:
+            from carbon.development_session.direct_material_staging import (
+                stage_material,
+            )
+
+            provider = self._context.research_task_provider
+            if provider is None:
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE
+                )
+            return stage_material(provider, request)
         if self._direct and contract.operation == DIRECT_SOURCE_CONTRACT.operation:
             from carbon.development_session.direct_source_staging import stage_source
 
@@ -993,6 +1027,10 @@ class LocalResearchService:
             or (
                 contract.operation == "stage_research_source"
                 and type(result) is DirectStageSourceResultV1
+            )
+            or (
+                contract.operation == "stage_research_material"
+                and type(result) is DirectStageMaterialResultV1
             )
             or (
                 contract.operation == "get_challenge_info"

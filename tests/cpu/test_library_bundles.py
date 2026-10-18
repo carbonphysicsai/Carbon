@@ -180,27 +180,32 @@ def test_direct_resolver_inspects_source_before_admitted_provision(
         *("sha256:" + character * 64 for character in "00123456")
     )
     monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _: "pytorch")
-    calls = []
     sentinel = object()
+    adapter = object()
+    with pytest.raises(FileNotFoundError, match="bounded automatic dependency build"):
+        resolver.provision_admitted(selected, parent=parent, cli=adapter)
+    receipt = cache_root / "verified.image.json"
+    receipt.write_text("fixture", encoding="utf-8")
+    calls = []
+    monkeypatch.setattr(
+        library_environment_cache,
+        "library_image_cache_paths",
+        lambda root, bundle, trusted: (receipt, cache_root / "context"),
+    )
 
-    def install(path, root, trusted, *, expected_bundle, cli):
-        calls.append((path, root, trusted, expected_bundle, cli))
+    def load(path, *, expected_bundle, expected_parent, context_root):
+        calls.append((path, expected_bundle, expected_parent, context_root))
         return sentinel
 
     monkeypatch.setattr(
-        library_environment_cache, "install_pinned_library_worker_image", install
+        library_environment_cache, "load_cached_library_worker_image", load
     )
-    adapter = object()
+    monkeypatch.setattr(
+        "carbon.development_session.research_image.verify_library_worker_image",
+        lambda image, cli: image if cli is adapter else None,
+    )
     assert resolver.provision_admitted(selected, parent=parent, cli=adapter) is sentinel
-    assert calls == [
-        (
-            cache_root / "materials" / selected.bundle_digest[7:],
-            cache_root,
-            parent,
-            selected,
-            adapter,
-        )
-    ]
+    assert calls == [(receipt, selected, parent, cache_root)]
     with pytest.raises(ValueError, match="parent differs"):
         monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _: "jax")
         resolver.provision_admitted(selected, parent=parent, cli=adapter)

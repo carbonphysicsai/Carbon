@@ -104,6 +104,48 @@ def test_open_uses_normal_session_and_exposes_only_offered_tools():
     assert "operation_id" not in session.tools[0]["parameters"]["properties"]
     assert all(tool["strict"] is True for tool in session.tools)
 
+
+def test_offered_material_tool_uses_normal_direct_call_with_bounded_fields():
+    calls = []
+
+    def invoke(action, value):
+        if action == "open":
+            state = opened(intake=False)
+            state["tools"].append(
+                {
+                    "name": DIRECT_PREFIX + "stage_research_material",
+                    "description": "Stage one pinned material chunk",
+                    "input_schema": {"type": "object"},
+                }
+            )
+            return state
+        calls.append((action, value))
+        return {"ok": True, "result": direct_result(value)}
+
+    session = DirectToolSession.open(invoke, campaign_identity=CAMPAIGN_A)
+    name = DIRECT_PREFIX + "stage_research_material"
+    tool = next(item for item in session.tools if item["name"] == name)
+    assert set(tool["parameters"]["properties"]) == {
+        "bundle_digest",
+        "name",
+        "offset",
+        "total_bytes",
+        "content_digest",
+        "chunk_base64",
+    }
+    args = {
+        "bundle_digest": "sha256:" + "a" * 64,
+        "name": "source.tar.gz",
+        "offset": 0,
+        "total_bytes": 1,
+        "content_digest": "sha256:" + "b" * 64,
+        "chunk_base64": "eA==",
+    }
+    result = asyncio.run(session.call(name, args, "epoch-1-direct-tool-910"))
+    assert result["ok"] is True
+    assert calls[0][0] == "call" and calls[0][1]["tool"] == name
+    assert all(calls[0][1]["arguments"][key] == value for key, value in args.items())
+
     result = asyncio.run(
         session.call(
             DIRECT_PREFIX + "get_challenge_info", {}, "epoch-1-direct-tool-000"
@@ -892,7 +934,9 @@ def test_finite_direct_campaign_prepares_then_calls_existing_loop(
         arguments = (
             {"recipe_json": '{"source":{"kind":"graph"}}'}
             if name.endswith("start_research_task")
-            else {"task_id": TASK_ID} if name.endswith("get_research_result") else {}
+            else {"task_id": TASK_ID}
+            if name.endswith("get_research_result")
+            else {}
         )
         return {
             "model": request["model"],

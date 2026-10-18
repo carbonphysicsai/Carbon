@@ -126,6 +126,21 @@ class DirectRecipeIntake(BatteryIntake):
                     "path": SUBMIT_PATH,
                     "owner": "authenticated_hotkey",
                 },
+                **(
+                    {
+                        "material_staging": {
+                            "tool": RESEARCH_NAMESPACE,
+                            "operation": "stage_research_material",
+                            "request_schema": "direct_stage_material_request_v1",
+                            "reply_schema": SOURCE_REPLY_SCHEMA,
+                            "path": SUBMIT_PATH,
+                            "owner": "authenticated_hotkey",
+                        }
+                    }
+                    if "stage_research_material"
+                    in self.adapter.discovery.manifest.supported_operations
+                    else {}
+                ),
                 "served_contracts": self.door.served_contracts(),
                 "limits": {
                     "max_body": MAX_BODY,
@@ -229,7 +244,7 @@ class DirectRecipeIntake(BatteryIntake):
         except (ValueError, TypeError):
             return _refused(400, "source_staging_fields")
         if (
-            call.operation != "stage_research_source"
+            call.operation not in {"stage_research_source", "stage_research_material"}
             or call.request.challenge_key != self.challenge
         ):
             return _refused(400, "source_staging_context")

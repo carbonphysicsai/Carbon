@@ -142,6 +142,7 @@ DIRECT_RECIPE_TASK_OPERATIONS = DIRECT_RECIPE_OPERATIONS + (
 )
 DIRECT_RECIPE_SOURCE_TASK_OPERATIONS = DIRECT_RECIPE_OPERATIONS + (
     "stage_research_source",
+    "stage_research_material",
     ResearchOperation.START_RESEARCH_TASK.value,
     ResearchOperation.GET_RESEARCH_RESULT.value,
     ResearchOperation.CANCEL_RESEARCH_TASK.value,
@@ -710,6 +711,45 @@ def _validate_semantics(value: _ExactRecord) -> None:
     elif type(value) is DirectStageSourceResultV1:
         if not is_sha256_digest(value.content_digest):
             raise ValueError("staged source digest is invalid")
+    elif type(value) is DirectStageMaterialRequestV1:
+        from carbon.development_session import library_bundles
+
+        bounds = {
+            "bundle.json": 65536,
+            "source.tar.gz": library_bundles.MAX_SOURCE_BYTES,
+            "requirements.txt": library_bundles.MAX_LOCK_BYTES,
+            "LICENSE": library_bundles.MAX_LICENSE_BYTES,
+        }
+        if value.name.endswith(".whl") and len(value.name) <= 200:
+            bounds[value.name] = library_bundles.MAX_WHEEL_BYTES
+        if (
+            value.name not in bounds
+            or "/" in value.name
+            or "\\" in value.name
+            or not is_sha256_digest(value.bundle_digest)
+            or not is_sha256_digest(value.content_digest)
+            or not 0 <= value.total_bytes <= bounds[value.name]
+            or (
+                value.total_bytes == 0
+                and value.name not in {"requirements.txt", "LICENSE"}
+            )
+            or type(value.chunk) is not bytes
+            or (
+                (value.offset != 0 or value.chunk != b"")
+                if value.total_bytes == 0
+                else (
+                    not 0 <= value.offset < value.total_bytes
+                    or not 0 < len(value.chunk) <= 24576
+                    or value.offset + len(value.chunk) > value.total_bytes
+                )
+            )
+        ):
+            raise BoundExceededField("bounded pinned material chunk required")
+        if value.name == "bundle.json" and value.content_digest != value.bundle_digest:
+            raise ReferenceMismatchField("bundle manifest digest differs")
+    elif type(value) is DirectStageMaterialResultV1:
+        if not is_sha256_digest(value.content_digest):
+            raise ValueError("staged material digest is invalid")
     elif type(value) is DirectStartTaskRequestV3:
         from carbon.development_session.construction_recipe import ConstructionRecipe
 
@@ -1427,6 +1467,28 @@ class DirectStageSourceResultV1(_ExactRecord):
     complete: bool
 
 
+@wire_record("direct_stage_material_request_v1")
+class DirectStageMaterialRequestV1(_ExactRecord):
+    """One signed bounded chunk of pinned construction material."""
+
+    challenge_key: ChallengeKey
+    bundle_digest: str
+    name: str
+    offset: UInt64
+    total_bytes: UInt64
+    content_digest: str
+    chunk: bytes
+
+
+@wire_record("direct_stage_material_result_v1")
+class DirectStageMaterialResultV1(_ExactRecord):
+    name: str
+    received_bytes: UInt64
+    content_digest: str
+    complete: bool
+    bundle_complete: bool
+
+
 @wire_record("direct_task_bindings_v3")
 class DirectTaskBindingsV3(_ExactRecord):
     challenge_key: ChallengeKey
@@ -1819,6 +1881,7 @@ Request: TypeAlias = (
     | StartResearchTaskRequest
     | DirectStartTaskRequestV3
     | DirectStageSourceRequestV1
+    | DirectStageMaterialRequestV1
     | DirectGetTaskRequestV3
     | DirectCancelTaskRequestV3
     | GetResearchResultRequest
@@ -1840,6 +1903,7 @@ Result: TypeAlias = (
     | StartResearchTaskResult
     | DirectStartTaskResultV3
     | DirectStageSourceResultV1
+    | DirectStageMaterialResultV1
     | DirectGetTaskResultV3
     | DirectCancelTaskResultV3
     | GetResearchResultResult

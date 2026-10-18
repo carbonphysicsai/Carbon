@@ -1469,6 +1469,7 @@ class DirectResearchMinerTools:
             "get_challenge_info",
             "get_interaction_manifest",
             "stage_research_source",
+            "stage_research_material",
             "start_research_task",
             "get_research_result",
             "cancel_research_task",
@@ -1526,6 +1527,16 @@ class DirectResearchMinerTools:
                 args["expected_digest"],
                 base64.b64decode(args["chunk_base64"], validate=True),
             )
+        if operation == "stage_research_material":
+            return research.DirectStageMaterialRequestV1(
+                key,
+                args["bundle_digest"],
+                args["name"],
+                args["offset"],
+                args["total_bytes"],
+                args["content_digest"],
+                base64.b64decode(args["chunk_base64"], validate=True),
+            )
         if operation == "start_research_task":
             info, manifest = self.composition.tasks.discovery._checked(key)
             material = self.composition.tasks.discovery._material
@@ -1573,12 +1584,23 @@ class DirectResearchMinerTools:
             }
             if operation == "stage_research_source"
             else (
-                {"recipe"}
-                if operation == "start_research_task"
+                {
+                    "bundle_digest",
+                    "name",
+                    "offset",
+                    "total_bytes",
+                    "content_digest",
+                    "chunk_base64",
+                }
+                if operation == "stage_research_material"
                 else (
-                    {"task_id"}
-                    if operation in {"get_research_result", "cancel_research_task"}
-                    else set()
+                    {"recipe"}
+                    if operation == "start_research_task"
+                    else (
+                        {"task_id"}
+                        if operation in {"get_research_result", "cancel_research_task"}
+                        else set()
+                    )
                 )
             )
         )
