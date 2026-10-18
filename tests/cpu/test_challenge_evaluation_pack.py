@@ -162,7 +162,11 @@ def test_role_read_is_exact_byte_verified_and_infra_typed():
 
 
 def test_existing_hidden_batch_is_bound_without_copying_database():
-    document = {"schema": "test", "cases": [{"case_id": "sealed-1"}]}
+    document = {
+        "schema": "test",
+        "challenge": {"id": "test-challenge", "version": "1.0"},
+        "cases": [{"case_id": "sealed-1"}],
+    }
     references = {"sealed-1": {"status": "OK", "value": 3}}
     fingerprint = document_digest(document)
     ref_digest = references_digest(references)
@@ -201,6 +205,16 @@ def test_existing_hidden_batch_is_bound_without_copying_database():
 
     with pytest.raises(EvaluationPackUnavailable) as raised:
         snapshot.resolve_hidden_batch(ChangedStore())
+    assert raised.value.code == "evaluation_pack.bank_changed"
+
+    other = {**document, "challenge": {"id": "other", "version": "1.0"}}
+
+    class CrossChallengeStore(Store):
+        def batch(self, selected):
+            return {**super().batch(selected), "document": other}
+
+    with pytest.raises(EvaluationPackUnavailable) as raised:
+        snapshot.resolve_hidden_batch(CrossChallengeStore())
     assert raised.value.code == "evaluation_pack.bank_changed"
 
 

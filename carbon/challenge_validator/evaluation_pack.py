@@ -231,6 +231,8 @@ class EvaluationPackSnapshot:
             if (
                 batch["state"] != "COMPLETE"
                 or batch["references_digest"] != entry["references_digest"]
+                or batch["document"].get("challenge")
+                != {"id": self.challenge_id, "version": self.challenge_version}
                 or document_digest(batch["document"]) != entry["fingerprint"]
                 or references_digest(references) != entry["references_digest"]
             ):
