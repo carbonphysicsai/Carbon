@@ -142,11 +142,12 @@ class DirectFixtureDiscovery:
     This is discovery for synthetic development, not a qualified Challenge.
     """
 
-    def __init__(self, material, *, task_admission=False):
+    def __init__(self, material, *, task_admission=False, pack_check=None):
         if type(task_admission) is not bool:
             raise TypeError("exact direct task admission selection required")
         self._material = material
         self._task_admission = task_admission
+        self._pack_check = pack_check
         self.info, self.manifest = self._snapshot()
 
     def _snapshot(self):
@@ -236,6 +237,8 @@ class DirectFixtureDiscovery:
             )
         ):
             raise ValueError("direct public material differs from registered fixture")
+        if self._pack_check is not None:
+            self._pack_check(material)
 
         def array_digest(array):
             return digest(

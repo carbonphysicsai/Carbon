@@ -107,6 +107,25 @@ def test_optional_material_capacity_is_exact_private_operator_input(
     assert receiver.load_config(tmp_path / "config.json") == cfg
 
 
+def test_evaluation_pack_selection_is_private_and_closed(tmp_path, monkeypatch):
+    selection = {
+        "root": str(tmp_path / "draft"),
+        "manifest": "evaluation-pack.json",
+        "public_root": str(tmp_path / "public"),
+        "private_root": str(tmp_path / "private"),
+    }
+    cfg = {**_config(tmp_path), "evaluation_pack": selection}
+    monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
+    assert receiver.load_config(tmp_path / "config.json") == cfg
+    selection["manifest"] = "../other.json"
+    with pytest.raises(ValueError, match="relative evaluation pack manifest"):
+        receiver.load_config(tmp_path / "config.json")
+    selection["manifest"] = "evaluation-pack.json"
+    selection["private_root"] = "relative"
+    with pytest.raises(ValueError, match="exact evaluation pack root"):
+        receiver.load_config(tmp_path / "config.json")
+
+
 def test_private_construction_image_manifest_requires_exact_regular_file(
     tmp_path, monkeypatch
 ):

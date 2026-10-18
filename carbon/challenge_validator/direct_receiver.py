@@ -35,7 +35,11 @@ _FIELDS = {
     "lifetime_seconds",
     "measure_query",
 }
-_OPTIONAL_FIELDS = {"material_cache_bytes", "construction_image_manifest"}
+_OPTIONAL_FIELDS = {
+    "material_cache_bytes",
+    "construction_image_manifest",
+    "evaluation_pack",
+}
 
 
 class ReceiverUnavailable(RuntimeError):
@@ -88,6 +92,32 @@ def load_config(path: Path) -> dict:
             or selected.resolve() != selected
         ):
             raise ValueError("exact construction image manifest required")
+    if "evaluation_pack" in value:
+        selected = value["evaluation_pack"]
+        if type(selected) is not dict or set(selected) != {
+            "root",
+            "manifest",
+            "public_root",
+            "private_root",
+        }:
+            raise ValueError("exact evaluation pack selection required")
+        for name in ("root", "public_root", "private_root"):
+            path = selected[name]
+            if (
+                type(path) is not str
+                or not Path(path).is_absolute()
+                or Path(path).resolve() != Path(path)
+            ):
+                raise ValueError("exact evaluation pack root required")
+        manifest = selected["manifest"]
+        if (
+            type(manifest) is not str
+            or not manifest
+            or "\\" in manifest
+            or ":" in manifest
+            or any(part in {"", ".", ".."} for part in manifest.split("/"))
+        ):
+            raise ValueError("relative evaluation pack manifest required")
     return value
 
 
@@ -98,6 +128,101 @@ def _private_directory(path: Path) -> Path:
     if not path.is_dir() or path.stat().st_mode & 0o077:
         raise ValueError("owner-only operator directory required")
     return path
+
+
+def _pack_check(root, relative_path, digest, public_root, private_root, challenge):
+    """Bind an opted-in pack to registered construction bytes at every use."""
+    from carbon.challenge_validator.evaluation_pack import (
+        EvaluationPackUnavailable,
+        load_pack,
+    )
+
+    def checked(material):
+        snapshot = load_pack(
+            root,
+            relative_path,
+            expected_digest=digest,
+            challenge_id=challenge.challenge_id,
+            challenge_version=challenge.version,
+        )
+        snapshot.verify_available(public_root, private_root)
+        expected = {
+            "construction_kit": material["construction_kit"],
+            "interface": material["interface_document"],
+            "physics_contract": material["physics_contract"],
+        }
+        for role, document in expected.items():
+            payload = snapshot.read_role(public_root, "public", role, max_bytes=65536)
+
+            def unique(pairs):
+                value = {}
+                for key, item in pairs:
+                    if key in value:
+                        raise EvaluationPackUnavailable("evaluation_pack.duplicate_key")
+                    value[key] = item
+                return value
+
+            def nonfinite(_value):
+                raise EvaluationPackUnavailable("evaluation_pack.nonfinite")
+
+            try:
+                observed = json.loads(
+                    payload.decode("utf-8"),
+                    object_pairs_hook=unique,
+                    parse_constant=nonfinite,
+                )
+            except (UnicodeError, json.JSONDecodeError) as exc:
+                raise EvaluationPackUnavailable(
+                    "evaluation_pack.construction_document"
+                ) from exc
+            if canonical(observed) != canonical(document):
+                raise EvaluationPackUnavailable("evaluation_pack.construction_mismatch")
+        if (
+            snapshot.read_role(
+                public_root, "public", "train", max_bytes=16 * 1024 * 1024
+            )
+            != material["train"]
+        ):
+            raise EvaluationPackUnavailable("evaluation_pack.train_mismatch")
+
+    return checked
+
+
+def _sealed_pack(root, selection, challenge):
+    """Prepare once; a restart reloads its retained bytes, never the draft."""
+    from carbon.challenge_validator.evaluation_pack import load_pack, prepare_pack
+
+    public_root = Path(selection["public_root"])
+    private_root = Path(selection["private_root"])
+    pack_root = _private_directory(root / "evaluation-packs")
+    binding_path = root / "receiver-binding.json"
+    if binding_path.is_symlink():
+        raise ValueError("receiver binding link refused")
+    retained = private_json(binding_path) if binding_path.exists() else None
+    if retained is not None and "evaluation_pack_digest" in retained:
+        digest = retained["evaluation_pack_digest"]
+    else:
+        prepared = prepare_pack(
+            Path(selection["root"]),
+            selection["manifest"],
+            public_root=public_root,
+            private_root=private_root,
+            challenge_id=challenge.challenge_id,
+            challenge_version=challenge.version,
+        )
+        digest = prepared.snapshot.manifest_digest
+        write_once(pack_root / (digest[7:] + ".json"), prepared.sealed_bytes)
+    relative_path = digest[7:] + ".json"
+    load_pack(
+        pack_root,
+        relative_path,
+        expected_digest=digest,
+        challenge_id=challenge.challenge_id,
+        challenge_version=challenge.version,
+    )
+    return digest, _pack_check(
+        pack_root, relative_path, digest, public_root, private_root, challenge
+    )
 
 
 class ReceiverSnapshotWindow:
@@ -332,11 +457,13 @@ class OwnerProviders:
         snapshot=None,
         window=None,
         receiver=None,
+        evaluation_pack_digest=None,
     ):
         self.root, self.discovery = root, discovery
         self.parent, self.cache_root = parent, cache_root
         self.inference_image = parent if inference_image is None else inference_image
         self.material_cache_bytes = material_cache_bytes
+        self.evaluation_pack_digest = evaluation_pack_digest
         self.implementation, self.snapshot, self.window, self.receiver = (
             implementation,
             snapshot,
@@ -414,6 +541,8 @@ class OwnerProviders:
             binding["inference_image"] = self.inference_image.image_id
         if self.material_cache_bytes is not None:
             binding["material_cache_bytes"] = self.material_cache_bytes
+        if self.evaluation_pack_digest is not None:
+            binding["evaluation_pack_digest"] = self.evaluation_pack_digest
         candidate = {
             "schema": PRODUCT,
             "authority": AUTHORITY,
@@ -644,24 +773,36 @@ def serve(
     ):
         raise ValueError("registered receiver snapshot required")
     root = _private_directory(Path(cfg["root"]))
-    discovery = DirectFixtureDiscovery(bundle_material_v5(), task_admission=True)
-    immutable = {
-        "schema": SCHEMA,
-        "implementation": implementation,
-        "parent": asdict(parent),
-        "context": asdict(network.context),
-        "receiver_hotkey": cfg["receiver_hotkey"],
-        "challenge": {
-            "id": discovery.info.challenge_key.challenge_id,
-            "version": discovery.info.challenge_key.version,
-        },
-        "measure_query": cfg["measure_query"],
-    }
-    if inference_image != parent:
-        immutable["inference_image"] = asdict(inference_image)
-    if "material_cache_bytes" in cfg:
-        immutable["material_cache_bytes"] = cfg["material_cache_bytes"]
+    material = bundle_material_v5()
+    challenge = material["challenge_key"]
     with owner_lock(root):
+        pack_check = None
+        pack_digest = None
+        if "evaluation_pack" in cfg:
+            pack_digest, pack_check = _sealed_pack(
+                root, cfg["evaluation_pack"], challenge
+            )
+        discovery = DirectFixtureDiscovery(
+            material, task_admission=True, pack_check=pack_check
+        )
+        immutable = {
+            "schema": SCHEMA,
+            "implementation": implementation,
+            "parent": asdict(parent),
+            "context": asdict(network.context),
+            "receiver_hotkey": cfg["receiver_hotkey"],
+            "challenge": {
+                "id": challenge.challenge_id,
+                "version": challenge.version,
+            },
+            "measure_query": cfg["measure_query"],
+        }
+        if inference_image != parent:
+            immutable["inference_image"] = asdict(inference_image)
+        if "material_cache_bytes" in cfg:
+            immutable["material_cache_bytes"] = cfg["material_cache_bytes"]
+        if pack_digest is not None:
+            immutable["evaluation_pack_digest"] = pack_digest
         write_once(root / "receiver-binding.json", canonical(immutable))
         window = ReceiverSnapshotWindow(root, network.context, cfg["receiver_hotkey"])
         window.add(snapshot)
@@ -676,6 +817,7 @@ def serve(
             snapshot=snapshot,
             window=window,
             receiver=cfg["receiver_hotkey"],
+            evaluation_pack_digest=pack_digest,
         )
         timer = threading.Timer(cfg["lifetime_seconds"], stop.set)
         timer.daemon = True
