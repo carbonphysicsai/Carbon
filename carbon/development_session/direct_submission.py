@@ -357,12 +357,20 @@ def submit_and_wait(
     else:
         admission_deadline = clock() + min(WAIT_S, max(30.0, wait_s))
 
+        admission_attempts = 0
+
         def admit():
+            nonlocal admission_attempts
+            admission_attempts += 1
             facts = (
                 read(url, timeout=min(10.0, admission_deadline - clock()))
                 if read is read_intake
                 else read(url)
             )
+            if admission_attempts > 1:
+                if admission_deadline - clock() <= 1.05:
+                    raise DirectIntakeRateLimit()
+                sleep(1.05)
             body = _body(
                 facts,
                 recipe=recipe,
@@ -428,13 +436,20 @@ def submit_and_wait(
         raise DirectIntakeRefusal("construction_task_queued")
     deadline = clock() + wait_s
     while True:
+        observation_attempts = 0
 
         def observe():
+            nonlocal observation_attempts
+            observation_attempts += 1
             facts = (
                 read(url, timeout=min(10.0, deadline - clock()))
                 if read is read_intake
                 else read(url)
             )
+            if observation_attempts > 1:
+                if deadline - clock() <= 1.05:
+                    raise DirectIntakeRateLimit()
+                sleep(1.05)
             body = _body(
                 facts,
                 recipe=recipe,

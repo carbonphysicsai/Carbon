@@ -518,7 +518,7 @@ def test_rate_retry_preserves_task_and_refreshes_signed_exchange(
         wait_s=10,
     )
     assert result["state"] == "RECONSTRUCTED" and result["task_id"] == "task-1"
-    assert sleeps == [1.0]
+    assert sleeps == [1.0, 1.05]
     assert signed == sent
     assert sent.count(client.SUBMIT_TOOL) == (2 if phase == "admit_send" else 1)
     assert sent.count(client.STATUS_TOOL) == (2 if phase == "status_send" else 1)
@@ -569,8 +569,8 @@ def test_status_rate_deadline_or_auth_refusal_keeps_original_admission(
             wait_s=2,
         )
     assert sent.count(client.SUBMIT_TOOL) == 1
-    assert sent.count(client.STATUS_TOOL) == (2 if code == "rate" else 1)
-    assert sleeps == ([1.0, 1.0] if code == "rate" else [])
+    assert sent.count(client.STATUS_TOOL) == 1
+    assert sleeps == ([1.0] if code == "rate" else [])
     assert (
         json.loads((tmp_path / "construction-intake-epoch-1.json").read_bytes())[
             "submission_id"
@@ -701,3 +701,63 @@ def test_ambiguous_send_failure_never_replays_submission(tmp_path, monkeypatch, 
         )
     assert sent == [client.SUBMIT_TOOL]
     assert not (tmp_path / "construction-intake-epoch-1.json").exists()
+
+
+def test_one_token_per_second_receiver_does_not_starve_post_after_retry(
+    tmp_path, monkeypatch
+):
+    now, tokens, updated = [0.0], [1.0], [0.0]
+    accepted = []
+
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+
+    def allow():
+        tokens[0] = min(1.0, tokens[0] + now[0] - updated[0])
+        updated[0] = now[0]
+        if tokens[0] < 1:
+            return False
+        tokens[0] -= 1
+        return True
+
+    def read(url):
+        if not allow():
+            raise client.DirectIntakeRateLimit()
+        return _facts()
+
+    def send(url, body, headers):
+        if not allow():
+            return 429, {"refused": "rate"}
+        tool = json.loads(body)["tool"]
+        accepted.append(tool)
+        return (202 if tool == client.SUBMIT_TOOL else 200), _answer(
+            "ADMITTED" if tool == client.SUBMIT_TOOL else "RECONSTRUCTED"
+        )
+
+    def sleep(seconds):
+        now[0] += seconds
+
+    result = client.submit_and_wait(
+        _URL,
+        "external-signer",
+        root=tmp_path,
+        epoch=1,
+        recipe=_recipe(),
+        contract_digest=_CONTRACT,
+        receiver=_RECEIVER,
+        context=_CONTEXT,
+        read=read,
+        send=send,
+        clock=lambda: now[0],
+        sleep=sleep,
+        wait_s=10,
+    )
+    assert result["state"] == "RECONSTRUCTED"
+    assert accepted == [client.SUBMIT_TOOL, client.STATUS_TOOL]
+    assert now[0] < 10
