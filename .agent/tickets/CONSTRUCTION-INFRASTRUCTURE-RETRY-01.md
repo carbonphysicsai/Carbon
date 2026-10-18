@@ -54,6 +54,12 @@ Client retry uses a distinct retained attempt journal keyed by the same local
 epoch plus the actual predecessor identity; the ordinary journal filename stays
 unchanged. It records the predecessor
 binding before observation and polls only the admitted child after admission.
+Each actual ordinary/retry HTTP transmission uses a fresh signed transport
+request ID. Durable candidate/attempt keys remain unchanged, so an admission
+response lost before journal creation can be recovered by an explicit new call
+without replaying a gateway receipt or creating duplicate tasks. Network errors
+still propagate; this adds no automatic ambiguous-request retry.
+
 It never silently turns polling into another attempt, mutates the recipe, resets
 a database or blindly resubmits. Existing rate pacing/deadlines still apply.
 

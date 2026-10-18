@@ -64,6 +64,7 @@ from carbon.research.records import (
     ResearchRetentionScope,
     RetentionReuseBinding,
 )
+from carbon.research.refs import ResearchTaskId
 
 from .construction_recipe import ConstructionRecipe
 from .profile import canonical, digest
@@ -75,6 +76,8 @@ from .research_carrier import (
     run_script,
 )
 from .research_workspace import ResearchWorkspace, request_capability
+
+DIRECT_RETRY_KEY_PREFIX = "lean-recipe-retry-"
 
 
 class PublicDevelopmentResearchTasks(DurableResearchTaskProvider):
@@ -881,6 +884,154 @@ class DirectDevelopmentTasksV3:
         if measure_query:
             self._measured_tasks.add(view.task_id.value)
 
+    def retry_research_task(
+        self, request, *, predecessor_id: ResearchTaskId, measure_query=False
+    ):
+        """Create one normal child of this owner's failed infrastructure task.
+
+        The failed task stays terminal. Its derived request key gives repeated
+        explicit retries one durable child through normal start idempotency.
+        """
+        if (
+            type(request) is not DirectStartTaskRequestV3
+            or type(predecessor_id) is not ResearchTaskId
+            or type(measure_query) is not bool
+        ):
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.REQUEST_TYPE_INVALID
+            )
+        with self._lock:
+            try:
+                predecessor_id = ResearchTaskId(predecessor_id.value)
+                request = load_canonical(
+                    canonical_bytes(request), DirectStartTaskRequestV3
+                )
+            except (AttributeError, TypeError, ValueError):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.REQUEST_TYPE_INVALID
+                ) from None
+            if (
+                request.idempotency_key
+                != DIRECT_RETRY_KEY_PREFIX + predecessor_id.value
+            ):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
+                )
+            return self.start_research_task(request, measure_query=measure_query)
+
+    def _check_retry_predecessors(self, request, predecessor_id, measure_query):
+        """Check retained lineage without restarting or changing any ancestor."""
+        from dataclasses import replace
+
+        seen = set()
+        child_request = request
+        while True:
+            if predecessor_id.value in seen:
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.REFERENCE_MISMATCH
+                )
+            seen.add(predecessor_id.value)
+            previous = self._requests.get(predecessor_id.value)
+            view = self._views.get(predecessor_id.value)
+            if previous is None or view is None:
+                raise ResearchTaskProviderError(ResearchServiceErrorCode.TASK_NOT_FOUND)
+            try:
+                previous = load_canonical(
+                    canonical_bytes(previous), DirectStartTaskRequestV3
+                )
+                view = load_canonical(canonical_bytes(view), DirectTaskViewV3)
+                expected = replace(
+                    child_request, idempotency_key=previous.idempotency_key
+                )
+                if (
+                    view.task_id != predecessor_id
+                    or self._task_id(previous) != predecessor_id
+                    or self._idempotency.get(previous.idempotency_key)
+                    != predecessor_id.value
+                    or canonical_bytes(expected) != canonical_bytes(previous)
+                    or self._bindings(previous) != view.immutable_bindings
+                    or self._bindings(request) != view.immutable_bindings
+                    or (predecessor_id.value in self._measured_tasks) != measure_query
+                    or self.evaluation_pack_digest
+                    != getattr(self.discovery, "evaluation_pack_digest", None)
+                ):
+                    raise ValueError("retained retry binding differs")
+            except (AttributeError, TypeError, ValueError):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.REFERENCE_MISMATCH
+                ) from None
+            receipt = view.terminal_receipt
+            if (
+                view.state is not DirectTaskStateV3.FAILED_INFRA
+                or type(receipt) is not DirectTaskReceiptV3
+                or receipt.terminal_state is not DirectTaskStateV3.FAILED_INFRA
+                or type(receipt.infrastructure_failure_class)
+                is not InfrastructureFailureClass
+            ):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.INVALID_TASK_TRANSITION
+                )
+            if (
+                receipt.task_id != predecessor_id
+                or receipt.immutable_bindings != view.immutable_bindings
+            ):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.REFERENCE_MISMATCH
+                )
+            if self.requires_reconciliation(predecessor_id) or any(
+                self.ledger.operation_state(child, owner=self.owner)
+                not in (None, "SUCCEEDED", "FAILED_INFRA", "FAILED_MINER", "CANCELLED")
+                for child in self._all_children(predecessor_id)
+            ):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.INVALID_TASK_TRANSITION
+                )
+            if not previous.idempotency_key.startswith(DIRECT_RETRY_KEY_PREFIX):
+                return
+            child_request = previous
+            try:
+                predecessor_id = ResearchTaskId(
+                    previous.idempotency_key[len(DIRECT_RETRY_KEY_PREFIX) :]
+                )
+            except (TypeError, ValueError):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.REFERENCE_MISMATCH
+                ) from None
+
+    @staticmethod
+    def _check_retry_uv_cleanup():
+        """A settled main child does not prove the auxiliary UV copy is gone.
+
+        This shared-host observation only guards fresh bundle retries. It does
+        not remove helpers or attest production security, and daemon uncertainty
+        cannot be interpreted as an empty result.
+        """
+        from carbon.reconstruction.worker.docker_runtime import DockerCLI
+
+        try:
+            observed = DockerCLI().run(
+                [
+                    "ps",
+                    "-aq",
+                    "--filter",
+                    "label=org.carbonphysicsai.overlay-uv-intent",
+                ],
+                timeout=10,
+            )
+        except (OSError, WorkerFailure):
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.INFRASTRUCTURE_FAILURE
+            ) from None
+        stdout = getattr(observed, "stdout", None)
+        if type(stdout) is not bytes:
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.INFRASTRUCTURE_FAILURE
+            )
+        if stdout.strip():
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.INVALID_TASK_TRANSITION
+            )
+
     def start_research_task(self, request, *, measure_query=False):
         from carbon.research.refs import ResearchTaskId
 
@@ -889,11 +1040,26 @@ class DirectDevelopmentTasksV3:
         if (
             type(request) is not DirectStartTaskRequestV3
             or type(measure_query) is not bool
+            or type(request.idempotency_key) is not str
         ):
             raise ResearchTaskProviderError(
                 ResearchServiceErrorCode.REQUEST_TYPE_INVALID
             )
         with self._lock:
+            retry = request.idempotency_key.startswith(DIRECT_RETRY_KEY_PREFIX)
+            if retry:
+                try:
+                    request = load_canonical(
+                        canonical_bytes(request), DirectStartTaskRequestV3
+                    )
+                    predecessor_id = ResearchTaskId(
+                        request.idempotency_key[len(DIRECT_RETRY_KEY_PREFIX) :]
+                    )
+                except (AttributeError, TypeError, ValueError):
+                    raise ResearchTaskProviderError(
+                        ResearchServiceErrorCode.REQUEST_TYPE_INVALID
+                    ) from None
+                self._check_retry_predecessors(request, predecessor_id, measure_query)
             bindings = self._bindings(request)
             if measure_query:
                 outputs = self.discovery._material.get("interface_document", {}).get(
@@ -919,6 +1085,8 @@ class DirectDevelopmentTasksV3:
                 return DirectStartTaskResultV3(False, self._views[prior])
             if len(self._views) >= 256:
                 raise ResearchTaskProviderError(ResearchServiceErrorCode.BOUND_EXCEEDED)
+            if retry and request.recipe["source"]["kind"] == "bundle":
+                self._check_retry_uv_cleanup()
             try:
                 self._verify_images()
                 staged_source = (
