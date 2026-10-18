@@ -1688,12 +1688,12 @@ async def attached_remote_material_stage(configuration: Path, *, challenge):
     with _check("runner_profile_unusable"):
         target = validate([cfg["direct_intake_target"]])[0]
     with owner_lock(state):
-        connection_args = dict(
-            root=state / "research-auth",
-            chain_context=network.context,
-            publisher=network.publisher_hotkey,
-            miner_key=signer,
-        )
+        connection_args = {
+            "root": state / "research-auth",
+            "chain_context": network.context,
+            "publisher": network.publisher_hotkey,
+            "miner_key": signer,
+        }
         connection = (
             DirectDevelopmentConnection(version="1.3", **connection_args)
             if synthetic
