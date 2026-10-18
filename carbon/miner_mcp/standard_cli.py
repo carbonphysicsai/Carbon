@@ -1588,10 +1588,48 @@ async def serve_installed_direct_development(configuration: Path, *, version="1.
         await create_direct_stdio_server(adapter).run_async()
 
 
+class _RemoteBatteryConnection:
+    """Signed Battery upload ingress; no local research or worker service."""
+
+    def __init__(self, *, root, chain_context, publisher, miner_key, challenge):
+        from types import SimpleNamespace
+
+        from carbon.chain.models import CARBON_NETWORK
+        from carbon.development_session.service import authenticated_research_gateway
+
+        if (
+            not root.is_absolute()
+            or root.is_symlink()
+            or chain_context.netuid != CARBON_NETUID
+            or chain_context.network != CARBON_NETWORK
+            or miner_key.ss58_address == publisher
+        ):
+            raise ValueError("exact Battery DEVELOPMENT network connection required")
+        root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        root.chmod(0o700)
+        self.chain_context = chain_context
+        self.publisher = publisher
+        self.miner_key = miner_key
+        self.challenge = challenge
+        _, self.observed, gateway = authenticated_research_gateway(
+            root, chain_context, publisher, challenge
+        )
+        self.service = SimpleNamespace(gateway=gateway)
+
+    async def check_registration(self):
+        from carbon.development_session.service import registered_research_snapshot
+
+        return await registered_research_snapshot(
+            self.chain_context, self.miner_key, self.publisher, self.observed
+        )
+
+
 @contextlib.asynccontextmanager
-async def attached_remote_material_stage(configuration: Path):
+async def attached_remote_material_stage(configuration: Path, *, challenge):
     """Authenticate a signed upload without requiring local execution images."""
+    from carbon.battery.challenge import CHALLENGE as BATTERY_CHALLENGE
     from carbon.chain.external_signer import miner_signer
+    from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
     from carbon.development_session.direct_research_composition import (
         DirectDevelopmentConnection,
     )
@@ -1601,7 +1639,16 @@ async def attached_remote_material_stage(configuration: Path):
     from scripts.dev.miner_launchpad.controller import owner_lock
     from scripts.dev.miner_launchpad.runner import validated_profile
 
-    _direct_material("1.3")
+    synthetic = bundle_material_v5()["challenge_key"]
+    if challenge == synthetic:
+        _direct_material("1.3")
+        state_name = "remote-stage-v1.3"
+    elif challenge == BATTERY_CHALLENGE:
+        state_name = "remote-stage-battery-v1.0"
+    else:
+        raise AttachRefused(
+            "construction_recipe_challenge_mismatch", "unregistered recipe challenge"
+        )
     with _check("runner_profile_unusable"):
         cfg = validated_profile(private_json(configuration))
     if cfg["enabled"] is not True:
@@ -1611,7 +1658,7 @@ async def attached_remote_material_stage(configuration: Path):
     base = Path(cfg["campaigns_root"])
     if not base.is_dir() or base.is_symlink() or base.resolve(strict=True) != base:
         raise AttachRefused("runner_profile_unusable", "private owner root required")
-    state = base / ".direct-development" / "remote-stage-v1.3"
+    state = base / ".direct-development" / state_name
     if any(part.is_symlink() for part in (state.parent, state)):
         raise AttachRefused("runner_profile_unusable", "private direct root differs")
     if state.exists() and not state.is_dir():
@@ -1639,12 +1686,16 @@ async def attached_remote_material_stage(configuration: Path):
     with _check("runner_profile_unusable"):
         target = validate([cfg["direct_intake_target"]])[0]
     with owner_lock(state):
-        connection = DirectDevelopmentConnection(
+        connection_args = dict(
             root=state / "research-auth",
-            version="1.3",
             chain_context=network.context,
             publisher=network.publisher_hotkey,
             miner_key=signer,
+        )
+        connection = (
+            DirectDevelopmentConnection(version="1.3", **connection_args)
+            if challenge == synthetic
+            else _RemoteBatteryConnection(challenge=challenge, **connection_args)
         )
         with _check("registration_check_failed"):
             await _requester(
@@ -1691,16 +1742,23 @@ async def stage_installed_direct_bundle(
         raise AttachRefused(
             "construction_bundle_source_required", "bundle source required"
         )
-    async with attached_remote_material_stage(configuration) as (connection, target):
-        challenge = source["challenge"]
-        if (challenge["id"], challenge["version"]) != (
-            connection.challenge.challenge_id,
-            connection.challenge.version,
-        ):
+    challenge = source["challenge"]
+    contract = registered(challenge["id"], challenge["version"])
+    if challenge != contract.construction_kit:
+        raise AttachRefused(
+            "construction_recipe_challenge_mismatch", "recipe kit differs"
+        )
+    from carbon.registry.model import ChallengeKey
+
+    selected = ChallengeKey(challenge["id"], challenge["version"])
+    async with attached_remote_material_stage(configuration, challenge=selected) as (
+        connection,
+        target,
+    ):
+        if selected != connection.challenge:
             raise AttachRefused(
                 "construction_recipe_challenge_mismatch", "recipe challenge differs"
             )
-        contract = registered(challenge["id"], challenge["version"])
         result = stage_bundle(
             target["intake_url"],
             connection.miner_key,
@@ -1881,7 +1939,8 @@ def main(argv=None):
         default="1.2",
         help=(
             "Installed direct kit version for serving (default 1.2; 1.3 is "
-            "prospective). Cleanup reconciles every retained kit version."
+            "prospective). Bundle staging selects its Challenge from --recipe. "
+            "Cleanup reconciles every retained kit version."
         ),
     )
     parser.add_argument(
@@ -1920,11 +1979,15 @@ def main(argv=None):
     if (args.stage_bundle is None) != (args.recipe is None):
         parser.error("--stage-bundle and --recipe must be supplied together")
     if args.stage_bundle is not None and (
-        not args.direct_development or args.direct_version != "1.3" or args.cleanup_only
+        not args.direct_development or args.cleanup_only
     ):
-        parser.error("bundle staging needs --direct-development --direct-version 1.3")
+        parser.error("bundle staging needs --direct-development")
     try:
-        if args.direct_development and args.direct_version not in DIRECT_KIT_VERSIONS:
+        if (
+            args.direct_development
+            and args.stage_bundle is None
+            and args.direct_version not in DIRECT_KIT_VERSIONS
+        ):
             raise AttachRefused(
                 "direct_development_kit_unavailable", "unknown direct kit"
             )
