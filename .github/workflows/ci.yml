@@ -411,12 +411,22 @@ jobs:
             --root "${GITHUB_WORKSPACE}/.carbon-artifacts/research-images" \
             > "${RUNNER_TEMP}/analysis-image-build.json"
           analysis_manifest="$(.venv/bin/python -c 'import json,sys; print(json.load(open(sys.argv[1]))["manifest"])' "${RUNNER_TEMP}/analysis-image-build.json")"
-          .venv/bin/python -m scripts.dev.development_image_artifact export \
-            --bundle-dir "${RUNNER_TEMP}/development-worker-images-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
-            --c03-manifest "${c03_manifest}" --analysis-manifest "${analysis_manifest}" \
-            --revision "${revision}" --tree "${tree}" \
-            --source-tree-digest "${source_tree_digest}" \
-            > "${RUNNER_TEMP}/development-image-export.json"
+          # Service acceptance may leave ignored build/test output in this checkout.
+          # Export from a fresh worktree of the same exact commit; keep the strict
+          # source-cleanliness gate instead of allowing generated source paths.
+          clean_source="${RUNNER_TEMP}/development-source-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git worktree add --detach "${clean_source}" "${revision}"
+          (
+            cd "${clean_source}"
+            export PYTHONPATH="${clean_source}"
+            "${GITHUB_WORKSPACE}/.venv/bin/python" -c 'from pathlib import Path; import scripts.dev.development_image_artifact as exporter; assert Path(exporter.__file__).resolve() == Path.cwd() / "scripts/dev/development_image_artifact.py"'
+            "${GITHUB_WORKSPACE}/.venv/bin/python" -m scripts.dev.development_image_artifact export \
+              --bundle-dir "${RUNNER_TEMP}/development-worker-images-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+              --c03-manifest "${c03_manifest}" --analysis-manifest "${analysis_manifest}" \
+              --revision "${revision}" --tree "${tree}" \
+              --source-tree-digest "${source_tree_digest}" \
+              > "${RUNNER_TEMP}/development-image-export.json"
+          )
           .venv/bin/python - <<'PY'
           import json
           import os
