@@ -276,7 +276,13 @@ def _promote(provider, cache_root: Path, root: Path, bundle: str, limit: int) ->
         selected = bundle_ref(*load_pinned_bundle_directory(temporary))
         if selected.bundle_digest != bundle:
             raise ResearchTaskProviderError(ResearchServiceErrorCode.REFERENCE_MISMATCH)
-        if _cache_bytes(cache_root) > limit:
+        # stage_pinned_bundle_material first writes an independent complete
+        # copy, then atomically renames it. Reserve that physical peak while
+        # the owner upload and hard-linked assembly still exist.
+        stored_manifest_bytes = len(json.dumps(manifest, sort_keys=True).encode())
+        uploaded_manifest_bytes = manifest_path.stat().st_size
+        copy_bytes = closure_bytes - uploaded_manifest_bytes + stored_manifest_bytes
+        if _cache_bytes(cache_root) + copy_bytes > limit:
             raise ResearchTaskProviderError(ResearchServiceErrorCode.BOUND_EXCEEDED)
         if shutil.disk_usage(cache_root).free < closure_bytes + 16 * 1024**2:
             raise ResearchTaskProviderError(

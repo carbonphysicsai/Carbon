@@ -293,3 +293,28 @@ def test_finalized_replay_rejects_same_size_tail_corruption(tmp_path):
     with pytest.raises(research.ResearchTaskProviderError) as final:
         stage_material(provider, _request(ref.bundle_digest, *files[-1]))
     assert final.value.code is research.ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
+
+
+def test_promotion_reserves_full_independent_copy_peak(tmp_path):
+    from carbon.development_session.direct_material_staging import _cache_bytes
+
+    provider = _provider(tmp_path)
+    ref, files = _files()
+    manifest = fixture()[0]
+    uploaded = sum(len(body) for _, body in files)
+    copied = (
+        uploaded
+        - len(files[-1][1])
+        + len(json.dumps(manifest, sort_keys=True).encode())
+    )
+    provider.image_resolver.material_cache_bytes = uploaded + copied - 1
+    for name, body in files[:-1]:
+        stage_material(provider, _request(ref.bundle_digest, name, body))
+    with pytest.raises(research.ResearchTaskProviderError) as full:
+        stage_material(provider, _request(ref.bundle_digest, *files[-1]))
+    assert full.value.code is research.ResearchServiceErrorCode.BOUND_EXCEEDED
+    assert _cache_bytes(provider.image_resolver.cache_root) <= (
+        provider.image_resolver.material_cache_bytes
+    )
+    with pytest.raises(FileNotFoundError):
+        inspect_staged_bundle_material(provider.image_resolver.cache_root, ref)
