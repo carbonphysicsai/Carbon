@@ -111,6 +111,12 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.full_like.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "A constant fill at the result's own declared dtype and shape (torch.zeros_like/ones_like/full_like)."
+  },
   "aten.gelu.default": {
    "category": "elementwise",
    "default": "allow",
@@ -125,6 +131,12 @@
    "category": "elementwise",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.index.Tensor": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Static int64 index on one dimension only; lowered to slices of consecutive index runs and one concatenate (no gather primitive, so no scatter-add gradient); dynamic or multi-dimensional indices refuse."
   },
   "aten.item.default": {
    "category": "host_or_dynamic",

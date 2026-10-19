@@ -21,7 +21,7 @@ def _prospective():
     return allowlist_module.load(V6)
 
 
-def test_v6_only_adds_static_torch_emitter_and_keeps_graph_scatter_refused():
+def test_v6_only_adds_static_torch_emitters_and_keeps_graph_scatter_refused():
     import hashlib
     import json
 
@@ -34,8 +34,13 @@ def test_v6_only_adds_static_torch_emitter_and_keeps_graph_scatter_refused():
     )
     assert new.pop("version") == "level4-allowlist-v6"
     assert old.pop("version") == "level4-allowlist-v5"
-    admitted = new["aten_core"].pop("aten.scatter_add.default")
-    assert admitted["default"] == "allow" and admitted["lowering"] == "emitted"
+    for added in (
+        "aten.scatter_add.default",
+        "aten.index.Tensor",
+        "aten.full_like.default",
+    ):
+        admitted = new["aten_core"].pop(added)
+        assert admitted["default"] == "allow" and admitted["lowering"] == "emitted"
     assert new == old
     assert new["carbon_ops"]["scatter_add"]["v0_interpreter"] is False
     with pytest.raises(graph.GraphRefused) as refused:
