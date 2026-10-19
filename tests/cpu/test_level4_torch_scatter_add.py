@@ -38,6 +38,12 @@ def test_v6_only_adds_static_torch_emitters_and_keeps_graph_scatter_refused():
         "aten.scatter_add.default",
         "aten.index.Tensor",
         "aten.full_like.default",
+        "aten.constant_pad_nd.default",
+        "aten.view_as_real.default",
+        "aten.clamp.default",
+        "aten.abs.default",
+        "aten.sign.default",
+        "aten.eq.Scalar",
     ):
         admitted = new["aten_core"].pop(added)
         assert admitted["default"] == "allow" and admitted["lowering"] == "emitted"

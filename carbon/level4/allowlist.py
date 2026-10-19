@@ -55,7 +55,7 @@ class Allowlist:
             raise graph.GraphRefused("named_function_not_allowlisted", where)
         if entry["default"] == "refuse":
             raise graph.GraphRefused("named_function_refused", where)
-        if name not in named.kernels():
+        if name not in named.NAMES:
             raise graph.GraphRefused("named_function_not_allowlisted", where)
         if role not in entry["roles"]:
             raise graph.GraphRefused("op_not_allowed_in_role", where)

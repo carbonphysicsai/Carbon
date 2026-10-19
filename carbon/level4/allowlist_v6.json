@@ -40,6 +40,12 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.abs.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's abs (AFNO softshrink)."
+  },
   "aten.add.Tensor": {
    "category": "elementwise",
    "default": "allow",
@@ -76,10 +82,22 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.clamp.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "scalar bounds as selects; gradient passes where low <= x <= high, as torch."
+  },
   "aten.clone.default": {
    "category": "shape",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.constant_pad_nd.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "F.pad with a constant value: Carbon's pad op; negative widths crop."
   },
   "aten.convolution.default": {
    "category": "linear_algebra",
@@ -95,6 +113,12 @@
    "category": "elementwise",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.eq.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison with a scalar, boolean result."
   },
   "aten.exp.default": {
    "category": "elementwise",
@@ -247,6 +271,12 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.sign.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's sign (AFNO softshrink)."
+  },
   "aten.slice.Tensor": {
    "category": "shape",
    "default": "allow",
@@ -319,6 +349,12 @@
    "default": "review",
    "lowering": "emitted",
    "note": "complex64 weights (FNO spectral layers)"
+  },
+  "aten.view_as_real.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "complex to (..., 2) real/imag pairs (AFNO spectral blocks): real, imag, concatenate."
   },
   "aten.where.self": {
    "category": "elementwise",

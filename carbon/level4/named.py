@@ -17,6 +17,27 @@ declared result shapes.
 
 from __future__ import annotations
 
+# The names `_kernels` implements. Admission reads this, not the kernels, so a
+# Torch build base without JAX can lower a named call (relu) it never runs.
+NAMES = frozenset(
+    {
+        "relu",
+        "relu6",
+        "log1mexp",
+        "logaddexp",
+        "logaddexp2",
+        "logit",
+        "log_ndtr",
+        "xlogy",
+        "xlog1py",
+        "i0",
+        "exp1",
+        "sici",
+        "poch",
+        "zeta",
+    }
+)
+
 
 def _kernels():
     """Carbon's implementations, by the names the allowlist may list. A name
@@ -49,7 +70,10 @@ _KERNELS = None
 def kernels():
     global _KERNELS
     if _KERNELS is None:
-        _KERNELS = _kernels()
+        built = _kernels()
+        if set(built) != NAMES:
+            raise RuntimeError("named.NAMES does not match the kernels")
+        _KERNELS = built
     return _KERNELS
 
 

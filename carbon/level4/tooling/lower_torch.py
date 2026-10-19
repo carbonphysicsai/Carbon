@@ -447,10 +447,16 @@ def _sum_dim(b, node, env):
 #: a static-index emitter through them (`dst.view(1, -1, 1).expand(...)`).
 _SHAPE_ONLY = ("reshape", "broadcast_in_dim", "convert_element_type")
 
+#: Exactly rounded elementwise ops a static index may also be computed with
+#: (interpolation's `(arange(n) * scale).clamp(0)`): evaluated here in the
+#: node's own dtype, they give the interpreter's result bit for bit.
+_FOLDABLE = ("add", "sub", "mul", "max", "min", "lt", "gt")
+
 
 def _static_array(b, value):
-    """The array `value` holds when it is a captured constant, or one reached
-    only through shape-only ops of a constant; otherwise None (input-derived)."""
+    """The array `value` holds when it is a captured constant, or one computed
+    from constants and iotas only through shape-only and exactly rounded
+    elementwise ops; otherwise None (input-derived)."""
     import numpy as np
 
     for entry in b.constants:
@@ -459,12 +465,36 @@ def _static_array(b, value):
     producer = next(
         (n for n in reversed(b.nodes) if n["out"][0]["value"] == value), None
     )
-    if producer is None or producer["op"] not in _SHAPE_ONLY:
+    if producer is None:
+        return None
+    out = producer["out"][0]
+    if producer["op"] == "iota":
+        dim = producer["params"]["dimension"]
+        axis = np.arange(out["shape"][dim], dtype=out["dtype"])
+        kept = [-1 if i == dim else 1 for i in range(len(out["shape"]))]
+        return np.broadcast_to(axis.reshape(kept), out["shape"]).copy()
+    if producer["op"] in _FOLDABLE or producer["op"] == "select_n":
+        operands = [_static_array(b, v) for v in producer["in"]]
+        if any(o is None for o in operands):
+            return None
+        if producer["op"] == "select_n":
+            which, no, yes = operands
+            return np.where(which, yes, no).astype(out["dtype"])
+        fold = {
+            "add": np.add,
+            "sub": np.subtract,
+            "mul": np.multiply,
+            "max": np.maximum,
+            "min": np.minimum,
+            "lt": np.less,
+            "gt": np.greater,
+        }[producer["op"]]
+        return np.asarray(fold(*operands)).astype(out["dtype"])
+    if producer["op"] not in _SHAPE_ONLY:
         return None
     source = _static_array(b, producer["in"][0])
     if source is None:
         return None
-    out = producer["out"][0]
     if producer["op"] == "reshape":
         return source.reshape(out["shape"])
     if producer["op"] == "convert_element_type":
@@ -764,8 +794,9 @@ def _emit(b, node, env):
         "aten.lt.Tensor",
         "aten.gt.Scalar",
         "aten.gt.Tensor",
+        "aten.eq.Scalar",
     ):
-        op = "lt" if ".lt." in target else "gt"
+        op = target.split(".")[1]
         operand_dtype = b.avals[env[args[0]]][0]
         return b.binary(op, args[0], args[1], env, node, out_dtype=operand_dtype)
     if target == "aten.where.self":
@@ -773,6 +804,9 @@ def _emit(b, node, env):
         yes = b.operand(args[1], env, dtype, shape)
         no = b.operand(args[2], env, dtype, shape)
         return b.emit("select_n", [cond, no, yes], dtype, shape)
+    if target in ("aten.abs.default", "aten.sign.default"):
+        # Both have derivative sign(x) and 0 at zero, as torch's.
+        return b.unary(target.split(".")[1], x)
     if target == "aten.gelu.default":
         return _gelu(b, x, kw.get("approximate", "none"))
     if target == "aten.tanh.default":
@@ -1096,25 +1130,89 @@ def _emit(b, node, env):
                 )
             )
         return b.emit("complex", parts, dtype, shape)
-    if target == "aten._fft_r2c.default":
-        dims = [_norm(d, len(b.avals[x][1])) for d in args[1]]
-        normalization, onesided = args[2], args[3]
+    if target == "aten.view_as_real.default":
+        # (..., 2) with the real part at index 0, as torch: the inverse of
+        # view_as_complex above (AFNO's spectral blocks).
         have = b.avals[x][1]
-        if not onesided or dims != list(range(len(have) - len(dims), len(have))):
+        parts = []
+        for op in ("real", "imag"):
+            part = b.emit(op, [x], dtype, have)
+            parts.append(
+                b.emit(
+                    "reshape",
+                    [part],
+                    dtype,
+                    have + [1],
+                    dimensions=None,
+                    new_sizes=have + [1],
+                    sharding=None,
+                )
+            )
+        return b.emit("concatenate", parts, dtype, shape, dimension=len(have))
+    if target == "aten.clamp.default":
+        # Selects, not max/min, so the gradient passes where low <= x <= high
+        # (torch's rule) rather than splitting at a tie (JAX's max/min rule).
+        low = args[1] if len(args) > 1 else kw.get("min")
+        high = args[2] if len(args) > 2 else kw.get("max")
+        if low is None and high is None:
             raise graph.GraphRefused("aten_arguments_not_supported", target)
-        lengths = [have[d] for d in dims]
-        out = b.emit("fft", [x], dtype, shape, fft_lengths=lengths, fft_type="RFFT")
-        return _fft_scale(b, out, normalization, math.prod(lengths), 1.0)
-    if target == "aten._fft_c2r.default":
-        dims = [_norm(d, len(b.avals[x][1])) for d in args[1]]
-        normalization, last = args[2], args[3]
+        out = x
+        for bound, op in ((low, "lt"), (high, "gt")):
+            if bound is None:
+                continue
+            if isinstance(bound, bool) or not isinstance(bound, (int, float)):
+                raise graph.GraphRefused("aten_arguments_not_supported", target)
+            limit = b.broadcast(b.scalar(bound, dtype), shape)
+            beyond = b.emit(op, [out, limit], "bool", shape)
+            out = b.emit("select_n", [beyond, out, limit], dtype, shape)
+        return out
+    if target in ("aten._fft_r2c.default", "aten._fft_c2r.default"):
         have = b.avals[x][1]
-        if dims != list(range(len(have) - len(dims), len(have))):
+        dims = [_norm(d, len(have)) for d in args[1]]
+        normalization = args[2]
+        if len(set(dims)) != len(dims) or (
+            target.endswith("r2c.default") and not args[3]
+        ):
             raise graph.GraphRefused("aten_arguments_not_supported", target)
-        lengths = [have[d] for d in dims[:-1]] + [last]
-        out = b.emit("fft", [x], dtype, shape, fft_lengths=lengths, fft_type="IRFFT")
-        n = math.prod(lengths)
-        return _fft_scale(b, out, normalization, n, 1 / n)
+        # Transforms over non-trailing dims (channels-last layouts such as
+        # AFNO's rfft2 over H, W): move them last, transform, move them back.
+        perm = [axis for axis in range(len(have)) if axis not in dims] + dims
+        inverse = [perm.index(axis) for axis in range(len(have))]
+        moved = perm != list(range(len(have)))
+        if moved:
+            x = b.emit(
+                "transpose",
+                [x],
+                b.avals[x][0],
+                [have[axis] for axis in perm],
+                permutation=perm,
+            )
+        work = [shape[axis] for axis in perm]
+        if target == "aten._fft_r2c.default":
+            lengths = [have[d] for d in dims]
+            out = b.emit("fft", [x], dtype, work, fft_lengths=lengths, fft_type="RFFT")
+            out = _fft_scale(b, out, normalization, math.prod(lengths), 1.0)
+        else:
+            lengths = [have[d] for d in dims[:-1]] + [args[3]]
+            out = b.emit("fft", [x], dtype, work, fft_lengths=lengths, fft_type="IRFFT")
+            n = math.prod(lengths)
+            out = _fft_scale(b, out, normalization, n, 1 / n)
+        if moved:
+            out = b.emit("transpose", [out], dtype, shape, permutation=inverse)
+        return out
+    if target == "aten.constant_pad_nd.default":
+        # F.pad(x, pad, value): `pad` lists (low, high) per dim from the last
+        # one inwards; negative entries crop, as lax.pad allows.
+        pad, value = list(args[1]), args[2] if len(args) > 2 else 0
+        have = b.avals[x][1]
+        if len(pad) % 2 or len(pad) // 2 > len(have) or isinstance(value, bool):
+            raise graph.GraphRefused("aten_arguments_not_supported", target)
+        config = [[0, 0, 0] for _ in have]
+        for i in range(len(pad) // 2):
+            config[len(have) - 1 - i] = [int(pad[2 * i]), int(pad[2 * i + 1]), 0]
+        return b.emit(
+            "pad", [x, b.scalar(value, dtype)], dtype, shape, padding_config=config
+        )
     if target == "aten.convolution.default":
         w = env[args[1]]
         bias, stride, padding, dilation, transposed, _, groups = args[2:9]
