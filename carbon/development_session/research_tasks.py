@@ -1267,6 +1267,11 @@ class DirectDevelopmentTasksV3:
                 if "outputs" in material["interface_document"]
                 else material["interface_document"]["dtype"]
             )
+            import numpy as np
+
+            # The program reports the canonical name ("float64"); registered
+            # interfaces may spell the same dtype "<f8".
+            expected_dtype = str(np.dtype(expected_dtype))
             if (
                 set(inference)
                 != {
