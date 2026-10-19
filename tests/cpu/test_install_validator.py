@@ -43,7 +43,9 @@ def machine(tmp_path):
     )
     _stub(stubs, "curl", '[[ "${STUB_CURL_FAIL:-0}" == 1 ]] && exit 6; exit 0')
     _stub(stubs, "nvidia-smi", 'echo "${STUB_DRIVER:-}"')
-    _stub(stubs, "systemd-detect-virt", '[[ -n "${STUB_VIRT:-}" ]] && exit 0; exit 1')
+    _stub(
+        stubs, "systemd-detect-virt", '[[ -n "${STUB_VIRT:-}" ]] && exit 0; exit 1'
+    )
     state = tmp_path / "state"
 
     def run(*args, **env):
