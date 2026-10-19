@@ -32,6 +32,9 @@ PAIRED_SIDECAR_SCHEMA = "carbon.scoring.private-evaluation-binding.v4"
 DUAL_MEASUREMENT_SCHEMA = "carbon.scoring.private-dual-measurement.v1"
 PAIRED_DUAL_MEASUREMENT_SCHEMA = "carbon.scoring.private-dual-measurement.v2"
 _GRADED_ORIGINALS = frozenset({"inference_receipt_raw", "worker_evidence_raw"})
+_BUNDLE_ORIGINALS = frozenset(
+    {"inference_receipt_raw", "predictions_raw", "bundle_evidence_raw"}
+)
 _PAIR_ORIGINALS = frozenset({"inference_pair_raw", "inference_pair_sha256"})
 _DUAL_MEASUREMENT_FIELDS = {
     "schema",
@@ -270,16 +273,17 @@ def _bind_dual_evaluation(
         raise PrivateEvaluationEvidenceRefused("dual_measurement_shape")
     if not paired and evidence["schema"] != DUAL_MEASUREMENT_SCHEMA:
         raise PrivateEvaluationEvidenceRefused("dual_measurement_shape")
+    graph = type(entry) is dict and entry.get("source_kind") == "graph"
+    graded_keys = _GRADED_ORIGINALS if graph else _BUNDLE_ORIGINALS
     if (
         type(entry) is not dict
-        or entry.get("source_kind") != "graph"
         or type(registration) is not dict
         or type(registration.get("cases")) is not list
         or len(registration["cases"]) != 1
         or type(graph_originals) is not dict
-        or set(graph_originals) - _PAIR_ORIGINALS != _GRADED_ORIGINALS
-        or (paired and set(graph_originals) != _GRADED_ORIGINALS | _PAIR_ORIGINALS)
-        or any(type(graph_originals[k]) is not bytes for k in _GRADED_ORIGINALS)
+        or set(graph_originals) - _PAIR_ORIGINALS != graded_keys
+        or (paired and set(graph_originals) != graded_keys | _PAIR_ORIGINALS)
+        or any(type(graph_originals[k]) is not bytes for k in graded_keys)
         or (
             paired
             and (
@@ -292,7 +296,15 @@ def _bind_dual_evaluation(
         )
     ):
         raise PrivateEvaluationEvidenceRefused("model_query_originals_unavailable")
-    graded_originals = {k: graph_originals[k] for k in _GRADED_ORIGINALS}
+    if not graph and (
+        _sha(graph_originals["predictions_raw"]) != entry.get("prediction_digest")
+        or _sha(graph_originals["inference_receipt_raw"])
+        != ((entry.get("roles") or {}).get("inference_receipt") or {}).get("sha256")
+    ):
+        raise PrivateEvaluationEvidenceRefused("model_query_originals_unavailable")
+    graded_originals = (
+        {k: graph_originals[k] for k in _GRADED_ORIGINALS} if graph else None
+    )
     # This existing reducer authenticates retained originals and raw reference
     # rows. Its descriptive MAE/speed outputs are never used as A or D here.
     try:
@@ -364,7 +376,9 @@ def _bind_dual_evaluation(
         "state_digest": entry["state_digest"],
         "measured_model_sha256": _sha(_canonical(measured_model)),
         "inference_receipt_sha256": _sha(graph_originals["inference_receipt_raw"]),
-        "worker_evidence_sha256": _sha(graph_originals["worker_evidence_raw"]),
+        "worker_evidence_sha256": _sha(
+            graph_originals["worker_evidence_raw" if graph else "bundle_evidence_raw"]
+        ),
     }
     if any(evidence.get(key) != value for key, value in expected.items()):
         raise PrivateEvaluationEvidenceRefused("dual_measurement_original_binding")

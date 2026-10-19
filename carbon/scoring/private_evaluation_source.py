@@ -404,12 +404,11 @@ def build_dual_measurement_receipt(
         type(entry) is not dict
         or type(measured_model) is not dict
         or type(benchmark) is not dict
-        or type(graph_originals) is not dict
-        or set(graph_originals)
-        not in (_GRADED_ORIGINALS, _GRADED_ORIGINALS | _PAIR_ORIGINALS)
+        or graded_original_keys(graph_originals) is None
         or not all(
             type(graph_originals[key]) is bytes and graph_originals[key]
-            for key in _GRADED_ORIGINALS | {"inference_pair_raw"} & set(graph_originals)
+            for key in graded_original_keys(graph_originals)
+            | {"inference_pair_raw"} & set(graph_originals)
         )
         or (
             "inference_pair_raw" in graph_originals
@@ -515,7 +514,12 @@ def build_dual_measurement_receipt(
         "state_digest": entry["state_digest"],
         "measured_model_sha256": _sha(_canonical(detached_measured_model)),
         "inference_receipt_sha256": _sha(graph_originals["inference_receipt_raw"]),
-        "worker_evidence_sha256": _sha(graph_originals["worker_evidence_raw"]),
+        # The graded run's trusted worker evidence: the graph worker-evidence
+        # file, or a bundle's canonical served-task evidence.
+        "worker_evidence_sha256": _sha(
+            graph_originals.get("worker_evidence_raw")
+            or graph_originals["bundle_evidence_raw"]
+        ),
         **(
             {"inference_pair_sha256": graph_originals["inference_pair_sha256"]}
             if paired
@@ -548,6 +552,34 @@ def _producer_require(ok, code):
 
 
 _GRADED_ORIGINALS = frozenset({"inference_receipt_raw", "worker_evidence_raw"})
+#: A bundle (Torch/JAX export) source keeps no worker-evidence file; its trusted
+#: inference evidence comes from the served task, canonicalised by retention.
+_BUNDLE_ORIGINALS = frozenset(
+    {"inference_receipt_raw", "predictions_raw", "bundle_evidence_raw"}
+)
+BUNDLE_EVIDENCE_SCHEMA = "carbon.lean-recipe.bundle-inference-evidence.v1"
+_BUNDLE_EVIDENCE_FIELDS = frozenset(
+    {
+        "schema",
+        "inference_operation",
+        "inference_image_id",
+        "state_digest",
+        "predictions_digest",
+    }
+)
+
+
+def graded_original_keys(originals):
+    """The graded run's original key set (graph or bundle), or None."""
+    if type(originals) is not dict:
+        return None
+    keys = set(originals) - _PAIR_ORIGINALS - {"timed_query"}
+    for graded in (_GRADED_ORIGINALS, _BUNDLE_ORIGINALS):
+        if keys == graded:
+            return graded
+    return None
+
+
 _PAIR_ORIGINALS = frozenset({"inference_pair_raw", "inference_pair_sha256"})
 REPEAT_RULE_SCHEMA = "carbon.paired-repeat-rule.v1"
 #: The repeat evidence the grader holds: the same full input tensor, fresh runs.
@@ -806,18 +838,17 @@ def _f02_point_measurements(predictions, reference, policy, train_std_c, ceiling
 
 def _authenticated_graph_outputs(entry, registration, originals):
     """`(receipt, worker, flat outputs, inference)` of the graded run, read from
-    the retained graph originals and authenticated against the custody entry
-    before any native value is reduced."""
+    the retained graph or bundle originals and authenticated against the
+    custody entry before any native value is reduced."""
     import base64
     import binascii
 
     from carbon.scoring import bundle_benchmark_core as bundle
 
-    _producer_require(
-        type(originals) is dict
-        and set(originals) in (_GRADED_ORIGINALS, _GRADED_ORIGINALS | _PAIR_ORIGINALS),
-        "dual_native_originals",
-    )
+    keys = graded_original_keys(originals)
+    _producer_require(keys is not None, "dual_native_originals")
+    if keys == _BUNDLE_ORIGINALS:
+        return _authenticated_bundle_outputs(entry, registration, originals)
     graded_originals = {k: originals[k] for k in _GRADED_ORIGINALS}
     try:
         receipt = bundle._parse_graph_original(
@@ -863,6 +894,61 @@ def _authenticated_graph_outputs(entry, registration, originals):
     ) as exc:
         raise PrivateEvaluationSourceRefused("dual_native_inference_binding") from exc
     return receipt, worker, authenticated["cases"][0]["outputs"], inference
+
+
+def _authenticated_bundle_outputs(entry, registration, originals):
+    """The bundle case of `_authenticated_graph_outputs`: the retained
+    inference receipt and predictions, bound to the custody entry, and the
+    served task's trusted inference evidence."""
+    from carbon.scoring import bundle_benchmark_core as bundle
+
+    try:
+        receipt = bundle._parse_graph_original(
+            originals["inference_receipt_raw"], "bundle_inference_receipt"
+        )
+        evidence = bundle._parse_graph_original(
+            originals["bundle_evidence_raw"], "bundle_inference_evidence"
+        )
+        predictions = bundle._parse_graph_original(
+            originals["predictions_raw"], "bundle_predictions", object_required=False
+        )
+        roles = entry.get("roles") or {}
+        receipt_role = roles.get("inference_receipt")
+        _producer_require(
+            set(evidence) == _BUNDLE_EVIDENCE_FIELDS
+            and evidence["schema"] == BUNDLE_EVIDENCE_SCHEMA
+            and evidence["state_digest"] == entry.get("state_digest")
+            and evidence["predictions_digest"] == entry.get("prediction_digest")
+            and _sha(originals["predictions_raw"]) == entry.get("prediction_digest")
+            and is_sha256_digest(evidence["inference_image_id"])
+            and type(receipt_role) is dict
+            and _sha(originals["inference_receipt_raw"]) == receipt_role.get("sha256"),
+            "dual_native_bundle_binding",
+        )
+        inference = {
+            "recipe_digest": entry["recipe_digest"],
+            "state_digest": entry["state_digest"],
+            "predictions_digest": entry["prediction_digest"],
+            "predictions": predictions,
+            "worker_operation": evidence["inference_operation"],
+            "receipt": receipt,
+        }
+        authenticated = bundle.measurement_from_saved_inference(
+            entry,
+            registration,
+            inference,
+            gates={name: False for name in registration["mandatory_gates"]},
+        )
+    except (
+        bundle.BundleBenchmarkRefused,
+        KeyError,
+        TypeError,
+        ValueError,
+        AttributeError,
+        UnicodeError,
+    ) as exc:
+        raise PrivateEvaluationSourceRefused("dual_native_inference_binding") from exc
+    return receipt, evidence, authenticated["cases"][0]["outputs"], inference
 
 
 def _produce_f02_cold(
