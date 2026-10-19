@@ -1,0 +1,67 @@
+{
+  "applies_to": "EVERY_DECLARED_CONDITION",
+  "challenge": {
+    "id": "chip-cold-plate",
+    "version": "1.0"
+  },
+  "constraints": {
+    "die_peak_c_max": 100.0,
+    "hydraulic_power_w_max": 0.25
+  },
+  "inclusive_boundaries": true,
+  "quantity_mapping": {
+    "die_peak_c": "carbon.cold_plate.exam.die_peak_c(case, outputs)",
+    "feasible": "die_peak_c <= die_peak_c_max and hydraulic_w <= hydraulic_power_w_max",
+    "hydraulic_w": "pressure_drop_pa * derived(case).flow_m3_s",
+    "total_flow_lpm": "flow_lpm_per_kw * heat_load_w / 1000"
+  },
+  "role": "important_limit_definition",
+  "scenario": {
+    "control_policy": {
+      "assumption": "An implementable supervisory controller receives a commanded or measured steady-state heat load and commands pump flow proportionally before each settled operating point.",
+      "equation": "total_flow_lpm = flow_lpm_per_kw * heat_load_w / 1000",
+      "name": "steady-state-feed-forward-flow-per-heat",
+      "not_demonstrated": [
+        "transient response",
+        "sensor error or latency",
+        "pump and actuator dynamics",
+        "manifold flow distribution",
+        "controller safety qualification"
+      ],
+      "required_limits": [
+        "declared flow_lpm_per_kw design bounds",
+        "synthetic hydraulic-power constraint",
+        "PG25 reference property applicability",
+        "reference laminar Reynolds applicability",
+        "future owner-approved pump flow, pressure and slew limits"
+      ]
+    },
+    "customer_requirement_ref": "synthetic:ai-accelerator-cooling-v1",
+    "description": "Synthetic steady-state accelerator cold-plate decision study; not a customer requirement or acceptance test.",
+    "die_limit_c": 100.0,
+    "hydraulic_limit_w": 0.25
+  },
+  "schema": "carbon.counted-dual.public-role-input.v1",
+  "scope": "PUBLIC_DEVELOPMENT_ONLY",
+  "source_bindings": [
+    {
+      "path": "docs/development/studies/AI_ACCELERATOR_COOLING_SYNTHETIC_V1.json",
+      "sha256": "607e5fe659607659fbd5131dc2049c3c2ebcbfd1d984d796b503dfa74378d04b"
+    },
+    {
+      "path": "carbon/cold_plate/customer_decision.py",
+      "sha256": "4e88ab5d33076cc173d87683fc873270fc933b3d89160d424cc11d67c7fcb9d7"
+    },
+    {
+      "path": "carbon/cold_plate/exam.py",
+      "sha256": "ffb9e94ae17a8b403c5d95f4e4985ef989a81d7ed35c2a45af062cff6cac17be"
+    },
+    {
+      "path": "carbon/cold_plate/domain.py",
+      "sha256": "63104d66d3e32be7a35d65483a9535845569b13d56d7a76f7e18c503d9a055ee"
+    }
+  ],
+  "source_head": "f3bb0742a24f5931120867a7d313608485cd5f0a",
+  "study_id": "ai-accelerator-cooling-synthetic-v1",
+  "study_scope": "periodic-straight-channel-cell-v1"
+}

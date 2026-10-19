@@ -9,7 +9,8 @@ only agree.
 
 Private roles stay HUMAN_INPUT unless ``--exposed-development-bank`` is given.
 That option binds the already-committed, exposed DEVELOPMENT decision bank
-(Motor: 48 queries, their counted GetDP references and completion record) as
+(48 queries each for Motor and Cooling, their counted GetDP/OpenFOAM references
+and completion record) as
 case_bank, reference_rows and solver_evidence. It moves no protected material
 and makes no hidden-exam claim. The score pack and source registration remain
 HUMAN_INPUT for their producer.
@@ -27,8 +28,8 @@ from pathlib import Path
 
 import numpy as np
 
+from carbon.cold_plate import challenge as cooling
 from carbon.motor import challenge as motor
-from carbon.motor import domain as motor_domain
 
 from . import physical_public, physical_public_train
 
@@ -59,10 +60,32 @@ _ROLE_FILES = {
             "cfc30f1e6b32415a6fa613413d94baf32efc23063d8b1aed71bd31a24bbe46c3",
         ),
     },
+    # Cooling's physics and accuracy documents are generated with its score
+    # pack by the scoring producer; until they are bound they stay HUMAN_INPUT.
+    cooling.CHALLENGE.challenge_id: {
+        "important_limit_definition": (
+            "cooling-important-limit-definition-20261018.json",
+            "443fc3f5b3fb3b6983b77d697ae25e6e91178e4028a1f70b33fe8f7500ccac97",
+        ),
+        "design_objective": (
+            "cooling-design-objective-20261018.json",
+            "864a325aeaa45d3348a69a3b3587d83dd2a9f2106383a74eb488992c77d2c259",
+        ),
+    },
 }
 PACK_VERSIONS = {
-    motor.CHALLENGE.challenge_id: "motor-normal-construction-development-1"
+    motor.CHALLENGE.challenge_id: "motor-normal-construction-development-1",
+    cooling.CHALLENGE.challenge_id: "cooling-normal-construction-development-1",
 }
+PUBLIC_ROLES = (
+    "construction_kit",
+    "interface",
+    "train",
+    "physics_contract",
+    "accuracy_definition",
+    "important_limit_definition",
+    "design_objective",
+)
 PRIVATE_ROLES = ("case_bank", "reference_rows", "solver_evidence", "score_pack")
 #: The exposed DEVELOPMENT decision bank, committed in the repository, pinned.
 _BANKS = {
@@ -79,6 +102,49 @@ _BANKS = {
             "docs/development/evidence/motor-decision-counted-v2/completion.json",
             "4662e9679ce3e2a7b7c3e3e357ca04d0546e3909b6dc11e8c241d538a0331f56",
         ),
+        "condition_key": "condition_id",
+        # The applied Motor score definition (b4ea72a5) takes A as the minimum
+        # of benefits over three cohorts, so the bank carries all three, in
+        # this order: public PRACTICE, the twelve selected pilot cases (in the
+        # acquisition manifest's order), then the old-V2 decision cells.
+        "practice": (
+            "docs/development/evidence/motor-pools-v1/practice.jsonl",
+            "0466627106bdcf8495b96a93ea89e5d5270ad845171d6770bac2b2d9922dd247",
+        ),
+        "pilot": (
+            "docs/development/evidence/motor-pilot-v1/records.jsonl",
+            "930174906f58390114a40312572f52998115e571f3495be028e7fa265c6f3cfb",
+        ),
+        #: MOTOR_DUAL_TRANSFER_ACQUISITION_MANIFEST_20261018 pilot_case_ids.
+        "pilot_case_ids": (
+            "difficult-1-deep-saturation",
+            "difficult-2-sharpest-cogging",
+            "difficult-3-weakest-field",
+            "difficult-4-field-weakening",
+            "ordinary-1",
+            "ordinary-2",
+            "ordinary-3",
+            "ordinary-4",
+            "ordinary-5",
+            "ordinary-6",
+            "ordinary-7",
+            "ordinary-8",
+        ),
+    },
+    cooling.CHALLENGE.challenge_id: {
+        "study": (
+            "docs/development/studies/AI_ACCELERATOR_COOLING_SYNTHETIC_V1.json",
+            "607e5fe659607659fbd5131dc2049c3c2ebcbfd1d984d796b503dfa74378d04b",
+        ),
+        "references": (
+            "docs/development/evidence/track-b-replay/ai-cooling-counted-v1.json",
+            "cf48e003d4be45c11283bdb76c5bdecc98fd9fbd05c1df0166a5195e5d88f2bf",
+        ),
+        "completion": (
+            "docs/development/evidence/ai-cooling-counted-v1/completion.json",
+            "697a510bd15ab0f350c7ea16dd4d62f7f6826db8eff1176cc1ad1f8c0025054d",
+        ),
+        "condition_key": "scenario_id",
     },
 }
 
@@ -104,13 +170,17 @@ def _role_file(challenge_id: str, version: str, role: str) -> bytes:
     return raw
 
 
-def physics_contract(challenge_id: str, version: str) -> dict:
-    """The Challenge's physics contract, for the construction material to carry."""
+def physics_contract(challenge_id: str, version: str) -> dict | None:
+    """The Challenge's physics contract for the construction material to carry,
+    or None while it is not bound."""
+    if "physics_contract" not in _files(challenge_id, version):
+        return None
     return json.loads(_role_file(challenge_id, version, "physics_contract"))
 
 
 def public_roles(challenge_id: str, version: str) -> dict[str, bytes]:
-    """Every public role's exact bytes; nothing is defaulted or inferred."""
+    """Every bound public role's exact bytes; an unbound role is absent here
+    and HUMAN_INPUT in the manifest. Nothing is defaulted or inferred."""
     roles = {
         "construction_kit": _canonical(
             physical_public.construction_kit(challenge_id, version)
@@ -134,10 +204,16 @@ def _bank_file(challenge_id: str, name: str) -> bytes:
 
 
 def development_bank(challenge_id: str, version: str) -> dict:
-    """The exposed DEVELOPMENT decision bank, in fixed design-then-condition order.
+    """The exposed DEVELOPMENT bank, in a fixed declared order and cohorts.
+
+    Motor: 30 PRACTICE, 12 selected pilot cases, then the 48 old-V2 decision
+    cells (design-then-condition). Cooling: its 48 decision cells. Each row's
+    cohort is returned so the score producer evaluates exactly its registered
+    cohorts.
 
     ``inputs`` rows follow the numeric interface's input names and dtype;
-    ``references`` are the counted solver outputs for the same rows. The
+    ``references`` are the counted solver outputs for the same rows, laid out by
+    the interface's target slices, in native units with no transform. The
     construction material's practice inputs/reference must be these arrays, so
     the scored query equals the pack's case bank byte for byte.
     """
@@ -145,28 +221,66 @@ def development_bank(challenge_id: str, version: str) -> dict:
     if challenge_id not in _BANKS:
         raise ValueError("no development bank for this Challenge")
     study = json.loads(_bank_file(challenge_id, "study"))
+    interface = physical_public_train.numeric_interface_document(challenge_id)
+    names, slices = interface["input_names"], interface["target_slices"]
+    width = max(end for _, end in slices.values())
+    condition_key = _BANKS[challenge_id]["condition_key"]
     solved = {
         case["case_id"]: case
         for case in json.loads(_bank_file(challenge_id, "references"))["cases"]
     }
-    case_ids, rows, references, records = [], [], [], []
+    case_ids, rows, references, records, cohorts = [], [], [], [], []
+    entries = []
+    spec = _BANKS[challenge_id]
+    if "practice" in spec:
+        for line in _bank_file(challenge_id, "practice").decode("utf-8").splitlines():
+            if line.strip():
+                record = json.loads(line)
+                entries.append(
+                    ("practice", record["case_id"], record["inputs"], record)
+                )
+        pilot = {}
+        for line in _bank_file(challenge_id, "pilot").decode("utf-8").splitlines():
+            if line.strip():
+                record = json.loads(line)
+                pilot[record["case_id"]] = record
+        for case_id in spec["pilot_case_ids"]:
+            record = pilot.get(case_id)
+            if record is None:
+                raise ValueError(f"{case_id} has no pilot record")
+            cohort = {"ordinary": "pilot_ordinary", "corner": "pilot_difficult"}
+            entries.append((cohort[record["kind"]], case_id, record["inputs"], record))
     for design in study["designs"]:
         for condition in study["conditions"]:
-            case_id = f"decision-{design['design_id']}-{condition['condition_id']}"
+            case_id = f"decision-{design['design_id']}-{condition[condition_key]}"
             record = solved.get(case_id)
-            if record is None or record.get("status") != "OK":
-                raise ValueError(f"{case_id} has no accepted reference")
+            if record is None:
+                raise ValueError(f"{case_id} has no reference")
             values = {**design["values"], **condition["values"]}
-            case_ids.append(case_id)
-            rows.append([float(values[name]) for name in motor_domain.INPUTS])
-            references.append([float(v) for v in record["outputs"]["torque_nm"]])
-            records.append(record)
+            group = condition["group"].lower()
+            entries.append((f"decision_{group}", case_id, values, record))
+    for cohort, case_id, values, record in entries:
+        if record.get("status") != "OK":
+            raise ValueError(f"{case_id} has no accepted reference")
+        case_ids.append(case_id)
+        cohorts.append(cohort)
+        rows.append([float(values[name]) for name in names])
+        target = [0.0] * width
+        for name, (start, end) in slices.items():
+            value = record["outputs"][name]
+            value = value if type(value) is list else [value]
+            if len(value) != end - start:
+                raise ValueError(f"{case_id} {name} shape differs")
+            target[start:end] = [float(v) for v in value]
+        references.append(target)
+        records.append(record)
     inputs = np.asarray(rows, dtype="<f8")
     targets = np.asarray(references, dtype="<f8")
     if (
-        len(solved) != len(case_ids)
-        or inputs.shape != (len(case_ids), len(motor_domain.INPUTS))
-        or targets.shape != (len(case_ids), motor_domain.ANGLE_STEPS)
+        len(set(case_ids)) != len(case_ids)
+        or sum(c.startswith("decision_") for c in cohorts) != len(solved)
+        or inputs.shape != (len(case_ids), len(names))
+        or targets.shape != (len(case_ids), width)
         or not np.isfinite(inputs).all()
         or not np.isfinite(targets).all()
     ):
@@ -175,6 +289,7 @@ def development_bank(challenge_id: str, version: str) -> dict:
     targets.setflags(write=False)
     return {
         "case_ids": tuple(case_ids),
+        "cohorts": tuple(cohorts),
         "inputs": inputs,
         "references": targets,
         "reference_records": records,
@@ -188,7 +303,19 @@ def _development_private_roles(challenge_id: str, version: str) -> dict[str, byt
     bank = development_bank(challenge_id, version)
     return {
         "case_bank": _tensors(inputs=np.array(bank["inputs"])),
-        "reference_rows": _canonical(bank["reference_records"]),
+        "reference_rows": _canonical(
+            [
+                {"row": i, "case_id": case_id, "cohort": cohort, "record": record}
+                for i, (case_id, cohort, record) in enumerate(
+                    zip(
+                        bank["case_ids"],
+                        bank["cohorts"],
+                        bank["reference_records"],
+                        strict=True,
+                    )
+                )
+            ]
+        ),
         "solver_evidence": bank["solver_evidence"],
     }
 
@@ -217,6 +344,7 @@ def write_public_pack(
         (root / "public").mkdir(mode=0o700, exist_ok=True)
         (root / name).write_bytes(body)
         public[role] = {"path": name}
+    public.update({role: UNAVAILABLE for role in PUBLIC_ROLES if role not in public})
     private = {role: UNAVAILABLE for role in PRIVATE_ROLES}
     pack_version = PACK_VERSIONS[challenge_id]
     if exposed_development_bank:
