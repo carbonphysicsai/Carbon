@@ -336,7 +336,13 @@ def test_f08_bank_is_the_eight_accepted_references_in_interface_layout(tmp_path)
         challenge_version=version,
     )
     missing = prepared.snapshot.verify_available(pack, pack)
-    assert set(missing["public"]) == {"physics_contract", "accuracy_definition"}
+    assert set(missing["public"]) == {"accuracy_definition"}
+    from carbon.scoring import f08_dual_pack
+
+    physics = prepared.snapshot.read_json_role(
+        pack, "public", "physics_contract", max_bytes=1 << 20
+    )
+    assert physics == f08_dual_pack.physics_contract()
     limits = prepared.snapshot.read_json_role(
         pack, "public", "important_limit_definition", max_bytes=1 << 20
     )
