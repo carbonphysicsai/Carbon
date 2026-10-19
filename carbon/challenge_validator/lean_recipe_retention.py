@@ -471,7 +471,9 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id, evide
     }
 
 
-def _retain_selected_pack_evaluation(adapter, submission_id, result, artifacts):
+def _retain_selected_pack_evaluation(
+    adapter, submission_id, result, artifacts, evidence=None
+):
     """Apply only trusted, versioned measurement evidence after bank custody."""
     if result.get("evaluation_pack_digest") is None:
         return result
@@ -494,7 +496,12 @@ def _retain_selected_pack_evaluation(adapter, submission_id, result, artifacts):
             or score_document.get("schema") != dual_score.PACK_SCHEMA
         ):
             return result
-        if "worker-evidence.json" not in artifacts:
+        graph = "worker-evidence.json" in artifacts
+        if not graph and (
+            type(evidence) is not dict
+            or type(evidence.get("inference_operation")) is not str
+            or type(evidence.get("inference_image_id")) is not str
+        ):
             raise RetentionUnavailable("dual_model_originals_unavailable")
         from carbon.scoring.private_evaluation_source import (
             produce_registered_dual_measurement,
@@ -511,10 +518,28 @@ def _retain_selected_pack_evaluation(adapter, submission_id, result, artifacts):
             ordered_query_bytes=queries,
             evaluation_version=source["evaluation_version"],
         )
-        originals = {
-            "inference_receipt_raw": artifacts["inference-receipt.json"],
-            "worker_evidence_raw": artifacts["worker-evidence.json"],
-        }
+        if graph:
+            originals = {
+                "inference_receipt_raw": artifacts["inference-receipt.json"],
+                "worker_evidence_raw": artifacts["worker-evidence.json"],
+            }
+        else:
+            # A bundle has no worker-evidence.json: its originals are the inference
+            # receipt, the predictions and the trusted task evidence's identities.
+            originals = {
+                "inference_receipt_raw": artifacts["inference-receipt.json"],
+                "predictions_raw": artifacts["predictions.json"],
+                "bundle_evidence_raw": _json(
+                    {
+                        "schema": "carbon.lean-recipe.bundle-inference-evidence.v1",
+                        "inference_operation": evidence["inference_operation"],
+                        "inference_image_id": evidence["inference_image_id"],
+                        "state_digest": registered["entry"]["state_digest"],
+                        "predictions_digest": registered["entry"]["prediction_digest"],
+                    }
+                )
+                + b"\n",
+            }
         prepared = produce_registered_dual_measurement(
             selected_pack=snapshot,
             public_root=discovery.evaluation_pack_public_root,
@@ -676,7 +701,7 @@ def retain_served_result(
             adapter, provider, submission_id, task, result
         )
         bound = _retain_selected_pack_evaluation(
-            adapter, submission_id, bound, artifacts
+            adapter, submission_id, bound, artifacts, evidence
         )
         return _retain_public_synthetic_measurement(
             bound, artifacts, submission_id, evidence
@@ -1018,7 +1043,9 @@ def retain_served_result(
         "official_eligible": False,
     }
     bound = _retain_private_pack_binding(adapter, provider, submission_id, task, result)
-    bound = _retain_selected_pack_evaluation(adapter, submission_id, bound, artifacts)
+    bound = _retain_selected_pack_evaluation(
+        adapter, submission_id, bound, artifacts, evidence
+    )
     return _retain_public_synthetic_measurement(
         bound, artifacts, submission_id, evidence
     )
