@@ -177,6 +177,71 @@ def test_trusted_dual_key_retains_development_evidence_without_promotion(
         private_evaluation_key(incompatible)
 
 
+def test_paired_dual_key_pins_both_receipts_and_preserves_historical_v3(
+    store, tmp_path
+):
+    case = _dual_case(tmp_path / "dual")
+    admitted(store, case, "candidate")
+    arguments, _ = _dual_arguments(case)
+    pin = arguments.pop("registered_source_receipt_sha256")
+    historical = BankPromotion(
+        store, registered_source_receipt_sha256=pin
+    ).retain_private("candidate", **arguments)["evidence"]
+    identity = {
+        "challenge": historical["challenge"],
+        "challenge_version": historical["challenge_version"],
+        "evaluation_version": historical["evaluation_version"],
+        "evaluation_version_digest": historical["evaluation_version_digest"],
+        "score_compatibility": historical["score_compatibility"],
+        "evaluation_pack_digest": historical["evaluation_pack_digest"],
+        "binding_schema": historical["schema"],
+        "source_receipt_sha256": historical["source_receipt_sha256"],
+        "reference_coverage": historical["reference_coverage"],
+        **{
+            field: historical[field]
+            for field in (
+                "registration_digest",
+                "measurement_contract_digest",
+                "producer_digest",
+                "common_mask_digest",
+                "ordered_query_material_digest",
+                "reference_rows_digest",
+                "reference_coverage_digest",
+            )
+        },
+    }
+    historical_key = private_evaluation_key(historical)
+    assert historical_key == digest(identity)
+    changed_historical_receipt = deepcopy(historical)
+    changed_historical_receipt["dual_measurement_receipt_sha256"] = digest(
+        "another historical receipt"
+    )
+    assert private_evaluation_key(changed_historical_receipt) == historical_key
+
+    paired = deepcopy(historical)
+    paired["schema"] = "carbon.scoring.private-evaluation-binding.v4"
+    paired["inference_pair_sha256"] = digest("fresh paired inference operation")
+    paired_key = private_evaluation_key(paired)
+    assert paired_key == digest(
+        {
+            **identity,
+            "binding_schema": paired["schema"],
+            "dual_measurement_receipt_sha256": paired[
+                "dual_measurement_receipt_sha256"
+            ],
+            "inference_pair_sha256": paired["inference_pair_sha256"],
+        }
+    )
+    assert paired_key != historical_key
+    for field in ("dual_measurement_receipt_sha256", "inference_pair_sha256"):
+        changed = deepcopy(paired)
+        changed[field] = digest([field, "other operation"])
+        assert private_evaluation_key(changed) != paired_key
+        del changed[field]
+        with pytest.raises(StateError, match="private_evaluation_invalid"):
+            private_evaluation_key(changed)
+
+
 @pytest.mark.parametrize(
     ("reference_status", "score_status"),
     [("UNRESOLVED", "INDETERMINATE_EVIDENCE"), ("FAILED_INFRA", "FAILED_INFRA")],

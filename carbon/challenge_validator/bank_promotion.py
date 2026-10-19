@@ -32,6 +32,7 @@ def private_evaluation_key(evidence):
             "carbon.scoring.private-evaluation-binding.v1",
             "carbon.scoring.private-evaluation-binding.v2",
             "carbon.scoring.private-evaluation-binding.v3",
+            "carbon.scoring.private-evaluation-binding.v4",
         }
         or evidence.get("scope") != "PRIVATE_OPERATOR_DEVELOPMENT"
         or evidence.get("status") != "BOUND_DEVELOPMENT_ONLY"
@@ -56,7 +57,11 @@ def private_evaluation_key(evidence):
         )
     ):
         raise StateError("private_evaluation_invalid")
-    dual = evidence["schema"] == "carbon.scoring.private-evaluation-binding.v3"
+    paired = evidence["schema"] == "carbon.scoring.private-evaluation-binding.v4"
+    dual = evidence["schema"] in {
+        "carbon.scoring.private-evaluation-binding.v3",
+        "carbon.scoring.private-evaluation-binding.v4",
+    }
     if not is_digest(
         evidence.get(
             "dual_measurement_receipt_sha256" if dual else "benchmark_result_digest"
@@ -116,6 +121,15 @@ def private_evaluation_key(evidence):
             "reference_coverage": coverage,
             **{field: evidence[field] for field in fields},
         }
+        if paired:
+            if not is_digest(evidence.get("inference_pair_sha256")):
+                raise StateError("private_evaluation_invalid")
+            dual_identity.update(
+                dual_measurement_receipt_sha256=evidence[
+                    "dual_measurement_receipt_sha256"
+                ],
+                inference_pair_sha256=evidence["inference_pair_sha256"],
+            )
     return digest(
         {
             "challenge": evidence["challenge"],
