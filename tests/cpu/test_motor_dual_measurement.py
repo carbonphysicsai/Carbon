@@ -19,6 +19,7 @@ import pytest
 from carbon.motor import recipes
 from carbon.motor.challenge import PublicMaterial
 from carbon.scoring import motor_dual_measurement as mdm
+from carbon.scoring import motor_dual_pack
 
 ROOT = Path(__file__).resolve().parents[2]
 BASELINE_A = 0.28108361796711556
@@ -31,16 +32,11 @@ PILOT_ORDER = (
     "difficult-4-field-weakening",
     *(f"ordinary-{i}" for i in range(1, 9)),
 )
+#: The registered values, read from the committed applied definition.
 DEFINITION = {
     "schema": mdm.DEFINITION_SCHEMA,
     "method": mdm.METHOD,
-    "losses": list(mdm._LOSSES),
-    "A_reducer": "minimum",
-    "f0_scale": 0.17,
-    "signed_margin_scale": 0.138419451631707,
-    "signed_margin_cell": {"mean_torque_nm": 4.0, "ripple_fraction": 0.30},
-    "D_scale": 0.01,
-    "verification_budget": 1,
+    **motor_dual_pack._definition_values(),
     "cohort_counts": {
         "practice": 30,
         "pilot_ordinary": 8,

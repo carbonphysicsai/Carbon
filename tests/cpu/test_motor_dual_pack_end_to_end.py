@@ -52,32 +52,24 @@ def _enveloped(public):
     return {**public, "physics_contract": raw}
 
 
-def _write_pack(root, bank, public):
-    physical_pack.write_public_pack(
-        root, pack.CHALLENGE, pack.VERSION, exposed_development_bank=True
-    )
-    documents = pack.pack_documents(
-        bank=bank,
-        physics=json.loads(public["physics_contract"]),
-        interface_raw=public["interface"],
-        train_raw=public["train"],
-        limits_sha256=_sha(public["important_limit_definition"]),
-        objective_sha256=_sha(public["design_objective"]),
-    )
-    draft_path = root / "evaluation-pack.json"
-    draft = json.loads(draft_path.read_bytes())
-    (root / draft["public"]["physics_contract"]["path"]).write_bytes(
-        public["physics_contract"]
-    )
-    for role, body in documents.items():
-        scope = "public" if role == "accuracy_definition" else "private"
-        name = f"{scope}/{role}.json"
-        (root / name).write_bytes(body)
-        draft[scope][role] = {"path": name}
-    draft_path.write_bytes(_json(draft))
+def _write_pack(root, public):
+    """The pack exactly as ``motor_dual_pack.write_development_pack`` writes it
+    (the executor's command), sealed as the receiver seals it."""
+    with pytest.MonkeyPatch.context() as patch:
+        physics = physical_pack.physics_contract(pack.CHALLENGE, pack.VERSION)
+        if set(physics) != {"version", "definition"}:
+            # Until packs-01's envelope (226659b7) is in this base.
+            patch.setattr(
+                physical_pack,
+                "physics_contract",
+                lambda *_: json.loads(public["physics_contract"]),
+            )
+            patch.setattr(physical_pack, "public_roles", lambda *_: public)
+        manifest = pack.write_development_pack(root)
+    assert manifest == root / pack.MANIFEST_NAME
     prepared = prepare_pack(
         root,
-        "evaluation-pack.json",
+        pack.MANIFEST_NAME,
         public_root=root,
         private_root=root,
         challenge_id=pack.CHALLENGE,
@@ -89,6 +81,16 @@ def _write_pack(root, bank, public):
         challenge_id=pack.CHALLENGE,
         challenge_version=pack.VERSION,
     )
+    draft = json.loads(manifest.read_bytes())
+    documents = {
+        role: (root / draft[scope][role]["path"]).read_bytes()
+        for scope, role in (
+            ("public", "accuracy_definition"),
+            ("private", "reference_rows"),
+            ("private", "score_pack"),
+            ("private", "source_registration"),
+        )
+    }
     return snapshot, documents
 
 
@@ -246,7 +248,7 @@ def motor(tmp_path_factory):
     tmp = tmp_path_factory.mktemp("motor-e2e")
     bank = physical_pack.development_bank(pack.CHALLENGE, pack.VERSION)
     public = _enveloped(physical_pack.public_roles(pack.CHALLENGE, pack.VERSION))
-    snapshot, documents = _write_pack(tmp / "pack", bank, public)
+    snapshot, documents = _write_pack(tmp / "pack", public)
     names = physical_public_train.numeric_interface_document(pack.CHALLENGE)[
         "input_names"
     ]
