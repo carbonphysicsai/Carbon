@@ -135,3 +135,22 @@ def test_fresh_rebuild_then_per_case_source_free_inference(
     predictions = np.asarray(inferred.predictions, dtype=np.float64)
     assert predictions.shape == material["practice_reference"].shape
     np.testing.assert_allclose(predictions, _expected(material), rtol=1e-6, atol=1e-6)
+
+
+@CHALLENGES
+def test_a_measured_task_is_admitted_for_physical_material(
+    tmp_path, monkeypatch, challenge_id, version
+):
+    """The receiver runs measured tasks; the numeric interface keeps its dtype at the
+    top level, so admission must read it there (it refused direct_reference_mismatch).
+    """
+    import test_direct_v3_durable_tasks as durable
+
+    material = physical_material.bundle_material(challenge_id, version)
+    request, provider, _ = durable._fixture(tmp_path, monkeypatch, material=material)
+    tasks = provider()
+    try:
+        started = tasks.start_research_task(request, measure_query=True)
+        assert started.task.state.name in ("QUEUED", "RUNNING")
+    finally:
+        tasks.close()
