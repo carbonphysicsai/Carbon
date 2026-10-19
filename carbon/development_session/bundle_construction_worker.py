@@ -175,6 +175,23 @@ if (type(product) is not dict or set(product) != {"framework", "apply", "paramet
     or product["framework"] not in ("jax", "torch")
     or not callable(product["apply"]) or type(product["parameters"]) is not list):
     raise ValueError("bundle build product contract differs")
+# From here Carbon's own lowering and freeze run on the candidate's model. A closed
+# refusal there is the candidate's, so it leaves only refusal.json (fixed schema, no
+# text); every other failure keeps its crash and its infrastructure meaning.
+from carbon.development_session.construction_recipe import RecipeRefused
+from carbon.level4.graph import GraphRefused
+def _refusal_hook(kind, error, trace):
+    if issubclass(kind, (GraphRefused, RecipeRefused)):
+        code = getattr(error, "code", None)
+        where = getattr(error, "op", None) or getattr(error, "where", "")
+        (out / "refusal.json").write_text(json.dumps({
+            "schema": "carbon.development.bundle-build-refusal.v1",
+            "code": code if type(code) is str else "unspecified",
+            "at": where if type(where) is str and where else None,
+        }, sort_keys=True))
+        os._exit(0)
+    sys.__excepthook__(kind, error, trace)
+sys.excepthook = _refusal_hook
 allowed = Allowlist((work / "allowlist.json").read_bytes())
 if allowed.digest != control["allowlist_digest"]:
     raise ValueError("bundle build allowlist differs")
@@ -400,6 +417,9 @@ STAGED_MODULES = (
     "carbon.development_session.construction_recipe",
     "carbon.development_session.bundle_graph_state",
 )
+from . import build_refusal  # noqa: E402
+from .build_refusal import CandidateBuildRefused  # noqa: E402,F401
+
 BUILD_PROGRAM = BUILD_PROGRAM.replace("__STAGED_MODULES__", repr(STAGED_MODULES))
 INFER_PROGRAM = INFER_PROGRAM.replace("__STAGED_MODULES__", repr(STAGED_MODULES))
 
@@ -1036,6 +1056,17 @@ def reconstruct_public(
     )
 
     def checked(snapshot: Path):
+        if {path.name for path in snapshot.iterdir()} == {"refusal.json"}:
+            # A closed refusal of the candidate's graph; anything not exactly
+            # that stays a validation failure, never a candidate verdict.
+            refusal = snapshot / "refusal.json"
+            if (
+                refusal.is_symlink()
+                or not refusal.is_file()
+                or build_refusal.parse(refusal.read_bytes()) is None
+            ):
+                raise ValueError("bundle build refusal malformed")
+            return None, None
         if {path.name for path in snapshot.iterdir()} != {
             "state.npz",
             "receipt.json",
@@ -1109,6 +1140,12 @@ def reconstruct_public(
     )
     snapshot = ledger.root / worker["operation"] / "snapshot"
     state, receipt = checked(snapshot)
+    if state is None:
+        refusal = snapshot / "refusal.json"
+        if _digest(refusal.read_bytes()) != worker["files"].get("refusal.json"):
+            raise ValueError("bundle build output custody differs")
+        code, at = build_refusal.parse(refusal.read_bytes())
+        raise CandidateBuildRefused(code, at)
     if any(
         _digest((snapshot / name).read_bytes()) != worker["files"].get(name)
         for name in ("state.npz", "receipt.json", "native-predictions.json")

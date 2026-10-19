@@ -1519,6 +1519,7 @@ class DirectDevelopmentTasksV3:
 
     def run_queued_task(self, task_id):
         from .bundle_construction_worker import (
+            CandidateBuildRefused,
             DirectReconstructionResult,
             _private_controls_digest,
             reconstruct_and_infer_public,
@@ -1924,7 +1925,9 @@ class DirectDevelopmentTasksV3:
                             if provisioning or "FAILED_INFRA" in child_states
                             else (
                                 DirectTaskStateV3.REFUSED
-                                if isinstance(exc, MinerProgramFailure)
+                                if isinstance(
+                                    exc, (MinerProgramFailure, CandidateBuildRefused)
+                                )
                                 or "FAILED_MINER" in child_states
                                 else DirectTaskStateV3.UNRESOLVED
                             )
@@ -1945,7 +1948,11 @@ class DirectDevelopmentTasksV3:
                         and state
                         in (DirectTaskStateV3.REFUSED, DirectTaskStateV3.UNRESOLVED)
                         else (
-                            "candidate_program_failed"
+                            (
+                                "candidate_build_refused"
+                                if isinstance(exc, CandidateBuildRefused)
+                                else "candidate_program_failed"
+                            )
                             if state is DirectTaskStateV3.REFUSED
                             else (
                                 "unresolved_execution"
