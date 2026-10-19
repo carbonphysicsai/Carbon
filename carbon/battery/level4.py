@@ -152,13 +152,14 @@ def interface(strategy_):
     from ..level4.validate import Interface
 
     _, model = _model(strategy_, material().train)
-    from .level4_model import interface_model
+    from .level4_model import interface_model, published_kit
 
     n_in, n_out = _dims(interface_model(model, material().train))
     dtype = "float64" if model.settings["precision"] == "float64" else "float32"
     return Interface(
         inputs=(("inputs/features", dtype, (n_in,)),),
         outputs=((dtype, (n_out,)),),
+        kit=published_kit(dtype)[0],
     )
 
 

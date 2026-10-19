@@ -70,7 +70,7 @@ def interface_and_batch(strategy, *, root=None):
 
     from .challenge import PublicMaterial
     from .compile import build_model, compile_recipe
-    from .level4_model import FAMILIES, dims, interface_model
+    from .level4_model import FAMILIES, dims, interface_model, published_kit
 
     _, recipe = compile_recipe(_base(strategy))
     if recipe.family not in FAMILIES:
@@ -78,7 +78,8 @@ def interface_and_batch(strategy, *, root=None):
 
         raise graph.GraphRefused("level4_family_not_served", recipe.family)
     root = Path(root) if root is not None else Path(__file__).resolve().parents[2]
-    train = PublicMaterial.load(root).train
+    public = PublicMaterial.load(root)
+    train = public.train
     n_in, n_out = dims(interface_model(build_model(recipe), train))
     dtype = "float64" if recipe.settings["precision"] == "float64" else "float32"
     cases = len(train.case_ids)
@@ -99,7 +100,9 @@ def interface_and_batch(strategy, *, root=None):
     used = cases if fraction >= 1.0 else int(cases * fraction)
     batch = min(recipe.settings["batch_size"], used)
     interface = Interface(
-        inputs=(("inputs/features", dtype, (n_in,)),), outputs=((dtype, (n_out,)),)
+        inputs=(("inputs/features", dtype, (n_in,)),),
+        outputs=((dtype, (n_out,)),),
+        kit=published_kit(dtype, public)[0],
     )
     return interface, batch
 

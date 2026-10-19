@@ -90,7 +90,7 @@ def test_the_caps_are_the_owners_and_an_unset_cap_still_blocks():
         "document_bytes": 1024**2,
         "largest_intermediate_bytes": 256 * 1024**2,
     }
-    zero = {name: 0 for name in allowlist_module.CAPS}
+    zero = {allowlist_module.MEASURED_AS.get(n, n): 0 for n in allowlist_module.CAPS}
     assert set(allowlist_module.check_caps(zero).values()) == {"pass"}
     unset = {name: allowlist_module.HUMAN_INPUT for name in allowlist_module.CAPS}
     verdicts = allowlist_module.check_caps(zero, unset)
@@ -203,6 +203,50 @@ def test_constants_are_counted_never_capped(allowlist):
     assert split["constant_count"] >= 512 and split["constant_bytes"] >= 512 * 4
     # 4096 float32 constants are exactly the owner's 16 KiB constant cap.
     assert rows["embedded table"]["caps"]["constant_bytes"] == "pass"
+
+
+def test_identical_constants_are_charged_once():
+    import numpy as np
+
+    table = graph.encode_array(np.arange(2304, dtype=np.float32))
+    other = graph.encode_array(np.arange(2304, dtype=np.float32) + 1)
+    same_bytes_other_shape = graph.encode_array(
+        np.arange(2304, dtype=np.float32).reshape(48, 48)
+    )
+    assert graph.unique_constant_bytes([table, dict(table)]) == 9216
+    assert graph.unique_constant_bytes([table, other]) == 2 * 9216
+    assert graph.unique_constant_bytes([table, same_bytes_other_shape]) == 2 * 9216
+    assert allowlist_module.CONSTANT_ACCOUNTING == "level4-constant-accounting-v2"
+
+
+def test_the_constant_cap_reads_unique_bytes_under_accounting_v2(allowlist):
+    import jax.numpy as jnp
+    import numpy as np
+
+    from carbon.level4 import validate
+    from carbon.level4.tooling import lower_jax
+
+    # Two 9 KiB constants: 18 KiB summed, over the unchanged 16 KiB cap.
+    first = np.linspace(0.0, 1.0, 2304, dtype=np.float32)
+    copy = first.copy()  # a separate array with identical content
+    different = first + np.float32(1)
+
+    def lower(a, b):
+        closed = lower_jax.trace(
+            lambda x: x + jnp.asarray(a) + jnp.asarray(b), jnp.zeros(2304, jnp.float32)
+        )
+        return lower_jax.lower(
+            closed, role="forward", allowlist=allowlist, input_names=["inputs/x"]
+        )
+
+    repeated = validate.validate(lower(first, copy), allowlist)
+    assert repeated["measurements"]["constant_bytes"] == 2 * 9216
+    assert repeated["measurements"]["unique_constant_bytes"] == 9216
+    assert repeated["caps"]["constant_bytes"] == "pass"
+    assert repeated["constant_accounting"] == allowlist_module.CONSTANT_ACCOUNTING
+    with pytest.raises(graph.GraphRefused) as refused:
+        validate.validate(lower(first, different), allowlist)
+    assert refused.value.code == "cap_exceeded"
 
 
 def test_parameter_codec_refuses_unknown_kind_and_extras():

@@ -99,6 +99,21 @@ def encode_array(array):
     }
 
 
+def unique_constant_bytes(constants):
+    """Embedded constant bytes with identical content counted once (constant
+    accounting v2): constants with the same dtype, shape and bytes, such as
+    ensemble members' or repeated blocks' copies, are charged one copy."""
+    charged = {}
+    for c in constants:
+        try:
+            raw = base64.b64decode(c["data"].encode("ascii"), validate=True)
+        except (ValueError, UnicodeEncodeError):
+            raise GraphRefused("constant_not_base64") from None
+        header = json.dumps([c["dtype"], c["shape"]], separators=(",", ":"))
+        charged[hashlib.sha256(header.encode() + b"\0" + raw).digest()] = c["bytes"]
+    return sum(charged.values())
+
+
 def decode_array(entry, where=""):
     """The numpy array a constant entry holds, after its counts are checked."""
     import numpy as np
@@ -329,6 +344,7 @@ def measure(doc):
         "distinct_ops": len(op_counts),
         "constant_count": len(constants),
         "constant_bytes": sum(c["bytes"] for c in constants),
+        "unique_constant_bytes": unique_constant_bytes(constants),
         "largest_constant_bytes": max((c["bytes"] for c in constants), default=0),
         "input_bytes": sum(nbytes(i) for i in entry["inputs"]),
         "largest_intermediate_bytes": largest,
