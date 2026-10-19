@@ -290,7 +290,9 @@ def test_overlay_build_program_keeps_launch_bound_baseline_and_failure(
     assert harness.events.index("PRIVATE_OBSERVATION") < harness.events.index("PROGRAM")
     assert harness.events.index("PROGRAM") < len(harness.events) - 2
     assert harness.events[-2:] == ["CLEANUP", "ABSENCE_QUERY"]
-    assert not (operation / "private-build-program-diagnostic.bin").exists()
+    assert (
+        operation / "private-build-program-diagnostic.bin"
+    ).read_bytes() == original.private_diagnostic[:65536]
 
 
 def test_unrelated_program_provenance_has_no_extended_capture(harness, monkeypatch):
@@ -407,6 +409,11 @@ def test_export_failure_captures_only_closed_private_exit_and_owned_observation(
         fixed["stage"] == "EXPORT" and fixed["worker_code"] == WorkerCode.RUNTIME.value
     )
     assert not (paths[0].parent / "result.json").exists()
+    diagnostic_path = paths[0].parent / "private-export-diagnostic.bin"
+    assert diagnostic_path.read_bytes() == diagnostic
+    assert not (paths[0].parent / "snapshot").exists()
+    if os.name != "nt":
+        assert diagnostic_path.stat().st_mode & 0o777 == 0o600
 
 
 @pytest.mark.parametrize("failure", ["observation", "write"])
@@ -522,3 +529,50 @@ def test_watchdog_legacy_and_optional_intent_cleanup_survive_observation_failure
     )
     assert watchdog.main([name, launch, "123.0", str(path)]) == 0
     assert removed == [(name, launch)] * 3
+
+
+@pytest.mark.parametrize(
+    "provenance", [carrier.LIBRARY_PREP_PROVENANCE, "DIRECT_BUNDLE_PUBLIC_INFERENCE"]
+)
+def test_export_stderr_is_bounded_private_and_cannot_replace_failure(
+    tmp_path, monkeypatch, provenance
+):
+    original = WorkerFailure(
+        WorkerCode.RUNTIME, private_diagnostic=b"PRIVATE_EXPORT_STDERR" * 5000
+    )
+    path = tmp_path / "private-export-diagnostic.bin"
+
+    def fail():
+        with carrier._fixed_practice_stage(tmp_path, provenance, "EXPORT"):
+            raise original
+
+    with pytest.raises(WorkerFailure) as caught:
+        fail()
+    assert caught.value is original
+    assert path.read_bytes() == original.private_diagnostic[:65536]
+    assert (
+        b"PRIVATE_EXPORT_STDERR" not in (tmp_path / "failure-EXPORT.json").read_bytes()
+    )
+    previous = path.read_bytes()
+    monkeypatch.setattr(
+        carrier,
+        "write_once",
+        lambda *args: (_ for _ in ()).throw(OSError("disk unavailable")),
+    )
+    with pytest.raises(WorkerFailure) as caught:
+        fail()
+    assert caught.value is original
+    assert path.read_bytes() == previous
+
+
+def test_untrusted_export_stderr_is_not_retained(tmp_path):
+    original = WorkerFailure(
+        WorkerCode.RUNTIME, private_diagnostic=b"PRIVATE_EXPORT_STDERR"
+    )
+    with (
+        pytest.raises(WorkerFailure) as caught,
+        carrier._fixed_practice_stage(tmp_path, "UNTRUSTED_FIXTURE", "EXPORT"),
+    ):
+        raise original
+    assert caught.value is original
+    assert not list(tmp_path.iterdir())

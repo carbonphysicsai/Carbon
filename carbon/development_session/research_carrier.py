@@ -564,24 +564,34 @@ def _fixed_practice_stage(operation, provenance, stage):
         if provenance in _FIXED_DIAGNOSTIC_PROVENANCES:
             _retain_practice_failure(operation, stage, error)
         if (
-            provenance in {LIBRARY_PREP_PROVENANCE, LIBRARY_BUILD_PROVENANCE}
-            and stage == "PROGRAM"
-            and isinstance(error, WorkerFailure)
-        ):
+            (
+                provenance
+                in {
+                    LIBRARY_PREP_PROVENANCE,
+                    LIBRARY_BUILD_PROVENANCE,
+                    LIBRARY_OVERLAY_BUILD_PROVENANCE,
+                }
+                and stage == "PROGRAM"
+            )
+            or (provenance in _FIXED_DIAGNOSTIC_PROVENANCES and stage == "EXPORT")
+        ) and isinstance(error, WorkerFailure):
             # The fixed Docker stream removes its partial stdout on failure.
             # Keep the bounded, private controller diagnostic for a failed
-            # fixed offline preparation or source-bundle build so an operator
-            # can diagnose the actual program fault before admitting another run. This file is
-            # not part of the returned/public result or model snapshot.
+            # fixed program or exporter so its original stderr can be diagnosed.
+            # This file is never part of the public result or model snapshot.
             try:
                 diagnostic = error.private_diagnostic
                 if type(diagnostic) is bytes and diagnostic:
                     write_once(
                         operation
                         / (
-                            "private-prep-program-diagnostic.bin"
-                            if provenance == LIBRARY_PREP_PROVENANCE
-                            else "private-build-program-diagnostic.bin"
+                            "private-export-diagnostic.bin"
+                            if stage == "EXPORT"
+                            else (
+                                "private-prep-program-diagnostic.bin"
+                                if provenance == LIBRARY_PREP_PROVENANCE
+                                else "private-build-program-diagnostic.bin"
+                            )
                         ),
                         diagnostic[:65536],
                     )
