@@ -110,13 +110,23 @@ def test_future_plan_is_bound_before_draw_and_retained_through_release(tmp_path)
     assert frozen.content_digest not in json.dumps(ledger.entries())
     planned_commitment = solve(ledger, drawn["tranche"])
     assert "sampling_plan_ref" not in planned_commitment
+    assert ledger.deficit("pool", 4) == 4
+    assert ledger.deficit("pool", 4, sampling_plan_ref=frozen, slot=2) == 4
+    assert ledger.deficit("pool", 4, sampling_plan_ref=frozen, slot=3) == 0
+    assert ledger.status()["pool"]["live"] == 0
     with pytest.raises(BankRefused, match="bank_short:pool"):
         ledger.draw_window("pool", 2, {"all": 1}, retire_at=1)
     assert ledger.release_provenance(legacy_case)["sampling_plan_ref"] is None
 
     reopened = BankLedger(tmp_path / "bank", source)
-    selected = reopened.draw_window("pool", 3, {"all": 4}, retire_at=1)
+    with pytest.raises(BankRefused, match="bank_short:pool"):
+        reopened.draw_window("pool", 3, {"all": 4}, retire_at=1)
+    selected = reopened.draw_window(
+        "pool", 3, {"all": 4}, retire_at=1, sampling_plan_ref=frozen
+    )
     assert len(selected) == 4
+    with pytest.raises(BankRefused, match="bank_window_plan_mismatch"):
+        reopened.draw_window("pool", 3, {"all": 4}, retire_at=1)
     provenance = reopened.release_provenance(selected[0])
     assert provenance["sampling_plan_ref"]["content_digest"] == frozen.content_digest
     assert provenance["sampling_plan_ref"]["object_version"] == frozen.object_version
@@ -144,6 +154,28 @@ def test_planned_tranche_requires_an_opt_in_source(ledger):
     with pytest.raises(BankRefused, match="bank_sampling_plan_unsupported"):
         ledger.draw_tranche("pool", 1, sampling_plan_ref=plan_ref(), effective_slot=1)
     assert ledger.tranches() == [] and ledger.entries() == []
+
+
+def test_planned_tranche_is_opt_in_for_scheduled_windows(tmp_path):
+    ledger = BankLedger(tmp_path / "bank", PlannedSynthetic())
+    frozen = plan_ref()
+    drawn = ledger.draw_tranche("pool", 4, sampling_plan_ref=frozen, effective_slot=3)
+    solve(ledger, drawn["tranche"])
+    with pytest.raises(BankRefused, match="bank_short:pool"):
+        ledger.draw_window("pool", 3, {"all": 4}, retire_at=1, stride=1)
+    assert (
+        len(
+            ledger.draw_window(
+                "pool",
+                3,
+                {"all": 4},
+                retire_at=1,
+                stride=1,
+                sampling_plan_ref=frozen,
+            )
+        )
+        == 4
+    )
 
 
 def test_a_sealed_tranche_proves_each_case_and_nothing_else(ledger):
