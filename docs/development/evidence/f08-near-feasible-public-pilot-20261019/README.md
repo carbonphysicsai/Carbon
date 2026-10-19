@@ -10,8 +10,13 @@ mesh h = 3, 2.25 and 1.7 mm (24 CalculiX solves).
   and `f08_freeze.bank_mesh` under the F08-SCIENCE-VALUES-01 bands.
 - **Results:** all 24 mode ladders PASS, all 8 geometries converge to the h = 1.7 reference, and
   the bank mesh passes. Every deck matched its pinned manifest (`deck-verification.json`).
-- **Review:** the Carbon Validator accepted these references on 2026-10-19 (physics review in
-  `codex-queue/reports/PACKS_F08_SOLVER_RESULT_20261019/README.md`).
+- **Review:** the Carbon Validator accepted these references on 2026-10-19. The physics review
+  found:
+  - against h = 1.7, the worst rung differences are 0.074% (peak) at h = 3 and 0.021% at
+    h = 2.25, with an observed order of about 3, which puts h = 1.7's own error near 0.015%;
+  - the smallest adjacent ranking gap is 0.19% and the best-pick gap is 0.87%, so the ranking is
+    resolved by roughly 9x and 40x;
+  - no label is near a limit, so the set covers ranking only.
 - **Use:** `carbon/challenge_kit/physical_pack.py` reads `observed.json` (sha256-pinned) as F08's
   evaluation-pack bank.
 
