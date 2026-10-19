@@ -23,6 +23,14 @@ belong to, and ``produce`` refuses a model graded on any other image with
 fail). Cross-platform drift is a different evaluation; a new judge image means
 recomputed minimums under a new evaluation version.
 
+The minimums are the registered baseline's own leg scores measured on that
+platform (Validator, 2026-10-19). Two builds make them: a ``calibration`` pack
+(no minimums, its own evaluation version) grades the registered baseline's
+normal rebuild on the judge image; the per-image pack then takes that run's
+bound legs as its minimums (``baseline_minimums``) and records the run as a
+minimum source that never contends. Without either, a pack keeps the
+adapter's historical registered minimums under its historical version.
+
 Adapter interface: ``CHALLENGE``, ``VERSION``, ``CASE_ID``,
 ``EVALUATION_VERSION``, ``OUTPUT`` ({quantity, unit}), ``FILES`` (its
 executed files), ``Refused`` (exception with ``code``),
@@ -133,6 +141,17 @@ def leg_minimum_platform(inference_image_id, device_class=DEVICE_CLASS):
     return {"inference_image_id": inference_image_id, "device_class": device_class}
 
 
+BASELINE_ROLE = "BASELINE_LEG_MINIMUM_SOURCE_NOT_A_CONTENDER"
+
+
+def _evaluation_version(adapter, platform, minimums):
+    if minimums is None:
+        return adapter.EVALUATION_VERSION
+    image = platform["inference_image_id"][7:19]
+    mode = "calibration" if minimums == "calibration" else "judge"
+    return f"{adapter.EVALUATION_VERSION}-{mode}-{image}"
+
+
 def pack_documents(
     adapter,
     *,
@@ -143,6 +162,7 @@ def pack_documents(
     limits_raw,
     objective_raw,
     platform,
+    minimums=None,
 ):
     """Every document the producer owns for one Challenge, as exact bytes.
 
@@ -150,6 +170,8 @@ def pack_documents(
     physics contract in its ``{version, definition}`` envelope; the raw bytes
     are the pack's public interface, TRAIN, important-limit and
     design-objective roles; ``platform`` is ``leg_minimum_platform(...)``.
+    ``minimums`` is None (the adapter's historical registered minimums),
+    ``"calibration"`` (none) or ``baseline_minimums(...)``.
     """
     from carbon.challenge_kit import physical_public_train
     from carbon.scoring import benchmark_evidence as bench
@@ -171,6 +193,11 @@ def pack_documents(
         "bank_digest": bank_digest(bank),
         "leg_minimum_platform": leg_minimum_platform(**platform),
     }
+    if minimums == "calibration":
+        definition["leg_minimum_mode"] = "calibration"
+    elif minimums is not None:
+        definition["leg_minimum_mode"] = "baseline_run"
+        definition["leg_minimum_source"] = minimums["source"]
     adapter.validate_definition(definition)
     accuracy_raw = canonical(definition)
     basis = {
@@ -188,6 +215,21 @@ def pack_documents(
         train_raw=train_raw,
         names=names,
     )
+    if minimums is not None:
+        applied = {
+            **applied,
+            "legs": {
+                leg: {
+                    **body,
+                    "minimum": (
+                        minimums["legs"][leg]
+                        if minimums != "calibration" and leg in adapter.MINIMUM_LEGS
+                        else None
+                    ),
+                }
+                for leg, body in applied["legs"].items()
+            },
+        }
     pack = dual_score.register_pack(
         {
             **applied,
@@ -252,7 +294,7 @@ def pack_documents(
         "source_registration": canonical(
             {
                 "schema": "carbon.challenge-evaluation-source-registration.v1",
-                "evaluation_version": adapter.EVALUATION_VERSION,
+                "evaluation_version": _evaluation_version(adapter, platform, minimums),
                 "trusted_job": trusted_job,
                 "benchmark_registration": registration,
             }
@@ -260,8 +302,59 @@ def pack_documents(
     }
 
 
+def baseline_minimums(adapter, binding_raw, *, calibration_documents):
+    """The per-image leg minimums: the registered baseline's bound legs from
+    its graded run under exactly this producer's calibration pack.
+
+    ``binding_raw`` is the run's retained private-evaluation binding; the
+    calibration documents are recomputed for the same platform, so a binding
+    from any other pack, producer, measurement or image is refused.
+    """
+    calibration = json.loads(calibration_documents["score_pack"])
+    definition = json.loads(calibration_documents["accuracy_definition"])
+    try:
+        bound = json.loads(binding_raw)
+        row = bound["scoring"]["models"][0]
+        ok = (
+            bound.get("status") == "BOUND_DEVELOPMENT_ONLY"
+            and bound.get("official_score") is False
+            and bound.get("measurement_contract_digest")
+            == calibration["measurement_contract_digest"]
+            and bound.get("producer_digest") == definition["producer_digest"]
+            and bound.get("score_result_digest") == sha(canonical(bound["scoring"]))
+            and len(bound["scoring"]["models"]) == 1
+            and row["status"] == "SCORED_DEVELOPMENT_CANDIDATE"
+            and row["artifact_digest"] == bound["entry_id"]
+            and all(type(row["legs"][leg]) is float for leg in ("A", "D"))
+        )
+    except (KeyError, TypeError, ValueError, IndexError) as exc:
+        raise ValueError("baseline binding is not a scored calibration run") from exc
+    if not ok:
+        raise ValueError("baseline binding is not a scored calibration run")
+    return {
+        "legs": {leg: row["legs"][leg] for leg in ("A", "D")},
+        "source": {
+            "role": BASELINE_ROLE,
+            "binding_sha256": sha(binding_raw),
+            "entry_id": bound["entry_id"],
+            "state_digest": bound["state_digest"],
+            "score_result_digest": bound["score_result_digest"],
+            "calibration_measurement_contract_digest": calibration[
+                "measurement_contract_digest"
+            ],
+            **definition["leg_minimum_platform"],
+        },
+    }
+
+
 def write_development_pack(
-    adapter, root, *, inference_image_id, device_class=DEVICE_CLASS
+    adapter,
+    root,
+    *,
+    inference_image_id,
+    device_class=DEVICE_CLASS,
+    calibration=False,
+    baseline_binding_raw=None,
 ):
     """Write the Challenge's complete DEVELOPMENT pack under a new, empty ``root``.
 
@@ -272,7 +365,9 @@ def write_development_pack(
     the draft manifest is ``root / MANIFEST_NAME``, which the receiver seals.
     The pack's physics role is the receiver material's own; it must be in its
     ``{version, definition}`` envelope (and equal the adapter's generated
-    contract when the adapter generates it).
+    contract when the adapter generates it). ``calibration`` writes the
+    minimum-free calibration pack; ``baseline_binding_raw`` writes the
+    per-image pack from the baseline's graded calibration run.
     """
     from carbon.challenge_kit import physical_pack
 
@@ -289,16 +384,30 @@ def write_development_pack(
         root, adapter.CHALLENGE, adapter.VERSION, exposed_development_bank=True
     )
     public = physical_pack.public_roles(adapter.CHALLENGE, adapter.VERSION)
-    documents = pack_documents(
-        adapter,
-        bank=physical_pack.development_bank(adapter.CHALLENGE, adapter.VERSION),
-        physics=physics,
-        interface_raw=public["interface"],
-        train_raw=public["train"],
-        limits_raw=public["important_limit_definition"],
-        objective_raw=public["design_objective"],
-        platform=leg_minimum_platform(inference_image_id, device_class),
-    )
+    inputs = {
+        "bank": physical_pack.development_bank(adapter.CHALLENGE, adapter.VERSION),
+        "physics": physics,
+        "interface_raw": public["interface"],
+        "train_raw": public["train"],
+        "limits_raw": public["important_limit_definition"],
+        "objective_raw": public["design_objective"],
+        "platform": leg_minimum_platform(inference_image_id, device_class),
+    }
+    if calibration and baseline_binding_raw is not None:
+        raise ValueError("a calibration pack takes no baseline binding")
+    minimums = "calibration" if calibration else None
+    if baseline_binding_raw is not None:
+        source = getattr(adapter, "CALIBRATION_ADAPTER", adapter)
+        minimums = baseline_minimums(
+            adapter,
+            baseline_binding_raw,
+            calibration_documents=pack_documents(
+                source, minimums="calibration", **inputs
+            ),
+        )
+    if calibration and getattr(adapter, "CALIBRATION_ADAPTER", adapter) is not adapter:
+        raise ValueError("calibrate with the default adapter")
+    documents = pack_documents(adapter, minimums=minimums, **inputs)
     draft = json.loads(manifest_path.read_bytes())
     for role, body in documents.items():
         scope = "public" if role == "accuracy_definition" else "private"
@@ -309,6 +418,45 @@ def write_development_pack(
     if manifest_path.name != MANIFEST_NAME:
         raise ValueError("pack manifest name differs")
     return manifest_path
+
+
+def add_builder_arguments(parser):
+    parser.add_argument("root", type=Path, help="new or empty pack directory")
+    parser.add_argument(
+        "--inference-image",
+        required=True,
+        help=(
+            "sha256 digest of the judge inference image the leg minimums belong "
+            "to: the inference_image_id retention records for tasks graded by "
+            "this receiver (its bundle or worker evidence)"
+        ),
+    )
+    parser.add_argument("--device-class", default=DEVICE_CLASS)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--calibration",
+        action="store_true",
+        help="write the minimum-free calibration pack for the baseline run",
+    )
+    mode.add_argument(
+        "--baseline-binding",
+        type=Path,
+        help=(
+            "the registered baseline's private-evaluation-binding.json from its "
+            "graded calibration run; writes the per-image pack"
+        ),
+    )
+
+
+def builder_options(args):
+    return {
+        "inference_image_id": args.inference_image,
+        "device_class": args.device_class,
+        "calibration": args.calibration,
+        "baseline_binding_raw": (
+            args.baseline_binding.read_bytes() if args.baseline_binding else None
+        ),
+    }
 
 
 def produce(

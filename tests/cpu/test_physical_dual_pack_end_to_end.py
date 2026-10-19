@@ -57,7 +57,7 @@ def _public(adapter):
     return public
 
 
-def _write_pack(adapter, root, public):
+def _write_pack(adapter, root, public, **options):
     """The pack exactly as ``write_development_pack`` writes it (the executor's
     command), sealed as the receiver seals it."""
     with pytest.MonkeyPatch.context() as patch:
@@ -69,7 +69,9 @@ def _write_pack(adapter, root, public):
                 lambda *_: json.loads(public["physics_contract"]),
             )
             patch.setattr(physical_pack, "public_roles", lambda *_: public)
-        manifest = adapter.write_development_pack(root, inference_image_id=IMAGE)
+        manifest = adapter.write_development_pack(
+            root, inference_image_id=IMAGE, **options
+        )
     assert manifest == root / physical.MANIFEST_NAME
     prepared = prepare_pack(
         root,
@@ -324,6 +326,7 @@ def case(request, tmp_path_factory):
     }
     return {
         "adapter": adapter,
+        "public": public,
         "native_gate": native_gate,
         "root": tmp / "pack",
         "snapshot": snapshot,
@@ -498,3 +501,76 @@ def test_a_pinned_measurement_must_be_what_the_retained_originals_reduce_to(case
         match="model_query_originals_unavailable",
     ):
         _bind(case, prepared_source, forged, scoring)
+
+
+def _with_pack(case, root, **options):
+    """The same retained model and originals under another built pack."""
+    snapshot, documents = _write_pack(case["adapter"], root, case["public"], **options)
+    registration = json.loads(documents["source_registration"])
+    return {
+        **case,
+        "root": root,
+        "snapshot": snapshot,
+        "job": registration["trusted_job"],
+        "registration": registration["benchmark_registration"],
+        "version": registration["evaluation_version"],
+        "references": json.loads(documents["reference_rows"]),
+        "score_pack": json.loads(documents["score_pack"]),
+        "definition": json.loads(documents["accuracy_definition"]),
+    }
+
+
+def _graded_binding(case):
+    prepared_source, measured = _produce(case)
+    benchmark = json.loads(measured.raw)["benchmark"]
+    scoring = ScoreEngine.score_dual_benchmark_v4(benchmark, case["score_pack"])
+    return scoring, _bind(case, prepared_source, measured, scoring)
+
+
+def test_the_baseline_graded_on_the_judge_image_sets_the_minimums(case, tmp_path):
+    """Validator, 2026-10-19: the minimums are the registered baseline's own
+    legs graded on the judge image; that run sets them and never contends."""
+    calibration = _with_pack(case, tmp_path / "calibration", calibration=True)
+    assert all(
+        leg["minimum"] is None for leg in calibration["score_pack"]["legs"].values()
+    )
+    assert calibration["definition"]["leg_minimum_mode"] == "calibration"
+    assert "-calibration-" in calibration["version"]
+    _, bound = _graded_binding(calibration)
+    judge = _with_pack(
+        case, tmp_path / "judge", baseline_binding_raw=physical.canonical(bound)
+    )
+    legs = bound["scoring"]["models"][0]["legs"]
+    assert {k: v["minimum"] for k, v in judge["score_pack"]["legs"].items()} == {
+        "A": legs["A"],
+        "D": legs["D"],
+    }
+    record = judge["definition"]["leg_minimum_source"]
+    assert record["role"] == physical.BASELINE_ROLE
+    assert record["entry_id"] == case["entry"]["entry_id"]
+    assert record["inference_image_id"] == IMAGE
+    assert record["binding_sha256"] == _sha(physical.canonical(bound))
+    assert "-judge-" in judge["version"] and judge["version"] != case["version"]
+    if case["adapter"] is cooling:
+        # The comparison variant takes the same run's A and no D minimum.
+        variant = _with_pack(
+            case,
+            tmp_path / "variant",
+            rule="baseline_a_no_d_minimum",
+            baseline_binding_raw=physical.canonical(bound),
+        )
+        assert variant["score_pack"]["legs"]["A"]["minimum"] == legs["A"]
+        assert variant["score_pack"]["legs"]["D"]["minimum"] is None
+    # The same baseline on the same image passes its own minimums at equality.
+    scoring, other = _graded_binding(judge)
+    assert scoring["models"][0]["status"] == "SCORED_DEVELOPMENT_CANDIDATE"
+    # A binding from any other pack, or with changed legs, sets nothing.
+    forged = deepcopy(bound)
+    forged["scoring"]["models"][0]["legs"]["A"] = 0.0
+    for name, binding in (("other", other), ("forged", forged)):
+        with pytest.raises(ValueError, match="scored calibration run"):
+            _with_pack(
+                case,
+                tmp_path / name,
+                baseline_binding_raw=physical.canonical(binding),
+            )

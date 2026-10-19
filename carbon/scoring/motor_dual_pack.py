@@ -117,6 +117,8 @@ EVALUATION_VERSION = "motor-dual-development-bank-90-v1"
 CASE_ID = "motor-development-bank-90"
 OUTPUT = {"quantity": "torque_nm", "unit": "N.m"}
 FILES = ("motor_dual_pack.py", "motor_dual_measurement.py")
+#: Legs a measured baseline run sets minimums for.
+MINIMUM_LEGS = ("A", "D")
 MANIFEST_NAME = physical.MANIFEST_NAME
 bank_digest = physical.bank_digest
 Refused = mdm.MotorMeasurementRefused
@@ -193,31 +195,15 @@ def produce(**kwargs):
     return physical.produce(_ADAPTER, **kwargs)
 
 
-def _platform_arguments(parser):
-    parser.add_argument(
-        "--inference-image",
-        required=True,
-        help="sha256 digest of the judge inference image the minimums belong to",
-    )
-    parser.add_argument("--device-class", default=physical.DEVICE_CLASS)
-
-
 def main(argv=None):
     import argparse
 
     parser = argparse.ArgumentParser(
         description="Write the complete Motor DEVELOPMENT evaluation pack."
     )
-    parser.add_argument("root", type=Path, help="new or empty pack directory")
-    _platform_arguments(parser)
+    physical.add_builder_arguments(parser)
     args = parser.parse_args(argv)
-    print(
-        write_development_pack(
-            args.root.resolve(),
-            inference_image_id=args.inference_image,
-            device_class=args.device_class,
-        )
-    )
+    print(write_development_pack(args.root.resolve(), **physical.builder_options(args)))
     return 0
 
 
