@@ -2,8 +2,10 @@
 
 DEVELOPMENT only, exposed development bank. The pack is Data Collection's
 ``physical_pack`` with this producer's documents; the model is a retained
-bundle (the shape retention keeps for a JAX export: a measured v2 inference
-receipt kept as an original file, not a role). The predictions are the
+bundle in the shape retention keeps for a JAX export under the per-case judge:
+the graded per-case receipt (v1, role ``inference_receipt``) and a separate
+batched cold timed query (v2, ``timed-query-receipt.json``, an original file,
+not a role) that alone carries timing and shapes. The predictions are the
 learned-krr-v1 baseline rebuilt from public TRAIN, so the graded legs must
 equal the recorded baseline legs. Platform-shaped pair records are fixture
 envelopes around those same predictions; no worker or solver runs here.
@@ -36,15 +38,27 @@ GRADED_OPERATION = "operation-" + "a" * 64
 IMAGE = _sha(b"fixture-motor-inference-image")
 
 
+def _enveloped(public):
+    """The pack's physics role in its ``{version, definition}`` envelope, as
+    Data Collection's packs-01 (226659b7) writes it; identity once that lands."""
+    physics = json.loads(public["physics_contract"])
+    if set(physics) == {"version", "definition"}:
+        return public
+    envelope = {
+        "version": "motor-applied-physics-contract-20261018",
+        "definition": physics,
+    }
+    raw = json.dumps(envelope, sort_keys=True, separators=(",", ":")).encode()
+    return {**public, "physics_contract": raw}
+
+
 def _write_pack(root, bank, public):
     physical_pack.write_public_pack(
         root, pack.CHALLENGE, pack.VERSION, exposed_development_bank=True
     )
     documents = pack.pack_documents(
         bank=bank,
-        applied_physics_raw=(
-            physical_pack._DATA / "motor-applied-physics-contract-20261018.json"
-        ).read_bytes(),
+        physics=json.loads(public["physics_contract"]),
         interface_raw=public["interface"],
         train_raw=public["train"],
         limits_sha256=_sha(public["important_limit_definition"]),
@@ -52,12 +66,11 @@ def _write_pack(root, bank, public):
     )
     draft_path = root / "evaluation-pack.json"
     draft = json.loads(draft_path.read_bytes())
+    (root / draft["public"]["physics_contract"]["path"]).write_bytes(
+        public["physics_contract"]
+    )
     for role, body in documents.items():
-        scope = (
-            "public"
-            if role in ("physics_contract", "accuracy_definition")
-            else "private"
-        )
+        scope = "public" if role == "accuracy_definition" else "private"
         name = f"{scope}/{role}.json"
         (root / name).write_bytes(body)
         draft[scope][role] = {"path": name}
@@ -127,12 +140,16 @@ def _retain_bundle(tmp, *, public, case_bank, predictions_raw):
         __header__=("|u1", _json(header), (len(_json(header)),)),
         graph=("|u1", graph, (len(graph),)),
     )
-    receipt = {
-        "schema": "carbon.development.bundle-inference.v2",
+    graded = {
+        "schema": "carbon.development.bundle-inference.v1",
         "recipe_digest": _sha(_json(recipe)),
         "state_digest": _sha(state),
         "inputs_digest": _sha(case_bank),
         "predictions_digest": _sha(predictions_raw),
+    }
+    timed = {
+        **graded,
+        "schema": "carbon.development.bundle-inference.v2",
         "measurement": {
             "scope": bundle.TIMED_SCOPE,
             "timing_s": {
@@ -156,7 +173,8 @@ def _retain_bundle(tmp, *, public, case_bank, predictions_raw):
         "source.tar.gz": b"fixture source bytes; never executed",
         "environment.json": _json({"profile": "fixture"}),
         "image.json": _json({"image": "fixture"}),
-        "inference-receipt.json": encode(receipt),
+        "inference-receipt.json": encode(graded),
+        "timed-query-receipt.json": encode(timed),
     }
     roles = {
         "recipe": ("recipe.json", "json"),
@@ -167,6 +185,7 @@ def _retain_bundle(tmp, *, public, case_bank, predictions_raw):
         "source": ("source.tar.gz", "raw_bytes"),
         "environment": ("environment.json", "raw_bytes"),
         "image": ("image.json", "json"),
+        "inference_receipt": ("inference-receipt.json", "json"),
     }
     for name, body in artifacts.items():
         (root / name).write_bytes(body)
@@ -194,7 +213,7 @@ def _retain_bundle(tmp, *, public, case_bank, predictions_raw):
     entries = tmp / "entries"
     entries.mkdir()
     entry = unbound_entry.create_entry_v5(root, manifest_path, receipt_path, entries)
-    return entry["entry"], custody_raw, artifacts, receipt
+    return entry["entry"], custody_raw, artifacts, timed
 
 
 def _pair(receipt, outputs):
@@ -226,7 +245,7 @@ def _pair(receipt, outputs):
 def motor(tmp_path_factory):
     tmp = tmp_path_factory.mktemp("motor-e2e")
     bank = physical_pack.development_bank(pack.CHALLENGE, pack.VERSION)
-    public = physical_pack.public_roles(pack.CHALLENGE, pack.VERSION)
+    public = _enveloped(physical_pack.public_roles(pack.CHALLENGE, pack.VERSION))
     snapshot, documents = _write_pack(tmp / "pack", bank, public)
     names = physical_public_train.numeric_interface_document(pack.CHALLENGE)[
         "input_names"
@@ -245,14 +264,15 @@ def motor(tmp_path_factory):
     ]
     predictions_raw = json.dumps(predictions, allow_nan=False, separators=(",", ":"))
     case_bank = (tmp / "pack/private/case_bank.npz").read_bytes()
-    entry, custody_raw, artifacts, receipt = _retain_bundle(
+    entry, custody_raw, artifacts, timed = _retain_bundle(
         tmp,
         public=public,
         case_bank=case_bank,
         predictions_raw=predictions_raw.encode(),
     )
     registration_doc = json.loads(documents["source_registration"])
-    pair_raw = _pair(receipt, [predictions, predictions])
+    # Platform's pair runs the same batched cold query form as the timed one.
+    pair_raw = _pair(timed, [predictions, predictions])
     originals = {
         "inference_receipt_raw": artifacts["inference-receipt.json"],
         "predictions_raw": artifacts["predictions.json"],
@@ -265,6 +285,10 @@ def motor(tmp_path_factory):
                 "predictions_digest": entry["prediction_digest"],
             }
         ),
+        "timed_query": {
+            "receipt_raw": artifacts["timed-query-receipt.json"],
+            "registered_sha256": _sha(artifacts["timed-query-receipt.json"]),
+        },
         "inference_pair_raw": pair_raw,
         "inference_pair_sha256": _sha(pair_raw),
     }
@@ -308,6 +332,27 @@ def _produce(case, originals=None):
     return prepared_source, measured
 
 
+def _bind(case, prepared_source, measured, scoring):
+    return evidence.bind_private_evaluation_evidence(
+        entry=case["entry"],
+        custody_receipt_raw=case["custody_raw"],
+        trusted_job=case["job"],
+        registration=case["registration"],
+        references=case["references"],
+        measured_model=measured.measured_model,
+        score_pack=case["score_pack"],
+        graph_originals=case["originals"],
+        expected_result_digest=evidence._sha(evidence._canonical(scoring)),
+        ordered_query_bytes=[case["case_bank"]],
+        evaluation_source_receipt_raw=prepared_source.raw,
+        registered_source_receipt_sha256=prepared_source.sha256,
+        expected_evaluation_pack_digest=case["snapshot"].manifest_digest,
+        dual_measurement_receipt_raw=measured.raw,
+        registered_dual_measurement_sha256=measured.sha256,
+        selected_evaluation_pack=case["snapshot"],
+    )
+
+
 def test_a_retained_bundle_scores_the_recorded_baseline_and_binds_v4(motor):
     prepared_source, measured = _produce(motor)
     benchmark = json.loads(measured.raw)["benchmark"]
@@ -323,24 +368,7 @@ def test_a_retained_bundle_scores_the_recorded_baseline_and_binds_v4(motor):
         "complete_fixed_coverage": "PASS",
     }
     scoring = ScoreEngine.score_dual_benchmark_v4(benchmark, motor["score_pack"])
-    bound = evidence.bind_private_evaluation_evidence(
-        entry=motor["entry"],
-        custody_receipt_raw=motor["custody_raw"],
-        trusted_job=motor["job"],
-        registration=motor["registration"],
-        references=motor["references"],
-        measured_model=measured.measured_model,
-        score_pack=motor["score_pack"],
-        graph_originals=motor["originals"],
-        expected_result_digest=evidence._sha(evidence._canonical(scoring)),
-        ordered_query_bytes=[motor["case_bank"]],
-        evaluation_source_receipt_raw=prepared_source.raw,
-        registered_source_receipt_sha256=prepared_source.sha256,
-        expected_evaluation_pack_digest=motor["snapshot"].manifest_digest,
-        dual_measurement_receipt_raw=measured.raw,
-        registered_dual_measurement_sha256=measured.sha256,
-        selected_evaluation_pack=motor["snapshot"],
-    )
+    bound = _bind(motor, prepared_source, measured, scoring)
     assert bound["schema"] == evidence.PAIRED_SIDECAR_SCHEMA
     assert bound["scoring"] == scoring
     assert bound["inference_pair_sha256"] == motor["originals"]["inference_pair_sha256"]
@@ -351,8 +379,8 @@ def test_a_retained_bundle_scores_the_recorded_baseline_and_binds_v4(motor):
 def test_a_repeat_beyond_motors_rule_fails_its_gate_not_the_run(motor):
     drifted = deepcopy(motor["predictions"])
     drifted[0] = [t + 1e-3 for t in drifted[0]]
-    receipt = json.loads(motor["originals"]["inference_receipt_raw"])
-    pair_raw = _pair(receipt, [motor["predictions"], drifted])
+    timed = json.loads(motor["originals"]["timed_query"]["receipt_raw"])
+    pair_raw = _pair(timed, [motor["predictions"], drifted])
     originals = {
         **motor["originals"],
         "inference_pair_raw": pair_raw,
@@ -364,12 +392,33 @@ def test_a_repeat_beyond_motors_rule_fails_its_gate_not_the_run(motor):
 
 
 def test_unretained_bundle_originals_are_refused(motor):
+    timed = json.loads(motor["originals"]["timed_query"]["receipt_raw"])
+    faster = {
+        **timed,
+        "measurement": {
+            **timed["measurement"],
+            "timing_s": {
+                "preprocess": 0.0,
+                "export": 0.0,
+                "inference": 1e-6,
+                "postprocess": 0.0,
+            },
+        },
+    }
     for key, body in (
         ("inference_receipt_raw", b'{"not":"retained"}\n'),
         ("predictions_raw", b"[[0.0]]"),
+        (
+            "timed_query",
+            {"receipt_raw": encode(faster), "registered_sha256": _sha(encode(faster))},
+        ),
     ):
         with pytest.raises(source.PrivateEvaluationSourceRefused):
             _produce(motor, {**motor["originals"], key: body})
+    # Without its timed query an unmeasured per-case receipt has no shapes.
+    untimed = {k: v for k, v in motor["originals"].items() if k != "timed_query"}
+    with pytest.raises(source.PrivateEvaluationSourceRefused):
+        _produce(motor, untimed)
     reused = source._canonical(
         {
             **json.loads(motor["originals"]["bundle_evidence_raw"]),
@@ -382,3 +431,29 @@ def test_unretained_bundle_originals_are_refused(motor):
         source.PrivateEvaluationSourceRefused, match="dual_repeat_not_independent"
     ):
         _produce(motor, {**motor["originals"], "bundle_evidence_raw": reused})
+
+
+def test_a_pinned_measurement_must_be_what_the_retained_originals_reduce_to(motor):
+    """A consistent, newly pinned receipt cannot carry a faster timing than the
+    retained timed query: the binder recomputes a bundle's measured model."""
+    prepared_source, measured = _produce(motor)
+    benchmark = json.loads(measured.raw)["benchmark"]
+    faster = deepcopy(measured.measured_model)
+    faster["cases"][0]["timing_s"]["inference"] = 1e-6
+    forged = source.build_dual_measurement_receipt(
+        selected_pack=motor["snapshot"],
+        public_root=motor["root"],
+        private_root=motor["root"],
+        entry=motor["entry"],
+        measured_model=faster,
+        graph_originals=motor["originals"],
+        evaluation_source_receipt_raw=prepared_source.raw,
+        benchmark=benchmark,
+        producer_digest=pack.producer_digest(),
+    )
+    scoring = ScoreEngine.score_dual_benchmark_v4(benchmark, motor["score_pack"])
+    with pytest.raises(
+        evidence.PrivateEvaluationEvidenceRefused,
+        match="model_query_originals_unavailable",
+    ):
+        _bind(motor, prepared_source, forged, scoring)

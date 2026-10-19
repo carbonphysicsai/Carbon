@@ -6,10 +6,8 @@ committed repository material): never a hidden-exam or paying claim.
 Two halves, one source:
 
 - ``pack_documents`` regenerates, from committed sources only, the documents
-  Data Collection's pack pins for Motor: the public ``physics_contract`` (the
-  committed applied physics document in the ``{version, definition}``
-  envelope) and ``accuracy_definition`` (the producer's registered A/D
-  definition and pin), and the private
+  Data Collection's pack pins for Motor: the public ``accuracy_definition``
+  (the producer's registered A/D definition and pin), and the private
   ``reference_rows``, ``solver_evidence``, ``score_pack`` and
   ``source_registration``. The score pack is the committed applied definition
   (MOTOR_APPLIED_SCORE_DEFINITION_20261018, sha256 b4ea72a5..., candidate
@@ -91,12 +89,6 @@ _APPLIED_PACK = {
     "scope": "PUBLIC_DEVELOPMENT",
     "value_weight": 0.5,
 }
-#: The committed applied physics document (the old counted pack's
-#: physics_contract.json), carried verbatim inside this pack's envelope.
-APPLIED_PHYSICS_SHA256 = (
-    "sha256:74e3f30ce38d997e3b7f74505d67981bedcf77de28235ea60bf43f26be9483fd"
-)
-PHYSICS_VERSION = "motor-applied-physics-contract-20261018"
 EVALUATION_VERSION = "motor-dual-development-bank-90-v1"
 CASE_ID = "motor-development-bank-90"
 _PRODUCER_FILES = (
@@ -178,7 +170,7 @@ def _identities(bank, physics_digest):
 def pack_documents(
     *,
     bank,
-    applied_physics_raw,
+    physics,
     interface_raw,
     train_raw,
     limits_sha256,
@@ -187,10 +179,9 @@ def pack_documents(
     """Every Motor document this producer owns, as exact bytes by role name.
 
     ``bank`` is ``physical_pack.development_bank(CHALLENGE, VERSION)``;
-    ``applied_physics_raw`` the committed applied Motor physics document
-    (MOTOR_APPLIED_PHYSICS_CONTRACT_20261018), which the emitted
-    ``physics_contract`` role carries verbatim as its definition, under the
-    ``{version, definition}`` envelope retention and the ScoreEngine bind;
+    ``physics`` the pack's own physics contract
+    (``physical_pack.physics_contract``: the committed applied document inside
+    the ``{version, definition}`` envelope retention and the ScoreEngine bind);
     ``interface_raw`` and ``train_raw``
     the pack's public interface and TRAIN role bytes; the two digests are the
     pack's public important-limit and design-objective role pins.
@@ -201,12 +192,6 @@ def pack_documents(
         DUAL_MEASUREMENT_CONTRACT_SCHEMA,
     )
 
-    if _sha(applied_physics_raw) != APPLIED_PHYSICS_SHA256:
-        raise ValueError("motor applied physics document differs")
-    physics = {
-        "version": PHYSICS_VERSION,
-        "definition": json.loads(applied_physics_raw),
-    }
     physics_digest = bench.physics_contract_identity(physics)["definition_digest"]
     definition = {
         "schema": "carbon.scoring.motor-dual-accuracy.v1",
@@ -303,7 +288,6 @@ def pack_documents(
         "peak_memory_bytes": None,
     }
     return {
-        "physics_contract": _canonical(physics),
         "accuracy_definition": accuracy_raw,
         "reference_rows": _canonical([reference_row]),
         "solver_evidence": _canonical(identity),
@@ -454,13 +438,15 @@ def produce(
         entry, registration, originals
     )
     n, width = len(bank["case_ids"]), len(bank["references"][0])
+    measurement = source_module.query_measurement(
+        entry, registration, originals, receipt
+    )
     require(
-        len(values) == n * width
-        and inference["receipt"]["measurement"]["output_shape"] == [n, width],
+        len(values) == n * width and measurement["output_shape"] == [n, width],
         "dual_native_tensor_shape",
     )
     repeats = source_module.read_inference_repeats(
-        originals, receipt=receipt, worker=worker
+        originals, receipt=receipt, worker=worker, measurement=measurement
     )
     require(all(len(r) == n * width for r in repeats), "dual_repeat_evidence_shape")
 
@@ -523,6 +509,10 @@ def produce(
     score(benchmark, pack)
     native_gates = {k: measured["gates"][k] for k in gates}
     model = bundle.measurement_from_saved_inference(
-        entry, registration, inference, gates=native_gates
+        entry,
+        registration,
+        inference,
+        gates=native_gates,
+        timed_query=originals.get("timed_query"),
     )
     return model, benchmark, identity

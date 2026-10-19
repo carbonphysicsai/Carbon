@@ -587,7 +587,23 @@ REPEAT_PLACEMENT = "across_runs_same_position"
 _EPS = {"float32": 2.0**-23, "float64": 2.0**-52}
 
 
-def read_inference_repeats(originals, *, receipt, worker):
+def query_measurement(entry, registration, originals, receipt):
+    """Shapes and dtypes of the authenticated query: the graded receipt's own
+    measurement, or, for an unmeasured per-case graded receipt, its pinned
+    batched timed query's (same model, state and inputs)."""
+    from carbon.scoring import bundle_benchmark_core as bundle
+
+    if "measurement" in receipt:
+        return receipt["measurement"]
+    try:
+        return bundle.timed_query_receipt(
+            entry, registration, originals.get("timed_query")
+        )["measurement"]
+    except bundle.BundleBenchmarkRefused as exc:
+        raise PrivateEvaluationSourceRefused("dual_native_inference_binding") from exc
+
+
+def read_inference_repeats(originals, *, receipt, worker, measurement=None):
     """The two fresh repeat runs of the graded model: Platform's pinned
     source-free pair, bound to the graded run's recipe, state, inputs, image
     and shapes, and independent of the graded operation. Missing or
@@ -597,7 +613,7 @@ def read_inference_repeats(originals, *, receipt, worker):
 
     if not _PAIR_ORIGINALS <= set(originals):
         raise PrivateEvaluationSourceRefused("dual_repeat_evidence_unavailable")
-    measured = receipt.get("measurement") or {}
+    measured = measurement or receipt.get("measurement") or {}
     raw, pin = originals["inference_pair_raw"], originals["inference_pair_sha256"]
     try:
         envelope = json.loads(raw)
@@ -921,6 +937,12 @@ def _authenticated_bundle_outputs(entry, registration, originals):
             and is_sha256_digest(evidence["inference_image_id"])
             and bundle.retained_bundle_receipt(
                 entry, originals["inference_receipt_raw"]
+            )
+            and (
+                "timed_query" not in originals
+                or bundle.retained_bundle_receipt(
+                    entry, originals["timed_query"].get("receipt_raw")
+                )
             ),
             "dual_native_bundle_binding",
         )
@@ -937,6 +959,7 @@ def _authenticated_bundle_outputs(entry, registration, originals):
             registration,
             inference,
             gates={name: False for name in registration["mandatory_gates"]},
+            timed_query=originals.get("timed_query"),
         )
     except (
         bundle.BundleBenchmarkRefused,
