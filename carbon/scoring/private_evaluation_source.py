@@ -79,6 +79,35 @@ def produce_dual_benchmark_input(
     Other Challenge adapters remain explicitly unavailable. A required repeat
     gate cannot be inferred from the one retained normal inference.
     """
+    from carbon.scoring import motor_dual_pack
+
+    if type(entry) is dict and entry.get("challenge") == motor_dual_pack.CHALLENGE:
+        try:
+            from carbon.challenge_kit import physical_pack, physical_public_train
+
+            bank = physical_pack.development_bank(
+                motor_dual_pack.CHALLENGE, entry.get("challenge_version")
+            )
+            names = physical_public_train.numeric_interface_document(
+                motor_dual_pack.CHALLENGE
+            )["input_names"]
+        except (ImportError, ValueError) as exc:
+            raise PrivateEvaluationSourceRefused(
+                "dual_native_role_unavailable:development_bank"
+            ) from exc
+        return motor_dual_pack.produce(
+            selected=selected_pack,
+            public_root=public_root,
+            private_root=private_root,
+            entry=entry,
+            job=trusted_job,
+            registration=registration,
+            references=references,
+            originals=graph_originals,
+            source_raw=evaluation_source_receipt_raw,
+            bank=bank,
+            interface_names=names,
+        )
     if type(entry) is not dict or entry.get("challenge") != "f02":
         raise PrivateEvaluationSourceRefused("dual_measurement_producer_unavailable")
     return _produce_f02_cold(
@@ -526,6 +555,52 @@ REPEAT_PLACEMENT = "across_runs_same_position"
 _EPS = {"float32": 2.0**-23, "float64": 2.0**-52}
 
 
+def read_inference_repeats(originals, *, receipt, worker):
+    """The two fresh repeat runs of the graded model: Platform's pinned
+    source-free pair, bound to the graded run's recipe, state, inputs, image
+    and shapes, and independent of the graded operation. Missing or
+    inconsistent pair evidence is typed unavailable, never a candidate verdict.
+    """
+    from carbon.scoring import inference_pair_evidence as pair_reader
+
+    if not _PAIR_ORIGINALS <= set(originals):
+        raise PrivateEvaluationSourceRefused("dual_repeat_evidence_unavailable")
+    measured = receipt.get("measurement") or {}
+    raw, pin = originals["inference_pair_raw"], originals["inference_pair_sha256"]
+    try:
+        envelope = json.loads(raw)
+        phases = [envelope[name] for name in ("primary", "repeat")]
+        expected = {
+            "recipe_digest": receipt["recipe_digest"],
+            "state_digest": receipt["state_digest"],
+            "inputs_digest": receipt["inputs_digest"],
+            "inference_image_id": worker["inference_image_id"],
+            "operation_ids": [p["worker_operation"] for p in phases],
+            "ledger_identities": [p["accounting"]["ledger_identity"] for p in phases],
+            "controls_digests": [p["controls_digest"] for p in phases],
+            "input_shape": measured["input_shape"],
+            "output_shape": measured["output_shape"],
+            "input_dtype": measured["input_dtype"],
+            "output_dtype": measured["output_dtype"],
+        }
+        pair = pair_reader.read_inference_pair(
+            raw, registered_sha256=pin, expected=expected
+        )
+    except pair_reader.PairEvidenceRefused as exc:
+        raise PrivateEvaluationSourceRefused(
+            "dual_repeat_evidence_unavailable:" + exc.code
+        ) from exc
+    except (KeyError, TypeError, ValueError, UnicodeError) as exc:
+        raise PrivateEvaluationSourceRefused(
+            "dual_repeat_evidence_unavailable"
+        ) from exc
+    _producer_require(
+        worker.get("inference_operation") not in expected["operation_ids"],
+        "dual_repeat_not_independent",
+    )
+    return [list(run) for run in pair.outputs]
+
+
 def paired_repeat_verdict(originals, *, receipt, worker, outputs, rule, quantity_of):
     """The `paired_repeat` gate: the graded run and two fresh repeats agree.
 
@@ -535,12 +610,9 @@ def paired_repeat_verdict(originals, *, receipt, worker, outputs, rule, quantity
     important-limit definition), never another Challenge's figure. Missing
     evidence or rule is typed unavailable, never a candidate verdict.
     """
-    from carbon.scoring import inference_pair_evidence as pair_reader
-
     if not _PAIR_ORIGINALS <= set(originals):
         raise PrivateEvaluationSourceRefused("dual_repeat_evidence_unavailable")
-    measured = receipt.get("measurement") or {}
-    dtype = measured.get("output_dtype")
+    dtype = (receipt.get("measurement") or {}).get("output_dtype")
     _producer_require(
         type(rule) is dict
         and rule.get("schema") == REPEAT_RULE_SCHEMA
@@ -561,39 +633,8 @@ def paired_repeat_verdict(originals, *, receipt, worker, outputs, rule, quantity
         ),
         "dual_repeat_rule_unregistered",
     )
-    raw, pin = originals["inference_pair_raw"], originals["inference_pair_sha256"]
-    try:
-        envelope = json.loads(raw)
-        phases = [envelope[name] for name in ("primary", "repeat")]
-        expected = {
-            "recipe_digest": receipt["recipe_digest"],
-            "state_digest": receipt["state_digest"],
-            "inputs_digest": receipt["inputs_digest"],
-            "inference_image_id": worker["inference_image_id"],
-            "operation_ids": [p["worker_operation"] for p in phases],
-            "ledger_identities": [p["accounting"]["ledger_identity"] for p in phases],
-            "controls_digests": [p["controls_digest"] for p in phases],
-            "input_shape": measured["input_shape"],
-            "output_shape": measured["output_shape"],
-            "input_dtype": measured["input_dtype"],
-            "output_dtype": dtype,
-        }
-        pair = pair_reader.read_inference_pair(
-            raw, registered_sha256=pin, expected=expected
-        )
-    except pair_reader.PairEvidenceRefused as exc:
-        raise PrivateEvaluationSourceRefused(
-            "dual_repeat_evidence_unavailable:" + exc.code
-        ) from exc
-    except (KeyError, TypeError, ValueError, UnicodeError) as exc:
-        raise PrivateEvaluationSourceRefused(
-            "dual_repeat_evidence_unavailable"
-        ) from exc
-    _producer_require(
-        worker.get("inference_operation") not in expected["operation_ids"],
-        "dual_repeat_not_independent",
-    )
-    runs = [list(outputs), *map(list, pair.outputs)]
+    repeats = read_inference_repeats(originals, receipt=receipt, worker=worker)
+    runs = [list(outputs), *repeats]
     _producer_require(
         all(len(run) == len(outputs) for run in runs), "dual_repeat_evidence_shape"
     )
@@ -763,6 +804,67 @@ def _f02_point_measurements(predictions, reference, policy, train_std_c, ceiling
     }
 
 
+def _authenticated_graph_outputs(entry, registration, originals):
+    """`(receipt, worker, flat outputs, inference)` of the graded run, read from
+    the retained graph originals and authenticated against the custody entry
+    before any native value is reduced."""
+    import base64
+    import binascii
+
+    from carbon.scoring import bundle_benchmark_core as bundle
+
+    _producer_require(
+        type(originals) is dict
+        and set(originals) in (_GRADED_ORIGINALS, _GRADED_ORIGINALS | _PAIR_ORIGINALS),
+        "dual_native_originals",
+    )
+    graded_originals = {k: originals[k] for k in _GRADED_ORIGINALS}
+    try:
+        receipt = bundle._parse_graph_original(
+            originals["inference_receipt_raw"], "graph_inference_receipt"
+        )
+        worker = bundle._parse_graph_original(
+            originals["worker_evidence_raw"], "graph_worker_evidence"
+        )
+        encoded = worker.get("predictions_raw_base64")
+        raw = base64.b64decode(encoded.encode("ascii"), validate=True)
+        _producer_require(
+            base64.b64encode(raw).decode("ascii") == encoded,
+            "dual_native_prediction_encoding",
+        )
+        tensor = bundle._parse_graph_original(
+            raw, "graph_predictions", object_required=False
+        )
+        inference = {
+            "recipe_digest": receipt["recipe_digest"],
+            "state_digest": receipt["state_digest"],
+            "predictions_digest": receipt["predictions_digest"],
+            "predictions": tensor,
+            "worker_operation": worker["inference_operation"],
+            "receipt": receipt,
+            **graded_originals,
+        }
+        # Authenticate originals before reducing native values. These bools are
+        # placeholders only for authentication, never emitted as gate verdicts.
+        authenticated = bundle.measurement_from_saved_inference(
+            entry,
+            registration,
+            inference,
+            gates={name: False for name in registration["mandatory_gates"]},
+        )
+    except (
+        bundle.BundleBenchmarkRefused,
+        KeyError,
+        TypeError,
+        ValueError,
+        AttributeError,
+        UnicodeError,
+        binascii.Error,
+    ) as exc:
+        raise PrivateEvaluationSourceRefused("dual_native_inference_binding") from exc
+    return receipt, worker, authenticated["cases"][0]["outputs"], inference
+
+
 def _produce_f02_cold(
     selected,
     public_root,
@@ -774,8 +876,6 @@ def _produce_f02_cold(
     originals,
     source_raw,
 ):
-    import base64
-    import binascii
 
     from carbon.scoring import bundle_benchmark_core as bundle
 
@@ -958,61 +1058,14 @@ def _produce_f02_cold(
             and len({v <= limits.get("maximum_c") for v in values}) == 1,
             "dual_native_reference_unresolved",
         )
-    _producer_require(
-        type(originals) is dict
-        and set(originals) in (_GRADED_ORIGINALS, _GRADED_ORIGINALS | _PAIR_ORIGINALS),
-        "dual_native_originals",
+    receipt, worker, values, inference = _authenticated_graph_outputs(
+        entry, registration, originals
     )
-    graded_originals = {k: originals[k] for k in _GRADED_ORIGINALS}
-    try:
-        receipt = bundle._parse_graph_original(
-            originals["inference_receipt_raw"], "graph_inference_receipt"
-        )
-        worker = bundle._parse_graph_original(
-            originals["worker_evidence_raw"], "graph_worker_evidence"
-        )
-        encoded = worker.get("predictions_raw_base64")
-        raw = base64.b64decode(encoded.encode("ascii"), validate=True)
-        _producer_require(
-            base64.b64encode(raw).decode("ascii") == encoded,
-            "dual_native_prediction_encoding",
-        )
-        tensor = bundle._parse_graph_original(
-            raw, "graph_predictions", object_required=False
-        )
-        inference = {
-            "recipe_digest": receipt["recipe_digest"],
-            "state_digest": receipt["state_digest"],
-            "predictions_digest": receipt["predictions_digest"],
-            "predictions": tensor,
-            "worker_operation": worker["inference_operation"],
-            "receipt": receipt,
-            **graded_originals,
-        }
-        # Authenticate originals before reducing native values. These bools are
-        # placeholders only for authentication, never emitted as gate verdicts.
-        authenticated = bundle.measurement_from_saved_inference(
-            entry,
-            registration,
-            inference,
-            gates={name: False for name in registration["mandatory_gates"]},
-        )
-    except (
-        bundle.BundleBenchmarkRefused,
-        KeyError,
-        TypeError,
-        ValueError,
-        AttributeError,
-        UnicodeError,
-        binascii.Error,
-    ) as exc:
-        raise PrivateEvaluationSourceRefused("dual_native_inference_binding") from exc
     _producer_require(
-        authenticated["output_shape"] == [8, 1]
-        and authenticated["input_shape"] == [8, 2],
+        inference["receipt"]["measurement"]["output_shape"] == [8, 1]
+        and inference["receipt"]["measurement"]["input_shape"] == [8, 2],
         "dual_native_tensor_shape",
     )
-    values = authenticated["cases"][0]["outputs"]
     native = _f02_point_measurements(
         values,
         reference,
