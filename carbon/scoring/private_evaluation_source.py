@@ -79,23 +79,22 @@ def produce_dual_benchmark_input(
     Other Challenge adapters remain explicitly unavailable. A required repeat
     gate cannot be inferred from the one retained normal inference.
     """
-    from carbon.scoring import motor_dual_pack
-
-    if type(entry) is dict and entry.get("challenge") == motor_dual_pack.CHALLENGE:
+    adapter = _physical_adapter(entry.get("challenge") if type(entry) is dict else None)
+    if adapter is not None:
         try:
             from carbon.challenge_kit import physical_pack, physical_public_train
 
             bank = physical_pack.development_bank(
-                motor_dual_pack.CHALLENGE, entry.get("challenge_version")
+                adapter.CHALLENGE, entry.get("challenge_version")
             )
-            names = physical_public_train.numeric_interface_document(
-                motor_dual_pack.CHALLENGE
-            )["input_names"]
+            names = physical_public_train.numeric_interface_document(adapter.CHALLENGE)[
+                "input_names"
+            ]
         except (ImportError, ValueError) as exc:
             raise PrivateEvaluationSourceRefused(
                 "dual_native_role_unavailable:development_bank"
             ) from exc
-        return motor_dual_pack.produce(
+        return adapter.produce(
             selected=selected_pack,
             public_root=public_root,
             private_root=private_root,
@@ -121,6 +120,15 @@ def produce_dual_benchmark_input(
         graph_originals,
         evaluation_source_receipt_raw,
     )
+
+
+def _physical_adapter(challenge):
+    """The physical Challenge's dual pack adapter, or None."""
+    from carbon.scoring import cooling_dual_pack, motor_dual_pack
+
+    return {
+        adapter.CHALLENGE: adapter for adapter in (motor_dual_pack, cooling_dual_pack)
+    }.get(challenge)
 
 
 def produce_registered_dual_measurement(
