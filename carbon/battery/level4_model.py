@@ -85,6 +85,26 @@ def dims(model):
     return n_in, lay.nv + lay.nt + 1 + lay.k
 
 
+def interface_model(model, train):
+    """A recipe member with TRAIN's layout for interface checks.
+
+    An ensemble trains members with the same settings and output layout, but
+    its wrapper has no per-member feature or head attributes before ``fit``.
+    Keep the wrapper for training; use a fresh untrained member only to derive
+    the graph boundary.
+    """
+    if isinstance(model, recipes.Ensemble):
+        model = recipes.MLP(model.family, model.settings)
+    model.layout = recipes.Layout(
+        train.v.shape[1],
+        train.q.shape[1],
+        bounded_v=model.bounded_v,
+        predict_v0=model.predict_v0,
+        fade=model.fade,
+    )
+    return model
+
+
 def classic_fit(model, d, y, seed, net, make_params, objective=None):
     """`recipes.MLP._fit_classic`'s loop with `net` and `make_params(key)`
     supplied: the Level 0 MLP's written-out full-batch Adam(W) with cosine
@@ -482,6 +502,64 @@ class GraphModel(recipes.MLP):
         return header, arrays
 
 
+class GraphEnsemble(recipes.Ensemble):
+    """Identical rebuilt graph members under the recipe's ensemble budget."""
+
+    STATE_KIND = STATE_KIND
+
+    def __init__(
+        self,
+        members,
+        family,
+        settings,
+        files,
+        raw_manifest,
+        submission,
+        loss_override="none",
+    ):
+        # A graph always rebuilds in JAX, as GraphModel does for one member.
+        super().__init__(members, family, {**settings, "backend": "jax"})
+        self.files = dict(files)
+        self.raw_manifest = raw_manifest
+        self.submission = submission
+        self.loss_override = loss_override
+
+    def _member(self, settings):
+        return GraphModel(
+            self.family,
+            settings,
+            self.files,
+            self.raw_manifest,
+            self.submission,
+            loss_override=self.loss_override,
+        )
+
+    def fit(self, d, structure, seed):
+        # Mirrors `recipes.Ensemble.fit` line for line with a GraphModel member:
+        # recipes.py is pinned (implementation digest), so it gains no hook.
+        import hashlib
+
+        self.members, stats = [], []
+        for i in range(self.k):
+            member_settings = dict(self.settings)
+            member_settings["steps"] //= self.k
+            member = self._member(member_settings)
+            stats.append(member.fit(d, structure, seed=seed * 1000 + i))
+            self.members.append(member)
+        blob = "".join(s["params_sha256"] for s in stats).encode()
+        history = stats[0].get("loss_history")
+        return recipes._with_history(
+            {
+                "compile_s": sum(s["compile_s"] for s in stats),
+                "train_s": sum(s["train_s"] for s in stats),
+                "final_loss": float(np.mean([s["final_loss"] for s in stats])),
+                "params_sha256": hashlib.sha256(blob).hexdigest(),
+                "n_params": sum(s["n_params"] for s in stats),
+            },
+            None if history is None else {**history, "member": f"1 of {self.k}"},
+        )
+
+
 def state_bytes(model):
     """A trained graph model's self-describing state, in battery's state
     format (`recipes.state_bytes`): the header, the layout, the OCV table and
@@ -490,10 +568,26 @@ def state_bytes(model):
     import io
     import json
 
-    header, arrays = model.export_state()
-    header["schema"] = recipes.STATE_SCHEMA
-    header["layout"] = recipes._layout_state(model.layout)
-    arrays["ocv_soc"], arrays["ocv_v"] = model.s.ocv_soc, model.s.ocv_v
+    if isinstance(model, GraphEnsemble):
+        if len(model.members) != model.k:
+            raise ValueError("graph ensemble has incomplete members")
+        header = {
+            "schema": recipes.STATE_SCHEMA,
+            "kind": STATE_KIND,
+            "family": model.family,
+            "settings": model.settings,
+            "members": model.k,
+            "submission": model.submission,
+        }
+        arrays = {
+            f"member{i:02d}": np.frombuffer(state_bytes(member), np.uint8)
+            for i, member in enumerate(model.members)
+        }
+    else:
+        header, arrays = model.export_state()
+        header["schema"] = recipes.STATE_SCHEMA
+        header["layout"] = recipes._layout_state(model.layout)
+        arrays["ocv_soc"], arrays["ocv_v"] = model.s.ocv_soc, model.s.ocv_v
     buffer = io.BytesIO()
     np.savez(
         buffer,
@@ -512,7 +606,42 @@ def model_from_bytes(body):
     with np.load(io.BytesIO(body), allow_pickle=False) as data:
         arrays = {k: data[k] for k in data.files if k != "__header__"}
         header = json.loads(bytes(data["__header__"]).decode())
-    if header.get("schema") != recipes.STATE_SCHEMA or header.get("kind") != STATE_KIND:
+    if header.get("schema") != recipes.STATE_SCHEMA:
+        raise ValueError("not a Level 4 graph model state")
+    if header.get("kind") == STATE_KIND and "members" in header:
+        settings = header["settings"]
+        count = header["members"]
+        if type(count) is not int or count != settings["ensemble_members"] or count < 2:
+            raise ValueError("graph ensemble member count differs from recipe")
+        members = [
+            model_from_bytes(bytes(arrays[f"member{i:02d}"])) for i in range(count)
+        ]
+        expected = dict(settings)
+        expected["steps"] //= count
+        first = members[0]
+        if any(
+            not isinstance(member, GraphModel)
+            or member.family != header["family"]
+            or member.submission != header["submission"]
+            or member.settings != expected
+            or member.raw_manifest != first.raw_manifest
+            or member.files != first.files
+            or member.loss_override != first.loss_override
+            for member in members
+        ):
+            raise ValueError("graph ensemble member differs from recipe")
+        ensemble = GraphEnsemble(
+            count,
+            header["family"],
+            settings,
+            first.files,
+            first.raw_manifest,
+            first.submission,
+            loss_override=first.loss_override,
+        )
+        ensemble.members = members
+        return ensemble
+    if header.get("kind") != STATE_KIND:
         raise ValueError("not a Level 4 graph model state")
     layout = recipes.Layout(
         header["layout"]["g"],
@@ -573,9 +702,16 @@ def build(recipe, found, workspace):
     except staging.StagingCorrupt as corrupt:
         raise ImportError("level4_staging_corrupt:" + str(corrupt)) from None
     family, settings = _recipe(recipe)
-    return GraphModel(
-        family,
-        settings,
+    # A family without members (knn) keeps GraphModel's own family refusal.
+    members = settings.get("ensemble_members", 1)
+    model_type = GraphModel if members == 1 else GraphEnsemble
+    args = (
+        (family, settings)
+        if model_type is GraphModel
+        else (settings["ensemble_members"], family, settings)
+    )
+    return model_type(
+        *args,
         files,
         raw_manifest,
         found["submission"],

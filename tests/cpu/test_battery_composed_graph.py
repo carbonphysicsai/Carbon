@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import json
 import os
 from pathlib import Path
@@ -16,6 +17,7 @@ pytest.importorskip("jax")
 os.environ.setdefault("JAX_PLATFORMS", "cpu")
 
 from carbon.agent_campaign.attack.adapters import battery_level1 as expressions
+
 from carbon.battery import (
     composed_graph,
     composed_worker,
@@ -111,6 +113,60 @@ def test_graph_only_composed_factory_keeps_existing_l4_parameters(
         candidate.fit(train, structure, SEED)["params_sha256"]
         == native.fit(train, structure, SEED)["params_sha256"]
     )
+
+
+@pytest.mark.parametrize(
+    "parts", [{}, {"pool_selection": PARTS["pool_selection"]}, {"backend": "pytorch"}]
+)
+def test_graph_ensemble_trains_each_member_and_restores_inference(
+    graph_input, material, parts
+):
+    found = compiled(graph_input, ensemble_members=2, steps=40, **parts)
+    model, stats = fit(found, graph_input[1], material)
+    assert isinstance(model, level4_model.GraphEnsemble)
+    assert len(model.members) == 2
+    assert all(member.settings["steps"] == 20 for member in model.members)
+    assert len({member._leaves()[0].tobytes() for member in model.members}) == 2
+    assert stats["n_params"] == sum(
+        sum(np.size(leaf) for leaf in member._leaves()) for member in model.members
+    )
+    restored = level4_model.model_from_bytes(level4_model.state_bytes(model))
+    assert isinstance(restored, level4_model.GraphEnsemble)
+    x = material[0].x[:7]
+    for name, before in model.predict(x).items():
+        np.testing.assert_array_equal(
+            before,
+            np.mean([member.predict(x)[name] for member in model.members], axis=0),
+        )
+        np.testing.assert_array_equal(before, restored.predict(x)[name])
+
+
+def _unpack(body):
+    with np.load(io.BytesIO(body), allow_pickle=False) as data:
+        arrays = {k: data[k] for k in data.files if k != "__header__"}
+        return json.loads(bytes(data["__header__"]).decode()), arrays
+
+
+def _pack(header, arrays):
+    buffer = io.BytesIO()
+    encoded = json.dumps(header, sort_keys=True).encode()
+    np.savez(buffer, __header__=np.frombuffer(encoded, np.uint8), **arrays)
+    return buffer.getvalue()
+
+
+def test_graph_ensemble_state_refuses_a_tampered_member_set(graph_input, material):
+    found = compiled(graph_input, ensemble_members=2, steps=40)
+    model, _ = fit(found, graph_input[1], material)
+    header, arrays = _unpack(level4_model.state_bytes(model))
+
+    with pytest.raises(ValueError, match="member count differs"):
+        level4_model.model_from_bytes(_pack({**header, "members": 3}, arrays))
+
+    member_header, member_arrays = _unpack(bytes(arrays["member01"]))
+    member_header["settings"] = {**member_header["settings"], "steps": 40}
+    changed = np.frombuffer(_pack(member_header, member_arrays), np.uint8)
+    with pytest.raises(ValueError, match="member differs from recipe"):
+        level4_model.model_from_bytes(_pack(header, {**arrays, "member01": changed}))
 
 
 @pytest.mark.parametrize(
@@ -287,6 +343,11 @@ def test_graph_owned_single_objective_composes_without_a_precedence_choice(
     [
         PARTS,
         {"pool_selection": PARTS["pool_selection"]},
+        {
+            "pool_selection": PARTS["pool_selection"],
+            "ensemble_members": 2,
+            "steps": 40,
+        },
         {"loss_expressions": PARTS["loss_expressions"]},
         {"quasi_newton_family": "bfgs", "line_search": "backtracking"},
     ],

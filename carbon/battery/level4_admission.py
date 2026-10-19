@@ -68,10 +68,9 @@ def interface_and_batch(strategy, *, root=None):
 
     from carbon.level4.validate import Interface
 
-    from . import recipes
     from .challenge import PublicMaterial
     from .compile import build_model, compile_recipe
-    from .level4_model import FAMILIES, dims
+    from .level4_model import FAMILIES, dims, interface_model
 
     _, recipe = compile_recipe(_base(strategy))
     if recipe.family not in FAMILIES:
@@ -80,15 +79,7 @@ def interface_and_batch(strategy, *, root=None):
         raise graph.GraphRefused("level4_family_not_served", recipe.family)
     root = Path(root) if root is not None else Path(__file__).resolve().parents[2]
     train = PublicMaterial.load(root).train
-    model = build_model(recipe)
-    model.layout = recipes.Layout(
-        train.v.shape[1],
-        train.q.shape[1],
-        bounded_v=model.bounded_v,
-        predict_v0=model.predict_v0,
-        fade=model.fade,
-    )
-    n_in, n_out = dims(model)
+    n_in, n_out = dims(interface_model(build_model(recipe), train))
     dtype = "float64" if recipe.settings["precision"] == "float64" else "float32"
     cases = len(train.case_ids)
     selection = strategy["parameters"].get("pool_selection")
