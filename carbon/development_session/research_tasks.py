@@ -896,14 +896,14 @@ class DirectDevelopmentTasksV3:
         with self._lock:
             bindings = self._bindings(request)
             if measure_query:
-                outputs = self.discovery._material.get("interface_document", {}).get(
-                    "outputs"
+                interface = self.discovery._material.get("interface_document", {})
+                # The numeric physical interface keeps its dtype at the top level.
+                dtype = (
+                    interface["outputs"].get("dtype")
+                    if type(interface.get("outputs")) is dict
+                    else interface.get("dtype")
                 )
-                if (
-                    type(outputs) is not dict
-                    or type(outputs.get("dtype")) is not str
-                    or not outputs["dtype"]
-                ):
+                if type(dtype) is not str or not dtype:
                     raise ResearchTaskProviderError(
                         ResearchServiceErrorCode.REFERENCE_MISMATCH
                     )
