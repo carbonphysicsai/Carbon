@@ -166,6 +166,24 @@ def test_an_ensemble_recipe_admits_a_graph_at_its_member_interface():
     )
 
 
+@pytest.mark.parametrize(
+    ("members", "code"),
+    [
+        (0, "parameter.domain_mismatch"),
+        (-1, "parameter.domain_mismatch"),
+        (1.5, "parameter.coercion_forbidden"),
+        ("2", "parameter.type_mismatch"),
+    ],
+)
+def test_an_invalid_ensemble_member_count_is_a_typed_recipe_refusal(members, code):
+    from carbon.battery.compile import compile_recipe
+    from carbon.development_session.research_catalog import RecipeRejected
+
+    with pytest.raises(RecipeRejected) as refused:
+        compile_recipe(_strategy(steps=40, ensemble_members=members))
+    assert code + "@/parameters/ensemble_members" in str(refused.value)
+
+
 def test_the_constants_are_batterys_own():
     assert level4_admission.FIELD == battery.FIELD
     assert level4_admission.CHALLENGE == level4_model.CHALLENGE
