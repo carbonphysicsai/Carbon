@@ -44,6 +44,14 @@ def test_the_definition_file_is_the_pinned_one_and_supplies_every_value():
     }
 
 
+def test_the_verification_budget_is_the_acquisition_manifests():
+    digest, manifest = _load("motor-dual-transfer-acquisition-manifest-20261018.json")
+    assert digest == pack.ACQUISITION_MANIFEST_SHA256
+    assert pack._definition_values()["verification_budget"] == (
+        manifest["verification_budget"]
+    )
+
+
 def test_leg_minimums_are_the_g1_baseline_legs_at_full_precision():
     digest, g1 = _load("motor-applied-g1-measurement-contract-20261018.json")
     assert digest == pack.G1_MEASUREMENT_CONTRACT_SHA256

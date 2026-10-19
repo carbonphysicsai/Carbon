@@ -45,9 +45,14 @@ DEFINITION_FILE = (
     Path(__file__).resolve().parents[1]
     / "challenge_kit/data/motor-applied-score-definition-20261018.json"
 )
-#: MOTOR_DUAL_TRANSFER_ACQUISITION_MANIFEST_20261018 (sha256 9e32f3a3...)
-#: "verification_budget", the one value the applied definition does not hold.
-_VERIFICATION_BUDGET = 1
+#: MOTOR_DUAL_TRANSFER_ACQUISITION_MANIFEST_20261018: the source of the
+#: verification budget, the one value the applied definition does not hold.
+ACQUISITION_MANIFEST_SHA256 = (
+    "sha256:9e32f3a3b233ca81e84475a715319a6c24ec48296560d460563fa28bdad76a53"
+)
+ACQUISITION_MANIFEST_FILE = DEFINITION_FILE.with_name(
+    "motor-dual-transfer-acquisition-manifest-20261018.json"
+)
 _SIGNED_MARGIN_CELL = re.compile(
     r"max\(abs\(mean_margin_error_nm\)/([0-9]+(?:\.[0-9]+)?),"
     r"abs\(ripple_margin_error_fraction\)/([0-9]+(?:\.[0-9]+)?)\)"
@@ -61,6 +66,17 @@ def applied_definition():
     if _sha(raw) != SOURCE_DEFINITION_SHA256:
         raise ValueError("motor applied score definition differs from its pin")
     return json.loads(raw)
+
+
+@functools.cache
+def _verification_budget():
+    raw = ACQUISITION_MANIFEST_FILE.read_bytes()
+    if _sha(raw) != ACQUISITION_MANIFEST_SHA256:
+        raise ValueError("motor acquisition manifest differs from its pin")
+    budget = json.loads(raw)["verification_budget"]
+    if type(budget) is not int or budget < 1:
+        raise ValueError("motor acquisition manifest budget differs")
+    return budget
 
 
 def _definition_values():
@@ -84,7 +100,7 @@ def _definition_values():
             "ripple_fraction": float(cell.group(2)),
         },
         "D_scale": d["scale"],
-        "verification_budget": _VERIFICATION_BUDGET,
+        "verification_budget": _verification_budget(),
     }
 
 
