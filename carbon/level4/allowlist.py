@@ -110,14 +110,16 @@ def load(path=PATH):
     return Allowlist(Path(path).read_bytes())
 
 
-#: How the `constant_bytes` cap is measured, versioned prospectively. v1
-#: summed every embedded constant; v2 (OWNER-L4-CONSTANT-ACCOUNTING-02) counts
-#: identical constants once, so ensemble members and repeated blocks are not
-#: charged per copy. The 16 KiB cap itself is unchanged; verdicts recorded
-#: under v1 keep their v1 meaning and are never re-measured.
-CONSTANT_ACCOUNTING = "level4-constant-accounting-v2"
+#: How the `constant_bytes` cap is measured, versioned prospectively:
+#: v1 summed every embedded constant's bytes; v2 (OWNER-L4-CONSTANT-
+#: ACCOUNTING-02) counted identical constants once; v3 (OWNER-L4-CONSTANT-
+#: ACCOUNTING-03, "count in numbers") counts values, identical copies once,
+#: at `graph.VALUE_BYTES` each, so float64 is not charged double. The 16 KiB
+#: cap itself is unchanged; verdicts recorded under v1 or v2 keep their
+#: meaning and are never re-measured.
+CONSTANT_ACCOUNTING = "level4-constant-accounting-v3"
 #: The measurement each cap reads under the current accounting.
-MEASURED_AS = {"constant_bytes": "unique_constant_bytes"}
+MEASURED_AS = {"constant_bytes": "constant_value_bytes"}
 
 
 def check_caps(measurements, caps=None):

@@ -216,7 +216,8 @@ def test_identical_constants_are_charged_once():
     assert graph.unique_constant_bytes([table, dict(table)]) == 9216
     assert graph.unique_constant_bytes([table, other]) == 2 * 9216
     assert graph.unique_constant_bytes([table, same_bytes_other_shape]) == 2 * 9216
-    assert allowlist_module.CONSTANT_ACCOUNTING == "level4-constant-accounting-v2"
+    assert graph.unique_constant_values([table, dict(table), other]) == 2 * 2304
+    assert allowlist_module.CONSTANT_ACCOUNTING == "level4-constant-accounting-v3"
 
 
 def test_the_constant_cap_reads_unique_bytes_under_accounting_v2(allowlist):
@@ -246,6 +247,37 @@ def test_the_constant_cap_reads_unique_bytes_under_accounting_v2(allowlist):
     assert repeated["constant_accounting"] == allowlist_module.CONSTANT_ACCOUNTING
     with pytest.raises(graph.GraphRefused) as refused:
         validate.validate(lower(first, different), allowlist)
+    assert refused.value.code == "cap_exceeded"
+
+
+def test_the_constant_cap_counts_values_so_float64_is_not_charged_double(allowlist):
+    import jax
+    import jax.numpy as jnp
+    import numpy as np
+
+    from carbon.level4 import validate
+    from carbon.level4.tooling import lower_jax
+
+    def lower(values):
+        table = np.linspace(0.0, 1.0, values, dtype=np.float64)
+        closed = lower_jax.trace(
+            lambda x: x + jnp.sum(jnp.asarray(table)),
+            jax.ShapeDtypeStruct((1,), "float64"),
+        )
+        return lower_jax.lower(
+            closed, role="forward", allowlist=allowlist, input_names=["inputs/x"]
+        )
+
+    # 3000 float64 values: 24,000 bytes, over 16 KiB by bytes; 3000 of the
+    # cap's 4096 values under accounting v3 ("count in numbers").
+    admitted = validate.validate(lower(3000), allowlist)
+    measured = admitted["measurements"]
+    assert measured["constant_bytes"] >= 3000 * 8 > 16 * 1024
+    assert 3000 <= measured["unique_constant_values"] < 4096
+    assert measured["constant_value_bytes"] == 4 * measured["unique_constant_values"]
+    assert admitted["caps"]["constant_bytes"] == "pass"
+    with pytest.raises(graph.GraphRefused) as refused:
+        validate.validate(lower(5000), allowlist)  # 5000 values > 4096
     assert refused.value.code == "cap_exceeded"
 
 

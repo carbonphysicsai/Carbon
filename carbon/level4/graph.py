@@ -99,19 +99,34 @@ def encode_array(array):
     }
 
 
-def unique_constant_bytes(constants):
-    """Embedded constant bytes with identical content counted once (constant
-    accounting v2): constants with the same dtype, shape and bytes, such as
-    ensemble members' or repeated blocks' copies, are charged one copy."""
-    charged = {}
+def _unique_constants(constants):
+    """Constants by content: one per distinct dtype, shape and bytes, so
+    ensemble members' or repeated blocks' identical copies count once."""
+    unique = {}
     for c in constants:
         try:
             raw = base64.b64decode(c["data"].encode("ascii"), validate=True)
         except (ValueError, UnicodeEncodeError):
             raise GraphRefused("constant_not_base64") from None
         header = json.dumps([c["dtype"], c["shape"]], separators=(",", ":"))
-        charged[hashlib.sha256(header.encode() + b"\0" + raw).digest()] = c["bytes"]
-    return sum(charged.values())
+        unique[hashlib.sha256(header.encode() + b"\0" + raw).digest()] = c
+    return list(unique.values())
+
+
+def unique_constant_bytes(constants):
+    """Embedded constant bytes, identical copies counted once (accounting v2)."""
+    return sum(c["bytes"] for c in _unique_constants(constants))
+
+
+#: Accounting v3 charges every constant value this many bytes, whatever its
+#: dtype, so the unchanged 16 KiB `constant_bytes` cap holds 4096 values: the
+#: count it always allowed at float32, now also at float64.
+VALUE_BYTES = 4
+
+
+def unique_constant_values(constants):
+    """Embedded constant values, identical copies counted once (accounting v3)."""
+    return sum(math.prod(c["shape"]) for c in _unique_constants(constants))
 
 
 def decode_array(entry, where=""):
@@ -345,6 +360,8 @@ def measure(doc):
         "constant_count": len(constants),
         "constant_bytes": sum(c["bytes"] for c in constants),
         "unique_constant_bytes": unique_constant_bytes(constants),
+        "unique_constant_values": unique_constant_values(constants),
+        "constant_value_bytes": VALUE_BYTES * unique_constant_values(constants),
         "largest_constant_bytes": max((c["bytes"] for c in constants), default=0),
         "input_bytes": sum(nbytes(i) for i in entry["inputs"]),
         "largest_intermediate_bytes": largest,
