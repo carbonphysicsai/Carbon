@@ -7,10 +7,18 @@ d03; analytic-v1 A 0.844420842483987, D 1; nearest-neighbour-v1
 A 0.5624469259870758, D 0, infeasible pick d08. The port, regenerated from
 committed sources and reading predictions as the producer does, must give the
 same values; the packet's leg-minimum rule then sets the baseline's legs.
+
+The KRR values hold to KRR_PLATFORM_TOL, not to the last bit: the ridge-1e-6
+kernel solve rounds differently across BLAS builds. Measured: the canonical
+container gives A 0.8275828263660854 and WSL the operator's value, a
+difference of 2.52e-11 (Test Lead, da401c13d canonical). The analytic and
+nearest-neighbour controls have no linear solve and hold exactly.
 """
 
 from __future__ import annotations
 
+import ast
+import hashlib
 import json
 from pathlib import Path
 
@@ -28,6 +36,11 @@ ROOT = Path(__file__).resolve().parents[2]
 KRR = {"A": 0.827582826340918, "D": 1.0, "pick": "d03"}
 ANALYTIC_A = 0.844420842483987
 NEAREST = {"A": 0.5624469259870758, "D": 0.0, "pick": "d08"}
+#: Just above the measured cross-platform KRR difference (2.52e-11).
+KRR_PLATFORM_TOL = 3e-11
+SCRIPT = (
+    ROOT / "carbon/challenge_kit/data/optimizer-counted-dual-packets-20261018.py.txt"
+)
 
 
 @pytest.fixture(scope="module")
@@ -92,7 +105,7 @@ def test_the_rebuilt_baseline_reproduces_the_packets_legs(case):
         "complete48_common_mask": True,
         "selected_design_verified_feasible": True,
     }
-    assert result["A"] == pytest.approx(KRR["A"], rel=0, abs=1e-12)
+    assert result["A"] == pytest.approx(KRR["A"], rel=0, abs=KRR_PLATFORM_TOL)
     assert result["D"] == KRR["D"]
     assert result["pick"] == KRR["pick"]
     assert result["decision_outcome"] == "VERIFIED_FEASIBLE"
@@ -128,11 +141,81 @@ def test_the_packets_minimum_rule_sets_the_baselines_legs(case):
     )
     pack = json.loads(documents["score_pack"])
     assert pack["hard_gates"] == list(cdm.GATES)
-    assert pack["legs"]["A"]["minimum"] == pytest.approx(KRR["A"], rel=0, abs=1e-12)
+    assert pack["legs"]["A"]["minimum"] == pytest.approx(
+        KRR["A"], rel=0, abs=KRR_PLATFORM_TOL
+    )
     assert pack["legs"]["D"]["minimum"] == KRR["D"]
     definition = json.loads(documents["accuracy_definition"])
     assert definition["source_script_sha256"] == cooling.SOURCE_SCRIPT_SHA256
-    assert definition["scale_status"] == "PROSPECTIVE_EXPERIMENT_NOT_ADOPTED"
+    assert definition["leg_minimum_rule"] == "baseline_legs"
+    assert "pass/fail" in definition["leg_minimum_note"]
+
+
+def _script_measurement():
+    """The ``measurement`` dict literal in the committed packet's ``cooling``."""
+    tree = ast.parse(SCRIPT.read_text(encoding="utf-8"))
+    function = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "cooling"
+    )
+    (value,) = [
+        node.value
+        for node in ast.walk(function)
+        if isinstance(node, ast.Assign)
+        and [t.id for t in node.targets if isinstance(t, ast.Name)] == ["measurement"]
+    ]
+    return {
+        key.value: ast.literal_eval(item)
+        for key, item in zip(value.keys, value.values, strict=True)
+        if isinstance(item, ast.Constant)
+    }
+
+
+def test_the_measurement_values_are_the_committed_packets():
+    raw = SCRIPT.read_bytes()
+    assert "sha256:" + hashlib.sha256(raw).hexdigest() == cooling.SOURCE_SCRIPT_SHA256
+    packet = _script_measurement()
+    for key in (
+        "A_scale",
+        "D_scale_W",
+        "verification_condition_budget",
+        "query_budget_including_repeats",
+        "scale_status",
+    ):
+        assert cooling._MEASUREMENT[key] == packet[key], key
+
+
+def test_the_no_d_minimum_variant_is_its_own_evaluation_version(case):
+    kwargs = {
+        "bank": case["bank"],
+        "physics": cooling.physics_contract(),
+        "interface_raw": case["public"]["interface"],
+        "train_raw": case["public"]["train"],
+        "limits_raw": case["public"]["important_limit_definition"],
+        "objective_raw": case["public"]["design_objective"],
+    }
+    default = cooling.pack_documents(**kwargs)
+    variant = cooling.pack_documents(rule="baseline_a_no_d_minimum", **kwargs)
+    pack = json.loads(variant["score_pack"])
+    assert pack["legs"]["D"]["minimum"] is None
+    assert (
+        pack["legs"]["A"]["minimum"]
+        == json.loads(default["score_pack"])["legs"]["A"]["minimum"]
+    )
+    registration = json.loads(variant["source_registration"])
+    assert registration["evaluation_version"] == (
+        cooling.EVALUATION_VERSION + "-no-d-minimum"
+    )
+    # A distinct definition, measurement basis and pack: its own key.
+    assert variant["accuracy_definition"] != default["accuracy_definition"]
+    assert (
+        pack["measurement_contract_digest"]
+        != json.loads(default["score_pack"])["measurement_contract_digest"]
+    )
+    assert json.loads(variant["accuracy_definition"])["leg_minimum_rule"] == (
+        "baseline_a_no_d_minimum"
+    )
 
 
 def test_a_repeat_beyond_the_native_rule_or_an_invalid_row_is_typed(case):

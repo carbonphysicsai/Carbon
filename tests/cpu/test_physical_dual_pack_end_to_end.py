@@ -40,10 +40,16 @@ from scripts.dev.score_lab import public_unbound_entry as unbound_entry
 CHALLENGES = {
     "motor": (
         motor,
-        {"A": 0.28108361796711556, "D": 0.3419193228890681},
+        {"A": 0.28108361796711556, "D": 0.3419193228890681, "tol": 1e-12},
         "native_motor_valid",
     ),
-    "cooling": (cooling, {"A": 0.827582826340918, "D": 1.0}, "native_cold_plate"),
+    # Cooling's KRR solve rounds across BLAS builds: measured 2.52e-11
+    # (test_cooling_dual_pack.KRR_PLATFORM_TOL).
+    "cooling": (
+        cooling,
+        {"A": 0.827582826340918, "D": 1.0, "tol": 3e-11},
+        "native_cold_plate",
+    ),
 }
 GRADED_OPERATION = "operation-" + "a" * 64
 IMAGE = _sha(b"fixture-motor-inference-image")
@@ -382,10 +388,10 @@ def test_a_retained_bundle_scores_the_recorded_baseline_and_binds_v4(case):
     benchmark = json.loads(measured.raw)["benchmark"]
     legs = benchmark["models"][0]["measurements"]
     assert legs["robust_fidelity_benefit"]["value"] == pytest.approx(
-        case["expected"]["A"], rel=0, abs=1e-12
+        case["expected"]["A"], rel=0, abs=case["expected"]["tol"]
     )
     assert legs["verified_value_benefit"]["value"] == pytest.approx(
-        case["expected"]["D"], rel=0, abs=1e-12
+        case["expected"]["D"], rel=0, abs=case["expected"]["tol"]
     )
     gates = benchmark["models"][0]["gates"]
     assert sorted(gates) == sorted(case["score_pack"]["hard_gates"])
