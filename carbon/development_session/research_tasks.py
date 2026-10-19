@@ -26,6 +26,7 @@ import time
 from pathlib import Path
 
 from carbon.authoring.model import EvidenceRole
+from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 from carbon.research import (
     CancellationDisposition,
@@ -229,6 +230,7 @@ class DirectDevelopmentTasksV3:
         inference_image,
         image_resolver=None,
         construction_parent=None,
+        evaluation_pack_digest=None,
     ) -> None:
         if (
             not isinstance(root, Path)
@@ -238,6 +240,16 @@ class DirectDevelopmentTasksV3:
             or not requester
             or type(owner) is not str
             or not owner
+            or evaluation_pack_digest
+            != getattr(discovery, "evaluation_pack_digest", None)
+            or (
+                evaluation_pack_digest is not None
+                and (
+                    type(evaluation_pack_digest) is not str
+                    or re.fullmatch(r"sha256:[0-9a-f]{64}", evaluation_pack_digest)
+                    is None
+                )
+            )
         ):
             raise ValueError("private direct task root and requester required")
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -256,6 +268,7 @@ class DirectDevelopmentTasksV3:
         self._lock = threading.RLock()
         self.ledger, self.owner = ledger, owner
         self.discovery = discovery
+        self.evaluation_pack_digest = evaluation_pack_digest
         self.image, self.inference_image = image, inference_image
         self.image_resolver = image_resolver
         self.construction_parent = (
@@ -304,6 +317,11 @@ class DirectDevelopmentTasksV3:
                                 if self.construction_parent != inference_image
                                 else []
                             ),
+                            *(
+                                ["EVALUATION_PACK", evaluation_pack_digest]
+                                if evaluation_pack_digest is not None
+                                else []
+                            ),
                         ],
                         separators=(",", ":"),
                     )
@@ -316,6 +334,11 @@ class DirectDevelopmentTasksV3:
                             image.parent.image_id,
                             inference_image.image_id,
                             image.bundle_ref,
+                            *(
+                                ["EVALUATION_PACK", evaluation_pack_digest]
+                                if evaluation_pack_digest is not None
+                                else []
+                            ),
                         ],
                         sort_keys=True,
                         separators=(",", ":"),
@@ -404,6 +427,7 @@ class DirectDevelopmentTasksV3:
     def _check_image_identity(self) -> None:
         from carbon.reconstruction.worker.model import WorkerImageIdentity
 
+        from .gpu_practice import direct_bundle_accelerators
         from .research_image import LibraryWorkerImage
 
         if (
@@ -419,6 +443,9 @@ class DirectDevelopmentTasksV3:
             or self.image.parent != self.construction_parent
         ):
             raise ValueError("exact C-03 library child and parent images required")
+        self.build_accelerator, self.inference_accelerator = direct_bundle_accelerators(
+            self.construction_parent, self.inference_image
+        )
 
     def _verify_images(self) -> None:
         from .research_image import verify_library_worker_image
@@ -513,67 +540,75 @@ class DirectDevelopmentTasksV3:
         material = load_pinned_bundle_directory(directory)
         verify_bundle_parent_environment(material[0], self.construction_parent)
         check_cancel()
-        cli = DockerCLI()
-        try:
-            image = self.image_resolver.provision_admitted(
-                bundle, parent=self.construction_parent, cli=cli
-            )
-        except FileNotFoundError as error:
-            if str(error) != (
-                "bounded automatic dependency build unavailable; verified child missing"
+        # A library child has no registered GPU lock/profile fields. A GPU
+        # bundle must use the checked parent plus a verified source overlay,
+        # even when a CPU-style child image happens to be cached.
+        image = None
+        if self.build_accelerator is None:
+            try:
+                image = self.image_resolver.provision_admitted(
+                    bundle, parent=self.construction_parent, cli=DockerCLI()
+                )
+            except FileNotFoundError as error:
+                if str(error) != (
+                    "bounded automatic dependency build unavailable; verified child missing"
+                ):
+                    raise
+        if image is not None:
+            if (
+                type(image) is not LibraryWorkerImage
+                or image.bundle_ref != bundle.to_dict()
+                or image.parent != self.construction_parent
             ):
-                raise
-            capacity = getattr(self.image_resolver, "material_cache_bytes", None)
-            if type(capacity) is not int or capacity < 1:
-                raise ValueError("trusted overlay cache capacity unavailable") from None
-            check_cancel()
-            kit = self.discovery._material["construction_kit"]
-            binding = {
-                "challenge_id": kit["id"],
-                "challenge_version": kit["version"],
-                "train_digest": kit["train_digest"],
-                "interface_digest": kit["interface_digest"],
-                "construction_limits_digest": kit["construction_limits_digest"],
-            }
-            remaining = int(deadline - time.monotonic())
-            if remaining < 40:
-                raise RecipeRefused("construction_total_deadline_reached")
-            prep = prepare_library_overlay(
-                self.ledger,
-                owner=self.owner,
-                identity=direct_child_identity(task.value, "prep"),
-                parent=self.construction_parent,
-                recipe=ConstructionRecipe.from_dict(request.recipe),
-                challenge_binding=binding,
-                limits_document=self.discovery._material[
-                    "construction_limits_document"
-                ],
-                material=material,
-                seconds=min(600, remaining),
-                deadline=deadline,
-                cancel=check_cancel,
-            )
-            if prep.controls_digest is None:
-                raise ValueError("completed C03 preparation controls unavailable")
-            overlay = cache_verified_overlay(
-                prep.snapshot,
-                self.image_resolver.cache_root,
-                expected_bundle=bundle,
-                expected_parent=self.construction_parent,
-                expected_receipt=prep.receipt,
-                material_cache_bytes=capacity,
-                deadline=deadline,
-                cancel=check_cancel,
-            )
-            return overlay, prep
-        if (
-            type(image) is not LibraryWorkerImage
-            or image.bundle_ref != bundle.to_dict()
-            or image.parent != self.construction_parent
-        ):
-            raise ValueError("provisioned direct library image differs")
-        verify_library_worker_image(image)
-        return image
+                raise ValueError("provisioned direct library image differs")
+            verify_library_worker_image(image)
+            return image
+        capacity = getattr(self.image_resolver, "material_cache_bytes", None)
+        if type(capacity) is not int or capacity < 1:
+            raise ValueError("trusted overlay cache capacity unavailable")
+        check_cancel()
+        kit = self.discovery._material["construction_kit"]
+        binding = {
+            "challenge_id": kit["id"],
+            "challenge_version": kit["version"],
+            "train_digest": kit["train_digest"],
+            "interface_digest": kit["interface_digest"],
+            "construction_limits_digest": kit["construction_limits_digest"],
+        }
+        remaining = int(deadline - time.monotonic())
+        if remaining < 40:
+            raise RecipeRefused("construction_total_deadline_reached")
+        prep = prepare_library_overlay(
+            self.ledger,
+            owner=self.owner,
+            identity=direct_child_identity(task.value, "prep"),
+            parent=self.construction_parent,
+            recipe=ConstructionRecipe.from_dict(request.recipe),
+            challenge_binding=binding,
+            limits_document=self.discovery._material["construction_limits_document"],
+            material=material,
+            seconds=min(600, remaining),
+            deadline=deadline,
+            cancel=check_cancel,
+            **(
+                {}
+                if self.build_accelerator is None
+                else {"accelerator": self.build_accelerator}
+            ),
+        )
+        if prep.controls_digest is None:
+            raise ValueError("completed C03 preparation controls unavailable")
+        overlay = cache_verified_overlay(
+            prep.snapshot,
+            self.image_resolver.cache_root,
+            expected_bundle=bundle,
+            expected_parent=self.construction_parent,
+            expected_receipt=prep.receipt,
+            material_cache_bytes=capacity,
+            deadline=deadline,
+            cancel=check_cancel,
+        )
+        return overlay, prep
 
     @staticmethod
     def _image_binding(image):
@@ -1486,6 +1521,11 @@ class DirectDevelopmentTasksV3:
             try:
                 recipe = ConstructionRecipe.from_dict(request.recipe)
                 source_kind = recipe.to_dict()["source"]["kind"]
+                if source_kind == "graph" and (
+                    self.build_accelerator is not None
+                    or self.inference_accelerator is not None
+                ):
+                    raise ValueError("direct graph GPU construction is unavailable")
                 retained_image = self._task_image_bindings.get(task_id.value)
                 retained_binding = (
                     json.loads(retained_image) if retained_image is not None else None
@@ -1616,12 +1656,23 @@ class DirectDevelopmentTasksV3:
                     allowlist_bytes=material["allowlist_bytes"],
                     expected_output_dtype=(
                         material["interface_document"]["outputs"]["dtype"]
-                        if kit["version"] == "1.3"
+                        if (kit["id"] == BATTERY_CHALLENGE and kit["version"] == "1.0")
+                        or kit["version"] == "1.3"
                         or task_id.value in self._measured_tasks
                         else None
                     ),
                     measure_query=task_id.value in self._measured_tasks,
                     total_deadline_started=total_deadline_started,
+                    **(
+                        {}
+                        if self.build_accelerator is None
+                        else {"accelerator": self.build_accelerator}
+                    ),
+                    **(
+                        {}
+                        if self.inference_accelerator is None
+                        else {"inference_accelerator": self.inference_accelerator}
+                    ),
                 )
             if (
                 type(result) is not DirectReconstructionResult
@@ -1744,6 +1795,8 @@ class DirectDevelopmentTasksV3:
                     "ascii"
                 ),
             }
+            if source_kind == "bundle" and result.prediction_comparison is not None:
+                private["prediction_comparison"] = result.prediction_comparison
             if source_kind == "graph":
                 private["submission_digest"] = recipe.to_dict()["source"][
                     "submission_digest"

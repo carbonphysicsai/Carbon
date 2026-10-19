@@ -106,11 +106,21 @@ def _wheel() -> bytes:
             torch_profile.GPU_LOCK_DIGEST,
             ".devcontainer/torch/Dockerfile.gpu",
         ),
+        ("torch-cpu-py311", None, ".devcontainer/torch/Dockerfile"),
     ],
 )
 def test_host_parent_requires_registered_lock_and_abi(profile, lock, recipe):
     root = Path(__file__).resolve().parents[2]
-    lock = lock or _digest((root / "uv.lock").read_bytes())
+    lock = lock or _digest(
+        (
+            root
+            / (
+                ".devcontainer/torch/torch-cpu-py311.txt"
+                if profile == "torch-cpu-py311"
+                else "uv.lock"
+            )
+        ).read_bytes()
+    )
     image = _digest(b"image")
     parent = WorkerImageIdentity(
         image_id=image,
@@ -143,6 +153,7 @@ def test_host_parent_requires_registered_lock_and_abi(profile, lock, recipe):
         ("python-cpu-py311", None),
         ("jax-cuda13-py311", "accelerator-requirements.txt"),
         ("torch-cu130-py311", "torch-gpu-requirements.txt"),
+        ("torch-cpu-py311", "torch-requirements.txt"),
     ],
 )
 def test_parent_environment_requires_installed_base_lock(
@@ -158,7 +169,7 @@ def test_parent_environment_requires_installed_base_lock(
         lock_path = tmp_path / lock_name
         lock_path.write_bytes(base_lock)
         monkeypatch.setattr(
-            library_overlay_prep, "GPU_BASE_LOCK_PATHS", {profile: lock_path}
+            library_overlay_prep, "BASE_LOCK_PATHS", {profile: lock_path}
         )
     library_overlay_prep._verify_parent_environment(manifest, build)
 
@@ -172,7 +183,7 @@ def test_parent_environment_requires_installed_base_lock(
         )
     if lock_name is not None:
         lock_path.write_bytes(b"different installed lock\n")
-        with pytest.raises(ValueError, match="accelerator lock differs"):
+        with pytest.raises(ValueError, match="parent lock differs"):
             library_overlay_prep._verify_parent_environment(manifest, build)
 
 

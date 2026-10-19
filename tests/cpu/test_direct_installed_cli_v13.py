@@ -41,16 +41,19 @@ def test_missing_prospective_material_fails_closed_without_affecting_old_kits(
 
 
 @pytest.mark.parametrize(
-    ("candidate_mode", "bad_images", "cpu_only"),
+    ("candidate_mode", "bad_images", "cpu_only", "torch_cpu"),
     [
-        (False, False, False),
-        (True, False, False),
-        (True, True, False),
-        (True, False, True),
+        (False, False, False, False),
+        (False, False, False, True),
+        (False, True, False, True),
+        (True, False, False, False),
+        (True, False, False, True),
+        (True, True, False, False),
+        (True, False, True, False),
     ],
 )
 def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
-    monkeypatch, tmp_path, candidate_mode, bad_images, cpu_only
+    monkeypatch, tmp_path, candidate_mode, bad_images, cpu_only, torch_cpu
 ):
     from carbon.chain import external_signer
     from carbon.development_session import (
@@ -66,7 +69,7 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     digest = "sha256:" + "a" * 64
     parent = SimpleNamespace(image_id=digest)
     direct_parent = parent
-    if not candidate_mode:
+    if not candidate_mode or torch_cpu:
         from carbon.reconstruction import torch_profile
 
         root = Path(cli.__file__).resolve().parents[2]
@@ -75,14 +78,30 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
             "sha256:" + "1" * 64,
             "sha256:" + "2" * 64,  # Older source than accepted implementation.
             "sha256:" + "3" * 64,
-            torch_profile.GPU_LOCK_DIGEST,
+            (
+                torch_profile.requirements_digest(root)
+                if torch_cpu
+                else torch_profile.GPU_LOCK_DIGEST
+            ),
             "sha256:" + "4" * 64,
-            cli.digest((root / ".devcontainer/torch/Dockerfile.gpu").read_bytes()),
+            cli.digest(
+                (
+                    root
+                    / (
+                        ".devcontainer/torch/Dockerfile"
+                        if torch_cpu
+                        else ".devcontainer/torch/Dockerfile.gpu"
+                    )
+                ).read_bytes()
+            ),
             cli.digest(
                 (root / "carbon/reconstruction/worker/entrypoint.py").read_bytes()
             ),
         )
-    analysis = SimpleNamespace(parent_image=digest, image_id=digest)
+    if torch_cpu:
+        parent = replace(direct_parent, source_tree_digest=digest)
+        direct_parent = parent
+    analysis = SimpleNamespace(parent_image=parent.image_id, image_id=digest)
     signer = SimpleNamespace(ss58_address="owner")
     base = (
         tmp_path / "environment" / "campaigns"
@@ -108,7 +127,7 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
         },
         "principal": "owner",
     }
-    if not cpu_only:
+    if not cpu_only and not torch_cpu:
         cfg["gpu_image"] = str(tmp_path / "gpu-image.json")
     candidate = {
         "revision": "a" * 40,
@@ -118,8 +137,9 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     }
     if candidate_mode:
         cfg["runtime"]["implementation"] = candidate
+    if candidate_mode or torch_cpu:
         cfg["runtime"]["images"] = [
-            "sha256:" + "d" * 64 if bad_images else digest,
+            "sha256:" + "d" * 64 if bad_images else parent.image_id,
             digest,
         ]
     monkeypatch.setattr(
@@ -145,11 +165,14 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     )
     monkeypatch.setattr(research_campaign, "private_file", lambda path: path)
     verified_workers = []
-    monkeypatch.setattr(
-        research_campaign,
-        "verify_current_worker",
-        lambda *args: verified_workers.append(args),
-    )
+    actual_worker_check = research_campaign.verify_current_worker
+
+    def check_worker(*args):
+        verified_workers.append(args)
+        if torch_cpu and not candidate_mode:
+            return actual_worker_check(*args)
+
+    monkeypatch.setattr(research_campaign, "verify_current_worker", check_worker)
     compatible_parents = []
     actual_parent_check = cli._direct_development_parent_compatible
 
@@ -175,7 +198,11 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
         lambda **kwargs: checked_parents.append(kwargs["image_identity"])
         or SimpleNamespace(eligible=True),
     )
-    monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _parent: "jax")
+    monkeypatch.setattr(
+        gpu_practice,
+        "gpu_image_backend",
+        lambda _parent: None if torch_cpu else ("jax" if candidate_mode else "pytorch"),
+    )
     monkeypatch.setattr(
         miner_network,
         "binding",
@@ -196,6 +223,11 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
         with pytest.raises(ValueError, match="profile images differ") as refused:
             cli.load_direct_installed_source(profile, version="1.3")
         assert cli.refusal_code(refused.value) == "carbon_updated_rerun_installer"
+        assert checked_parents == []
+        if torch_cpu and not candidate_mode:
+            assert verified_workers == [(parent, {"source_tree_digest": digest})]
+            assert parent.source_tree_digest == digest
+            assert cfg["runtime"]["images"][0] != parent.image_id
         return
     source = cli.load_direct_installed_source(profile, version="1.3")
     assert source.root == (
@@ -210,10 +242,14 @@ def test_v13_installed_loader_reuses_profile_parent_signer_and_owner(
     )
     assert verified_workers == [(parent, expected_implementation)]
     assert compatible_parents == (
-        [] if cpu_only else [(direct_parent, expected_implementation)]
+        [] if cpu_only or torch_cpu else [(direct_parent, expected_implementation)]
     )
     assert seen_candidate == ([tmp_path] if candidate_mode else [])
     assert checked_parents == [direct_parent]
+    if torch_cpu and not candidate_mode:
+        parent = replace(parent, source_tree_digest="sha256:" + "2" * 64)
+        with pytest.raises(ValueError, match="exact accepted source revision"):
+            cli.load_direct_installed_source(profile, version="1.3")
     if cpu_only:
         cfg["runtime"]["gpu_research"] = {}
         with pytest.raises(ValueError, match="declared GPU direct parent is missing"):
@@ -240,7 +276,12 @@ def test_public_v13_direct_torch_parent_reuses_exact_abi_not_old_tree():
     current = {"source_tree_digest": sha("5")}
     cli._direct_development_parent_compatible(image, current)
     for field in ("lock_digest", "entrypoint_digest", "build_recipe_digest"):
-        with pytest.raises(ValueError, match="ABI or entrypoint differs"):
+        expected = (
+            "backend is unregistered"
+            if field == "lock_digest"
+            else "ABI or entrypoint differs"
+        )
+        with pytest.raises(ValueError, match=expected):
             cli._direct_development_parent_compatible(
                 replace(image, **{field: sha("f")}), current
             )
@@ -250,31 +291,46 @@ def test_public_v13_direct_torch_parent_reuses_exact_abi_not_old_tree():
     )
 
 
-def test_public_v13_cpu_inference_worker_reuses_only_exact_abi():
+@pytest.mark.parametrize("role", ("cpu", "jax_gpu", "torch_cpu"))
+def test_public_v13_inference_worker_reuses_only_exact_abi(role):
     from carbon.development_session.research_campaign import verify_direct_v13_worker
+    from carbon.reconstruction import torch_profile
+    from carbon.reconstruction.accelerators import GPU_PROFILE
 
     def sha(char):
         return "sha256:" + char * 64
 
     root = Path(cli.__file__).resolve().parents[2]
+    lock, recipe = {
+        "cpu": (
+            cli.digest((root / "uv.lock").read_bytes()),
+            ".devcontainer/Dockerfile.reconstruction-worker",
+        ),
+        "jax_gpu": (
+            GPU_PROFILE.environment_lock_digest,
+            ".devcontainer/accelerators/Dockerfile",
+        ),
+        "torch_cpu": (
+            torch_profile.requirements_digest(root),
+            ".devcontainer/torch/Dockerfile",
+        ),
+    }[role]
     image = WorkerImageIdentity(
         sha("1"),
         sha("1"),
         sha("2"),
         sha("3"),
-        cli.digest((root / "uv.lock").read_bytes()),
+        lock,
         sha("4"),
-        cli.digest(
-            (root / ".devcontainer/Dockerfile.reconstruction-worker").read_bytes()
-        ),
+        cli.digest((root / recipe).read_bytes()),
         cli.digest((root / "carbon/reconstruction/worker/entrypoint.py").read_bytes()),
     )
     current = {"source_tree_digest": sha("5")}
-    verify_direct_v13_worker(image, current, role="cpu")
+    verify_direct_v13_worker(image, current, role=role)
     for field in ("lock_digest", "entrypoint_digest", "build_recipe_digest"):
         with pytest.raises(ValueError, match="ABI or entrypoint differs"):
             verify_direct_v13_worker(
-                replace(image, **{field: sha("f")}), current, role="cpu"
+                replace(image, **{field: sha("f")}), current, role=role
             )
     with pytest.raises(ValueError, match="role required"):
         verify_direct_v13_worker(image, current, role="unknown")

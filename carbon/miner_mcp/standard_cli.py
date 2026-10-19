@@ -189,7 +189,7 @@ def _retained_direct_parent(encoded, expected_image_id):
 
 
 def _direct_development_parent_compatible(image, implementation):
-    """Check an older Torch base for this public v1.3 construction route.
+    """Check an older registered base for this public v1.3 construction route.
 
     The fixed construction program is staged from the current source. The
     embedded entrypoint still runs, and the embedded exporter must emit the
@@ -197,9 +197,17 @@ def _direct_development_parent_compatible(image, implementation):
     bounded run. This check grants no official or general installed-runtime
     compatibility.
     """
+    from carbon.development_session.gpu_practice import direct_parent_backend
     from carbon.development_session.research_campaign import verify_direct_v13_worker
 
-    verify_direct_v13_worker(image, implementation, role="torch_gpu")
+    role = {
+        "jax": "jax_gpu",
+        "pytorch": "torch_gpu",
+        "torch_cpu": "torch_cpu",
+    }.get(direct_parent_backend(image))
+    if role is None:
+        raise ValueError("installed direct parent backend is unregistered")
+    verify_direct_v13_worker(image, implementation, role=role)
 
 
 def load_direct_installed_source(configuration: Path, *, version="1.2"):
@@ -209,7 +217,10 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
     frozen product campaign to that kit or grant a validator authority.
     """
     from carbon.chain.external_signer import miner_signer
-    from carbon.development_session.gpu_practice import gpu_image_backend
+    from carbon.development_session.gpu_practice import (
+        direct_parent_backend,
+        gpu_image_backend,
+    )
     from carbon.development_session.miner_network import binding
     from carbon.development_session.research_campaign import (
         accepted_implementation,
@@ -252,22 +263,34 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
         try:
             verify_current_worker(parent, implementation)
         except ValueError:
-            if version != "1.3":
+            if version != "1.3" or (
+                direct_parent_backend(parent) == "torch_cpu"
+                and not development_candidate
+            ):
                 raise
-            verify_direct_v13_worker(parent, implementation, role="cpu")
+            role = (
+                "torch_cpu" if direct_parent_backend(parent) == "torch_cpu" else "cpu"
+            )
+            verify_direct_v13_worker(parent, implementation, role=role)
+        if version == "1.3" and direct_parent_backend(parent) == "torch_cpu":
+            verify_direct_v13_worker(parent, implementation, role="torch_cpu")
         analysis = load_analysis_image(paths["analysis_image_manifest"])
         verify_image(analysis)
         if analysis.parent_image != parent.image_id:
             raise ValueError("analysis image parent differs")
-        if development_candidate and cfg["runtime"].get("images") != [
-            parent.image_id,
-            analysis.image_id,
-        ]:
+        if (
+            development_candidate
+            or (version == "1.3" and direct_parent_backend(parent) == "torch_cpu")
+        ) and cfg["runtime"].get("images") != [parent.image_id, analysis.image_id]:
             raise ValueError("development candidate profile images differ")
         gpu_manifest = cfg.get("gpu_image")
-        if gpu_manifest is None and version == "1.3" and development_candidate:
-            # A verified CPU-only candidate uses the same accepted C-03 parent
-            # for direct inference; it does not acquire GPU authority.
+        if (
+            gpu_manifest is None
+            and version == "1.3"
+            and (development_candidate or direct_parent_backend(parent) == "torch_cpu")
+        ):
+            # A verified primary CPU worker also serves direct inference;
+            # selecting it does not acquire GPU authority.
             if "gpu_research" in cfg["runtime"]:
                 raise ValueError("declared GPU direct parent is missing")
             direct_parent = parent
@@ -279,7 +302,16 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
                 _direct_development_parent_compatible(direct_parent, implementation)
             else:
                 verify_current_worker(direct_parent, implementation)
-            if gpu_image_backend(direct_parent) not in {"jax", "pytorch"}:
+            registered = (
+                direct_parent_backend(direct_parent)
+                if version == "1.3"
+                else gpu_image_backend(direct_parent)
+            )
+            if registered not in (
+                {"jax", "pytorch", "torch_cpu"}
+                if version == "1.3"
+                else {"jax", "pytorch"}
+            ):
                 raise ValueError("installed direct parent backend is unregistered")
     with _check("runtime_unavailable"):
         if not doctor(
@@ -405,7 +437,7 @@ class DirectOwnerImageResolver:
 
     def provision_admitted(self, bundle, *, parent, cli):
         """Verify a compatible child; bounded cache-miss build is not available."""
-        from carbon.development_session.gpu_practice import gpu_image_backend
+        from carbon.development_session.gpu_practice import direct_parent_backend
         from carbon.development_session.library_environment_cache import (
             inspect_staged_bundle_material,
             library_image_cache_paths,
@@ -422,10 +454,12 @@ class DirectOwnerImageResolver:
             "python-cpu-py311": None,
             "jax-cuda13-py311": "jax",
             "torch-cu130-py311": "pytorch",
+            "torch-cpu-py311": "torch_cpu",
         }
         if (
             bundle.runtime_profile_id not in expected_backends
-            or gpu_image_backend(parent) != expected_backends[bundle.runtime_profile_id]
+            or direct_parent_backend(parent)
+            != expected_backends[bundle.runtime_profile_id]
         ):
             raise ValueError("construction parent differs from bundle runtime")
         inspect_staged_bundle_material(self.cache_root, bundle)
@@ -443,7 +477,7 @@ class DirectOwnerImageResolver:
         return verify_library_worker_image(image, cli)
 
     def __call__(self, bundle):
-        from carbon.development_session.gpu_practice import gpu_image_backend
+        from carbon.development_session.gpu_practice import direct_parent_backend
         from carbon.development_session.library_environment_cache import (
             library_image_cache_paths,
             load_cached_library_worker_image,
@@ -455,10 +489,11 @@ class DirectOwnerImageResolver:
             "python-cpu-py311": None,
             "jax-cuda13-py311": "jax",
             "torch-cu130-py311": "pytorch",
+            "torch-cpu-py311": "torch_cpu",
         }
         if (
             bundle.runtime_profile_id not in expected_backends
-            or gpu_image_backend(self.parent)
+            or direct_parent_backend(self.parent)
             != expected_backends[bundle.runtime_profile_id]
         ):
             raise ValueError("installed parent backend differs from recipe bundle")
@@ -1553,10 +1588,48 @@ async def serve_installed_direct_development(configuration: Path, *, version="1.
         await create_direct_stdio_server(adapter).run_async()
 
 
+class _RemoteBatteryConnection:
+    """Signed Battery upload ingress; no local research or worker service."""
+
+    def __init__(self, *, root, chain_context, publisher, miner_key, challenge):
+        from types import SimpleNamespace
+
+        from carbon.chain.models import CARBON_NETWORK
+        from carbon.development_session.service import authenticated_research_gateway
+
+        if (
+            not root.is_absolute()
+            or root.is_symlink()
+            or chain_context.netuid != CARBON_NETUID
+            or chain_context.network != CARBON_NETWORK
+            or miner_key.ss58_address == publisher
+        ):
+            raise ValueError("exact Battery DEVELOPMENT network connection required")
+        root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        root.chmod(0o700)
+        self.chain_context = chain_context
+        self.publisher = publisher
+        self.miner_key = miner_key
+        self.challenge = challenge
+        _, self.observed, gateway = authenticated_research_gateway(
+            root, chain_context, publisher, challenge
+        )
+        self.service = SimpleNamespace(gateway=gateway)
+
+    async def check_registration(self):
+        from carbon.development_session.service import registered_research_snapshot
+
+        return await registered_research_snapshot(
+            self.chain_context, self.miner_key, self.publisher, self.observed
+        )
+
+
 @contextlib.asynccontextmanager
-async def attached_remote_material_stage(configuration: Path):
+async def attached_remote_material_stage(configuration: Path, *, challenge):
     """Authenticate a signed upload without requiring local execution images."""
+    from carbon.battery.challenge import CHALLENGE as BATTERY_CHALLENGE
     from carbon.chain.external_signer import miner_signer
+    from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
     from carbon.development_session.direct_research_composition import (
         DirectDevelopmentConnection,
     )
@@ -1566,7 +1639,18 @@ async def attached_remote_material_stage(configuration: Path):
     from scripts.dev.miner_launchpad.controller import owner_lock
     from scripts.dev.miner_launchpad.runner import validated_profile
 
-    _direct_material("1.3")
+    if challenge == BATTERY_CHALLENGE:
+        synthetic = False
+        state_name = "remote-stage-battery-v1.0"
+    else:
+        synthetic = challenge == bundle_material_v5()["challenge_key"]
+        if not synthetic:
+            raise AttachRefused(
+                "construction_recipe_challenge_mismatch",
+                "unregistered recipe challenge",
+            )
+        _direct_material("1.3")
+        state_name = "remote-stage-v1.3"
     with _check("runner_profile_unusable"):
         cfg = validated_profile(private_json(configuration))
     if cfg["enabled"] is not True:
@@ -1576,7 +1660,7 @@ async def attached_remote_material_stage(configuration: Path):
     base = Path(cfg["campaigns_root"])
     if not base.is_dir() or base.is_symlink() or base.resolve(strict=True) != base:
         raise AttachRefused("runner_profile_unusable", "private owner root required")
-    state = base / ".direct-development" / "remote-stage-v1.3"
+    state = base / ".direct-development" / state_name
     if any(part.is_symlink() for part in (state.parent, state)):
         raise AttachRefused("runner_profile_unusable", "private direct root differs")
     if state.exists() and not state.is_dir():
@@ -1604,12 +1688,16 @@ async def attached_remote_material_stage(configuration: Path):
     with _check("runner_profile_unusable"):
         target = validate([cfg["direct_intake_target"]])[0]
     with owner_lock(state):
-        connection = DirectDevelopmentConnection(
-            root=state / "research-auth",
-            version="1.3",
-            chain_context=network.context,
-            publisher=network.publisher_hotkey,
-            miner_key=signer,
+        connection_args = {
+            "root": state / "research-auth",
+            "chain_context": network.context,
+            "publisher": network.publisher_hotkey,
+            "miner_key": signer,
+        }
+        connection = (
+            DirectDevelopmentConnection(version="1.3", **connection_args)
+            if synthetic
+            else _RemoteBatteryConnection(challenge=challenge, **connection_args)
         )
         with _check("registration_check_failed"):
             await _requester(
@@ -1656,16 +1744,23 @@ async def stage_installed_direct_bundle(
         raise AttachRefused(
             "construction_bundle_source_required", "bundle source required"
         )
-    async with attached_remote_material_stage(configuration) as (connection, target):
-        challenge = source["challenge"]
-        if (challenge["id"], challenge["version"]) != (
-            connection.challenge.challenge_id,
-            connection.challenge.version,
-        ):
+    challenge = source["challenge"]
+    contract = registered(challenge["id"], challenge["version"])
+    if challenge != contract.construction_kit:
+        raise AttachRefused(
+            "construction_recipe_challenge_mismatch", "recipe kit differs"
+        )
+    from carbon.registry.model import ChallengeKey
+
+    selected = ChallengeKey(challenge["id"], challenge["version"])
+    async with attached_remote_material_stage(configuration, challenge=selected) as (
+        connection,
+        target,
+    ):
+        if selected != connection.challenge:
             raise AttachRefused(
                 "construction_recipe_challenge_mismatch", "recipe challenge differs"
             )
-        contract = registered(challenge["id"], challenge["version"])
         result = stage_bundle(
             target["intake_url"],
             connection.miner_key,
@@ -1846,7 +1941,8 @@ def main(argv=None):
         default="1.2",
         help=(
             "Installed direct kit version for serving (default 1.2; 1.3 is "
-            "prospective). Cleanup reconciles every retained kit version."
+            "prospective). Bundle staging selects its Challenge from --recipe. "
+            "Cleanup reconciles every retained kit version."
         ),
     )
     parser.add_argument(
@@ -1885,11 +1981,15 @@ def main(argv=None):
     if (args.stage_bundle is None) != (args.recipe is None):
         parser.error("--stage-bundle and --recipe must be supplied together")
     if args.stage_bundle is not None and (
-        not args.direct_development or args.direct_version != "1.3" or args.cleanup_only
+        not args.direct_development or args.cleanup_only
     ):
-        parser.error("bundle staging needs --direct-development --direct-version 1.3")
+        parser.error("bundle staging needs --direct-development")
     try:
-        if args.direct_development and args.direct_version not in DIRECT_KIT_VERSIONS:
+        if (
+            args.direct_development
+            and args.stage_bundle is None
+            and args.direct_version not in DIRECT_KIT_VERSIONS
+        ):
             raise AttachRefused(
                 "direct_development_kit_unavailable", "unknown direct kit"
             )

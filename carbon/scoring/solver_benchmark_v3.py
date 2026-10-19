@@ -127,13 +127,88 @@ def register_pack(body):
     return {**body, "pack_digest": _digest(body)}
 
 
-def score(benchmark, pack):
-    """Same rule for validator and ScoreLab callers; no I/O or callbacks."""
+def _validate_pack(pack):
     if type(pack) is not dict or pack.get("pack_digest") != _digest(
         {k: v for k, v in pack.items() if k != "pack_digest"}
     ):
         raise BenchmarkScoreRefused("pack_digest")
     register_pack({k: v for k, v in pack.items() if k != "pack_digest"})
+
+
+def public_rule_definition(registration, pack):
+    """Explain the applied v3 rule without exposing private evidence identities.
+
+    This is an allow-listed projection, not an editable scoring contract or a
+    definition of the Challenge-owned gate predicates. No models or reference
+    rows are required, and no measurement or qualification is performed.
+    """
+    from carbon.scoring.benchmark_evidence import physics_contract_identity, register
+
+    _validate_pack(pack)
+    if type(registration) is not dict:
+        raise BenchmarkScoreRefused("registration_shape")
+    registered = register(
+        {k: v for k, v in registration.items() if k != "registration_digest"}
+    )
+    if registration.get("registration_digest") != registered["registration_digest"]:
+        raise BenchmarkScoreRefused("registration_digest")
+    output = {k: registered["output"][k] for k in ("quantity", "unit", "metric")}
+    if (
+        pack["benchmark_registration_digest"] != registered["registration_digest"]
+        or pack["scope"] != registered["scope"]
+        or pack["challenge"] != registered["challenge"]
+        or pack["physics_contract"]
+        != physics_contract_identity(registered["physics_contract"])
+        or pack["output"] != output
+        or set(pack["hard_gates"]) != set(registered["mandatory_gates"])
+    ):
+        raise BenchmarkScoreRefused("benchmark_binding")
+    output["size"] = registered["output"]["size"]
+    if "shape" in registered["output"]:
+        output["shape"] = list(registered["output"]["shape"])
+    timing = registered["timing_profile"]
+    return {
+        "schema": "carbon.scoring.solver-benchmark-public-rule.v1",
+        "score_schema": PACK_SCHEMA,
+        "scope": pack["scope"],
+        "challenge": pack["challenge"],
+        "status": (
+            "PACK_NOT_READY" if pack["accuracy_ceiling"] is None else "DEVELOPMENT_RULE"
+        ),
+        "output": output,
+        "population": {"scored_role": "P", "Q": "DIAGNOSTIC_ONLY"},
+        "hard_gates": {
+            "ids": list(pack["hard_gates"]),
+            "requirement": "ALL_PASS_ON_ALL_P_QUERIES",
+            "predicate_authority": "CHALLENGE_MEASUREMENT_IMPLEMENTATION",
+        },
+        "accuracy_definition": {
+            "metric": pack["output"]["metric"],
+            "per_query_reduction": "MEAN_ABSOLUTE_ERROR_OVER_ALL_OUTPUT_ELEMENTS",
+            "population_reduction": "REGISTERED_WEIGHTED_MEAN_OVER_P_QUERIES",
+            "ceiling": pack["accuracy_ceiling"],
+            "ceiling_comparison": "LESS_THAN_OR_EQUAL",
+            "mandatory": True,
+        },
+        "performance": {
+            "objective": pack["performance_objective"],
+            "reduction": "SUM_REFERENCE_SECONDS_DIVIDED_BY_SUM_MODEL_QUERY_SECONDS",
+            "role": "P",
+            "model_query_phases": ["preprocess", "export", "inference", "postprocess"],
+            "build_cost_in_score": False,
+            "timing_basis": timing["basis"],
+            "query_unit": timing.get("query_unit", "single_query"),
+            "batch_size": timing["batch_size"],
+        },
+        "incomplete_reference_evidence": "DEFER_COMMON_ROLE",
+        "important_limit_definition": {"status": "NOT_APPLIED"},
+        "design_objective": {"status": "NOT_APPLIED"},
+    }
+
+
+def score(benchmark, pack):
+    """Same rule for validator and ScoreLab callers; no I/O or callbacks."""
+    _validate_pack(pack)
     if (
         type(benchmark) is not dict
         or benchmark.get("schema") != BENCHMARK_SCHEMA

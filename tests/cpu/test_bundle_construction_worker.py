@@ -15,6 +15,7 @@ from carbon.development_session.bundle_construction_worker import (
     INFER_PROGRAM,
     _checked_binding,
     _digest,
+    _stage_bundle_modules,
     _stage_modules,
     _tensors,
     _trusted_allowlist,
@@ -137,8 +138,13 @@ def test_direct_child_identities_are_stable_distinct_and_within_ledger_bound():
         direct_child_identity(long_task, "unknown")
 
 
-@pytest.mark.parametrize("accelerator", [None, MINER_GPU])
-def test_composed_bundle_forwards_only_explicit_selected_gpu(monkeypatch, accelerator):
+@pytest.mark.parametrize(
+    "accelerator,inference_accelerator",
+    [(None, None), (MINER_GPU, None), (MINER_GPU, MINER_GPU), (None, MINER_GPU)],
+)
+def test_composed_bundle_forwards_each_phase_control(
+    monkeypatch, accelerator, inference_accelerator
+):
     recipe = _recipe(_sha("a"))
     calls = []
     state_digest = _sha("f")
@@ -187,14 +193,15 @@ def test_composed_bundle_forwards_only_explicit_selected_gpu(monkeypatch, accele
         expected_output_shape=(1, 1),
         allowlist_bytes=b"allowlist",
         accelerator=accelerator,
+        inference_accelerator=inference_accelerator,
         runner=object(),
     )
     assert result.execution_boundary == "TEST_ONLY_LOCAL_RUNNER"
     assert [phase for phase, _ in calls] == ["build", "infer"]
-    assert all((kwargs.get("accelerator") == accelerator) for _, kwargs in calls)
-    assert all(
-        ("accelerator" in kwargs) == (accelerator is not None) for _, kwargs in calls
-    )
+    assert calls[0][1].get("accelerator") == accelerator
+    assert ("accelerator" in calls[0][1]) == (accelerator is not None)
+    assert calls[1][1].get("accelerator") == inference_accelerator
+    assert ("accelerator" in calls[1][1]) == (inference_accelerator is not None)
     with pytest.raises(RecipeRefused, match="bundle_accelerator_invalid"):
         bundle_worker._accelerator_kwargs("unregistered-device")
 
@@ -252,8 +259,9 @@ def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_on
     train = _tensors(inputs=x, targets=3 * x)
     example = _tensors(inputs=x)
     recipe = _recipe(_digest(train))
+    binding = _binding(recipe)
     allowed = allowlist.load(Path(allowlist.PATH).with_name("allowlist_v2.json"))
-    build_files = _stage_modules()
+    build_files, build_modules = _stage_bundle_modules(binding, training=True)
     build_files.update(
         {
             "recipe.json": recipe.canonical_bytes,
@@ -264,7 +272,8 @@ def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_on
                 {
                     "recipe_digest": recipe.digest,
                     "bundle_ref": recipe.to_dict()["source"]["bundle_ref"],
-                    "binding": _binding(recipe),
+                    "binding": binding,
+                    "codec_modules": build_modules,
                     "example_digest": _digest(example),
                     "allowlist_digest": allowed.digest,
                     "seed": 7,
@@ -289,6 +298,13 @@ def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_on
     build_receipt = json.loads((build_work.parent / "output/receipt.json").read_bytes())
     assert build_receipt["state_digest"] == _digest(state)
     assert build_receipt["framework"] == "jax"
+    assert build_receipt["schema"] == "carbon.development.bundle-build.v2"
+    native_raw = (build_work.parent / "output/native-predictions.json").read_bytes()
+    assert build_receipt["native_predictions_digest"] == _digest(native_raw)
+    assert build_receipt["example_digest"] == _digest(example)
+    np.testing.assert_array_equal(np.asarray(json.loads(native_raw)), 3 * x)
+    assert build_receipt["native_dtype"] == "float32"
+    assert build_receipt["native_shape"] == [2, 2]
 
     rebuilt_work = _stage(tmp_path / "independent-rebuild", build_files)
     rebuilt = subprocess.run(
@@ -304,7 +320,7 @@ def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_on
     assert (rebuilt_work.parent / "output/state.npz").read_bytes() == state
 
     requested = _tensors(inputs=np.asarray([[5.0, 6.0], [7.0, 8.0]], dtype=np.float32))
-    infer_files = _stage_modules()
+    infer_files, infer_modules = _stage_bundle_modules(binding, training=False)
     infer_files.update(
         {
             "recipe.json": recipe.canonical_bytes,
@@ -314,7 +330,8 @@ def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_on
             "control.json": json.dumps(
                 {
                     "recipe_digest": recipe.digest,
-                    "binding": _binding(recipe),
+                    "binding": binding,
+                    "codec_modules": infer_modules,
                     "state_digest": _digest(state),
                     "inputs_digest": _digest(requested),
                     "allowlist_digest": allowed.digest,
@@ -343,3 +360,229 @@ def test_fixed_bundle_build_consumes_train_and_separate_inference_gets_inputs_on
     np.testing.assert_allclose(predictions, [[15.0, 18.0], [21.0, 24.0]])
     receipt = json.loads((infer_work.parent / "output/receipt.json").read_bytes())
     assert receipt["state_digest"] == build_receipt["state_digest"]
+
+
+def test_fixed_bundle_build_decodes_pinned_battery_train_before_source_factory(
+    tmp_path,
+):
+    from carbon.battery import challenge, construction_kit
+    from carbon.development_session.construction_tensor_codec import train_tensors
+
+    repository = Path(__file__).resolve().parents[2]
+    train = (repository / challenge.TRAIN_V1_PATH).read_bytes()
+    kit = construction_kit.construction_kit()
+    x, _targets = train_tensors(
+        train,
+        {
+            "challenge_id": kit["id"],
+            "challenge_version": kit["version"],
+            "train_digest": kit["train_digest"],
+            "interface_digest": kit["interface_digest"],
+            "construction_limits_digest": kit["construction_limits_digest"],
+        },
+    )
+    recipe_body = _recipe(kit["train_digest"]).to_dict()
+    recipe_body["challenge"] = kit
+    recipe_body["output"]["interface_digest"] = kit["interface_digest"]
+    recipe = ConstructionRecipe.from_dict(recipe_body)
+    binding = _binding(recipe)
+    files, modules = _stage_bundle_modules(binding, training=True)
+    assert "carbon.battery.construction_material.py" in files
+    example = _tensors(inputs=x[:1])
+    allowed = allowlist.load(Path(allowlist.PATH).with_name("allowlist_v2.json"))
+    files.update(
+        {
+            "recipe.json": recipe.canonical_bytes,
+            "train.gz": train,
+            "example.npz": example,
+            "allowlist.json": allowed.raw,
+            "control.json": json.dumps(
+                {
+                    "recipe_digest": recipe.digest,
+                    "bundle_ref": recipe.to_dict()["source"]["bundle_ref"],
+                    "binding": binding,
+                    "codec_modules": modules,
+                    "example_digest": _digest(example),
+                    "allowlist_digest": allowed.digest,
+                    "seed": 7,
+                },
+                sort_keys=True,
+            ).encode(),
+        }
+    )
+    library = tmp_path / "installed-library"
+    candidate = library / "candidate"
+    candidate.mkdir(parents=True)
+    (candidate / "__init__.py").write_text("")
+    (candidate / "build.py").write_text(
+        "import os\n"
+        "def build(train_inputs, train_targets, *, seed, configuration, train_use):\n"
+        "    assert train_inputs.shape == (400, 4)\n"
+        "    assert train_targets.shape == (400, 247)\n"
+        "    assert str(train_inputs.dtype) == str(train_targets.dtype) == 'float64'\n"
+        "    assert os.environ.get('JAX_ENABLE_X64') == '1'\n"
+        "    raise ValueError('BATTERY_CODEC_REACHED_FACTORY')\n"
+    )
+    work = _stage(tmp_path / "battery-build", files)
+    run = subprocess.run(
+        [sys.executable, "-c", BUILD_PROGRAM],
+        cwd=work,
+        env={**os.environ, "PYTHONPATH": str(library)},
+        capture_output=True,
+        text=True,
+        timeout=90,
+        check=False,
+    )
+    assert run.returncode != 0
+    assert "BATTERY_CODEC_REACHED_FACTORY" in run.stderr
+
+
+@pytest.mark.parametrize("delta", [0.0, 0.5])
+def test_host_compares_original_native_artifact_on_exact_same_public_probe(
+    tmp_path, delta
+):
+    recipe = _recipe(_sha("a"))
+    native = np.asarray([[1.0, 2.0]], dtype=np.float32)
+    native_raw = json.dumps(native.tolist()).encode()
+    path = tmp_path / "native-predictions.json"
+    path.write_bytes(native_raw)
+    state_digest = _sha("f")
+    probe = _sha("b")
+    receipt = {
+        "schema": "carbon.development.bundle-build.v2",
+        "recipe_digest": recipe.digest,
+        "state_digest": state_digest,
+        "example_digest": probe,
+        "native_predictions_digest": _digest(native_raw),
+        "native_shape": [1, 2],
+        "native_dtype": "float32",
+    }
+    build = bundle_worker.BundleBuildResult(
+        recipe.digest, state_digest, tmp_path / "state.npz", "build", receipt
+    )
+    inference = bundle_worker.BundleInferenceResult(
+        recipe.digest,
+        state_digest,
+        _sha("e"),
+        [[1.0 + delta, 2.0]],
+        "infer",
+        {"inputs_digest": probe},
+    )
+    result = bundle_worker.compare_build_inference_predictions(
+        build, inference, expected_output_dtype="float32"
+    )
+    assert result["exact_equal"] is (delta == 0.0)
+    assert result["max_abs_delta"] == delta
+    assert "pass" not in result and "qualified" not in result
+    # No comparison of unrelated public probes can appear to be a fidelity pass.
+    inference.receipt["inputs_digest"] = _sha("c")
+    unavailable = bundle_worker.compare_build_inference_predictions(
+        build, inference, expected_output_dtype="float32"
+    )
+    assert unavailable["reason_code"] == "different_public_probe"
+    path.write_bytes(b"[[9.0, 2.0]]")
+    with pytest.raises(ValueError, match="snapshot changed"):
+        bundle_worker.native_build_predictions(build)
+
+
+def test_shared_graph_stage_keeps_its_existing_no_argument_contract():
+    files = _stage_modules()
+    assert type(files) is dict
+    assert set(files) == {name + ".py" for name in bundle_worker.STAGED_MODULES}
+    assert "carbon.development_session.construction_tensor_codec.py" not in files
+
+
+def test_large_valid_native_artifact_does_not_add_a_model_admission_cap(tmp_path):
+    native_raw = ("[[" + ",".join(["0"] * 1_000_001) + "]]").encode()
+    (tmp_path / "native-predictions.json").write_bytes(native_raw)
+    recipe = _recipe(_sha("a"))
+    state = _sha("f")
+    probe = _sha("b")
+    build = bundle_worker.BundleBuildResult(
+        recipe.digest,
+        state,
+        tmp_path / "state.npz",
+        "build",
+        {
+            "schema": "carbon.development.bundle-build.v2",
+            "recipe_digest": recipe.digest,
+            "state_digest": state,
+            "example_digest": probe,
+            "native_predictions_digest": _digest(native_raw),
+            "native_shape": [1, 1_000_001],
+            "native_dtype": "float32",
+        },
+    )
+    inference = bundle_worker.BundleInferenceResult(
+        recipe.digest, state, _sha("e"), [], "infer", {"inputs_digest": probe}
+    )
+    assert bundle_worker.native_build_predictions(build).shape == (1, 1_000_001)
+    result = bundle_worker.compare_build_inference_predictions(
+        build, inference, expected_output_dtype="float32"
+    )
+    assert result["reason_code"] == "comparison_resource_bound"
+    assert "pass" not in result
+
+
+def test_frozen_inference_preserves_wide_internal_math_with_float32_io(tmp_path):
+    import jax
+    import jax.numpy as jnp
+
+    from carbon.development_session.bundle_graph_state import freeze
+    from carbon.level4.tooling import lower_jax
+
+    allowed = allowlist.load(Path(allowlist.PATH).with_name("allowlist_v2.json"))
+    x = np.zeros((2, 2), dtype=np.float32)
+    recipe = _recipe(_sha("a"))
+    binding = _binding(recipe)
+
+    def original(values):
+        wide = values.astype(jnp.float64)
+        return ((wide + 16777217.0) - 16777216.0).astype(jnp.float32)
+
+    with jax.enable_x64():
+        traced = lower_jax.trace(original, jnp.asarray(x))
+        document = lower_jax.lower(
+            traced, role="forward", allowlist=allowed, input_names=["inputs/x"]
+        )
+        state = freeze(recipe, document, [], allowed)
+        expected = np.asarray(original(jnp.asarray(x)))
+    assert np.all(expected == 1.0)
+    requested = _tensors(inputs=x)
+    files, modules = _stage_bundle_modules(binding, training=False)
+    files.update(
+        {
+            "recipe.json": recipe.canonical_bytes,
+            "state.npz": state,
+            "inputs.npz": requested,
+            "allowlist.json": allowed.raw,
+            "control.json": json.dumps(
+                {
+                    "recipe_digest": recipe.digest,
+                    "binding": binding,
+                    "codec_modules": modules,
+                    "state_digest": _digest(state),
+                    "inputs_digest": _digest(requested),
+                    "allowlist_digest": allowed.digest,
+                    "expected_output_shape": [2, 2],
+                    "expected_output_dtype": "float32",
+                }
+            ).encode(),
+        }
+    )
+    work = _stage(tmp_path / "wide-infer", files)
+    result = subprocess.run(
+        [sys.executable, "-c", INFER_PROGRAM],
+        cwd=work,
+        env={**os.environ, "JAX_ENABLE_X64": "0"},
+        capture_output=True,
+        text=True,
+        timeout=90,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    actual = np.asarray(
+        json.loads((work.parent / "output/predictions.json").read_bytes())
+    )
+    np.testing.assert_array_equal(actual, expected)
+    assert "train.npz" not in files and "candidate.build.py" not in files

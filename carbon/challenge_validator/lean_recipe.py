@@ -107,6 +107,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
         self.challenge_id = contract.challenge_id
         self.challenge_version = contract.version
         self.contract_digest = contract.digest
+        self._evidence_label = contract.evidence_label
         self.max_strategy_bytes = MAX_BODY
         self._kit = dict(contract.construction_kit)
         self._identities = self._bound_identities(contract)
@@ -165,11 +166,12 @@ class LeanRecipeAdapter(ChallengeAdapter):
             type(provider) is not DirectDevelopmentTasksV3
             or provider.owner != hotkey
             or provider.discovery is not self.discovery
+            or provider.evaluation_pack_digest != self.discovery.evaluation_pack_digest
         ):
             raise Unavailable("direct_provider_binding_unavailable")
         return provider
 
-    def _request(self, hotkey, recipe):
+    def _request(self, hotkey, recipe, *, evaluation_pack_digest=None):
         from carbon.development_session.profile import canonical
         from carbon.development_session.profile import digest as sha
         from carbon.research import DirectStartTaskRequestV3
@@ -178,6 +180,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
         task_binding = hotkey + "\0" + self.contract_digest + "\0" + recipe.digest
         if self._measure_query:
             task_binding += "\0" + self._identities["rule_digest"]
+        if evaluation_pack_digest is not None:
+            task_binding += "\0EVALUATION_PACK\0" + evaluation_pack_digest
         identity = hashlib.sha256(task_binding.encode("utf-8")).hexdigest()
         return DirectStartTaskRequestV3(
             info.challenge_key,
@@ -218,7 +222,11 @@ class LeanRecipeAdapter(ChallengeAdapter):
         # The durable task provider owns source inspection and admitted
         # environment preparation. A missing preinstalled image is not a
         # separate construction-admission rule at the signed door.
-        request = self._request(submission.hotkey, recipe)
+        request = self._request(
+            submission.hotkey,
+            recipe,
+            evaluation_pack_digest=provider.evaluation_pack_digest,
+        )
         task_id = provider._task_id(request)
         from carbon.research import canonical_bytes
 
@@ -253,7 +261,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
             "submission_id": task.task_id.value,
             "challenge": {"id": self.challenge_id, "version": self.challenge_version},
             "state": "ADMITTED",
-            "evidence": "DEVELOPMENT_PUBLIC_SYNTHETIC",
+            "evidence": self._evidence_label,
             "qualification": False,
             "reward": False,
             "task_id": task.task_id.value,
@@ -312,7 +320,9 @@ class LeanRecipeAdapter(ChallengeAdapter):
         if retained is None:
             return None
         recipe = ConstructionRecipe.from_dict(retained.recipe)
-        expected = self._request(owner, recipe)
+        expected = self._request(
+            owner, recipe, evaluation_pack_digest=provider.evaluation_pack_digest
+        )
         if (
             expected != retained
             or provider._task_id(expected).value != submission_id

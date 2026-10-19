@@ -200,7 +200,7 @@ def _report(rows):
         ],
         "rows": rows,
     }
-    print("SCORE LAB — DEVELOPMENT ONLY")
+    print("SCORE LAB â€” DEVELOPMENT ONLY")
     print(headline)
     print(
         f"profiles {len(rows)} | measured {len(measured)} | tau range {summary['tau_range']}"
@@ -271,7 +271,90 @@ def main(argv=None):
         argv = sys.argv[1:]
     if not argv:
         print(
-            "SCORE LAB — DEVELOPMENT ONLY; use --help for benchmark or legacy commands"
+            "SCORE LAB â€” DEVELOPMENT ONLY; use --help for benchmark, rich-design or legacy commands"
+        )
+        return 0
+    if argv[0] == "rich-design":
+        parser = argparse.ArgumentParser(
+            description="Same-core PUBLIC DEVELOPMENT Physics/Design reduction"
+        )
+        parser.add_argument("--input", type=Path, required=True)
+        parser.add_argument("--input-sha256", required=True)
+        parser.add_argument("--out", type=Path, required=True)
+        args = parser.parse_args(argv[1:])
+        if args.out.exists():
+            parser.error("fresh output path required; retained results are immutable")
+
+        def unique_pairs(items):
+            result = {}
+            for key, value in items:
+                if key in result:
+                    raise ValueError("duplicate_json_key:" + key)
+                result[key] = value
+            return result
+
+        def invalid_constant(value):
+            raise ValueError("nonfinite_json:" + value)
+
+        try:
+            raw = args.input.read_bytes()
+            if hashlib.sha256(raw).hexdigest() != args.input_sha256:
+                raise ValueError("input_sha256_mismatch")
+            evidence = json.loads(
+                raw, object_pairs_hook=unique_pairs, parse_constant=invalid_constant
+            )
+            required = {
+                "schema",
+                "scope",
+                "policy",
+                "reference",
+                "models",
+                "original_pack",
+                "original_benchmark",
+                "provenance",
+            }
+            if (
+                type(evidence) is not dict
+                or not required
+                <= set(evidence)
+                <= required
+                | {
+                    "original_result",
+                    "measurement_basis",
+                    "finite_task_registration",
+                    "finite_task_measurement_basis",
+                }
+                or evidence["schema"] != "carbon.scorelab.rich-design-input.v1"
+                or evidence["scope"] != "PUBLIC_DEVELOPMENT"
+            ):
+                raise ValueError("public_rich_design_input_shape")
+            # Import only the common reducer/core, never historical battery jobs.
+            from carbon.scoring.design_benchmark import score_design_benchmark
+
+            report = score_design_benchmark(
+                evidence["policy"],
+                evidence["reference"],
+                evidence["models"],
+                evidence["original_pack"],
+                evidence["original_benchmark"],
+                provenance=evidence["provenance"],
+                original_result=evidence.get("original_result"),
+                measurement_basis=evidence.get("measurement_basis"),
+                finite_task_registration=evidence.get("finite_task_registration"),
+                finite_task_measurement_basis=evidence.get(
+                    "finite_task_measurement_basis"
+                ),
+            )
+            report["input_bytes_sha256"] = args.input_sha256
+            encoded = (
+                json.dumps(report, indent=2, sort_keys=True, allow_nan=False) + "\n"
+            )
+        except (OSError, ValueError) as exc:
+            parser.error(str(exc))
+        with args.out.open("x", encoding="utf-8", newline="\n") as stream:
+            stream.write(encoded)
+        print(
+            "PUBLIC DEVELOPMENT rich-Design reduced; inspect coverage and score status"
         )
         return 0
     if argv[0] == "benchmark":
@@ -888,9 +971,9 @@ def main(argv=None):
                     bootstrap=config["bootstrap"],
                     with_physics=wrapper,
                 )
-        print("SCORE LAB PHYSICS — SYNTHETIC DEVELOPMENT ONLY")
+        print("SCORE LAB PHYSICS â€” SYNTHETIC DEVELOPMENT ONLY")
         print(
-            f"{len(report['rows'])} rule × switch rows; "
+            f"{len(report['rows'])} rule Ã— switch rows; "
             f"{len(report['sensitivity']['table'])} sensitivity settings"
         )
         for entry in report["sensitivity"]["table"]:

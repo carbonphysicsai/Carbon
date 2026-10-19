@@ -6,6 +6,7 @@ import json
 
 import pytest
 
+from carbon.battery import challenge as battery_challenge
 from carbon.chain.models import ChainContext
 from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
 from carbon.development_session import direct_submission as client
@@ -93,6 +94,35 @@ def _answer(state, *, task_id="task-1", **outcome_fields):
         "qualification": False,
         "reward": False,
     }
+
+
+def test_client_accepts_only_registered_battery_evidence_label():
+    contract = registered(
+        battery_challenge.CHALLENGE.challenge_id,
+        battery_challenge.CHALLENGE.version,
+    )
+    answer = _answer("ADMITTED")
+    answer["pinned"]["contract_digest"] = contract.digest
+    answer["outcome"]["challenge"] = {
+        "id": battery_challenge.CHALLENGE.challenge_id,
+        "version": battery_challenge.CHALLENGE.version,
+    }
+    answer["outcome"]["evidence"] = contract.evidence_label
+    observed, _ = client._outcome(
+        answer,
+        contract_digest=contract.digest,
+        challenge=battery_challenge.CHALLENGE,
+        evidence_label=contract.evidence_label,
+    )
+    assert observed["state"] == "ADMITTED"
+    answer["outcome"]["evidence"] = "DEVELOPMENT_PUBLIC_SYNTHETIC"
+    with pytest.raises(client.DirectIntakeRefusal):
+        client._outcome(
+            answer,
+            contract_digest=contract.digest,
+            challenge=battery_challenge.CHALLENGE,
+            evidence_label=contract.evidence_label,
+        )
 
 
 def test_signed_direct_submission_records_task_and_restart_only_polls(

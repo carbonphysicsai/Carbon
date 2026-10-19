@@ -1175,6 +1175,7 @@ class LiveChecks:
             ) from None
 
     def compute(self, image_manifest: Path, analysis_manifest: Path) -> dict:
+        from carbon.development_session.gpu_practice import direct_parent_backend
         from carbon.development_session.research_campaign import (
             verify_current_worker,
             verify_direct_v13_worker,
@@ -1199,7 +1200,17 @@ class LiveChecks:
                 # own exact-source admission rule remain unchanged.
                 if implementation.get("source_authority") != "DEVELOPMENT_CANDIDATE":
                     raise
-                verify_direct_v13_worker(image, implementation, role="cpu")
+                verify_direct_v13_worker(
+                    image,
+                    implementation,
+                    role=(
+                        "torch_cpu"
+                        if direct_parent_backend(image) == "torch_cpu"
+                        else "cpu"
+                    ),
+                )
+            if direct_parent_backend(image) == "torch_cpu":
+                verify_direct_v13_worker(image, implementation, role="torch_cpu")
             if not doctor(image_id=image.image_id, image_identity=image).eligible:
                 raise ValueError("host not eligible")
         except Exception:  # noqa: BLE001 - never echo a local path or error.
