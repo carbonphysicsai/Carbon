@@ -476,6 +476,68 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id, evide
     }
 
 
+def _inference_pair_raw(adapter, submission_id, result, artifacts, entry):
+    """The two fresh repeat queries of the retained model, kept write-once beside
+    the dual measurement. Two new carrier operations with new identities; a
+    retry reads the retained bytes and never replays an identity."""
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.development_session.data import write_once
+    from carbon.development_session.paired_inference import (
+        InferencePairFailure,
+        infer_frozen_pair,
+    )
+
+    path = _private_evaluation_directory(result, submission_id) / "inference-pair.json"
+    if path.exists() or path.is_symlink():
+        return _private_measurement_bytes(path, 1024**2)
+    owner = adapter.owner(submission_id)
+    provider = adapter._provider(owner)
+    material = adapter.discovery._material
+    kit = material["construction_kit"]
+    limits = material["construction_limits_document"]
+    policy = limits["reconstruction_resource_policy"]
+    interface = material["interface_document"]
+    try:
+        pair = infer_frozen_pair(
+            provider.ledger,
+            owner=owner,
+            identity="pair-"
+            + adapter.discovery.evaluation_pack_snapshot.manifest_digest
+            + "-"
+            + submission_id,
+            inference_image=provider.inference_image,
+            recipe=ConstructionRecipe.from_dict(
+                provider._requests[submission_id].recipe
+            ),
+            challenge_binding={
+                "challenge_id": kit["id"],
+                "challenge_version": kit["version"],
+                "train_digest": kit["train_digest"],
+                "interface_digest": kit["interface_digest"],
+                "construction_limits_digest": kit["construction_limits_digest"],
+            },
+            limits_document=limits,
+            state_bytes=artifacts["state.npz"],
+            expected_state_digest=entry["state_digest"],
+            inputs=material["practice_inputs"],
+            expected_output_shape=tuple(material["expected_output_shape"]),
+            expected_output_dtype=(
+                interface["outputs"]["dtype"]
+                if "outputs" in interface
+                else interface["dtype"]
+            ),
+            allowlist_bytes=material["allowlist_bytes"],
+            seconds=policy["inference_wall_seconds_max"],
+            total_seconds=policy["total_reconstruction_wall_seconds_max"],
+            accelerator=getattr(provider, "inference_accelerator", None),
+        )
+    except InferencePairFailure as failure:
+        raise RetentionUnavailable("inference_pair_incomplete") from failure
+    raw = _json(pair.evidence)
+    write_once(path, raw)
+    return raw
+
+
 def _retain_selected_pack_evaluation(
     adapter, submission_id, result, artifacts, evidence=None
 ):
@@ -550,6 +612,13 @@ def _retain_selected_pack_evaluation(
                     "receipt_raw": artifacts["timed-query-receipt.json"],
                     "registered_sha256": _sha(artifacts["timed-query-receipt.json"]),
                 }
+            # Never gates retention: this runs after bank custody, and a missing
+            # or failed pair leaves the evaluation UNAVAILABLE with a typed reason.
+            pair_raw = _inference_pair_raw(
+                adapter, submission_id, result, artifacts, registered["entry"]
+            )
+            originals["inference_pair_raw"] = pair_raw
+            originals["inference_pair_sha256"] = _sha(pair_raw)
         prepared = produce_registered_dual_measurement(
             selected_pack=snapshot,
             public_root=discovery.evaluation_pack_public_root,
