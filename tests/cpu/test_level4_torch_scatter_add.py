@@ -1,8 +1,7 @@
-"""Prospective static-index scatter-add lowering; no v5 contract change."""
+"""Versioned static-index scatter lowering; v5 remains frozen and refused."""
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 
@@ -15,18 +14,35 @@ from carbon.level4 import graph, interpret
 from carbon.level4.tooling import lower_torch
 
 V5 = Path(allowlist_module.__file__).with_name("allowlist_v5.json")
+V6 = Path(allowlist_module.__file__).with_name("allowlist_v6.json")
 
 
 def _prospective():
-    document = json.loads(V5.read_text())
-    document["version"] = "test-scatter-add-static-prospective"
-    document["aten_core"]["aten.scatter_add.default"] = {
-        "category": "shape",
-        "default": "allow",
-        "lowering": "emitted",
-        "note": "static int64 indices; ordered non-atomic expansion",
-    }
-    return allowlist_module.Allowlist(json.dumps(document).encode())
+    return allowlist_module.load(V6)
+
+
+def test_v6_only_adds_static_torch_emitter_and_keeps_graph_scatter_refused():
+    import hashlib
+    import json
+
+    from carbon.development_session.bundle_construction_worker import _trusted_allowlist
+    from carbon.development_session.construction_recipe import RecipeRefused
+
+    old, new = json.loads(V5.read_bytes()), json.loads(V6.read_bytes())
+    assert hashlib.sha256(V5.read_bytes()).hexdigest() == (
+        "f26ea734d3078564b72fa30c66ab46cf4419a004ed249130481b517985af3122"
+    )
+    assert new.pop("version") == "level4-allowlist-v6"
+    assert old.pop("version") == "level4-allowlist-v5"
+    admitted = new["aten_core"].pop("aten.scatter_add.default")
+    assert admitted["default"] == "allow" and admitted["lowering"] == "emitted"
+    assert new == old
+    assert new["carbon_ops"]["scatter_add"]["v0_interpreter"] is False
+    with pytest.raises(graph.GraphRefused) as refused:
+        _prospective().admit("scatter_add", "forward")
+    assert refused.value.code == "op_not_supported_v0"
+    with pytest.raises(RecipeRefused, match="bundle_allowlist_unregistered"):
+        _trusted_allowlist(V6.read_bytes())
 
 
 def _static_program():
@@ -104,6 +120,138 @@ def test_ordered_repeats_forward_gradient_and_source_free_state_parity():
     np.testing.assert_allclose(
         np.asarray(got_base), wanted_base.grad.numpy(), rtol=1e-5, atol=1e-5
     )
+
+
+def _field_program():
+    torch = pytest.importorskip("torch")
+
+    class StaticField(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.weight = torch.nn.Parameter(torch.full((1, 2, 8, 1), 7.0))
+            self.register_buffer("index", torch.ones((1, 2, 8, 1), dtype=torch.int64))
+
+        def forward(self, x):
+            return x.scatter_add(1, self.index, self.weight)
+
+    source = StaticField()
+    example = torch.zeros((1, 8, 8, 1), dtype=torch.float32)
+    return source, torch.export.export(source, (example,)).run_decompositions()
+
+
+def test_static_field_lowers_with_registered_caps_and_no_captured_weights():
+    _source, program = _field_program()
+    forward, _ = lower_torch.lower(program, allowlist=_prospective())
+    assert [i["name"] for i in forward["graphs"]["main"]["inputs"]] == [
+        "params/0",
+        "inputs/x",
+    ]
+    assert all(n["op"] != "scatter_add" for n in forward["graphs"]["main"]["nodes"])
+    assert all(
+        c["shape"] != [1, 2, 8, 1] for c in forward["graphs"]["main"]["constants"]
+    )
+    assert all(
+        v == "pass"
+        for v in allowlist_module.check_caps(graph.measure(forward)).values()
+    )
+
+
+def test_static_scatter_fits_fixed_public_train_then_loads_inert_numeric_state():
+    jax = pytest.importorskip("jax")
+    import io
+    import json
+    import zipfile
+
+    import numpy as np
+
+    from carbon.challenge_kit import synthetic_linear_field_2d as fixture
+    from carbon.development_session import bundle_graph_state
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.development_session.synthetic_graph_adapter import (
+        build_validated_graph,
+        checked_train,
+        graph_interface,
+    )
+    from carbon.level4 import initializers, submission
+
+    source, program = _field_program()
+    allowed = _prospective()
+    forward, _ = lower_torch.lower(program, allowlist=allowed)
+    # The authoring layer binds Torch's local argument name to this Challenge's
+    # published input name before the immutable submission is built.
+    inputs = forward["graphs"]["main"]["inputs"]
+    assert [i["name"] for i in inputs] == ["params/0", "inputs/x"]
+    inputs[1]["name"] = "inputs/forcing"
+    assert all(n["op"] != "scatter_add" for n in forward["graphs"]["main"]["nodes"])
+    assert all(
+        c["shape"] != [1, 2, 8, 1] for c in forward["graphs"]["main"]["constants"]
+    )  # captured module weights are not a submission artifact
+
+    init_spec = {
+        "schema": initializers.SCHEMA,
+        "graph": graph.digest(forward),
+        "parameters": [
+            {
+                "input": "params/0",
+                "initializer": "zeros",
+                "fan_in_axes": [],
+                "fan_out_axes": [],
+            }
+        ],
+    }
+    manifest, files = submission.build(
+        challenge=fixture.CHALLENGE.challenge_id,
+        interface=graph_interface().digest(),
+        allowlist=allowed,
+        forward=forward,
+        init_spec=init_spec,
+    )
+    recipe_body = json.loads(
+        (
+            Path(__file__).resolve().parents[1]
+            / "fixtures"
+            / "cr06_public"
+            / "cr06_recipe.json"
+        ).read_bytes()
+    )
+    recipe_body["challenge"]["version"] = "prospective-v6-test"
+    recipe_body["source"]["submission_digest"] = submission.digest(manifest)
+    recipe_body["procedure"]["configuration"]["training"]["optimizer"] = "sgd"
+    recipe = ConstructionRecipe.from_dict(recipe_body)
+    train_x, train_y = checked_train(
+        fixture.train_bytes(), recipe.to_dict()["challenge"]["train_digest"]
+    )
+    model = build_validated_graph(
+        recipe,
+        submission.canonical(manifest),
+        files,
+        allowlist_bytes=V6.read_bytes(),
+        train_cases=len(train_x),
+    )
+    fit = model.fit(train_x, train_y, seed=3)
+    assert fit["train_cases"] == fixture.TRAIN_CASES
+    assert fit["steps"] == 1
+    assert any(np.any(p != 0) for p in model.params)
+    assert all(
+        not np.array_equal(p, source.weight.detach().numpy()) for p in model.params
+    )
+
+    state = model.frozen_state()
+    with zipfile.ZipFile(io.BytesIO(state)) as archive:
+        assert set(archive.namelist()) == {
+            "__header__.npy",
+            "graph.npy",
+            "parameter0000.npy",
+        }
+    frozen_graph, frozen_params = bundle_graph_state.load(state, recipe, allowed)
+    inference = interpret.rebuild(frozen_graph, allowed)
+    query = fixture.practice_inputs()[:1]
+    inert_prediction = inference(
+        jax.numpy.asarray(frozen_params[0]), jax.numpy.asarray(query)
+    )[0]
+    np.testing.assert_allclose(np.asarray(inert_prediction), model.predict(query))
+    with pytest.raises(bundle_graph_state.RecipeRefused):
+        bundle_graph_state.load(state, recipe, allowlist_module.load(V5))
 
 
 def test_pinned_v5_still_refuses_scatter_add():
