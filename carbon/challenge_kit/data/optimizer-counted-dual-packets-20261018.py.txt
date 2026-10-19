@@ -1,0 +1,563 @@
+"""Actual public Motor/Cooling evidence -> existing ScoreEngine, no solver.
+
+Operator-only DEVELOPMENT readout. Motor preserves its saved frozen candidate;
+Cooling reconstructs from public TRAIN and retains new state/predictions. Neither
+is a private receiver registration, historical rescore, independent OOD proof,
+production score or qualification. Product owns execution and isolation.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import math
+import sys
+import time
+from pathlib import Path
+from statistics import fmean
+
+CORE_SHA = "074bd79bfb41074f3a86ddf28de0d70107277d992217b31cd2f90f7b4e74ca83"
+MOTOR_SHA = "7790ea1a00d833ded12039a8b0d8fa406b74878ee05cb3161f5355d1801c77ee"
+CONSUMER_SHA = "5d45140f521362de0bd714357faba9a84075845d6c8c31652bd8a3c0b6179535"
+MANIFEST_SHA = "9e32f3a3b233ca81e84475a715319a6c24ec48296560d460563fa28bdad76a53"
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+
+
+def digest(value):
+    return "sha256:" + hashlib.sha256(canonical(value).encode()).hexdigest()
+
+
+def write(path, value):
+    with Path(path).open("x", encoding="utf-8", newline="\n") as stream:
+        stream.write(canonical(value) + "\n")
+
+
+def read_pinned(path, expected):
+    if sha(path) != expected:
+        raise ValueError(f"input hash mismatch: {path}")
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def motor(source, root, out, engine):
+    operator = root / "codex-queue/inputs/operator"
+    report = root / "codex-queue/reports"
+    path = report / (
+        "PRODUCT_MOTOR_GATE_POLICY_READOUT_V2_20261018/"
+        "scorelab-motor-gate-policy-diagnostic-20261018.json"
+    )
+    saved = read_pinned(path, MOTOR_SHA)
+    manifest = read_pinned(
+        operator / "MOTOR_DUAL_TRANSFER_ACQUISITION_MANIFEST_20261018.json",
+        MANIFEST_SHA,
+    )
+    consumer = operator / "OPTIMIZER_MOTOR_DUAL_TRANSFER_ANALYSIS_20261018.py"
+    if sha(consumer) != CONSUMER_SHA:
+        raise ValueError("Motor original measurement producer changed")
+    spec = importlib.util.spec_from_file_location("frozen_motor_readout", consumer)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    selected = "base__A1__arithmetic__wd0p5::G1_BALANCED_BASELINE"
+    candidate = saved["gate_experiment"]["candidate_scores"][selected]
+    features = saved["old_features"]
+    for row in candidate["rows"]:
+        features[row["artifact_digest"]]["decision_outcome"] = row["decision_outcome"]
+    benchmark = module._benchmark(candidate, features, manifest)
+    result = engine.score_dual_benchmark_v4(benchmark, candidate["pack"])
+    if {r["artifact_digest"]: r for r in result["models"]} != {
+        r["artifact_digest"]: r for r in candidate["rows"]
+    }:
+        raise ValueError("Motor exact frozen result did not reproduce")
+    write(out / "score_pack.json", candidate["pack"])
+    write(out / "benchmark.json", benchmark)
+    write(out / "score_result.json", result)
+    write(out / "raw_measurements.json", features)
+    return {
+        "packet": "motor-synthetic-decision-v2",
+        "status": "ACTUAL_EXPOSED_FROZEN_RESULT_REPRODUCED",
+        "candidate": selected,
+        "model_count": len(result["models"]),
+        "reference_case_count": 48,
+        "source_inputs": {
+            str(path): MOTOR_SHA,
+            str(consumer): CONSUMER_SHA,
+            "manifest": MANIFEST_SHA,
+        },
+        "new_model_fits": 0,
+        "new_reference_solves": 0,
+        "actual_result": result,
+        "independent_confirmation": "NOT_MEASURED",
+    }
+
+
+def cooling(source, root, out, engine):
+    import numpy as np
+    from carbon.cold_plate import analytic, domain, exam
+    from carbon.cold_plate import customer_decision as cd
+    from carbon.cold_plate import decision_study as ds
+    from carbon.cold_plate import track_b as route
+
+    from carbon import learned_baseline
+    from carbon.scoring import dual_score
+
+    config = route.load_config(source)
+    contract = ds.decision_contract(config)
+    config_path = source / route.CONFIG
+    replay_path = (
+        source / "docs/development/evidence/track-b-replay/ai-cooling-counted-v1.json"
+    )
+    replay = json.loads(replay_path.read_text(encoding="utf-8"))
+    if replay["evidence_class"] != "COUNTED_CFD" or len(replay["cases"]) != 48:
+        raise ValueError("48 actual counted CFD rows required")
+    if replay["source_records_sha256"] != (
+        "sha256:7a390163ad7c7c0e5bbfccf252c002ff49514281a0bfadb3a91740a1c376910b"
+    ):
+        raise ValueError("wrong original CFD acquisition")
+    designs = {d["design_id"]: d["values"] for d in config["designs"]}
+    conditions = {c["scenario_id"]: c for c in config["conditions"]}
+    refs = {}
+    for row in replay["cases"]:
+        key = row["design_id"] + ":" + row["condition_id"]
+        if row["status"] != "OK" or key in refs:
+            raise ValueError("common CFD reference mask incomplete or duplicated")
+        refs[key] = {
+            "case_id": key,
+            "status": "OK",
+            "inputs": {
+                **designs[row["design_id"]],
+                **conditions[row["condition_id"]]["values"],
+            },
+            "outputs": row["outputs"],
+        }
+    expected = {d + ":" + c for d in designs for c in conditions}
+    if set(refs) != expected:
+        raise ValueError("reference is not the whole fixed 8x6 question")
+    train = route._train(config, source)
+    inputs = {
+        d + ":" + c: {**designs[d], **conditions[c]["values"]}
+        for d in sorted(designs)
+        for c in sorted(conditions)
+    }
+    train_points = {canonical(r["inputs"]) for r in train}
+    if any(canonical(v) in train_points for v in inputs.values()):
+        raise ValueError("held-out design inputs overlap public TRAIN")
+    scales = exam.scales_from_train(train)
+    if any(
+        not math.isfinite(scales[k]) or scales[k] <= 0
+        for k in ("s_peak", "s_profile", "s_log_dp")
+    ):
+        raise ValueError("invalid native TRAIN normalization")
+    spec = config["models"]["learned-krr-v1"]
+    x = learned_baseline.scale(
+        [r["inputs"] for r in train], domain.INPUTS, domain.INPUT_BOUNDS
+    )
+    targets = []
+    for row in train:
+        inlet = row["inputs"]["inlet_c"]
+        outputs = row["outputs"]
+        targets.append(
+            [math.log(outputs["peak_c"] - inlet)]
+            + [math.log(v - inlet) for v in outputs["profile_c"]]
+            + [math.log(outputs["pressure_drop_pa"])]
+        )
+    start_cpu, start_wall = time.process_time(), time.perf_counter()
+    krr = learned_baseline.KernelRidge(
+        x, np.asarray(targets), spec["length"], spec["ridge"]
+    )
+    fitting = {
+        "cpu_s": time.process_time() - start_cpu,
+        "wall_s": time.perf_counter() - start_wall,
+    }
+    state = out / "new-learned-krr-v1.npz"
+    np.savez_compressed(
+        state,
+        x=krr.x,
+        alpha=krr.alpha,
+        mean=krr.mean,
+        std=krr.std,
+        length=krr.length,
+        ridge=spec["ridge"],
+    )
+
+    def learned(batch):
+        rows = krr.predict(
+            learned_baseline.scale(
+                list(batch.values()), domain.INPUTS, domain.INPUT_BOUNDS
+            )
+        )
+        values = {}
+        for (key, case), y in zip(batch.items(), rows):
+            inlet = case["inlet_c"]
+            profile = [inlet + math.exp(float(v)) for v in y[1:-1]]
+            values[key] = {
+                "peak_c": max(inlet + math.exp(float(y[0])), max(profile)),
+                "profile_c": profile,
+                "pressure_drop_pa": math.exp(float(y[-1])),
+            }
+        return values
+
+    def analytic_batch(batch):
+        return {
+            key: {
+                name: value
+                for name, value in analytic.predict(case).items()
+                if name in exam.SHAPES
+            }
+            for key, case in batch.items()
+        }
+
+    models = {
+        "learned-krr-v1": learned,
+        "analytic-v1": analytic_batch,
+        "nearest-neighbour-v1": route._nearest_neighbour(train),
+    }
+    pending = {}
+    for name, predict in models.items():
+        start_cpu, start_wall = time.process_time(), time.perf_counter()
+        first, twin = predict(inputs), predict(inputs)
+        timing = {
+            "cpu_s": time.process_time() - start_cpu,
+            "wall_s": time.perf_counter() - start_wall,
+        }
+        if set(first) != expected or set(twin) != expected:
+            raise ValueError("model dropped a common-mask input")
+        quantities = {}
+        for key, case in inputs.items():
+            try:
+                quantities[key] = cd.quantities(contract, case, first[key])
+            except (ValueError, TypeError, KeyError, OverflowError):
+                quantities[key] = None
+        predicted = {
+            d: max(quantities[d + ":" + c]["hydraulic_w"] for c in conditions)
+            for d in designs
+            if all(
+                quantities[d + ":" + c] is not None
+                and quantities[d + ":" + c]["feasible"]
+                for c in conditions
+            )
+        }
+        picked = (
+            min(
+                predicted,
+                key=lambda d: (
+                    predicted[d],
+                    *(designs[d][k] for k in cd.DESIGN_VARIABLES),
+                ),
+            )
+            if predicted
+            else None
+        )
+        write(out / (name + "-predictions.json"), {"first": first, "repeat": twin})
+        write(
+            out / (name + "-preverification-pick.json"),
+            {
+                "model": name,
+                "picked": picked,
+                "predicted": predicted,
+                "scope": "PUBLIC_EXPOSED_REPLAY_NOT_INDEPENDENT_PRETRUTH_EVIDENCE",
+            },
+        )
+        pending[name] = (first, twin, timing, picked)
+    # All model-only proposals are now retained. Only the following phase
+    # reduces reference outputs. The source is exposed public evidence, not a
+    # fresh hidden or independent pretruth experiment.
+    exam.calibrate(list(refs.values()))
+    reference_quantities = {
+        key: cd.quantities(contract, row["inputs"], row["outputs"])
+        for key, row in refs.items()
+    }
+    reference_objectives = {
+        d: max(reference_quantities[d + ":" + c]["hydraulic_w"] for c in conditions)
+        for d in designs
+        if all(reference_quantities[d + ":" + c]["feasible"] for c in conditions)
+    }
+    if not reference_objectives:
+        raise ValueError("no feasible reference anchor in original finite set")
+    best = min(reference_objectives.values())
+    observed, benchmark_models = {}, []
+    for name, (first, twin, timing, picked) in pending.items():
+        rows = {
+            key: exam.score_case(first[key], refs[key], scales, twin=twin[key])
+            for key in inputs
+        }
+        native_pass = all(row["state"] == exam.SCORABLE for row in rows.values())
+        components = {}
+        # Finite errors can remain measurable after a physical gate failure.
+        # Preserve that gate's classification rather than relabel every gate
+        # failure as a malformed/non-finite candidate measurement.
+        errors = {}
+        try:
+            if any(
+                exam.gates(first[key], inputs[key])["schema_finite"] != exam.PASS
+                or first[key]["pressure_drop_pa"] <= 0
+                for key in inputs
+            ):
+                raise ValueError("invalid native shape or logarithmic pressure")
+            errors = {
+                key: exam.case_components(first[key], refs[key], scales)
+                for key in inputs
+            }
+        except (ValueError, TypeError, KeyError, OverflowError, ZeroDivisionError):
+            pass
+        if errors and all(
+            math.isfinite(value) and value >= 0
+            for error in errors.values()
+            for value in error.values()
+        ):
+            for component in exam.COMPONENTS:
+                components[component + "_all48"] = fmean(
+                    error[component] for error in errors.values()
+                )
+                components[component + "_worst_geometry"] = max(
+                    fmean(errors[d + ":" + c][component] for c in conditions)
+                    for d in designs
+                )
+                components[component + "_boundary"] = fmean(
+                    errors[d + ":" + c][component]
+                    for d in designs
+                    for c, condition in conditions.items()
+                    if condition["group"] == "BOUNDARY_STRESS"
+                )
+        a = min(1 / (1 + e) for e in components.values()) if components else None
+        verified = picked is not None and picked in reference_objectives
+        regret = max(0.0, reference_objectives[picked] - best) if verified else None
+        d_benefit = 1 / (1 + regret / 0.025) if verified else 0.0
+        artifact = (
+            "sha256:" + sha(state)
+            if name == "learned-krr-v1"
+            else digest(
+                {
+                    "model": name,
+                    "config": sha(config_path),
+                    "train": spec["training_sha256"],
+                }
+            )
+        )
+        benchmark_models.append(
+            {
+                "artifact_digest": artifact,
+                "gates": {
+                    "native_cold_plate": "PASS" if native_pass else "FAIL",
+                    "complete48_common_mask": "PASS",
+                    "selected_design_verified_feasible": "PASS" if verified else "FAIL",
+                },
+                "measurements": {
+                    "physics_min_benefit": {
+                        "status": "RESOLVED" if a is not None else "CANDIDATE_INVALID",
+                        "value": a,
+                        "unit": "1",
+                    },
+                    "verified_design_benefit": {
+                        "status": "RESOLVED",
+                        "value": d_benefit,
+                        "unit": "1",
+                    },
+                },
+                "decision_outcome": (
+                    "VERIFIED_FEASIBLE" if verified else "MISSED_OPPORTUNITY"
+                ),
+            }
+        )
+        observed[name] = {
+            "artifact_digest": artifact,
+            "native_rows": rows,
+            "A_raw_components": components,
+            "predictions": first,
+            "repeat_predictions": twin,
+            "prediction_timing": timing,
+            "query_accounting": {
+                "optimization_points": 48,
+                "repeat_points": 48,
+                "total_inference_attempts": 96,
+                "verification_condition_lookups": 6 if picked else 0,
+            },
+            "pick": picked,
+            "verified_feasible": verified,
+            "raw_decision_outcome": (
+                "VERIFIED_FEASIBLE"
+                if verified
+                else "ABSTAIN" if picked is None else "INFEASIBLE_SELECTION"
+            ),
+            "false_feasible_pick": picked is not None and not verified,
+            "regret_w": regret,
+            "A": a,
+            "D": d_benefit,
+        }
+    measurement = {
+        "job": config["study_id"],
+        "native_error_source": sha(source / "carbon/cold_plate/exam.py"),
+        "native_observer_source": sha(
+            source / "carbon/cold_plate/customer_decision.py"
+        ),
+        "A": "min reciprocal dimensionless error across 3 quantities x all48/worst_geometry/boundary cohorts",
+        "A_scale": 1.0,
+        "D": "1/(1+finite_verified_regret_W/0.025)",
+        "D_scale_W": 0.025,
+        "scale_status": "PROSPECTIVE_EXPERIMENT_NOT_ADOPTED",
+        "query_budget_including_repeats": 96,
+        "verification_condition_budget": 6,
+        "source_replay_sha256": sha(replay_path),
+        "config_sha256": sha(config_path),
+    }
+    physics_binding = {
+        "scope": "periodic-straight-channel-cell-v1",
+        "definition_kind": "EXACT_EXISTING_NATIVE_SOURCE_BINDING_NOT_QUALIFICATION",
+        "native_outputs": {
+            "peak_c": ["C", []],
+            "profile_c": ["C", [30]],
+            "pressure_drop_pa": ["Pa", []],
+        },
+        "source_sha256": {
+            relative: sha(source / relative)
+            for relative in (
+                "carbon/cold_plate/domain.py",
+                "carbon/cold_plate/exam.py",
+                "carbon/cold_plate/openfoam.py",
+            )
+        },
+        "reference_solver_image": replay["solver_image"],
+    }
+    pack = dual_score.register_pack(
+        {
+            "schema": dual_score.PACK_SCHEMA,
+            "scope": "PUBLIC_DEVELOPMENT",
+            "challenge": "chip-cold-plate",
+            "physics_contract_digest": digest(physics_binding),
+            "measurement_contract_digest": digest(measurement),
+            "hard_gates": [
+                "native_cold_plate",
+                "complete48_common_mask",
+                "selected_design_verified_feasible",
+            ],
+            "legs": {
+                leg: {
+                    "components": [
+                        {
+                            "metric": metric,
+                            "unit": "1",
+                            "transform": "unit_benefit",
+                            "scale": None,
+                            "weight": 1.0,
+                        }
+                    ],
+                    "minimum": None,
+                }
+                for leg, metric in (
+                    ("A", "physics_min_benefit"),
+                    ("D", "verified_design_benefit"),
+                )
+            },
+            "value_weight": 0.5,
+            "combination": "weighted_arithmetic_mean",
+            "decision_policy": {
+                "VERIFIED_FEASIBLE": {"eligible": True, "maximum_D": 1.0},
+                "MISSED_OPPORTUNITY": {"eligible": False, "maximum_D": 0.0},
+                "NONE_FEASIBLE": {"eligible": False, "maximum_D": 0.0},
+            },
+        }
+    )
+    benchmark = {
+        "schema": dual_score.INPUT_SCHEMA,
+        "scope": pack["scope"],
+        "challenge": pack["challenge"],
+        "physics_contract_digest": pack["physics_contract_digest"],
+        "measurement_contract_digest": pack["measurement_contract_digest"],
+        "population_role": "P",
+        "common_mask_digest": digest(sorted(refs)),
+        "models": benchmark_models,
+    }
+    initial = engine.score_dual_benchmark_v4(benchmark, pack)
+    default_artifact = observed["learned-krr-v1"]["artifact_digest"]
+    default = next(
+        row for row in initial["models"] if row["artifact_digest"] == default_artifact
+    )
+    if default["status"] == "SCORED_DEVELOPMENT_CANDIDATE":
+        body = {key: value for key, value in pack.items() if key != "pack_digest"}
+        for leg in ("A", "D"):
+            body["legs"][leg]["minimum"] = default["legs"][leg]
+        pack = dual_score.register_pack(body)
+    result = engine.score_dual_benchmark_v4(benchmark, pack)
+    write(out / "score_pack.json", pack)
+    write(out / "benchmark.json", benchmark)
+    write(out / "score_result.json", result)
+    write(out / "measurement_contract.json", measurement)
+    write(out / "physics_contract.json", physics_binding)
+    write(out / "raw_measurements.json", observed)
+    return {
+        "packet": config["study_id"],
+        "status": "NEW_PUBLIC_RECONSTRUCTION_ACTUAL_48_CFD_REPLAY",
+        "reference_case_count": len(refs),
+        "model_count": len(models),
+        "reference_feasible_designs": reference_objectives,
+        "default_baseline_floor_status": (
+            "MEASURED_EXPERIMENTAL"
+            if default["status"] == "SCORED_DEVELOPMENT_CANDIDATE"
+            else "UNAVAILABLE_DEFAULT_INELIGIBLE"
+        ),
+        "fitting": fitting,
+        "native_model_state_sha256": sha(state),
+        "new_reference_solves": 0,
+        "new_reconstruction": True,
+        "historical_state_recovered": False,
+        "independent_ood": False,
+        "actual_result": result,
+    }
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--packet", choices=("motor", "cooling"), required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    source, root, out = (
+        args.source.resolve(),
+        args.root.resolve(),
+        args.output.resolve(),
+    )
+    if sha(source / "carbon/scoring/dual_score.py") != CORE_SHA:
+        raise ValueError("shared scoring core identity mismatch")
+    out.mkdir(parents=True, exist_ok=False)
+    sys.path.insert(0, str(source))
+    from carbon.scoring.engine import ScoreEngine
+
+    started_cpu, started_wall = time.process_time(), time.perf_counter()
+    result = {"motor": motor, "cooling": cooling}[args.packet](
+        source, root, out, ScoreEngine
+    )
+    result.update(
+        {
+            "scope": "PUBLIC_DEVELOPMENT_ONLY",
+            "official_score": False,
+            "operator_script_sha256": sha(Path(__file__)),
+            "shared_core_sha256": CORE_SHA,
+            "cpu_s": time.process_time() - started_cpu,
+            "wall_s": time.perf_counter() - started_wall,
+            "source_head": "operator must independently record exact git head/tree",
+            "private_source_registration": "NOT_CREATED_NO_PRIVATE_CUSTODY_CLAIM",
+        }
+    )
+    write(out / "result.json", result)
+    print(
+        canonical(
+            {
+                "packet": result["packet"],
+                "status": result["status"],
+                "models": result["model_count"],
+                "new_reference_solves": 0,
+            }
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()

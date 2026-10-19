@@ -11,6 +11,8 @@ regenerated from committed sources; no operator output is copied.
   ``{version, definition}`` envelope.
 - The accuracy definition carries that packet's measurement: its scales are
   PROSPECTIVE_EXPERIMENT_NOT_ADOPTED values, a development candidate.
+  ``scale_status`` is provenance, not a control: nothing reads it to gate
+  anything; DEVELOPMENT confinement is the binder's.
 - The score pack's leg minimums follow that packet's rule: the rebuilt
   learned-krr-v1 baseline's own legs when it scores, else none.
 
@@ -41,7 +43,9 @@ Refused = cdm.CoolingMeasurementRefused
 validate_definition = cdm.validate_definition
 _ADAPTER = sys.modules[__name__]
 _ROOT = Path(__file__).resolve().parents[2]
-#: The counted-dual packet this adapter ports (operator material, not copied).
+#: The counted-dual packet this adapter ports, committed byte-identical as
+#: carbon/challenge_kit/data/optimizer-counted-dual-packets-20261018.py.txt
+#: (data, never imported or executed; a test checks the values below).
 SOURCE_SCRIPT_SHA256 = (
     "sha256:b6a1ce3e5c242dbe3595e84d31fd0a0586f6b48baa3ed9eb92bf7a43ab0d6917"
 )
@@ -57,6 +61,29 @@ _MEASUREMENT = {
     "verification_condition_budget": 6,
     "query_budget_including_repeats": 96,
     "scale_status": "PROSPECTIVE_EXPERIMENT_NOT_ADOPTED",
+}
+#: Leg-minimum rules, each its own evaluation version (so its own bank key).
+#: ``baseline_legs`` is the packet's rule and the reproduced default (the same
+#: rule as Motor); ``baseline_a_no_d_minimum`` is the Validator's DEVELOPMENT
+#: comparison variant (2026-10-19). Adopting either is the owner's call.
+LEG_MINIMUM_RULES = {
+    "baseline_legs": (
+        EVALUATION_VERSION,
+        (
+            "The rebuilt learned-krr-v1 baseline's A and D are the leg minimums. "
+            "Its D is 1.0, so the D leg is pass/fail: any verified-feasible pick "
+            "with positive regret (a safe but suboptimal design) fails "
+            "REQUIRED_LEG_MINIMUM_FAILED."
+        ),
+    ),
+    "baseline_a_no_d_minimum": (
+        EVALUATION_VERSION + "-no-d-minimum",
+        (
+            "DEVELOPMENT comparison variant: the baseline's A is the A minimum "
+            "and D has no minimum, so a safe but suboptimal verified pick keeps "
+            "its continuous D. Not adopted."
+        ),
+    ),
 }
 
 
@@ -94,7 +121,7 @@ def physics_contract():
     }
 
 
-def definition(*, bank, train_raw):
+def definition(*, bank, train_raw, rule="baseline_legs"):
     """Cooling's registered accuracy definition fields (the shared module adds
     the producer, TRAIN and bank pins)."""
     from carbon.challenge_kit import physical_public_train
@@ -118,6 +145,8 @@ def definition(*, bank, train_raw):
         "A_reducer": "minimum",
         "cohort_counts": dict(cdm.COHORT_COUNTS),
         "target_slices": {k: list(v) for k, v in slices.items()},
+        "leg_minimum_rule": rule,
+        "leg_minimum_note": LEG_MINIMUM_RULES[rule][1],
         **_MEASUREMENT,
     }
 
@@ -286,22 +315,47 @@ def applied_pack(*, bank_rows, definition, limits, objective, train_raw, names):
         },
         pack,
     )["models"][0]
+    rule = definition.get("leg_minimum_rule")
+    if rule not in LEG_MINIMUM_RULES:
+        raise Refused("cooling_leg_minimum_rule")
     if row["status"] == "SCORED_DEVELOPMENT_CANDIDATE":
-        for leg in ("A", "D"):
+        for leg in ("A", "D") if rule == "baseline_legs" else ("A",):
             body["legs"][leg]["minimum"] = row["legs"][leg]
     return body
+
+
+class _Variant:
+    """This adapter under a non-default leg-minimum rule: its own evaluation
+    version and definition; everything else (measurement, producer) is the
+    default adapter's."""
+
+    def __init__(self, rule):
+        self.rule = rule
+        self.EVALUATION_VERSION = LEG_MINIMUM_RULES[rule][0]
+
+    def definition(self, **kwargs):
+        return definition(**kwargs, rule=self.rule)
+
+    def __getattr__(self, name):
+        return getattr(_ADAPTER, name)
+
+
+def adapter(rule="baseline_legs"):
+    if rule not in LEG_MINIMUM_RULES:
+        raise ValueError("unknown cooling leg-minimum rule")
+    return _ADAPTER if rule == "baseline_legs" else _Variant(rule)
 
 
 def producer_digest():
     return physical.producer_digest(_ADAPTER)
 
 
-def pack_documents(**kwargs):
-    return physical.pack_documents(_ADAPTER, **kwargs)
+def pack_documents(*, rule="baseline_legs", **kwargs):
+    return physical.pack_documents(adapter(rule), **kwargs)
 
 
-def write_development_pack(root):
-    return physical.write_development_pack(_ADAPTER, root)
+def write_development_pack(root, rule="baseline_legs"):
+    return physical.write_development_pack(adapter(rule), root)
 
 
 def produce(**kwargs):
@@ -315,8 +369,11 @@ def main(argv=None):
         description="Write the complete Cooling DEVELOPMENT evaluation pack."
     )
     parser.add_argument("root", type=Path, help="new or empty pack directory")
+    parser.add_argument(
+        "--leg-minimum-rule", choices=sorted(LEG_MINIMUM_RULES), default="baseline_legs"
+    )
     args = parser.parse_args(argv)
-    print(write_development_pack(args.root.resolve()))
+    print(write_development_pack(args.root.resolve(), args.leg_minimum_rule))
     return 0
 
 
