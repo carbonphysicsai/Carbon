@@ -1410,7 +1410,9 @@ def _infer_state(
                 or measured["input_shape"] != list(inputs.shape)
                 or measured["input_dtype"] != str(inputs.dtype)
                 or measured["output_shape"] != list(expected_output_shape)
-                or measured["output_dtype"] != expected_output_dtype
+                or not _exact_numeric_dtype(
+                    measured["output_dtype"], expected_output_dtype
+                )
                 or type(measured["timing_s"]) is not dict
                 or set(measured["timing_s"])
                 != {"preprocess", "inference", "postprocess", "export"}

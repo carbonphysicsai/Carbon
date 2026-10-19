@@ -154,3 +154,50 @@ def test_a_measured_task_is_admitted_for_physical_material(
         assert started.task.state.name in ("QUEUED", "RUNNING")
     finally:
         tasks.close()
+
+
+@CHALLENGES
+def test_measured_query_accepts_the_registered_dtype_spelling(
+    tmp_path, monkeypatch, challenge_id, version
+):
+    """Physical interfaces spell the dtype "<f8"; the program reports "float64".
+    The timed query validator must compare dtypes, not strings (MS1 stage B
+    ended FAILED_INFRA at VALIDATE on exactly this)."""
+    monkeypatch.setattr(acceptance, "SOURCE", SOURCE)
+    material = physical_material.bundle_material(challenge_id, version)
+    spelled = material["interface_document"]["dtype"]
+    assert spelled != "float64"
+    image, installed = acceptance._source_bundle(tmp_path)
+    recipe = acceptance._recipe(material, image)
+    runner = acceptance.LocalProcessRunner(installed)
+    ledger = CampaignLedger(tmp_path / "campaign")
+    built = reconstruct_public(
+        ledger,
+        owner="miner",
+        identity="motor-build",
+        image=image,
+        recipe=recipe,
+        challenge_binding=acceptance._binding(material),
+        train=material["train"],
+        example=material["example"],
+        seed=11,
+        allowlist_bytes=material["allowlist_bytes"],
+        runner=runner,
+    )
+    timed = infer_public(
+        ledger,
+        owner="miner",
+        identity="motor-timed",
+        image=image,
+        inference_image=image.parent,
+        recipe=recipe,
+        challenge_binding=acceptance._binding(material),
+        build=built,
+        inputs=material["practice_inputs"],
+        expected_output_shape=material["expected_output_shape"],
+        allowlist_bytes=material["allowlist_bytes"],
+        expected_output_dtype=spelled,
+        measure_query=True,
+        runner=runner,
+    )
+    assert timed.receipt["measurement"]["output_dtype"] == "float64"
