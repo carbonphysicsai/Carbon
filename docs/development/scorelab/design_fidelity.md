@@ -78,3 +78,60 @@ Hub impact: no Hub mutation; the current lean owner protocol freezes that
 derived surface. Existing scoring, native observer, producer, bank and product
 authority remain controlling. Domain-boundary and reference failure invariants
 are exercised without widening execution authority.
+
+## Reusable run for newly tested models
+
+The prospective `rich-design` command uses the same reducer and v4 ScoreEngine
+for an explicit, hash-bound public development input. It does not construct a
+model, invoke inference, collect reference truth or replace the normal model
+bank/receiver. A Challenge adapter binds the normal retained artifact and its
+native measurements before supplying this projection.
+
+```sh
+python -m scripts.dev.score_lab rich-design \
+  --input public-rich-design-input.json \
+  --input-sha256 <exact-64-character-sha256-of-input-bytes> \
+  --out new-score-report.json
+```
+
+The input has schema `carbon.scorelab.rich-design-input.v1`, scope
+`PUBLIC_DEVELOPMENT`, and fields `policy`, `reference`, `models`,
+`original_pack`, `original_benchmark` and `provenance`. The optional
+`original_result` supplies the retained native result for exact same-core replay.
+`policy`/`reference`/`models` are the existing pure reducer inputs. The original
+pack and benchmark retain native gates, broad Physics, cost and artifact
+identities. Provenance binds the original pack digest and canonical benchmark
+digest plus any source-owned evidence identities. Missing or mismatched
+bindings are refused; this JSON declaration cannot authenticate scientific
+acceptance, hidden custody or official eligibility.
+
+One input can contain all compatible models or a selected cohort. Its native
+benchmark must contain exactly the same unique model artifacts as the reducer
+input. The measurement/pack identity depends on the fixed policy, reference
+and original pack, not which other models happen to be tested alongside it.
+Per-run model/input digests remain in provenance. Comparisons still require
+compatible original Challenge, measurement and reference identities; this does
+not authorize comparison across different rulers.
+
+The output contains the per-model verified-value/critical-fidelity reduction
+and two same-core projections:
+
+- `PARTIAL_POINT_DIAGNOSTIC` retains a labelled numeric point result where
+  calculable, along with gaps and adverse outcomes. It grants no registered
+  score, scientific qualification or production authority.
+- `REGISTERED_COMPONENTS_REQUIRED` keeps Design and total unavailable when
+  accepted reference resolution or required coverage is missing. It never
+  converts that evidence gap into a candidate-caused physics failure.
+
+Native gates, Physics measurements and measured workflow costs are preserved.
+A correct finite-menu pick is not broad boundary or OOD evidence. The finite
+coverage recommendation remains unadopted; no coverage rule or accepted
+interval is inferred by this command. Existing results are immutable: the CLI
+requires a fresh output path and refuses a changed input digest, duplicate JSON
+keys, nonfinite constants or a nonpublic input scope.
+
+Author validation of this follow-up is static only until Product/CI runs the
+new pure projection and CLI toy suites. No new actual-model or reference result
+is claimed by adding the reusable command. The fixed reference panel is reused
+across models; a new compatible prediction does not require another solver
+campaign.
