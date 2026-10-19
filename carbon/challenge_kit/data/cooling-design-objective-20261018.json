@@ -1,0 +1,95 @@
+{
+  "challenge": {
+    "id": "chip-cold-plate",
+    "version": "1.0"
+  },
+  "condition_ids": [
+    "rep-01",
+    "rep-02",
+    "rep-03",
+    "rep-04",
+    "boundary-01",
+    "boundary-02"
+  ],
+  "decision_contract": {
+    "challenge": "chip-cold-plate",
+    "claims": {
+      "customer_acceptance": false,
+      "global_optimum": false,
+      "production_qualification": false,
+      "scientific_qualification": false
+    },
+    "constraints": {
+      "die_peak_c_max": 100.0,
+      "hydraulic_power_w_max": 0.25
+    },
+    "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
+    "contract_id": "ai-accelerator-cooling-synthetic-v1",
+    "customer_requirement_ref": "synthetic:ai-accelerator-cooling-v1",
+    "decision": "choose straight-channel geometry and flow control that minimize worst-case hydraulic power while meeting the supplied die and hydraulic limits at every declared operating condition",
+    "material": "DEVELOPMENT",
+    "objective": {
+      "direction": "MINIMIZE",
+      "quantity": "worst_case_hydraulic_power",
+      "unit": "W"
+    },
+    "query_policy": {
+      "accounting_unit": "ATTEMPTED_MODEL_POINT",
+      "duplicate_policy": "FORBID_WITHIN_AND_ACROSS_CALLS",
+      "retry_policy": {
+        "continuation_after_failure": false,
+        "max_retries_per_point": 0,
+        "new_oracle_required": true
+      }
+    },
+    "reference": {
+      "counted_evidence_class": "COUNTED_CFD",
+      "credibility": "NUMERICAL_VERIFICATION_ONLY",
+      "fixture_evidence_class": "ANALYTICAL_FIXTURE",
+      "physical_scope": "periodic-straight-channel-cell-v1",
+      "solver_image": "opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319"
+    },
+    "schema": "carbon.cold-plate.customer-decision-contract.v2",
+    "scope": "periodic-straight-channel-cell-v1",
+    "tie_policy": "lowest worst-case predicted hydraulic power among designs predicted to meet every customer-supplied limit at every declared condition; exact ties use channel_width_mm, fin_width_mm, channel_depth_mm, then flow_lpm_per_kw",
+    "verification_policy": {
+      "accounting_unit": "CONDITION_EVIDENCE_EVALUATION",
+      "cache_policy": "CONDITION_EVIDENCE_COUNTS;SOLVER_EXECUTION_DOES_NOT_REPEAT",
+      "repeated_commitment": "FORBIDDEN"
+    }
+  },
+  "design_ids": [
+    "d01",
+    "d02",
+    "d03",
+    "d04",
+    "d05",
+    "d06",
+    "d07",
+    "d08"
+  ],
+  "fixed_grid_method": {
+    "method": "fixed_grid",
+    "parameters": {}
+  },
+  "role": "design_objective",
+  "schema": "carbon.counted-dual.public-role-input.v1",
+  "scope": "PUBLIC_DEVELOPMENT_ONLY",
+  "source_bindings": [
+    {
+      "path": "docs/development/studies/AI_ACCELERATOR_COOLING_SYNTHETIC_V1.json",
+      "sha256": "607e5fe659607659fbd5131dc2049c3c2ebcbfd1d984d796b503dfa74378d04b"
+    },
+    {
+      "path": "carbon/cold_plate/decision_study.py",
+      "sha256": "d52af07c6018a5e2a030ef620822b4b5f7cf6d0d2d7ff13ce3c502e8be2b1f4e"
+    },
+    {
+      "path": "carbon/cold_plate/customer_decision.py",
+      "sha256": "4e88ab5d33076cc173d87683fc873270fc933b3d89160d424cc11d67c7fcb9d7"
+    }
+  ],
+  "source_head": "f3bb0742a24f5931120867a7d313608485cd5f0a",
+  "study_id": "ai-accelerator-cooling-synthetic-v1",
+  "study_scope": "periodic-straight-channel-cell-v1"
+}

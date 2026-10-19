@@ -116,7 +116,7 @@ def test_roles_are_the_pinned_bytes_and_the_kit_binds_the_npz(tmp_path):
 
 def test_a_changed_pinned_file_or_unknown_challenge_is_refused(tmp_path, monkeypatch):
     with pytest.raises(ValueError):
-        physical_pack.public_roles("chip-cold-plate", "1.0")
+        physical_pack.public_roles("f02-unknown", "1.0")
     with pytest.raises(ValueError):
         physical_pack.public_roles(MOTOR, "9.9")
     copy = tmp_path / "data"
@@ -186,3 +186,31 @@ def test_a_changed_development_bank_source_is_refused(monkeypatch):
     monkeypatch.setattr(physical_pack, "_BANKS", banks)
     with pytest.raises(ValueError, match="pinned development bank references"):
         physical_pack.development_bank(MOTOR, VERSION)
+
+
+def test_cooling_bank_uses_its_interface_layout_and_unbound_roles_stay_open(tmp_path):
+    from carbon.cold_plate import challenge as cooling
+
+    cid, version = cooling.CHALLENGE.challenge_id, cooling.CHALLENGE.version
+    bank = physical_pack.development_bank(cid, version)
+    assert bank["inputs"].shape == (48, 9) and bank["references"].shape == (48, 32)
+    first = bank["reference_records"][0]["outputs"]
+    assert bank["references"][0, 0] == first["peak_c"]
+    assert list(bank["references"][0, 1:31]) == first["profile_c"]
+    assert bank["references"][0, 31] == first["pressure_drop_pa"]
+    assert physical_pack.physics_contract(cid, version) is None
+    pack = tmp_path / "cooling"
+    manifest = physical_pack.write_public_pack(
+        pack, cid, version, exposed_development_bank=True
+    )
+    prepared = prepare_pack(
+        pack,
+        manifest.name,
+        public_root=pack,
+        private_root=pack,
+        challenge_id=cid,
+        challenge_version=version,
+    )
+    missing = prepared.snapshot.verify_available(pack, pack)
+    assert set(missing["public"]) == {"physics_contract", "accuracy_definition"}
+    assert set(missing["private"]) == {"score_pack"}
