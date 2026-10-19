@@ -9,12 +9,13 @@ const {Document} = require("./control_center_dom.cjs");
 const source = fs.readFileSync(path.join(__dirname, "../../scripts/dev/miner_launchpad/research_tools.js"), "utf8");
 const base = "/api/v1/tools/direct-development-1.3";
 
-async function panel(configured) {
+async function panel(configured, terminal = "RECONSTRUCTED") {
   const document = new Document();
   const parent = document.createElement("div");
   document.documentElement.append(parent);
   const calls = [];
   let submitCount = 0;
+  let retryCount = 0;
   const closed = {campaign: "direct-development-1.3", open: false};
   const opened = {campaign: "direct-development-1.3", open: true, development_only: true,
     challenge: {id: "synthetic-linear-field-2d", version: "1.3"},
@@ -35,10 +36,17 @@ async function panel(configured) {
       if (url === base + "/open") return opened;
       if (url === base + "/stage_construction_graph") return {ok: true, result: {status: "STAGED"}};
       if (url === base + "/submit_construction") {
+        if (body.retry_of_submission_id) {
+          retryCount++;
+          return {ok: true, result: retryCount === 1
+            ? {state: "ADMITTED", task_id: "task-2"}
+            : {state: "RECONSTRUCTED", task_id: "task-2"},
+          score_status: "SCORE_UNAVAILABLE", official_eligible: false};
+        }
         submitCount++;
         return {ok: true, result: submitCount === 1
           ? {state: "ADMITTED", task_id: "task-1"}
-          : {state: "RECONSTRUCTED", task_id: "task-1", state_digest: "sha256:" + "e".repeat(64), predictions_digest: "sha256:" + "f".repeat(64)},
+          : {state: terminal, task_id: "task-1", state_digest: "sha256:" + "e".repeat(64), predictions_digest: "sha256:" + "f".repeat(64)},
         score_status: "SCORE_UNAVAILABLE", official_eligible: false};
       }
       throw new Error("unexpected route " + url);
@@ -97,6 +105,24 @@ async function press(parent, label) {
   assert.match(ready.parent.textContent, /RECONSTRUCTED/);
   assert.ok([...ready.parent.querySelectorAll("button")].some(node => node.textContent === "Rebuild complete" && node.disabled));
   assert.match(ready.parent.textContent, /SCORE_UNAVAILABLE/);
+
+  const failed = await panel(true, "FAILED_INFRA");
+  await press(failed.parent, "Open the tools");
+  failed.parent.querySelector("textarea").value = JSON.stringify(recipe);
+  const retry = [...failed.parent.querySelectorAll("button")].find(node => node.textContent === "Retry infrastructure failure");
+  assert.ok(retry.hidden, "retry is unavailable before an infrastructure failure");
+  await press(failed.parent, "Submit for clean rebuild");
+  await press(failed.parent, "Check rebuild status");
+  assert.equal(retry.hidden, false, "the failed task exposes an explicit retry action");
+  assert.deepEqual(JSON.parse(JSON.stringify(failed.calls.at(-1))), {url: base + "/submit_construction", body: {recipe}});
+  await press(failed.parent, "Retry infrastructure failure");
+  assert.deepEqual(JSON.parse(JSON.stringify(failed.calls.at(-1))), {url: base + "/submit_construction",
+    body: {recipe, retry_of_submission_id: "task-1"}});
+  assert.ok(retry.hidden, "an admitted retry cannot be started again implicitly");
+  await press(failed.parent, "Check rebuild status");
+  assert.deepEqual(JSON.parse(JSON.stringify(failed.calls.at(-1))), {url: base + "/submit_construction",
+    body: {recipe, retry_of_submission_id: "task-1"}});
+  assert.match(failed.parent.textContent, /RECONSTRUCTED/);
 
   const noReceiver = await panel(false);
   await press(noReceiver.parent, "Open the tools");

@@ -1044,7 +1044,12 @@ def _graph_digest_equal(value, expected, label):
 
 
 def _graph_rehash_inventory(
-    root: Path, files: dict, required: frozenset, *, lineage_name="lineage.json"
+    root: Path,
+    files: dict,
+    required: frozenset,
+    *,
+    lineage_name="lineage.json",
+    native_prediction_path=None,
 ):
     """Share the rooted original-byte inventory checks across custody versions."""
     if (
@@ -1060,9 +1065,13 @@ def _graph_rehash_inventory(
     for name, declared in sorted(files.items()):
         _digest(declared, "graph_retained")
         file_limit = (
-            4 * 1024 * 1024
-            if name.endswith((".json", ".py"))
-            else 128 * 1024 * 1024 if name.endswith(".gz") else MAX_GRAPH_FILE_BYTES
+            16 * 1024 * 1024
+            if name == native_prediction_path
+            else (
+                4 * 1024 * 1024
+                if name.endswith((".json", ".py"))
+                else 128 * 1024 * 1024 if name.endswith(".gz") else MAX_GRAPH_FILE_BYTES
+            )
         )
         body = _read_bounded(_graph_file(root, name), file_limit, "graph_artifact")
         total += len(body)
@@ -1622,6 +1631,7 @@ _BUNDLE_ROLE_CODECS = {
     "allowlist": "json",
     "build_receipt": "json",
     "inference_receipt": "json",
+    "native_predictions": "json",
 }
 _BUNDLE_CORE_ROLES = frozenset(
     {
@@ -1637,7 +1647,7 @@ _GRAPH_ROLE_CODECS = {
     **{
         role: codec
         for role, codec in _BUNDLE_ROLE_CODECS.items()
-        if role != "environment"
+        if role not in {"environment", "native_predictions"}
     },
     "source": "json",
     "construction_kit": "json",
@@ -1823,6 +1833,108 @@ def _graph_prediction_shape(value, shape, dtype):
     )
 
 
+def _train_codec_matches(role, codec, expected):
+    return codec == expected or role == "train" and codec == "raw_bytes"
+
+
+def _inspect_retained_train(raw, codec, challenge):
+    """Keep original Battery gzip identity; decode only its registered bytes."""
+    if codec == "numeric_npz":
+        return inspect_numeric_npz(raw, max_bytes=MAX_FIXTURE_BYTES)
+    if codec != "raw_bytes":
+        raise CustodyRefused("train_role_codec")
+    from carbon.battery import challenge as battery_challenge
+
+    if (
+        challenge["id"] != battery_challenge.CHALLENGE.challenge_id
+        or challenge["version"] != battery_challenge.CHALLENGE.version
+        or challenge["train_digest"] != "sha256:" + battery_challenge.TRAIN_V1_SHA256
+        or _sha(raw) != challenge["train_digest"]
+    ):
+        raise CustodyRefused("battery_train_identity")
+    try:
+        from carbon.battery import construction_material
+
+        inputs, targets = construction_material.train_tensors(raw)
+    except (ValueError, OSError, EOFError, TypeError, KeyError, ImportError) as exc:
+        raise CustodyRefused("battery_train_material") from exc
+    return {
+        name: {"shape": list(array.shape), "dtype": str(array.dtype)}
+        for name, array in (("inputs", inputs), ("targets", targets))
+    }
+
+
+def _validate_native_build(root, build, by_role, observed, state_header):
+    """Authenticate native prediction bytes, without asserting export fidelity."""
+    if build.get("schema") != "carbon.development.bundle-build.v2":
+        if "native_predictions" in by_role:
+            raise CustodyRefused("native_predictions_require_build_v2")
+        return
+    if (
+        set(build)
+        != {
+            "schema",
+            "recipe_digest",
+            "bundle_digest",
+            "train_digest",
+            "state_digest",
+            "allowlist_digest",
+            "framework",
+            "example_digest",
+            "native_predictions_digest",
+            "native_dtype",
+            "native_shape",
+        }
+        or "native_predictions" not in by_role
+    ):
+        raise CustodyRefused("bundle_native_build_receipt")
+    raw = by_role["native_predictions"]
+    _graph_digest_equal(
+        _sha(raw), build["native_predictions_digest"], "native_predictions"
+    )
+    _graph_digest_equal(
+        build["allowlist_digest"], state_header["allowlist_digest"], "native_allowlist"
+    )
+    _digest(build["example_digest"], "build_example")
+    shape, dtype = build["native_shape"], build["native_dtype"]
+    if (
+        type(shape) is not list
+        or not 1 <= len(shape) <= 16
+        or any(type(axis) is not int or axis < 1 for axis in shape)
+        or type(dtype) is not str
+        or dtype not in _DTYPE_BYTES
+        or not dtype.startswith(("float", "int", "uint"))
+        or _DTYPE_BYTES[dtype] > 8
+        or math.prod(shape) * _DTYPE_BYTES[dtype] > 16 * 1024 * 1024
+        or type(build["framework"]) is not str
+        or not build["framework"]
+        or len(raw) > 16 * 1024 * 1024
+    ):
+        raise CustodyRefused("bundle_native_prediction_contract")
+    prediction = _bundle_json(raw, "native_predictions")
+    if not _graph_prediction_shape(prediction, shape, dtype):
+        raise CustodyRefused("bundle_native_prediction_shape")
+    probes = [
+        name
+        for name, item in observed.items()
+        if item["sha256"] == build["example_digest"]
+    ]
+    if not probes:
+        raise CustodyRefused("bundle_native_example_missing")
+    probe = _read_bounded(
+        _graph_file(root, probes[0]), MAX_FIXTURE_BYTES, "native_example"
+    )
+    if _sha(probe) != build["example_digest"]:
+        raise CustodyRefused("bundle_native_example_changed")
+    arrays = inspect_numeric_npz(probe, max_bytes=MAX_FIXTURE_BYTES)
+    if (
+        set(arrays) != {"inputs"}
+        or not arrays["inputs"]["shape"]
+        or arrays["inputs"]["shape"][0] != shape[0]
+    ):
+        raise CustodyRefused("bundle_native_example_contract")
+
+
 def _prepare_graph_custody_v5(root, manifest_raw, manifest):
     """Bind a measured direct graph without executing its source or state."""
     from carbon.level4 import staging
@@ -1838,7 +1950,9 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
     role_paths = {}
     for role, declaration in roles.items():
         _exact_keys(declaration, {"file", "codec"}, f"graph_role_{role}")
-        if declaration["codec"] != _GRAPH_ROLE_CODECS[role]:
+        if not _train_codec_matches(
+            role, declaration["codec"], _GRAPH_ROLE_CODECS[role]
+        ):
             raise CustodyRefused("graph_role_codec")
         _graph_file(root, declaration["file"])
         role_paths[role] = declaration["file"]
@@ -1947,7 +2061,11 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
     input_arrays = None
     for role in ("train", "inputs", "fixture"):
         if role in by_role:
-            arrays = inspect_numeric_npz(by_role[role], max_bytes=MAX_FIXTURE_BYTES)
+            arrays = (
+                _inspect_retained_train(by_role[role], roles[role]["codec"], challenge)
+                if role == "train"
+                else inspect_numeric_npz(by_role[role], max_bytes=MAX_FIXTURE_BYTES)
+            )
             if role == "inputs" and set(arrays) != {"inputs"}:
                 raise CustodyRefused("graph_inputs_members")
             if role == "inputs":
@@ -2213,7 +2331,9 @@ def _prepare_native_graph_custody_v5(root, manifest_raw, manifest):
     role_paths = {}
     for role, declaration in roles.items():
         _exact_keys(declaration, {"file", "codec"}, f"native_graph_role_{role}")
-        if declaration["codec"] != _NATIVE_GRAPH_ROLE_CODECS[role]:
+        if not _train_codec_matches(
+            role, declaration["codec"], _NATIVE_GRAPH_ROLE_CODECS[role]
+        ):
             raise CustodyRefused("native_graph_role_codec")
         _graph_file(root, declaration["file"])
         role_paths[role] = declaration["file"]
@@ -2309,7 +2429,9 @@ def _prepare_native_graph_custody_v5(root, manifest_raw, manifest):
         (header["interface_digest"], challenge["interface_digest"], "interface"),
     ):
         _graph_digest_equal(value, expected, label)
-    train_arrays = inspect_numeric_npz(by_role["train"], max_bytes=MAX_FIXTURE_BYTES)
+    train_arrays = _inspect_retained_train(
+        by_role["train"], roles["train"]["codec"], challenge
+    )
     input_arrays = inspect_numeric_npz(by_role["inputs"], max_bytes=MAX_FIXTURE_BYTES)
     if not train_arrays or set(input_arrays) != {"inputs"}:
         raise CustodyRefused("native_graph_input_members")
@@ -2450,10 +2572,14 @@ def prepare_custody_v5(artifact_root: Path, role_manifest_path: Path) -> dict:
         _BUNDLE_ROLE_CODECS
     ):
         raise CustodyRefused("bundle_roles")
+    if "native_predictions" in roles and "build_receipt" not in roles:
+        raise CustodyRefused("native_predictions_require_build_v2")
     role_paths = {}
     for role, declaration in roles.items():
         _exact_keys(declaration, {"file", "codec"}, f"bundle_role_{role}")
-        if declaration["codec"] != _BUNDLE_ROLE_CODECS[role]:
+        if not _train_codec_matches(
+            role, declaration["codec"], _BUNDLE_ROLE_CODECS[role]
+        ):
             raise CustodyRefused("bundle_role_codec")
         _graph_file(root, declaration["file"])
         role_paths[role] = declaration["file"]
@@ -2464,6 +2590,7 @@ def prepare_custody_v5(artifact_root: Path, role_manifest_path: Path) -> dict:
         manifest["retained_files"],
         frozenset(role_paths.values()),
         lineage_name=None,
+        native_prediction_path=role_paths.get("native_predictions"),
     )
     by_role = {role: raw[path] for role, path in role_paths.items()}
     recipe = _graph_json(by_role["recipe"], "bundle_recipe")
@@ -2520,7 +2647,10 @@ def prepare_custody_v5(artifact_root: Path, role_manifest_path: Path) -> dict:
         )
     for role in ("train", "fixture", "inputs"):
         if role in by_role:
-            inspect_numeric_npz(by_role[role], max_bytes=MAX_FIXTURE_BYTES)
+            if role == "train":
+                _inspect_retained_train(by_role[role], roles[role]["codec"], challenge)
+            else:
+                inspect_numeric_npz(by_role[role], max_bytes=MAX_FIXTURE_BYTES)
     for role in ("predictions", "image", "seed", "build_receipt", "inference_receipt"):
         if role in by_role:
             decoded = _bundle_json(by_role[role], role)
@@ -2538,13 +2668,19 @@ def prepare_custody_v5(artifact_root: Path, role_manifest_path: Path) -> dict:
             if role == "predictions" and type(decoded) not in (list, dict):
                 raise CustodyRefused("bundle_predictions")
             if role == "build_receipt" and (
-                decoded.get("schema") != "carbon.development.bundle-build.v1"
+                decoded.get("schema")
+                not in (
+                    "carbon.development.bundle-build.v1",
+                    "carbon.development.bundle-build.v2",
+                )
                 or decoded.get("recipe_digest") != recipe_digest
                 or decoded.get("state_digest") != _sha(by_role["state"])
                 or decoded.get("train_digest") != challenge["train_digest"]
                 or decoded.get("bundle_digest") != bundle_ref["bundle_digest"]
             ):
                 raise CustodyRefused("bundle_build_receipt")
+            if role == "build_receipt":
+                _validate_native_build(root, decoded, by_role, observed, header)
             if role == "inference_receipt" and (
                 "predictions" not in by_role
                 or decoded.get("schema") != "carbon.development.bundle-inference.v1"

@@ -22,7 +22,7 @@ from pathlib import Path
 from carbon.development_session.data import write_once
 from carbon.development_session.intake_targets import ADDRESS, intake_url
 from carbon.development_session.private_records import private_json
-from carbon.development_session.profile import canonical
+from carbon.development_session.profile import canonical, digest
 
 SCHEMA = "carbon.construction.direct-receiver-operator.v1"
 _FIELDS = {
@@ -35,7 +35,13 @@ _FIELDS = {
     "lifetime_seconds",
     "measure_query",
 }
-_OPTIONAL_FIELDS = {"material_cache_bytes", "construction_image_manifest"}
+_OPTIONAL_FIELDS = {
+    "material_cache_bytes",
+    "construction_image_manifest",
+    "inference_image_manifest",
+    "evaluation_pack",
+    "challenge",
+}
 
 
 class ReceiverUnavailable(RuntimeError):
@@ -76,10 +82,13 @@ def load_config(path: Path) -> dict:
         selected = Path(value[name])
         if not selected.is_absolute() or selected.resolve() != selected:
             raise ValueError("exact private operator path required")
-    if "construction_image_manifest" in value:
-        selected = value["construction_image_manifest"]
+    for field in ("construction_image_manifest", "inference_image_manifest"):
+        if field not in value:
+            continue
+        selected = value[field]
+        refusal = f"exact {field.replace('_', ' ')} required"
         if type(selected) is not str:
-            raise ValueError("exact construction image manifest required")
+            raise ValueError(refusal)
         selected = Path(selected)
         if (
             not selected.is_absolute()
@@ -87,7 +96,47 @@ def load_config(path: Path) -> dict:
             or not selected.is_file()
             or selected.resolve() != selected
         ):
-            raise ValueError("exact construction image manifest required")
+            raise ValueError(refusal)
+    if "challenge" in value:
+        from carbon.battery import challenge as battery_challenge
+        from carbon.challenge_kit.synthetic_linear_field_2d import CHALLENGE
+
+        selected = value["challenge"]
+        registered = (
+            {"id": CHALLENGE.challenge_id, "version": "1.3"},
+            {
+                "id": battery_challenge.CHALLENGE.challenge_id,
+                "version": battery_challenge.CHALLENGE.version,
+            },
+        )
+        if type(selected) is not dict or selected not in registered:
+            raise ValueError("registered direct Challenge selection required")
+    if "evaluation_pack" in value:
+        selected = value["evaluation_pack"]
+        if type(selected) is not dict or set(selected) != {
+            "root",
+            "manifest",
+            "public_root",
+            "private_root",
+        }:
+            raise ValueError("exact evaluation pack selection required")
+        for name in ("root", "public_root", "private_root"):
+            path = selected[name]
+            if (
+                type(path) is not str
+                or not Path(path).is_absolute()
+                or Path(path).resolve() != Path(path)
+            ):
+                raise ValueError("exact evaluation pack root required")
+        manifest = selected["manifest"]
+        if (
+            type(manifest) is not str
+            or not manifest
+            or "\\" in manifest
+            or ":" in manifest
+            or any(part in {"", ".", ".."} for part in manifest.split("/"))
+        ):
+            raise ValueError("relative evaluation pack manifest required")
     return value
 
 
@@ -98,6 +147,85 @@ def _private_directory(path: Path) -> Path:
     if not path.is_dir() or path.stat().st_mode & 0o077:
         raise ValueError("owner-only operator directory required")
     return path
+
+
+def _pack_check(root, relative_path, digest, public_root, private_root, challenge):
+    """Bind an opted-in pack to registered construction bytes at every use."""
+    from carbon.challenge_validator.evaluation_pack import (
+        EvaluationPackUnavailable,
+        load_pack,
+    )
+
+    def checked(material):
+        snapshot = load_pack(
+            root,
+            relative_path,
+            expected_digest=digest,
+            challenge_id=challenge.challenge_id,
+            challenge_version=challenge.version,
+        )
+        snapshot.verify_available(public_root, private_root)
+        expected = {
+            "construction_kit": material["construction_kit"],
+            "interface": material["interface_document"],
+            "physics_contract": material["physics_contract"],
+        }
+        for role, document in expected.items():
+            observed = snapshot.read_json_role(
+                public_root, "public", role, max_bytes=65536
+            )
+            if canonical(observed) != canonical(document):
+                raise EvaluationPackUnavailable("evaluation_pack.construction_mismatch")
+        if (
+            snapshot.read_role(
+                public_root, "public", "train", max_bytes=16 * 1024 * 1024
+            )
+            != material["train"]
+        ):
+            raise EvaluationPackUnavailable("evaluation_pack.train_mismatch")
+
+    return checked
+
+
+def _sealed_pack(root, selection, challenge):
+    """Prepare once; a restart reloads its retained bytes, never the draft."""
+    from carbon.challenge_validator.evaluation_pack import load_pack, prepare_pack
+
+    public_root = Path(selection["public_root"])
+    private_root = Path(selection["private_root"])
+    pack_root = _private_directory(root / "evaluation-packs")
+    binding_path = root / "receiver-binding.json"
+    if binding_path.is_symlink():
+        raise ValueError("receiver binding link refused")
+    retained = private_json(binding_path) if binding_path.exists() else None
+    if retained is not None and "evaluation_pack_digest" in retained:
+        digest = retained["evaluation_pack_digest"]
+    else:
+        prepared = prepare_pack(
+            Path(selection["root"]),
+            selection["manifest"],
+            public_root=public_root,
+            private_root=private_root,
+            challenge_id=challenge.challenge_id,
+            challenge_version=challenge.version,
+        )
+        digest = prepared.snapshot.manifest_digest
+        write_once(pack_root / (digest[7:] + ".json"), prepared.sealed_bytes)
+    relative_path = digest[7:] + ".json"
+    snapshot = load_pack(
+        pack_root,
+        relative_path,
+        expected_digest=digest,
+        challenge_id=challenge.challenge_id,
+        challenge_version=challenge.version,
+    )
+    return (
+        digest,
+        _pack_check(
+            pack_root, relative_path, digest, public_root, private_root, challenge
+        ),
+        snapshot,
+    )
 
 
 class ReceiverSnapshotWindow:
@@ -221,7 +349,7 @@ def installed_source(
     profile_path: Path, *, construction_image_manifest: Path | None = None
 ):
     """Verify installed source/images; a private operator may pin its constructor."""
-    from carbon.development_session.gpu_practice import gpu_image_backend
+    from carbon.development_session.gpu_practice import direct_parent_backend
     from carbon.development_session.miner_network import binding
     from carbon.development_session.research_campaign import (
         accepted_implementation,
@@ -271,14 +399,33 @@ def installed_source(
         ):
             raise ValueError("private construction parent conflicts with profile")
         gpu_image_path = str(construction_image_manifest)
-    if development_candidate or construction_image_manifest is not None:
-        worker = load_image_identity(paths["image_manifest"])
+    primary_torch_cpu = None
+    if gpu_image_path is None and not development_candidate:
+        primary_torch_cpu = load_image_identity(paths["image_manifest"])
+        if direct_parent_backend(primary_torch_cpu) != "torch_cpu":
+            raise ValueError("installed GPU parent required for direct development")
+    if (
+        development_candidate
+        or construction_image_manifest is not None
+        or gpu_image_path is None
+    ):
+        worker = primary_torch_cpu or load_image_identity(paths["image_manifest"])
         try:
             verify_current_worker(worker, implementation)
         except ValueError:
             if not development_candidate:
                 raise
-            verify_direct_v13_worker(worker, implementation, role="cpu")
+            verify_direct_v13_worker(
+                worker,
+                implementation,
+                role=(
+                    "torch_cpu"
+                    if direct_parent_backend(worker) == "torch_cpu"
+                    else "cpu"
+                ),
+            )
+        if direct_parent_backend(worker) == "torch_cpu":
+            verify_direct_v13_worker(worker, implementation, role="torch_cpu")
         analysis = load_analysis_image(paths["analysis_image_manifest"])
         verify_image(analysis)
         if analysis.parent_image != worker.image_id or cfg["runtime"].get("images") != [
@@ -289,21 +436,28 @@ def installed_source(
                 raise ValueError("development candidate installed images differ")
             raise ValueError("installed CPU and analysis images differ")
     if gpu_image_path is None:
-        if not development_candidate or "gpu_research" in cfg["runtime"]:
+        if (
+            not development_candidate and direct_parent_backend(worker) != "torch_cpu"
+        ) or "gpu_research" in cfg["runtime"]:
             raise ValueError("installed GPU parent required for direct development")
-        # The verified candidate's C-03 worker is the CPU direct parent.
+        # The verified primary CPU worker is the direct construction parent.
         parent = worker
     else:
         if type(gpu_image_path) is not str:
             raise ValueError("installed GPU parent required for direct development")
         parent = load_image_identity(Path(gpu_image_path))
-        backend = gpu_image_backend(parent)
-        if backend not in {"jax", "pytorch"}:
+        backend = direct_parent_backend(parent)
+        if backend not in {"jax", "pytorch", "torch_cpu"}:
             raise ValueError("installed direct parent backend is unregistered")
         if backend == "pytorch":
             verify_direct_v13_worker(parent, implementation, role="torch_gpu")
+        elif backend == "torch_cpu":
+            verify_direct_v13_worker(parent, implementation, role="torch_cpu")
         else:
-            verify_current_worker(parent, implementation)
+            try:
+                verify_current_worker(parent, implementation)
+            except ValueError:
+                verify_direct_v13_worker(parent, implementation, role="jax_gpu")
     if not doctor(image_id=parent.image_id, image_identity=parent).eligible:
         raise ReceiverUnavailable("installed_reconstruction_worker_unavailable")
     network = binding(
@@ -332,11 +486,13 @@ class OwnerProviders:
         snapshot=None,
         window=None,
         receiver=None,
+        evaluation_pack_digest=None,
     ):
         self.root, self.discovery = root, discovery
         self.parent, self.cache_root = parent, cache_root
         self.inference_image = parent if inference_image is None else inference_image
         self.material_cache_bytes = material_cache_bytes
+        self.evaluation_pack_digest = evaluation_pack_digest
         self.implementation, self.snapshot, self.window, self.receiver = (
             implementation,
             snapshot,
@@ -390,6 +546,7 @@ class OwnerProviders:
         restart keeps the first observation while checking the same registered
         identity is still present in the current finalized snapshot.
         """
+        from carbon.battery.challenge import CHALLENGE as BATTERY_CHALLENGE
         from carbon.challenge_validator.interface import Unavailable
         from carbon.development_session.product_campaign import AUTHORITY
         from carbon.development_session.research_ledger import PRODUCT
@@ -402,6 +559,7 @@ class OwnerProviders:
             raise ValueError("direct receiver authority binding required")
         admission = self._admission(hotkey)
         challenge = self.discovery.info.challenge_key
+        battery_selected = challenge == BATTERY_CHALLENGE
         binding = {
             "schema": "carbon.construction.direct-receiver-run.v1",
             "implementation": self.implementation,
@@ -414,10 +572,16 @@ class OwnerProviders:
             binding["inference_image"] = self.inference_image.image_id
         if self.material_cache_bytes is not None:
             binding["material_cache_bytes"] = self.material_cache_bytes
+        if self.evaluation_pack_digest is not None:
+            binding["evaluation_pack_digest"] = self.evaluation_pack_digest
         candidate = {
             "schema": PRODUCT,
             "authority": AUTHORITY,
-            "scope": "DEVELOPMENT_PUBLIC_SYNTHETIC_ONLY",
+            "scope": (
+                "DEVELOPMENT_PUBLIC_BATTERY_ONLY"
+                if battery_selected
+                else "DEVELOPMENT_PUBLIC_SYNTHETIC_ONLY"
+            ),
             "campaign_id": "direct-" + hashlib.sha256(canonical(binding)).hexdigest(),
             "principal": hotkey,
             "owner": hotkey,
@@ -437,7 +601,11 @@ class OwnerProviders:
             "agent": "none",
             "challenge": binding["challenge"],
             "receiver_binding": binding,
-            "objective": "synthetic direct construction and public practice inference",
+            "objective": (
+                "Battery public direct construction and practice inference"
+                if battery_selected
+                else "synthetic direct construction and public practice inference"
+            ),
             "sampling": "Challenge-owned frozen TRAIN and public practice inputs",
             "control": "authenticated owner direct task supervisor",
             "selection": "owner-submitted ConstructionRecipe",
@@ -497,6 +665,7 @@ class OwnerProviders:
                     image=None,
                     inference_image=self.inference_image,
                     construction_parent=self.parent,
+                    evaluation_pack_digest=self.evaluation_pack_digest,
                     image_resolver=DirectOwnerImageResolver(
                         self.cache_root,
                         self.parent,
@@ -595,6 +764,10 @@ def serve(
     retention=None,
 ):
     """Run the same signed intake/task loop with finite admission and owned stop."""
+    from carbon.battery import challenge as battery_challenge
+    from carbon.battery.construction_bundle_material import (
+        bundle_material as battery_bundle_material,
+    )
     from carbon.chain.auth import BittensorHotkeyVerifier
     from carbon.chain.sdk import BittensorReader
     from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
@@ -616,6 +789,11 @@ def serve(
     implementation, parent, network, cache = installed_source(
         Path(cfg["runner_profile"]), **selected_parent
     )
+    from carbon.development_session.gpu_practice import (
+        direct_bundle_accelerators,
+        direct_parent_backend,
+        gpu_image_backend,
+    )
     from carbon.development_session.research_campaign import (
         verify_current_worker,
         verify_direct_v13_worker,
@@ -624,11 +802,54 @@ def serve(
     from scripts.dev.miner_launchpad.runner import validated_profile
 
     runner = validated_profile(private_json(Path(cfg["runner_profile"])))
-    inference_image = load_image_identity(Path(runner["paths"]["image_manifest"]))
-    try:
-        verify_current_worker(inference_image, implementation)
-    except ValueError:
-        verify_direct_v13_worker(inference_image, implementation, role="cpu")
+    selected_inference = cfg.get("inference_image_manifest")
+    inference_image = load_image_identity(
+        Path(
+            runner["paths"]["image_manifest"]
+            if selected_inference is None
+            else selected_inference
+        )
+    )
+    backend = gpu_image_backend(inference_image)
+    if selected_inference is None or backend is None:
+        torch_cpu = direct_parent_backend(inference_image) == "torch_cpu"
+        if (
+            selected_inference is not None
+            and not torch_cpu
+            and inference_image.lock_digest
+            != digest((Path(__file__).resolve().parents[2] / "uv.lock").read_bytes())
+        ):
+            raise ValueError("private inference worker backend is unregistered")
+        try:
+            verify_current_worker(inference_image, implementation)
+        except ValueError:
+            if (
+                torch_cpu
+                and implementation.get("source_authority") != "DEVELOPMENT_CANDIDATE"
+            ):
+                raise
+            verify_direct_v13_worker(
+                inference_image,
+                implementation,
+                role="torch_cpu" if torch_cpu else "cpu",
+            )
+        if torch_cpu:
+            verify_direct_v13_worker(inference_image, implementation, role="torch_cpu")
+    else:
+        if backend == "pytorch":
+            raise ValueError("fixed direct inference requires JAX worker")
+        elif backend == "jax":
+            try:
+                verify_current_worker(inference_image, implementation)
+            except ValueError:
+                verify_direct_v13_worker(
+                    inference_image, implementation, role="jax_gpu"
+                )
+        else:
+            raise ValueError("private inference worker backend is unregistered")
+    build_accelerator, _ = direct_bundle_accelerators(parent, inference_image)
+    if build_accelerator is not None and "material_cache_bytes" not in cfg:
+        raise ReceiverUnavailable("gpu_overlay_cache_unconfigured")
     if not doctor(
         image_id=inference_image.image_id, image_identity=inference_image
     ).eligible:
@@ -644,24 +865,60 @@ def serve(
     ):
         raise ValueError("registered receiver snapshot required")
     root = _private_directory(Path(cfg["root"]))
-    discovery = DirectFixtureDiscovery(bundle_material_v5(), task_admission=True)
-    immutable = {
-        "schema": SCHEMA,
-        "implementation": implementation,
-        "parent": asdict(parent),
-        "context": asdict(network.context),
-        "receiver_hotkey": cfg["receiver_hotkey"],
-        "challenge": {
-            "id": discovery.info.challenge_key.challenge_id,
-            "version": discovery.info.challenge_key.version,
-        },
-        "measure_query": cfg["measure_query"],
-    }
-    if inference_image != parent:
-        immutable["inference_image"] = asdict(inference_image)
-    if "material_cache_bytes" in cfg:
-        immutable["material_cache_bytes"] = cfg["material_cache_bytes"]
+    # A standalone receiver has no local miner attachment to create the
+    # shared cache parent before its first authenticated material chunk.
+    _private_directory(cache.parent)
+    _private_directory(cache)
+    material = (
+        battery_bundle_material()
+        if cfg.get("challenge", {}).get("id")
+        == battery_challenge.CHALLENGE.challenge_id
+        else bundle_material_v5()
+    )
+    challenge = material["challenge_key"]
     with owner_lock(root):
+        pack_check = None
+        pack_digest = None
+        pack_snapshot = None
+        if "evaluation_pack" in cfg:
+            pack_digest, pack_check, pack_snapshot = _sealed_pack(
+                root, cfg["evaluation_pack"], challenge
+            )
+        discovery = DirectFixtureDiscovery(
+            material,
+            task_admission=True,
+            pack_check=pack_check,
+            evaluation_pack_digest=pack_digest,
+            evaluation_pack_snapshot=pack_snapshot,
+            evaluation_pack_public_root=(
+                Path(cfg["evaluation_pack"]["public_root"])
+                if pack_snapshot is not None
+                else None
+            ),
+            evaluation_pack_private_root=(
+                Path(cfg["evaluation_pack"]["private_root"])
+                if pack_snapshot is not None
+                else None
+            ),
+        )
+        immutable = {
+            "schema": SCHEMA,
+            "implementation": implementation,
+            "parent": asdict(parent),
+            "context": asdict(network.context),
+            "receiver_hotkey": cfg["receiver_hotkey"],
+            "challenge": {
+                "id": challenge.challenge_id,
+                "version": challenge.version,
+            },
+            "measure_query": cfg["measure_query"],
+        }
+        if inference_image != parent:
+            immutable["inference_image"] = asdict(inference_image)
+        if "material_cache_bytes" in cfg:
+            immutable["material_cache_bytes"] = cfg["material_cache_bytes"]
+        if pack_digest is not None:
+            immutable["evaluation_pack_digest"] = pack_digest
         write_once(root / "receiver-binding.json", canonical(immutable))
         window = ReceiverSnapshotWindow(root, network.context, cfg["receiver_hotkey"])
         window.add(snapshot)
@@ -676,6 +933,7 @@ def serve(
             snapshot=snapshot,
             window=window,
             receiver=cfg["receiver_hotkey"],
+            evaluation_pack_digest=pack_digest,
         )
         timer = threading.Timer(cfg["lifetime_seconds"], stop.set)
         timer.daemon = True
@@ -783,17 +1041,25 @@ def main(argv=None):
         print(json.dumps({"unavailable": code}), flush=True)
         return 1
     if retention is not None:
+        reported = {
+            "schema": SCHEMA,
+            "state": "RETAINED",
+            "status": result["status"],
+            "entry_id": result["entry_id"],
+            "score_state": result["score_state"],
+            "official_eligible": result["official_eligible"],
+        }
+        if "measurement_state" in result:
+            state = result["measurement_state"]
+            if state not in ("DEVELOPMENT_UNRANKED", "UNAVAILABLE"):
+                print(
+                    json.dumps({"unavailable": "direct_receiver_unavailable"}),
+                    flush=True,
+                )
+                return 1
+            reported["measurement_state"] = state
         print(
-            json.dumps(
-                {
-                    "schema": SCHEMA,
-                    "state": "RETAINED",
-                    "status": result["status"],
-                    "entry_id": result["entry_id"],
-                    "score_state": result["score_state"],
-                    "official_eligible": result["official_eligible"],
-                }
-            ),
+            json.dumps(reported),
             flush=True,
         )
         return 0

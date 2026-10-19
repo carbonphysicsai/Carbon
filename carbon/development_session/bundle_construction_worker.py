@@ -96,29 +96,41 @@ os.execv('/opt/carbon-worker/bin/python', ['python', '-I', '/input/program.py'])
 """
 
 BUILD_PROGRAM = r'''"""Fixed isolated source-bundle build; no judge or hidden data."""
-import hashlib, importlib, io, json, shutil, sys
+import hashlib, importlib, json, os, re, shutil, sys
 from pathlib import Path
 import numpy as np
 
 work = Path.cwd()
 out = work.parent / "output"
 for package in ("carbon", "carbon/challenge_validator", "carbon/level4",
-                "carbon/level4/tooling", "carbon/development_session"):
+                "carbon/level4/tooling", "carbon/development_session",
+                "carbon/battery", "carbon/reconstruction",
+                "carbon/reconstruction/worker", "carbon/registry"):
     folder = work / package
     folder.mkdir(parents=True, exist_ok=True)
-    (folder / "__init__.py").write_text("")
-for name in __STAGED_MODULES__:
+    if package != "carbon/registry":
+        (folder / "__init__.py").write_text("")
+control = json.loads((work / "control.json").read_bytes())
+codec_modules = control.get("codec_modules")
+if (type(codec_modules) is not list or len(codec_modules) != len(set(codec_modules))
+    or any(type(name) is not str or re.fullmatch(
+        r"carbon(?:\.[A-Za-z_][A-Za-z_0-9]*){1,5}", name) is None
+        for name in codec_modules)):
+    raise ValueError("bundle build codec module list differs")
+for name in (*__STAGED_MODULES__, *codec_modules):
     destination = work.joinpath(*name.split(".")).with_suffix(".py")
     shutil.copyfile(work / (name + ".py"), destination)
 sys.path.insert(0, str(work))
 
 from carbon.development_session.construction_recipe import ConstructionRecipe, bind_recipe
 from carbon.development_session.bundle_graph_state import freeze
+from carbon.development_session.construction_tensor_codec import (
+    input_tensor, requires_x64, train_tensors,
+)
+from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 from carbon.level4.allowlist import Allowlist
-from carbon.level4.tooling import lower_jax, lower_torch
 
 digest = lambda body: "sha256:" + hashlib.sha256(body).hexdigest()
-control = json.loads((work / "control.json").read_bytes())
 recipe = ConstructionRecipe.from_bytes((work / "recipe.json").read_bytes())
 if recipe.digest != control["recipe_digest"]:
     raise ValueError("bundle build recipe differs")
@@ -138,28 +150,17 @@ if overlay_digest is not None:
         or receipt.get('bundle_ref') != control['bundle_ref']):
         raise ValueError('bundle overlay binding differs')
     sys.path[0:0] = [str(overlay / 'source'), str(overlay / 'site-packages')]
-train_raw = (work / "train.npz").read_bytes()
-if digest(train_raw) != control["binding"]["train_digest"]:
-    raise ValueError("bundle build TRAIN differs")
-with np.load(io.BytesIO(train_raw), allow_pickle=False) as data:
-    if set(data.files) != {"inputs", "targets"}:
-        raise ValueError("bundle build TRAIN tensors differ")
-    train_inputs, train_targets = data["inputs"], data["targets"]
-if (train_inputs.dtype.kind not in "fiu" or train_targets.dtype.kind not in "fiu"
-    or not np.isfinite(train_inputs).all() or not np.isfinite(train_targets).all()
-    or train_inputs.ndim < 2 or train_targets.ndim < 2
-    or len(train_inputs) != len(train_targets) or len(train_inputs) < 1):
-    raise ValueError("bundle build TRAIN tensor contract differs")
+train_name = ("train.gz" if control["binding"]["challenge_id"] == BATTERY_CHALLENGE
+              else "train.npz")
+train_raw = (work / train_name).read_bytes()
+train_inputs, train_targets = train_tensors(train_raw, control["binding"])
 example_raw = (work / "example.npz").read_bytes()
-if digest(example_raw) != control["example_digest"]:
-    raise ValueError("bundle build example differs")
-with np.load(io.BytesIO(example_raw), allow_pickle=False) as data:
-    if set(data.files) != {"inputs"}:
-        raise ValueError("bundle build example contract differs")
-    example = data["inputs"]
-if (example.dtype.kind not in "fiu" or not np.isfinite(example).all()
-    or example.ndim < 2 or example.shape[1:] != train_inputs.shape[1:]):
+example = input_tensor(example_raw, control["example_digest"])
+if example.shape[1:] != train_inputs.shape[1:]:
     raise ValueError("bundle build example shape differs")
+if requires_x64(train_inputs, train_targets, example):
+    os.environ["JAX_ENABLE_X64"] = "1"
+from carbon.level4.tooling import lower_jax, lower_torch
 
 entry = recipe.to_dict()["procedure"]["entrypoint"]
 factory = getattr(importlib.import_module(entry["module"]), entry["name"])
@@ -199,12 +200,21 @@ else:
     )
     doc, _ = lower_torch.lower(core, allowlist=allowed)
 if (trial.shape != (len(example), *train_targets.shape[1:])
-    or trial.dtype.kind not in "fiu" or not np.isfinite(trial).all()):
+    or trial.dtype.kind not in "fiu" or trial.dtype.itemsize > 8
+    or trial.nbytes > 16 * 1024**2 or not np.isfinite(trial).all()):
     raise ValueError("bundle build output shape or value differs")
 state = freeze(recipe, doc, arrays, allowed)
 (out / "state.npz").write_bytes(state)
+native_raw = json.dumps(trial.tolist(), separators=(",", ":"), allow_nan=False).encode()
+if not 0 < len(native_raw) <= 16 * 1024**2:
+    raise ValueError("bounded native predictions required")
+(out / "native-predictions.json").write_bytes(native_raw)
 (out / "receipt.json").write_text(json.dumps({
-    "schema": "carbon.development.bundle-build.v1",
+    "schema": "carbon.development.bundle-build.v2",
+    "example_digest": control["example_digest"],
+    "native_predictions_digest": digest(native_raw),
+    "native_dtype": str(trial.dtype),
+    "native_shape": list(trial.shape),
     "recipe_digest": recipe.digest,
     "bundle_digest": source["bundle_ref"]["bundle_digest"],
     "train_digest": control["binding"]["train_digest"],
@@ -215,7 +225,7 @@ state = freeze(recipe, doc, arrays, allowed)
 '''
 
 INFER_PROGRAM = r'''"""Fixed input-only graph inference; no source or TRAIN."""
-import hashlib, io, json, shutil, sys, time
+import hashlib, json, os, re, shutil, sys, time
 from pathlib import Path
 import numpy as np
 
@@ -226,19 +236,24 @@ for package in ("carbon", "carbon/challenge_validator", "carbon/level4",
     folder = work / package
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "__init__.py").write_text("")
-for name in __STAGED_MODULES__:
+control = json.loads((work / "control.json").read_bytes())
+codec_modules = control.get("codec_modules")
+if (type(codec_modules) is not list or len(codec_modules) != len(set(codec_modules))
+    or any(type(name) is not str or re.fullmatch(
+        r"carbon(?:\.[A-Za-z_][A-Za-z_0-9]*){1,5}", name) is None
+        for name in codec_modules)):
+    raise ValueError("bundle inference codec module list differs")
+for name in (*__STAGED_MODULES__, *codec_modules):
     destination = work.joinpath(*name.split(".")).with_suffix(".py")
     shutil.copyfile(work / (name + ".py"), destination)
 sys.path.insert(0, str(work))
 
 from carbon.development_session.construction_recipe import ConstructionRecipe, bind_recipe
 from carbon.development_session.bundle_graph_state import load
+from carbon.development_session.construction_tensor_codec import input_tensor, requires_x64
 from carbon.level4.allowlist import Allowlist
-from carbon.level4.interpret import rebuild
-import jax.numpy as jnp
 
 digest = lambda body: "sha256:" + hashlib.sha256(body).hexdigest()
-control = json.loads((work / "control.json").read_bytes())
 recipe = ConstructionRecipe.from_bytes((work / "recipe.json").read_bytes())
 if recipe.digest != control["recipe_digest"]:
     raise ValueError("bundle inference recipe differs")
@@ -256,14 +271,24 @@ if measure:
     preprocess_start = time.perf_counter()
 doc, parameters = load(state, recipe, allowed)
 raw_inputs = (work / "inputs.npz").read_bytes()
-if digest(raw_inputs) != control["inputs_digest"]:
-    raise ValueError("bundle inference inputs differ")
-with np.load(io.BytesIO(raw_inputs), allow_pickle=False) as data:
-    if set(data.files) != {"inputs"}:
-        raise ValueError("bundle inference input contract differs")
-    inputs = data["inputs"]
-if inputs.dtype.kind not in "fiu" or not np.isfinite(inputs).all():
-    raise ValueError("bundle inference nonfinite inputs")
+inputs = input_tensor(raw_inputs, control["inputs_digest"])
+pending = [doc]
+graph_x64 = False
+while pending:
+    value = pending.pop()
+    if type(value) is dict:
+        if value.get("dtype") in ("float64", "int64", "uint64", "complex128"):
+            graph_x64 = True
+            break
+        pending.extend(value.values())
+    elif type(value) is list:
+        pending.extend(value)
+if graph_x64 or requires_x64(
+    inputs, control.get("expected_output_dtype") or inputs.dtype, *parameters
+):
+    os.environ["JAX_ENABLE_X64"] = "1"
+from carbon.level4.interpret import rebuild
+import jax.numpy as jnp
 declared = doc["graphs"][doc["entry"]]["inputs"]
 if (len(declared) != len(parameters) + 1
     or declared[-1]["name"] != control.get("input_name", "inputs/x")):
@@ -596,7 +621,7 @@ def _checked_binding(recipe: ConstructionRecipe, binding: dict) -> dict:
 
 
 def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
-    """Check a Challenge-owned synthetic policy against the actual C-03 lane.
+    """Check a registered Challenge policy against the actual C-03 lane.
 
     A request or operator profile cannot author this policy. The kit's pinned
     limits digest is checked first; the worker profile then proves these
@@ -621,7 +646,20 @@ def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
         and binding["challenge_version"] != binding["version"]
     ):
         raise RecipeRefused("construction_resource_policy_binding_invalid")
-    if version == "1.3":
+    expected_scope = "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"
+    resource_schema = "carbon.synthetic-linear-field-2d.reconstruction-resources.v1"
+    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
+
+    if type(binding) is dict and binding.get("challenge_id") == BATTERY_CHALLENGE:
+        from carbon.battery import challenge, construction_bundle_material
+
+        if version != challenge.CHALLENGE.version:
+            raise RecipeRefused("construction_resource_policy_binding_invalid")
+        trusted_limits = construction_bundle_material.construction_limits_document()
+        expected_schema = "carbon.battery.bundle-construction-limits.v1"
+        expected_scope = "PUBLIC_BATTERY_DEVELOPMENT_ONLY"
+        resource_schema = "carbon.battery.bundle-reconstruction-resources.v1"
+    elif version == "1.3":
         prospective = getattr(
             synthetic_linear_field_2d, "construction_limits_document_v3", None
         )
@@ -641,12 +679,12 @@ def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
         or _digest(canonical(limits_document))
         != binding.get("construction_limits_digest")
         or limits_document.get("schema") != expected_schema
-        or limits_document.get("scope") != "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"
+        or limits_document.get("scope") != expected_scope
     ):
         raise RecipeRefused("construction_resource_policy_binding_invalid")
     profile = _worker_profile(None, LIBRARY_BUILD_PROVENANCE).body
     expected = {
-        "schema": "carbon.synthetic-linear-field-2d.reconstruction-resources.v1",
+        "schema": resource_schema,
         "cpu_count_max": profile["cpu"]["count"],
         "memory_bytes_max": profile["memory"]["bytes"],
         "swap_bytes_max": profile["memory"]["swap_bytes"],
@@ -666,12 +704,25 @@ def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
 
 
 def _stage_modules() -> dict[str, bytes]:
+    """Preserve the existing graph worker's exact trusted stage contract."""
     root = Path(__file__).resolve().parents[2]
-    files = {
+    return {
         name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
         for name in STAGED_MODULES
     }
-    return files
+
+
+def _stage_bundle_modules(
+    binding: dict, *, training: bool
+) -> tuple[dict[str, bytes], list[str]]:
+    from .construction_tensor_codec import worker_module_files
+
+    files = _stage_modules()
+    codec_files = worker_module_files(binding, training=training)
+    if any(name in files and files[name] != raw for name, raw in codec_files.items()):
+        raise RecipeRefused("bundle_worker_module_closure_changed")
+    files.update(codec_files)
+    return files, sorted(name.removesuffix(".py") for name in codec_files)
 
 
 def _trusted_allowlist(raw: bytes):
@@ -694,6 +745,110 @@ def _trusted_allowlist(raw: bytes):
     if raw not in trusted:
         raise RecipeRefused("bundle_allowlist_unregistered")
     return Allowlist(raw)
+
+
+def native_build_predictions(build) -> np.ndarray:
+    """Read one bounded original native output from its checked build snapshot."""
+    receipt = build.receipt
+    if (
+        type(receipt) is not dict
+        or receipt.get("schema") != "carbon.development.bundle-build.v2"
+        or receipt.get("recipe_digest") != build.recipe_digest
+        or receipt.get("state_digest") != build.state_digest
+    ):
+        raise ValueError("native build prediction identity differs")
+    path = build.state_path.parent / "native-predictions.json"
+    if (
+        path.is_symlink()
+        or not path.is_file()
+        or not 0 < path.stat().st_size <= 16 * 1024**2
+    ):
+        raise ValueError("bounded native prediction snapshot required")
+    raw = path.read_bytes()
+    if _digest(raw) != receipt.get("native_predictions_digest"):
+        raise ValueError("native prediction snapshot changed")
+    try:
+        dtype = np.dtype(receipt["native_dtype"])
+        shape = receipt["native_shape"]
+        if (
+            dtype.kind not in "fiu"
+            or dtype.itemsize > 8
+            or type(shape) is not list
+            or not shape
+            or len(shape) > 16
+            or any(type(n) is not int or n < 1 for n in shape)
+            or math.prod(shape) * dtype.itemsize > 16 * 1024**2
+        ):
+            raise ValueError("native prediction tensor contract differs")
+        values = json.loads(raw)
+        if type(values) is not list:
+            raise ValueError("native predictions must be an array")
+        observed = np.asarray(values)
+        if observed.dtype.kind not in "fiu" or not np.isfinite(observed).all():
+            raise ValueError("native predictions must be numeric")
+        if dtype.kind in "iu":
+            bounds = np.iinfo(dtype)
+            if (
+                observed.dtype.kind not in "iu"
+                or int(observed.min()) < bounds.min
+                or int(observed.max()) > bounds.max
+            ):
+                raise ValueError("native integer prediction range differs")
+        result = np.asarray(values, dtype=dtype)
+        if list(result.shape) != shape or not np.isfinite(result).all():
+            raise ValueError("native prediction tensor contract differs")
+    except (KeyError, TypeError, ValueError, OverflowError, RecursionError) as exc:
+        raise ValueError("native prediction tensor contract differs") from exc
+    return result
+
+
+def compare_build_inference_predictions(
+    build, inference, *, expected_output_dtype=None
+):
+    """Diagnose lowering only for the same recipe, state and exact public probe."""
+    if build.receipt.get("schema") != "carbon.development.bundle-build.v2":
+        return None  # Historical results contain no native prediction artifact.
+    native = native_build_predictions(build)
+    probe = build.receipt["example_digest"]
+    if probe != inference.receipt.get("inputs_digest"):
+        return {
+            "schema": "carbon.development.bundle-prediction-comparison-unavailable.v1",
+            "reason_code": "different_public_probe",
+            "native_probe_digest": probe,
+            "lowered_probe_digest": inference.receipt.get("inputs_digest"),
+        }
+    if native.size > 1_000_000:
+        return {
+            "schema": "carbon.development.bundle-prediction-comparison-unavailable.v1",
+            "reason_code": "comparison_resource_bound",
+            "probe_digest": probe,
+        }
+    measured = inference.receipt.get("measurement", {})
+    dtype = measured.get("output_dtype", expected_output_dtype)
+    if dtype is None:
+        return {
+            "schema": "carbon.development.bundle-prediction-comparison-unavailable.v1",
+            "reason_code": "lowered_dtype_unavailable",
+            "probe_digest": probe,
+        }
+    if not _exact_numeric_dtype(dtype, dtype):
+        raise ValueError("lowered prediction dtype differs")
+    from .bundle_prediction_comparison import compare_native_lowered_predictions
+
+    return compare_native_lowered_predictions(
+        native=native,
+        lowered=np.asarray(inference.predictions, dtype=np.dtype(dtype)),
+        native_identity={
+            "recipe_digest": build.recipe_digest,
+            "state_digest": build.state_digest,
+            "probe_digest": probe,
+        },
+        lowered_identity={
+            "recipe_digest": inference.recipe_digest,
+            "state_digest": inference.state_digest,
+            "probe_digest": inference.receipt["inputs_digest"],
+        },
+    )
 
 
 @dataclass(frozen=True)
@@ -769,11 +924,16 @@ def reconstruct_public(
         verify_direct_resource_policy(binding, limits_document)
     allowed = _trusted_allowlist(allowlist_bytes)
     example_bytes = _tensors(inputs=example)
-    files = _stage_modules()
+    files, codec_modules = _stage_bundle_modules(binding, training=True)
+    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
+
+    train_name = (
+        "train.gz" if binding["challenge_id"] == BATTERY_CHALLENGE else "train.npz"
+    )
     files.update(
         {
             "recipe.json": recipe.canonical_bytes,
-            "train.npz": train,
+            train_name: train,
             "example.npz": example_bytes,
             "allowlist.json": allowlist_bytes,
             "control.json": json.dumps(
@@ -786,6 +946,7 @@ def reconstruct_public(
                         else {}
                     ),
                     "binding": binding,
+                    "codec_modules": codec_modules,
                     "example_digest": _digest(example_bytes),
                     "allowlist_digest": allowed.digest,
                     "seed": seed,
@@ -797,9 +958,17 @@ def reconstruct_public(
     )
 
     def checked(snapshot: Path):
-        if {path.name for path in snapshot.iterdir()} != {"state.npz", "receipt.json"}:
+        if {path.name for path in snapshot.iterdir()} != {
+            "state.npz",
+            "receipt.json",
+            "native-predictions.json",
+        }:
             raise ValueError("bundle build output set differs")
-        for name, ceiling in (("state.npz", MAX_STATE_BYTES), ("receipt.json", 65536)):
+        for name, ceiling in (
+            ("state.npz", MAX_STATE_BYTES),
+            ("receipt.json", 65536),
+            ("native-predictions.json", 16 * 1024**2),
+        ):
             path = snapshot / name
             if (
                 path.is_symlink()
@@ -814,7 +983,13 @@ def reconstruct_public(
         except MalformedStrategy:
             raise ValueError("bundle build receipt malformed") from None
         if receipt != {
-            "schema": "carbon.development.bundle-build.v1",
+            "schema": "carbon.development.bundle-build.v2",
+            "example_digest": _digest(example_bytes),
+            "native_predictions_digest": _digest(
+                (snapshot / "native-predictions.json").read_bytes()
+            ),
+            "native_dtype": receipt.get("native_dtype"),
+            "native_shape": receipt.get("native_shape"),
             "recipe_digest": recipe.digest,
             "bundle_digest": image_ref["bundle_digest"],
             "train_digest": binding["train_digest"],
@@ -823,6 +998,11 @@ def reconstruct_public(
             "framework": receipt.get("framework"),
         } or receipt["framework"] not in ("jax", "torch"):
             raise ValueError("bundle build receipt identity differs")
+        native_build_predictions(
+            BundleBuildResult(
+                recipe.digest, _digest(state), snapshot / "state.npz", "", receipt
+            )
+        )
         return state, receipt
 
     worker = (runner or _run)(
@@ -853,7 +1033,7 @@ def reconstruct_public(
     state, receipt = checked(snapshot)
     if any(
         _digest((snapshot / name).read_bytes()) != worker["files"].get(name)
-        for name in ("state.npz", "receipt.json")
+        for name in ("state.npz", "receipt.json", "native-predictions.json")
     ):
         raise ValueError("bundle build output custody differs")
     return BundleBuildResult(
@@ -1079,10 +1259,11 @@ def _infer_state(
         raise RecipeRefused("direct_inference_provenance_invalid")
     allowed = _trusted_allowlist(allowlist_bytes)
     inputs_bytes = _tensors(inputs=inputs)
-    files = _stage_modules()
+    files, codec_modules = _stage_bundle_modules(binding, training=False)
     control = {
         "recipe_digest": recipe.digest,
         "binding": binding,
+        "codec_modules": codec_modules,
         "state_digest": state_digest,
         "inputs_digest": _digest(inputs_bytes),
         "allowlist_digest": allowed.digest,
@@ -1107,7 +1288,7 @@ def _infer_state(
             ).encode(),
         }
     )
-    if "train.npz" in files or "source.tar.gz" in files:
+    if "train.npz" in files or "train.gz" in files or "source.tar.gz" in files:
         raise ValueError("inference stage contains construction material")
 
     def checked(snapshot: Path):
@@ -1224,6 +1405,7 @@ class DirectReconstructionResult:
     build_controls_digest: str | None
     inference_controls_digest: str | None
     elapsed_seconds: float
+    prediction_comparison: dict | None = None
 
 
 def _private_controls_digest(
@@ -1316,14 +1498,16 @@ def reconstruct_and_infer_public(
     measure_query: bool = False,
     total_deadline_started: float | None = None,
     accelerator: str | None = None,
+    inference_accelerator: str | None = None,
     runner=None,
 ) -> DirectReconstructionResult:
     """Fresh build and source-free inference under the fixture's finite policy.
 
     Both carrier calls confirm cleanup before returning. Each phase gets at
     most its registered wall allowance and at most the remaining aggregate
-    allowance. A checked caller selects an accelerator and matching images;
-    this route never infers GPU permission from the bundle's runtime label.
+    allowance. A checked caller selects the construction and inference controls
+    independently from their pinned images; this route never infers GPU
+    permission from the bundle's runtime label.
     A test runner proves bytes and custody, never C-03 isolation.
     """
     binding = _checked_binding(recipe, challenge_binding)
@@ -1379,7 +1563,7 @@ def reconstruct_and_infer_public(
         allowlist_bytes=allowlist_bytes,
         limits_document=limits_document,
         seconds=phase_seconds("inference_wall_seconds_max"),
-        **_accelerator_kwargs(accelerator),
+        **_accelerator_kwargs(inference_accelerator),
         runner=runner,
     )
     elapsed = time.monotonic() - started
@@ -1387,6 +1571,12 @@ def reconstruct_and_infer_public(
         raise RecipeRefused("construction_total_deadline_reached")
     if build.state_digest != inference.state_digest:
         raise RecipeRefused("bundle_inference_custody_invalid")
+    comparison = compare_build_inference_predictions(
+        build, inference, expected_output_dtype=expected_output_dtype
+    )
+    elapsed = time.monotonic() - started
+    if elapsed > policy["total_reconstruction_wall_seconds_max"]:
+        raise RecipeRefused("construction_total_deadline_reached")
     controls = (
         (
             _private_controls_digest(
@@ -1419,4 +1609,5 @@ def reconstruct_and_infer_public(
         controls[0],
         controls[1],
         elapsed,
+        comparison,
     )

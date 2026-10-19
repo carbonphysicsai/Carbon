@@ -503,6 +503,7 @@
     const box = el("details", undefined, "rs-tool"); box.open = true;
     box.append(el("summary", "Construction: stage graph and submit recipe"));
     para(box, "The installed direct DEVELOPMENT session sends the recipe to the profile-pinned receiver for a clean rebuild. Evaluation and scoring are separate and currently unavailable on this path. A rebuild result is not a score, verdict, qualification or reward.", "hint");
+    para(box, "A FAILED_INFRA result can be retried explicitly when the receiver advertises construction retry. Checking status or submitting the same recipe does not start a retry.", "hint");
     const challenge = w.state.challenge || {};
     para(box, "Served Challenge: " + (challenge.id || "unavailable") + " · v" + (challenge.version || "unavailable"), "hint");
     if (w.state.construction_intake_configured !== true) {
@@ -533,37 +534,54 @@
       if (expected.value.trim()) request.expected_manifest_digest = expected.value.trim();
       guarded(result, () => send("stage_construction_graph", request));
     }));
+    async function sendConstruction(request, value, submittedText, retryOf) {
+      const reply = await post(w, "submit_construction", request);
+      if (reply.ok) {
+        const state = reply.result?.state;
+        const taskId = reply.result?.task_id;
+        if (state === "ADMITTED" && taskId) {
+          w.constructionProgress = {state, recipe: value, text: submittedText, taskId, retryOf};
+          recipe.value = submittedText; recipe.readOnly = true;
+          submit.textContent = "Check rebuild status";
+          submit.disabled = false;
+          retry.hidden = true;
+        } else if (["RECONSTRUCTED", "RECONSTRUCTION_FAILED", "FAILED_INFRA"].includes(state)) {
+          w.constructionProgress = {state, recipe: value, text: submittedText, taskId, retryOf};
+          recipe.value = submittedText; recipe.readOnly = false;
+          submit.textContent = state === "RECONSTRUCTED" ? "Rebuild complete" : "Rebuild ended";
+          submit.disabled = true;
+          retry.hidden = state !== "FAILED_INFRA" || !taskId;
+        }
+      }
+      return reply.ok ? {value: reply} : {error: reply.error};
+    }
     const submit = button(progress?.state === "ADMITTED" ? "Check rebuild status" : progress ? "Rebuild ended" : "Submit for clean rebuild", "primary", () => {
       const value = w.constructionProgress?.state === "ADMITTED" ? w.constructionProgress.recipe : parsedRecipe();
       if (!value) return;
       const submittedText = w.constructionProgress?.state === "ADMITTED" ? w.constructionProgress.text : recipe.value;
-      guarded(result, async () => {
-        const reply = await post(w, "submit_construction", {recipe: value});
-        if (reply.ok) {
-          const state = reply.result?.state;
-          if (state === "ADMITTED" && reply.result.task_id) {
-            w.constructionProgress = {state, recipe: value, text: submittedText, taskId: reply.result.task_id};
-            recipe.value = submittedText; recipe.readOnly = true;
-            submit.textContent = "Check rebuild status";
-          } else if (["RECONSTRUCTED", "RECONSTRUCTION_FAILED", "FAILED_INFRA"].includes(state)) {
-            w.constructionProgress = {state, recipe: value, text: submittedText};
-            recipe.value = submittedText;
-            recipe.readOnly = false;
-            submit.textContent = state === "RECONSTRUCTED" ? "Rebuild complete" : "Rebuild ended";
-            submit.disabled = true;
-          }
-        }
-        return reply.ok ? {value: reply} : {error: reply.error};
-      });
+      const retryOf = w.constructionProgress?.state === "ADMITTED" ? w.constructionProgress.retryOf : undefined;
+      const request = {recipe: value};
+      if (retryOf) request.retry_of_submission_id = retryOf;
+      guarded(result, () => sendConstruction(request, value, submittedText, retryOf));
     });
     submit.disabled = Boolean(progress && progress.state !== "ADMITTED");
+    const retry = button("Retry infrastructure failure", "", () => {
+      const prior = w.constructionProgress;
+      if (prior?.state !== "FAILED_INFRA" || !prior.taskId) return;
+      guarded(result, () => sendConstruction(
+        {recipe: prior.recipe, retry_of_submission_id: prior.taskId},
+        prior.recipe, prior.text, prior.taskId
+      ));
+    });
+    retry.hidden = progress?.state !== "FAILED_INFRA" || !progress.taskId;
     recipe.addEventListener("input", () => {
       if (w.constructionProgress?.state === "ADMITTED") return;
       w.constructionProgress = null;
       submit.textContent = "Submit for clean rebuild";
       submit.disabled = false;
+      retry.hidden = true;
     });
-    actions.append(submit);
+    actions.append(submit, retry);
     box.append(actions, result);
     body.append(box);
   }

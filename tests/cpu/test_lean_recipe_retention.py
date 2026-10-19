@@ -24,6 +24,7 @@ from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
 from carbon.challenge_validator.lean_recipe_retention import (
     RetentionUnavailable,
     _collect_graph_artifacts,
+    _retain_public_synthetic_measurement,
     retain_served_bundle_result,
     retain_served_result,
 )
@@ -60,6 +61,32 @@ class _RealLocalRunner(LocalProcessRunner):
         operation = f"operation-{len(self.calls):064x}"
         (ledger.root / result["operation"]).rename(ledger.root / operation)
         return {**result, "operation": operation}
+
+
+def test_public_measurement_skips_other_challenge_and_selected_pack(tmp_path):
+    artifacts_root = tmp_path / "retained"
+    artifacts_root.mkdir(mode=0o700)
+    entry = tmp_path / "entry.json"
+    entry.write_bytes(b"{}")
+    result = {
+        "entry_path": entry,
+        "artifact_path": artifacts_root,
+        "entry_id": "sha256:" + "a" * 64,
+        "score_state": "NOT_COMPUTED",
+        "official_eligible": False,
+    }
+    battery = {
+        "recipe.json": canonical({"challenge": {"id": "battery", "version": "1.0"}})
+    }
+    assert _retain_public_synthetic_measurement(result, battery, "task", {}) == result
+    selected = {
+        "recipe.json": canonical(
+            {"challenge": {"id": "synthetic-linear-field-2d", "version": "1.3"}}
+        )
+    }
+    bound = {**result, "evaluation_pack_digest": "sha256:" + "b" * 64}
+    assert _retain_public_synthetic_measurement(bound, selected, "task", {}) == bound
+    assert not list(tmp_path.glob("*.public-measurement"))
 
 
 def _source_image(tmp_path):
@@ -262,6 +289,18 @@ def test_real_local_result_enters_existing_pending_bank_create_only(
         assert first["status"] == "CREATED"
         assert first["score_state"] == "NOT_COMPUTED"
         assert first["official_eligible"] is False
+        if measure_query:
+            assert first["measurement_state"] == "DEVELOPMENT_UNRANKED"
+            measured = json.loads(first["measurement_path"].read_bytes())
+            assert measured["entry_id"] == first["entry_id"]
+            assert measured["result"]["status"] == "BENCHMARK_REDUCED"
+            assert measured["result"]["score_status"] == "PACK_NOT_READY"
+            assert measured["accuracy_ceiling"] is None
+            assert measured["ranking"] is None
+            assert measured["speedup_comparability"] == "NOT_ESTABLISHED"
+            assert first["measurement_path"].parent != first["artifact_path"]
+        else:
+            assert first["measurement_state"] == "UNAVAILABLE"
         assert first["entry_path"].is_file()
         assert (
             first["artifact_path"].joinpath("state.npz").read_bytes()
@@ -602,6 +641,37 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
             assert first["status"] == "CREATED"
             assert first["score_state"] == "NOT_COMPUTED"
             assert first["official_eligible"] is False
+            assert first["measurement_state"] == "DEVELOPMENT_UNRANKED"
+            measured = json.loads(first["measurement_path"].read_bytes())
+            assert measured["task_id"] == task_id
+            assert measured["entry_id"] == first["entry_id"]
+            assert measured["source_state"] == (
+                "MEASURED_ENGINEERING_REFERENCE_UNPINNED"
+            )
+            assert measured["result"]["status"] == "BENCHMARK_REDUCED"
+            assert measured["result"]["score_status"] == "PACK_NOT_READY"
+            assert measured["accuracy_ceiling"] is None
+            assert measured["ranking"] is None
+            assert measured["speedup_comparability"] == "NOT_ESTABLISHED"
+            assert first["measurement_path"].parent != first["artifact_path"]
+            import scripts.dev.score_lab.synthetic_linear_field_reference as public_source
+
+            with monkeypatch.context() as unavailable_measurement:
+                unavailable_measurement.setattr(
+                    public_source,
+                    "reduce_public_measurement",
+                    lambda **_kwargs: (_ for _ in ()).throw(ValueError("not ready")),
+                )
+                retry = retain_served_result(
+                    adapter,
+                    task_id,
+                    artifact_directory=artifact_root,
+                    entry_directory=entry_root,
+                )
+                assert retry["status"] == "ALREADY_PRESENT_IDENTICAL"
+                assert retry["score_state"] == "NOT_COMPUTED"
+                assert retry["measurement_state"] == "UNAVAILABLE"
+                assert first["measurement_path"].read_bytes() == canonical(measured)
             manifest = json.loads(
                 (artifact_root / (task_id + ".roles.json")).read_bytes()
             )

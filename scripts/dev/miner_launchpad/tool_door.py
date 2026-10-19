@@ -304,8 +304,16 @@ class DirectToolDoor:
 
         if self.intake_target is None:
             return {"ok": False, "error": "construction_intake_unconfigured"}
-        if type(value) is not dict or set(value) != {"recipe"}:
+        if type(value) is not dict or set(value) not in (
+            {"recipe"},
+            {"recipe", "retry_of_submission_id"},
+        ):
             return {"ok": False, "error": "construction_recipe_required"}
+        if (
+            "retry_of_submission_id" in value
+            and type(value["retry_of_submission_id"]) is not str
+        ):
+            return {"ok": False, "error": "construction_retry_predecessor_invalid"}
         try:
             recipe = ConstructionRecipe.from_dict(value["recipe"])
             if (
@@ -333,6 +341,11 @@ class DirectToolDoor:
                 context=self.adapter.connection.chain_context,
                 wait_s=10 if observe_only else 0,
                 **({"observe_only": True} if observe_only else {}),
+                **(
+                    {"retry_of": value["retry_of_submission_id"]}
+                    if "retry_of_submission_id" in value
+                    else {}
+                ),
             )
             return {
                 "ok": True,

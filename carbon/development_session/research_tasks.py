@@ -26,6 +26,7 @@ import time
 from pathlib import Path
 
 from carbon.authoring.model import EvidenceRole
+from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 from carbon.research import (
     CancellationDisposition,
@@ -63,6 +64,7 @@ from carbon.research.records import (
     ResearchRetentionScope,
     RetentionReuseBinding,
 )
+from carbon.research.refs import ResearchTaskId
 
 from .construction_recipe import ConstructionRecipe
 from .profile import canonical, digest
@@ -74,6 +76,8 @@ from .research_carrier import (
     run_script,
 )
 from .research_workspace import ResearchWorkspace, request_capability
+
+DIRECT_RETRY_KEY_PREFIX = "lean-recipe-retry-"
 
 
 class PublicDevelopmentResearchTasks(DurableResearchTaskProvider):
@@ -229,6 +233,7 @@ class DirectDevelopmentTasksV3:
         inference_image,
         image_resolver=None,
         construction_parent=None,
+        evaluation_pack_digest=None,
     ) -> None:
         if (
             not isinstance(root, Path)
@@ -238,6 +243,16 @@ class DirectDevelopmentTasksV3:
             or not requester
             or type(owner) is not str
             or not owner
+            or evaluation_pack_digest
+            != getattr(discovery, "evaluation_pack_digest", None)
+            or (
+                evaluation_pack_digest is not None
+                and (
+                    type(evaluation_pack_digest) is not str
+                    or re.fullmatch(r"sha256:[0-9a-f]{64}", evaluation_pack_digest)
+                    is None
+                )
+            )
         ):
             raise ValueError("private direct task root and requester required")
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -256,6 +271,7 @@ class DirectDevelopmentTasksV3:
         self._lock = threading.RLock()
         self.ledger, self.owner = ledger, owner
         self.discovery = discovery
+        self.evaluation_pack_digest = evaluation_pack_digest
         self.image, self.inference_image = image, inference_image
         self.image_resolver = image_resolver
         self.construction_parent = (
@@ -304,6 +320,11 @@ class DirectDevelopmentTasksV3:
                                 if self.construction_parent != inference_image
                                 else []
                             ),
+                            *(
+                                ["EVALUATION_PACK", evaluation_pack_digest]
+                                if evaluation_pack_digest is not None
+                                else []
+                            ),
                         ],
                         separators=(",", ":"),
                     )
@@ -316,6 +337,11 @@ class DirectDevelopmentTasksV3:
                             image.parent.image_id,
                             inference_image.image_id,
                             image.bundle_ref,
+                            *(
+                                ["EVALUATION_PACK", evaluation_pack_digest]
+                                if evaluation_pack_digest is not None
+                                else []
+                            ),
                         ],
                         sort_keys=True,
                         separators=(",", ":"),
@@ -404,6 +430,7 @@ class DirectDevelopmentTasksV3:
     def _check_image_identity(self) -> None:
         from carbon.reconstruction.worker.model import WorkerImageIdentity
 
+        from .gpu_practice import direct_bundle_accelerators
         from .research_image import LibraryWorkerImage
 
         if (
@@ -419,6 +446,9 @@ class DirectDevelopmentTasksV3:
             or self.image.parent != self.construction_parent
         ):
             raise ValueError("exact C-03 library child and parent images required")
+        self.build_accelerator, self.inference_accelerator = direct_bundle_accelerators(
+            self.construction_parent, self.inference_image
+        )
 
     def _verify_images(self) -> None:
         from .research_image import verify_library_worker_image
@@ -513,67 +543,75 @@ class DirectDevelopmentTasksV3:
         material = load_pinned_bundle_directory(directory)
         verify_bundle_parent_environment(material[0], self.construction_parent)
         check_cancel()
-        cli = DockerCLI()
-        try:
-            image = self.image_resolver.provision_admitted(
-                bundle, parent=self.construction_parent, cli=cli
-            )
-        except FileNotFoundError as error:
-            if str(error) != (
-                "bounded automatic dependency build unavailable; verified child missing"
+        # A library child has no registered GPU lock/profile fields. A GPU
+        # bundle must use the checked parent plus a verified source overlay,
+        # even when a CPU-style child image happens to be cached.
+        image = None
+        if self.build_accelerator is None:
+            try:
+                image = self.image_resolver.provision_admitted(
+                    bundle, parent=self.construction_parent, cli=DockerCLI()
+                )
+            except FileNotFoundError as error:
+                if str(error) != (
+                    "bounded automatic dependency build unavailable; verified child missing"
+                ):
+                    raise
+        if image is not None:
+            if (
+                type(image) is not LibraryWorkerImage
+                or image.bundle_ref != bundle.to_dict()
+                or image.parent != self.construction_parent
             ):
-                raise
-            capacity = getattr(self.image_resolver, "material_cache_bytes", None)
-            if type(capacity) is not int or capacity < 1:
-                raise ValueError("trusted overlay cache capacity unavailable") from None
-            check_cancel()
-            kit = self.discovery._material["construction_kit"]
-            binding = {
-                "challenge_id": kit["id"],
-                "challenge_version": kit["version"],
-                "train_digest": kit["train_digest"],
-                "interface_digest": kit["interface_digest"],
-                "construction_limits_digest": kit["construction_limits_digest"],
-            }
-            remaining = int(deadline - time.monotonic())
-            if remaining < 40:
-                raise RecipeRefused("construction_total_deadline_reached")
-            prep = prepare_library_overlay(
-                self.ledger,
-                owner=self.owner,
-                identity=direct_child_identity(task.value, "prep"),
-                parent=self.construction_parent,
-                recipe=ConstructionRecipe.from_dict(request.recipe),
-                challenge_binding=binding,
-                limits_document=self.discovery._material[
-                    "construction_limits_document"
-                ],
-                material=material,
-                seconds=min(600, remaining),
-                deadline=deadline,
-                cancel=check_cancel,
-            )
-            if prep.controls_digest is None:
-                raise ValueError("completed C03 preparation controls unavailable")
-            overlay = cache_verified_overlay(
-                prep.snapshot,
-                self.image_resolver.cache_root,
-                expected_bundle=bundle,
-                expected_parent=self.construction_parent,
-                expected_receipt=prep.receipt,
-                material_cache_bytes=capacity,
-                deadline=deadline,
-                cancel=check_cancel,
-            )
-            return overlay, prep
-        if (
-            type(image) is not LibraryWorkerImage
-            or image.bundle_ref != bundle.to_dict()
-            or image.parent != self.construction_parent
-        ):
-            raise ValueError("provisioned direct library image differs")
-        verify_library_worker_image(image)
-        return image
+                raise ValueError("provisioned direct library image differs")
+            verify_library_worker_image(image)
+            return image
+        capacity = getattr(self.image_resolver, "material_cache_bytes", None)
+        if type(capacity) is not int or capacity < 1:
+            raise ValueError("trusted overlay cache capacity unavailable")
+        check_cancel()
+        kit = self.discovery._material["construction_kit"]
+        binding = {
+            "challenge_id": kit["id"],
+            "challenge_version": kit["version"],
+            "train_digest": kit["train_digest"],
+            "interface_digest": kit["interface_digest"],
+            "construction_limits_digest": kit["construction_limits_digest"],
+        }
+        remaining = int(deadline - time.monotonic())
+        if remaining < 40:
+            raise RecipeRefused("construction_total_deadline_reached")
+        prep = prepare_library_overlay(
+            self.ledger,
+            owner=self.owner,
+            identity=direct_child_identity(task.value, "prep"),
+            parent=self.construction_parent,
+            recipe=ConstructionRecipe.from_dict(request.recipe),
+            challenge_binding=binding,
+            limits_document=self.discovery._material["construction_limits_document"],
+            material=material,
+            seconds=min(600, remaining),
+            deadline=deadline,
+            cancel=check_cancel,
+            **(
+                {}
+                if self.build_accelerator is None
+                else {"accelerator": self.build_accelerator}
+            ),
+        )
+        if prep.controls_digest is None:
+            raise ValueError("completed C03 preparation controls unavailable")
+        overlay = cache_verified_overlay(
+            prep.snapshot,
+            self.image_resolver.cache_root,
+            expected_bundle=bundle,
+            expected_parent=self.construction_parent,
+            expected_receipt=prep.receipt,
+            material_cache_bytes=capacity,
+            deadline=deadline,
+            cancel=check_cancel,
+        )
+        return overlay, prep
 
     @staticmethod
     def _image_binding(image):
@@ -846,6 +884,154 @@ class DirectDevelopmentTasksV3:
         if measure_query:
             self._measured_tasks.add(view.task_id.value)
 
+    def retry_research_task(
+        self, request, *, predecessor_id: ResearchTaskId, measure_query=False
+    ):
+        """Create one normal child of this owner's failed infrastructure task.
+
+        The failed task stays terminal. Its derived request key gives repeated
+        explicit retries one durable child through normal start idempotency.
+        """
+        if (
+            type(request) is not DirectStartTaskRequestV3
+            or type(predecessor_id) is not ResearchTaskId
+            or type(measure_query) is not bool
+        ):
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.REQUEST_TYPE_INVALID
+            )
+        with self._lock:
+            try:
+                predecessor_id = ResearchTaskId(predecessor_id.value)
+                request = load_canonical(
+                    canonical_bytes(request), DirectStartTaskRequestV3
+                )
+            except (AttributeError, TypeError, ValueError):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.REQUEST_TYPE_INVALID
+                ) from None
+            if (
+                request.idempotency_key
+                != DIRECT_RETRY_KEY_PREFIX + predecessor_id.value
+            ):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT
+                )
+            return self.start_research_task(request, measure_query=measure_query)
+
+    def _check_retry_predecessors(self, request, predecessor_id, measure_query):
+        """Check retained lineage without restarting or changing any ancestor."""
+        from dataclasses import replace
+
+        seen = set()
+        child_request = request
+        while True:
+            if predecessor_id.value in seen:
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.REFERENCE_MISMATCH
+                )
+            seen.add(predecessor_id.value)
+            previous = self._requests.get(predecessor_id.value)
+            view = self._views.get(predecessor_id.value)
+            if previous is None or view is None:
+                raise ResearchTaskProviderError(ResearchServiceErrorCode.TASK_NOT_FOUND)
+            try:
+                previous = load_canonical(
+                    canonical_bytes(previous), DirectStartTaskRequestV3
+                )
+                view = load_canonical(canonical_bytes(view), DirectTaskViewV3)
+                expected = replace(
+                    child_request, idempotency_key=previous.idempotency_key
+                )
+                if (
+                    view.task_id != predecessor_id
+                    or self._task_id(previous) != predecessor_id
+                    or self._idempotency.get(previous.idempotency_key)
+                    != predecessor_id.value
+                    or canonical_bytes(expected) != canonical_bytes(previous)
+                    or self._bindings(previous) != view.immutable_bindings
+                    or self._bindings(request) != view.immutable_bindings
+                    or (predecessor_id.value in self._measured_tasks) != measure_query
+                    or self.evaluation_pack_digest
+                    != getattr(self.discovery, "evaluation_pack_digest", None)
+                ):
+                    raise ValueError("retained retry binding differs")
+            except (AttributeError, TypeError, ValueError):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.REFERENCE_MISMATCH
+                ) from None
+            receipt = view.terminal_receipt
+            if (
+                view.state is not DirectTaskStateV3.FAILED_INFRA
+                or type(receipt) is not DirectTaskReceiptV3
+                or receipt.terminal_state is not DirectTaskStateV3.FAILED_INFRA
+                or type(receipt.infrastructure_failure_class)
+                is not InfrastructureFailureClass
+            ):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.INVALID_TASK_TRANSITION
+                )
+            if (
+                receipt.task_id != predecessor_id
+                or receipt.immutable_bindings != view.immutable_bindings
+            ):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.REFERENCE_MISMATCH
+                )
+            if self.requires_reconciliation(predecessor_id) or any(
+                self.ledger.operation_state(child, owner=self.owner)
+                not in (None, "SUCCEEDED", "FAILED_INFRA", "FAILED_MINER", "CANCELLED")
+                for child in self._all_children(predecessor_id)
+            ):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.INVALID_TASK_TRANSITION
+                )
+            if not previous.idempotency_key.startswith(DIRECT_RETRY_KEY_PREFIX):
+                return
+            child_request = previous
+            try:
+                predecessor_id = ResearchTaskId(
+                    previous.idempotency_key[len(DIRECT_RETRY_KEY_PREFIX) :]
+                )
+            except (TypeError, ValueError):
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.REFERENCE_MISMATCH
+                ) from None
+
+    @staticmethod
+    def _check_retry_uv_cleanup():
+        """A settled main child does not prove the auxiliary UV copy is gone.
+
+        This shared-host observation only guards fresh bundle retries. It does
+        not remove helpers or attest production security, and daemon uncertainty
+        cannot be interpreted as an empty result.
+        """
+        from carbon.reconstruction.worker.docker_runtime import DockerCLI
+
+        try:
+            observed = DockerCLI().run(
+                [
+                    "ps",
+                    "-aq",
+                    "--filter",
+                    "label=org.carbonphysicsai.overlay-uv-intent",
+                ],
+                timeout=10,
+            )
+        except (OSError, WorkerFailure):
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.INFRASTRUCTURE_FAILURE
+            ) from None
+        stdout = getattr(observed, "stdout", None)
+        if type(stdout) is not bytes:
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.INFRASTRUCTURE_FAILURE
+            )
+        if stdout.strip():
+            raise ResearchTaskProviderError(
+                ResearchServiceErrorCode.INVALID_TASK_TRANSITION
+            )
+
     def start_research_task(self, request, *, measure_query=False):
         from carbon.research.refs import ResearchTaskId
 
@@ -854,11 +1040,26 @@ class DirectDevelopmentTasksV3:
         if (
             type(request) is not DirectStartTaskRequestV3
             or type(measure_query) is not bool
+            or type(request.idempotency_key) is not str
         ):
             raise ResearchTaskProviderError(
                 ResearchServiceErrorCode.REQUEST_TYPE_INVALID
             )
         with self._lock:
+            retry = request.idempotency_key.startswith(DIRECT_RETRY_KEY_PREFIX)
+            if retry:
+                try:
+                    request = load_canonical(
+                        canonical_bytes(request), DirectStartTaskRequestV3
+                    )
+                    predecessor_id = ResearchTaskId(
+                        request.idempotency_key[len(DIRECT_RETRY_KEY_PREFIX) :]
+                    )
+                except (AttributeError, TypeError, ValueError):
+                    raise ResearchTaskProviderError(
+                        ResearchServiceErrorCode.REQUEST_TYPE_INVALID
+                    ) from None
+                self._check_retry_predecessors(request, predecessor_id, measure_query)
             bindings = self._bindings(request)
             if measure_query:
                 outputs = self.discovery._material.get("interface_document", {}).get(
@@ -884,6 +1085,8 @@ class DirectDevelopmentTasksV3:
                 return DirectStartTaskResultV3(False, self._views[prior])
             if len(self._views) >= 256:
                 raise ResearchTaskProviderError(ResearchServiceErrorCode.BOUND_EXCEEDED)
+            if retry and request.recipe["source"]["kind"] == "bundle":
+                self._check_retry_uv_cleanup()
             try:
                 self._verify_images()
                 staged_source = (
@@ -1486,6 +1689,11 @@ class DirectDevelopmentTasksV3:
             try:
                 recipe = ConstructionRecipe.from_dict(request.recipe)
                 source_kind = recipe.to_dict()["source"]["kind"]
+                if source_kind == "graph" and (
+                    self.build_accelerator is not None
+                    or self.inference_accelerator is not None
+                ):
+                    raise ValueError("direct graph GPU construction is unavailable")
                 retained_image = self._task_image_bindings.get(task_id.value)
                 retained_binding = (
                     json.loads(retained_image) if retained_image is not None else None
@@ -1616,12 +1824,23 @@ class DirectDevelopmentTasksV3:
                     allowlist_bytes=material["allowlist_bytes"],
                     expected_output_dtype=(
                         material["interface_document"]["outputs"]["dtype"]
-                        if kit["version"] == "1.3"
+                        if (kit["id"] == BATTERY_CHALLENGE and kit["version"] == "1.0")
+                        or kit["version"] == "1.3"
                         or task_id.value in self._measured_tasks
                         else None
                     ),
                     measure_query=task_id.value in self._measured_tasks,
                     total_deadline_started=total_deadline_started,
+                    **(
+                        {}
+                        if self.build_accelerator is None
+                        else {"accelerator": self.build_accelerator}
+                    ),
+                    **(
+                        {}
+                        if self.inference_accelerator is None
+                        else {"inference_accelerator": self.inference_accelerator}
+                    ),
                 )
             if (
                 type(result) is not DirectReconstructionResult
@@ -1744,6 +1963,8 @@ class DirectDevelopmentTasksV3:
                     "ascii"
                 ),
             }
+            if source_kind == "bundle" and result.prediction_comparison is not None:
+                private["prediction_comparison"] = result.prediction_comparison
             if source_kind == "graph":
                 private["submission_digest"] = recipe.to_dict()["source"][
                     "submission_digest"

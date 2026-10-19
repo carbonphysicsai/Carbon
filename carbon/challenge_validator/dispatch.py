@@ -367,15 +367,22 @@ class Validator:
             submission, kind=kind, code=code, submission_id=submission_id, state=state
         )
 
-    def evaluate(self, submission):
-        """Evaluate one authenticated submission; return a result envelope."""
+    def evaluate(self, submission, *, retry_of=None):
+        """Screen a signed submission, including an explicit adapter-owned retry."""
         ledger = self._ledger
         screened = self.screen(submission)
         if type(screened) is not Screened:
             return screened
         adapter, admitted = screened.adapter, screened.admitted
         try:
-            outcome = check_outcome(adapter.evaluate(admitted), adapter)
+            if retry_of is None:
+                evaluated = adapter.evaluate(admitted)
+            else:
+                retry = getattr(adapter, "retry", None)
+                if not callable(retry):
+                    raise Unavailable("construction_retry_unavailable")
+                evaluated = retry(admitted, retry_of)
+            outcome = check_outcome(evaluated, adapter)
         except Unavailable as unavailable:
             ledger.record(submission, kind="UNAVAILABLE", code=unavailable.code)
             return _result(

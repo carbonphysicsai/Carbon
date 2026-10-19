@@ -41,3 +41,47 @@ def gpu_image_backend(image):
     if image.lock_digest == torch_profile.GPU_LOCK_DIGEST:
         return "pytorch"
     return None
+
+
+def direct_parent_backend(image):
+    """Recognize the separate pinned Torch CPU construction parent."""
+    backend = gpu_image_backend(image)
+    if backend is not None:
+        return backend
+    from pathlib import Path
+
+    from carbon.reconstruction import torch_profile
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    if type(image) is not WorkerImageIdentity:
+        return None
+    root = Path(__file__).resolve().parents[2]
+    if image.lock_digest == torch_profile.requirements_digest(root):
+        return "torch_cpu"
+    return None
+
+
+def direct_bundle_accelerators(construction_parent, inference_image):
+    """Select independent controls for the verified build and inference images.
+
+    The fixed inference program uses JAX, including for a graph built with
+    PyTorch. The separate PyTorch CUDA image does not carry the JAX runtime.
+    Image admission and Docker doctor remain the private receiver's duty.
+    """
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    from .research_carrier import MINER_GPU
+
+    if (
+        type(construction_parent) is not WorkerImageIdentity
+        or type(inference_image) is not WorkerImageIdentity
+    ):
+        raise ValueError("exact direct worker image pair required")
+    build_backend = gpu_image_backend(construction_parent)
+    infer_backend = gpu_image_backend(inference_image)
+    if infer_backend == "pytorch":
+        raise ValueError("fixed direct inference requires JAX worker")
+    return (
+        MINER_GPU if build_backend is not None else None,
+        MINER_GPU if infer_backend == "jax" else None,
+    )

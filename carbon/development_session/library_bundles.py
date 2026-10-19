@@ -42,6 +42,7 @@ UV_IMAGE = "ghcr.io/astral-sh/uv:0.12.7@sha256:95f2aa1fe59274951cfe9b0cbc7972e87
 _RUNTIME_ACCELERATORS = {
     "jax-cuda13-py311": "cuda13",
     "torch-cu130-py311": "cuda13",
+    "torch-cpu-py311": "cpu",
     "python-cpu-py311": "cpu",
 }
 
@@ -400,7 +401,7 @@ def verify_bundle_parent_environment(manifest, parent):
     from carbon.reconstruction.accelerators import GPU_PROFILE
     from carbon.reconstruction.worker.model import WorkerImageIdentity
 
-    from .gpu_practice import gpu_image_backend
+    from .gpu_practice import direct_parent_backend
 
     if type(manifest) is not dict or type(parent) is not WorkerImageIdentity:
         raise ValueError("exact bundle manifest and parent image required")
@@ -418,12 +419,16 @@ def verify_bundle_parent_environment(manifest, parent):
         expected_lock = torch_profile.GPU_LOCK_DIGEST
         recipe = ".devcontainer/torch/Dockerfile.gpu"
         backend = "pytorch"
+    elif profile == "torch-cpu-py311":
+        expected_lock = torch_profile.requirements_digest(root)
+        recipe = ".devcontainer/torch/Dockerfile"
+        backend = "torch_cpu"
     else:
         raise ValueError("registered bundle runtime profile required")
     if (
         parent.lock_digest != expected_lock
         or manifest.get("base_environment_digest") != expected_lock
-        or gpu_image_backend(parent) != backend
+        or direct_parent_backend(parent) != backend
         or parent.build_recipe_digest != _digest((root / recipe).read_bytes())
         or parent.entrypoint_digest
         != _digest((root / "carbon/reconstruction/worker/entrypoint.py").read_bytes())
@@ -835,11 +840,14 @@ def prepare_offline_context(
     No source or wheel is installed on the controller by this function.
     """
     bundle_digest = validate_bundle(manifest, source, wheels, lock, license_text)
-    if manifest["runtime_profile_id"] == "python-cpu-py311":
+    if manifest["runtime_profile_id"] in {"python-cpu-py311", "torch-cpu-py311"}:
         repository = Path(__file__).resolve().parents[2]
-        if manifest["base_environment_digest"] != _digest(
-            (repository / "uv.lock").read_bytes()
-        ):
+        base_lock = (
+            repository / "uv.lock"
+            if manifest["runtime_profile_id"] == "python-cpu-py311"
+            else repository / ".devcontainer/torch/torch-cpu-py311.txt"
+        )
+        if manifest["base_environment_digest"] != _digest(base_lock.read_bytes()):
             raise ValueError("CPU base environment lock differs")
     if type(parent_image) is not str or not SHA256.fullmatch(parent_image):
         raise ValueError("exact verified parent image required")
@@ -903,7 +911,7 @@ if len(raw) > 144 * 1024 * 1024:
 digest = lambda body: 'sha256:' + hashlib.sha256(body).hexdigest()
 if digest(source) != manifest['source_sha256'] or digest(pathlib.Path('/tmp/requirements.txt').read_bytes()) != manifest['lock_sha256']:
     raise SystemExit('library source or lock digest differs')
-base_lock = {'jax-cuda13-py311': '/opt/carbon/accelerator-requirements.txt', 'torch-cu130-py311': '/opt/carbon/torch-gpu-requirements.txt'}[manifest['runtime_profile_id']]
+base_lock = {'jax-cuda13-py311': '/opt/carbon/accelerator-requirements.txt', 'torch-cu130-py311': '/opt/carbon/torch-gpu-requirements.txt', 'torch-cpu-py311': '/opt/carbon/torch-requirements.txt'}[manifest['runtime_profile_id']]
 if digest(pathlib.Path(base_lock).read_bytes()) != manifest['base_environment_digest']:
     raise SystemExit('base environment digest differs')
 for name, expected in manifest['wheels'].items():
@@ -961,7 +969,7 @@ import_root = target / next(iter(roots)) if len(roots) == 1 else target
         entrypoint_digest = _digest(
             (repository / "carbon/reconstruction/worker/entrypoint.py").read_bytes()
         )
-        cuda_check = """base_lock = {'jax-cuda13-py311': '/opt/carbon/accelerator-requirements.txt', 'torch-cu130-py311': '/opt/carbon/torch-gpu-requirements.txt'}[manifest['runtime_profile_id']]
+        cuda_check = """base_lock = {'jax-cuda13-py311': '/opt/carbon/accelerator-requirements.txt', 'torch-cu130-py311': '/opt/carbon/torch-gpu-requirements.txt', 'torch-cpu-py311': '/opt/carbon/torch-requirements.txt'}[manifest['runtime_profile_id']]
 if digest(pathlib.Path(base_lock).read_bytes()) != manifest['base_environment_digest']:
     raise SystemExit('base environment digest differs')
 """
@@ -1032,7 +1040,9 @@ def build_offline_bundle(
     uv = local_image(UV_IMAGE)
     uv_name, _, uv_digest = UV_IMAGE.partition("@")
     uv_repo_digest = uv_name.rsplit(":", 1)[0] + "@" + uv_digest
-    if uv_repo_digest not in uv.get("RepoDigests", []):
+    if type(uv.get("RepoDigests")) is not list or not any(
+        reference in uv["RepoDigests"] for reference in (UV_IMAGE, uv_repo_digest)
+    ):
         raise ValueError("pinned local uv image differs")
     parent_tag = parent_stage_tag(bundle_digest, parent_image)
     uv_tag = uv_stage_tag(bundle_digest)

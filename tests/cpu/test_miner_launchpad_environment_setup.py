@@ -91,14 +91,16 @@ def test_live_compute_source_without_candidate_keeps_main_rule(tmp_path, monkeyp
     assert len(seen[0]) == 40
 
 
+@pytest.mark.parametrize("torch_cpu", [False, True])
 def test_live_compute_checks_old_cpu_abi_only_for_pinned_development(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, torch_cpu
 ):
     from dataclasses import replace
     from types import SimpleNamespace
 
     from carbon.development_session import research_image
     from carbon.development_session.profile import digest
+    from carbon.reconstruction import torch_profile
     from carbon.reconstruction.worker import docker_runtime
     from carbon.reconstruction.worker.model import WorkerImageIdentity
 
@@ -109,10 +111,21 @@ def test_live_compute_checks_old_cpu_abi_only_for_pinned_development(
         old,
         "sha256:" + "b" * 64,
         old,
-        digest((source / "uv.lock").read_bytes()),
+        (
+            torch_profile.requirements_digest(source)
+            if torch_cpu
+            else digest((source / "uv.lock").read_bytes())
+        ),
         old,
         digest(
-            (source / ".devcontainer/Dockerfile.reconstruction-worker").read_bytes()
+            (
+                source
+                / (
+                    ".devcontainer/torch/Dockerfile"
+                    if torch_cpu
+                    else ".devcontainer/Dockerfile.reconstruction-worker"
+                )
+            ).read_bytes()
         ),
         digest((source / "carbon/reconstruction/worker/entrypoint.py").read_bytes()),
     )

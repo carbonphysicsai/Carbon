@@ -107,6 +107,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
         self.challenge_id = contract.challenge_id
         self.challenge_version = contract.version
         self.contract_digest = contract.digest
+        self._evidence_label = contract.evidence_label
         self.max_strategy_bytes = MAX_BODY
         self._kit = dict(contract.construction_kit)
         self._identities = self._bound_identities(contract)
@@ -165,23 +166,33 @@ class LeanRecipeAdapter(ChallengeAdapter):
             type(provider) is not DirectDevelopmentTasksV3
             or provider.owner != hotkey
             or provider.discovery is not self.discovery
+            or provider.evaluation_pack_digest != self.discovery.evaluation_pack_digest
         ):
             raise Unavailable("direct_provider_binding_unavailable")
         return provider
 
-    def _request(self, hotkey, recipe):
+    def _request(self, hotkey, recipe, *, evaluation_pack_digest=None, retry_of=None):
         from carbon.development_session.profile import canonical
         from carbon.development_session.profile import digest as sha
-        from carbon.research import DirectStartTaskRequestV3
+        from carbon.research import DirectStartTaskRequestV3, ResearchTaskId
 
         info = self.discovery.info
         task_binding = hotkey + "\0" + self.contract_digest + "\0" + recipe.digest
         if self._measure_query:
             task_binding += "\0" + self._identities["rule_digest"]
+        if evaluation_pack_digest is not None:
+            task_binding += "\0EVALUATION_PACK\0" + evaluation_pack_digest
         identity = hashlib.sha256(task_binding.encode("utf-8")).hexdigest()
+        key = "lean-recipe-" + identity
+        if retry_of is not None:
+            from carbon.development_session.research_tasks import (
+                DIRECT_RETRY_KEY_PREFIX,
+            )
+
+            key = DIRECT_RETRY_KEY_PREFIX + ResearchTaskId(retry_of).value
         return DirectStartTaskRequestV3(
             info.challenge_key,
-            "lean-recipe-" + identity,
+            key,
             recipe.to_dict(),
             self._identities["challenge_info_digest"],
             self._identities["manifest_digest"],
@@ -199,26 +210,92 @@ class LeanRecipeAdapter(ChallengeAdapter):
             ),
         )
 
-    def evaluate(self, submission):
+    @staticmethod
+    def _check_graph_source(provider, recipe):
         from carbon.development_session.construction_recipe import (
             RecipeRefused,
             graph_envelope_from_workspace,
         )
-        from carbon.research.errors import ResearchServiceErrorCode
-        from carbon.research.lifecycle import ResearchTaskProviderError
 
-        recipe = self.validate_strategy(submission.strategy)
-        provider = self._provider(submission.hotkey)
         source = recipe.to_dict()["source"]
         if source["kind"] == "graph":
             try:
                 graph_envelope_from_workspace(provider.ledger, provider.owner, recipe)
             except RecipeRefused as refused:
                 raise Unavailable(refused.code) from None
+
+    def evaluate(self, submission):
+        recipe = self.validate_strategy(submission.strategy)
+        provider = self._provider(submission.hotkey)
+        self._check_graph_source(provider, recipe)
         # The durable task provider owns source inspection and admitted
         # environment preparation. A missing preinstalled image is not a
         # separate construction-admission rule at the signed door.
-        request = self._request(submission.hotkey, recipe)
+        request = self._request(
+            submission.hotkey,
+            recipe,
+            evaluation_pack_digest=provider.evaluation_pack_digest,
+        )
+        return self._admit_request(submission, provider, request)
+
+    def retry(self, submission, retry_of):
+        """Create one explicit child of an authentic infrastructure-failed task."""
+        from dataclasses import replace
+
+        from carbon.research import ResearchTaskId, canonical_bytes
+
+        from .interface import Admitted
+
+        if type(submission) is not Admitted:
+            raise TypeError("screened construction submission required")
+        if (
+            submission.challenge_id != self.challenge_id
+            or submission.challenge_version != self.challenge_version
+            or submission.contract_digest != self.contract_digest
+        ):
+            raise Unavailable("construction_retry_binding_mismatch")
+        try:
+            predecessor = ResearchTaskId(retry_of)
+        except (TypeError, ValueError):
+            raise Unavailable("construction_retry_predecessor_invalid") from None
+        recipe = self.validate_strategy(submission.strategy)
+        provider = self._provider(submission.hotkey)
+        with provider._lock:
+            if not self._owned_lineage(provider, submission.hotkey, predecessor.value):
+                raise Unavailable("construction_retry_predecessor_unavailable")
+            prior = provider._requests[predecessor.value]
+            request = self._request(
+                submission.hotkey,
+                recipe,
+                evaluation_pack_digest=provider.evaluation_pack_digest,
+                retry_of=predecessor.value,
+            )
+            if canonical_bytes(
+                replace(prior, idempotency_key=request.idempotency_key)
+            ) != canonical_bytes(request) or not self._failed_predecessor(
+                provider, predecessor, prior
+            ):
+                raise Unavailable("construction_retry_predecessor_unavailable")
+            child_id = provider._idempotency.get(request.idempotency_key)
+            child_request = provider._requests.get(child_id)
+            retained_child = (
+                child_request is not None
+                and canonical_bytes(child_request) == canonical_bytes(request)
+                and provider._task_id(request).value == child_id
+                and (child_id in provider._measured_tasks) == self._measure_query
+            )
+        # A replay uses the admitted child's immutable source, even if the
+        # owner's live workspace changed after the response was lost.
+        if not retained_child:
+            self._check_graph_source(provider, recipe)
+        return self._admit_request(
+            submission, provider, request, predecessor=predecessor
+        )
+
+    def _admit_request(self, submission, provider, request, *, predecessor=None):
+        from carbon.research.errors import ResearchServiceErrorCode
+        from carbon.research.lifecycle import ResearchTaskProviderError
+
         task_id = provider._task_id(request)
         from carbon.research import canonical_bytes
 
@@ -229,8 +306,14 @@ class LeanRecipeAdapter(ChallengeAdapter):
             "sha256:" + hashlib.sha256(canonical_bytes(request)).hexdigest(),
         )
         try:
-            task = provider.start_research_task(
-                request, measure_query=self._measure_query
+            task = (
+                provider.start_research_task(request, measure_query=self._measure_query)
+                if predecessor is None
+                else provider.retry_research_task(
+                    request,
+                    predecessor_id=predecessor,
+                    measure_query=self._measure_query,
+                )
             ).task
         except ResearchTaskProviderError as refused:
             if refused.code in (
@@ -253,7 +336,7 @@ class LeanRecipeAdapter(ChallengeAdapter):
             "submission_id": task.task_id.value,
             "challenge": {"id": self.challenge_id, "version": self.challenge_version},
             "state": "ADMITTED",
-            "evidence": "DEVELOPMENT_PUBLIC_SYNTHETIC",
+            "evidence": self._evidence_label,
             "qualification": False,
             "reward": False,
             "task_id": task.task_id.value,
@@ -301,25 +384,104 @@ class LeanRecipeAdapter(ChallengeAdapter):
                     ]
         return outcome
 
+    def _failed_predecessor(self, provider, task_id, request):
+        from carbon.research import (
+            DirectGetTaskRequestV3,
+            DirectTaskReceiptV3,
+            DirectTaskStateV3,
+            DirectTaskViewV3,
+            canonical_bytes,
+        )
+        from carbon.research.lifecycle import ResearchTaskProviderError
+
+        try:
+            task = provider.get_research_result(
+                DirectGetTaskRequestV3(self.discovery.info.challenge_key, task_id)
+            ).task
+            if type(task) is not DirectTaskViewV3:
+                return False
+            canonical_bytes(task)
+            receipt = task.terminal_receipt
+            return (
+                task.task_id == task_id
+                and task.state is DirectTaskStateV3.FAILED_INFRA
+                and type(receipt) is DirectTaskReceiptV3
+                and receipt.task_id == task_id
+                and receipt.terminal_state is DirectTaskStateV3.FAILED_INFRA
+                and receipt.immutable_bindings == task.immutable_bindings
+                and task.immutable_bindings == provider._bindings(request)
+                and receipt.infrastructure_failure_class is not None
+            )
+        except (ValueError, TypeError, AttributeError, ResearchTaskProviderError):
+            return False
+
+    def _owned_lineage(self, provider, owner, submission_id):
+        from carbon.development_session.construction_recipe import ConstructionRecipe
+        from carbon.development_session.research_tasks import DIRECT_RETRY_KEY_PREFIX
+        from carbon.research import ResearchTaskId, canonical_bytes
+        from carbon.research.lifecycle import ResearchTaskProviderError
+
+        seen = set()
+        recipe = None
+        try:
+            current = ResearchTaskId(submission_id).value
+            # The retained provider already bounds storage to 256 requests.
+            # Use that actual roster rather than an independent retry cap.
+            while len(seen) < len(provider._requests) and current not in seen:
+                seen.add(current)
+                retained = provider._requests.get(current)
+                if (
+                    retained is None
+                    or self.ledger.owned_outcome(self.contract_digest, current) != owner
+                    or (current in provider._measured_tasks) != self._measure_query
+                ):
+                    return False
+                if recipe is None:
+                    recipe = ConstructionRecipe.from_dict(retained.recipe)
+                key = retained.idempotency_key
+                parent = (
+                    ResearchTaskId(key[len(DIRECT_RETRY_KEY_PREFIX) :])
+                    if key.startswith(DIRECT_RETRY_KEY_PREFIX)
+                    else None
+                )
+                expected = self._request(
+                    owner,
+                    recipe,
+                    evaluation_pack_digest=provider.evaluation_pack_digest,
+                    retry_of=None if parent is None else parent.value,
+                )
+                if (
+                    canonical_bytes(expected) != canonical_bytes(retained)
+                    or provider._task_id(expected).value != current
+                ):
+                    return False
+                if parent is None:
+                    return True
+                prior = provider._requests.get(parent.value)
+                if prior is None or not self._failed_predecessor(
+                    provider, parent, prior
+                ):
+                    return False
+                current = parent.value
+        except (
+            ValueError,
+            TypeError,
+            KeyError,
+            AttributeError,
+            ResearchTaskProviderError,
+        ):
+            return False
+        return False
+
     def owner(self, submission_id):
         owner = self.ledger.owned_outcome(self.contract_digest, submission_id)
         if owner is None:
             return None
-        from carbon.development_session.construction_recipe import ConstructionRecipe
-
         provider = self._provider(owner)
-        retained = provider._requests.get(submission_id)
-        if retained is None:
-            return None
-        recipe = ConstructionRecipe.from_dict(retained.recipe)
-        expected = self._request(owner, recipe)
-        if (
-            expected != retained
-            or provider._task_id(expected).value != submission_id
-            or (submission_id in provider._measured_tasks) != self._measure_query
-        ):
-            return None
-        return owner
+        with provider._lock:
+            return (
+                owner if self._owned_lineage(provider, owner, submission_id) else None
+            )
 
     def outcome(self, submission_id):
         from carbon.research import DirectGetTaskRequestV3, ResearchTaskId
