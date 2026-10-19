@@ -25,6 +25,7 @@ nothing here sets one.
 from __future__ import annotations
 
 import ast
+import hashlib
 import importlib.util
 import os
 import sys
@@ -150,8 +151,25 @@ def test_the_pytorch_cpu_image_builds_the_cpu_profile_into_its_identity():
     assert torch_profile.CPU_DETERMINISM_LABEL in "org.opencontainers.image." + (
         label.split("org.opencontainers.image.", 1)[1]
     )
-    # The build refuses a label that is not the installed source's digest.
-    assert 'os.environ["TORCH_DETERMINISM_DIGEST"] != CPU_DETERMINISM_DIGEST' in recipe
+    # The ordinary RUN invokes the hash-bound helper as the runtime user.
+    # Its refusal behavior is exercised in test_torch_cpu_image_identity.
+    helper = REPOSITORY / ".devcontainer" / "torch" / "cpu_image_identity.py"
+    helper_digest = hashlib.sha256(helper.read_bytes()).hexdigest()
+    assert (
+        "COPY .devcontainer/torch/cpu_image_identity.py "
+        "/opt/carbon/torch-image-identity.py"
+    ) in recipe
+    assert (
+        'RUN test "$(sha256sum /opt/carbon/torch-image-identity.py | '
+        f'cut -d\' \' -f1)" = "{helper_digest}"'
+    ) in recipe
+    runtime_recipe = recipe.split("USER 65532:65532\n", 1)[1]
+    assert (
+        'RUN TORCH_DETERMINISM_DIGEST="${TORCH_DETERMINISM_DIGEST}" \\\n'
+        "    /opt/carbon-worker/bin/python -I "
+        "/opt/carbon/torch-image-identity.py verify"
+    ) in runtime_recipe
+    assert "<<" not in runtime_recipe
     assert "CPU_DETERMINISM_DIGEST" in script
     assert '--build-arg "TORCH_DETERMINISM_DIGEST=${determinism_digest}"' in script
     release = (REPOSITORY / "scripts" / "dev" / "worker_image_release.py").read_text()
