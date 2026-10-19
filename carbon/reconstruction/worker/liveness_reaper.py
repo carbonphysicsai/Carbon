@@ -181,6 +181,7 @@ def spawn_liveness_reaper(
         subprocess.Popen(
             [
                 sys.executable,
+                "-B",
                 "-m",
                 "carbon.reconstruction.worker.liveness_reaper",
                 container_name,

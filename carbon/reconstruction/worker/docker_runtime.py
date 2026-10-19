@@ -1445,6 +1445,7 @@ def spawn_watchdog(
         subprocess.Popen(
             [
                 sys.executable,
+                "-B",
                 "-m",
                 "carbon.reconstruction.worker.watchdog",
                 container_name,
