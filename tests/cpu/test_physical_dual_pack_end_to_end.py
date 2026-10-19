@@ -22,12 +22,13 @@ import pytest
 from test_inference_pair_evidence import encode, fixture, original
 from test_public_bundle_model_custody import _json, _npz, _sha
 
-from carbon.challenge_kit import physical_pack, physical_public_train
+from carbon.challenge_kit import physical_pack
 from carbon.challenge_validator.evaluation_pack import parse_pack, prepare_pack
 from carbon.motor import recipes
 from carbon.motor.challenge import PublicMaterial
 from carbon.scoring import bundle_benchmark_core as bundle
 from carbon.scoring import cooling_dual_pack as cooling
+from carbon.scoring import f08_dual_pack as f08
 from carbon.scoring import motor_dual_pack as motor
 from carbon.scoring import physical_dual_pack as physical
 from carbon.scoring import private_evaluation_evidence as evidence
@@ -36,11 +37,12 @@ from carbon.scoring.engine import ScoreEngine
 from scripts.dev.score_lab import public_unbound_custody as custody
 from scripts.dev.score_lab import public_unbound_entry as unbound_entry
 
-#: adapter, native gate. The producer path must reproduce the baseline's own
-#: same-platform measurement exactly (no tolerance).
+#: adapter, the gate the paired repeat fails. The producer path must reproduce
+#: the baseline's own same-platform measurement exactly (no tolerance).
 CHALLENGES = {
     "motor": (motor, "native_motor_valid"),
     "cooling": (cooling, "native_cold_plate"),
+    "f08": (f08, "paired_repeat"),
 }
 GRADED_OPERATION = "operation-" + "a" * 64
 IMAGE = _sha(b"fixture-motor-inference-image")
@@ -263,6 +265,10 @@ def _baseline(name, bank, public, names):
             ]
             for row in bank["inputs"]
         ]
+    if name == "f08":
+        return f08._baseline_outputs(
+            physical.bank_rows(bank, names), public["train"], names
+        )
     return cooling._baseline_outputs(
         physical.bank_rows(bank, names),
         cooling._train_records(public["train"], names),
@@ -276,9 +282,7 @@ def case(request, tmp_path_factory):
     bank = physical_pack.development_bank(adapter.CHALLENGE, adapter.VERSION)
     public = _public(adapter)
     snapshot, documents = _write_pack(adapter, tmp / "pack", public)
-    names = physical_public_train.numeric_interface_document(adapter.CHALLENGE)[
-        "input_names"
-    ]
+    names = physical.input_names(adapter)
     predictions = _baseline(request.param, bank, public, names)
     # The same baseline measured directly on this platform: the producer path
     # must reproduce it exactly.
