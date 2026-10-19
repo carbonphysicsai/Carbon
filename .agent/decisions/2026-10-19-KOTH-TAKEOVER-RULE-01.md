@@ -1,7 +1,7 @@
 # KOTH-TAKEOVER-RULE-01: better score wins beyond measured rebuild noise; a self-improving king keeps his clock
 
 Date: 2026-10-19
-Status: ADOPTED for development. Payable use still needs an adopted score pack and a registered four-Challenge weight policy, both the owner's.
+Status: ADOPTED for development; confirmed by the owner 2026-10-19 (see the scope note). Payable use still needs an adopted score pack and a registered four-Challenge weight policy, both the owner's.
 Authority: the owner delegated this decision to the Test Lead on 2026-10-19:
 
 > keep it simple. better score wins and takes the emission, halves every 24 hours, existing winner beating himself is the one I need you to decide on.
@@ -13,7 +13,9 @@ The Test Lead decided it and relayed it to the Carbon Validator, who records and
 - dethroning a king that fails a gate, with its share burning (§3a);
 - the four-Challenge policy (§4).
 
-Each is development-only and fails closed. The owner has been told this pattern, not only the individual decisions. Unchanged by this record: `CARBON_BUILD_TARGET.md` §4 (1/N, full for 24 h, then halving every 24 h; no fresh-case tournament).
+Each is development-only and fails closed. The owner has been told this pattern, not only the individual decisions.
+
+**Owner confirmation (2026-10-19, in the Test Lead's session, relayed to the Carbon Validator).** The Test Lead asked: "KOTH: my four decisions and Battery dropping off the paid list... Say if any is wrong". The owner answered **"Yes and yes"**. That confirms §1, §2, §3a and §4, including battery's removal from the paid list. Unchanged by this record: `CARBON_BUILD_TARGET.md` §4 (1/N, full for 24 h, then halving every 24 h; no fresh-case tournament).
 
 ## 1. Who takes the crown
 
