@@ -121,11 +121,11 @@ def test_graph_only_composed_factory_keeps_existing_l4_parameters(
 def test_graph_ensemble_trains_each_member_and_restores_inference(
     graph_input, material, parts
 ):
-    found = compiled(graph_input, ensemble_members=2, steps=32, **parts)
+    found = compiled(graph_input, ensemble_members=2, steps=40, **parts)
     model, stats = fit(found, graph_input[1], material)
     assert isinstance(model, level4_model.GraphEnsemble)
     assert len(model.members) == 2
-    assert all(member.settings["steps"] == 16 for member in model.members)
+    assert all(member.settings["steps"] == 20 for member in model.members)
     assert len({member._leaves()[0].tobytes() for member in model.members}) == 2
     assert stats["n_params"] == sum(
         sum(np.size(leaf) for leaf in member._leaves()) for member in model.members
@@ -155,7 +155,7 @@ def _pack(header, arrays):
 
 
 def test_graph_ensemble_state_refuses_a_tampered_member_set(graph_input, material):
-    found = compiled(graph_input, ensemble_members=2, steps=32)
+    found = compiled(graph_input, ensemble_members=2, steps=40)
     model, _ = fit(found, graph_input[1], material)
     header, arrays = _unpack(level4_model.state_bytes(model))
 
@@ -163,7 +163,7 @@ def test_graph_ensemble_state_refuses_a_tampered_member_set(graph_input, materia
         level4_model.model_from_bytes(_pack({**header, "members": 3}, arrays))
 
     member_header, member_arrays = _unpack(bytes(arrays["member01"]))
-    member_header["settings"] = {**member_header["settings"], "steps": 32}
+    member_header["settings"] = {**member_header["settings"], "steps": 40}
     changed = np.frombuffer(_pack(member_header, member_arrays), np.uint8)
     with pytest.raises(ValueError, match="member differs from recipe"):
         level4_model.model_from_bytes(_pack(header, {**arrays, "member01": changed}))
@@ -346,7 +346,7 @@ def test_graph_owned_single_objective_composes_without_a_precedence_choice(
         {
             "pool_selection": PARTS["pool_selection"],
             "ensemble_members": 2,
-            "steps": 32,
+            "steps": 40,
         },
         {"loss_expressions": PARTS["loss_expressions"]},
         {"quasi_newton_family": "bfgs", "line_search": "backtracking"},

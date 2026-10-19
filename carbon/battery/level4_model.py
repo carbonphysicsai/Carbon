@@ -702,7 +702,9 @@ def build(recipe, found, workspace):
     except staging.StagingCorrupt as corrupt:
         raise ImportError("level4_staging_corrupt:" + str(corrupt)) from None
     family, settings = _recipe(recipe)
-    model_type = GraphModel if settings["ensemble_members"] == 1 else GraphEnsemble
+    # A family without members (knn) keeps GraphModel's own family refusal.
+    members = settings.get("ensemble_members", 1)
+    model_type = GraphModel if members == 1 else GraphEnsemble
     args = (
         (family, settings)
         if model_type is GraphModel
