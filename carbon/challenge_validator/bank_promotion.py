@@ -389,8 +389,11 @@ def _comparator(comparator, evidence):
             "score_pack_digest",
             "rebuild_noise",
             "ties",
+            "minimum_source_entry_ids",
         }
         or comparator["schema"] != COMPARATOR_SCHEMA
+        or type(comparator["minimum_source_entry_ids"]) is not list
+        or not all(is_digest(e) for e in comparator["minimum_source_entry_ids"])
         or comparator["ties"] != "incumbent_keeps"
         or not (
             noise is None
@@ -413,7 +416,7 @@ def _comparator(comparator, evidence):
         != evidence["score_compatibility"]["score_pack_digest"]
     ):
         raise StateError("comparator_not_for_this_evaluation")
-    return noise
+    return noise, frozenset(comparator["minimum_source_entry_ids"])
 
 
 def _scored(body):
@@ -448,7 +451,7 @@ def compare_private_pair(pair, comparator):
       UNAVAILABLE, never zero.
     """
     candidate = pair["candidate"]
-    noise = _comparator(comparator, candidate["evidence"])
+    noise, minimum_sources = _comparator(comparator, candidate["evidence"])
     status, total = _scored(candidate)
 
     def decided(outcome, reason):
@@ -461,6 +464,13 @@ def compare_private_pair(pair, comparator):
         }
 
     incumbent = pair["incumbent"]
+    if candidate["evidence"]["entry_id"] in minimum_sources:
+        # The baseline run that set the pack's leg minimums sets the bar; it
+        # never contends (BASELINE_LEG_MINIMUM_SOURCE_NOT_A_CONTENDER).
+        return decided(
+            NO_WINNER if incumbent is None else INCUMBENT_KEEPS,
+            "leg_minimum_source_not_a_contender",
+        )
     if incumbent is None:
         if status != SCORED:
             return decided(NO_WINNER, "candidate_not_scored")

@@ -16,6 +16,7 @@ from carbon.rewards.core import DAY_MS, Q12
 from carbon.rewards.winner_decay import Winner, epoch_targets, load_policy
 
 PACK = digest("score pack")
+BASELINE_ENTRY = digest("baseline run that set the leg minimums")
 KEY = digest("evaluation context")
 
 
@@ -26,6 +27,7 @@ def body(model, status=bp.SCORED, total=1.0):
             "schema": bp.PAIRED_BINDING,
             "challenge": "electric-motor-magnetics",
             "score_compatibility": {"score_pack_digest": PACK},
+            "entry_id": digest(["entry", model]),
             "model_p": {"score_status": status, "total_score": total},
         },
     }
@@ -49,6 +51,7 @@ def comparator(noise=None, **changes):
         "score_pack_digest": PACK,
         "rebuild_noise": noise,
         "ties": "incumbent_keeps",
+        "minimum_source_entry_ids": [BASELINE_ENTRY],
     }
     rule.update(changes)
     return rule
@@ -308,3 +311,24 @@ def test_an_unmeasured_gate_does_not_dethrone(tmp_path, monkeypatch):
             == bp.UNAVAILABLE
         )
         assert store.incumbent()["model_id"] == "a"
+
+
+def test_the_leg_minimum_source_never_contends():
+    """The baseline run whose legs set the pack's minimums sets the bar; it can
+    neither take an empty throne nor beat a king, however it scores."""
+    baseline = body("base", total=99.0)
+    baseline["evidence"]["entry_id"] = BASELINE_ENTRY
+    for incumbent, expected in ((None, bp.NO_WINNER), (body("k"), bp.INCUMBENT_KEEPS)):
+        outcome = bp.compare_private_pair(pair(baseline, incumbent), comparator(NOISE))
+        assert (outcome["outcome"], outcome["reason"]) == (
+            expected,
+            "leg_minimum_source_not_a_contender",
+        )
+
+
+@pytest.mark.parametrize("ids", [None, "x", [None], ["not-a-digest"]])
+def test_the_minimum_source_list_is_required(ids):
+    with pytest.raises(StateError, match="comparator_invalid"):
+        bp.compare_private_pair(
+            pair(body("c"), body("k")), comparator(NOISE, minimum_source_entry_ids=ids)
+        )

@@ -77,4 +77,5 @@ Asked by the Test Lead, "Add Battery as a fifth Challenge?", the owner answered 
 - `winner_eligibility.decide` accepts a bank-comparison promotion kind. It uses the existing predecessor check and the same-miner `no_reset`.
 - A dethroning with no successor calls `PoolStore.vacate_incumbent`, which leaves no promotion, so the reward layer pays nobody and the share burns.
 - The registry pin for v3 (`sha256:4b488bce0a43bc9b1f3914bb11b72d026ba2a1154fae5a83bc6649774c5add71`) is, like v2's, over the compact sorted canonical JSON.
+- **The baseline run that sets a pack's leg minimums never contends.** The comparator requires `minimum_source_entry_ids` (the pack's `leg_minimum_source.entry_id`). Such an entry can neither take an empty throne nor beat a king (`leg_minimum_source_not_a_contender`).
 - `rebuild_noise.measurement_digest` is checked for **shape only**. Whether it records three real rebuilds on pinned images is the packs-lane measurement and the Validator's review, not the code.
