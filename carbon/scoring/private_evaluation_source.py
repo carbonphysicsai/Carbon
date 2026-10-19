@@ -12,6 +12,7 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass
+from pathlib import Path
 
 from carbon.challenge_validator.evaluation_pack import (
     PRIVATE_ROLES,
@@ -22,8 +23,11 @@ from carbon.scoring.benchmark_evidence import (
     BenchmarkRefused,
     physics_contract_identity,
 )
+from carbon.scoring.dual_score import DualScoreRefused, register_pack, score
 
 PACK_SOURCE_SCHEMA = "carbon.scoring.private-evaluation-source.v2"
+DUAL_MEASUREMENT_SCHEMA = "carbon.scoring.private-dual-measurement.v1"
+DUAL_MEASUREMENT_CONTRACT_SCHEMA = "carbon.scoring.dual-measurement-contract.v1"
 _REFERENCE_STATUS = frozenset({"RESOLVED", "UNRESOLVED", "FAILED_INFRA"})
 _REQUIRED_PUBLIC_ROLES = frozenset(
     {"construction_kit", "interface", "train", "physics_contract"}
@@ -44,6 +48,89 @@ class PreparedPrivateEvaluationSource:
     raw: bytes
     sha256: str
     evaluation_pack_digest: str
+
+
+@dataclass(frozen=True)
+class PreparedPrivateDualMeasurement:
+    raw: bytes
+    sha256: str
+    evaluation_pack_digest: str
+    measured_model: dict
+
+
+def produce_dual_benchmark_input(
+    *,
+    selected_pack: EvaluationPackSnapshot,
+    public_root: Path,
+    private_root: Path,
+    entry: dict,
+    trusted_job: dict,
+    registration: dict,
+    references: list[dict],
+    graph_originals: dict,
+    evaluation_source_receipt_raw: bytes,
+) -> tuple[dict, dict, str]:
+    """Run the fixed DEVELOPMENT cold-eight producer, or refuse unavailable roles.
+
+    This hook consumes retained worker originals and source-owned pack roles.
+    It executes no participant code, model, solver or configurable callback.
+    Other Challenge adapters remain explicitly unavailable. A required repeat
+    gate cannot be inferred from the one retained normal inference.
+    """
+    if type(entry) is not dict or entry.get("challenge") != "f02":
+        raise PrivateEvaluationSourceRefused("dual_measurement_producer_unavailable")
+    return _produce_f02_cold(
+        selected_pack,
+        public_root,
+        private_root,
+        entry,
+        trusted_job,
+        registration,
+        references,
+        graph_originals,
+        evaluation_source_receipt_raw,
+    )
+
+
+def produce_registered_dual_measurement(
+    *,
+    selected_pack: EvaluationPackSnapshot,
+    public_root: Path,
+    private_root: Path,
+    entry: dict,
+    trusted_job: dict,
+    registration: dict,
+    references: list[dict],
+    graph_originals: dict,
+    evaluation_source_receipt_raw: bytes,
+) -> PreparedPrivateDualMeasurement:
+    """Bind a fixed producer's output with the real source/pack receipt checks.
+
+    The caller retains the resulting bytes and independently registers its
+    SHA in owner custody. An unavailable producer leaves grading unavailable.
+    """
+    measured_model, benchmark, producer_digest = produce_dual_benchmark_input(
+        selected_pack=selected_pack,
+        public_root=public_root,
+        private_root=private_root,
+        entry=entry,
+        trusted_job=trusted_job,
+        registration=registration,
+        references=references,
+        graph_originals=graph_originals,
+        evaluation_source_receipt_raw=evaluation_source_receipt_raw,
+    )
+    return build_dual_measurement_receipt(
+        selected_pack=selected_pack,
+        public_root=public_root,
+        private_root=private_root,
+        entry=entry,
+        measured_model=measured_model,
+        graph_originals=graph_originals,
+        evaluation_source_receipt_raw=evaluation_source_receipt_raw,
+        benchmark=benchmark,
+        producer_digest=producer_digest,
+    )
 
 
 def _sha(raw: bytes) -> str:
@@ -192,3 +279,722 @@ def build_pack_source_receipt(
         sha256=_sha(raw),
         evaluation_pack_digest=selected_pack.manifest_digest,
     )
+
+
+def _parse_pack_source(raw: bytes) -> dict:
+    if type(raw) is not bytes or not 0 < len(raw) <= _MAX_RECEIPT_BYTES:
+        raise PrivateEvaluationSourceRefused("dual_source_bytes")
+
+    def unique(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise PrivateEvaluationSourceRefused("dual_source_duplicate_key")
+            value[key] = item
+        return value
+
+    def reject_constant(_value):
+        raise PrivateEvaluationSourceRefused("dual_source_nonfinite")
+
+    try:
+        source = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=unique,
+            parse_constant=reject_constant,
+        )
+    except PrivateEvaluationSourceRefused:
+        raise
+    except (UnicodeError, ValueError, RecursionError) as exc:
+        raise PrivateEvaluationSourceRefused("dual_source_json") from exc
+    if (
+        type(source) is not dict
+        or source.get("schema") != PACK_SOURCE_SCHEMA
+        or set(source)
+        != {
+            "schema",
+            "challenge",
+            "challenge_version",
+            "evaluation_version",
+            "interface_digest",
+            "train_digest",
+            "job_digest",
+            "registration_digest",
+            "physics_contract",
+            "cases",
+            "evaluation_pack_digest",
+        }
+        or _canonical(source) != raw
+    ):
+        raise PrivateEvaluationSourceRefused("dual_source_shape")
+    return source
+
+
+def build_dual_measurement_receipt(
+    *,
+    selected_pack: EvaluationPackSnapshot,
+    public_root: Path,
+    private_root: Path,
+    entry: dict,
+    measured_model: dict,
+    graph_originals: dict,
+    evaluation_source_receipt_raw: bytes,
+    benchmark: dict,
+    producer_digest: str,
+) -> PreparedPrivateDualMeasurement:
+    """Pin a trusted producer's DEVELOPMENT A/D measurements to saved originals.
+
+    The Carbon-owned caller must run the selected producer and independently
+    register this receipt's SHA. This pure builder checks identities and exact
+    pack bytes; it cannot attest producer execution or scientific adequacy.
+    The private binder verifies the saved query, reference, model and worker
+    originals before the shared scoring core may consume ``benchmark``.
+    """
+    if type(selected_pack) is not EvaluationPackSnapshot or not is_sha256_digest(
+        selected_pack.manifest_digest
+    ):
+        raise PrivateEvaluationSourceRefused("selected_pack_missing")
+    source = _parse_pack_source(evaluation_source_receipt_raw)
+    if source["evaluation_pack_digest"] != selected_pack.manifest_digest:
+        raise PrivateEvaluationSourceRefused("dual_pack_mismatch")
+    missing = selected_pack.missing_roles()
+    if (
+        any(
+            role in missing["public"]
+            for role in (
+                "accuracy_definition",
+                "important_limit_definition",
+                "design_objective",
+            )
+        )
+        or "score_pack" in missing["private"]
+    ):
+        raise PrivateEvaluationSourceRefused("dual_pack_incomplete")
+    if (
+        type(entry) is not dict
+        or type(measured_model) is not dict
+        or type(benchmark) is not dict
+        or type(graph_originals) is not dict
+        or set(graph_originals) != {"inference_receipt_raw", "worker_evidence_raw"}
+        or not all(type(value) is bytes and value for value in graph_originals.values())
+        or not is_sha256_digest(producer_digest)
+        or not is_sha256_digest(entry.get("entry_id"))
+        or not is_sha256_digest(entry.get("state_digest"))
+        or entry.get("challenge") != source["challenge"]
+        or entry.get("challenge_version") != source["challenge_version"]
+        or entry.get("interface_digest") != source["interface_digest"]
+        or entry.get("train_digest") != source["train_digest"]
+        or measured_model.get("entry_id") != entry["entry_id"]
+        or measured_model.get("state_digest") != entry["state_digest"]
+        or selected_pack.challenge_id != source["challenge"]
+        or selected_pack.challenge_version != source["challenge_version"]
+    ):
+        raise PrivateEvaluationSourceRefused("dual_model_identity")
+    try:
+        accuracy = selected_pack.read_json_role(
+            public_root, "public", "accuracy_definition", max_bytes=1024 * 1024
+        )
+        limits = selected_pack.read_json_role(
+            public_root,
+            "public",
+            "important_limit_definition",
+            max_bytes=1024 * 1024,
+        )
+        design = selected_pack.read_json_role(
+            public_root, "public", "design_objective", max_bytes=1024 * 1024
+        )
+        pack_body = selected_pack.read_json_role(
+            private_root, "private", "score_pack", max_bytes=1024 * 1024
+        )
+    except ValueError as exc:
+        raise PrivateEvaluationSourceRefused("dual_pack_role") from exc
+    if (
+        type(accuracy) is not dict
+        or type(limits) is not dict
+        or type(design) is not dict
+        or accuracy.get("producer_digest") != producer_digest
+    ):
+        raise PrivateEvaluationSourceRefused("dual_producer_pin")
+    basis = {
+        "schema": DUAL_MEASUREMENT_CONTRACT_SCHEMA,
+        "producer_digest": producer_digest,
+        "accuracy_definition_sha256": selected_pack.public["accuracy_definition"][
+            "sha256"
+        ],
+        "important_limit_definition_sha256": selected_pack.public[
+            "important_limit_definition"
+        ]["sha256"],
+        "design_objective_sha256": selected_pack.public["design_objective"]["sha256"],
+    }
+    contract_digest = _sha(_canonical(basis))
+    if type(pack_body) is not dict or "pack_digest" not in pack_body:
+        raise PrivateEvaluationSourceRefused("dual_score_pack")
+    try:
+        pack = register_pack(
+            {key: value for key, value in pack_body.items() if key != "pack_digest"}
+        )
+    except DualScoreRefused as exc:
+        raise PrivateEvaluationSourceRefused("dual_score_pack") from exc
+    if (
+        pack != pack_body
+        or pack["measurement_contract_digest"] != contract_digest
+        or pack["challenge"] != source["challenge"]
+        or type(source["physics_contract"]) is not dict
+        or pack["physics_contract_digest"]
+        != source["physics_contract"].get("definition_digest")
+    ):
+        raise PrivateEvaluationSourceRefused("dual_score_pack_binding")
+    cases = source.get("cases")
+    if (
+        type(cases) is not list
+        or len(cases) != 1
+        or type(cases[0]) is not dict
+        or cases[0].get("role") not in {"P", "Q"}
+        or benchmark.get("common_mask_digest") != _sha(_canonical(cases))
+        or benchmark.get("population_role") != cases[0]["role"]
+        or type(benchmark.get("models")) is not list
+        or len(benchmark["models"]) != 1
+        or type(benchmark["models"][0]) is not dict
+        or benchmark["models"][0].get("artifact_digest") != entry["entry_id"]
+    ):
+        raise PrivateEvaluationSourceRefused("dual_common_mask")
+    try:
+        score(benchmark, pack)
+    except DualScoreRefused as exc:
+        raise PrivateEvaluationSourceRefused("dual_benchmark") from exc
+    detached_measured_model = json.loads(_canonical(measured_model))
+    body = {
+        "schema": DUAL_MEASUREMENT_SCHEMA,
+        "source_receipt_sha256": _sha(evaluation_source_receipt_raw),
+        "evaluation_pack_digest": selected_pack.manifest_digest,
+        "score_pack_digest": pack["pack_digest"],
+        "measurement_contract": basis,
+        "measurement_contract_digest": contract_digest,
+        "producer_digest": producer_digest,
+        "entry_id": entry["entry_id"],
+        "state_digest": entry["state_digest"],
+        "measured_model_sha256": _sha(_canonical(detached_measured_model)),
+        "inference_receipt_sha256": _sha(graph_originals["inference_receipt_raw"]),
+        "worker_evidence_sha256": _sha(graph_originals["worker_evidence_raw"]),
+        "benchmark": benchmark,
+    }
+    raw = _canonical(body)
+    if len(raw) > _MAX_RECEIPT_BYTES:
+        raise PrivateEvaluationSourceRefused("dual_receipt_too_large")
+    return PreparedPrivateDualMeasurement(
+        raw, _sha(raw), selected_pack.manifest_digest, detached_measured_model
+    )
+
+
+# Fixed source implementation; this is not a user-selected module registry.
+_F02_METHOD = "f02-cold-eight-rich-design.v1"
+_F02_ACTIONS = {
+    "cool-rect-low": (80, 5),
+    "cool-rect-middle": (110, 10),
+    "cool-rect-short-high": (140, 5),
+    "cool-rect-long-high": (140, 20),
+    **{f"cool-rect-near-{power}w": (power, 5) for power in (84, 85, 86, 87)},
+}
+
+
+def _producer_require(ok, code):
+    if not ok:
+        raise PrivateEvaluationSourceRefused(code)
+
+
+def _f02_point_measurements(predictions, reference, policy, train_std_c, ceiling_c):
+    """Existing native cold-eight A and rich Design over source-owned points.
+
+    No default scales or source acceptance are chosen here. This returns a
+    deterministic selection derived from predictions, not a saved commitment.
+    Analytic extra energy has no learned-fidelity credit.
+    """
+    from carbon.scoring import design_fidelity
+
+    ids = sorted(_F02_ACTIONS)
+    _producer_require(
+        type(policy) is dict
+        and type(policy.get("objective")) is dict
+        and type(policy.get("components")) is list,
+        "dual_f02_policy_mapping",
+    )
+    _producer_require(
+        type(predictions) is list
+        and len(predictions) == 8
+        and all(type(v) in (int, float) and math.isfinite(v) for v in predictions)
+        and type(train_std_c) in (int, float)
+        and math.isfinite(train_std_c)
+        and train_std_c > 0
+        and type(ceiling_c) in (int, float)
+        and math.isfinite(ceiling_c),
+        "dual_f02_numeric_input",
+    )
+    _producer_require(
+        policy.get("case_ids") == ids
+        and policy.get("action_ids") == ids
+        and policy.get("objective", {}).get("quantity") == "extra_energy_j"
+        and policy["objective"].get("unit") == "J"
+        and policy["objective"].get("direction") == "MAXIMIZE"
+        and policy["objective"].get("learned") is False,
+        "dual_f02_policy_mapping",
+    )
+    _producer_require(
+        type(reference) is dict
+        and set(reference) == {"cases", "actions"}
+        and type(reference["cases"]) is dict
+        and type(reference["actions"]) is dict
+        and set(reference["cases"]) == set(ids)
+        and set(reference["actions"]) == set(ids),
+        "dual_f02_reference_roster",
+    )
+    _producer_require(
+        policy["quantities"]
+        == {
+            "peak_top_c": {"unit": "C", "learned": True},
+            "thermal_margin_c": {"unit": "C", "learned": True},
+            "extra_energy_j": {"unit": "J", "learned": False},
+        },
+        "dual_f02_quantity_credit",
+    )
+    try:
+        design_fidelity.validate_policy(policy)
+    except design_fidelity.ReductionRefused as exc:
+        raise PrivateEvaluationSourceRefused("dual_f02_policy_mapping") from exc
+    components = policy["components"]
+    _producer_require(len(components) == 2, "dual_f02_critical_components")
+    by_kind = {c["kind"]: c for c in components}
+    _producer_require(
+        set(by_kind) == {"margin", "response"}
+        and by_kind["margin"]["quantity"] == "thermal_margin_c"
+        and by_kind["margin"]["cases"] == ids
+        and by_kind["response"]["quantity"] == "peak_top_c"
+        and by_kind["response"]["pairs"]
+        == [
+            [f"cool-rect-near-{power}w", f"cool-rect-near-{power+1}w"]
+            for power in (84, 85, 86)
+        ],
+        "dual_f02_critical_components",
+    )
+    points, actions, errors = {}, {}, []
+    for key, prediction in zip(ids, predictions, strict=True):
+        row = reference["cases"][key]
+        _producer_require(type(row) is dict, "dual_f02_reference_shape")
+        peak = design_fidelity.reference_atom(row.get("peak_top_c"), "C")
+        margin = design_fidelity.reference_atom(row.get("thermal_margin_c"), "C")
+        if "REFERENCE_INFRA" in (peak["reason"], margin["reason"]):
+            raise PrivateEvaluationSourceRefused("dual_native_reference_infra")
+        _producer_require(
+            peak["point"] is not None and margin["point"] is not None,
+            "dual_native_reference_unresolved",
+        )
+        _producer_require(
+            margin["point"] == ceiling_c - peak["point"],
+            "dual_f02_reference_margin_binding",
+        )
+        if peak["interval"] is not None or margin["interval"] is not None:
+            _producer_require(
+                peak["interval"] is not None
+                and margin["interval"]
+                == [ceiling_c - peak["interval"][1], ceiling_c - peak["interval"][0]],
+                "dual_f02_reference_interval_binding",
+            )
+        energy = (_F02_ACTIONS[key][0] - 20) * _F02_ACTIONS[key][1]
+        action = reference["actions"][key]
+        _producer_require(
+            type(action) is dict
+            and action.get("feasibility") in ("FEASIBLE", "INFEASIBLE"),
+            "dual_native_reference_unresolved",
+        )
+        _producer_require(
+            (action["feasibility"] == "FEASIBLE") == (peak["point"] <= ceiling_c),
+            "dual_f02_reference_verdict_binding",
+        )
+        objective = design_fidelity.reference_atom(action.get("objective"), "J")
+        _producer_require(
+            objective["point"] == energy, "dual_f02_analytic_objective_binding"
+        )
+        errors.append(abs(prediction - peak["point"]) / train_std_c)
+        points[key] = {
+            "peak_top_c": {"value": prediction, "unit": "C"},
+            "thermal_margin_c": {"value": ceiling_c - prediction, "unit": "C"},
+        }
+        actions[key] = {"objective": {"value": energy, "unit": "J"}}
+    feasible = [
+        key for key, value in zip(ids, predictions, strict=True) if value <= ceiling_c
+    ]
+    pick = (
+        min(feasible, key=lambda k: (-actions[k]["objective"]["value"], k))
+        if feasible
+        else None
+    )
+    near = [error for key, error in zip(ids, errors, strict=True) if "-near-" in key]
+    _producer_require(
+        all(math.isfinite(v) for v in errors), "dual_native_candidate_numeric_overflow"
+    )
+    # Divide before summing so large finite forecasts do not overflow the sum.
+    loss = max(
+        math.fsum(v / 8 for v in errors), math.fsum(v / 4 for v in near), max(errors)
+    )
+    _producer_require(math.isfinite(loss), "dual_f02_derived_nonfinite")
+    model = {
+        "artifact_digest": "f02-native-point-reduction",
+        "cases": points,
+        "actions": actions,
+        "selected_action": pick,
+    }
+    try:
+        reduction = design_fidelity.reduce_design(policy, reference, [model])["models"][
+            0
+        ]
+    except ArithmeticError as exc:
+        raise PrivateEvaluationSourceRefused(
+            "dual_native_candidate_numeric_overflow"
+        ) from exc
+    return {
+        "A": 1 / (1 + loss),
+        "model": model,
+        "reduction": reduction,
+        "selection_basis": "DERIVED_FROZEN_PREDICTION_SELECTION",
+    }
+
+
+def _produce_f02_cold(
+    selected,
+    public_root,
+    private_root,
+    entry,
+    job,
+    registration,
+    references,
+    originals,
+    source_raw,
+):
+    import base64
+    import binascii
+
+    from carbon.scoring import bundle_benchmark_core as bundle
+
+    _producer_require(type(selected) is EvaluationPackSnapshot, "selected_pack_missing")
+    roles = {}
+    for audience, names, root in (
+        (
+            "public",
+            ("accuracy_definition", "important_limit_definition", "design_objective"),
+            public_root,
+        ),
+        (
+            "private",
+            ("case_bank", "reference_rows", "solver_evidence", "score_pack"),
+            private_root,
+        ),
+    ):
+        for name in names:
+            try:
+                roles[name] = selected.read_json_role(
+                    root, audience, name, max_bytes=1024 * 1024
+                )
+            except ValueError as exc:
+                raise PrivateEvaluationSourceRefused(
+                    "dual_native_role_unavailable:" + name
+                ) from exc
+    accuracy, limits, design = (
+        roles[k]
+        for k in (
+            "accuracy_definition",
+            "important_limit_definition",
+            "design_objective",
+        )
+    )
+    _producer_require(
+        all(type(v) is dict for v in (accuracy, limits, design)),
+        "dual_native_definition_shape",
+    )
+    _producer_require(
+        all(v.get("method") == _F02_METHOD for v in (accuracy, limits, design))
+        and accuracy.get("schema") == "carbon.scoring.f02-cold-accuracy.v1"
+        and limits.get("schema") == "carbon.scoring.f02-cold-limits.v1"
+        and design.get("schema") == "carbon.scoring.f02-cold-design.v1",
+        "dual_native_definition_method",
+    )
+    _producer_require(limits.get("maximum_c") == 95, "dual_f02_fixed_cold_limit")
+    identity = _sha(Path(__file__).read_bytes())
+    _producer_require(
+        accuracy.get("producer_digest") == identity
+        and accuracy.get("train_digest") == entry.get("train_digest"),
+        "dual_native_producer_or_train_binding",
+    )
+    source = _parse_pack_source(source_raw)
+    _producer_require(
+        type(source.get("cases")) is list
+        and len(source["cases"]) == 1
+        and type(source["cases"][0]) is dict,
+        "dual_native_complete_batch_required",
+    )
+    _producer_require(
+        type(references) is list
+        and len(references) == 1
+        and type(registration) is dict
+        and len(registration.get("cases", [])) == 1,
+        "dual_native_complete_batch_required",
+    )
+    case_bank = roles["case_bank"]
+    truth = roles["solver_evidence"]
+    ids = sorted(_F02_ACTIONS)
+    _producer_require(
+        type(case_bank) is dict
+        and case_bank.get("schema") == "carbon.scoring.f02-cold-case-bank.v1"
+        and case_bank.get("context")
+        == {
+            "coolant_c": 30,
+            "h_w_m2_k": 2500,
+            "initial_c": 40,
+            "left_source_fraction": 0.5,
+            "waveform": "rectangular",
+        }
+        and case_bank.get("action_ids") == ids
+        and case_bank.get("actions") == {k: list(v) for k, v in _F02_ACTIONS.items()}
+        and case_bank.get("inputs_digest")
+        == entry.get("roles", {}).get("inputs", {}).get("sha256")
+        and type(truth) is dict
+        and truth.get("schema") == "carbon.scoring.f02-cold-reference.v1"
+        and is_sha256_digest(truth.get("source_acceptance_digest"))
+        and roles["reference_rows"] == references,
+        "dual_native_source_mapping",
+    )
+    _producer_require(
+        source["evaluation_pack_digest"] == selected.manifest_digest
+        and source["registration_digest"] == registration.get("registration_digest")
+        and source["cases"][0]["query_sha256"] == case_bank["inputs_digest"]
+        and source["cases"][0]["reference_row_sha256"]
+        == _sha(_canonical(references[0]))
+        and source["cases"][0]["reference_status"] == references[0].get("status"),
+        "dual_native_source_original_binding",
+    )
+    for field in ("challenge", "challenge_version", "interface_digest", "train_digest"):
+        _producer_require(
+            source.get(field) == entry.get(field) == job.get(field),
+            "dual_native_identity",
+        )
+    acceptance = truth.get("source_acceptance")
+    _producer_require(
+        type(acceptance) is dict
+        and truth["source_acceptance_digest"] == _sha(_canonical(acceptance)),
+        "dual_native_acceptance_unavailable",
+    )
+    judgement = acceptance.get("judgement")
+    _producer_require(
+        type(judgement) is dict
+        and judgement.get("schema") == "carbon.f02-readiness.judgement.v1",
+        "dual_native_acceptance_unavailable",
+    )
+    family = judgement.get("family_acceptance", {})
+    _producer_require(
+        type(family) is dict
+        and family.get("status") == "ACCEPTED_FOR_DEVELOPMENT_BANK"
+        and type(family.get("primaries")) is int
+        and family["primaries"] > 0
+        and family.get("primaries_passing") == family["primaries"]
+        and family.get("baseline_checks_passing")
+        == family.get("baseline_checks_expected")
+        == 12,
+        "dual_native_acceptance_unavailable",
+    )
+    _producer_require(
+        is_sha256_digest(acceptance.get("manifest_sha256"))
+        and acceptance.get("bands_sha256") == limits.get("bands_sha256")
+        and is_sha256_digest(acceptance.get("bands_sha256")),
+        "dual_native_acceptance_binding",
+    )
+    _producer_require(
+        selected.challenge_id == source["challenge"]
+        and selected.challenge_version == source["challenge_version"]
+        and selected.public["train"]["sha256"] == entry["train_digest"]
+        and source["job_digest"]
+        == job.get("job_digest")
+        == registration.get("job_digest"),
+        "dual_native_identity",
+    )
+    try:
+        physics = physics_contract_identity(job["physics_contract"])
+    except (BenchmarkRefused, KeyError, TypeError, ValueError) as exc:
+        raise PrivateEvaluationSourceRefused("dual_native_physics_binding") from exc
+    _producer_require(
+        source["physics_contract"] == physics, "dual_native_physics_binding"
+    )
+    reference = truth.get("rich_reference")
+    _producer_require(type(reference) is dict, "dual_native_reference_unavailable")
+    if references[0].get("status") != "RESOLVED":
+        raise PrivateEvaluationSourceRefused(
+            "dual_native_reference_infra"
+            if references[0].get("status") == "FAILED_INFRA"
+            else "dual_native_reference_unresolved"
+        )
+    _producer_require(
+        references[0].get("outputs")
+        == [
+            reference.get("cases", {}).get(k, {}).get("peak_top_c", {}).get("value")
+            for k in ids
+        ],
+        "dual_native_reference_flat_binding",
+    )
+    for key in ids:
+        primary = (
+            reference.get("cases", {}).get(key, {}).get("peak_top_c", {}).get("value")
+        )
+        observables = judgement.get("observables", {})
+        values = [
+            observables.get(key + "-" + suffix, {}).get("peak_top_c")
+            for suffix in ("primary", "mesh2", "dt0.5")
+        ]
+        _producer_require(
+            all(type(v) in (int, float) and math.isfinite(v) for v in values)
+            and values[0] == primary
+            and judgement.get("rung_comparisons", {}).get(key, {}).get("pass") is True
+            and len({v <= limits.get("maximum_c") for v in values}) == 1,
+            "dual_native_reference_unresolved",
+        )
+    _producer_require(
+        type(originals) is dict
+        and set(originals) == {"inference_receipt_raw", "worker_evidence_raw"},
+        "dual_native_originals",
+    )
+    try:
+        receipt = bundle._parse_graph_original(
+            originals["inference_receipt_raw"], "graph_inference_receipt"
+        )
+        worker = bundle._parse_graph_original(
+            originals["worker_evidence_raw"], "graph_worker_evidence"
+        )
+        encoded = worker.get("predictions_raw_base64")
+        raw = base64.b64decode(encoded.encode("ascii"), validate=True)
+        _producer_require(
+            base64.b64encode(raw).decode("ascii") == encoded,
+            "dual_native_prediction_encoding",
+        )
+        tensor = bundle._parse_graph_original(
+            raw, "graph_predictions", object_required=False
+        )
+        inference = {
+            "recipe_digest": receipt["recipe_digest"],
+            "state_digest": receipt["state_digest"],
+            "predictions_digest": receipt["predictions_digest"],
+            "predictions": tensor,
+            "worker_operation": worker["inference_operation"],
+            "receipt": receipt,
+            **originals,
+        }
+        # Authenticate originals before reducing native values. These bools are
+        # placeholders only for authentication, never emitted as gate verdicts.
+        authenticated = bundle.measurement_from_saved_inference(
+            entry,
+            registration,
+            inference,
+            gates={name: False for name in registration["mandatory_gates"]},
+        )
+    except (
+        bundle.BundleBenchmarkRefused,
+        KeyError,
+        TypeError,
+        ValueError,
+        AttributeError,
+        UnicodeError,
+        binascii.Error,
+    ) as exc:
+        raise PrivateEvaluationSourceRefused("dual_native_inference_binding") from exc
+    _producer_require(
+        authenticated["output_shape"] == [8, 1]
+        and authenticated["input_shape"] == [8, 2],
+        "dual_native_tensor_shape",
+    )
+    values = authenticated["cases"][0]["outputs"]
+    native = _f02_point_measurements(
+        values,
+        reference,
+        design.get("policy"),
+        accuracy.get("train_peak_std_c"),
+        limits.get("maximum_c"),
+    )
+    gates = limits.get("mandatory_gates")
+    _producer_require(
+        type(gates) is list
+        and gates == registration["mandatory_gates"]
+        and set(gates)
+        == {"finite_peak", "paired_repeat", "reference_acceptance", "verified_pick"},
+        "dual_native_gate_contract",
+    )
+    if "paired_repeat" in gates:
+        # Current graph v1 originals contain one inference, not an independent repeat.
+        raise PrivateEvaluationSourceRefused("dual_repeat_evidence_unavailable")
+    reduction = native["reduction"]
+    unsafe = reduction["candidate_selection_outcome"] == "SELECTED_PROVEN_INFEASIBLE"
+    verified = reduction["candidate_selection_outcome"] == "VERIFIED_FEASIBLE"
+    native_gates = {
+        name: (verified if name == "verified_pick" else True) for name in gates
+    }
+    measured = bundle.measurement_from_saved_inference(
+        entry, registration, inference, gates=native_gates
+    )
+    pack = roles["score_pack"]
+    basis = {
+        "schema": DUAL_MEASUREMENT_CONTRACT_SCHEMA,
+        "producer_digest": identity,
+        **{
+            name + "_sha256": selected.public[name]["sha256"]
+            for name in (
+                "accuracy_definition",
+                "important_limit_definition",
+                "design_objective",
+            )
+        },
+    }
+    _producer_require(
+        type(pack) is dict
+        and pack.get("scope") == "PUBLIC_DEVELOPMENT"
+        and pack.get("value_weight") == 0.5
+        and pack.get("measurement_contract_digest") == _sha(_canonical(basis))
+        and pack.get("hard_gates") == gates,
+        "dual_native_score_pack",
+    )
+    _producer_require(
+        [c["metric"] for c in pack["legs"]["A"]["components"]]
+        == ["peak_physics_benefit"]
+        and [c["metric"] for c in pack["legs"]["D"]["components"]]
+        == ["rich_design_benefit"],
+        "dual_native_score_metrics",
+    )
+    d = reduction["registered_D"]
+    state = "RESOLVED" if d is not None else "REFERENCE_UNRESOLVED"
+    outcome = "VERIFIED_FEASIBLE" if verified else "MISSED_OPPORTUNITY"
+    if all(v["feasibility"] == "INFEASIBLE" for v in reference["actions"].values()):
+        outcome = "NONE_FEASIBLE"
+    benchmark = {
+        "schema": "carbon.scoring.dual-benchmark-input.v1",
+        "scope": pack["scope"],
+        "challenge": "f02",
+        "physics_contract_digest": pack["physics_contract_digest"],
+        "measurement_contract_digest": pack["measurement_contract_digest"],
+        "population_role": source["cases"][0]["role"],
+        "common_mask_digest": _sha(_canonical(source["cases"])),
+        "models": [
+            {
+                "artifact_digest": entry["entry_id"],
+                "gates": {
+                    k: ("PASS" if v else "FAIL") for k, v in native_gates.items()
+                },
+                "measurements": {
+                    "peak_physics_benefit": {
+                        "status": "RESOLVED",
+                        "value": native["A"],
+                        "unit": "1",
+                    },
+                    "rich_design_benefit": {"status": state, "value": d, "unit": "1"},
+                },
+                "decision_outcome": outcome,
+            }
+        ],
+    }
+    _producer_require(
+        not unsafe or "FAIL" in benchmark["models"][0]["gates"].values(),
+        "dual_native_unsafe_gate_missing",
+    )
+    score(benchmark, pack)
+    return measured, benchmark, identity

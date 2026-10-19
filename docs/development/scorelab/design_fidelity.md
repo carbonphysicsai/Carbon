@@ -195,3 +195,43 @@ The public CLI accepts these two optional fields. Frozen old input files are
 unchanged. New Motor/Cooling complete-roster candidate inputs reuse all saved
 48-row panels and require no new fit, inference or solver execution. Source
 static checks alone are not their runtime validation or score adoption.
+
+
+### Normal physical producer: current bounded implementation
+
+`private_evaluation_source.produce_dual_benchmark_input` now has a fixed f02
+cold-eight source path. It reuses retained graph inference authentication,
+source/pack receipt builders, the original all-eight/near-four/worst Physics
+formula, deterministic energy-max/lexical selection, the shared rich Design
+reducer and the same dual core. It imports no participant producer callback.
+Other Challenge producers remain explicitly unavailable in this slice.
+
+The source-owned public definitions use method
+`f02-cold-eight-rich-design.v1` and schemas
+`carbon.scoring.f02-cold-accuracy.v1`,
+`carbon.scoring.f02-cold-limits.v1`, and
+`carbon.scoring.f02-cold-design.v1`. They supply the exact producer/TRAIN
+identities, positive measured TRAIN spread, fixed native gate set, source bands
+identity and explicit canonical Design policy/scales. No scale is defaulted.
+Private case-bank, reference-row, solver-evidence and Score Pack role bytes are
+required. The case bank binds all eight original actions, the fixed cold
+context and exact input digest. The private reference role binds actual B10
+family acceptance, all three native B8 rungs, the actual raw reference vector,
+source acceptance content and any separately accepted intervals. A hash alone
+cannot make the native acceptance gate pass. Truth remains private-role data.
+
+**This is not a ready normal physical grader.** The real normal role files have
+not been materialized, and current graph worker originals contain only one
+inference. All four native gates, including `paired_repeat`, remain required.
+The fixed producer refuses missing repeat evidence explicitly; it never treats
+two copies of one retained output as a repeat and never silently removes that
+gate. Platform/Lead owns the actual normal worker/custody evidence extension.
+The selection derived by this producer is labelled as derived from frozen
+predictions; it is not described as a previously saved committed action.
+
+The first fixed f02 producer emits only the stronger registered-interval
+Design measurement when its native evidence is complete. Point-only results
+remain diagnostics there. The separate finite-task point candidate above is
+currently the saved-evidence path; supporting it in the normal producer needs
+its own exact source-owned definition/Score Pack binding. No runtime or source
+completion claim follows from the inert tests or static validation.
