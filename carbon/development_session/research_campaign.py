@@ -208,23 +208,40 @@ def verify_direct_v13_worker(image, implementation, *, role):
     still verifies the selected immutable image and its recorded labels.
     """
     from carbon.reconstruction import torch_profile
+    from carbon.reconstruction.accelerators import GPU_PROFILE
     from carbon.reconstruction.worker.model import WorkerImageIdentity
 
-    if type(image) is not WorkerImageIdentity or role not in {"cpu", "torch_gpu"}:
+    if type(image) is not WorkerImageIdentity or role not in {
+        "cpu",
+        "jax_gpu",
+        "torch_gpu",
+        "torch_cpu",
+    }:
         raise ValueError("exact direct v1.3 worker role required")
-    if image.source_tree_digest == implementation["source_tree_digest"]:
+    if (
+        role != "torch_cpu"
+        and image.source_tree_digest == implementation["source_tree_digest"]
+    ):
         return
     root = Path(__file__).resolve().parents[2]
-    expected_lock = (
-        digest((root / "uv.lock").read_bytes())
-        if role == "cpu"
-        else torch_profile.GPU_LOCK_DIGEST
-    )
-    recipe = (
-        ".devcontainer/Dockerfile.reconstruction-worker"
-        if role == "cpu"
-        else ".devcontainer/torch/Dockerfile.gpu"
-    )
+    expected_lock, recipe = {
+        "cpu": (
+            digest((root / "uv.lock").read_bytes()),
+            ".devcontainer/Dockerfile.reconstruction-worker",
+        ),
+        "jax_gpu": (
+            GPU_PROFILE.environment_lock_digest,
+            ".devcontainer/accelerators/Dockerfile",
+        ),
+        "torch_gpu": (
+            torch_profile.GPU_LOCK_DIGEST,
+            ".devcontainer/torch/Dockerfile.gpu",
+        ),
+        "torch_cpu": (
+            torch_profile.requirements_digest(root),
+            ".devcontainer/torch/Dockerfile",
+        ),
+    }[role]
     if (
         image.lock_digest != expected_lock
         or image.entrypoint_digest

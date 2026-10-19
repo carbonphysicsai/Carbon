@@ -19,11 +19,15 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 if str(REPOSITORY) not in sys.path:
     sys.path.insert(0, str(REPOSITORY))
 
-from carbon.development_session.gpu_practice import gpu_image_backend
+from carbon.development_session.gpu_practice import (
+    direct_parent_backend,
+    gpu_image_backend,
+)
 from carbon.development_session.library_bundles import (
     bundle_ref,
     load_pinned_bundle_directory,
     prepare_pinned_bundle_directory,
+    verify_bundle_parent_environment,
 )
 from carbon.development_session.library_environment_cache import (
     install_pinned_library_worker_image,
@@ -119,6 +123,21 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR):
     selected = bundle_ref(*material)
     if selected.runtime_profile_id == "python-cpu-py311":
         parent = _checked_cpu_parent(profile, material[0])
+    elif selected.runtime_profile_id == "torch-cpu-py311":
+        paths = profile.get("paths")
+        runtime = profile.get("runtime")
+        if (
+            type(paths) is not dict
+            or type(paths.get("image_manifest")) is not str
+            or type(runtime) is not dict
+            or type(runtime.get("images")) is not list
+            or not runtime["images"]
+        ):
+            raise ValueError("compatible installed Torch CPU parent missing")
+        parent = load_image_identity(Path(paths["image_manifest"]))
+        if parent.image_id != runtime["images"][0]:
+            raise ValueError("installed Torch CPU parent differs from profile")
+        verify_bundle_parent_environment(material[0], parent)
     else:
         expected_backend = {
             "jax-cuda13-py311": "jax",
@@ -132,7 +151,7 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR):
                 "compatible installed parent missing for " + selected.runtime_profile_id
             )
         parent = load_image_identity(Path(parent_manifest))
-        if gpu_image_backend(parent) != expected_backend:
+        if direct_parent_backend(parent) != expected_backend:
             raise ValueError("installed parent backend differs from pinned bundle")
     campaigns = Path(profile["campaigns_root"])
     owner_root = _private_dir(campaigns / ".direct-development")

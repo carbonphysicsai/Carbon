@@ -279,8 +279,9 @@ def test_direct_bundle_cli_uses_remote_signed_attachment(tmp_path, monkeypatch, 
     observed = []
 
     @asynccontextmanager
-    async def attached(selected):
+    async def attached(selected, *, challenge):
         assert selected == profile
+        assert challenge == connection.challenge
         observed.append("entered")
         try:
             yield connection, target
@@ -343,15 +344,21 @@ def test_direct_bundle_cli_uses_remote_signed_attachment(tmp_path, monkeypatch, 
     assert json.loads(capsys.readouterr().out)["result"]["complete"] is True
 
 
-def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkeypatch):
+@pytest.mark.parametrize("battery", [False, True])
+def test_remote_stage_attachment_needs_no_local_docker_or_image(
+    tmp_path, monkeypatch, battery
+):
     import contextlib
 
+    from carbon.battery.challenge import CHALLENGE as BATTERY_CHALLENGE
     from carbon.chain import external_signer
+    from carbon.challenge_kit import synthetic_linear_field_2d as synthetic_kit
     from carbon.development_session import (
         direct_research_composition,
         intake_targets,
         miner_network,
         research_campaign,
+        service,
     )
     from carbon.miner_mcp import standard_cli
     from carbon.reconstruction.worker import docker_runtime
@@ -379,22 +386,46 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
     )
 
     from carbon.chain import Participant, auth
+    from carbon.chain.models import CARBON_NETWORK
     from carbon.registry import ChallengeKey
     from carbon.transport.gateway import AuthenticatedGateway
     from carbon.transport.store import ReceiptJournal
 
     network = SimpleNamespace(
         netuid=standard_cli.CARBON_NETUID,
-        context=replace(CONTEXT, netuid=standard_cli.CARBON_NETUID),
+        context=replace(
+            CONTEXT, netuid=standard_cli.CARBON_NETUID, network=CARBON_NETWORK
+        ),
         publisher_hotkey="5" + "c" * 47,
     )
-    signer = object()
+    signer = SimpleNamespace(ss58_address=owner)
     events = []
+    challenge = (
+        BATTERY_CHALLENGE
+        if battery
+        else ChallengeKey("synthetic-linear-field-2d", "1.3")
+    )
+    snapshot = _snapshot(
+        sender=owner, receiver=network.publisher_hotkey, context=network.context
+    )
+    snapshot = replace(
+        snapshot,
+        participants=(
+            *snapshot.participants,
+            Participant(2, "5" + "e" * 47, "other-cold", 2),
+        ),
+    )
 
     def poison(*args, **kwargs):
         raise AssertionError("remote signed upload touched local Docker/image loader")
 
-    monkeypatch.setattr(standard_cli, "_direct_material", lambda version: dict)
+    direct_versions = []
+
+    def direct_material(version):
+        direct_versions.append(version)
+        return dict
+
+    monkeypatch.setattr(standard_cli, "_direct_material", direct_material)
     monkeypatch.setattr(standard_cli, "private_json", lambda path: cfg)
     monkeypatch.setattr(standard_cli, "load_direct_installed_source", poison)
     monkeypatch.setattr(runner, "validated_profile", lambda value: value)
@@ -408,6 +439,8 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
     monkeypatch.setattr(intake_targets, "validate", lambda values: values)
     monkeypatch.setattr(docker_runtime, "doctor", poison)
     monkeypatch.setattr(docker_runtime, "load_image_identity", poison)
+    if battery:
+        monkeypatch.setattr(synthetic_kit, "bundle_material_v5", poison)
 
     @contextlib.contextmanager
     def lock(path):
@@ -428,24 +461,14 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
 
     class Connection:
         def __init__(self, **kwargs):
+            assert kwargs["version"] == "1.3"
             self.challenge = ChallengeKey("synthetic-linear-field-2d", "1.3")
             self.miner_key = kwargs["miner_key"]
             self.chain_context = kwargs["chain_context"]
             self.publisher = kwargs["publisher"]
             root = kwargs["root"]
             root.mkdir(parents=True, exist_ok=True)
-            snapshot = _snapshot(
-                sender=owner,
-                receiver=self.publisher,
-                context=self.chain_context,
-            )
-            self.snapshot = replace(
-                snapshot,
-                participants=(
-                    *snapshot.participants,
-                    Participant(2, "5" + "e" * 47, "other-cold", 2),
-                ),
-            )
+            self.snapshot = snapshot
             self.service = SimpleNamespace(
                 gateway=AuthenticatedGateway(
                     self.chain_context,
@@ -461,6 +484,37 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
 
         async def check_registration(self):
             return self.snapshot
+
+    if battery:
+
+        def battery_gateway(root, context, publisher, selected_challenge):
+            assert selected_challenge == BATTERY_CHALLENGE
+            events.append(("connection", root))
+            return (
+                object(),
+                _Adapter(snapshot),
+                AuthenticatedGateway(
+                    context,
+                    selected_challenge,
+                    publisher,
+                    _Adapter(snapshot),
+                    _Verifier(),
+                    ReceiptJournal(root / "transport.sqlite3", context),
+                    clock_ns=lambda: NOW,
+                ),
+            )
+
+        async def battery_registration(context, selected_signer, publisher, observed):
+            assert context is network.context
+            assert selected_signer is signer
+            assert publisher == network.publisher_hotkey
+            assert isinstance(observed, _Adapter)
+            return snapshot
+
+        monkeypatch.setattr(service, "authenticated_research_gateway", battery_gateway)
+        monkeypatch.setattr(
+            service, "registered_research_snapshot", battery_registration
+        )
 
     actual_requester = standard_cli._requester
 
@@ -484,7 +538,8 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
 
     async def exercise():
         async with standard_cli.attached_remote_material_stage(
-            tmp_path / "profile.json"
+            tmp_path / "profile.json",
+            challenge=challenge,
         ) as (connection, selected):
             assert connection.miner_key is signer
             assert connection.chain_context is network.context
@@ -498,6 +553,16 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
         "registered",
         "unlock",
     ]
+
+    expected_state = (
+        tmp_path
+        / ".direct-development"
+        / ("remote-stage-battery-v1.0" if battery else "remote-stage-v1.3")
+    )
+    assert events[0] == ("lock", expected_state)
+    assert events[1] == ("connection", expected_state / "research-auth")
+    assert events[-1] == ("unlock", expected_state)
+    assert direct_versions == ([] if battery else ["1.3"])
 
     public["hotkey"] = "5" + "d" * 47
     with pytest.raises(standard_cli.AttachRefused) as wrong_owner:
@@ -521,6 +586,136 @@ def test_remote_stage_attachment_needs_no_local_docker_or_image(tmp_path, monkey
     with pytest.raises(standard_cli.AttachRefused) as changed_owner:
         asyncio.run(exercise())
     assert changed_owner.value.code == "campaign_owner_changed"
+
+
+def test_battery_bundle_stage_selects_registered_challenge_before_attachment(
+    tmp_path, monkeypatch, capsys
+):
+    from carbon.battery.challenge import CHALLENGE
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.miner_mcp import standard_cli
+    from carbon.reconstruction.served_recipe_contract import registered
+
+    contract = registered(CHALLENGE.challenge_id, CHALLENGE.version)
+    source = _bundle_recipe().to_dict()
+    source["challenge"] = contract.construction_kit
+    source["output"]["interface_digest"] = contract.construction_kit["interface_digest"]
+    recipe = ConstructionRecipe.from_dict(source)
+    recipe_file = tmp_path / "battery-recipe.json"
+    recipe_file.write_text(json.dumps(source), encoding="utf-8")
+    profile = tmp_path / "profile.json"
+    target = {"intake_url": "http://127.0.0.1:9080", "receiver_hotkey": "5" + "a" * 47}
+    signer, context = object(), object()
+    calls = []
+
+    @asynccontextmanager
+    async def attached(selected, *, challenge):
+        assert selected == profile
+        assert challenge == CHALLENGE
+        calls.append("attached")
+        yield SimpleNamespace(
+            challenge=challenge, miner_key=signer, chain_context=context
+        ), target
+
+    def staged(url, selected_signer, **kwargs):
+        calls.append("staged")
+        assert url == target["intake_url"]
+        assert selected_signer is signer
+        assert kwargs["contract_digest"] == contract.digest
+        assert kwargs["recipe"].digest == recipe.digest
+        assert kwargs["receiver"] == target["receiver_hotkey"]
+        assert kwargs["context"] is context
+        return {"complete": True}
+
+    monkeypatch.setattr(standard_cli, "attached_remote_material_stage", attached)
+    monkeypatch.setattr(
+        "carbon.development_session.direct_source_submission.stage_bundle", staged
+    )
+    assert asyncio.run(
+        standard_cli.stage_installed_direct_bundle(profile, tmp_path, recipe_file)
+    )["result"] == {"complete": True}
+    assert calls == ["attached", "staged"]
+
+    source["challenge"]["train_digest"] = "sha256:" + "0" * 64
+    recipe_file.write_text(json.dumps(source), encoding="utf-8")
+    with pytest.raises(standard_cli.AttachRefused) as mismatch:
+        asyncio.run(
+            standard_cli.stage_installed_direct_bundle(profile, tmp_path, recipe_file)
+        )
+    assert mismatch.value.code == "construction_recipe_challenge_mismatch"
+    assert calls == ["attached", "staged"]
+
+    async def selected(*args):
+        assert args == (profile, tmp_path, recipe_file)
+        return {"ok": True, "result": {"complete": True}}
+
+    monkeypatch.setattr(standard_cli, "stage_installed_direct_bundle", selected)
+    assert (
+        standard_cli.main(
+            [
+                "--configuration",
+                str(profile),
+                "--direct-development",
+                "--stage-bundle",
+                str(tmp_path),
+                "--recipe",
+                str(recipe_file),
+            ]
+        )
+        == 0
+    )
+    assert json.loads(capsys.readouterr().out)["result"] == {"complete": True}
+
+
+def test_battery_remote_connection_uses_signed_registration_gateway(
+    tmp_path, monkeypatch
+):
+    from carbon.battery.challenge import CHALLENGE
+    from carbon.development_session import service
+    from carbon.miner_mcp import standard_cli
+
+    context = SimpleNamespace(
+        netuid=standard_cli.CARBON_NETUID, network="test", marker=object()
+    )
+    signer = SimpleNamespace(ss58_address="miner")
+    observed, gateway, snapshot = object(), object(), object()
+    calls = []
+    monkeypatch.setattr("carbon.chain.models.CARBON_NETWORK", "test")
+
+    def gateway_factory(root, selected_context, publisher, challenge):
+        calls.append(("gateway", root, selected_context, publisher, challenge))
+        return object(), observed, gateway
+
+    async def registered(
+        selected_context, selected_signer, publisher, selected_observed
+    ):
+        calls.append(
+            (
+                "registration",
+                selected_context,
+                selected_signer,
+                publisher,
+                selected_observed,
+            )
+        )
+        return snapshot
+
+    monkeypatch.setattr(service, "authenticated_research_gateway", gateway_factory)
+    monkeypatch.setattr(service, "registered_research_snapshot", registered)
+    root = tmp_path / "battery-auth"
+    connection = standard_cli._RemoteBatteryConnection(
+        root=root,
+        chain_context=context,
+        publisher="publisher",
+        miner_key=signer,
+        challenge=CHALLENGE,
+    )
+    assert connection.service.gateway is gateway
+    assert asyncio.run(connection.check_registration()) is snapshot
+    assert calls == [
+        ("gateway", root, context, "publisher", CHALLENGE),
+        ("registration", context, signer, "publisher", observed),
+    ]
 
 
 def test_remote_observation_door_is_recipe_bound_status_only_and_registered(
@@ -625,3 +820,45 @@ def test_queued_tool_result_uses_validated_id_without_rereading_journal(
         "score_status": "SCORE_UNAVAILABLE",
         "official_eligible": False,
     }
+
+
+@pytest.mark.parametrize("route", [None, "UNKNOWN"])
+def test_remote_stage_rejects_missing_or_unknown_registry_route_before_profile(
+    tmp_path, monkeypatch, route
+):
+    from dataclasses import replace
+
+    from carbon.miner_mcp import standard_cli
+    from carbon.reconstruction import served_recipe_contract
+    from carbon.registry import ChallengeKey
+
+    selected = ChallengeKey("synthetic-linear-field-2d", "1.3")
+    contract = served_recipe_contract.registered(
+        selected.challenge_id, selected.version
+    )
+    attachment = (
+        None
+        if route is None
+        else served_recipe_contract.RemoteStageAttachment("unused", route)
+    )
+    monkeypatch.setattr(
+        served_recipe_contract,
+        "registered",
+        lambda *_: replace(contract, remote_stage_attachment=attachment),
+    )
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("unknown attachment route must stop before profile/network access")
+
+    monkeypatch.setattr(standard_cli, "private_json", forbidden)
+    monkeypatch.setattr(standard_cli, "_direct_material", forbidden)
+
+    async def attach():
+        async with standard_cli.attached_remote_material_stage(
+            tmp_path / "profile.json", challenge=selected
+        ):
+            pytest.fail("unknown attachment route was admitted")
+
+    with pytest.raises(standard_cli.AttachRefused) as refused:
+        asyncio.run(attach())
+    assert refused.value.code == "construction_recipe_challenge_mismatch"

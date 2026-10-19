@@ -78,6 +78,14 @@ def _allow_windows_receiver_fixture(monkeypatch):
         ("runner_profile", None),
         ("construction_image_manifest", "relative-torch.json"),
         ("construction_image_manifest", None),
+        ("inference_image_manifest", "relative-jax.json"),
+        ("inference_image_manifest", None),
+        ("challenge", {"id": "unregistered", "version": "1.0"}),
+        (
+            "challenge",
+            {"id": "battery-fastcharge-ageing-development-v1", "version": "9.9"},
+        ),
+        ("challenge", "battery-fastcharge-ageing-development-v1"),
         ("exposure", {}),
     ],
 )
@@ -107,19 +115,57 @@ def test_optional_material_capacity_is_exact_private_operator_input(
     assert receiver.load_config(tmp_path / "config.json") == cfg
 
 
-def test_private_construction_image_manifest_requires_exact_regular_file(
+def test_operator_selects_only_registered_public_battery_challenge(
     tmp_path, monkeypatch
+):
+    from carbon.battery import challenge
+
+    cfg = {
+        **_config(tmp_path),
+        "challenge": {
+            "id": challenge.CHALLENGE.challenge_id,
+            "version": challenge.CHALLENGE.version,
+        },
+    }
+    monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
+    assert receiver.load_config(tmp_path / "config.json") == cfg
+
+
+def test_evaluation_pack_selection_is_private_and_closed(tmp_path, monkeypatch):
+    selection = {
+        "root": str(tmp_path / "draft"),
+        "manifest": "evaluation-pack.json",
+        "public_root": str(tmp_path / "public"),
+        "private_root": str(tmp_path / "private"),
+    }
+    cfg = {**_config(tmp_path), "evaluation_pack": selection}
+    monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
+    assert receiver.load_config(tmp_path / "config.json") == cfg
+    selection["manifest"] = "../other.json"
+    with pytest.raises(ValueError, match="relative evaluation pack manifest"):
+        receiver.load_config(tmp_path / "config.json")
+    selection["manifest"] = "evaluation-pack.json"
+    selection["private_root"] = "relative"
+    with pytest.raises(ValueError, match="exact evaluation pack root"):
+        receiver.load_config(tmp_path / "config.json")
+
+
+@pytest.mark.parametrize(
+    "field", ("construction_image_manifest", "inference_image_manifest")
+)
+def test_private_direct_image_manifest_requires_exact_regular_file(
+    tmp_path, monkeypatch, field
 ):
     manifest = tmp_path / "torch.json"
     manifest.write_text("{}")
-    cfg = {**_config(tmp_path), "construction_image_manifest": str(manifest)}
+    cfg = {**_config(tmp_path), field: str(manifest)}
     monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
     assert receiver.load_config(tmp_path / "config.json") == cfg
-    cfg["construction_image_manifest"] = str(tmp_path / "missing.json")
-    with pytest.raises(ValueError, match="construction image manifest"):
+    cfg[field] = str(tmp_path / "missing.json")
+    with pytest.raises(ValueError, match=field.replace("_", " ")):
         receiver.load_config(tmp_path / "config.json")
-    cfg["construction_image_manifest"] = str(tmp_path)
-    with pytest.raises(ValueError, match="construction image manifest"):
+    cfg[field] = str(tmp_path)
+    with pytest.raises(ValueError, match=field.replace("_", " ")):
         receiver.load_config(tmp_path / "config.json")
 
 
@@ -316,10 +362,111 @@ def test_installed_source_joins_only_exact_owner_candidate_and_installed_images(
     )
     with pytest.raises(ValueError, match="ABI or entrypoint differs"):
         receiver.installed_source(profile)
+
+    # The distinct Torch CPU lock selects the existing CPU Torch image, not
+    # the generic C-03 CPU parent or either CUDA backend.
+    older_torch_cpu = replace(
+        older_torch,
+        lock_digest=torch_profile.requirements_digest(root),
+        build_recipe_digest="sha256:"
+        + hashlib.sha256(
+            (root / ".devcontainer/torch/Dockerfile").read_bytes()
+        ).hexdigest(),
+    )
+    monkeypatch.setattr(gpu_practice, "gpu_image_backend", lambda _: None)
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda path: worker if path.name == "worker.json" else older_torch_cpu,
+    )
+    implementation, parent, _, _ = receiver.installed_source(profile)
+    assert (implementation, parent) == (accepted, older_torch_cpu)
+    assert checked_images[-1] is older_torch_cpu
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda path: (
+            worker
+            if path.name == "worker.json"
+            else replace(older_torch_cpu, build_recipe_digest="sha256:" + "f" * 64)
+        ),
+    )
+    with pytest.raises(ValueError, match="ABI or entrypoint differs"):
+        receiver.installed_source(profile)
+
+    # install_miner.sh --pytorch records the Torch CPU image as the primary
+    # worker paired with its analysis image; no GPU profile field is present.
+    primary_torch_cpu = replace(
+        older_torch_cpu, source_tree_digest=accepted["source_tree_digest"]
+    )
+    cfg["gpu_image"] = None
+    cfg["runtime"]["images"] = [primary_torch_cpu.image_id, analysis.image_id]
+    analysis.parent_image = primary_torch_cpu.image_id
+    monkeypatch.setattr(
+        docker_runtime, "load_image_identity", lambda _: primary_torch_cpu
+    )
+    implementation, parent, _, _ = receiver.installed_source(profile)
+    assert (implementation, parent) == (accepted, primary_torch_cpu)
+    assert checked_images[-1] is primary_torch_cpu
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda _: replace(primary_torch_cpu, build_recipe_digest="sha256:" + "f" * 64),
+    )
+    with pytest.raises(ValueError, match="ABI or entrypoint differs"):
+        receiver.installed_source(profile)
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda _: replace(
+            primary_torch_cpu, source_tree_digest=candidate["source_tree_digest"]
+        ),
+    )
+    with pytest.raises(ValueError, match="exact accepted source revision"):
+        receiver.installed_source(profile)
+    cfg["gpu_image"] = str(tmp_path / "gpu.json")
+    cfg["runtime"]["images"] = [worker.image_id, analysis.image_id]
+    analysis.parent_image = worker.image_id
+
+    from carbon.reconstruction.accelerators import GPU_PROFILE
+
+    older_jax = replace(
+        older_torch,
+        lock_digest=GPU_PROFILE.environment_lock_digest,
+        build_recipe_digest="sha256:"
+        + hashlib.sha256(
+            (root / ".devcontainer/accelerators/Dockerfile").read_bytes()
+        ).hexdigest(),
+    )
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda path: worker if path.name == "worker.json" else older_jax,
+    )
+    monkeypatch.setattr(
+        gpu_practice,
+        "gpu_image_backend",
+        lambda image: "jax" if type(image) is WorkerImageIdentity else None,
+    )
+    implementation, parent, _, _ = receiver.installed_source(profile)
+    assert (implementation, parent) == (accepted, older_jax)
+    wrong_jax = replace(older_jax, build_recipe_digest="sha256:" + "f" * 64)
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda path: worker if path.name == "worker.json" else wrong_jax,
+    )
+    with pytest.raises(ValueError, match="ABI or entrypoint differs"):
+        receiver.installed_source(profile)
     monkeypatch.setattr(
         docker_runtime,
         "load_image_identity",
         lambda path: worker if path.name == "worker.json" else older_torch,
+    )
+    monkeypatch.setattr(
+        gpu_practice,
+        "gpu_image_backend",
+        lambda image: "pytorch" if type(image) is WorkerImageIdentity else None,
     )
 
     # A private receiver may pin the older Torch constructor for a candidate
@@ -407,6 +554,118 @@ def test_serve_forwards_only_private_constructor_manifest(tmp_path, monkeypatch)
         receiver.serve(tmp_path / "config.json")
 
 
+@pytest.mark.parametrize(
+    "inference_backend,accepted",
+    (
+        ("jax_gpu", True),
+        ("cpu", True),
+        ("torch_cpu", True),
+        ("torch_cpu_bad", False),
+        ("torch_cpu_main", True),
+        ("torch_cpu_main_bad_abi", False),
+        ("torch_cpu_main_stale", False),
+        ("jax_bad", False),
+        ("torch_gpu", False),
+        ("unknown", False),
+    ),
+)
+def test_selected_inference_image_admits_only_compatible_jax_or_cpu(
+    tmp_path, monkeypatch, inference_backend, accepted
+):
+    _allow_windows_receiver_fixture(monkeypatch)
+    from carbon.development_session import research_campaign
+    from carbon.reconstruction import torch_profile
+    from carbon.reconstruction.accelerators import GPU_PROFILE
+    from carbon.reconstruction.worker import docker_runtime
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+    from scripts.dev.miner_launchpad import runner
+
+    def sha(char):
+        return "sha256:" + char * 64
+
+    repo = Path(receiver.__file__).resolve().parents[2]
+
+    def image(lock, recipe):
+        return WorkerImageIdentity(
+            sha("1"),
+            sha("1"),
+            sha("2"),
+            sha("3"),
+            lock,
+            sha("4"),
+            research_campaign.digest((repo / recipe).read_bytes()),
+            research_campaign.digest(
+                (repo / "carbon/reconstruction/worker/entrypoint.py").read_bytes()
+            ),
+        )
+
+    jax = image(
+        GPU_PROFILE.environment_lock_digest,
+        ".devcontainer/accelerators/Dockerfile",
+    )
+    cpu = image(
+        research_campaign.digest((repo / "uv.lock").read_bytes()),
+        ".devcontainer/Dockerfile.reconstruction-worker",
+    )
+    torch = image(torch_profile.GPU_LOCK_DIGEST, ".devcontainer/torch/Dockerfile.gpu")
+    torch_cpu = image(
+        torch_profile.requirements_digest(repo), ".devcontainer/torch/Dockerfile"
+    )
+    jax_bad = replace(jax, entrypoint_digest=sha("e"))
+    unknown = replace(cpu, lock_digest=sha("e"), source_tree_digest=sha("f"))
+    selected = {
+        "jax_gpu": jax,
+        "cpu": cpu,
+        "torch_cpu": torch_cpu,
+        "torch_cpu_bad": replace(torch_cpu, build_recipe_digest=sha("e")),
+        "torch_cpu_main": replace(torch_cpu, source_tree_digest=sha("f")),
+        "torch_cpu_main_bad_abi": replace(
+            torch_cpu, source_tree_digest=sha("f"), build_recipe_digest=sha("e")
+        ),
+        "torch_cpu_main_stale": torch_cpu,
+        "jax_bad": jax_bad,
+        "torch_gpu": torch,
+        "unknown": unknown,
+    }[inference_backend]
+    cfg = {
+        **_config(tmp_path),
+        "inference_image_manifest": str(tmp_path / "selected.json"),
+        "material_cache_bytes": 1024,
+    }
+    implementation = {
+        "source_tree_digest": sha("f"),
+        "source_authority": "DEVELOPMENT_CANDIDATE",
+    }
+    if inference_backend.startswith("torch_cpu_main"):
+        del implementation["source_authority"]
+    monkeypatch.setattr(receiver, "load_config", lambda _: cfg)
+    monkeypatch.setattr(
+        receiver,
+        "installed_source",
+        lambda *_args, **_kwargs: (implementation, jax, None, tmp_path),
+    )
+    monkeypatch.setattr(receiver, "private_json", lambda _: {})
+    monkeypatch.setattr(
+        runner, "validated_profile", lambda _: {"paths": {"image_manifest": "cpu.json"}}
+    )
+    monkeypatch.setattr(docker_runtime, "load_image_identity", lambda _: selected)
+
+    class ReachedDoctor(Exception):
+        pass
+
+    def doctor(**kwargs):
+        assert kwargs["image_identity"] is selected
+        raise ReachedDoctor
+
+    monkeypatch.setattr(docker_runtime, "doctor", doctor)
+    if accepted:
+        with pytest.raises(ReachedDoctor):
+            receiver.serve(tmp_path / "config.json")
+    else:
+        with pytest.raises(ValueError):
+            receiver.serve(tmp_path / "config.json")
+
+
 def test_main_uses_process_stop_and_closed_failure_without_private_text(
     tmp_path, monkeypatch, capsys
 ):
@@ -464,6 +723,48 @@ def test_main_one_shot_retention_uses_operator_paths_and_reports_only_bank_statu
             "official_eligible": False,
         }
     assert calls == [(tmp_path / "config.json", (task_id, artifacts, entries))] * 2
+
+
+@pytest.mark.parametrize(
+    "measurement_state,expected_code",
+    (("DEVELOPMENT_UNRANKED", 0), ("UNAVAILABLE", 0), ({"raw": "secret"}, 1)),
+)
+def test_operator_retention_reports_only_closed_optional_measurement_state(
+    tmp_path, monkeypatch, capsys, measurement_state, expected_code
+):
+    monkeypatch.setattr(
+        receiver,
+        "serve",
+        lambda *_args, **_kwargs: {
+            "status": "CREATED",
+            "entry_id": "entry-verified",
+            "score_state": "NOT_COMPUTED",
+            "official_eligible": False,
+            "measurement_state": measurement_state,
+            "sidecar": {"raw": "secret"},
+        },
+    )
+    monkeypatch.setattr(receiver.signal, "signal", lambda *_: None)
+    code = receiver.main(
+        [
+            "--config",
+            str(tmp_path / "config.json"),
+            "--retain-task",
+            "rtsk_" + "a" * 64,
+            "--artifact-directory",
+            str(tmp_path / "artifacts"),
+            "--entry-directory",
+            str(tmp_path / "entries"),
+        ]
+    )
+    assert code == expected_code
+    reported = json.loads(capsys.readouterr().out)
+    assert "secret" not in json.dumps(reported)
+    if expected_code == 0:
+        assert reported["measurement_state"] == measurement_state
+        assert reported["score_state"] == "NOT_COMPUTED"
+    else:
+        assert reported == {"unavailable": "direct_receiver_unavailable"}
 
 
 @pytest.mark.parametrize("reason", ["owned_task_unavailable", "task_not_succeeded"])
@@ -646,6 +947,32 @@ def test_first_direct_child_reserves_under_frozen_registered_owner_and_reopens(
     assert frozen["admission"]["hotkey"] == OWNER
     assert frozen["admission"]["snapshot_id"] == snapshot.snapshot_id
     assert "ceilings" not in frozen and "grant" not in frozen
+
+    from carbon.battery.construction_bundle_material import (
+        bundle_material as battery_material,
+    )
+    from carbon.development_session.research_ledger import CampaignLedger
+
+    battery_discovery = DirectFixtureDiscovery(battery_material(), task_admission=True)
+    battery_pool = receiver.OwnerProviders(
+        receiver._private_directory(tmp_path / "battery-owners"),
+        battery_discovery,
+        parent,
+        tmp_path / "cache",
+        implementation=implementation,
+        snapshot=snapshot,
+        receiver=RECEIVER,
+    )
+    battery_ledger = CampaignLedger(tmp_path / "battery-ledger")
+    battery_pool._manifest(OWNER, battery_ledger, restoring=False)
+    with battery_ledger.db() as db:
+        battery_frozen = json.loads(
+            db.execute("SELECT manifest FROM campaign").fetchone()[0]
+        )
+    assert battery_frozen["scope"] == "DEVELOPMENT_PUBLIC_BATTERY_ONLY"
+    assert battery_frozen["objective"] == (
+        "Battery public direct construction and practice inference"
+    )
 
     # The real C-03 carrier reaches ledger.reserve before host inspection.
     # A deliberately unavailable host settles FAILED_INFRA; no container or
@@ -946,7 +1273,11 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
     from carbon.reconstruction.worker.model import WorkerImageIdentity
     from carbon.transport.models import message
 
-    cfg = _config(tmp_path)
+    cfg = {**_config(tmp_path), "material_cache_bytes": 1024**2}
+    campaigns = tmp_path / "campaigns"
+    campaigns.mkdir(mode=0o700)
+    cache = campaigns / ".direct-development" / "library-cache"
+    assert not cache.parent.exists()
     # Port zero is injected after config validation only for this disposable
     # unit fixture. Production requires a fixed configured target port.
     cfg["port"] = 0
@@ -1017,7 +1348,7 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
             {"revision": "a" * 40, "source_tree_digest": "sha256:" + "6" * 64},
             parent,
             SimpleNamespace(context=context, publisher_hotkey=RECEIVER),
-            tmp_path / "cache",
+            cache,
         ),
     )
     now = time.time_ns()
@@ -1045,6 +1376,9 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
     stop, retained = threading.Event(), {}
 
     def ready(facts):
+        assert cache.is_dir() and cache.parent.is_dir()
+        assert cache.stat().st_mode & 0o077 == 0
+        assert cache.parent.stat().st_mode & 0o077 == 0
         target = facts["direct_intake_target"]
         assert target["receiver_hotkey"] == RECEIVER
         with urllib.request.urlopen(
@@ -1083,12 +1417,44 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
             with urllib.request.urlopen(request) as stream:
                 return json.load(stream)
 
+        # The first real signed material chunk must work on a fresh receiver;
+        # it remains incomplete and cannot become an admitted bundle/model.
+        material_call = research.ServiceCall(
+            research.RESEARCH_NAMESPACE,
+            "stage_research_material",
+            research.DirectStageMaterialRequestV1(
+                key,
+                "sha256:" + hashlib.sha256(b"incomplete fixture bundle").hexdigest(),
+                "LICENSE",
+                0,
+                2,
+                "sha256:" + hashlib.sha256(b"ab").hexdigest(),
+                b"a",
+            ),
+        )
+        material_reply = post(
+            research.RESEARCH_NAMESPACE,
+            {
+                "call_base64": base64.b64encode(
+                    research.canonical_bytes(material_call)
+                ).decode()
+            },
+            1,
+        )
+        staged = research.load_canonical(
+            base64.b64decode(material_reply["protocol_reply_base64"]),
+            research.ServiceReply,
+        )
+        assert staged.status is research.ReplyStatus.OK
+        assert staged.result.received_bytes == 1
+        assert staged.result.complete is False
+
         for index, (name, raw) in enumerate(
             (
                 (staging.WORKSPACE_PREFIX + fingerprint[7:] + ".json", document),
                 (staging.WORKSPACE_MANIFEST, manifest),
             ),
-            1,
+            2,
         ):
             call = research.ServiceCall(
                 research.RESEARCH_NAMESPACE,
@@ -1132,7 +1498,7 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
                 "strategy_json": json.dumps(recipe),
                 "contract_digest": public["served_contracts"][0]["digest"],
             },
-            3,
+            4,
         )
         assert admitted["outcome"]["state"] == "ADMITTED"
         retained["task"] = admitted["outcome"]["task_id"]

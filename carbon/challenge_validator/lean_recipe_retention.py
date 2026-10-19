@@ -292,6 +292,329 @@ def _retain_graph_artifacts(
     }
 
 
+def _private_evaluation_directory(result, submission_id):
+    if (
+        type(submission_id) is not str
+        or re.fullmatch(r"rtsk_[0-9a-f]{64}", submission_id) is None
+    ):
+        raise RetentionUnavailable("task_identity_invalid")
+    task_root = _owner_directory(result["artifact_path"], "task_artifacts")
+    directory = task_root.parent / (submission_id + ".evaluation")
+    directory.mkdir(mode=0o700, exist_ok=True)
+    return _owner_directory(directory, "private_evaluation_directory")
+
+
+def _retain_private_pack_binding(adapter, provider, submission_id, task, result):
+    """Keep the selected pack identity beside one trusted retained task."""
+    digest = provider.evaluation_pack_digest
+    if digest is None:
+        if adapter.discovery.evaluation_pack_digest is not None:
+            raise RetentionUnavailable("evaluation_pack_task_binding_changed")
+        return result
+    if digest != adapter.discovery.evaluation_pack_digest:
+        raise RetentionUnavailable("evaluation_pack_task_binding_changed")
+    adapter.discovery._checked(adapter.discovery.info.challenge_key)
+    with provider.ledger.db() as db:
+        row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+    if row is None:
+        raise RetentionUnavailable("evaluation_pack_campaign_unavailable")
+    try:
+        campaign = json.loads(row[0])
+        binding = campaign["receiver_binding"]
+        if binding["evaluation_pack_digest"] != digest:
+            raise ValueError("pack differs")
+        campaign_id = campaign["campaign_id"]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise RetentionUnavailable("evaluation_pack_campaign_changed") from exc
+    from carbon.development_session.data import write_once
+
+    directory = _private_evaluation_directory(result, submission_id)
+    sidecar = directory / "evaluation-pack-binding.json"
+    document = {
+        "schema": "carbon.lean-recipe.private-evaluation-pack-binding.v1",
+        "task_id": submission_id,
+        "challenge": {
+            "id": adapter.challenge_id,
+            "version": adapter.challenge_version,
+        },
+        "campaign_id": campaign_id,
+        "evaluation_pack_digest": digest,
+        "entry_id": result["entry_id"],
+        "state_digest": task.terminal_receipt.state_digest,
+        "predictions_digest": task.terminal_receipt.predictions_digest,
+    }
+    try:
+        write_once(sidecar, _json(document))
+    except (OSError, ValueError) as exc:
+        raise RetentionUnavailable("evaluation_pack_binding_unavailable") from exc
+    return {
+        **result,
+        "evaluation_pack_digest": digest,
+        "evaluation_pack_binding_path": sidecar,
+    }
+
+
+def _private_measurement_bytes(path, limit):
+    if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= limit:
+        raise RetentionUnavailable("public_measurement_bytes_unavailable")
+    return path.read_bytes()
+
+
+def _retain_public_synthetic_measurement(result, artifacts, submission_id, evidence):
+    """Keep a separate private, descriptive v1.3 measurement beside the bank.
+
+    Bank custody succeeds independently. A missing or invalid measurement is
+    explicit and cannot change the immutable entry or its NOT_COMPUTED score.
+    """
+    try:
+        task_root = _owner_directory(result["artifact_path"], "task_artifacts")
+        entry = json.loads(_private_measurement_bytes(result["entry_path"], 1024**2))
+        graph = "worker-evidence.json" in artifacts
+        kit = (
+            json.loads(artifacts["construction-kit.json"])
+            if graph
+            else json.loads(artifacts["recipe.json"])["challenge"]
+        )
+        if (kit["id"], kit["version"]) != ("synthetic-linear-field-2d", "1.3"):
+            return result
+        if result.get("evaluation_pack_digest") is not None:
+            return result
+        from carbon.development_session.data import write_once
+        from scripts.dev.score_lab.synthetic_linear_field_reference import (
+            prepare_public_measurement,
+            reduce_public_measurement,
+        )
+
+        sidecar_root = task_root.parent / (submission_id + ".public-measurement")
+        sidecar_root.mkdir(mode=0o700, exist_ok=True)
+        _owner_directory(sidecar_root, "public_measurement_directory")
+        source_path = sidecar_root / "source-registration.json"
+        receipt_path = sidecar_root / "source-receipt.json"
+        reference_path = sidecar_root / "reference-row.json"
+        result_path = sidecar_root / "result.json"
+        if source_path.exists() or receipt_path.exists() or reference_path.exists():
+            if not all(
+                path.is_file() and not path.is_symlink()
+                for path in (source_path, receipt_path, reference_path)
+            ):
+                raise ValueError("incomplete public source")
+            source_raw = _private_measurement_bytes(source_path, 1024**2)
+            receipt_raw = _private_measurement_bytes(receipt_path, 1024**2)
+            reference_raw = _private_measurement_bytes(reference_path, 1024**2)
+        else:
+            if (
+                type(evidence) is not dict
+                or type(evidence.get("inference_image_id")) is not str
+                or re.fullmatch(r"sha256:[0-9a-f]{64}", evidence["inference_image_id"])
+                is None
+            ):
+                raise ValueError("inference image identity unavailable")
+            prepared = prepare_public_measurement(
+                query_bytes=artifacts["inputs.npz"],
+                model_device="C03_DOCKER_IMAGE_" + evidence["inference_image_id"],
+                reference_device="IN_PROCESS_NUMPY_CPU",
+            )
+            source_raw = prepared["source_registration_raw"]
+            receipt_raw = prepared["source_receipt_raw"]
+            reference_raw = prepared["reference_row_raw"]
+            write_once(source_path, source_raw)
+            write_once(receipt_path, receipt_raw)
+            write_once(reference_path, reference_raw)
+        worker = json.loads(artifacts["worker-evidence.json"]) if graph else evidence
+        inference_receipt = json.loads(artifacts["inference-receipt.json"])
+        inference = {
+            "recipe_digest": entry["recipe_digest"],
+            "state_digest": entry["state_digest"],
+            "predictions_digest": entry["prediction_digest"],
+            "predictions": json.loads(artifacts["predictions.json"]),
+            "worker_operation": worker["inference_operation"],
+            "receipt": inference_receipt,
+        }
+        if graph:
+            inference["inference_receipt_raw"] = artifacts["inference-receipt.json"]
+            inference["worker_evidence_raw"] = artifacts["worker-evidence.json"]
+        custody_path = task_root.parent / (submission_id + ".custody.json")
+        reduced = reduce_public_measurement(
+            entry=entry,
+            custody_receipt_raw=_private_measurement_bytes(custody_path, 1024**2),
+            source_registration_raw=source_raw,
+            source_receipt_raw=receipt_raw,
+            reference_row_raw=reference_raw,
+            query_bytes=artifacts["inputs.npz"],
+            inference=inference,
+            graph_originals=(
+                {
+                    "inference_receipt_raw": artifacts["inference-receipt.json"],
+                    "worker_evidence_raw": artifacts["worker-evidence.json"],
+                }
+                if graph
+                else None
+            ),
+        )
+        document = {
+            "schema": "carbon.lean-recipe.public-development-measurement.v1",
+            "task_id": submission_id,
+            "entry_id": result["entry_id"],
+            **reduced,
+        }
+        write_once(result_path, _json(document))
+    except (ImportError, OSError, ValueError, KeyError, TypeError) as exc:
+        return {
+            **result,
+            "measurement_state": "UNAVAILABLE",
+            "measurement_reason": type(exc).__name__,
+        }
+    return {
+        **result,
+        "measurement_state": "DEVELOPMENT_UNRANKED",
+        "measurement_path": result_path,
+    }
+
+
+def _retain_selected_pack_evaluation(adapter, submission_id, result, artifacts):
+    """Apply only trusted, versioned measurement evidence after bank custody."""
+    if result.get("evaluation_pack_digest") is None:
+        return result
+    try:
+        from carbon.development_session.data import write_once
+        from carbon.scoring import dual_score
+        from carbon.scoring.engine import ScoreEngine
+        from carbon.scoring.private_evaluation_evidence import (
+            bind_private_evaluation_evidence,
+        )
+
+        discovery = adapter.discovery
+        snapshot = discovery.evaluation_pack_snapshot
+        private_root = discovery.evaluation_pack_private_root
+        score_document = snapshot.read_json_role(
+            private_root, "private", "score_pack", max_bytes=65536
+        )
+        if (
+            type(score_document) is not dict
+            or score_document.get("schema") != dual_score.PACK_SCHEMA
+        ):
+            return result
+        if "worker-evidence.json" not in artifacts:
+            raise RetentionUnavailable("dual_model_originals_unavailable")
+        from carbon.scoring.private_evaluation_source import (
+            produce_registered_dual_measurement,
+        )
+
+        source = snapshot.read_source_registration(private_root)
+        queries = [artifacts["inputs.npz"]]
+        registered = _register_retained_pack_source(
+            adapter,
+            submission_id,
+            result,
+            trusted_job=source["trusted_job"],
+            registration=source["benchmark_registration"],
+            ordered_query_bytes=queries,
+            evaluation_version=source["evaluation_version"],
+        )
+        originals = {
+            "inference_receipt_raw": artifacts["inference-receipt.json"],
+            "worker_evidence_raw": artifacts["worker-evidence.json"],
+        }
+        prepared = produce_registered_dual_measurement(
+            selected_pack=snapshot,
+            public_root=discovery.evaluation_pack_public_root,
+            private_root=private_root,
+            entry=registered["entry"],
+            trusted_job=source["trusted_job"],
+            registration=source["benchmark_registration"],
+            references=registered["references"],
+            graph_originals=originals,
+            evaluation_source_receipt_raw=registered["evaluation_source_receipt_raw"],
+        )
+        directory = _private_evaluation_directory(result, submission_id)
+        measurement_path = directory / "dual-measurement.json"
+        pin_path = directory / "dual-measurement-registration.json"
+        write_once(measurement_path, prepared.raw)
+        write_once(
+            pin_path,
+            _json(
+                {
+                    "schema": "carbon.lean-recipe.private-dual-registration.v1",
+                    "task_id": submission_id,
+                    "entry_id": result["entry_id"],
+                    "evaluation_pack_digest": snapshot.manifest_digest,
+                    "dual_measurement_sha256": prepared.sha256,
+                }
+            ),
+        )
+        raw = _private_measurement_bytes(measurement_path, 1024**2)
+        pin = json.loads(_private_measurement_bytes(pin_path, 65536))
+        expected_pin = {
+            "schema": "carbon.lean-recipe.private-dual-registration.v1",
+            "task_id": submission_id,
+            "entry_id": result["entry_id"],
+            "evaluation_pack_digest": snapshot.manifest_digest,
+            "dual_measurement_sha256": prepared.sha256,
+        }
+        if pin != expected_pin or _sha(raw) != pin["dual_measurement_sha256"]:
+            raise RetentionUnavailable("dual_measurement_registration_changed")
+        benchmark = json.loads(raw)["benchmark"]
+        scoring = ScoreEngine.score_dual_benchmark_v4(
+            benchmark, registered["score_pack"]
+        )
+        expected_result = _sha(
+            (
+                json.dumps(
+                    scoring, sort_keys=True, separators=(",", ":"), allow_nan=False
+                )
+                + "\n"
+            ).encode("utf-8")
+        )
+        task_root = _owner_directory(result["artifact_path"], "task_artifacts")
+        binding = bind_private_evaluation_evidence(
+            entry=registered["entry"],
+            custody_receipt_raw=_private_measurement_bytes(
+                task_root.parent / (submission_id + ".custody.json"), 1024**2
+            ),
+            trusted_job=source["trusted_job"],
+            registration=source["benchmark_registration"],
+            references=registered["references"],
+            measured_model=prepared.measured_model,
+            score_pack=registered["score_pack"],
+            graph_originals=originals,
+            expected_result_digest=expected_result,
+            ordered_query_bytes=queries,
+            evaluation_source_receipt_raw=registered["evaluation_source_receipt_raw"],
+            registered_source_receipt_sha256=registered[
+                "registered_source_receipt_sha256"
+            ],
+            expected_evaluation_pack_digest=snapshot.manifest_digest,
+            dual_measurement_receipt_raw=raw,
+            registered_dual_measurement_sha256=pin["dual_measurement_sha256"],
+            selected_evaluation_pack=snapshot,
+        )
+        binding_path = directory / "private-evaluation-binding.json"
+        write_once(binding_path, _json(binding))
+    except (
+        ImportError,
+        OSError,
+        ValueError,
+        KeyError,
+        TypeError,
+        AttributeError,
+    ) as exc:
+        reason = (
+            str(exc)
+            if isinstance(exc, RetentionUnavailable)
+            else getattr(exc, "code", type(exc).__name__)
+        )
+        return {
+            **result,
+            "private_evaluation_state": "UNAVAILABLE",
+            "private_evaluation_reason": reason,
+        }
+    return {
+        **result,
+        "private_evaluation_state": "BOUND_DEVELOPMENT_ONLY",
+        "private_evaluation_path": binding_path,
+    }
+
+
 def retain_served_result(
     adapter, submission_id: str, *, artifact_directory: Path, entry_directory: Path
 ) -> dict:
@@ -343,11 +666,20 @@ def retain_served_result(
         artifacts = _collect_graph_artifacts(
             provider, submission_id, task, evidence, recipe, adapter.discovery._material
         )
-        return _retain_graph_artifacts(
+        result = _retain_graph_artifacts(
             artifacts,
             submission_id,
             artifact_directory=artifact_directory,
             entry_directory=entry_directory,
+        )
+        bound = _retain_private_pack_binding(
+            adapter, provider, submission_id, task, result
+        )
+        bound = _retain_selected_pack_evaluation(
+            adapter, submission_id, bound, artifacts
+        )
+        return _retain_public_synthetic_measurement(
+            bound, artifacts, submission_id, evidence
         )
     if recipe.to_dict()["source"]["kind"] != "bundle":
         raise RetentionUnavailable("source_kind_unavailable")
@@ -516,6 +848,18 @@ def retain_served_result(
     train = material["train"]
     if _sha(train) != recipe.to_dict()["challenge"]["train_digest"]:
         raise RetentionUnavailable("public_train_changed")
+    from carbon.battery import challenge as battery_challenge
+
+    battery = adapter.discovery.info.challenge_key == battery_challenge.CHALLENGE
+    if battery and _sha(train) != "sha256:" + battery_challenge.TRAIN_V1_SHA256:
+        raise RetentionUnavailable("public_battery_train_changed")
+    train_name = "train-v1.jsonl.gz" if battery else "train.npz"
+    train_codec = "raw_bytes" if battery else "numeric_npz"
+    public_scope = (
+        "PUBLIC_BATTERY_DEVELOPMENT_ONLY"
+        if battery
+        else "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"
+    )
     if "practice_inputs" not in material or "practice_reference" not in material:
         raise RetentionUnavailable("public_input_target_unavailable")
     inputs = _tensors(inputs=material["practice_inputs"])
@@ -528,7 +872,7 @@ def retain_served_result(
 
     artifacts = {
         "recipe.json": recipe.canonical_bytes,
-        "train.npz": train,
+        train_name: train,
         "fixture.npz": fixture,
         "inputs.npz": inputs,
         "state.npz": state,
@@ -542,7 +886,7 @@ def retain_served_result(
         "lineage.json": _json(
             {
                 "schema": "carbon.lean-recipe-bank-lineage.v1",
-                "scope": "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY",
+                "scope": public_scope,
                 "task_id": submission_id,
                 "recipe_digest": recipe.digest,
                 "state_digest": task.terminal_receipt.state_digest,
@@ -555,7 +899,7 @@ def retain_served_result(
     }
     roles = {
         "recipe": ("recipe.json", "json"),
-        "train": ("train.npz", "numeric_npz"),
+        "train": (train_name, train_codec),
         "fixture": ("fixture.npz", "numeric_npz"),
         "inputs": ("inputs.npz", "numeric_npz"),
         "state": ("state.npz", "bundle_graph_npz"),
@@ -565,6 +909,66 @@ def retain_served_result(
         "image": ("image.json", "json"),
         "build_receipt": ("build-receipt.json", "json"),
     }
+    if evidence["build_receipt"].get("schema") == "carbon.development.bundle-build.v2":
+        from carbon.development_session.bundle_construction_worker import (
+            BundleBuildResult,
+            BundleInferenceResult,
+            compare_build_inference_predictions,
+        )
+
+        native = _snapshot(
+            build / "native-predictions.json",
+            limit=16 * 1024**2,
+            digest=evidence["build_receipt"]["native_predictions_digest"],
+            label="native_prediction_snapshot",
+        )
+        example_path = root / evidence["build_operation"] / "input" / "example.npz"
+        if example_path.exists() or example_path.is_symlink():
+            example = _snapshot(
+                example_path,
+                limit=16 * 1024**2,
+                digest=evidence["build_receipt"]["example_digest"],
+                label="build_example_snapshot",
+            )
+        else:
+            # Legacy local runners retain only the output snapshot. Their
+            # trusted example may stand in only at the exact worker receipt
+            # digest; a distinct or changed probe remains unavailable.
+            example = _tensors(inputs=material["example"])
+            if _sha(example) != evidence["build_receipt"]["example_digest"]:
+                raise RetentionUnavailable("build_example_snapshot_unavailable")
+        artifacts["native-predictions.json"] = native
+        artifacts["example.npz"] = example
+        roles["native_predictions"] = ("native-predictions.json", "json")
+        try:
+            comparison = compare_build_inference_predictions(
+                BundleBuildResult(
+                    recipe.digest,
+                    task.terminal_receipt.state_digest,
+                    build / "state.npz",
+                    evidence["build_operation"],
+                    evidence["build_receipt"],
+                ),
+                BundleInferenceResult(
+                    recipe.digest,
+                    task.terminal_receipt.state_digest,
+                    task.terminal_receipt.predictions_digest,
+                    json.loads(predictions),
+                    evidence["inference_operation"],
+                    evidence["inference_receipt"],
+                ),
+                expected_output_dtype=material["interface_document"]["outputs"][
+                    "dtype"
+                ],
+            )
+        except (ValueError, TypeError, KeyError) as exc:
+            raise RetentionUnavailable("native_comparison_unavailable") from exc
+        if comparison is None or (
+            "prediction_comparison" in evidence
+            and evidence["prediction_comparison"] != comparison
+        ):
+            raise RetentionUnavailable("native_comparison_changed")
+        artifacts["prediction-comparison.json"] = _json(comparison)
     # Measured v2 is kept verbatim, never relabeled as the bank's v1 role.
     if (
         evidence["inference_receipt"]["schema"]
@@ -603,7 +1007,7 @@ def retain_served_result(
         saved = create_entry_v5(task_root, manifest_path, custody_path, entries)
     except (OSError, ValueError) as exc:
         raise RetentionUnavailable("operator_bank_custody_unavailable") from exc
-    return {
+    result = {
         "status": saved["status"],
         "entry_id": saved["entry"]["entry_id"],
         "entry_path": entries / saved["path"],
@@ -611,6 +1015,11 @@ def retain_served_result(
         "score_state": saved["entry"]["score_state"],
         "official_eligible": False,
     }
+    bound = _retain_private_pack_binding(adapter, provider, submission_id, task, result)
+    bound = _retain_selected_pack_evaluation(adapter, submission_id, bound, artifacts)
+    return _retain_public_synthetic_measurement(
+        bound, artifacts, submission_id, evidence
+    )
 
 
 def retain_served_bundle_result(
@@ -623,3 +1032,256 @@ def retain_served_bundle_result(
         artifact_directory=artifact_directory,
         entry_directory=entry_directory,
     )
+
+
+def register_served_pack_source(
+    adapter,
+    submission_id: str,
+    *,
+    artifact_directory: Path,
+    entry_directory: Path,
+    trusted_job: dict,
+    registration: dict,
+    ordered_query_bytes: list[bytes],
+    evaluation_version: str,
+    hidden_store=None,
+    fingerprint=None,
+    expected_references_digest=None,
+) -> dict:
+    """Register source for an operator-selected already successful task."""
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+
+    if type(adapter) is not LeanRecipeAdapter or type(submission_id) is not str:
+        raise TypeError("trusted served adapter and task identity required")
+    snapshot = adapter.discovery.evaluation_pack_snapshot
+    if (
+        snapshot is None
+        or adapter.discovery.evaluation_pack_digest != snapshot.manifest_digest
+    ):
+        raise RetentionUnavailable("evaluation_pack_not_selected")
+    retained = retain_served_result(
+        adapter,
+        submission_id,
+        artifact_directory=artifact_directory,
+        entry_directory=entry_directory,
+    )
+    return _register_retained_pack_source(
+        adapter,
+        submission_id,
+        retained,
+        trusted_job=trusted_job,
+        registration=registration,
+        ordered_query_bytes=ordered_query_bytes,
+        evaluation_version=evaluation_version,
+        hidden_store=hidden_store,
+        fingerprint=fingerprint,
+        expected_references_digest=expected_references_digest,
+    )
+
+
+def _register_retained_pack_source(
+    adapter,
+    submission_id,
+    retained,
+    *,
+    trusted_job,
+    registration,
+    ordered_query_bytes,
+    evaluation_version,
+    hidden_store=None,
+    fingerprint=None,
+    expected_references_digest=None,
+):
+    """Register actual v2 source bytes under an already retained private task.
+
+    The selected pack comes from receiver admission, and reference rows and
+    ScorePack are read again from its verified private roles. The returned
+    source pin is read back from owner-only write-once custody; callers pass
+    that registered value to the existing private ScoreLab binder.
+    """
+    from carbon.challenge_validator.evaluation_pack import PRIVATE_ROLES
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.development_session.data import write_once
+    from carbon.scoring import dual_score
+    from carbon.scoring.benchmark_evidence import physics_contract_identity
+    from carbon.scoring.engine import ScoreEngine
+    from carbon.scoring.private_evaluation_source import (
+        PrivateEvaluationSourceRefused,
+        build_pack_source_receipt,
+    )
+    from carbon.scoring.solver_benchmark_v3 import (
+        BenchmarkScoreRefused,
+        register_pack,
+    )
+
+    if type(adapter) is not LeanRecipeAdapter or type(submission_id) is not str:
+        raise TypeError("trusted served adapter and task identity required")
+    discovery = adapter.discovery
+    snapshot = discovery.evaluation_pack_snapshot
+    if snapshot is None or discovery.evaluation_pack_digest != snapshot.manifest_digest:
+        raise RetentionUnavailable("evaluation_pack_not_selected")
+    if retained.get("evaluation_pack_digest") != snapshot.manifest_digest:
+        raise RetentionUnavailable("evaluation_pack_retention_changed")
+    public_root = discovery.evaluation_pack_public_root
+    private_root = discovery.evaluation_pack_private_root
+    try:
+        missing = snapshot.verify_available(
+            public_root, private_root, hidden_store=hidden_store
+        )
+        if (
+            set(missing["public"])
+            & {"construction_kit", "interface", "train", "physics_contract"}
+            or set(missing["private"]) & PRIVATE_ROLES
+        ):
+            raise RetentionUnavailable("evaluation_pack_roles_unavailable")
+        # This caller only has the registered single-query, static-bank
+        # contract. A dynamic bank needs its own Challenge-specific adapter.
+        if (
+            snapshot.run_bindings_required()
+            or snapshot.private["case_bank"].get("kind") == "hidden_batch_store"
+        ):
+            raise RetentionUnavailable("evaluation_pack_bank_adapter_unavailable")
+        train = snapshot.read_role(
+            public_root, "public", "train", max_bytes=16 * 1024 * 1024
+        )
+        interface = snapshot.read_role(
+            public_root, "public", "interface", max_bytes=65536
+        )
+        physics = snapshot.read_json_role(
+            public_root, "public", "physics_contract", max_bytes=65536
+        )
+        case_bank = snapshot.read_role(
+            private_root, "private", "case_bank", max_bytes=16 * 1024 * 1024
+        )
+        solver = snapshot.read_json_role(
+            private_root, "private", "solver_evidence", max_bytes=65536
+        )
+        references = snapshot.read_json_role(
+            private_root, "private", "reference_rows", max_bytes=16 * 1024 * 1024
+        )
+        score_document = snapshot.read_json_role(
+            private_root, "private", "score_pack", max_bytes=65536
+        )
+    except RetentionUnavailable:
+        raise
+    except ValueError as exc:
+        raise RetentionUnavailable("evaluation_pack_material_unavailable") from exc
+    if type(references) is not list or type(registration) is not dict:
+        raise RetentionUnavailable("evaluation_pack_reference_rows_invalid")
+    reference_identity = registration.get("reference")
+    if (
+        type(trusted_job) is not dict
+        or _sha(train) != trusted_job.get("train_digest")
+        or _sha(interface) != trusted_job.get("interface_digest")
+        or physics != trusted_job.get("physics_contract")
+        or type(ordered_query_bytes) is not list
+        or len(ordered_query_bytes) != 1
+        or type(ordered_query_bytes[0]) is not bytes
+        or case_bank != ordered_query_bytes[0]
+        or type(reference_identity) is not dict
+        or type(solver) is not dict
+        or solver != reference_identity
+    ):
+        raise RetentionUnavailable("evaluation_pack_registered_material_mismatch")
+    if type(score_document) is not dict:
+        raise RetentionUnavailable("evaluation_pack_score_pack_invalid")
+    declared_pack_digest = score_document.get("pack_digest")
+    body = {key: value for key, value in score_document.items() if key != "pack_digest"}
+    dual = score_document.get("schema") == dual_score.PACK_SCHEMA
+    try:
+        score_pack = dual_score.register_pack(body) if dual else register_pack(body)
+    except (BenchmarkScoreRefused, dual_score.DualScoreRefused) as exc:
+        raise RetentionUnavailable("evaluation_pack_score_pack_invalid") from exc
+    if (
+        declared_pack_digest is not None
+        and declared_pack_digest != score_pack["pack_digest"]
+    ):
+        raise RetentionUnavailable("evaluation_pack_score_pack_invalid")
+    if (
+        score_pack["challenge"] != snapshot.challenge_id
+        or (
+            dual
+            and score_pack["physics_contract_digest"]
+            != physics_contract_identity(physics)["definition_digest"]
+        )
+        or (
+            not dual
+            and (
+                score_pack["benchmark_registration_digest"]
+                != registration.get("registration_digest")
+                or score_pack["accuracy_ceiling"] is None
+            )
+        )
+    ):
+        raise RetentionUnavailable("evaluation_pack_score_pack_unready")
+    entry_path = Path(retained["entry_path"])
+    if (
+        entry_path.is_symlink()
+        or not entry_path.is_file()
+        or entry_path.stat().st_size > 1024 * 1024
+    ):
+        raise RetentionUnavailable("evaluation_pack_entry_unavailable")
+    try:
+        entry = json.loads(entry_path.read_bytes())
+    except (UnicodeError, ValueError) as exc:
+        raise RetentionUnavailable("evaluation_pack_entry_unavailable") from exc
+    if type(entry) is not dict or entry.get("entry_id") != retained["entry_id"]:
+        raise RetentionUnavailable("evaluation_pack_entry_changed")
+    try:
+        prepared = build_pack_source_receipt(
+            selected_pack=snapshot,
+            entry=entry,
+            trusted_job=trusted_job,
+            registration=registration,
+            references=references,
+            ordered_query_bytes=ordered_query_bytes,
+            evaluation_version=evaluation_version,
+        )
+    except PrivateEvaluationSourceRefused as exc:
+        raise RetentionUnavailable("evaluation_pack_source_" + exc.code) from exc
+    public_rule = None
+    if not dual:
+        try:
+            public_rule = ScoreEngine.public_solver_benchmark_rule_v3(
+                registration, score_pack
+            )
+        except BenchmarkScoreRefused as exc:
+            raise RetentionUnavailable("evaluation_pack_public_rule_invalid") from exc
+    directory = _private_evaluation_directory(retained, submission_id)
+    source_path = directory / "evaluation-source-receipt.json"
+    registration_path = directory / "evaluation-source-registration.json"
+    try:
+        write_once(source_path, prepared.raw)
+        if source_path.is_symlink():
+            raise ValueError("source receipt link")
+        registered_sha256 = _sha(source_path.read_bytes())
+        if registered_sha256 != prepared.sha256:
+            raise ValueError("source receipt changed")
+        write_once(
+            registration_path,
+            _json(
+                {
+                    "schema": "carbon.lean-recipe.private-source-registration.v2",
+                    "task_id": submission_id,
+                    "entry_id": retained["entry_id"],
+                    "evaluation_pack_digest": snapshot.manifest_digest,
+                    "source_receipt_sha256": registered_sha256,
+                    "registration_digest": registration["registration_digest"],
+                }
+            ),
+        )
+    except (OSError, ValueError) as exc:
+        raise RetentionUnavailable(
+            "evaluation_pack_source_registration_unavailable"
+        ) from exc
+    return {
+        "entry": entry,
+        "retained": retained,
+        "references": references,
+        "score_pack": score_pack,
+        "public_rule_definition": public_rule,
+        "evaluation_source_receipt_raw": source_path.read_bytes(),
+        "registered_source_receipt_sha256": registered_sha256,
+        "expected_evaluation_pack_digest": snapshot.manifest_digest,
+        "source_registration_path": registration_path,
+    }

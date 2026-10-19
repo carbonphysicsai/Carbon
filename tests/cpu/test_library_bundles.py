@@ -110,6 +110,19 @@ def cpu_fixture():
     return manifest, source, wheels, lock, license_text
 
 
+def torch_cpu_fixture():
+    manifest, source, wheels, lock, license_text = fixture()
+    repository = Path(__file__).resolve().parents[2]
+    base = sha((repository / ".devcontainer/torch/torch-cpu-py311.txt").read_bytes())
+    manifest.update(
+        runtime_profile_id="torch-cpu-py311",
+        accelerator="cpu",
+        base_environment_digest=base,
+        environment_digest=_environment_digest(base, sha(lock)),
+    )
+    return manifest, source, wheels, lock, license_text
+
+
 def cached_fixture(tmp_path):
     args = fixture()
     cache = tmp_path / "private-bundle"
@@ -263,6 +276,45 @@ def test_direct_resolver_inspects_source_before_admitted_provision(
     assert len(calls) == 2
 
 
+def test_direct_resolver_distinguishes_torch_cpu_from_generic_cpu(tmp_path):
+    from carbon.development_session.gpu_practice import (
+        direct_bundle_accelerators,
+        direct_parent_backend,
+        gpu_image_backend,
+    )
+    from carbon.miner_mcp.standard_cli import DirectOwnerImageResolver
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    selected = bundle_ref(*torch_cpu_fixture())
+    root = Path(__file__).resolve().parents[2]
+    image = WorkerImageIdentity(
+        *("sha256:" + character * 64 for character in "00123456")
+    )
+    torch_parent = replace(
+        image,
+        lock_digest=sha(
+            (root / ".devcontainer/torch/torch-cpu-py311.txt").read_bytes()
+        ),
+    )
+    generic_cpu = replace(image, lock_digest=sha((root / "uv.lock").read_bytes()))
+    assert direct_parent_backend(torch_parent) == "torch_cpu"
+    assert gpu_image_backend(torch_parent) is None
+    assert direct_parent_backend(generic_cpu) is None
+    assert direct_bundle_accelerators(torch_parent, generic_cpu) == (None, None)
+    cache = tmp_path / "owner-cache"
+    cache.mkdir(mode=0o700)
+    resolver = DirectOwnerImageResolver(cache, torch_parent)
+    with pytest.raises(FileNotFoundError, match="not staged"):
+        resolver.provision_admitted(selected, parent=torch_parent, cli=object())
+    with pytest.raises(FileNotFoundError, match="receipt is missing"):
+        resolver(selected)
+    with pytest.raises(ValueError, match="parent.*differs"):
+        resolver.provision_admitted(selected, parent=generic_cpu, cli=object())
+    resolver.parent = generic_cpu
+    with pytest.raises(ValueError, match="parent.*differs"):
+        resolver(selected)
+
+
 def test_catalogue_names_new_and_existing_sources_without_claiming_install():
     document = catalogue()
     assert {row["id"] for row in document["libraries"]} >= {
@@ -326,6 +378,23 @@ def test_cpu_bundle_binds_actual_base_lock_and_build_record(tmp_path):
     with pytest.raises(ValueError, match="runtime ABI"):
         validate_bundle(bad, *args[1:])
     bad = dict(args[0], base_environment_digest="sha256:" + "d" * 64)
+    bad["environment_digest"] = _environment_digest(
+        bad["base_environment_digest"], bad["lock_sha256"]
+    )
+    with pytest.raises(ValueError, match="CPU base environment lock differs"):
+        prepare_offline_context(tmp_path, bad, *args[1:], parent)
+
+
+def test_torch_cpu_bundle_binds_its_installed_base_lock(tmp_path):
+    args = torch_cpu_fixture()
+    parent = "sha256:" + "b" * 64
+    assert validate_bundle(*args) == bundle_ref(*args).bundle_digest
+    context, _, _ = prepare_offline_context(tmp_path, *args, parent)
+    installer = (context / "install-source.py").read_text()
+    ast.parse(installer)
+    assert "'/opt/carbon/torch-requirements.txt'" in installer
+    assert "worker-image-build.json" not in installer
+    bad = dict(args[0], base_environment_digest=sha(b"wrong base"))
     bad["environment_digest"] = _environment_digest(
         bad["base_environment_digest"], bad["lock_sha256"]
     )
@@ -435,6 +504,7 @@ def test_owner_install_cli_uses_checked_gpu_profile_without_private_path_args(
     )
     monkeypatch.setattr(command, "load_image_identity", lambda _: parent)
     monkeypatch.setattr(command, "gpu_image_backend", lambda _: "pytorch")
+    monkeypatch.setattr(command, "direct_parent_backend", lambda _: "pytorch")
     monkeypatch.setattr(command, "_private_dir", lambda path: path)
     monkeypatch.setattr(command, "DockerCLI", lambda: adapter)
 
@@ -463,6 +533,7 @@ def test_owner_install_cli_uses_checked_gpu_profile_without_private_path_args(
     ]
 
     monkeypatch.setattr(command, "gpu_image_backend", lambda _: "jax")
+    monkeypatch.setattr(command, "direct_parent_backend", lambda _: "jax")
     assert command.main(["install", str(directory), "--state-dir", str(tmp_path)]) == 2
     assert len(calls) == 1
 
@@ -565,6 +636,83 @@ def test_owner_install_cpu_uses_checked_installed_worker_identity(
     profile["runtime"]["images"][0] = image_id
     monkeypatch.setattr(command, "load_image_identity", lambda path: None)
     with pytest.raises(ValueError, match="direct v1.3 worker role"):
+        command.install_bundle(directory, tmp_path)
+    assert len(calls) == 1
+
+
+def test_owner_install_selects_only_profile_pinned_torch_cpu_parent(
+    tmp_path, monkeypatch
+):
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+    from scripts.dev import library_bundle as command
+
+    directory, _ = user_directory(tmp_path)
+    material = torch_cpu_fixture()
+    (directory / "bundle.json").write_text(json.dumps(material[0]), encoding="utf-8")
+    selected = bundle_ref(*material)
+    root = Path(__file__).resolve().parents[2]
+    parent = WorkerImageIdentity(
+        *("sha256:" + character * 64 for character in "00123456")
+    )
+    parent = replace(
+        parent,
+        lock_digest=material[0]["base_environment_digest"],
+        build_recipe_digest=sha((root / ".devcontainer/torch/Dockerfile").read_bytes()),
+        entrypoint_digest=sha(
+            (root / "carbon/reconstruction/worker/entrypoint.py").read_bytes()
+        ),
+    )
+    profile = {
+        "paths": {"image_manifest": str(tmp_path / "pinned-torch-worker.json")},
+        "gpu_image": str(tmp_path / "decoy-gpu-worker.json"),
+        "campaigns_root": str(tmp_path / "campaigns"),
+        "runtime": {"images": [parent.image_id, sha(b"analysis")]},
+    }
+    monkeypatch.setattr(
+        command,
+        "EnvironmentSetup",
+        lambda state_dir, onboarding: SimpleNamespace(profile=lambda: profile),
+    )
+    selected_parent = [parent]
+    selected_paths = []
+
+    def load_image(path):
+        selected_paths.append(path)
+        return selected_parent[0]
+
+    monkeypatch.setattr(command, "load_image_identity", load_image)
+    monkeypatch.setattr(command, "_private_dir", lambda path: path)
+    monkeypatch.setattr(command, "DockerCLI", lambda: object())
+    calls = []
+
+    def install(input_directory, cache_root, image, *, expected_bundle, cli):
+        calls.append((input_directory, cache_root, image, expected_bundle))
+        return SimpleNamespace(bundle_ref=expected_bundle.to_dict())
+
+    monkeypatch.setattr(command, "install_pinned_library_worker_image", install)
+    assert (
+        command.install_bundle(directory, tmp_path)["bundle_ref"] == selected.to_dict()
+    )
+    assert selected_paths == [Path(profile["paths"]["image_manifest"])]
+    assert calls == [
+        (
+            directory,
+            tmp_path / "campaigns" / ".direct-development" / "library-cache",
+            parent,
+            selected,
+        )
+    ]
+    selected_parent[0] = replace(parent, build_recipe_digest=sha(b"different recipe"))
+    with pytest.raises(ValueError, match="parent environment or ABI differs"):
+        command.install_bundle(directory, tmp_path)
+    profile["runtime"]["images"][0] = sha(b"wrong selected worker")
+    with pytest.raises(ValueError, match="differs from profile"):
+        command.install_bundle(directory, tmp_path)
+    profile["runtime"]["images"][0] = parent.image_id
+    selected_parent[0] = replace(
+        parent, lock_digest=sha((root / "uv.lock").read_bytes())
+    )
+    with pytest.raises(ValueError, match="parent environment or ABI differs"):
         command.install_bundle(directory, tmp_path)
     assert len(calls) == 1
 
@@ -1063,6 +1211,8 @@ class FakeLocalDocker:
         missing_parent=False,
         tag_mismatch=False,
         uv_digest_mismatch=False,
+        uv_repository_digest=UV_IMAGE,
+        malformed_uv_repo_digests=False,
     ):
         self.parent, self.bundle = parent, bundle
         self.missing_uv, self.missing_parent, self.tag_mismatch = (
@@ -1071,6 +1221,8 @@ class FakeLocalDocker:
             tag_mismatch,
         )
         self.uv_digest_mismatch = uv_digest_mismatch
+        self.uv_repository_digest = uv_repository_digest
+        self.malformed_uv_repo_digests = malformed_uv_repo_digests
         self.uv_id = "sha256:" + "d" * 64
         self.built_id = "sha256:" + "e" * 64
         self.tags = {}
@@ -1081,13 +1233,19 @@ class FakeLocalDocker:
         if ref == self.parent and not self.missing_parent:
             return {"Id": self.parent, "RootFS": {"Layers": ["base-layer"]}}
         if ref == UV_IMAGE and not self.missing_uv:
-            repository = UV_IMAGE.partition("@")[0].rsplit(":", 1)[0]
-            digest = (
-                ("sha256:" + "0" * 64)
+            repository_digest = (
+                (self.uv_repository_digest.partition("@")[0] + "@sha256:" + "0" * 64)
                 if self.uv_digest_mismatch
-                else UV_IMAGE.partition("@")[2]
+                else self.uv_repository_digest
             )
-            return {"Id": self.uv_id, "RepoDigests": [repository + "@" + digest]}
+            return {
+                "Id": self.uv_id,
+                "RepoDigests": (
+                    repository_digest
+                    if self.malformed_uv_repo_digests
+                    else [repository_digest]
+                ),
+            }
         if ref in self.tags:
             image_id = self.tags[ref]
             return {"Id": "sha256:" + "f" * 64 if self.tag_mismatch else image_id}
@@ -1117,7 +1275,17 @@ class FakeLocalDocker:
         raise AssertionError(args)
 
 
-def test_offline_builder_preflights_both_local_stages_and_final_layers(tmp_path):
+@pytest.mark.parametrize(
+    "uv_repository_digest",
+    [
+        UV_IMAGE,
+        "ghcr.io/astral-sh/uv@sha256:95f2aa1fe59274951cfe9b0cbc7972e879ff1004bc8945d130a32eb0dbd85945",
+    ],
+    ids=["actual-tag-qualified-digest", "repository-digest"],
+)
+def test_offline_builder_preflights_both_local_stages_and_final_layers(
+    tmp_path, uv_repository_digest
+):
     args = fixture()
     parent = "sha256:" + "b" * 64
     context, bundle, seal = prepare_offline_context(tmp_path, *args, parent)
@@ -1126,7 +1294,7 @@ def test_offline_builder_preflights_both_local_stages_and_final_layers(tmp_path)
     assert "TMPDIR=/tmp /tmp/uv pip check" in dockerfile
     assert "chmod -R" not in dockerfile
     assert "ENV TMPDIR" not in dockerfile
-    cli = FakeLocalDocker(parent, bundle)
+    cli = FakeLocalDocker(parent, bundle, uv_repository_digest=uv_repository_digest)
     assert build_offline_bundle(context, bundle, parent, seal, cli=cli) == cli.built_id
     assert [call[0] for call in cli.calls] == ["tag", "tag", "build"]
     assert cli.calls[-1][1:4] == [
@@ -1239,6 +1407,51 @@ def test_offline_builder_refuses_wrong_canonical_uv_digest_before_build(tmp_path
     with pytest.raises(ValueError, match="pinned local uv image differs"):
         build_offline_bundle(context, bundle, parent, seal, cli=cli)
     assert not any(call[0] == "build" for call in cli.calls)
+
+
+@pytest.mark.parametrize(
+    "uv_repository_digest",
+    [
+        "ghcr.io/astral-sh/uv:0.12.7@sha256:" + "0" * 64,
+        "ghcr.io/astral-sh/uv@sha256:" + "0" * 64,
+        "ghcr.io/astral-sh/uv:0.12.7",
+        UV_IMAGE.replace(":0.12.7@", ":different-tag@"),
+        UV_IMAGE.replace("astral-sh/uv", "another-owner/uv"),
+    ],
+    ids=[
+        "wrong-tagged-digest",
+        "wrong-repository-digest",
+        "tag-only",
+        "other-tag",
+        "other-repository",
+    ],
+)
+def test_offline_builder_refuses_unpinned_uv_before_any_image_mutation(
+    tmp_path, uv_repository_digest
+):
+    parent = "sha256:" + "b" * 64
+    context, bundle, seal = prepare_offline_context(tmp_path, *fixture(), parent)
+    cli = FakeLocalDocker(parent, bundle, uv_repository_digest=uv_repository_digest)
+    with pytest.raises(ValueError, match="pinned local uv image differs"):
+        build_offline_bundle(context, bundle, parent, seal, cli=cli)
+    assert cli.calls == []
+
+
+@pytest.mark.parametrize("repo_digests", [UV_IMAGE, {UV_IMAGE: True}, None])
+def test_offline_builder_refuses_malformed_uv_digests_before_mutation(
+    tmp_path, repo_digests
+):
+    parent = "sha256:" + "b" * 64
+    context, bundle, seal = prepare_offline_context(tmp_path, *fixture(), parent)
+    cli = FakeLocalDocker(
+        parent,
+        bundle,
+        uv_repository_digest=repo_digests,
+        malformed_uv_repo_digests=True,
+    )
+    with pytest.raises(ValueError, match="pinned local uv image differs"):
+        build_offline_bundle(context, bundle, parent, seal, cli=cli)
+    assert cli.calls == []
 
 
 def test_offline_builder_refuses_registry_from_context(tmp_path):

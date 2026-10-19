@@ -187,7 +187,15 @@ def _refusal_code(answer, fallback):
     return fallback
 
 
-def _outcome(answer, *, contract_digest, challenge, task_id=None, pinned=None):
+def _outcome(
+    answer,
+    *,
+    contract_digest,
+    challenge,
+    task_id=None,
+    pinned=None,
+    evidence_label="DEVELOPMENT_PUBLIC_SYNTHETIC",
+):
     """Check the existing public validator envelope and lean outcome contract."""
     if (
         type(answer) is not dict
@@ -225,7 +233,7 @@ def _outcome(answer, *, contract_digest, challenge, task_id=None, pinned=None):
         raise DirectIntakeRefusal("construction_intake_answer_unrecognised") from None
     if (
         result.get("schema") != OUTCOME_SCHEMA
-        or result.get("evidence") != "DEVELOPMENT_PUBLIC_SYNTHETIC"
+        or result.get("evidence") != evidence_label
         or result.get("state") not in (TERMINAL | {"ADMITTED"})
         or type(result.get("task_id")) is not str
         or not result["task_id"]
@@ -435,7 +443,10 @@ def submit_and_wait(
                     _refusal_code(answer, "construction_intake_unavailable")
                 )
             outcome, pinned = _outcome(
-                answer, contract_digest=contract_digest, challenge=expected_challenge
+                answer,
+                contract_digest=contract_digest,
+                challenge=expected_challenge,
+                evidence_label=registered_contract.evidence_label,
             )
             return outcome, pinned
 
@@ -520,6 +531,7 @@ def submit_and_wait(
                 challenge=expected_challenge,
                 task_id=task_id,
                 pinned=pinned,
+                evidence_label=registered_contract.evidence_label,
             )
             return outcome
 

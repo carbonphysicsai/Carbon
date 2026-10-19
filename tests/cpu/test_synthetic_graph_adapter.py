@@ -28,6 +28,7 @@ from carbon.development_session import (
 from carbon.development_session.bundle_construction_worker import (
     INFER_PROGRAM,
     _digest,
+    _stage_bundle_modules,
     _stage_modules,
     _tensors,
 )
@@ -554,7 +555,7 @@ def test_fixed_graph_program_rebuilds_twice_then_infers_without_source_or_train(
     )
     requested = material["practice_inputs"][:2]
     requested_raw = _tensors(inputs=requested)
-    infer_files = _stage_modules()
+    infer_files, codec_modules = _stage_bundle_modules(binding, training=False)
     infer_files.update(
         {
             "recipe.json": recipe.canonical_bytes,
@@ -565,6 +566,7 @@ def test_fixed_graph_program_rebuilds_twice_then_infers_without_source_or_train(
                 {
                     "recipe_digest": recipe.digest,
                     "binding": binding,
+                    "codec_modules": codec_modules,
                     "state_digest": _digest(state),
                     "inputs_digest": _digest(requested_raw),
                     "allowlist_digest": allowed.digest,

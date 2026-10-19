@@ -578,6 +578,13 @@ class ScoreEngine:
         return score(benchmark, pack)
 
     @staticmethod
+    def public_solver_benchmark_rule_v3(registration: dict, pack: dict) -> dict:
+        """Allow-listed explanation derived from the applied development rule."""
+        from carbon.scoring.solver_benchmark_v3 import public_rule_definition
+
+        return public_rule_definition(registration, pack)
+
+    @staticmethod
     def score(
         score_input: ScoreInput | None,
         pack: LoadedScorePack,
