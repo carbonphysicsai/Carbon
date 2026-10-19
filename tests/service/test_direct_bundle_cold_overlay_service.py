@@ -11,9 +11,11 @@ import io
 import json
 import os
 import tarfile
+from itertools import islice
 from pathlib import Path
 
 import numpy as np
+from closed_export_failure_fixture import closed_export_failure
 
 from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
 from carbon.challenge_validator import AttemptLedger
@@ -29,6 +31,10 @@ from carbon.development_session.library_environment_cache import (
     stage_pinned_bundle_material,
 )
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_carrier import (
+    _PRACTICE_FAILURE_MARKERS,
+    _PRACTICE_FAILURE_STAGES,
+)
 from carbon.development_session.research_ledger import (
     DEVELOPMENT_CEILINGS,
     DEVELOPMENT_ELAPSED_SECONDS,
@@ -39,6 +45,7 @@ from carbon.development_session.research_service import DirectFixtureDiscovery
 from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
 from carbon.miner_mcp.standard_cli import DirectOwnerImageResolver
 from carbon.reconstruction.worker.docker_runtime import DockerCLI, load_image_identity
+from carbon.reconstruction.worker.model import WorkerCode
 from carbon.research import DirectTaskStateV3
 
 SOURCE = b"""from pathlib import Path
@@ -186,9 +193,114 @@ def test_normal_cpu_source_only_task_cold_prepares_builds_and_retains(tmp_path):
         assert ledger.status(owner=owner)["operations"] == []
         finished = provider.run_queued_task(queued.task_id)
         operations = ledger.status(owner=owner)["operations"]
-        assert finished.state is DirectTaskStateV3.SUCCEEDED, [
-            (item["phase"], item["state"]) for item in operations
-        ]
+        failure_diagnostic = None
+        if finished.state is not DirectTaskStateV3.SUCCEEDED:
+            closed_states = {
+                None,
+                "RESERVED",
+                "SUCCEEDED",
+                "FAILED_INFRA",
+                "FAILED_MINER",
+                "CANCELLED",
+            }
+            child_states = tuple(
+                (
+                    stage,
+                    state if state in closed_states else "UNKNOWN",
+                )
+                for stage, child in zip(
+                    ("build", "inference", "prep"),
+                    provider._all_children(queued.task_id),
+                )
+                for state in (ledger.operation_state(child, owner=owner),)
+            )
+            phase_failures = []
+            categories = {
+                "ValueError",
+                "WorkerFailure",
+                "TimeoutError",
+                "OSError",
+                "RuntimeError",
+                "Exception",
+            }
+            worker_codes = {code.value for code in WorkerCode}
+            marker_names = set(_PRACTICE_FAILURE_MARKERS.values())
+            for operation in islice(ledger.root.glob("operation-*"), 32):
+                if len(phase_failures) >= 32:
+                    break
+                if operation.is_symlink() or not operation.is_dir():
+                    phase_failures.append({"stage": "UNKNOWN"})
+                    continue
+                for failure in islice(
+                    operation.glob("failure-*.json"), 32 - len(phase_failures)
+                ):
+                    projected = {"stage": "UNKNOWN"}
+                    try:
+                        if (
+                            failure.is_symlink()
+                            or not failure.is_file()
+                            or not 0 < failure.stat().st_size <= 4096
+                        ):
+                            raise ValueError("invalid private failure record")
+                        with failure.open("rb") as stream:
+                            raw = stream.read(4097)
+                        if len(raw) > 4096:
+                            raise ValueError("oversized private failure record")
+                        record = json.loads(raw)
+                        if (
+                            type(record) is not dict
+                            or record.get("schema")
+                            != "carbon.autoresearch.fixed-practice-failure.v1"
+                            or record.get("stage") not in _PRACTICE_FAILURE_STAGES
+                            or failure.name != "failure-" + record["stage"] + ".json"
+                            or record.get("exception_class") not in categories
+                            or (
+                                record.get("worker_code") is not None
+                                and record.get("worker_code") not in worker_codes
+                            )
+                            or type(record.get("diagnostic_markers")) is not list
+                            or len(record["diagnostic_markers"]) > len(marker_names)
+                            or any(
+                                type(marker) is not str or marker not in marker_names
+                                for marker in record["diagnostic_markers"]
+                            )
+                        ):
+                            raise ValueError("unrecognized private failure record")
+                        projected = {
+                            "stage": record["stage"],
+                            "exception_class": record["exception_class"],
+                            "worker_code": record["worker_code"],
+                            "diagnostic_markers": record["diagnostic_markers"],
+                        }
+                        if record["stage"] == "EXPORT":
+                            projected["export_failure"] = closed_export_failure(
+                                operation
+                            )
+                    except (OSError, ValueError, TypeError, KeyError, RecursionError):
+                        pass  # Unknown private bytes are never assertion text.
+                    phase_failures.append(projected)
+                if len(phase_failures) >= 32:
+                    break
+            receipt = finished.terminal_receipt
+            failure_diagnostic = {
+                "task_state": finished.state.value,
+                "failure_type": (
+                    receipt.infrastructure_failure_class.value
+                    if receipt is not None
+                    and receipt.infrastructure_failure_class is not None
+                    else "NONE"
+                ),
+                "failed_stage": tuple(
+                    stage for stage, state in child_states if state == "FAILED_INFRA"
+                ),
+                "child_states": child_states,
+                "phase_failures": tuple(phase_failures),
+            }
+            print(
+                "C03_CLOSED_FAILURE_DIAGNOSTIC="
+                + json.dumps(failure_diagnostic, sort_keys=True, separators=(",", ":"))
+            )
+        assert finished.state is DirectTaskStateV3.SUCCEEDED, failure_diagnostic
         evidence = provider.private_attempt(queued.task_id)
         assert evidence["schema"] == "carbon.direct-private-attempt.overlay.v1"
         assert evidence["parent_image_id"] == parent.image_id

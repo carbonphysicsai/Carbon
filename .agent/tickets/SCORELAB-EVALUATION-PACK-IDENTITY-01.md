@@ -97,3 +97,51 @@ and a mandatory failure with otherwise high A/D. Fixtures are inert synthetic
 data, not Motor/Battery truth. Product owns canonical runtime; author runs
 static checks. Hub remains frozen. No physics tolerance, production rule,
 solver campaign, hidden access or scientific qualification is authorized.
+
+## Fresh standalone receiver material-cache initialization (18 October)
+
+Lead owns the bounded normal receiver repair after an actual signed staging
+attempt on a fresh remote installation failed before its first material chunk.
+The configured campaigns directory exists, but the local miner attachment that
+normally creates `.direct-development` has never run on that receiver host.
+The material stager creates its own cache leaf without creating its parent.
+
+Before advertising signed staging, the receiver initializes only its derived
+cache parent and cache with the existing exact-path, symlink and private-mode
+checks. No request chooses a path, changes cache capacity, selects code for the
+grader, supplies fitted state, or bypasses source/owner/chain/resource checks.
+The operational recovery can use these same existing directory checks without
+upgrading the frozen construction campaign or its verified worker images.
+
+Additional owned manifest: `carbon/challenge_validator/direct_receiver.py`
+and `tests/cpu/test_direct_receiver.py`. The existing real signed loopback
+bootstrap fixture starts with an absent nested cache parent, requires both
+private directories before readiness, stages one real incomplete material
+chunk through the normal gateway/filesystem/ledger, and then retains its
+existing graph admission/cancellation and no-model-dispatch assertions. This
+fixture proves ingress/bootstrap behavior, never actual model reconstruction.
+
+Validation remains conditional on canonical focused receiver/material-staging
+acceptance, relevant subsystem checks and the normal exact-head CI/review gate.
+Authors run pinned static checks; Product owns runtime. The frozen Hub and all
+scientific, security, production and model-matrix maturity ceilings remain.
+
+
+## Actual cold PREP UV identity repair, 2026-10-18
+
+The real signed CR03 task reached cold dependency PREP and failed at STAGING
+with ValueError before model execution. Product's exact read-only image receipt
+`d1b8df2c575ca473ddf6f343ce3edf5cfddbb3cb79b6ac1cc1d76af4e8f69157`
+shows the fixed UV digest present only as its tag-qualified repository digest.
+Both UV consumers previously required only the untagged spelling of that same
+immutable repository/digest. Root delegates the smallest source repair here.
+
+Accept exactly the frozen `UV_IMAGE` spelling or its existing normalized
+repository/digest spelling in a list of repository digests. Both include the
+identical registered SHA256; tag-only, other repositories and changed digests
+still refuse. Keep stopped-container ownership, bounded regular-file copy,
+deadline/cancellation, cleanup, offline preparation and inference separation.
+Actual-shaped positive and negative fixtures cover both consumers. Source/static
+review is followed by Product's canonical and real normal-path continuation;
+no successful model or scientific result is inferred from this repair. The
+active frozen campaign need not adopt unrelated prospective source changes.

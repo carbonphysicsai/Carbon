@@ -12,7 +12,11 @@ from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
 from carbon.challenge_validator.lean_recipe import _source_identity
 from carbon.development_session.construction_recipe import SCHEMA as RECIPE_SCHEMA
 from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE, contract_digest
-from carbon.reconstruction.served_recipe_contract import registered
+from carbon.reconstruction.served_recipe_contract import (
+    RemoteStageAttachment,
+    ServedRecipeContract,
+    registered,
+)
 
 
 def test_synthetic_v13_registered_recipe_contract_binds_existing_material():
@@ -66,3 +70,43 @@ def test_served_implementation_identity_binds_staged_lowerers(monkeypatch, lower
 
     monkeypatch.setattr(Path, "read_bytes", changed)
     assert _source_identity() != baseline
+
+
+@pytest.mark.parametrize(
+    "challenge_id,version,state_name,route",
+    [
+        ("synthetic-linear-field-2d", "1.3", "remote-stage-v1.3", "DIRECT_DEVELOPMENT"),
+        (
+            "battery-fastcharge-ageing-development-v1",
+            "1.0",
+            "remote-stage-battery-v1.0",
+            "SIGNED_RESEARCH",
+        ),
+    ],
+)
+def test_registered_attachment_routing_preserves_public_contract_identity(
+    challenge_id, version, state_name, route
+):
+    contract = registered(challenge_id, version)
+    assert contract.remote_stage_attachment == RemoteStageAttachment(state_name, route)
+    # The historical constructor and serialized contract do not acquire local
+    # attachment metadata or change the immutable public contract identity.
+    historical = ServedRecipeContract(
+        contract.challenge_id,
+        contract.version,
+        contract.construction_kit,
+        contract.allowlist_digest,
+        contract.scope,
+    )
+    assert historical.remote_stage_attachment is None
+    assert historical.document == contract.document
+    assert historical.digest == contract.digest
+    assert set(contract.document) == {
+        "schema",
+        "challenge",
+        "recipe_schema",
+        "construction_kit",
+        "allowlist_digest",
+        "scope",
+        "score_pack",
+    }

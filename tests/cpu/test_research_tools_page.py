@@ -17,6 +17,7 @@ import asyncio
 import base64
 import json
 import sys
+import threading
 from pathlib import Path
 
 import pytest
@@ -308,6 +309,102 @@ def test_direct_tools_reject_malformed_exclusive_token_with_recovery(token):
         == supervisor.NEXT_ACTIONS[refused.value.code]
     )
     assert host.tool_sessions.state("direct-development-1.3")["open"] is False
+
+
+def test_timed_out_exclusive_close_retains_one_rejoinable_shutdown(monkeypatch):
+    monkeypatch.setattr(tool_door, "OPEN_SECONDS", 0.02)
+    sessions = tool_door.ToolSessions(lambda _campaign: None)
+    campaign = "direct-development-1.3"
+    token = "b" * 32
+    session = tool_door._Session(campaign)
+    release = asyncio.Event()
+    started = threading.Event()
+    closes = []
+
+    class DelayedStack:
+        async def aclose(self):
+            closes.append("started")
+            started.set()
+            await release.wait()
+            closes.append("settled")
+
+    session.stack = DelayedStack()
+    session.door = object()
+    session.exclusive_token = token
+    sessions.sessions[campaign] = session
+    try:
+        with pytest.raises(TimeoutError):
+            sessions.close(campaign, exclusive_token=token)
+        assert started.wait(1)
+        assert sessions.sessions[campaign] is session
+        assert sessions.state(campaign)["closing"] is True
+        assert session.thread.is_alive()
+        assert closes == ["started"]
+        with pytest.raises(Rejected, match="tools_session_closing"):
+            sessions.open(campaign, exclusive_token=token)
+        with pytest.raises(Rejected, match="tools_session_owned_elsewhere"):
+            sessions.close(campaign, exclusive_token="c" * 32)
+        with pytest.raises(Rejected, match="tools_session_closing"):
+            sessions.call(
+                campaign, {"tool": "any", "arguments": {}}, exclusive_token=token
+            )
+        with pytest.raises(TimeoutError):
+            sessions.close(campaign, exclusive_token=token)
+        assert closes == ["started"]
+        sessions.close_all()
+        assert sessions.sessions[campaign] is session
+        assert closes == ["started"]
+        session.loop.call_soon_threadsafe(release.set)
+        session._close_future.result(1)
+        assert sessions.close(campaign, exclusive_token=token) == {
+            "open": False,
+            "closed": True,
+        }
+        assert closes == ["started", "settled"]
+        assert campaign not in sessions.sessions
+        assert not session.thread.is_alive()
+    finally:
+        if session.thread.is_alive():
+            session.loop.call_soon_threadsafe(release.set)
+            if session._close_future is not None:
+                session._close_future.result(1)
+            session.close()
+
+
+@pytest.mark.parametrize("trigger", ["reap", "close_all"])
+def test_stale_close_snapshot_cannot_close_replacement_session(monkeypatch, trigger):
+    now = [1200.0]
+    sessions = tool_door.ToolSessions(
+        lambda _campaign: None, idle=600, clock=lambda: now[0]
+    )
+
+    class StubSession:
+        def __init__(self, used):
+            self.used = used
+            self.closing = False
+            self.closed = False
+
+        def close(self):
+            self.closed = True
+
+    old = StubSession(0.0)
+    replacement = StubSession(now[0])
+    sessions.sessions["c"] = old
+    selected_close = sessions._close_session
+
+    def after_snapshot(campaign, selected):
+        assert campaign == "c" and selected is old and old.closing
+        # Another closer settled the selected session and a fresh page
+        # acquired the same campaign name before this stale snapshot resumed.
+        selected_close(campaign, old)
+        sessions.sessions[campaign] = replacement
+        return selected_close(campaign, selected)
+
+    monkeypatch.setattr(sessions, "_close_session", after_snapshot)
+    getattr(sessions, trigger)()
+    assert old.closed is True
+    assert replacement.closed is False
+    assert sessions.sessions["c"] is replacement
 
 
 def test_an_idle_session_is_released(tmp_path):

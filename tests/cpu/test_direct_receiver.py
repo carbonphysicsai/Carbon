@@ -1273,7 +1273,11 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
     from carbon.reconstruction.worker.model import WorkerImageIdentity
     from carbon.transport.models import message
 
-    cfg = _config(tmp_path)
+    cfg = {**_config(tmp_path), "material_cache_bytes": 1024**2}
+    campaigns = tmp_path / "campaigns"
+    campaigns.mkdir(mode=0o700)
+    cache = campaigns / ".direct-development" / "library-cache"
+    assert not cache.parent.exists()
     # Port zero is injected after config validation only for this disposable
     # unit fixture. Production requires a fixed configured target port.
     cfg["port"] = 0
@@ -1344,7 +1348,7 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
             {"revision": "a" * 40, "source_tree_digest": "sha256:" + "6" * 64},
             parent,
             SimpleNamespace(context=context, publisher_hotkey=RECEIVER),
-            tmp_path / "cache",
+            cache,
         ),
     )
     now = time.time_ns()
@@ -1372,6 +1376,9 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
     stop, retained = threading.Event(), {}
 
     def ready(facts):
+        assert cache.is_dir() and cache.parent.is_dir()
+        assert cache.stat().st_mode & 0o077 == 0
+        assert cache.parent.stat().st_mode & 0o077 == 0
         target = facts["direct_intake_target"]
         assert target["receiver_hotkey"] == RECEIVER
         with urllib.request.urlopen(
@@ -1410,12 +1417,44 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
             with urllib.request.urlopen(request) as stream:
                 return json.load(stream)
 
+        # The first real signed material chunk must work on a fresh receiver;
+        # it remains incomplete and cannot become an admitted bundle/model.
+        material_call = research.ServiceCall(
+            research.RESEARCH_NAMESPACE,
+            "stage_research_material",
+            research.DirectStageMaterialRequestV1(
+                key,
+                "sha256:" + hashlib.sha256(b"incomplete fixture bundle").hexdigest(),
+                "LICENSE",
+                0,
+                2,
+                "sha256:" + hashlib.sha256(b"ab").hexdigest(),
+                b"a",
+            ),
+        )
+        material_reply = post(
+            research.RESEARCH_NAMESPACE,
+            {
+                "call_base64": base64.b64encode(
+                    research.canonical_bytes(material_call)
+                ).decode()
+            },
+            1,
+        )
+        staged = research.load_canonical(
+            base64.b64decode(material_reply["protocol_reply_base64"]),
+            research.ServiceReply,
+        )
+        assert staged.status is research.ReplyStatus.OK
+        assert staged.result.received_bytes == 1
+        assert staged.result.complete is False
+
         for index, (name, raw) in enumerate(
             (
                 (staging.WORKSPACE_PREFIX + fingerprint[7:] + ".json", document),
                 (staging.WORKSPACE_MANIFEST, manifest),
             ),
-            1,
+            2,
         ):
             call = research.ServiceCall(
                 research.RESEARCH_NAMESPACE,
@@ -1459,7 +1498,7 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
                 "strategy_json": json.dumps(recipe),
                 "contract_digest": public["served_contracts"][0]["digest"],
             },
-            3,
+            4,
         )
         assert admitted["outcome"]["state"] == "ADMITTED"
         retained["task"] = admitted["outcome"]["task_id"]

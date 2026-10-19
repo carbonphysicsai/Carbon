@@ -225,7 +225,7 @@ def test_exact_offline_wheel_prep_exports_inert_bounded_overlay(
     gpu_lock.write_bytes(base_lock)
     monkeypatch.setattr(
         library_overlay_prep,
-        "GPU_BASE_LOCK_PATHS",
+        "BASE_LOCK_PATHS",
         {"torch-cu130-py311": gpu_lock},
     )
     manifest = {

@@ -1627,30 +1627,43 @@ class _RemoteBatteryConnection:
 @contextlib.asynccontextmanager
 async def attached_remote_material_stage(configuration: Path, *, challenge):
     """Authenticate a signed upload without requiring local execution images."""
-    from carbon.battery.challenge import CHALLENGE as BATTERY_CHALLENGE
     from carbon.chain.external_signer import miner_signer
-    from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
     from carbon.development_session.direct_research_composition import (
         DirectDevelopmentConnection,
     )
     from carbon.development_session.intake_targets import validate
     from carbon.development_session.miner_network import binding
     from carbon.development_session.research_campaign import private_file
+    from carbon.reconstruction.served_recipe_contract import (
+        RemoteStageAttachment,
+        registered,
+    )
+    from carbon.registry.model import ChallengeKey
     from scripts.dev.miner_launchpad.controller import owner_lock
     from scripts.dev.miner_launchpad.runner import validated_profile
 
-    if challenge == BATTERY_CHALLENGE:
-        synthetic = False
-        state_name = "remote-stage-battery-v1.0"
-    else:
-        synthetic = challenge == bundle_material_v5()["challenge_key"]
-        if not synthetic:
-            raise AttachRefused(
-                "construction_recipe_challenge_mismatch",
-                "unregistered recipe challenge",
-            )
-        _direct_material("1.3")
-        state_name = "remote-stage-v1.3"
+    if type(challenge) is not ChallengeKey:
+        raise AttachRefused(
+            "construction_recipe_challenge_mismatch", "unregistered recipe challenge"
+        )
+    try:
+        contract = registered(challenge.challenge_id, challenge.version)
+    except LookupError:
+        raise AttachRefused(
+            "construction_recipe_challenge_mismatch", "unregistered recipe challenge"
+        ) from None
+    attachment = contract.remote_stage_attachment
+    supported_routes = ("DIRECT_DEVELOPMENT", "SIGNED_RESEARCH")
+    if (
+        type(attachment) is not RemoteStageAttachment
+        or attachment.connection_route not in supported_routes
+    ):
+        raise AttachRefused(
+            "construction_recipe_challenge_mismatch", "unregistered attachment route"
+        )
+    if attachment.connection_route == "DIRECT_DEVELOPMENT":
+        _direct_material(contract.version)
+    state_name = attachment.state_name
     with _check("runner_profile_unusable"):
         cfg = validated_profile(private_json(configuration))
     if cfg["enabled"] is not True:
@@ -1695,8 +1708,8 @@ async def attached_remote_material_stage(configuration: Path, *, challenge):
             "miner_key": signer,
         }
         connection = (
-            DirectDevelopmentConnection(version="1.3", **connection_args)
-            if synthetic
+            DirectDevelopmentConnection(version=contract.version, **connection_args)
+            if attachment.connection_route == "DIRECT_DEVELOPMENT"
             else _RemoteBatteryConnection(challenge=challenge, **connection_args)
         )
         with _check("registration_check_failed"):

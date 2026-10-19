@@ -197,6 +197,7 @@ class DirectFixtureDiscovery:
         from carbon.battery.construction_bundle_material import (
             bundle_material as battery_bundle_material,
         )
+        from carbon.challenge_kit import physical_material
         from carbon.challenge_kit.synthetic_linear_field_2d import (
             bundle_material,
             bundle_material_v3,
@@ -232,6 +233,7 @@ class DirectFixtureDiscovery:
         train_ids = material.get("train_case_ids")
         practice_ids = material.get("practice_case_ids")
         battery = key == battery_challenge.CHALLENGE
+        physical = physical_material.is_registered(key.challenge_id, key.version)
         if type(practice) is not np.ndarray or type(reference) is not np.ndarray:
             practice_shape_invalid = True
         elif battery:
@@ -242,13 +244,15 @@ class DirectFixtureDiscovery:
                 battery_practice.PRACTICE_CASES,
                 battery_tensors.OUTPUT_WIDTH,
             )
+        elif physical:
+            practice_shape_invalid = practice.shape[:1] != reference.shape[:1]
         else:
             practice_shape_invalid = practice.shape != reference.shape
         if (
             type(practice) is not np.ndarray
             or type(reference) is not np.ndarray
-            or practice.dtype != (np.float64 if battery else np.float32)
-            or reference.dtype != (np.float64 if battery else np.float32)
+            or practice.dtype != (np.float64 if battery or physical else np.float32)
+            or reference.dtype != (np.float64 if battery or physical else np.float32)
             or practice_shape_invalid
             or practice.ndim < 2
             or not np.isfinite(practice).all()
@@ -261,18 +265,27 @@ class DirectFixtureDiscovery:
         registered_material = (
             battery_bundle_material
             if battery
-            else {
-                "1.0": bundle_material,
-                "1.1": bundle_material_v3,
-                "1.2": bundle_material_v4,
-                "1.3": bundle_material_v5,
-            }.get(key.version)
+            else (
+                (
+                    lambda: physical_material.bundle_material(
+                        key.challenge_id, key.version
+                    )
+                )
+                if physical
+                else {
+                    "1.0": bundle_material,
+                    "1.1": bundle_material_v3,
+                    "1.2": bundle_material_v4,
+                    "1.3": bundle_material_v5,
+                }.get(key.version)
+            )
         )
         if registered_material is None:
             raise ValueError("direct public Challenge version is unregistered")
         if (
             self._task_admission
             and not battery
+            and not physical
             and key.version
             not in (
                 "1.1",
@@ -348,7 +361,8 @@ class DirectFixtureDiscovery:
             info.disclosure_digest,
             (
                 research.DIRECT_RECIPE_SOURCE_TASK_OPERATIONS
-                if self._task_admission and (battery or key.version == "1.3")
+                if self._task_admission
+                and (battery or physical or key.version == "1.3")
                 else (
                     research.DIRECT_RECIPE_TASK_OPERATIONS
                     if self._task_admission

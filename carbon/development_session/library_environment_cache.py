@@ -111,7 +111,10 @@ def pinned_uv_bytes(
         type(image) is not dict
         or _DIGEST.fullmatch(str(image.get("Id"))) is None
         or type(image.get("RepoDigests")) is not list
-        or repository_digest not in image.get("RepoDigests", ())
+        or not any(
+            reference in image["RepoDigests"]
+            for reference in (UV_IMAGE, repository_digest)
+        )
     ):
         raise ValueError("pinned local uv image differs")
     intent = secrets.token_hex(16)

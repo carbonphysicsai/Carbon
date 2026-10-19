@@ -1211,6 +1211,8 @@ class FakeLocalDocker:
         missing_parent=False,
         tag_mismatch=False,
         uv_digest_mismatch=False,
+        uv_repository_digest=UV_IMAGE,
+        malformed_uv_repo_digests=False,
     ):
         self.parent, self.bundle = parent, bundle
         self.missing_uv, self.missing_parent, self.tag_mismatch = (
@@ -1219,6 +1221,8 @@ class FakeLocalDocker:
             tag_mismatch,
         )
         self.uv_digest_mismatch = uv_digest_mismatch
+        self.uv_repository_digest = uv_repository_digest
+        self.malformed_uv_repo_digests = malformed_uv_repo_digests
         self.uv_id = "sha256:" + "d" * 64
         self.built_id = "sha256:" + "e" * 64
         self.tags = {}
@@ -1229,13 +1233,19 @@ class FakeLocalDocker:
         if ref == self.parent and not self.missing_parent:
             return {"Id": self.parent, "RootFS": {"Layers": ["base-layer"]}}
         if ref == UV_IMAGE and not self.missing_uv:
-            repository = UV_IMAGE.partition("@")[0].rsplit(":", 1)[0]
-            digest = (
-                ("sha256:" + "0" * 64)
+            repository_digest = (
+                (self.uv_repository_digest.partition("@")[0] + "@sha256:" + "0" * 64)
                 if self.uv_digest_mismatch
-                else UV_IMAGE.partition("@")[2]
+                else self.uv_repository_digest
             )
-            return {"Id": self.uv_id, "RepoDigests": [repository + "@" + digest]}
+            return {
+                "Id": self.uv_id,
+                "RepoDigests": (
+                    repository_digest
+                    if self.malformed_uv_repo_digests
+                    else [repository_digest]
+                ),
+            }
         if ref in self.tags:
             image_id = self.tags[ref]
             return {"Id": "sha256:" + "f" * 64 if self.tag_mismatch else image_id}
@@ -1265,7 +1275,17 @@ class FakeLocalDocker:
         raise AssertionError(args)
 
 
-def test_offline_builder_preflights_both_local_stages_and_final_layers(tmp_path):
+@pytest.mark.parametrize(
+    "uv_repository_digest",
+    [
+        UV_IMAGE,
+        "ghcr.io/astral-sh/uv@sha256:95f2aa1fe59274951cfe9b0cbc7972e879ff1004bc8945d130a32eb0dbd85945",
+    ],
+    ids=["actual-tag-qualified-digest", "repository-digest"],
+)
+def test_offline_builder_preflights_both_local_stages_and_final_layers(
+    tmp_path, uv_repository_digest
+):
     args = fixture()
     parent = "sha256:" + "b" * 64
     context, bundle, seal = prepare_offline_context(tmp_path, *args, parent)
@@ -1274,7 +1294,7 @@ def test_offline_builder_preflights_both_local_stages_and_final_layers(tmp_path)
     assert "TMPDIR=/tmp /tmp/uv pip check" in dockerfile
     assert "chmod -R" not in dockerfile
     assert "ENV TMPDIR" not in dockerfile
-    cli = FakeLocalDocker(parent, bundle)
+    cli = FakeLocalDocker(parent, bundle, uv_repository_digest=uv_repository_digest)
     assert build_offline_bundle(context, bundle, parent, seal, cli=cli) == cli.built_id
     assert [call[0] for call in cli.calls] == ["tag", "tag", "build"]
     assert cli.calls[-1][1:4] == [
@@ -1387,6 +1407,51 @@ def test_offline_builder_refuses_wrong_canonical_uv_digest_before_build(tmp_path
     with pytest.raises(ValueError, match="pinned local uv image differs"):
         build_offline_bundle(context, bundle, parent, seal, cli=cli)
     assert not any(call[0] == "build" for call in cli.calls)
+
+
+@pytest.mark.parametrize(
+    "uv_repository_digest",
+    [
+        "ghcr.io/astral-sh/uv:0.12.7@sha256:" + "0" * 64,
+        "ghcr.io/astral-sh/uv@sha256:" + "0" * 64,
+        "ghcr.io/astral-sh/uv:0.12.7",
+        UV_IMAGE.replace(":0.12.7@", ":different-tag@"),
+        UV_IMAGE.replace("astral-sh/uv", "another-owner/uv"),
+    ],
+    ids=[
+        "wrong-tagged-digest",
+        "wrong-repository-digest",
+        "tag-only",
+        "other-tag",
+        "other-repository",
+    ],
+)
+def test_offline_builder_refuses_unpinned_uv_before_any_image_mutation(
+    tmp_path, uv_repository_digest
+):
+    parent = "sha256:" + "b" * 64
+    context, bundle, seal = prepare_offline_context(tmp_path, *fixture(), parent)
+    cli = FakeLocalDocker(parent, bundle, uv_repository_digest=uv_repository_digest)
+    with pytest.raises(ValueError, match="pinned local uv image differs"):
+        build_offline_bundle(context, bundle, parent, seal, cli=cli)
+    assert cli.calls == []
+
+
+@pytest.mark.parametrize("repo_digests", [UV_IMAGE, {UV_IMAGE: True}, None])
+def test_offline_builder_refuses_malformed_uv_digests_before_mutation(
+    tmp_path, repo_digests
+):
+    parent = "sha256:" + "b" * 64
+    context, bundle, seal = prepare_offline_context(tmp_path, *fixture(), parent)
+    cli = FakeLocalDocker(
+        parent,
+        bundle,
+        uv_repository_digest=repo_digests,
+        malformed_uv_repo_digests=True,
+    )
+    with pytest.raises(ValueError, match="pinned local uv image differs"):
+        build_offline_bundle(context, bundle, parent, seal, cli=cli)
+    assert cli.calls == []
 
 
 def test_offline_builder_refuses_registry_from_context(tmp_path):

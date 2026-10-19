@@ -47,6 +47,17 @@ COPY --from=builder /opt/uv-python /opt/uv-python
 COPY --from=builder /opt/carbon-worker /opt/carbon-worker
 COPY --from=builder /opt/carbon /opt/carbon
 
+# Fixed native closure. Ordinary COPY/RUN also works with legacy builders.
+COPY .devcontainer/worker-native-mesh.lock /tmp/carbon-mesh-packages.lock
+COPY .devcontainer/install-worker-native-mesh.sh /tmp/install-worker-native-mesh.sh
+RUN printf '%s\n' \
+    "da5638a32f0ac62d9b3de0486d764168ff6731789b7ae9a98aa4f5684f7a5daf  /tmp/carbon-mesh-packages.lock" \
+    "c88b44b2f3600927b119de542a70aa238bd17625de5d2e3c3ec4d1a0ff322618  /tmp/install-worker-native-mesh.sh" \
+    | sha256sum --check --strict - \
+    && /bin/sh /tmp/install-worker-native-mesh.sh \
+    && test -s /opt/carbon/native-mesh-packages.lock \
+    && rm /tmp/install-worker-native-mesh.sh
+
 ENV HOME=/scratch/home \
     TMPDIR=/scratch/tmp \
     XDG_CACHE_HOME=/scratch/cache \
@@ -67,4 +78,6 @@ LABEL org.opencontainers.image.title="Carbon C-03 DEVELOPMENT reconstruction wor
 
 WORKDIR /
 USER 65532:65532
+# Verify the final runtime can load the native ABI; never infer it from a build label.
+RUN /opt/carbon-worker/bin/python -I -c "import ctypes; ctypes.CDLL('libGLU.so.1'); ctypes.CDLL('libGL.so.1')"
 ENTRYPOINT ["/opt/carbon-worker/bin/python", "-I", "-m", "carbon.reconstruction.worker.entrypoint"]

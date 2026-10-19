@@ -54,11 +54,28 @@ class Prepared:
     #: The admitted loss graph, per case and mapped by Carbon, or None.
     loss: Any = None
 
-    def predict(self, params, *inputs):
-        """Outputs for any number of cases, through the declared batch."""
+    def predict(self, params, *inputs, isolated=False):
+        """Outputs for any number of cases, through the declared batch.
+
+        `isolated` grades one case per call: the case is row 0 and the other
+        rows are zeros, a fixed public constant, so no output can depend on
+        another case. Judge-side inference sets it; training-time calls do not."""
         import jax.numpy as jnp
 
         n = inputs[0].shape[0]
+        if isolated:
+            blocks = []
+            for i in range(n):
+                chunk = [
+                    jnp.pad(
+                        x[i : i + 1], [(0, self.batch - 1)] + [(0, 0)] * (x.ndim - 1)
+                    )
+                    for x in inputs
+                ]
+                blocks.append([o[:1] for o in self.apply(params, *chunk)])
+            return [
+                jnp.concatenate([b[k] for b in blocks]) for k in range(len(blocks[0]))
+            ]
         blocks = []
         for start in range(0, n, self.batch):
             stop = min(start + self.batch, n)

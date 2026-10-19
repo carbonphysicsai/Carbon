@@ -34,6 +34,10 @@ _SOURCE_PATHS = (
     "carbon/development_session/synthetic_graph_adapter.py",
     "carbon/development_session/bundle_graph_state.py",
     "carbon/reconstruction/served_recipe_contract.py",
+    "carbon/challenge_kit/physical_material.py",
+    "carbon/challenge_kit/physical_pack.py",
+    "carbon/challenge_kit/physical_public.py",
+    "carbon/challenge_kit/physical_public_train.py",
 )
 
 

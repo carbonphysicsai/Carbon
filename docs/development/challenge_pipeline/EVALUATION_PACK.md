@@ -52,6 +52,104 @@ that path and each Challenge's measurement and gate contracts exist, the
 scales, floors and evidence roles explicit rather than translating v3 speedup
 into design quality.
 
+## Current eight-Challenge data handoff (18 October 2026)
+
+This DEVELOPMENT inventory uses the current briefs in
+[`round1/README.md`](round1/README.md). A source, diagnostic registry, or
+planned case count is not an accepted protected reference or an admitted Score
+Pack. The active Battery v1, older Motor diagnostic, older Cooling synthetic
+task, and prospective buyer briefs retain separate identities. The five `f*`
+briefs remain draft tasks.
+
+The first useful Design comparison precommits the model pick and a strong cheap
+baseline pick, then independently verifies **both whole actions over every
+mandatory condition** at the same declared budget. Record each action's
+feasibility, buyer objective in native units, signed margins, reference
+intervals, failures, and paired achieved value. This needs accepted references
+for those picks; it does not need an exhaustive menu. Claim global or
+finite-menu regret only with a separate optimum witness or enough accepted
+menu references to establish it. `NONE_FEASIBLE` requires complete exclusion
+evidence. Keep baseline-relative lift and global-optimum regret distinct.
+
+Physics `A` starts with quantities both the registered model interface and
+trusted reference actually expose. Retain ordinary, both-sided critical-limit,
+adverse valid-envelope, and held-out **whole-question** cohorts with common
+masks and independent-cluster identities. A perturbation component compares
+model *and reference* responses. Source failure or numerical ambiguity defers
+the question, never fails the candidate. The proposed weakest-component
+benefit, Design transform and quantity scales remain experiments until
+prospectively registered; the shared reducer does not turn a weighted mean
+into a minimum implicitly. A trusted producer must emit any named minimum
+benefit and retain its raw components.
+
+For every proposed measurement the packet owner returns **actual source and
+version, compatible accepted coverage, smallest missing observer or reference
+batch, and unresolved owner decision**. `P`, proposal `Q`, weights `w`, solver
+adequacy and scientific floors stay explicit. Diagnostic strata and repeated
+operating points do not silently become independent population questions.
+
+| Task / actual producer | Compatible first-pilot data | Missing or conditional evidence |
+| --- | --- | --- |
+| **Battery.** Active `carbon/battery` plus `carbon/challenge_validator/battery_bank.py`; prospective [`ambient-map v3`](round1/battery-ambient-map-v3.md) via `scripts/dev/evidence_runs/battery_v3.py`, `scripts/dev/battery/feasibility02.py`, `carbon/development_comparison/battery_v3_kit.py`. | Active four-input v1 has public 400 TRAIN / 200 PRACTICE and 121-point V/T, cycle-1 plating, Q1/10/20/30 under **v1 identity**. A prospective six-input v3 Physics pilot can use only five kit summaries: `charging_t_max_c` [°C], `minutes` [min], `plating_min_v` [V], `q30_over_q1` [1], `v_max_v` [V]. Verify pick and baseline across every mandatory band, preserving the guarded minutes clock's initial 120-second rest. | V3 is not the active v1 Challenge or an accepted five-band bank. The source persists phase extrema and plating cycle/phase, **not** raw v3 waveforms or intra-phase timestamp. Waveform/localization scoring requires new observer **and** model-output contracts; v1 traces cannot fill it. The 4.2-V old and guarded 4.19-V protocols cannot share labels. Five-band/full-menu and 4,000-TRAIN plans are conditional, not automatic jobs. |
+| **Motor.** Older 8p/24s source `carbon/challenge_validator/motor_source.py`; revised [`precision joint v2`](round1/motor-precision-joint-v2.md) via `scripts/dev/evidence_runs/motor_10p12s.py` and `carbon/development_comparison/motor_10p12s_kit.py`. | Preserve each signed 60-angle torque curve, mean, absolute/defined relative ripple, role margins and method/refinement evidence. Verify pick and baseline across complete selected commands; revised 10p/12s also requires defined skew slices and zero-current cogging. | Old diagnostic curves and synthetic six-command limits do not answer the revised holding/peak job. Revised full-role references, peak/cogging evidence, independent geometries and an admissible comparator must be established. |
+| **Cooling cell v3.** [`buyer brief`](round1/cooling-cell-v3.md), `carbon/challenge_pipeline/cooling_readiness.py`; older native outputs in `carbon/challenge_validator/cooling.py`. | Existing source exposes peak/profile temperature and pressure in its own scope. The v3 TIM2 case-plane comparison needs **co-located** heated-face T, interface heat flux q, coordinates/areas and R_TIM2 to compute `max_x(T_plate(x)+R_TIM2(x)q(x))`, plus pressure/flow for each pick/baseline service case. | Buyer post-spreader maps, lid/contact/TIM properties and uncertainty, service panel, hydraulic objective/limit and accepted observer are unresolved. Combining independent extrema or importing the old 100 °C / 0.25 W synthetic task cannot establish the 85 °C case-plane decision. |
+| **f02.** [`burst brief`](round1/f02-burst-thermal.md), `scripts/dev/reference_packages/elmer/f02_deck.py`, `f02_menu.py`, `f02_export.py`, `carbon/development_comparison/f02_kit.py`. | Menu-v2 `docs/development/evidence/reference-packages-01/f02-menu-v2/registry.json` specifies 16 actions × 24 contexts. The current kit/export expose source-verified full-120-second `peak_top_c` and analytic `extra_energy_j`; verify pick and baseline peaks with near-95 °C refinement. Energy is an action integral, not learned Physics credit. | The 384 primary transients and separate 960 off-menu TRAIN rows are **planned**, not accepted solves or pack adoption. The round-one nine-action/216-pair count is historical for menu-v2. Peak location/time, event-aligned traces, crossing/recovery and conservation/interface Physics from the brief require added pinned observer/reference fields and, if scored, a matching model-output contract; they are not prerequisites for a peak-only pilot. |
+| **f06.** [`3D grating brief`](round1/f06-grating-coupler.md), `solver-package-specs/f06-meep.md`, `scripts/dev/code_verification/meep_mode.py` slab control. | Each pick/baseline mask needs all five wavelengths × nine correlated tolerances, coupling/reflection fractions, panel p10, every-cell margins and applicable flux/refinement controls. | Adequate finite-width full-3D truth and an accepted 45-cell panel are not demonstrated by the slab control. Old 2D supermode and metagrating data are different jobs. Establish a bounded 3D resolution/cost witness first; process population and numerical adequacy remain owner-held. |
+| **f08.** [`resonance brief`](round1/f08-resonance-structure.md), `scripts/dev/reference_packages/calculix/f08_deck.py`, `carbon/challenge_pipeline/structures_readiness.py`. | Each geometry needs mass, static compliance, modes, complex tip/probe FRFs and adaptive full-band peaks over 80–600 Hz at all three dampings, with mesh/mode/frequency intervals. Keep the actual buyer **tip** peak. | `max(tip,probe)` is a diagnostic, not the buyer tip observer. Accepted complete panels, narrow low-damping peak resolution, independent geometries and comparator receipts remain to be returned. |
+| **f13.** [`silencer brief`](round1/f13-compressor-silencer.md), `scripts/dev/reference_packages/elmer/f13_deck.py`, `f13_power_probe.py`, `carbon/challenge_pipeline/silencer_readiness.py`. | Each geometry needs a complete 500–2500 Hz curve, interval-weighted p10 TL, complex R/T, raw powers, notch locations, port-plane definitions and adaptive/refinement evidence. The 5 dB target applies to p10, not every frequency. | Repaired sparse power closure is not full-band/new-design adequacy. Full curves, de-embedding/mode applicability and a strong comparator are still needed; pressure drop is outside the no-flow brief. |
+| **f17.** [`mixer brief`](round1/f17-passive-micromixer.md), `carbon/challenge_pipeline/micromixer_readiness.py` flow/scalar observer and cache plan. | Each geometry needs all nine flow × diffusivity conditions, outlet concentration and positive axial-flux weights, unclipped mixing M, pressure [Pa], fluid-volume/flow residence [s], balance and refinement controls. | Draft 5-geometry × 9-condition × 2-rung and separate TRAIN counts are preparation, not accepted coverage or a job grant. Numerical smearing, backflow and flow-cache equivalence need witnesses; no accepted complete design panel is established. |
+
+Use public `interface`, `physics_contract`, accuracy/limit/objective definitions,
+TRAIN and intentionally incomplete practice for construction meaning. Private
+`case_bank` carries whole questions, panels, `P`/`Q`/`w`, cohorts and exposure;
+`reference_rows` carries raw units/coordinates, typed status, intervals and
+accepted pick/baseline outcomes; `solver_evidence` pins actual decks, meshes,
+observers, controls, attempts and resource use; `score_pack` binds the applied
+measurements, transforms, gates, floors, equivalence and outcome policy. None
+of those private rows or identities belongs in miner-visible surfaces.
+Research owns physical applicability, ScoreLab the score proposal, Packets2
+the Battery inventory, the Challenge-pack owner the other seven data maps,
+and Product any finite authorized job dispatch.
+
+### Active Battery v1 public-material draft
+
+From the repository root, an operator can run:
+
+```bash
+python scripts/dev/battery/prepare_evaluation_pack_v1.py --operator-root <owner-only-directory-outside-the-repository>
+```
+
+The command checks the served
+Battery 1.0 source and writes one editable `evaluation-pack.json` in that
+operator directory. It uses the current kit and interface, the pinned public
+400-row TRAIN archive and physics contract. The normal receiver, when given
+the trusted selection below, performs the existing seal-at-admission path:
+
+```json
+{
+  "root": "<operator-directory>",
+  "manifest": "evaluation-pack.json",
+  "public_root": "<repository-checkout>",
+  "private_root": "<operator-directory>"
+}
+```
+
+The selection is operator-controlled, never participant-supplied. All public
+scoring definitions and private bank/reference/solver/Score Pack/source-registration
+roles remain `HUMAN_INPUT`; the draft is usable for source binding and
+construction, not a graded Battery decision. Public PRACTICE stays separate
+from the pack and never supplies protected truth.
+
+The next custody-host action is a **metadata-only inventory** of an existing
+Battery v1 `HiddenBatchStore`: identify whether a batch is `COMPLETE` and has
+its exact fingerprint and references digest. Only then may the operator bind
+that selected batch through the existing run-pin path; no hidden row belongs
+in this draft or repository. A v1-specific buyer Design objective, complete
+pick/baseline action panel, accepted reference/solver evidence and Score Pack
+are still absent, so this command does not authorize a new solver batch or a
+dual score. A future finite generation request must name those exact v1
+decisions and the missing whole-question references first.
+
 ## Manifest and data roles
 
 The manifest is a small index over existing material, not another bank or

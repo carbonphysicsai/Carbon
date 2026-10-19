@@ -1426,7 +1426,11 @@ def remove_exact_container(
 
 
 def spawn_watchdog(
-    *, container_name: str, launch_digest: str, deadline_unix: float
+    *,
+    container_name: str,
+    launch_digest: str,
+    deadline_unix: float,
+    intent_path: Path | None = None,
 ) -> None:
     exact_token(container_name)
     exact_digest(launch_digest)
@@ -1451,6 +1455,7 @@ def spawn_watchdog(
                 container_name,
                 launch_digest,
                 str(deadline_unix),
+                *([] if intent_path is None else [str(intent_path)]),
             ],
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,

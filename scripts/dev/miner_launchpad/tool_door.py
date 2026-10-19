@@ -483,6 +483,10 @@ class _Session:
         self.opened = time.time()
         self.used = time.monotonic()
         self.tasks = []
+        self.closing = False
+        self._closed = False
+        self._close_future = None
+        self._close_lock = threading.Lock()
 
     def run(self, coroutine, timeout):
         return asyncio.run_coroutine_threadsafe(coroutine, self.loop).result(timeout)
@@ -517,12 +521,27 @@ class _Session:
             raise
 
     def close(self):
-        try:
-            if self.stack is not None:
-                self.run(self.stack.aclose(), OPEN_SECONDS)
-        finally:
-            self.stack = self.door = None
-            self.stop()
+        # A timeout from Future.result does not cancel the coroutine running
+        # on this session's loop. Retain and rejoin that one close attempt.
+        with self._close_lock:
+            if self._closed:
+                return
+            self.closing = True
+            if self.stack is None:
+                self.stop()
+                self._closed = True
+                return
+            if self._close_future is None:
+                self._close_future = asyncio.run_coroutine_threadsafe(
+                    self.stack.aclose(), self.loop
+                )
+            future = self._close_future
+        future.result(OPEN_SECONDS)
+        with self._close_lock:
+            if not self._closed:
+                self.stop()
+                self.stack = self.door = None
+                self._closed = True
 
     def stop(self):
         self.loop.call_soon_threadsafe(self.loop.stop)
@@ -555,13 +574,16 @@ class ToolSessions:
         now = self.clock()
         with self.lock:
             stale = [
-                c
+                (c, s)
                 for c, s in self.sessions.items()
                 if getattr(s, "exclusive_token", None) is None
+                and not getattr(s, "closing", False)
                 and now - s.used >= self.idle
             ]
-            for campaign in stale:
-                self.sessions.pop(campaign).close()
+            for _, session in stale:
+                session.closing = True
+        for campaign, session in stale:
+            self._close_session(campaign, session)
 
     def state(self, campaign):
         self.reap()
@@ -569,6 +591,8 @@ class ToolSessions:
             session = self.sessions.get(campaign)
             if session is None:
                 return {"open": False, "idle_close_seconds": self.idle}
+            if getattr(session, "closing", False):
+                return {"open": True, "closing": True, "idle_close_seconds": self.idle}
             return {
                 "open": True,
                 "opened_unix": int(session.opened),
@@ -595,6 +619,8 @@ class ToolSessions:
         with self.lock:
             if campaign in self.sessions:
                 session = self.sessions[campaign]
+                if getattr(session, "closing", False):
+                    raise Rejected("tools_session_closing", 409)
                 if getattr(session, "exclusive_token", None) != exclusive_token:
                     raise Rejected("tools_session_already_open", 409)
                 session.used = self.clock()
@@ -633,17 +659,31 @@ class ToolSessions:
                 and getattr(session, "exclusive_token", None) != exclusive_token
             ):
                 raise Rejected("tools_session_owned_elsewhere", 409)
-            self.sessions.pop(campaign, None)
-        if session is not None:
-            session.close()
-        return {"open": False, "closed": session is not None}
+        return {
+            "open": False,
+            "closed": session is not None and self._close_session(campaign, session),
+        }
+
+    def _close_session(self, campaign, session):
+        """Settle only the session selected under the registry lock."""
+        with self.lock:
+            if self.sessions.get(campaign) is not session:
+                return False
+            session.closing = True
+        session.close()
+        with self.lock:
+            if self.sessions.get(campaign) is session:
+                self.sessions.pop(campaign)
+        return True
 
     def close_all(self):
         with self.lock:
-            sessions, self.sessions = list(self.sessions.values()), {}
-        for session in sessions:
+            sessions = list(self.sessions.items())
+            for _, session in sessions:
+                session.closing = True
+        for campaign, session in sessions:
             with contextlib.suppress(Exception):
-                session.close()
+                self._close_session(campaign, session)
 
     def _session(self, campaign, *, exclusive_token=None):
         from scripts.dev.miner_launchpad.controller import Rejected
@@ -653,6 +693,8 @@ class ToolSessions:
             session = self.sessions.get(campaign)
             if session is None:
                 raise Rejected("tools_session_not_open", 409)
+            if getattr(session, "closing", False):
+                raise Rejected("tools_session_closing", 409)
             if getattr(session, "exclusive_token", None) != exclusive_token:
                 raise Rejected("tools_session_owned_elsewhere", 409)
             session.used = self.clock()
