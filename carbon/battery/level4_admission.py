@@ -70,7 +70,13 @@ def interface_and_batch(strategy, *, root=None):
 
     from .challenge import PublicMaterial
     from .compile import build_model, compile_recipe
-    from .level4_model import FAMILIES, dims, interface_model, published_kit
+    from .level4_model import (
+        FAMILIES,
+        dims,
+        interface_model,
+        public_kit_source,
+        published_kit,
+    )
 
     _, recipe = compile_recipe(_base(strategy))
     if recipe.family not in FAMILIES:
@@ -102,7 +108,7 @@ def interface_and_batch(strategy, *, root=None):
     interface = Interface(
         inputs=(("inputs/features", dtype, (n_in,)),),
         outputs=((dtype, (n_out,)),),
-        kit=published_kit(dtype, public)[0],
+        kit=published_kit(dtype, public_kit_source(public))[0],
     )
     return interface, batch
 

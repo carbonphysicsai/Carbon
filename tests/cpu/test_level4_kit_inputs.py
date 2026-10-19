@@ -4,6 +4,7 @@ Carbon by name, never sliced or padded, and never counted as constants."""
 
 from __future__ import annotations
 
+import io
 import os
 
 import numpy as np
@@ -115,17 +116,51 @@ def test_an_unbound_kit_input_is_refused(allowlist):
     assert refused.value.code == "kit_input_unbound"
 
 
-def test_battery_kit_digest_is_the_published_tables_from_either_source():
+def test_battery_kit_digests_are_the_published_arrays_from_either_source():
     from carbon.battery import level4 as battery
     from carbon.battery import level4_model
 
     material = battery.material()
     host, _ = level4_model.published_kit("float32")
-    from_structure, arrays = level4_model.published_kit(
-        "float32", battery.structure(material)
+    structure = battery.structure(material)
+    rebuilt_source = level4_model.kit_source(
+        structure.ocv_soc,
+        structure.ocv_v,
+        level4_model.train_target_stats(material.train),
     )
-    assert host == from_structure
+    from_rebuild, arrays = level4_model.published_kit("float32", rebuilt_source)
+    assert host == from_rebuild
     assert [name for name, *_ in host] == list(level4_model.KIT_INPUTS)
+    train = material.train
+    y = np.column_stack((train.v, train.t, train.eta, train.q))
+    np.testing.assert_array_equal(
+        arrays["kit/train_target_std"], y.std(axis=0).astype(np.float32)
+    )
     np.testing.assert_array_equal(
         arrays["kit/ocv_v"], np.asarray(material.ocv_v, np.float32)
     )
+
+
+def test_a_battery_state_carries_the_train_statistics_it_reads():
+    from carbon.battery import level4 as battery
+    from carbon.battery import level4_model, level4_worker
+    from carbon.battery.compile import compile_recipe
+    from carbon.level4 import intake, staging, submission
+
+    strategy = battery._steps(battery.level0_strategies()["scaffold_mlp"], 16)
+    _, recipe = compile_recipe(strategy)
+    manifest, files = battery.lower_recipe(
+        strategy, allowlist_module.load(), max_bytes=intake.BOUNDS["document_bytes"]
+    )
+    found = {"schema": level4_worker.SCHEMA, "submission": submission.digest(manifest)}
+    workspace = staging.workspace(submission.canonical(manifest), files)
+    material = battery.material()
+    model = level4_worker.build_in_process(recipe, found, workspace)
+    model.fit(material.train, battery.structure(material), 7)
+    # A graph that reads none of the kit leaves its state as it was.
+    plain = level4_model.state_bytes(model)
+    assert "kit_train_target_mean" not in np.load(io.BytesIO(plain)).files
+    model.kit_used = level4_model.KIT_TRAIN_STATS
+    restored = level4_model.model_from_bytes(level4_model.state_bytes(model))
+    for name in level4_model.KIT_TRAIN_STATS:
+        np.testing.assert_array_equal(restored.kit_source[name], model.kit_source[name])

@@ -74,19 +74,34 @@ _PCA_ARRAYS = ("vm", "tm", "pv", "pt", "zmu", "zsd")
 
 #: Battery's published material a graph may read as named kit inputs instead
 #: of embedding it as constants (OWNER-L4-CONSTANT-ACCOUNTING-02): the public
-#: open-circuit-voltage table.
-KIT_INPUTS = ("kit/ocv_soc", "kit/ocv_v")
+#: open-circuit-voltage table, and the per-output mean and standard deviation
+#: of the fixed public TRAIN's targets.
+KIT_INPUTS = (
+    "kit/ocv_soc",
+    "kit/ocv_v",
+    "kit/train_target_mean",
+    "kit/train_target_std",
+)
+#: The TRAIN statistics, which a state carries: inference has no TRAIN.
+KIT_TRAIN_STATS = ("kit/train_target_mean", "kit/train_target_std")
 
 
-def published_kit(precision, public=None):
-    """`(interface entries, arrays)` for battery's published kit inputs at the
-    graph's precision, from Carbon's own public material (`public`, else the
-    repository's). Each entry's digest is that of the published float64 table
-    bytes."""
-    import hashlib
+def train_target_stats(train):
+    """Per-output mean and population standard deviation (ddof 0) of TRAIN's
+    raw targets in battery's output order (v, t, eta, q), in float64."""
+    y = np.column_stack((train.v, train.t, train.eta, train.q)).astype(np.float64)
+    return dict(zip(KIT_TRAIN_STATS, (y.mean(axis=0), y.std(axis=0))))
 
-    m = public
-    if m is None:
+
+def kit_source(ocv_soc, ocv_v, stats=None):
+    """The published arrays, by kit name, in float64."""
+    source = {"kit/ocv_soc": ocv_soc, "kit/ocv_v": ocv_v, **(stats or {})}
+    return {n: np.ascontiguousarray(v, dtype=np.float64) for n, v in source.items()}
+
+
+def public_kit_source(public=None):
+    """The kit from Carbon's public material (`public`, else the repository's)."""
+    if public is None:
         # The repository's public material, loaded here rather than through
         # `level4.material`: this module is miner-reachable and must not reach
         # `level4` (and through it the development variants).
@@ -94,15 +109,30 @@ def published_kit(precision, public=None):
 
         from .challenge import PublicMaterial
 
-        m = PublicMaterial.load(Path(__file__).resolve().parents[2])
+        public = PublicMaterial.load(Path(__file__).resolve().parents[2])
+    return kit_source(public.ocv_soc, public.ocv_v, train_target_stats(public.train))
+
+
+def published_kit(precision, source=None):
+    """`(interface entries, arrays)` for battery's kit inputs at the graph's
+    precision. Each entry's digest is that of the published float64 bytes."""
+    import hashlib
+
+    source = public_kit_source() if source is None else source
     dtype = "float64" if precision == "float64" else "float32"
     entries, arrays = [], {}
-    for name, values in zip(KIT_INPUTS, (m.ocv_soc, m.ocv_v)):
-        published = np.ascontiguousarray(values, dtype=np.float64)
+    for name in KIT_INPUTS:
+        if name not in source:
+            continue
+        published = source[name]
         digest = "sha256:" + hashlib.sha256(published.tobytes()).hexdigest()
         entries.append((name, dtype, tuple(published.shape), digest))
         arrays[name] = published.astype(dtype)
     return tuple(entries), arrays
+
+
+def _state_key(name):
+    return name.replace("/", "_")
 
 
 def dims(model):
@@ -341,7 +371,7 @@ class GraphModel(recipes.MLP):
         self.prepared = None
 
     # -- the submission, verified and validated --------------------------------------
-    def _interface(self, structure=None):
+    def _interface(self, source=None):
         from carbon.level4.validate import Interface
 
         n_in, n_out = dims(self)
@@ -349,7 +379,7 @@ class GraphModel(recipes.MLP):
         return Interface(
             inputs=(("inputs/features", dtype, (n_in,)),),
             outputs=((dtype, (n_out,)),),
-            kit=() if structure is None else published_kit(dtype, structure)[0],
+            kit=() if source is None else published_kit(dtype, source)[0],
         )
 
     def _prepare(self, batch):
@@ -357,10 +387,11 @@ class GraphModel(recipes.MLP):
         from carbon.level4 import graph, intake, submission, train, validate
 
         allowlist = allowlist_module.load()
-        # Carbon's own OCV structure (TRAIN's, or the state's): the published
-        # kit a graph may read, with no material load in the staged worker.
-        structure = getattr(self, "kit_structure", None)
-        interface = self._interface(structure)
+        # Carbon's own published arrays (from TRAIN at fit, or the state at
+        # inference): the kit a graph may read, with no material load in the
+        # staged worker.
+        source = getattr(self, "kit_source", None)
+        interface = self._interface(source)
         _, parsed = submission.verify(
             self.raw_manifest,
             self.files,
@@ -385,8 +416,9 @@ class GraphModel(recipes.MLP):
             if terms:
                 raise graph.GraphRefused(LOSS_TERMS, ",".join(terms))
         kit = None
-        if verdict["documents"]["forward"]["kit"]:
-            kit = published_kit(self.settings["precision"], structure)[1]
+        self.kit_used = tuple(n for n, _ in verdict["documents"]["forward"]["kit"])
+        if self.kit_used:
+            kit = published_kit(self.settings["precision"], source)[1]
         return train.prepare(parsed, allowlist, verdict=verdict, kit=kit)
 
     # -- training ------------------------------------------------------------------
@@ -401,7 +433,9 @@ class GraphModel(recipes.MLP):
             fade=self.fade,
         )
         batch = min(self.settings["batch_size"], len(subset.case_ids))
-        self.kit_structure = structure
+        self.kit_source = kit_source(
+            structure.ocv_soc, structure.ocv_v, train_target_stats(d)
+        )
         self.prepared = self._prepare(batch)
         return super().fit(d, structure, seed)
 
@@ -630,6 +664,11 @@ def state_bytes(model):
         header["schema"] = recipes.STATE_SCHEMA
         header["layout"] = recipes._layout_state(model.layout)
         arrays["ocv_soc"], arrays["ocv_v"] = model.s.ocv_soc, model.s.ocv_v
+        # Inference has no TRAIN: a graph that reads the TRAIN statistics kit
+        # gets Carbon's arrays from its state; any other state is unchanged.
+        for name in KIT_TRAIN_STATS:
+            if name in getattr(model, "kit_used", ()):
+                arrays[_state_key(name)] = model.kit_source[name]
     buffer = io.BytesIO()
     np.savez(
         buffer,
@@ -720,7 +759,10 @@ def import_state(header, arrays, layout, structure):
     model.classic, model.x64 = header["classic"], header["x64"]
     for name in ("mu", "sd") + (_PCA_ARRAYS if model.pca else ()):
         setattr(model, name, arrays[name])
-    model.kit_structure = structure
+    stats = {
+        n: arrays[_state_key(n)] for n in KIT_TRAIN_STATS if _state_key(n) in arrays
+    }
+    model.kit_source = kit_source(structure.ocv_soc, structure.ocv_v, stats)
     model.prepared = model._prepare(header["batch"])
     model.params = [arrays[f"leaf{i:04d}"] for i in range(header["leaves"])]
     return model
