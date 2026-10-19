@@ -15,6 +15,7 @@ from itertools import islice
 from pathlib import Path
 
 import numpy as np
+from closed_export_failure_fixture import closed_export_failure
 
 from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
 from carbon.challenge_validator import AttemptLedger
@@ -271,6 +272,10 @@ def test_normal_cpu_source_only_task_cold_prepares_builds_and_retains(tmp_path):
                             "worker_code": record["worker_code"],
                             "diagnostic_markers": record["diagnostic_markers"],
                         }
+                        if record["stage"] == "EXPORT":
+                            projected["export_failure"] = closed_export_failure(
+                                operation
+                            )
                     except (OSError, ValueError, TypeError, KeyError, RecursionError):
                         pass  # Unknown private bytes are never assertion text.
                     phase_failures.append(projected)
