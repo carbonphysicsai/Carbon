@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 
+import numpy as np
 import pytest
 
 from carbon.challenge_kit import physical_pack, physical_public, physical_public_train
@@ -14,6 +15,7 @@ from carbon.challenge_validator.evaluation_pack import (
     prepare_pack,
 )
 from carbon.motor import challenge as motor
+from carbon.motor import domain as motor_domain
 
 MOTOR = motor.CHALLENGE.challenge_id
 VERSION = motor.CHALLENGE.version
@@ -132,3 +134,55 @@ def test_an_existing_pack_directory_is_never_overwritten(tmp_path):
     physical_pack.write_public_pack(tmp_path / "p", MOTOR, VERSION)
     with pytest.raises(ValueError):
         physical_pack.write_public_pack(tmp_path / "p", MOTOR, VERSION)
+
+
+def test_the_development_bank_is_48_ordered_counted_cases():
+    bank = physical_pack.development_bank(MOTOR, VERSION)
+    assert len(bank["case_ids"]) == 48
+    assert bank["case_ids"][:2] == ("decision-d01-r01", "decision-d01-r02")
+    assert bank["inputs"].shape == (48, 8) and bank["inputs"].dtype == "<f8"
+    assert bank["references"].shape == (48, 60)
+    first = dict(zip(motor_domain.INPUTS, bank["inputs"][0], strict=True))
+    assert first["current_density_a_mm2"] == 8.0 and first["airgap_mm"] == 0.4
+    assert [r["case_id"] for r in bank["reference_records"]] == list(bank["case_ids"])
+
+
+def test_the_exposed_bank_case_bank_is_the_scored_query_byte_for_byte(tmp_path):
+    from carbon.development_session.bundle_construction_worker import _tensors
+
+    pack = tmp_path / "pack"
+    manifest = physical_pack.write_public_pack(
+        pack, MOTOR, VERSION, exposed_development_bank=True
+    )
+    prepared = prepare_pack(
+        pack,
+        manifest.name,
+        public_root=pack,
+        private_root=pack,
+        challenge_id=MOTOR,
+        challenge_version=VERSION,
+    )
+    snapshot = prepared.snapshot
+    missing = snapshot.verify_available(pack, pack)
+    assert set(missing["private"]) == {"score_pack"}
+    assert snapshot.pack_version.endswith("-exposed-bank")
+    bank = physical_pack.development_bank(MOTOR, VERSION)
+    # Retention scores the query _tensors(inputs=material["practice_inputs"]) and
+    # requires it to equal the case bank; practice inputs are the bank's inputs.
+    query = _tensors(inputs=np.array(bank["inputs"]))
+    assert snapshot.read_role(pack, "private", "case_bank", max_bytes=1 << 24) == query
+    rows = snapshot.read_json_role(pack, "private", "reference_rows", max_bytes=1 << 24)
+    assert type(rows) is list and len(rows) == 48
+    solver = snapshot.read_json_role(
+        pack, "private", "solver_evidence", max_bytes=65536
+    )
+    assert solver == json.loads(bank["solver_evidence"])
+
+
+def test_a_changed_development_bank_source_is_refused(monkeypatch):
+    banks = {MOTOR: dict(physical_pack._BANKS[MOTOR])}
+    path, _ = banks[MOTOR]["references"]
+    banks[MOTOR]["references"] = (path, "0" * 64)
+    monkeypatch.setattr(physical_pack, "_BANKS", banks)
+    with pytest.raises(ValueError, match="pinned development bank references"):
+        physical_pack.development_bank(MOTOR, VERSION)
