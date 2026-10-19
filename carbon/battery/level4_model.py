@@ -161,10 +161,7 @@ def classic_fit(model, d, y, seed, net, make_params, objective=None):
                 lambda w, a, b: (
                     w
                     - lr
-                    * (
-                        (a / (1 - b1**t)) / (jnp.sqrt(b / (1 - b2**t)) + eps)
-                        + wd * w
-                    )
+                    * ((a / (1 - b1**t)) / (jnp.sqrt(b / (1 - b2**t)) + eps) + wd * w)
                 ),
                 p,
                 m,
@@ -538,6 +535,8 @@ class GraphEnsemble(recipes.Ensemble):
         )
 
     def fit(self, d, structure, seed):
+        # Mirrors `recipes.Ensemble.fit` line for line with a GraphModel member:
+        # recipes.py is pinned (implementation digest), so it gains no hook.
         import hashlib
 
         self.members, stats = [], []
