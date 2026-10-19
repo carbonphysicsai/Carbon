@@ -121,15 +121,13 @@ def private_evaluation_key(evidence):
             "reference_coverage": coverage,
             **{field: evidence[field] for field in fields},
         }
-        if paired:
-            if not is_digest(evidence.get("inference_pair_sha256")):
-                raise StateError("private_evaluation_invalid")
-            dual_identity.update(
-                dual_measurement_receipt_sha256=evidence[
-                    "dual_measurement_receipt_sha256"
-                ],
-                inference_pair_sha256=evidence["inference_pair_sha256"],
-            )
+        # v4 requires the paired-inference receipt, but like the dual
+        # measurement receipt it belongs to one model's run: it stays bound in
+        # the retained evidence and out of the key. A key is the shared
+        # evaluation context, so a compatible incumbent and contender meet
+        # under the same key; `binding_schema` keeps v3 and v4 apart.
+        if paired and not is_digest(evidence.get("inference_pair_sha256")):
+            raise StateError("private_evaluation_invalid")
     return digest(
         {
             "challenge": evidence["challenge"],
