@@ -267,6 +267,9 @@ if allowed.digest != control["allowlist_digest"]:
 measure = control.get("measure_query", False)
 if type(measure) is not bool:
     raise ValueError("bundle inference measurement control differs")
+per_case = control.get("per_case", True)
+if type(per_case) is not bool or (measure and per_case):
+    raise ValueError("bundle inference per-case control differs")
 if measure:
     preprocess_start = time.perf_counter()
 doc, parameters = load(state, recipe, allowed)
@@ -298,21 +301,36 @@ input_array = jnp.asarray(inputs)
 if measure:
     inference_start = time.perf_counter()
 forward = rebuild(doc, allowed)
+graph_source = recipe.to_dict()["source"]["kind"] == "graph"
 arity = ("graph inference output arity differs"
-         if recipe.to_dict()["source"]["kind"] == "graph"
-         else "bundle inference output arity differs")
+         if graph_source else "bundle inference output arity differs")
 batch = declared[-1]["shape"][0]
 blocks = []
-for index in range(len(input_array)):
+if per_case:
     # One case per call: the case is row 0 and the other batch rows are a fixed
     # public constant (zeros), so no output can depend on another case.
-    part = jnp.pad(input_array[index:index + 1],
-                   [(0, batch - 1)] + [(0, 0)] * (input_array.ndim - 1))
-    outputs = forward(*parameter_arrays, part)
-    if len(outputs) != 1:
-        raise ValueError(arity)
-    blocks.append(outputs[0][:1])
-outputs = [jnp.concatenate(blocks)]
+    for index in range(len(input_array)):
+        part = jnp.pad(input_array[index:index + 1],
+                       [(0, batch - 1)] + [(0, 0)] * (input_array.ndim - 1))
+        outputs = forward(*parameter_arrays, part)
+        if len(outputs) != 1:
+            raise ValueError(arity)
+        blocks.append(outputs[0][:1])
+    outputs = [jnp.concatenate(blocks)]
+elif graph_source:
+    # The batched cold query kept only for timing (measure_query); never graded.
+    for start in range(0, len(input_array), batch):
+        part = input_array[start:start + batch]
+        used = len(part)
+        if used < batch:
+            part = jnp.pad(part, [(0, batch - used)] + [(0, 0)] * (part.ndim - 1))
+        outputs = forward(*parameter_arrays, part)
+        if len(outputs) != 1:
+            raise ValueError(arity)
+        blocks.append(outputs[0][:used])
+    outputs = [jnp.concatenate(blocks)]
+else:
+    outputs = forward(*parameter_arrays, input_array)
 if len(outputs) != 1:
     raise ValueError("bundle inference output arity differs")
 result = np.asarray(outputs[0])
@@ -1289,6 +1307,7 @@ def _infer_state(
     allowlist_bytes: bytes,
     expected_output_dtype: str | None = None,
     measure_query: bool = False,
+    per_case: bool = True,
     input_name: str = "inputs/x",
     provenance: str = "DIRECT_BUNDLE_PUBLIC_INFERENCE",
     seconds: int = 600,
@@ -1316,6 +1335,10 @@ def _infer_state(
         control["expected_output_dtype"] = expected_output_dtype
     if measure_query:
         control["measure_query"] = True
+    if measure_query or not per_case:
+        # The measured query is the batched cold query kept only for timing; the
+        # graded query runs one case at a time (the program's default).
+        control["per_case"] = False
     if input_name != "inputs/x":
         if input_name != "inputs/forcing":
             raise RecipeRefused("direct_inference_input_name_invalid")
@@ -1449,6 +1472,8 @@ class DirectReconstructionResult:
     inference_controls_digest: str | None
     elapsed_seconds: float
     prediction_comparison: dict | None = None
+    #: The batched cold query kept for timing when the task is measured.
+    timed: BundleInferenceResult | None = None
 
 
 def _private_controls_digest(
@@ -1512,6 +1537,7 @@ def direct_child_identity(identity: str, phase: str) -> str:
             "prep",
             "build",
             "inference",
+            "timed",
         )
     ):
         raise RecipeRefused("bundle_child_identity_invalid")
@@ -1602,17 +1628,41 @@ def reconstruct_and_infer_public(
         inputs=inputs,
         expected_output_shape=expected_output_shape,
         expected_output_dtype=expected_output_dtype,
-        measure_query=measure_query,
         allowlist_bytes=allowlist_bytes,
         limits_document=limits_document,
         seconds=phase_seconds("inference_wall_seconds_max"),
         **_accelerator_kwargs(inference_accelerator),
         runner=runner,
     )
+    timed = (
+        infer_public(
+            ledger,
+            owner=owner,
+            identity=direct_child_identity(identity, "timed"),
+            image=image,
+            inference_image=inference_image,
+            recipe=recipe,
+            challenge_binding=binding,
+            build=build,
+            inputs=inputs,
+            expected_output_shape=expected_output_shape,
+            expected_output_dtype=expected_output_dtype,
+            measure_query=True,
+            allowlist_bytes=allowlist_bytes,
+            limits_document=limits_document,
+            seconds=phase_seconds("inference_wall_seconds_max"),
+            **_accelerator_kwargs(inference_accelerator),
+            runner=runner,
+        )
+        if measure_query
+        else None
+    )
     elapsed = time.monotonic() - started
     if elapsed > policy["total_reconstruction_wall_seconds_max"]:
         raise RecipeRefused("construction_total_deadline_reached")
-    if build.state_digest != inference.state_digest:
+    if build.state_digest != inference.state_digest or (
+        timed is not None and timed.state_digest != build.state_digest
+    ):
         raise RecipeRefused("bundle_inference_custody_invalid")
     comparison = compare_build_inference_predictions(
         build, inference, expected_output_dtype=expected_output_dtype
@@ -1653,4 +1703,5 @@ def reconstruct_and_infer_public(
         controls[1],
         elapsed,
         comparison,
+        timed,
     )

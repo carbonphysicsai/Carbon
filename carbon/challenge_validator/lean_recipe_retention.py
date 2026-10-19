@@ -421,7 +421,12 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id, evide
             write_once(receipt_path, receipt_raw)
             write_once(reference_path, reference_raw)
         worker = json.loads(artifacts["worker-evidence.json"]) if graph else evidence
-        inference_receipt = json.loads(artifacts["inference-receipt.json"])
+        # The measurement belongs to the batched cold query kept for timing.
+        inference_receipt = json.loads(
+            artifacts.get(
+                "timed-query-receipt.json", artifacts["inference-receipt.json"]
+            )
+        )
         inference = {
             "recipe_digest": entry["recipe_digest"],
             "state_digest": entry["state_digest"],
@@ -540,6 +545,11 @@ def _retain_selected_pack_evaluation(
                 )
                 + b"\n",
             }
+            if "timed-query-receipt.json" in artifacts:
+                originals["timed_query"] = {
+                    "receipt_raw": artifacts["timed-query-receipt.json"],
+                    "registered_sha256": _sha(artifacts["timed-query-receipt.json"]),
+                }
         prepared = produce_registered_dual_measurement(
             selected_pack=snapshot,
             public_root=discovery.evaluation_pack_public_root,
@@ -869,6 +879,20 @@ def retain_served_result(
         evidence["inference_receipt"],
         "inference_receipt",
     )
+    timed_receipt = None
+    if "timed_receipt" in evidence:
+        # The batched cold query kept only for timing, retained as an original.
+        if (
+            type(evidence.get("timed_operation")) is not str
+            or re.fullmatch(r"operation-[0-9a-f]{64}", evidence["timed_operation"])
+            is None
+        ):
+            raise RetentionUnavailable("timed_operation_invalid")
+        timed_receipt = _receipt_snapshot(
+            root / evidence["timed_operation"] / "snapshot" / "receipt.json",
+            evidence["timed_receipt"],
+            "timed_receipt",
+        )
     material = adapter.discovery._material
     train = material["train"]
     if _sha(train) != recipe.to_dict()["challenge"]["train_digest"]:
@@ -908,6 +932,9 @@ def retain_served_result(
         "build-receipt.json": build_receipt,
         "inference-receipt.json": inference_receipt,
         "task-receipt.json": canonical_bytes(task.terminal_receipt),
+        **(
+            {} if timed_receipt is None else {"timed-query-receipt.json": timed_receipt}
+        ),
         "lineage.json": _json(
             {
                 "schema": "carbon.lean-recipe-bank-lineage.v1",
