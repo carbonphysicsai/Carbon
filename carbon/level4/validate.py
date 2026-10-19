@@ -32,6 +32,7 @@ from . import graph
 
 PARAMETER_PREFIX = "params/"
 INPUT_PREFIX = "inputs/"
+KIT_PREFIX = "kit/"
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,12 @@ class Interface:
 
     inputs: tuple[tuple[str, str, tuple[int, ...]], ...]
     outputs: tuple[tuple[str, tuple[int, ...]], ...]
+    #: Published Challenge material a forward graph may read as a named
+    #: `kit/` input (OWNER-L4-CONSTANT-ACCOUNTING-02): `(name, dtype, shape,
+    #: digest)`, with no batch axis. Carbon binds it from its own published
+    #: material; it is never miner state and never a constant. Not part of
+    #: `digest()`, so a submission that reads no kit keeps its interface digest.
+    kit: tuple[tuple[str, str, tuple[int, ...], str], ...] = ()
 
     def document(self):
         return {
@@ -64,10 +71,17 @@ def _batch(shape, case, code, where, batches):
 def check_interface(doc, interface):
     """The batch size a forward graph declares, or `GraphRefused`."""
     entry = doc["graphs"][doc["entry"]]
+    kit = {name: (dtype, list(shape)) for name, dtype, shape, _ in interface.kit}
+    for i in entry["inputs"]:
+        if i["name"].startswith(KIT_PREFIX):
+            if i["name"] not in kit:
+                raise graph.GraphRefused("interface_kit_input_unexpected", i["name"])
+            if (i["dtype"], list(i["shape"])) != kit[i["name"]]:
+                raise graph.GraphRefused("interface_kit_input_shape", i["name"])
     named = {
         i["name"]: i
         for i in entry["inputs"]
-        if not i["name"].startswith(PARAMETER_PREFIX)
+        if not i["name"].startswith((PARAMETER_PREFIX, KIT_PREFIX))
     }
     expected = {name for name, _, _ in interface.inputs}
     for name in named:
@@ -252,7 +266,17 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
         "measurements": measurements,
         "caps": verdicts,
         "constant_accounting": allowlist_module.CONSTANT_ACCOUNTING,
+        "kit": kit_inputs(doc, interface),
     }
+
+
+def kit_inputs(doc, interface):
+    """`[[name, digest]]` of the published kit inputs a graph reads."""
+    entry = doc["graphs"][doc["entry"]]
+    used = {i["name"] for i in entry["inputs"] if i["name"].startswith(KIT_PREFIX)}
+    if interface is None:
+        return sorted([name, None] for name in used)
+    return [[n, digest] for n, _, _, digest in interface.kit if n in used]
 
 
 def parameters(doc):

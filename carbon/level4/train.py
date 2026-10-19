@@ -29,8 +29,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from . import initializers, interpret, validate
+from . import graph, initializers, interpret, validate
 from . import loss as loss_slot
+
+PARAMETER = validate.PARAMETER_PREFIX
 
 #: `fold_in` data deriving the training key from the Carbon seed's key, so it
 #: differs from the init key. An engineering constant, not a tuning value.
@@ -91,12 +93,21 @@ class Prepared:
         return [jnp.concatenate([b[k] for b in blocks]) for k in range(len(blocks[0]))]
 
 
-def prepare(parsed, allowlist, *, verdict):
+def prepare(parsed, allowlist, *, verdict, kit=None):
     """G6's inputs from a verified (`submission.verify`) and validated
-    (`validate.validate_submission`) submission."""
+    (`validate.validate_submission`) submission.
+
+    `kit` maps each `kit/` input name to Carbon's published array for it
+    (OWNER-L4-CONSTANT-ACCOUNTING-02). `apply` binds those by name on every
+    call, so `predict` (batched or isolated) never slices or pads them."""
     if verdict["status"] not in ("admitted", "blocked_human_input"):
         raise ValueError("prepare takes a validated submission")
     forward = interpret.rebuild(parsed["forward"], allowlist)
+    entry = parsed["forward"]["graphs"][parsed["forward"]["entry"]]
+    order = [i["name"] for i in entry["inputs"]]
+    kit_names = [n for n in order if n.startswith(validate.KIT_PREFIX)]
+    if kit_names and (kit is None or not set(kit_names) <= set(kit)):
+        raise graph.GraphRefused("kit_input_unbound", ",".join(kit_names))
     if "init" in parsed:
         rebuilt = interpret.rebuild(parsed["init"], allowlist)
 
@@ -106,8 +117,25 @@ def prepare(parsed, allowlist, *, verdict):
     else:
         init = initializers.build(parsed["init_spec"], parsed["forward"])
 
-    def apply(params, *inputs):
-        return forward(*params, *inputs)
+    if not kit_names:
+
+        def apply(params, *inputs):
+            return forward(*params, *inputs)
+
+    else:
+        bound = {name: kit[name] for name in kit_names}
+
+        def apply(params, *inputs):
+            params, inputs = iter(params), iter(inputs)
+            args = []
+            for name in order:
+                if name in bound:
+                    args.append(bound[name])
+                elif name.startswith(PARAMETER):
+                    args.append(next(params))
+                else:
+                    args.append(next(inputs))
+            return forward(*args)
 
     loss = None
     if "loss" in parsed:

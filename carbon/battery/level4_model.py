@@ -72,6 +72,34 @@ NEUTRAL = {
 _PCA_ARRAYS = ("vm", "tm", "pv", "pt", "zmu", "zsd")
 
 
+#: Battery's published material a graph may read as named kit inputs instead
+#: of embedding it as constants (OWNER-L4-CONSTANT-ACCOUNTING-02): the public
+#: open-circuit-voltage table.
+KIT_INPUTS = ("kit/ocv_soc", "kit/ocv_v")
+
+
+def published_kit(precision, public=None):
+    """`(interface entries, arrays)` for battery's published kit inputs at the
+    graph's precision, from Carbon's own public material (`public`, else the
+    repository's). Each entry's digest is that of the published float64 table
+    bytes."""
+    import hashlib
+
+    m = public
+    if m is None:
+        from .level4 import material
+
+        m = material()
+    dtype = "float64" if precision == "float64" else "float32"
+    entries, arrays = [], {}
+    for name, values in zip(KIT_INPUTS, (m.ocv_soc, m.ocv_v)):
+        published = np.ascontiguousarray(values, dtype=np.float64)
+        digest = "sha256:" + hashlib.sha256(published.tobytes()).hexdigest()
+        entries.append((name, dtype, tuple(published.shape), digest))
+        arrays[name] = published.astype(dtype)
+    return tuple(entries), arrays
+
+
 def dims(model):
     """Input width from battery's own `features`, and the output width."""
     import numpy as np
@@ -308,13 +336,15 @@ class GraphModel(recipes.MLP):
         self.prepared = None
 
     # -- the submission, verified and validated --------------------------------------
-    def _interface(self):
+    def _interface(self, structure=None):
         from carbon.level4.validate import Interface
 
         n_in, n_out = dims(self)
         dtype = "float64" if self.settings["precision"] == "float64" else "float32"
         return Interface(
-            inputs=(("inputs/features", dtype, (n_in,)),), outputs=((dtype, (n_out,)),)
+            inputs=(("inputs/features", dtype, (n_in,)),),
+            outputs=((dtype, (n_out,)),),
+            kit=() if structure is None else published_kit(dtype, structure)[0],
         )
 
     def _prepare(self, batch):
@@ -322,7 +352,10 @@ class GraphModel(recipes.MLP):
         from carbon.level4 import graph, intake, submission, train, validate
 
         allowlist = allowlist_module.load()
-        interface = self._interface()
+        # Carbon's own OCV structure (TRAIN's, or the state's): the published
+        # kit a graph may read, with no material load in the staged worker.
+        structure = getattr(self, "kit_structure", None)
+        interface = self._interface(structure)
         _, parsed = submission.verify(
             self.raw_manifest,
             self.files,
@@ -346,7 +379,10 @@ class GraphModel(recipes.MLP):
             terms = sorted(k for k, v in NEUTRAL.items() if self.settings[k] != v)
             if terms:
                 raise graph.GraphRefused(LOSS_TERMS, ",".join(terms))
-        return train.prepare(parsed, allowlist, verdict=verdict)
+        kit = None
+        if verdict["documents"]["forward"]["kit"]:
+            kit = published_kit(self.settings["precision"], structure)[1]
+        return train.prepare(parsed, allowlist, verdict=verdict, kit=kit)
 
     # -- training ------------------------------------------------------------------
     def fit(self, d, structure, seed):
@@ -360,6 +396,7 @@ class GraphModel(recipes.MLP):
             fade=self.fade,
         )
         batch = min(self.settings["batch_size"], len(subset.case_ids))
+        self.kit_structure = structure
         self.prepared = self._prepare(batch)
         return super().fit(d, structure, seed)
 
@@ -678,6 +715,7 @@ def import_state(header, arrays, layout, structure):
     model.classic, model.x64 = header["classic"], header["x64"]
     for name in ("mu", "sd") + (_PCA_ARRAYS if model.pca else ()):
         setattr(model, name, arrays[name])
+    model.kit_structure = structure
     model.prepared = model._prepare(header["batch"])
     model.params = [arrays[f"leaf{i:04d}"] for i in range(header["leaves"])]
     return model

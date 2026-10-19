@@ -20,7 +20,9 @@
 **Boundary:** dedup doesn't widen what a graph can carry. An identical copy holds no new information, and every distinct byte is still charged. Kit inputs are Carbon's published, digest-bound material, never miner-supplied arrays.
 
 **Implementation:**
-- item 1: `carbon/level4/graph.py` `unique_constant_bytes` and `allowlist.MEASURED_AS`, with tests in `tests/cpu/test_level4_graph.py`;
-- item 2 follows in the same Launchpad branch.
+- **Item 1:** `carbon/level4/graph.py` `unique_constant_bytes` and `allowlist.MEASURED_AS`, with tests in `tests/cpu/test_level4_graph.py`.
+- **Item 2:** `validate.Interface.kit` and `KIT_PREFIX`, which `check_interface` admits only as registered (exact dtype and shape). The verdict records `kit` as `[name, digest]`. `train.prepare(kit=…)` binds by name inside `apply`, so `predict`, batched or isolated, never slices or pads a kit array, and graphs without kit inputs keep the old `apply`.
+  - **Battery:** `level4_model.KIT_INPUTS = ("kit/ocv_soc", "kit/ocv_v")`. `published_kit` takes the published OCV table, or Carbon's identical OCV structure inside the staged worker. Digests are of the float64 table bytes.
+  - **Tests:** `tests/cpu/test_level4_kit_inputs.py`.
 
 No scientific, security, LIVE or economic authority follows from this file.
