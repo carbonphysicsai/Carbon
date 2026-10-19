@@ -133,16 +133,37 @@ def test_a_loss_graph_without_the_variants_declaration_is_refused():
 
 
 @pytest.mark.parametrize("fraction", [None, 0.5])
-def test_admission_validates_where_the_miner_lowers_and_the_rebuild_trains(fraction):
+@pytest.mark.parametrize("members", [1, 2])
+@pytest.mark.parametrize("label", ["scaffold_mlp", "panel_deeponet"])
+def test_admission_validates_where_the_miner_lowers_and_the_rebuild_trains(
+    fraction, members, label
+):
     cases = len(battery.material().train.case_ids)
     # `batch_size` at its largest admitted value: the TRAIN cases used.
     used = cases if fraction is None else int(cases * fraction)
     settings = {} if fraction is None else {"train_fraction": fraction}
-    strategy = _strategy(**settings, batch_size=used)
+    strategy = _strategy(
+        label,
+        **settings,
+        steps=32 if members == 2 else STEPS,
+        batch_size=used,
+        ensemble_members=members,
+    )
     interface, batch = level4_admission.interface_and_batch(strategy)
     assert interface == battery.interface(strategy)
     assert batch == battery.training_batch(strategy)
     assert batch == used
+
+
+@POSIX
+def test_an_ensemble_recipe_admits_a_graph_at_its_member_interface():
+    # Lower one of the identical members; the submitted graph is then rebuilt
+    # and trained independently for each member under the outer recipe budget.
+    named, body, raw, files = _envelope(_strategy(steps=32, ensemble_members=2))
+    assert level4_admission.admit_envelope(named, body, loss_override="graph") == (
+        raw,
+        files,
+    )
 
 
 def test_the_constants_are_batterys_own():

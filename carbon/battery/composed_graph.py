@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 
 from .composed_training import ComposedMLP
-from .level4_model import CHALLENGE, GraphModel
+from .level4_model import CHALLENGE, GraphEnsemble, GraphModel
 
 CONFLICT = "construction_rebuild_unavailable"
 CONFLICT_FIELDS = ("loss_expressions", "composition_graphs")
@@ -82,14 +82,43 @@ class ComposedGraph(GraphModel, ComposedMLP):
         return prepared
 
 
+class ComposedGraphEnsemble(GraphEnsemble):
+    """Apply the selected composed trainer to each verified graph member."""
+
+    def __init__(self, model, *, loss=None, spectral=False, numerics=None):
+        super().__init__(
+            model.k,
+            model.family,
+            model.settings,
+            model.files,
+            model.raw_manifest,
+            model.submission,
+            loss_override=model.loss_override,
+        )
+        self.parts = {"loss": loss, "spectral": spectral, "numerics": numerics}
+
+    def _member(self, settings):
+        return ComposedGraph(super()._member(settings), **self.parts)
+
+
+def build_from_model(model, *, loss=None, spectral=False, numerics=None, composed=True):
+    """Keep graph-only and composed graph ensemble training distinct."""
+    check_objectives(model, loss)
+    if not composed and loss is None and not spectral and numerics is None:
+        return model
+    if isinstance(model, GraphEnsemble):
+        return ComposedGraphEnsemble(
+            model, loss=loss, spectral=spectral, numerics=numerics
+        )
+    return ComposedGraph(model, loss=loss, spectral=spectral, numerics=numerics)
+
+
 def build(
     recipe, found, workspace, *, loss=None, spectral=False, numerics=None, composed=True
 ):
     from . import level4_model
 
     model = level4_model.build(recipe, found, workspace)
-    check_objectives(model, loss)
-    if not composed and loss is None and not spectral and numerics is None:
-        # A single graph retains its own classic/general route byte for byte.
-        return model
-    return ComposedGraph(model, loss=loss, spectral=spectral, numerics=numerics)
+    return build_from_model(
+        model, loss=loss, spectral=spectral, numerics=numerics, composed=composed
+    )

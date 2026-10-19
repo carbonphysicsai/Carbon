@@ -101,7 +101,7 @@ _COMPOSED_GRAPH_BUILD = level4_worker._PRELUDE + _COMPOSED_BUILD.replace(
     'model = composed_training.build(\n    recipe["family"],\n    recipe["settings"],\n',
     'shutil.copyfile(work / "battery-composed-graph.py", lab / "composed_graph.py")\n'
     "from carbon_battery_lab import composed_graph, level4_model\n"
-    "model = composed_graph.ComposedGraph(\n"
+    "model = composed_graph.build_from_model(\n"
     "    level4_model.build_from_work(recipe, work),\n",
 )
 

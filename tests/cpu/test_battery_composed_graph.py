@@ -16,6 +16,7 @@ pytest.importorskip("jax")
 os.environ.setdefault("JAX_PLATFORMS", "cpu")
 
 from carbon.agent_campaign.attack.adapters import battery_level1 as expressions
+
 from carbon.battery import (
     composed_graph,
     composed_worker,
@@ -111,6 +112,32 @@ def test_graph_only_composed_factory_keeps_existing_l4_parameters(
         candidate.fit(train, structure, SEED)["params_sha256"]
         == native.fit(train, structure, SEED)["params_sha256"]
     )
+
+
+@pytest.mark.parametrize(
+    "parts", [{}, {"pool_selection": PARTS["pool_selection"]}, {"backend": "pytorch"}]
+)
+def test_graph_ensemble_trains_each_member_and_restores_inference(
+    graph_input, material, parts
+):
+    found = compiled(graph_input, ensemble_members=2, steps=32, **parts)
+    model, stats = fit(found, graph_input[1], material)
+    assert isinstance(model, level4_model.GraphEnsemble)
+    assert len(model.members) == 2
+    assert all(member.settings["steps"] == 16 for member in model.members)
+    assert len({member._leaves()[0].tobytes() for member in model.members}) == 2
+    assert stats["n_params"] == sum(
+        sum(np.size(leaf) for leaf in member._leaves()) for member in model.members
+    )
+    restored = level4_model.model_from_bytes(level4_model.state_bytes(model))
+    assert isinstance(restored, level4_model.GraphEnsemble)
+    x = material[0].x[:7]
+    for name, before in model.predict(x).items():
+        np.testing.assert_array_equal(
+            before,
+            np.mean([member.predict(x)[name] for member in model.members], axis=0),
+        )
+        np.testing.assert_array_equal(before, restored.predict(x)[name])
 
 
 @pytest.mark.parametrize(
@@ -287,6 +314,11 @@ def test_graph_owned_single_objective_composes_without_a_precedence_choice(
     [
         PARTS,
         {"pool_selection": PARTS["pool_selection"]},
+        {
+            "pool_selection": PARTS["pool_selection"],
+            "ensemble_members": 2,
+            "steps": 32,
+        },
         {"loss_expressions": PARTS["loss_expressions"]},
         {"quasi_newton_family": "bfgs", "line_search": "backtracking"},
     ],
