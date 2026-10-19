@@ -1,0 +1,94 @@
+{
+  "challenge": {
+    "id": "electric-motor-magnetics",
+    "version": "1.0"
+  },
+  "condition_ids": [
+    "r01",
+    "r02",
+    "r03",
+    "r04",
+    "b01",
+    "b02"
+  ],
+  "decision_contract": {
+    "challenge": "electric-motor-magnetics",
+    "claims": {
+      "customer_acceptance": false,
+      "global_optimum": false,
+      "production_qualification": false,
+      "scientific_qualification": false,
+      "thermal_or_efficiency_performance": false,
+      "three_dimensional_motor_performance": false
+    },
+    "constraints": {
+      "max_ripple_fraction": 0.3,
+      "min_mean_torque_nm": 4.0
+    },
+    "contract_digest": "sha256:b6a9cb9ff963ed8445ef2d9647401f3820dd6a51a70c6e6630cd8a2061ac210b",
+    "contract_id": "motor-synthetic-decision-v2",
+    "decision": "choose a bounded 2D motor geometry that minimizes worst-case torque ripple fraction while meeting the supplied mean-torque floor and ripple limit at every declared current command",
+    "material": "DEVELOPMENT",
+    "objective": {
+      "direction": "MINIMIZE",
+      "quantity": "worst_case_torque_ripple_fraction",
+      "unit": "fraction_of_period_mean_torque"
+    },
+    "query_policy": {
+      "accounting_unit": "ATTEMPTED_MODEL_POINT",
+      "duplicate_policy": "FORBID_WITHIN_AND_ACROSS_CALLS",
+      "retry_policy": {
+        "continuation_after_failure": false,
+        "max_retries_per_point": 0,
+        "new_oracle_required": true
+      }
+    },
+    "requirement_ref": "OWNER_GRAPHITE_TEST_WAVE_01_SECTION_6",
+    "schema": "carbon.motor.customer-decision-contract.v1",
+    "scope": "2d-8-pole-24-slot-periodic-cross-section-v1",
+    "tie_policy": "lowest worst-case predicted peak-to-peak torque-ripple fraction among designs predicted to satisfy the supplied mean-torque floor and ripple limit at every condition; ties use higher worst-condition mean torque, then the lower frozen design ID (the declared design order)",
+    "verification_policy": {
+      "accounting_unit": "CONDITION_EVIDENCE_EVALUATION",
+      "counted_reference_admission": "ARTIFACT_VERIFIED_PINNED_GETDP_CAMPAIGN_ONLY",
+      "reference_classes": [
+        "ANALYTICAL_FIXTURE",
+        "COUNTED_GETDP"
+      ],
+      "repeated_commitment": "FORBIDDEN"
+    }
+  },
+  "design_ids": [
+    "d01",
+    "d02",
+    "d03",
+    "d04",
+    "d05",
+    "d06",
+    "d07",
+    "d08"
+  ],
+  "fixed_grid_method": {
+    "method": "fixed_grid",
+    "parameters": {}
+  },
+  "role": "design_objective",
+  "schema": "carbon.counted-dual.public-role-input.v1",
+  "scope": "PUBLIC_DEVELOPMENT_ONLY",
+  "source_bindings": [
+    {
+      "path": "docs/development/studies/MOTOR_SYNTHETIC_DECISION_V2.json",
+      "sha256": "cf00f2bbbfe8cd0adad7d668d921fa2e0f24d97353d7391885d88b4d0139e56d"
+    },
+    {
+      "path": "carbon/motor/decision_study.py",
+      "sha256": "6036296170f98960c94519a903892214a955ccde82e11517f95e9f66a10d9627"
+    },
+    {
+      "path": "carbon/motor/customer_decision.py",
+      "sha256": "d3fa8ba83ccc0e6bbeb19c8c50ec2699385ad9741f019e38c8ac13e4d1884c43"
+    }
+  ],
+  "source_head": "f3bb0742a24f5931120867a7d313608485cd5f0a",
+  "study_id": "motor-synthetic-decision-v2",
+  "study_scope": "2d-8-pole-24-slot-periodic-cross-section-v1"
+}

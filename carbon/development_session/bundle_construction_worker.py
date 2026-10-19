@@ -639,18 +639,31 @@ def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
         if type(binding) is dict
         else None
     )
+    challenge_id = (
+        binding.get("challenge_id", binding.get("id"))
+        if type(binding) is dict
+        else None
+    )
     if (
-        type(binding) is dict
-        and "challenge_version" in binding
-        and "version" in binding
-        and binding["challenge_version"] != binding["version"]
+        type(challenge_id) is not str
+        or type(version) is not str
+        or (
+            "challenge_id" in binding
+            and "id" in binding
+            and binding["challenge_id"] != binding["id"]
+        )
+        or (
+            "challenge_version" in binding
+            and "version" in binding
+            and binding["challenge_version"] != binding["version"]
+        )
     ):
         raise RecipeRefused("construction_resource_policy_binding_invalid")
     expected_scope = "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"
     resource_schema = "carbon.synthetic-linear-field-2d.reconstruction-resources.v1"
     from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
-    if type(binding) is dict and binding.get("challenge_id") == BATTERY_CHALLENGE:
+    if challenge_id == BATTERY_CHALLENGE:
         from carbon.battery import challenge, construction_bundle_material
 
         if version != challenge.CHALLENGE.version:
@@ -659,7 +672,10 @@ def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
         expected_schema = "carbon.battery.bundle-construction-limits.v1"
         expected_scope = "PUBLIC_BATTERY_DEVELOPMENT_ONLY"
         resource_schema = "carbon.battery.bundle-reconstruction-resources.v1"
-    elif version == "1.3":
+    elif (
+        challenge_id == synthetic_linear_field_2d.CHALLENGE.challenge_id
+        and version == "1.3"
+    ):
         prospective = getattr(
             synthetic_linear_field_2d, "construction_limits_document_v3", None
         )
@@ -667,11 +683,38 @@ def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
             raise RecipeRefused("construction_resource_policy_binding_invalid")
         trusted_limits = prospective()
         expected_schema = "carbon.synthetic-linear-field-2d.construction-limits.v3"
-    elif version in ("1.0", "1.1", "1.2"):
+    elif (
+        challenge_id == synthetic_linear_field_2d.CHALLENGE.challenge_id
+        and version in ("1.0", "1.1", "1.2")
+    ):
         trusted_limits = synthetic_linear_field_2d.construction_limits_document()
         expected_schema = "carbon.synthetic-linear-field-2d.construction-limits.v2"
     else:
-        raise RecipeRefused("construction_resource_policy_binding_invalid")
+        if challenge_id == "f08-ribbed-bracket":
+            from carbon.challenge_kit import f08_public as public_material
+        else:
+            from carbon.challenge_kit import physical_public as public_material
+
+        try:
+            material = public_material.trusted_material(challenge_id, version)
+            kit = public_material.construction_kit(challenge_id, version)
+        except (ValueError, OSError):
+            raise RecipeRefused(
+                "construction_resource_policy_binding_invalid"
+            ) from None
+        if any(
+            binding.get(key) != kit[key]
+            for key in (
+                "train_digest",
+                "interface_digest",
+                "construction_limits_digest",
+            )
+        ):
+            raise RecipeRefused("construction_resource_policy_binding_invalid")
+        trusted_limits = material["limits_document"]
+        expected_schema = material["limits_schema"]
+        expected_scope = material["scope"]
+        resource_schema = material["resource_schema"]
     if (
         type(binding) is not dict
         or type(limits_document) is not dict

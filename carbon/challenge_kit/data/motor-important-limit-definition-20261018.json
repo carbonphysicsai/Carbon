@@ -1,0 +1,49 @@
+{
+  "applies_to": "EVERY_DECLARED_CONDITION",
+  "challenge": {
+    "id": "electric-motor-magnetics",
+    "version": "1.0"
+  },
+  "constraints": {
+    "max_ripple_fraction": 0.3,
+    "min_mean_torque_nm": 4.0
+  },
+  "inclusive_boundaries": true,
+  "quantity_mapping": {
+    "feasible": "mean_nm >= min_mean_torque_nm and ripple_pk_pk_nm <= max_ripple_fraction * mean_nm",
+    "mean_nm": "mean(torque_nm[60])",
+    "ripple_fraction": "ripple_pk_pk_nm/mean_nm when mean_nm>0; otherwise infinity",
+    "ripple_pk_pk_nm": "max(torque_nm)-min(torque_nm)"
+  },
+  "role": "important_limit_definition",
+  "scenario": {
+    "approval_status": "APPROVED_SYNTHETIC_DEVELOPMENT_ASSUMPTIONS_OWNER_GRAPHITE_TEST_WAVE_01",
+    "max_ripple_fraction": 0.3,
+    "min_mean_torque_nm": 4.0,
+    "operating_control": "A fixed geometry is evaluated at six commanded peak-current-density and current-angle pairs. The command is assumed settled before each magnetostatic sweep; controller dynamics, voltage limits, speed, thermal limits and inverter feasibility are outside this study.",
+    "requirement_ref": "OWNER_GRAPHITE_TEST_WAVE_01_SECTION_6"
+  },
+  "schema": "carbon.counted-dual.public-role-input.v1",
+  "scope": "PUBLIC_DEVELOPMENT_ONLY",
+  "source_bindings": [
+    {
+      "path": "docs/development/studies/MOTOR_SYNTHETIC_DECISION_V2.json",
+      "sha256": "cf00f2bbbfe8cd0adad7d668d921fa2e0f24d97353d7391885d88b4d0139e56d"
+    },
+    {
+      "path": "carbon/motor/customer_decision.py",
+      "sha256": "d3fa8ba83ccc0e6bbeb19c8c50ec2699385ad9741f019e38c8ac13e4d1884c43"
+    },
+    {
+      "path": "carbon/motor/exam.py",
+      "sha256": "d663ce2e78a2664cc7725908385b516418a83c635bccff4288b6da63a8eef8c9"
+    },
+    {
+      "path": "carbon/motor/domain.py",
+      "sha256": "a73f116042ae6392b32e88c33412737d6c488d1a41a803b1bc9cd7c52299d59b"
+    }
+  ],
+  "source_head": "f3bb0742a24f5931120867a7d313608485cd5f0a",
+  "study_id": "motor-synthetic-decision-v2",
+  "study_scope": "2d-8-pole-24-slot-periodic-cross-section-v1"
+}
