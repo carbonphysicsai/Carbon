@@ -1341,7 +1341,14 @@ class DirectDevelopmentTasksV3:
         return generic[0].decode("ascii")
 
     def _transition(
-        self, view, state, *, receipt=None, cancellation=None, export_gap=None
+        self,
+        view,
+        state,
+        *,
+        receipt=None,
+        cancellation=None,
+        export_gap=None,
+        build_refusal=None,
     ):
         from dataclasses import replace
 
@@ -1368,6 +1375,18 @@ class DirectDevelopmentTasksV3:
                 "diagnostic_provenance": "WORKER_DIAGNOSTIC_ADVISORY",
                 "reported_operation": export_gap,
                 "next_step": "CHECK_CARBON_ADAPTER_SUPPORT",
+                "official_eligible": False,
+            }
+        if build_refusal is not None:
+            if state is not DirectTaskStateV3.REFUSED or receipt is None:
+                raise ValueError("build refusal requires a terminal refusal receipt")
+            failure_evidence = {
+                "schema": "carbon.direct-build-refusal.v1",
+                "task_id": view.task_id.value,
+                "receipt_digest": digest(canonical_bytes(receipt)),
+                "outcome": build_refusal.outcome,
+                "reason_code": build_refusal.code,
+                "operation": build_refusal.at,
                 "official_eligible": False,
             }
         self._save(
@@ -1949,7 +1968,11 @@ class DirectDevelopmentTasksV3:
                         in (DirectTaskStateV3.REFUSED, DirectTaskStateV3.UNRESOLVED)
                         else (
                             (
-                                "candidate_build_refused"
+                                (
+                                    "carbon_capability_gap"
+                                    if exc.outcome == "CARBON_CAPABILITY_GAP"
+                                    else "candidate_build_refused"
+                                )
                                 if isinstance(exc, CandidateBuildRefused)
                                 else "candidate_program_failed"
                             )
@@ -1971,7 +1994,40 @@ class DirectDevelopmentTasksV3:
                         if state is DirectTaskStateV3.FAILED_INFRA
                         else None
                     ),
+                    build_refusal=(
+                        exc
+                        if isinstance(exc, CandidateBuildRefused)
+                        and state is DirectTaskStateV3.REFUSED
+                        else None
+                    ),
                 )
+
+    def private_refusal(self, task_id):
+        """The classified build refusal of a REFUSED task (outcome, code, operation),
+        or None: the record Launchpad's op list reads for capability gaps."""
+        view = self._views.get(task_id.value)
+        if (
+            view is None
+            or view.state is not DirectTaskStateV3.REFUSED
+            or view.terminal_receipt is None
+        ):
+            return None
+        with self._db() as db:
+            row = db.execute(
+                "SELECT body FROM direct_evidence WHERE id=?", (task_id.value,)
+            ).fetchone()
+        if row is None or len(row[0]) > 4096:
+            return None
+        record = json.loads(row[0])
+        if (
+            type(record) is not dict
+            or record.get("schema") != "carbon.direct-build-refusal.v1"
+            or record.get("task_id") != task_id.value
+            or record.get("receipt_digest")
+            != digest(canonical_bytes(view.terminal_receipt))
+        ):
+            raise ValueError("retained build refusal custody differs")
+        return record
 
     def private_attempt(self, task_id):
         """Trusted inspection only; public service never returns this record."""
