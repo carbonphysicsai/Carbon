@@ -2047,16 +2047,11 @@ def main(argv=None):
                 serve(args.configuration, args.campaign, cleanup_only=args.cleanup_only)
             )
     except (Exception, KeyboardInterrupt) as exc:  # noqa: BLE001
-        # The open tier has no profile, grant or campaign to verify, so it must
-        # not be told to go and check them.
-        print(
-            (
-                unavailable_message(exc)
-                if args.configuration is not None
-                else "Carbon MCP unavailable."
-            ),
-            file=sys.stderr,
-        )
+        # Every door, the open tier included, names the closed code and its
+        # catalog next action, never the exception's text. A fresh miner's
+        # open tier once printed one bare sentence with neither (J0, 19 Oct);
+        # its fallback, `carbon_mcp_failed`, names no profile, grant or campaign.
+        print(unavailable_message(exc), file=sys.stderr)
         return 2
     return 0
 

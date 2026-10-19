@@ -195,6 +195,61 @@ def stage_bundle(directory, state_dir=DEFAULT_STATE_DIR):
     }
 
 
+#: The step that clears each kind of refusal. A refusal names a closed code and
+#: its next step, not only free text (Launchpad J0, 19 Oct: "step_not_checked"
+#: and "wheel identity differs" left the miner without a next action).
+MATERIAL_NEXT_STEP = (
+    "rebuild the bundle directory from its pinned inputs, so bundle.json, "
+    "source.tar.gz, requirements.txt, LICENSE and every file in wheels/ match "
+    "bundle.json's digests; `library_bundle.py doctor DIR` checks them again"
+)
+UNREADABLE_NEXT_STEP = (
+    "check that the directory and every file bundle.json names exist and are "
+    "readable by you, then run the command again"
+)
+WORKER_NEXT_STEP = (
+    "run the miner setup check (carbon_setup_status, or the Control Center's "
+    "setup page) and repair what it names, then run the command again"
+)
+
+
+def refusal(exc):
+    """`{"status": "REFUSED", "code", "next_step", ...}` for a refused command.
+    `reason` keeps the refusal's own words where it has them."""
+    if isinstance(exc, SetupRefused):
+        from scripts.dev.miner_launchpad.setup_operations import NEXT_STEPS
+
+        step = exc.next_step or NEXT_STEPS.get(exc.code, WORKER_NEXT_STEP)
+        return {
+            "status": "REFUSED",
+            "code": exc.code,
+            "field": exc.field,
+            "reason": exc.code,
+            "next_step": step,
+        }
+    if isinstance(exc, WorkerFailure):
+        code = getattr(exc.code, "value", str(exc.code))
+        return {
+            "status": "REFUSED",
+            "code": "library_worker_" + code,
+            "reason": str(exc),
+            "next_step": WORKER_NEXT_STEP,
+        }
+    if isinstance(exc, OSError):
+        return {
+            "status": "REFUSED",
+            "code": "library_bundle_unreadable",
+            "reason": exc.strerror or type(exc).__name__,
+            "next_step": UNREADABLE_NEXT_STEP,
+        }
+    return {
+        "status": "REFUSED",
+        "code": "library_bundle_material_differs",
+        "reason": str(exc),
+        "next_step": MATERIAL_NEXT_STEP,
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -227,7 +282,7 @@ def main(argv=None):
         else:
             result = install_bundle(args.directory, args.state_dir)
     except (OSError, ValueError, SetupRefused, WorkerFailure) as exc:
-        print(json.dumps({"status": "REFUSED", "reason": str(exc)}), file=sys.stderr)
+        print(json.dumps(refusal(exc), sort_keys=True), file=sys.stderr)
         return 2
     print(json.dumps(result, sort_keys=True))
     return 0
