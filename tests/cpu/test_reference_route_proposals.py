@@ -1,6 +1,7 @@
 """Static route/panel arithmetic; no reference, model, runner or hidden imports."""
 
 import ast
+import hashlib
 import json
 import unittest
 from pathlib import Path
@@ -37,12 +38,14 @@ class TestReferenceRouteProposals(unittest.TestCase):
         self.assertIn("Cooling is out of scope", self.doc)
         self.assertIn("No solver was run or installed", self.doc)
 
-    def test_all_new_registered_choices_and_package_pins_are_null(self):
+    def test_unregistered_choices_and_package_pins_remain_null(self):
         for choice in self.proposal["new_choices"].values():
             self.assertEqual(choice["status"], "HUMAN_INPUT")
             self.assertIsNone(choice["registered"])
             self.assertTrue(choice["recommendation"])
-        for row in self.rows.values():
+        for family, row in self.rows.items():
+            if family == "f08":
+                continue  # Scoped engineering evidence is checked separately below.
             package = row["package"]
             self.assertTrue(package["proposed_name"])
             self.assertTrue(package["release_candidate"])
@@ -58,6 +61,96 @@ class TestReferenceRouteProposals(unittest.TestCase):
                 "observer_digest",
             ):
                 self.assertIsNone(package[key])
+
+    def test_f08_engineering_pins_bind_existing_proofs_without_route_adoption(self):
+        package = self.rows["f08"]["package"]
+        evidence_root = ROOT / "docs/development/evidence/reference-packages-01"
+        registration = json.loads(
+            (
+                ROOT
+                / "docs/development/challenge_pipeline/structures-readiness/registration.json"
+            ).read_text(encoding="utf-8")
+        )
+        manifest = json.loads(
+            (evidence_root / "calculix.json").read_text(encoding="utf-8")
+        )
+        proof = json.loads(
+            (evidence_root / "f08-feature-proof-local-rebuild.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        verification = json.loads(
+            (evidence_root / "f08-code-verification.json").read_text(encoding="utf-8")
+        )
+        expected_evidence = {
+            "docs/development/evidence/reference-packages-01/calculix.json",
+            "docs/development/evidence/reference-packages-01/f08-feature-proof.json",
+            "docs/development/evidence/reference-packages-01/f08-feature-proof-local-rebuild.json",
+            "docs/development/evidence/reference-packages-01/f08-code-verification.json",
+            "docs/development/challenge_pipeline/structures-readiness/registration.json",
+        }
+        self.assertEqual(set(package["pins_evidence"]), expected_evidence)
+        for path in expected_evidence:
+            self.assertTrue((ROOT / path).is_file())
+        self.assertEqual(package["feature_proof"], "DEMONSTRATED")
+        self.assertEqual(package["pins_decision"], "F08-SCIENCE-VALUES-01")
+        self.assertIn("DEVELOPMENT", package["pins_note"])
+        self.assertIn(
+            "Not route adoption, a package PR or qualification", package["pins_note"]
+        )
+        self.assertIsNone(package["package_pr"])
+        self.assertIsNone(package["package_head"])
+        self.assertEqual(
+            package["source_digest"], "sha256:" + manifest["source"]["sha256"]
+        )
+        rebuilds = [
+            row
+            for row in manifest["local_rebuilds"]
+            if row["image_id"] == package["image_digest"]
+        ]
+        self.assertEqual(len(rebuilds), 1)
+        rebuild = rebuilds[0]
+        self.assertEqual(
+            package["build_digest"], "sha256:" + rebuild["build_log_sha256"]
+        )
+        self.assertEqual(package["image_digest"], registration["pins"]["image"])
+        self.assertEqual(
+            package["mesh_digest"], registration["pins"]["mesh_image"].split("@", 1)[1]
+        )
+        self.assertEqual(package["deck_digest"], registration["pins"]["deck"])
+        self.assertEqual(package["observer_digest"], registration["pins"]["observer"])
+        for key, filename in (
+            ("deck_digest", "f08_deck.py"),
+            ("observer_digest", "f08_freeze.py"),
+        ):
+            source = ROOT / "scripts/dev/reference_packages/calculix" / filename
+            self.assertEqual(
+                package[key],
+                "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest(),
+            )
+        self.assertEqual(proof["image_id"], package["image_digest"])
+        for name in (
+            "batched_damping_frequency_outputs",
+            "complex_phase",
+            "exact_modal_damping",
+            "mass_normalised_projection",
+            "mode_ladder",
+        ):
+            self.assertIs(proof["proofs"][name], True)
+        self.assertIn("not reference adequacy", proof["scope"])
+        self.assertEqual(rebuild["feature_proof"]["status"], "DEMONSTRATED")
+        self.assertEqual(
+            rebuild["feature_proof"]["evidence"], "f08-feature-proof-local-rebuild.json"
+        )
+        self.assertEqual(verification["image_id"], package["image_digest"])
+        self.assertEqual(verification["mesh_image"], registration["pins"]["mesh_image"])
+        self.assertEqual(verification["bands_decision"], package["pins_decision"])
+        self.assertEqual(verification["mms"]["verdict"], "PASS")
+        self.assertEqual(verification["rod"]["verdict"], "PASS")
+        self.assertIn("not task adequacy", verification["scope"])
+        self.assertFalse(self.proposal["dispatch_ready"])
+        self.assertFalse(self.proposal["runtime_registration"])
+        self.assertEqual(self.rows["f08"]["credibility"], "NOT_DEMONSTRATED")
 
     def test_packet_constraints_are_not_loosened_by_cheaper_routes(self):
         for family, row in self.rows.items():
@@ -315,7 +408,7 @@ class TestReferenceRouteProposals(unittest.TestCase):
                 imports.update(alias.name.split(".")[0] for alias in node.names)
             elif isinstance(node, ast.ImportFrom):
                 imports.add((node.module or "").split(".")[0])
-        self.assertEqual(imports, {"ast", "json", "unittest", "pathlib"})
+        self.assertEqual(imports, {"ast", "hashlib", "json", "unittest", "pathlib"})
 
 
 if __name__ == "__main__":
