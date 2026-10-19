@@ -110,9 +110,30 @@ ZERO = {"value": 0, "measurement_digest": digest("rebuild noise record")}
             NOISE,
             (bp.UNAVAILABLE, "incumbent_evidence_unavailable"),
         ),
+        # KOTH-TAKEOVER-RULE-01 §3a: a measured gate failure dethrones,
+        # even against a lower-scoring contender and with no noise registered.
+        (
+            body("c", total=0.1),
+            body("k", "MANDATORY_GATE_FAILED"),
+            NOISE,
+            (bp.CHALLENGER, "incumbent_failed_mandatory_gate"),
+        ),
+        (
+            body("c", total=0.1),
+            body("k", "CANDIDATE_INVALID"),
+            None,
+            (bp.CHALLENGER, "incumbent_failed_mandatory_gate"),
+        ),
+        (
+            body("c", "FAILED_INFRA"),
+            body("k", "MANDATORY_GATE_FAILED"),
+            NOISE,
+            (bp.DETHRONED, "incumbent_failed_mandatory_gate"),
+        ),
+        # Other ineligible statuses are not gate failures: nothing changes.
         (
             body("c", total=9.0),
-            body("k", "MANDATORY_GATE_FAILED"),
+            body("k", "REQUIRED_LEG_MINIMUM_FAILED"),
             NOISE,
             (bp.UNAVAILABLE, "incumbent_not_scored"),
         ),
