@@ -10,6 +10,7 @@ or promotion; no current result from that binder can qualify a winner.
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import asdict, dataclass
 
 from carbon.battery.pool_store import PoolStore, StateError, canonical
@@ -329,3 +330,130 @@ class BankPromotion:
         if type(result) is not BankResult:
             raise TypeError("a BankResult is required")
         raise StateError("evaluation_binding_unavailable")
+
+    def consider_private(self, submission_id, evaluation_key, comparator):
+        """King of the hill on one shared evaluation key, DEVELOPMENT only.
+
+        The contender meets the incumbent's retained evidence for the same
+        key (`private_pair`); `compare_private_pair` decides. A win moves the
+        incumbent with the reason `bank_comparison_development`, which the
+        reward layer refuses to pay (`PROMOTION_DEVELOPMENT_ONLY`).
+        """
+        pair = self.private_pair(submission_id, evaluation_key)
+        outcome = compare_private_pair(pair, comparator)
+        if outcome["outcome"] in (FIRST_INCUMBENT, CHALLENGER):
+            self.store.set_incumbent(
+                submission_id,
+                DEVELOPMENT_PROMOTION,
+                expected=pair["expected_incumbent"],
+            )
+        return outcome
+
+
+PAIRED_BINDING = "carbon.scoring.private-evaluation-binding.v4"
+COMPARATOR_SCHEMA = "carbon.challenge-validator.bank-comparator.v1"
+DEVELOPMENT_PROMOTION = "bank_comparison_development"
+SCORED = "SCORED_DEVELOPMENT_CANDIDATE"
+#: Statuses that say nothing about the model: infrastructure or evidence,
+#: never a science failure, so they can neither win nor be dethroned.
+NOT_MEASURED = frozenset({"FAILED_INFRA", "INDETERMINATE_EVIDENCE"})
+FIRST_INCUMBENT = "FIRST_INCUMBENT"
+CHALLENGER = "CHALLENGER"
+INCUMBENT_KEEPS = "INCUMBENT_KEEPS"
+NO_WINNER = "NO_WINNER"
+UNAVAILABLE = "UNAVAILABLE"
+
+
+def _comparator(comparator, evidence):
+    """The registered comparison rule. Only DEVELOPMENT rules exist: a payable
+    rule needs the owner's margin and an adopted score pack."""
+    margin = comparator.get("margin") if type(comparator) is dict else None
+    if (
+        type(comparator) is not dict
+        or set(comparator)
+        != {"schema", "scope", "challenge", "score_pack_digest", "margin", "ties"}
+        or comparator["schema"] != COMPARATOR_SCHEMA
+        or comparator["ties"] != "incumbent_keeps"
+        or not (
+            margin is None
+            or (
+                type(margin) is dict
+                and set(margin) == {"kind", "value"}
+                and margin["kind"] in ("absolute", "relative")
+                and type(margin["value"]) in (int, float)
+                and math.isfinite(margin["value"])
+                and margin["value"] >= 0
+            )
+        )
+    ):
+        raise StateError("comparator_invalid")
+    if comparator["scope"] != "DEVELOPMENT":
+        raise StateError("comparator_scope_unadopted")
+    if (
+        comparator["challenge"] != evidence["challenge"]
+        or comparator["score_pack_digest"]
+        != evidence["score_compatibility"]["score_pack_digest"]
+    ):
+        raise StateError("comparator_not_for_this_evaluation")
+    return margin
+
+
+def _scored(body):
+    evidence = body["evidence"]
+    if evidence.get("schema") != PAIRED_BINDING:
+        raise StateError("comparator_requires_paired_dual")
+    model = evidence.get("model_p")
+    status = model.get("score_status") if type(model) is dict else None
+    if type(status) is not str:
+        raise StateError("private_evaluation_invalid")
+    total = model.get("total_score")
+    if status == SCORED and (
+        type(total) not in (int, float) or not math.isfinite(total)
+    ):
+        raise StateError("private_evaluation_invalid")
+    return status, total
+
+
+def compare_private_pair(pair, comparator):
+    """One contender against the incumbent on the same evaluation key.
+
+    - A contender that is not scored never wins.
+    - With no incumbent, a scored contender is the first incumbent.
+    - An incumbent whose evidence is infrastructure or indeterminate, or that
+      fails science on this evaluation, is UNAVAILABLE: no rule here says
+      whether it is dethroned, so nothing changes.
+    - Otherwise the contender must exceed the incumbent's total by the
+      registered margin; a tie keeps the incumbent. No margin registered is
+      UNAVAILABLE, never zero.
+    """
+    candidate = pair["candidate"]
+    margin = _comparator(comparator, candidate["evidence"])
+    status, total = _scored(candidate)
+
+    def decided(outcome, reason):
+        return {
+            "outcome": outcome,
+            "reason": reason,
+            "evaluation_key": pair["evaluation_key"],
+            "candidate": candidate["submission_id"],
+            "incumbent": pair["expected_incumbent"],
+        }
+
+    incumbent = pair["incumbent"]
+    if incumbent is None:
+        if status != SCORED:
+            return decided(NO_WINNER, "candidate_not_scored")
+        return decided(FIRST_INCUMBENT, "first_scored_contender")
+    if status != SCORED:
+        return decided(INCUMBENT_KEEPS, "candidate_not_scored")
+    held, held_total = _scored(incumbent)
+    if held in NOT_MEASURED:
+        return decided(UNAVAILABLE, "incumbent_evidence_unavailable")
+    if held != SCORED:
+        return decided(UNAVAILABLE, "incumbent_not_scored")
+    if margin is None:
+        return decided(UNAVAILABLE, "margin_unregistered")
+    step = margin["value"] * (1 if margin["kind"] == "absolute" else abs(held_total))
+    if total > held_total + step:
+        return decided(CHALLENGER, "exceeds_incumbent_by_margin")
+    return decided(INCUMBENT_KEEPS, "within_margin_or_tie")
