@@ -80,6 +80,11 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
+if [[ -z "${receiver_id}" && ( "${receiver_start}" == 1 || -n "${receiver_pack}" ) ]]; then
+  printf 'Carbon validator install stopped: --start-receiver and --pack need --receiver ID VERSION (the receiver is prepared first, then started).\n' >&2
+  exit 2
+fi
+
 step() { printf '\n== %s\n' "$*"; }
 failures=()
 refuse() { failures+=("$1: $2 Next: $3"); }

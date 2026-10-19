@@ -233,7 +233,8 @@ def _command(receiver_state: Path) -> list[str]:
     config = receiver_state / "receiver" / CONFIG_NAME
     if not config.is_file() or config.is_symlink():
         raise SetupRefused(
-            "receiver_not_prepared", "run `prepare` for this receiver state first."
+            "receiver_config_missing",
+            f"{config} does not exist; run `prepare` for this receiver state first.",
         )
     return [
         str(REPO / ".venv" / "bin" / "python"),
