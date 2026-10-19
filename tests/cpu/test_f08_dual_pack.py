@@ -11,6 +11,7 @@ that is not exactly equal, fail their gates rather than scoring.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -20,6 +21,10 @@ from carbon.scoring import f08_dual_pack as f08
 from carbon.scoring import physical_dual_pack as physical
 
 PLATFORM = {"inference_image_id": "sha256:" + "1" * 64}
+SCRIPT = (
+    Path(__file__).resolve().parents[2]
+    / "carbon/challenge_kit/data/optimizer-f08-summary-dual-packet-20261018.py.txt"
+)
 
 
 @pytest.fixture(scope="module")
@@ -129,3 +134,49 @@ def test_the_physics_contract_is_enveloped_and_reads_no_pack_role(case):
     assert set(physics) == {"version", "definition"}
     assert "limits" not in physics["definition"]
     assert physics["definition"]["targets"] == case["definition"]["targets"]
+
+
+def _script_literals():
+    """Every constant-keyed dict literal in the committed packet's ``run`` and
+    its module constants, read by AST (never imported or executed)."""
+    import ast
+
+    tree = ast.parse(SCRIPT.read_text(encoding="utf-8"))
+    constants = {
+        node.targets[0].id: ast.literal_eval(node.value)
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and isinstance(node.targets[0], ast.Name)
+        and isinstance(node.value, ast.Constant)
+    }
+    run = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "run"
+    )
+    fields = {}
+    for node in ast.walk(run):
+        if isinstance(node, ast.Dict):
+            for key, value in zip(node.keys, node.values, strict=True):
+                if isinstance(key, ast.Constant):
+                    try:
+                        fields.setdefault(key.value, ast.literal_eval(value))
+                    except ValueError:
+                        pass
+    return constants, fields
+
+
+def test_the_measurement_values_are_the_committed_packets():
+    import hashlib
+
+    raw = SCRIPT.read_bytes()
+    assert "sha256:" + hashlib.sha256(raw).hexdigest() == f08.SOURCE_SCRIPT_SHA256
+    constants, fields = _script_literals()
+    assert f08._MEASUREMENT["D_scale_mm_per_n"] == fields["D_scale"]
+    assert f08._MEASUREMENT["D_scale_mm_per_n"] == fields["D_scale_mm_per_n"]
+    assert f08._MEASUREMENT["frequency_band_hz"] == fields["band_hz"]
+    # The registered baseline is the packet's BASELINE among its fit settings.
+    baseline = f08._MEASUREMENT["baseline"]
+    assert constants["BASELINE"] == "krr_length2_ridge1e-4"
+    assert [baseline["length"], baseline["ridge"]] in fields["fit_settings"]
+    assert int(baseline["length"]) == 2

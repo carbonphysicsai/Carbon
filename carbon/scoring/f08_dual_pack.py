@@ -41,7 +41,9 @@ MINIMUM_LEGS = ("A", "D")
 Refused = fdm.F08MeasurementRefused
 validate_definition = fdm.validate_definition
 _ADAPTER = sys.modules[__name__]
-#: The packet this adapter ports (operator material, not copied).
+#: The packet this adapter ports, committed byte-identical as data:
+#: carbon/challenge_kit/data/optimizer-f08-summary-dual-packet-20261018.py.txt
+#: (never imported or executed; a test checks the values below).
 SOURCE_SCRIPT_SHA256 = (
     "sha256:4e07322fb21541ad4b2feb47935862ca43937f048c552f7514e68bc3054d1bfa"
 )
