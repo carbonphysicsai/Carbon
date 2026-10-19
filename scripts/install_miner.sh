@@ -3,7 +3,7 @@
 # and the same command to update it (LP-PROD-E).
 #
 #   git clone https://github.com/carbonphysicsai/Carbon.git ~/carbon
-#   ~/carbon/scripts/install_miner.sh            # add --gpu for GPU practice
+#   ~/carbon/scripts/install_miner.sh            # add --gpu for JAX GPU practice
 #   ~/carbon/scripts/install_miner.sh --update   # later: the latest main
 #   ~/carbon/scripts/install_miner.sh --release worker-images-vN
 #                                                # Carbon's released images
@@ -28,7 +28,7 @@
 #      environment (scripts/dev/bootstrap.sh) with the groups the documented
 #      commands use: science, chain, archive and MCP;
 #   4. builds the pinned worker and analysis images on this machine, and the
-#      GPU worker with --gpu or whenever one was built here before (every
+#      selected GPU worker with --gpu or whenever one was built here before (every
 #      install moves the checkout, so an old GPU worker would no longer match
 #      it). A worker already built here from this exact source tree, which
 #      Docker still holds, is used again rather than rebuilt, so installs
@@ -79,7 +79,7 @@ DEVELOPMENT_SOURCE_TREE_DIGEST=""
 #: release (.github/workflows/release-worker-images.yml). Public; no login.
 RELEASE_URL="${CARBON_RELEASE_URL:-https://github.com/carbonphysicsai/Carbon/releases/download}"
 #: The release records this install fetches: the worker, the analysis image
-#: and the GPU worker, whose reference remote setup names even when this
+#: and the GPU workers, whose JAX reference remote setup names even when this
 #: machine does not pull it.
 RELEASE_KINDS=(c03 analysis accelerator)
 #: The free space an install needs, in GiB. Measured on 2026-10-03: the
@@ -106,12 +106,12 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --re
                latest main), build its images again (or use the ones already
                built from that exact source tree), check setup's compute again
                and rewrite your runner profile, then say what changed
-  --gpu        also build the GPU worker (needs an NVIDIA GPU and the
+  --gpu        also build the selected GPU worker (needs an NVIDIA GPU and the
                NVIDIA Container Toolkit)
   --pytorch    select the CPU Torch worker and its matching analysis image
-               for JAX/PyTorch practice; repeat this option on updates.
-               With --release, the release must publish torch-analysis.
-               --gpu still selects the separate JAX GPU worker
+               for JAX/PyTorch practice; with --gpu, select the separate
+               Torch GPU worker. Repeat this option on updates. With
+               --release, the release must publish torch-analysis.
   --ref REF    the Carbon ref to install, a branch, tag or commit in main
                (default: main, or $CARBON_REF)
   --release TAG
@@ -161,10 +161,14 @@ done
 # Keep the existing primary/analysis fields: choose a complete matched pair.
 worker_kind=c03
 analysis_kind=analysis
+gpu_kind=accelerator
 if [[ "${PYTORCH}" == 1 ]]; then
   worker_kind=torch
   analysis_kind=torch-analysis
-  RELEASE_KINDS=(torch torch-analysis accelerator)
+  gpu_kind=torch-gpu
+  # Keep the JAX record for the existing remote reference; local Torch GPU
+  # selection uses the separately pinned Torch record.
+  RELEASE_KINDS=(torch torch-analysis accelerator torch-gpu)
 fi
 
 step() { printf '\n== %s\n' "$*"; }
@@ -602,7 +606,7 @@ if [[ -n "${RELEASE}" ]]; then
   rebuild="${self} --ref ${RELEASE}"
   [[ "${PYTORCH}" == 0 ]] || rebuild+=" --pytorch"
   if [[ "${gpu_build}" == 1 ]]; then
-    kinds+=(accelerator)
+    kinds+=("${gpu_kind}")
     rebuild+=" --gpu"
   fi
   for kind in "${kinds[@]}"; do
@@ -615,9 +619,11 @@ if [[ -n "${RELEASE}" ]]; then
   worker_manifest="${release_dir}/${worker_kind}-worker-image.json"
   analysis="${release_dir}/${analysis_kind}-worker-image.json"
   if [[ "${gpu_build}" == 1 ]]; then
-    gpu_manifest="${release_dir}/accelerator-worker-image.json"
+    gpu_manifest="${release_dir}/${gpu_kind}-worker-image.json"
+    gpu_release_record="${release_dir}/${gpu_kind}-worker-image.release.json"
+  else
+    gpu_release_record="${release_dir}/accelerator-worker-image.release.json"
   fi
-  gpu_release_record="${release_dir}/accelerator-worker-image.release.json"
 else
   step "4/6 Building the pinned images on this machine"
   if [[ "${pair_status:-}" == VERIFIED ]]; then
@@ -656,12 +662,16 @@ else
     )"
   fi
   if [[ "${gpu_build}" == 1 ]]; then
-    if current_image "${artifacts}/accelerator-worker-image.json"; then
+    if current_image "${artifacts}/${gpu_kind}-worker-image.json"; then
       echo "The GPU worker built here from this exact source tree is still present; using it again."
     else
-      ./scripts/dev/accelerator_worker_image.sh "${artifacts}/accelerator-worker-image.json"
+      if [[ "${gpu_kind}" == torch-gpu ]]; then
+        ./scripts/dev/torch_gpu_worker_image.sh "${artifacts}/${gpu_kind}-worker-image.json"
+      else
+        ./scripts/dev/accelerator_worker_image.sh "${artifacts}/${gpu_kind}-worker-image.json"
+      fi
     fi
-    gpu_manifest="${artifacts}/accelerator-worker-image.json"
+    gpu_manifest="${artifacts}/${gpu_kind}-worker-image.json"
   fi
 fi
 
