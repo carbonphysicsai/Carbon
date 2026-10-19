@@ -6,10 +6,8 @@ committed repository material): never a hidden-exam or paying claim.
 Two halves, one source:
 
 - ``pack_documents`` regenerates, from committed sources only, the documents
-  Data Collection's pack pins for Motor: the public ``physics_contract`` (the
-  committed applied physics document in the ``{version, definition}``
-  envelope) and ``accuracy_definition`` (the producer's registered A/D
-  definition and pin), and the private
+  Data Collection's pack pins for Motor: the public ``accuracy_definition``
+  (the producer's registered A/D definition and pin), and the private
   ``reference_rows``, ``solver_evidence``, ``score_pack`` and
   ``source_registration``. The score pack is the committed applied definition
   (MOTOR_APPLIED_SCORE_DEFINITION_20261018, sha256 b4ea72a5..., candidate
@@ -24,9 +22,11 @@ Two halves, one source:
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import io
 import json
+import re
 from pathlib import Path
 
 CHALLENGE = "electric-motor-magnetics"
@@ -40,63 +40,66 @@ SOURCE_DEFINITION_SHA256 = (
 G1_MEASUREMENT_CONTRACT_SHA256 = (
     "sha256:8f374907064891b5a5d261d9d31d8c4159c69577e44daa6234ed83c79bd3f782"
 )
-#: MOTOR_APPLIED_SCORE_DEFINITION_20261018 "A", "D" and the acquisition
-#: manifest's verification budget, verbatim.
-_DEFINITION_VALUES = {
-    "A_reducer": "minimum",
-    "f0_scale": 0.17,
-    "signed_margin_scale": 0.138419451631707,
-    "signed_margin_cell": {"mean_torque_nm": 4.0, "ripple_fraction": 0.30},
-    "D_scale": 0.01,
-    "verification_budget": 1,
-}
-#: MOTOR_APPLIED_SCORE_DEFINITION_20261018 "applied_score_pack", verbatim, less
-#: its two digests (re-derived for this basis by the shared registrar).
-_APPLIED_PACK = {
-    "challenge": CHALLENGE,
-    "combination": "weighted_arithmetic_mean",
-    "decision_policy": {
-        "MISSED_OPPORTUNITY": {"eligible": False, "maximum_D": 0.0},
-        "NONE_FEASIBLE": {"eligible": False, "maximum_D": 0.0},
-        "VERIFIED_FEASIBLE": {"eligible": True, "maximum_D": 1.0},
-    },
-    "hard_gates": ["native_motor_valid", "complete_fixed_coverage"],
-    "legs": {
-        "A": {
-            "components": [
-                {
-                    "metric": "robust_fidelity_benefit",
-                    "scale": None,
-                    "transform": "unit_benefit",
-                    "unit": "1",
-                    "weight": 1.0,
-                }
-            ],
-            "minimum": 0.28108361796711556,
-        },
-        "D": {
-            "components": [
-                {
-                    "metric": "verified_value_benefit",
-                    "scale": None,
-                    "transform": "unit_benefit",
-                    "unit": "1",
-                    "weight": 1.0,
-                }
-            ],
-            "minimum": 0.3419193228890681,
-        },
-    },
-    "schema": "carbon.scoring.dual-benchmark-pack.v4",
-    "scope": "PUBLIC_DEVELOPMENT",
-    "value_weight": 0.5,
-}
-#: The committed applied physics document (the old counted pack's
-#: physics_contract.json), carried verbatim inside this pack's envelope.
-APPLIED_PHYSICS_SHA256 = (
-    "sha256:74e3f30ce38d997e3b7f74505d67981bedcf77de28235ea60bf43f26be9483fd"
+#: The committed applied definition's file (sha256 SOURCE_DEFINITION_SHA256).
+DEFINITION_FILE = (
+    Path(__file__).resolve().parents[1]
+    / "challenge_kit/data/motor-applied-score-definition-20261018.json"
 )
-PHYSICS_VERSION = "motor-applied-physics-contract-20261018"
+#: MOTOR_DUAL_TRANSFER_ACQUISITION_MANIFEST_20261018 (sha256 9e32f3a3...)
+#: "verification_budget", the one value the applied definition does not hold.
+_VERIFICATION_BUDGET = 1
+_SIGNED_MARGIN_CELL = re.compile(
+    r"max\(abs\(mean_margin_error_nm\)/([0-9]+(?:\.[0-9]+)?),"
+    r"abs\(ripple_margin_error_fraction\)/([0-9]+(?:\.[0-9]+)?)\)"
+)
+
+
+@functools.cache
+def applied_definition():
+    """The committed applied definition, read only at its pinned bytes."""
+    raw = DEFINITION_FILE.read_bytes()
+    if _sha(raw) != SOURCE_DEFINITION_SHA256:
+        raise ValueError("motor applied score definition differs from its pin")
+    return json.loads(raw)
+
+
+def _definition_values():
+    """The definition's "A" and "D" values, verbatim; no value is chosen here."""
+    a, d = applied_definition()["A"], applied_definition()["D"]
+    cell = _SIGNED_MARGIN_CELL.fullmatch(a["signed_margin_cell"])
+    if (
+        a["reducer"] != "minimum of eight unit benefits"
+        or a["benefit"] != "1/(1+loss/scale)"
+        or cell is None
+        or d["benefit"] != f"1/(1+verified_regret/{d['scale']})"
+    ):
+        raise ValueError("motor applied score definition form differs")
+    return {
+        "losses": list(a["losses"]),
+        "A_reducer": "minimum",
+        "f0_scale": a["f0_scale"],
+        "signed_margin_scale": a["signed_margin_scale"],
+        "signed_margin_cell": {
+            "mean_torque_nm": float(cell.group(1)),
+            "ripple_fraction": float(cell.group(2)),
+        },
+        "D_scale": d["scale"],
+        "verification_budget": _VERIFICATION_BUDGET,
+    }
+
+
+def _applied_pack():
+    """The definition's "applied_score_pack" less its three digests, which the
+    shared registrar re-derives for this pack's physics and measurement basis."""
+    pack = applied_definition()["applied_score_pack"]
+    return {
+        k: v
+        for k, v in pack.items()
+        if k
+        not in ("pack_digest", "physics_contract_digest", "measurement_contract_digest")
+    }
+
+
 EVALUATION_VERSION = "motor-dual-development-bank-90-v1"
 CASE_ID = "motor-development-bank-90"
 _PRODUCER_FILES = (
@@ -178,7 +181,7 @@ def _identities(bank, physics_digest):
 def pack_documents(
     *,
     bank,
-    applied_physics_raw,
+    physics,
     interface_raw,
     train_raw,
     limits_sha256,
@@ -187,10 +190,9 @@ def pack_documents(
     """Every Motor document this producer owns, as exact bytes by role name.
 
     ``bank`` is ``physical_pack.development_bank(CHALLENGE, VERSION)``;
-    ``applied_physics_raw`` the committed applied Motor physics document
-    (MOTOR_APPLIED_PHYSICS_CONTRACT_20261018), which the emitted
-    ``physics_contract`` role carries verbatim as its definition, under the
-    ``{version, definition}`` envelope retention and the ScoreEngine bind;
+    ``physics`` the pack's own physics contract
+    (``physical_pack.physics_contract``: the committed applied document inside
+    the ``{version, definition}`` envelope retention and the ScoreEngine bind);
     ``interface_raw`` and ``train_raw``
     the pack's public interface and TRAIN role bytes; the two digests are the
     pack's public important-limit and design-objective role pins.
@@ -201,12 +203,6 @@ def pack_documents(
         DUAL_MEASUREMENT_CONTRACT_SCHEMA,
     )
 
-    if _sha(applied_physics_raw) != APPLIED_PHYSICS_SHA256:
-        raise ValueError("motor applied physics document differs")
-    physics = {
-        "version": PHYSICS_VERSION,
-        "definition": json.loads(applied_physics_raw),
-    }
     physics_digest = bench.physics_contract_identity(physics)["definition_digest"]
     definition = {
         "schema": "carbon.scoring.motor-dual-accuracy.v1",
@@ -218,16 +214,6 @@ def pack_documents(
         "bank_digest": bank_digest(bank),
         "source_definition_sha256": SOURCE_DEFINITION_SHA256,
         "g1_measurement_contract_sha256": G1_MEASUREMENT_CONTRACT_SHA256,
-        "losses": [
-            "practice30_mean_f0",
-            "pilot_ordinary8_mean_f0",
-            "pilot_difficult4_mean_f0",
-            "old_v2_48_mean_f0",
-            "old_v2_worst_geometry_mean_f0",
-            "old_v2_representative32_mean_f0",
-            "old_v2_boundary16_mean_f0",
-            "old_v2_median_dimensionless_signed_margin_error",
-        ],
         "cohort_counts": {
             "practice": 30,
             "pilot_ordinary": 8,
@@ -235,7 +221,7 @@ def pack_documents(
             "decision_representative": 32,
             "decision_boundary_stress": 16,
         },
-        **_DEFINITION_VALUES,
+        **_definition_values(),
     }
     accuracy_raw = _canonical(definition)
     basis = {
@@ -247,7 +233,7 @@ def pack_documents(
     }
     pack = dual_score.register_pack(
         {
-            **_APPLIED_PACK,
+            **_applied_pack(),
             "physics_contract_digest": physics_digest,
             "measurement_contract_digest": _sha(_canonical(basis)),
         }
@@ -279,7 +265,7 @@ def pack_documents(
             },
             "reference": identity,
             "cases": [{"id": CASE_ID, "role": "P", "weight": 1.0}],
-            "mandatory_gates": list(_APPLIED_PACK["hard_gates"]),
+            "mandatory_gates": list(_applied_pack()["hard_gates"]),
             "timing_profile": {
                 "basis": "ready_input_to_comparable_output",
                 "model_device": "carbon-c03-docker-cpu",
@@ -303,7 +289,6 @@ def pack_documents(
         "peak_memory_bytes": None,
     }
     return {
-        "physics_contract": _canonical(physics),
         "accuracy_definition": accuracy_raw,
         "reference_rows": _canonical([reference_row]),
         "solver_evidence": _canonical(identity),
@@ -317,6 +302,50 @@ def pack_documents(
             }
         ),
     }
+
+
+MANIFEST_NAME = "evaluation-pack.json"
+
+
+def write_development_pack(root):
+    """Write the complete Motor DEVELOPMENT pack under a new, empty ``root``.
+
+    Data Collection's ``physical_pack`` writes the public roles and the exposed
+    bank; this producer's documents replace accuracy_definition,
+    reference_rows and solver_evidence and add score_pack and
+    source_registration. ``root`` serves as the pack, public and private root;
+    the draft manifest is ``root / MANIFEST_NAME``, which the receiver seals.
+    """
+    from carbon.challenge_kit import physical_pack
+
+    physics = physical_pack.physics_contract(CHALLENGE, VERSION)
+    if type(physics) is not dict or set(physics) != {"version", "definition"}:
+        raise ValueError(
+            "motor pack physics role is not in its {version, definition} envelope"
+        )
+    root = Path(root)
+    manifest_path = physical_pack.write_public_pack(
+        root, CHALLENGE, VERSION, exposed_development_bank=True
+    )
+    public = physical_pack.public_roles(CHALLENGE, VERSION)
+    documents = pack_documents(
+        bank=physical_pack.development_bank(CHALLENGE, VERSION),
+        physics=physics,
+        interface_raw=public["interface"],
+        train_raw=public["train"],
+        limits_sha256=_sha(public["important_limit_definition"]),
+        objective_sha256=_sha(public["design_objective"]),
+    )
+    draft = json.loads(manifest_path.read_bytes())
+    for role, body in documents.items():
+        scope = "public" if role == "accuracy_definition" else "private"
+        name = f"{scope}/{role}.json"
+        (root / name).write_bytes(body)
+        draft[scope][role] = {"path": name}
+    manifest_path.write_bytes(_canonical(draft))
+    if manifest_path.name != MANIFEST_NAME:
+        raise ValueError("motor pack manifest name differs")
+    return manifest_path
 
 
 def _train_records(train_raw):
@@ -454,13 +483,15 @@ def produce(
         entry, registration, originals
     )
     n, width = len(bank["case_ids"]), len(bank["references"][0])
+    measurement = source_module.query_measurement(
+        entry, registration, originals, receipt
+    )
     require(
-        len(values) == n * width
-        and inference["receipt"]["measurement"]["output_shape"] == [n, width],
+        len(values) == n * width and measurement["output_shape"] == [n, width],
         "dual_native_tensor_shape",
     )
     repeats = source_module.read_inference_repeats(
-        originals, receipt=receipt, worker=worker
+        originals, receipt=receipt, worker=worker, measurement=measurement
     )
     require(all(len(r) == n * width for r in repeats), "dual_repeat_evidence_shape")
 
@@ -489,7 +520,7 @@ def produce(
     pack = roles["score_pack"]
     gates = list(pack.get("hard_gates", []))
     require(
-        gates == registration["mandatory_gates"] == list(_APPLIED_PACK["hard_gates"]),
+        gates == registration["mandatory_gates"] == list(_applied_pack()["hard_gates"]),
         "dual_native_gate_contract",
     )
 
@@ -523,6 +554,26 @@ def produce(
     score(benchmark, pack)
     native_gates = {k: measured["gates"][k] for k in gates}
     model = bundle.measurement_from_saved_inference(
-        entry, registration, inference, gates=native_gates
+        entry,
+        registration,
+        inference,
+        gates=native_gates,
+        timed_query=originals.get("timed_query"),
     )
     return model, benchmark, identity
+
+
+def main(argv=None):
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Write the complete Motor DEVELOPMENT evaluation pack."
+    )
+    parser.add_argument("root", type=Path, help="new or empty pack directory")
+    args = parser.parse_args(argv)
+    print(write_development_pack(args.root.resolve()))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
