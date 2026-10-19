@@ -1,13 +1,13 @@
-"""Motor through the normal construction path (DEVELOPMENT, public material only).
+"""Motor and Cooling through the normal construction path (DEVELOPMENT, public material only).
 
 Claims tested:
 
-1. The receiver's discovery accepts Motor's public material (fixed TRAIN, interface,
+1. The receiver's discovery accepts each Challenge's public material (fixed TRAIN, interface,
    limits, physics contract, development-bank practice query) with task admission.
-2. The served recipe contract is registered for Motor and labelled physical.
+2. The served recipe contract is registered and labelled physical.
 3. A recipe is rebuilt fresh from the fixed TRAIN in a separate process, frozen, and
    run source-free one case at a time on the development bank's queries; the
-   output has Motor's width and float64 dtype.
+   output has the Challenge's width.
 
 No model score, evaluation, qualification or LIVE claim: the harness runs the fixed
 programs in local processes, like the synthetic acceptance test.
@@ -33,7 +33,9 @@ from carbon.development_session.research_ledger import CampaignLedger
 from carbon.development_session.research_service import DirectFixtureDiscovery
 from carbon.reconstruction import served_recipe_contract
 
-MOTOR_ID, MOTOR_VERSION = physical_material.REGISTERED[0]
+CHALLENGES = pytest.mark.parametrize(
+    ("challenge_id", "version"), physical_material.REGISTERED
+)
 
 SOURCE = (
     "import numpy as np\n"
@@ -63,34 +65,41 @@ def _expected(material):
     return np.concatenate([(q - mu) / sd, np.ones((len(q), 1))], axis=1) @ w
 
 
-def test_receiver_discovery_accepts_the_motor_material():
-    material = physical_material.bundle_material(MOTOR_ID, MOTOR_VERSION)
+@CHALLENGES
+def test_receiver_discovery_accepts_the_public_material(challenge_id, version):
+    material = physical_material.bundle_material(challenge_id, version)
     discovery = DirectFixtureDiscovery(material, task_admission=True)
-    assert discovery.info.challenge_key.challenge_id == MOTOR_ID
+    assert discovery.info.challenge_key.challenge_id == challenge_id
     rows = len(material["practice_case_ids"])
-    assert material["practice_inputs"].shape == (rows, 8)
-    assert material["practice_reference"].shape == (rows, 60)
+    assert material["practice_inputs"].shape[0] == rows
+    assert material["practice_reference"].shape[0] == rows
     assert material["disclosure"]["hidden_evaluation"] is False
 
 
-def test_changed_material_is_refused_by_discovery():
-    material = physical_material.bundle_material(MOTOR_ID, MOTOR_VERSION)
+@CHALLENGES
+def test_changed_material_is_refused_by_discovery(challenge_id, version):
+    material = physical_material.bundle_material(challenge_id, version)
     material["practice_inputs"] = material["practice_inputs"] + 1.0
     with pytest.raises(ValueError):
         DirectFixtureDiscovery(material, task_admission=True)
 
 
-def test_the_served_contract_is_registered_for_motor():
-    contract = served_recipe_contract.registered(MOTOR_ID, MOTOR_VERSION)
+@CHALLENGES
+def test_the_served_contract_is_registered(challenge_id, version):
+    contract = served_recipe_contract.registered(challenge_id, version)
     assert contract.evidence_label == "DEVELOPMENT_PUBLIC_PHYSICAL"
-    assert contract.construction_kit == physical_material.bundle_material(
-        MOTOR_ID, MOTOR_VERSION
-    )["construction_kit"]
+    assert (
+        contract.construction_kit
+        == physical_material.bundle_material(challenge_id, version)["construction_kit"]
+    )
 
 
-def test_fresh_rebuild_then_per_case_source_free_inference(tmp_path, monkeypatch):
+@CHALLENGES
+def test_fresh_rebuild_then_per_case_source_free_inference(
+    tmp_path, monkeypatch, challenge_id, version
+):
     monkeypatch.setattr(acceptance, "SOURCE", SOURCE)
-    material = physical_material.bundle_material(MOTOR_ID, MOTOR_VERSION)
+    material = physical_material.bundle_material(challenge_id, version)
     image, installed = acceptance._source_bundle(tmp_path)
     recipe = acceptance._recipe(material, image)
     runner = acceptance.LocalProcessRunner(installed)

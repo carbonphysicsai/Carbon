@@ -1,4 +1,4 @@
-"""Public Motor construction material for the direct receiver (DEVELOPMENT only).
+"""Public Motor and Cooling construction material for the direct receiver (DEVELOPMENT only).
 
 The receiver serves a registered Challenge's fixed public TRAIN, interface, limits
 and physics contract, and runs the miner's recipe through the normal fresh build
@@ -12,6 +12,7 @@ reference, a qualification or LIVE authority.
 
 from __future__ import annotations
 
+from carbon.cold_plate import challenge as cooling
 from carbon.development_session.profile import canonical, digest
 from carbon.motor import challenge as motor
 from carbon.research import ChallengeKey
@@ -20,15 +21,20 @@ from . import physical_pack, physical_public, physical_public_train
 
 SCOPE = physical_public.SCOPE
 #: Registered public physical Challenges, by (id, version).
-REGISTERED = ((motor.CHALLENGE.challenge_id, motor.CHALLENGE.version),)
+REGISTERED = (
+    (motor.CHALLENGE.challenge_id, motor.CHALLENGE.version),
+    (cooling.CHALLENGE.challenge_id, cooling.CHALLENGE.version),
+)
 
 
 def is_registered(challenge_id: str, version: str) -> bool:
     return (challenge_id, version) in REGISTERED
 
 
-def bundle_material(challenge_id: str = motor.CHALLENGE.challenge_id,
-                    version: str = motor.CHALLENGE.version) -> dict:
+def bundle_material(
+    challenge_id: str = motor.CHALLENGE.challenge_id,
+    version: str = motor.CHALLENGE.version,
+) -> dict:
     """Challenge-owned public bytes and arrays for the direct receiver."""
     from carbon.challenge_kit.synthetic_linear_field_2d import allowlist_v5_bytes
     from carbon.level4.allowlist import Allowlist
@@ -61,7 +67,9 @@ def bundle_material(challenge_id: str = motor.CHALLENGE.challenge_id,
         "physics_digest": digest(canonical(physics)),
         "resource_facts": {
             "train_archive_bytes": len(source["train"]),
-            "train_tensor_bytes": int(source["inputs"].nbytes + source["targets"].nbytes),
+            "train_tensor_bytes": int(
+                source["inputs"].nbytes + source["targets"].nbytes
+            ),
             "practice_input_bytes": int(inputs.nbytes),
             "practice_reference_bytes": int(reference.nbytes),
             "wall_time_seconds": None,

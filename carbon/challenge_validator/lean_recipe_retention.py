@@ -856,7 +856,9 @@ def retain_served_result(
     train_name = "train-v1.jsonl.gz" if battery else "train.npz"
     train_codec = "raw_bytes" if battery else "numeric_npz"
     public_scope = (
-        "PUBLIC_BATTERY_DEVELOPMENT_ONLY" if battery else material["disclosure"]["scope"]
+        "PUBLIC_BATTERY_DEVELOPMENT_ONLY"
+        if battery
+        else material["disclosure"]["scope"]
     )
     if "practice_inputs" not in material or "practice_reference" not in material:
         raise RetentionUnavailable("public_input_target_unavailable")

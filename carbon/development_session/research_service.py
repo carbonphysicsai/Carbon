@@ -265,14 +265,20 @@ class DirectFixtureDiscovery:
         registered_material = (
             battery_bundle_material
             if battery
-            else (lambda: physical_material.bundle_material(key.challenge_id, key.version))
-            if physical
-            else {
-                "1.0": bundle_material,
-                "1.1": bundle_material_v3,
-                "1.2": bundle_material_v4,
-                "1.3": bundle_material_v5,
-            }.get(key.version)
+            else (
+                (
+                    lambda: physical_material.bundle_material(
+                        key.challenge_id, key.version
+                    )
+                )
+                if physical
+                else {
+                    "1.0": bundle_material,
+                    "1.1": bundle_material_v3,
+                    "1.2": bundle_material_v4,
+                    "1.3": bundle_material_v5,
+                }.get(key.version)
+            )
         )
         if registered_material is None:
             raise ValueError("direct public Challenge version is unregistered")

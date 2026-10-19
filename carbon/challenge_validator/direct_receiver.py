@@ -892,9 +892,7 @@ def serve(
         battery_bundle_material()
         if selected_id == battery_challenge.CHALLENGE.challenge_id
         else (
-            physical_material.bundle_material(
-                selected_id, cfg["challenge"]["version"]
-            )
+            physical_material.bundle_material(selected_id, cfg["challenge"]["version"])
             if physical_material.is_registered(
                 selected_id, cfg.get("challenge", {}).get("version")
             )
