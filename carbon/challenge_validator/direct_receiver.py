@@ -99,6 +99,7 @@ def load_config(path: Path) -> dict:
             raise ValueError(refusal)
     if "challenge" in value:
         from carbon.battery import challenge as battery_challenge
+        from carbon.challenge_kit import physical_material
         from carbon.challenge_kit.synthetic_linear_field_2d import CHALLENGE
 
         selected = value["challenge"]
@@ -108,6 +109,10 @@ def load_config(path: Path) -> dict:
                 "id": battery_challenge.CHALLENGE.challenge_id,
                 "version": battery_challenge.CHALLENGE.version,
             },
+            *(
+                {"id": challenge_id, "version": version}
+                for challenge_id, version in physical_material.REGISTERED
+            ),
         )
         if type(selected) is not dict or selected not in registered:
             raise ValueError("registered direct Challenge selection required")
@@ -547,6 +552,7 @@ class OwnerProviders:
         identity is still present in the current finalized snapshot.
         """
         from carbon.battery.challenge import CHALLENGE as BATTERY_CHALLENGE
+        from carbon.challenge_kit import physical_material
         from carbon.challenge_validator.interface import Unavailable
         from carbon.development_session.product_campaign import AUTHORITY
         from carbon.development_session.research_ledger import PRODUCT
@@ -560,6 +566,9 @@ class OwnerProviders:
         admission = self._admission(hotkey)
         challenge = self.discovery.info.challenge_key
         battery_selected = challenge == BATTERY_CHALLENGE
+        physical_selected = physical_material.is_registered(
+            challenge.challenge_id, challenge.version
+        )
         binding = {
             "schema": "carbon.construction.direct-receiver-run.v1",
             "implementation": self.implementation,
@@ -580,7 +589,11 @@ class OwnerProviders:
             "scope": (
                 "DEVELOPMENT_PUBLIC_BATTERY_ONLY"
                 if battery_selected
-                else "DEVELOPMENT_PUBLIC_SYNTHETIC_ONLY"
+                else (
+                    "DEVELOPMENT_PUBLIC_PHYSICAL_ONLY"
+                    if physical_selected
+                    else "DEVELOPMENT_PUBLIC_SYNTHETIC_ONLY"
+                )
             ),
             "campaign_id": "direct-" + hashlib.sha256(canonical(binding)).hexdigest(),
             "principal": hotkey,
@@ -604,7 +617,11 @@ class OwnerProviders:
             "objective": (
                 "Battery public direct construction and practice inference"
                 if battery_selected
-                else "synthetic direct construction and public practice inference"
+                else (
+                    "physical public direct construction and development-bank inference"
+                    if physical_selected
+                    else "synthetic direct construction and public practice inference"
+                )
             ),
             "sampling": "Challenge-owned frozen TRAIN and public practice inputs",
             "control": "authenticated owner direct task supervisor",
@@ -770,6 +787,7 @@ def serve(
     )
     from carbon.chain.auth import BittensorHotkeyVerifier
     from carbon.chain.sdk import BittensorReader
+    from carbon.challenge_kit import physical_material
     from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
     from carbon.challenge_validator.direct_intake import (
         DirectRecipeIntake,
@@ -869,11 +887,19 @@ def serve(
     # shared cache parent before its first authenticated material chunk.
     _private_directory(cache.parent)
     _private_directory(cache)
+    selected_id = cfg.get("challenge", {}).get("id")
     material = (
         battery_bundle_material()
-        if cfg.get("challenge", {}).get("id")
-        == battery_challenge.CHALLENGE.challenge_id
-        else bundle_material_v5()
+        if selected_id == battery_challenge.CHALLENGE.challenge_id
+        else (
+            physical_material.bundle_material(
+                selected_id, cfg["challenge"]["version"]
+            )
+            if physical_material.is_registered(
+                selected_id, cfg.get("challenge", {}).get("version")
+            )
+            else bundle_material_v5()
+        )
     )
     challenge = material["challenge_key"]
     with owner_lock(root):

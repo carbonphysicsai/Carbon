@@ -856,9 +856,7 @@ def retain_served_result(
     train_name = "train-v1.jsonl.gz" if battery else "train.npz"
     train_codec = "raw_bytes" if battery else "numeric_npz"
     public_scope = (
-        "PUBLIC_BATTERY_DEVELOPMENT_ONLY"
-        if battery
-        else "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"
+        "PUBLIC_BATTERY_DEVELOPMENT_ONLY" if battery else material["disclosure"]["scope"]
     )
     if "practice_inputs" not in material or "practice_reference" not in material:
         raise RetentionUnavailable("public_input_target_unavailable")
@@ -957,9 +955,11 @@ def retain_served_result(
                     evidence["inference_operation"],
                     evidence["inference_receipt"],
                 ),
-                expected_output_dtype=material["interface_document"]["outputs"][
-                    "dtype"
-                ],
+                expected_output_dtype=(
+                    material["interface_document"]["outputs"]["dtype"]
+                    if "outputs" in material["interface_document"]
+                    else material["interface_document"]["dtype"]
+                ),
             )
         except (ValueError, TypeError, KeyError) as exc:
             raise RetentionUnavailable("native_comparison_unavailable") from exc

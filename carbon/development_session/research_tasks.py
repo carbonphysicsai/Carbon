@@ -1611,6 +1611,8 @@ class DirectDevelopmentTasksV3:
                         )
                 provisioning = False
             self._bindings(request)
+            from carbon.challenge_kit import physical_material
+
             material = self.discovery._material
             kit = material["construction_kit"]
             binding = {
@@ -1655,9 +1657,14 @@ class DirectDevelopmentTasksV3:
                     expected_output_shape=material["expected_output_shape"],
                     allowlist_bytes=material["allowlist_bytes"],
                     expected_output_dtype=(
-                        material["interface_document"]["outputs"]["dtype"]
+                        (
+                            material["interface_document"]["outputs"]["dtype"]
+                            if "outputs" in material["interface_document"]
+                            else material["interface_document"]["dtype"]
+                        )
                         if (kit["id"] == BATTERY_CHALLENGE and kit["version"] == "1.0")
                         or kit["version"] == "1.3"
+                        or physical_material.is_registered(kit["id"], kit["version"])
                         or task_id.value in self._measured_tasks
                         else None
                     ),

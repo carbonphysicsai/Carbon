@@ -40,6 +40,7 @@ class ServedRecipeContract:
         labels = {
             "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY": "DEVELOPMENT_PUBLIC_SYNTHETIC",
             "PUBLIC_BATTERY_DEVELOPMENT_ONLY": "DEVELOPMENT_PUBLIC_BATTERY",
+            "PUBLIC_PHYSICAL_DEVELOPMENT_ONLY": "DEVELOPMENT_PUBLIC_PHYSICAL",
         }
         try:
             return labels[self.scope]
@@ -72,6 +73,7 @@ def registered(challenge_id: str, version: str) -> ServedRecipeContract:
     from carbon.battery.construction_bundle_material import (
         bundle_material as battery_bundle_material,
     )
+    from carbon.challenge_kit import physical_material
     from carbon.challenge_kit.synthetic_linear_field_2d import bundle_material_v5
 
     if (challenge_id, version) == ("synthetic-linear-field-2d", "1.3"):
@@ -84,6 +86,11 @@ def registered(challenge_id: str, version: str) -> ServedRecipeContract:
         material = battery_bundle_material()
         attachment = RemoteStageAttachment(
             "remote-stage-battery-v1.0", "SIGNED_RESEARCH"
+        )
+    elif physical_material.is_registered(challenge_id, version):
+        material = physical_material.bundle_material(challenge_id, version)
+        attachment = RemoteStageAttachment(
+            "remote-stage-" + challenge_id + "-v" + version, "SIGNED_RESEARCH"
         )
     else:
         raise LookupError("served_recipe_contract_not_registered")
