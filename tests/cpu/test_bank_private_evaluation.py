@@ -7,6 +7,10 @@ tests execute no model, solver, network or qualification. No result promotes.
 from copy import deepcopy
 
 import pytest
+from test_private_dual_evaluation_evidence import (
+    _arguments as _dual_arguments,
+    _case as _dual_case,
+)
 from test_score_lab_private_evaluation_evidence import (
     _graph_case,
     _result,
@@ -95,6 +99,16 @@ def test_actual_binder_retains_private_pair_without_promotion_or_battery_pool(
     inc = flow.retain_private("inc", **args)
     candidate = flow.retain_private("candidate", **args)
     key = candidate["evaluation_key"]
+    evidence = candidate["evidence"]
+    assert key == digest(
+        {
+            "challenge": evidence["challenge"],
+            "challenge_version": evidence["challenge_version"],
+            "evaluation_version": evidence["evaluation_version"],
+            "evaluation_version_digest": evidence["evaluation_version_digest"],
+            "score_compatibility": evidence["score_compatibility"],
+        }
+    )
     pair = flow.private_pair("candidate", key)
     assert pair["scope"] == "PRIVATE_OPERATOR_DEVELOPMENT"
     assert pair["expected_incumbent"] == "inc"
@@ -108,6 +122,83 @@ def test_actual_binder_retains_private_pair_without_promotion_or_battery_pool(
     with pytest.raises(StateError, match="accepted_score_unavailable"):
         flow.consider(candidate)
     assert store.incumbent()["model_id"] == "inc"
+
+
+def test_trusted_dual_key_retains_development_evidence_without_promotion(
+    store, tmp_path
+):
+    case = _dual_case(tmp_path / "dual")
+    admitted(store, case, "candidate")
+    arguments, _ = _dual_arguments(case)
+    pin = arguments.pop("registered_source_receipt_sha256")
+    flow = BankPromotion(store, registered_source_receipt_sha256=pin)
+    before = store.events()
+    saved = flow.retain_private("candidate", **arguments)
+    evidence = saved["evidence"]
+    assert evidence["schema"] == "carbon.scoring.private-evaluation-binding.v3"
+    assert evidence["model_p"]["score_status"] == "SCORED_DEVELOPMENT_CANDIDATE"
+    assert evidence["official_score"] is evidence["official_eligible"] is False
+    assert flow.private_pair("candidate", saved["evaluation_key"])["candidate"] == saved
+    assert flow.retain_private("candidate", **arguments) == saved
+    assert store.events() == before
+    assert store.incumbent() is None
+    with pytest.raises(StateError, match="accepted_score_unavailable"):
+        flow.consider(saved)
+
+    for field in (
+        "evaluation_pack_digest",
+        "measurement_contract_digest",
+        "common_mask_digest",
+        "ordered_query_material_digest",
+        "reference_rows_digest",
+        "reference_coverage_digest",
+    ):
+        incompatible = deepcopy(evidence)
+        incompatible[field] = digest([field, "different law or batch"])
+        key = private_evaluation_key(incompatible)
+        assert key != saved["evaluation_key"]
+        with pytest.raises(StateError, match="candidate_evaluation_required"):
+            flow.private_pair("candidate", key)
+    incompatible = deepcopy(evidence)
+    incompatible["score_compatibility"]["score_pack_digest"] = digest("other law")
+    assert private_evaluation_key(incompatible) != saved["evaluation_key"]
+    incompatible = deepcopy(evidence)
+    incompatible["reference_coverage"] = {
+        "RESOLVED": 0,
+        "UNRESOLVED": 1,
+        "FAILED_INFRA": 0,
+    }
+    assert private_evaluation_key(incompatible) != saved["evaluation_key"]
+    incompatible = deepcopy(evidence)
+    incompatible["score_compatibility"][
+        "scoring_version"
+    ] = "carbon.scoring.solver-benchmark-pack.v3"
+    with pytest.raises(StateError, match="score_compatibility_unavailable"):
+        private_evaluation_key(incompatible)
+
+
+@pytest.mark.parametrize(
+    ("reference_status", "score_status"),
+    [("UNRESOLVED", "INDETERMINATE_EVIDENCE"), ("FAILED_INFRA", "FAILED_INFRA")],
+)
+def test_dual_incomplete_reference_stays_diagnostic_not_promotable(
+    store, tmp_path, reference_status, score_status
+):
+    case = _dual_case(tmp_path / "dual")
+    case["references"] = [{"id": "toy-case", "status": reference_status}]
+    admitted(store, case, "candidate")
+    arguments, _ = _dual_arguments(case)
+    pin = arguments.pop("registered_source_receipt_sha256")
+    flow = BankPromotion(store, registered_source_receipt_sha256=pin)
+    before = store.events()
+    saved = flow.retain_private("candidate", **arguments)
+    assert saved["evidence"]["model_p"]["score_status"] == score_status
+    assert saved["evidence"]["model_p"]["total_score"] is None
+    assert saved["evidence"]["reference_coverage"][reference_status] == 1
+    assert saved["evidence"]["official_eligible"] is False
+    with pytest.raises(StateError, match="accepted_score_unavailable"):
+        flow.consider(saved)
+    assert store.events() == before and store.incumbent() is None
 
 
 def test_missing_pin_and_pack_are_typed_refusals_without_cache(store, case):

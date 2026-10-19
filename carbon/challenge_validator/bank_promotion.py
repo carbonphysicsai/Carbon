@@ -31,6 +31,7 @@ def private_evaluation_key(evidence):
         not in {
             "carbon.scoring.private-evaluation-binding.v1",
             "carbon.scoring.private-evaluation-binding.v2",
+            "carbon.scoring.private-evaluation-binding.v3",
         }
         or evidence.get("scope") != "PRIVATE_OPERATOR_DEVELOPMENT"
         or evidence.get("status") != "BOUND_DEVELOPMENT_ONLY"
@@ -42,7 +43,6 @@ def private_evaluation_key(evidence):
                 "entry_id",
                 "state_digest",
                 "model_result_digest",
-                "benchmark_result_digest",
                 "score_result_digest",
             )
         )
@@ -56,7 +56,14 @@ def private_evaluation_key(evidence):
         )
     ):
         raise StateError("private_evaluation_invalid")
-    pack_bound = evidence["schema"] == "carbon.scoring.private-evaluation-binding.v2"
+    dual = evidence["schema"] == "carbon.scoring.private-evaluation-binding.v3"
+    if not is_digest(
+        evidence.get(
+            "dual_measurement_receipt_sha256" if dual else "benchmark_result_digest"
+        )
+    ):
+        raise StateError("private_evaluation_invalid")
+    pack_bound = evidence["schema"] != "carbon.scoring.private-evaluation-binding.v1"
     if pack_bound:
         if not is_digest(evidence.get("evaluation_pack_digest")):
             raise StateError("evaluation_pack_pin_missing")
@@ -73,9 +80,42 @@ def private_evaluation_key(evidence):
         }
         or not is_digest(compatibility["score_pack_digest"])
         or not is_digest(compatibility["execution_profile_digest"])
-        or compatibility["scoring_version"] != "carbon.scoring.solver-benchmark-pack.v3"
+        or compatibility["scoring_version"]
+        != (
+            "carbon.scoring.dual-benchmark-pack.v4"
+            if dual
+            else "carbon.scoring.solver-benchmark-pack.v3"
+        )
     ):
         raise StateError("score_compatibility_unavailable")
+    dual_identity = {}
+    if dual:
+        fields = (
+            "registration_digest",
+            "measurement_contract_digest",
+            "producer_digest",
+            "common_mask_digest",
+            "ordered_query_material_digest",
+            "reference_rows_digest",
+            "reference_coverage_digest",
+        )
+        coverage = evidence.get("reference_coverage")
+        if (
+            evidence.get("official_score") is not False
+            or evidence.get("official_eligible") is not False
+            or any(not is_digest(evidence.get(field)) for field in fields)
+            or type(coverage) is not dict
+            or set(coverage) != {"RESOLVED", "UNRESOLVED", "FAILED_INFRA"}
+            or any(type(count) is not int or count < 0 for count in coverage.values())
+            or sum(coverage.values()) == 0
+        ):
+            raise StateError("private_evaluation_invalid")
+        dual_identity = {
+            "binding_schema": evidence["schema"],
+            "source_receipt_sha256": evidence["source_receipt_sha256"],
+            "reference_coverage": coverage,
+            **{field: evidence[field] for field in fields},
+        }
     return digest(
         {
             "challenge": evidence["challenge"],
@@ -88,6 +128,7 @@ def private_evaluation_key(evidence):
                 if pack_bound
                 else {}
             ),
+            **dual_identity,
         }
     )
 
