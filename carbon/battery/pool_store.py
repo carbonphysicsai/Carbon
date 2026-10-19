@@ -1808,6 +1808,19 @@ class PoolStore:
             {"model_id": model_id, "reason": reason, "previous": current},
         )
 
+    def vacate_incumbent(self, model_id, reason):
+        """Remove `model_id` as incumbent, leaving the Challenge without one
+        (a king dethroned with no valid successor). Refused if it moved."""
+        with self.transaction() as db:
+            if self._incumbent_id(db) != model_id:
+                raise StateError("incumbent_moved")
+            db.execute("DELETE FROM incumbent WHERE id=1")
+            self._event(
+                db,
+                "incumbent",
+                {"model_id": None, "reason": reason, "previous": model_id},
+            )
+
     def set_incumbent(self, model_id, reason, *, expected=None):
         with self.transaction() as db:
             self._set_incumbent(db, model_id, reason, expected=expected)

@@ -13,7 +13,7 @@ from carbon.battery.pool_store import PoolStore, StateError
 from carbon.challenge_validator import bank_promotion as bp
 from carbon.challenge_validator.interface import digest
 from carbon.rewards.core import DAY_MS, Q12
-from carbon.rewards.winner_decay import Winner, WinnerPolicy, epoch_targets
+from carbon.rewards.winner_decay import Winner, epoch_targets, load_policy
 
 PACK = digest("score pack")
 KEY = digest("evaluation context")
@@ -202,15 +202,12 @@ def test_scored_results_drive_a_development_king_and_its_halving(tmp_path, monke
     assert flow.consider_private("c", KEY, rule)["outcome"] == bp.CHALLENGER
     assert store.incumbent()["model_id"] == "c"
 
-    policy = WinnerPolicy(
-        version="koth-four-challenge-development-fixture",
-        digest=digest("fixture policy"),
-        network="testnet",
-        netuid=567,
-        challenges=("electric-motor-magnetics", "chip-cold-plate", "f02", "f08"),
-        self_improvement_factor=None,
-        burn_uid=0,
-        cadence_blocks=360,
+    policy = load_policy("testnet-winner-v2-four-challenge-dev")
+    assert policy.challenges == (
+        "electric-motor-magnetics",
+        "chip-cold-plate",
+        "f08",
+        "f02",
     )
     share = Q12 // 4
     for days, fraction in ((0, 1), (1, 2), (2, 4)):
@@ -250,3 +247,43 @@ def test_a_lost_race_does_not_move_the_incumbent(tmp_path, monkeypatch):
         flow.consider_private("b", KEY, comparator(None))["outcome"] == bp.UNAVAILABLE
     )
     assert store.incumbent() == unchanged
+
+
+def test_a_king_failing_a_mandatory_gate_with_no_valid_successor_leaves_no_winner(
+    tmp_path, monkeypatch
+):
+    """KOTH-TAKEOVER-RULE-01 §3: the king is dethroned and the Challenge's
+    share burns until a valid winner exists."""
+    clock = [0.0]
+    store = _store(tmp_path, clock)
+    store.set_incumbent("a", "fixture")
+    flow = bp.BankPromotion(store, registered_source_receipt_sha256=digest("pin"))
+    failed_king = body("a", "MANDATORY_GATE_FAILED")
+    monkeypatch.setattr(
+        store,
+        "private_evaluation_pair",
+        _Pairs(store, {"b": pair(body("b", "FAILED_INFRA"), failed_king)}),
+    )
+    outcome = flow.consider_private("b", KEY, comparator(NOISE))
+    assert outcome["outcome"] == bp.DETHRONED
+    assert store.incumbent() is None
+    policy = load_policy("testnet-winner-v2-four-challenge-dev")
+    assert epoch_targets(policy, {}, DAY_MS) == {"winners": {}, "burn": Q12}
+
+
+def test_an_unmeasured_gate_does_not_dethrone(tmp_path, monkeypatch):
+    clock = [0.0]
+    store = _store(tmp_path, clock)
+    store.set_incumbent("a", "fixture")
+    flow = bp.BankPromotion(store, registered_source_receipt_sha256=digest("pin"))
+    for status in ("FAILED_INFRA", "INDETERMINATE_EVIDENCE"):
+        monkeypatch.setattr(
+            store,
+            "private_evaluation_pair",
+            _Pairs(store, {"b": pair(body("b", total=9.0), body("a", status))}),
+        )
+        assert (
+            flow.consider_private("b", KEY, comparator(NOISE))["outcome"]
+            == bp.UNAVAILABLE
+        )
+        assert store.incumbent()["model_id"] == "a"

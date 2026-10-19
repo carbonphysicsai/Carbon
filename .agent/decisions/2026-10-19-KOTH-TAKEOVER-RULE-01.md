@@ -31,9 +31,30 @@ If the incumbent's own miner takes the crown with a better model:
 - The 1/N shares, the burn of unpaid allocation and integer remainders, and the eligibility ledger.
 - An infrastructure or indeterminate result never wins and never dethrones.
 - A contender that isn't scored never wins.
-- **Still open:** whether a king that fails a mandatory gate on a new evaluation version is dethroned. Today it's UNAVAILABLE, and nothing changes.
 
-## 4. Implementation (branch `codex/p3-paired-key`)
+## 3a. A king that fails a mandatory gate (decided under the same delegation)
+
+**A king whose model measurably fails a mandatory gate on a new evaluation version is dethroned.** That covers `MANDATORY_GATE_FAILED` and an invalid output (`CANDIDATE_INVALID`).
+- A scored contender on the same key takes the crown.
+- Without one, the Challenge has no winner, and its share burns until a valid winner exists.
+- **A gate that is only unmeasured on our side does not dethrone; the king keeps the crown.** That covers infrastructure failure and indeterminate evidence.
+- Other ineligible statuses (decision-outcome or leg-minimum) aren't gate failures and change nothing.
+
+## 3b. Staleness (Validator, gate design)
+
+- **BANK promotions skip `nomination_overdue` because they have no nomination pool,** so the field doesn't exist for them. That's why `decide` applies the overdue check only to `FINAL` promotions.
+- **The same rule carries over to banks.** Once a Challenge's bank refresh cadence (its anti-leak control) is registered, a promotion decided on a bank version that is overdue for refresh pays nobody, mirroring overdue pools.
+- **No cadence is registered yet,** so nothing is gated today. This is true by decision, not by omission.
+
+## 4. The four-Challenge policy (decided under the same delegation)
+
+`testnet-winner-v2-four-challenge-dev` lists Motor, Cooling, F08 and F02 (N = 4) as a **registered development version**.
+- `testnet-winner-v1` stays the registry's current policy, unchanged, as history.
+- Adopting the score pack and any mainnet use stay the owner's at launch.
+
+## 5. Implementation (branch `codex/p3-paired-key`)
 
 - `compare_private_pair` takes the comparator's `rebuild_noise` (`value`, `measurement_digest`). A challenger wins only if `total > king_total + value`. If no noise is registered, the result is UNAVAILABLE.
 - `winner_eligibility.decide` accepts a bank-comparison promotion kind. It uses the existing predecessor check and the same-miner `no_reset`.
+- A dethroning with no successor calls `PoolStore.vacate_incumbent`, which leaves no promotion, so the reward layer pays nobody and the share burns.
+- `rebuild_noise.measurement_digest` is checked for **shape only**. Whether it records three real rebuilds on pinned images is the packs-lane measurement and the Validator's review, not the code.

@@ -1,0 +1,27 @@
+{
+  "authority": "OWNER-TESTNET-WEIGHTS-01",
+  "baselines": {
+    "chip-cold-plate": null,
+    "electric-motor-magnetics": null,
+    "f02": null,
+    "f08": null
+  },
+  "burn_uid": 0,
+  "cadence_blocks": 360,
+  "challenges": [
+    "electric-motor-magnetics",
+    "chip-cold-plate",
+    "f08",
+    "f02"
+  ],
+  "decay": {
+    "full_ms": 86400000,
+    "halving_ms": 86400000
+  },
+  "membership_note": "DEVELOPMENT policy for the four launch Challenges (Motor, Cooling, F08, F02), N = 4, listed on 2026-10-19 under the owner's delegation to the Test Lead (KOTH-TAKEOVER-RULE-01 \u00a74). Not the registry's current policy: testnet-winner-v1 stays current and unchanged as history. A crown is taken on a shared bank key by more than the Challenge's measured rebuild noise; a king that fails a mandatory gate on a new evaluation version is dethroned and its share burns until a valid winner exists. Score-pack adoption and mainnet use stay the owner's at launch. self_improvement_factor stays null: a same-miner win keeps the old clock. baselines null: the first-incumbent rule applies.",
+  "netuid": 567,
+  "network": "testnet",
+  "schema": "carbon.rewards.testnet-winner-policy.v1",
+  "self_improvement_factor": null,
+  "version": "testnet-winner-v2-four-challenge-dev"
+}

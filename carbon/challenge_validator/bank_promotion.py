@@ -347,6 +347,12 @@ class BankPromotion:
                 DEVELOPMENT_PROMOTION,
                 expected=pair["expected_incumbent"],
             )
+        elif outcome["outcome"] == DETHRONED:
+            # No valid successor: the Challenge has no winner and its share
+            # burns until one exists.
+            self.store.vacate_incumbent(
+                pair["expected_incumbent"], "incumbent_failed_mandatory_gate"
+            )
         return outcome
 
 
@@ -357,6 +363,11 @@ SCORED = "SCORED_DEVELOPMENT_CANDIDATE"
 #: Statuses that say nothing about the model: infrastructure or evidence,
 #: never a science failure, so they can neither win nor be dethroned.
 NOT_MEASURED = frozenset({"FAILED_INFRA", "INDETERMINATE_EVIDENCE"})
+#: A measured failure of a mandatory gate (an invalid output is one): it
+#: dethrones a king (KOTH-TAKEOVER-RULE-01 §3). Other ineligible statuses are
+#: not gate failures and change nothing.
+GATE_FAILED = frozenset({"MANDATORY_GATE_FAILED", "CANDIDATE_INVALID"})
+DETHRONED = "INCUMBENT_DETHRONED"
 FIRST_INCUMBENT = "FIRST_INCUMBENT"
 CHALLENGER = "CHALLENGER"
 INCUMBENT_KEEPS = "INCUMBENT_KEEPS"
@@ -426,9 +437,11 @@ def compare_private_pair(pair, comparator):
 
     - A contender that is not scored never wins.
     - With no incumbent, a scored contender is the first incumbent.
-    - An incumbent whose evidence is infrastructure or indeterminate, or that
-      fails science on this evaluation, is UNAVAILABLE: no rule here says
-      whether it is dethroned, so nothing changes.
+    - An incumbent whose evidence is infrastructure or indeterminate is
+      UNAVAILABLE: nothing changes. One that measurably fails a mandatory
+      gate on this evaluation is dethroned: a scored contender takes the
+      crown, otherwise the Challenge has no winner (KOTH-TAKEOVER-RULE-01 §3).
+      Any other unscored incumbent status changes nothing.
     - Otherwise the contender must exceed the incumbent's total by the
       Challenge's measured rebuild noise; within it is a tie and the
       incumbent keeps the crown (KOTH-TAKEOVER-RULE-01). No noise registered is
@@ -453,8 +466,12 @@ def compare_private_pair(pair, comparator):
             return decided(NO_WINNER, "candidate_not_scored")
         return decided(FIRST_INCUMBENT, "first_scored_contender")
     if status != SCORED:
+        if _scored(incumbent)[0] in GATE_FAILED:
+            return decided(DETHRONED, "incumbent_failed_mandatory_gate")
         return decided(INCUMBENT_KEEPS, "candidate_not_scored")
     held, held_total = _scored(incumbent)
+    if held in GATE_FAILED:
+        return decided(CHALLENGER, "incumbent_failed_mandatory_gate")
     if held in NOT_MEASURED:
         return decided(UNAVAILABLE, "incumbent_evidence_unavailable")
     if held != SCORED:
