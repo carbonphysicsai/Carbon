@@ -31,7 +31,13 @@ import numpy as np
 from carbon.cold_plate import challenge as cooling
 from carbon.motor import challenge as motor
 
-from . import battery_pack, physical_public, physical_public_train
+from . import (
+    battery_pack,
+    f08_public,
+    f08_train,
+    physical_public,
+    physical_public_train,
+)
 
 _DATA = Path(__file__).with_name("data")
 _REPOSITORY = Path(__file__).resolve().parents[2]
@@ -77,7 +83,26 @@ PACK_VERSIONS = {
     motor.CHALLENGE.challenge_id: "motor-normal-construction-development-1",
     cooling.CHALLENGE.challenge_id: "cooling-normal-construction-development-1",
     battery_pack.CHALLENGE_ID: battery_pack.PACK_VERSION,
+    f08_train.CHALLENGE_ID: "f08-normal-construction-development-1",
 }
+#: F08's first accepted decision references (RR-PACKS-03, Validator-reviewed
+#: 2026-10-19): eight TRAIN-informed near-feasible geometries at h = 1.7 mm.
+_F08_OBSERVED = (
+    "docs/development/evidence/f08-near-feasible-public-pilot-20261019/observed.json",
+    "09055d8b4b6da9494d520b9e39d12fd5ad005ed6d3413d5f865df3ff684a2723",
+)
+_F08_ENVIRONMENT = (
+    "docs/development/evidence/f08-near-feasible-public-pilot-20261019/pod-environment.json",
+    "44ae8c80996e4c7e7fef27a26016ddfbbe125ad2287ff68ba70e4f9793037637",
+)
+_F08_REFERENCE_RUNG = "h1.7"
+#: Validator ruling: every F08 reference is feasible, so D tests ranking only.
+F08_DECISION_COVERAGE = "RANKING_ONLY_NO_FEASIBILITY_BOUNDARY"
+F08_POPULATION = "TRAIN_INFORMED_LOCAL_NEIGHBOURHOOD_NOT_INDEPENDENT"
+_F08_BRIEF = (
+    "docs/development/challenge_pipeline/onboarding-runs/generated/f08/brief.json",
+    "2c15f096f43b02a4da4b1455d4c629d8979ad1319c8efb61afb141674f682330",
+)
 PUBLIC_ROLES = (
     "construction_kit",
     "interface",
@@ -160,6 +185,9 @@ def _files(challenge_id: str, version: str) -> dict:
     if challenge_id == battery_pack.CHALLENGE_ID:
         battery_pack._check(version)
         return {}
+    if challenge_id == f08_train.CHALLENGE_ID:
+        f08_public.construction_kit(challenge_id, version)  # refuses unknown
+        return {}
     if challenge_id not in _ROLE_FILES:
         raise ValueError("no normal-construction pack for this Challenge")
     physical_public.construction_kit(challenge_id, version)  # refuses unknown versions
@@ -205,6 +233,54 @@ def public_roles(challenge_id: str, version: str) -> dict[str, bytes]:
     and HUMAN_INPUT in the manifest. Nothing is defaulted or inferred."""
     if challenge_id == battery_pack.CHALLENGE_ID:
         return battery_pack.public_roles(version)
+    if challenge_id == f08_train.CHALLENGE_ID:
+        brief = _pinned_repository_file(_F08_BRIEF)
+        brief_text = brief.decode("utf-8")
+        if not all(v in brief_text for v in ("0.45 kg", "0.03 mm/N", "0.15 mm/N")):
+            raise ValueError("F08 brief no longer states the registered limits")
+        identity = {"id": challenge_id, "version": version}
+        sources = [
+            {"path": _F08_BRIEF[0], "sha256": _F08_BRIEF[1]},
+            {"path": "carbon/challenge_pipeline/structures_readiness.py",
+             "symbol": "feasibility verdict limits"},
+        ]  # fmt: skip
+        return {
+            "construction_kit": _canonical(
+                f08_public.construction_kit(challenge_id, version)
+            ),
+            "interface": _canonical(
+                f08_public.interface_document(challenge_id, version)
+            ),
+            "train": f08_train.load_public_train()["train"],
+            "important_limit_definition": _canonical(
+                {
+                    "schema": "carbon.f08.important-limit-definition.v1",
+                    "challenge": identity,
+                    "constraints": {
+                        "mass_kg_max": 0.45,
+                        "static_tip_mm_per_n_max": 0.03,
+                        "dynamic_tip_mm_per_n_max": 0.15,
+                    },
+                    "inclusive_boundaries": True,
+                    "mass_role": "analytic CAD mass; feasibility only, not a learned target",
+                    "decision_coverage": F08_DECISION_COVERAGE,
+                    "population": F08_POPULATION,
+                    "sources": sources,
+                }
+            ),
+            "design_objective": _canonical(
+                {
+                    "schema": "carbon.f08.design-objective.v1",
+                    "challenge": identity,
+                    "sense": "minimize",
+                    "quantity": "worst_dynamic_mm_per_n",
+                    "definition": "worst-band TIP dynamic compliance over all damping; "
+                    "probe is diagnostic only",
+                    "decision_coverage": F08_DECISION_COVERAGE,
+                    "sources": sources,
+                }
+            ),
+        }
     roles = {
         "construction_kit": _canonical(
             physical_public.construction_kit(challenge_id, version)
@@ -247,6 +323,8 @@ def development_bank(challenge_id: str, version: str) -> dict:
     _files(challenge_id, version)
     if challenge_id == battery_pack.CHALLENGE_ID:
         return battery_pack.development_bank(version)
+    if challenge_id == f08_train.CHALLENGE_ID:
+        return _f08_bank(challenge_id, version)
     if challenge_id not in _BANKS:
         raise ValueError("no development bank for this Challenge")
     study = json.loads(_bank_file(challenge_id, "study"))
@@ -323,6 +401,105 @@ def development_bank(challenge_id: str, version: str) -> dict:
         "references": targets,
         "reference_records": records,
         "solver_evidence": _bank_file(challenge_id, "completion"),
+    }
+
+
+def _pinned_repository_file(path_and_sha: tuple[str, str]) -> bytes:
+    path, pinned = path_and_sha
+    raw = (_REPOSITORY / path).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != pinned:
+        raise ValueError(f"pinned {path} differs")
+    return raw
+
+
+def _f08_bank(challenge_id: str, version: str) -> dict:
+    """F08's accepted references, laid out by the interface's named slices."""
+    interface = f08_public.interface_document(challenge_id, version)
+    names = interface["input"]["names"]
+    slices = interface["output"]["named_slices"]
+    width = max(end for _, end in slices.values())
+    observed_raw = _pinned_repository_file(_F08_OBSERVED)
+    observed = json.loads(observed_raw)
+    environment = json.loads(_pinned_repository_file(_F08_ENVIRONMENT))
+    geometries = sorted(observed["convergence"])
+    case_ids, rows, references, records = [], [], [], []
+    for geometry in geometries:
+        verdict = observed["convergence"][geometry]
+        case = observed["cases"].get(f"{geometry}-{_F08_REFERENCE_RUNG}")
+        if (
+            case is None
+            or verdict.get("asymptotic_ok") is not True
+            or any(r.get("verdict") != "PASS" for r in verdict["rungs"].values())
+            or case["mode_ladder"]["verdict"] != "PASS"
+            or case["cost"]["outcome"] != "COMPLETED"
+        ):
+            raise ValueError(f"{geometry} has no accepted reference")
+        damping = case["damping"]
+        values = {"static_tip_mm_per_n": case["static_tip_mm_per_n"]}
+        for zeta, tag in (
+            ("zeta_0.005", "z005"),
+            ("zeta_0.01", "z010"),
+            ("zeta_0.02", "z020"),
+        ):
+            values[f"peak_tip_{tag}_mm_per_n"] = damping[zeta]["worst_mm_per_n"]
+            values[f"peak_frequency_{tag}_hz"] = damping[zeta]["worst_hz"]
+        target = [0.0] * width
+        for name, (start, end) in slices.items():
+            target[start:end] = [float(values[name])]
+        case_ids.append(geometry)
+        rows.append([float(observed["cases"][geometry]["case"][n]) for n in names])
+        references.append(target)
+        records.append(
+            {
+                "status": "OK",
+                "case_id": geometry,
+                "design_id": geometry,
+                "reference_rung_h_mm": case["h_mm"],
+                "wall_s": case["cost"]["wall_s"],
+                "image": {
+                    "kind": environment["kind"],
+                    "solvers": environment["solvers"],
+                },
+                "cad_mass_kg": case["cad_mass_kg"],
+                "observed": {
+                    k: case[k]
+                    for k in (
+                        "static_tip_mm_per_n",
+                        "worst_dynamic_mm_per_n",
+                        "mass_kg",
+                        "modes",
+                        "mode_ladder",
+                        "in_band_modes_hz",
+                    )
+                },
+                "damping": {
+                    zeta: {k: damping[zeta][k] for k in ("worst_mm_per_n", "worst_hz")}
+                    for zeta in damping
+                },
+                "convergence": verdict,
+            }
+        )
+    dtype = interface["train_dtype"]
+    inputs = np.asarray(rows, dtype=dtype)
+    targets = np.asarray(references, dtype=dtype)
+    if (
+        inputs.shape != (len(case_ids), len(names))
+        or targets.shape != (len(case_ids), width)
+        or not np.isfinite(inputs).all()
+        or not np.isfinite(targets).all()
+    ):
+        raise ValueError("F08 bank tensor differs")
+    inputs.setflags(write=False)
+    targets.setflags(write=False)
+    return {
+        "case_ids": tuple(case_ids),
+        "cohorts": ("decision_near_feasible",) * len(case_ids),
+        "inputs": inputs,
+        "references": targets,
+        "reference_records": records,
+        "solver_evidence": observed_raw,
+        "decision_coverage": F08_DECISION_COVERAGE,
+        "population": F08_POPULATION,
     }
 
 
@@ -405,6 +582,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.challenge == battery_pack.CHALLENGE_ID:
         version = battery_pack.challenge.CHALLENGE.version
+    elif args.challenge == f08_train.CHALLENGE_ID:
+        version = f08_train.CHALLENGE_VERSION
     elif args.challenge in _ROLE_FILES:
         version = physical_public_train._source(args.challenge)[0].CHALLENGE.version
     else:

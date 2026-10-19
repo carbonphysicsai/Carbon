@@ -1,0 +1,16 @@
+{
+ "schema": "carbon.reference-solvers.pod-phase.v1",
+ "plan_id": "f08-near-feasible-one-case-resource-pilot-2026-10-18",
+ "pod_plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/f08-near-feasible-one-case-resource-pilot.json",
+ "pod_plan_sha256": "b9deef7e67df1aae5af96b227402a59872dbea49205b39e3459448c402d9e1ce",
+ "kind": "calculix",
+ "steps": [
+  {
+   "name": "f08-near-feasible-8x3",
+   "status": "PASS",
+   "wall_s": 1477.4
+  }
+ ],
+ "all_passed": true,
+ "maturity": "DEVELOPMENT engineering run on public decks; no adequacy, qualification or LIVE claim"
+}
