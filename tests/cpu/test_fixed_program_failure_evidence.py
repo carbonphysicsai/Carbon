@@ -9,9 +9,16 @@ import pytest
 from test_fixed_practice_failure_diagnostics import harness as _runner_harness
 
 from carbon.development_session import research_carrier as carrier
+from carbon.development_session.library_bundles import LibraryBundleRef
+from carbon.development_session.library_environment_cache import VerifiedLibraryOverlay
 from carbon.reconstruction.worker import watchdog
 from carbon.reconstruction.worker.docker_runtime import _canonical
-from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure, tagged_sha256
+from carbon.reconstruction.worker.model import (
+    WorkerCode,
+    WorkerFailure,
+    WorkerImageIdentity,
+    tagged_sha256,
+)
 
 harness = _runner_harness  # pytest discovers the existing fixture by this name
 
@@ -167,8 +174,12 @@ def test_private_write_is_allowlisted_bounded_and_best_effort(tmp_path, monkeypa
     assert carrier._retain_fixed_program_evidence(tmp_path, filename, value) is None
 
 
-def test_failed_prep_preserves_original_worker_failure_when_private_write_fails(
-    harness, monkeypatch
+@pytest.mark.parametrize(
+    "provenance",
+    [carrier.LIBRARY_PREP_PROVENANCE, carrier.LIBRARY_OVERLAY_BUILD_PROVENANCE],
+)
+def test_failed_fixed_program_preserves_original_worker_failure_when_private_write_fails(
+    harness, monkeypatch, provenance
 ):
     original = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=b"exit=137\n")
     harness.fail_stage, harness.error = "PROGRAM", original
@@ -181,10 +192,133 @@ def test_failed_prep_preserves_original_worker_failure_when_private_write_fails(
 
     monkeypatch.setattr(carrier, "write_once", private_write_fails)
     with pytest.raises(WorkerFailure) as caught:
-        harness.run(provenance=carrier.LIBRARY_PREP_PROVENANCE)
+        harness.run(provenance=provenance, **_overlay_arguments(harness, provenance))
     assert caught.value is original
     assert "CLEANUP" in harness.events
     assert not list(harness.ledger.root.glob("operation-*/private-program-*.json"))
+
+
+def _overlay_arguments(harness, provenance):
+    if provenance != carrier.LIBRARY_OVERLAY_BUILD_PROVENANCE:
+        return {}
+    # Exercise the real trusted-overlay checks with a sealed synthetic tree,
+    # rather than weakening those guards to reach the diagnostic branch.
+    root = harness.ledger.root / "verified-overlay"
+    (root / "source").mkdir(parents=True)
+    body = b"# inert fixture, never executed\n"
+    (root / "source" / "candidate.py").write_bytes(body)
+    rows = [["source/candidate.py", len(body), carrier.digest(body)]]
+    tree = carrier.digest(json.dumps(rows, separators=(",", ":")).encode())
+    bundle = LibraryBundleRef.from_dict(
+        {
+            "schema": "carbon.library-bundle-ref.v1",
+            "bundle_digest": IMAGE,
+            "language": "python",
+            "runtime_profile_id": "python-cpu-py311",
+            "environment_digest": IMAGE,
+        }
+    )
+    receipt = {
+        "tree_digest": tree,
+        "bundle_ref": bundle.to_dict(),
+        "parent_image_id": IMAGE,
+        "archive_sha256": IMAGE,
+        "file_count": 1,
+        "total_file_bytes": len(body),
+    }
+    (root / ".overlay.json").write_bytes(carrier.canonical(receipt))
+    image = WorkerImageIdentity(
+        **{
+            field: IMAGE
+            for field in (
+                "image_id",
+                "config_digest",
+                "source_tree_digest",
+                "wheel_digest",
+                "lock_digest",
+                "base_image_digest",
+                "build_recipe_digest",
+                "entrypoint_digest",
+            )
+        }
+    )
+    return {
+        "image": image,
+        "trusted_overlay": VerifiedLibraryOverlay(
+            root, tree, bundle, IMAGE, IMAGE, 1, len(body)
+        ),
+    }
+
+
+@pytest.mark.parametrize(
+    "diagnostic,expected_exit",
+    [(b"exit=7\nPRIVATE_SECRET", 7), (b"PRIVATE_SECRET", None), (b"exit=999\n", None)],
+)
+def test_overlay_build_program_keeps_launch_bound_baseline_and_failure(
+    harness, monkeypatch, diagnostic, expected_exit
+):
+    original = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=diagnostic)
+    harness.fail_stage, harness.error = "PROGRAM", original
+    calls = []
+
+    def observe(_cli, **arguments):
+        calls.append(arguments)
+        harness.events.append("PRIVATE_OBSERVATION")
+        assert 0 < arguments["deadline"] - time.monotonic() <= 1
+        return {"status": "UNKNOWN", "state": None, "memory": None}
+
+    monkeypatch.setattr(carrier, "_fixed_program_container_observation", observe)
+    with pytest.raises(WorkerFailure) as caught:
+        harness.run(
+            provenance=carrier.LIBRARY_OVERLAY_BUILD_PROVENANCE,
+            **_overlay_arguments(harness, carrier.LIBRARY_OVERLAY_BUILD_PROVENANCE),
+        )
+    assert caught.value is original
+    assert len(calls) == 2 and calls[0]["launch_digest"] == calls[1]["launch_digest"]
+    assert all(call["image_id"] == IMAGE for call in calls)
+    launch = calls[0]["launch_digest"]
+    assert all(call["container_name"] == "carbon-d4-" + launch[7:31] for call in calls)
+    operation = harness.ledger.root / ("operation-" + launch[7:])
+    baseline_raw = (operation / "private-program-baseline.json").read_bytes()
+    failed_raw = (operation / "private-program-failure-evidence.json").read_bytes()
+    baseline, failed = json.loads(baseline_raw), json.loads(failed_raw)
+    assert baseline["launch_digest"] == failed["launch_digest"] == launch
+    assert failed["baseline_digest"] == carrier.digest(baseline_raw)
+    assert failed["observed_exec_exit"] == expected_exit
+    assert len(baseline_raw) <= 4096 and len(failed_raw) <= 4096
+    assert b"PRIVATE_SECRET" not in baseline_raw + failed_raw
+    assert harness.events.index("PRIVATE_OBSERVATION") < harness.events.index("PROGRAM")
+    assert harness.events.index("PROGRAM") < len(harness.events) - 2
+    assert harness.events[-2:] == ["CLEANUP", "ABSENCE_QUERY"]
+    assert not (operation / "private-build-program-diagnostic.bin").exists()
+
+
+def test_unrelated_program_provenance_has_no_extended_capture(harness, monkeypatch):
+    original = WorkerFailure(WorkerCode.RUNTIME)
+    harness.fail_stage, harness.error = "PROGRAM", original
+    monkeypatch.setattr(
+        carrier,
+        "_fixed_program_container_observation",
+        lambda *args, **kwargs: pytest.fail("unrelated provenance probe"),
+    )
+    with pytest.raises(WorkerFailure) as caught:
+        harness.run(provenance="BATTERY_PUBLIC_PRACTICE")
+    assert caught.value is original
+    assert not list(harness.ledger.root.glob("operation-*/private-program-*.json"))
+    assert harness.events.count("CLEANUP") == 1
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "../private-program-failure-evidence.json",
+        "sub/private-program-baseline.json",
+        "/private-program-baseline.json",
+    ],
+)
+def test_program_capture_rejects_nonallowlisted_paths(tmp_path, filename):
+    assert carrier._retain_fixed_program_evidence(tmp_path, filename, {}) is None
+    assert not list(tmp_path.iterdir())
 
 
 def _watchdog_intent(tmp_path, *, deadline=123.0, changes=None):

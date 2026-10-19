@@ -433,6 +433,9 @@ _PRIVATE_PROGRAM_FILES = frozenset(
         "private-owned-cancel-observation.json",
     }
 )
+_PROGRAM_EVIDENCE_PROVENANCES = frozenset(
+    {LIBRARY_PREP_PROVENANCE, LIBRARY_OVERLAY_BUILD_PROVENANCE}
+)
 
 
 def _retain_fixed_program_evidence(operation, filename, value):
@@ -1017,7 +1020,7 @@ def _run_locked(
                 diagnose_policy=provenance in _FIXED_DIAGNOSTIC_PROVENANCES,
             )
         baseline_digest = None
-        if provenance == LIBRARY_PREP_PROVENANCE:
+        if provenance in _PROGRAM_EVIDENCE_PROVENANCES:
             try:
                 baseline_digest = _retain_fixed_program_evidence(
                     operation,
@@ -1056,7 +1059,7 @@ def _run_locked(
                     timeout=program_timeout,
                 )
             except Exception as error:
-                if provenance == LIBRARY_PREP_PROVENANCE:
+                if provenance in _PROGRAM_EVIDENCE_PROVENANCES:
                     try:
                         diagnostic = (
                             error.private_diagnostic
