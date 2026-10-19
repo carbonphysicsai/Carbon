@@ -81,7 +81,9 @@ if "sha256:" + hashlib.sha256(inputs_raw).hexdigest() != control["inputs_digest"
     raise ValueError("inference input digest differs")
 cases = json.loads(inputs_raw)["cases"]
 x = np.asarray([[case["inputs"][name] for name in INPUTS] for case in cases], float)
-predictions = recipes.to_predictions(model.predict(x), [case["case_id"] for case in cases])
+predictions = recipes.to_predictions(
+    model.predict(x, isolated=True), [case["case_id"] for case in cases]
+)
 body = json.dumps(predictions, sort_keys=True, allow_nan=False).encode()
 (out / "predictions.json").write_bytes(body)
 (out / "receipt.json").write_text(json.dumps({

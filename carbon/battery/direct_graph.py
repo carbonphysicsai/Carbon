@@ -200,7 +200,8 @@ class DirectGraphModel:
             "recipe_digest": self.recipe.digest,
         }
 
-    def predict(self, x: np.ndarray) -> dict:
+    def predict(self, x: np.ndarray, *, isolated: bool = False) -> dict:
+        """`isolated` is the judge's per-case grading: one case per call, row 0."""
         import jax
         import jax.numpy as jnp
 
@@ -212,7 +213,9 @@ class DirectGraphModel:
             raise RecipeRefused("battery_graph_input_invalid")
         with jax.enable_x64(dtype is np.float64):
             normalized = np.asarray(
-                self.prepared.predict(list(self.params), jnp.asarray(x))[0]
+                self.prepared.predict(
+                    list(self.params), jnp.asarray(x), isolated=isolated
+                )[0]
             )
         y = normalized * self.sd + self.mu
         g = domain.GRID_POINTS
