@@ -6,7 +6,14 @@ Authority: the owner delegated this decision to the Test Lead on 2026-10-19:
 
 > keep it simple. better score wins and takes the emission, halves every 24 hours, existing winner beating himself is the one I need you to decide on.
 
-The Test Lead decided it and relayed it to the Carbon Validator, who records and implements it. Unchanged by this record: `CARBON_BUILD_TARGET.md` §4 (1/N, full for 24 h, then halving every 24 h; no fresh-case tournament).
+The Test Lead decided it and relayed it to the Carbon Validator, who records and implements it.
+
+**Scope note.** The owner's words delegate one question: the king beating himself (§2). Under the same delegation, as the Test Lead stated, three more decisions were made:
+- the rebuild-noise reading of "better score" (§1);
+- dethroning a king that fails a gate, with its share burning (§3a);
+- the four-Challenge policy (§4).
+
+Each is development-only and fails closed. The owner has been told this pattern, not only the individual decisions. Unchanged by this record: `CARBON_BUILD_TARGET.md` §4 (1/N, full for 24 h, then halving every 24 h; no fresh-case tournament).
 
 ## 1. Who takes the crown
 
@@ -49,7 +56,9 @@ If the incumbent's own miner takes the crown with a better model:
 ## 4. The four-Challenge policy (decided under the same delegation)
 
 `testnet-winner-v2-four-challenge-dev` lists Motor, Cooling, F08 and F02 (N = 4) as a **registered development version**.
+- **Battery is not one of the four.** v1 lists battery, Cooling and Motor (N = 3). v2 drops battery and adds F08 and F02, following the owner's 19 October goal of four launch Challenges. Under 1/N, that changes who would be paid.
 - `testnet-winner-v1` stays the registry's current policy, unchanged, as history.
+- **The registry pin** (`sha256:4a95d313…`) is over the policy's **compact, sorted canonical JSON** (`winner_decay._canonical`), not the file's raw bytes, so a plain `sha256sum` of the file won't match.
 - Adopting the score pack and any mainnet use stay the owner's at launch.
 
 ## 5. Implementation (branch `codex/p3-paired-key`)
