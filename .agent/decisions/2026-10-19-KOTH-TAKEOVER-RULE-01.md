@@ -63,9 +63,18 @@ If the incumbent's own miner takes the crown with a better model:
 - **The registry pin** (`sha256:4a95d313…`) is over the policy's **compact, sorted canonical JSON** (`winner_decay._canonical`), not the file's raw bytes, so a plain `sha256sum` of the file won't match.
 - Adopting the score pack and any mainnet use stay the owner's at launch.
 
+## 4a. Owner reversal: Battery is included (2026-10-19)
+
+Asked by the Test Lead, "Add Battery as a fifth Challenge?", the owner answered **"Include it."** in the Test Lead's session. That reverses §4's removal of Battery from the paid list.
+- `testnet-winner-v3-five-challenge-dev` lists Motor, Cooling, F08, F02 and Battery (`battery-fastcharge-ageing-development-v1`), so N = 5.
+- `testnet-winner-v2-four-challenge-dev` stays registered as history. `testnet-winner-v1` stays current and unchanged.
+- **N at launch is whatever policy is registered then.**
+- Battery's pack labels use the sealed `battery-plating-ref-v2` (`VALIDATOR-PLATING-REF-V2-02`, on main).
+
 ## 5. Implementation (branch `codex/p3-paired-key`)
 
 - `compare_private_pair` takes the comparator's `rebuild_noise` (`value`, `measurement_digest`). A challenger wins only if `total > king_total + value`. If no noise is registered, the result is UNAVAILABLE.
 - `winner_eligibility.decide` accepts a bank-comparison promotion kind. It uses the existing predecessor check and the same-miner `no_reset`.
 - A dethroning with no successor calls `PoolStore.vacate_incumbent`, which leaves no promotion, so the reward layer pays nobody and the share burns.
+- The registry pin for v3 (`sha256:4b488bce0a43bc9b1f3914bb11b72d026ba2a1154fae5a83bc6649774c5add71`) is, like v2's, over the compact sorted canonical JSON.
 - `rebuild_noise.measurement_digest` is checked for **shape only**. Whether it records three real rebuilds on pinned images is the packs-lane measurement and the Validator's review, not the code.

@@ -1,0 +1,29 @@
+{
+  "authority": "OWNER-TESTNET-WEIGHTS-01",
+  "baselines": {
+    "battery-fastcharge-ageing-development-v1": null,
+    "chip-cold-plate": null,
+    "electric-motor-magnetics": null,
+    "f02": null,
+    "f08": null
+  },
+  "burn_uid": 0,
+  "cadence_blocks": 360,
+  "challenges": [
+    "electric-motor-magnetics",
+    "chip-cold-plate",
+    "f08",
+    "f02",
+    "battery-fastcharge-ageing-development-v1"
+  ],
+  "decay": {
+    "full_ms": 86400000,
+    "halving_ms": 86400000
+  },
+  "membership_note": "DEVELOPMENT policy, N = 5: Motor, Cooling, F08, F02 and Battery. On 2026-10-19 the owner reversed Battery's removal (\"Include it.\", in the Test Lead's session), superseding testnet-winner-v2-four-challenge-dev, which stays registered as history (KOTH-TAKEOVER-RULE-01 \u00a74). Not the registry's current policy: testnet-winner-v1 stays current and unchanged. N at launch is whatever is registered then. Score-pack adoption and mainnet use stay the owner's at launch. self_improvement_factor null: a same-miner win keeps the old clock. baselines null: the first-incumbent rule applies.",
+  "netuid": 567,
+  "network": "testnet",
+  "schema": "carbon.rewards.testnet-winner-policy.v1",
+  "self_improvement_factor": null,
+  "version": "testnet-winner-v3-five-challenge-dev"
+}
