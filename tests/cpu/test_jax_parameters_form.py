@@ -46,11 +46,53 @@ SOURCE = (
 )
 
 
+#: A spectral layer (FFT, complex64 weights, float64 output) like an FNO block. Its
+#: graph makes `load` import jax before the inference program can enable x64.
+SPECTRAL_SOURCE = """import numpy as np
+import jax.numpy as jnp
+
+
+def features(params, x):
+    w1, c = params[0], params[1]
+    h = x @ w1
+    f = jnp.fft.rfft(h.astype(jnp.float32), axis=-1) * c
+    return jnp.tanh(jnp.fft.irfft(f, n=16, axis=-1).astype(h.dtype))
+
+
+def build(train_inputs, train_targets, *, seed, configuration, train_use):
+    x = np.asarray(train_inputs, float)
+    y = np.asarray(train_targets, float)
+    rng = np.random.default_rng(seed)
+    w1 = rng.normal(size=(x.shape[1], 16)) / np.sqrt(x.shape[1])
+    c = (rng.normal(size=9) + 1j * rng.normal(size=9)).astype(np.complex64)
+    z = np.asarray(features([jnp.asarray(w1), jnp.asarray(c)], jnp.asarray(x)))
+    w2 = np.linalg.lstsq(z, y, rcond=None)[0]
+    parameters = [jnp.asarray(w1), jnp.asarray(c), jnp.asarray(w2)]
+
+    def apply(params, x):
+        return features(params, x) @ params[2]
+
+    return {"framework": "jax", "apply": apply, "parameters": parameters}
+"""
+
+
 @motor.CHALLENGES
 def test_a_realistic_jax_model_freezes_as_state_and_infers(
     tmp_path, monkeypatch, challenge_id, version
 ):
-    monkeypatch.setattr(acceptance, "SOURCE", SOURCE)
+    _freeze_and_infer(tmp_path, monkeypatch, challenge_id, version, SOURCE)
+
+
+@motor.CHALLENGES
+def test_an_fft_graph_infers_in_float64_although_load_imports_jax(
+    tmp_path, monkeypatch, challenge_id, version
+):
+    """MS6 (FNO) failed input_aval_mismatch: x64 was set after jax was loaded."""
+    _freeze_and_infer(tmp_path, monkeypatch, challenge_id, version, SPECTRAL_SOURCE)
+
+
+def _freeze_and_infer(tmp_path, monkeypatch, challenge_id, version, source):
+    monkeypatch.setattr(acceptance, "SOURCE", source)
     material = physical_material.bundle_material(challenge_id, version)
     image, installed = acceptance._source_bundle(tmp_path)
     recipe = acceptance._recipe(material, image)

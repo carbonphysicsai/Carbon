@@ -303,6 +303,10 @@ if graph_x64 or requires_x64(
     inputs, control.get("expected_output_dtype") or inputs.dtype, *parameters
 ):
     os.environ["JAX_ENABLE_X64"] = "1"
+    # load() can already have imported jax (graphs with FFT ops do), after which
+    # the environment variable no longer applies.
+    import jax
+    jax.config.update("jax_enable_x64", True)
 from carbon.level4.interpret import rebuild
 import jax.numpy as jnp
 declared = doc["graphs"][doc["entry"]]["inputs"]
