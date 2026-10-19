@@ -28,6 +28,8 @@ from test_challenge_validator_battery_bank import adapter, run  # noqa: F401
 from test_challenge_validator_design_bank import ToyLaw, solve_all
 
 from carbon.challenge_validator import answer_key as ak
+from carbon.challenge_validator import bank as bank_module
+from carbon.challenge_validator.bank import BankRefused
 from carbon.challenge_validator import canary, feed_file
 from carbon.challenge_validator import design_bank as db
 from carbon.challenge_validator import score_feed as sf
@@ -45,7 +47,15 @@ def test_published_cases_are_recorded_only_from_verified_files(tmp_path, monkeyp
     key = ak.ProducerKey.create(tmp_path / "producer.key")
     out = tmp_path / "published"
     out.mkdir(mode=0o700)
-    bank.ledger.publish(out, key)
+    # Design publication is held until its release dependency is verified
+    # (OWNER-EVALUATION-FOCUS-AND-DATA-CYCLE-01 §4, c23a810f7): nothing is
+    # written. The property under test here is the score feed's: only files
+    # that verify against the producer key are recorded. So the signed file is
+    # built the way `publish` builds it, from the sealed ledger's own proofs.
+    with pytest.raises(BankRefused, match="bank_design_release_dependency_unverified"):
+        bank.ledger.publish(out, key)
+    assert not list(out.rglob("*.json"))
+    _write_training_file(bank.ledger, out, key)
     files = sorted(out.rglob("*.json"))
     assert files
     folder = tmp_path / "pool" / "toy-challenge"
@@ -62,6 +72,33 @@ def test_published_cases_are_recorded_only_from_verified_files(tmp_path, monkeyp
     fresh = adapter(tmp_path / "validator2", import_only=True).target.store
     refused = sf.record_releases(fresh, pool.answer, "toy-challenge", other.public_key)
     assert refused["new_cases"] == 0 and not fresh.published_case_ids()
+
+
+def _write_training_file(ledger, directory, signer):
+    """One signed training file for every publishable case, exactly as
+    `BankLedger.publish` builds it (proofs from the sealed ledger), without its
+    release hold; for exercising the feed's verification only."""
+    chosen = ledger.publishable()
+    with ledger._db() as conn:
+        tranches = {r["role"]: dict(r) for r in conn.execute("SELECT * FROM tranches")}
+        of = {
+            r["case_id"]: r["tranche"]
+            for r in conn.execute("SELECT case_id, tranche FROM cases")
+            if r["case_id"] in chosen
+        }
+    proven, used = ledger._proven(of, tranches)
+    records = [{"case_id": c, **proven[c]} for c in sorted(proven)]
+    manifest = {
+        "schema": bank_module.TRAINING_MANIFEST_SCHEMA,
+        "challenge_id": ledger.challenge_id,
+        "bank": "fixture",
+        "cases": len(records),
+        "records_digest": bank_module._digest(records),
+        "tranches": used,
+    }
+    value = bank_module.training_file(signer, manifest, records)
+    name = manifest["records_digest"].removeprefix("sha256:") + ".json"
+    (directory / name).write_bytes((bank_module._canonical(value) + "\n").encode())
 
 
 def insert_scored(store, sid, hotkey, windows, *, score, eligible=True, block=100):
