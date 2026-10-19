@@ -502,7 +502,7 @@ def _scatter_add_static(b, node, env):
     if (
         len(b.nodes) + nodes > allowlist_module.CAPS["nodes_executed"]
         or bytes_per_result > allowlist_module.CAPS["largest_intermediate_bytes"]
-        or sum(c["bytes"] for c in b.constants) + index.nbytes
+        or graph.unique_constant_bytes(b.constants) + index.nbytes
         > allowlist_module.CAPS["constant_bytes"]
     ):
         raise graph.GraphRefused("aten_scatter_registered_resource_bound", target)

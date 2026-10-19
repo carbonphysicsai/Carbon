@@ -251,6 +251,7 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
         "review_flags": flags,
         "measurements": measurements,
         "caps": verdicts,
+        "constant_accounting": allowlist_module.CONSTANT_ACCOUNTING,
     }
 
 
