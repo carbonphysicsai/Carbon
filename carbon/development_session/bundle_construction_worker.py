@@ -298,21 +298,21 @@ input_array = jnp.asarray(inputs)
 if measure:
     inference_start = time.perf_counter()
 forward = rebuild(doc, allowed)
-if recipe.to_dict()["source"]["kind"] == "graph":
-    batch = declared[-1]["shape"][0]
-    blocks = []
-    for start in range(0, len(input_array), batch):
-        part = input_array[start:start + batch]
-        used = len(part)
-        if used < batch:
-            part = jnp.pad(part, [(0, batch - used)] + [(0, 0)] * (part.ndim - 1))
-        outputs = forward(*parameter_arrays, part)
-        if len(outputs) != 1:
-            raise ValueError("graph inference output arity differs")
-        blocks.append(outputs[0][:used])
-    outputs = [jnp.concatenate(blocks)]
-else:
-    outputs = forward(*parameter_arrays, input_array)
+arity = ("graph inference output arity differs"
+         if recipe.to_dict()["source"]["kind"] == "graph"
+         else "bundle inference output arity differs")
+batch = declared[-1]["shape"][0]
+blocks = []
+for index in range(len(input_array)):
+    # One case per call: the case is row 0 and the other batch rows are a fixed
+    # public constant (zeros), so no output can depend on another case.
+    part = jnp.pad(input_array[index:index + 1],
+                   [(0, batch - 1)] + [(0, 0)] * (input_array.ndim - 1))
+    outputs = forward(*parameter_arrays, part)
+    if len(outputs) != 1:
+        raise ValueError(arity)
+    blocks.append(outputs[0][:1])
+outputs = [jnp.concatenate(blocks)]
 if len(outputs) != 1:
     raise ValueError("bundle inference output arity differs")
 result = np.asarray(outputs[0])
