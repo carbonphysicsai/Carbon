@@ -68,23 +68,28 @@ refuse() { failures+=("$1: $2 Next: $3"); }
 step "1/3 Checking this machine against the validator requirements"
 [[ "$(uname -s)" == "Linux" ]] || refuse V_OS "Linux is required." "use a Linux VM or bare-metal host (Windows: not supported for validators)."
 [[ "$(uname -m)" == "x86_64" ]] || refuse V_ARCH "x86-64 is required (this is $(uname -m))." "use an x86-64 machine."
-for tool in git curl docker sha256sum; do
+for tool in git curl sha256sum; do
   command -v "${tool}" >/dev/null 2>&1 || refuse V_TOOL "${tool} is not installed." "install ${tool} from your OS packages."
 done
 
+# A container (Docker, Podman, Kubernetes; cgroup v1 or v2 hosts alike).
 in_container=0
-if [[ -f /.dockerenv ]] || grep -qsE '(docker|kubepods|containerd)' /proc/1/cgroup 2>/dev/null; then
+if [[ -f /.dockerenv || -f /run/.containerenv ]] \
+  || grep -qsE '(docker|kubepods|containerd|libpod)' /proc/1/cgroup 2>/dev/null; then
+  in_container=1
+elif command -v systemd-detect-virt >/dev/null 2>&1 \
+  && systemd-detect-virt --container --quiet 2>/dev/null; then
   in_container=1
 fi
 docker_ok=0
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   docker_ok=1
+elif [[ "${in_container}" == 1 ]]; then
+  refuse V_MACHINE_TYPE "this is a container (a pod) with no Docker daemon of its own; validators rebuild miner models in isolated Docker workers." "use a VM or bare-metal host you control, not a container-only pod."
 elif command -v docker >/dev/null 2>&1; then
-  if [[ "${in_container}" == 1 ]]; then
-    refuse V_MACHINE_TYPE "this is a container (a pod) with no Docker daemon of its own; validators rebuild miner models in isolated Docker workers." "use a VM or bare-metal host you control, not a container-only pod."
-  else
-    refuse V_DOCKER "Docker is installed but its daemon is not reachable by this user." "start Docker, or add yourself to the docker group and log in again."
-  fi
+  refuse V_DOCKER "Docker is installed but its daemon is not reachable by this user." "start Docker, or add yourself to the docker group and log in again."
+else
+  refuse V_TOOL "docker is not installed." "install Docker Engine from your OS packages and start it."
 fi
 if [[ "${docker_ok}" == 1 ]]; then
   cgroup="$(docker info --format '{{.CgroupVersion}}' 2>/dev/null || true)"
@@ -119,9 +124,13 @@ if [[ "${gpu}" == 1 ]]; then
   elif (( major < MIN_NVIDIA_DRIVER_MAJOR )); then
     refuse V_GPU_DRIVER "NVIDIA driver ${driver} is older than ${MIN_NVIDIA_DRIVER_MAJOR} (CUDA 13)." "upgrade the NVIDIA driver."
   fi
-  if [[ "${docker_ok}" == 1 ]]; then
-    docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q nvidia \
-      || refuse V_GPU_TOOLKIT "Docker has no nvidia runtime, so workers cannot see the GPU." "install the NVIDIA Container Toolkit and restart Docker."
+  # Advisory only: a CDI-mode toolkit registers no runtime. The functional check
+  # (the GPU visible from the installed worker image) is step 3 and decides.
+  if [[ "${docker_ok}" == 1 ]] \
+    && ! docker info --format '{{json .Runtimes}}' 2>/dev/null | grep -q nvidia \
+    && ! compgen -G "/etc/cdi/*nvidia*" >/dev/null \
+    && ! compgen -G "/var/run/cdi/*nvidia*" >/dev/null; then
+    printf 'Note: no NVIDIA runtime or CDI spec seen; the GPU check after the install decides.\n' >&2
   fi
 fi
 
@@ -157,5 +166,18 @@ while IFS= read -r image; do
   docker image inspect "${image}" >/dev/null 2>&1 \
     || { printf 'Carbon validator install stopped: Docker does not hold the recorded image %s.\n' "${image}" >&2; exit 3; }
 done <<< "${ids}"
+if [[ "${gpu}" == 1 ]]; then
+  gpu_image="$(.venv/bin/python -B - "${STATE_DIR}" <<'PY'
+import json, sys
+from pathlib import Path
+from carbon.reconstruction.worker.docker_runtime import load_image_identity
+
+recorded = json.loads((Path(sys.argv[1]) / "installed-images.json").read_bytes())
+print(load_image_identity(Path(recorded["gpu_image_manifest"])).image_id)
+PY
+)" || { printf 'Carbon validator install stopped: V_GPU_IMAGE: no GPU worker image is recorded in %s/installed-images.json. Next: run this again with --gpu on this machine.\n' "${STATE_DIR}" >&2; exit 3; }
+  docker run --rm --gpus all --entrypoint /bin/sh "${gpu_image}" -c 'test -e /dev/nvidiactl' >/dev/null 2>&1 \
+    || { printf 'Carbon validator install stopped: V_GPU_VISIBLE: the GPU is not visible from the installed worker image. Next: install or configure the NVIDIA Container Toolkit (runtime or CDI) and restart Docker.\n' >&2; exit 3; }
+fi
 printf '\nValidator host ready: worker and analysis images present (state: %s).\n' "${STATE_DIR}"
 printf 'Not done here: receiver configuration, start, answer-key sync and weights (the operator route).\n'
