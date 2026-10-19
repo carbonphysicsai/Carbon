@@ -347,6 +347,17 @@ def baseline_minimums(adapter, binding_raw, *, calibration_documents):
     }
 
 
+def minimum_source_entry_ids(accuracy_definition):
+    """The entries that set a pack's leg minimums and so never contend: the
+    KOTH comparator's ``minimum_source_entry_ids`` for this pack."""
+    source = (accuracy_definition or {}).get("leg_minimum_source")
+    if source is None:
+        return []
+    if type(source) is not dict or source.get("role") != BASELINE_ROLE:
+        raise ValueError("leg minimum source is malformed")
+    return [source["entry_id"]]
+
+
 def write_development_pack(
     adapter,
     root,

@@ -550,6 +550,10 @@ def test_the_baseline_graded_on_the_judge_image_sets_the_minimums(case, tmp_path
     assert record["entry_id"] == case["entry"]["entry_id"]
     assert record["inference_image_id"] == IMAGE
     assert record["binding_sha256"] == _sha(physical.canonical(bound))
+    assert physical.minimum_source_entry_ids(judge["definition"]) == [
+        case["entry"]["entry_id"]
+    ]
+    assert physical.minimum_source_entry_ids(calibration["definition"]) == []
     assert "-judge-" in judge["version"] and judge["version"] != case["version"]
     if case["adapter"] is cooling:
         # The comparison variant takes the same run's A and no D minimum.
