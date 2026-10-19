@@ -269,6 +269,71 @@ def test_bound_public_fixture_uses_exact_same_core_and_keeps_bank_ineligible(tmp
     assert "toy-case" not in private._canonical(bound).decode()
 
 
+def _paired(args, pair_raw=b'{"inert":"pair"}'):
+    """The same arguments with a pinned pair: a v2 receipt and v4 binding."""
+    record = json.loads(args["dual_measurement_receipt_raw"])
+    record["schema"] = private.PAIRED_DUAL_MEASUREMENT_SCHEMA
+    record["inference_pair_sha256"] = private._sha(pair_raw)
+    raw = private._canonical(record)
+    return {
+        **args,
+        "graph_originals": {
+            **args["graph_originals"],
+            "inference_pair_raw": pair_raw,
+            "inference_pair_sha256": private._sha(pair_raw),
+        },
+        "dual_measurement_receipt_raw": raw,
+        "registered_dual_measurement_sha256": private._sha(raw),
+    }
+
+
+def test_a_pinned_pair_binds_as_v4_with_the_validators_key_fields(tmp_path):
+    case = _case(tmp_path)
+    args, expected = _arguments(case)
+    paired = _paired(args)
+    bound = private.bind_private_evaluation_evidence(**paired)
+    assert bound["schema"] == private.PAIRED_SIDECAR_SCHEMA
+    assert (
+        bound["inference_pair_sha256"]
+        == paired["graph_originals"]["inference_pair_sha256"]
+    )
+    assert (
+        bound["dual_measurement_receipt_sha256"]
+        == paired["registered_dual_measurement_sha256"]
+    )
+    assert bound["scope"] == "PRIVATE_OPERATOR_DEVELOPMENT"
+    assert bound["status"] == "BOUND_DEVELOPMENT_ONLY"
+    assert bound["scoring"] == expected
+    unpaired = private.bind_private_evaluation_evidence(**args)
+    assert unpaired["schema"] == private.DUAL_SIDECAR_SCHEMA
+    assert "inference_pair_sha256" not in unpaired
+
+
+def test_a_pair_must_match_its_receipt_and_its_own_pin(tmp_path):
+    case = _case(tmp_path)
+    args, _ = _arguments(case)
+    paired = _paired(args)
+    swapped = {
+        **paired,
+        "graph_originals": {
+            **paired["graph_originals"],
+            "inference_pair_raw": b'{"other":"pair"}',
+        },
+    }
+    with pytest.raises(private.PrivateEvaluationEvidenceRefused):
+        private.bind_private_evaluation_evidence(**swapped)
+    # A paired receipt without the pair originals, or the reverse, refuses.
+    receipt_only = {**paired, "graph_originals": args["graph_originals"]}
+    with pytest.raises(private.PrivateEvaluationEvidenceRefused):
+        private.bind_private_evaluation_evidence(**receipt_only)
+    pair_only = {
+        **args,
+        "graph_originals": paired["graph_originals"],
+    }
+    with pytest.raises(private.PrivateEvaluationEvidenceRefused):
+        private.bind_private_evaluation_evidence(**pair_only)
+
+
 def test_mandatory_failure_cannot_be_compensated_by_high_legs(tmp_path):
     case = _case(tmp_path)
     case["measured"]["cases"][0]["gates"]["toy_gate"] = False

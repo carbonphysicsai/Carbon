@@ -145,15 +145,7 @@ def fixture(
         "scientific_qualification": False,
         "official_eligible": False,
     }
-    kwargs = {
-        "expected": expected,
-        "primary_receipt_raw": base64.b64decode(
-            phases[0]["originals"]["receipt.json"]["raw_base64"]
-        ),
-        "primary_predictions_raw": base64.b64decode(
-            phases[0]["originals"]["predictions.json"]["raw_base64"]
-        ),
-    }
+    kwargs = {"expected": expected}
     return packet, kwargs
 
 
@@ -445,19 +437,16 @@ def test_wrong_tensor_shape_or_non_numeric_output_is_refused(raw):
         read(packet, kwargs)
 
 
-@pytest.mark.parametrize("which", ["primary_receipt_raw", "primary_predictions_raw"])
-def test_primary_must_match_supplied_authenticated_originals(which):
+def test_both_phases_are_fresh_repeats_and_a_changed_pair_needs_a_new_pin():
+    """Both phases are new queries, never the graded original (the producer
+    compares them with it). Changed bytes only read under a new trusted pin."""
     packet, kwargs = fixture()
-    kwargs[which] += b" "
-    with pytest.raises(PairEvidenceRefused, match="primary_original_mismatch"):
-        read(packet, kwargs)
-
-
-def test_repinned_primary_with_recomputed_internal_hashes_still_needs_original_match():
-    packet, kwargs = fixture()
+    pinned = encode(packet)
     change_predictions(packet["primary"], encode([[9.0], [2.0], [3.0]]))
-    with pytest.raises(PairEvidenceRefused, match="primary_original_mismatch"):
-        read(packet, kwargs)
+    with pytest.raises(PairEvidenceRefused, match="registered_digest"):
+        read_inference_pair(encode(packet), registered_sha256=sha(pinned), **kwargs)
+    evidence = read(packet, kwargs)
+    assert evidence.outputs[0] == (9.0, 2.0, 3.0)
 
 
 @pytest.mark.parametrize("mutation", ["schema", "official", "qualification", "extra"])

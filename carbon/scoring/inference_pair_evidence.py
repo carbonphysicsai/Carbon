@@ -368,15 +368,16 @@ def read_inference_pair(
     *,
     registered_sha256: str,
     expected: dict,
-    primary_receipt_raw: bytes,
-    primary_predictions_raw: bytes,
 ) -> InferencePairEvidence:
     """Read pinned public evidence; authenticity remains the trusted caller's job.
 
-    Expected identities are independent registered inputs. Equal predictions
-    are legitimate; this reader neither compares them nor selects a tolerance.
-    All accounting and cold-stage timings are retained at operation granularity.
-    Omitted budget dimensions are preserved, never filled with invented zeros.
+    Both phases are fresh repeat queries of the retained model (Platform's
+    `paired_inference` runs two new operations); neither is the graded
+    original, so no original is compared here. Expected identities are
+    independent registered inputs. Equal predictions are legitimate; this
+    reader neither compares them nor selects a tolerance. All accounting and
+    cold-stage timings are retained at operation granularity. Omitted budget
+    dimensions are preserved, never filled with invented zeros.
     """
     _require(_digest(registered_sha256), "registered_digest")
     _require(type(raw) is bytes and 0 < len(raw) <= _MAX_BYTES, "pair_bytes")
@@ -420,13 +421,6 @@ def read_inference_pair(
     )
     primary = _phase(value["primary"], expected, 0)
     repeat = _phase(value["repeat"], expected, 1)
-    _require(
-        type(primary_receipt_raw) is bytes
-        and primary[2] == primary_receipt_raw
-        and type(primary_predictions_raw) is bytes
-        and primary[3] == primary_predictions_raw,
-        "primary_original_mismatch",
-    )
     return InferencePairEvidence(
         evidence=_freeze(value),
         outputs=(primary[0], repeat[0]),

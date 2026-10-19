@@ -27,7 +27,12 @@ SIDECAR_SCHEMA = "carbon.scoring.private-evaluation-binding.v1"
 PACK_SOURCE_SCHEMA = "carbon.scoring.private-evaluation-source.v2"
 PACK_SIDECAR_SCHEMA = "carbon.scoring.private-evaluation-binding.v2"
 DUAL_SIDECAR_SCHEMA = "carbon.scoring.private-evaluation-binding.v3"
+#: v3 plus the pinned source-free inference pair its repeat gate read.
+PAIRED_SIDECAR_SCHEMA = "carbon.scoring.private-evaluation-binding.v4"
 DUAL_MEASUREMENT_SCHEMA = "carbon.scoring.private-dual-measurement.v1"
+PAIRED_DUAL_MEASUREMENT_SCHEMA = "carbon.scoring.private-dual-measurement.v2"
+_GRADED_ORIGINALS = frozenset({"inference_receipt_raw", "worker_evidence_raw"})
+_PAIR_ORIGINALS = frozenset({"inference_pair_raw", "inference_pair_sha256"})
 _DUAL_MEASUREMENT_FIELDS = {
     "schema",
     "source_receipt_sha256",
@@ -258,10 +263,12 @@ def _bind_dual_evaluation(
     if _sha(dual_measurement_receipt_raw) != registered_dual_measurement_sha256:
         raise PrivateEvaluationEvidenceRefused("dual_measurement_pin_mismatch")
     evidence = _parse_receipt_json(dual_measurement_receipt_raw, "dual_measurement")
-    if (
-        set(evidence) != _DUAL_MEASUREMENT_FIELDS
-        or evidence["schema"] != DUAL_MEASUREMENT_SCHEMA
-    ):
+    paired = type(graph_originals) is dict and _PAIR_ORIGINALS <= set(graph_originals)
+    if paired != (evidence.get("schema") == PAIRED_DUAL_MEASUREMENT_SCHEMA) or set(
+        evidence
+    ) != _DUAL_MEASUREMENT_FIELDS | ({"inference_pair_sha256"} if paired else set()):
+        raise PrivateEvaluationEvidenceRefused("dual_measurement_shape")
+    if not paired and evidence["schema"] != DUAL_MEASUREMENT_SCHEMA:
         raise PrivateEvaluationEvidenceRefused("dual_measurement_shape")
     if (
         type(entry) is not dict
@@ -270,10 +277,22 @@ def _bind_dual_evaluation(
         or type(registration.get("cases")) is not list
         or len(registration["cases"]) != 1
         or type(graph_originals) is not dict
-        or set(graph_originals) != {"inference_receipt_raw", "worker_evidence_raw"}
-        or any(type(raw) is not bytes for raw in graph_originals.values())
+        or set(graph_originals) - _PAIR_ORIGINALS != _GRADED_ORIGINALS
+        or (paired and set(graph_originals) != _GRADED_ORIGINALS | _PAIR_ORIGINALS)
+        or any(type(graph_originals[k]) is not bytes for k in _GRADED_ORIGINALS)
+        or (
+            paired
+            and (
+                type(graph_originals["inference_pair_raw"]) is not bytes
+                or _sha(graph_originals["inference_pair_raw"])
+                != graph_originals["inference_pair_sha256"]
+                or evidence["inference_pair_sha256"]
+                != graph_originals["inference_pair_sha256"]
+            )
+        )
     ):
         raise PrivateEvaluationEvidenceRefused("model_query_originals_unavailable")
+    graded_originals = {k: graph_originals[k] for k in _GRADED_ORIGINALS}
     # This existing reducer authenticates retained originals and raw reference
     # rows. Its descriptive MAE/speed outputs are never used as A or D here.
     try:
@@ -285,7 +304,7 @@ def _bind_dual_evaluation(
             references,
             measured_model,
             None,
-            graph_originals=graph_originals,
+            graph_originals=graded_originals,
         )
     except (
         BundleBenchmarkRefused,
@@ -400,7 +419,7 @@ def _bind_dual_evaluation(
         for status in ("RESOLVED", "UNRESOLVED", "FAILED_INFRA")
     }
     return {
-        "schema": DUAL_SIDECAR_SCHEMA,
+        "schema": PAIRED_SIDECAR_SCHEMA if paired else DUAL_SIDECAR_SCHEMA,
         "scope": "PRIVATE_OPERATOR_DEVELOPMENT",
         "status": "BOUND_DEVELOPMENT_ONLY",
         "official_score": False,
@@ -417,6 +436,11 @@ def _bind_dual_evaluation(
         "evaluation_pack_digest": expected_evaluation_pack_digest,
         "source_receipt_sha256": registered_source_receipt_sha256,
         "dual_measurement_receipt_sha256": registered_dual_measurement_sha256,
+        **(
+            {"inference_pair_sha256": graph_originals["inference_pair_sha256"]}
+            if paired
+            else {}
+        ),
         "evaluation_version_digest": _sha(_canonical(source)),
         "entry_id": entry["entry_id"],
         "state_digest": entry["state_digest"],

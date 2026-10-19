@@ -27,6 +27,8 @@ from carbon.scoring.dual_score import DualScoreRefused, register_pack, score
 
 PACK_SOURCE_SCHEMA = "carbon.scoring.private-evaluation-source.v2"
 DUAL_MEASUREMENT_SCHEMA = "carbon.scoring.private-dual-measurement.v1"
+#: A dual measurement whose repeat gate read a pinned source-free inference pair.
+PAIRED_DUAL_MEASUREMENT_SCHEMA = "carbon.scoring.private-dual-measurement.v2"
 DUAL_MEASUREMENT_CONTRACT_SCHEMA = "carbon.scoring.dual-measurement-contract.v1"
 _REFERENCE_STATUS = frozenset({"RESOLVED", "UNRESOLVED", "FAILED_INFRA"})
 _REQUIRED_PUBLIC_ROLES = frozenset(
@@ -374,8 +376,17 @@ def build_dual_measurement_receipt(
         or type(measured_model) is not dict
         or type(benchmark) is not dict
         or type(graph_originals) is not dict
-        or set(graph_originals) != {"inference_receipt_raw", "worker_evidence_raw"}
-        or not all(type(value) is bytes and value for value in graph_originals.values())
+        or set(graph_originals)
+        not in (_GRADED_ORIGINALS, _GRADED_ORIGINALS | _PAIR_ORIGINALS)
+        or not all(
+            type(graph_originals[key]) is bytes and graph_originals[key]
+            for key in _GRADED_ORIGINALS | {"inference_pair_raw"} & set(graph_originals)
+        )
+        or (
+            "inference_pair_raw" in graph_originals
+            and _sha(graph_originals["inference_pair_raw"])
+            != graph_originals["inference_pair_sha256"]
+        )
         or not is_sha256_digest(producer_digest)
         or not is_sha256_digest(entry.get("entry_id"))
         or not is_sha256_digest(entry.get("state_digest"))
@@ -462,8 +473,9 @@ def build_dual_measurement_receipt(
     except DualScoreRefused as exc:
         raise PrivateEvaluationSourceRefused("dual_benchmark") from exc
     detached_measured_model = json.loads(_canonical(measured_model))
+    paired = "inference_pair_raw" in graph_originals
     body = {
-        "schema": DUAL_MEASUREMENT_SCHEMA,
+        "schema": PAIRED_DUAL_MEASUREMENT_SCHEMA if paired else DUAL_MEASUREMENT_SCHEMA,
         "source_receipt_sha256": _sha(evaluation_source_receipt_raw),
         "evaluation_pack_digest": selected_pack.manifest_digest,
         "score_pack_digest": pack["pack_digest"],
@@ -475,6 +487,11 @@ def build_dual_measurement_receipt(
         "measured_model_sha256": _sha(_canonical(detached_measured_model)),
         "inference_receipt_sha256": _sha(graph_originals["inference_receipt_raw"]),
         "worker_evidence_sha256": _sha(graph_originals["worker_evidence_raw"]),
+        **(
+            {"inference_pair_sha256": graph_originals["inference_pair_sha256"]}
+            if paired
+            else {}
+        ),
         "benchmark": benchmark,
     }
     raw = _canonical(body)
@@ -499,6 +516,95 @@ _F02_ACTIONS = {
 def _producer_require(ok, code):
     if not ok:
         raise PrivateEvaluationSourceRefused(code)
+
+
+_GRADED_ORIGINALS = frozenset({"inference_receipt_raw", "worker_evidence_raw"})
+_PAIR_ORIGINALS = frozenset({"inference_pair_raw", "inference_pair_sha256"})
+REPEAT_RULE_SCHEMA = "carbon.paired-repeat-rule.v1"
+#: The repeat evidence the grader holds: the same full input tensor, fresh runs.
+REPEAT_PLACEMENT = "across_runs_same_position"
+_EPS = {"float32": 2.0**-23, "float64": 2.0**-52}
+
+
+def paired_repeat_verdict(originals, *, receipt, worker, outputs, rule, quantity_of):
+    """The `paired_repeat` gate: the graded run and two fresh repeats agree.
+
+    `outputs` are the graded run's authenticated flat outputs; the repeats are
+    Platform's pinned source-free pair of the same model, image and inputs.
+    The tolerance is only the Challenge's own registered rule (`rule`, from its
+    important-limit definition), never another Challenge's figure. Missing
+    evidence or rule is typed unavailable, never a candidate verdict.
+    """
+    from carbon.scoring import inference_pair_evidence as pair_reader
+
+    if not _PAIR_ORIGINALS <= set(originals):
+        raise PrivateEvaluationSourceRefused("dual_repeat_evidence_unavailable")
+    measured = receipt.get("measurement") or {}
+    dtype = measured.get("output_dtype")
+    _producer_require(
+        type(rule) is dict
+        and rule.get("schema") == REPEAT_RULE_SCHEMA
+        and rule.get("status") == "REGISTERED"
+        and rule.get("comparison") == "abs_diff_le_ulp_scaled"
+        and type(rule.get("placements")) is list
+        and REPEAT_PLACEMENT in rule["placements"]
+        and rule.get("dtype") == dtype
+        and dtype in _EPS
+        and type(rule.get("floor")) in (int, float)
+        and math.isfinite(rule["floor"])
+        and rule["floor"] > 0
+        and type(rule.get("tolerance_ulp")) is dict
+        and set(rule["tolerance_ulp"]) == set(map(quantity_of, range(len(outputs))))
+        and all(
+            type(k) in (int, float) and math.isfinite(k) and k >= 0
+            for k in rule["tolerance_ulp"].values()
+        ),
+        "dual_repeat_rule_unregistered",
+    )
+    raw, pin = originals["inference_pair_raw"], originals["inference_pair_sha256"]
+    try:
+        envelope = json.loads(raw)
+        phases = [envelope[name] for name in ("primary", "repeat")]
+        expected = {
+            "recipe_digest": receipt["recipe_digest"],
+            "state_digest": receipt["state_digest"],
+            "inputs_digest": receipt["inputs_digest"],
+            "inference_image_id": worker["inference_image_id"],
+            "operation_ids": [p["worker_operation"] for p in phases],
+            "ledger_identities": [p["accounting"]["ledger_identity"] for p in phases],
+            "controls_digests": [p["controls_digest"] for p in phases],
+            "input_shape": measured["input_shape"],
+            "output_shape": measured["output_shape"],
+            "input_dtype": measured["input_dtype"],
+            "output_dtype": dtype,
+        }
+        pair = pair_reader.read_inference_pair(
+            raw, registered_sha256=pin, expected=expected
+        )
+    except pair_reader.PairEvidenceRefused as exc:
+        raise PrivateEvaluationSourceRefused(
+            "dual_repeat_evidence_unavailable:" + exc.code
+        ) from exc
+    except (KeyError, TypeError, ValueError, UnicodeError) as exc:
+        raise PrivateEvaluationSourceRefused(
+            "dual_repeat_evidence_unavailable"
+        ) from exc
+    _producer_require(
+        worker.get("inference_operation") not in expected["operation_ids"],
+        "dual_repeat_not_independent",
+    )
+    runs = [list(outputs), *map(list, pair.outputs)]
+    _producer_require(
+        all(len(run) == len(outputs) for run in runs), "dual_repeat_evidence_shape"
+    )
+    eps, floor = _EPS[dtype], rule["floor"]
+    for i in range(len(runs)):
+        for j in range(i + 1, len(runs)):
+            for index, (a, b) in enumerate(zip(runs[i], runs[j], strict=True)):
+                k = rule["tolerance_ulp"][quantity_of(index)]
+                if not abs(a - b) <= k * eps * max(floor, abs(a)):
+                    return False
+    return True
 
 
 def _f02_point_measurements(predictions, reference, policy, train_std_c, ceiling_c):
@@ -854,9 +960,10 @@ def _produce_f02_cold(
         )
     _producer_require(
         type(originals) is dict
-        and set(originals) == {"inference_receipt_raw", "worker_evidence_raw"},
+        and set(originals) in (_GRADED_ORIGINALS, _GRADED_ORIGINALS | _PAIR_ORIGINALS),
         "dual_native_originals",
     )
+    graded_originals = {k: originals[k] for k in _GRADED_ORIGINALS}
     try:
         receipt = bundle._parse_graph_original(
             originals["inference_receipt_raw"], "graph_inference_receipt"
@@ -880,7 +987,7 @@ def _produce_f02_cold(
             "predictions": tensor,
             "worker_operation": worker["inference_operation"],
             "receipt": receipt,
-            **originals,
+            **graded_originals,
         }
         # Authenticate originals before reducing native values. These bools are
         # placeholders only for authentication, never emitted as gate verdicts.
@@ -921,14 +1028,25 @@ def _produce_f02_cold(
         == {"finite_peak", "paired_repeat", "reference_acceptance", "verified_pick"},
         "dual_native_gate_contract",
     )
-    if "paired_repeat" in gates:
-        # Current graph v1 originals contain one inference, not an independent repeat.
-        raise PrivateEvaluationSourceRefused("dual_repeat_evidence_unavailable")
+    # The graded run plus Platform's two fresh repeats, under f02's own rule.
+    repeated = paired_repeat_verdict(
+        originals,
+        receipt=receipt,
+        worker=worker,
+        outputs=values,
+        rule=limits.get("paired_repeat"),
+        quantity_of=lambda _index: "peak_top_c",
+    )
     reduction = native["reduction"]
     unsafe = reduction["candidate_selection_outcome"] == "SELECTED_PROVEN_INFEASIBLE"
     verified = reduction["candidate_selection_outcome"] == "VERIFIED_FEASIBLE"
     native_gates = {
-        name: (verified if name == "verified_pick" else True) for name in gates
+        name: (
+            verified
+            if name == "verified_pick"
+            else repeated if name == "paired_repeat" else True
+        )
+        for name in gates
     }
     measured = bundle.measurement_from_saved_inference(
         entry, registration, inference, gates=native_gates
