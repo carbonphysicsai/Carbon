@@ -10,8 +10,11 @@ import random
 
 import pytest
 
+from carbon.authoring.primitives import CANONICALIZATION_PROFILE
+from carbon.authoring.refs import SamplingPlanRef
 from carbon.challenge_validator import bank_proof
 from carbon.challenge_validator.bank import BankLedger, BankRefused, BankSource
+from carbon.registry import ChallengeKey
 
 
 class Synthetic(BankSource):
@@ -32,6 +35,26 @@ class Synthetic(BankSource):
 
     def cell(self, bank, inputs):
         return int(inputs["x"] * 10)
+
+
+class PlannedSynthetic(Synthetic):
+    def draw_planned_tranche(
+        self, bank, role, count, sampling_plan_ref, effective_slot
+    ):
+        self.seen_plan = sampling_plan_ref
+        self.seen_effective_slot = effective_slot
+        return self.draw_tranche(bank, role, count)
+
+
+def plan_ref(*, challenge_id="synthetic-bank", digest="1"):
+    return SamplingPlanRef(
+        challenge_key=ChallengeKey(challenge_id, "1.0"),
+        object_id="future_bank_plan",
+        object_version="1.0",
+        schema_version="1.0",
+        canonicalization_profile=CANONICALIZATION_PROFILE,
+        content_digest="sha256:" + digest * 64,
+    )
 
 
 def solve(ledger, tranche, failed=()):
@@ -57,6 +80,102 @@ def ledger(tmp_path):
 def fill(ledger, bank, count, failed=()):
     drawn = ledger.draw_tranche(bank, count)
     return solve(ledger, drawn["tranche"], failed)
+
+
+def test_future_plan_is_bound_before_draw_and_retained_through_release(tmp_path):
+    from carbon.challenge_validator import training_pool
+
+    source = PlannedSynthetic()
+    ledger = BankLedger(tmp_path / "bank", source)
+    legacy = fill(ledger, "pool", 1)
+    assert "sampling_plan_ref" not in legacy
+    legacy_case = ledger.draw_window("pool", 1, {"all": 1}, retire_at=1)[0]
+    frozen = plan_ref()
+    with pytest.raises(BankRefused, match="bank_sampling_plan_not_prospective"):
+        ledger.draw_tranche("pool", 4, sampling_plan_ref=frozen, effective_slot=1)
+    with pytest.raises(BankRefused, match="bank_sampling_plan_mismatch"):
+        ledger.draw_tranche(
+            "pool",
+            4,
+            sampling_plan_ref=plan_ref(challenge_id="other"),
+            effective_slot=3,
+        )
+    with pytest.raises(BankRefused, match="bank_sampling_plan_incomplete"):
+        ledger.draw_tranche("pool", 4, effective_slot=3)
+    assert len(ledger.tranches()) == 1
+
+    drawn = ledger.draw_tranche("pool", 4, sampling_plan_ref=frozen, effective_slot=3)
+    assert source.seen_plan is frozen
+    assert source.seen_effective_slot == 3
+    assert frozen.content_digest not in json.dumps(ledger.entries())
+    planned_commitment = solve(ledger, drawn["tranche"])
+    assert "sampling_plan_ref" not in planned_commitment
+    assert ledger.deficit("pool", 4) == 4
+    assert ledger.deficit("pool", 4, sampling_plan_ref=frozen, slot=2) == 4
+    assert ledger.deficit("pool", 4, sampling_plan_ref=frozen, slot=3) == 0
+    assert ledger.status()["pool"]["live"] == 0
+    with pytest.raises(BankRefused, match="bank_short:pool"):
+        ledger.draw_window("pool", 2, {"all": 1}, retire_at=1)
+    assert ledger.release_provenance(legacy_case)["sampling_plan_ref"] is None
+
+    reopened = BankLedger(tmp_path / "bank", source)
+    with pytest.raises(BankRefused, match="bank_short:pool"):
+        reopened.draw_window("pool", 3, {"all": 4}, retire_at=1)
+    selected = reopened.draw_window(
+        "pool", 3, {"all": 4}, retire_at=1, sampling_plan_ref=frozen
+    )
+    assert len(selected) == 4
+    with pytest.raises(BankRefused, match="bank_window_plan_mismatch"):
+        reopened.draw_window("pool", 3, {"all": 4}, retire_at=1)
+    provenance = reopened.release_provenance(selected[0])
+    assert provenance["sampling_plan_ref"]["content_digest"] == frozen.content_digest
+    assert provenance["sampling_plan_ref"]["object_version"] == frozen.object_version
+    assert provenance["effective_slot"] == 3
+    assert provenance["retired_slot"] == 3
+    signer = key(tmp_path)
+    with pytest.raises(BankRefused, match="bank_window_not_revealed"):
+        reopened.publish(tmp_path / "training", signer, case_ids=selected[:1])
+    reopened.reveal_window("pool", 1)
+    reopened.reveal_window("pool", 3)
+    [summary] = reopened.publish(
+        tmp_path / "training" / "synthetic-bank",
+        signer,
+        case_ids=selected,
+    )
+    value = json.loads(
+        (tmp_path / "training" / "synthetic-bank" / summary["file"]).read_text()
+    )
+    training_pool.verify(value, signer.public_key)
+    assert "sampling_plan_ref" not in json.dumps(value)
+    assert reopened.release_provenance(selected[0])["published"] is not None
+
+
+def test_planned_tranche_requires_an_opt_in_source(ledger):
+    with pytest.raises(BankRefused, match="bank_sampling_plan_unsupported"):
+        ledger.draw_tranche("pool", 1, sampling_plan_ref=plan_ref(), effective_slot=1)
+    assert ledger.tranches() == [] and ledger.entries() == []
+
+
+def test_planned_tranche_is_opt_in_for_scheduled_windows(tmp_path):
+    ledger = BankLedger(tmp_path / "bank", PlannedSynthetic())
+    frozen = plan_ref()
+    drawn = ledger.draw_tranche("pool", 4, sampling_plan_ref=frozen, effective_slot=3)
+    solve(ledger, drawn["tranche"])
+    with pytest.raises(BankRefused, match="bank_short:pool"):
+        ledger.draw_window("pool", 3, {"all": 4}, retire_at=1, stride=1)
+    assert (
+        len(
+            ledger.draw_window(
+                "pool",
+                3,
+                {"all": 4},
+                retire_at=1,
+                stride=1,
+                sampling_plan_ref=frozen,
+            )
+        )
+        == 4
+    )
 
 
 def test_a_sealed_tranche_proves_each_case_and_nothing_else(ledger):

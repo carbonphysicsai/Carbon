@@ -975,10 +975,13 @@ class Producer:
                 cases=item["cases"],
                 block=block,
             )
-        return {
+        report = {
             "revealed": result["revealed"],
             "published_cases": sum(i["cases"] for i in result["published"]),
         }
+        if "design" in result:
+            report["design"] = result["design"]
+        return report
 
     def _republish(self, challenge_id):
         """Publish every scheduled batch that is neither published, retired
