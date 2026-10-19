@@ -1014,17 +1014,28 @@ def test_retained_v2_measurement_is_bound_to_profile_and_shape(tmp_path, monkeyp
         updated_at_micros=now,
         terminal_receipt=terminal,
     )
+    # The graded query is unmeasured (one case at a time); the measurement belongs
+    # to the separate batched cold query kept only for timing.
+    inputs_digest = digest(
+        bundle_construction_worker._tensors(inputs=material["practice_inputs"])
+    )
     private = {
         "state_digest": state_digest,
         "predictions_digest": prediction_digest,
         "predictions_raw_base64": base64.b64encode(raw).decode("ascii"),
         "inference_receipt": {
+            "schema": "carbon.development.bundle-inference.v1",
+            "recipe_digest": ConstructionRecipe.from_dict(request.recipe).digest,
+            "state_digest": state_digest,
+            "inputs_digest": inputs_digest,
+            "predictions_digest": prediction_digest,
+        },
+        "timed_operation": "operation-" + "9" * 64,
+        "timed_receipt": {
             "schema": "carbon.development.bundle-inference.v2",
             "recipe_digest": ConstructionRecipe.from_dict(request.recipe).digest,
             "state_digest": state_digest,
-            "inputs_digest": digest(
-                bundle_construction_worker._tensors(inputs=material["practice_inputs"])
-            ),
+            "inputs_digest": inputs_digest,
             "predictions_digest": prediction_digest,
             "measurement": {
                 "scope": "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE",
@@ -1052,19 +1063,17 @@ def test_retained_v2_measurement_is_bound_to_profile_and_shape(tmp_path, monkeyp
         )
     tasks._views[started.task.task_id.value] = succeeded
     assert (
-        tasks.private_attempt(started.task.task_id)["inference_receipt"]
-        == private["inference_receipt"]
+        tasks.private_attempt(started.task.task_id)["timed_receipt"]
+        == private["timed_receipt"]
     )
     tasks.close()
     reopened = provider()
     try:
         readback = reopened.private_attempt(started.task.task_id)
-        assert (
-            readback["inference_receipt"]["measurement"]["timing_s"]["inference"] == 0.2
-        )
-        bad = {**private, "inference_receipt": {**private["inference_receipt"]}}
-        bad["inference_receipt"]["measurement"] = {
-            **private["inference_receipt"]["measurement"],
+        assert readback["timed_receipt"]["measurement"]["timing_s"]["inference"] == 0.2
+        bad = {**private, "timed_receipt": {**private["timed_receipt"]}}
+        bad["timed_receipt"]["measurement"] = {
+            **private["timed_receipt"]["measurement"],
             "output_shape": [1],
         }
         with reopened._db() as db:

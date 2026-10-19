@@ -1232,7 +1232,7 @@ class DirectDevelopmentTasksV3:
             or inference.get("schema")
             != (
                 "carbon.development.bundle-inference.v2"
-                if measured
+                if measured and source["kind"] == "graph"
                 else "carbon.development.bundle-inference.v1"
             )
             or inference.get("recipe_digest") != view.immutable_bindings.recipe_digest
@@ -1243,9 +1243,30 @@ class DirectDevelopmentTasksV3:
         if measured:
             from .bundle_construction_worker import _tensors
 
+            if source["kind"] != "graph":
+                # A bundle's graded query runs one case at a time; the measurement
+                # belongs to the separate batched cold query kept only for timing.
+                timed = evidence.get("timed_receipt")
+                if (
+                    type(timed) is not dict
+                    or timed.get("schema") != "carbon.development.bundle-inference.v2"
+                    or timed.get("recipe_digest") != inference.get("recipe_digest")
+                    or timed.get("state_digest") != receipt.state_digest
+                    or type(evidence.get("timed_operation")) is not str
+                    or re.fullmatch(
+                        r"operation-[0-9a-f]{64}", evidence["timed_operation"]
+                    )
+                    is None
+                ):
+                    raise ValueError("retained direct timed query differs")
+                inference = timed
             measurement = inference.get("measurement")
             material = self.discovery._material
-            expected_dtype = material["interface_document"]["outputs"]["dtype"]
+            expected_dtype = (
+                material["interface_document"]["outputs"]["dtype"]
+                if "outputs" in material["interface_document"]
+                else material["interface_document"]["dtype"]
+            )
             if (
                 set(inference)
                 != {
@@ -1287,7 +1308,7 @@ class DirectDevelopmentTasksV3:
                 or math.fsum(measurement["timing_s"].values()) <= 0
             ):
                 raise ValueError("retained direct measurement differs")
-        elif "measurement" in inference:
+        elif "measurement" in inference or "timed_receipt" in evidence:
             raise ValueError("retained direct measurement without profile")
         evidence["predictions"] = predictions
         return evidence
@@ -1802,6 +1823,9 @@ class DirectDevelopmentTasksV3:
                     "ascii"
                 ),
             }
+            if result.timed is not None:
+                private["timed_operation"] = result.timed.worker_operation
+                private["timed_receipt"] = result.timed.receipt
             if source_kind == "bundle" and result.prediction_comparison is not None:
                 private["prediction_comparison"] = result.prediction_comparison
             if source_kind == "graph":

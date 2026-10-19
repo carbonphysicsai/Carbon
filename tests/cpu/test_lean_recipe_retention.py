@@ -223,9 +223,29 @@ def test_real_local_result_enters_existing_pending_bank_create_only(
             inputs=material["practice_inputs"],
             expected_output_shape=material["expected_output_shape"],
             expected_output_dtype="float32",
-            measure_query=measure_query,
             allowlist_bytes=material["allowlist_bytes"],
             runner=runner,
+        )
+        # A measured task also keeps the batched cold query, for timing only.
+        timed = (
+            infer_public(
+                campaign,
+                owner="miner",
+                identity="test-timed",
+                image=image,
+                inference_image=image.parent,
+                recipe=recipe,
+                challenge_binding=_binding(material),
+                build=build,
+                inputs=material["practice_inputs"],
+                expected_output_shape=material["expected_output_shape"],
+                expected_output_dtype="float32",
+                measure_query=True,
+                allowlist_bytes=material["allowlist_bytes"],
+                runner=runner,
+            )
+            if measure_query
+            else None
         )
         original = provider._views[task_id]
         terminal = DirectTaskReceiptV3(
@@ -266,6 +286,9 @@ def test_real_local_result_enters_existing_pending_bank_create_only(
             "bundle_digest": image.provisioned.bundle.bundle_digest,
             "context_digest": image.provisioned.context_digest,
         }
+        if timed is not None:
+            private["timed_operation"] = timed.worker_operation
+            private["timed_receipt"] = timed.receipt
         with provider._db() as db:
             db.execute(
                 "INSERT INTO direct_evidence VALUES(?,?)",
@@ -322,7 +345,10 @@ def test_real_local_result_enters_existing_pending_bank_create_only(
             )
         manifest = json.loads((artifact_root / (task_id + ".roles.json")).read_bytes())
         assert "fixture" in manifest["roles"]
-        assert ("inference_receipt" in manifest["roles"]) is (not measure_query)
+        assert "inference_receipt" in manifest["roles"]
+        assert (
+            first["artifact_path"].joinpath("timed-query-receipt.json").is_file()
+        ) is measure_query
         assert (
             retain_served_bundle_result(
                 adapter,

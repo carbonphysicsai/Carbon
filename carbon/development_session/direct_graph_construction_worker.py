@@ -435,6 +435,9 @@ def reconstruct_and_infer_graph_public(
         expected_output_shape=expected_output_shape,
         expected_output_dtype="float32",
         measure_query=measure_query,
+        # Graph sources keep the batched query until the graph bank role carries
+        # a separate timed receipt; the bundle path grades one case at a time.
+        per_case=False,
         allowlist_bytes=allowlist_bytes,
         input_name="inputs/forcing",
         provenance=INFERENCE_PROVENANCE,
