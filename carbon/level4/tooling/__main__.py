@@ -38,6 +38,18 @@ def _load(path):
 
 
 def _jax_documents(module, batch, allowlist, max_bytes):
+    import contextlib
+
+    import jax
+    import numpy as np
+
+    # A float64 interface lowers, and shapes its parameters, with x64 on.
+    wide = any(np.dtype(dtype) == np.float64 for _, dtype in module.INPUTS.values())
+    with jax.enable_x64(True) if wide else contextlib.nullcontext():
+        return _jax_documents_at(module, batch, allowlist, max_bytes)
+
+
+def _jax_documents_at(module, batch, allowlist, max_bytes):
     import jax
 
     from . import through_bprime

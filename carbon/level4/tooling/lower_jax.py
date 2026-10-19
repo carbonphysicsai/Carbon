@@ -27,10 +27,29 @@ def _safe_type_label(value):
     return label if _TYPE_LABEL.fullmatch(label) else "unrecognized"
 
 
+def wide(args):
+    """Whether any leaf of `args` is declared float64."""
+    import jax
+    import numpy as np
+
+    return any(
+        getattr(leaf, "dtype", None) is not None and np.dtype(leaf.dtype) == np.float64
+        for leaf in jax.tree_util.tree_leaves(args)
+    )
+
+
 def trace(fn, *args):
-    """The closed jaxpr of `fn` at `args` (arrays or `jax.ShapeDtypeStruct`)."""
+    """The closed jaxpr of `fn` at `args` (arrays or `jax.ShapeDtypeStruct`).
+
+    A float64 argument traces with x64 on, so a graph keeps the precision it
+    declares: with JAX's default (x64 off) float64 inputs lowered as float32
+    and the interface then refused them (miner report, 19 Oct). Otherwise the
+    caller's own x64 setting is left as it is."""
     import jax
 
+    if wide(args):
+        with jax.enable_x64(True):
+            return jax.make_jaxpr(fn)(*args)
     return jax.make_jaxpr(fn)(*args)
 
 
