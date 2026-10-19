@@ -13,6 +13,9 @@ ARG TORCH_DETERMINISM_DIGEST
 USER root
 COPY --from=uv /uv /tmp/uv
 COPY .devcontainer/torch/torch-cpu-py311.txt /opt/carbon/torch-requirements.txt
+COPY .devcontainer/torch/cpu_image_identity.py /opt/carbon/torch-image-identity.py
+RUN test "$(sha256sum /opt/carbon/torch-image-identity.py | cut -d' ' -f1)" = "edf7f8d3211f4c2b085904b86e2bc44fa8bbb7f2c744732c2ceb5f8db048a710" \
+    && chmod 444 /opt/carbon/torch-image-identity.py
 # Wheels only, except the exported packages PyPI ships only as a source
 # distribution (antlr4-python3-runtime, via hydra-core and omegaconf). Each is
 # still hash-pinned; the list is checked against uv.lock
@@ -27,24 +30,8 @@ RUN test "sha256:$(sha256sum /opt/carbon/torch-requirements.txt | cut -d' ' -f1)
     && rm /tmp/uv \
     && chmod -R a-w /opt/carbon-worker \
     && chmod 444 /opt/carbon/torch-requirements.txt
-RUN WORKER_IMAGE="${WORKER_IMAGE}" TORCH_RECIPE_DIGEST="${TORCH_RECIPE_DIGEST}" TORCH_LOCK_DIGEST="${TORCH_LOCK_DIGEST}" /opt/carbon-worker/bin/python -I - <<'PY'
-import json
-import os
-import pathlib
-import re
-
-for key in ("WORKER_IMAGE", "TORCH_RECIPE_DIGEST", "TORCH_LOCK_DIGEST"):
-    if not re.fullmatch(r"sha256:[a-f0-9]{64}", os.environ[key]):
-        raise SystemExit("Exact immutable image identities required")
-path = pathlib.Path("/opt/carbon/worker-image-build.json")
-document = json.loads(path.read_text())
-document.update(base_image_digest=os.environ["WORKER_IMAGE"],
-                build_recipe_digest=os.environ["TORCH_RECIPE_DIGEST"],
-                lock_digest=os.environ["TORCH_LOCK_DIGEST"])
-path.chmod(0o600)
-path.write_text(json.dumps(document, sort_keys=True, separators=(",", ":")) + "\n")
-path.chmod(0o444)
-PY
+RUN WORKER_IMAGE="${WORKER_IMAGE}" TORCH_RECIPE_DIGEST="${TORCH_RECIPE_DIGEST}" TORCH_LOCK_DIGEST="${TORCH_LOCK_DIGEST}" \
+    /opt/carbon-worker/bin/python -I /opt/carbon/torch-image-identity.py record
 RUN chmod -R a-w /opt/carbon
 LABEL org.opencontainers.image.title="Carbon PyTorch DEVELOPMENT reconstruction worker" \
       org.opencontainers.image.description="Pinned CPU-only PyTorch worker on the C-03 image; no scientific or security qualification" \
@@ -55,16 +42,5 @@ LABEL org.opencontainers.image.title="Carbon PyTorch DEVELOPMENT reconstruction 
 USER 65532:65532
 # The determinism configuration is part of the image identity (IMAGE-RELEASE-01):
 # the label must be the installed source's own `CPU_DETERMINISM_DIGEST`.
-RUN TORCH_DETERMINISM_DIGEST="${TORCH_DETERMINISM_DIGEST}" /opt/carbon-worker/bin/python -I - <<'PY'
-import importlib.metadata as metadata
-import os
-
-from carbon.reconstruction.torch_profile import CPU_DETERMINISM_DIGEST, PINS
-
-for name, version, _ in PINS:
-    installed = metadata.version(name).split("+")[0]
-    if installed != version:
-        raise SystemExit(f"{name} {installed} is not the pinned {version}")
-if os.environ["TORCH_DETERMINISM_DIGEST"] != CPU_DETERMINISM_DIGEST:
-    raise SystemExit("the determinism label is not the installed source's configuration")
-PY
+RUN TORCH_DETERMINISM_DIGEST="${TORCH_DETERMINISM_DIGEST}" \
+    /opt/carbon-worker/bin/python -I /opt/carbon/torch-image-identity.py verify
