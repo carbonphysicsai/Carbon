@@ -136,13 +136,28 @@ def test_an_existing_pack_directory_is_never_overwritten(tmp_path):
         physical_pack.write_public_pack(tmp_path / "p", MOTOR, VERSION)
 
 
-def test_the_development_bank_is_48_ordered_counted_cases():
+def test_the_motor_bank_carries_the_three_registered_cohorts_in_order():
     bank = physical_pack.development_bank(MOTOR, VERSION)
-    assert len(bank["case_ids"]) == 48
-    assert bank["case_ids"][:2] == ("decision-d01-r01", "decision-d01-r02")
-    assert bank["inputs"].shape == (48, 8) and bank["inputs"].dtype == "<f8"
-    assert bank["references"].shape == (48, 60)
-    first = dict(zip(motor_domain.INPUTS, bank["inputs"][0], strict=True))
+    assert len(bank["case_ids"]) == 90
+    assert bank["case_ids"][0] == "practice-0000"
+    assert bank["case_ids"][30:34] == (
+        "difficult-1-deep-saturation",
+        "difficult-2-sharpest-cogging",
+        "difficult-3-weakest-field",
+        "difficult-4-field-weakening",
+    )
+    assert bank["case_ids"][42:44] == ("decision-d01-r01", "decision-d01-r02")
+    counts = {c: bank["cohorts"].count(c) for c in set(bank["cohorts"])}
+    assert counts == {
+        "practice": 30,
+        "pilot_ordinary": 8,
+        "pilot_difficult": 4,
+        "decision_representative": 32,
+        "decision_boundary_stress": 16,
+    }
+    assert bank["inputs"].shape == (90, 8) and bank["inputs"].dtype == "<f8"
+    assert bank["references"].shape == (90, 60)
+    first = dict(zip(motor_domain.INPUTS, bank["inputs"][42], strict=True))
     assert first["current_density_a_mm2"] == 8.0 and first["airgap_mm"] == 0.4
     assert [r["case_id"] for r in bank["reference_records"]] == list(bank["case_ids"])
 
@@ -172,7 +187,8 @@ def test_the_exposed_bank_case_bank_is_the_scored_query_byte_for_byte(tmp_path):
     query = _tensors(inputs=np.array(bank["inputs"]))
     assert snapshot.read_role(pack, "private", "case_bank", max_bytes=1 << 24) == query
     rows = snapshot.read_json_role(pack, "private", "reference_rows", max_bytes=1 << 24)
-    assert type(rows) is list and len(rows) == 48
+    assert type(rows) is list and len(rows) == 90
+    assert rows[30]["cohort"] == "pilot_difficult" and rows[30]["row"] == 30
     solver = snapshot.read_json_role(
         pack, "private", "solver_evidence", max_bytes=65536
     )
