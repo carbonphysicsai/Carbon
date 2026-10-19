@@ -912,8 +912,6 @@ def _authenticated_bundle_outputs(entry, registration, originals):
         predictions = bundle._parse_graph_original(
             originals["predictions_raw"], "bundle_predictions", object_required=False
         )
-        roles = entry.get("roles") or {}
-        receipt_role = roles.get("inference_receipt")
         _producer_require(
             set(evidence) == _BUNDLE_EVIDENCE_FIELDS
             and evidence["schema"] == BUNDLE_EVIDENCE_SCHEMA
@@ -921,8 +919,9 @@ def _authenticated_bundle_outputs(entry, registration, originals):
             and evidence["predictions_digest"] == entry.get("prediction_digest")
             and _sha(originals["predictions_raw"]) == entry.get("prediction_digest")
             and is_sha256_digest(evidence["inference_image_id"])
-            and type(receipt_role) is dict
-            and _sha(originals["inference_receipt_raw"]) == receipt_role.get("sha256"),
+            and bundle.retained_bundle_receipt(
+                entry, originals["inference_receipt_raw"]
+            ),
             "dual_native_bundle_binding",
         )
         inference = {

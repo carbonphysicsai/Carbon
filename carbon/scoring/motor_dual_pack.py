@@ -6,8 +6,10 @@ committed repository material): never a hidden-exam or paying claim.
 Two halves, one source:
 
 - ``pack_documents`` regenerates, from committed sources only, the documents
-  Data Collection's pack pins for Motor: the public ``accuracy_definition``
-  (the producer's registered A/D definition and pin), and the private
+  Data Collection's pack pins for Motor: the public ``physics_contract`` (the
+  committed applied physics document in the ``{version, definition}``
+  envelope) and ``accuracy_definition`` (the producer's registered A/D
+  definition and pin), and the private
   ``reference_rows``, ``solver_evidence``, ``score_pack`` and
   ``source_registration``. The score pack is the committed applied definition
   (MOTOR_APPLIED_SCORE_DEFINITION_20261018, sha256 b4ea72a5..., candidate
@@ -89,6 +91,12 @@ _APPLIED_PACK = {
     "scope": "PUBLIC_DEVELOPMENT",
     "value_weight": 0.5,
 }
+#: The committed applied physics document (the old counted pack's
+#: physics_contract.json), carried verbatim inside this pack's envelope.
+APPLIED_PHYSICS_SHA256 = (
+    "sha256:74e3f30ce38d997e3b7f74505d67981bedcf77de28235ea60bf43f26be9483fd"
+)
+PHYSICS_VERSION = "motor-applied-physics-contract-20261018"
 EVALUATION_VERSION = "motor-dual-development-bank-90-v1"
 CASE_ID = "motor-development-bank-90"
 _PRODUCER_FILES = (
@@ -100,8 +108,9 @@ _PRODUCER_FILES = (
 
 
 def _canonical(value):
-    return json.dumps(
-        value, sort_keys=True, separators=(",", ":"), allow_nan=False
+    """Compact sorted JSON plus LF: the private evaluation source's own form."""
+    return (
+        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
     ).encode("utf-8")
 
 
@@ -153,6 +162,8 @@ def bank_digest(bank):
 def _identities(bank, physics_digest):
     """The registered reference identity: which solvers and counted evidence
     produced the bank's references, and the physics scope they apply to."""
+    from carbon.scoring import benchmark_evidence as bench
+
     images = sorted(
         {record.get("image") or "" for record in bank["reference_records"]} - {""}
     )
@@ -160,17 +171,27 @@ def _identities(bank, physics_digest):
         "solver_digest": _sha(_canonical({"reference_images": images})),
         "fidelity_digest": _sha(_canonical({"bank": bank_digest(bank)})),
         "applicability_digest": physics_digest,
-        "evidence_kind": "MEASURED_ENGINEERING_REFERENCE",
+        "evidence_kind": bench.ENGINEERING_REFERENCE,
     }
 
 
 def pack_documents(
-    *, bank, physics, interface_raw, train_raw, limits_sha256, objective_sha256
+    *,
+    bank,
+    applied_physics_raw,
+    interface_raw,
+    train_raw,
+    limits_sha256,
+    objective_sha256,
 ):
     """Every Motor document this producer owns, as exact bytes by role name.
 
     ``bank`` is ``physical_pack.development_bank(CHALLENGE, VERSION)``;
-    ``physics`` the pack's physics contract; ``interface_raw`` and ``train_raw``
+    ``applied_physics_raw`` the committed applied Motor physics document
+    (MOTOR_APPLIED_PHYSICS_CONTRACT_20261018), which the emitted
+    ``physics_contract`` role carries verbatim as its definition, under the
+    ``{version, definition}`` envelope retention and the ScoreEngine bind;
+    ``interface_raw`` and ``train_raw``
     the pack's public interface and TRAIN role bytes; the two digests are the
     pack's public important-limit and design-objective role pins.
     """
@@ -180,6 +201,12 @@ def pack_documents(
         DUAL_MEASUREMENT_CONTRACT_SCHEMA,
     )
 
+    if _sha(applied_physics_raw) != APPLIED_PHYSICS_SHA256:
+        raise ValueError("motor applied physics document differs")
+    physics = {
+        "version": PHYSICS_VERSION,
+        "definition": json.loads(applied_physics_raw),
+    }
     physics_digest = bench.physics_contract_identity(physics)["definition_digest"]
     definition = {
         "schema": "carbon.scoring.motor-dual-accuracy.v1",
@@ -276,6 +303,7 @@ def pack_documents(
         "peak_memory_bytes": None,
     }
     return {
+        "physics_contract": _canonical(physics),
         "accuracy_definition": accuracy_raw,
         "reference_rows": _canonical([reference_row]),
         "solver_evidence": _canonical(identity),

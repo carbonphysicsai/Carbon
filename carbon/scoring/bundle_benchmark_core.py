@@ -728,6 +728,28 @@ def measurement_from_saved_inference(
     }
 
 
+def retained_bundle_receipt(entry, raw):
+    """Whether `raw` is the bundle entry's custody-retained inference receipt.
+
+    Bundle custody keeps only a v1 receipt as the `inference_receipt` role; a
+    measured v2 receipt is kept verbatim as a rehashed original file. Either
+    record binds the exact bytes to the entry.
+    """
+    if type(entry) is not dict or type(raw) is not bytes or not raw:
+        return False
+    digest = _sha(raw)
+    role = (entry.get("roles") or {}).get("inference_receipt")
+    if type(role) is dict and role.get("sha256") == digest:
+        return True
+    files = entry.get("original_files")
+    return type(files) is dict and any(
+        type(record) is dict
+        and record.get("sha256") == digest
+        and record.get("bytes") == len(raw)
+        for record in files.values()
+    )
+
+
 def benchmark_saved_entry(
     entry,
     custody_receipt_raw,

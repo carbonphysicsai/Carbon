@@ -19,6 +19,7 @@ from carbon.scoring.benchmark_evidence import BenchmarkRefused
 from carbon.scoring.bundle_benchmark_core import (
     BundleBenchmarkRefused,
     benchmark_saved_entry,
+    retained_bundle_receipt,
 )
 from carbon.scoring.solver_benchmark_v3 import BenchmarkScoreRefused
 
@@ -298,8 +299,7 @@ def _bind_dual_evaluation(
         raise PrivateEvaluationEvidenceRefused("model_query_originals_unavailable")
     if not graph and (
         _sha(graph_originals["predictions_raw"]) != entry.get("prediction_digest")
-        or _sha(graph_originals["inference_receipt_raw"])
-        != ((entry.get("roles") or {}).get("inference_receipt") or {}).get("sha256")
+        or not retained_bundle_receipt(entry, graph_originals["inference_receipt_raw"])
     ):
         raise PrivateEvaluationEvidenceRefused("model_query_originals_unavailable")
     graded_originals = (
