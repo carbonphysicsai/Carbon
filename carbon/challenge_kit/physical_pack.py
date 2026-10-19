@@ -170,12 +170,23 @@ def _role_file(challenge_id: str, version: str, role: str) -> bytes:
     return raw
 
 
+#: The scorer binds a physics contract only as ``{version, definition}``
+#: (``benchmark_evidence.physics_contract_identity``); the pinned document is
+#: carried verbatim as the definition under this version.
+_PHYSICS_VERSIONS = {
+    motor.CHALLENGE.challenge_id: "motor-applied-physics-contract-20261018",
+}
+
+
 def physics_contract(challenge_id: str, version: str) -> dict | None:
-    """The Challenge's physics contract for the construction material to carry,
-    or None while it is not bound."""
+    """The Challenge's versioned physics contract for the construction material
+    and the pack to carry, or None while it is not bound."""
     if "physics_contract" not in _files(challenge_id, version):
         return None
-    return json.loads(_role_file(challenge_id, version, "physics_contract"))
+    return {
+        "version": _PHYSICS_VERSIONS[challenge_id],
+        "definition": json.loads(_role_file(challenge_id, version, "physics_contract")),
+    }
 
 
 def public_roles(challenge_id: str, version: str) -> dict[str, bytes]:
@@ -192,6 +203,9 @@ def public_roles(challenge_id: str, version: str) -> dict[str, bytes]:
     }
     for role in _files(challenge_id, version):
         roles[role] = _role_file(challenge_id, version, role)
+    physics = physics_contract(challenge_id, version)
+    if physics is not None:
+        roles["physics_contract"] = _canonical(physics)
     return roles
 
 
