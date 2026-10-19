@@ -353,3 +353,42 @@ def test_f08_bank_is_the_eight_accepted_references_in_interface_layout(tmp_path)
     }
     assert limits["decision_coverage"] == "RANKING_ONLY_NO_FEASIBILITY_BOUNDARY"
     assert set(missing["private"]) == {"score_pack"}
+
+
+def test_battery_practice_rows_carry_v2_plating_labels_never_m20_feasible_in_window():
+    import collections
+
+    from carbon.challenge_kit import battery_pack
+
+    path = "docs/development/evidence/exam-design-2026-09-24/refs-a-part2/out/records.jsonl"
+    records = [
+        r
+        for r in map(
+            json.loads, (battery_pack._REPOSITORY / path).read_text().splitlines()
+        )
+        if r.get("role") == "practice"
+    ]
+    labels = battery_pack.practice_plating_labels(records)
+    counts = collections.Counter(
+        ((lab or {}).get("rule"), (lab or {}).get("label")) for lab in labels
+    )
+    assert counts == {
+        (None, None): 116,
+        ("pending-m160-r1", "UNRESOLVED"): 17,
+        ("m20-below-window", "INFEASIBLE"): 32,
+        ("m20-above-window-r1", "FEASIBLE"): 35,
+    }
+    for record, label in zip(records, labels):
+        m20 = record["outputs"]["plating_margin_v"]
+        if -1.97e-3 < m20 < 4.5e-3:
+            assert label == {"label": "UNRESOLVED", "rule": "pending-m160-r1"}
+
+
+def test_battery_plating_reader_is_pinned(monkeypatch):
+    from carbon.challenge_kit import battery_pack
+
+    monkeypatch.setattr(
+        battery_pack, "_PLATING_READER", (battery_pack._PLATING_READER[0], "0" * 64)
+    )
+    with pytest.raises(ValueError):
+        battery_pack.practice_plating_labels([])
