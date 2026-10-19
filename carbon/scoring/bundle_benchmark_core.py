@@ -197,16 +197,17 @@ def _graph_saved_inference_binding(entry, inference):
     return retained_receipt, worker
 
 
-def _graph_measurement_binding(measurement, entry, originals):
-    if type(originals) is not dict or set(originals) != {
+def _graph_measurement_binding(measurement, entry, originals, registration):
+    if type(originals) is not dict or set(originals) - {"timed_query"} != {
         "inference_receipt_raw",
         "worker_evidence_raw",
     }:
         raise BundleBenchmarkRefused("graph_measurement_originals")
+    graded = {k: originals[k] for k in ("inference_receipt_raw", "worker_evidence_raw")}
     receipt, worker = _graph_saved_inference_binding(
         entry,
         {
-            **originals,
+            **graded,
             "receipt": _parse_graph_original(
                 originals["inference_receipt_raw"], "graph_inference_receipt"
             ),
@@ -230,6 +231,11 @@ def _graph_measurement_binding(measurement, entry, originals):
         predictions_raw, "graph_predictions", object_required=False
     )
     source_measurement = receipt.get("measurement")
+    if "timed_query" in originals:
+        # Speed's own query, not the graded one (see measurement_from_saved_inference).
+        source_measurement = timed_query_receipt(
+            entry, registration, originals["timed_query"]
+        )["measurement"]
     cases = measurement["cases"]
     if (
         type(source_measurement) is not dict
@@ -488,7 +494,7 @@ def _measurement_model(
     ):
         raise BundleBenchmarkRefused("measurement_registered_shape")
     if entry.get("source_kind") == "graph":
-        _graph_measurement_binding(measurement, entry, graph_originals)
+        _graph_measurement_binding(measurement, entry, graph_originals, registration)
     return {
         "artifact_digest": entry["entry_id"],
         "job_digest": trusted_job["job_digest"],
@@ -509,8 +515,81 @@ def _flat_tensor(value, shape):
     return [number for item in value for number in _flat_tensor(item, shape[1:])]
 
 
+#: The one timed query v3 speed is read from: a whole registered batch, cold.
+TIMED_SCOPE = "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
+
+
+def timed_query_receipt(entry, registration, timed_query):
+    """The separately run timed query's receipt, bound to the graded model.
+
+    `timed_query` is `{"receipt_raw", "registered_sha256"}`: the batched cold
+    query the speed figure is read from, pinned by its trusted caller. It must
+    be the same recipe, state and inputs as the graded entry, at the registered
+    timing batch shape, so grading's own query form never feeds speed.
+    """
+    if (
+        type(timed_query) is not dict
+        or set(timed_query) != {"receipt_raw", "registered_sha256"}
+        or type(timed_query["receipt_raw"]) is not bytes
+        or _sha(timed_query["receipt_raw"]) != timed_query["registered_sha256"]
+    ):
+        raise BundleBenchmarkRefused("timed_query_binding")
+    receipt = _parse_graph_original(timed_query["receipt_raw"], "timed_query")
+    input_role = (entry.get("roles") or {}).get("inputs")
+    if (
+        set(receipt)
+        != {
+            "schema",
+            "recipe_digest",
+            "state_digest",
+            "inputs_digest",
+            "predictions_digest",
+            "measurement",
+        }
+        or receipt["schema"] != "carbon.development.bundle-inference.v2"
+        or any(receipt[k] != entry.get(k) for k in ("recipe_digest", "state_digest"))
+        or type(input_role) is not dict
+        or receipt["inputs_digest"] != input_role.get("sha256")
+    ):
+        raise BundleBenchmarkRefused("timed_query_binding")
+    _timed_measurement(receipt["measurement"], registration)
+    return receipt
+
+
+def _timed_measurement(measured, registration):
+    """The v3 timed-query measurement: scope, registered batch shape, timings."""
+    if (
+        type(measured) is not dict
+        or set(measured)
+        != {
+            "scope",
+            "timing_s",
+            "input_shape",
+            "input_dtype",
+            "output_shape",
+            "output_dtype",
+        }
+        or measured["scope"] != TIMED_SCOPE
+        or measured["input_shape"] != registration["timing_profile"]["input_shape"]
+        or measured["output_shape"] != registration["output"]["shape"]
+        or any(
+            type(measured[field]) is not str or not measured[field]
+            for field in ("input_dtype", "output_dtype")
+        )
+        or type(measured["timing_s"]) is not dict
+        or set(measured["timing_s"])
+        != {"preprocess", "export", "inference", "postprocess"}
+        or any(
+            type(value) not in (int, float) or not math.isfinite(value) or value < 0
+            for value in measured["timing_s"].values()
+        )
+        or math.fsum(measured["timing_s"].values()) <= 0
+    ):
+        raise BundleBenchmarkRefused("saved_inference_measurement")
+
+
 def measurement_from_saved_inference(
-    entry, registration, inference, *, gates, build_seconds=None
+    entry, registration, inference, *, gates, build_seconds=None, timed_query=None
 ):
     """Map one trusted, measured v2 worker receipt to one v3 batch query.
 
@@ -519,6 +598,11 @@ def measurement_from_saved_inference(
     physical validity or estimate missing build and peak-memory telemetry.
     Graph role-v3 entries also require the original inference receipt and
     worker-evidence bytes to bind timing and operation to retained custody.
+
+    Speed is read only from a batched cold timed query. Without `timed_query`
+    the graded receipt must itself be that query (unchanged historical v3
+    semantics). With it, the graded receipt supplies predictions only and may
+    use another query form (per-case grading); its timing is never read.
     """
     if is_dataclass(inference) and not isinstance(inference, type):
         inference = asdict(inference)
@@ -593,36 +677,19 @@ def measurement_from_saved_inference(
         )
     ):
         raise BundleBenchmarkRefused("saved_inference_binding")
-    measured = receipt["measurement"]
-    if (
-        type(measured) is not dict
-        or set(measured)
-        != {
-            "scope",
-            "timing_s",
-            "input_shape",
-            "input_dtype",
-            "output_shape",
-            "output_dtype",
-        }
-        or measured["scope"]
-        != "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
-        or measured["input_shape"] != registration["timing_profile"]["input_shape"]
-        or measured["output_shape"] != registration["output"]["shape"]
-        or any(
-            type(measured[field]) is not str or not measured[field]
-            for field in ("input_dtype", "output_dtype")
-        )
-        or type(measured["timing_s"]) is not dict
-        or set(measured["timing_s"])
-        != {"preprocess", "export", "inference", "postprocess"}
-        or any(
-            type(value) not in (int, float) or not math.isfinite(value) or value < 0
-            for value in measured["timing_s"].values()
-        )
-        or math.fsum(measured["timing_s"].values()) <= 0
-    ):
-        raise BundleBenchmarkRefused("saved_inference_measurement")
+    if timed_query is None:
+        _timed_measurement(receipt["measurement"], registration)
+        measured = receipt["measurement"]
+    else:
+        graded = receipt["measurement"]
+        if (
+            type(graded) is not dict
+            or graded.get("output_shape") != registration["output"]["shape"]
+        ):
+            raise BundleBenchmarkRefused("saved_inference_measurement")
+        measured = timed_query_receipt(entry, registration, timed_query)["measurement"]
+        if measured["output_dtype"] != graded.get("output_dtype"):
+            raise BundleBenchmarkRefused("timed_query_binding")
     try:
         raw = json.dumps(
             inference["predictions"], allow_nan=False, separators=(",", ":")

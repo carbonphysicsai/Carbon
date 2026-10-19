@@ -396,6 +396,114 @@ def test_saved_v2_worker_receipt_maps_to_one_measured_v3_query():
         )
 
 
+def _v2_query(entry, timing, *, input_shape=(2, 8, 8, 1), scope=None):
+    predictions = [[[[1.1] for _ in range(8)] for _ in range(8)] for _ in range(2)]
+    prediction_bytes = bundle._canonical(predictions)[:-1]
+    receipt = {
+        "schema": "carbon.development.bundle-inference.v2",
+        "recipe_digest": entry["recipe_digest"],
+        "state_digest": entry["state_digest"],
+        "inputs_digest": entry["roles"]["inputs"]["sha256"],
+        "predictions_digest": bundle._sha(prediction_bytes),
+        "measurement": {
+            "scope": scope or core_bundle.TIMED_SCOPE,
+            "timing_s": dict(timing),
+            "input_shape": list(input_shape),
+            "input_dtype": "float32",
+            "output_shape": [2, 8, 8, 1],
+            "output_dtype": "float32",
+        },
+    }
+    inference = {
+        "recipe_digest": entry["recipe_digest"],
+        "state_digest": entry["state_digest"],
+        "predictions_digest": receipt["predictions_digest"],
+        "predictions": predictions,
+        "worker_operation": "operation-" + "a" * 64,
+        "receipt": receipt,
+    }
+    return inference, receipt
+
+
+def _v2_registration(serial):
+    body = deepcopy(serial)
+    body.pop("registration_digest")
+    body["schema"] = bench.SCHEMA_V3
+    body["output"].update({"size": 128, "shape": [2, 8, 8, 1]})
+    body["reference"]["evidence_kind"] = bench.ENGINEERING_REFERENCE
+    body["timing_profile"].update(
+        {"batch_size": 2, "query_unit": "complete_batch", "input_shape": [2, 8, 8, 1]}
+    )
+    return bench.register(body)
+
+
+TIMED = {"preprocess": 0.1, "inference": 1.7, "postprocess": 0.1, "export": 0.1}
+
+
+def test_v3_speed_is_read_only_from_a_batched_cold_query():
+    """Pin (GATE-BATCH-INDEPENDENCE item 6): v3 timing is the registered batch,
+    cold scope. A graded receipt of another form can never feed speed."""
+    entry, *_rest = fixture()
+    serial = _rest[2]
+    registration = _v2_registration(serial)
+    assert core_bundle.TIMED_SCOPE == (
+        "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
+    )
+    inference, _ = _v2_query(entry, TIMED)
+    measured = bundle.measurement_from_saved_inference(
+        entry, registration, inference, gates={"toy_gate": True}
+    )
+    assert measured["cases"][0]["timing_s"] == TIMED
+    assert measured["input_shape"] == registration["timing_profile"]["input_shape"]
+    for changed in (
+        {"input_shape": (1, 8, 8, 1)},
+        {"scope": "PER_CASE_GRADING"},
+    ):
+        graded, _ = _v2_query(entry, TIMED, **changed)
+        with pytest.raises(
+            bundle.BundleBenchmarkRefused, match="saved_inference_measurement"
+        ):
+            bundle.measurement_from_saved_inference(
+                entry, registration, graded, gates={"toy_gate": True}
+            )
+
+
+def test_a_separate_timed_query_supplies_speed_and_grading_time_never_does():
+    entry, *_rest = fixture()
+    serial = _rest[2]
+    registration = _v2_registration(serial)
+    slow_grading = {
+        "preprocess": 5.0,
+        "inference": 50.0,
+        "postprocess": 5.0,
+        "export": 0.0,
+    }
+    graded, _ = _v2_query(entry, slow_grading, scope="PER_CASE_GRADING")
+    _, timed_receipt = _v2_query(entry, TIMED)
+    raw = core_bundle._canonical(timed_receipt)
+    timed = {"receipt_raw": raw, "registered_sha256": core_bundle._sha(raw)}
+    measured = bundle.measurement_from_saved_inference(
+        entry, registration, graded, gates={"toy_gate": True}, timed_query=timed
+    )
+    assert measured["cases"][0]["timing_s"] == TIMED
+    assert measured["cases"][0]["outputs"] == [1.1] * 128
+    # Negative controls: an unpinned, per-case or other-model timed query refuses.
+    for bad in (
+        {**timed, "registered_sha256": core_bundle._sha(b"other")},
+        _pinned(_v2_query(entry, TIMED, input_shape=(1, 8, 8, 1))[1]),
+        _pinned({**timed_receipt, "state_digest": "sha256:" + "0" * 64}),
+    ):
+        with pytest.raises(bundle.BundleBenchmarkRefused):
+            bundle.measurement_from_saved_inference(
+                entry, registration, graded, gates={"toy_gate": True}, timed_query=bad
+            )
+
+
+def _pinned(receipt):
+    raw = core_bundle._canonical(receipt)
+    return {"receipt_raw": raw, "registered_sha256": core_bundle._sha(raw)}
+
+
 def test_forged_custody_or_score_pack_is_refused():
     entry, receipt, job, registration, refs, measurement, pack = fixture()
     with pytest.raises(bundle.BundleBenchmarkRefused, match="custody_binding"):
