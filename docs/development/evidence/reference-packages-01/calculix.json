@@ -149,5 +149,64 @@
   "evidence": "f08-feature-proof.json",
   "script": "scripts/dev/reference_packages/calculix/f08_proof.py",
   "status": "DEMONSTRATED"
- }
+ },
+ "local_rebuilds": [
+  {
+   "date": "2026-10-15",
+   "why": "the recorded d9ef68... image is not present on the solver-readiness host; rebuilt from the same sources.lock.json (all three source archives verified against the lock) for OWNER-SOLVER-READINESS-SCIENCE-DELEGATION-01",
+   "image_id": "sha256:16869c9cb7f14994f3bed3152809efdec14c5b3ec1849730d7b6c8f689d9642b",
+   "image_id_kind": "OCI image index digest (containerd image store; docker run accepts it)",
+   "platform_manifest_digest": "sha256:d92dce48d0c8e6e646d1d756f07cbf33262b3efc19a25a28dc4e0c443c0e293f",
+   "config_digest": "sha256:e8b8729e0b5471496e610b8faafab7c1499914851589c3ab99fdea7563c202cd",
+   "image_tag": "carbon-ref-calculix:2.23 (local)",
+   "build_log_sha256": "fa7fb4ffb39f853b2f5bb802629de94f5664df50739a3e57a6b1480b9d72070d",
+   "ccx_binary_sha256": "56a14aaed1cc32cdf958351e0a50e9dd127d902977773a78ea40c5e2818d07ea",
+   "runtime_packages_sha256": "fe62ac34be63dc9c5499a5ed38c5e1ee56c7541ee53365357a4b55a05f432e6e",
+   "runtime_packages_identical_to_original": true,
+   "build_packages_sha256": "99ce1bc552d56497c4078ca4ef9d1d8e3451e9a9b8994ae55559d4c4243f3ef6",
+   "build_packages_count": 147,
+   "bit_identical_to_original": "no (a rebuild has a new digest); numerically identical: smoke and feature-proof outputs match the original record to print precision",
+   "smoke": [
+    {
+     "test": "beamf",
+     "covers": "eigenfrequencies, *FREQUENCY (f08 mode ladder)",
+     "exit": 0,
+     "test_passed": 1,
+     "numbers_compared": 178,
+     "max_rel_diff": 1.0956157773745907e-23,
+     "wall_s": 0.54
+    },
+    {
+     "test": "beamdy8",
+     "covers": "steady-state dynamics with modal damping (f08 damped response)",
+     "exit": 0,
+     "test_passed": 1,
+     "numbers_compared": 529,
+     "max_rel_diff": 7.283577496853801e-21,
+     "wall_s": 0.32
+    },
+    {
+     "test": "beamdy9",
+     "covers": "steady-state dynamics, second load/damping case (f08 damped response)",
+     "exit": 0,
+     "test_passed": 1,
+     "numbers_compared": 529,
+     "max_rel_diff": 5.161519468838849e-22,
+     "wall_s": 0.36
+    }
+   ],
+   "feature_proof": {
+    "evidence": "f08-feature-proof-local-rebuild.json",
+    "status": "DEMONSTRATED",
+    "same_as_original": "all five proofs true; every physical output equal to the original record"
+   },
+   "code_verification": {
+    "evidence": "f08-code-verification.json",
+    "mms": "PASS",
+    "closed_form_rod": "PASS",
+    "bands": "F08-SCIENCE-VALUES-01 C3/C4"
+   },
+   "host_profile": "local-dev-4vcpu-15g-contended"
+  }
+ ]
 }

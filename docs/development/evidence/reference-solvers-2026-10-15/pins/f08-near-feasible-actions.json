@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.f08-public-near-feasible-actions.v1",
+  "scope": "PUBLIC_DEVELOPMENT_ONLY",
+  "selection": "Prospective local-neighborhood pilot proposed before these reference solves; not an independent population or hidden holdout.",
+  "actions": [
+    {"length_mm": 180, "width_mm": 90, "thickness_mm": 7.5, "rib_height_mm": 16, "rib_thickness_mm": 4.5, "relief_length_mm": 35},
+    {"length_mm": 180, "width_mm": 90, "thickness_mm": 8, "rib_height_mm": 16, "rib_thickness_mm": 4.5, "relief_length_mm": 35},
+    {"length_mm": 180, "width_mm": 85, "thickness_mm": 7.5, "rib_height_mm": 16, "rib_thickness_mm": 4.5, "relief_length_mm": 35},
+    {"length_mm": 180, "width_mm": 95, "thickness_mm": 7.5, "rib_height_mm": 16, "rib_thickness_mm": 4.5, "relief_length_mm": 35},
+    {"length_mm": 185, "width_mm": 90, "thickness_mm": 7.5, "rib_height_mm": 16, "rib_thickness_mm": 4.5, "relief_length_mm": 35},
+    {"length_mm": 180, "width_mm": 90, "thickness_mm": 7.5, "rib_height_mm": 15, "rib_thickness_mm": 4.5, "relief_length_mm": 35},
+    {"length_mm": 180, "width_mm": 90, "thickness_mm": 7.5, "rib_height_mm": 16, "rib_thickness_mm": 5, "relief_length_mm": 35},
+    {"length_mm": 180, "width_mm": 90, "thickness_mm": 7.5, "rib_height_mm": 16, "rib_thickness_mm": 4.5, "relief_length_mm": 30}
+  ]
+}

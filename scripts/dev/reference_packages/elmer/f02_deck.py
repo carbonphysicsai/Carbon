@@ -379,7 +379,7 @@ def write_case(
     meta = {"case": case, "mesh": info, "steps": 1 if steady else sum(intervals),
             "dt_scale": dt_scale, "schedule_w": schedule(case), "steady": steady,
             "source": source, "slab": slab,
-            "linear_solver": "umfpack" if direct else "cg-ilu0-1e-12"}  # fmt: skip
+            "linear_solver": "umfpack" if direct or steady else "cg-ilu0-1e-12"}  # fmt: skip
     (out / "deck.json").write_text(json.dumps(meta, indent=1) + "\n")
     return meta
 

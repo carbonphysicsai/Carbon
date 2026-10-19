@@ -1,0 +1,189 @@
+{
+ "schema": "carbon.reference-solvers.pod-plan.v1",
+ "plan_id": "f02-cold-pilot-source-2026-10-18",
+ "kind": "elmer",
+ "authority": "Ryan 2026-10-18 necessary public DEVELOPMENT RunPod generation; F02-SCIENCE-VALUES-01 bands unchanged",
+ "purpose": "Exact bounded 36-transient B5/near-limit pilot, registered 40-case cold-context TRAIN, and four existing step responses. Source evidence only; post-collection same-judge baseline join required; no LIVE or buyer-menu-v2 claim.",
+ "recommendation": {
+  "pod": "cpu3c 8 vCPU 16 GiB",
+  "vcpu": 8,
+  "worst_case_minutes": 300,
+  "worst_case_usd_estimate": 1.2,
+  "basis": "Prior f02 32-case 150-minute ceiling at $0.24/h; this plan has 80 serially grouped launches, including eight extra mesh2 jobs. This is a conservative planning reservation, not a live provider quote. Product must enforce current provider rate, account/phase cap and cleanup deadline."
+ },
+ "steps": [
+  {
+   "name": "f02-cold-convergence",
+   "type": "bulk",
+   "judges": "36 public cold-pilot transients: historical 8 primary + mesh2/dt0.5 and four prospectively selected near-95C primary + both rungs. Judge B1-B7/B10 after collection by joining 12 matching prior baselines; four A4 controls remain separately accepted. No reference acceptance from bulk completion alone.",
+   "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-cold-pilot-convergence-manifest.json",
+   "freeze": {
+    "argv": [
+     "python3",
+     "scripts/dev/reference_packages/elmer/f02_cold_pilot.py",
+     "freeze-convergence",
+     "{decks}"
+    ],
+    "timeout_s": 900
+   },
+   "select": {
+    "families": [
+     "f02"
+    ],
+    "reservations": [
+     "primary",
+     "mesh_and_time"
+    ]
+   },
+   "families": {
+    "f02": {
+     "case_limits": {
+      "cpus": 1,
+      "memory_gib": 2,
+      "pids": 64,
+      "wall_timeout_s": 5400
+     },
+     "ceilings": {
+      "launches": 36,
+      "cpu_hours": 12
+     }
+    }
+   },
+   "keep": {
+    "patterns": [
+     "*.dat",
+     "*.names",
+     "final*.vtu",
+     "deck.json",
+     "*.log"
+    ],
+    "max_file_bytes": 9000000
+   },
+   "host_regenerated_files": [
+    "mesh/mesh.nodes",
+    "mesh/mesh.elements",
+    "mesh/mesh.boundary",
+    "mesh/mesh.header"
+   ]
+  },
+  {
+   "name": "f02-cold-train40",
+   "type": "bulk",
+   "judges": "Exactly the 40 registered public TRAIN actions for c30-i40-s0.5-rectangular, checked disjoint from all eight pilot evaluation actions. Retain native solver outputs; no TRAIN role is claimed until all 40 complete and outputs are collected.",
+   "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-cold-pilot-train40-manifest.json",
+   "freeze": {
+    "argv": [
+     "python3",
+     "scripts/dev/reference_packages/elmer/f02_cold_pilot.py",
+     "freeze-train",
+     "{decks}"
+    ],
+    "timeout_s": 900
+   },
+   "select": {
+    "families": [
+     "f02"
+    ],
+    "reservations": [
+     "train"
+    ]
+   },
+   "families": {
+    "f02": {
+     "case_limits": {
+      "cpus": 1,
+      "memory_gib": 2,
+      "pids": 64,
+      "wall_timeout_s": 5400
+     },
+     "ceilings": {
+      "launches": 40,
+      "cpu_hours": 8
+     }
+    }
+   },
+   "keep": {
+    "patterns": [
+     "*.dat",
+     "*.names",
+     "final*.vtu",
+     "deck.json",
+     "*.log"
+    ],
+    "max_file_bytes": 9000000
+   },
+   "host_regenerated_files": [
+    "mesh/mesh.nodes",
+    "mesh/mesh.elements",
+    "mesh/mesh.boundary",
+    "mesh/mesh.header"
+   ]
+  },
+  {
+   "name": "f02-cold-step-responses",
+   "type": "bulk",
+   "judges": "Four registered unit-step-response source decks for the public superposition comparator. No comparator or Physics claim until completed reference outputs and original baseline identities are checked.",
+   "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-cold-pilot-steps4-manifest.json",
+   "freeze": {
+    "argv": [
+     "python3",
+     "scripts/dev/reference_packages/elmer/f02_readiness.py",
+     "freeze",
+     "steps",
+     "{decks}"
+    ],
+    "timeout_s": 900
+   },
+   "select": {
+    "families": [
+     "f02"
+    ],
+    "reservations": [
+     "step_responses"
+    ]
+   },
+   "families": {
+    "f02": {
+     "case_limits": {
+      "cpus": 1,
+      "memory_gib": 2,
+      "pids": 64,
+      "wall_timeout_s": 5400
+     },
+     "ceilings": {
+      "launches": 4,
+      "cpu_hours": 2
+     }
+    }
+   },
+   "keep": {
+    "patterns": [
+     "*.dat",
+     "*.names",
+     "final*.vtu",
+     "deck.json",
+     "*.log"
+    ],
+    "max_file_bytes": 9000000
+   },
+   "host_regenerated_files": [
+    "mesh/mesh.nodes",
+    "mesh/mesh.elements",
+    "mesh/mesh.boundary",
+    "mesh/mesh.header"
+   ]
+  }
+ ],
+ "ship": [
+  "docs/development/evidence/reference-packages-01/f02-menu-v2/baseline-decks-manifest.json",
+  "docs/development/evidence/reference-packages-01/f02-menu-v2/decks-manifest.json",
+  "docs/development/evidence/reference-packages-01/f02-menu-v2/train-decks-manifest.json",
+  "docs/development/evidence/reference-packages-01/f02-readiness/bands.json",
+  "docs/development/evidence/reference-packages-01/f02-readiness/local-convergence-judgement.json",
+  "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-cold-pilot-convergence-manifest.json",
+  "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-cold-pilot-steps4-manifest.json",
+  "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-cold-pilot-train40-manifest.json",
+  "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-verification-decks-manifest.json"
+ ],
+ "post_collection": "Run f02_cold_pilot.py rejudge NEW/out/f02-cold-convergence PRIOR/out/f02-verification pins/f02-cold-pilot-convergence-manifest.json RESULT/judgement.json; require actual B10 accepted before downstream consumer."
+}
