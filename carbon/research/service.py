@@ -21,6 +21,7 @@ from carbon.research.canonical import (
     CanonicalWireError,
     _canonical_tuple_payload,
     canonical_bytes,
+    canonical_digest,
     load_canonical,
 )
 from carbon.research.errors import (
@@ -28,6 +29,7 @@ from carbon.research.errors import (
     ResearchServiceErrorCode,
     public_error,
 )
+from carbon.research.lifecycle import ResearchTaskProviderError
 from carbon.research.model import (
     OFFICIAL_V1_OPERATIONS,
     RESEARCH_NAMESPACE,
@@ -39,6 +41,18 @@ from carbon.research.model import (
     CompileIssue,
     CompileStrategyRequest,
     CompileStrategyResult,
+    DirectCancelTaskRequestV3,
+    DirectCancelTaskResultV3,
+    DirectChallengeInfo,
+    DirectGetTaskRequestV3,
+    DirectGetTaskResultV3,
+    DirectRecipeManifest,
+    DirectStageMaterialRequestV1,
+    DirectStageMaterialResultV1,
+    DirectStageSourceRequestV1,
+    DirectStageSourceResultV1,
+    DirectStartTaskRequestV3,
+    DirectStartTaskResultV3,
     DryValidateRequest,
     DryValidationResult,
     ExactPriorSelector,
@@ -141,6 +155,45 @@ class ExternalPublicResearchContext:
         if type(self) is not ExternalPublicResearchContext:
             raise TypeError("external context subclasses are rejected")
         _validate_context(self)
+
+
+@dataclass(frozen=True, slots=True)
+class DirectPublicResearchContext:
+    """Prospective direct capability set in the same research service.
+
+    Unserved legacy providers are absent rather than replaced with permissive
+    stand-ins. The service checks the exact direct manifest before dispatch.
+    """
+
+    challenge_catalog_provider: ChallengeCatalogProvider
+    manifest_provider: ManifestProvider
+    research_task_provider: object | None = None
+
+    def __post_init__(self) -> None:
+        if type(self) is not DirectPublicResearchContext:
+            raise TypeError("direct context subclasses are rejected")
+        _provider(self.challenge_catalog_provider, "get_challenge_info")
+        _provider(self.manifest_provider, "get_interaction_manifest")
+        from carbon.development_session.research_service import DirectFixtureDiscovery
+        from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
+
+        if (
+            type(self.manifest_provider) is DirectFixtureDiscovery
+            and self.manifest_provider._task_admission
+            and (
+                type(self.research_task_provider) is not DirectDevelopmentTasksV3
+                or self.research_task_provider.discovery is not self.manifest_provider
+                or self.challenge_catalog_provider is not self.manifest_provider
+            )
+        ):
+            raise ValueError("exact trusted direct task composition required")
+        if self.research_task_provider is not None:
+            for method in (
+                "start_research_task",
+                "get_research_result",
+                "cancel_research_task",
+            ):
+                _provider(self.research_task_provider, method)
 
 
 @dataclass(frozen=True, slots=True)
@@ -407,6 +460,34 @@ OPERATION_MATRIX = (
     ),
 )
 OPERATION_CONTRACTS = {item.operation: item for item in OPERATION_MATRIX}
+DIRECT_SOURCE_CONTRACT = OperationContract(
+    "stage_research_source",
+    DirectStageSourceRequestV1,
+    DirectStageSourceResultV1,
+    "DIRECT_DEVELOPMENT_SOURCE",
+    "research_task_provider",
+    "stage_research_source",
+    ("DIRECT_PUBLIC",),
+    "LOCAL_RESEARCH_ONLY",
+    "OWNER_BOUND_SOURCE_DIGEST_ONLY",
+    "NO_TASK_ACCOUNTING",
+    (*_COMMON_ERRORS, ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT),
+    ResearchServiceErrorCode.NAMESPACE_MISMATCH,
+)
+DIRECT_MATERIAL_CONTRACT = OperationContract(
+    "stage_research_material",
+    DirectStageMaterialRequestV1,
+    DirectStageMaterialResultV1,
+    "DIRECT_DEVELOPMENT_SOURCE",
+    "research_task_provider",
+    "stage_research_material",
+    ("DIRECT_PUBLIC",),
+    "LOCAL_RESEARCH_ONLY",
+    "OWNER_BOUND_SOURCE_DIGEST_ONLY",
+    "NO_TASK_ACCOUNTING",
+    (*_COMMON_ERRORS, ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT),
+    ResearchServiceErrorCode.NAMESPACE_MISMATCH,
+)
 RESERVED_OPERATION = OperationContract(
     "quote_execution",
     object,
@@ -615,6 +696,20 @@ def _result_challenge_refs(result: object) -> tuple[object, ...]:
 
 
 def _discovery_pair_matches(info: object, manifest: object) -> bool:
+    if type(manifest) is DirectRecipeManifest:
+        return (
+            type(info) is DirectChallengeInfo
+            and info.challenge_key == manifest.challenge_key
+            and manifest.challenge_info_digest == canonical_digest(info)
+            and manifest.public_train_digest == info.public_train_digest
+            and manifest.practice_inputs_digest == info.practice_inputs_digest
+            and manifest.practice_reference_digest == info.practice_reference_digest
+            and manifest.interface_digest == info.interface_digest
+            and manifest.construction_limits_digest == info.construction_limits_digest
+            and manifest.physics_digest == info.physics_digest
+            and manifest.resource_facts_digest == info.resource_facts_digest
+            and manifest.disclosure_digest == info.disclosure_digest
+        )
     if type(info) is not ChallengeInfo or type(manifest) is not InteractionManifest:
         return False
     return (
@@ -635,6 +730,9 @@ def _task_result(result: object) -> object | None:
         StartResearchTaskResult,
         GetResearchResultResult,
         CancelResearchTaskResult,
+        DirectStartTaskResultV3,
+        DirectGetTaskResultV3,
+        DirectCancelTaskResultV3,
     ):
         return result.task
     return None
@@ -669,18 +767,25 @@ def _contains_protected_result_material(value: object) -> bool:
 class LocalResearchService:
     """Exact local-only ``carbon_research_v2`` service adapter."""
 
-    __slots__ = ("_context", "_fixture")
+    __slots__ = ("_context", "_direct", "_fixture")
 
     def __init__(
-        self, context: ExternalPublicResearchContext | FixtureResearchContext
+        self,
+        context: (
+            ExternalPublicResearchContext
+            | FixtureResearchContext
+            | DirectPublicResearchContext
+        ),
     ) -> None:
         if type(context) not in (
             ExternalPublicResearchContext,
             FixtureResearchContext,
+            DirectPublicResearchContext,
         ):
             raise TypeError("an exact nominal research context is required")
         self._context = context
         self._fixture = type(context) is FixtureResearchContext
+        self._direct = type(context) is DirectPublicResearchContext
 
     def call(self, call: object) -> ServiceReply:
         if type(call) is not ServiceCall:
@@ -697,28 +802,72 @@ class LocalResearchService:
             return _failure(ResearchServiceErrorCode.NAMESPACE_MISMATCH)
         if operation == RESERVED_OPERATION.operation:
             return _failure(ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE)
-        contract = OPERATION_CONTRACTS.get(operation)
+        contract = (
+            (
+                DIRECT_SOURCE_CONTRACT
+                if operation == DIRECT_SOURCE_CONTRACT.operation
+                else DIRECT_MATERIAL_CONTRACT
+            )
+            if self._direct
+            and operation
+            in (DIRECT_SOURCE_CONTRACT.operation, DIRECT_MATERIAL_CONTRACT.operation)
+            else OPERATION_CONTRACTS.get(operation)
+        )
         if contract is None:
             return _failure(ResearchServiceErrorCode.OPERATION_UNSUPPORTED)
         request = canonical_call.request
-        if type(request) is not contract.request_type:
+        direct_task_types = {
+            "start_research_task": DirectStartTaskRequestV3,
+            "get_research_result": DirectGetTaskRequestV3,
+            "cancel_research_task": DirectCancelTaskRequestV3,
+        }
+        expected_request = (
+            direct_task_types.get(operation, contract.request_type)
+            if self._direct
+            else contract.request_type
+        )
+        direct_manifest = None
+        if self._direct:
+            try:
+                direct_manifest = (
+                    self._context.manifest_provider.get_interaction_manifest(
+                        request.challenge_key
+                    )
+                )
+            except Exception as exc:  # noqa: BLE001 - public typed provider failure
+                return self._provider_failure(exc, operation)
+            if (
+                type(direct_manifest) is not DirectRecipeManifest
+                or direct_manifest.challenge_key != request.challenge_key
+            ):
+                return _failure(ResearchServiceErrorCode.REFERENCE_MISMATCH)
+            if operation not in direct_manifest.supported_operations:
+                return _failure(ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE)
+        if type(request) is not expected_request:
             return _failure(ResearchServiceErrorCode.REQUEST_TYPE_INVALID)
         capability = self._preflight_capability(request)
         if capability is not None:
             return capability
-        info: ChallengeInfo | None = None
+        info: ChallengeInfo | DirectChallengeInfo | None = None
         try:
             if operation != "get_challenge_info":
                 info = self._context.challenge_catalog_provider.get_challenge_info(
                     request.challenge_key
                 )
-                if type(info) is not ChallengeInfo:
+                expected_info = DirectChallengeInfo if self._direct else ChallengeInfo
+                if type(info) is not expected_info:
                     return _failure(ResearchServiceErrorCode.DISCLOSURE_REJECTED)
                 if info.challenge_key != request.challenge_key:
                     return _failure(ResearchServiceErrorCode.REFERENCE_MISMATCH)
             result = self._dispatch(contract, request)
         except Exception as exc:  # noqa: BLE001 - translated without diagnostics
             return self._provider_failure(exc, operation)
+        if (
+            self._direct
+            and operation == "get_challenge_info"
+            and not _discovery_pair_matches(result, direct_manifest)
+        ):
+            return _failure(ResearchServiceErrorCode.REFERENCE_MISMATCH)
         projected = self._project(contract, request, result, info)
         if type(projected) is ServiceReply:
             return projected
@@ -743,7 +892,15 @@ class LocalResearchService:
     def binds_research_task_provider(self, provider: object) -> bool:
         """Expose identity-only local composition evidence, never the provider."""
 
+        if self._direct:
+            return (
+                self._context.research_task_provider is not None
+                and provider is self._context.research_task_provider
+            )
         return provider is self._context.research_task_provider
+
+    def is_direct_context(self) -> bool:
+        return self._direct
 
     def project_task_observation(self, request, view, *, provider):
         """Trusted observation retains the ordinary B-07 disclosure checks."""
@@ -802,6 +959,37 @@ class LocalResearchService:
         return None
 
     def _dispatch(self, contract: OperationContract, request: object) -> object:
+        if self._direct and contract.operation == DIRECT_MATERIAL_CONTRACT.operation:
+            from carbon.development_session.direct_material_staging import (
+                stage_material,
+            )
+
+            provider = self._context.research_task_provider
+            if provider is None:
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE
+                )
+            return stage_material(provider, request)
+        if self._direct and contract.operation == DIRECT_SOURCE_CONTRACT.operation:
+            from carbon.development_session.direct_source_staging import stage_source
+
+            provider = self._context.research_task_provider
+            if provider is None:
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE
+                )
+            return stage_source(provider.ledger, provider.owner, request)
+        if self._direct and contract.operation in (
+            "start_research_task",
+            "get_research_result",
+            "cancel_research_task",
+        ):
+            provider = self._context.research_task_provider
+            if provider is None:
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE
+                )
+            return getattr(provider, contract.provider_method)(request)
         if contract.operation == "get_prior":
             assert type(request) is GetPriorRequest
             selector = request.selector
@@ -828,9 +1016,39 @@ class LocalResearchService:
         contract: OperationContract,
         request: object,
         result: object,
-        info: ChallengeInfo | None,
+        info: ChallengeInfo | DirectChallengeInfo | None,
     ) -> object:
-        if type(result) is not contract.result_type:
+        direct_special = self._direct and (
+            (
+                contract.operation == "get_interaction_manifest"
+                and type(result) is DirectRecipeManifest
+            )
+            or (
+                contract.operation == "stage_research_source"
+                and type(result) is DirectStageSourceResultV1
+            )
+            or (
+                contract.operation == "stage_research_material"
+                and type(result) is DirectStageMaterialResultV1
+            )
+            or (
+                contract.operation == "get_challenge_info"
+                and type(result) is DirectChallengeInfo
+            )
+            or (
+                contract.operation == "start_research_task"
+                and type(result) is DirectStartTaskResultV3
+            )
+            or (
+                contract.operation == "get_research_result"
+                and type(result) is DirectGetTaskResultV3
+            )
+            or (
+                contract.operation == "cancel_research_task"
+                and type(result) is DirectCancelTaskResultV3
+            )
+        )
+        if type(result) is not contract.result_type and not direct_special:
             return _failure(ResearchServiceErrorCode.DISCLOSURE_REJECTED)
         if _contains_protected_result_material(result):
             return _failure(ResearchServiceErrorCode.DISCLOSURE_REJECTED)
@@ -839,16 +1057,17 @@ class LocalResearchService:
             item.challenge_key != challenge for item in _result_challenge_refs(result)
         ):
             return _failure(ResearchServiceErrorCode.REFERENCE_MISMATCH)
-        if type(result) is InteractionManifest:
+        if type(result) in (InteractionManifest, DirectRecipeManifest):
             try:
                 if not _discovery_pair_matches(info, result):
                     return _failure(ResearchServiceErrorCode.REFERENCE_MISMATCH)
-                result = replace(
-                    result,
-                    capability_labels=(
-                        ("TEST_ONLY_FIXTURE_PRIOR",) if self._fixture else ()
-                    ),
-                )
+                if type(result) is InteractionManifest:
+                    result = replace(
+                        result,
+                        capability_labels=(
+                            ("TEST_ONLY_FIXTURE_PRIOR",) if self._fixture else ()
+                        ),
+                    )
             except Exception:  # noqa: BLE001 - provider graph is untrusted
                 return _failure(ResearchServiceErrorCode.REFERENCE_MISMATCH)
         if type(result) is PriorLookupResult:
@@ -864,7 +1083,7 @@ class LocalResearchService:
             if task.challenge_key != challenge:
                 return _failure(ResearchServiceErrorCode.REFERENCE_MISMATCH)
             receipt = task.terminal_receipt
-            prior_ref = task.immutable_bindings.prior_pack_ref
+            prior_ref = getattr(task.immutable_bindings, "prior_pack_ref", None)
             if (
                 receipt is not None
                 and prior_ref is not None
@@ -880,7 +1099,8 @@ class LocalResearchService:
             ):
                 return _failure(ResearchServiceErrorCode.DISCLOSURE_REJECTED)
         try:
-            detached = load_canonical(canonical_bytes(result), contract.result_type)
+            result_type = type(result) if direct_special else contract.result_type
+            detached = load_canonical(canonical_bytes(result), result_type)
         except CanonicalWireError as exc:
             return _failure(
                 exc.code
@@ -956,6 +1176,7 @@ class LocalResearchService:
                 ResearchServiceErrorCode.TEST_ONLY_AUTHORITY_INVALID,
                 ResearchServiceErrorCode.TASK_NOT_FOUND,
                 ResearchServiceErrorCode.IDEMPOTENCY_CONFLICT,
+                ResearchServiceErrorCode.BOUND_EXCEEDED,
                 ResearchServiceErrorCode.INVALID_TASK_TRANSITION,
                 ResearchServiceErrorCode.POLL_SEQUENCE_INVALID,
                 ResearchServiceErrorCode.PROVIDER_UNAVAILABLE,
@@ -979,6 +1200,7 @@ __all__ = (
     "RESERVED_OPERATION",
     "A2ValidationProvider",
     "B02BCompilationProvider",
+    "DirectPublicResearchContext",
     "ExternalPublicResearchContext",
     "FixtureResearchContext",
     "LocalResearchService",

@@ -207,7 +207,14 @@ def make_operation_tools(host, *, guard=None):
     from mcp.server.mcpserver.exceptions import ToolError
     from mcp.server.mcpserver.tools import Tool
     from mcp.server.mcpserver.utilities.func_metadata import ArgModelBase, FuncMetadata
-    from pydantic import BaseModel, ConfigDict, Field, JsonValue, create_model
+    from pydantic import (
+        BaseModel,
+        ConfigDict,
+        Field,
+        JsonValue,
+        StrictBool,
+        create_model,
+    )
 
     from scripts.dev.miner_launchpad.controller import Rejected
     from scripts.dev.miner_launchpad.operations import (
@@ -224,6 +231,16 @@ def make_operation_tools(host, *, guard=None):
 
     class ExactMetadata(FuncMetadata):
         def pre_parse_json(self, data):
+            if type(data) is dict:
+                # Pydantic fills omitted optional fields with None. Carry
+                # presence separately so an explicit legacy selector:null
+                # reaches the shared exact-replay gate instead of vanishing.
+                markers = {
+                    name: name.removeprefix("replay_present_") in data
+                    for name in self.arg_model.model_fields
+                    if name.startswith("replay_present_")
+                }
+                return {**data, **markers}
             return data
 
         def convert_result(self, result):
@@ -244,7 +261,7 @@ def make_operation_tools(host, *, guard=None):
         required = (op.required | BODY_REQUIRED.get(op.name, frozenset())) - (
             {"idempotency_key"} if op.name in GENERATES_KEY else set()
         )
-        for field in sorted(op.required | op.optional):
+        for field in sorted(op.required | op.optional | op.replay_optional):
             kind, meaning = FIELDS[field]
             default = ... if field in required else None
             annotation = _annotation(field, kind)
@@ -252,15 +269,50 @@ def make_operation_tools(host, *, guard=None):
                 # This prospective safety policy distinguishes omission from
                 # explicit null; only its closed versioned literal is valid.
                 annotation = annotation | None
-            parameters[field] = (annotation, Field(default, description=meaning))
+            if field in op.replay_optional:
+                # Old clients must be able to retry the *same recorded key*
+                # through MCP. These names grant no new construction choice:
+                # the launch replay gate checks the exact historical request
+                # before registration and rejects a new key.
+                parameters[field] = (
+                    annotation,
+                    Field(
+                        default,
+                        description=(
+                            "Deprecated historical idempotency replay only. "
+                            "A new launch with this field is refused."
+                        ),
+                        json_schema_extra={"deprecated": True},
+                    ),
+                )
+                parameters["replay_present_" + field] = (
+                    StrictBool,
+                    Field(False),
+                )
+            else:
+                parameters[field] = (annotation, Field(default, description=meaning))
         model = create_model(
             "operation_" + op.name, __base__=StrictArguments, **parameters
         )
+        schema = model.model_json_schema()
+        # Historical keys remain parseable for exact idempotency replay, but
+        # normal tool discovery must not offer retired construction selectors.
+        for field in op.replay_optional:
+            schema["properties"].pop(field, None)
+            schema["properties"].pop("replay_present_" + field, None)
 
         async def invoke(ctx=None, **arguments):
             if guard is not None:
                 guard()
-            request = {k: v for k, v in arguments.items() if v is not None}
+            replay_present = {
+                field: arguments.pop("replay_present_" + field, False)
+                for field in op.replay_optional
+            }
+            request = {
+                k: v
+                for k, v in arguments.items()
+                if v is not None or replay_present.get(k, False)
+            }
             if op.name in GENERATES_KEY and "idempotency_key" not in request:
                 request["idempotency_key"] = generated_key()
             attachment = _attachment(ctx)
@@ -316,7 +368,7 @@ def make_operation_tools(host, *, guard=None):
             fn=invoke,
             name=PREFIX + op.name,
             description=f"{op.summary} Gates: {gates}. {_door_notes(op)}",
-            parameters=model.model_json_schema(),
+            parameters=schema,
             fn_metadata=ExactMetadata(arg_model=model, output_model=OperationResult),
             is_async=True,
             context_kwarg="ctx",

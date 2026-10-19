@@ -31,6 +31,7 @@ from carbon.development_session import research_campaign
 from carbon.development_session.profile import canonical
 from carbon.development_session.research_control import CampaignControl
 from carbon.development_session.research_ledger import CampaignLedger
+from scripts.dev.miner_launchpad import levels
 from scripts.dev.miner_launchpad import supervisor as supervision
 from scripts.dev.miner_launchpad.campaign_view import stages
 from scripts.dev.miner_launchpad.controller import (
@@ -114,10 +115,49 @@ def root_of(host, identity):
     return Path(host._bound(identity)[2])
 
 
+def historical_v0_campaign(host, identity):
+    """Rehydrate the persisted row shape these legacy lifecycle tests need.
+
+    The current launch writer creates v4 direct campaigns. These tests use a
+    pre-direct recipe, so retain the prepared historical manifest and remove
+    the prospective v4 capture from the recorded launch before legacy work.
+    """
+    with host.db() as db:
+        row = db.execute(
+            "SELECT request_key,request_digest,config_digest,launch_request,"
+            "construction_binding_version "
+            "FROM launchpad_campaigns WHERE id=?",
+            (identity,),
+        ).fetchone()
+        assert row["construction_binding_version"] == 4
+        request = json.loads(row["launch_request"])
+        assert request.pop(levels.CONSTRUCTION_ADMISSION)["schema"] == (
+            levels.DIRECT_CAPTURE_SCHEMA
+        )
+        assert host._launch_identity(
+            host.configured(), {**request, "idempotency_key": row["request_key"]}
+        ) == (identity, row["request_digest"], row["config_digest"])
+        db.execute(
+            "UPDATE launchpad_campaigns SET launch_request=?, "
+            "construction_binding_version=0, construction_binding_digest=NULL "
+            "WHERE id=?",
+            (canonical(request), identity),
+        )
+    manifest = json.loads(
+        (root_of(host, identity) / "campaign-manifest.json").read_bytes()
+    )
+    assert manifest.get("construction_mode") is None
+    assert (
+        levels.campaign_is_direct(host.owned_campaign(identity), host.configured())
+        is False
+    )
+
+
 def frozen_campaign(host):
-    """An agent-less campaign with a practiced, frozen candidate."""
+    """A historical v0 campaign with a practiced, frozen legacy candidate."""
     identity = launch(host)["id"]
     join(host)
+    historical_v0_campaign(host, identity)
     perform(host, "practice", practice(identity, "practice-key-00001"))
     join(host)
     perform(
@@ -299,6 +339,7 @@ def test_the_stage_a_refusal_belongs_to_says_so():
 def test_a_held_campaign_refuses_practice_at_once_and_records_nothing(journey):
     identity = launch(journey)["id"]
     join(journey)
+    historical_v0_campaign(journey, identity)
     client = RunnerAdapter(
         journey.database,
         principal="alice",
@@ -566,6 +607,7 @@ def test_new_work_on_an_updated_checkout_is_refused_before_it_starts(
 ):
     identity = launch(journey)["id"]
     join(journey)
+    historical_v0_campaign(journey, identity)
     monkeypatch.setattr(
         RunnerAdapter, "checkout_refusal", staticmethod(lambda cfg: CARBON_UPDATED)
     )
@@ -760,6 +802,7 @@ def test_failure_answers_are_closed():
         "profile_changed_since_launch",
         CARBON_UPDATED,
         "evaluation_unavailable",
+        "design_not_yet_rebuildable",
         "task_left_running",
         "the_agent_selects_in_this_campaign",
         "final_exams_used",

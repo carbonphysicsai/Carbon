@@ -129,6 +129,24 @@ class ResearchOperation(str, Enum):
 
 
 SUPPORTED_OPERATIONS = tuple(operation.value for operation in ResearchOperation)
+# Direct discovery does not grant task admission until the direct request,
+# attempt, and receipt records can bind a clean rebuild without v2 authoring.
+DIRECT_RECIPE_OPERATIONS = (
+    ResearchOperation.GET_CHALLENGE_INFO.value,
+    ResearchOperation.GET_INTERACTION_MANIFEST.value,
+)
+DIRECT_RECIPE_TASK_OPERATIONS = DIRECT_RECIPE_OPERATIONS + (
+    ResearchOperation.START_RESEARCH_TASK.value,
+    ResearchOperation.GET_RESEARCH_RESULT.value,
+    ResearchOperation.CANCEL_RESEARCH_TASK.value,
+)
+DIRECT_RECIPE_SOURCE_TASK_OPERATIONS = DIRECT_RECIPE_OPERATIONS + (
+    "stage_research_source",
+    "stage_research_material",
+    ResearchOperation.START_RESEARCH_TASK.value,
+    ResearchOperation.GET_RESEARCH_RESULT.value,
+    ResearchOperation.CANCEL_RESEARCH_TASK.value,
+)
 OFFICIAL_V1_OPERATIONS = ("submit", "get_submission_result")
 
 
@@ -226,9 +244,21 @@ class ResearchTaskState(str, Enum):
     CANCELLED = "CANCELLED"
 
 
+class DirectTaskStateV3(str, Enum):
+    QUEUED = "QUEUED"
+    RUNNING = "RUNNING"
+    CANCEL_REQUESTED = "CANCEL_REQUESTED"
+    SUCCEEDED = "SUCCEEDED"
+    REFUSED = "REFUSED"
+    UNRESOLVED = "UNRESOLVED"
+    FAILED_INFRA = "FAILED_INFRA"
+    CANCELLED = "CANCELLED"
+
+
 class ResearchTaskKind(str, Enum):
     RECONSTRUCTION_REHEARSAL = "RECONSTRUCTION_REHEARSAL"
     PRACTICE = "PRACTICE"
+    DIRECT_PRACTICE = "DIRECT_PRACTICE"
     PAIRED_PRACTICE = "PAIRED_PRACTICE"
     RESOURCE_CALIBRATION = "RESOURCE_CALIBRATION"
     DEVELOPMENT_WORKSPACE_V1 = "DEVELOPMENT_WORKSPACE_V1"
@@ -479,6 +509,33 @@ def _validate_semantics(value: _ExactRecord) -> None:
         if value.disclosure_class is not DisclosureClass.PUBLIC_RESEARCH:
             raise ValueError("ChallengeInfo must use PUBLIC_RESEARCH")
         _require_challenge_refs(value, value.challenge_key, fields(value)[3:10])
+    elif type(value) is DirectChallengeInfo:
+        if value.schema_version != "3.0":
+            raise ValueError("direct Challenge info requires schema 3.0")
+        if value.disclosure_class is not DisclosureClass.PUBLIC_RESEARCH:
+            raise ValueError("direct Challenge info must be public research")
+        for name in ("public_train_id", "public_practice_id"):
+            validate_canonical_identifier(getattr(value, name), name)
+        if not value.train_case_ids or not value.practice_case_ids:
+            raise ValueError("direct public case IDs must be present")
+        for name in ("train_case_ids", "practice_case_ids"):
+            identifiers = getattr(value, name)
+            if len(identifiers) != len(set(identifiers)):
+                raise ValueError(f"{name} must be unique")
+            for identifier in identifiers:
+                validate_canonical_identifier(identifier, name)
+        for name in (
+            "public_train_digest",
+            "practice_inputs_digest",
+            "practice_reference_digest",
+            "interface_digest",
+            "construction_limits_digest",
+            "physics_digest",
+            "resource_facts_digest",
+            "disclosure_digest",
+        ):
+            if not is_sha256_digest(getattr(value, name)):
+                raise ValueError(f"{name} must be a tagged SHA-256 digest")
     elif type(value) is InteractionManifest:
         if value.schema_version != RESEARCH_SCHEMA_VERSION:
             raise ValueError("InteractionManifest requires schema 2.0")
@@ -502,6 +559,32 @@ def _validate_semantics(value: _ExactRecord) -> None:
             or len(value.practice_pack_refs) > 256
         ):
             raise ValueError("manifest catalog tuple exceeds the v2 bound")
+    elif type(value) is DirectRecipeManifest:
+        if value.schema_version != "3.0":
+            raise ValueError("direct recipe manifest requires schema 3.0")
+        _require_challenge_refs(value, value.challenge_key, fields(value)[2:])
+        if value.supported_operations not in (
+            DIRECT_RECIPE_OPERATIONS,
+            DIRECT_RECIPE_TASK_OPERATIONS,
+            DIRECT_RECIPE_SOURCE_TASK_OPERATIONS,
+        ):
+            raise ValueError("direct recipe operations differ from served subset")
+        if value.limits != PROTOCOL_LIMITS:
+            raise ValueError("direct recipe protocol limits differ")
+        for name in (
+            "challenge_info_digest",
+            "construction_kit_digest",
+            "public_train_digest",
+            "practice_inputs_digest",
+            "practice_reference_digest",
+            "interface_digest",
+            "construction_limits_digest",
+            "physics_digest",
+            "resource_facts_digest",
+            "disclosure_digest",
+        ):
+            if not is_sha256_digest(getattr(value, name)):
+                raise ValueError(f"{name} must be a tagged SHA-256 digest")
     elif type(value) is ResourceLineItem:
         if len(value.confidence_band) != 2 or value.quantity < 0.0:
             raise ValueError("resource quantity must be non-negative")
@@ -585,6 +668,211 @@ def _validate_semantics(value: _ExactRecord) -> None:
             raise ValueError("unsupported development workspace action")
         if not 2 <= len(value.arguments_json.encode("utf-8")) <= 12_288:
             raise BoundExceededField("workspace arguments exceed closed text bound")
+    elif type(value) is DirectPracticeTaskSpecV1:
+        if value.version != "carbon.direct-practice.v1":
+            raise ValueError("unsupported direct practice version")
+        from carbon.development_session.construction_recipe import ConstructionRecipe
+
+        ConstructionRecipe.from_dict(value.recipe)
+    elif type(value) is DirectStageSourceRequestV1:
+        from carbon.level4 import intake, staging
+
+        document = value.name.startswith(
+            staging.WORKSPACE_PREFIX
+        ) and value.name.endswith(".json")
+        if not (
+            value.name == staging.WORKSPACE_MANIFEST
+            or (
+                document
+                and is_sha256_digest(
+                    "sha256:" + value.name[len(staging.WORKSPACE_PREFIX) : -5]
+                )
+            )
+        ):
+            raise ValueError("graph source requires a registered flat workspace name")
+        maximum = (
+            intake.BOUNDS["manifest_bytes"]
+            if value.name == staging.WORKSPACE_MANIFEST
+            else intake.BOUNDS["submission_bytes"]
+        )
+        if (
+            not 0 < value.total_bytes <= maximum
+            or not 0 <= value.offset < value.total_bytes
+            or type(value.chunk) is not bytes
+            or not 0 < len(value.chunk) <= 8192
+            or value.offset + len(value.chunk) > value.total_bytes
+            or not is_sha256_digest(value.content_digest)
+            or (
+                value.expected_digest is not None
+                and not is_sha256_digest(value.expected_digest)
+            )
+        ):
+            raise BoundExceededField("bounded digest-bound graph source chunk required")
+    elif type(value) is DirectStageSourceResultV1:
+        if not is_sha256_digest(value.content_digest):
+            raise ValueError("staged source digest is invalid")
+    elif type(value) is DirectStageMaterialRequestV1:
+        from carbon.development_session import library_bundles
+
+        bounds = {
+            "bundle.json": 65536,
+            "source.tar.gz": library_bundles.MAX_SOURCE_BYTES,
+            "requirements.txt": library_bundles.MAX_LOCK_BYTES,
+            "LICENSE": library_bundles.MAX_LICENSE_BYTES,
+        }
+        if value.name.endswith(".whl") and len(value.name) <= 200:
+            bounds[value.name] = library_bundles.MAX_WHEEL_BYTES
+        if (
+            value.name not in bounds
+            or "/" in value.name
+            or "\\" in value.name
+            or not is_sha256_digest(value.bundle_digest)
+            or not is_sha256_digest(value.content_digest)
+            or not 0 <= value.total_bytes <= bounds[value.name]
+            or (
+                value.total_bytes == 0
+                and value.name not in {"requirements.txt", "LICENSE"}
+            )
+            or type(value.chunk) is not bytes
+            or (
+                (value.offset != 0 or value.chunk != b"")
+                if value.total_bytes == 0
+                else (
+                    not 0 <= value.offset < value.total_bytes
+                    or not 0 < len(value.chunk) <= 24576
+                    or value.offset + len(value.chunk) > value.total_bytes
+                )
+            )
+        ):
+            raise BoundExceededField("bounded pinned material chunk required")
+        if value.name == "bundle.json" and value.content_digest != value.bundle_digest:
+            raise ReferenceMismatchField("bundle manifest digest differs")
+    elif type(value) is DirectStageMaterialResultV1:
+        if not is_sha256_digest(value.content_digest):
+            raise ValueError("staged material digest is invalid")
+    elif type(value) is DirectStartTaskRequestV3:
+        from carbon.development_session.construction_recipe import ConstructionRecipe
+
+        _validate_request_token(value.idempotency_key, "idempotency_key")
+        recipe = ConstructionRecipe.from_dict(value.recipe)
+        named = recipe.to_dict()["challenge"]
+        if (named["id"], named["version"]) != (
+            value.challenge_key.challenge_id,
+            value.challenge_key.version,
+        ):
+            raise ReferenceMismatchField("direct recipe Challenge differs")
+        if (
+            named["train_digest"] != value.public_train_digest
+            or named["interface_digest"] != value.interface_digest
+            or named["construction_limits_digest"] != value.construction_limits_digest
+        ):
+            raise ReferenceMismatchField("direct recipe material binding differs")
+        for name in (
+            "challenge_info_digest",
+            "manifest_digest",
+            "construction_kit_digest",
+            "public_train_digest",
+            "practice_inputs_digest",
+            "interface_digest",
+            "construction_limits_digest",
+            "resource_policy_digest",
+        ):
+            if not is_sha256_digest(getattr(value, name)):
+                raise ValueError(f"{name} must be a tagged SHA-256 digest")
+    elif type(value) is DirectTaskBindingsV3:
+        for name in (
+            "recipe_digest",
+            "challenge_info_digest",
+            "manifest_digest",
+            "construction_kit_digest",
+            "public_train_digest",
+            "practice_inputs_digest",
+            "interface_digest",
+            "construction_limits_digest",
+            "resource_policy_digest",
+        ):
+            if not is_sha256_digest(getattr(value, name)):
+                raise ValueError(f"{name} must be a tagged SHA-256 digest")
+    elif type(value) is DirectCancelTaskRequestV3:
+        _validate_request_token(value.cancellation_id, "cancellation_id")
+    elif type(value) is DirectTaskReceiptV3:
+        if value.terminal_state is DirectTaskStateV3.SUCCEEDED:
+            if (
+                value.state_digest is None
+                or value.predictions_digest is None
+                or value.infrastructure_failure_class is not None
+                or value.refusal_code is not None
+            ):
+                raise ValueError("direct successful receipt requires clean output")
+        elif value.terminal_state is DirectTaskStateV3.FAILED_INFRA:
+            if (
+                value.state_digest is not None
+                or value.predictions_digest is not None
+                or value.infrastructure_failure_class is None
+                or value.refusal_code is not None
+            ):
+                raise ValueError("direct infrastructure receipt conflicts")
+        elif value.terminal_state in (
+            DirectTaskStateV3.REFUSED,
+            DirectTaskStateV3.UNRESOLVED,
+        ):
+            if (
+                value.state_digest is not None
+                or value.predictions_digest is not None
+                or value.infrastructure_failure_class is not None
+                or value.refusal_code is None
+            ):
+                raise ValueError("direct non-success classification conflicts")
+        elif value.terminal_state is DirectTaskStateV3.CANCELLED:
+            if any(
+                item is not None
+                for item in (
+                    value.state_digest,
+                    value.predictions_digest,
+                    value.infrastructure_failure_class,
+                    value.refusal_code,
+                )
+            ):
+                raise ValueError("direct cancellation receipt conflicts")
+        else:
+            raise ValueError("direct task receipt requires terminal state")
+        for name in ("state_digest", "predictions_digest"):
+            item = getattr(value, name)
+            if item is not None and not is_sha256_digest(item):
+                raise ValueError(f"{name} must be a tagged SHA-256 digest")
+        if value.refusal_code is not None:
+            validate_canonical_identifier(value.refusal_code, "refusal_code")
+        if (
+            not value.limitations
+            or len(value.limitations) > 32
+            or "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY" not in value.limitations
+        ):
+            raise ValueError("direct task requires bounded fixture limitations")
+    elif type(value) is DirectTaskViewV3:
+        if value.challenge_key != value.immutable_bindings.challenge_key:
+            raise ReferenceMismatchField("direct task Challenge differs")
+        if value.updated_at_micros < value.created_at_micros:
+            raise ValueError("direct task timestamps differ")
+        terminal = value.state in (
+            DirectTaskStateV3.SUCCEEDED,
+            DirectTaskStateV3.REFUSED,
+            DirectTaskStateV3.UNRESOLVED,
+            DirectTaskStateV3.FAILED_INFRA,
+            DirectTaskStateV3.CANCELLED,
+        )
+        if terminal != (value.terminal_receipt is not None):
+            raise ValueError("direct task terminal receipt differs")
+        if value.terminal_receipt is not None and (
+            value.terminal_receipt.task_id != value.task_id
+            or value.terminal_receipt.terminal_state is not value.state
+            or value.terminal_receipt.immutable_bindings != value.immutable_bindings
+            or not (
+                value.created_at_micros
+                <= value.terminal_receipt.completed_at_micros
+                <= value.updated_at_micros
+            )
+        ):
+            raise ValueError("direct task receipt binding differs")
     elif type(value) is StartResearchTaskRequest:
         _validate_request_token(value.idempotency_key, "idempotency_key")
         _require_request_refs(
@@ -694,6 +982,7 @@ def _validate_semantics(value: _ExactRecord) -> None:
         expected_roles = {
             ResearchTaskKind.RECONSTRUCTION_REHEARSAL: (StrategyTaskRole.PRIMARY,),
             ResearchTaskKind.PRACTICE: (StrategyTaskRole.PRIMARY,),
+            ResearchTaskKind.DIRECT_PRACTICE: (),
             ResearchTaskKind.PAIRED_PRACTICE: (
                 StrategyTaskRole.BASELINE,
                 StrategyTaskRole.INTERVENTION,
@@ -909,6 +1198,27 @@ class ChallengeInfo(_ExactRecord):
         )
 
 
+@wire_record("direct_challenge_info_v1")
+class DirectChallengeInfo(_ExactRecord):
+    """Public material identities for a prospective clean direct rebuild."""
+
+    schema_version: str
+    challenge_key: ChallengeKey
+    public_train_id: str
+    public_train_digest: str
+    train_case_ids: tuple[str, ...]
+    public_practice_id: str
+    practice_inputs_digest: str
+    practice_reference_digest: str
+    practice_case_ids: tuple[str, ...]
+    interface_digest: str
+    construction_limits_digest: str
+    physics_digest: str
+    resource_facts_digest: str
+    disclosure_digest: str
+    disclosure_class: DisclosureClass
+
+
 @wire_record("interaction_manifest")
 class InteractionManifest(_ExactRecord):
     schema_version: str
@@ -935,6 +1245,37 @@ class InteractionManifest(_ExactRecord):
     supported_operations: tuple[str, ...]
     limits: tuple[ProtocolLimit, ...]
     capability_labels: tuple[str, ...]
+
+    def to_ref(self) -> InteractionManifestRef:
+        from .canonical import canonical_digest
+
+        return InteractionManifestRef(
+            self.challenge_key, content_digest=canonical_digest(self)
+        )
+
+
+@wire_record("direct_recipe_manifest_v1")
+class DirectRecipeManifest(_ExactRecord):
+    """Prospective public direct construction, without legacy permission refs.
+
+    Discovery-only until direct durable task records exist. Its material
+    digests are public facts, not v2 authored construction permissions.
+    """
+
+    schema_version: str
+    challenge_key: ChallengeKey
+    challenge_info_digest: str
+    construction_kit_digest: str
+    public_train_digest: str
+    practice_inputs_digest: str
+    practice_reference_digest: str
+    interface_digest: str
+    construction_limits_digest: str
+    physics_digest: str
+    resource_facts_digest: str
+    disclosure_digest: str
+    supported_operations: tuple[str, ...]
+    limits: tuple[ProtocolLimit, ...]
 
     def to_ref(self) -> InteractionManifestRef:
         from .canonical import canonical_digest
@@ -1080,6 +1421,143 @@ class PracticeTaskSpec(_ExactRecord):
     parent_strategy_hash: StrategyHash | None
 
 
+@wire_record("direct_practice_task_spec_v1")
+class DirectPracticeTaskSpecV1(_ExactRecord):
+    """Prospective recipe task; never interpreted by the legacy compiler."""
+
+    version: str
+    recipe: object
+
+
+@wire_record("direct_start_task_request_v3")
+class DirectStartTaskRequestV3(_ExactRecord):
+    """Direct public DEVELOPMENT intake; no v2 assembly or prior refs."""
+
+    challenge_key: ChallengeKey
+    idempotency_key: str
+    recipe: object
+    challenge_info_digest: str
+    manifest_digest: str
+    construction_kit_digest: str
+    public_train_digest: str
+    practice_inputs_digest: str
+    interface_digest: str
+    construction_limits_digest: str
+    resource_policy_digest: str
+
+
+@wire_record("direct_stage_source_request_v1")
+class DirectStageSourceRequestV1(_ExactRecord):
+    """One bounded chunk of an owner-bound graph source file."""
+
+    challenge_key: ChallengeKey
+    name: str
+    offset: UInt64
+    total_bytes: UInt64
+    content_digest: str
+    expected_digest: str | None
+    chunk: bytes
+
+
+@wire_record("direct_stage_source_result_v1")
+class DirectStageSourceResultV1(_ExactRecord):
+    name: str
+    received_bytes: UInt64
+    content_digest: str
+    complete: bool
+
+
+@wire_record("direct_stage_material_request_v1")
+class DirectStageMaterialRequestV1(_ExactRecord):
+    """One signed bounded chunk of pinned construction material."""
+
+    challenge_key: ChallengeKey
+    bundle_digest: str
+    name: str
+    offset: UInt64
+    total_bytes: UInt64
+    content_digest: str
+    chunk: bytes
+
+
+@wire_record("direct_stage_material_result_v1")
+class DirectStageMaterialResultV1(_ExactRecord):
+    name: str
+    received_bytes: UInt64
+    content_digest: str
+    complete: bool
+    bundle_complete: bool
+
+
+@wire_record("direct_task_bindings_v3")
+class DirectTaskBindingsV3(_ExactRecord):
+    challenge_key: ChallengeKey
+    recipe_digest: str
+    challenge_info_digest: str
+    manifest_digest: str
+    construction_kit_digest: str
+    public_train_digest: str
+    practice_inputs_digest: str
+    interface_digest: str
+    construction_limits_digest: str
+    resource_policy_digest: str
+
+
+@wire_record("direct_task_receipt_v3")
+class DirectTaskReceiptV3(_ExactRecord):
+    task_id: ResearchTaskId
+    terminal_state: DirectTaskStateV3
+    immutable_bindings: DirectTaskBindingsV3
+    state_digest: str | None
+    predictions_digest: str | None
+    infrastructure_failure_class: InfrastructureFailureClass | None
+    refusal_code: str | None
+    completed_at_micros: Int64
+    limitations: tuple[str, ...]
+
+
+@wire_record("direct_task_view_v3")
+class DirectTaskViewV3(_ExactRecord):
+    task_id: ResearchTaskId
+    challenge_key: ChallengeKey
+    state: DirectTaskStateV3
+    revision: UInt64
+    created_at_micros: Int64
+    updated_at_micros: Int64
+    immutable_bindings: DirectTaskBindingsV3
+    terminal_receipt: DirectTaskReceiptV3 | None
+
+
+@wire_record("direct_start_task_result_v3")
+class DirectStartTaskResultV3(_ExactRecord):
+    created: bool
+    task: DirectTaskViewV3
+
+
+@wire_record("direct_get_task_request_v3")
+class DirectGetTaskRequestV3(_ExactRecord):
+    challenge_key: ChallengeKey
+    task_id: ResearchTaskId
+
+
+@wire_record("direct_cancel_task_request_v3")
+class DirectCancelTaskRequestV3(_ExactRecord):
+    challenge_key: ChallengeKey
+    task_id: ResearchTaskId
+    cancellation_id: str
+
+
+@wire_record("direct_get_task_result_v3")
+class DirectGetTaskResultV3(_ExactRecord):
+    task: DirectTaskViewV3
+
+
+@wire_record("direct_cancel_task_result_v3")
+class DirectCancelTaskResultV3(_ExactRecord):
+    task: DirectTaskViewV3
+    disposition: CancellationDisposition
+
+
 @wire_record("paired_practice_task_spec")
 class PairedPracticeTaskSpec(_ExactRecord):
     baseline_strategy: TrainingStrategy
@@ -1112,6 +1590,7 @@ class DevelopmentWorkspaceTaskSpecV2(_ExactRecord):
 ResearchTaskSpec: TypeAlias = (
     ReconstructionRehearsalSpec
     | PracticeTaskSpec
+    | DirectPracticeTaskSpecV1
     | PairedPracticeTaskSpec
     | ResourceCalibrationTaskSpec
     | DevelopmentWorkspaceTaskSpecV1
@@ -1400,13 +1879,20 @@ Request: TypeAlias = (
     | InspectResourcesRequest
     | ForecastResourcesRequest
     | StartResearchTaskRequest
+    | DirectStartTaskRequestV3
+    | DirectStageSourceRequestV1
+    | DirectStageMaterialRequestV1
+    | DirectGetTaskRequestV3
+    | DirectCancelTaskRequestV3
     | GetResearchResultRequest
     | CancelResearchTaskRequest
 )
 
 Result: TypeAlias = (
     ChallengeInfo
+    | DirectChallengeInfo
     | InteractionManifest
+    | DirectRecipeManifest
     | PriorLookupResult
     | MockScaffold
     | DryValidationResult
@@ -1415,6 +1901,11 @@ Result: TypeAlias = (
     | InspectResourcesResult
     | ResourceForecast
     | StartResearchTaskResult
+    | DirectStartTaskResultV3
+    | DirectStageSourceResultV1
+    | DirectStageMaterialResultV1
+    | DirectGetTaskResultV3
+    | DirectCancelTaskResultV3
     | GetResearchResultResult
     | CancelResearchTaskResult
 )
@@ -1477,6 +1968,9 @@ __all__ = tuple(
     )
     or name
     in {
+        "DIRECT_RECIPE_OPERATIONS",
+        "DIRECT_RECIPE_TASK_OPERATIONS",
+        "DIRECT_RECIPE_SOURCE_TASK_OPERATIONS",
         "Int64",
         "OFFICIAL_V1_NAMESPACE",
         "OFFICIAL_V1_OPERATIONS",

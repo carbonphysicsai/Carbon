@@ -824,6 +824,37 @@ BATTERY_REVISION = "f" * 40
 BATTERY_IMAGES = ["fixture-cpu", "fixture-analysis"]
 
 
+def intake_fixture_connection(root):
+    """Use one testnet identity for this fixture's miner and loopback intake."""
+    from test_c08_authenticated_miner_mcp import _Adapter, _snapshot, _Verifier
+    from test_standard_mcp_cli import fixture_connection
+
+    from carbon.development_session.chain_onboarding import carbon_testnet_context
+    from carbon.transport.gateway import AuthenticatedGateway
+    from carbon.transport.store import ReceiptJournal
+
+    connection = fixture_connection(root)
+    context = carbon_testnet_context()
+    snapshot = _snapshot(context=context)
+    gateway = connection.service.gateway
+    connection.service.gateway = AuthenticatedGateway(
+        context,
+        gateway.challenge,
+        gateway.receiver,
+        _Adapter(snapshot),
+        _Verifier(),
+        ReceiptJournal(root / "transport-testnet.sqlite3", context),
+        clock_ns=gateway.clock_ns,
+    )
+    connection.chain_context = context
+
+    async def observe():
+        return snapshot
+
+    connection.check_registration = observe
+    return connection
+
+
 def battery_prepare(patch, *, miner_key=None):
     """DEVELOPMENT FIXTURE: prepare a battery product campaign the way
     `battery.campaign.prepare_battery` does - its real manifest
@@ -858,7 +889,11 @@ def battery_prepare(patch, *, miner_key=None):
     ticks = itertools.count(NOW, 50_000_000)
 
     async def prepare(args, *, ledger=None):
-        connection = fixture_connection(args.root)
+        connection = (
+            fixture_connection(args.root)
+            if miner_key is None
+            else intake_fixture_connection(args.root)
+        )
         connection.service.gateway.clock_ns = lambda: next(ticks)
         if miner_key is not None:
             connection.miner_key = miner_key
@@ -904,6 +939,7 @@ def battery_prepare(patch, *, miner_key=None):
                 implementation={"revision": BATTERY_REVISION},
                 images=BATTERY_IMAGES,
                 selection=selection,
+                construction_mode=getattr(args, "construction_mode", None),
                 **frozen,
             )
             write_once(path, canonical(manifest))
@@ -1134,7 +1170,21 @@ class BatteryLaunchpad:
             thread.join(timeout=600)
             assert not thread.is_alive()
 
-    def launch(self, key, agent="none", budget=None):
+    def historical_launch(self, body):
+        """Replay the maintained pre-direct row/choice fixture for old journeys."""
+        from scripts.dev.miner_launchpad.journey_fixture import (
+            _historical_launch_records,
+        )
+        from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+        dispatch = RunnerAdapter._dispatch_run
+        _historical_launch_records(setattr)
+        try:
+            return self.perform("launch", body)["id"]
+        finally:
+            RunnerAdapter._dispatch_run = dispatch
+
+    def launch(self, key, agent="none", budget=None, *, historical=False):
         from carbon.battery.challenge import CHALLENGE
 
         if agent != "none" and budget is None:
@@ -1154,6 +1204,8 @@ class BatteryLaunchpad:
         }
         if agent == "autonomous":
             campaign = recorded_launch(self.host, body)
+        elif historical:
+            campaign = self.historical_launch(body)
         else:
             campaign = self.perform("launch", body)["id"]
         self.join()
@@ -1533,8 +1585,8 @@ def test_5b_the_reconcile_action_settles_an_unknown_model_call(battery):
 
 
 def practised_and_frozen(battery):
-    """A miner's own battery campaign (no agent): practised, then frozen."""
-    campaign = battery.launch("e2e-miner-key-00000001")
+    """A pre-direct miner campaign, practised and frozen for transport tests."""
+    campaign = battery.launch("e2e-miner-key-00000001", historical=True)
     assert battery.view(campaign)["state"] == "READY"
     battery.perform(
         "practice",
@@ -2364,7 +2416,9 @@ class GraphiteLaunchpad(BatteryLaunchpad):
 
         monkeypatch.setattr(driver, "run", run)
 
-    def launch_graphite(self, key, *, attempts=24, epochs=None, **fields):
+    def launch_graphite(
+        self, key, *, attempts=24, epochs=None, historical=False, **fields
+    ):
         """A Graphite launch through the shared operation, on the miner's
         own ceilings: `attempts` provider attempts (and the money for that
         many calls' reservations, `graphite_call_reservation`), four practice
@@ -2385,7 +2439,11 @@ class GraphiteLaunchpad(BatteryLaunchpad):
             "budget": {"ceilings": ceilings},
             **fields,
         }
-        campaign = self.perform("launch", body)["id"]
+        campaign = (
+            self.historical_launch(body)
+            if historical
+            else self.perform("launch", body)["id"]
+        )
         self.join()
         return campaign
 
@@ -2713,7 +2771,11 @@ def test_8c_a_build_constructs_from_the_edited_plan_and_submits(
         graphite.cfg = {**graphite.cfg, "intakes": {BATTERY: live.url}}
         # One committed final epoch: the build selects once and completes.
         campaign = graphite.launch_graphite(
-            "e2e-graphite-build-0001", epochs=1, graphite_mode="BUILD", plan=digest
+            "e2e-graphite-build-0001",
+            epochs=1,
+            historical=True,
+            graphite_mode="BUILD",
+            plan=digest,
         )
     model = graphite.model
     assert not model.requests["planner"] and not model.reader_calls
@@ -2777,7 +2839,11 @@ def test_8d_a_full_campaigns_research_stops_at_its_share(graphite):
     )
     # One committed final epoch: no second build epoch is scripted.
     campaign = graphite.launch_graphite(
-        "e2e-graphite-full-00001", attempts=24, epochs=1, research_share=0.1
+        "e2e-graphite-full-00001",
+        attempts=24,
+        epochs=1,
+        historical=True,
+        research_share=0.1,
     )
     model = graphite.model
     shown = graphite.graphite_view(campaign)

@@ -457,7 +457,7 @@ def test_a_challenge_without_the_hook_refuses_smoke(tmp_path):
 def test_the_launchpad_door_refuses_smoke_where_there_is_no_hook(tmp_path):
     root = tmp_path / "c"
     root.mkdir()
-    admitted = SimpleNamespace(campaign={"root": str(root)})
+    admitted = SimpleNamespace(campaign={"root": str(root)}, profile={})
     for manifest in (
         {"challenge": campaigns.challenge_ref(cr.COLD_PLATE_CHALLENGE)},
         {"challenge": {"id": "no-such-challenge", "version": "1"}},

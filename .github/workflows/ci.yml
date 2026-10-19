@@ -343,6 +343,8 @@ jobs:
     # its own job (julia-service), in parallel, under the same condition; the
     # Merge gate requires both whenever either is required.
     timeout-minutes: 90
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -379,6 +381,107 @@ jobs:
             .carbon-artifacts/c03-service-junit.xml
             .carbon-artifacts/c03-service-traces.jsonl
           if-no-files-found: error
+
+  development-worker-image-bundle:
+    name: Development worker image bundle
+    # A labelled, same-repository DEVELOPMENT handoff. This producer is
+    # independent of the required C-03 service acceptance job: its artifact
+    # does not turn a failing service test or Merge gate green.
+    if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && (needs.preflight.outputs.c03_worker_required == 'true' || needs.preflight.outputs.julia_service_required == 'true') && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'development-worker-images')
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Check out exact classified candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Bootstrap locked controller environment
+        env:
+          CARBON_UV_GROUPS: "chain archive science-jax mcp"
+        run: ./scripts/dev/bootstrap.sh
+      - name: Use the supported image store for the closed bundle
+        run: |
+          set -euo pipefail
+          sudo python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("/etc/docker/daemon.json")
+          config = json.loads(path.read_text()) if path.exists() else {}
+          config.setdefault("features", {})["containerd-snapshotter"] = True
+          path.write_text(json.dumps(config, indent=2))
+          PY
+          sudo systemctl restart docker
+          docker info --format '{{json .DriverStatus}}' | grep -q io.containerd.snapshotter
+      - name: Build exact worker image and manifest
+        run: ./scripts/dev/c03_worker_image.sh
+      - name: Verify bundle custody and DEVELOPMENT installer boundaries
+        env:
+          CARBON_C03_JUNIT_PATH: ${{ runner.temp }}/development-image-custody-junit.xml
+          CARBON_C03_TRACE_PATH: ${{ runner.temp }}/development-image-custody-traces.jsonl
+        run: ./scripts/dev/c03_worker_service.sh tests/cpu/test_development_image_artifact.py tests/cpu/test_development_candidate_implementation.py tests/cpu/test_miner_install.py tests/cpu/test_challenge_kit.py tests/cpu/test_direct_receiver.py
+      - name: Build and export the exact DEVELOPMENT image pair
+        env:
+          CANDIDATE_SHA: ${{ needs.preflight.outputs.candidate_sha }}
+          BUNDLE_NAME: development-worker-images-${{ needs.preflight.outputs.candidate_sha }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          revision="$(git rev-parse HEAD)"
+          [[ "${revision}" == "${CANDIDATE_SHA}" ]]
+          tree="$(git rev-parse 'HEAD^{tree}')"
+          source_tree_digest="$(.venv/bin/python -c 'import subprocess; from carbon.development_session.profile import digest; print(digest(subprocess.check_output(["git", "archive", "--format=tar", "HEAD"])))')"
+          c03_manifest="${GITHUB_WORKSPACE}/.carbon-artifacts/c03-worker-image.json"
+          .venv/bin/python -m carbon.development_session.research_image \
+            --parent-manifest "${c03_manifest}" \
+            --root "${GITHUB_WORKSPACE}/.carbon-artifacts/research-images" \
+            > "${RUNNER_TEMP}/analysis-image-build.json"
+          analysis_manifest="$(.venv/bin/python -c 'import json,sys; print(json.load(open(sys.argv[1]))["manifest"])' "${RUNNER_TEMP}/analysis-image-build.json")"
+          # Tests and image builds may leave ignored output; the exporter
+          # checks a fresh worktree of the same immutable commit instead.
+          clean_source="${RUNNER_TEMP}/development-source-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git worktree add --detach "${clean_source}" "${revision}"
+          (
+            cd "${clean_source}"
+            export PYTHONPATH="${clean_source}"
+            "${GITHUB_WORKSPACE}/.venv/bin/python" -c 'from pathlib import Path; import scripts.dev.development_image_artifact as exporter; assert Path(exporter.__file__).resolve() == Path.cwd() / "scripts/dev/development_image_artifact.py"'
+            "${GITHUB_WORKSPACE}/.venv/bin/python" -m scripts.dev.development_image_artifact export \
+              --bundle-dir "${RUNNER_TEMP}/development-worker-images-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+              --c03-manifest "${c03_manifest}" --analysis-manifest "${analysis_manifest}" \
+              --revision "${revision}" --tree "${tree}" \
+              --source-tree-digest "${source_tree_digest}" \
+              > "${RUNNER_TEMP}/development-image-export.json"
+          )
+          .venv/bin/python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report = json.loads((Path(os.environ["RUNNER_TEMP"]) / "development-image-export.json").read_text())
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write(f"\n### DEVELOPMENT worker image bundle\n\nArtifact: `{os.environ['BUNDLE_NAME']}`\n\n")
+              summary.write(f"Run `{os.environ['GITHUB_RUN_ID']}`, attempt `{os.environ['GITHUB_RUN_ATTEMPT']}`. Unqualified JAX CPU images; upload success is reported by the following artifact step.\n\n")
+              for key in ("source_commit", "source_tree", "source_tree_digest", "c03_image_id", "analysis_image_id", "analysis_parent_image", "archive_sha256", "archive_bytes", "receipt_sha256"):
+                  summary.write(f"- {key}: `{report[key]}`\n")
+          PY
+      - name: Upload the closed DEVELOPMENT bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: development-worker-images-${{ needs.preflight.outputs.candidate_sha }}-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/development-worker-images-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
 
   julia-service:
     name: Authored-Julia isolated service acceptance

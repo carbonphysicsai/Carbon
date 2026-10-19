@@ -15,6 +15,9 @@ public-development adapter is `cooling.CoolingAdapter`, and Motor's is
 
 Scores are DEVELOPMENT only: no weights, rewards or chain action (OD-4b).
 Nothing here is security-qualified; it awaits a dedicated security review.
+The prospective ``LeanRecipeAdapter`` can admit a registered DEVELOPMENT
+construction recipe and report bounded rebuild/inference status; without a
+qualified Score Pack it never reports ``SCORED``.
 """
 
 from .dispatch import Adapters, Operator, Validator

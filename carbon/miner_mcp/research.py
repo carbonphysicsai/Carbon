@@ -14,6 +14,10 @@ from carbon.research.canonical import canonical_bytes, load_canonical
 from carbon.research.model import (
     RESEARCH_NAMESPACE,
     CancelResearchTaskResult,
+    DirectCancelTaskResultV3,
+    DirectGetTaskResultV3,
+    DirectStartTaskResultV3,
+    DirectTaskStateV3,
     GetResearchResultResult,
     ReplyStatus,
     ResearchTaskState,
@@ -22,6 +26,35 @@ from carbon.research.model import (
 )
 from carbon.research.service import LocalResearchService
 from carbon.transport.gateway import AuthenticatedGateway
+
+
+def decode_research_call(call):
+    """Decode the existing research envelope after a gateway verified its caller.
+
+    This helper grants no identity or execution authority. Receivers must bind
+    the returned Challenge and operation to their authenticated service before
+    dispatching it.
+    """
+    if (
+        call.tool != RESEARCH_NAMESPACE
+        or len(call.fields) != 1
+        or call.fields[0].name != "call_base64"
+    ):
+        raise ValueError("research namespace and exact canonical call required")
+    payload = call.fields[0].value
+    if type(payload) is not str or len(payload.encode()) > 1024**2:
+        raise ValueError("bounded canonical research call required")
+    try:
+        encoded = payload.encode("ascii")
+        raw = base64.b64decode(encoded, validate=True)
+    except (ValueError, UnicodeError, binascii.Error):
+        raise ValueError("canonical base64 research envelope required") from None
+    if base64.b64encode(raw) != encoded:
+        raise ValueError("noncanonical base64 research envelope")
+    decoded = load_canonical(raw, ServiceCall)
+    if decoded.namespace != RESEARCH_NAMESPACE:
+        raise ValueError("research namespace mismatch")
+    return decoded
 
 
 class AuthenticatedResearchService:
@@ -42,26 +75,7 @@ class AuthenticatedResearchService:
 
     async def _receive(self, body, headers):
         received = await self.gateway.receive(body, headers)
-        call = received.call
-        if (
-            call.tool != RESEARCH_NAMESPACE
-            or len(call.fields) != 1
-            or call.fields[0].name != "call_base64"
-        ):
-            raise ValueError("research namespace and exact canonical call required")
-        payload = call.fields[0].value
-        if type(payload) is not str or len(payload.encode()) > 1024**2:
-            raise ValueError("bounded canonical research call required")
-        try:
-            encoded = payload.encode("ascii")
-            raw = base64.b64decode(encoded, validate=True)
-        except (ValueError, UnicodeError, binascii.Error):
-            raise ValueError("canonical base64 research envelope required") from None
-        if base64.b64encode(raw) != encoded:
-            raise ValueError("noncanonical base64 research envelope")
-        decoded = load_canonical(raw, ServiceCall)
-        if decoded.namespace != RESEARCH_NAMESPACE:
-            raise ValueError("research namespace mismatch")
+        decoded = decode_research_call(received.call)
         service = self._services.get(received.requester.value)
         if service is None:
             raise ValueError("research requester unavailable")
@@ -84,6 +98,10 @@ class AuthenticatedResearchService:
         """
         owner, service, decoded = await self._receive(body, headers)
         composition = compositions.get(owner)
+        if service.is_direct_context():
+            return await self._supervised_direct(
+                owner, service, decoded, composition, task_mode
+            )
         if (
             composition is None
             or composition.service is not service
@@ -163,6 +181,79 @@ class AuthenticatedResearchService:
                     task = await asyncio.shield(self._active[key][1])
             projection = composition.executor.public_result(task)
         return self._envelope(reply, task, composition, projection=projection)
+
+    async def _supervised_direct(self, owner, service, decoded, composition, task_mode):
+        """Versioned direct task supervision; historical v2 path is untouched."""
+        import asyncio
+
+        if (
+            composition is None
+            or composition.service is not service
+            or composition.tasks.owner != owner
+            or not service.binds_research_task_provider(composition.tasks)
+        ):
+            raise ValueError("exact authenticated direct composition required")
+        expected = {
+            "start": "start_research_task",
+            "observe": "get_research_result",
+            "cancel": "cancel_research_task",
+        }
+        if task_mode not in (None, *expected):
+            raise ValueError("unsupported direct task mode")
+        if task_mode is not None and decoded.operation != expected[task_mode]:
+            raise ValueError("direct task operation differs")
+        if self._closing and decoded.operation == "start_research_task":
+            raise ValueError("direct research supervisor is not accepting work")
+        reply = service.call(decoded)
+        task = (
+            reply.result.task
+            if reply.status is ReplyStatus.OK
+            and type(reply.result)
+            in (
+                DirectStartTaskResultV3,
+                DirectGetTaskResultV3,
+                DirectCancelTaskResultV3,
+            )
+            else None
+        )
+        # Hydrate retained QUEUED work on the first authenticated call after
+        # restart, and dispatch a newly accepted start through the same owner.
+        if not self._closing:
+            for queued in composition.tasks.queued_tasks():
+                key = (owner, queued)
+                if key not in self._active:
+                    self._active[key] = (
+                        composition,
+                        asyncio.create_task(
+                            asyncio.to_thread(composition.tasks.run_queued_task, queued)
+                        ),
+                    )
+        if (
+            task is not None
+            and type(reply.result) is DirectStartTaskResultV3
+            and task_mode is None
+            and task.state is DirectTaskStateV3.QUEUED
+        ):
+            task = await asyncio.shield(self._active[(owner, task.task_id)][1])
+        projection = composition.tasks.public_result(task) if task is not None else None
+        return {
+            "schema": "carbon.autoresearch.supervised-direct-reply.v3",
+            "protocol_reply_base64": base64.b64encode(canonical_bytes(reply)).decode(
+                "ascii"
+            ),
+            "terminal_observation_base64": (
+                base64.b64encode(canonical_bytes(task)).decode("ascii")
+                if task is not None
+                else None
+            ),
+            "public_result": projection,
+            "requires_reconciliation": (
+                composition.tasks.requires_reconciliation(task.task_id)
+                if task is not None
+                else False
+            ),
+            "official_eligible": False,
+        }
 
     @staticmethod
     def _envelope(reply, task, composition, *, operation_id=None, projection=None):

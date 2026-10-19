@@ -23,10 +23,63 @@ def _ints(value):
     return [int(v) for v in value]
 
 
+def _trace_ints(value):
+    """Normalize JAX/NumPy integer scalars only at the trusted trace boundary.
+
+    Public graph decoding still uses ``_ints`` and requires exact JSON ints.
+    In particular, booleans, floats and arbitrary ``__int__`` objects are not
+    accepted as dimensions or padding values.
+    """
+    import numpy as np
+
+    if type(value) not in (list, tuple) or not all(
+        type(v) is int or isinstance(v, np.integer) for v in value
+    ):
+        raise GraphRefused("parameter_kind_mismatch")
+    return [int(v) for v in value]
+
+
 def _int_pairs(value):
     if type(value) not in (list, tuple):
         raise GraphRefused("parameter_kind_mismatch")
     return [_ints(pair) for pair in value]
+
+
+def _trace_int_pairs(value):
+    if type(value) not in (list, tuple):
+        raise GraphRefused("parameter_kind_mismatch")
+    return [_trace_ints(pair) for pair in value]
+
+
+_SCATTER_FIELDS = (
+    "update_window_dims",
+    "inserted_window_dims",
+    "scatter_dims_to_operand_dims",
+    "operand_batching_dims",
+    "scatter_indices_batching_dims",
+)
+
+
+def _scatter_dims(value, *, traced):
+    if traced:
+        if type(value).__name__ != "ScatterDimensionNumbers" or not type(
+            value
+        ).__module__.startswith("jax."):
+            raise GraphRefused("parameter_kind_mismatch")
+        dims = {field: _trace_ints(getattr(value, field)) for field in _SCATTER_FIELDS}
+    else:
+        if type(value) is not dict or set(value) != set(_SCATTER_FIELDS):
+            raise GraphRefused("parameter_kind_mismatch")
+        dims = {field: _ints(value[field]) for field in _SCATTER_FIELDS}
+    if any(n < 0 for values in dims.values() for n in values) or any(
+        len(values) != len(set(values)) for values in dims.values()
+    ):
+        raise GraphRefused("parameter_kind_mismatch")
+    if dims["update_window_dims"] != sorted(dims["update_window_dims"]):
+        raise GraphRefused("parameter_kind_mismatch")
+    if len(dims["operand_batching_dims"]) != len(dims["scatter_indices_batching_dims"]):
+        raise GraphRefused("parameter_kind_mismatch")
+    return dims
 
 
 def _dtype_name(value):
@@ -38,24 +91,77 @@ def _dtype_name(value):
     return name
 
 
-def _default_call_metadata(value):
-    """A nested call's metadata at its default: no donation, no sharding or
-    layout, no mesh, no compiler options (XLA flags are Carbon's alone)."""
-    if value is None or type(value) in (bool, str):
-        return True
-    if type(value) is tuple:
-        return all(
-            item is None or item is False or type(item).__name__ == "UnspecifiedValue"
+def _owned_single_device_sharding(value):
+    """Erase only inert placement from a trusted one-device JAX trace.
+
+    The graph is mathematical; the isolated worker owns its target device.
+    A partition axis, multiple devices, remote placement, or host memory is
+    not representable as the framework-default ``None`` parameter.
+    """
+    if value is None:
+        return
+    from jax.sharding import AbstractMesh, Mesh, NamedSharding
+
+    if (
+        type(value) is not NamedSharding
+        or value.mesh.size != 1
+        or not value.is_fully_replicated
+        or any(axis is not None for axis in value.spec)
+    ):
+        raise GraphRefused("parameter_not_default")
+    if type(value.mesh) is AbstractMesh:
+        # JAX replaces a concrete one-device mesh with AbstractMesh in a
+        # traced equation. It has no device_set/addressability to inspect.
+        # One logical slot, no partition, and default memory carry no target.
+        if value.memory_kind is not None:
+            raise GraphRefused("parameter_not_default")
+    elif type(value.mesh) is Mesh:
+        if (
+            len(value.device_set) != 1
+            or not value.is_fully_addressable
+            or value.memory_kind != "device"
+        ):
+            raise GraphRefused("parameter_not_default")
+    else:
+        raise GraphRefused("parameter_not_default")
+    return
+
+
+def _default_call_metadata(name, value):
+    """Only inert defaults of a nested JAX call may be discarded.
+
+    The interpreter executes nested graphs inline. These fields therefore
+    cannot silently donate buffers, change placement or set compiler flags.
+    """
+    if name in ("inline", "keep_unused"):
+        return value is False
+    if name == "compiler_options_kvs":
+        return value is None or (type(value) is tuple and not value)
+    if name == "donated_invars":
+        return type(value) is tuple and all(item is False for item in value)
+    if name in ("in_layouts", "out_layouts", "in_shardings", "out_shardings"):
+        return type(value) is tuple and all(
+            item is None
+            or (
+                type(item).__name__ == "UnspecifiedValue"
+                and type(item).__module__.startswith("jax.")
+            )
             for item in value
         )
-    if type(value).__name__ in ("AbstractMesh", "Mesh"):
-        return not value.axis_names
+    if name == "ctx_mesh":
+        return value is None or (
+            type(value).__name__ in ("AbstractMesh", "Mesh")
+            and type(value).__module__.startswith("jax.")
+            and not value.axis_names
+        )
+    if name == "name":
+        return type(value) is str and len(value) <= 128
     return False
 
 
-def _encode(kind, value, lower_graph):
+def _encode(kind, value, lower_graph, name=None):
     if kind == "call_metadata":
-        if not _default_call_metadata(value):
+        if not _default_call_metadata(name, value):
             raise GraphRefused("parameter_not_default")
         return None
     if kind == "custom_rule_dropped":
@@ -73,34 +179,49 @@ def _encode(kind, value, lower_graph):
         if value is not None:
             raise GraphRefused("parameter_not_default")
         return None
+    if kind == "owned_single_device_sharding":
+        return _owned_single_device_sharding(value)
+    if kind == "empty_tuple":
+        if type(value) is not tuple or value:
+            raise GraphRefused("parameter_not_default")
+        return []
     if kind == "int":
-        if type(value) is not int:
+        import numpy as np
+
+        if type(value) is not int and not isinstance(value, np.integer):
             raise GraphRefused("parameter_kind_mismatch")
-        return value
+        return int(value)
     if kind == "bool":
         if type(value) is not bool:
             raise GraphRefused("parameter_kind_mismatch")
         return value
     if kind == "int_tuple":
-        return _ints(value)
+        return _trace_ints(value)
     if kind == "int_tuple_or_none":
-        return None if value is None else _ints(value)
+        return None if value is None else _trace_ints(value)
     if kind == "int_pairs":
-        return _int_pairs(value)
+        return _trace_int_pairs(value)
     if kind == "dtype":
         return _dtype_name(value)
     if kind == "dtype_or_none":
         return None if value is None else _dtype_name(value)
     if kind == "dot_dimension_numbers":
         (lc, rc), (lb, rb) = value
-        return [[_ints(lc), _ints(rc)], [_ints(lb), _ints(rb)]]
+        return [[_trace_ints(lc), _trace_ints(rc)], [_trace_ints(lb), _trace_ints(rb)]]
     if kind == "padding_config":
-        return [_ints(triple) for triple in value]
+        triples = [_trace_ints(triple) for triple in value]
+        if any(len(triple) != 3 for triple in triples):
+            raise GraphRefused("parameter_kind_mismatch")
+        return triples
     if kind == "conv_dimension_numbers":
-        return [_ints(value.lhs_spec), _ints(value.rhs_spec), _ints(value.out_spec)]
+        return [
+            _trace_ints(value.lhs_spec),
+            _trace_ints(value.rhs_spec),
+            _trace_ints(value.out_spec),
+        ]
     if kind == "gather_dimension_numbers":
         return {
-            name: _ints(getattr(value, name))
+            name: _trace_ints(getattr(value, name))
             for name in (
                 "offset_dims",
                 "collapsed_slice_dims",
@@ -109,6 +230,8 @@ def _encode(kind, value, lower_graph):
                 "start_indices_batching_dims",
             )
         }
+    if kind == "scatter_dimension_numbers":
+        return _scatter_dims(value, traced=True)
     if kind == "gather_mode":
         return value.name
     if kind == "fft_type":
@@ -129,10 +252,19 @@ def _decode(kind, value):
         if type(value) not in (int, float):
             raise GraphRefused("parameter_kind_mismatch")
         return float(value)
-    if kind in ("none", "call_metadata", "custom_rule_dropped"):
+    if kind in (
+        "none",
+        "call_metadata",
+        "custom_rule_dropped",
+        "owned_single_device_sharding",
+    ):
         if value is not None:
             raise GraphRefused("parameter_not_default")
         return None
+    if kind == "empty_tuple":
+        if type(value) is not list or value:
+            raise GraphRefused("parameter_not_default")
+        return ()
     if kind == "name":
         # Membership is the allowlist's check; the kind bounds the string.
         if type(value) is not str or not _NAME.match(value):
@@ -184,6 +316,13 @@ def _decode(kind, value):
         if type(value) is not dict:
             raise GraphRefused("parameter_kind_mismatch")
         return GatherDimensionNumbers(**{k: tuple(_ints(v)) for k, v in value.items()})
+    if kind == "scatter_dimension_numbers":
+        from jax.lax import ScatterDimensionNumbers
+
+        dims = _scatter_dims(value, traced=False)
+        return ScatterDimensionNumbers(
+            **{field: tuple(dims[field]) for field in _SCATTER_FIELDS}
+        )
     if kind == "gather_mode":
         from jax.lax import GatherScatterMode
 
@@ -212,7 +351,7 @@ def encode(spec, params, lower_graph):
     out = {}
     for name in sorted(spec):
         try:
-            out[name] = _encode(spec[name], params[name], lower_graph)
+            out[name] = _encode(spec[name], params[name], lower_graph, name)
         except GraphRefused as refused:
             if refused.where:
                 raise

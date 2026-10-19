@@ -46,7 +46,12 @@ def test_service_has_no_official_fixture_adapter_or_later_wave_dependency() -> N
 
 
 def test_dispatcher_owns_no_store_lock_task_or_domain_model_state() -> None:
-    assert research.LocalResearchService.__slots__ == ("_context", "_fixture")
+    # The direct route adds a context-derived mode flag, not owned domain state.
+    assert research.LocalResearchService.__slots__ == (
+        "_context",
+        "_direct",
+        "_fixture",
+    )
     assert not any(
         token in research.LocalResearchService.__dict__
         for token in (

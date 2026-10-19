@@ -618,3 +618,71 @@ def test_screen_passes_the_same_checks_as_evaluate_without_evaluating(
     assert ledger.totals()["RECEIVED"] == 1 and ledger.totals()["REFUSED"] == 1
     with pytest.raises(ValueError):
         validator.note(sub(), kind="SCORED")
+
+
+def test_prospective_nested_recipe_screening_does_not_widen_legacy_adapter(
+    fake, ledger
+):
+    from carbon.challenge_validator.dispatch import Screened
+    from carbon.development_session.construction_recipe import SCHEMA
+    from carbon.reconstruction.served_recipe_contract import registered
+
+    contract = registered("synthetic-linear-field-2d", "1.3")
+    recipe = {"schema": SCHEMA, "challenge": {"id": TOKEN, "version": VERSION}}
+    submitted = sub(strategy_json=json.dumps(recipe))
+    legacy = Validator(Adapters([fake]), ledger)
+    refused = legacy.screen(submitted)
+    assert (refused["kind"], refused["code"]) == ("REFUSED", "challenge_mismatch")
+    assert fake.seen == []
+
+    class RecipeFake(Fake):
+        challenge_id = contract.challenge_id
+        challenge_version = contract.version
+        contract_digest = contract.digest
+        strategy_schema = SCHEMA
+
+        def identities(self):
+            return {**super().identities(), "contract_digest": self.contract_digest}
+
+    recipe_adapter = RecipeFake()
+    served = Validator(Adapters([recipe_adapter]), ledger)
+    recipe = {
+        "schema": SCHEMA,
+        "challenge": {"id": contract.challenge_id, "version": contract.version},
+    }
+    submitted = sub(
+        challenge_id=contract.challenge_id,
+        challenge_version=contract.version,
+        contract_digest=contract.digest,
+        strategy_json=json.dumps(recipe),
+    )
+    screened = served.screen(submitted)
+    assert type(screened) is Screened
+    assert screened.admitted.strategy == recipe
+    for wrong in (
+        {**recipe, "challenge": {"id": "another", "version": contract.version}},
+        {**recipe, "challenge": {"id": contract.challenge_id, "version": "another"}},
+        {"challenge_id": TOKEN, "backbone": "fno"},
+    ):
+        result = served.screen(
+            sub(
+                challenge_id=contract.challenge_id,
+                challenge_version=contract.version,
+                contract_digest=contract.digest,
+                strategy_json=json.dumps(wrong),
+            )
+        )
+        assert (result["kind"], result["code"]) == ("REFUSED", "challenge_mismatch")
+    assert recipe_adapter.seen == []
+
+
+def test_attempt_ledger_resolves_only_unambiguous_authenticated_task_owner(ledger):
+    task_id = "rtsk_" + "a" * 64
+    ledger.record(sub(), kind="OUTCOME", submission_id=task_id, state="ADMITTED")
+    assert ledger.owned_outcome(DIGEST, task_id) == "hk-owner"
+    assert ledger.submitted_outcomes(DIGEST) == (task_id,)
+    assert ledger.owned_outcome("sha256:" + "e" * 64, task_id) is None
+    ledger.record(
+        sub(hotkey="other"), kind="OUTCOME", submission_id=task_id, state="ADMITTED"
+    )
+    assert ledger.owned_outcome(DIGEST, task_id) is None

@@ -142,6 +142,19 @@ NEXT_ACTIONS = {
         "base settings or wait for the named check; changing a level label "
         "does not resolve it."
     ),
+    "construction_selector_retired": (
+        "Remove construction_level, construction_variant_digest, and arm from "
+        "the launch request (carbon_launch). For a new direct campaign, supply "
+        "the construction recipe when practicing (carbon_practice). A campaign "
+        "created with the retired selectors cannot be replayed as a direct "
+        "campaign; launch a new one."
+    ),
+    "invalid_tools_session_token": (
+        "Use the current agent tools session's own 32-character lowercase "
+        "hexadecimal exclusive_token. If that token is unavailable, return "
+        "to the normal agent tools session setup; do not use another "
+        "session's token."
+    ),
     # The campaign's own lock and state.
     "campaign_busy": (
         "Another session holds this campaign: an attached agent, the "

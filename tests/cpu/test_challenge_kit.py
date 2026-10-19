@@ -7,6 +7,7 @@ them. Each absence is paired with the same thing present where it really is.
 """
 
 import json
+import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -88,6 +89,20 @@ def test_the_image_carries_the_validators_own_bytes():
         assert shipped[name] == (REPO / name).read_bytes(), name
     assert "carbon/generators/burgers_dynamics.py" in shipped
     assert "carbon/reference_runtime/model.py" in shipped
+
+
+def test_kit_import_probe_is_isolated_without_writing_source_bytecode(monkeypatch):
+    def probe(command, **options):
+        assert command[1:4] == ["-B", "-I", "-c"]
+        assert options["cwd"] == REPO
+        assert options["env"] == {"PYTHONPATH": str(REPO), "PATH": "/usr/bin:/bin"}
+        return subprocess.CompletedProcess(command, 0, stdout="[]")
+
+    monkeypatch.setattr(subprocess, "run", probe)
+    assert challenge_kit_files(REPO) == [
+        "carbon/challenge_kit/CarbonBurgers.jl",
+        "carbon/challenge_kit/burgers_pin.json",
+    ]
 
 
 def test_nothing_forbidden_or_private_ships():

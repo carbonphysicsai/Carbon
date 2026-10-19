@@ -24,8 +24,8 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from carbon.development_session.research_tools import PREFIX
-from scripts.dev.miner_launchpad import run_output, tool_door
-from scripts.dev.miner_launchpad.controller import Rejected, owner_lock
+from scripts.dev.miner_launchpad import run_output, supervisor, tool_door
+from scripts.dev.miner_launchpad.controller import Rejected, error_body, owner_lock
 from scripts.dev.miner_launchpad.research_fixture import CAMPAIGN, FixtureRunner
 from scripts.dev.miner_launchpad.tool_fixture import (
     REFUSED,
@@ -208,6 +208,106 @@ def test_the_page_holds_the_campaign_until_it_closes(tmp_path):
     assert sessions.close("c") == {"open": False, "closed": True}
     with owner_lock(tmp_path):
         pass
+
+
+def test_exclusive_open_refuses_an_existing_page_task_without_closing_it():
+    sessions = tool_door.ToolSessions(lambda _campaign: None)
+
+    class Existing:
+        def __init__(self):
+            self.used = self.opened = sessions.clock()
+            self.tasks = ["foreign-running-task"]
+            self.closed = False
+            self.door = self
+
+        def close(self):
+            self.closed = True
+
+        def describe(self):
+            return {}
+
+    existing = Existing()
+    sessions.sessions["c"] = existing
+    with pytest.raises(Rejected) as refused:
+        sessions.open("c", exclusive_token="a" * 32)
+    assert refused.value.code == "tools_session_already_open"
+    assert sessions.sessions["c"] is existing
+    assert existing.tasks == ["foreign-running-task"]
+    assert existing.closed is False
+    assert sessions.state("c")["open"] is True
+    existing.used = sessions.clock() - sessions.idle - 1
+    with pytest.raises(Rejected, match="tools_session_already_open"):
+        sessions.open("c", exclusive_token="a" * 32)
+    assert sessions.sessions["c"] is existing and existing.closed is False
+    sessions.close("c")
+
+
+def test_agent_lease_refuses_foreign_page_open_close_and_call():
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    sessions = tool_door.ToolSessions(lambda _campaign: None)
+
+    class AgentTask:
+        def __init__(self):
+            self.used = self.opened = sessions.clock() - sessions.idle - 1
+            self.tasks = ["agent-running-task"]
+            self.exclusive_token = "b" * 32
+            self.closed = False
+            self.door = self
+
+        def close(self):
+            self.closed = True
+
+        def describe(self):
+            return {}
+
+    task = AgentTask()
+    sessions.sessions["direct-development-1.3"] = task
+    host = object.__new__(RunnerAdapter)
+    host.tool_sessions = sessions
+    host.configuration = {}
+    with pytest.raises(Rejected, match="tools_session_already_open"):
+        tool_door.route(host, "direct-development-1.3", "open", {})
+    with pytest.raises(Rejected, match="tools_session_owned_elsewhere"):
+        tool_door.route(host, "direct-development-1.3", "close", {})
+    with pytest.raises(Rejected, match="tools_session_owned_elsewhere"):
+        tool_door.route(
+            host,
+            "direct-development-1.3",
+            "call",
+            {"tool": "any", "arguments": {}},
+        )
+    assert task.closed is False and task.tasks == ["agent-running-task"]
+    assert sessions.sessions["direct-development-1.3"] is task
+    assert tool_door.route(
+        host, "direct-development-1.3", "open", {"exclusive_token": "b" * 32}
+    )["open"]
+    tool_door.route(
+        host, "direct-development-1.3", "close", {"exclusive_token": "b" * 32}
+    )
+    assert task.closed is True
+
+
+@pytest.mark.parametrize("token", ["a" * 31, "A" * 32, 123])
+def test_direct_tools_reject_malformed_exclusive_token_with_recovery(token):
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    host = object.__new__(RunnerAdapter)
+    host.tool_sessions = tool_door.ToolSessions(lambda _campaign: None)
+    host.configuration = {}
+    with pytest.raises(Rejected) as refused:
+        tool_door.route(
+            host,
+            "direct-development-1.3",
+            "open",
+            {"exclusive_token": token},
+        )
+    assert refused.value.code == "invalid_tools_session_token"
+    assert (
+        error_body(refused.value.code)["next_step"]
+        == supervisor.NEXT_ACTIONS[refused.value.code]
+    )
+    assert host.tool_sessions.state("direct-development-1.3")["open"] is False
 
 
 def test_an_idle_session_is_released(tmp_path):

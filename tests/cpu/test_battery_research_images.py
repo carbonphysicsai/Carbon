@@ -94,8 +94,8 @@ def host(tmp_path, monkeypatch):
     from carbon.reconstruction.worker import docker_runtime
 
     tmp_path.chmod(0o700)
-    root = tmp_path / "campaign"
-    root.mkdir(mode=0o700)
+    root = tmp_path / "environment" / "campaigns" / "campaign"
+    root.mkdir(parents=True, mode=0o700)
     public = tmp_path / "miner-public.json"
     public.write_bytes(
         canonical({"netuid": 567, "hotkey": HOTKEY, "key_file": "unused-fixture"})
@@ -138,10 +138,11 @@ def host(tmp_path, monkeypatch):
     monkeypatch.setattr(battery, "compose", compose)
     monkeypatch.setattr(research_tools, "ResearchMinerTools", lambda **kw: kw)
 
-    def args(command, declared=None):
+    def args(command, declared=None, *, source_profile=None):
         return SimpleNamespace(
             root=root,
             command=command,
+            source_profile=source_profile,
             accepted_revision="fixture",
             image_manifest=public,
             analysis_image_manifest=public,
@@ -151,16 +152,45 @@ def host(tmp_path, monkeypatch):
             **({} if declared is None else {"product": launch(declared)}),
         )
 
-    def prepare(command, declared=None):
+    def prepare(command, declared=None, *, source_profile=None):
         return asyncio.run(
             battery.prepare_battery(
-                args(command, declared),
+                args(command, declared, source_profile=source_profile),
                 ledger=CampaignLedger(root),
                 campaign=None,
             )
         )
 
     return SimpleNamespace(root=root, prepare=prepare, composed=composed)
+
+
+def test_normal_battery_prepare_accepts_only_the_owner_pinned_candidate(
+    host, monkeypatch
+):
+    from carbon.development_session import research_campaign
+    from scripts.dev.miner_launchpad import installed
+
+    profile = host.root.parent.parent / "runner-profile.json"
+    candidate = {
+        "revision": "fixture",
+        "tree": "b" * 40,
+        "source_tree_digest": "sha256:" + "c" * 64,
+        "source_authority": "DEVELOPMENT_CANDIDATE",
+    }
+    declared = runtime()
+    declared["implementation"] = candidate
+    monkeypatch.setattr(
+        research_campaign,
+        "accepted_implementation",
+        lambda _revision: pytest.fail("candidate must not claim main acceptance"),
+    )
+    monkeypatch.setattr(
+        installed,
+        "profile_candidate",
+        lambda path: candidate if path == profile else None,
+    )
+    prepared = host.prepare("run", declared, source_profile=profile)
+    assert prepared.manifest["implementation"] == candidate
 
 
 def test_a_battery_campaign_freezes_its_declared_authored_julia_scope(host):

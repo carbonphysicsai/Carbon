@@ -550,6 +550,7 @@ class BatteryPractice:
         remote=None,
         level=None,
         model_retention=None,
+        construction_mode=None,
     ):
         from carbon.development_session.battery_gpu import (
             image_backends as gpu_image_backends,
@@ -588,6 +589,14 @@ class BatteryPractice:
         #: The campaign's construction-level binding (LAUNCHPAD-LEVELS-01
         #: S2), or None at Level 0.
         self.level = level
+        if construction_mode not in (None, "direct") or (construction_mode and level):
+            raise ValueError(
+                "battery direct construction conflicts with a legacy level"
+            )
+        self.construction_mode = construction_mode
+        # The graph DEVELOPMENT path is the pinned C-03 CPU carrier even when
+        # the campaign also offers a miner-owned remote GPU for other tasks.
+        self.direct_runner = runner
         # Explicit local public Graphite test opt-in, frozen by campaign.py.
         # Ordinary/private campaigns retain their existing program and outputs.
         self.model_retention = model_retention
@@ -621,6 +630,9 @@ class BatteryPractice:
         """
         from carbon.development_session.research_catalog import RecipeRejected
 
+        if getattr(self, "construction_mode", None) == "direct":
+            return None  # The direct callback binds the kit and source at use.
+
         try:
             _compiled, recipe = self.compile(strategy)
         except (RecipeRejected, ValueError, TypeError, KeyError):
@@ -648,6 +660,9 @@ class BatteryPractice:
     def __call__(self, identity, strategy, *, retention_trial=None):
         from carbon.development_session.research_carrier import PRECHARGED_TRIAL
         from carbon.development_session.research_workspace import ResearchWorkspace
+
+        if self.construction_mode == "direct":
+            return self._direct_practice(identity, strategy, retention_trial)
 
         _compiled, recipe = self.compile(strategy)
         backend = recipe.settings.get("backend", "jax")
@@ -795,6 +810,150 @@ class BatteryPractice:
                 self.level, getattr(self, "_construction_compile", None)
             )
         ResearchWorkspace(self.ledger, self.owner).put(
+            "trial-" + digest(identity.encode())[7:23] + "-battery-practice.json",
+            canonical(result),
+        )
+        return result
+
+    def _direct_practice(self, identity, strategy, retention_trial):
+        """Rebuild a direct graph on pinned TRAIN and score public PRACTICE.
+
+        The mode is frozen by the campaign. No legacy recipe compiler, family
+        catalogue or level/base projection is called on this route.
+        """
+        from carbon.development_session.construction_recipe import (
+            bind_recipe,
+            graph_envelope_from_workspace,
+        )
+        from carbon.development_session.research_workspace import ResearchWorkspace
+
+        from . import construction_kit, direct_graph_inference, direct_graph_worker
+        from .practice import _summary, score_practice
+
+        kit = construction_kit.construction_kit()
+        recipe = bind_recipe(
+            strategy,
+            challenge_id=kit["id"],
+            challenge_version=kit["version"],
+            train_digest=kit["train_digest"],
+            interface_digest=kit["interface_digest"],
+            construction_limits_digest=kit["construction_limits_digest"],
+        )
+        source = recipe.to_dict()["source"]
+        if source["kind"] != "graph":
+            raise ValueError("battery_direct_bundle_execution_unserved")
+        envelope = graph_envelope_from_workspace(self.ledger, self.owner, recipe)
+        seed = self._seed(identity)
+        decision = practice_safety.decision_set(self.root)
+        cases = self.practice.inputs_document(extra=decision.cases())["cases"]
+        worker = direct_graph_worker.reconstruct_public(
+            self.ledger,
+            owner=self.owner,
+            identity=identity,
+            image=self.image,
+            root=self.root,
+            recipe=recipe,
+            source_envelope=envelope,
+            seed=seed,
+            test_inputs={"cases": cases},
+            runner=self.direct_runner,
+        )
+        if (
+            worker.recipe_digest != recipe.digest
+            or worker.graph_digest != source["submission_digest"]
+            or worker.interface_digest != kit["interface_digest"]
+            or worker.train_digest != kit["train_digest"]
+        ):
+            raise ValueError("direct practice reconstruction identity differs")
+        inference = direct_graph_inference.infer_public(
+            self.ledger,
+            owner=self.owner,
+            identity="direct-infer-"
+            + digest(canonical([self.owner, identity, recipe.digest]))[7:],
+            image=self.image,
+            recipe=recipe,
+            build=worker,
+            test_inputs={"cases": cases},
+            runner=self.direct_runner,
+        )
+        if (
+            inference.recipe_digest != recipe.digest
+            or inference.state_digest != worker.state_digest
+        ):
+            raise ValueError("direct practice inference identity differs")
+        asked = {
+            case: inference.predictions.get(case) for case in self.practice.case_ids
+        }
+        _rows, summary = score_practice(asked, self.practice, self.material, self.root)
+        result = {
+            "schema": "carbon.battery.direct-practice-feedback.v1",
+            "provenance": "BATTERY_PUBLIC_PRACTICE",
+            "challenge": recipe.to_dict()["challenge"],
+            "recipe_digest": recipe.digest,
+            "source": source,
+            "summary": _summary(summary),
+            "fit": _summary(
+                {
+                    key: worker.fit[key]
+                    for key in ("n_params", "params_sha256", "train_loss")
+                    if key in worker.fit
+                }
+            ),
+            "backend": {
+                "kind": "ISOLATED_C03_DIRECT_GRAPH",
+                "image": getattr(self.image, "image_id", None),
+            },
+            "worker": {
+                "operation": worker.worker_operation,
+                "provenance": direct_graph_worker.PROVENANCE,
+                "state_sha256": worker.state_digest,
+                "build_predictions_sha256": worker.predictions_digest,
+                "inference_operation": inference.worker_operation,
+                "predictions_sha256": inference.predictions_digest,
+            },
+            "safety": practice_safety.safety(
+                {
+                    **asked,
+                    **{
+                        case: inference.predictions.get(case)
+                        for case in decision.case_ids
+                    },
+                },
+                self.practice,
+                decision,
+            ),
+            "adaptively_seen": True,
+            "final_exam": False,
+            "official_eligible": False,
+            "scientific_qualification": False,
+            "recipe": strategy,
+            "seed_source": "carbon_retained_randomness",
+        }
+        workspace = ResearchWorkspace(self.ledger, self.owner)
+        state_name = (
+            "trial-" + digest(identity.encode())[7:23] + "-battery-direct-state.npz"
+        )
+        if worker.state_path.is_symlink() or not worker.state_path.is_file():
+            raise ValueError("direct graph state unavailable")
+        state = worker.state_path.read_bytes()
+        if digest(state) != worker.state_digest:
+            raise ValueError("direct graph state digest differs")
+        workspace.put(state_name, state)
+        result["model"] = {"workspace_name": state_name, "sha256": worker.state_digest}
+        if retention_trial is not None:
+            retention_trial.dispatch(
+                {
+                    "schema": "carbon.battery.direct-model-provenance.v1",
+                    "recipe_digest": recipe.digest,
+                    "train_digest": kit["train_digest"],
+                    "graph_digest": source["submission_digest"],
+                    "interface_digest": kit["interface_digest"],
+                    "image": getattr(self.image, "image_id", None),
+                },
+                {"recipe_digest": recipe.digest, "seed": seed},
+            )
+            retention_trial.collect_direct(worker, state_name)
+        workspace.put(
             "trial-" + digest(identity.encode())[7:23] + "-battery-practice.json",
             canonical(result),
         )

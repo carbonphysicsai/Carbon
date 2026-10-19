@@ -228,9 +228,14 @@ def test_success_does_not_add_diagnostics_or_change_result_contract(harness):
 
 @pytest.mark.parametrize(
     "provenance,diagnose",
-    [("BATTERY_PUBLIC_PRACTICE", True), ("GRAPHITE_CARRIER_PRACTICE", False)],
+    [
+        ("BATTERY_PUBLIC_PRACTICE", True),
+        (carrier.LIBRARY_PREP_PROVENANCE, True),
+        ("DIRECT_BUNDLE_PUBLIC_INFERENCE", True),
+        ("GRAPHITE_CARRIER_PRACTICE", False),
+    ],
 )
-def test_only_battery_practice_opts_into_controls_diagnosis(
+def test_only_fixed_public_phases_opt_into_controls_diagnosis(
     harness, monkeypatch, provenance, diagnose
 ):
     seen = []
@@ -458,3 +463,70 @@ def test_gpu_lease_failures_preserve_classification_and_cleanup(
         assert "CLEANUP" in harness.events and "ABSENCE_QUERY" in harness.events
     else:
         assert "CREATE" not in harness.events
+
+
+@pytest.mark.parametrize(
+    "provenance",
+    [
+        carrier.LIBRARY_PREP_PROVENANCE,
+        carrier.LIBRARY_OVERLAY_BUILD_PROVENANCE,
+        "DIRECT_BUNDLE_PUBLIC_INFERENCE",
+    ],
+)
+def test_direct_phase_records_closed_control_reason_without_changing_failure(
+    tmp_path, provenance
+):
+    from carbon.reconstruction.worker.docker_runtime import _CONTROL_PREDICATE_PREFIX
+
+    original = WorkerFailure(
+        WorkerCode.POLICY, private_diagnostic=_CONTROL_PREDICATE_PREFIX + b"MEMORY"
+    )
+    with (
+        pytest.raises(WorkerFailure) as caught,
+        carrier._fixed_practice_stage(tmp_path, provenance, "CONTROLS"),
+    ):
+        raise original
+    assert caught.value is original
+    record = json.loads((tmp_path / "failure-CONTROLS.json").read_bytes())
+    assert record["stage"] == "CONTROLS"
+    assert record["worker_code"] == WorkerCode.POLICY.value
+    assert record["controls_predicate"] == "MEMORY"
+    assert (
+        b"carbon.controls.predicate"
+        not in (tmp_path / "failure-CONTROLS.json").read_bytes()
+    )
+
+
+def test_prep_program_diagnostic_is_private_bounded_and_best_effort(
+    tmp_path, monkeypatch
+):
+    original = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=SECRET * 5000)
+
+    def fail():
+        with carrier._fixed_practice_stage(
+            tmp_path, carrier.LIBRARY_PREP_PROVENANCE, "PROGRAM"
+        ):
+            raise original
+
+    with pytest.raises(WorkerFailure) as caught:
+        fail()
+    assert caught.value is original
+    record = (tmp_path / "failure-PROGRAM.json").read_bytes()
+    assert SECRET not in record and len(record) < 2048
+    private_path = tmp_path / "private-prep-program-diagnostic.bin"
+    assert private_path.read_bytes() == original.private_diagnostic[:65536]
+    assert set(tmp_path.iterdir()) == {tmp_path / "failure-PROGRAM.json", private_path}
+    if os.name != "nt":
+        assert private_path.stat().st_mode & 0o777 == 0o600
+    assert not (tmp_path / "snapshot").exists()
+    assert not (tmp_path / "export.stream").exists()
+
+    def unavailable(*args):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(carrier, "write_once", unavailable)
+    with pytest.raises(WorkerFailure) as caught:
+        fail()
+    assert caught.value is original
+    assert (tmp_path / "failure-PROGRAM.json").read_bytes() == record
+    assert private_path.read_bytes() == original.private_diagnostic[:65536]

@@ -108,6 +108,39 @@ class ObservedSnapshot:
         return self.value
 
 
+def authenticated_research_gateway(root, context, publisher, challenge):
+    """One durable signed research ingress for a trusted Challenge binding.
+
+    The existing v2 connection passes its historical Challenge. A separate
+    direct DEVELOPMENT composition may pass an exact registered fixture key
+    without constructing v2 registry, submission or budget services.
+    """
+    transport = ReceiptJournal(root / "transport.sqlite3", context)
+    observed = ObservedSnapshot()
+    gateway = AuthenticatedGateway(
+        context,
+        challenge,
+        publisher,
+        observed,
+        BittensorHotkeyVerifier(),
+        transport,
+    )
+    return transport, observed, gateway
+
+
+async def registered_research_snapshot(context, miner_key, publisher, observed):
+    """The same live registration check for v2 and direct DEVELOPMENT."""
+    snapshot = await BittensorReader().capture(context)
+    if snapshot.resolve(miner_key.ss58_address) is None:
+        raise ValueError(
+            "distinct miner registration required before authenticated session"
+        )
+    if snapshot.resolve(publisher) is None:
+        raise ValueError("publisher registration missing")
+    observed.value = snapshot
+    return snapshot
+
+
 def make_mcp(root: Path, research_inputs=None):
     active_document = (
         profile_document()
@@ -251,17 +284,8 @@ class LocalMinerConnection:
         self.orchestrator = DevelopmentEvaluationOrchestrator(
             DurableExecutionQueue(self.root / "orchestration.sqlite3"), self.ledger
         )
-        self.transport = ReceiptJournal(
-            self.root / "transport.sqlite3", self.chain_context
-        )
-        self.observed = ObservedSnapshot()
-        gateway = AuthenticatedGateway(
-            self.chain_context,
-            CHALLENGE,
-            self.publisher,
-            self.observed,
-            BittensorHotkeyVerifier(),
-            self.transport,
+        self.transport, self.observed, gateway = authenticated_research_gateway(
+            self.root, self.chain_context, self.publisher, CHALLENGE
         )
         service, self.registry = make_mcp(self.root, self.research_inputs)
         self.service = AuthenticatedMinerMcpService(
@@ -282,15 +306,9 @@ class LocalMinerConnection:
             self.proposal_limit = 2
 
     async def check_registration(self):
-        observed = await BittensorReader().capture(self.chain_context)
-        if observed.resolve(self.miner_key.ss58_address) is None:
-            raise ValueError(
-                "distinct miner registration required before authenticated session"
-            )
-        if observed.resolve(self.publisher) is None:
-            raise ValueError("publisher registration missing")
-        self.observed.value = observed
-        return observed
+        return await registered_research_snapshot(
+            self.chain_context, self.miner_key, self.publisher, self.observed
+        )
 
     async def call(self, tool: str, fields: dict[str, object]):
         if tool not in {item.value for item in mcp.McpTool} or type(fields) is not dict:

@@ -113,6 +113,10 @@ OPTIONAL_PROFILE_FIELDS = {
     # LP-04: optional receiver-paired lists. Historical one-intake profiles
     # retain their existing fields and behavior.
     "intake_targets",
+    # Exact, receiver-paired DEVELOPMENT 1.3 recipe intake. This is separate
+    # from the registered product Challenge's Battery intake and never rewrites
+    # a frozen Battery campaign's Challenge or contract identity.
+    "direct_intake_target",
     "validators",
     # Per Challenge (LAUNCHPAD-ACCEPT-03): {challenge_id: ss58}, the receiver
     # hotkey that Challenge's intake must report before anything is signed
@@ -737,6 +741,13 @@ def validated_profile(cfg):
         _registered_challenge_ids(cfg["intake_targets"], "intake_targets")
         for targets in cfg["intake_targets"].values():
             validate(targets)
+    if "direct_intake_target" in cfg:
+        from carbon.development_session.intake_targets import validate
+
+        try:
+            validate([cfg["direct_intake_target"]])
+        except ValueError:
+            raise ValueError("direct_intake_target must be receiver-paired") from None
     if "validators" in cfg:
         _registered_challenge_ids(cfg["validators"], "validators")
         if any(
@@ -973,10 +984,15 @@ class LaunchChoice:
     #: (LAUNCHPAD-LEVELS-01 S2, `levels.launch_binding`), or None at Level 0:
     #: then the args carry none and the manifest is what it was.
     construction_level: dict | None = None
+    #: New campaigns mark the direct recipe path; no candidate or official
+    #: receiver policy is chosen at launch.
+    construction_mode: str | None = None
 
     def apply(self, args):
         if self.construction_level is not None:
             args.construction_level = dict(self.construction_level)
+        if self.construction_mode is not None:
+            args.construction_mode = self.construction_mode
         if self.selection is not None:
             from carbon.development_session.model_provider import selection_spec
 
@@ -3073,16 +3089,19 @@ class RunnerAdapter:
         task = guidance.configured(cfg)
         budget = miner_budget(request.get("budget"))
         challenge = self._challenge(request, cfg["runtime"])
+        if any(
+            key in request
+            for key in ("construction_level", "construction_variant_digest", "arm")
+        ):
+            raise Rejected("construction_selector_retired", 409)
         choice = self._launch_choice(cfg, request, challenge)
         graphite = self._graphite_choice(request, challenge)
         if graphite is not None:
             choice = replace(choice or LaunchChoice(), graphite=graphite)
-        level = levels.launch_binding(request, challenge, request["agent"], cfg)
-        construction_capture = levels.capture_binding(
-            level, selector=request.get("construction_variant_digest")
-        )
-        if level is not None:
-            choice = replace(choice or LaunchChoice(), construction_level=level)
+        # New local campaigns choose no candidate, receiver resource policy,
+        # level, named arm, catalogue entry or registered combination.
+        construction_capture = levels.capture_direct_campaign(challenge)
+        choice = replace(choice or LaunchChoice(), construction_mode="direct")
         run_id, request_digest, config_pin = self._launch_identity(cfg, request)
         root = Path(cfg["campaigns_root"]) / run_id
         product = ProductLaunch(
@@ -3224,7 +3243,14 @@ class RunnerAdapter:
         level = levels.replay_binding(
             request, challenge, request.get("agent"), cfg, construction_capture
         )
-        if level is not None:
+        if construction_capture is not None and (
+            construction_capture["schema"] == levels.DIRECT_CAPTURE_SCHEMA
+        ):
+            choice = replace(
+                choice or LaunchChoice(),
+                construction_mode="direct",
+            )
+        elif level is not None:
             choice = replace(choice or LaunchChoice(), construction_level=level)
         miner = _registered(self, cfg)
         _signer_reachable(self, cfg)
@@ -3254,23 +3280,16 @@ class RunnerAdapter:
         return {**dict(row), "kind": kind}
 
     def options_admitted(self, admitted, request):
-        """What a miner can choose at launch, and whether it can run now.
+        """Host choices and separate public/official construction path status.
 
-        The vocabulary is check-design's (supported, not_yet_rebuildable,
-        needs_owner_decision, excluded) for what Carbon can rebuild, and
-        configured / unavailable-with-reason for what this host has. Built
-        from the capability registry and the profile, never from a static list,
-        so no option is offered that cannot run.
+        Registration describes a Challenge capability, not installed host
+        serving or which recipe, graph, backbone or library a miner may submit.
+        The options read does not run Docker checks; actual construction
+        admission is checked from the bound recipe and worker at use time.
         """
-        from carbon.development_session.design_check import availability
         from carbon.development_session.product_campaign import BUDGET_KEYS
         from carbon.development_session.research_ledger import DIMENSIONS
-        from carbon.reconstruction.capability_registry import (
-            CONTRACTS,
-            REGISTRY,
-            Dimension,
-        )
-        from scripts.dev.miner_launchpad.construction_options import for_profile
+        from scripts.dev.miner_launchpad.construction_paths import for_challenges
 
         # The gate established whose profile this is; its content is read here.
         cfg = self.configured()
@@ -3290,8 +3309,8 @@ class RunnerAdapter:
             )
 
         return {
-            "schema": "carbon.launchpad.launch-options.v1",
-            "construction_options": for_profile(cfg, self.read_intake_facts),
+            "schema": "carbon.launchpad.launch-options.v2",
+            "construction_paths": for_challenges(),
             # Graphite replaced the autonomous agent for new launches
             # (OWNER-GRAPHITE-MINER-01): it is not offered, and a launch
             # naming it is refused `autonomous_agent_replaced`.
@@ -3311,31 +3330,6 @@ class RunnerAdapter:
             ],
             "graphite": graphite_options(cfg),
             "model_providers": self._model_providers(cfg),
-            "families": [
-                {
-                    "id": c.capability_id,
-                    "selector": c.selector,
-                    "summary": c.summary,
-                    **availability(c),
-                }
-                for c in REGISTRY
-                if c.dimension is Dimension.MODEL_FAMILY
-            ],
-            # Each Challenge's own families, from its own construction contract
-            # (OD-8): a battery launch lists battery's, never Burgers'.
-            "families_by_challenge": {
-                token: [
-                    {
-                        "id": c.capability_id,
-                        "selector": c.selector,
-                        "summary": c.summary,
-                        **availability(c),
-                    }
-                    for c in item.capabilities
-                    if c.dimension is Dimension.MODEL_FAMILY
-                ]
-                for token, item in CONTRACTS.items()
-            },
             "research_lanes": {
                 "julia": host(
                     "authored_research" in runtime or "authored_julia_image" in cfg,
@@ -3355,10 +3349,8 @@ class RunnerAdapter:
                 "bounds": "none: a ceiling is any whole number >= 0, elapsed_seconds any whole number >= 1; blank is no cap",
             },
             "vocabulary": {
-                "supported": "Carbon rebuilds it in DEVELOPMENT; not official qualification",
-                "not_yet_rebuildable": "explore it in research; engineering has not registered it",
-                "needs_owner_decision": "research-only until the owner decides; see its trigger",
-                "excluded": "outside the declarative rule",
+                "available": "this path is served for a compatible bounded recipe",
+                "unserved": "this path has no installed serving contract",
                 "configured": "this host has it",
                 "unavailable": "this host does not, for the reason given",
             },
@@ -3971,6 +3963,9 @@ class RunnerAdapter:
         """What a practice is refused for before it starts."""
         # Its preparation would refuse it on the thread (LA-F19).
         self._require_current_revision(admitted)
+        if levels.campaign_is_direct(admitted.campaign, admitted.profile):
+            self._direct_recipe(admitted, strategy)
+            return
         # At a construction level, the level's compile first; check-design
         # then judges the recipe's Level 0 base (LAUNCHPAD-LEVELS-01 S2).
         # A Level 0 campaign never reads the profile here.
@@ -3978,6 +3973,51 @@ class RunnerAdapter:
             admitted.campaign, getattr(admitted, "profile", None)
         )
         self._design_refusal(levels.checked_strategy(found, strategy))
+
+    @staticmethod
+    def _direct_recipe(admitted, strategy):
+        """Bind one direct recipe and its owner-staged source before dispatch.
+
+        The Battery callback repeats these checks when it runs. This early
+        read gives both public doors a typed refusal without creating a
+        practice task or charging a trial for malformed/missing source.
+        """
+        from carbon.challenge_registry.campaigns import campaign_for_manifest
+        from carbon.development_session.construction_recipe import (
+            RecipeRefused,
+            bind_recipe,
+            graph_envelope_from_workspace,
+        )
+
+        root = Path(admitted.campaign["root"])
+        try:
+            manifest = json.loads((root / "campaign-manifest.json").read_bytes())
+            campaign = campaign_for_manifest(manifest)
+        except (OSError, ValueError, KeyError, TypeError):
+            raise Rejected("campaign_not_prepared", 409) from None
+        if not callable(getattr(campaign, "construction_kit", None)) or not callable(
+            getattr(campaign, "construction_reconstruct", None)
+        ):
+            raise Rejected("construction_reconstruction_unserved", 409)
+        kit = campaign.construction_kit()
+        try:
+            recipe = bind_recipe(
+                strategy,
+                challenge_id=kit["id"],
+                challenge_version=kit["version"],
+                train_digest=kit["train_digest"],
+                interface_digest=kit["interface_digest"],
+                construction_limits_digest=kit["construction_limits_digest"],
+            )
+            if recipe.to_dict()["source"]["kind"] == "graph":
+                graph_envelope_from_workspace(
+                    CampaignLedger(root), manifest["owner"], recipe
+                )
+            elif not callable(getattr(campaign, "construction_bundle_material", None)):
+                raise RecipeRefused("construction_reconstruction_unserved")
+        except RecipeRefused as refused:
+            raise Rejected(refused.code, 409) from None
+        return recipe
 
     def practice_admitted(self, admitted, request):
         """One practice trial of a registered recipe, run in the background:
@@ -4017,6 +4057,8 @@ class RunnerAdapter:
         try:
             mode = smoke.mode_of(request.get("mode"))
             if mode == smoke.SMOKE:
+                if levels.campaign_is_direct(admitted.campaign, admitted.profile):
+                    raise Rejected(smoke.UNAVAILABLE, 409)
                 root = Path(admitted.campaign["root"])
                 manifest = json.loads((root / "campaign-manifest.json").read_bytes())
                 smoke.hook_of(campaign_for_manifest(manifest))
@@ -4046,11 +4088,18 @@ class RunnerAdapter:
             raise Rejected("bounded_reason_required")
         # Its preparation would refuse it on the thread (LA-F19).
         self._require_current_revision(admitted)
+        direct = levels.campaign_is_direct(admitted.campaign, admitted.profile)
+        if direct:
+            if request.get("level4_directory") is not None:
+                raise Rejected("construction_source_from_workspace_required", 409)
+            self._direct_recipe(admitted, strategy)
         # A Level 0 campaign never reads the profile here.
-        found = levels.campaign_binding(
-            admitted.campaign, getattr(admitted, "profile", None)
-        )
-        self._design_refusal(levels.checked_strategy(found, strategy))
+        found = None
+        if not direct:
+            found = levels.campaign_binding(
+                admitted.campaign, getattr(admitted, "profile", None)
+            )
+            self._design_refusal(levels.checked_strategy(found, strategy))
         refusal = freeze_refusal(Path(admitted.campaign["root"]), strategy)
         if refusal is not None:
             raise Rejected(refusal, 409)
@@ -4059,7 +4108,8 @@ class RunnerAdapter:
         # level refuses before the budget does: an inadmissible strategy is
         # not a spending question.
         directory = request.get("level4_directory")
-        levels.checked_freeze(found, strategy, directory)
+        if not direct:
+            levels.checked_freeze(found, strategy, directory)
         # Refused now, with the numbers, where the submission compile would
         # refuse it on the thread (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01).
         budget = budget_view.require_within(strategy)
@@ -4095,6 +4145,8 @@ class RunnerAdapter:
         self._require_current_revision(admitted)
         self._require_submission_policy(admitted)
         self._require_frozen(admitted)
+        if levels.campaign_is_direct(admitted.campaign, admitted.profile):
+            raise Rejected("construction_submission_unserved", 409)
         budget = self._frozen_budget(admitted)
         self._require_evaluation(admitted)
         self._require_level_served(admitted)
@@ -4113,6 +4165,8 @@ class RunnerAdapter:
         `level_not_registered`, `level_not_served_by_target`, and for Level 4
         `level4_envelope_transport_unavailable` when the target takes no
         envelope parts (S4). A Level 0 campaign passes."""
+        if levels.campaign_is_direct(admitted.campaign, admitted.profile):
+            raise Rejected("construction_submission_unserved", 409)
         path = Path(admitted.campaign["root"]) / "campaign-manifest.json"
         if not path.exists():
             raise Rejected("campaign_not_prepared", 409)
@@ -4689,6 +4743,7 @@ class RunnerAdapter:
                 cfg,
                 root=root,
                 accepted_revision=cfg["accepted_revision"],
+                source_profile=self.configuration,
                 principal=cfg["principal"],
                 agent_policy=AUTONOMOUS,
                 product=None,
@@ -4899,6 +4954,7 @@ class RunnerAdapter:
                     cfg,
                     root=root,
                     accepted_revision=cfg["accepted_revision"],
+                    source_profile=self.configuration,
                     principal=cfg["principal"],
                     agent_policy=AUTONOMOUS,
                     product=product,

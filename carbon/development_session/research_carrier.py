@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import math
 import re
+import shutil
 import time
 from contextlib import ExitStack, contextmanager
 from contextvars import ContextVar
@@ -28,10 +29,12 @@ from carbon.reconstruction.worker.docker_runtime import (
 )
 from carbon.reconstruction.worker.model import (
     CONTROL_BYTES,
+    INPUT_BYTES,
     OUTPUT_BYTES,
     DevelopmentWorkerProfile,
     WorkerCode,
     WorkerFailure,
+    WorkerImageIdentity,
 )
 from carbon.reconstruction.worker.protocol import decode_output_stream
 
@@ -41,7 +44,61 @@ from .research_workspace import ResearchWorkspace
 
 PRECHARGED_TRIAL = ContextVar("carbon_precharged_trial", default=None)
 
+# A fixed public TRAIN build in a separately provisioned offline library child.
+# This stays in the bounded Carbon worker lane, never the miner script lane.
+LIBRARY_BUILD_PROVENANCE = "DIRECT_BUNDLE_PUBLIC_RECONSTRUCTION"
+LIBRARY_PREP_PROVENANCE = "DIRECT_BUNDLE_DEPENDENCY_PREP"
+LIBRARY_OVERLAY_BUILD_PROVENANCE = "DIRECT_BUNDLE_OVERLAY_RECONSTRUCTION"
+
 ACTIVE_TASK = ContextVar("carbon_public_research_task", default=None)
+
+
+def _checked_pinned_uv_stage(added, identity):
+    """Validate the bytes produced after admission against its frozen binding."""
+    if type(added) is not dict or set(added) != {"uv-bin", "control.json"}:
+        raise ValueError("closed pinned UV stage output required")
+    uv_binary, control_raw = added["uv-bin"], added["control.json"]
+    if (
+        type(uv_binary) is not bytes
+        or not 0 < len(uv_binary) <= 64 * 1024**2
+        or type(control_raw) is not bytes
+        or not 0 < len(control_raw) <= 65536
+    ):
+        raise ValueError("bounded pinned UV stage required")
+    try:
+        control = json.loads(control_raw)
+    except (UnicodeError, ValueError, RecursionError) as error:
+        raise ValueError("pinned UV stage control differs") from error
+    fields = {"bundle_ref", "parent_image_id", "uv_sha256"}
+    if "parent_build" in identity:
+        fields.add("parent_build")
+    if (
+        type(control) is not dict
+        or set(control) != fields
+        or control["bundle_ref"] != identity["bundle_ref"]
+        or control["parent_image_id"] != identity["parent_image_id"]
+        or control["uv_sha256"] != digest(uv_binary)
+        or (
+            "parent_build" in identity
+            and control["parent_build"] != identity["parent_build"]
+        )
+    ):
+        raise ValueError("pinned UV stage control differs")
+    return added
+
+
+def _stage_verified_overlay(source, target, receipt):
+    """Copy sealed CAS bytes into the read-only, container-readable input mount."""
+    from .library_environment_cache import _verified_overlay_tree
+
+    _verified_overlay_tree(source, receipt)
+    shutil.copytree(source, target, symlinks=False)
+    _verified_overlay_tree(target, receipt)
+    for entry in target.rglob("*"):
+        entry.chmod(0o555 if entry.is_dir() else 0o444)
+    target.chmod(0o555)
+    _verified_overlay_tree(target, receipt)
+
 
 BOOTSTRAP = """
 import os,shutil
@@ -236,6 +293,19 @@ def _cancel_active_intent(ledger, *, owner, identity):
         remove_exact_container(cli=cli, container_name=name, launch_digest=launch)
 
 
+# Fixed public construction phases use the same private, closed diagnostic
+# vocabulary. These records never enter the worker snapshot or public task.
+_FIXED_DIAGNOSTIC_PROVENANCES = frozenset(
+    {
+        "BATTERY_PUBLIC_PRACTICE",
+        LIBRARY_PREP_PROVENANCE,
+        LIBRARY_BUILD_PROVENANCE,
+        LIBRARY_OVERLAY_BUILD_PROVENANCE,
+        "DIRECT_BUNDLE_PUBLIC_INFERENCE",
+    }
+)
+
+
 _PRACTICE_FAILURE_STAGES = frozenset(
     {
         "STAGING",
@@ -336,8 +406,32 @@ def _fixed_practice_stage(operation, provenance, stage):
     try:
         yield
     except Exception as error:
-        if provenance == "BATTERY_PUBLIC_PRACTICE":
+        if provenance in _FIXED_DIAGNOSTIC_PROVENANCES:
             _retain_practice_failure(operation, stage, error)
+        if (
+            provenance in {LIBRARY_PREP_PROVENANCE, LIBRARY_BUILD_PROVENANCE}
+            and stage == "PROGRAM"
+            and isinstance(error, WorkerFailure)
+        ):
+            # The fixed Docker stream removes its partial stdout on failure.
+            # Keep the bounded, private controller diagnostic for a failed
+            # fixed offline preparation or source-bundle build so an operator
+            # can diagnose the actual program fault before admitting another run. This file is
+            # not part of the returned/public result or model snapshot.
+            try:
+                diagnostic = error.private_diagnostic
+                if type(diagnostic) is bytes and diagnostic:
+                    write_once(
+                        operation
+                        / (
+                            "private-prep-program-diagnostic.bin"
+                            if provenance == LIBRARY_PREP_PROVENANCE
+                            else "private-build-program-diagnostic.bin"
+                        ),
+                        diagnostic[:65536],
+                    )
+            except Exception:  # noqa: BLE001, S110 - preserve worker failure
+                pass
         raise
 
 
@@ -361,6 +455,10 @@ def _run_locked(
     before_finish=None,
     accelerator=None,
     network=None,
+    executable_files=(),
+    trusted_overlay=None,
+    trusted_stage_provider=None,
+    trusted_stage_identity=None,
 ):
     before_finish = before_finish or (lambda: None)
     # The miner's own research has no Carbon limits (owner direction): any
@@ -380,10 +478,95 @@ def _run_locked(
         raise ValueError("bounded worker wall allowance required")
     if type(files) is not dict or "program.py" in files or program_name in files:
         raise ValueError("closed stage required")
+    if executable_files not in ((), ("uv-bin",)) or (
+        executable_files and provenance != LIBRARY_PREP_PROVENANCE
+    ):
+        raise ValueError("trusted preparation executable role required")
     for name, body in files.items():
         ResearchWorkspace.name(name)
         if type(body) is not bytes:
             raise ValueError("stage accepts bytes, never paths")
+    trusted_stage_bound = 0
+    if trusted_stage_provider is not None:
+        from .library_bundles import UV_IMAGE
+
+        if (
+            provenance != LIBRARY_PREP_PROVENANCE
+            or not callable(trusted_stage_provider)
+            or type(trusted_stage_identity) is not dict
+            or set(trusted_stage_identity)
+            not in (
+                {"schema", "uv_image", "bundle_ref", "parent_image_id"},
+                {"schema", "uv_image", "bundle_ref", "parent_image_id", "parent_build"},
+            )
+            or trusted_stage_identity["schema"]
+            != "carbon.development.pinned-uv-stage.v1"
+            or trusted_stage_identity["uv_image"] != UV_IMAGE
+            or type(trusted_stage_identity["bundle_ref"]) is not dict
+            or type(trusted_stage_identity["parent_image_id"]) is not str
+            or {"uv-bin", "control.json"} & set(files)
+        ):
+            raise ValueError("trusted pinned UV stage required")
+        if "parent_build" in trusted_stage_identity and (
+            type(image) is not WorkerImageIdentity
+            or trusted_stage_identity["parent_image_id"] != image.image_id
+            or trusted_stage_identity["parent_build"]
+            != {
+                "schema": "carbon.c03.worker-image-build.v1",
+                "source_tree_digest": image.source_tree_digest,
+                "wheel_digest": image.wheel_digest,
+                "lock_digest": image.lock_digest,
+                "base_image_digest": image.base_image_digest,
+                "build_recipe_digest": image.build_recipe_digest,
+                "entrypoint_digest": image.entrypoint_digest,
+            }
+        ):
+            raise ValueError("pinned UV stage parent differs")
+        trusted_stage_bound = 64 * 1024**2 + 65536
+        if (
+            sum(map(len, files.values())) + len(source.encode()) + trusted_stage_bound
+            > INPUT_BYTES
+        ):
+            raise ValueError("bounded preparation input exceeded")
+    elif trusted_stage_identity is not None:
+        raise ValueError("trusted stage identity without provider")
+    overlay_receipt = None
+    if trusted_overlay is not None:
+        from .library_environment_cache import (
+            VerifiedLibraryOverlay,
+            _verified_overlay_tree,
+        )
+
+        if (
+            provenance != LIBRARY_OVERLAY_BUILD_PROVENANCE
+            or type(image) is not WorkerImageIdentity
+            or type(trusted_overlay) is not VerifiedLibraryOverlay
+            or trusted_overlay.parent_image_id != image.image_id
+        ):
+            raise ValueError("trusted construction-only overlay required")
+        overlay_path = trusted_overlay.path
+        if overlay_path.is_symlink() or not overlay_path.is_dir():
+            raise ValueError("trusted overlay path differs")
+        overlay_receipt = json.loads((overlay_path / ".overlay.json").read_bytes())
+        if (
+            type(overlay_receipt) is not dict
+            or overlay_receipt.get("tree_digest") != trusted_overlay.tree_digest
+            or overlay_receipt.get("bundle_ref") != trusted_overlay.bundle_ref.to_dict()
+            or overlay_receipt.get("parent_image_id") != image.image_id
+            or overlay_receipt.get("archive_sha256") != trusted_overlay.archive_digest
+        ):
+            raise ValueError("trusted overlay receipt differs")
+        _verified_overlay_tree(overlay_path, overlay_receipt)
+        if (
+            sum(map(len, files.values()))
+            + len(source.encode())
+            + trusted_overlay.total_bytes
+            + (overlay_path / ".overlay.json").stat().st_size
+            > INPUT_BYTES
+        ):
+            raise ValueError("bounded construction input exceeded")
+    elif provenance == LIBRARY_OVERLAY_BUILD_PROVENANCE:
+        raise ValueError("verified construction overlay required")
     request = {
         "source": digest(source.encode()),
         "files": {n: digest(b) for n, b in files.items()},
@@ -391,6 +574,17 @@ def _run_locked(
         "seconds": seconds,
         "provenance": provenance,
     }
+    if executable_files:
+        request["executable_files"] = list(executable_files)
+    if trusted_stage_provider is not None:
+        request["trusted_stage_identity"] = trusted_stage_identity
+    if trusted_overlay is not None:
+        request["verified_overlay"] = {
+            "tree_digest": trusted_overlay.tree_digest,
+            "bundle_ref": trusted_overlay.bundle_ref.to_dict(),
+            "parent_image_id": trusted_overlay.parent_image_id,
+            "archive_digest": trusted_overlay.archive_digest,
+        }
     if execution_contract is not None:
         # Prospective language routes bind their complete reviewed environment.
         # Leaving this absent preserves historical Python operation identities.
@@ -438,7 +632,12 @@ def _run_locked(
         storage = sum(p.stat().st_size for p in ledger.root.rglob("*") if p.is_file())
         # Account stored input, provisional stream and decoded bounded output.
         reservation_bytes = (
-            sum(map(len, files.values())) + 2 * OUTPUT_BYTES + 2 * CONTROL_BYTES + 65536
+            sum(map(len, files.values()))
+            + trusted_stage_bound
+            + (trusted_overlay.total_bytes if trusted_overlay is not None else 0)
+            + 2 * OUTPUT_BYTES
+            + 2 * CONTROL_BYTES
+            + 65536
         )
         if storage + reservation_bytes > 10 * 1024**3:
             raise ValueError("campaign retained storage ceiling")
@@ -492,12 +691,32 @@ def _run_locked(
         with _fixed_practice_stage(operation, provenance, "STAGING"):
             stage.mkdir(mode=0o755)
             stage.chmod(0o755)
-            for filename, body in {**files, program_name: source.encode()}.items():
+            staged_files = files
+            if trusted_stage_provider is not None:
+                _check_cancel(ledger, owner, identity)
+                added = _checked_pinned_uv_stage(
+                    trusted_stage_provider(cli), trusted_stage_identity
+                )
+                _check_cancel(ledger, owner, identity)
+                staged_files = {**files, **added}
+            for filename, body in {
+                **staged_files,
+                program_name: source.encode(),
+            }.items():
                 path = stage / filename
                 write_once(path, body)
-                path.chmod(0o444)
+                path.chmod(0o555 if filename in executable_files else 0o444)
+            if trusted_overlay is not None:
+                _stage_verified_overlay(
+                    trusted_overlay.path, stage / "overlay", overlay_receipt
+                )
         with _fixed_practice_stage(operation, provenance, "HOST_READINESS"):
-            if provenance == "MINER_SELF_REPORTED":
+            if provenance == LIBRARY_BUILD_PROVENANCE:
+                from .research_image import verify_library_worker_image
+
+                verify_library_worker_image(image, cli)
+                checked = doctor(image_id=image.image_id, cli=cli)
+            elif provenance == "MINER_SELF_REPORTED":
                 from .julia_analysis import (
                     JuliaResearchImageIdentity,
                     verify_julia_image,
@@ -638,7 +857,7 @@ def _run_locked(
                 cpuset=checked.cpuset,
                 launch_digest=launch,
                 worker_profile=worker,
-                diagnose_policy=provenance == "BATTERY_PUBLIC_PRACTICE",
+                diagnose_policy=provenance in _FIXED_DIAGNOSTIC_PROVENANCES,
             )
         with _fixed_practice_stage(operation, provenance, "PROGRAM"):
             cli.stream_to_file(

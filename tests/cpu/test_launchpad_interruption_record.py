@@ -43,7 +43,7 @@ def test_an_interrupted_operation_records_its_cause(tmp_path, monkeypatch):
 
     named = register_fixture_challenge(monkeypatch.setattr)
     tmp_path.chmod(0o700)
-    host = journey_host(tmp_path, patch=monkeypatch.setattr)
+    host = journey_host(tmp_path, patch=monkeypatch.setattr, historical_launch=True)
     launched = perform(
         host,
         "launch",

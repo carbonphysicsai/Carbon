@@ -1,7 +1,6 @@
 """T07 base selection without ladder activation or historical replay changes."""
 
 import copy
-import json
 from types import SimpleNamespace
 
 import pytest
@@ -131,7 +130,7 @@ def test_existing_composition_and_graph_records_keep_their_subjects():
         levels.replay_binding(request(), CHALLENGE, "none", None, composition)
 
 
-def test_base_writer_persists_subject_and_restart_replay_does_not_dispatch(
+def test_new_base_selector_refuses_before_persisting_or_dispatching(
     tmp_path, monkeypatch
 ):
     cfg = fixture.configured(tmp_path)
@@ -149,29 +148,13 @@ def test_base_writer_persists_subject_and_restart_replay_does_not_dispatch(
     }
     try:
         admitted = SimpleNamespace(profile=cfg, miner=fixture.registered())
-        answer = host.launch_admitted(admitted, body)
+        with pytest.raises(Rejected, match="construction_selector_retired"):
+            host.launch_admitted(admitted, body)
         with host.db() as db:
-            row = dict(
-                db.execute(
-                    "SELECT * FROM launchpad_campaigns WHERE id=?", (answer["id"],)
-                ).fetchone()
+            assert (
+                db.execute("SELECT COUNT(*) FROM launchpad_campaigns").fetchone()[0]
+                == 0
             )
-        assert row["construction_binding_version"] == 3
-        captured = json.loads(row["launch_request"])[levels.CONSTRUCTION_ADMISSION]
-        assert captured == levels.capture_binding(None, selector=BASE)
-        assert row["construction_binding_digest"] == digest(canonical(captured))
-        assert levels.campaign_binding(row, cfg) is None
-        restarted = RunnerAdapter(host.database, principal="alice")
-        try:
-            replay_dispatches = []
-            monkeypatch.setattr(
-                restarted, "_dispatch_run", lambda *args: replay_dispatches.append(args)
-            )
-            assert restarted._recorded_launch(row, cfg)[1] is None
-            assert restarted.replayed(cfg, body)["id"] == answer["id"]
-            assert not replay_dispatches
-        finally:
-            restarted.close()
-        assert len(dispatches) == 1
+        assert dispatches == []
     finally:
         host.close()

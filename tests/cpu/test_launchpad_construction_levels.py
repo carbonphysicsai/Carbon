@@ -433,8 +433,9 @@ def test_the_send_path_lifts_its_refusal_only_where_the_target_lists_the_digest(
     monkeypatch.setattr(
         rs,
         "submit_and_wait",
-        lambda url, signer, **kw: sent.append(kw["contract_digest"])
-        or (200, {"state": "SCORED"}, "sub-1"),
+        lambda url, signer, **kw: (
+            sent.append(kw["contract_digest"]) or (200, {"state": "SCORED"}, "sub-1")
+        ),
     )
 
     def submit(served, binding=found):
@@ -515,14 +516,17 @@ def test_the_ladder_labels_every_level_above_the_targets_own_development():
 # ---- 5. One table, both doors.
 
 
-def test_both_doors_take_the_level_fields_from_the_one_table():
+def test_both_doors_keep_old_level_fields_for_replay_only():
     launch = operations.OPERATIONS["launch"]
     freeze = operations.OPERATIONS["freeze_candidate"]
-    assert {"construction_level", "arm"} <= launch.optional
+    historical = {"construction_level", "arm", "construction_variant_digest"}
+    assert historical <= launch.replay_optional
+    assert historical.isdisjoint(launch.optional)
+    assert {"challenge", "challenge_version"} <= launch.optional
     assert "level4_directory" in freeze.optional
     assert operations.FIELDS["construction_level"][0] == "integer"
     described = {d["operation"]: d for d in operations.describe()}
-    assert {"construction_level", "arm"} <= set(described["launch"]["optional"])
+    assert historical.isdisjoint(described["launch"]["optional"])
     pytest.importorskip("mcp")
     from carbon.miner_mcp.mcp_operations import make_operation_tools
 
@@ -534,7 +538,8 @@ def test_both_doors_take_the_level_fields_from_the_one_table():
     freeze_schema = next(
         v for k, v in schemas.items() if k.endswith("freeze_candidate")
     )
-    assert {"construction_level", "arm"} <= launch_schema
+    assert historical.isdisjoint(launch_schema)
+    assert {"challenge", "challenge_version"} <= launch_schema
     assert "level4_directory" in freeze_schema
 
 

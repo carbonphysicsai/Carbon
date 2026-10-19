@@ -1,20 +1,18 @@
-"""One journey definition, two drivers: the browser's routes and a miner's own
-MCP client over stdio.
+"""One direct-campaign refusal journey, two drivers: browser and miner MCP.
 
-`JOURNEY` is written once. Each driver runs every step of it and records what
-happened - done, or refused with which code - and the test requires both
-drivers to produce the same decisions and the same durable records. Two
-similar tests could drift apart silently; one definition with two drivers
-cannot, because there is only one list of steps.
+`JOURNEY` is written once. Both doors must make the same decisions and persist
+the same campaign identity. The fixture Challenge has no direct reconstruction
+worker, so practice and freeze must refuse before any task or submission.
 
 The drivers are real: the browser driver posts to the controller's HTTP routes
 on a running server; the MCP driver is a real client talking to a real stdio
 server process. Both reach the same journey host
 (`scripts/dev/miner_launchpad/journey_fixture.py`): real host, operations
-table, gates, freeze, submit, ledger and projection; fixture preparation,
-training and final exam. The MCP server reads a stub chain in which the hotkey
-is registered; the live chain read is covered by the testnet onboarding test.
-Nothing on either path is issued by Carbon.
+table, gates, ledger and projection. Separate Battery direct-door tests cover
+recipe and receiver refusals; this fixture proves no completed reconstruction.
+The MCP server reads a stub
+chain in which the hotkey is registered; the live chain read is covered by the
+testnet onboarding test. Nothing on either path is issued by Carbon.
 """
 
 from __future__ import annotations
@@ -39,8 +37,7 @@ STRATEGY = {
     "backbone": "fno",
     "parameters": {"steps": 64},
 }
-UNPRACTICED = {**STRATEGY, "parameters": {"steps": 96}}
-# A family the registry knows but Carbon cannot rebuild yet.
+# Another legacy strategy shape must receive the same worker-status refusal.
 NOT_YET = {**STRATEGY, "backbone": "unet1d", "parameters": {}}
 
 
@@ -72,33 +69,22 @@ JOURNEY = (
         then=_ready(),
     ),
     Step("submit", lambda c: {"campaign": c}, expect="freeze_a_candidate_first"),
-    # The registry bridge: an option Carbon cannot rebuild is refused at the
-    # moment of choosing, by its verdict, never discovered at submission.
     Step(
         "practice",
         lambda c: {"campaign": c, "strategy": NOT_YET, "hypothesis": "u-net"},
-        expect="design_not_yet_rebuildable",
+        expect="construction_reconstruction_unserved",
     ),
     Step(
         "practice",
         lambda c: {"campaign": c, "strategy": STRATEGY, "hypothesis": "fno"},
-        then=_ready(lambda v: bool(v["experiments"])),
+        expect="construction_reconstruction_unserved",
     ),
     Step(
         "freeze_candidate",
-        lambda c: {"campaign": c, "strategy": UNPRACTICED, "reason": "untried"},
-        expect="practice_result_required",
+        lambda c: {"campaign": c, "strategy": STRATEGY, "reason": "unserved"},
+        expect="construction_reconstruction_unserved",
     ),
-    Step(
-        "freeze_candidate",
-        lambda c: {"campaign": c, "strategy": STRATEGY, "reason": "practiced"},
-        then=_ready(lambda v: v["journey"]["frozen_awaiting_submission"]),
-    ),
-    Step(
-        "submit",
-        lambda c: {"campaign": c},
-        then=_ready(lambda v: v["journey"]["submitted_epochs"] == [1]),
-    ),
+    Step("submit", lambda c: {"campaign": c}, expect="freeze_a_candidate_first"),
 )
 
 
@@ -134,7 +120,7 @@ class BrowserDriver:
             controller.Controller(root / "launchpad.sqlite3"),
             self.token,
             port=0,
-            research_runner=journey_host(root, patch=patch),
+            research_runner=journey_host(root, patch=patch, direct_manifest=True),
         )
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
@@ -214,7 +200,7 @@ def _serve(root: Path) -> int:
     from scripts.dev.miner_launchpad import runner
     from scripts.dev.miner_launchpad.journey_fixture import journey_host
 
-    host = journey_host(root)
+    host = journey_host(root, direct_manifest=True)
     runner.RunnerAdapter.for_profile = classmethod(lambda cls, *_, **__: host)
     real = open_tier.create_open_tier_server
     open_tier.create_open_tier_server = lambda **kw: real(
@@ -238,9 +224,14 @@ async def run_journey(driver):
         if step.operation == "options":
             agents = {a["value"]: a for a in value["agents"]}
             assert agents["none"]["availability"] == "available"
-            verdicts = {f["id"]: f["verdict"] for f in value["families"]}
-            assert verdicts["model_family.fno"] == "supported"
-            assert verdicts["model_family.unet1d"] == "not_yet_rebuildable"
+            paths = value["construction_paths"][JOURNEY_CHALLENGE["id"]]
+            assert paths["challenge"] == JOURNEY_CHALLENGE
+            assert paths["construction_kit"] is None
+            assert {p["id"]: p["availability"] for p in paths["paths"]} == {
+                "public_reconstruction": "unserved",
+                "official_submission": "unserved",
+            }
+            assert paths["qualification"] is False
             # The launch form's budget vocabulary is the ledger's own.
             from carbon.development_session.product_campaign import BUDGET_KEYS
             from carbon.development_session.research_ledger import DIMENSIONS
@@ -255,6 +246,10 @@ async def run_journey(driver):
                     break
                 assert time.monotonic() < deadline, (step, observed)
                 await asyncio.sleep(0.2)
+    _, observed = await driver.perform("observe", {"campaign": campaign})
+    assert observed["state"] == "READY"
+    assert observed["experiments"] == []
+    assert observed["journey"]["submitted_epochs"] == []
     return decisions, campaign
 
 
@@ -262,14 +257,10 @@ def records(root, campaign):
     manifest = json.loads(
         (root / "campaigns" / campaign / "campaign-manifest.json").read_bytes()
     )
-    folder = root / "campaigns" / campaign / "epoch-1"
-    selected = json.loads((folder / "selected-recipe.json").read_bytes())
-    outcome = json.loads((folder / "outcome.json").read_bytes())
+    assert not (root / "campaigns" / campaign / "epoch-1").exists()
     return {
-        "selected": selected,
-        "selected_by": outcome["selected_by"],
-        "chain_transactions": outcome["chain_transactions"],
-        "feedback": (folder / "permitted-final-feedback.json").exists(),
+        "challenge": manifest["challenge"],
+        "construction_mode": manifest["construction_mode"],
         "budget": {k: manifest.get(k) for k in ("elapsed_seconds", "final_reserve")},
     }
 
@@ -296,20 +287,18 @@ def journeys(tmp_path, monkeypatch):
 
 
 def test_both_doors_run_one_journey_to_the_same_decisions_and_records(journeys):
-    from carbon.development_session.research_loop import candidate_record
-
     browser, mcp = journeys["browser"], journeys["mcp"]
     assert browser[0] == mcp[0]
     assert [d for d in browser[0] if d[1] != "done"] == [
         ("submit", "freeze_a_candidate_first"),
-        ("practice", "design_not_yet_rebuildable"),
-        ("freeze_candidate", "practice_result_required"),
+        ("practice", "construction_reconstruction_unserved"),
+        ("practice", "construction_reconstruction_unserved"),
+        ("freeze_candidate", "construction_reconstruction_unserved"),
+        ("submit", "freeze_a_candidate_first"),
     ]
     assert browser[1] == mcp[1]
-    assert browser[1]["selected"] == candidate_record(STRATEGY, "practiced", False)
-    assert browser[1]["selected_by"] == "miner"
-    assert browser[1]["chain_transactions"] == 0
-    assert browser[1]["feedback"] is True
+    assert browser[1]["challenge"] == JOURNEY_CHALLENGE
+    assert browser[1]["construction_mode"] == "direct"
     assert browser[1]["budget"] == {"elapsed_seconds": 3600, "final_reserve": True}
 
 

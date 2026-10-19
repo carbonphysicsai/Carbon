@@ -790,3 +790,237 @@ def _create_server(
         return WORKFLOW
 
     return server
+
+
+def create_direct_stdio_server(adapter):
+    """Mount the authenticated direct-v3 DEVELOPMENT tools on stdio.
+
+    This is a separate typed surface. The historical v2 campaign tool names,
+    argument models, task extension and resources retain their exact behavior.
+    """
+    return StdioResearchServer(_create_direct_server(adapter))
+
+
+def _create_direct_server(adapter, *, guard=None, **settings):
+    from carbon.development_session.research_tools import (
+        DIRECT_PREFIX,
+        DirectResearchMinerTools,
+    )
+
+    if type(adapter) is not DirectResearchMinerTools:
+        raise TypeError("trusted direct-v3 research adapter required")
+    if version("mcp") != SDK_VERSION:
+        raise RuntimeError("the tested mcp==2.2.0 SDK is required")
+
+    import anyio
+    from mcp.server import MCPServer
+    from mcp.server.mcpserver.exceptions import ToolError
+    from mcp.server.mcpserver.tools import Tool
+    from mcp.server.mcpserver.utilities.func_metadata import ArgModelBase, FuncMetadata
+    from pydantic import BaseModel, ConfigDict, Field, JsonValue, create_model
+
+    class StrictArguments(ArgModelBase):
+        model_config = ConfigDict(strict=True, extra="forbid")
+
+    class ExactMetadata(FuncMetadata):
+        def pre_parse_json(self, data):
+            return data
+
+    class DirectResult(BaseModel):
+        model_config = ConfigDict(strict=True, extra="forbid")
+        schema: str
+        operation: str
+        operation_id: str
+        reply: dict[str, JsonValue]
+        task: dict[str, JsonValue] | None
+        public_result: dict[str, JsonValue] | None
+        requires_reconciliation: bool
+        official_eligible: Literal[False]
+
+    operation_id = (
+        Annotated[
+            str,
+            Field(
+                pattern="^" + OPERATION_ID_PATTERN + "$",
+                min_length=16,
+                max_length=114,
+            ),
+        ],
+        Field(default_factory=generated_operation_id),
+    )
+    task_id = (
+        Annotated[str, Field(pattern=r"^rtsk_[a-f0-9]{64}$")],
+        Field(..., description="Task ID returned by direct start."),
+    )
+
+    def tool_for(operation):
+        fields = {"operation_id": operation_id}
+        if operation == "start_research_task":
+            fields["recipe"] = (
+                dict[str, JsonValue],
+                Field(..., description="Registered construction recipe JSON object."),
+            )
+        elif operation == "stage_research_source":
+            fields.update(
+                name=(
+                    Annotated[str, Field(min_length=1, max_length=96)],
+                    Field(
+                        ...,
+                        description="Flat level4-manifest.json or digest-named level4-doc file.",
+                    ),
+                ),
+                offset=(
+                    Annotated[int, Field(ge=0, le=4 * 1024**2)],
+                    Field(
+                        ...,
+                        description="Byte offset of this chunk; repeat the same offset and bytes to retry.",
+                    ),
+                ),
+                total_bytes=(
+                    Annotated[int, Field(ge=1, le=4 * 1024**2)],
+                    Field(..., description="Exact complete file byte count."),
+                ),
+                content_digest=(
+                    Annotated[str, Field(pattern=r"^sha256:[0-9a-f]{64}$")],
+                    Field(..., description="SHA-256 of the complete file bytes."),
+                ),
+                expected_digest=(
+                    str | None,
+                    Field(
+                        ...,
+                        description="Current published file digest, or null for a new file.",
+                    ),
+                ),
+                chunk_base64=(
+                    Annotated[str, Field(min_length=4, max_length=10924)],
+                    Field(
+                        ..., description="Standard base64 of 1 to 8192 raw file bytes."
+                    ),
+                ),
+            )
+        elif operation == "stage_research_material":
+            fields.update(
+                bundle_digest=(
+                    Annotated[str, Field(pattern=r"^sha256:[0-9a-f]{64}$")],
+                    Field(..., description="Exact pinned construction bundle digest."),
+                ),
+                name=(
+                    Annotated[str, Field(min_length=1, max_length=200)],
+                    Field(
+                        ...,
+                        description="Flat material filename declared by the bundle.",
+                    ),
+                ),
+                offset=(
+                    Annotated[int, Field(ge=0, le=128 * 1024**2)],
+                    Field(
+                        ..., description="Byte offset; identical bytes may be replayed."
+                    ),
+                ),
+                total_bytes=(
+                    Annotated[int, Field(ge=0, le=128 * 1024**2)],
+                    Field(..., description="Exact complete material byte count."),
+                ),
+                content_digest=(
+                    Annotated[str, Field(pattern=r"^sha256:[0-9a-f]{64}$")],
+                    Field(..., description="SHA-256 of the complete material bytes."),
+                ),
+                chunk_base64=(
+                    Annotated[str, Field(min_length=0, max_length=32768)],
+                    Field(
+                        ...,
+                        description="Base64 of 0 to 24576 raw bytes; empty only for lock/license.",
+                    ),
+                ),
+            )
+        elif operation in {"get_research_result", "cancel_research_task"}:
+            fields["task_id"] = task_id
+            if operation == "cancel_research_task":
+                fields["operation_id"] = (
+                    operation_id[0] | None,
+                    Field(None, description="Stable cancellation ID on retries."),
+                )
+        model = create_model(
+            "DirectV3" + operation.title().replace("_", "") + "Arguments",
+            __base__=StrictArguments,
+            **fields,
+        )
+
+        async def invoke(**arguments):
+            if guard is not None:
+                guard()
+            token = arguments.pop("operation_id", None)
+            if token is None:
+                token = (
+                    cancellation_id(arguments["task_id"])
+                    if operation == "cancel_research_task"
+                    else generated_operation_id()
+                )
+            try:
+                value = await adapter.call(operation, arguments, token)
+            except (ValueError, TypeError):
+                raise ToolError(
+                    "DIRECT_OPERATIONAL_STOP: reconcile an existing task before retrying"
+                ) from None
+            return DirectResult(**value)
+
+        return Tool(
+            fn=invoke,
+            name=DIRECT_PREFIX + operation,
+            description=(
+                "Upload one bounded graph manifest/document chunk into this authenticated "
+                "owner's DEVELOPMENT workspace. The final chunk publishes only exact "
+                "digest-matched bytes; a graph recipe is checked at task admission."
+                if operation == "stage_research_source"
+                else (
+                    "Upload one exact pinned construction-material chunk to this "
+                    "authenticated owner's private DEVELOPMENT cache. Upload "
+                    "source, lock, license and declared wheels first; bundle.json "
+                    "last promotes only a fully validated closure."
+                    if operation == "stage_research_material"
+                    else "Direct public DEVELOPMENT construction: "
+                    + operation.replace("_", " ")
+                    + ". Registered fixed TRAIN, resource policy and owner-bound source "
+                    "are selected by the trusted service; no official grade is created."
+                )
+            ),
+            parameters=model.model_json_schema(),
+            fn_metadata=ExactMetadata(arg_model=model, output_model=DirectResult),
+            is_async=True,
+        )
+
+    @asynccontextmanager
+    async def lifespan(_server):
+        try:
+            yield None
+        finally:
+            with anyio.CancelScope(shield=True):
+                await adapter.shutdown_tasks()
+
+    offered = set(adapter.composition.tasks.discovery.manifest.supported_operations)
+    operations = sorted(adapter.OPERATIONS & offered)
+    return MCPServer(
+        "Carbon Direct DEVELOPMENT Research",
+        version="3.0.0",
+        instructions=(
+            "Read the registered direct Challenge and manifest first. "
+            + (
+                "For graph recipes stage the manifest and digest-named documents "
+                "in bounded chunks before starting the recipe. "
+                if "stage_research_source" in offered
+                else ""
+            )
+            + (
+                "For pinned bundles, stage exact material chunks with "
+                "stage_research_material; bundle.json goes last. "
+                if "stage_research_material" in offered
+                else ""
+            )
+            + "Start only "
+            "with a bound construction recipe; poll the returned task ID. "
+            "Results are synthetic DEVELOPMENT evidence, never official grades."
+        ),
+        tools=[tool_for(op) for op in operations],
+        lifespan=lifespan,
+        **settings,
+    )

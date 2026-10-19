@@ -75,6 +75,171 @@ def test_the_installed_images_are_recorded_owner_only(tmp_path):
     assert installed.read(tmp_path / "absent") is None
 
 
+def test_operator_candidate_pin_is_private_exact_and_cleared_by_install(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session import research_campaign
+
+    state = tmp_path / "state"
+    state.mkdir(mode=0o700)
+    worker = tmp_path / "worker.json"
+    analysis = tmp_path / "analysis.json"
+    worker.write_text("{}")
+    analysis.write_text("{}")
+    installed.write(state, image_manifest=worker, analysis_image_manifest=analysis)
+    revision, tree, source = "a" * 40, "b" * 40, "sha256:" + "c" * 64
+    expected = {
+        "revision": revision,
+        "tree": tree,
+        "source_tree_digest": source,
+        "source_authority": "DEVELOPMENT_CANDIDATE",
+    }
+
+    def checked(given, *, expected_tree, expected_source_tree_digest, repository):
+        assert (given, expected_tree, expected_source_tree_digest) == (
+            revision,
+            tree,
+            source,
+        )
+        assert repository == tmp_path
+        return expected
+
+    monkeypatch.setattr(
+        research_campaign, "development_candidate_implementation", checked
+    )
+    assert (
+        installed.bind_development_candidate(
+            state,
+            revision=revision,
+            tree=tree,
+            source_tree_digest=source,
+            repository=tmp_path,
+        )
+        == expected
+    )
+    pin = state / installed.DEVELOPMENT_CANDIDATE_FILE
+    assert pin.stat().st_mode & 0o777 == 0o600
+    assert installed.candidate_implementation(state, repository=tmp_path) == expected
+    assert set(json.loads(pin.read_bytes())) == {
+        "schema",
+        "revision",
+        "tree",
+        "source_tree_digest",
+    }
+    from carbon.development_session.profile import canonical
+    from scripts.dev.miner_launchpad import runner
+    from scripts.dev.miner_launchpad.environment_setup import write_private
+
+    environment = state / "environment"
+    environment.mkdir(mode=0o700)
+    profile_path = environment / "runner-profile.json"
+    profile = {
+        "accepted_revision": revision,
+        "campaigns_root": str(environment / "campaigns"),
+        "runtime": {"implementation": expected},
+    }
+    write_private(profile_path, canonical(profile))
+    monkeypatch.setattr(runner, "validated_profile", lambda value: value)
+    assert (
+        installed.profile_candidate(profile_path, profile, repository=tmp_path)
+        == expected
+    )
+    with pytest.raises(ValueError, match="profile differs"):
+        installed.profile_candidate(
+            profile_path,
+            {**profile, "accepted_revision": "d" * 40},
+            repository=tmp_path,
+        )
+    installed.write(state, image_manifest=worker, analysis_image_manifest=analysis)
+    assert not pin.exists()
+    assert installed.candidate_implementation(state, repository=tmp_path) is None
+
+
+def test_released_images_cannot_bind_development_candidate(tmp_path):
+    state = tmp_path / "state"
+    state.mkdir(mode=0o700)
+    worker = tmp_path / "worker.json"
+    analysis = tmp_path / "analysis.json"
+    release = tmp_path / "release.json"
+    for path in (worker, analysis, release):
+        path.write_text("{}")
+    installed.write(
+        state,
+        image_manifest=worker,
+        analysis_image_manifest=analysis,
+        gpu_release_record=release,
+    )
+    with pytest.raises(ValueError, match="released image record"):
+        installed.bind_development_candidate(
+            state,
+            revision="a" * 40,
+            tree="b" * 40,
+            source_tree_digest="sha256:" + "c" * 64,
+            repository=tmp_path,
+        )
+
+
+def test_development_installer_cli_checks_all_source_pins(
+    monkeypatch, capsys, tmp_path
+):
+    from carbon.development_session import research_campaign
+
+    revision, tree, source = "a" * 40, "b" * 40, "sha256:" + "c" * 64
+    expected = {"source_authority": "DEVELOPMENT_CANDIDATE"}
+    seen = []
+
+    def checked(given, *, expected_tree, expected_source_tree_digest):
+        seen.append((given, expected_tree, expected_source_tree_digest))
+        return expected
+
+    monkeypatch.setattr(
+        research_campaign, "development_candidate_implementation", checked
+    )
+    monkeypatch.setattr(
+        installed,
+        "current",
+        lambda manifest, *, implementation=None: (
+            manifest == tmp_path / "worker.json" and implementation is expected
+        ),
+    )
+    installed.main(
+        [
+            "verify-development-source",
+            "--revision",
+            revision,
+            "--tree",
+            tree,
+            "--source-tree-digest",
+            source,
+        ]
+    )
+    installed.main(
+        [
+            "current",
+            "--manifest",
+            str(tmp_path / "worker.json"),
+            "--candidate-revision",
+            revision,
+            "--candidate-tree",
+            tree,
+            "--candidate-source-tree-digest",
+            source,
+        ]
+    )
+    assert seen == [(revision, tree, source)] * 2
+    assert capsys.readouterr().out.splitlines()[-1] == "yes"
+    with pytest.raises(ValueError, match="complete development source identity"):
+        installed.main(
+            [
+                "current",
+                "--manifest",
+                str(tmp_path / "worker.json"),
+                "--candidate-revision",
+                revision,
+            ]
+        )
+
+
 def test_setup_shows_what_the_installer_built(tmp_path):
     from test_miner_launchpad_environment_setup import Checks, Onboarding
 
@@ -185,6 +350,19 @@ FAKE_CHECKOUT = {
         "mkdir -p .venv/bin\n"
         'cp "$CARBON_TEST_PYTHON" .venv/bin/python\n'
         'cp "$CARBON_TEST_CONTROL_CENTER" .venv/bin/carbon-control-center\n'
+        'if [ "${CARBON_TEST_BOOTSTRAP_METADATA:-}" = normal ]; then\n'
+        '  [ "${PYTHONDONTWRITEBYTECODE:-}" = 1 ] || exit 12\n'
+        '  [ -z "${UV_NO_EDITABLE:-}" ] || exit 13\n'
+        "  mkdir carbon.egg-info\n"
+        "  printf 'editable package metadata\\n' > carbon.egg-info/PKG-INFO\n"
+        "fi\n"
+        'if [ "${CARBON_TEST_BOOTSTRAP_METADATA:-}" = link ]; then\n'
+        '  ln -s "$CARBON_TEST_BOOTSTRAP_LINK_TARGET" carbon.egg-info\n'
+        "fi\n"
+        'if [ "${CARBON_TEST_BOOTSTRAP_METADATA:-}" = unknown ]; then\n'
+        "  mkdir carbon.egg-info\n"
+        "  printf 'unknown bytes\\n' > carbon.egg-info/private.txt\n"
+        "fi\n"
     ),
     "scripts/dev/c03_worker_image.sh": (
         '#!/bin/sh\nmkdir -p "$(dirname "$1")"\n'
@@ -203,6 +381,20 @@ FAKE_PYTHON = """#!/bin/sh
 echo "python $*" >> "$CARBON_TEST_LOG"
 case "$1" in -c) exec "$CARBON_TEST_REAL_PYTHON" "$@" ;; esac
 case "$2" in
+  scripts.dev.development_image_artifact)
+    case "$*" in
+      *--print-analysis-manifest*)
+        if [ "${CARBON_TEST_DEV_PAIR_PATH_STATUS:-${CARBON_TEST_DEV_PAIR_STATUS:-ABSENT}}" = VERIFIED ]; then
+          echo "$PWD/.carbon-artifacts/research-images/analysis.json"
+        else
+          echo INVALID; exit 2
+        fi
+        exit 0 ;;
+    esac
+    case "${CARBON_TEST_DEV_PAIR_STATUS:-ABSENT}" in
+      INVALID) echo INVALID; exit 2 ;;
+      *) echo "${CARBON_TEST_DEV_PAIR_STATUS:-ABSENT}" ;;
+    esac ;;
   carbon.development_session.research_image)
     mkdir -p .carbon-artifacts/research-images
     echo '{}' > .carbon-artifacts/research-images/analysis.json
@@ -236,7 +428,12 @@ case "$2" in
     cp "$5" "$7" ;;
 esac
 """
-FAKE_CONTROL_CENTER = '#!/bin/sh\necho "control center $*" >> "$CARBON_TEST_LOG"\n'
+FAKE_CONTROL_CENTER = (
+    "#!/bin/sh\n"
+    'if [ "${CARBON_TEST_ASSERT_NO_BYTECODE:-}" = 1 ] && '
+    '[ "${PYTHONDONTWRITEBYTECODE:-}" != 1 ]; then exit 14; fi\n'
+    'echo "control center $*" >> "$CARBON_TEST_LOG"\n'
+)
 
 
 class Sandbox:
@@ -270,7 +467,9 @@ class Sandbox:
         self._executable(self.work / "scripts" / "install_miner.sh", SCRIPT.read_text())
         for name, text in FAKE_CHECKOUT.items():
             self._executable(self.work / name, text)
-        (self.work / ".gitignore").write_text(".venv/\n.carbon-artifacts/\n")
+        (self.work / ".gitignore").write_text(
+            ".venv/\n.carbon-artifacts/\n*.egg-info/\nbuild/\n__pycache__/\n"
+        )
         self.commit("the first revision")
         self.git("remote", "add", "origin", str(self.origin))
         self.git("push", "--quiet", "origin", "main")
@@ -399,6 +598,265 @@ def test_a_ref_outside_main_is_refused_before_anything_moves(sandbox):
     assert sandbox.logged() == []
 
 
+def test_explicit_development_candidate_builds_only_the_exact_local_tree(sandbox):
+    """The unmerged route is explicit and leaves the normal main guard intact."""
+    import hashlib
+
+    sandbox.git("checkout", "--quiet", "-b", "candidate", cwd=sandbox.clone)
+    (sandbox.clone / ".gitignore").write_text(
+        ".venv/\n.carbon-artifacts/\n# candidate\n"
+    )
+    sandbox.git("add", ".gitignore", cwd=sandbox.clone)
+    sandbox.git("commit", "--quiet", "-m", "candidate", cwd=sandbox.clone)
+    revision = sandbox.head()
+    tree = sandbox.git("rev-parse", "HEAD^{tree}", cwd=sandbox.clone)
+    archive = subprocess.check_output(
+        ["git", "archive", "--format=tar", "HEAD"], cwd=sandbox.clone
+    )
+    source = "sha256:" + hashlib.sha256(archive).hexdigest()
+    state = sandbox.tmp / "home" / ".carbon" / "s5-candidate"
+
+    ordinary = sandbox.run("--ref", revision, "--no-start")
+    assert ordinary.returncode == 2
+    assert "is not in Carbon's main" in ordinary.stderr
+    assert sandbox.logged() == []
+
+    wrong = sandbox.run(
+        "--development-candidate",
+        "f" * 40,
+        tree,
+        source,
+        "--no-start",
+        CARBON_STATE_DIR=str(state),
+    )
+    assert wrong.returncode == 2
+    assert "revision differs" in wrong.stderr
+    assert sandbox.logged() == []
+
+    built = sandbox.run(
+        "--development-candidate",
+        revision,
+        tree,
+        source,
+        "--no-start",
+        CARBON_STATE_DIR=str(state),
+    )
+    assert built.returncode == 0, built.stderr
+    assert sandbox.head() == revision
+    assert any("verify-development-source" in line for line in sandbox.logged())
+    assert any("bind-development-candidate" in line for line in sandbox.logged())
+    assert any(line.startswith("worker ") for line in sandbox.logged())
+    assert (
+        "PYTHONDONTWRITEBYTECODE=1 "
+        f"{sandbox.clone}/.venv/bin/carbon-control-center --state-dir "
+        f"{state} --port 8788"
+    ) in built.stdout
+
+
+def _local_development_identity(sandbox):
+    import hashlib
+
+    sandbox.git("checkout", "--quiet", "-b", "candidate", cwd=sandbox.clone)
+    (sandbox.clone / "candidate.txt").write_text("local development candidate\n")
+    sandbox.git("add", "candidate.txt", cwd=sandbox.clone)
+    sandbox.git("commit", "--quiet", "-m", "candidate", cwd=sandbox.clone)
+    revision = sandbox.head()
+    tree = sandbox.git("rev-parse", "HEAD^{tree}", cwd=sandbox.clone)
+    archive = subprocess.check_output(
+        ["git", "archive", "--format=tar", "HEAD"], cwd=sandbox.clone
+    )
+    source = "sha256:" + hashlib.sha256(archive).hexdigest()
+    state = sandbox.tmp / "home" / ".carbon" / "s5-candidate"
+    return revision, tree, source, state
+
+
+def test_development_editable_bootstrap_removes_only_its_metadata(sandbox):
+    revision, tree, source, state = _local_development_identity(sandbox)
+    completed = sandbox.run(
+        "--development-candidate",
+        revision,
+        tree,
+        source,
+        "--no-start",
+        CARBON_STATE_DIR=str(state),
+        CARBON_TEST_BOOTSTRAP_METADATA="normal",
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert not (sandbox.clone / "carbon.egg-info").exists()
+    assert not (sandbox.clone / "build").exists()
+    assert any("verify-development-source" in line for line in sandbox.logged())
+    assert any("bind-development-candidate" in line for line in sandbox.logged())
+    assert any(line.startswith("worker ") for line in sandbox.logged())
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["carbon.egg-info/rogue.py", "build/extension.so", "carbon/__pycache__/rogue.pyc"],
+)
+def test_development_bootstrap_preserves_preexisting_ignored_source(sandbox, path):
+    revision, tree, source, state = _local_development_identity(sandbox)
+    ignored = sandbox.clone / path
+    ignored.parent.mkdir(parents=True)
+    ignored.write_text("pre-existing ignored runtime source\n")
+    completed = sandbox.run(
+        "--development-candidate",
+        revision,
+        tree,
+        source,
+        "--no-start",
+        CARBON_STATE_DIR=str(state),
+        CARBON_TEST_BOOTSTRAP_METADATA="normal",
+    )
+    assert completed.returncode == 2
+    assert "ignored runtime source before bootstrap" in completed.stderr
+    assert ignored.read_text() == "pre-existing ignored runtime source\n"
+    assert sandbox.logged() == []
+
+
+def test_development_bootstrap_never_removes_linked_metadata_target(sandbox):
+    revision, tree, source, state = _local_development_identity(sandbox)
+    outside = sandbox.tmp / "outside"
+    outside.mkdir()
+    marker = outside / "mine.txt"
+    marker.write_text("keep\n")
+    completed = sandbox.run(
+        "--development-candidate",
+        revision,
+        tree,
+        source,
+        "--no-start",
+        CARBON_STATE_DIR=str(state),
+        CARBON_TEST_BOOTSTRAP_METADATA="link",
+        CARBON_TEST_BOOTSTRAP_LINK_TARGET=str(outside),
+    )
+    assert completed.returncode == 2
+    assert "bootstrap output is not an owned directory" in completed.stderr
+    assert (sandbox.clone / "carbon.egg-info").is_symlink()
+    assert marker.read_text() == "keep\n"
+    assert not any("verify-development-source" in line for line in sandbox.logged())
+
+
+def test_development_bootstrap_refuses_unknown_metadata_without_deleting_it(sandbox):
+    revision, tree, source, state = _local_development_identity(sandbox)
+    completed = sandbox.run(
+        "--development-candidate",
+        revision,
+        tree,
+        source,
+        "--no-start",
+        CARBON_STATE_DIR=str(state),
+        CARBON_TEST_BOOTSTRAP_METADATA="unknown",
+    )
+    assert completed.returncode == 2
+    assert "unexpected metadata" in completed.stderr
+    assert (sandbox.clone / "carbon.egg-info" / "private.txt").read_text() == (
+        "unknown bytes\n"
+    )
+    assert not any("verify-development-source" in line for line in sandbox.logged())
+
+
+def test_development_candidate_refuses_symlink_alias_of_default_state_before_write(
+    sandbox,
+):
+    sandbox.state.mkdir(parents=True, mode=0o700)
+    installed_record = sandbox.state / "installed-images.json"
+    installed_record.write_text("default install stays intact\n")
+    alias = sandbox.tmp / "alias-home"
+    alias.symlink_to(sandbox.tmp / "home", target_is_directory=True)
+    before = sandbox.head()
+
+    completed = sandbox.run(
+        "--development-candidate",
+        "a" * 40,
+        "b" * 40,
+        "sha256:" + "c" * 64,
+        "--no-start",
+        CARBON_STATE_DIR=str(alias / ".carbon" / "development-launchpad"),
+    )
+    assert completed.returncode == 2
+    assert "requires its own CARBON_STATE_DIR" in completed.stderr
+    assert installed_record.read_text() == "default install stays intact\n"
+    assert sandbox.head() == before
+    assert sandbox.logged() == []
+
+
+@pytest.mark.parametrize(
+    ("pair_status", "gpu_installed", "path_status", "images_gone", "expected_result"),
+    [
+        ("VERIFIED", "no", "VERIFIED", "no", 0),
+        ("VERIFIED", "yes", "VERIFIED", "no", 2),
+        ("VERIFIED", "no", "INVALID", "no", 2),
+        ("VERIFIED", "no", "VERIFIED", "yes", 2),
+        ("ABSENT", "no", "ABSENT", "no", 2),
+        ("INVALID", "no", "INVALID", "no", 2),
+        ("SURPRISE", "no", "SURPRISE", "no", 2),
+    ],
+)
+def test_development_pair_cache_controls_only_the_cpu_build_reserve(
+    sandbox, pair_status, gpu_installed, path_status, images_gone, expected_result
+):
+    """An exact installed pair avoids a new build reserve; a miss or invalid
+    pair cannot silently spend the same 13 GiB as if no build were needed."""
+    import hashlib
+
+    sandbox.git("checkout", "--quiet", "-b", "candidate", cwd=sandbox.clone)
+    (sandbox.clone / ".gitignore").write_text(
+        ".venv/\n.carbon-artifacts/\n# candidate\n"
+    )
+    sandbox.git("add", ".gitignore", cwd=sandbox.clone)
+    sandbox.git("commit", "--quiet", "-m", "candidate", cwd=sandbox.clone)
+    revision = sandbox.head()
+    tree = sandbox.git("rev-parse", "HEAD^{tree}", cwd=sandbox.clone)
+    archive = subprocess.check_output(
+        ["git", "archive", "--format=tar", "HEAD"], cwd=sandbox.clone
+    )
+    source = "sha256:" + hashlib.sha256(archive).hexdigest()
+    state = sandbox.tmp / "home" / ".carbon" / "s5-candidate"
+    fake_df(sandbox, 13 * 1048576)
+
+    # The pure-read verifier is the authority for both existing manifests and
+    # Docker identities. The stand-in current-image check then reuses C-03.
+    manifest = sandbox.clone / ".carbon-artifacts" / "c03-worker-image.json"
+    manifest.parent.mkdir()
+    manifest.write_text(f'{{"image_id": "sha256:{revision}"}}')
+    analysis = sandbox.clone / ".carbon-artifacts" / "research-images" / "analysis.json"
+    analysis.parent.mkdir()
+    analysis.write_text('{"image_id": "sha256:analysis"}')
+    completed = sandbox.run(
+        "--development-candidate",
+        revision,
+        tree,
+        source,
+        "--no-start",
+        CARBON_STATE_DIR=str(state),
+        CARBON_TEST_DEV_PAIR_STATUS=pair_status,
+        CARBON_TEST_DEV_PAIR_PATH_STATUS=path_status,
+        CARBON_TEST_GPU_INSTALLED=gpu_installed,
+        CARBON_TEST_IMAGES_GONE=images_gone,
+    )
+    assert completed.returncode == expected_result, completed.stderr
+    assert any(
+        "development_image_artifact verify-installed" in line
+        for line in sandbox.logged()
+    )
+    assert not any(line.startswith("worker ") for line in sandbox.logged())
+    if pair_status == "ABSENT" or gpu_installed == "yes":
+        assert "need 17 GiB free" in completed.stderr
+    elif pair_status == "INVALID":
+        assert "cache is invalid" in completed.stderr
+    elif pair_status == "SURPRISE":
+        assert "unknown status" in completed.stderr
+    elif path_status == "INVALID" or images_gone == "yes":
+        assert "cache changed" in completed.stderr or "pair changed" in completed.stderr
+    else:
+        assert "need 17 GiB free" not in completed.stderr
+        assert any("--print-analysis-manifest" in line for line in sandbox.logged())
+        assert not any(
+            "carbon.development_session.research_image" in line
+            for line in sandbox.logged()
+        )
+
+
 def test_too_little_disk_stops_the_install_before_it_builds(sandbox):
     df = sandbox.tools / "df"
     df.write_text(
@@ -481,6 +939,7 @@ def test_an_install_syncs_every_documented_group_and_prints_the_start_command(
     assert "What this install changed: (fixture)" in completed.stdout
     assert "Start it again later with:" in completed.stdout
     assert (
+        f"PYTHONDONTWRITEBYTECODE=1 "
         f"{sandbox.clone}/.venv/bin/carbon-control-center --state-dir "
         f"{sandbox.state} --port 8788"
     ) in completed.stdout
@@ -489,7 +948,7 @@ def test_an_install_syncs_every_documented_group_and_prints_the_start_command(
 
 
 def test_an_install_prints_the_restart_command_before_it_starts(sandbox):
-    completed = sandbox.run()
+    completed = sandbox.run(CARBON_TEST_ASSERT_NO_BYTECODE="1")
     assert completed.returncode == 0, completed.stderr
     assert "Start it again later with:" in completed.stdout
     assert sandbox.logged()[-1] == (
@@ -1318,3 +1777,4 @@ def test_the_service_unit_runs_unbuffered():
 
     text = service_unit(Path("/srv/miner/state"), 8788, Path("/srv/miner/carbon"))
     assert "Environment=PYTHONUNBUFFERED=1\n" in text
+    assert "Environment=PYTHONDONTWRITEBYTECODE=1\n" in text

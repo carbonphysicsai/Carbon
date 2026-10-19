@@ -193,6 +193,7 @@ WITHDRAWN = "WITHDRAWN_INCUMBENT_CHANGED"
 #: FAILED_INFRA_EXHAUSTED for the operator (M3-D14): never a score, never
 #: retried automatically again.
 MAX_INFRA_ATTEMPTS = 3
+_NO_COMPARISON = object()
 
 
 class StateError(RuntimeError):
@@ -1557,7 +1558,227 @@ class PoolStore:
             "public": json.loads(row[2]),
         }
 
-    # --- incumbent and finals ---------------------------------------------------------
+    # --- compatible bank results (opt-in DEVELOPMENT common-score path) --------------
+
+    @staticmethod
+    def _bank_operation(kind, submission_id, version):
+        key = canonical([submission_id, version]).encode()
+        return kind + ":" + hashlib.sha256(key).hexdigest()
+
+    def bank_result(self, submission_id, version):
+        """Read immutable evidence, including historical bank versions."""
+        op = self._bank_operation("bank_result", submission_id, version)
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=? AND kind='bank_result'",
+                (op,),
+            ).fetchone()
+        return None if row is None else json.loads(row[0])
+
+    def bank_comparison(self, result):
+        """A completed decision replays without re-promoting an old winner."""
+        op = self._bank_operation(
+            "bank_comparison", result.submission_id, result.version.identity
+        )
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=? AND kind='bank_comparison'",
+                (op,),
+            ).fetchone()
+        if row is None:
+            return None
+        body = json.loads(row[0])
+        if body["result_digest"] != result.identity:
+            raise StateError("bank_result_changed")
+        return body
+
+    def record_bank_result(
+        self, result, *, expected_incumbent=_NO_COMPARISON, promote=False
+    ):
+        """Refuse the old unbound proposal format without touching history."""
+        from carbon.challenge_validator.bank_promotion import BankResult
+
+        if type(result) is not BankResult:
+            raise StateError("score_unavailable")
+        raise StateError("evaluation_binding_unavailable")
+
+    @staticmethod
+    def _private_model(db, submission_id, evidence, recipe_digest):
+        """Join independently retained state to its admitted owner/recipe."""
+        row = db.execute(
+            "SELECT s.hotkey,s.challenge,s.binding,s.state,s.request_digest,"
+            "m.recipe_digest,m.state_digest,m.state FROM submissions s "
+            "JOIN models m ON m.model_id=s.submission_id WHERE s.submission_id=?",
+            (submission_id,),
+        ).fetchone()
+        if row is None:
+            raise StateError("private_evaluation_model_unavailable")
+        try:
+            binding = json.loads(row[2])
+        except ValueError:
+            raise StateError("private_evaluation_model_binding") from None
+        if type(binding) is not dict:
+            raise StateError("private_evaluation_model_binding")
+        challenge = binding.get("challenge")
+        if (
+            row[3] not in {"RECONSTRUCTED", "SCORED"}
+            or type(row[0]) is not str
+            or not row[0]
+            or row[1] != evidence["challenge"]
+            or type(challenge) is not dict
+            or challenge.get("id") != evidence["challenge"]
+            or challenge.get("version") != evidence["challenge_version"]
+            or binding.get("recipe_digest") != recipe_digest
+            or row[5] != recipe_digest
+            or row[6] != evidence["state_digest"]
+            or "sha256:" + hashlib.sha256(row[7]).hexdigest() != row[6]
+        ):
+            raise StateError("private_evaluation_model_binding")
+        return {"hotkey": row[0], "request_digest": row[4]}
+
+    def record_private_evaluation(
+        self, submission_id, *, registered_source_receipt_sha256, **original_evidence
+    ):
+        """Resolve the actual core; store versioned DEVELOPMENT data only.
+
+        The pin must come from independent trusted operator registration.
+        No sidecar-only input, caller eligibility flag, public score, admission
+        rotation, incumbent change or final obligation is accepted here.
+        """
+        try:
+            from carbon.scoring.private_evaluation_evidence import (
+                PrivateEvaluationEvidenceRefused,
+                bind_private_evaluation_evidence,
+            )
+        except ImportError:
+            raise StateError("private_evaluation_binding_unavailable") from None
+        from carbon.challenge_validator.bank_promotion import private_evaluation_key
+
+        try:
+            evidence = bind_private_evaluation_evidence(
+                registered_source_receipt_sha256=registered_source_receipt_sha256,
+                **original_evidence,
+            )
+        except PrivateEvaluationEvidenceRefused as refused:
+            raise StateError(str(refused)) from None
+        except TypeError:
+            raise StateError("private_evaluation_inputs_invalid") from None
+        key = private_evaluation_key(evidence)
+        recipe_digest = original_evidence["entry"]["recipe_digest"]
+        op = self._bank_operation("private_evaluation.v1", submission_id, key)
+        with self.transaction() as db:
+            owner = self._private_model(db, submission_id, evidence, recipe_digest)
+            body = {
+                "schema": "carbon.challenge-validator.private-evaluation-cache.v1",
+                "submission_id": submission_id,
+                "owner": owner,
+                "recipe_digest": recipe_digest,
+                "evaluation_key": key,
+                "evidence": evidence,
+            }
+            row = db.execute(
+                "SELECT kind,state,body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+            if row is not None:
+                if row != (
+                    "private_evaluation.v1",
+                    "BOUND_DEVELOPMENT_ONLY",
+                    canonical(body),
+                ):
+                    raise StateError("private_evaluation_changed")
+            else:
+                db.execute(
+                    "INSERT INTO operations VALUES(?,?,?,?)",
+                    (
+                        op,
+                        "private_evaluation.v1",
+                        "BOUND_DEVELOPMENT_ONLY",
+                        canonical(body),
+                    ),
+                )
+        return body
+
+    def _private_evaluation(self, db, submission_id, key, source_pin):
+        from carbon.challenge_validator.bank_promotion import private_evaluation_key
+
+        op = self._bank_operation("private_evaluation.v1", submission_id, key)
+        row = db.execute(
+            "SELECT kind,state,body FROM operations WHERE op_id=?", (op,)
+        ).fetchone()
+        if row is None:
+            return None
+        try:
+            body = json.loads(row[2])
+            if (
+                row[:2] != ("private_evaluation.v1", "BOUND_DEVELOPMENT_ONLY")
+                or type(body) is not dict
+                or set(body)
+                != {
+                    "schema",
+                    "submission_id",
+                    "owner",
+                    "recipe_digest",
+                    "evaluation_key",
+                    "evidence",
+                }
+                or body.get("schema")
+                != "carbon.challenge-validator.private-evaluation-cache.v1"
+                or body.get("submission_id") != submission_id
+                or body.get("evaluation_key") != key
+                or private_evaluation_key(body["evidence"]) != key
+            ):
+                raise StateError("private_evaluation_corrupt")
+        except (ValueError, TypeError, KeyError):
+            raise StateError("private_evaluation_corrupt") from None
+        if body["evidence"]["source_receipt_sha256"] != source_pin:
+            raise StateError("evaluation_source_changed")
+        owner = self._private_model(
+            db, submission_id, body["evidence"], body["recipe_digest"]
+        )
+        if owner != body["owner"]:
+            raise StateError("private_evaluation_owner_changed")
+        return body
+
+    def private_evaluation_pair(
+        self, submission_id, key, *, registered_source_receipt_sha256
+    ):
+        """One transactional incumbent snapshot; no comparison or promotion.
+
+        New evaluation/pack/profile identities require comparable incumbent
+        evidence once. Retaining it never changes the incumbent/reward clock.
+        Candidate-specific failure states remain intact in each model result.
+        """
+        from carbon.challenge_validator.interface import is_digest
+
+        if not is_digest(registered_source_receipt_sha256):
+            raise StateError("source_pin_missing")
+        if not is_digest(key):
+            raise StateError("private_evaluation_key_invalid")
+        with self.transaction() as db:
+            candidate = self._private_evaluation(
+                db, submission_id, key, registered_source_receipt_sha256
+            )
+            if candidate is None:
+                raise StateError("candidate_evaluation_required")
+            incumbent_id = self._incumbent_id(db)
+            incumbent = (
+                None
+                if incumbent_id is None
+                else self._private_evaluation(
+                    db, incumbent_id, key, registered_source_receipt_sha256
+                )
+            )
+            if incumbent_id is not None and incumbent is None:
+                raise StateError("incumbent_evaluation_required")
+            return {
+                "scope": "PRIVATE_OPERATOR_DEVELOPMENT",
+                "evaluation_key": key,
+                "expected_incumbent": incumbent_id,
+                "candidate": candidate,
+                "incumbent": incumbent,
+            }
+
+    # --- incumbent and historical finals ---------------------------------------------
 
     def incumbent(self):
         with self.db() as db:

@@ -100,29 +100,103 @@ function lastPost(state, url) { return [...state.posted].reverse().find(entry =>
 const scenarios = [];
 const scenario = (name, run) => scenarios.push([name, run]);
 
-scenario("normal challenge selection shows only its registered construction options", async () => {
+scenario("normal challenge selection shows only its construction serving paths", async () => {
   const challenge = selectable();
   const state = world();
-  const document = state.options.construction_options?.[challenge.challenge_id];
-  assert.ok(document?.types?.length, "the actual options response names this Challenge's construction changes");
+  const document = state.options.construction_paths?.[challenge.challenge_id];
+  assert.equal(state.options.schema, "carbon.launchpad.launch-options.v2");
+  assert.equal(document?.challenge?.id, challenge.challenge_id,
+    "the actual options response binds paths to this Challenge");
+  assert.ok(document?.paths?.some(path => path.id === "official_submission"),
+    "the actual options response names this Challenge's submission path");
   const page = await open(state);
   page.go("#launch");
   await page.advance(0);
   assert.equal(one(page, "#wizard-construction-options").hidden, true);
   await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id));
   assert.equal(one(page, "#wizard-construction-options").hidden, false);
-  assert.match(page.text("wizard-construction-options"), /What you can change/);
-  assert.ok(page.text("wizard-construction-options").includes(document.types[0].label));
+  assert.match(page.text("wizard-construction-options"), /Construction serving paths/);
+  assert.match(page.text("wizard-construction-options"), /Official submission · unserved/);
   clean(page);
 
   const unknown = world();
-  unknown.options.construction_options = {"another-challenge": document};
+  unknown.options.construction_paths = {"another-challenge": document};
   const second = await open(unknown);
   second.go("#launch");
   await second.advance(0);
   await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id));
-  assert.equal(one(second, "#wizard-construction-options").hidden, true,
-    "an unrelated response key must not supply construction options for this Challenge");
+  assert.equal(one(second, "#wizard-construction-options").hidden, false);
+  assert.match(second.text("wizard-construction-options"), /Construction path status unavailable/);
+  assert.doesNotMatch(second.text("wizard-construction-options"), /Official submission · unserved/,
+    "an unrelated response key must not supply construction paths for this Challenge");
+  clean(second);
+});
+
+scenario("v2 construction paths render without family admission claims", async () => {
+  const challenge = selectable();
+  const state = launchable(world());
+  const pathDocument = {
+    schema: "carbon.launchpad.construction-paths.v1",
+    challenge: {id: challenge.challenge_id, version: challenge.version},
+    construction_kit: null,
+    paths: [
+      {id: "public_reconstruction", availability: "available", reason: "isolated_public_worker_served_for_supported_recipe_operations"},
+      {id: "official_submission", availability: "unserved", reason: "receiver_paired_direct_reconstruction_unserved"},
+    ],
+    qualification: false,
+  };
+  state.options = {
+    ...state.options,
+    schema: "carbon.launchpad.launch-options.v2",
+    construction_paths: {[challenge.challenge_id]: pathDocument},
+  };
+  delete state.options.families;
+  delete state.options.families_by_challenge;
+  delete state.options.construction_options;
+  const page = await open(state);
+  await wizardTo(page, "review");
+  const notice = page.text("wizard-construction-options");
+  assert.match(notice, /Construction serving paths/);
+  assert.match(notice, /Public reconstruction · available for a compatible bounded recipe/);
+  assert.match(notice, /Official submission · unserved/);
+  assert.match(notice, /Scientific qualification: untested/);
+  assert.doesNotMatch(notice, /Families you can freeze|What you can change/);
+  const availability = page.text("launch-availability");
+  assert.match(availability, /Official submission · unserved/);
+  assert.doesNotMatch(availability, /Model families/);
+  clean(page);
+
+  const registered = launchable(world());
+  registered.options = {
+    ...state.options,
+    construction_paths: {
+      [challenge.challenge_id]: {
+        ...pathDocument,
+        paths: [
+          {id: "public_reconstruction", availability: "unserved",
+            reason: "public_reconstruction_registered_host_readiness_unverified"},
+          pathDocument.paths[1],
+        ],
+      },
+    },
+  };
+  const pending = await open(registered);
+  await wizardTo(pending, "review");
+  assert.match(pending.text("wizard-construction-options"),
+    /Public reconstruction · registered capability; host serving unverified/);
+  assert.doesNotMatch(pending.text("wizard-construction-options"),
+    /Public reconstruction · available/);
+  clean(pending);
+
+  const unrelated = launchable(world());
+  unrelated.options = {...state.options, construction_paths: {other: pathDocument}};
+  const second = await open(unrelated);
+  second.go("#launch");
+  await second.advance(0);
+  await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id));
+  assert.match(second.text("wizard-construction-options"), /Construction path status unavailable/);
+  assert.doesNotMatch(second.text("wizard-construction-options"), /Public reconstruction · available/,
+    "another Challenge's path document cannot be shown for this choice");
   clean(second);
 });
 
@@ -860,6 +934,75 @@ scenario("Tools: a result reads as lines of text", async () => {
   const text = readable({verdict: "submittable", findings: [{field: "width", ok: true}], cost: {trials: 1}, note: null, list: []});
   assert.equal(text, ["verdict: submittable", "findings:", "  -", "    field: width", "    ok: yes", "cost:", "  trials: 1", "note: none", "list: (none)"].join("\n"));
   clean(page);
+});
+
+scenario("Construction: a fresh Launchpad uses its offered direct session and pinned receiver actions", async () => {
+  const session = "direct-development-1.3";
+  const base = "/api/v1/tools/" + session;
+  // The exact registered 1.3 kit and recipe shape. The fake stage/submit replies
+  // below exercise browser forwarding only: no graph bytes or receiver run here.
+  const interfaceDigest = "sha256:7413bab4aa4c549c416a687b380dc9ef0731f6471030e451fe9242539a45d504";
+  const recipe = {
+    schema: "carbon.construction-recipe.v1",
+    challenge: {id: "synthetic-linear-field-2d", version: "1.3",
+      train_digest: "sha256:95aec24fe064b05bbb8750820c2c95bfac7117ba56496a58bdcc570b8438b867",
+      interface_digest: interfaceDigest,
+      construction_limits_digest: "sha256:e4486fb177124c6e3db12096855db5601791264df8123a74f26a0747b0f7a158"},
+    source: {kind: "graph", submission_digest: "sha256:" + "a".repeat(64)},
+    procedure: {entrypoint: null, configuration: {}, train_use: {cases: "all"}, initial_state: null},
+    output: {format: "carbon.numeric-graph.v1", interface_digest: interfaceDigest},
+  };
+  const state = world();
+  state.runs = [];
+  state.script.push(
+    {match: r => r.method === "GET" && r.path === base, keep: true, answer: {body: {campaign: session, open: false, idle_close_seconds: 600}}},
+    {match: r => r.method === "POST" && r.path === base + "/open", answer: {body: {campaign: session, open: true, development_only: true,
+      challenge: {id: "synthetic-linear-field-2d", version: "1.3"}, construction_intake_configured: true, tools: [], tasks: []}}},
+    {match: r => r.path === base + "/stage_construction_graph", answer: {body: {ok: true, result: {status: "STAGED", source_digest: "sha256:abc"}}}},
+    {match: r => r.path === base + "/submit_construction", answer: {body: {ok: true, result: {state: "ADMITTED", task_id: "task-1"}, score_status: "SCORE_UNAVAILABLE", official_eligible: false}}},
+    {match: r => r.path === base + "/submit_construction", answer: {body: {ok: true, result: {state: "RECONSTRUCTED", task_id: "task-1", state_digest: "sha256:" + "e".repeat(64), predictions_digest: "sha256:" + "f".repeat(64)}, score_status: "SCORE_UNAVAILABLE", official_eligible: false}}},
+  );
+  const page = await open(state);
+  page.go("#campaigns");
+  await page.advance(0);
+  const entry = one(page, "#direct-construction-entry");
+  assert.match(page.text(entry), /Direct construction · DEVELOPMENT/);
+  assert.equal(state.runs.length, 0, "a product campaign is not needed");
+  await page.press([...all(page, "#direct-construction-entry button")].find(b => b.textContent === "Open the tools"));
+  assert.match(page.text(entry), /Evaluation and scoring are separate and currently unavailable/);
+  assert.match(page.text(entry), /rebuild result is not a score, verdict, qualification or reward/);
+  const textarea = [...all(page, "#direct-construction-entry textarea")].find(n => n.getAttribute("aria-label") === "Construction recipe JSON");
+  textarea.value = JSON.stringify(recipe);
+  const digest = [...all(page, "#direct-construction-entry input")].find(n => n.getAttribute("aria-label") === "Expected graph manifest digest");
+  digest.value = "sha256:" + "a".repeat(64);
+  await page.press([...all(page, "#direct-construction-entry button")].find(b => b.textContent === "Stage graph source"));
+  assert.deepEqual(lastPost(state, base + "/stage_construction_graph").body, {recipe, expected_manifest_digest: digest.value});
+  await page.press([...all(page, "#direct-construction-entry button")].find(b => b.textContent === "Submit for clean rebuild"));
+  assert.deepEqual(lastPost(state, base + "/submit_construction").body, {recipe});
+  assert.match(page.text(entry), /ADMITTED/);
+  assert.equal(textarea.readOnly, true);
+  textarea.value = "{}"; // the status control keeps the admitted recipe, not the edited field
+  await page.press([...all(page, "#direct-construction-entry button")].find(b => b.textContent === "Check rebuild status"));
+  assert.deepEqual(lastPost(state, base + "/submit_construction").body, {recipe});
+  assert.deepEqual(JSON.parse(textarea.value), recipe);
+  assert.match(page.text(entry), /RECONSTRUCTED/);
+  assert.ok([...all(page, "#direct-construction-entry button")].some(b => b.textContent === "Rebuild complete" && b.disabled));
+  assert.match(page.text(entry), /SCORE_UNAVAILABLE|SCORE UNAVAILABLE|score status: SCORE_UNAVAILABLE/i);
+  assert.equal(state.posted.some(post => post.path === "/api/v1/operations/submit"), false, "no Battery campaign submission");
+  clean(page);
+
+  const unavailable = world();
+  unavailable.script.push(
+    {match: r => r.method === "GET" && r.path === base, keep: true, answer: {body: {campaign: session, open: false}}},
+    {match: r => r.path === base + "/open", answer: {body: {campaign: session, open: true, development_only: true,
+      challenge: {id: "synthetic-linear-field-2d", version: "1.3"}, construction_intake_configured: false, tools: [], tasks: []}}},
+  );
+  const second = await open(unavailable);
+  second.go("#campaigns"); await second.advance(0);
+  await second.press([...all(second, "#direct-construction-entry button")].find(b => b.textContent === "Open the tools"));
+  assert.match(second.text("direct-construction-entry"), /No direct construction receiver is pinned/);
+  assert.equal([...all(second, "#direct-construction-entry button")].some(b => b.textContent === "Submit for clean rebuild"), false);
+  clean(second);
 });
 
 // ---- 7. Budgets in human units; links; the MCP command. ----

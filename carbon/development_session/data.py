@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
-from carbon.evaluation.enums import ReferenceRunOutcome
+from carbon.evaluation.enums import ReferenceFailureReason, ReferenceRunOutcome
 from carbon.generators import burgers_dynamics
 from carbon.generators.burgers_dynamics import (
     DOMAIN_LENGTH,
@@ -63,6 +63,57 @@ def write_once(path: Path, payload: bytes):
                 raise ValueError("immutable session artifact conflict") from None
     finally:
         os.unlink(staged)
+
+
+def _failure_resource_summary(resources: object) -> dict[str, int | None]:
+    """Retain only bounded counters useful for private reference diagnosis."""
+
+    def mapping(value: object) -> dict[str, object]:
+        return value if type(value) is dict else {}
+
+    def counter(value: object) -> int | None:
+        return value if type(value) is int and 0 <= value <= 2**63 - 1 else None
+
+    observed = mapping(resources)
+    memory = mapping(observed.get("memory"))
+    events = mapping(memory.get("events"))
+    pids = mapping(observed.get("pids"))
+    return {
+        "memory_peak_bytes": counter(memory.get("peak_bytes")),
+        "memory_oom_events": counter(events.get("oom")),
+        "memory_oom_kill_events": counter(events.get("oom_kill")),
+        "pids_peak": counter(pids.get("peak")),
+    }
+
+
+def _retain_reference_failure(
+    record_path: Path, request_digest: str, result: object
+) -> None:
+    """Retain a private typed failure in the existing result family, then stop."""
+
+    try:
+        observed = result.result
+        if (
+            type(observed.outcome) is ReferenceRunOutcome
+            and observed.outcome is not ReferenceRunOutcome.SUPPORTED
+            and type(observed.failure_reason) is ReferenceFailureReason
+        ):
+            write_once(
+                record_path,
+                canonical(
+                    {
+                        "request_digest": request_digest,
+                        "outcome": observed.outcome.value,
+                        "failure_reason": observed.failure_reason.value,
+                        "resources": _failure_resource_summary(result.resources),
+                        "candidate_judged": False,
+                    }
+                ),
+            )
+    except (OSError, ValueError, TypeError, AttributeError):
+        # Evidence failure never replaces the original non-SUPPORTED stop.
+        pass
+    raise ValueError("reference failure; retain run and stop, no case replacement")
 
 
 def context(root: Path) -> MockContext:
@@ -190,6 +241,10 @@ def prepare(root: Path, image_manifest: Path) -> dict[str, object]:
             record = json.loads(record_path.read_bytes())
             if record["request_digest"] != request.request_digest:
                 raise ValueError("reference association conflict")
+            if record.get("outcome") is not None:
+                raise ValueError(
+                    "reference failure; retain run and stop, no case replacement"
+                )
             payload = Path(record["solution_path"]).read_bytes()
             if digest(payload) != record["payload_digest"]:
                 raise ValueError("reference artifact changed")
@@ -199,9 +254,7 @@ def prepare(root: Path, image_manifest: Path) -> dict[str, object]:
                 lambda request=request: controller.execute(request),
             )
             if result.result.outcome is not ReferenceRunOutcome.SUPPORTED:
-                raise ValueError(
-                    "reference failure; retain run and stop, no case replacement"
-                )
+                _retain_reference_failure(record_path, request.request_digest, result)
             solution_path = result.snapshot_path / "solution.f64le"
             payload = solution_path.read_bytes()
             record = {

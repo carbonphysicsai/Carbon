@@ -118,11 +118,120 @@ def accepted_implementation(revision):
     }
 
 
+def development_candidate_implementation(
+    revision, *, expected_tree, expected_source_tree_digest, repository=None
+):
+    """Pin a clean local DEVELOPMENT candidate without granting main acceptance.
+
+    The caller supplies all three immutable identities from a trusted operator
+    record. Ignored source/build paths are refused too: Git's ordinary clean
+    status omits them, while Python or a worker build could read them. Only
+    isolated tool environments and caches are excepted; callers still check
+    the actual worker image, profile, and host.
+    """
+    hex_digits = frozenset("0123456789abcdef")
+    if (
+        type(revision) is not str
+        or len(revision) != 40
+        or set(revision) - hex_digits
+        or type(expected_tree) is not str
+        or len(expected_tree) != 40
+        or set(expected_tree) - hex_digits
+        or type(expected_source_tree_digest) is not str
+        or not expected_source_tree_digest.startswith("sha256:")
+        or len(expected_source_tree_digest) != 71
+        or set(expected_source_tree_digest[7:]) - hex_digits
+    ):
+        raise ValueError("development candidate identity is malformed")
+    repo = (
+        Path(repository)
+        if repository is not None
+        else Path(__file__).resolve().parents[2]
+    )
+    if not repo.is_absolute() or repo.is_symlink() or repo.resolve() != repo:
+        raise ValueError("development candidate requires exact repository root")
+
+    def git(*args):
+        return subprocess.check_output(
+            ["git", *args], cwd=repo, text=True, timeout=30
+        ).strip()
+
+    if Path(git("rev-parse", "--show-toplevel")).resolve() != repo:
+        raise ValueError("development candidate requires exact repository root")
+    head = git("rev-parse", "HEAD")
+    if head != revision or git("status", "--porcelain", "--untracked-files=all"):
+        raise ValueError("development candidate requires the exact clean revision")
+    ignored = git(
+        "ls-files", "--others", "--ignored", "--exclude-standard", "--directory"
+    ).splitlines()
+    isolated = {
+        ".venv/",
+        ".venv-jax-macos/",
+        ".carbon-local/",
+        ".pytest_cache/",
+        ".ruff_cache/",
+        ".carbon-artifacts/",
+        ".agent/runtime/",
+        "website/ask-carbon/.wrangler/",
+    }
+    if any(path not in isolated for path in ignored):
+        raise ValueError("development candidate has ignored runtime source")
+    tree = git("rev-parse", "HEAD^{tree}")
+    if tree != expected_tree:
+        raise ValueError("development candidate tree differs")
+    archive = subprocess.check_output(
+        ["git", "archive", "--format=tar", "HEAD"], cwd=repo, timeout=30
+    )
+    archive_digest = digest(archive)
+    if archive_digest != expected_source_tree_digest:
+        raise ValueError("development candidate source archive differs")
+    return {
+        "revision": head,
+        "tree": tree,
+        "source_tree_digest": archive_digest,
+        "source_authority": "DEVELOPMENT_CANDIDATE",
+    }
+
+
 def verify_current_worker(image, implementation):
     if image.source_tree_digest != implementation["source_tree_digest"]:
         raise ValueError(
             "trusted worker must be built from this exact accepted source revision"
         )
+
+
+def verify_direct_v13_worker(image, implementation, *, role):
+    """Permit only the registered older image ABI for fixed direct v1.3 code.
+
+    The direct route stages its current C03 program; this does not relax the
+    whole-source requirement of campaigns or older direct kits. Docker doctor
+    still verifies the selected immutable image and its recorded labels.
+    """
+    from carbon.reconstruction import torch_profile
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    if type(image) is not WorkerImageIdentity or role not in {"cpu", "torch_gpu"}:
+        raise ValueError("exact direct v1.3 worker role required")
+    if image.source_tree_digest == implementation["source_tree_digest"]:
+        return
+    root = Path(__file__).resolve().parents[2]
+    expected_lock = (
+        digest((root / "uv.lock").read_bytes())
+        if role == "cpu"
+        else torch_profile.GPU_LOCK_DIGEST
+    )
+    recipe = (
+        ".devcontainer/Dockerfile.reconstruction-worker"
+        if role == "cpu"
+        else ".devcontainer/torch/Dockerfile.gpu"
+    )
+    if (
+        image.lock_digest != expected_lock
+        or image.entrypoint_digest
+        != digest((root / "carbon/reconstruction/worker/entrypoint.py").read_bytes())
+        or image.build_recipe_digest != digest((root / recipe).read_bytes())
+    ):
+        raise ValueError("direct v1.3 worker ABI or entrypoint differs")
 
 
 def private_file(path):
@@ -1270,20 +1379,85 @@ async def freeze_candidate(
     refusal = freeze_refusal(ledger.root, strategy)
     if refusal is not None:
         raise OperationRefused(refusal)
-    found = cl.binding(prepared.manifest)
-    try:
-        compiled, envelope = cl.check_freeze(found, strategy, level4_directory)
-    except cl.LevelRefused as refused:
-        raise OperationRefused(refused.code) from None
+    if type(reason) is not str or not 1 <= len(reason) <= 4096:
+        raise ValueError("a bounded selection reason is required")
+    if type(used_feedback) is not bool:
+        raise ValueError("used_feedback is a Boolean")
+    direct = prepared.manifest.get("construction_mode") == "direct"
+    if direct:
+        from .construction_recipe import (
+            RecipeRefused,
+            bind_recipe,
+            graph_envelope_from_workspace,
+        )
+
+        if level4_directory is not None:
+            raise OperationRefused("construction_source_from_workspace_required")
+        campaign = prepared.campaign
+        if not callable(
+            getattr(campaign, "construction_reconstruct", None)
+        ) or not callable(getattr(campaign, "construction_kit", None)):
+            raise OperationRefused("construction_reconstruction_unserved")
+        try:
+            kit = campaign.construction_kit()
+            recipe = bind_recipe(
+                strategy,
+                challenge_id=kit["id"],
+                challenge_version=kit["version"],
+                train_digest=kit["train_digest"],
+                interface_digest=kit["interface_digest"],
+                construction_limits_digest=kit["construction_limits_digest"],
+            )
+            source = recipe.to_dict()["source"]
+            if source["kind"] == "graph":
+                envelope = graph_envelope_from_workspace(ledger, owner, recipe)
+            elif callable(getattr(campaign, "construction_bundle_material", None)):
+                envelope = None
+            else:
+                raise RecipeRefused("construction_reconstruction_unserved")
+        except RecipeRefused as refused:
+            raise OperationRefused(refused.code) from None
+        record = {
+            "schema": (
+                "carbon.direct-selected-recipe.v1"
+                if source["kind"] == "graph"
+                else "carbon.direct-selected-recipe.v2"
+            ),
+            "status": "SELECTED",
+            "strategy": recipe.to_dict(),
+            "reason": reason,
+            "used_feedback": used_feedback,
+            "strategy_hash": recipe.digest,
+            "construction_recipe_digest": recipe.digest,
+            "construction_source_digest": (
+                source["submission_digest"]
+                if source["kind"] == "graph"
+                else source["bundle_ref"]["bundle_digest"]
+            ),
+            "construction_limits_digest": kit["construction_limits_digest"],
+            "train_digest": kit["train_digest"],
+            "interface_digest": kit["interface_digest"],
+            "final_evidence": False,
+        }
+        if envelope is not None:
+            record["source_envelope_digest"] = digest(envelope)
+    else:
+        found = cl.binding(prepared.manifest)
+        try:
+            compiled, envelope = cl.check_freeze(found, strategy, level4_directory)
+        except cl.LevelRefused as refused:
+            raise OperationRefused(refused.code) from None
+        record = (
+            candidate_record(strategy, reason, used_feedback)
+            if found is None
+            else cl.candidate_record(found, strategy, reason, used_feedback, compiled)
+        )
     epoch = _open_epoch(prepared)
-    record = (
-        candidate_record(strategy, reason, used_feedback)
-        if found is None
-        else cl.candidate_record(found, strategy, reason, used_feedback, compiled)
-    )
     ledger.checkpoint()
     folder = _epoch_paths(ledger, epoch)
-    if envelope is not None:
+    if direct and envelope is not None:
+        write_once(folder / "direct-source-envelope.json", envelope)
+    elif envelope is not None:
         cl.write_envelope(folder, envelope)
     write_once(folder / "selected-recipe.json", canonical(record))
     write_once(
@@ -1326,6 +1500,11 @@ async def practice_recipe(
 
     try:
         mode = smoke.mode_of(mode)
+        if (
+            prepared.manifest.get("construction_mode") == "direct"
+            and mode == smoke.SMOKE
+        ):
+            raise OperationRefused("smoke_practice_unavailable")
         if mode == smoke.SMOKE:
             smoke.hook_of(prepared.campaign)
     except smoke.SmokeUnavailable as refused:

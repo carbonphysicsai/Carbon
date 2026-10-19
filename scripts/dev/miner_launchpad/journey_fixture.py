@@ -115,14 +115,56 @@ def launch_with_fixture_challenge(patch):
     return named
 
 
-def journey_host(root, *, patch=setattr):
+def journey_host(
+    root, *, patch=setattr, direct_manifest=False, historical_launch=False
+):
     """`patch(target, name, value)` installs each fixture. A process of its own
     (the smoke, a stdio server) uses plain setattr; a test runner passes
     pytest's monkeypatch.setattr so nothing outlives the test."""
-    return _journey_host(root, patch)
+    host = _journey_host(root, patch, direct_manifest=direct_manifest)
+    if historical_launch:
+        _historical_launch_records(patch)
+    return host
 
 
-def _journey_host(root, patch):
+def _historical_launch_records(patch):
+    """Test the pre-S3 launch writer's durable shape and replay path.
+
+    These lifecycle tests exercise persisted campaigns admitted before the
+    direct-construction capture existed. Convert the row and launch choice
+    together before dispatch, so neither supervisor nor preparation sees a
+    mismatched intermediate record. Current launches keep their v4 binding.
+    """
+    from dataclasses import replace
+
+    from carbon.development_session.profile import canonical
+    from scripts.dev.miner_launchpad import levels
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    dispatch = RunnerAdapter._dispatch_run
+
+    def historical(self, run_id, cfg, root, product=None, choice=None):
+        if choice is not None and choice.construction_mode == "direct":
+            with self.db() as db:
+                row = db.execute(
+                    "SELECT launch_request FROM launchpad_campaigns WHERE id=?",
+                    (run_id,),
+                ).fetchone()
+                recorded = json.loads(row["launch_request"])
+                recorded.pop(levels.CONSTRUCTION_ADMISSION)
+                db.execute(
+                    "UPDATE launchpad_campaigns SET launch_request=?, "
+                    "construction_binding_version=0, "
+                    "construction_binding_digest=NULL WHERE id=?",
+                    (canonical(recorded), run_id),
+                )
+            choice = replace(choice, construction_mode=None)
+        return dispatch(self, run_id, cfg, root, product, choice)
+
+    patch(RunnerAdapter, "_dispatch_run", historical)
+
+
+def _journey_host(root, patch, *, direct_manifest=False):
     """The real campaign host, over real campaign records, with no agent.
 
     Real: the RunnerAdapter, the operations table and its gates, the launch
@@ -258,6 +300,12 @@ def _journey_host(root, patch):
                     provider.update(agent="graphite", graphite=block)
             manifest = {
                 **args.product.manifest_fields(),
+                **(
+                    {"construction_mode": "direct"}
+                    if direct_manifest
+                    and getattr(args, "construction_mode", None) == "direct"
+                    else {}
+                ),
                 "owner": "miner-requester",
                 "implementation": runtime["implementation"],
                 "images": runtime["images"],

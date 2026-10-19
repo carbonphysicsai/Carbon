@@ -995,12 +995,14 @@ class LiveChecks:
         *,
         opener=None,
         repo: Path = REPO,
+        candidate_state_dir=None,
         host_root=None,
         hermes_home=None,
         ssh=None,
     ):
         self.opener = opener
         self.repo = repo
+        self.candidate_state_dir = candidate_state_dir
         # The miner's own ssh client (`remote_machine.SSHClient` unless a test
         # names a double): it reaches their remote setup and nothing else.
         self.ssh = ssh
@@ -1150,12 +1152,19 @@ class LiveChecks:
         )
 
     def revision(self) -> dict:
-        """This checkout's exact clean accepted revision and its source digest."""
+        """This checkout's exact clean accepted or operator-pinned source."""
         from carbon.development_session.research_campaign import (
             accepted_implementation,
         )
+        from scripts.dev.miner_launchpad import installed
 
         try:
+            if self.candidate_state_dir is not None:
+                candidate = installed.candidate_implementation(
+                    self.candidate_state_dir, repository=self.repo
+                )
+                if candidate is not None:
+                    return candidate
             head = subprocess.check_output(
                 ["git", "rev-parse", "HEAD"], cwd=self.repo, text=True, timeout=30
             ).strip()
@@ -1166,7 +1175,10 @@ class LiveChecks:
             ) from None
 
     def compute(self, image_manifest: Path, analysis_manifest: Path) -> dict:
-        from carbon.development_session.research_campaign import verify_current_worker
+        from carbon.development_session.research_campaign import (
+            verify_current_worker,
+            verify_direct_v13_worker,
+        )
         from carbon.development_session.research_image import (
             load_analysis_image,
             verify_image,
@@ -1179,7 +1191,15 @@ class LiveChecks:
         implementation = self.revision()
         try:
             image = load_image_identity(image_manifest)
-            verify_current_worker(image, implementation)
+            try:
+                verify_current_worker(image, implementation)
+            except ValueError:
+                # Only an operator-pinned DEVELOPMENT candidate may use the
+                # direct v1.3 ABI. Accepted-main setup and each campaign's
+                # own exact-source admission rule remain unchanged.
+                if implementation.get("source_authority") != "DEVELOPMENT_CANDIDATE":
+                    raise
+                verify_direct_v13_worker(image, implementation, role="cpu")
             if not doctor(image_id=image.image_id, image_identity=image).eligible:
                 raise ValueError("host not eligible")
         except Exception:  # noqa: BLE001 - never echo a local path or error.
@@ -1777,6 +1797,7 @@ def service_unit(state_dir, port, repo=REPO) -> str:
         f"WorkingDirectory={repo}\n"
         f"ExecStart={binary} --state-dir {state_dir} --port {port}\n"
         "Environment=PYTHONUNBUFFERED=1\n"
+        "Environment=PYTHONDONTWRITEBYTECODE=1\n"
         "UMask=0077\n"
         f"StandardOutput=append:{log}\n"
         "StandardError=inherit\n"
@@ -1863,7 +1884,7 @@ class EnvironmentSetup:
     def __init__(self, state_dir: Path, *, onboarding, checks=None, attach=None):
         self.root = Path(state_dir) / "environment"
         self.onboarding = onboarding
-        self.checks = checks or LiveChecks()
+        self.checks = checks or LiveChecks(candidate_state_dir=state_dir)
         self.attach = attach
         self.lock = _SetupLock(self.root)
 
@@ -2868,6 +2889,7 @@ class EnvironmentSetup:
             {
                 "intakes",
                 "intake_targets",
+                "direct_intake_target",
                 LEGACY_INTAKE,
                 "receiver_hotkey",
                 "receivers",
@@ -2896,6 +2918,15 @@ class EnvironmentSetup:
             target_lists = {k: validate(v) for k, v in target_lists.items()}
         except ValueError:
             raise SetupRefused("intakes", "intake_url_invalid") from None
+        direct_target_supplied = "direct_intake_target" in value
+        direct_target = value.get("direct_intake_target")
+        if direct_target is not None:
+            try:
+                direct_target = validate([direct_target])[0]
+            except ValueError:
+                raise SetupRefused(
+                    "direct_intake_target", "intake_url_invalid"
+                ) from None
         for challenge_id, targets in target_lists.items():
             if (
                 challenge_id in intakes
@@ -2996,6 +3027,16 @@ class EnvironmentSetup:
                 ]
             sources[challenge["id"]] = "published"
         with self.lock:
+            record = self._record()
+            if not direct_target_supplied:
+                direct_target = record.get("direct_intake_target")
+                if direct_target is not None:
+                    try:
+                        direct_target = validate([direct_target])[0]
+                    except ValueError:
+                        raise SetupRefused(
+                            "direct_intake_target", "intake_url_invalid"
+                        ) from None
             cfg = self.profile()
             if intakes:
                 cfg = {**cfg, "intakes": intakes}
@@ -3003,7 +3044,8 @@ class EnvironmentSetup:
                 cfg = {**cfg, "receivers": receivers}
             if target_lists:
                 cfg = {**cfg, "intake_targets": target_lists}
-            record = self._record()
+            if direct_target is not None:
+                cfg = {**cfg, "direct_intake_target": direct_target}
             # The miner's auto-retry choice (LAUNCHPAD-PRACTICE-RETRY-01):
             # this Review's when it names one, else the one kept from before,
             # so an update's Review keeps it. Written into the profile only
@@ -3055,6 +3097,10 @@ class EnvironmentSetup:
             }
             if preferences:
                 record["preferences"] = preferences
+            if direct_target is None:
+                record.pop("direct_intake_target", None)
+            else:
+                record["direct_intake_target"] = direct_target
             # A profile an update set aside is replaced by this one.
             record.pop("profile_set_aside", None)
             self._save(record)
@@ -3166,6 +3212,16 @@ class EnvironmentSetup:
                 "accepted_revision",
                 "clean_accepted_checkout_required",
                 next_step=REINSTALL_STEP,
+            )
+        try:
+            candidate = installed.candidate_implementation(self.root.parent)
+        except (OSError, ValueError, subprocess.SubprocessError):
+            raise SetupRefused(
+                "accepted_revision", "clean_development_candidate_required"
+            ) from None
+        if candidate is not None and candidate["revision"] != head:
+            raise SetupRefused(
+                "accepted_revision", "clean_development_candidate_required"
             )
         images = {}
         for field, path in recorded.items():

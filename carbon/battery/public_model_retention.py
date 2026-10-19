@@ -414,6 +414,74 @@ class Trial:
         )
         self._save()
 
+    def collect_direct(self, worker, workspace_name):
+        """Retain an exact direct graph state already verified by C-03.
+
+        The direct program emits a numeric state and a checked carrier receipt;
+        it has no historical Graphite sidecar or backbone instrumentation.
+        """
+        if self.record["status"] == "COMPLETED":
+            return
+        provenance = self.record.get("provenance") or {}
+        if (
+            worker.recipe_digest != self.record.get("recipe", {}).get("recipe_digest")
+            or worker.recipe_digest != provenance.get("recipe_digest")
+            or worker.graph_digest != provenance.get("graph_digest")
+            or worker.train_digest != provenance.get("train_digest")
+            or worker.interface_digest != provenance.get("interface_digest")
+        ):
+            raise ValueError("retained direct model identity differs")
+        operation = worker.worker_operation
+        expected = self.ledger.root / operation / "snapshot" / STATE_FILE
+        path = worker.state_path
+        if (
+            path != expected
+            or path.is_symlink()
+            or not path.is_file()
+            or not 0 < path.stat().st_size <= MAX_STATE_BYTES
+        ):
+            raise ValueError("retained direct state path or size differs")
+        state = path.read_bytes()
+        if digest(state) != worker.state_digest:
+            raise ValueError("retained direct state digest differs")
+        if type(workspace_name) is not str or not workspace_name.endswith(
+            "-battery-direct-state.npz"
+        ):
+            raise ValueError("retained direct workspace name differs")
+        self.record.update(
+            stage="feedback",
+            state={
+                "status": "RETAINED",
+                "path": f"{operation}/snapshot/{STATE_FILE}",
+                "workspace_name": workspace_name,
+                "sha256": worker.state_digest,
+                "bytes": len(state),
+            },
+            artifacts={
+                STATE_FILE: {
+                    "path": f"{operation}/snapshot/{STATE_FILE}",
+                    "sha256": worker.state_digest,
+                },
+                "predictions.json": {
+                    "path": f"{operation}/snapshot/predictions.json",
+                    "sha256": worker.predictions_digest,
+                },
+            },
+            worker={
+                "operation": operation,
+                "provenance": "BATTERY_DIRECT_GRAPH_PUBLIC_RECONSTRUCTION",
+            },
+            artifact_provenance={
+                "schema": "carbon.battery.direct-model-provenance.v1",
+                "recipe_digest": worker.recipe_digest,
+                "graph_digest": worker.graph_digest,
+                "train_digest": worker.train_digest,
+                "interface_digest": worker.interface_digest,
+                "state_sha256": worker.state_digest,
+            },
+        )
+        self._save()
+
     def completed(self, feedback):
         if self.record["status"] == "COMPLETED":
             if self.record["feedback"]["sha256"] != digest(canonical(feedback)):

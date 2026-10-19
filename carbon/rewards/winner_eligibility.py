@@ -64,6 +64,8 @@ def battery_promotion(target):
     incumbent = store.incumbent()
     if incumbent is None:
         return None
+    if incumbent.get("reason") == "bank_comparison_development":
+        raise RewardFailure("PROMOTION_DEVELOPMENT_ONLY")
     model_id = incumbent["model_id"]
     events = [
         e["body"]

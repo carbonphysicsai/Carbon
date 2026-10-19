@@ -53,6 +53,15 @@ CREATE TABLE IF NOT EXISTS attempts(
 );
 CREATE INDEX IF NOT EXISTS attempts_hotkey ON attempts(hotkey);
 CREATE INDEX IF NOT EXISTS attempts_recent ON attempts(hotkey, kind, at_ns);
+CREATE INDEX IF NOT EXISTS attempts_submission_owner
+    ON attempts(contract_digest, submission_id, kind);
+CREATE TABLE IF NOT EXISTS recipe_task_intents(
+    contract_digest TEXT NOT NULL,
+    submission_id TEXT NOT NULL,
+    hotkey TEXT NOT NULL,
+    request_sha256 TEXT NOT NULL,
+    PRIMARY KEY(contract_digest, submission_id)
+);
 CREATE TABLE IF NOT EXISTS overflow(
     hotkey TEXT NOT NULL,
     hour INTEGER NOT NULL,
@@ -262,6 +271,66 @@ class AttemptLedger:
         with self._db() as db:
             rows = db.execute(query + " ORDER BY seq", args).fetchall()
         return [dict(zip(keys, row, strict=True)) for row in rows]
+
+    def owned_outcome(self, contract_digest, submission_id):
+        """One authenticated owner of a submitted task, or no usable owner.
+
+        A recipe intent is committed before the direct task, closing the
+        cross-ledger crash gap. Ambiguous ownership fails closed.
+        """
+        with self._db() as db:
+            rows = db.execute(
+                "SELECT DISTINCT hotkey FROM ("
+                "SELECT hotkey FROM attempts WHERE kind='OUTCOME' "
+                "AND contract_digest=? AND submission_id=? AND hotkey IS NOT NULL "
+                "UNION ALL SELECT hotkey FROM recipe_task_intents "
+                "WHERE contract_digest=? AND submission_id=? )",
+                (contract_digest, submission_id, contract_digest, submission_id),
+            ).fetchall()
+        return rows[0][0] if len(rows) == 1 else None
+
+    def record_recipe_task_intent(
+        self, contract_digest, submission_id, hotkey, request_sha256
+    ):
+        """Durably bind an authenticated owner before direct-task persistence.
+
+        Repeating the same intent is safe. A conflicting owner or request is
+        refused before it can be interpreted as an admitted task.
+        """
+        values = (contract_digest, submission_id, _kept(hotkey), request_sha256)
+        if not all(type(value) is str and value for value in values):
+            raise ValueError("recipe task intent incomplete")
+        with self._db() as db:
+            prior_owners = db.execute(
+                "SELECT DISTINCT hotkey FROM attempts WHERE kind='OUTCOME' "
+                "AND contract_digest=? AND submission_id=? AND hotkey IS NOT NULL",
+                values[:2],
+            ).fetchall()
+            if any(owner != (values[2],) for owner in prior_owners):
+                raise ValueError("recipe task intent owner conflict")
+            db.execute(
+                "INSERT OR IGNORE INTO recipe_task_intents VALUES(?,?,?,?)", values
+            )
+            row = db.execute(
+                "SELECT contract_digest,submission_id,hotkey,request_sha256 "
+                "FROM recipe_task_intents WHERE contract_digest=? AND submission_id=?",
+                values[:2],
+            ).fetchone()
+            if row != values:
+                raise ValueError("recipe task intent conflict")
+
+    def submitted_outcomes(self, contract_digest):
+        """Authenticated task IDs for one adapter's restart-safe advance pass."""
+        with self._db() as db:
+            rows = db.execute(
+                "SELECT DISTINCT submission_id FROM ("
+                "SELECT submission_id FROM attempts WHERE kind='OUTCOME' "
+                "AND contract_digest=? AND submission_id IS NOT NULL "
+                "UNION ALL SELECT submission_id FROM recipe_task_intents "
+                "WHERE contract_digest=? ) ORDER BY submission_id",
+                (contract_digest, contract_digest),
+            ).fetchall()
+        return tuple(row[0] for row in rows)
 
     def operator_refusals(self):
         with self._db() as db:

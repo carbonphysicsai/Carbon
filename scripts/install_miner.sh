@@ -7,6 +7,11 @@
 #   ~/carbon/scripts/install_miner.sh --update   # later: the latest main
 #   ~/carbon/scripts/install_miner.sh --release worker-images-vN
 #                                                # Carbon's released images
+#   CARBON_STATE_DIR=~/.carbon/s5-candidate ~/carbon/scripts/install_miner.sh \
+#     --development-candidate "$(git -C ~/carbon rev-parse HEAD)" \
+#     "$(git -C ~/carbon rev-parse 'HEAD^{tree}')" \
+#     "sha256:$(git -C ~/carbon archive --format=tar HEAD | sha256sum | cut -d' ' -f1)" \
+#     --no-start                                # local DEVELOPMENT only
 #
 # What it does, in order, and nothing else:
 #   1. checks this machine: Linux x86-64, git, curl, a running Docker (for
@@ -15,9 +20,10 @@
 #      Center is running from the state directory this install changes;
 #   2. brings the checkout to the requested ref (the latest main by default).
 #      The checkout must be clean, because an image's identity is the exact
-#      source tree, and the ref must be in Carbon's main, because setup
-#      accepts only a revision in main. When the installer itself changed at
-#      that ref, the new installer carries on from here;
+#      source tree, and the ordinary ref must be in Carbon's main. An explicit
+#      DEVELOPMENT candidate instead verifies exact local revision/tree/archive
+#      identities in its own owner state directory. When the installer itself
+#      changed at an ordinary ref, the new installer carries on from here;
 #   3. installs the pinned uv if missing and syncs Carbon's locked
 #      environment (scripts/dev/bootstrap.sh) with the groups the documented
 #      commands use: science, chain, archive and MCP;
@@ -26,7 +32,10 @@
 #      install moves the checkout, so an old GPU worker would no longer match
 #      it). A worker already built here from this exact source tree, which
 #      Docker still holds, is used again rather than rebuilt, so installs
-#      sharing one checkout keep the same images (LA-F16). With --release
+#      sharing one checkout keep the same images (LA-F16).
+#      A DEVELOPMENT C-03 candidate can also reuse a separately verified
+#      already loaded C-03/analysis pair without reserving new CPU build space.
+#      With --release
 #      TAG it builds none: step 2 moves the checkout to
 #      that release tag, cut from main, and this step pulls each image the
 #      release's records name from ghcr.io/carbonphysicsai, by digest, and
@@ -63,6 +72,9 @@ UPDATE=0
 SERVICE=0
 REF_GIVEN=0
 RELEASE=""
+DEVELOPMENT_REVISION=""
+DEVELOPMENT_TREE=""
+DEVELOPMENT_SOURCE_TREE_DIGEST=""
 #: Where each release's records are published: the assets of its GitHub
 #: release (.github/workflows/release-worker-images.yml). Public; no login.
 RELEASE_URL="${CARBON_RELEASE_URL:-https://github.com/carbonphysicsai/Carbon/releases/download}"
@@ -87,6 +99,8 @@ usage() {
   cat <<'EOF'
 usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --release TAG]
                                 [--no-start] [--service] [--port PORT]
+       scripts/install_miner.sh --development-candidate REVISION TREE SOURCE_DIGEST
+                                [--gpu] [--pytorch] [--no-start] [--port PORT]
 
   --update     update an installed checkout: move it to REF (default: the
                latest main), build its images again (or use the ones already
@@ -106,6 +120,12 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --re
                (worker-images-vN, cut from main) and pull each image its
                release records name, by digest. With --update, TAG must be
                this install's revision or newer
+  --development-candidate REVISION TREE SOURCE_DIGEST
+               use verified cached images or build this exact clean local
+               DEVELOPMENT checkout's images;
+               all three identities must match the local commit, tree and
+               Git archive SHA-256. Requires its own state directory and
+               cannot be combined with --ref, --release or --update.
   --no-start   build everything, but do not start the Control Center
   --service    run the Control Center as a systemd user service, so this
                terminal stays free: carbon-control-center for the default
@@ -124,6 +144,11 @@ while [[ $# -gt 0 ]]; do
     --pytorch) PYTORCH=1 ;;
     --ref) REF="${2:?--ref needs a value}"; REF_GIVEN=1; shift ;;
     --release) RELEASE="${2:?--release needs a value}"; shift ;;
+    --development-candidate)
+      DEVELOPMENT_REVISION="${2:?--development-candidate needs a revision}"
+      DEVELOPMENT_TREE="${3:?--development-candidate needs a tree}"
+      DEVELOPMENT_SOURCE_TREE_DIGEST="${4:?--development-candidate needs a source digest}"
+      shift 3 ;;
     --no-start) START=0 ;;
     --service) SERVICE=1 ;;
     --port) PORT="${2:?--port needs a value}"; PORT_GIVEN=1; shift ;;
@@ -160,6 +185,15 @@ artifacts="${repo_root}/.carbon-artifacts"
 # same directory throughout.
 STATE_DIR="$(realpath -ms -- "${STATE_DIR}")"
 state_real="$(realpath -m -- "${STATE_DIR}")"
+if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
+  [[ "${REF_GIVEN}" == 0 && "${REF}" == main && -z "${RELEASE}" && "${UPDATE}" == 0 ]] \
+    || fail "--development-candidate cannot be combined with --ref, --release or --update."
+  [[ "${state_real}" != "$(realpath -m -- "${DEFAULT_STATE_DIR}")" ]] \
+    || fail "--development-candidate requires its own CARBON_STATE_DIR."
+  case "${state_real}/" in
+    "${repo_root}/"*) fail "DEVELOPMENT state must be outside the source checkout." ;;
+  esac
+fi
 if [[ "${state_real}" == "$(realpath -m -- "${DEFAULT_STATE_DIR}")" ]]; then
   SERVICE_NAME="${DEFAULT_SERVICE}"
 else
@@ -305,19 +339,27 @@ if [[ "${GPU}" == 1 ]] \
 fi
 need_space "${repo_root}" "${CHECKOUT_GIB}" "Carbon's locked environment and its cache"
 docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
-images_gib=$(( IMAGES_GIB + gpu_space * GPU_GIB ))
-if [[ -n "${docker_root}" && -d "${docker_root}" ]]; then
-  checkout_mount="$(mount_of "${repo_root}" || true)"
-  docker_mount="$(mount_of "${docker_root}" || true)"
-  if [[ -n "${checkout_mount}" && "${checkout_mount}" == "${docker_mount}" ]]; then
-    # One filesystem holds both (WSL's default): it needs room for both.
-    need_space "${docker_root}" "$(( CHECKOUT_GIB + images_gib ))" \
-      "Carbon's locked environment and images (one filesystem holds both)"
+check_image_space() {
+  local images_gib="$1" checkout_mount docker_mount
+  if [[ -n "${docker_root}" && -d "${docker_root}" ]]; then
+    checkout_mount="$(mount_of "${repo_root}" || true)"
+    docker_mount="$(mount_of "${docker_root}" || true)"
+    if [[ -n "${checkout_mount}" && "${checkout_mount}" == "${docker_mount}" ]]; then
+      # One filesystem holds both (WSL's default): it needs room for both.
+      need_space "${docker_root}" "$(( CHECKOUT_GIB + images_gib ))" \
+        "Carbon's locked environment and images (one filesystem holds both)"
+    else
+      need_space "${docker_root}" "${images_gib}" "Carbon's images"
+    fi
   else
-    need_space "${docker_root}" "${images_gib}" "Carbon's images"
+    echo "Docker keeps its images outside this filesystem (${docker_root:-not reported}); make sure ${images_gib} GiB are free there."
   fi
-else
-  echo "Docker keeps its images outside this filesystem (${docker_root:-not reported}); make sure ${images_gib} GiB are free there."
+}
+# Only an explicit DEVELOPMENT candidate can use a verified, already loaded
+# C-03/analysis pair to avoid reserving space for a new CPU image build. Its
+# exact-source verification and pure-read pair check happen after bootstrap.
+if [[ -z "${DEVELOPMENT_REVISION}" || "${PYTORCH}" == 1 ]]; then
+  check_image_space "$(( IMAGES_GIB + gpu_space * GPU_GIB ))"
 fi
 echo "Linux x86-64, git, curl, Docker and free disk: ready."
 
@@ -344,6 +386,11 @@ else
 then run this again. git -C ${repo_root} stash pop brings them back."
   fi
   previous="$(git rev-parse HEAD)"
+  if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
+    target="${previous}"
+    [[ "${target}" == "${DEVELOPMENT_REVISION}" ]] \
+      || fail "--development-candidate revision differs from this checkout. Nothing was changed."
+  else
   git fetch --quiet origin "+refs/heads/main:refs/remotes/origin/main" \
     || fail "could not fetch Carbon's main from origin."
   if [[ -n "${RELEASE}" ]]; then
@@ -365,6 +412,7 @@ then run this again. git -C ${repo_root} stash pop brings them back."
   fi
   git merge-base --is-ancestor "${target}" refs/remotes/origin/main \
     || fail "--ref ${REF} (${target:0:12}) is not in Carbon's main, and setup accepts only a revision in main (clean_accepted_checkout_required). Use --ref main, or a commit or tag on main."
+  fi
   if [[ "${PYTORCH}" == 1 ]]; then
     target_installer="$(git show "${target}:scripts/install_miner.sh" 2>/dev/null || true)"
     pytorch_label="--pytorch"
@@ -412,6 +460,39 @@ then run this again. git -C ${repo_root} stash pop brings them back."
   fi
 fi
 
+# Editable uv sync can create ignored egg-info/build metadata in this checkout.
+# Refuse every pre-existing ignored source before that happens, including a
+# pre-existing output directory: only this install's newly created metadata
+# may be removed after bootstrap. The installed Python verifier below still
+# checks the full revision, tree and archive identity before any image build.
+if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
+  [[ "$(git rev-parse HEAD)" == "${DEVELOPMENT_REVISION}" ]] \
+    || fail "local DEVELOPMENT source revision differs before bootstrap."
+  [[ "$(git rev-parse 'HEAD^{tree}')" == "${DEVELOPMENT_TREE}" ]] \
+    || fail "local DEVELOPMENT source tree differs before bootstrap."
+  source_digest="sha256:$(git archive --format=tar HEAD | sha256sum | cut -d' ' -f1)"
+  [[ "${source_digest}" == "${DEVELOPMENT_SOURCE_TREE_DIGEST}" ]] \
+    || fail "local DEVELOPMENT source archive differs before bootstrap."
+  [[ -z "$(git status --porcelain=v1 --untracked-files=all)" ]] \
+    || fail "local DEVELOPMENT source has changes before bootstrap."
+  ignored="$(git ls-files --others --ignored --exclude-standard --directory)" \
+    || fail "could not check ignored DEVELOPMENT source before bootstrap."
+  while IFS= read -r path; do
+    case "${path}" in
+      ""|.venv/|.venv-jax-macos/|.carbon-local/|.pytest_cache/|.ruff_cache/|\
+      .carbon-artifacts/|.agent/runtime/|website/ask-carbon/.wrangler/) ;;
+      *) fail "development candidate has ignored runtime source before bootstrap: ${path}" ;;
+    esac
+  done <<< "${ignored}"
+  for output in carbon.egg-info build; do
+    [[ ! -e "${repo_root}/${output}" && ! -L "${repo_root}/${output}" ]] \
+      || fail "development candidate has pre-existing bootstrap output: ${output}"
+  done
+  # Python imports during bootstrap/verification must not make ignored source
+  # caches outside the isolated .venv. This does not change editable install.
+  export PYTHONDONTWRITEBYTECODE=1
+fi
+
 step "3/6 Installing Carbon's locked environment"
 export PATH="${HOME}/.local/bin:${PATH}"
 if ! command -v uv >/dev/null 2>&1 || [[ "$(uv --version | awk '{print $2}')" != "${UV_VERSION}" ]]; then
@@ -421,13 +502,55 @@ fi
 # Every group a documented command runs with (`uv run --group ...`), so none
 # of them re-syncs this environment.
 CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/bootstrap.sh
+if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
+  # These exact root directories were absent at the verified pre-bootstrap
+  # boundary. Refuse links/files and unknown paths rather than deleting them.
+  for output in carbon.egg-info build; do
+    path="${repo_root}/${output}"
+    if [[ -e "${path}" || -L "${path}" ]]; then
+      [[ -d "${path}" && ! -L "${path}" ]] \
+        || fail "bootstrap output is not an owned directory: ${output}"
+      if [[ "${output}" == carbon.egg-info ]]; then
+        while IFS= read -r -d '' entry; do
+          [[ -f "${entry}" && ! -L "${entry}" ]] \
+            || fail "bootstrap created non-file metadata; no output was removed."
+          case "${entry##*/}" in
+            PKG-INFO|SOURCES.txt|dependency_links.txt|entry_points.txt|\
+            requires.txt|top_level.txt|not-zip-safe) ;;
+            *) fail "bootstrap created unexpected metadata; no output was removed." ;;
+          esac
+        done < <(find "${path}" -mindepth 1 -maxdepth 1 -print0)
+        rm -f -- "${path}/PKG-INFO" "${path}/SOURCES.txt" \
+          "${path}/dependency_links.txt" "${path}/entry_points.txt" \
+          "${path}/requires.txt" "${path}/top_level.txt" \
+          "${path}/not-zip-safe"
+      fi
+      rmdir -- "${path}" \
+        || fail "bootstrap output was not empty after owned metadata removal."
+    fi
+  done
+fi
 python="${repo_root}/.venv/bin/python"
 setup_cli=("${python}" -m scripts.dev.miner_launchpad.environment_setup)
+if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
+  "${python}" -m scripts.dev.miner_launchpad.installed verify-development-source \
+    --revision "${DEVELOPMENT_REVISION}" \
+    --tree "${DEVELOPMENT_TREE}" \
+    --source-tree-digest "${DEVELOPMENT_SOURCE_TREE_DIGEST}" \
+    || fail "local DEVELOPMENT source identity differs. No image was built."
+fi
 
 #: current_image MANIFEST: whether MANIFEST names a worker built from this
 #: checkout's exact source tree that Docker still holds (installed.current).
 current_image() {
-  [[ "$("${python}" -m scripts.dev.miner_launchpad.installed current --manifest "$1" 2>/dev/null)" == "yes" ]]
+  if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
+    [[ "$("${python}" -m scripts.dev.miner_launchpad.installed current --manifest "$1" \
+      --candidate-revision "${DEVELOPMENT_REVISION}" \
+      --candidate-tree "${DEVELOPMENT_TREE}" \
+      --candidate-source-tree-digest "${DEVELOPMENT_SOURCE_TREE_DIGEST}" 2>/dev/null)" == "yes" ]]
+  else
+    [[ "$("${python}" -m scripts.dev.miner_launchpad.installed current --manifest "$1" 2>/dev/null)" == "yes" ]]
+  fi
 }
 
 # Every install, not only --update: a plain run moves the checkout to the
@@ -442,6 +565,29 @@ if [[ "${GPU}" == 0 ]] \
     echo "A GPU worker was built here before; this install rebuilds it too."
   fi
   gpu_build=1
+fi
+
+if [[ -n "${DEVELOPMENT_REVISION}" && "${PYTORCH}" == 0 ]]; then
+  dev_pair_args=(
+    --artifacts-root "${artifacts}"
+    --revision "${DEVELOPMENT_REVISION}"
+    --tree "${DEVELOPMENT_TREE}"
+    --source-tree-digest "${DEVELOPMENT_SOURCE_TREE_DIGEST}"
+  )
+  # The artifact verifier reads the two normal manifest paths and inspects
+  # Docker. It never loads or builds an image. An invalid cache is a refusal,
+  # not permission to silently rebuild from a different identity.
+  if pair_status="$("${python}" -m scripts.dev.development_image_artifact verify-installed \
+    "${dev_pair_args[@]}")"; then
+    case "${pair_status}" in
+      VERIFIED) cpu_build_gib=0 ;;
+      ABSENT) cpu_build_gib="${IMAGES_GIB}" ;;
+      *) fail "DEVELOPMENT image cache verifier returned an unknown status. No image was built." ;;
+    esac
+  else
+    fail "DEVELOPMENT image cache is invalid or could not be verified. No image was built."
+  fi
+  check_image_space "$(( cpu_build_gib + gpu_build * GPU_GIB ))"
 fi
 
 worker_manifest="${artifacts}/${worker_kind}-worker-image.json"
@@ -474,27 +620,41 @@ if [[ -n "${RELEASE}" ]]; then
   gpu_release_record="${release_dir}/accelerator-worker-image.release.json"
 else
   step "4/6 Building the pinned images on this machine"
-  # Another install sharing this checkout may have built them at this very
-  # source tree already (LA-F16). A rebuild would be a new image with a new
-  # id, written over the manifest that install recorded, and its analysis
-  # image and compute check would no longer match. So a worker whose
-  # manifest names this exact source tree, and whose image Docker still
-  # holds, is used again; the analysis image built on it then is too.
-  if current_image "${worker_manifest}"; then
-    echo "The worker image built here from this exact source tree is still present; using it again."
+  if [[ "${pair_status:-}" == VERIFIED ]]; then
+    # The build-space reserve was waived only for this exact installed pair.
+    # Recheck it now and select its manifest directly: either builder could
+    # otherwise start a new image if a cache member vanished between steps.
+    current_image "${worker_manifest}" \
+      || fail "verified DEVELOPMENT worker cache changed. No image was built."
+    analysis="$("${python}" -m scripts.dev.development_image_artifact verify-installed \
+      "${dev_pair_args[@]}" --print-analysis-manifest)" \
+      || fail "verified DEVELOPMENT image pair changed. No image was built."
+    [[ -f "${analysis}" ]] \
+      || fail "verified DEVELOPMENT analysis manifest vanished. No image was built."
+    echo "The exact DEVELOPMENT worker and analysis pair is present; using it without a build."
   else
-    if [[ "${PYTORCH}" == 1 ]]; then
-      ./scripts/dev/torch_worker_image.sh "${worker_manifest}"
+    # Another install sharing this checkout may have built them at this very
+    # source tree already (LA-F16). A rebuild would be a new image with a new
+    # id, written over the manifest that install recorded, and its analysis
+    # image and compute check would no longer match. So a worker whose
+    # manifest names this exact source tree, and whose image Docker still
+    # holds, is used again; the analysis image built on it then is too.
+    if current_image "${worker_manifest}"; then
+      echo "The worker image built here from this exact source tree is still present; using it again."
     else
-      ./scripts/dev/c03_worker_image.sh "${worker_manifest}"
+      if [[ "${PYTORCH}" == 1 ]]; then
+        ./scripts/dev/torch_worker_image.sh "${worker_manifest}"
+      else
+        ./scripts/dev/c03_worker_image.sh "${worker_manifest}"
+      fi
     fi
+    analysis="$(
+      "${python}" -m carbon.development_session.research_image \
+        --parent-manifest "${worker_manifest}" \
+        --root "${artifacts}/research-images" \
+      | "${python}" -c 'import json, sys; print(json.load(sys.stdin)["manifest"])'
+    )"
   fi
-  analysis="$(
-    "${python}" -m carbon.development_session.research_image \
-      --parent-manifest "${worker_manifest}" \
-      --root "${artifacts}/research-images" \
-    | "${python}" -c 'import json, sys; print(json.load(sys.stdin)["manifest"])'
-  )"
   if [[ "${gpu_build}" == 1 ]]; then
     if current_image "${artifacts}/accelerator-worker-image.json"; then
       echo "The GPU worker built here from this exact source tree is still present; using it again."
@@ -514,6 +674,13 @@ chmod 700 "${STATE_DIR}"
   --analysis-image-manifest "${analysis}" \
   ${gpu_manifest:+--gpu-image-manifest "${gpu_manifest}"} \
   ${gpu_release_record:+--gpu-release-record "${gpu_release_record}"}
+if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
+  "${python}" -m scripts.dev.miner_launchpad.installed bind-development-candidate \
+    --state-dir "${STATE_DIR}" \
+    --revision "${DEVELOPMENT_REVISION}" \
+    --tree "${DEVELOPMENT_TREE}" \
+    --source-tree-digest "${DEVELOPMENT_SOURCE_TREE_DIGEST}"
+fi
 "${setup_cli[@]}" after-install --state-dir "${STATE_DIR}"
 
 cat <<EOF
@@ -534,7 +701,7 @@ step "6/6 Starting the Control Center"
 launcher=("${repo_root}/.venv/bin/carbon-control-center")
 [[ -x "${launcher[0]}" ]] \
   || launcher=("${python}" "${repo_root}/scripts/dev/miner_launchpad/controller.py")
-start_command="${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
+start_command="PYTHONDONTWRITEBYTECODE=1 ${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
 
 # Units written before LA-F15 all had the default service's name, so one may
 # run another state directory than its name's. This install never rewrites
@@ -558,7 +725,7 @@ if [[ "${service_mode}" == 1 ]]; then
     unit_port="$(sed -n 's/^ExecStart=.* --port \([0-9]*\)$/\1/p' -- "${UNIT}" | head -n 1)"
     if [[ -n "${unit_port}" ]]; then
       PORT="${unit_port}"
-      start_command="${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
+      start_command="PYTHONDONTWRITEBYTECODE=1 ${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
     fi
   fi
   command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1 \
@@ -622,4 +789,5 @@ echo "  ${start_command}"
 if [[ "${START}" == 0 || "${UPDATE}" == 1 ]]; then
   exit 0
 fi
+export PYTHONDONTWRITEBYTECODE=1
 exec "${launcher[@]}" --state-dir "${STATE_DIR}" --port "${PORT}"

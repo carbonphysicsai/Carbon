@@ -13,7 +13,9 @@ import functools
 import json
 import re
 import time
+import uuid
 from contextvars import ContextVar
+from typing import ClassVar
 
 from carbon import research
 from carbon.chain.auth import BittensorMessageSigner
@@ -26,6 +28,7 @@ from .research_reply import project as project_reply
 from .research_workspace import CAPABILITY_FIELDS, CAPABILITY_REASONS, CAPABILITY_TEXT
 
 PREFIX = "carbon_research_v2__"
+DIRECT_PREFIX = "carbon_research_v3__"
 _TASK_MODE = ContextVar("carbon_trusted_task_mode", default=None)
 
 
@@ -764,6 +767,15 @@ def tools_for_sdk(sdk, rule=_FROM_CAMPAIGN):
     if rule is not None and rule not in TOOLS_RULES:
         raise ValueError("unknown research tools rule")
     base = TOOLS if rule is None else TOOLS_V2
+    manifest = getattr(
+        getattr(getattr(sdk, "composition", None), "discovery", None),
+        "manifest",
+        None,
+    )
+    if type(manifest) is research.DirectRecipeManifest:
+        offered = {PREFIX + operation for operation in manifest.supported_operations}
+        # The historical Julia workspace action is not a direct-recipe tool.
+        return [tool for tool in base if tool["name"] in offered]
     image = getattr(
         getattr(getattr(sdk, "composition", None), "executor", None),
         "julia_image",
@@ -976,7 +988,17 @@ class ResearchMinerTools:
                 raise TaskContractMismatch(
                     "backend_not_served", "strategy_json", refused
                 )
-            spec = research.PracticeTaskSpec(strategy, None)
+            if (
+                getattr(
+                    getattr(c.executor, "practice", None), "construction_mode", None
+                )
+                == "direct"
+            ):
+                spec = research.DirectPracticeTaskSpecV1(
+                    "carbon.direct-practice.v1", strategy
+                )
+            else:
+                spec = research.PracticeTaskSpec(strategy, None)
         elif args["kind"] == "workspace":
             if args["strategy_json"] is not None:
                 raise TaskContractMismatch(
@@ -1432,3 +1454,221 @@ class ResearchMinerTools:
                 else {}
             ),
         }
+
+
+class DirectResearchMinerTools:
+    """Trusted direct-v3 MCP adapter over the existing signed gateway.
+
+    A caller supplies only a recipe or an opaque task identity. Challenge
+    material, requester, images, policy, signer and task custody come from the
+    already composed service. This adapter owns no task state or bundle path.
+    """
+
+    OPERATIONS = frozenset(
+        {
+            "get_challenge_info",
+            "get_interaction_manifest",
+            "stage_research_source",
+            "stage_research_material",
+            "start_research_task",
+            "get_research_result",
+            "cancel_research_task",
+        }
+    )
+    _MODES: ClassVar[dict[str, str]] = {
+        "start_research_task": "start",
+        "get_research_result": "observe",
+        "cancel_research_task": "cancel",
+    }
+
+    def __init__(self, *, connection, wrapper, composition, owner):
+        from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
+        from carbon.miner_mcp.research import AuthenticatedResearchService
+        from carbon.research.service import LocalResearchService
+
+        if (
+            type(wrapper) is not AuthenticatedResearchService
+            or type(composition.service) is not LocalResearchService
+            or type(composition.tasks) is not DirectDevelopmentTasksV3
+            or composition.tasks.owner != owner
+            or wrapper._services.get(owner) is not composition.service
+            or not composition.service.binds_research_task_provider(composition.tasks)
+            or wrapper.gateway.challenge
+            != composition.tasks.discovery.info.challenge_key
+            or connection.service.gateway is not wrapper.gateway
+        ):
+            raise ValueError("exact authenticated direct research composition required")
+        self.connection, self.wrapper, self.composition, self.owner = (
+            connection,
+            wrapper,
+            composition,
+            owner,
+        )
+
+    @property
+    def challenge(self):
+        return self.composition.tasks.discovery.info.challenge_key
+
+    def _request(self, operation, args, operation_id):
+        from carbon.research.refs import ResearchTaskId
+
+        key = self.challenge
+        if operation == "get_challenge_info":
+            return research.GetChallengeInfoRequest(key)
+        if operation == "get_interaction_manifest":
+            return research.GetInteractionManifestRequest(key)
+        if operation == "stage_research_source":
+            return research.DirectStageSourceRequestV1(
+                key,
+                args["name"],
+                args["offset"],
+                args["total_bytes"],
+                args["content_digest"],
+                args["expected_digest"],
+                base64.b64decode(args["chunk_base64"], validate=True),
+            )
+        if operation == "stage_research_material":
+            return research.DirectStageMaterialRequestV1(
+                key,
+                args["bundle_digest"],
+                args["name"],
+                args["offset"],
+                args["total_bytes"],
+                args["content_digest"],
+                base64.b64decode(args["chunk_base64"], validate=True),
+            )
+        if operation == "start_research_task":
+            info, manifest = self.composition.tasks.discovery._checked(key)
+            material = self.composition.tasks.discovery._material
+            policy = material["construction_limits_document"][
+                "reconstruction_resource_policy"
+            ]
+            return research.DirectStartTaskRequestV3(
+                key,
+                operation_id,
+                args["recipe"],
+                research.canonical_digest(info),
+                research.canonical_digest(manifest),
+                digest(canonical(material["construction_kit"])),
+                info.public_train_digest,
+                info.practice_inputs_digest,
+                info.interface_digest,
+                info.construction_limits_digest,
+                digest(canonical(policy)),
+            )
+        task_id = ResearchTaskId(args["task_id"])
+        if operation == "get_research_result":
+            return research.DirectGetTaskRequestV3(key, task_id)
+        return research.DirectCancelTaskRequestV3(key, task_id, operation_id)
+
+    async def call(self, operation, args, operation_id):
+        """One signed transmission; retries preserve the business identity."""
+        from carbon.research.model import ReplyStatus
+
+        if (
+            operation not in self.OPERATIONS
+            or type(args) is not dict
+            or type(operation_id) is not str
+            or re.fullmatch(r"[A-Za-z0-9._:-]{16,114}", operation_id) is None
+            or len(canonical(args)) > 1024 * 1024
+        ):
+            raise ValueError("bounded direct MCP request required")
+        expected = (
+            {
+                "name",
+                "offset",
+                "total_bytes",
+                "content_digest",
+                "expected_digest",
+                "chunk_base64",
+            }
+            if operation == "stage_research_source"
+            else (
+                {
+                    "bundle_digest",
+                    "name",
+                    "offset",
+                    "total_bytes",
+                    "content_digest",
+                    "chunk_base64",
+                }
+                if operation == "stage_research_material"
+                else (
+                    {"recipe"}
+                    if operation == "start_research_task"
+                    else (
+                        {"task_id"}
+                        if operation in {"get_research_result", "cancel_research_task"}
+                        else set()
+                    )
+                )
+            )
+        )
+        if set(args) != expected or (
+            operation == "start_research_task" and type(args["recipe"]) is not dict
+        ):
+            raise ValueError("direct MCP fields differ")
+        try:
+            request = self._request(operation, args, operation_id)
+            research.canonical_bytes(
+                research.ServiceCall(research.RESEARCH_NAMESPACE, operation, request)
+            )
+        except (ValueError, TypeError, base64.binascii.Error):
+            raise ValueError("bounded direct MCP request required") from None
+        cleanup_check = getattr(self.connection, "check_cleanup_registration", None)
+        check = (
+            cleanup_check
+            if operation in {"get_research_result", "cancel_research_task"}
+            and callable(cleanup_check)
+            else self.connection.check_registration
+        )
+        observed = await check()
+        call = research.ServiceCall(research.RESEARCH_NAMESPACE, operation, request)
+        wire = message(
+            self.connection.chain_context,
+            observed.snapshot_id,
+            self.challenge,
+            session="carbon-direct-research",
+            request="mcp-direct-" + uuid.uuid4().hex,
+            tool=research.RESEARCH_NAMESPACE,
+            fields={
+                "call_base64": base64.b64encode(research.canonical_bytes(call)).decode(
+                    "ascii"
+                )
+            },
+        )
+        headers = BittensorMessageSigner(self.connection.miner_key).sign(
+            wire, receiver=self.connection.publisher, nonce_ns=time.time_ns()
+        )
+        result = await self.wrapper.supervised_call(
+            wire,
+            headers,
+            {self.owner: self.composition},
+            task_mode=self._MODES.get(operation),
+        )
+        reply = research.load_canonical(
+            base64.b64decode(result["protocol_reply_base64"]), research.ServiceReply
+        )
+        view = (
+            research.load_canonical(
+                base64.b64decode(result["terminal_observation_base64"]),
+                research.DirectTaskViewV3,
+            )
+            if result["terminal_observation_base64"] is not None
+            else None
+        )
+        if reply.status is not ReplyStatus.OK and view is not None:
+            raise ValueError("refused direct reply cannot disclose a task")
+        return {
+            "schema": "carbon.direct-mcp-result.v3",
+            "operation": operation,
+            "operation_id": operation_id,
+            "reply": public_wire(reply),
+            "task": public_wire(view),
+            "public_result": public_wire(result["public_result"]),
+            "requires_reconciliation": result["requires_reconciliation"],
+            "official_eligible": False,
+        }
+
+    async def shutdown_tasks(self):
+        await self.wrapper.shutdown_tasks()

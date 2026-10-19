@@ -384,20 +384,46 @@ def test_no_challenge_is_hard_coded_into_the_page():
     assert "burgers" in "The Burgers research bridge".lower()
 
 
-def test_each_challenge_lists_its_own_model_families(host):
-    """Found in the live battery journey (Launchpad H): a battery launch
-    listed Burgers' families. Each Challenge's list now comes from its own
-    construction contract (OD-8)."""
-    from carbon.reconstruction.capability_registry import (
-        BATTERY_CHALLENGE,
-        BURGERS_CHALLENGE,
-    )
+def test_each_challenge_reports_its_own_construction_path(host):
+    """Registry capabilities stay visible without claiming fixture hosting.
+
+    The options response does not claim a finite list of allowed model
+    families: recipe admission is checked when a miner presents a candidate.
+    """
+    from carbon.challenge_registry.campaigns import implemented_campaigns
     from scripts.dev.miner_launchpad.operations import perform
 
-    by = perform(host, "options", {})["families_by_challenge"]
-    battery = {f["selector"] for f in by[BATTERY_CHALLENGE]}
-    burgers = {f["selector"] for f in by[BURGERS_CHALLENGE]}
-    assert {"knn", "mlp"} <= battery
-    assert "transolver" not in battery
-    # Specimen: the family a battery launch must not list is Burgers' own.
-    assert "transolver" in burgers
+    options = perform(host, "options", {})
+    assert "families_by_challenge" not in options
+    paths = options["construction_paths"]
+    campaigns = implemented_campaigns()
+    assert set(paths) == {entry.challenge_id for entry, _ in campaigns}
+    for entry, campaign in campaigns:
+        value = paths[entry.challenge_id]
+        assert value["schema"] == "carbon.launchpad.construction-paths.v1"
+        assert value["challenge"] == {
+            "id": entry.challenge_id,
+            "version": entry.version,
+        }
+        assert value["qualification"] is False
+        assert [path["id"] for path in value["paths"]] == [
+            "public_reconstruction",
+            "official_submission",
+        ]
+        assert value["paths"][1] == {
+            "id": "official_submission",
+            "availability": "unserved",
+            "reason": "receiver_paired_direct_reconstruction_unserved",
+        }
+        kit = value["construction_kit"]
+        if kit is not None:
+            assert (kit["id"], kit["version"]) == (entry.challenge_id, entry.version)
+        assert value["paths"][0]["availability"] == "unserved"
+        if kit is not None and callable(
+            getattr(campaign, "construction_reconstruct", None)
+        ):
+            assert value["paths"][0]["reason"] == (
+                "public_reconstruction_registered_host_readiness_unverified"
+            )
+        else:
+            assert value["paths"][0]["reason"] == "isolated_public_worker_unserved"

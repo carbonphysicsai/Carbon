@@ -525,6 +525,50 @@ For isolated miner-authored `run_julia`, use the separate
 [authored Julia operator and client guide](../../docs/development/AUTHORED_JULIA_RESEARCH.md).
 Installing its image or starting an MCP client does not amend an existing grant.
 
+## Direct 1.3 pinned bundle transfer
+
+With an installed direct DEVELOPMENT profile and its pinned receiver, stage one
+complete local bundle before submitting its recipe:
+
+```sh
+python -m carbon.miner_mcp.standard_cli \
+  --configuration /private/runner-profile.json \
+  --direct-development --direct-version 1.3 \
+  --stage-bundle /private/pinned-bundle \
+  --recipe /private/pinned-bundle/cr02_recipe.json
+```
+
+This holds an authenticated owner lock for the finite signed transfer and checks
+the recipe against the exact local source, lock, license and wheels. The sending
+host needs its valid profile, chain registration, external signer and pinned
+receiver; it does not need a local execution image or Docker. If interrupted,
+rerun the same command to resume at receiver-acknowledged digest-bound offsets.
+The command stages bytes only; construction and evaluation remain separate.
+
+## Graphite direct remote construction observations
+
+The maintained `python -m carbon.agent_campaign.graphite direct-agent` caller
+offers `carbon_research_v3__submit_construction` and
+`carbon_research_v3__observe_construction` when its private profile pins a direct
+receiver. Both take exactly `{"recipe_json": "<complete recipe JSON>"}`.
+The Launchpad Tools actions use `submit_construction` or `observe_construction`
+with `{"recipe": <complete recipe object>}` in the `direct-development-1.3`
+session. These actions are separate from the local research task tools.
+
+Observation reads the task already recorded for that exact recipe, owner
+attachment, receiver and chain. A missing admission record refuses before
+signing or network access; observation never falls back to submission. Each
+observation call waits at most ten seconds and retains the pinned task identity.
+`ADMITTED` means pending. Repeating observation polls the same task until its
+terminal reconstruction outcome; it creates no official grade.
+
+Graphite's canonical tool journal preserves the remote recipe/task association
+across restart, independently of local `get_research_result` and cancellation.
+An epoch that ends with an admitted remote task reports
+`REMOTE_CONSTRUCTION_PENDING`; that task remains under the receiver's own
+bounded execution. `REMOTE_CONSTRUCTION_OBSERVED` records a terminal outcome,
+which may be a reconstruction failure. Neither status asserts model quality.
+
 ## Private Streamable HTTP composition
 
 `standard_http.create_http_app(adapter, verifier)` creates an ASGI application

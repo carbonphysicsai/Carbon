@@ -1,22 +1,9 @@
-"""Construction levels at the Launchpad's doors (LAUNCHPAD-LEVELS-01 S2, S3).
+"""Historical level bindings and prospective direct-mode launch capture.
 
-One table entry each for launch, practice, freeze, commit and submit
-(`operations.OPERATIONS`), so the browser and MCP doors refuse and accept
-alike. Every rule is the generic mechanism's
-(`carbon.development_session.construction_level`); this module only turns
-its refusals into the doors' `Rejected` and reads the target intake's public
-facts. It names no Challenge and imports no variant module.
-
-- **Launch** at `construction_level: N` (and `arm`) binds the level's current
-  registered variant (`launch_binding`); level 0 binds nothing.
-- **Practice and freeze** compile at the level first (`checked_strategy`,
-  `checked_freeze`), so a refusal is answered at once by its closed code.
-- **Submit and commit** refuse, before anything is signed, a binding no
-  longer registered (`level_not_registered`) and a target whose
-  `served_contracts` do not list it (`level_not_served_by_target`), and, for
-  Level 4, a target whose public `tools` do not take the staging envelope's
-  signed parts (`level4_envelope_transport_unavailable`, S4). Where they do,
-  the campaign sends the envelope's parts, then the candidate.
+New campaigns capture Challenge identity only and later use a construction
+recipe. The level resolver, compiler, and served-target reader below remain
+for previously persisted campaigns, whose recorded identities cannot be
+reinterpreted. The normal v4 path must never fall through to them.
 """
 
 from __future__ import annotations
@@ -28,6 +15,7 @@ CONSTRUCTION_ADMISSION = "construction_admission"
 CAPTURE_SCHEMA = "carbon.launchpad.construction-admission.v1"
 SELECTED_CAPTURE_SCHEMA = "carbon.launchpad.construction-admission.v2"
 BASE_CAPTURE_SCHEMA = "carbon.launchpad.construction-admission.v3"
+DIRECT_CAPTURE_SCHEMA = "carbon.launchpad.construction-admission.v4"
 # The only prospective standalone test subject. The variant registry still
 # authenticates its document and current registration before it is bound.
 STANDALONE_GRAPH_V3 = (
@@ -186,12 +174,30 @@ def capture_binding(found, selector=None):
     return {"schema": CAPTURE_SCHEMA, "binding": found}
 
 
+def capture_direct_campaign(challenge):
+    """New local campaign identity; candidate and receiver bind later."""
+    if not _valid_direct_challenge(challenge):
+        raise Rejected("launch_record_differs", 409)
+    return {"schema": DIRECT_CAPTURE_SCHEMA, "challenge": dict(challenge)}
+
+
+def _valid_direct_challenge(challenge):
+    return (
+        type(challenge) is dict
+        and set(challenge) == {"id", "version"}
+        and all(
+            type(challenge[key]) is str and challenge[key] for key in ("id", "version")
+        )
+    )
+
+
 def capture_version(captured):
     """The writer's schema and database version are one prospective identity."""
     return {
         CAPTURE_SCHEMA: 1,
         SELECTED_CAPTURE_SCHEMA: 2,
         BASE_CAPTURE_SCHEMA: 3,
+        DIRECT_CAPTURE_SCHEMA: 4,
     }[captured["schema"]]
 
 
@@ -201,29 +207,41 @@ def checked_capture(row, captured):
 
     version = row.get("construction_binding_version", 0)
     pinned = row.get("construction_binding_digest")
-    if type(version) is not int or version not in (0, 1, 2, 3):
+    if type(version) is not int or version not in (0, 1, 2, 3, 4):
         raise Rejected("launch_record_differs", 409)
     if version == 0:
         if captured is not None or pinned is not None:
             raise Rejected("launch_record_differs", 409)
         return None
     expected = (
-        {"schema", "binding"} if version == 1 else {"schema", "binding", "selector"}
+        {"schema", "binding"}
+        if version == 1
+        else (
+            {"schema", "challenge"}
+            if version == 4
+            else {"schema", "binding", "selector"}
+        )
     )
     schema = {
         1: CAPTURE_SCHEMA,
         2: SELECTED_CAPTURE_SCHEMA,
         3: BASE_CAPTURE_SCHEMA,
+        4: DIRECT_CAPTURE_SCHEMA,
     }[version]
     if (
         type(captured) is not dict
         or set(captured) != expected
         or captured["schema"] != schema
         or type(pinned) is not str
-        or (captured["binding"] is not None and type(captured["binding"]) is not dict)
+        or (
+            version != 4
+            and captured["binding"] is not None
+            and type(captured["binding"]) is not dict
+        )
         or (version in (2, 3) and type(captured["selector"]) is not str)
         or (version == 2 and captured["binding"] is None)
         or (version == 3 and captured["binding"] is not None)
+        or (version == 4 and not _valid_direct_challenge(captured["challenge"]))
     ):
         raise Rejected("launch_record_differs", 409)
     try:
@@ -237,9 +255,18 @@ def checked_capture(row, captured):
 
 def replay_binding(request, challenge, agent, cfg, captured):
     """An exact admitted binding; historical records retain their old route."""
-    cl = _cl()
     if captured is None:
         return launch_binding(request, challenge, agent, cfg, legacy=True)
+    if captured["schema"] == DIRECT_CAPTURE_SCHEMA:
+        if any(
+            key in request
+            for key in ("construction_level", "construction_variant_digest", "arm")
+        ):
+            raise Rejected("launch_record_differs", 409)
+        if challenge != captured["challenge"]:
+            raise Rejected("launch_record_differs", 409)
+        return None
+    cl = _cl()
     frozen = captured["binding"]
     if captured["schema"] == BASE_CAPTURE_SCHEMA:
         if request.get("construction_variant_digest") != captured["selector"]:
@@ -302,6 +329,13 @@ def replay_binding(request, challenge, agent, cfg, captured):
 def campaign_binding(row, cfg=None):
     """An admitted campaign's level binding: its frozen manifest's, or,
     before the manifest is written, the one its launch record names."""
+    version = (
+        row.get("construction_binding_version")
+        if hasattr(row, "get")
+        else row["construction_binding_version"]
+    )
+    if version == 4 and campaign_is_direct(row, cfg):
+        return None
     cl = _cl()
     root = Path(row["root"])
     path = root / "campaign-manifest.json"
@@ -333,6 +367,41 @@ def campaign_binding(row, cfg=None):
         raise _rejected(refused) from None
     target = _intake_url(cfg, challenge) if cfg is not None else None
     return cl.with_target(found, target)
+
+
+def campaign_is_direct(row, cfg):
+    """Whether the exact recorded campaign uses the new recipe path.
+
+    New launches are local drafts: no candidate or official resource policy
+    is bound yet. Historical campaigns keep their original binding reader.
+    """
+    row = row if hasattr(row, "get") else dict(row)
+    stored = row.get("launch_request")
+    if stored is None:
+        if row.get("construction_binding_version") == 4:
+            raise Rejected("launch_record_differs", 409)
+        return False
+    try:
+        recorded = json.loads(stored)
+        captured = checked_capture(row, recorded.pop(CONSTRUCTION_ADMISSION, None))
+        if captured is None or captured["schema"] != DIRECT_CAPTURE_SCHEMA:
+            return False
+        challenge = {
+            "id": recorded.get("challenge"),
+            "version": recorded.get("challenge_version"),
+        }
+        replay_binding(recorded, challenge, recorded.get("agent"), cfg, captured)
+        path = Path(row["root"]) / "campaign-manifest.json"
+        if path.exists():
+            manifest = json.loads(path.read_bytes())
+            if (
+                manifest.get("construction_mode") != "direct"
+                or manifest.get("challenge") != captured["challenge"]
+            ):
+                raise Rejected("launch_record_differs", 409)
+        return True
+    except (TypeError, ValueError, AttributeError, KeyError, OSError):
+        raise Rejected("launch_record_differs", 409) from None
 
 
 def checked_strategy(found, strategy):

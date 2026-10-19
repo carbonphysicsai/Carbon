@@ -152,7 +152,7 @@ def test_selected_capture_is_versioned_and_replay_cannot_change_subject():
         levels.replay_binding(request, CHALLENGE, "graphite", CFG, old)
 
 
-def test_selected_launch_writer_persists_subject_and_replays_before_dispatch(
+def test_new_launch_writer_refuses_selected_legacy_subject_before_dispatch(
     tmp_path, monkeypatch
 ):
     cfg = runner_fixture.configured(tmp_path)
@@ -160,18 +160,6 @@ def test_selected_launch_writer_persists_subject_and_replays_before_dispatch(
     host = RunnerAdapter(tmp_path / "launch.sqlite3", principal="alice")
     dispatches = []
     monkeypatch.setattr(host, "_dispatch_run", lambda *args: dispatches.append(args))
-    monkeypatch.setattr(
-        host,
-        "_graphite_choice",
-        lambda *args, **kwargs: {
-            "mode": "FULL",
-            "research_share": 0.1,
-            "plan": None,
-            "hunt": None,
-            "limits": {},
-            "curation_digest": "sha256:" + "1" * 64,
-        },
-    )
     monkeypatch.setattr(
         operations, "_registered", lambda *args: runner_fixture.registered()
     )
@@ -185,40 +173,12 @@ def test_selected_launch_writer_persists_subject_and_replays_before_dispatch(
     }
     try:
         admitted = SimpleNamespace(profile=cfg, miner=runner_fixture.registered())
-        answer = host.launch_admitted(admitted, request)
+        with pytest.raises(Rejected, match="construction_selector_retired"):
+            host.launch_admitted(admitted, request)
         with host.db() as db:
-            row = dict(
-                db.execute(
-                    "SELECT * FROM launchpad_campaigns WHERE id=?", (answer["id"],)
-                ).fetchone()
-            )
-        captured = json.loads(row["launch_request"])[levels.CONSTRUCTION_ADMISSION]
-        assert row["construction_binding_version"] == 2
-        assert captured == levels.capture_binding(
-            standalone(), selector=levels.STANDALONE_GRAPH_V3
-        )
-        assert row["construction_binding_digest"] == digest(canonical(captured))
-        assert len(dispatches) == 1
-        assert levels.campaign_binding(row, cfg) == standalone()
-        assert levels.campaign_binding(row) == standalone()
-        assert (
-            levels.campaign_slot(standalone(), {})["variant"]["digest"]
-            == levels.STANDALONE_GRAPH_V3
-        )
-        assert host.replayed(cfg, request)["id"] == answer["id"]
-        with pytest.raises(Rejected, match="research_launch_replay_conflict"):
-            host.replayed(
-                cfg, {**request, "construction_variant_digest": "sha256:" + "0" * 64}
-            )
-        _, choice = host._recorded_launch(row, cfg)
-        assert choice.construction_level == standalone()
-        changed = copy.deepcopy(row)
-        recorded = json.loads(changed["launch_request"])
-        recorded["construction_variant_digest"] = "sha256:" + "0" * 64
-        changed["launch_request"] = canonical(recorded)
-        with pytest.raises(Rejected, match="launch_record_differs"):
-            host._recorded_launch(changed, cfg)
-        assert len(dispatches) == 1
+            count = db.execute("SELECT COUNT(*) FROM launchpad_campaigns").fetchone()[0]
+        assert count == 0
+        assert dispatches == []
     finally:
         host.close()
 
@@ -383,12 +343,15 @@ def test_real_launch_writer_versions_capture_and_replay_before_dispatch(
                     "SELECT * FROM launchpad_campaigns WHERE id=?", (answer["id"],)
                 ).fetchone()
             )
-        assert row["construction_binding_version"] == 1
+        assert row["construction_binding_version"] == 4
         captured = json.loads(row["launch_request"])[levels.CONSTRUCTION_ADMISSION]
-        assert captured["binding"] == bound()
+        assert captured == levels.capture_direct_campaign(CHALLENGE)
         assert row["construction_binding_digest"] == digest(canonical(captured))
         _, choice = host._recorded_launch(row, cfg)
-        assert choice.construction_level == bound() and len(dispatches) == 1
+        assert choice.construction_mode == "direct"
+        assert choice.construction_level is None and len(dispatches) == 1
+        assert levels.campaign_is_direct(row, cfg)
+        assert levels.campaign_binding(row, cfg) is None
         missing = copy.deepcopy(row)
         recorded = json.loads(missing["launch_request"])
         del recorded[levels.CONSTRUCTION_ADMISSION]
@@ -397,7 +360,7 @@ def test_real_launch_writer_versions_capture_and_replay_before_dispatch(
             host._recorded_launch(missing, cfg)
         assert len(dispatches) == 1
         # A genuine pre-S3 record has the migration's version-0/default-null
-        # identity, not a version-1 record with its capture removed.
+        # identity, not a version-4 record with its capture removed.
         historical = {
             **missing,
             "construction_binding_version": 0,

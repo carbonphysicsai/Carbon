@@ -136,6 +136,9 @@ def source_for(challenge_id, spec, *, repository=REPOSITORY):
     Challenge."""
     from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
+    mode = spec.get("comparison", "fresh_final")
+    if type(mode) is not str or mode not in {"fresh_final", "cached_bank"}:
+        raise ProducerRefused("producer_comparison_refused")
     require_approval(spec.get("approval"), repository=repository)
 
     if challenge_id == BATTERY_CHALLENGE and "bank" in spec:
@@ -148,7 +151,7 @@ def source_for(challenge_id, spec, *, repository=REPOSITORY):
             overlay=spec.get("overlay"),
             repository=repository,
             design_dir=spec.get("design"),
-        )
+        ).for_comparison(mode)
     if challenge_id == BATTERY_CHALLENGE:
         # Battery's source with its quiz (slice Q, part 2): it draws a quiz
         # only for a producer configured with one.
@@ -156,7 +159,7 @@ def source_for(challenge_id, spec, *, repository=REPOSITORY):
 
         return BatteryQuizSource.from_deployment(
             spec["deployment"], overlay=spec.get("overlay"), repository=repository
-        )
+        ).for_comparison(mode)
     from .family_source import family_source_class
 
     family = family_source_class(challenge_id)
@@ -166,7 +169,7 @@ def source_for(challenge_id, spec, *, repository=REPOSITORY):
         # registration, so it takes no overlay.
         if "overlay" in spec:
             raise ProducerRefused("producer_config_malformed")
-        return family(spec["deployment"], repository=repository)
+        return family(spec["deployment"], repository=repository).for_comparison(mode)
     raise ProducerRefused("producer_no_source")
 
 
@@ -253,7 +256,15 @@ def load_config(path, *, account=None):
         or any(
             type(spec) is not dict
             or not {"deployment", "approval"} <= set(spec)
-            or set(spec) - {"deployment", "overlay", "approval", "bank", "design"}
+            or set(spec)
+            - {"deployment", "overlay", "approval", "bank", "design", "comparison"}
+            or (
+                "comparison" in spec
+                and (
+                    type(spec["comparison"]) is not str
+                    or spec["comparison"] not in {"fresh_final", "cached_bank"}
+                )
+            )
             for spec in config["sources"].values()
         )
     ):
@@ -391,6 +402,8 @@ class Producer:
         if kind not in SERVED_KINDS:
             raise ProducerRefused("producer_kind_refused")
         source = self._source(challenge_id)
+        if kind not in source.kinds():
+            raise ProducerRefused("producer_kind_refused")
         fingerprint = source.draw(role, kind=kind, size=size)
         if self.journal.find("drawn", challenge_id, fingerprint) is None:
             # A quiz is decided once, at the draw: only a screening batch,
@@ -974,7 +987,7 @@ class Producer:
         so no later tick filled it and validators never received the batch.
         Returns `[{"slot", "kind"}]` for each one published now."""
         done = []
-        for kind in ("screening", "finalist"):
+        for kind in self.sources[challenge_id].kinds():
             for slot, fingerprint in sorted(
                 self._scheduled(challenge_id, kind).items()
             ):

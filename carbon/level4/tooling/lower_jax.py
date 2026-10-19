@@ -12,10 +12,19 @@ counts primitives, with no allowlist involved.
 from __future__ import annotations
 
 import collections
+import re
 
 from .. import graph, named, params
 
 CALL_OPS = graph.CALL_OPS
+_TYPE_LABEL = re.compile(r"[A-Za-z0-9_.]{1,160}\Z")
+
+
+def _safe_type_label(value):
+    """Class identity for a private refusal, never an object's repr or value."""
+    kind = type(value)
+    label = f"{kind.__module__}.{kind.__qualname__}"
+    return label if _TYPE_LABEL.fullmatch(label) else "unrecognized"
 
 
 def trace(fn, *args):
@@ -93,6 +102,8 @@ def lower(closed, *, role, allowlist, input_names):
             jaxpr, consts = sub, []
             if jaxpr.constvars:
                 raise graph.GraphRefused("open_constants", name)
+        if jaxpr.effects:
+            raise graph.GraphRefused("op_refused", name)
         ids = {}
         counter = iter(range(1 << 62))
 
@@ -130,7 +141,21 @@ def lower(closed, *, role, allowlist, input_names):
                 op, encoded = "named_function", {"name": kernel}
             else:
                 spec = allowlist.admit(op, role, where)
-                encoded = params.encode(spec, eqn.params, lower_graph)
+                try:
+                    encoded = params.encode(spec, eqn.params, lower_graph)
+                except graph.GraphRefused as refused:
+                    if (
+                        refused.code == "parameter_not_default"
+                        and refused.where == "parameter sharding"
+                    ):
+                        # Keep this context safe even if a caller surfaces the
+                        # refusal: no placement identity, tensor value or repr.
+                        label = _safe_type_label(eqn.params["sharding"])
+                        raise graph.GraphRefused(
+                            refused.code,
+                            f"{where} op {op} parameter sharding type {label}",
+                        ) from None
+                    raise
             ins = [use(a) for a in eqn.invars]
             outs = [{"value": new(v), **_aval(v.aval, where)} for v in eqn.outvars]
             nodes.append({"op": op, "in": ins, "out": outs, "params": encoded})

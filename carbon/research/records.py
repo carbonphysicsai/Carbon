@@ -570,6 +570,9 @@ class ExperimentRecord:
             ResearchTaskKind.DEVELOPMENT_WORKSPACE_V1,
             ResearchTaskKind.DEVELOPMENT_WORKSPACE_V2,
         }
+        direct_practice = (
+            self.task_bindings.task_kind is ResearchTaskKind.DIRECT_PRACTICE
+        )
         if workspace_only and (
             self.resolved_strategies != ()
             or self.evidence_class is not ResearchEvidenceClass.STRUCTURAL_ONLY
@@ -582,7 +585,7 @@ class ExperimentRecord:
             type(self.resolved_strategies) is not tuple
             or not (
                 len(self.resolved_strategies) == 0
-                if workspace_only
+                if workspace_only or direct_practice
                 else 1 <= len(self.resolved_strategies) <= 2
             )
             or any(

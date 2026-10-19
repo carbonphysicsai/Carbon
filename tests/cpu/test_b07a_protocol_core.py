@@ -312,6 +312,7 @@ def test_prior_channel_and_task_kind_are_closed_nominal_enums() -> None:
     assert tuple(kind.value for kind in research.ResearchTaskKind) == (
         "RECONSTRUCTION_REHEARSAL",
         "PRACTICE",
+        "DIRECT_PRACTICE",
         "PAIRED_PRACTICE",
         "RESOURCE_CALIBRATION",
         "DEVELOPMENT_WORKSPACE_V1",

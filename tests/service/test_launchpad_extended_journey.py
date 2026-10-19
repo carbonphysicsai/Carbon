@@ -358,13 +358,37 @@ def ladder_facts_server():
         thread.join(5)
 
 
-def test_12_new_level_hints_do_not_downgrade_the_current_composition(battery, door):
-    from carbon.development_session import construction_level as cl
-    from scripts.dev.miner_launchpad import levels
-
+def test_12_new_level_hints_are_retired_without_downgrading_direct_launch(
+    battery, door
+):
     call = door(battery)
-    expected = cl.resolve_composition(production.BATTERY)
-    assert expected is not None
+    direct = call(
+        "launch",
+        {
+            "agent": "none",
+            "challenge": production.BATTERY,
+            "challenge_version": "1.0",
+            "idempotency_key": "t04-direct-after-retired-hints",
+        },
+    )
+    assert "error" not in direct, direct
+    battery.join()
+    with battery.host.db() as db:
+        row = dict(
+            db.execute(
+                "SELECT * FROM launchpad_campaigns WHERE id=?", (direct["id"],)
+            ).fetchone()
+        )
+        count = db.execute("SELECT COUNT(*) FROM launchpad_campaigns").fetchone()[0]
+    recorded = json.loads(row["launch_request"])
+    manifest = json.loads(
+        (battery.campaign_root(direct["id"]) / "campaign-manifest.json").read_bytes()
+    )
+    assert row["construction_binding_version"] == 4
+    assert manifest["construction_mode"] == "direct"
+    assert not {"construction_level", "construction_variant_digest", "arm"} & set(
+        recorded
+    )
     for level in (1, 2, 3):
         result = call(
             "launch",
@@ -376,100 +400,45 @@ def test_12_new_level_hints_do_not_downgrade_the_current_composition(battery, do
                 "idempotency_key": f"t04-composition-hint-{level}",
             },
         )
-        assert "error" not in result, result
-        battery.join()
+        assert result["error"] == "construction_selector_retired"
+        if "next_step" in result:
+            assert result["next_step"] == supervision.NEXT_ACTIONS[result["error"]]
         with battery.host.db() as db:
-            row = dict(
-                db.execute(
-                    "SELECT * FROM launchpad_campaigns WHERE id=?", (result["id"],)
-                ).fetchone()
+            assert (
+                db.execute("SELECT COUNT(*) FROM launchpad_campaigns").fetchone()[0]
+                == count
             )
-        # This fixture's preparation omits the manifest's level argument.
-        # Inspect the writer-owned admission directly, authenticating both
-        # the saved request and its version/digest rather than a substitute.
-        recorded = json.loads(row["launch_request"])
-        captured = levels.checked_capture(row, recorded[levels.CONSTRUCTION_ADMISSION])
-        found = levels.replay_binding(
-            recorded,
-            {"id": recorded["challenge"], "version": recorded["challenge_version"]},
-            recorded["agent"],
-            battery.cfg,
-            captured,
-        )
-        assert found["kind"] == cl.COMPOSITION
-        assert found["digest"] == expected["digest"]
 
 
 @pytest.mark.parametrize("level", [1, 2, 3, 4])
-def test_12_historical_level_target_gates_precede_signing(
-    battery, monkeypatch, door, ladder_facts_server, level
+def test_12_historical_level_selector_is_refused_before_any_signing(
+    battery, door, level
 ):
-    """Explicit historical admission fixture; never revive legacy new-launch selection.
-
-    The original handoff's L1-L3 selectors predate default composition. Keep
-    historical frozen variants covered, and separately assert the current
-    composition behavior above. This tests pre-sign door gates, not a real
-    level verdict or security acceptance.
-    """
-    from carbon.battery import campaign as battery_campaign
-    from carbon.development_session import construction_level as cl
-    from scripts.dev.miner_launchpad import levels
-
-    url, facts, read = ladder_facts_server
-    found = cl.with_target(cl.resolve(production.BATTERY, level), url)
-    entry = {key: found[key] for key in ("level", "variant", "digest")}
-    facts["served_contracts"] = [entry]
-    battery.cfg = {**battery.cfg, "intakes": {production.BATTERY: url}}
-    battery.host.read_intake_facts = read
-    monkeypatch.setattr(cl, "READ_TARGET", lambda challenge, address: read(address))
-    binding = levels.launch_binding
-    manifest = battery_campaign.manifest_document
-
-    def historical_binding(*args, **kwargs):
-        return binding(*args, **{**kwargs, "legacy": True})
-
-    def level_manifest(*args, **kwargs):
-        return manifest(*args, **{**kwargs, "construction_level": found})
-
-    # Adapt only this test's preparation to the existing live prepare's
-    # construction_level argument; no shared production-journey fixture edit.
-    with monkeypatch.context() as setup:
-        setup.setattr(levels, "launch_binding", historical_binding)
-        setup.setattr(battery_campaign, "manifest_document", level_manifest)
-        call = door(battery)
-        launched = call(
-            "launch",
-            {
-                "agent": "none",
-                "challenge": production.BATTERY,
-                "challenge_version": "1.0",
-                "construction_level": level,
-                "idempotency_key": f"t04-legacy-level-{level}",
-            },
-        )
-        assert "error" not in launched, launched
-        battery.join()
-    identity = launched["id"]
-    assert battery.view(identity)["state"] == "READY"
-    facts["served_contracts"] = []
-    absent = call("commit", {"campaign": identity})
-    assert absent["error"] == "level_not_served_by_target"
-    assert absent["next_step"] == supervision.NEXT_ACTIONS[absent["error"]]
-    facts["served_contracts"] = [entry]
-    if level == 4:
-        refused = call("commit", {"campaign": identity})
-        assert refused["error"] == "level4_envelope_transport_unavailable"
+    """The old L1–L4 target gate is unreachable through a new public launch."""
+    call = door(battery)
+    with battery.host.db() as db:
+        before = db.execute("SELECT COUNT(*) FROM launchpad_campaigns").fetchone()[0]
+    refused = call(
+        "launch",
+        {
+            "agent": "none",
+            "challenge": production.BATTERY,
+            "challenge_version": "1.0",
+            "construction_level": level,
+            "idempotency_key": f"t04-legacy-level-{level}",
+        },
+    )
+    assert refused["error"] == "construction_selector_retired"
+    if "next_step" in refused:
         assert refused["next_step"] == supervision.NEXT_ACTIONS[refused["error"]]
-    else:
-        # Correct served facts pass the target gate and reach the distinct
-        # unfrozen-candidate gate. The response cannot be a manufactured PASS.
-        next_gate = call("commit", {"campaign": identity})
-        assert next_gate["error"] == "freeze_a_candidate_first"
-    assert battery.view(identity)["in_flight"] is None
-    assert not (battery.campaign_root(identity) / "commitment-request.json").exists()
+    with battery.host.db() as db:
+        assert (
+            db.execute("SELECT COUNT(*) FROM launchpad_campaigns").fetchone()[0]
+            == before
+        )
 
 
-def test_13_cpu_practice_refuses_torch_before_worker_and_keeps_jax(
+def test_13_historical_cpu_practice_refuses_torch_before_worker_and_keeps_jax(
     battery, monkeypatch, door
 ):
     from test_battery_intake_service_e2e import TORCH
@@ -485,7 +454,7 @@ def test_13_cpu_practice_refuses_torch_before_worker_and_keeps_jax(
         return original(self, identity, strategy)
 
     monkeypatch.setattr(BatteryPractice, "__call__", practice)
-    identity = battery.launch("t04-torch-scope-launch")
+    identity = battery.launch("t04-torch-scope-launch", historical=True)
     call = door(battery)
     before = battery.ledger(identity).status(owner=battery.owner(identity))["used"][
         "research_trials"
