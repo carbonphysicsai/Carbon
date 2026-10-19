@@ -70,7 +70,7 @@ def _write_pack(adapter, root, public, **options):
             )
             patch.setattr(physical_pack, "public_roles", lambda *_: public)
         manifest = adapter.write_development_pack(
-            root, inference_image_id=IMAGE, **options
+            root, **{"inference_image_id": IMAGE, **options}
         )
     assert manifest == root / physical.MANIFEST_NAME
     prepared = prepare_pack(
@@ -408,6 +408,9 @@ def test_a_retained_bundle_scores_the_recorded_baseline_and_binds_v4(case):
 
 
 def test_another_grading_image_is_refused_not_failed(case):
+    """A receiver inference-image override (direct_receiver's
+    inference_image_manifest) changes the retained inference_image_id; grading
+    compares that retained value, never config, with the pack's platform."""
     other = source._canonical(
         {
             **json.loads(case["originals"]["bundle_evidence_raw"]),
@@ -537,9 +540,22 @@ def test_the_baseline_graded_on_the_judge_image_sets_the_minimums(case, tmp_path
     assert calibration["definition"]["leg_minimum_mode"] == "calibration"
     assert "-calibration-" in calibration["version"]
     _, bound = _graded_binding(calibration)
+    graded_under = {
+        "baseline_binding_raw": physical.canonical(bound),
+        "calibration_pack_root": calibration["root"],
+    }
+    # The per-image platform is the baseline run's, never a caller value: no
+    # image needed, and a differing one (e.g. the analysis image) is refused.
     judge = _with_pack(
-        case, tmp_path / "judge", baseline_binding_raw=physical.canonical(bound)
+        case, tmp_path / "judge", inference_image_id=None, **graded_under
     )
+    with pytest.raises(ValueError, match="differs from the baseline run"):
+        _with_pack(
+            case,
+            tmp_path / "analysis",
+            inference_image_id=_sha(b"fixture-analysis-image"),
+            **graded_under,
+        )
     legs = bound["scoring"]["models"][0]["legs"]
     assert {k: v["minimum"] for k, v in judge["score_pack"]["legs"].items()} == {
         "A": legs["A"],
@@ -561,7 +577,7 @@ def test_the_baseline_graded_on_the_judge_image_sets_the_minimums(case, tmp_path
             case,
             tmp_path / "variant",
             rule="baseline_a_no_d_minimum",
-            baseline_binding_raw=physical.canonical(bound),
+            **graded_under,
         )
         assert variant["score_pack"]["legs"]["A"]["minimum"] == legs["A"]
         assert variant["score_pack"]["legs"]["D"]["minimum"] is None
@@ -571,10 +587,14 @@ def test_the_baseline_graded_on_the_judge_image_sets_the_minimums(case, tmp_path
     # A binding from any other pack, or with changed legs, sets nothing.
     forged = deepcopy(bound)
     forged["scoring"]["models"][0]["legs"]["A"] = 0.0
-    for name, binding in (("other", other), ("forged", forged)):
-        with pytest.raises(ValueError, match="scored calibration run"):
+    for name, binding, reason in (
+        ("other", other, "not graded under this calibration pack"),
+        ("forged", forged, "scored calibration run"),
+    ):
+        with pytest.raises(ValueError, match=reason):
             _with_pack(
                 case,
                 tmp_path / name,
                 baseline_binding_raw=physical.canonical(binding),
+                calibration_pack_root=calibration["root"],
             )

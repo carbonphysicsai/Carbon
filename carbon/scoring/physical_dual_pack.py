@@ -28,7 +28,12 @@ platform (Validator, 2026-10-19). Two builds make them: a ``calibration`` pack
 (no minimums, its own evaluation version) grades the registered baseline's
 normal rebuild on the judge image; the per-image pack then takes that run's
 bound legs as its minimums (``baseline_minimums``) and records the run as a
-minimum source that never contends. Without either, a pack keeps the
+minimum source that never contends. The per-image pack's platform is never a
+caller value: it is the calibration pack's, which grading verified against the
+baseline run's retained ``inference_image_id`` (the binding exists only if that
+check passed); a caller-supplied image that differs is refused. Before any run
+no retained evidence exists, so the calibration pack's image is checked at its
+first grading. Without either, a pack keeps the
 adapter's historical registered minimums under its historical version.
 
 Adapter interface: ``CHALLENGE``, ``VERSION``, ``CASE_ID``,
@@ -358,14 +363,62 @@ def minimum_source_entry_ids(accuracy_definition):
     return [source["entry_id"]]
 
 
+def _calibration_platform(adapter, calibration_root, binding_raw, inputs):
+    """The platform of the calibration pack the baseline was graded under,
+    and its recomputed documents, or a refusal.
+
+    The pack directory must seal to the binding's ``evaluation_pack_digest`` and
+    hold exactly this producer's calibration documents for its own recorded
+    platform."""
+    from carbon.challenge_validator.evaluation_pack import prepare_pack
+
+    calibration_root = Path(calibration_root)
+    sealed = prepare_pack(
+        calibration_root,
+        MANIFEST_NAME,
+        public_root=calibration_root,
+        private_root=calibration_root,
+        challenge_id=adapter.CHALLENGE,
+        challenge_version=adapter.VERSION,
+    ).snapshot
+    try:
+        bound = json.loads(binding_raw)
+    except ValueError as exc:
+        raise ValueError("baseline binding is not a scored calibration run") from exc
+    if type(bound) is not dict or bound.get("evaluation_pack_digest") != (
+        sealed.manifest_digest
+    ):
+        raise ValueError("baseline binding was not graded under this calibration pack")
+    draft = json.loads((calibration_root / MANIFEST_NAME).read_bytes())
+    stored = {
+        role: (calibration_root / draft[scope][role]["path"]).read_bytes()
+        for scope, role in (
+            ("public", "accuracy_definition"),
+            ("private", "score_pack"),
+        )
+    }
+    platform = json.loads(stored["accuracy_definition"]).get("leg_minimum_platform")
+    if type(platform) is not dict:
+        raise ValueError("calibration pack records no grading platform")
+    documents = pack_documents(
+        adapter,
+        minimums="calibration",
+        **{**inputs, "platform": leg_minimum_platform(**platform)},
+    )
+    if any(documents[role] != stored[role] for role in stored):
+        raise ValueError("calibration pack is not this producer's calibration")
+    return platform, documents
+
+
 def write_development_pack(
     adapter,
     root,
     *,
-    inference_image_id,
-    device_class=DEVICE_CLASS,
+    inference_image_id=None,
+    device_class=None,
     calibration=False,
     baseline_binding_raw=None,
+    calibration_pack_root=None,
 ):
     """Write the Challenge's complete DEVELOPMENT pack under a new, empty ``root``.
 
@@ -377,8 +430,10 @@ def write_development_pack(
     The pack's physics role is the receiver material's own; it must be in its
     ``{version, definition}`` envelope (and equal the adapter's generated
     contract when the adapter generates it). ``calibration`` writes the
-    minimum-free calibration pack; ``baseline_binding_raw`` writes the
-    per-image pack from the baseline's graded calibration run.
+    minimum-free calibration pack for ``inference_image_id``;
+    ``baseline_binding_raw`` with ``calibration_pack_root`` writes the per-image
+    pack from the baseline's graded calibration run, its platform derived from
+    that run (a differing ``inference_image_id`` or ``device_class`` refuses).
     """
     from carbon.challenge_kit import physical_pack
 
@@ -402,23 +457,36 @@ def write_development_pack(
         "train_raw": public["train"],
         "limits_raw": public["important_limit_definition"],
         "objective_raw": public["design_objective"],
-        "platform": leg_minimum_platform(inference_image_id, device_class),
     }
     if calibration and baseline_binding_raw is not None:
         raise ValueError("a calibration pack takes no baseline binding")
+    if calibration and getattr(adapter, "CALIBRATION_ADAPTER", adapter) is not adapter:
+        raise ValueError("calibrate with the default adapter")
     minimums = "calibration" if calibration else None
     if baseline_binding_raw is not None:
-        source = getattr(adapter, "CALIBRATION_ADAPTER", adapter)
+        if calibration_pack_root is None:
+            raise ValueError("a baseline binding needs its calibration pack")
+        platform, calibration_documents = _calibration_platform(
+            getattr(adapter, "CALIBRATION_ADAPTER", adapter),
+            calibration_pack_root,
+            baseline_binding_raw,
+            inputs,
+        )
+        if (
+            inference_image_id is not None
+            and inference_image_id != platform["inference_image_id"]
+        ) or (device_class is not None and device_class != platform["device_class"]):
+            raise ValueError("inference platform differs from the baseline run's")
         minimums = baseline_minimums(
             adapter,
             baseline_binding_raw,
-            calibration_documents=pack_documents(
-                source, minimums="calibration", **inputs
-            ),
+            calibration_documents=calibration_documents,
         )
-    if calibration and getattr(adapter, "CALIBRATION_ADAPTER", adapter) is not adapter:
-        raise ValueError("calibrate with the default adapter")
-    documents = pack_documents(adapter, minimums=minimums, **inputs)
+    else:
+        platform = leg_minimum_platform(
+            inference_image_id, device_class or DEVICE_CLASS
+        )
+    documents = pack_documents(adapter, minimums=minimums, platform=platform, **inputs)
     draft = json.loads(manifest_path.read_bytes())
     for role, body in documents.items():
         scope = "public" if role == "accuracy_definition" else "private"
@@ -435,14 +503,15 @@ def add_builder_arguments(parser):
     parser.add_argument("root", type=Path, help="new or empty pack directory")
     parser.add_argument(
         "--inference-image",
-        required=True,
         help=(
             "sha256 digest of the judge inference image the leg minimums belong "
             "to: the inference_image_id retention records for tasks graded by "
-            "this receiver (its bundle or worker evidence)"
+            "this receiver (its bundle or worker evidence). Required except with "
+            "--baseline-binding, which derives it from the baseline run and "
+            "refuses a differing value"
         ),
     )
-    parser.add_argument("--device-class", default=DEVICE_CLASS)
+    parser.add_argument("--device-class", default=None)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
         "--calibration",
@@ -457,6 +526,11 @@ def add_builder_arguments(parser):
             "graded calibration run; writes the per-image pack"
         ),
     )
+    parser.add_argument(
+        "--calibration-pack",
+        type=Path,
+        help="the calibration pack directory the baseline was graded under",
+    )
 
 
 def builder_options(args):
@@ -467,6 +541,7 @@ def builder_options(args):
         "baseline_binding_raw": (
             args.baseline_binding.read_bytes() if args.baseline_binding else None
         ),
+        "calibration_pack_root": args.calibration_pack,
     }
 
 
