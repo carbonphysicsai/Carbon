@@ -45,7 +45,10 @@ import random
 import re
 import sqlite3
 import stat
+from dataclasses import asdict
 from pathlib import Path
+
+from carbon.authoring.refs import SamplingPlanRef
 
 from . import bank_proof
 from .batch_source import ProducerRefused
@@ -88,6 +91,12 @@ class BankSource(abc.ABC):
     @abc.abstractmethod
     def terminal(self):
         """The reference statuses that end a case."""
+
+    def draw_planned_tranche(
+        self, bank, role, count, sampling_plan_ref, effective_slot
+    ):
+        """Opt-in source draw under an already frozen SamplingPlan ref."""
+        raise BankRefused("bank_sampling_plan_unsupported")
 
     def stratum(self, bank, inputs):
         """The stratum of `inputs` within `bank`; one stratum by default."""
@@ -195,6 +204,17 @@ class BankLedger:
             for column in ("due_slot", "budget"):
                 if column not in columns:
                     database.execute(f"ALTER TABLE cases ADD COLUMN {column} INTEGER")
+            tranche_columns = {
+                row[1] for row in database.execute("PRAGMA table_info(tranches)")
+            }
+            if "sampling_plan_ref" not in tranche_columns:
+                database.execute(
+                    "ALTER TABLE tranches ADD COLUMN sampling_plan_ref TEXT"
+                )
+            if "effective_slot" not in tranche_columns:
+                database.execute(
+                    "ALTER TABLE tranches ADD COLUMN effective_slot INTEGER"
+                )
             database.execute(
                 "INSERT OR IGNORE INTO meta VALUES('schema', ?)", (STORE_SCHEMA,)
             )
@@ -258,7 +278,7 @@ class BankLedger:
             ).fetchall()
         return [dict(row) for row in rows]
 
-    def draw_tranche(self, bank, count):
+    def draw_tranche(self, bank, count, *, sampling_plan_ref=None, effective_slot=None):
         """Draw and journal-commit the bank's next tranche of `count` cases
         before any use. Returns `{tranche, fingerprint, cases}`."""
         if type(bank) is not str or not BANK_NAME.fullmatch(bank):
@@ -267,29 +287,67 @@ class BankLedger:
             raise BankRefused("bank_tranche_size_malformed")
         number = len(self.tranches(bank)) + 1
         role = f"bank-{bank}-T{number}"
-        cases = self.source.draw_tranche(bank, role, count)
+        if sampling_plan_ref is None:
+            if effective_slot is not None:
+                raise BankRefused("bank_sampling_plan_incomplete")
+            plan_record = None
+            cases = self.source.draw_tranche(bank, role, count)
+        else:
+            if (
+                type(sampling_plan_ref) is not SamplingPlanRef
+                or sampling_plan_ref.challenge_key.challenge_id != self.challenge_id
+            ):
+                raise BankRefused("bank_sampling_plan_mismatch")
+            if type(effective_slot) is not int or effective_slot < 0:
+                raise BankRefused("bank_sampling_plan_effective_slot")
+            with self._db() as db:
+                last_slot = db.execute(
+                    "SELECT MAX(slot) FROM windows WHERE bank = ?", (bank,)
+                ).fetchone()[0]
+            if last_slot is not None and effective_slot <= last_slot:
+                raise BankRefused("bank_sampling_plan_not_prospective")
+            plan_record = _canonical(asdict(sampling_plan_ref))
+            cases = self.source.draw_planned_tranche(
+                bank, role, count, sampling_plan_ref, effective_slot
+            )
         ids = [case["case_id"] for case in cases]
         if len(cases) != count or len(set(ids)) != count:
             raise BankRefused("bank_tranche_malformed")
         fingerprint = _digest({"bank": bank, "role": role, "cases": cases})
         with self._db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            if plan_record is not None:
+                last_slot = db.execute(
+                    "SELECT MAX(slot) FROM windows WHERE bank = ?", (bank,)
+                ).fetchone()[0]
+                if last_slot is not None and effective_slot <= last_slot:
+                    raise BankRefused("bank_sampling_plan_not_prospective")
             taken = db.execute(
                 f"SELECT 1 FROM cases WHERE case_id IN ({','.join('?' * count)})",
                 ids,
             ).fetchone()
             if taken is not None:
                 raise BankRefused("bank_case_id_reused")
-        entry = self._append(
-            "tranche_drawn",
-            bank=bank,
-            tranche=role,
-            fingerprint=fingerprint,
-            cases=count,
-        )
-        with self._db() as db:
+            entry = self._append(
+                "tranche_drawn",
+                bank=bank,
+                tranche=role,
+                fingerprint=fingerprint,
+                cases=count,
+            )
             db.execute(
-                "INSERT INTO tranches VALUES (?, ?, ?, ?, ?, 'DRAWN', NULL, NULL, NULL)",
-                (bank, number, role, fingerprint, entry["sequence"]),
+                "INSERT INTO tranches(bank, number, role, fingerprint, drawn_sequence, "
+                "state, sampling_plan_ref, effective_slot) "
+                "VALUES (?, ?, ?, ?, ?, 'DRAWN', ?, ?)",
+                (
+                    bank,
+                    number,
+                    role,
+                    fingerprint,
+                    entry["sequence"],
+                    plan_record,
+                    effective_slot,
+                ),
             )
             for case in cases:
                 db.execute(
@@ -428,12 +486,19 @@ class BankLedger:
 
     # --- the live set and windows ---------------------------------------------
 
-    def _live(self, db, bank, exclude):
+    def _live(self, db, bank, exclude, *, slot=None):
+        eligibility = (
+            " AND (t.effective_slot IS NULL OR t.effective_slot <= ?)"
+            if slot is not None
+            else ""
+        )
         rows = db.execute(
             "SELECT c.case_id, c.stratum FROM cases c JOIN tranches t "
             "ON t.role = c.tranche WHERE c.bank = ? AND t.state = 'SEALED' "
-            "AND c.status = ? AND c.retired_slot IS NULL ORDER BY c.case_id",
-            (bank, LIVE_STATUS),
+            "AND c.status = ? AND c.retired_slot IS NULL"
+            + eligibility
+            + " ORDER BY c.case_id",
+            (bank, LIVE_STATUS, slot) if slot is not None else (bank, LIVE_STATUS),
         ).fetchall()
         return [
             (r["case_id"], r["stratum"]) for r in rows if r["case_id"] not in exclude
@@ -483,7 +548,7 @@ class BankLedger:
             rng = self._rng(bank, slot)
             budgets, lapsed = {}, []
             if stride is None:
-                live = self._live(db, bank, held)
+                live = self._live(db, bank, held, slot=slot)
                 drawn = []
                 for stratum, count in sorted(quotas.items()):
                     pool = [c for c, s in live if stratum == "all" or s == stratum]
@@ -578,8 +643,9 @@ class BankLedger:
                 "SELECT c.case_id FROM cases c JOIN tranches t ON t.role = c.tranche "
                 "WHERE c.bank = ? AND t.state = 'SEALED' AND c.status = ? AND "
                 "c.retired_slot IS NULL AND c.due_slot IS NULL AND c.exposures = 0 "
+                "AND (t.effective_slot IS NULL OR t.effective_slot <= ?) "
                 "ORDER BY c.case_id",
-                (bank, LIVE_STATUS),
+                (bank, LIVE_STATUS, slot),
             ).fetchall()
             if r["case_id"] not in held
         ]
@@ -778,6 +844,36 @@ class BankLedger:
                     continue
                 ready.append(case_id)
         return ready
+
+    def release_provenance(self, case_id):
+        """Owner-only plan lineage for a retired case, never a public feed.
+
+        A release row points to its immutable case and tranche. Legacy
+        tranches have no plan binding; prospective ones retain the exact
+        authored reference and first eligible window slot.
+        """
+        with self._db() as db:
+            row = db.execute(
+                "SELECT r.bank, r.slot, r.published, c.tranche, "
+                "t.sampling_plan_ref, t.effective_slot FROM release r "
+                "JOIN cases c ON c.case_id = r.case_id "
+                "JOIN tranches t ON t.role = c.tranche WHERE r.case_id = ?",
+                (case_id,),
+            ).fetchone()
+        if row is None:
+            raise BankRefused("bank_case_not_retired")
+        return {
+            "bank": row["bank"],
+            "retired_slot": row["slot"],
+            "published": row["published"],
+            "tranche": row["tranche"],
+            "sampling_plan_ref": (
+                None
+                if row["sampling_plan_ref"] is None
+                else json.loads(row["sampling_plan_ref"])
+            ),
+            "effective_slot": row["effective_slot"],
+        }
 
     def publish(self, directory, signer, case_ids=None):
         """Publish retired cases into the Challenge's public training pool:
