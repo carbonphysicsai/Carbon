@@ -429,6 +429,7 @@ _PRIVATE_PROGRAM_FILES = frozenset(
     {
         "private-program-baseline.json",
         "private-program-failure-evidence.json",
+        "private-export-failure-evidence.json",
         "private-owned-cancel-observation.json",
     }
 )
@@ -1109,19 +1110,64 @@ def _run_locked(
         with _fixed_practice_stage(operation, provenance, "OBSERVE"):
             observed = observe_effective_resources(cli=cli, container_name=name)
         with _fixed_practice_stage(operation, provenance, "EXPORT"):
-            cli.stream_to_file(
-                [
-                    "exec",
-                    name,
-                    "/opt/carbon-worker/bin/python",
-                    "-I",
-                    "-m",
-                    "carbon.reconstruction.worker.exporter",
-                ],
-                output,
-                maximum=OUTPUT_BYTES + 2 * CONTROL_BYTES,
-                timeout=max(1, seconds - 35 - (time.monotonic() - started)),
-            )
+            export_started = time.monotonic()
+            export_timeout = max(1, seconds - 35 - (export_started - started))
+            try:
+                cli.stream_to_file(
+                    [
+                        "exec",
+                        name,
+                        "/opt/carbon-worker/bin/python",
+                        "-I",
+                        "-m",
+                        "carbon.reconstruction.worker.exporter",
+                    ],
+                    output,
+                    maximum=OUTPUT_BYTES + 2 * CONTROL_BYTES,
+                    timeout=export_timeout,
+                )
+            except Exception as error:
+                if provenance in _FIXED_DIAGNOSTIC_PROVENANCES:
+                    try:
+                        diagnostic = (
+                            error.private_diagnostic
+                            if isinstance(error, WorkerFailure)
+                            else b""
+                        )
+                        exited = (
+                            re.match(rb"exit=([0-9]{1,3})\n", diagnostic)
+                            if type(diagnostic) is bytes
+                            else None
+                        )
+                        observed_exit = None if exited is None else int(exited.group(1))
+                        if observed_exit is not None and observed_exit > 255:
+                            observed_exit = None
+                        _retain_fixed_program_evidence(
+                            operation,
+                            "private-export-failure-evidence.json",
+                            {
+                                "schema": "carbon.autoresearch.export-failure-evidence.v1",
+                                "launch_digest": launch,
+                                "observed_unix": time.time(),
+                                "export_timeout_seconds": export_timeout,
+                                "export_deadline_reached": time.monotonic()
+                                >= export_started + export_timeout,
+                                "observed_exec_exit": observed_exit,
+                                "observation": _fixed_program_container_observation(
+                                    cli,
+                                    container_name=name,
+                                    launch_digest=launch,
+                                    image_id=image.image_id,
+                                    deadline=min(
+                                        time.monotonic() + 1, started + seconds - 30
+                                    ),
+                                ),
+                                "interpretation": "Observations only; no inferred export failure cause.",
+                            },
+                        )
+                    except Exception:  # noqa: BLE001, S110 - preserve original failure
+                        pass
+                raise
         with _fixed_practice_stage(operation, provenance, "RESOURCES"):
             write_once(
                 operation / "resources.json",

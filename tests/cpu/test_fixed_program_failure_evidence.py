@@ -210,6 +210,115 @@ def _watchdog_intent(tmp_path, *, deadline=123.0, changes=None):
     return path, name, launch
 
 
+@pytest.mark.parametrize(
+    "provenance", [carrier.LIBRARY_PREP_PROVENANCE, "BATTERY_PUBLIC_PRACTICE"]
+)
+@pytest.mark.parametrize(
+    "diagnostic,expected_exit",
+    [
+        (b"exit=7\nstderr:\nPRIVATE_SECRET", 7),
+        (b"exit=137\nstderr:\nPRIVATE_SECRET", 137),
+        (b"exit=256\nstderr:\nPRIVATE_SECRET", None),
+        (b"exit=-9\nstderr:\nPRIVATE_SECRET", None),
+        (b"PRIVATE_SECRET exit=1\n", None),
+    ],
+)
+def test_export_failure_captures_only_closed_private_exit_and_owned_observation(
+    harness, monkeypatch, provenance, diagnostic, expected_exit
+):
+    original = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=diagnostic)
+    harness.fail_stage, harness.error = "EXPORT", original
+    observed = []
+
+    def observation(cli, **arguments):
+        observed.append(arguments)
+        harness.events.append("PRIVATE_OBSERVATION")
+        assert 0 < arguments["deadline"] - time.monotonic() <= 1
+        return {"status": "UNKNOWN", "state": None, "memory": None}
+
+    monkeypatch.setattr(carrier, "_fixed_program_container_observation", observation)
+    with pytest.raises(WorkerFailure) as caught:
+        harness.run(provenance=provenance)
+    assert caught.value is original
+    assert harness.events.count("EXPORT") == harness.events.count("CLEANUP") == 1
+    assert harness.events.index("EXPORT") < harness.events.index(
+        "PRIVATE_OBSERVATION", harness.events.index("EXPORT")
+    )
+    assert harness.events[-1] == "ABSENCE_QUERY"
+    paths = list(
+        harness.ledger.root.glob("operation-*/private-export-failure-evidence.json")
+    )
+    assert len(paths) == 1
+    raw = paths[0].read_bytes()
+    value = json.loads(raw)
+    assert len(raw) <= 4096 and b"PRIVATE_SECRET" not in raw
+    assert set(value) == {
+        "schema",
+        "launch_digest",
+        "observed_unix",
+        "export_timeout_seconds",
+        "export_deadline_reached",
+        "observed_exec_exit",
+        "observation",
+        "interpretation",
+    }
+    assert value["schema"] == "carbon.autoresearch.export-failure-evidence.v1"
+    assert value["observed_exec_exit"] == expected_exit
+    assert value["observation"] == {"status": "UNKNOWN", "state": None, "memory": None}
+    assert observed[-1]["launch_digest"] == value["launch_digest"]
+    assert observed[-1]["container_name"] == "carbon-d4-" + value["launch_digest"][7:31]
+    assert observed[-1]["image_id"] == IMAGE
+    fixed = json.loads((paths[0].parent / "failure-EXPORT.json").read_bytes())
+    assert (
+        fixed["stage"] == "EXPORT" and fixed["worker_code"] == WorkerCode.RUNTIME.value
+    )
+    assert not (paths[0].parent / "result.json").exists()
+
+
+@pytest.mark.parametrize("failure", ["observation", "write"])
+def test_export_observation_or_write_failure_keeps_original_exception_and_cleanup(
+    harness, monkeypatch, failure
+):
+    original = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=b"exit=7\n")
+    harness.fail_stage, harness.error = "EXPORT", original
+    if failure == "observation":
+        monkeypatch.setattr(
+            carrier,
+            "_fixed_program_container_observation",
+            lambda *args, **kwargs: (_ for _ in ()).throw(OSError("fixture")),
+        )
+    else:
+        prior_write = carrier.write_once
+
+        def write(path, raw):
+            if path.name == "private-export-failure-evidence.json":
+                raise OSError("fixture")
+            return prior_write(path, raw)
+
+        monkeypatch.setattr(carrier, "write_once", write)
+    with pytest.raises(WorkerFailure) as caught:
+        harness.run()
+    assert caught.value is original
+    assert harness.events.count("CLEANUP") == harness.events.count("ABSENCE_QUERY") == 1
+    assert not list(
+        harness.ledger.root.glob("operation-*/private-export-failure-evidence.json")
+    )
+
+
+def test_untrusted_export_failure_never_runs_private_observation(harness, monkeypatch):
+    original = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=b"exit=7\n")
+    harness.fail_stage, harness.error = "EXPORT", original
+    observation = lambda *args, **kwargs: pytest.fail("untrusted private probe")
+    monkeypatch.setattr(carrier, "_fixed_program_container_observation", observation)
+    with pytest.raises(WorkerFailure) as caught:
+        harness.run(provenance="UNTRUSTED_FIXTURE")
+    assert caught.value is original
+    assert harness.events.count("CLEANUP") == 1
+    assert not list(
+        harness.ledger.root.glob("operation-*/private-export-failure-evidence.json")
+    )
+
+
 def test_watchdog_records_only_owned_deadline_request(tmp_path):
     path, name, launch = _watchdog_intent(tmp_path)
     watchdog._retain_deadline_request(path, name, launch, 123.0)
