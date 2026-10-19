@@ -335,24 +335,50 @@ class BankedBatterySource(BatteryBatchSource):
     # --- release (OWNER-AUTO-PUBLISH-RETIRED-01) ------------------------------------
 
     def release(self, ended, directory, signer):
-        """Reveal the pool window of every ended batch (`ended`: fingerprints
-        whose scheduled window has retired) and publish every case that is
-        now publishable into `directory`, signed with the producer key. A
-        case publishes only once it has retired at E and every window that
-        drew it is revealed (`BankLedger._publishable`), so nothing drawn by
-        a live window is ever published. Idempotent. Returns public counts."""
+        """Reveal ended pool and screening-design windows. Publish only pool
+        cases whose existing release conditions hold. Design questions stay
+        held until shared-answer dependencies can be proven. Idempotent;
+        returns public counts and the design hold diagnostic."""
         if signer is None:
             raise ProducerRefused("producer_no_signing_key")
         revealed = 0
+        design_revealed = 0
         for fingerprint in ended:
-            key, _ = self._window(self._row(fingerprint)["role"])
+            row = self._row(fingerprint)
+            key, _ = self._window(row["role"])
+            if self.design is not None:
+                if row["kind"] == "screening":
+                    try:
+                        self.design.ledger.reveal_window(self.design.bank, key // 2)
+                    except BankRefused as refused:
+                        if refused.code == "bank_window_not_drawn":
+                            raise ProducerRefused(
+                                "producer_design_release_linkage_missing"
+                            ) from None
+                        raise
+                    design_revealed += 1
+                elif row["kind"] != "finalist":
+                    raise ProducerRefused("producer_design_release_kind_malformed")
             self.ledger.reveal_window(BANK, key)
             revealed += 1
         try:
             published = self.ledger.publish(directory, signer)
         except BankRefused as refused:
             raise ProducerRefused("producer_" + refused.code) from None
-        return {"revealed": revealed, "published": published}
+        result = {"revealed": revealed, "published": published}
+        if self.design is not None:
+            ready = len(self.design.ledger.publishable())
+            result["design"] = {
+                "revealed": design_revealed,
+                "retired": self.design.ledger.released().get(self.design.bank, 0),
+                "publishable": ready,
+                "state": (
+                    "MISSING_SHARED_ANSWER_DEPENDENCY_EVIDENCE"
+                    if ready
+                    else "NO_PUBLISHABLE_DESIGN_CASES"
+                ),
+            }
+        return result
 
     #: The live-case level below which the bank reports `BANK_LOW`: half of B.
     #: An engineering alert for the operator's refill, never a scientific value.

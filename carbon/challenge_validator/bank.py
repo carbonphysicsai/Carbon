@@ -937,6 +937,8 @@ class BankLedger:
                 row = self._publishable(db, case_id)
                 if row["published"] is not None:
                     raise BankRefused("bank_case_already_published")
+                if row["bank"].startswith("design:"):
+                    raise BankRefused("bank_design_release_dependency_unverified")
                 banks.setdefault(row["bank"], []).append(case_id)
             tranches = {
                 r["role"]: dict(r) for r in db.execute("SELECT * FROM tranches")

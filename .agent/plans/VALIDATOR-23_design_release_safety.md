@@ -1,0 +1,9 @@
+# VALIDATOR-23 — design-question release safety
+
+Status: bounded DEVELOPMENT working contract, 2026-10-18.
+
+The producer's normal release step currently reveals/publishes only its pool ledger. A screening batch also owns a design-bank window at its pool key divided by two; a finalist owns no design window. On an ended screening fingerprint, the source will reveal that exact design window. Missing linkage refuses the release before publication. The pool's existing signed TRAIN v1 path, exposure clocks, and public shape remain unchanged.
+
+Retirement plus all design-window reveals establish same-bank eligibility, but the current records do not link one design question's settled reference to every still-protected physical answer or unresolved comparison. The Q3 grid and `BatterySource.key` can derive exact local physical overlaps, but the producer has no authenticated validator FROZEN/rerun closure or complete cross-custody dependency receipt. A zero match in the pool/design ledgers therefore cannot prove safe publication. Under OWNER-EVALUATION-FOCUS-AND-DATA-CYCLE-01 §4, the normal release path will hold every otherwise-publishable design question and report `MISSING_SHARED_ANSWER_DEPENDENCY_EVIDENCE` with counts. The ledger itself refuses direct design publication. A later release path needs an auditable dependency map, rights-eligible source/reference lineage, and closure evidence for every linked protected use; unknown edges remain held. This is an implementation/evidence gap, not a new release policy or owner-selected threshold.
+
+Tests cover multi-window retirement, an active drawing window, missing screening linkage, finalist-only release, repeat calls, and no design file. Cross-bank equivalence and comparison-closure evidence remain a separate follow-up; successor immutable TRAIN manifests and adaptive sampling are out of scope.
