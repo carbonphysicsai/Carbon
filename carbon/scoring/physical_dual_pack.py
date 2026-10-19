@@ -667,7 +667,11 @@ def produce(
         "dual_native_tensor_shape",
     )
     repeats = source_module.read_inference_repeats(
-        originals, receipt=receipt, worker=worker, measurement=measurement
+        originals,
+        receipt=receipt,
+        worker=worker,
+        measurement=measurement,
+        procedure=definition.get("paired_repeat_procedure", "batched_measured"),
     )
     require(all(len(r) == n * width for r in repeats), "dual_repeat_evidence_shape")
 
