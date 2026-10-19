@@ -230,3 +230,15 @@ def test_cooling_bank_uses_its_interface_layout_and_unbound_roles_stay_open(tmp_
     missing = prepared.snapshot.verify_available(pack, pack)
     assert set(missing["public"]) == {"physics_contract", "accuracy_definition"}
     assert set(missing["private"]) == {"score_pack"}
+
+
+def test_the_physics_role_is_the_scorers_versioned_envelope():
+    from carbon.scoring.benchmark_evidence import physics_contract_identity
+
+    roles = physical_pack.public_roles(MOTOR, VERSION)
+    physics = json.loads(roles["physics_contract"])
+    assert physics == physical_pack.physics_contract(MOTOR, VERSION)
+    identity = physics_contract_identity(physics)
+    assert identity["version"] == "motor-applied-physics-contract-20261018"
+    pinned = physical_pack._DATA / "motor-applied-physics-contract-20261018.json"
+    assert physics["definition"] == json.loads(pinned.read_bytes())
