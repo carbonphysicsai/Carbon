@@ -242,3 +242,58 @@ def test_the_physics_role_is_the_scorers_versioned_envelope():
     assert identity["version"] == "motor-applied-physics-contract-20261018"
     pinned = physical_pack._DATA / "motor-applied-physics-contract-20261018.json"
     assert physics["definition"] == json.loads(pinned.read_bytes())
+
+
+def test_battery_pack_passes_the_receivers_check_and_scores_its_practice(tmp_path):
+    from carbon.battery import challenge as battery
+    from carbon.battery.construction_bundle_material import bundle_material
+    from carbon.challenge_kit import battery_pack
+    from carbon.development_session.bundle_construction_worker import _tensors
+
+    cid, version = battery.CHALLENGE.challenge_id, battery.CHALLENGE.version
+    pack = tmp_path / "battery"
+    manifest = physical_pack.write_public_pack(
+        pack, cid, version, exposed_development_bank=True
+    )
+    prepared = prepare_pack(
+        pack,
+        manifest.name,
+        public_root=pack,
+        private_root=pack,
+        challenge_id=cid,
+        challenge_version=version,
+    )
+    snapshot = prepared.snapshot
+    missing = snapshot.verify_available(pack, pack)
+    assert set(missing["public"]) == {"accuracy_definition"}
+    assert set(missing["private"]) == {"solver_evidence", "score_pack"}
+    sealed = tmp_path / "sealed"
+    sealed.mkdir()
+    name = snapshot.manifest_digest[7:] + ".json"
+    (sealed / name).write_bytes(prepared.sealed_bytes)
+    material = bundle_material()
+    direct_receiver._pack_check(
+        sealed, name, snapshot.manifest_digest, pack, pack, battery.CHALLENGE
+    )(material)
+    # Retention scores _tensors(inputs=material["practice_inputs"]).
+    query = _tensors(inputs=material["practice_inputs"])
+    assert snapshot.read_role(pack, "private", "case_bank", max_bytes=1 << 24) == query
+    limits = snapshot.read_json_role(
+        pack, "public", "important_limit_definition", max_bytes=1 << 20
+    )
+    plating = limits["plating_reference"]
+    assert plating["version"] == "battery-plating-ref-v2"
+    assert plating["labels"]["sha256"] == battery_pack._PLATING_LABELS[1]
+    assert set(plating["rules"]) == set(battery_pack.PLATING_RULES)
+    assert sum(plating["rows_by_source"].values()) == 772
+    assert {c["id"] for c in limits["constraints"]} >= {"no_plating_onset"}
+
+
+def test_battery_plating_reference_refuses_anything_but_sealed_v2(monkeypatch):
+    from carbon.challenge_kit import battery_pack
+
+    monkeypatch.setattr(
+        battery_pack, "_PLATING_LABELS", (battery_pack._PLATING_LABELS[0], "0" * 64)
+    )
+    with pytest.raises(ValueError):
+        battery_pack.plating_reference()

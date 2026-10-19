@@ -31,7 +31,7 @@ import numpy as np
 from carbon.cold_plate import challenge as cooling
 from carbon.motor import challenge as motor
 
-from . import physical_public, physical_public_train
+from . import battery_pack, physical_public, physical_public_train
 
 _DATA = Path(__file__).with_name("data")
 _REPOSITORY = Path(__file__).resolve().parents[2]
@@ -76,6 +76,7 @@ _ROLE_FILES = {
 PACK_VERSIONS = {
     motor.CHALLENGE.challenge_id: "motor-normal-construction-development-1",
     cooling.CHALLENGE.challenge_id: "cooling-normal-construction-development-1",
+    battery_pack.CHALLENGE_ID: battery_pack.PACK_VERSION,
 }
 PUBLIC_ROLES = (
     "construction_kit",
@@ -156,6 +157,9 @@ def _canonical(value: object) -> bytes:
 
 
 def _files(challenge_id: str, version: str) -> dict:
+    if challenge_id == battery_pack.CHALLENGE_ID:
+        battery_pack._check(version)
+        return {}
     if challenge_id not in _ROLE_FILES:
         raise ValueError("no normal-construction pack for this Challenge")
     physical_public.construction_kit(challenge_id, version)  # refuses unknown versions
@@ -192,6 +196,8 @@ def physics_contract(challenge_id: str, version: str) -> dict | None:
 def public_roles(challenge_id: str, version: str) -> dict[str, bytes]:
     """Every bound public role's exact bytes; an unbound role is absent here
     and HUMAN_INPUT in the manifest. Nothing is defaulted or inferred."""
+    if challenge_id == battery_pack.CHALLENGE_ID:
+        return battery_pack.public_roles(version)
     roles = {
         "construction_kit": _canonical(
             physical_public.construction_kit(challenge_id, version)
@@ -232,6 +238,8 @@ def development_bank(challenge_id: str, version: str) -> dict:
     the scored query equals the pack's case bank byte for byte.
     """
     _files(challenge_id, version)
+    if challenge_id == battery_pack.CHALLENGE_ID:
+        return battery_pack.development_bank(version)
     if challenge_id not in _BANKS:
         raise ValueError("no development bank for this Challenge")
     study = json.loads(_bank_file(challenge_id, "study"))
@@ -315,7 +323,7 @@ def _development_private_roles(challenge_id: str, version: str) -> dict[str, byt
     from carbon.development_session.bundle_construction_worker import _tensors
 
     bank = development_bank(challenge_id, version)
-    return {
+    roles = {
         "case_bank": _tensors(inputs=np.array(bank["inputs"])),
         "reference_rows": _canonical(
             [
@@ -330,8 +338,10 @@ def _development_private_roles(challenge_id: str, version: str) -> dict[str, byt
                 )
             ]
         ),
-        "solver_evidence": bank["solver_evidence"],
     }
+    if bank["solver_evidence"] is not None:
+        roles["solver_evidence"] = bank["solver_evidence"]
+    return roles
 
 
 def write_public_pack(
@@ -386,9 +396,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--challenge", required=True)
     parser.add_argument("--exposed-development-bank", action="store_true")
     args = parser.parse_args(argv)
-    if args.challenge not in _ROLE_FILES:
+    if args.challenge == battery_pack.CHALLENGE_ID:
+        version = battery_pack.challenge.CHALLENGE.version
+    elif args.challenge in _ROLE_FILES:
+        version = physical_public_train._source(args.challenge)[0].CHALLENGE.version
+    else:
         parser.error("no normal-construction pack for this Challenge")
-    version = physical_public_train._source(args.challenge)[0].CHALLENGE.version
     path = write_public_pack(
         args.root,
         args.challenge,
