@@ -517,6 +517,9 @@ def _flat_tensor(value, shape):
 
 #: The one timed query v3 speed is read from: a whole registered batch, cold.
 TIMED_SCOPE = "COLD_SINGLE_WORKER_QUERY_INCLUDES_GRAPH_LOAD_AND_JAX_COMPILE"
+_RECEIPT_FIELDS = frozenset(
+    {"schema", "recipe_digest", "state_digest", "inputs_digest", "predictions_digest"}
+)
 
 
 def timed_query_receipt(entry, registration, timed_query):
@@ -652,16 +655,15 @@ def measurement_from_saved_inference(
         or type(input_role["sha256"]) is not str
         or re.fullmatch(r"sha256:[0-9a-f]{64}", input_role["sha256"]) is None
         or type(receipt) is not dict
-        or set(receipt)
-        != {
-            "schema",
-            "recipe_digest",
-            "state_digest",
-            "inputs_digest",
-            "predictions_digest",
-            "measurement",
-        }
-        or receipt["schema"] != "carbon.development.bundle-inference.v2"
+        or not (
+            set(receipt) == _RECEIPT_FIELDS | {"measurement"}
+            and receipt["schema"] == "carbon.development.bundle-inference.v2"
+            # An unmeasured per-case graded receipt is valid only beside its
+            # pinned timed query, the sole source of timing and shapes.
+            or timed_query is not None
+            and set(receipt) == _RECEIPT_FIELDS
+            and receipt["schema"] == "carbon.development.bundle-inference.v1"
+        )
         or any(
             inference[field] != entry.get(field) or receipt[field] != inference[field]
             for field in ("recipe_digest", "state_digest")
@@ -681,14 +683,16 @@ def measurement_from_saved_inference(
         _timed_measurement(receipt["measurement"], registration)
         measured = receipt["measurement"]
     else:
-        graded = receipt["measurement"]
-        if (
+        graded = receipt.get("measurement")
+        if graded is not None and (
             type(graded) is not dict
             or graded.get("output_shape") != registration["output"]["shape"]
         ):
             raise BundleBenchmarkRefused("saved_inference_measurement")
         measured = timed_query_receipt(entry, registration, timed_query)["measurement"]
-        if measured["output_dtype"] != graded.get("output_dtype"):
+        if graded is not None and measured["output_dtype"] != graded.get(
+            "output_dtype"
+        ):
             raise BundleBenchmarkRefused("timed_query_binding")
     try:
         raw = json.dumps(

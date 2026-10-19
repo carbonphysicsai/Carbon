@@ -19,6 +19,7 @@ from carbon.scoring.benchmark_evidence import BenchmarkRefused
 from carbon.scoring.bundle_benchmark_core import (
     BundleBenchmarkRefused,
     benchmark_saved_entry,
+    measurement_from_saved_inference,
     retained_bundle_receipt,
 )
 from carbon.scoring.solver_benchmark_v3 import BenchmarkScoreRefused
@@ -208,6 +209,40 @@ def _dual_source_binding(
         raise PrivateEvaluationEvidenceRefused("graph_query_original_binding")
 
 
+def _rederive_bundle_measurement(entry, registration, originals, measured_model):
+    """A bundle's measured model must be exactly what its retained originals
+    reduce to: the graded predictions and, when present, the pinned timed
+    query's timing. No custody record exists for a bundle's worker evidence,
+    so the pinned measurement is recomputed rather than trusted."""
+    from carbon.scoring import private_evaluation_source as source
+
+    try:
+        gates = measured_model["cases"][0]["gates"]
+        *_, inference = source._authenticated_bundle_outputs(
+            entry, registration, originals
+        )
+        derived = measurement_from_saved_inference(
+            entry,
+            registration,
+            inference,
+            gates=gates,
+            timed_query=originals.get("timed_query"),
+        )
+    except (
+        source.PrivateEvaluationSourceRefused,
+        BundleBenchmarkRefused,
+        KeyError,
+        TypeError,
+        IndexError,
+        AttributeError,
+    ) as exc:
+        raise PrivateEvaluationEvidenceRefused(
+            "model_query_originals_unavailable"
+        ) from exc
+    if derived != measured_model:
+        raise PrivateEvaluationEvidenceRefused("model_query_originals_unavailable")
+
+
 def _bind_dual_evaluation(
     *,
     source,
@@ -276,14 +311,22 @@ def _bind_dual_evaluation(
         raise PrivateEvaluationEvidenceRefused("dual_measurement_shape")
     graph = type(entry) is dict and entry.get("source_kind") == "graph"
     graded_keys = _GRADED_ORIGINALS if graph else _BUNDLE_ORIGINALS
+    # A bundle's per-case graded query may carry its pinned batched timed query.
+    timed = (
+        {"timed_query"}
+        if not graph
+        and type(graph_originals) is dict
+        and "timed_query" in graph_originals
+        else set()
+    )
     if (
         type(entry) is not dict
         or type(registration) is not dict
         or type(registration.get("cases")) is not list
         or len(registration["cases"]) != 1
         or type(graph_originals) is not dict
-        or set(graph_originals) - _PAIR_ORIGINALS != graded_keys
-        or (paired and set(graph_originals) != graded_keys | _PAIR_ORIGINALS)
+        or set(graph_originals) - _PAIR_ORIGINALS - timed != graded_keys
+        or (paired and set(graph_originals) != graded_keys | _PAIR_ORIGINALS | timed)
         or any(type(graph_originals[k]) is not bytes for k in graded_keys)
         or (
             paired
@@ -300,8 +343,18 @@ def _bind_dual_evaluation(
     if not graph and (
         _sha(graph_originals["predictions_raw"]) != entry.get("prediction_digest")
         or not retained_bundle_receipt(entry, graph_originals["inference_receipt_raw"])
+        or (
+            timed
+            and not retained_bundle_receipt(
+                entry, (graph_originals["timed_query"] or {}).get("receipt_raw")
+            )
+        )
     ):
         raise PrivateEvaluationEvidenceRefused("model_query_originals_unavailable")
+    if not graph:
+        _rederive_bundle_measurement(
+            entry, registration, graph_originals, measured_model
+        )
     graded_originals = (
         {k: graph_originals[k] for k in _GRADED_ORIGINALS} if graph else None
     )
