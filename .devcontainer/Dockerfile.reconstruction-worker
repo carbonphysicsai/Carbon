@@ -47,109 +47,16 @@ COPY --from=builder /opt/uv-python /opt/uv-python
 COPY --from=builder /opt/carbon-worker /opt/carbon-worker
 COPY --from=builder /opt/carbon /opt/carbon
 
-# Fixed CR01 mesh-runtime closure, resolved against this exact Ubuntu base.
-# Downloaded package bytes and the complete installed versions are checked.
-RUN <<'CARBON_MESH_NATIVE'
-set -eu
-cat > /tmp/carbon-mesh-packages.lock <<'CARBON_MESH_LOCK'
-fontconfig-config 2.15.0-1.1ubuntu2 amd64 9df0579cd298a1f2b7a40efd519c849745aecd193a09733cf4d1032284a62bbf
-fonts-dejavu-core 2.37-8 all 40049660c194f3b8a2541fc7369efebb10e9f94bdac836a2f38fafedd10fa73a
-fonts-dejavu-mono 2.37-8 all 8a599d6553307db7ecb795d2f0e5a301e03234afc75c7358b0ba43466454c89a
-libbrotli1 1.1.0-2build2 amd64 74492419b8fda803774b8c9acef6afc5d2f9ff31782635aae212906adae7b277
-libbsd0 0.12.1-1build1.1 amd64 f3857b0863ac5cfd4263e9bf6cfb1d4be88d5321e4070d5bc2b62b0949e6c86f
-libdrm-amdgpu1 2.4.125-1ubuntu0.1~24.04.2 amd64 aa29b7898bae596bf07e55ba178cf8d5ea698fe83688e1b34520d86010251a7a
-libdrm-common 2.4.125-1ubuntu0.1~24.04.2 all 0b60996bc18fa1545e60a47bb0fe1a7f360ec06fe62ba35fb8d8ba2a54e62166
-libdrm-intel1 2.4.125-1ubuntu0.1~24.04.2 amd64 847195765b9ef7e7886677aeae9987aa54e496758b4e6e5a4ed2cb580b252244
-libdrm2 2.4.125-1ubuntu0.1~24.04.2 amd64 4d3e858dd57be617c49d87c5ddcdb35df744a4f0a559981256ae2ba174718584
-libedit2 3.1-20230828-1build1 amd64 3afbc8ddf835049dd4d88275b9d13680e4c4cdd59e191cbd63424152cc08e00e
-libelf1t64 0.190-1.1ubuntu0.1 amd64 b4aee123a37472d213647594b4f7d4a0d13615b0ca2a6fd33926b768d6b232c2
-libexpat1 2.6.1-2ubuntu0.6 amd64 494b8e672f722130c6bca6a7bc4cc31a43ca891a31d60d868bfdd699a3c20b13
-libfontconfig1 2.15.0-1.1ubuntu2 amd64 a2bc05cfef021fdb84285036f98eda5ebec3c4b7a378f5aa2bdba5c4d3d8d586
-libfreetype6 2.13.2+dfsg-1ubuntu0.2 amd64 8c6d3bac5a6197fa2f48b2d56f04f3ffecaa7082eeab91b0939f97a40adc88a6
-libgbm1 25.2.8-0ubuntu0.24.04.4 amd64 4bfe348b456db5b445a80e0a3ffb9e9a01b91499bb86e0e568ca3634b134da7e
-libgl1 1.7.0-1build1 amd64 e2b2fadeb883f073b566ad1d7874f6702397514d258473e96152a89d4d502a09
-libgl1-mesa-dri 25.2.8-0ubuntu0.24.04.4 amd64 2dabbe4292b201ca07b38c0672352f68dbfc55b5850f96f89ef54d3b4b6c8a59
-libglu1-mesa 9.0.2-1.1build1 amd64 4288833eebfbf6b00d1ae98159f429e1f7f6398288c9305edeeb185d9ed048d9
-libglvnd0 1.7.0-1build1 amd64 33f5e07c74f73c2bfb44086ae0f9e6da52acd6c104d30ffe8fd768d8253d5e82
-libglx-mesa0 25.2.8-0ubuntu0.24.04.4 amd64 5aa6164059989d476b15caa8ade892b1dec37593934dc4f617ece7ea0d639bc0
-libglx0 1.7.0-1build1 amd64 aa4953182f30abde90cb5b072e83d7286b557b325769b8686196a7bd396d8795
-libgomp1 14.2.0-4ubuntu2~24.04.1 amd64 e8a95ec58125b4933597f30ff56c2ae10edf90f287262e366d4b6edea3019144
-libicu74 74.2-1ubuntu3.1 amd64 c9a70989678660eed9a1e904c74fa043da8bec8e2036856fc16e31ced79b04f8
-libllvm20 1:20.1.2-0ubuntu1~24.04.3 amd64 f018e71c72c7a4742fb1aff9dc98b45586f42e6ea464d4918af7e3772b7f0658
-libopengl0 1.7.0-1build1 amd64 da36bd4d30c13b40b697fa8b72cc09d309ff36a5bd9750341ef78492bf3f3966
-libpciaccess0 0.17-3ubuntu0.24.04.3 amd64 87a3b1c2a09f54d229e5e1f5424adc806e8f99bbb8aa8c8dea114b727f7a5a96
-libpng16-16t64 1.6.43-5ubuntu0.7 amd64 863d6abb089b2820ceba98e6b18f06eaacc55f9b05827001e7b4021a9a7b246c
-libsensors-config 1:3.6.0-9build1 all 148103a436fd273dabfe0fe41dc54873df46227b59b2c7ac7339d7e2ddfd033b
-libsensors5 1:3.6.0-9build1 amd64 515ed1fbe2bc99926c44fe10b1beb9c3510068c344adda334303098d669ba1e5
-libvulkan1 1.3.275.0-1build1 amd64 ccf4fe8f4461442f27ea2494c7ae650b60bd396fec2688b0c44a27d66a222f74
-libx11-6 2:1.8.7-1ubuntu0.1 amd64 9102f73477081a9a57994c80587ca9760341f644ed51bdfa46f2248083d418b3
-libx11-data 2:1.8.7-1ubuntu0.1 all 5cb70f7a8e7178e0bae4fd49eee49feaed623d2d821caf6ea5862b66f9e9630b
-libx11-xcb1 2:1.8.7-1ubuntu0.1 amd64 5ce7093e58aaaf753ed0904351a4e07f209e0c282ee8ef4f5f7988d0b40dccc1
-libxau6 1:1.0.9-1build6 amd64 e40d29f1d1a62393bacaedebe0da3d9006084152a9f7e5e029293f08ce1c5c80
-libxcb-dri3-0 1.15-1ubuntu2 amd64 3d3d0e95e56ae16010a84883196b8153cba62d6831f9aaee2a68c46f20c7c004
-libxcb-glx0 1.15-1ubuntu2 amd64 d07cde26c70fe92df7c327928371e495cc4570fed2d6518758a5db5715cb34c1
-libxcb-present0 1.15-1ubuntu2 amd64 2e36e6557e87dbfd64df3143cbf81a4f75c3447501a545b4730511d228b0dd17
-libxcb-randr0 1.15-1ubuntu2 amd64 b5cb519823a05a617b543dc9b6a9289b7648b20048244abe021caa706309835a
-libxcb-shm0 1.15-1ubuntu2 amd64 229d1280d459f1ba44c22939d3f9b61d9d20932d9a646b3fe4ce50be4cdf2325
-libxcb-sync1 1.15-1ubuntu2 amd64 14286795a258593259923619073e50c15345673befae2733f7b0577b07359aa8
-libxcb-xfixes0 1.15-1ubuntu2 amd64 0b2ab64af92a71e3d1a35e3c819880ee28d04bfac81360df68ae8d8e9663ebd2
-libxcb1 1.15-1ubuntu2 amd64 e1c6611d11ad7398326f1bf028afc34c3b14c51d917a3426b966ed4b9687fa58
-libxcursor1 1:1.2.1-1build1 amd64 1a4beee621454e42fe0d2f4e1633611126e43d891f0aec28e4a06744f6e9f04d
-libxdmcp6 1:1.1.3-0ubuntu6 amd64 bcd336fce11ce2a45f34d0f95e6980af22529f22147e8f98c156e5cee8ee42bb
-libxext6 2:1.3.4-1build2 amd64 45783969a9ece9d7b7b733b8c60981584c53c6bc5ee3b42d295d2f80d1285679
-libxfixes3 1:6.0.0-2build1 amd64 0ee1015cccd063249e01c0cd0bf45f513c8ac9a1e5e485070c12e69192455e4a
-libxft2 2.3.6-1build1 amd64 b4f4f3255c0b8773b260c61cbe20ee7c63799cfc0e4e389fa58375dd480b093a
-libxinerama1 2:1.1.4-3build1 amd64 c8c93a3efdbb06e314f41bf48af4ca3652e4a3826bab5b9e00887660e619f239
-libxml2 2.9.14+dfsg-1.3ubuntu3.10 amd64 c5a065f85c1e6f605741e365e40cad71c3ceb0e85e2791400bd35b8896e12ad1
-libxrender1 1:0.9.10-1.1build1 amd64 d70bd831aebe8d4834b5dd2ed98df26dd6bd27f1042c47543bd7f66df1ae22ea
-libxshmfence1 1.3-1build5 amd64 bc6de4bfaf9050a8ba83d4bcfb114131b081084a7972c03417f8523d52b5c742
-libxxf86vm1 1:1.1.4-1build4 amd64 48b2799f52b86505d2bc91dcb1bfa6536545635b9849cb693d274d934116a8da
-mesa-libgallium 25.2.8-0ubuntu0.24.04.4 amd64 0c50c3c18c1b3f3ac4243bbf1533c9202f9d7b4f646807e9ef0df4c801414256
-CARBON_MESH_LOCK
-set --
-while read -r package version architecture sha; do
-    set -- "$@" "$package=$version"
-done < /tmp/carbon-mesh-packages.lock
-apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get --assume-yes --no-install-recommends --download-only install "$@"
-/opt/carbon-worker/bin/python - <<'CARBON_MESH_VERIFY'
-import hashlib
-import subprocess
-from pathlib import Path
-rows = [line.split() for line in Path('/tmp/carbon-mesh-packages.lock').read_text().splitlines()]
-expected = {(name, version, arch): sha for name, version, arch, sha in rows}
-observed = set()
-for archive in Path('/var/cache/apt/archives').glob('*.deb'):
-    identity = tuple(subprocess.check_output([
-        'dpkg-deb', '--show', '--showformat=${Package}\t${Version}\t${Architecture}', str(archive)
-    ], text=True).split('\t'))
-    if identity in observed or hashlib.sha256(archive.read_bytes()).hexdigest() != expected.get(identity):
-        raise RuntimeError('native mesh package identity or bytes differ')
-    observed.add(identity)
-if observed != set(expected):
-    raise RuntimeError('native mesh package closure differs')
-CARBON_MESH_VERIFY
-DEBIAN_FRONTEND=noninteractive apt-get --assume-yes --no-install-recommends --no-download install "$@"
-/opt/carbon-worker/bin/python - <<'CARBON_MESH_ABI'
-import ctypes
-import subprocess
-from pathlib import Path
-for line in Path('/tmp/carbon-mesh-packages.lock').read_text().splitlines():
-    name, version, arch, sha = line.split()
-    actual = subprocess.check_output(['dpkg-query', '-W', '-f=${Version}\t${Architecture}', name], text=True)
-    if actual != version + '\t' + arch:
-        raise RuntimeError('installed native mesh package differs')
-for library in ('libz.so.1', 'libGLU.so.1', 'libGL.so.1', 'libXrender.so.1',
-                'libXcursor.so.1', 'libXfixes.so.3', 'libXext.so.6', 'libXft.so.2',
-                'libfontconfig.so.1', 'libXinerama.so.1', 'libpthread.so.0', 'libdl.so.2',
-                'libX11.so.6', 'libm.so.6', 'libstdc++.so.6', 'libgcc_s.so.1',
-                'librt.so.1', 'libgomp.so.1', 'libc.so.6', 'ld-linux-x86-64.so.2'):
-    ctypes.CDLL(library)
-CARBON_MESH_ABI
-install -m 0444 /tmp/carbon-mesh-packages.lock /opt/carbon/native-mesh-packages.lock
-rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*.deb
-rm /tmp/carbon-mesh-packages.lock
-CARBON_MESH_NATIVE
+# Fixed native closure. Ordinary COPY/RUN also works with legacy builders.
+COPY .devcontainer/worker-native-mesh.lock /tmp/carbon-mesh-packages.lock
+COPY .devcontainer/install-worker-native-mesh.sh /tmp/install-worker-native-mesh.sh
+RUN printf '%s\n' \
+    "da5638a32f0ac62d9b3de0486d764168ff6731789b7ae9a98aa4f5684f7a5daf  /tmp/carbon-mesh-packages.lock" \
+    "c88b44b2f3600927b119de542a70aa238bd17625de5d2e3c3ec4d1a0ff322618  /tmp/install-worker-native-mesh.sh" \
+    | sha256sum --check --strict - \
+    && /bin/sh /tmp/install-worker-native-mesh.sh \
+    && test -s /opt/carbon/native-mesh-packages.lock \
+    && rm /tmp/install-worker-native-mesh.sh
 
 ENV HOME=/scratch/home \
     TMPDIR=/scratch/tmp \
@@ -171,4 +78,6 @@ LABEL org.opencontainers.image.title="Carbon C-03 DEVELOPMENT reconstruction wor
 
 WORKDIR /
 USER 65532:65532
+# Verify the final runtime can load the native ABI; never infer it from a build label.
+RUN /opt/carbon-worker/bin/python -I -c "import ctypes; ctypes.CDLL('libGLU.so.1'); ctypes.CDLL('libGL.so.1')"
 ENTRYPOINT ["/opt/carbon-worker/bin/python", "-I", "-m", "carbon.reconstruction.worker.entrypoint"]
