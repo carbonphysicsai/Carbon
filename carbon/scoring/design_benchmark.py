@@ -431,9 +431,13 @@ def _project(
                 or (outcome is not None and not outcome["eligible"]),
                 "unsafe_selection_missing_native_inadmissibility",
             )
+            # Complete point evidence establishes this breach. Retain the
+            # native hard failure instead of classifying it as missing truth;
+            # the core cannot award a score when that gate/outcome fails.
             status, value = (
                 ("RESOLVED", 0.0)
                 if mode == PARTIAL_POINT_DIAGNOSTIC
+                or (finite_mode and not finite_context["reference_issues"])
                 else ("NOT_MEASURED", None)
             )
         else:

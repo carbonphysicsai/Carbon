@@ -634,6 +634,7 @@ def test_finite_unsafe_selection_keeps_native_gate_and_requires_inadmissibility(
     args[4]["models"][1]["gates"]["toy_physics"] = "FAIL"
     p = finite(args)["projections"][adapter.FINITE_TASK_POINT_REFERENCE]
     assert p["score_result"]["models"][1]["score"] is None
+    assert p["score_result"]["models"][1]["status"] == "MANDATORY_GATE_FAILED"
     assert p["benchmark_input"]["models"][1]["gates"]["toy_physics"] == "FAIL"
     args[4]["models"][1]["gates"]["toy_physics"] = "PASS"
     with pytest.raises(
