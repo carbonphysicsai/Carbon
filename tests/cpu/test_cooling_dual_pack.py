@@ -8,11 +8,13 @@ A 0.5624469259870758, D 0, infeasible pick d08. The port, regenerated from
 committed sources and reading predictions as the producer does, must give the
 same values; the packet's leg-minimum rule then sets the baseline's legs.
 
-The KRR values hold to KRR_PLATFORM_TOL, not to the last bit: the ridge-1e-6
-kernel solve rounds differently across BLAS builds. Measured: the canonical
-container gives A 0.8275828263660854 and WSL the operator's value, a
-difference of 2.52e-11 (Test Lead, da401c13d canonical). The analytic and
-nearest-neighbour controls have no linear solve and hold exactly.
+Only the cross-platform comparison with the operator readout carries a
+tolerance (KRR_PLATFORM_TOL): the ridge-1e-6 kernel solve rounds differently
+across BLAS builds (measured 2.52e-11: canonical A 0.8275828263660854, the
+operator's 0.827582826340918; Test Lead, da401c13d). Scoring absorbs no drift:
+the pack's minimums are bound to one grading platform and hold at equality on
+it; another platform is refused. The analytic and nearest-neighbour controls
+have no linear solve and hold exactly.
 """
 
 from __future__ import annotations
@@ -36,6 +38,7 @@ ROOT = Path(__file__).resolve().parents[2]
 KRR = {"A": 0.827582826340918, "D": 1.0, "pick": "d03"}
 ANALYTIC_A = 0.844420842483987
 NEAREST = {"A": 0.5624469259870758, "D": 0.0, "pick": "d08"}
+PLATFORM = {"inference_image_id": "sha256:" + "1" * 64}
 #: Just above the measured cross-platform KRR difference (2.52e-11).
 KRR_PLATFORM_TOL = 3e-11
 SCRIPT = (
@@ -138,14 +141,19 @@ def test_the_packets_minimum_rule_sets_the_baselines_legs(case):
         train_raw=case["public"]["train"],
         limits_raw=case["public"]["important_limit_definition"],
         objective_raw=case["public"]["design_objective"],
+        platform=PLATFORM,
     )
     pack = json.loads(documents["score_pack"])
     assert pack["hard_gates"] == list(cdm.GATES)
-    assert pack["legs"]["A"]["minimum"] == pytest.approx(
-        KRR["A"], rel=0, abs=KRR_PLATFORM_TOL
-    )
-    assert pack["legs"]["D"]["minimum"] == KRR["D"]
+    # The minimums are the baseline's legs on this platform, exactly.
+    baseline = _measure(case, _baseline(case))
+    assert pack["legs"]["A"]["minimum"] == baseline["A"]
+    assert pack["legs"]["D"]["minimum"] == baseline["D"] == KRR["D"]
     definition = json.loads(documents["accuracy_definition"])
+    assert definition["leg_minimum_platform"] == {
+        **PLATFORM,
+        "device_class": physical.DEVICE_CLASS,
+    }
     assert definition["source_script_sha256"] == cooling.SOURCE_SCRIPT_SHA256
     assert definition["leg_minimum_rule"] == "baseline_legs"
     assert "pass/fail" in definition["leg_minimum_note"]
@@ -194,6 +202,7 @@ def test_the_no_d_minimum_variant_is_its_own_evaluation_version(case):
         "train_raw": case["public"]["train"],
         "limits_raw": case["public"]["important_limit_definition"],
         "objective_raw": case["public"]["design_objective"],
+        "platform": PLATFORM,
     }
     default = cooling.pack_documents(**kwargs)
     variant = cooling.pack_documents(rule="baseline_a_no_d_minimum", **kwargs)

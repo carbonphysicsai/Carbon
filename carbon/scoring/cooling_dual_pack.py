@@ -354,12 +354,21 @@ def pack_documents(*, rule="baseline_legs", **kwargs):
     return physical.pack_documents(adapter(rule), **kwargs)
 
 
-def write_development_pack(root, rule="baseline_legs"):
-    return physical.write_development_pack(adapter(rule), root)
+def write_development_pack(root, rule="baseline_legs", **platform):
+    return physical.write_development_pack(adapter(rule), root, **platform)
 
 
 def produce(**kwargs):
     return physical.produce(_ADAPTER, **kwargs)
+
+
+def _platform_arguments(parser):
+    parser.add_argument(
+        "--inference-image",
+        required=True,
+        help="sha256 digest of the judge inference image the minimums belong to",
+    )
+    parser.add_argument("--device-class", default=physical.DEVICE_CLASS)
 
 
 def main(argv=None):
@@ -372,8 +381,16 @@ def main(argv=None):
     parser.add_argument(
         "--leg-minimum-rule", choices=sorted(LEG_MINIMUM_RULES), default="baseline_legs"
     )
+    _platform_arguments(parser)
     args = parser.parse_args(argv)
-    print(write_development_pack(args.root.resolve(), args.leg_minimum_rule))
+    print(
+        write_development_pack(
+            args.root.resolve(),
+            args.leg_minimum_rule,
+            inference_image_id=args.inference_image,
+            device_class=args.device_class,
+        )
+    )
     return 0
 
 

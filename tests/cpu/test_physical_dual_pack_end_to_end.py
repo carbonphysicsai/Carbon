@@ -36,20 +36,11 @@ from carbon.scoring.engine import ScoreEngine
 from scripts.dev.score_lab import public_unbound_custody as custody
 from scripts.dev.score_lab import public_unbound_entry as unbound_entry
 
-#: adapter, recorded baseline legs, native gate.
+#: adapter, native gate. The producer path must reproduce the baseline's own
+#: same-platform measurement exactly (no tolerance).
 CHALLENGES = {
-    "motor": (
-        motor,
-        {"A": 0.28108361796711556, "D": 0.3419193228890681, "tol": 1e-12},
-        "native_motor_valid",
-    ),
-    # Cooling's KRR solve rounds across BLAS builds: measured 2.52e-11
-    # (test_cooling_dual_pack.KRR_PLATFORM_TOL).
-    "cooling": (
-        cooling,
-        {"A": 0.827582826340918, "D": 1.0, "tol": 3e-11},
-        "native_cold_plate",
-    ),
+    "motor": (motor, "native_motor_valid"),
+    "cooling": (cooling, "native_cold_plate"),
 }
 GRADED_OPERATION = "operation-" + "a" * 64
 IMAGE = _sha(b"fixture-motor-inference-image")
@@ -78,7 +69,7 @@ def _write_pack(adapter, root, public):
                 lambda *_: json.loads(public["physics_contract"]),
             )
             patch.setattr(physical_pack, "public_roles", lambda *_: public)
-        manifest = adapter.write_development_pack(root)
+        manifest = adapter.write_development_pack(root, inference_image_id=IMAGE)
     assert manifest == root / physical.MANIFEST_NAME
     prepared = prepare_pack(
         root,
@@ -278,7 +269,7 @@ def _baseline(name, bank, public, names):
 
 @pytest.fixture(scope="module", params=sorted(CHALLENGES))
 def case(request, tmp_path_factory):
-    adapter, expected, native_gate = CHALLENGES[request.param]
+    adapter, native_gate = CHALLENGES[request.param]
     tmp = tmp_path_factory.mktemp(request.param + "-e2e")
     bank = physical_pack.development_bank(adapter.CHALLENGE, adapter.VERSION)
     public = _public(adapter)
@@ -287,6 +278,18 @@ def case(request, tmp_path_factory):
         "input_names"
     ]
     predictions = _baseline(request.param, bank, public, names)
+    # The same baseline measured directly on this platform: the producer path
+    # must reproduce it exactly.
+    direct = adapter.measure(
+        bank_rows=physical.bank_rows(bank, names),
+        outputs=predictions,
+        repeats=[predictions, predictions],
+        definition=json.loads(documents["accuracy_definition"]),
+        limits=json.loads(public["important_limit_definition"]),
+        objective=json.loads(public["design_objective"]),
+        train_raw=public["train"],
+        names=names,
+    )
     predictions_raw = json.dumps(predictions, allow_nan=False, separators=(",", ":"))
     case_bank = (tmp / "pack/private/case_bank.npz").read_bytes()
     entry, custody_raw, artifacts, timed = _retain_bundle(
@@ -321,7 +324,6 @@ def case(request, tmp_path_factory):
     }
     return {
         "adapter": adapter,
-        "expected": expected,
         "native_gate": native_gate,
         "root": tmp / "pack",
         "snapshot": snapshot,
@@ -335,6 +337,7 @@ def case(request, tmp_path_factory):
         "case_bank": case_bank,
         "originals": originals,
         "predictions": predictions,
+        "direct": direct,
     }
 
 
@@ -387,12 +390,8 @@ def test_a_retained_bundle_scores_the_recorded_baseline_and_binds_v4(case):
     prepared_source, measured = _produce(case)
     benchmark = json.loads(measured.raw)["benchmark"]
     legs = benchmark["models"][0]["measurements"]
-    assert legs["robust_fidelity_benefit"]["value"] == pytest.approx(
-        case["expected"]["A"], rel=0, abs=case["expected"]["tol"]
-    )
-    assert legs["verified_value_benefit"]["value"] == pytest.approx(
-        case["expected"]["D"], rel=0, abs=case["expected"]["tol"]
-    )
+    assert legs["robust_fidelity_benefit"]["value"] == case["direct"]["A"]
+    assert legs["verified_value_benefit"]["value"] == case["direct"]["D"]
     gates = benchmark["models"][0]["gates"]
     assert sorted(gates) == sorted(case["score_pack"]["hard_gates"])
     assert set(gates.values()) == {"PASS"}
@@ -403,6 +402,19 @@ def test_a_retained_bundle_scores_the_recorded_baseline_and_binds_v4(case):
     assert bound["inference_pair_sha256"] == case["originals"]["inference_pair_sha256"]
     assert bound["official_eligible"] is bound["official_score"] is False
     assert case["entry"]["score_state"] == "NOT_COMPUTED"
+
+
+def test_another_grading_image_is_refused_not_failed(case):
+    other = source._canonical(
+        {
+            **json.loads(case["originals"]["bundle_evidence_raw"]),
+            "inference_image_id": _sha(b"another-judge-image"),
+        }
+    )
+    with pytest.raises(
+        source.PrivateEvaluationSourceRefused, match="leg_minimum_platform_mismatch"
+    ):
+        _produce(case, {**case["originals"], "bundle_evidence_raw": other})
 
 
 def test_a_repeat_beyond_the_native_rule_fails_its_gate_not_the_run(case):

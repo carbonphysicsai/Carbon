@@ -185,12 +185,21 @@ def pack_documents(**kwargs):
     return physical.pack_documents(_ADAPTER, **kwargs)
 
 
-def write_development_pack(root):
-    return physical.write_development_pack(_ADAPTER, root)
+def write_development_pack(root, **platform):
+    return physical.write_development_pack(_ADAPTER, root, **platform)
 
 
 def produce(**kwargs):
     return physical.produce(_ADAPTER, **kwargs)
+
+
+def _platform_arguments(parser):
+    parser.add_argument(
+        "--inference-image",
+        required=True,
+        help="sha256 digest of the judge inference image the minimums belong to",
+    )
+    parser.add_argument("--device-class", default=physical.DEVICE_CLASS)
 
 
 def main(argv=None):
@@ -200,8 +209,15 @@ def main(argv=None):
         description="Write the complete Motor DEVELOPMENT evaluation pack."
     )
     parser.add_argument("root", type=Path, help="new or empty pack directory")
+    _platform_arguments(parser)
     args = parser.parse_args(argv)
-    print(write_development_pack(args.root.resolve()))
+    print(
+        write_development_pack(
+            args.root.resolve(),
+            inference_image_id=args.inference_image,
+            device_class=args.device_class,
+        )
+    )
     return 0
 
 

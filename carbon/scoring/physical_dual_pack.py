@@ -16,6 +16,13 @@ score pack, TRAIN records and measurement. Everything else is here, once:
   fresh repeats, has the adapter measure A and D, and returns the dual
   benchmark input for the shared ScoreEngine.
 
+Leg minimums are bound to one grading platform (Validator, 2026-10-19): the
+accuracy definition records the judge inference image and device class they
+belong to, and ``produce`` refuses a model graded on any other image with
+``leg_minimum_platform_mismatch`` (unavailable evidence, never a candidate
+fail). Cross-platform drift is a different evaluation; a new judge image means
+recomputed minimums under a new evaluation version.
+
 Adapter interface: ``CHALLENGE``, ``VERSION``, ``CASE_ID``,
 ``EVALUATION_VERSION``, ``OUTPUT`` ({quantity, unit}), ``FILES`` (its
 executed files), ``Refused`` (exception with ``code``),
@@ -31,6 +38,7 @@ import json
 from pathlib import Path
 
 MANIFEST_NAME = "evaluation-pack.json"
+DEVICE_CLASS = "carbon-c03-docker-cpu"
 METRICS = {"A": "robust_fidelity_benefit", "D": "verified_value_benefit"}
 _SHARED_FILES = (
     "physical_dual_pack.py",
@@ -114,15 +122,34 @@ def _identities(bank, physics_digest):
     }
 
 
+def leg_minimum_platform(inference_image_id, device_class=DEVICE_CLASS):
+    """The grading platform the pack's leg minimums belong to."""
+    from carbon.registry.digest import is_sha256_digest
+
+    if not is_sha256_digest(inference_image_id) or not (
+        type(device_class) is str and device_class
+    ):
+        raise ValueError("leg-minimum platform requires an image digest and device")
+    return {"inference_image_id": inference_image_id, "device_class": device_class}
+
+
 def pack_documents(
-    adapter, *, bank, physics, interface_raw, train_raw, limits_raw, objective_raw
+    adapter,
+    *,
+    bank,
+    physics,
+    interface_raw,
+    train_raw,
+    limits_raw,
+    objective_raw,
+    platform,
 ):
     """Every document the producer owns for one Challenge, as exact bytes.
 
     ``bank`` is ``physical_pack.development_bank``; ``physics`` the pack's
     physics contract in its ``{version, definition}`` envelope; the raw bytes
     are the pack's public interface, TRAIN, important-limit and
-    design-objective roles.
+    design-objective roles; ``platform`` is ``leg_minimum_platform(...)``.
     """
     from carbon.challenge_kit import physical_public_train
     from carbon.scoring import benchmark_evidence as bench
@@ -142,6 +169,7 @@ def pack_documents(
         "producer_digest": producer_digest(adapter),
         "train_digest": sha(train_raw),
         "bank_digest": bank_digest(bank),
+        "leg_minimum_platform": leg_minimum_platform(**platform),
     }
     adapter.validate_definition(definition)
     accuracy_raw = canonical(definition)
@@ -196,7 +224,7 @@ def pack_documents(
             "mandatory_gates": list(applied["hard_gates"]),
             "timing_profile": {
                 "basis": "ready_input_to_comparable_output",
-                "model_device": "carbon-c03-docker-cpu",
+                "model_device": definition["leg_minimum_platform"]["device_class"],
                 "solver_device": "recorded-per-reference-record",
                 "batch_size": n,
                 "query_unit": "complete_batch",
@@ -232,7 +260,9 @@ def pack_documents(
     }
 
 
-def write_development_pack(adapter, root):
+def write_development_pack(
+    adapter, root, *, inference_image_id, device_class=DEVICE_CLASS
+):
     """Write the Challenge's complete DEVELOPMENT pack under a new, empty ``root``.
 
     Data Collection's ``physical_pack`` writes the public roles and the exposed
@@ -267,6 +297,7 @@ def write_development_pack(adapter, root):
         train_raw=public["train"],
         limits_raw=public["important_limit_definition"],
         objective_raw=public["design_objective"],
+        platform=leg_minimum_platform(inference_image_id, device_class),
     )
     draft = json.loads(manifest_path.read_bytes())
     for role, body in documents.items():
@@ -385,6 +416,14 @@ def produce(
     receipt, worker, values, inference = source_module._authenticated_graph_outputs(
         entry, registration, originals
     )
+    platform = definition.get("leg_minimum_platform")
+    if (
+        type(platform) is not dict
+        or platform.get("inference_image_id") != worker.get("inference_image_id")
+        or platform.get("device_class")
+        != registration.get("timing_profile", {}).get("model_device")
+    ):
+        raise refused("leg_minimum_platform_mismatch")
     n, width = len(bank["case_ids"]), len(bank["references"][0])
     measurement = source_module.query_measurement(
         entry, registration, originals, receipt
