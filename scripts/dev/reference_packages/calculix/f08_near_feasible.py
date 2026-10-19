@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -101,14 +102,136 @@ def freeze(
     return doc
 
 
+def _nonnegative_metric(value):
+    if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+        return None
+    return value
+
+
+def _native_execution(bulk):
+    """Read execution evidence once; a parsed case.dat is not a completed run."""
+    ledger = Path(bulk) / "ledger.jsonl"
+    evidence = {
+        "sha256": None,
+        "finished": {},
+        "native_cases": set(),
+        "native_run": False,
+    }
+    if not ledger.is_file():
+        return evidence
+    raw = ledger.read_bytes()
+    evidence["sha256"] = hashlib.sha256(raw).hexdigest()
+    for line_number, line in enumerate(raw.decode("utf-8").splitlines(), 1):
+        row = json.loads(line)
+        if row.get("event") == "RUN_START":
+            evidence["native_run"] = row.get("docker", {}).get("executor") == "native"
+        if row.get("family") != "f08" or "case" not in row:
+            continue
+        if row.get("executor") == "native":
+            evidence["native_cases"].add(row["case"])
+        if row.get("event") == "FINISHED":
+            evidence["finished"][row["case"]] = (row, line_number)
+    return evidence
+
+
+def _native_execution_issue(name, evidence):
+    finished = evidence["finished"].get(name)
+    if finished is not None and finished[0].get("executor") != "native":
+        return None  # Preserve the frozen observer's nonnative behavior.
+    if name not in evidence["native_cases"] and not evidence["native_run"]:
+        return None
+    if finished is None:
+        return {"status": "INCOMPLETE_NATIVE_EXECUTION", "execution_outcome": None}
+    row, _ = finished
+    if row.get("outcome") != "COMPLETED":
+        return {"status": "EXECUTION_FAILED", "execution_outcome": row.get("outcome")}
+    return None
+
+
+def _bind_native_costs(summary, evidence):
+    """Use case-scoped FINISHED metrics, never a native pod's cgroup.txt.
+
+    The frozen legacy observer remains unchanged. Its cgroup fields are
+    cleared for native cases because those counters cover the whole pod.
+    Explicit native fields and their ledger provenance carry measured costs;
+    missing metrics remain unknown, and an actually measured zero stays zero.
+    Failed or unfinished native executions cannot retain a scientific verdict.
+    """
+    for name in list(summary["cases"]):
+        finished = evidence["finished"].get(name)
+        if finished is not None:
+            row, line_number = finished
+            if row.get("executor") != "native":
+                continue
+        elif name in evidence["native_cases"] or evidence["native_run"]:
+            row, line_number = {}, None
+        else:
+            continue
+        cost = summary["cases"][name].setdefault("cost", {})
+        cpu = _nonnegative_metric(row.get("rusage_cpu_s"))
+        rss = _nonnegative_metric(row.get("rusage_maxrss_bytes"))
+        sampled = _nonnegative_metric(row.get("sampled_group_rss_peak_bytes"))
+        peaks = [value for value in (rss, sampled) if value is not None]
+        peak = max(peaks) if peaks else None
+        cost.update(
+            {
+                "wall_s": row.get("wall_s"),
+                "outcome": row.get("outcome"),
+                "host_profile": row.get("host_profile"),
+                "rusage_cpu_s": cpu,
+                "rusage_maxrss_bytes": rss,
+                "sampled_group_rss_peak_bytes": sampled,
+                "cpu_s": cpu,
+                "memory_peak_mib": peak / 2**20 if peak is not None else None,
+                "cgroup_cpu_s": None,
+                "cgroup_memory_peak_mib": None,
+                "metric_provenance": {
+                    "executor": "native",
+                    "event": "FINISHED" if finished is not None else "MISSING_FINISHED",
+                    "case": name,
+                    "ledger_sha256": evidence["sha256"],
+                    "ledger_line": line_number,
+                    "cpu_s": "rusage_cpu_s",
+                    "memory_peak_mib": (
+                        "max(rusage_maxrss_bytes,sampled_group_rss_peak_bytes)/2**20"
+                    ),
+                    "cgroup": "POD_SCOPED_COUNTERS_NOT_USED",
+                },
+            }
+        )
+        issue = _native_execution_issue(name, evidence)
+        if issue is not None:
+            summary["cases"][name] = {**issue, "cost": cost}
+
+
 def observe(bulk, out):
     bulk, out = Path(bulk), Path(out)
     summary = freeze_mod.observe_all(bulk, out)
+    execution = _native_execution(bulk)
+    _bind_native_costs(summary, execution)
     dirs = freeze_mod._case_dirs(bulk)
     convergence = {}
     for i in range(8):
         stem = f"pilot-{i:04d}"
         names = {3.0: stem, **{h: f"{stem}-h{h:g}" for h in H_WITNESS}}
+        issues = {
+            name: issue
+            for name in names.values()
+            if (issue := _native_execution_issue(name, execution)) is not None
+        }
+        if issues:
+            convergence[stem] = {
+                "status": (
+                    "EXECUTION_FAILED"
+                    if any(
+                        issue["status"] == "EXECUTION_FAILED"
+                        for issue in issues.values()
+                    )
+                    else "INCOMPLETE_NATIVE_EXECUTION"
+                ),
+                "execution_issues": issues,
+            }
+            continue
         if not all(
             name in dirs and (dirs[name] / "case.dat").is_file()
             for name in names.values()

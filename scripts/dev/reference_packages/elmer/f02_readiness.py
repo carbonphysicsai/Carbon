@@ -469,9 +469,10 @@ def judge(decks, out, ledger=None, manifest_path=None):
         row = {"case": stem, "primary_peak_c": p["peak_top_c"],
                "primary_energy_residual": p["energy"].get("residual_rel"), "rungs": {}}  # fmt: skip
         primary_residual = p["energy"].get("residual_rel")
-        ok = primary_residual is not None and abs(primary_residual) <= bands[
-            "B5_energy_residual_rel"
-        ]
+        ok = (
+            primary_residual is not None
+            and abs(primary_residual) <= bands["B5_energy_residual_rel"]
+        )
         for tag in ("mesh2", "dt0.5"):
             r = obs.get(f"{stem}-{tag}")
             if r is None:
