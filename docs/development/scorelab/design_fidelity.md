@@ -135,3 +135,23 @@ new pure projection and CLI toy suites. No new actual-model or reference result
 is claimed by adding the reusable command. The fixed reference panel is reused
 across models; a new compatible prediction does not require another solver
 campaign.
+
+### Normal measurement-basis handoff
+
+An optional `measurement_basis` input supplies the existing normal caller's
+closed `carbon.scoring.dual-measurement-contract.v1` object: `schema`,
+`producer_digest`, `accuracy_definition_sha256`,
+`important_limit_definition_sha256`, and `design_objective_sha256`. All four
+digests are exact `sha256:` identities. Its measurement digest uses the normal
+caller's sorted compact JSON plus final newline. This is deliberately distinct
+from a raw file hash or an arbitrary descriptive policy digest.
+
+Only the registered-components-required projection may bind that basis. The
+point diagnostic keeps a different descriptive measurement/pack identity, so a
+numeric partial result cannot be substituted under the registered basis. The
+full policy/reference audit remains in the projection report. Supplying a
+well-shaped basis authenticates nothing: the normal trusted producer still has
+to bind its actual code, definition-role bytes, model/state/query originals,
+reference acceptance and independently registered measurement receipt. Missing
+reference resolution or applicability still leaves the registered score null.
+No validator/receiver parser is loosened by this handoff.

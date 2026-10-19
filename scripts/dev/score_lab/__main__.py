@@ -315,7 +315,9 @@ def main(argv=None):
             }
             if (
                 type(evidence) is not dict
-                or not required <= set(evidence) <= required | {"original_result"}
+                or not required
+                <= set(evidence)
+                <= required | {"original_result", "measurement_basis"}
                 or evidence["schema"] != "carbon.scorelab.rich-design-input.v1"
                 or evidence["scope"] != "PUBLIC_DEVELOPMENT"
             ):
@@ -331,6 +333,7 @@ def main(argv=None):
                 evidence["original_benchmark"],
                 provenance=evidence["provenance"],
                 original_result=evidence.get("original_result"),
+                measurement_basis=evidence.get("measurement_basis"),
             )
             report["input_bytes_sha256"] = args.input_sha256
             encoded = (

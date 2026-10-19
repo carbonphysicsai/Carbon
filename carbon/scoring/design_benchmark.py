@@ -10,6 +10,8 @@ Neither projection adopts a rule or creates official scoring authority.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from copy import deepcopy
 
 from carbon.scoring import design_fidelity, dual_score
@@ -35,8 +37,36 @@ def _identity(value):
     return design_fidelity.digest(design_fidelity.typed_identity(value))
 
 
-def _project(policy, reduction, original_pack, original_benchmark, mode):
-    measurement = {
+def _measurement_basis(value):
+    fields = {
+        "schema",
+        "producer_digest",
+        "accuracy_definition_sha256",
+        "important_limit_definition_sha256",
+        "design_objective_sha256",
+    }
+    _require(type(value) is dict and set(value) == fields, "measurement_basis_shape")
+    _require(
+        value["schema"] == "carbon.scoring.dual-measurement-contract.v1",
+        "measurement_basis_schema",
+    )
+    _require(
+        all(
+            type(value[key]) is str
+            and value[key].startswith("sha256:")
+            and len(value[key]) == 71
+            and all(char in "0123456789abcdef" for char in value[key][7:])
+            for key in fields - {"schema"}
+        ),
+        "measurement_basis_identity",
+    )
+    return deepcopy(value)
+
+
+def _project(
+    policy, reduction, original_pack, original_benchmark, mode, measurement_basis
+):
+    description = {
         "algorithm": "rich-design-same-core-development-v1",
         "mode": mode,
         "policy": deepcopy(policy),
@@ -46,7 +76,21 @@ def _project(policy, reduction, original_pack, original_benchmark, mode):
         "reference_scope": "SUPPLIED_REFERENCE_NOT_QUALIFIED_BY_THIS_PROJECTION",
         "score_adopted": False,
     }
-    contract_digest = design_fidelity.digest(measurement)
+    normal_basis = (
+        measurement_basis is not None and mode == REGISTERED_COMPONENTS_REQUIRED
+    )
+    measurement = deepcopy(measurement_basis) if normal_basis else description
+    if normal_basis:
+        # Match the normal consumer's canonical document bytes, including LF.
+        raw = (
+            json.dumps(
+                measurement, sort_keys=True, separators=(",", ":"), allow_nan=False
+            )
+            + "\n"
+        ).encode("utf-8")
+        contract_digest = "sha256:" + hashlib.sha256(raw).hexdigest()
+    else:
+        contract_digest = design_fidelity.digest(measurement)
     body = deepcopy(original_pack)
     del body["pack_digest"]
     body["measurement_contract_digest"] = contract_digest
@@ -108,7 +152,7 @@ def _project(policy, reduction, original_pack, original_benchmark, mode):
                     model["score"] is None,
                     "partial_coverage_cannot_produce_registered_score",
                 )
-    return {
+    projection = {
         "label": mode,
         "diagnostic_only": mode == PARTIAL_POINT_DIAGNOSTIC,
         "measurement_contract": measurement,
@@ -118,6 +162,18 @@ def _project(policy, reduction, original_pack, original_benchmark, mode):
         "official_score": False,
         "score_adopted": False,
     }
+    if normal_basis:
+        # An exact contract shape/digest is not producer authentication. The
+        # normal caller still needs its trusted receipt and role-hash bindings.
+        projection["design_audit"] = {
+            "projection_definition": description,
+            "policy_digest": reduction["policy_digest"],
+            "model_prediction_digests": {
+                row["artifact_digest"]: row["prediction_digest"]
+                for row in reduction["models"]
+            },
+        }
+    return projection
 
 
 def score_design_benchmark(
@@ -129,6 +185,7 @@ def score_design_benchmark(
     *,
     provenance,
     original_result=None,
+    measurement_basis=None,
 ):
     """Reduce fixed Design evidence and produce both labelled core projections.
 
@@ -144,7 +201,17 @@ def score_design_benchmark(
     compared model cohort. Input bindings are returned separately from those
     pack identities. The already registered 50/50 weight is required, with its
     original combination and native Physics/gate rules retained.
+
+    An optional ``measurement_basis`` is the normal consumer's exact five-field
+    ``carbon.scoring.dual-measurement-contract.v1`` document, with typed SHA-256
+    identities. Only the registered projection uses it and hashes its canonical
+    JSON plus LF. The point diagnostic retains its distinct descriptive contract.
+    Rich policy/reference/model audit remains separate. This option authenticates
+    no caller: the normal consumer still requires a trusted producer receipt and
+    selected-definition role-hash bindings. It supplies no missing references.
     """
+    if measurement_basis is not None:
+        measurement_basis = _measurement_basis(measurement_basis)
     _require(type(provenance) is dict, "provenance_required")
     _require(type(original_pack) is dict, "original_pack_required")
     _require(type(original_benchmark) is dict, "original_benchmark_required")
@@ -177,7 +244,14 @@ def score_design_benchmark(
     )
     reduction = design_fidelity.reduce_design(policy, reference, models)
     projections = {
-        mode: _project(policy, reduction, original_pack, original_benchmark, mode)
+        mode: _project(
+            policy,
+            reduction,
+            original_pack,
+            original_benchmark,
+            mode,
+            measurement_basis,
+        )
         for mode in (PARTIAL_POINT_DIAGNOSTIC, REGISTERED_COMPONENTS_REQUIRED)
     }
     return {

@@ -57,6 +57,7 @@ def test_cli_reuses_projection_and_binds_exact_input_bytes(tmp_path, monkeypatch
     monkeypatch.setattr(cli, "_legacy_modules", refuse_legacy_import)
     document = input_document()
     document["original_result"] = {"retained": "TOY_ONLY"}
+    document["measurement_basis"] = {"binding": "TOY_CALL_FORWARDING_ONLY"}
     args, output = invoke(tmp_path, document)
     assert cli.main(args) == 0
     assert len(calls) == 1
@@ -73,6 +74,7 @@ def test_cli_reuses_projection_and_binds_exact_input_bytes(tmp_path, monkeypatch
     assert calls[0][1] == {
         "provenance": document["provenance"],
         "original_result": document["original_result"],
+        "measurement_basis": document["measurement_basis"],
     }
     report = json.loads(output.read_text())
     assert (

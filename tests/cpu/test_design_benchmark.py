@@ -1,5 +1,7 @@
 """Synthetic native-bound evidence; no Challenge model, solver or rule values."""
 
+import hashlib
+import json
 from copy import deepcopy
 
 import pytest
@@ -44,6 +46,16 @@ def run(args, **kwargs):
     )
 
 
+def measurement_basis():
+    return {
+        "schema": "carbon.scoring.dual-measurement-contract.v1",
+        "producer_digest": "sha256:" + "a" * 64,
+        "accuracy_definition_sha256": "sha256:" + "b" * 64,
+        "important_limit_definition_sha256": "sha256:" + "c" * 64,
+        "design_objective_sha256": "sha256:" + "d" * 64,
+    }
+
+
 def test_same_core_two_models_and_fixed_reference_pack_across_subsets():
     args = inputs()
     full = run(args)
@@ -68,12 +80,17 @@ def test_same_core_two_models_and_fixed_reference_pack_across_subsets():
             )
 
 
-def test_original_physics_gates_cost_identity_and_inputs_are_retained():
+@pytest.mark.parametrize("normal_basis", [False, True])
+def test_original_physics_gates_cost_identity_and_inputs_are_retained(normal_basis):
     args = inputs()
     args[4]["models"][1]["gates"]["toy_physics"] = "FAIL"
     before = deepcopy(args)
     receipt = provenance(args[3], args[4])
-    result = adapter.score_design_benchmark(*args, provenance=receipt)
+    result = adapter.score_design_benchmark(
+        *args,
+        provenance=receipt,
+        measurement_basis=measurement_basis() if normal_basis else None,
+    )
     assert args == before and result["provenance"] == receipt
     assert result["original"]["score_pack"] == args[3]
     assert result["original"]["benchmark_input"] == args[4]
@@ -205,3 +222,112 @@ def test_unsafe_pick_retains_native_failure_and_cannot_gain_a_registered_score()
         adapter.DesignBenchmarkRefused, match="unsafe_selection_missing"
     ):
         run(args)
+
+
+def test_normal_basis_has_exact_schema_newline_hash_and_separate_rich_audit():
+    args = inputs()
+    basis = measurement_basis()
+    before = deepcopy(basis)
+    output = run(args, measurement_basis=basis)
+    point = output["projections"][adapter.PARTIAL_POINT_DIAGNOSTIC]
+    registered = output["projections"][adapter.REGISTERED_COMPONENTS_REQUIRED]
+    compact = json.dumps(basis, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    expected = "sha256:" + hashlib.sha256((compact + "\n").encode()).hexdigest()
+    without_lf = "sha256:" + hashlib.sha256(compact.encode()).hexdigest()
+    assert basis == before and registered["measurement_contract"] == before
+    assert set(registered["measurement_contract"]) == set(before)
+    assert registered["score_pack"]["measurement_contract_digest"] == expected
+    assert registered["benchmark_input"]["measurement_contract_digest"] == expected
+    assert expected != without_lf
+    assert point["measurement_contract"] != before
+    assert point["score_pack"]["measurement_contract_digest"] != expected
+    assert point["score_pack"]["pack_digest"] != registered["score_pack"]["pack_digest"]
+    audit = registered["design_audit"]
+    assert audit["projection_definition"]["policy"] == args[0]
+    assert (
+        audit["projection_definition"]["reference_coverage_digest"]
+        == output["reduction"]["reference_coverage_digest"]
+    )
+    assert audit["model_prediction_digests"] == {
+        row["artifact_digest"]: row["prediction_digest"]
+        for row in output["reduction"]["models"]
+    }
+    basis["producer_digest"] = "sha256:" + "e" * 64
+    assert registered["measurement_contract"] == before
+    assert not output["official_score"] and not output["score_adopted"]
+
+
+def test_basis_affects_only_registered_contract_and_none_keeps_previous_behavior():
+    args = inputs()
+    default = run(args)
+    assert default == run(args, measurement_basis=None)
+    changed = run(args, measurement_basis=measurement_basis())
+    assert changed["reduction"] == default["reduction"]
+    assert (
+        changed["projections"][adapter.PARTIAL_POINT_DIAGNOSTIC]
+        == default["projections"][adapter.PARTIAL_POINT_DIAGNOSTIC]
+    )
+    original = changed["projections"][adapter.REGISTERED_COMPONENTS_REQUIRED]
+    reversed_basis = dict(reversed(list(measurement_basis().items())))
+    assert (
+        run(args, measurement_basis=reversed_basis)["projections"][
+            adapter.REGISTERED_COMPONENTS_REQUIRED
+        ]
+        == original
+    )
+
+
+@pytest.mark.parametrize("gap", ["unknown_interval", "missing_reference"])
+def test_normal_basis_does_not_resolve_missing_reference_evidence(gap):
+    args = inputs()
+    if gap == "unknown_interval":
+        args[1]["cases"]["c0"]["margin"]["interval"] = None
+    else:
+        del args[1]["cases"]["c1"]
+    output = run(args, measurement_basis=measurement_basis())
+    registered = output["projections"][adapter.REGISTERED_COMPONENTS_REQUIRED]
+    assert registered["measurement_contract"] == measurement_basis()
+    assert all(row["registered_D"] is None for row in output["reduction"]["models"])
+    assert all(not row["candidate_issues"] for row in output["reduction"]["models"])
+    assert all(row["score"] is None for row in registered["score_result"]["models"])
+    assert all(
+        row["measurements"]["rich_design_benefit"]
+        == {"status": "REFERENCE_UNRESOLVED", "value": None, "unit": "1"}
+        for row in registered["benchmark_input"]["models"]
+    )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "container",
+        "missing",
+        "extra",
+        "schema",
+        "bare",
+        "uppercase",
+        "short",
+        "empty",
+        "type",
+    ],
+)
+def test_malformed_normal_measurement_basis_is_refused(mutation):
+    basis = measurement_basis()
+    if mutation == "container":
+        basis = list(basis.items())
+    elif mutation == "missing":
+        del basis["design_objective_sha256"]
+    elif mutation == "extra":
+        basis["score_adopted"] = True
+    elif mutation == "schema":
+        basis["schema"] = "unregistered-contract"
+    else:
+        basis["producer_digest"] = {
+            "bare": "a" * 64,
+            "uppercase": "sha256:" + "A" * 64,
+            "short": "sha256:" + "a" * 63,
+            "empty": "",
+            "type": 0,
+        }[mutation]
+    with pytest.raises(adapter.DesignBenchmarkRefused, match="measurement_basis_"):
+        run(inputs(), measurement_basis=basis)
