@@ -181,13 +181,26 @@ if allowed.digest != control["allowlist_digest"]:
 if product["framework"] == "jax":
     import jax.numpy as jnp
     if product["parameters"]:
-        raise ValueError("JAX closed apply must carry its trained arrays")
-    trial = np.asarray(product["apply"](jnp.asarray(example)))
-    traced = lower_jax.trace(product["apply"], jnp.asarray(example))
-    doc = lower_jax.lower(
-        traced, role="forward", allowlist=allowed, input_names=["inputs/x"]
-    )
-    arrays = []
+        # Trained arrays travel as state (params/i inputs), as the Torch path does,
+        # so a realistic model does not hit the graph-constant cap.
+        params = [jnp.asarray(p) for p in product["parameters"]]
+        trial = np.asarray(product["apply"](params, jnp.asarray(example)))
+        traced = lower_jax.trace(
+            lambda *args: product["apply"](list(args[:-1]), args[-1]),
+            *params, jnp.asarray(example),
+        )
+        doc = lower_jax.lower(
+            traced, role="forward", allowlist=allowed,
+            input_names=[f"params/{i}" for i in range(len(params))] + ["inputs/x"],
+        )
+        arrays = [np.asarray(p) for p in params]
+    else:
+        trial = np.asarray(product["apply"](jnp.asarray(example)))
+        traced = lower_jax.trace(product["apply"], jnp.asarray(example))
+        doc = lower_jax.lower(
+            traced, role="forward", allowlist=allowed, input_names=["inputs/x"]
+        )
+        arrays = []
 else:
     import torch
     arrays = [np.asarray(p.detach().cpu().numpy()) for p in product["parameters"]]
