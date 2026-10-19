@@ -155,3 +155,43 @@ to bind its actual code, definition-role bytes, model/state/query originals,
 reference acceptance and independently registered measurement receipt. Missing
 reference resolution or applicability still leaves the registered score null.
 No validator/receiver parser is loosened by this handoff.
+
+
+### Complete finite-task point-reference candidate
+
+The optional `finite_task_registration` adds a separate
+`FINITE_TASK_POINT_REFERENCE` projection. This is a prospective DEVELOPMENT
+candidate for an exhaustively enumerated finite menu: every action under every
+mandatory condition must have a pinned native reference and prediction. It
+uses the same native Physics, gates, accounting and 50/50 combination, with
+continuous `D=min(V,C)` and raw point-reference errors. It grants no learned
+credit to analytically known quantities.
+
+Native Motor/Cooling DEVELOPMENT `customer_decision._reference_verdict`,
+`verify`, and `exam.score_case` at source
+`f3bb0742a24f5931120867a7d313608485cd5f0a` accept artifact-admitted matching OK
+point references. An accepted numerical interval is not a prerequisite to that
+narrow fixed-reference task. The earlier rich candidate's stronger interval and
+boundary-coverage requirements remain unchanged, as do its historical nulls.
+
+The new projection explicitly reports reference uncertainty `UNMEASURED`.
+Absent sign sides in a complete finite menu do not prove boundary proficiency;
+no population, independent OOD, numerical-uncertainty or qualification claim
+follows. Missing or unresolved reference rows defer the complete common task;
+missing/invalid candidate outputs remain candidate-specific ineligibility.
+Source acceptance and native-contract hashes bind the supplied provenance but
+cannot authenticate the source or create scientific authority by themselves.
+
+Its closed `carbon.scoring.finite-task-point-registration.v1` document pins
+policy/reference identities, ordered action and case rosters, all mandatory
+conditions and the complete action/condition-to-case mapping. Optional
+`finite_task_measurement_basis` uses the normal five-field basis. Its producer
+and Design-definition pins must differ from a simultaneously supplied stronger
+interval basis; the distinct `finite_task_point_design_benefit` metric also
+prevents pack-identity aliasing across calls. Normal trusted producer receipts
+and selected-role bindings still apply.
+
+The public CLI accepts these two optional fields. Frozen old input files are
+unchanged. New Motor/Cooling complete-roster candidate inputs reuse all saved
+48-row panels and require no new fit, inference or solver execution. Source
+static checks alone are not their runtime validation or score adoption.

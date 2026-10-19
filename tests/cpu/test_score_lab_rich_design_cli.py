@@ -58,6 +58,8 @@ def test_cli_reuses_projection_and_binds_exact_input_bytes(tmp_path, monkeypatch
     document = input_document()
     document["original_result"] = {"retained": "TOY_ONLY"}
     document["measurement_basis"] = {"binding": "TOY_CALL_FORWARDING_ONLY"}
+    document["finite_task_registration"] = {"registration": "TOY_ONLY"}
+    document["finite_task_measurement_basis"] = {"basis": "TOY_ONLY"}
     args, output = invoke(tmp_path, document)
     assert cli.main(args) == 0
     assert len(calls) == 1
@@ -75,6 +77,8 @@ def test_cli_reuses_projection_and_binds_exact_input_bytes(tmp_path, monkeypatch
         "provenance": document["provenance"],
         "original_result": document["original_result"],
         "measurement_basis": document["measurement_basis"],
+        "finite_task_registration": document["finite_task_registration"],
+        "finite_task_measurement_basis": document["finite_task_measurement_basis"],
     }
     report = json.loads(output.read_text())
     assert (

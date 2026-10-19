@@ -331,3 +331,254 @@ def test_malformed_normal_measurement_basis_is_refused(mutation):
         }[mutation]
     with pytest.raises(adapter.DesignBenchmarkRefused, match="measurement_basis_"):
         run(inputs(), measurement_basis=basis)
+
+
+def point_inputs():
+    args = inputs()
+    for row in args[1]["cases"].values():
+        for atom in row.values():
+            atom["interval"] = None
+    for row in args[1]["actions"].values():
+        row["objective"]["interval"] = None
+    # The complete native finite task has no negative-side observation.
+    args[1]["cases"]["c1"]["margin"]["value"] = 0.2
+    for model in args[2]:
+        model["cases"]["c1"]["margin"]["value"] = 0.2
+    return args
+
+
+def finite_registration(args):
+    policy, reference = args[:2]
+    return {
+        "schema": "carbon.scoring.finite-task-point-registration.v1",
+        "scope": "DEVELOPMENT",
+        "mode": adapter.FINITE_TASK_POINT_REFERENCE,
+        "policy_digest": design_fidelity.digest(design_fidelity.typed_identity(policy)),
+        "reference_digest": design_fidelity.digest(
+            design_fidelity.typed_identity(reference)
+        ),
+        "source_acceptance_digest": "sha256:" + "e" * 64,
+        "native_point_contract_digest": "sha256:" + "f" * 64,
+        "action_ids": list(policy["action_ids"]),
+        "case_ids": list(policy["case_ids"]),
+        "mandatory_condition_ids": ["condition"],
+        "action_condition_case_ids": {
+            "a": {"condition": "c0"},
+            "b": {"condition": "c1"},
+        },
+    }
+
+
+def finite(args, **kwargs):
+    return run(args, finite_task_registration=finite_registration(args), **kwargs)
+
+
+def test_complete_finite_point_task_scores_without_intervals_or_sign_sides():
+    args = point_inputs()
+    before = deepcopy(args)
+    result = finite(args)
+    projection = result["projections"][adapter.FINITE_TASK_POINT_REFERENCE]
+    assert args == before
+    assert all(row["score"] is not None for row in projection["score_result"]["models"])
+    assert all(row["registered_D"] is None for row in result["reduction"]["models"])
+    assert projection["score_result"] == ScoreEngine.score_dual_benchmark_v4(
+        projection["benchmark_input"], projection["score_pack"]
+    )
+    audit = projection["finite_task_audit"]
+    assert audit["reference_issues"] == [] and audit["uncertainty"] == "UNMEASURED"
+    assert audit["interval_boundary_or_ood_qualified"] is False
+    assert audit["source_acceptance_authenticated_by_this_library"] is False
+    for row, reduced in zip(
+        projection["score_result"]["models"], result["reduction"]["models"], strict=True
+    ):
+        assert row["legs"]["D"] == reduced["point_estimate_D"]
+    assert not projection["official_score"] and not projection["score_adopted"]
+
+
+def test_finite_option_leaves_old_outputs_byte_identical_and_defaults_unchanged():
+    args = point_inputs()
+    old = run(args)
+    assert old == run(args, finite_task_registration=None)
+    new = finite(args)
+    for mode, projection in old["projections"].items():
+        assert json.dumps(projection, sort_keys=True) == json.dumps(
+            new["projections"][mode], sort_keys=True
+        )
+    for key in set(old) - {"projections"}:
+        assert old[key] == new[key]
+
+
+@pytest.mark.parametrize(
+    "gap", ["case", "action", "status", "nonfinite", "unit", "quantity", "atom_shape"]
+)
+def test_finite_reference_gaps_defer_whole_common_roster_without_candidate_penalty(gap):
+    args = point_inputs()
+    if gap == "case":
+        del args[1]["cases"]["c1"]
+    elif gap == "action":
+        del args[1]["actions"]["b"]
+    elif gap == "quantity":
+        del args[1]["cases"]["c1"]["margin"]
+    elif gap == "atom_shape":
+        del args[1]["cases"]["c1"]["margin"]["status"]
+    else:
+        args[1]["cases"]["c1"]["margin"].update(
+            {
+                "status": {"status": "UNRESOLVED"}.get(gap, "RESOLVED"),
+                "value": float("nan") if gap == "nonfinite" else 0.2,
+                "unit": "INVALID" if gap == "unit" else "W",
+            }
+        )
+    result = finite(args)
+    p = result["projections"][adapter.FINITE_TASK_POINT_REFERENCE]
+    assert p["finite_task_audit"]["reference_issues"]
+    assert all(
+        not issues for issues in p["finite_task_audit"]["candidate_issues"].values()
+    )
+    assert all(
+        row["score"] is None and row["status"] == "INDETERMINATE_EVIDENCE"
+        for row in p["score_result"]["models"]
+    )
+
+
+@pytest.mark.parametrize(
+    "gap", ["case", "quantity", "action", "objective", "nonfinite"]
+)
+def test_finite_incomplete_candidate_is_local_ineligible_not_mask_drop(gap):
+    args = point_inputs()
+    bad = args[2][1]
+    if gap == "case":
+        del bad["cases"]["c1"]
+    elif gap == "quantity":
+        del bad["cases"]["c1"]["margin"]
+    elif gap == "action":
+        del bad["actions"]["b"]
+    elif gap == "objective":
+        del bad["actions"]["b"]["objective"]
+    else:
+        bad["cases"]["c1"]["margin"]["value"] = float("inf")
+    p = finite(args)["projections"][adapter.FINITE_TASK_POINT_REFERENCE]
+    good, bad_result = p["score_result"]["models"]
+    assert good["score"] is not None
+    assert bad_result["score"] is None and bad_result["status"] == "CANDIDATE_INVALID"
+    assert len(p["score_result"]["models"]) == 2
+
+
+def test_finite_missing_reference_does_not_hide_independent_candidate_failure():
+    args = point_inputs()
+    del args[1]["cases"]["c1"]
+    del args[2][1]["cases"]["c1"]
+    p = finite(args)["projections"][adapter.FINITE_TASK_POINT_REFERENCE]
+    good, bad = p["score_result"]["models"]
+    assert good["status"] == "INDETERMINATE_EVIDENCE"
+    assert bad["status"] == "CANDIDATE_INVALID"
+    assert good["score"] is None and bad["score"] is None
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "schema",
+        "scope",
+        "mode",
+        "source",
+        "native",
+        "policy",
+        "reference",
+        "extra",
+        "roster",
+        "mapping",
+        "condition",
+    ],
+)
+def test_invalid_finite_registration_is_refused(mutation):
+    args = point_inputs()
+    registration = finite_registration(args)
+    if mutation in ("schema", "scope", "mode"):
+        registration[mutation] = "INVALID"
+    elif mutation in ("source", "native"):
+        registration[
+            {
+                "source": "source_acceptance_digest",
+                "native": "native_point_contract_digest",
+            }[mutation]
+        ] = "not-a-digest"
+    elif mutation in ("policy", "reference"):
+        registration[mutation + "_digest"] = "sha256:" + "0" * 64
+    elif mutation == "extra":
+        registration["qualified"] = True
+    elif mutation == "roster":
+        registration["case_ids"] = ["c0"]
+    elif mutation == "mapping":
+        registration["action_condition_case_ids"]["b"]["condition"] = "c0"
+    else:
+        registration["action_condition_case_ids"]["b"] = {}
+    with pytest.raises(adapter.DesignBenchmarkRefused, match="finite_registration_"):
+        run(args, finite_task_registration=registration)
+
+
+def test_finite_normal_basis_distinguishes_producer_and_definition_roles():
+    args = point_inputs()
+    basis = measurement_basis()
+    with pytest.raises(adapter.DesignBenchmarkRefused, match="roles_must_be_distinct"):
+        finite(args, measurement_basis=basis, finite_task_measurement_basis=basis)
+    other = {
+        **basis,
+        "producer_digest": "sha256:" + "e" * 64,
+        "design_objective_sha256": "sha256:" + "f" * 64,
+    }
+    result = finite(args, measurement_basis=basis, finite_task_measurement_basis=other)
+    point = result["projections"][adapter.FINITE_TASK_POINT_REFERENCE]
+    assert point["measurement_contract"] == other
+    assert (
+        len({p["score_pack"]["pack_digest"] for p in result["projections"].values()})
+        == 3
+    )
+    # Across calls even identical normal-contract bytes cannot alias the stronger pack.
+    interval = run(args, measurement_basis=basis)["projections"][
+        adapter.REGISTERED_COMPONENTS_REQUIRED
+    ]
+    finite_same = finite(args, finite_task_measurement_basis=basis)["projections"][
+        adapter.FINITE_TASK_POINT_REFERENCE
+    ]
+    assert (
+        finite_same["score_pack"]["measurement_contract_digest"]
+        == interval["score_pack"]["measurement_contract_digest"]
+    )
+    assert (
+        finite_same["score_pack"]["pack_digest"]
+        != interval["score_pack"]["pack_digest"]
+    )
+
+
+def test_finite_scope_uses_points_not_interval_allowances_and_preserves_gates():
+    args = inputs()
+    args[1]["cases"]["c0"]["margin"]["interval"].update(lower=0.0, upper=1.0)
+    args[2][0]["cases"]["c0"]["margin"]["value"] = 0.5
+    args[4]["models"][1]["gates"]["toy_physics"] = "FAIL"
+    result = finite(args)
+    point = result["projections"][adapter.FINITE_TASK_POINT_REFERENCE]
+    partial = result["projections"][adapter.PARTIAL_POINT_DIAGNOSTIC]
+    assert (
+        point["score_result"]["models"][0]["legs"]["D"]
+        < partial["score_result"]["models"][0]["legs"]["D"]
+    )
+    assert point["score_result"]["models"][1]["score"] is None
+    assert point["score_pack"]["legs"]["A"] == args[3]["legs"]["A"]
+    assert point["score_pack"]["value_weight"] == 0.5
+
+
+def test_finite_unsafe_selection_keeps_native_gate_and_requires_inadmissibility():
+    args = point_inputs()
+    args[1]["actions"]["b"] = {"feasibility": "INFEASIBLE", "objective": None}
+    args[0]["components"][2]["pairs"] = []
+    args[2][1]["selected_action"] = "b"
+    args[4]["models"][1]["gates"]["toy_physics"] = "FAIL"
+    p = finite(args)["projections"][adapter.FINITE_TASK_POINT_REFERENCE]
+    assert p["score_result"]["models"][1]["score"] is None
+    assert p["benchmark_input"]["models"][1]["gates"]["toy_physics"] == "FAIL"
+    args[4]["models"][1]["gates"]["toy_physics"] = "PASS"
+    with pytest.raises(
+        adapter.DesignBenchmarkRefused, match="unsafe_selection_missing"
+    ):
+        finite(args)

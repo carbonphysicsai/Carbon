@@ -6,6 +6,8 @@ It retains the original Physics leg, gates, outcome policy and combination. The
 point projection is explicitly partial; only the registered projection requires
 all coverage and accepted-interval evidence demanded by ``design_fidelity``.
 Neither projection adopts a rule or creates official scoring authority.
+An optional, separately identified finite-task projection uses a complete
+source-accepted point roster. It claims no interval, boundary or OOD adequacy.
 """
 
 from __future__ import annotations
@@ -19,7 +21,9 @@ from carbon.scoring.engine import ScoreEngine
 
 PARTIAL_POINT_DIAGNOSTIC = "PARTIAL_POINT_DIAGNOSTIC"
 REGISTERED_COMPONENTS_REQUIRED = "REGISTERED_COMPONENTS_REQUIRED"
+FINITE_TASK_POINT_REFERENCE = "FINITE_TASK_POINT_REFERENCE"
 _METRIC = "rich_design_benefit"
+_FINITE_METRIC = "finite_task_point_design_benefit"
 
 
 class DesignBenchmarkRefused(ValueError):
@@ -63,8 +67,160 @@ def _measurement_basis(value):
     return deepcopy(value)
 
 
+def _finite_registration(value, policy, reference):
+    fields = {
+        "schema",
+        "scope",
+        "mode",
+        "policy_digest",
+        "reference_digest",
+        "source_acceptance_digest",
+        "native_point_contract_digest",
+        "action_ids",
+        "case_ids",
+        "mandatory_condition_ids",
+        "action_condition_case_ids",
+    }
+    _require(type(value) is dict and set(value) == fields, "finite_registration_shape")
+    _require(
+        value["schema"] == "carbon.scoring.finite-task-point-registration.v1"
+        and value["scope"] == "DEVELOPMENT"
+        and value["mode"] == FINITE_TASK_POINT_REFERENCE,
+        "finite_registration_scope_or_schema",
+    )
+    for key in ("source_acceptance_digest", "native_point_contract_digest"):
+        token = value[key]
+        _require(
+            type(token) is str
+            and token.startswith("sha256:")
+            and len(token) == 71
+            and all(c in "0123456789abcdef" for c in token[7:]),
+            "finite_registration_source_identity",
+        )
+    _require(
+        value["policy_digest"] == _identity(policy)
+        and value["reference_digest"] == _identity(reference),
+        "finite_registration_binding",
+    )
+    _require(
+        value["action_ids"] == policy["action_ids"]
+        and value["case_ids"] == policy["case_ids"],
+        "finite_registration_roster",
+    )
+    conditions = value["mandatory_condition_ids"]
+    mapping = value["action_condition_case_ids"]
+    _require(
+        type(conditions) is list
+        and bool(conditions)
+        and all(type(c) is str and bool(c) for c in conditions)
+        and len(set(conditions)) == len(conditions)
+        and type(mapping) is dict
+        and set(mapping) == set(policy["action_ids"]),
+        "finite_registration_conditions",
+    )
+    flattened = []
+    for action in policy["action_ids"]:
+        row = mapping[action]
+        _require(
+            type(row) is dict
+            and set(row) == set(conditions)
+            and all(type(c) is str for c in row.values()),
+            "finite_registration_action_conditions",
+        )
+        flattened.extend(row.values())
+    _require(
+        len(flattened) == len(set(flattened))
+        and set(flattened) == set(policy["case_ids"]),
+        "finite_registration_whole_task_roster",
+    )
+    return deepcopy(value)
+
+
+def _finite_evidence(policy, reference, models):
+    """Require the whole source roster; never infer acceptance from model errors."""
+    issues = []
+    quantities = {
+        c["quantity"]
+        for c in policy["components"]
+        if c["kind"] != "gap" and policy["quantities"][c["quantity"]]["learned"]
+    }
+    if set(reference["cases"]) != set(policy["case_ids"]):
+        issues.append("REFERENCE_CASE_ROSTER_INCOMPLETE")
+    if set(reference["actions"]) != set(policy["action_ids"]):
+        issues.append("REFERENCE_ACTION_ROSTER_INCOMPLETE")
+    point_reference = deepcopy(reference)
+    for case in policy["case_ids"]:
+        row = reference["cases"].get(case)
+        if type(row) is not dict:
+            issues.append("REFERENCE_CASE_MISSING_OR_INVALID:" + case)
+            continue
+        for quantity in quantities - set(row):
+            issues.append("REFERENCE_QUANTITY_MISSING:" + case + ":" + quantity)
+        for quantity, atom in row.items():
+            spec = policy["quantities"].get(quantity)
+            if spec is None:
+                issues.append("REFERENCE_UNKNOWN_QUANTITY:" + case + ":" + quantity)
+            elif design_fidelity.reference_atom(atom, spec["unit"])["point"] is None:
+                issues.append("REFERENCE_ATOM_UNRESOLVED:" + case + ":" + quantity)
+            else:
+                # This distinct projection uses points, never manufactured intervals.
+                point_reference["cases"][case][quantity]["interval"] = None
+    for action in policy["action_ids"]:
+        row = reference["actions"].get(action)
+        if type(row) is not dict or row.get("feasibility") not in (
+            "FEASIBLE",
+            "INFEASIBLE",
+        ):
+            issues.append("REFERENCE_ACTION_UNRESOLVED:" + action)
+            continue
+        atom = row.get("objective")
+        if atom is not None or row["feasibility"] == "FEASIBLE":
+            if (
+                design_fidelity.reference_atom(atom, policy["objective"]["unit"])[
+                    "point"
+                ]
+                is None
+            ):
+                issues.append("REFERENCE_OBJECTIVE_UNRESOLVED:" + action)
+            else:
+                point_reference["actions"][action]["objective"]["interval"] = None
+    candidate_issues = {}
+    for model in models:
+        bad = []
+        if set(model["cases"]) != set(policy["case_ids"]):
+            bad.append("CANDIDATE_COMMON_CASE_MASK_MISMATCH")
+        if set(model["actions"]) != set(policy["action_ids"]):
+            bad.append("CANDIDATE_ACTION_ROSTER_MISMATCH")
+        for case in policy["case_ids"]:
+            row = model["cases"].get(case)
+            for quantity in quantities:
+                atom = row.get(quantity) if type(row) is dict else None
+                _, reason = design_fidelity.prediction_atom(
+                    atom, policy["quantities"][quantity]["unit"]
+                )
+                if reason:
+                    bad.append(reason + ":" + case + ":" + quantity)
+        if policy["objective"]["learned"]:
+            for action in policy["action_ids"]:
+                row = model["actions"].get(action)
+                atom = row.get("objective") if type(row) is dict else None
+                _, reason = design_fidelity.prediction_atom(
+                    atom, policy["objective"]["unit"]
+                )
+                if reason:
+                    bad.append(reason + ":objective:" + action)
+        candidate_issues[model["artifact_digest"]] = sorted(set(bad))
+    return point_reference, sorted(set(issues)), candidate_issues
+
+
 def _project(
-    policy, reduction, original_pack, original_benchmark, mode, measurement_basis
+    policy,
+    reduction,
+    original_pack,
+    original_benchmark,
+    mode,
+    measurement_basis,
+    finite_context=None,
 ):
     description = {
         "algorithm": "rich-design-same-core-development-v1",
@@ -76,9 +232,15 @@ def _project(
         "reference_scope": "SUPPLIED_REFERENCE_NOT_QUALIFIED_BY_THIS_PROJECTION",
         "score_adopted": False,
     }
-    normal_basis = (
-        measurement_basis is not None and mode == REGISTERED_COMPONENTS_REQUIRED
-    )
+    finite_mode = mode == FINITE_TASK_POINT_REFERENCE
+    metric = _FINITE_METRIC if finite_mode else _METRIC
+    if finite_mode:
+        description.update(
+            finite_task_registration=finite_context["registration"],
+            reference_scope="COMPLETE_FINITE_TASK_SOURCE_ACCEPTED_POINTS_ONLY",
+            uncertainty="UNMEASURED",
+        )
+    normal_basis = measurement_basis is not None and mode != PARTIAL_POINT_DIAGNOSTIC
     measurement = deepcopy(measurement_basis) if normal_basis else description
     if normal_basis:
         # Match the normal consumer's canonical document bytes, including LF.
@@ -98,7 +260,7 @@ def _project(
         "minimum": None,
         "components": [
             {
-                "metric": _METRIC,
+                "metric": metric,
                 "unit": "1",
                 "transform": "unit_benefit",
                 "scale": None,
@@ -113,9 +275,11 @@ def _project(
     reduced = {row["artifact_digest"]: row for row in reduction["models"]}
     for model in benchmark["models"]:
         row = reduced[model["artifact_digest"]]
-        for metric in previous:
-            del model["measurements"][metric]
-        if row["candidate_issues"]:
+        for previous_metric in previous:
+            del model["measurements"][previous_metric]
+        if row["candidate_issues"] or (
+            finite_mode and finite_context["candidate_issues"][model["artifact_digest"]]
+        ):
             status, value = "CANDIDATE_INVALID", None
         elif row["candidate_selection_outcome"] == "SELECTED_PROVEN_INFEASIBLE":
             # The native gate/outcome remains the authority for inadmissibility.
@@ -134,12 +298,14 @@ def _project(
             value = row[
                 (
                     "point_estimate_D"
-                    if mode == PARTIAL_POINT_DIAGNOSTIC
+                    if mode in (PARTIAL_POINT_DIAGNOSTIC, FINITE_TASK_POINT_REFERENCE)
                     else "registered_D"
                 )
             ]
+            if finite_mode and finite_context["reference_issues"]:
+                value = None
             status = "RESOLVED" if value is not None else "REFERENCE_UNRESOLVED"
-        model["measurements"][_METRIC] = {
+        model["measurements"][metric] = {
             "status": status,
             "value": value,
             "unit": "1",
@@ -173,6 +339,16 @@ def _project(
                 for row in reduction["models"]
             },
         }
+    if finite_mode:
+        projection["finite_task_audit"] = {
+            "projection_definition": description,
+            "reference_issues": finite_context["reference_issues"],
+            "candidate_issues": finite_context["candidate_issues"],
+            "uncertainty": "UNMEASURED",
+            "interval_boundary_or_ood_qualified": False,
+            "source_acceptance_authenticated_by_this_library": False,
+            "point_reference_reduction": deepcopy(reduction),
+        }
     return projection
 
 
@@ -186,6 +362,8 @@ def score_design_benchmark(
     provenance,
     original_result=None,
     measurement_basis=None,
+    finite_task_registration=None,
+    finite_task_measurement_basis=None,
 ):
     """Reduce fixed Design evidence and produce both labelled core projections.
 
@@ -209,9 +387,40 @@ def score_design_benchmark(
     Rich policy/reference/model audit remains separate. This option authenticates
     no caller: the normal consumer still requires a trusted producer receipt and
     selected-definition role-hash bindings. It supplies no missing references.
+
+    ``finite_task_registration`` optionally adds FINITE_TASK_POINT_REFERENCE.
+    Its closed v1 document binds the exact policy/reference digests, ordered
+    action/case rosters, every action's mandatory-condition-to-case mapping,
+    source acceptance and native point-contract digests, and DEVELOPMENT scope.
+    Those assertions must come from the source owner; hashes do not authenticate
+    or grant scientific acceptance. All reference points/whole actions must be
+    resolved and every required candidate prediction present. Missing reference
+    evidence defers every model on the same roster. Missing sign-side/proximity
+    or interval evidence does not block this narrower finite-task projection.
+    Supplied intervals are ignored for its point reduction; uncertainty remains
+    UNMEASURED. It retains the original two projections and native A/gates/cost.
+
+    ``finite_task_measurement_basis`` may bind this projection to a normal
+    producer. If the interval projection also supplies a basis, the producer and
+    Design-definition roles must both differ. The finite projection additionally
+    uses a distinct D-metric namespace, preventing pack-identity aliasing even
+    when an external caller supplies identical contract bytes across calls.
     """
     if measurement_basis is not None:
         measurement_basis = _measurement_basis(measurement_basis)
+    if finite_task_measurement_basis is not None:
+        _require(finite_task_registration is not None, "finite_registration_required")
+        finite_task_measurement_basis = _measurement_basis(
+            finite_task_measurement_basis
+        )
+        if measurement_basis is not None:
+            _require(
+                all(
+                    finite_task_measurement_basis[key] != measurement_basis[key]
+                    for key in ("producer_digest", "design_objective_sha256")
+                ),
+                "finite_measurement_basis_roles_must_be_distinct",
+            )
     _require(type(provenance) is dict, "provenance_required")
     _require(type(original_pack) is dict, "original_pack_required")
     _require(type(original_benchmark) is dict, "original_benchmark_required")
@@ -254,6 +463,46 @@ def score_design_benchmark(
         )
         for mode in (PARTIAL_POINT_DIAGNOSTIC, REGISTERED_COMPONENTS_REQUIRED)
     }
+    if finite_task_registration is not None:
+        _require(
+            _FINITE_METRIC
+            not in {c["metric"] for c in original_pack["legs"]["A"]["components"]},
+            "finite_design_metric_collides_with_physics",
+        )
+        registration = _finite_registration(finite_task_registration, policy, reference)
+        point_reference, issues, candidate_issues = _finite_evidence(
+            policy, reference, models
+        )
+        point_reduction = design_fidelity.reduce_design(policy, point_reference, models)
+        # Finite input atoms can still overflow a derived reference difference.
+        # Such a common source gap cannot disappear behind another component.
+        for row in point_reduction["models"]:
+            for name, component in row["critical_components"].items():
+                if any(r["reference_point"] is None for r in component["rows"]):
+                    issues.append("REFERENCE_COMPONENT_UNRESOLVED:" + name)
+        issues = sorted(set(issues))
+        finite_projection = _project(
+            policy,
+            point_reduction,
+            original_pack,
+            original_benchmark,
+            FINITE_TASK_POINT_REFERENCE,
+            finite_task_measurement_basis,
+            {
+                "registration": registration,
+                "reference_issues": issues,
+                "candidate_issues": candidate_issues,
+            },
+        )
+        _require(
+            all(
+                finite_projection["score_pack"]["pack_digest"]
+                != p["score_pack"]["pack_digest"]
+                for p in projections.values()
+            ),
+            "finite_projection_must_have_distinct_pack_identity",
+        )
+        projections[FINITE_TASK_POINT_REFERENCE] = finite_projection
     return {
         "schema": "carbon.scoring.rich-design-benchmark.v1",
         "scope": original_pack["scope"],

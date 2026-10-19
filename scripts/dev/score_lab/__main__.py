@@ -200,7 +200,7 @@ def _report(rows):
         ],
         "rows": rows,
     }
-    print("SCORE LAB — DEVELOPMENT ONLY")
+    print("SCORE LAB â€” DEVELOPMENT ONLY")
     print(headline)
     print(
         f"profiles {len(rows)} | measured {len(measured)} | tau range {summary['tau_range']}"
@@ -271,7 +271,7 @@ def main(argv=None):
         argv = sys.argv[1:]
     if not argv:
         print(
-            "SCORE LAB — DEVELOPMENT ONLY; use --help for benchmark, rich-design or legacy commands"
+            "SCORE LAB â€” DEVELOPMENT ONLY; use --help for benchmark, rich-design or legacy commands"
         )
         return 0
     if argv[0] == "rich-design":
@@ -317,7 +317,13 @@ def main(argv=None):
                 type(evidence) is not dict
                 or not required
                 <= set(evidence)
-                <= required | {"original_result", "measurement_basis"}
+                <= required
+                | {
+                    "original_result",
+                    "measurement_basis",
+                    "finite_task_registration",
+                    "finite_task_measurement_basis",
+                }
                 or evidence["schema"] != "carbon.scorelab.rich-design-input.v1"
                 or evidence["scope"] != "PUBLIC_DEVELOPMENT"
             ):
@@ -334,6 +340,10 @@ def main(argv=None):
                 provenance=evidence["provenance"],
                 original_result=evidence.get("original_result"),
                 measurement_basis=evidence.get("measurement_basis"),
+                finite_task_registration=evidence.get("finite_task_registration"),
+                finite_task_measurement_basis=evidence.get(
+                    "finite_task_measurement_basis"
+                ),
             )
             report["input_bytes_sha256"] = args.input_sha256
             encoded = (
@@ -961,9 +971,9 @@ def main(argv=None):
                     bootstrap=config["bootstrap"],
                     with_physics=wrapper,
                 )
-        print("SCORE LAB PHYSICS — SYNTHETIC DEVELOPMENT ONLY")
+        print("SCORE LAB PHYSICS â€” SYNTHETIC DEVELOPMENT ONLY")
         print(
-            f"{len(report['rows'])} rule × switch rows; "
+            f"{len(report['rows'])} rule Ã— switch rows; "
             f"{len(report['sensitivity']['table'])} sensitivity settings"
         )
         for entry in report["sensitivity"]["table"]:
