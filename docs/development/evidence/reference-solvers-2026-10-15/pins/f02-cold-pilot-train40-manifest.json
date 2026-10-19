@@ -1,0 +1,977 @@
+{
+ "schema": "carbon.reference-triage.frozen-decks.v1",
+ "ticket": "F02-SCIENCE-VALUES-01",
+ "set": "cold-rect-train40",
+ "image": "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add",
+ "command_contract": "run `command` with bash in the case directory f02/<case>, ElmerSolver 26.2 on PATH, OPENBLAS_NUM_THREADS=1 and OMP_NUM_THREADS=1, one CPU, no network; in the docker image named here or a native build from sources.lock.json accepted under F02-SCIENCE-VALUES-01 section A (A5 lineage via the verification role)",
+ "bands": "docs/development/evidence/reference-packages-01/f02-readiness/bands.json",
+ "counts": {
+  "f02": {
+   "train": 40
+  }
+ },
+ "scope": "PUBLIC_DEVELOPMENT_ONLY",
+ "source": "docs/development/evidence/reference-packages-01/f02-menu-v2/train-decks-manifest.json",
+ "cases": [
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p132-d5.5-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "88b2e68e0c1f35df65ba77bb197df5025dfb885ae0a54c55ca06ab76d9c95ab0",
+    "deck.json": "a4ba579f752ea93770ac3c9c0015a8a8fdeb25ef74a9a4381a677c892fc9ecaa",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 227.8,
+   "estimate_wall_s": 242.1,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p82-d9.4-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "310114a7c8b190ea6f554201b8ba44944860b490526d3a4afb602ee7ad366918",
+    "deck.json": "4988092bc4f5cace03bb0ce3f8fcc4c9e11526394e0db4eb86fc39f5b520f95d",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 247.2,
+   "estimate_wall_s": 262.6,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p124-d6.5-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "bb2fa6ed83910486d141891a5d508b4b5003f890952fe36589b55f438e2a7c9d",
+    "deck.json": "412fd8e5e7688aa9772ab44700f591a0d89d55b124af93982bdb18caa3d2686b",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 232.8,
+   "estimate_wall_s": 247.4,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p101-d8.8-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "65fae837c5b85bb69924d6ab08a9037307da66ed344cd8a06b33a171a8003854",
+    "deck.json": "e38a426e5417899394bf3ee43c520bfe7629bfee90496d99ddbee331657be265",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 244.2,
+   "estimate_wall_s": 259.5,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p100-d11.8-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "2704454266379b17576f4ec22c59ce233abd7a67ac75b8b0013435097fc81803",
+    "deck.json": "2205b7d8a1b7e0d6f5523c0931188b68bdb464ff151e2c030a7ab414fd1d0b37",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 259.2,
+   "estimate_wall_s": 275.2,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p101-d11.1-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "7be6e82c6ec4113a7c99eba8314389cbd748e2bb53d34fb17936127e77c9cad8",
+    "deck.json": "812023e93d6e3428574b2f5ffafbba26a077ef2da3d8991e3f41507e71c9d0b2",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 255.8,
+   "estimate_wall_s": 271.5,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p81-d13.5-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "642e96659ffad58989f53da866fad2c6dc2e78ddda7ffcebbe57b374230cfb6a",
+    "deck.json": "6c13727cc648a4b1631579d4472cf2446a446345e75d50f4afd27caa5a3121d2",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 267.8,
+   "estimate_wall_s": 284.1,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p120-d14.6-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "cf2a04a543267ec2003f5b550cb7574be5bffb57000dd403c2689c2084484cee",
+    "deck.json": "b9b2dda65918a9afbc332c8ba864eae1b4ddce034e7214b9280506b0c0ad5e89",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 273.2,
+   "estimate_wall_s": 289.9,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p90-d10.4-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "dbb0da7fbc7b62fa3bf8fdf75f6cdd42b68241ef21e862e1768797f32c9bf588",
+    "deck.json": "c68973bc351a62e90631359f8f592702db3b772fb6ebb51db95b0f9a5fa6f2a8",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 252.2,
+   "estimate_wall_s": 267.9,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p140-d6.9-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "10c9d3efd47e4acd256770f1b0f6a41093192fa46a1395acba6e86c9af351c3d",
+    "deck.json": "1ff860a4a603139c66a75b1daaf8f409abea251e34bb7557d80c815bbde23a10",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 234.8,
+   "estimate_wall_s": 249.5,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p136-d9.1-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "8de07a19ed7bdcedf6952897ea1c3faa23d5854d617fb92feaba66d5acd65b0f",
+    "deck.json": "9d5da911961cfcdedb4d72a9b0b222e0d222215f1df1d7445b54e376023ab4a7",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 245.8,
+   "estimate_wall_s": 261.0,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p105-d19.5-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "b54855a6e3f89ba55e38abf1bebd86b88250fe1f0fbc653d59f167a1bf4b6b7f",
+    "deck.json": "f7d0d7f7bb909e990a29c3ec664592bba562c7c97aacb59131121d5fa797cc5b",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 297.8,
+   "estimate_wall_s": 315.6,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p118-d19.7-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "c851fbcedfdcffe4e93dbbfd175b458c6ddd62503eb5a720d799b968f52b7131",
+    "deck.json": "ee099f4455d0b24e7da12a505afcd1a99e19c0b30cc9b92f0dcc61983d028147",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 298.8,
+   "estimate_wall_s": 316.7,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p115-d6.5-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "f7760c97e7d15f82b89683400136204b473636445fe6fb090eeebbb934ab8bfc",
+    "deck.json": "5551510bf2acc14af5df166e63ac269fabfcf659bd1f67a84f38979a126b99c2",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 232.8,
+   "estimate_wall_s": 247.4,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p105-d17.1-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "ceab9cb452c1f4f21b37ffc8b8772bea637d20be465a3becd6fc114b171c6648",
+    "deck.json": "8eca6e7e1fe7e5fe353b5a2b4b9fa7fb1a3967f9c08cd64f69b68aac34049b0d",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 285.8,
+   "estimate_wall_s": 303.0,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p126-d10.9-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "45606fa3acfa510bd98c78cc6f37324172bae88b84e434c9b103e6d91546d82a",
+    "deck.json": "bceb4161595ac50f3c90a2157a575ab2016b122904b840c3471aadf3bc808e9e",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 254.8,
+   "estimate_wall_s": 270.5,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p107-d19.2-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "95853775a8ce4f8339521d4d3433cfcbc5913f31576f948a311b5795da69bcee",
+    "deck.json": "64ab4e22a3535cff392c21355d477378b44ca42a7fce34280c379a9557a156a5",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 296.2,
+   "estimate_wall_s": 314.1,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p109-d19.6-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "d11cccfd3866dcc3bfc000c908ed305624eee07c298703cd4e967bae342ecd6d",
+    "deck.json": "46fb3dce02503cbaa25dca1f9a7fc774a53d70ca087cf92f6b6bb0f9e00e37a8",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 298.2,
+   "estimate_wall_s": 316.2,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p122-d8.7-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "4e9d5ab74cbbea4c77b5e918308597772a46d491e9f846c3525ef12aff525d6e",
+    "deck.json": "1f1fdf0e0fa05e4922be926d9203b56d6f2cbe561426021e0adde264c4c9a50e",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 243.8,
+   "estimate_wall_s": 258.9,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p96-d19.4-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "477f1c2ff302b8451ac9fde880fe34bf932c18bcd8ebf4b6e93e4c26bede9039",
+    "deck.json": "4552a499d366b33a0c9421679a33d55f41a66f5e1bec976bdabdf3e3da71affa",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 297.2,
+   "estimate_wall_s": 315.1,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p135-d8.3-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "64e6987e86d03655fb66010c3607aa60833973750a76895ee22b5a90fd5007d5",
+    "deck.json": "2c80b21f38cadd4f1a105f9be4a23bf04d2176443c7713ac4e9b7077ef7b602b",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 241.8,
+   "estimate_wall_s": 256.8,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p118-d15.1-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "322adcfdab48ce69158995ef4169310dd8fba92b4cc42d9453954e506709bb11",
+    "deck.json": "9ddcefb904a8b371846d631202faeed9848dca70cfbda6e846f012aae1fcd2a0",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 275.8,
+   "estimate_wall_s": 292.5,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p109-d12.8-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "3bcc3cab85d866680b9e13c00933841454bad4261178d4e6d755d9ea5be4f6ec",
+    "deck.json": "4592ec08ac7ef87406ee78ef216bdc8b1451ba753b1e21d4de6c8f8286ae0293",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 264.2,
+   "estimate_wall_s": 280.5,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p135-d17.3-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "b9dcff810706a4a002eeaea77d93c9c89a1cd2eb8b6d0f64f19c52fb5557331d",
+    "deck.json": "8ffa3193f0843302a48ce85a4b4eee0defd480c15bb59bd47d706f324a996905",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 286.8,
+   "estimate_wall_s": 304.1,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p108-d12.5-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "e738e11f6b99fd53e02c918a9ee4a901e0ce0edad93c33fdc6f14d508717362a",
+    "deck.json": "db684a54761db3432306055666c66bc4f5d8f084c5d45e85b9f073906ed75160",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 262.8,
+   "estimate_wall_s": 278.9,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p80-d13-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "da5e0ce40c40b17aca89a0d87bed38df139a20c779e3f947ac61668d0ce7c5ae",
+    "deck.json": "552b2f45b56213f6c8cdec97b47f33d7dbc586f342d230e0dd43ed56c27e43a0",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 265.2,
+   "estimate_wall_s": 281.5,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p96-d15.3-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "7aa3ebb20ada97a21d96c3292cec5d4f911cafff431b0042cbc1d9cc385e31bb",
+    "deck.json": "533ea5e80ce3a9d91ba3aaf16aee1f857e7de68d592ce390c8e00a6e6d3c53c4",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 276.8,
+   "estimate_wall_s": 293.6,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p81-d9.2-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "5d6747de89107b970779e7cb832df3402be06b49c06a71079d7f764dc119ab62",
+    "deck.json": "8d29de84e726c4c6317d299325a47774c8fb0b25ef68cb152192208af1388066",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 246.2,
+   "estimate_wall_s": 261.6,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p109-d13.8-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "b7ed287a9e80053cc8b3c1e5a58dd18eef9057a65e173cc2da6d08a9f23bffa9",
+    "deck.json": "b1343ace95599c1c83d988174f677b1d781bdbb7c7a7fba932b5a65f5f86eebd",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 269.2,
+   "estimate_wall_s": 285.7,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p92-d8.3-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "00a7670a65eb7164619ca6d6aaa37273d513f4737e678e986609b87c2ae5c5a4",
+    "deck.json": "186b57222e152d4a1abe00f0e2cb6f04c9b33055642c27fe25385cb289e4b4d6",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 241.8,
+   "estimate_wall_s": 256.8,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p87-d7-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "286022afeab83fdb92458910d010f28e0e5b1eae8382783a86b86ed27691427c",
+    "deck.json": "c4d0bcd0540d698d2548cfb658d99610d91b112b1182edb3bb948101bb3e9298",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 235.2,
+   "estimate_wall_s": 250.0,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p137-d9.2-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "33c4a661293dcfed676dfab50825d0515511cc6d2e36076b4cb700c8ab8ba15c",
+    "deck.json": "e174e99304ffc269599c7b22a6f6348cb6a4676ee29ef38dc012ff800d6aca47",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 246.2,
+   "estimate_wall_s": 261.6,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p129-d10.9-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "fc148288ab3bda46d0e2b982f9fa69ce97f607d4561039dff1ff3b8302997162",
+    "deck.json": "341d37c9572ee6a6bfe025e72cc761468ec0945d8a7398fdfc4398889366d399",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 254.8,
+   "estimate_wall_s": 270.5,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p107-d16.3-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "ef2840fcc4b33dfeda9959b81818b27f3fbbee50064f0aa87ee26eed5c095813",
+    "deck.json": "0a4fc7bd9eecb3917141d2c6b10cc4cbc3227bfd19515ec43d2656d4e90865aa",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 281.8,
+   "estimate_wall_s": 298.8,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p136-d15.6-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "3efcb6644f9e7785399dd532bef79eaa1457c78db3bc4274dbb69511c10aa4b1",
+    "deck.json": "846388c1426296c5d15eca243d52846f219cd7d533857dd6473d66c6538c5168",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 278.2,
+   "estimate_wall_s": 295.2,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p112-d16.3-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "201436102f54e275633eba5af96cf336cba069bc7f6e52702cb36397402ac695",
+    "deck.json": "fce038b728950d50c122202c80a752731b8ab404c816fdfefd2f165d400e7d38",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 281.8,
+   "estimate_wall_s": 298.8,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p121-d18.7-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "b6012af67605ab1b1315275a13f0fbdb7a48c3a717f9eb7c1cc15c6f409bb206",
+    "deck.json": "1576d526e3f9e8f8db961792cb753dec985534daab6c1f8661ea5ef407e05e80",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 293.8,
+   "estimate_wall_s": 311.4,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p123-d16.8-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "21c2b6a7558f0dd8c838d77de67903ab9d58af9df1f8c9f42f7eb0109b6ceebf",
+    "deck.json": "bdfe2f6ebeb2d64a036f9e73a00315142c8e47cb6edd435705325e2b91182e06",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 284.2,
+   "estimate_wall_s": 301.5,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p94-d12.1-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "cbec0c77bc9fd8a1d45cfdb6aea4e0f38b740dcb5fc945fdf2fc2f1aef54d4c4",
+    "deck.json": "ec5f134ec970201fb3b8fae3d477b10366234895e6acfe8ccce72d7362b3eeb7",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 260.8,
+   "estimate_wall_s": 276.8,
+   "estimate_mem_mib": 25
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p107-d14.9-train",
+   "reservation": "train",
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "79347546b50eeb21b082598018df043a6c578427503d8647d17e156358078311",
+    "deck.json": "42d8cff60181d575a6cdb73a661352f13e61b31f617ad42b23e654c574fd61a7",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   },
+   "mesh": {
+    "nodes": 9373,
+    "hexes": 7800,
+    "boundary_quads": 1300,
+    "level": 1
+   },
+   "estimate_cpu_s": 274.8,
+   "estimate_wall_s": 291.5,
+   "estimate_mem_mib": 25
+  }
+ ]
+}

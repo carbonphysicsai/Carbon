@@ -1,0 +1,100 @@
+{
+ "schema": "carbon.reference-solvers.pod-plan.v1",
+ "plan_id": "f08-near-feasible-public-pilot-2026-10-18",
+ "kind": "calculix",
+ "authority": "Ryan 2026-10-18 necessary public DEVELOPMENT RunPod generation; F08-SCIENCE-VALUES-01 bands unchanged",
+ "purpose": "Eight TRAIN-informed local-neighborhood geometry actions fixed before their reference solves, with all three original mesh/mode/frequency rungs. No independent population, protected exam, LIVE or qualification claim.",
+ "recommended_pod": {
+  "flavor": "cpu5c",
+  "vcpu": 16,
+  "memory_gib": 32,
+  "deadline_minutes": 240,
+  "worst_case_usd_estimate": 2.24,
+  "basis": "Prior 17-launch f08 triage 120-minute ceiling at $0.56/h; this 24-launch set contains eight h1.7 witnesses. Product must check current provider rate, active liabilities, phase cap and teardown window."
+ },
+ "steps": [
+  {
+   "name": "f08-near-feasible-8x3",
+   "type": "bulk",
+   "judges": "Eight prospectively fixed public geometries, each with h=3, h=2.25 and h=1.7 mm, 48 modes and three damping sweeps. Existing f08_deck.convergence and f08_freeze.bank_mesh produce per-case mode/mesh/frequency verdicts. Do not claim accepted references from launch completion; no new tolerances or TRAIN reuse.",
+   "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/f08-near-feasible-h3-h225-h17-manifest.json",
+   "freeze": {
+    "argv": [
+     "python3",
+     "scripts/dev/reference_packages/calculix/f08_near_feasible.py",
+     "freeze",
+     "--registration",
+     "docs/development/challenge_pipeline/structures-readiness/registration.json",
+     "--out",
+     "{decks}"
+    ],
+    "timeout_s": 3600
+   },
+   "select": {
+    "families": [
+     "f08"
+    ],
+    "reservations": [
+     "pilot",
+     "pilot_witness"
+    ]
+   },
+   "families": {
+    "f08": {
+     "case_limits": {
+      "cpus": 1,
+      "memory_gib": 9,
+      "pids": 64,
+      "wall_timeout_s": 5400
+     },
+     "ceilings": {
+      "launches": 24,
+      "cpu_hours": 12
+     }
+    }
+   },
+   "observe": {
+    "argv": [
+     "python3",
+     "scripts/dev/reference_packages/calculix/f08_near_feasible.py",
+     "observe",
+     "--bulk",
+     "{bulk}",
+     "--out",
+     "{out}/observed.json"
+    ],
+    "timeout_s": 1800
+   },
+   "keep": {
+    "patterns": [
+     "case.dat",
+     "ccx.log",
+     "deck.json",
+     "mesh.json",
+     "mesh.inp",
+     "case.inp",
+     "case.sta",
+     "case.cvg"
+    ],
+    "max_file_bytes": 40000000
+   },
+   "host_regenerated_files": [
+    "mesh.inp",
+    "mesh.json",
+    "case.inp",
+    "deck.json"
+   ]
+  }
+ ],
+ "ship": [
+  "carbon/__init__.py",
+  "carbon/challenge_pipeline/__init__.py",
+  "carbon/challenge_pipeline/structures_readiness.py",
+  "carbon/design_search/__init__.py",
+  "carbon/design_search/tasks.py",
+  "docs/development/challenge_pipeline/structures-readiness/registration.json",
+  "docs/development/evidence/reference-solvers-2026-10-15/pins/f08-near-feasible-h3-h225-h17-manifest.json",
+  "docs/development/evidence/reference-solvers-2026-10-15/pins/f08-train-256-h3-manifest.json",
+  "docs/development/evidence/reference-solvers-2026-10-15/pins/f08-near-feasible-actions.json"
+ ]
+}
