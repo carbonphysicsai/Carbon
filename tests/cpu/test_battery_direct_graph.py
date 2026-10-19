@@ -196,6 +196,13 @@ def test_novel_affine_graph_is_rebuilt_and_trained_from_pinned_train(
     )
     for name in predictions:
         np.testing.assert_allclose(restored_predictions[name], predictions[name])
+    with jax.enable_x64(False):
+        # The judge grades one case per call; a case-independent graph agrees.
+        isolated = restored.predict(material.train.x[:2], isolated=True)
+    for name in predictions:
+        np.testing.assert_allclose(
+            isolated[name], predictions[name], rtol=1e-5, atol=1e-5
+        )
     with pytest.raises(RecipeRefused, match="battery_graph_state_identity_invalid"):
         direct_graph.load_frozen_state(
             state,

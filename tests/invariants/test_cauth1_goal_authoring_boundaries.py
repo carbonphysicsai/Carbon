@@ -85,24 +85,69 @@ def test_authoring_api_exposes_no_registration_or_qualification_action() -> None
         assert call not in source
 
 
-def test_no_workbench_field_archive_or_numpy_payload_is_committed() -> None:
+#: The only numpy payloads allowed in the delivery roots: the pinned public
+#: DEVELOPMENT TRAIN tensors whose bytes are their Challenge kits' train_digest
+#: (Validator ruling, 2026-10-19). Each must still hash to its pin.
+_PINNED_NUMPY_PAYLOADS = {
+    "carbon/challenge_kit/data/cooling-dev-train-400-v1.npz": (
+        "b8d7839dcbfc777aa8b506a18bb9fc9b216786cb0d3533df18e6fb76ca4ec3bf"
+    ),
+    "carbon/challenge_kit/data/motor-dev-train-150-v1.npz": (
+        "5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361"
+    ),
+    "carbon/challenge_kit/data/f08-dev-train-255-v1.npz": (
+        "65eb6a5f4e95ab3e2120c78cf3cd6a60d37554934c7d7ddea71e53cdadaac947"
+    ),
+}
+
+
+def _forbidden_payloads(root: Path) -> list[str]:
+    import hashlib
+
     delivery_roots = (
-        _ROOT / ".agent",
-        _ROOT / "Design_Specs",
-        _ROOT / "carbon",
-        _ROOT / "docs",
-        _ROOT / "tests",
+        root / ".agent",
+        root / "Design_Specs",
+        root / "carbon",
+        root / "docs",
+        root / "tests",
     )
     tracked_roots = tuple(
         path
-        for root in delivery_roots
-        for path in root.rglob("*")
+        for base in delivery_roots
+        for path in base.rglob("*")
         if path.is_file() and "__pycache__" not in path.parts
     )
     forbidden_suffixes = {".npz", ".npy"}
-    assert not [path for path in tracked_roots if path.suffix in forbidden_suffixes]
-    assert not [
-        path for path in tracked_roots if path.name.endswith("Workbench_V1.zip")
+    found = []
+    for path in tracked_roots:
+        relative = path.relative_to(root).as_posix()
+        if path.name.endswith("Workbench_V1.zip"):
+            found.append(relative)
+        elif path.suffix in forbidden_suffixes:
+            pinned = _PINNED_NUMPY_PAYLOADS.get(relative)
+            if (
+                pinned is None
+                or hashlib.sha256(path.read_bytes()).hexdigest() != pinned
+            ):
+                found.append(relative)
+    return found
+
+
+def test_no_workbench_field_archive_or_numpy_payload_is_committed() -> None:
+    assert not _forbidden_payloads(_ROOT)
+
+
+def test_an_unlisted_or_changed_numpy_payload_is_refused(tmp_path) -> None:
+    (tmp_path / "carbon" / "challenge_kit" / "data").mkdir(parents=True)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "field.npz").write_bytes(b"PK")
+    listed = (
+        tmp_path / "carbon" / "challenge_kit" / "data" / "motor-dev-train-150-v1.npz"
+    )
+    listed.write_bytes(b"not the pinned tensor")
+    assert sorted(_forbidden_payloads(tmp_path)) == [
+        "carbon/challenge_kit/data/motor-dev-train-150-v1.npz",
+        "docs/field.npz",
     ]
 
 
