@@ -285,7 +285,7 @@ def _run(request):
     `level_compile_unavailable` when it could not answer."""
     try:
         done = subprocess.run(
-            [sys.executable, "-m", CLI_MODULE],
+            [sys.executable, "-B", "-m", CLI_MODULE],
             input=json.dumps(request, sort_keys=True),
             capture_output=True,
             text=True,
