@@ -214,7 +214,11 @@ def test_cooling_bank_uses_its_interface_layout_and_unbound_roles_stay_open(tmp_
     assert bank["references"][0, 0] == first["peak_c"]
     assert list(bank["references"][0, 1:31]) == first["profile_c"]
     assert bank["references"][0, 31] == first["pressure_drop_pa"]
-    assert physical_pack.physics_contract(cid, version) is None
+    from carbon.scoring import cooling_dual_pack
+
+    physics = physical_pack.physics_contract(cid, version)
+    assert physics == cooling_dual_pack.physics_contract()
+    assert set(physics) == {"version", "definition"}
     pack = tmp_path / "cooling"
     manifest = physical_pack.write_public_pack(
         pack, cid, version, exposed_development_bank=True
@@ -228,7 +232,7 @@ def test_cooling_bank_uses_its_interface_layout_and_unbound_roles_stay_open(tmp_
         challenge_version=version,
     )
     missing = prepared.snapshot.verify_available(pack, pack)
-    assert set(missing["public"]) == {"physics_contract", "accuracy_definition"}
+    assert set(missing["public"]) == {"accuracy_definition"}
     assert set(missing["private"]) == {"score_pack"}
 
 
