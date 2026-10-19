@@ -24,6 +24,18 @@
    "lowering": "refused",
    "note": "host synchronization or a data-dependent shape"
   },
+  "aten._native_batch_norm_legit.no_stats": {
+   "category": "normalization",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "batch statistics without running ones: instance norm (CODANO)."
+  },
+  "aten._native_batch_norm_legit_no_training.default": {
+   "category": "normalization",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "inference batch norm with running statistics (U-FNO, U-NO, U-Net); saved statistics not selectable."
+  },
   "aten._softmax.default": {
    "category": "reduction",
    "default": "allow",
@@ -193,6 +205,12 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.mul.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "multiply by a Python scalar (THUML Transformer)."
+  },
   "aten.mul.Tensor": {
    "category": "elementwise",
    "default": "allow",
@@ -238,6 +256,12 @@
    "default": "refuse",
    "lowering": "refused",
    "note": "RNG in inference is refused"
+  },
+  "aten.reciprocal.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "1 / x as Carbon's div (THUML GNOT)."
   },
   "aten.relu.default": {
    "category": "elementwise",
@@ -286,6 +310,12 @@
    "category": "shape",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.split_with_sizes.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "static sizes along one dim: one slice per part (OFormer)."
   },
   "aten.sqrt.default": {
    "category": "elementwise",
@@ -750,6 +780,17 @@
    ],
    "v0_interpreter": true
   },
+  "erfc": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "exp": {
    "category": "elementwise",
    "default": "allow",
@@ -1204,9 +1245,9 @@
   "reduce_max": {
    "category": "reduction",
    "default": "allow",
+   "note": "JAX 0.10.2 binds axes only; its JVP rule rejects out_sharding.",
    "params": {
-    "axes": "int_tuple",
-    "out_sharding": "none"
+    "axes": "int_tuple"
    },
    "roles": [
     "forward",
@@ -1218,9 +1259,9 @@
   "reduce_min": {
    "category": "reduction",
    "default": "allow",
+   "note": "JAX 0.10.2 binds axes only; its JVP rule rejects out_sharding.",
    "params": {
-    "axes": "int_tuple",
-    "out_sharding": "none"
+    "axes": "int_tuple"
    },
    "roles": [
     "forward",
@@ -1516,6 +1557,19 @@
    "category": "elementwise",
    "default": "allow",
    "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "tan": {
+   "category": "elementwise",
+   "default": "allow",
+   "params": {
+    "accuracy": "none"
+   },
    "roles": [
     "forward",
     "init",

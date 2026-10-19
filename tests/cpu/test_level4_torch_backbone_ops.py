@@ -3,7 +3,9 @@
 last and back, under every allowlist that admits the FFT ops. The prospective
 v6 allowlist alone adds `F.pad` with a constant (`aten.constant_pad_nd`,
 PhysicsNeMo FNO), `view_as_real`, `abs`, `sign` and `eq.Scalar` (AFNO), and
-`clamp` (UNO); v5 stays refused for them. Interpolation's gather index,
+`clamp` (UNO), batch norm in inference mode (U-shaped operators) and
+instance norm (CODANO), `split_with_sizes`, `reciprocal` and `mul.Scalar`;
+v5 stays refused for them. Interpolation's gather index,
 `arange` arithmetic on no input, folds to a static index (UNO's resampling).
 """
 
@@ -169,3 +171,60 @@ def test_interpolation_index_arithmetic_folds_to_a_static_gather(mode, kw):
     doc, got = _lower_and_run(module, x, V6)
     assert "gather" not in [n["op"] for n in doc["graphs"][doc["entry"]]["nodes"]]
     np.testing.assert_allclose(got, module(x).numpy(), rtol=1e-6, atol=1e-6)
+
+
+class Norms(torch.nn.Module):
+    """Inference batch norm, instance norm, a three-way split, a reciprocal and
+    a scalar multiply: the U-Net / CODANO / OFormer / GNOT steps."""
+
+    def __init__(self):
+        super().__init__()
+        self.bn = torch.nn.BatchNorm1d(4)
+        self.inorm = torch.nn.InstanceNorm1d(4, affine=True)
+        with torch.no_grad():
+            for p in (*self.bn.parameters(), *self.inorm.parameters()):
+                p.copy_(torch.rand(p.shape, generator=torch.Generator().manual_seed(1)))
+            self.bn.running_mean.uniform_(-1, 1)
+            self.bn.running_var.uniform_(0.5, 2)
+
+    def forward(self, x):
+        a, b, c = torch.split(self.bn(x) + self.inorm(x), [1, 2, 1], dim=1)
+        return torch.cat([c, a * 0.5, torch.reciprocal(b * b + 1.0)], dim=1)
+
+
+def test_norms_split_reciprocal_match_torch_values_and_gradients():
+    import numpy as np
+
+    module = Norms().eval()
+    x = torch.randn(3, 4, 10, generator=torch.Generator().manual_seed(4))
+    names = [n for n, _ in module.named_parameters()]
+    params = [p.detach() for _, p in module.named_parameters()]
+    buffers = dict(module.named_buffers())
+
+    def apply(ps, inputs):
+        return torch.func.functional_call(
+            module, (dict(zip(names, ps)), buffers), (inputs,)
+        )
+
+    allowlist = allowlist_module.load(V6)
+    _, core = lower_torch.export(apply, params, x)
+    doc, _ = lower_torch.lower(core, allowlist=allowlist)
+    parsed = graph.parse(
+        graph.dumps(doc), max_bytes=allowlist_module.CAPS["document_bytes"]
+    )
+    rebuilt = interpret.rebuild(parsed, allowlist)
+    weights = [jax.numpy.asarray(p.numpy()) for p in params]
+    value = jax.numpy.asarray(x.numpy())
+    np.testing.assert_allclose(
+        np.asarray(rebuilt(*weights, value)[0]),
+        module(x).detach().numpy(),
+        rtol=1e-5,
+        atol=1e-5,
+    )
+    got = jax.grad(lambda ws: rebuilt(*ws, value)[0].sum())(weights)
+    want = [p.clone().requires_grad_(True) for p in params]
+    apply(want, x).sum().backward()
+    for g, w in zip(got, want):
+        np.testing.assert_allclose(np.asarray(g), w.grad.numpy(), rtol=1e-4, atol=1e-5)
+    with pytest.raises(graph.GraphRefused):
+        lower_torch.lower(core, allowlist=allowlist_module.load(V5))

@@ -211,6 +211,143 @@ def _fft_scale(b, value, normalization, n, xla_scale):
     return b.emit("mul", [value, k], dtype, shape, out_dtype=None)
 
 
+def _native_batch_norm(b, node, env):
+    """Batch norm over channel dim 1: inference mode with running statistics
+    (`_native_batch_norm_legit_no_training`, U-shaped operators), or statistics
+    of the batch itself without running ones (`_native_batch_norm_legit.no_stats`,
+    instance norm). Only the normalized result is differentiable, as in torch."""
+    target = str(node.target)
+    args = node.args
+    inference = target == "aten._native_batch_norm_legit_no_training.default"
+    if node.kwargs or len(args) != (7 if inference else 6):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    x_arg, weight_arg, bias_arg = args[:3]
+    epsilon = args[-1]
+    if not hasattr(x_arg, "op"):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    x = env[x_arg]
+    dtype, shape = b.avals[x]
+    if (
+        dtype not in ("float32", "float64")
+        or len(shape) < 2
+        or type(epsilon) not in (int, float)
+        or not math.isfinite(epsilon)
+        or epsilon < 0
+        or (not inference and args[3] is not True)
+    ):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    channels = shape[1]
+    stats_shape = [1, channels] + [1] * (len(shape) - 2)
+    vectors = [weight_arg, bias_arg] + (list(args[3:5]) if inference else [])
+    for vector in vectors:
+        if vector is not None and (
+            not hasattr(vector, "op") or b.avals[env[vector]] != (dtype, [channels])
+        ):
+            raise graph.GraphRefused("aten_arguments_not_supported", target)
+    if inference and (args[3] is None or args[4] is None):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+
+    def per_channel(value):
+        return b.emit(
+            "reshape",
+            [value],
+            dtype,
+            stats_shape,
+            dimensions=None,
+            new_sizes=stats_shape,
+            sharding=None,
+        )
+
+    def mean_over_batch(value):
+        axes = [0] + list(range(2, len(shape)))
+        total = b.emit(
+            "reduce_sum", [value], dtype, [channels], axes=axes, out_sharding=None
+        )
+        count = math.prod(shape) // channels
+        total = b.emit(
+            "div",
+            [total, b.broadcast(b.scalar(count, dtype), [channels])],
+            dtype,
+            [channels],
+        )
+        return per_channel(total)
+
+    if inference:
+        mean, variance = per_channel(env[args[3]]), per_channel(env[args[4]])
+        centered = b.emit("sub", [x, b.broadcast(mean, shape)], dtype, shape)
+    else:
+        mean = mean_over_batch(x)
+        centered = b.emit("sub", [x, b.broadcast(mean, shape)], dtype, shape)
+        squared = b.emit("integer_pow", [centered], dtype, shape, y=2)
+        variance = mean_over_batch(squared)
+    variance = b.emit(
+        "add",
+        [variance, b.broadcast(b.scalar(epsilon, dtype), stats_shape)],
+        dtype,
+        stats_shape,
+    )
+    rstd = b.unary("rsqrt", variance, accuracy=None)
+    result = b.emit(
+        "mul", [centered, b.broadcast(rstd, shape)], dtype, shape, out_dtype=None
+    )
+    if weight_arg is not None:
+        weight = b.broadcast(per_channel(env[weight_arg]), shape)
+        result = b.emit("mul", [result, weight], dtype, shape, out_dtype=None)
+    if bias_arg is not None:
+        bias = b.broadcast(per_channel(env[bias_arg]), shape)
+        result = b.emit("add", [result, bias], dtype, shape)
+    if inference:
+        # Torch returns empty saved statistics here; selecting them is refused.
+        return (result, None, None)
+
+    def flat(value):
+        return b.emit(
+            "reshape",
+            [b.unary("stop_gradient", value)],
+            dtype,
+            [channels],
+            dimensions=None,
+            new_sizes=[channels],
+            sharding=None,
+        )
+
+    return (result, flat(mean), flat(rstd))
+
+
+def _split_with_sizes(b, node, env):
+    """One static slice per part (a tuple result, selected by getitem)."""
+    target = str(node.target)
+    args, kw = node.args, node.kwargs
+    if not hasattr(args[0], "op"):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    x = env[args[0]]
+    have = b.avals[x][1]
+    sizes = list(args[1])
+    dim = _norm(args[2] if len(args) > 2 else kw.get("dim", 0), len(have))
+    if sum(sizes) != have[dim] or any(type(n) is not int or n < 0 for n in sizes):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    parts, start = [], 0
+    for n in sizes:
+        begin = [0] * len(have)
+        end = list(have)
+        begin[dim], end[dim] = start, start + n
+        part_shape = list(have)
+        part_shape[dim] = n
+        parts.append(
+            b.emit(
+                "slice",
+                [x],
+                b.avals[x][0],
+                part_shape,
+                limit_indices=end,
+                start_indices=begin,
+                strides=None,
+            )
+        )
+        start += n
+    return tuple(parts)
+
+
 def _native_layer_norm(b, node, env):
     """Lower all three results of Core ATen layer norm from trusted metadata."""
     target = str(node.target)
@@ -352,13 +489,15 @@ def _softmax(b, node, env):
 
     # The shift leaves softmax unchanged, so its derivative is identically
     # irrelevant. Stop the input path before JAX's reduce_max primitive.
+    spec = b.allowlist.ops["reduce_max"]["params"]
     maximum = b.emit(
         "reduce_max",
         [b.unary("stop_gradient", x)],
         dtype,
         reduced_shape,
         axes=[dim],
-        out_sharding=None,
+        # v5 lists out_sharding; v6 does not (JAX 0.10.2's reduce_max has none).
+        **({"out_sharding": None} if "out_sharding" in spec else {}),
     )
     shifted = b.emit("sub", [x, b.broadcast(keep_dim(maximum), shape)], dtype, shape)
     exponentials = b.unary("exp", shifted, accuracy=None)
@@ -740,7 +879,8 @@ def _emit(b, node, env):
             or not hasattr(args[0], "op")
             or not isinstance(env.get(args[0]), tuple)
             or type(args[1]) is not int
-            or args[1] not in (0, 1, 2)
+            or not 0 <= args[1] < len(env[args[0]])
+            or env[args[0]][args[1]] is None
         ):
             raise graph.GraphRefused("aten_tuple_index_not_supported", target)
         selected = env[args[0]][args[1]]
@@ -752,6 +892,11 @@ def _emit(b, node, env):
         raise graph.GraphRefused("aten_op_not_allowlisted", target)
     if target == "aten.native_layer_norm.default":
         return _native_layer_norm(b, node, env)
+    if target in (
+        "aten._native_batch_norm_legit_no_training.default",
+        "aten._native_batch_norm_legit.no_stats",
+    ):
+        return _native_batch_norm(b, node, env)
     if target == "aten._softmax.default":
         return _softmax(b, node, env)
     if target == "aten.sum.dim_IntList":
@@ -760,6 +905,8 @@ def _emit(b, node, env):
         return _scatter_add_static(b, node, env)
     if target == "aten.index.Tensor":
         return _index_static(b, node, env)
+    if target == "aten.split_with_sizes.default":
+        return _split_with_sizes(b, node, env)
     dtype, shape = (
         _aval(node)
         if "val" in node.meta and node.meta["val"] is not None
@@ -785,8 +932,10 @@ def _emit(b, node, env):
                 op, [b.operand(args[0], env, dtype, shape), other_scaled], dtype, shape
             )
         return b.binary(op, args[0], other, env, node)
-    if target == "aten.mul.Tensor":
+    if target in ("aten.mul.Tensor", "aten.mul.Scalar"):
         return b.binary("mul", args[0], args[1], env, node)
+    if target == "aten.reciprocal.default":
+        return b.binary("div", 1, args[0], env, node)
     if target == "aten.div.Tensor":
         return b.binary("div", args[0], args[1], env, node)
     if target in (

@@ -21,7 +21,7 @@ def _prospective():
     return allowlist_module.load(V6)
 
 
-def test_v6_only_adds_static_torch_emitters_and_keeps_graph_scatter_refused():
+def test_v6_changes_only_the_listed_entries_and_keeps_graph_scatter_refused():
     import hashlib
     import json
 
@@ -44,9 +44,25 @@ def test_v6_only_adds_static_torch_emitters_and_keeps_graph_scatter_refused():
         "aten.abs.default",
         "aten.sign.default",
         "aten.eq.Scalar",
+        "aten.mul.Scalar",
+        "aten.reciprocal.default",
+        "aten.split_with_sizes.default",
+        "aten._native_batch_norm_legit_no_training.default",
+        "aten._native_batch_norm_legit.no_stats",
     ):
         admitted = new["aten_core"].pop(added)
         assert admitted["default"] == "allow" and admitted["lowering"] == "emitted"
+    # JAX 0.10.2 primitives: tan and erfc admitted; reduce_max/min bind `axes`
+    # only (their JVP rule rejects the `out_sharding` v5 lists).
+    assert new["carbon_ops"].pop("tan")["params"] == {"accuracy": "none"}
+    assert new["carbon_ops"].pop("erfc")["params"] == {}
+    for op in ("reduce_max", "reduce_min"):
+        assert new["carbon_ops"][op].pop("params") == {"axes": "int_tuple"}
+        assert old["carbon_ops"][op].pop("params") == {
+            "axes": "int_tuple",
+            "out_sharding": "none",
+        }
+        new["carbon_ops"][op].pop("note")
     assert new == old
     assert new["carbon_ops"]["scatter_add"]["v0_interpreter"] is False
     with pytest.raises(graph.GraphRefused) as refused:
