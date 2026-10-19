@@ -1,7 +1,7 @@
 """King of the hill on one shared bank key, DEVELOPMENT only.
 
 The pairs are synthetic fixtures shaped like `PoolStore.private_evaluation_pair`
-output; no model, solver or reference runs. Margins here are fixture values
+output; no model, solver or reference runs. Rebuild-noise values here are fixtures
 under a DEVELOPMENT comparator that the reward layer never pays.
 """
 
@@ -41,91 +41,85 @@ def pair(candidate, incumbent):
     }
 
 
-def comparator(margin=None, **changes):
+def comparator(noise=None, **changes):
     rule = {
         "schema": bp.COMPARATOR_SCHEMA,
         "scope": "DEVELOPMENT",
         "challenge": "electric-motor-magnetics",
         "score_pack_digest": PACK,
-        "margin": margin,
+        "rebuild_noise": noise,
         "ties": "incumbent_keeps",
     }
     rule.update(changes)
     return rule
 
 
-ABS = {"kind": "absolute", "value": 0.1}
+NOISE = {"value": 0.1, "measurement_digest": digest("rebuild noise record")}
+ZERO = {"value": 0, "measurement_digest": digest("rebuild noise record")}
 
 
 @pytest.mark.parametrize(
-    ("candidate", "incumbent", "margin", "expected"),
+    ("candidate", "incumbent", "noise", "expected"),
     [
         (body("c"), None, None, (bp.FIRST_INCUMBENT, "first_scored_contender")),
-        (body("c", "FAILED_INFRA"), None, ABS, (bp.NO_WINNER, "candidate_not_scored")),
+        (
+            body("c", "FAILED_INFRA"),
+            None,
+            NOISE,
+            (bp.NO_WINNER, "candidate_not_scored"),
+        ),
         (
             body("c", total=2.0),
             body("k"),
-            ABS,
-            (bp.CHALLENGER, "exceeds_incumbent_by_margin"),
+            NOISE,
+            (bp.CHALLENGER, "exceeds_incumbent_beyond_rebuild_noise"),
         ),
         (
             body("c", total=1.1),
             body("k"),
-            ABS,
-            (bp.INCUMBENT_KEEPS, "within_margin_or_tie"),
+            NOISE,
+            (bp.INCUMBENT_KEEPS, "within_rebuild_noise_or_tie"),
         ),
         (
             body("c", total=1.0),
             body("k"),
-            {"kind": "absolute", "value": 0},
-            (bp.INCUMBENT_KEEPS, "within_margin_or_tie"),
+            ZERO,
+            (bp.INCUMBENT_KEEPS, "within_rebuild_noise_or_tie"),
         ),
         (
             body("c", total=1.01),
             body("k"),
-            {"kind": "absolute", "value": 0},
-            (bp.CHALLENGER, "exceeds_incumbent_by_margin"),
-        ),
-        (
-            body("c", total=1.02),
-            body("k"),
-            {"kind": "relative", "value": 0.0225},
-            (bp.INCUMBENT_KEEPS, "within_margin_or_tie"),
-        ),
-        (
-            body("c", total=1.03),
-            body("k"),
-            {"kind": "relative", "value": 0.0225},
-            (bp.CHALLENGER, "exceeds_incumbent_by_margin"),
+            ZERO,
+            (bp.CHALLENGER, "exceeds_incumbent_beyond_rebuild_noise"),
         ),
         (
             body("c", total=9.0),
             body("k"),
             None,
-            (bp.UNAVAILABLE, "margin_unregistered"),
+            (bp.UNAVAILABLE, "rebuild_noise_unregistered"),
         ),
         (
             body("c", "MANDATORY_GATE_FAILED"),
             body("k"),
-            ABS,
+            NOISE,
             (bp.INCUMBENT_KEEPS, "candidate_not_scored"),
         ),
         (
             body("c", total=9.0),
             body("k", "FAILED_INFRA"),
-            ABS,
+            NOISE,
             (bp.UNAVAILABLE, "incumbent_evidence_unavailable"),
         ),
         (
             body("c", total=9.0),
             body("k", "MANDATORY_GATE_FAILED"),
-            ABS,
+            NOISE,
             (bp.UNAVAILABLE, "incumbent_not_scored"),
         ),
     ],
 )
-def test_comparator_outcomes(candidate, incumbent, margin, expected):
-    outcome = bp.compare_private_pair(pair(candidate, incumbent), comparator(margin))
+def test_comparator_outcomes(candidate, incumbent, noise, expected):
+    outcome = bp.compare_private_pair(pair(candidate, incumbent), comparator(noise))
     assert (outcome["outcome"], outcome["reason"]) == expected
     assert outcome["evaluation_key"] == KEY
 
@@ -135,7 +129,11 @@ def test_comparator_outcomes(candidate, incumbent, margin, expected):
     [
         ({"scope": "REGISTERED"}, "comparator_scope_unadopted"),
         ({"ties": "candidate_wins"}, "comparator_invalid"),
-        ({"margin": {"kind": "absolute", "value": -1}}, "comparator_invalid"),
+        (
+            {"noise": {"value": -1, "measurement_digest": digest("x")}},
+            "comparator_invalid",
+        ),
+        ({"noise": {"value": 0.1}}, "comparator_invalid"),
         ({"challenge": "chip-cold-plate"}, "comparator_not_for_this_evaluation"),
         (
             {"score_pack_digest": digest("other pack")},
@@ -146,7 +144,7 @@ def test_comparator_outcomes(candidate, incumbent, margin, expected):
 def test_comparator_refuses_unadopted_or_mismatched_rules(changes, error):
     with pytest.raises(StateError, match=error):
         bp.compare_private_pair(
-            pair(body("c"), body("k")), comparator(**{"margin": ABS, **changes})
+            pair(body("c"), body("k")), comparator(**{"noise": NOISE, **changes})
         )
 
 
@@ -154,7 +152,7 @@ def test_only_paired_dual_evidence_is_compared():
     old = body("c")
     old["evidence"]["schema"] = "carbon.scoring.private-evaluation-binding.v3"
     with pytest.raises(StateError, match="comparator_requires_paired_dual"):
-        bp.compare_private_pair(pair(old, body("k")), comparator(ABS))
+        bp.compare_private_pair(pair(old, body("k")), comparator(NOISE))
 
 
 class _Pairs:
@@ -193,7 +191,7 @@ def test_scored_results_drive_a_development_king_and_its_halving(tmp_path, monke
         "private_evaluation_pair",
         _Pairs(store, {"a": pair(a, None), "b": pair(b, a), "c": pair(c, a)}),
     )
-    rule = comparator(ABS)
+    rule = comparator(NOISE)
 
     assert flow.consider_private("a", KEY, rule)["outcome"] == bp.FIRST_INCUMBENT
     assert store.incumbent() == {"model_id": "a", "reason": bp.DEVELOPMENT_PROMOTION}
@@ -240,7 +238,7 @@ def test_a_lost_race_does_not_move_the_incumbent(tmp_path, monkeypatch):
     moved["expected_incumbent"] = "c"  # the incumbent changed after pairing
     monkeypatch.setattr(store, "private_evaluation_pair", _Pairs(store, {"b": moved}))
     with pytest.raises(StateError, match="incumbent_moved"):
-        flow.consider_private("b", KEY, comparator(ABS))
+        flow.consider_private("b", KEY, comparator(NOISE))
     assert store.incumbent()["model_id"] == "a"
     unchanged = deepcopy(store.incumbent())
     monkeypatch.setattr(

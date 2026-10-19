@@ -366,23 +366,30 @@ UNAVAILABLE = "UNAVAILABLE"
 
 def _comparator(comparator, evidence):
     """The registered comparison rule. Only DEVELOPMENT rules exist: a payable
-    rule needs the owner's margin and an adopted score pack."""
-    margin = comparator.get("margin") if type(comparator) is dict else None
+    rule needs an adopted score pack (KOTH-TAKEOVER-RULE-01)."""
+    noise = comparator.get("rebuild_noise") if type(comparator) is dict else None
     if (
         type(comparator) is not dict
         or set(comparator)
-        != {"schema", "scope", "challenge", "score_pack_digest", "margin", "ties"}
+        != {
+            "schema",
+            "scope",
+            "challenge",
+            "score_pack_digest",
+            "rebuild_noise",
+            "ties",
+        }
         or comparator["schema"] != COMPARATOR_SCHEMA
         or comparator["ties"] != "incumbent_keeps"
         or not (
-            margin is None
+            noise is None
             or (
-                type(margin) is dict
-                and set(margin) == {"kind", "value"}
-                and margin["kind"] in ("absolute", "relative")
-                and type(margin["value"]) in (int, float)
-                and math.isfinite(margin["value"])
-                and margin["value"] >= 0
+                type(noise) is dict
+                and set(noise) == {"value", "measurement_digest"}
+                and type(noise["value"]) in (int, float)
+                and math.isfinite(noise["value"])
+                and noise["value"] >= 0
+                and is_digest(noise["measurement_digest"])
             )
         )
     ):
@@ -395,7 +402,7 @@ def _comparator(comparator, evidence):
         != evidence["score_compatibility"]["score_pack_digest"]
     ):
         raise StateError("comparator_not_for_this_evaluation")
-    return margin
+    return noise
 
 
 def _scored(body):
@@ -423,11 +430,12 @@ def compare_private_pair(pair, comparator):
       fails science on this evaluation, is UNAVAILABLE: no rule here says
       whether it is dethroned, so nothing changes.
     - Otherwise the contender must exceed the incumbent's total by the
-      registered margin; a tie keeps the incumbent. No margin registered is
+      Challenge's measured rebuild noise; within it is a tie and the
+      incumbent keeps the crown (KOTH-TAKEOVER-RULE-01). No noise registered is
       UNAVAILABLE, never zero.
     """
     candidate = pair["candidate"]
-    margin = _comparator(comparator, candidate["evidence"])
+    noise = _comparator(comparator, candidate["evidence"])
     status, total = _scored(candidate)
 
     def decided(outcome, reason):
@@ -451,9 +459,8 @@ def compare_private_pair(pair, comparator):
         return decided(UNAVAILABLE, "incumbent_evidence_unavailable")
     if held != SCORED:
         return decided(UNAVAILABLE, "incumbent_not_scored")
-    if margin is None:
-        return decided(UNAVAILABLE, "margin_unregistered")
-    step = margin["value"] * (1 if margin["kind"] == "absolute" else abs(held_total))
-    if total > held_total + step:
-        return decided(CHALLENGER, "exceeds_incumbent_by_margin")
-    return decided(INCUMBENT_KEEPS, "within_margin_or_tie")
+    if noise is None:
+        return decided(UNAVAILABLE, "rebuild_noise_unregistered")
+    if total > held_total + noise["value"]:
+        return decided(CHALLENGER, "exceeds_incumbent_beyond_rebuild_noise")
+    return decided(INCUMBENT_KEEPS, "within_rebuild_noise_or_tie")

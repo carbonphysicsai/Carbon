@@ -43,6 +43,9 @@ LEDGER_SCHEMA = "carbon.rewards.testnet-winner-ledger.v2"
 LEGACY_LEDGER_SCHEMA = "carbon.rewards.testnet-winner-ledger.v1"
 FINAL = "FINAL_IMPROVEMENT"
 FIRST = "FIRST_INCUMBENT"
+#: A contender that beat the incumbent on one shared bank key beyond the
+#: Challenge's measured rebuild noise (KOTH-TAKEOVER-RULE-01).
+BANK = "BANK_IMPROVEMENT"
 
 
 class WinnerIdentityFailure(RewardFailure):
@@ -182,9 +185,9 @@ def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
         ):
             return no_reset()
         return record(True, "first_incumbent_no_baseline")
-    if promotion["kind"] != FINAL:
+    if promotion["kind"] not in (FINAL, BANK):
         return record(False, "promotion_kind_unknown")
-    if promotion["nomination_overdue"]:
+    if promotion["kind"] == FINAL and promotion["nomination_overdue"]:
         return record(False, "nomination_on_overdue_pool")
     previous_hotkey = promotion["previous_hotkey"]
     if previous_record is not None and (
@@ -193,8 +196,12 @@ def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
     ):
         raise WinnerIdentityFailure("PREDECESSOR_RECORD_MISMATCH")
     if same_miner(previous_hotkey):
+        # A king beating himself: the better model is the incumbent, the
+        # clock does not reset (KOTH-TAKEOVER-RULE-01 §2).
         return no_reset()
-    return record(True, "final_improvement")
+    return record(
+        True, "final_improvement" if promotion["kind"] == FINAL else "bank_improvement"
+    )
 
 
 class WinnerLedger:
