@@ -13,6 +13,7 @@ source-accepted point roster. It claims no interval, boundary or OOD adequacy.
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 from copy import deepcopy
 
@@ -167,9 +168,14 @@ def _finite_evidence(policy, reference, models):
                 point_reference["cases"][case][quantity]["interval"] = None
     for action in policy["action_ids"]:
         row = reference["actions"].get(action)
-        if type(row) is not dict or row.get("feasibility") not in (
-            "FEASIBLE",
-            "INFEASIBLE",
+        if (
+            type(row) is not dict
+            or set(row) != {"feasibility", "objective"}
+            or row.get("feasibility")
+            not in (
+                "FEASIBLE",
+                "INFEASIBLE",
+            )
         ):
             issues.append("REFERENCE_ACTION_UNRESOLVED:" + action)
             continue
@@ -186,6 +192,20 @@ def _finite_evidence(policy, reference, models):
                 point_reference["actions"][action]["objective"]["interval"] = None
     candidate_issues = {}
     for model in models:
+        _require(
+            type(model) is dict
+            and set(model) == {"artifact_digest", "selected_action", "cases", "actions"}
+            and type(model["cases"]) is dict
+            and type(model["actions"]) is dict
+            and (
+                model["selected_action"] is None
+                or (
+                    type(model["selected_action"]) is str
+                    and model["selected_action"] in policy["action_ids"]
+                )
+            ),
+            "finite_candidate_container",
+        )
         bad = []
         if set(model["cases"]) != set(policy["case_ids"]):
             bad.append("CANDIDATE_COMMON_CASE_MASK_MISMATCH")
@@ -211,6 +231,128 @@ def _finite_evidence(policy, reference, models):
                     bad.append(reason + ":objective:" + action)
         candidate_issues[model["artifact_digest"]] = sorted(set(bad))
     return point_reference, sorted(set(issues)), candidate_issues
+
+
+def _reduce_finite_source_gap(policy, reference, models, context):
+    """Defer only when unresolved source actions explain a frozen-pair mismatch."""
+    try:
+        return design_fidelity.reduce_design(policy, reference, models)
+    except design_fidelity.ReductionRefused as error:
+        if str(error) != "gap_requires_every_settled_feasible_pair":
+            raise
+        feasible, unresolved = [], []
+        for action in policy["action_ids"]:
+            row = reference["actions"].get(action)
+            if type(row) is dict and set(row) == {"feasibility", "objective"}:
+                if row["feasibility"] == "INFEASIBLE":
+                    continue
+                if (
+                    row["feasibility"] == "FEASIBLE"
+                    and design_fidelity.reference_atom(
+                        row["objective"], policy["objective"]["unit"]
+                    )["point"]
+                    is not None
+                ):
+                    feasible.append(action)
+                    continue
+            unresolved.append(action)
+        if not unresolved or not context["reference_issues"]:
+            raise
+        known_pairs = set(itertools.combinations(sorted(feasible), 2))
+        possible_pairs = set(itertools.combinations(sorted(feasible + unresolved), 2))
+        for component in policy["components"]:
+            if (
+                component["kind"] != "gap"
+                or not policy["quantities"][component["quantity"]]["learned"]
+            ):
+                continue
+            pairs = [tuple(sorted(pair)) for pair in component["pairs"]]
+            # Preserve rejection of independently malformed frozen pair panels.
+            if (
+                len(pairs) != len(set(pairs))
+                or not known_pairs <= set(pairs) <= possible_pairs
+            ):
+                raise
+        issues = sorted(
+            set(context["reference_issues"] + ["REFERENCE_ACTION_GAP_PANEL_UNRESOLVED"])
+        )
+        rows = []
+        for model in models:
+            selected = reference["actions"].get(model["selected_action"])
+            unsafe = (
+                type(selected) is dict
+                and set(selected) == {"feasibility", "objective"}
+                and selected["feasibility"] == "INFEASIBLE"
+            )
+            bad = context["candidate_issues"][model["artifact_digest"]]
+            rows.append(
+                {
+                    "artifact_digest": model["artifact_digest"],
+                    "prediction_digest": _identity(model),
+                    "candidate_issues": deepcopy(bad),
+                    "candidate_status": (
+                        "INVALID"
+                        if bad
+                        else (
+                            "PROVEN_UNSAFE_SELECTION"
+                            if unsafe
+                            else (
+                                "ABSTAIN"
+                                if model["selected_action"] is None
+                                else "VALID_PREDICTIONS"
+                            )
+                        )
+                    ),
+                    "reference_status": "PARTIAL_OR_UNRESOLVED",
+                    "status": (
+                        "CANDIDATE_INVALID"
+                        if bad
+                        else (
+                            "CANDIDATE_UNSAFE_SELECTION"
+                            if unsafe
+                            else "REFERENCE_UNRESOLVED"
+                        )
+                    ),
+                    "candidate_selection_outcome": (
+                        "SELECTED_PROVEN_INFEASIBLE"
+                        if unsafe
+                        else "REFERENCE_UNRESOLVED"
+                    ),
+                    "point_estimate_D": None,
+                    "registered_D": None,
+                    "full_credit_eligible": False,
+                    "earns_full_credit": False,
+                    "D_bounds": None,
+                    "V": design_fidelity.value_result(
+                        policy, {}, [], unresolved, model["selected_action"]
+                    ),
+                    "C": None,
+                    "C_bounds": None,
+                    "reference_limitations": issues,
+                    "critical_components": {},
+                    "coverage_slot_errors": {},
+                    "limiting_components": [],
+                    "no_scientific_candidate_penalty_from_reference_gap": True,
+                }
+            )
+        # Typed absence only: no replacement action, reference point, component,
+        # objective or interval is fabricated to make the frozen panel reduce.
+        return {
+            "policy_digest": design_fidelity.digest(policy),
+            "common_mask_digest": design_fidelity.digest(
+                {"case_ids": policy["case_ids"], "action_ids": policy["action_ids"]}
+            ),
+            "reference_coverage_digest": _identity(reference),
+            "reference_coverage_digest_basis": "CANONICAL_TYPED_REFERENCE_NOT_RAW_BYTES",
+            "full_credit_panel_eligible": False,
+            "reference_limitations": issues,
+            "coverage": [],
+            "settled_feasible_actions": sorted(feasible),
+            "unresolved_potentially_competitive_actions": sorted(unresolved),
+            "models": rows,
+            "official_score": False,
+            "score_adopted": False,
+        }
 
 
 def _project(
@@ -304,7 +446,12 @@ def _project(
             ]
             if finite_mode and finite_context["reference_issues"]:
                 value = None
-            status = "RESOLVED" if value is not None else "REFERENCE_UNRESOLVED"
+                # The source gap is common and recorded in the finite audit.
+                # NOT_MEASURED keeps every valid model unscored without the
+                # core's global reference precedence hiding an invalid model.
+                status = "NOT_MEASURED"
+            else:
+                status = "RESOLVED" if value is not None else "REFERENCE_UNRESOLVED"
         model["measurements"][metric] = {
             "status": status,
             "value": value,
@@ -451,7 +598,26 @@ def score_design_benchmark(
         _METRIC not in {c["metric"] for c in original_pack["legs"]["A"]["components"]},
         "design_metric_collides_with_physics",
     )
-    reduction = design_fidelity.reduce_design(policy, reference, models)
+    finite_context = None
+    if finite_task_registration is not None:
+        design_fidelity.validate_policy(policy)
+        design_fidelity.shape(reference, ("cases", "actions"), "reference_container")
+        _require(
+            type(reference["cases"]) is dict and type(reference["actions"]) is dict,
+            "finite_reference_masks",
+        )
+        registration = _finite_registration(finite_task_registration, policy, reference)
+        point_reference, issues, candidate_issues = _finite_evidence(
+            policy, reference, models
+        )
+        finite_context = {
+            "registration": registration,
+            "reference_issues": issues,
+            "candidate_issues": candidate_issues,
+        }
+        reduction = _reduce_finite_source_gap(policy, reference, models, finite_context)
+    else:
+        reduction = design_fidelity.reduce_design(policy, reference, models)
     projections = {
         mode: _project(
             policy,
@@ -469,11 +635,9 @@ def score_design_benchmark(
             not in {c["metric"] for c in original_pack["legs"]["A"]["components"]},
             "finite_design_metric_collides_with_physics",
         )
-        registration = _finite_registration(finite_task_registration, policy, reference)
-        point_reference, issues, candidate_issues = _finite_evidence(
-            policy, reference, models
+        point_reduction = _reduce_finite_source_gap(
+            policy, point_reference, models, finite_context
         )
-        point_reduction = design_fidelity.reduce_design(policy, point_reference, models)
         # Finite input atoms can still overflow a derived reference difference.
         # Such a common source gap cannot disappear behind another component.
         for row in point_reduction["models"]:
@@ -488,11 +652,7 @@ def score_design_benchmark(
             original_benchmark,
             FINITE_TASK_POINT_REFERENCE,
             finite_task_measurement_basis,
-            {
-                "registration": registration,
-                "reference_issues": issues,
-                "candidate_issues": candidate_issues,
-            },
+            {**finite_context, "reference_issues": issues},
         )
         _require(
             all(

@@ -464,15 +464,73 @@ def test_finite_incomplete_candidate_is_local_ineligible_not_mask_drop(gap):
     assert len(p["score_result"]["models"]) == 2
 
 
-def test_finite_missing_reference_does_not_hide_independent_candidate_failure():
+@pytest.mark.parametrize("missing_reference", ["case", "action"])
+def test_finite_missing_reference_does_not_hide_independent_candidate_failure(
+    missing_reference,
+):
     args = point_inputs()
-    del args[1]["cases"]["c1"]
+    if missing_reference == "case":
+        del args[1]["cases"]["c1"]
+    else:
+        del args[1]["actions"]["b"]
     del args[2][1]["cases"]["c1"]
     p = finite(args)["projections"][adapter.FINITE_TASK_POINT_REFERENCE]
     good, bad = p["score_result"]["models"]
     assert good["status"] == "INDETERMINATE_EVIDENCE"
     assert bad["status"] == "CANDIDATE_INVALID"
     assert good["score"] is None and bad["score"] is None
+
+
+@pytest.mark.parametrize("selected", ["a", None])
+def test_finite_source_deferral_preserves_nullable_reducer_row_contract(selected):
+    args = point_inputs()
+    standard = finite(args)["reduction"]["models"][0]
+    del args[1]["actions"]["b"]
+    for model in args[2]:
+        model["selected_action"] = selected
+    output = finite(args)
+    rows = output["reduction"]["models"]
+    for row in rows:
+        assert set(row) == set(standard)
+        assert row["V"]["V"] is None and row["V"]["regret"] is None
+        assert row["V"]["selected_action"] == selected
+        assert row["V"]["reference_feasible_set_is_settled"] is False
+        assert row["C"] is None and row["C_bounds"] is None
+        assert row["D_bounds"] is None and row["registered_D"] is None
+        assert row["earns_full_credit"] is False
+        assert row["coverage_slot_errors"] == {} and row["limiting_components"] == []
+        assert row["candidate_status"] == (
+            "ABSTAIN" if selected is None else "VALID_PREDICTIONS"
+        )
+
+
+def test_finite_unrelated_source_gap_does_not_hide_malformed_frozen_gap_pairs():
+    args = point_inputs()
+    del args[1]["cases"]["c1"]
+    args[0]["components"][2]["pairs"] = []
+    with pytest.raises(
+        design_fidelity.ReductionRefused,
+        match="gap_requires_every_settled_feasible_pair",
+    ):
+        finite(args)
+
+
+def test_finite_missing_action_cannot_hide_missing_known_settled_feasible_pair():
+    args = point_inputs()
+    args[0]["action_ids"].append("c")
+    args[0]["case_ids"].append("c2")
+    args[0]["components"][2]["pairs"] = [["a", "c"], ["b", "c"]]
+    args[1]["cases"]["c2"] = deepcopy(args[1]["cases"]["c0"])
+    for model in args[2]:
+        model["cases"]["c2"] = deepcopy(model["cases"]["c0"])
+        model["actions"]["c"] = deepcopy(model["actions"]["a"])
+    registration = finite_registration(args)
+    registration["action_condition_case_ids"]["c"] = {"condition": "c2"}
+    with pytest.raises(
+        design_fidelity.ReductionRefused,
+        match="gap_requires_every_settled_feasible_pair",
+    ):
+        run(args, finite_task_registration=registration)
 
 
 @pytest.mark.parametrize(
