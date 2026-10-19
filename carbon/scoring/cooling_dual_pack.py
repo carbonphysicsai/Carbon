@@ -36,7 +36,10 @@ from carbon.scoring.physical_dual_pack import sha as _sha
 CHALLENGE = "chip-cold-plate"
 VERSION = "1.0"
 CASE_ID = "cooling-development-bank-48"
-EVALUATION_VERSION = "cooling-dual-development-bank-48-v1"
+#: v2: the paired repeat is the identical graded procedure (per-case pairs,
+#: Validator 2026-10-19), the registered repeat tolerance unchanged; v1 packs
+#: (batched repeats) stay as history and are not re-scored.
+EVALUATION_VERSION = "cooling-dual-development-bank-48-v2"
 OUTPUT = {"quantity": "peak_c,profile_c[30],pressure_drop_pa", "unit": "degC,degC,Pa"}
 FILES = ("cooling_dual_pack.py", "cooling_dual_measurement.py")
 #: Legs a measured baseline run sets minimums for (default rule).
@@ -148,6 +151,7 @@ def definition(*, bank, train_raw, rule="baseline_legs"):
         "cohort_counts": dict(cdm.COHORT_COUNTS),
         "target_slices": {k: list(v) for k, v in slices.items()},
         "leg_minimum_rule": rule,
+        "paired_repeat_procedure": "per_case",
         "leg_minimum_note": LEG_MINIMUM_RULES[rule][1],
         **_MEASUREMENT,
     }

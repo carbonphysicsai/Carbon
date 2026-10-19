@@ -113,7 +113,10 @@ def _applied_pack():
     }
 
 
-EVALUATION_VERSION = "motor-dual-development-bank-90-v1"
+#: v2: the paired repeat is the identical graded procedure (per-case pairs,
+#: Validator 2026-10-19), the registered repeat tolerance unchanged; v1 packs
+#: (batched repeats) stay as history and are not re-scored.
+EVALUATION_VERSION = "motor-dual-development-bank-90-v2"
 CASE_ID = "motor-development-bank-90"
 OUTPUT = {"quantity": "torque_nm", "unit": "N.m"}
 FILES = ("motor_dual_pack.py", "motor_dual_measurement.py")
@@ -134,6 +137,7 @@ def definition(*, bank, train_raw):
         "method": mdm.METHOD,
         "source_definition_sha256": SOURCE_DEFINITION_SHA256,
         "g1_measurement_contract_sha256": G1_MEASUREMENT_CONTRACT_SHA256,
+        "paired_repeat_procedure": "per_case",
         "cohort_counts": {
             "practice": 30,
             "pilot_ordinary": 8,

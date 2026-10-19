@@ -294,7 +294,7 @@ def case(request, tmp_path_factory):
     )
     predictions_raw = json.dumps(predictions, allow_nan=False, separators=(",", ":"))
     case_bank = (tmp / "pack/private/case_bank.npz").read_bytes()
-    entry, custody_raw, artifacts, timed = _retain_bundle(
+    entry, custody_raw, artifacts, _timed = _retain_bundle(
         adapter,
         tmp,
         public=public,
@@ -303,8 +303,9 @@ def case(request, tmp_path_factory):
         shapes=(list(bank["inputs"].shape), list(bank["references"].shape)),
     )
     registration_doc = json.loads(documents["source_registration"])
-    # Platform's pair runs the same batched cold query form as the timed one.
-    pair_raw = _pair(timed, [predictions, predictions])
+    # The pair repeats the identical graded per-case procedure (v1 receipts).
+    graded = json.loads(artifacts["inference-receipt.json"])
+    pair_raw = _pair(graded, [predictions, predictions])
     originals = {
         "inference_receipt_raw": artifacts["inference-receipt.json"],
         "predictions_raw": artifacts["predictions.json"],
@@ -423,11 +424,27 @@ def test_another_grading_image_is_refused_not_failed(case):
         _produce(case, {**case["originals"], "bundle_evidence_raw": other})
 
 
+def test_a_batched_repeat_is_not_a_repeat_of_the_per_case_grade(case):
+    """Validator, 2026-10-19: the pair must repeat the identical graded
+    procedure; a batched measured pair measures batch dependence instead."""
+    timed = json.loads(case["originals"]["timed_query"]["receipt_raw"])
+    pair_raw = _pair(timed, [case["predictions"], case["predictions"]])
+    batched = {
+        **case["originals"],
+        "inference_pair_raw": pair_raw,
+        "inference_pair_sha256": _sha(pair_raw),
+    }
+    with pytest.raises(
+        source.PrivateEvaluationSourceRefused, match="dual_repeat_evidence_unavailable"
+    ):
+        _produce(case, batched)
+
+
 def test_a_repeat_beyond_the_native_rule_fails_its_gate_not_the_run(case):
     drifted = deepcopy(case["predictions"])
     drifted[0] = [t + 1e-3 for t in drifted[0]]
-    timed = json.loads(case["originals"]["timed_query"]["receipt_raw"])
-    pair_raw = _pair(timed, [case["predictions"], drifted])
+    graded = json.loads(case["originals"]["inference_receipt_raw"])
+    pair_raw = _pair(graded, [case["predictions"], drifted])
     originals = {
         **case["originals"],
         "inference_pair_raw": pair_raw,
