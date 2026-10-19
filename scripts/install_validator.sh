@@ -17,15 +17,18 @@
 #   3. checks the result: the recorded worker and analysis images exist in
 #      Docker.
 #
-# Exit 0 means the host and its images are ready. It does NOT start a receiver,
-# write a receiver configuration, or sync answer keys or weights: that setup is
-# the operator route (carbon.validator_setup, the receiver tooling) and is not
-# part of this script. It never asks for or stores a key or password.
+# Exit 0 means the host and its images are ready. With --receiver ID VERSION it
+# then writes the receiver's profile and configuration (and with --start-receiver
+# starts it). It does not build an evaluation pack, sync answer keys or run
+# weights. It never asks for or stores a key or password.
 set -euo pipefail
 
 # Draft requirement values (VALIDATOR_REQUIREMENTS_DRAFT_20261019.md); a published
 # sheet replaces them. Override only for tests.
-MIN_FREE_GIB="${CARBON_VALIDATOR_MIN_FREE_GIB:-60}"
+# Free disk: V1 measured about 6 GB used by a CPU install (three images); the default is that
+# plus headroom (the GPU worker adds about 12 GiB by the installer's own estimate, unmeasured here).
+MIN_FREE_GIB_CPU=20
+MIN_FREE_GIB_GPU=32
 MIN_CPUS="${CARBON_VALIDATOR_MIN_CPUS:-2}"
 MIN_RAM_GIB="${CARBON_VALIDATOR_MIN_RAM_GIB:-4}"
 MIN_NVIDIA_DRIVER_MAJOR="${CARBON_VALIDATOR_MIN_NVIDIA_DRIVER_MAJOR:-580}"
@@ -33,9 +36,18 @@ STATE_DIR="${CARBON_STATE_DIR:-${HOME}/.carbon/development-launchpad}"
 
 usage() {
   cat <<'EOF'
-usage: scripts/install_validator.sh [--check-only] [--gpu] [install_miner.sh options]
+usage: scripts/install_validator.sh [--check-only] [--gpu]
+                                    [--receiver ID VERSION [--pack DIR] [--start-receiver]]
+                                    [install_miner.sh options]
 
   --check-only  run the machine checks and stop
+  --receiver ID VERSION
+                after the install, write the receiver's profile and configuration
+                for that registered Challenge
+                (carbon.challenge_validator.receiver_setup)
+  --pack DIR    with --receiver: the built evaluation pack directory to select
+  --start-receiver
+                with --receiver: start the receiver as a user systemd unit
   --gpu         also require and build the GPU worker (NVIDIA driver 580 or
                 later and the NVIDIA Container Toolkit)
 
@@ -47,6 +59,10 @@ EOF
 
 check_only=0
 gpu=0
+receiver_id=""
+receiver_version=""
+receiver_pack=""
+receiver_start=0
 pass=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -55,6 +71,9 @@ while [[ $# -gt 0 ]]; do
     -h|--help) usage; exit 0 ;;
     --development-candidate) pass+=("$1" "${2:-}" "${3:-}" "${4:-}"); shift 3 ;;
     --ref|--release|--port) pass+=("$1" "${2:-}"); shift ;;
+    --receiver) receiver_id="${2:?--receiver needs ID VERSION}"; receiver_version="${3:?--receiver needs ID VERSION}"; shift 2 ;;
+    --pack) receiver_pack="${2:?--pack needs a directory}"; shift ;;
+    --start-receiver) receiver_start=1 ;;
     --pytorch|--no-start) ;;
     *) usage >&2; exit 2 ;;
   esac
@@ -101,6 +120,7 @@ cpus="$(nproc 2>/dev/null || echo 0)"
 ram_gib="$(awk '/^MemTotal:/ { printf "%d", $2 / 1048576 }' /proc/meminfo 2>/dev/null || echo 0)"
 (( ram_gib >= MIN_RAM_GIB )) || refuse V_RAM "${ram_gib} GiB of RAM; at least ${MIN_RAM_GIB} GiB are required for one isolated worker." "use a machine with more memory."
 
+MIN_FREE_GIB="${CARBON_VALIDATOR_MIN_FREE_GIB:-$(( gpu == 1 ? MIN_FREE_GIB_GPU : MIN_FREE_GIB_CPU ))}"
 probe="${STATE_DIR}"
 while [[ ! -d "${probe}" && "${probe}" != "/" ]]; do probe="$(dirname -- "${probe}")"; done
 free_gib="$(df -Pk -- "${probe}" 2>/dev/null | awk 'NR==2 { printf "%d", $4 / 1048576 }' || echo 0)"
@@ -180,4 +200,22 @@ PY
     || { printf 'Carbon validator install stopped: V_GPU_VISIBLE: the GPU is not visible from the installed worker image. Next: install or configure the NVIDIA Container Toolkit (runtime or CDI) and restart Docker.\n' >&2; exit 3; }
 fi
 printf '\nValidator host ready: worker and analysis images present (state: %s).\n' "${STATE_DIR}"
-printf 'Not done here: receiver configuration, start, answer-key sync and weights (the operator route).\n'
+if [[ -n "${receiver_id}" ]]; then
+  step "Receiver profile and configuration"
+  receiver_state="${STATE_DIR}/receiver-${receiver_id}"
+  setup_args=(prepare --installed-state "$(realpath -- "${STATE_DIR}")"
+              --receiver-state "$(realpath -m -- "${receiver_state}")"
+              --challenge "${receiver_id}" "${receiver_version}")
+  [[ -z "${receiver_pack}" ]] || setup_args+=(--pack "$(realpath -- "${receiver_pack}")")
+  .venv/bin/python -B -m carbon.challenge_validator.receiver_setup "${setup_args[@]}" \
+    || { printf 'Carbon validator install stopped: the receiver setup was refused (see above).\n' >&2; exit 4; }
+  if [[ "${receiver_start}" == 1 ]]; then
+    .venv/bin/python -B -m carbon.challenge_validator.receiver_setup start \
+      --receiver-state "$(realpath -m -- "${receiver_state}")" --detach \
+      || { printf 'Carbon validator install stopped: the receiver did not start.\n' >&2; exit 4; }
+  else
+    printf 'Receiver prepared, not started. Start it: .venv/bin/python -B -m carbon.challenge_validator.receiver_setup start --receiver-state %s --detach\n' "${receiver_state}"
+  fi
+else
+  printf 'Not done here: receiver configuration and start (pass --receiver ID VERSION), answer-key sync and weights.\n'
+fi
