@@ -717,3 +717,81 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
             )
     finally:
         provider.close()
+
+
+@pytest.mark.parametrize(
+    "accuracy, expected",
+    [
+        ({}, "batched_measured"),
+        ({"paired_repeat_procedure": "per_case"}, "per_case"),
+    ],
+)
+def test_pair_procedure_is_the_selected_packs_registered_form(
+    tmp_path, monkeypatch, accuracy, expected
+):
+    """The pack's public accuracy definition registers the paired repeat form."""
+    from types import SimpleNamespace
+
+    from carbon.challenge_validator import lean_recipe_retention as retention
+    from carbon.development_session import construction_recipe, paired_inference
+
+    seen = {}
+
+    def fake_pair(ledger, **call):
+        seen.update(call)
+        return SimpleNamespace(evidence={"fixture": True})
+
+    monkeypatch.setattr(paired_inference, "infer_frozen_pair", fake_pair)
+    monkeypatch.setattr(
+        construction_recipe.ConstructionRecipe, "from_dict", staticmethod(lambda d: d)
+    )
+    monkeypatch.setattr(
+        retention, "_private_evaluation_directory", lambda result, sid: tmp_path
+    )
+    roles = []
+    snapshot = SimpleNamespace(
+        manifest_digest="sha256:" + "a" * 64,
+        read_json_role=lambda root, side, role, max_bytes: (
+            roles.append((side, role)) or accuracy
+        ),
+    )
+    kit = {
+        "id": "c",
+        "version": "1",
+        "train_digest": "t",
+        "interface_digest": "i",
+        "construction_limits_digest": "l",
+    }
+    material = {
+        "construction_kit": kit,
+        "construction_limits_document": {
+            "reconstruction_resource_policy": {
+                "inference_wall_seconds_max": 60,
+                "total_reconstruction_wall_seconds_max": 120,
+            }
+        },
+        "interface_document": {"dtype": "<f8"},
+        "practice_inputs": np.zeros((2, 1)),
+        "expected_output_shape": (2, 1),
+        "allowlist_bytes": b"",
+    }
+    provider = SimpleNamespace(
+        ledger=object(),
+        inference_image=object(),
+        _requests={"rtsk_x": SimpleNamespace(recipe={})},
+    )
+    adapter = SimpleNamespace(
+        owner=lambda sid: "owner",
+        _provider=lambda owner: provider,
+        discovery=SimpleNamespace(
+            _material=material,
+            evaluation_pack_snapshot=snapshot,
+            evaluation_pack_public_root=tmp_path,
+        ),
+    )
+    raw = retention._inference_pair_raw(
+        adapter, "rtsk_x", {}, {"state.npz": b"s"}, {"state_digest": "sd"}
+    )
+    assert seen["procedure"] == expected
+    assert roles == [("public", "accuracy_definition")]
+    assert json.loads(raw) == {"fixture": True}

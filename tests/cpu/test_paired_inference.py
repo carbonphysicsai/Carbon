@@ -375,3 +375,19 @@ def test_maintained_infer_state_stages_only_frozen_query_and_validates_both_rece
         evidence["primary"]["worker_operation"]
         != evidence["repeat"]["worker_operation"]
     )
+
+
+def test_per_case_procedure_runs_unmeasured_per_case_queries(fixture_pair):
+    f = fixture_pair
+    pair.infer_frozen_pair(f.ledger, procedure="per_case", **f.kwargs)
+    assert len(f.calls) == 2
+    for call in f.calls:
+        assert call["measure_query"] is False
+        assert call["per_case"] is True
+
+
+def test_unregistered_procedure_refuses_before_dispatch(fixture_pair):
+    f = fixture_pair
+    with pytest.raises(RecipeRefused, match="inference_pair_procedure_unregistered"):
+        pair.infer_frozen_pair(f.ledger, procedure="batched", **f.kwargs)
+    assert f.calls == []

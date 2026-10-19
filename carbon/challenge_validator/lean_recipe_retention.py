@@ -497,6 +497,15 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry):
     limits = material["construction_limits_document"]
     policy = limits["reconstruction_resource_policy"]
     interface = material["interface_document"]
+    # The selected pack's public accuracy definition registers the repeat form.
+    accuracy = adapter.discovery.evaluation_pack_snapshot.read_json_role(
+        adapter.discovery.evaluation_pack_public_root,
+        "public",
+        "accuracy_definition",
+        max_bytes=65536,
+    )
+    if type(accuracy) is not dict:
+        raise RetentionUnavailable("inference_pair_procedure_unreadable")
     try:
         pair = infer_frozen_pair(
             provider.ledger,
@@ -530,6 +539,7 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry):
             seconds=policy["inference_wall_seconds_max"],
             total_seconds=policy["total_reconstruction_wall_seconds_max"],
             accelerator=getattr(provider, "inference_accelerator", None),
+            procedure=accuracy.get("paired_repeat_procedure", "batched_measured"),
         )
     except InferencePairFailure as failure:
         raise RetentionUnavailable("inference_pair_incomplete") from failure

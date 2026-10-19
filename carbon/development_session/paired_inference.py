@@ -177,13 +177,25 @@ def infer_frozen_pair(
     total_seconds,
     accelerator=None,
     runner=None,
+    procedure="batched_measured",
 ) -> InferencePairResult:
     """Run two actual full-tensor queries of one already validated inert model.
 
     The registered full-tensor query is unchanged; logical rows are not forward
     calls or independently timed cases. The supplied pair identity must be new
     within this campaign. Old ledger identities are refused, never replayed.
+
+    ``procedure`` is the repeat form the Challenge requires. The default is the
+    batched measured query. ``per_case`` repeats the graded procedure itself:
+    each case alone in row 0, unmeasured (v1 receipts, no timing).
     """
+    if procedure not in ("batched_measured", "per_case"):
+        raise RecipeRefused("inference_pair_procedure_unregistered")
+    query = (
+        {"measure_query": True}
+        if procedure == "batched_measured"
+        else {"measure_query": False, "per_case": True}
+    )
     identities = pair_identities(identity)
     binding = _checked_binding(recipe, challenge_binding)
     verify_direct_resource_policy(binding, limits_document)
@@ -239,7 +251,6 @@ def infer_frozen_pair(
                 inputs=fixed_inputs,
                 expected_output_shape=expected_output_shape,
                 expected_output_dtype=expected_output_dtype,
-                measure_query=True,
                 allowlist_bytes=allowlist_bytes,
                 input_name=(
                     "inputs/forcing"
@@ -249,6 +260,7 @@ def infer_frozen_pair(
                 provenance=provenance,
                 seconds=min(seconds, remaining),
                 runner=runner,
+                **query,
                 **accelerator_kwargs,
             )
             if (
