@@ -185,6 +185,13 @@ _PHYSICS_VERSIONS = {
 def physics_contract(challenge_id: str, version: str) -> dict | None:
     """The Challenge's versioned physics contract for the construction material
     and the pack to carry, or None while it is not bound."""
+    if challenge_id == cooling.CHALLENGE.challenge_id:
+        _files(challenge_id, version)
+        # Cooling's physics contract is the scoring producer's exact native
+        # source binding; the pack and the construction material carry it.
+        from carbon.scoring import cooling_dual_pack
+
+        return cooling_dual_pack.physics_contract()
     if "physics_contract" not in _files(challenge_id, version):
         return None
     return {
