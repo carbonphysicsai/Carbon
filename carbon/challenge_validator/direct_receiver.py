@@ -1012,6 +1012,7 @@ def serve(
                     task_id,
                     artifact_directory=artifact_directory,
                     entry_directory=entry_directory,
+                    pool_store=_open_pool_store(pool_store),
                 )
             timer.start()
             serve_loopback(
@@ -1087,8 +1088,10 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.retain_task is not None and args.regrade_entry is not None:
         parser.error("retain a task or regrade an entry, not both")
-    if args.pool_store is not None and args.regrade_entry is None:
-        parser.error("--pool-store applies to --regrade-entry only")
+    if args.pool_store is not None and (
+        args.regrade_entry is None and args.retain_task is None
+    ):
+        parser.error("--pool-store applies to --retain-task or --regrade-entry")
     retention_args = (
         args.retain_task if args.regrade_entry is None else args.regrade_entry,
         args.artifact_directory,
@@ -1165,6 +1168,13 @@ def main(argv=None):
             reason = result.get("private_evaluation_reason")
             if type(reason) is str and re.fullmatch(r"[A-Za-z0-9_]{1,80}", reason):
                 reported["private_evaluation_reason"] = reason
+        koth = result.get("koth_comparison")
+        if type(koth) is dict:
+            # Operator-only: the DEVELOPMENT king-of-the-hill outcome, or the pool refusal.
+            for key in ("outcome", "reason", "error"):
+                value = koth.get(key)
+                if type(value) is str and re.fullmatch(r"[A-Za-z0-9_]{1,80}", value):
+                    reported["koth_" + key] = value
         for key in ("regrade_of", "regrade_task_id"):
             if type(result.get(key)) is str:
                 reported[key] = result[key]
