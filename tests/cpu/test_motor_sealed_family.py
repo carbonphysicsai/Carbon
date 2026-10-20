@@ -198,3 +198,11 @@ def test_a_sealed_batch_is_drawn_solved_with_a_retry_sealed_and_packed(tmp_path)
     producer.seal(MOTOR, drawn["fingerprint"])
     assert [len(p) for p in solver.planned] == [30, 1]  # only the retry
     assert source.sealed(drawn["fingerprint"])["cases"] == 30
+
+
+def test_a_shared_deployment_is_refused(tmp_path):
+    path = write_deployment(tmp_path / "etc" / "motor.json", store="s")
+    path.chmod(0o644)
+    with pytest.raises(sealed.MotorSealedError) as refused:
+        sealed.load_deployment(path)
+    assert refused.value.code == "motor_sealed_deployment_not_owner_only"

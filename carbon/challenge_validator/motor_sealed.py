@@ -128,11 +128,14 @@ def load_deployment(path):
     path = Path(path)
     try:
         info = os.lstat(path)
-        if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
-            raise MotorSealedError("motor_sealed_deployment_not_owner_only")
-        config = json.loads(path.read_text())
     except FileNotFoundError:
         raise MotorSealedError("motor_sealed_deployment_missing") from None
+    # Checked outside the parse's `except ValueError`, which the typed error
+    # (a ValueError) would otherwise be relabelled by.
+    if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
+        raise MotorSealedError("motor_sealed_deployment_not_owner_only")
+    try:
+        config = json.loads(path.read_text())
     except ValueError:
         raise MotorSealedError("motor_sealed_deployment_malformed") from None
     if (
