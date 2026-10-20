@@ -44,3 +44,16 @@ scripts/dev/reference_packages/elmer/f02_export.py -text
 scripts/dev/reference_packages/elmer/f02_menu.py -text
 scripts/dev/score_lab/guarded419_t9.py -text
 tests/cpu/test_scoring_engine.py -text
+# Producer identity files (physical_dual_pack.producer_digest): checkout never converts them.
+carbon/scoring/physical_dual_pack.py -text
+carbon/scoring/private_evaluation_source.py -text
+carbon/scoring/inference_pair_evidence.py -text
+carbon/scoring/battery_dual_pack.py -text
+carbon/scoring/battery_dual_measurement.py -text
+carbon/scoring/cooling_dual_pack.py -text
+carbon/scoring/cooling_dual_measurement.py -text
+carbon/scoring/f02_dual_pack.py -text
+carbon/scoring/f08_dual_pack.py -text
+carbon/scoring/f08_dual_measurement.py -text
+carbon/scoring/motor_dual_pack.py -text
+carbon/scoring/motor_dual_measurement.py -text

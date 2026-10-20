@@ -116,10 +116,19 @@ def single_threaded(target, **kwargs):
 
 
 def producer_digest(adapter):
-    """The producer's identity: the bytes of every file it executes."""
+    """The producer's identity: the bytes of every file it executes, with
+    CRLF read as LF (Validator, 2026-10-20), so a Windows checkout of the
+    same commit has the same identity."""
     here = Path(__file__).parent
     names = sorted({*_SHARED_FILES, *adapter.FILES})
-    return sha(canonical({name: sha((here / name).read_bytes()) for name in names}))
+    return sha(
+        canonical(
+            {
+                name: sha((here / name).read_bytes().replace(b"\r\n", b"\n"))
+                for name in names
+            }
+        )
+    )
 
 
 def input_names(adapter):
