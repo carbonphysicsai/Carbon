@@ -431,8 +431,9 @@ def test_without_safety_the_result_is_exactly_v1_and_with_it_v2_adds_only_safety
     assert set(v1) == V1_FIELDS
     safety = {"schema": ps.SCHEMA, "feedback_only": True}
     v2 = module.feedback(summary, {}, safety=safety, **kwargs)
-    # Battery's v3 has v2's fields; only its safety block's B4 differs.
-    latest = ".v3" if module is battery_practice else ".v2"
+    # Battery's v4 has v2's fields; only its safety block differs (B4 computed
+    # since v3, B5 since v4).
+    latest = ".v4" if module is battery_practice else ".v2"
     assert v2["schema"] == module.FEEDBACK_SCHEMA and v2["schema"].endswith(latest)
     assert set(v2) == V1_FIELDS | {"safety"} and v2["safety"] is safety
     assert {k: v for k, v in v2.items() if k not in ("schema", "safety")} == {
@@ -511,12 +512,15 @@ def test_each_practice_provider_returns_its_latest_shape_with_its_safety(
     )
     provider.compile = lambda strategy: (None, _recipe({"id": challenge}))
     result = provider("task-1", {"strategy": "fixture"})
-    assert result["schema"].endswith(".v3" if challenge == "battery" else ".v2")
+    assert result["schema"].endswith(".v4" if challenge == "battery" else ".v2")
     assert result["safety"]["schema"] == ps.SCHEMA
     assert result["safety"]["unmeasured"] == 0
     if challenge == "battery":
         expected = battery_safety.safety(predictions, practice, decision)
         assert result["safety"]["metrics"]["B4"] == ORACLE_B4
+        assert (
+            result["safety"]["metrics"]["B5"]["reference"] == "battery-plating-ref-v2"
+        )
         # The worker is asked for PRACTICE and the decision set; the practice
         # score is PRACTICE's alone.
         inputs = json.loads(staged["practice-inputs.json"])
@@ -697,3 +701,71 @@ def test_the_practice_score_is_the_same_with_and_without_safety(battery, decisio
     battery_doc(predictions, battery, decision)
     _rows, after = battery_practice.score_practice(predictions, battery, material, REPO)
     assert before == after
+
+
+# --- battery B5: plating under battery-plating-ref-v2 (feedback v4) -----------
+
+
+def _with_plating(predictions, margin_v):
+    return {c: {**o, "plating_margin_v": margin_v} for c, o in predictions.items()}
+
+
+def test_battery_b5_counts_only_v2_claims_and_never_an_unresolved_case(
+    battery, decision
+):
+    from carbon.battery import plating_v2
+
+    labels = plating_v2.labels(battery.records)
+    kinds = [None if lab is None else lab["label"] for lab in labels]
+    # The oracle (the mesh-20 reference itself) never errs on a v2 claim.
+    oracle = battery_doc(battery_oracle(battery), battery, decision)["metrics"]["B5"]
+    assert oracle["status"] == battery_safety.B5_INFORMATIONAL
+    assert oracle["reference"] == "battery-plating-ref-v2"
+    assert (oracle["false_acceptance"], oracle["false_rejection"]) == (0, 0)
+    assert oracle["reference_infeasible"] == kinds.count("INFEASIBLE") == 32
+    assert oracle["reference_feasible"] == kinds.count("FEASIBLE") == 35
+    assert oracle["unresolved"] == kinds.count("UNRESOLVED") == 17
+    assert oracle["no_claim"] == kinds.count(None) == 116
+    # A model that calls every case plating-safe: every v2 INFEASIBLE case is
+    # a false acceptance, and no UNRESOLVED or no-claim case enters a rate.
+    safe = battery_doc(_with_plating(battery_oracle(battery), 1.0), battery, decision)
+    b5 = safe["metrics"]["B5"]
+    assert b5["false_acceptance"] == b5["reference_infeasible"] == 32
+    assert b5["false_acceptance_rate"] == 1.0 and b5["false_rejection"] == 0
+    # One that calls every case unsafe: every v2 FEASIBLE case is a false
+    # rejection, and still no unresolved case is counted in either rate.
+    unsafe = battery_doc(
+        _with_plating(battery_oracle(battery), -1.0), battery, decision
+    )
+    b5 = unsafe["metrics"]["B5"]
+    assert b5["false_rejection"] == b5["reference_feasible"] == 35
+    assert b5["false_rejection_rate"] == 1.0 and b5["false_acceptance"] == 0
+    for block in (oracle, safe["metrics"]["B5"], b5):
+        assert block["reference_infeasible"] + block["reference_feasible"] == 67
+        assert block["unresolved"] + block["no_claim"] == 133
+
+
+def test_battery_b5_leaves_b1_to_b3_the_ev5_gate_mirror(battery, decision):
+    document = battery_doc(battery_oracle(battery), battery, decision)
+    assert document["metrics"]["B5"]["feedback_only"] is True
+    # B1-B3 are computed exactly as before B5 existed (the gate mirror).
+    assert set(document["metrics"]) == {"B1", "B2", "B3", "B4", "B5"}
+    assert document["metrics"]["B1"]["no_plating_onset"]["rate"] == 0.0
+
+
+def test_battery_b5_is_a_typed_refusal_when_the_reader_is_unavailable(
+    battery, decision, monkeypatch
+):
+    from carbon.battery import plating_v2
+
+    def unavailable(*args, **kwargs):
+        raise plating_v2.ReaderUnavailable("missing")
+
+    monkeypatch.setattr(plating_v2, "labels", unavailable)
+    document = battery_doc(battery_oracle(battery), battery, decision)
+    assert document["metrics"]["B5"] == battery_safety.B5_REFUSED_READER
+
+
+def test_battery_practice_feedback_is_v4_and_keeps_v3_named():
+    assert battery_practice.FEEDBACK_SCHEMA == "carbon.battery.practice-feedback.v4"
+    assert battery_practice.FEEDBACK_SCHEMA_V3 == "carbon.battery.practice-feedback.v3"

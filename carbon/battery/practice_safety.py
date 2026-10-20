@@ -30,6 +30,15 @@ predictions for them. Feedback only: see `carbon.practice_safety_feedback`.
   match its pins is refused with a typed reason and nothing is computed.
   (In practice-feedback v2, before the set was committed, B4 was the
   literal `ps.B4_BLOCKED`; v3 never emits it.)
+- **B5. Plating under battery-plating-ref-v2 (practice-feedback v4).**
+  Informational, not graded. B1-B3 mirror the frozen EV5 gate, whose plating
+  truth is the mesh-20 margin with EV4's band; B5 shows the same predictions
+  against the sealed v2 plating labels (`plating_v2`) on every PRACTICE case
+  v2 makes a claim on: false acceptance (the model says plating-safe where v2
+  says INFEASIBLE) and false rejection (the model says unsafe where v2 says
+  FEASIBLE). UNRESOLVED (`pending-m160-r1`) and no-claim cases are counted
+  beside the rates and never enter them, so a case v2 cannot resolve is never
+  counted as safe. If the pinned reader is unavailable B5 is a typed refusal.
 
 The value modules named above import the scoring-set module, so this module
 reimplements their few lines over `value.decision` alone; a test proves the
@@ -49,6 +58,7 @@ from carbon import practice_safety_feedback as ps
 
 from .challenge import CHALLENGE
 from .domain import GRID_POINTS, INPUTS, is_important
+from . import plating_v2
 from .practice import PRACTICE_SOURCE_PATH, PRACTICE_SOURCE_SHA256
 from .value import decision as d
 
@@ -118,6 +128,9 @@ B4_REFUSALS = (
 DECISION_SET_MIN_T_AMB_C = 2.0
 DECISION_SET_MIN_SOC0 = 0.03
 POSITIVE_IS_OPTIMISTIC = "predicted minus reference; positive is optimistic"
+#: B5's label for participants: shown for learning, never a grade.
+B5_INFORMATIONAL = "informational, not graded"
+B5_REFUSED_READER = "REFUSED: plating reference v2 reader unavailable"
 
 _RATE_ROW = {
     "false_acceptance": ps.COUNT,
@@ -147,6 +160,22 @@ ALLOWED = {
             "feedback_only": ps.TRUE,
         },
         ps.literal(*B4_REFUSALS),
+    ),
+    "B5": (
+        {
+            "reference": ps.literal(plating_v2.VERSION),
+            "false_acceptance": ps.COUNT,
+            "reference_infeasible": ps.COUNT,
+            "false_acceptance_rate": ps.NUMBER,
+            "false_rejection": ps.COUNT,
+            "reference_feasible": ps.COUNT,
+            "false_rejection_rate": ps.NUMBER,
+            "unresolved": ps.COUNT,
+            "no_claim": ps.COUNT,
+            "status": ps.literal(B5_INFORMATIONAL),
+            "feedback_only": ps.TRUE,
+        },
+        ps.literal(B5_REFUSED_READER),
     ),
 }
 
@@ -353,12 +382,59 @@ def near_case_ids(practice):
     return [r["case_id"] for r in practice.records if is_important(r)]
 
 
+def plating_v2_block(predictions, records, labels):
+    """B5 over the PRACTICE records and their v2 labels (same order).
+
+    Only cases v2 labels FEASIBLE or INFEASIBLE enter a rate; UNRESOLVED and
+    no-claim cases are counted and never enter either rate. "Says safe" is
+    the model's plating margin against EV4's threshold without a band, as in
+    B1.
+    """
+    out = {
+        "false_acceptance": 0,
+        "reference_infeasible": 0,
+        "false_rejection": 0,
+        "reference_feasible": 0,
+        "unresolved": 0,
+        "no_claim": 0,
+    }
+    for record, label in zip(records, labels, strict=True):
+        if label is None:
+            out["no_claim"] += 1
+            continue
+        if label["label"] not in ("FEASIBLE", "INFEASIBLE"):
+            out["unresolved"] += 1
+            continue
+        said = d.check(
+            DECISION_RULES,
+            d.measure(DECISION_RULES, predictions[record["case_id"]]),
+        )["no_plating_onset"]
+        if label["label"] == "INFEASIBLE":
+            out["reference_infeasible"] += 1
+            out["false_acceptance"] += said == d.PASS
+        else:
+            out["reference_feasible"] += 1
+            out["false_rejection"] += said != d.PASS
+    return {
+        "reference": plating_v2.VERSION,
+        **out,
+        "false_acceptance_rate": ps.rate(
+            out["false_acceptance"], out["reference_infeasible"]
+        ),
+        "false_rejection_rate": ps.rate(
+            out["false_rejection"], out["reference_feasible"]
+        ),
+        "status": B5_INFORMATIONAL,
+        "feedback_only": True,
+    }
+
+
 def safety(predictions, practice, decision):
     """The allow-listed safety document for one practice result.
 
     `predictions` holds the practice cases' and the decision set's (`decision`,
     from `decision_set`). `unmeasured` counts the cases of both that carry no
-    measurable prediction; B1-B3 are None when a practice case does, and B4
+    measurable prediction; B1-B3 and B5 are None when a practice case does, and B4
     when a decision-set case does.
     """
     refs = {r["case_id"]: r for r in practice.records}
@@ -416,9 +492,19 @@ def safety(predictions, practice, decision):
             "sign": POSITIVE_IS_OPTIMISTIC,
             "feedback_only": True,
         }
+    try:
+        labels = plating_v2.labels(practice.records)
+    except plating_v2.ReaderUnavailable:
+        b5 = B5_REFUSED_READER
+    else:
+        b5 = (
+            None
+            if unmeasured
+            else plating_v2_block(predictions, practice.records, labels)
+        )
     return ps.document(
         CHALLENGE.challenge_id,
-        {"B1": b1, "B2": b2, "B3": b3, "B4": b4},
+        {"B1": b1, "B2": b2, "B3": b3, "B4": b4, "B5": b5},
         unmeasured=unmeasured + decision_unmeasured,
         unresolved=unresolved,
         material={"path": PRACTICE_SOURCE_PATH, "sha256": PRACTICE_SOURCE_SHA256},

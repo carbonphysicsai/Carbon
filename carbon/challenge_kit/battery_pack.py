@@ -19,7 +19,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from carbon.battery import challenge, practice
+from carbon.battery import challenge, plating_v2, practice
 from carbon.battery.construction_bundle_material import (
     PHYSICS_PATH,
     PHYSICS_SHA256,
@@ -28,7 +28,8 @@ from carbon.battery.construction_bundle_material import (
 
 _REPOSITORY = Path(__file__).resolve().parents[2]
 CHALLENGE_ID = challenge.CHALLENGE.challenge_id
-PACK_VERSION = "battery-normal-construction-development-1"
+#: -2: each PRACTICE reference row carries its battery-plating-ref-v2 label.
+PACK_VERSION = "battery-normal-construction-development-2"
 _EV4 = (
     "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
     "fc6f504f3ff69b3add10099056b7a652a28112d3ca1d63ada2fb194aac2d3e18",
@@ -38,6 +39,7 @@ _PLATING_LABELS = (
     "docs/development/evidence/plating-rereference-01/d3-results/labels-v2-r1.json",
     "cac1e23001c227d9221653b2a90cee4755f62ca06fec58305d11cb9cba510069",
 )
+_PLATING_READER = plating_v2.READER
 PLATING_RULES = (
     "m20-above-window-r1",
     "m160-d3-r1",
@@ -104,6 +106,21 @@ def plating_reference() -> dict:
     }
 
 
+def practice_plating_labels(records) -> list:
+    """Each PRACTICE case's v2 plating label from its mesh-20 margin.
+
+    No PRACTICE case has a mesh-160 re-solve, so a case inside the v2 window
+    is `pending-m160-r1` UNRESOLVED and is never a mesh-20 FEASIBLE; None is
+    v2's own "no claim" (|m20| >= 15 mV).
+    """
+    if _PLATING_READER != plating_v2.READER:
+        raise ValueError("plating reader pin differs from carbon.battery.plating_v2")
+    try:
+        return plating_v2.labels(records, str(_REPOSITORY))
+    except plating_v2.ReaderUnavailable as exc:
+        raise ValueError(str(exc)) from exc
+
+
 def public_roles(version: str) -> dict[str, bytes]:
     """Bound public roles' exact bytes; accuracy_definition stays HUMAN_INPUT."""
     _check(version)
@@ -153,6 +170,12 @@ def development_bank(version: str) -> dict:
         "cohorts": ("practice",) * len(case_ids),
         "inputs": material["practice_inputs"],
         "references": material["practice_reference"],
-        "reference_records": list(records),
+        # The mesh-20 record is kept as measured; the v2 label sits beside it.
+        "reference_records": [
+            {**record, "plating_label_v2": label}
+            for record, label in zip(
+                records, practice_plating_labels(records), strict=True
+            )
+        ],
         "solver_evidence": None,
     }
