@@ -331,7 +331,14 @@ class DirectRecipeIntake(BatteryIntake):
             promotion=promotion,
         )
 
-    def retain_result(self, submission_id, *, artifact_directory, entry_directory):
+    def retain_result(
+        self,
+        submission_id,
+        *,
+        artifact_directory,
+        entry_directory,
+        pool_store=None,
+    ):
         """Operator-only post-outcome bank custody; never an HTTP route."""
         from .lean_recipe_retention import retain_served_bundle_result
 
@@ -340,6 +347,7 @@ class DirectRecipeIntake(BatteryIntake):
             submission_id,
             artifact_directory=artifact_directory,
             entry_directory=entry_directory,
+            pool_store=pool_store,
         )
 
 

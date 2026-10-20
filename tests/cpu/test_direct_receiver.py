@@ -1744,13 +1744,51 @@ def test_pool_store_is_opened_only_when_it_exists_and_only_with_a_regrade(tmp_pa
             [
                 "--config",
                 str(tmp_path / "config.json"),
-                "--retain-task",
-                "rtsk_" + "a" * 64,
-                "--artifact-directory",
-                str(tmp_path),
-                "--entry-directory",
-                str(tmp_path),
                 "--pool-store",
                 str(tmp_path / "pool.sqlite"),
             ]
         )
+
+
+def test_main_retain_with_a_pool_store_reports_the_koth_comparison(
+    tmp_path, monkeypatch, capsys
+):
+    (tmp_path / "config.json").write_text("{}")  # main() names a missing file first
+    task_id = "rtsk_" + "a" * 64
+    seen = []
+
+    def retain(config, **kwargs):
+        seen.append((kwargs["retention"], kwargs["regrade"], kwargs["pool_store"]))
+        return {
+            "status": "CREATED",
+            "entry_id": "entry-verified",
+            "score_state": "NOT_COMPUTED",
+            "official_eligible": False,
+            "private_evaluation_state": "BOUND_DEVELOPMENT_ONLY",
+            "koth_comparison": {
+                "outcome": "UNAVAILABLE",
+                "reason": "rebuild_noise_unregistered",
+                "evaluation_key": "sha256:" + "f" * 64,
+            },
+        }
+
+    monkeypatch.setattr(receiver, "serve", retain)
+    monkeypatch.setattr(receiver.signal, "signal", lambda *_: None)
+    argv = [
+        "--config",
+        str(tmp_path / "config.json"),
+        "--retain-task",
+        task_id,
+        "--artifact-directory",
+        str(tmp_path / "a"),
+        "--entry-directory",
+        str(tmp_path / "e"),
+        "--pool-store",
+        str(tmp_path / "pool.sqlite"),
+    ]
+    assert receiver.main(argv) == 0
+    reported = json.loads(capsys.readouterr().out)
+    assert seen[0][1:] == (False, tmp_path / "pool.sqlite")
+    assert reported["koth_outcome"] == "UNAVAILABLE"
+    assert reported["koth_reason"] == "rebuild_noise_unregistered"
+    assert "evaluation_key" not in reported

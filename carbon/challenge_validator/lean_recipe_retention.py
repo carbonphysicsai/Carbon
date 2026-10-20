@@ -551,7 +551,13 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
 
 
 def _retain_selected_pack_evaluation(
-    adapter, submission_id, result, artifacts, evidence=None, regrade=None
+    adapter,
+    submission_id,
+    result,
+    artifacts,
+    evidence=None,
+    regrade=None,
+    pool_store=None,
 ):
     """Apply only trusted, versioned measurement evidence after bank custody."""
     if result.get("evaluation_pack_digest") is None:
@@ -745,6 +751,16 @@ def _retain_selected_pack_evaluation(
         write_once(binding_path, _json(binding))
         if regrade is not None and regrade.promotion is not None:
             _record_regraded_evidence(regrade, bind_inputs, source_pin)
+        koth = None
+        if pool_store is not None and regrade is None:
+            koth = _contend(
+                adapter,
+                pool_store,
+                submission_id,
+                artifacts,
+                bind_inputs,
+                source_pin,
+            )
     except (
         ImportError,
         OSError,
@@ -770,14 +786,122 @@ def _retain_selected_pack_evaluation(
         **result,
         "private_evaluation_state": "BOUND_DEVELOPMENT_ONLY",
         "private_evaluation_path": binding_path,
-        "ladder_feedback_state": _record_ladder(
-            adapter,
-            submission_id,
-            exam_key=snapshot.manifest_digest,
-            exam_version=source["evaluation_version"],
-            gates=registered["score_pack"]["hard_gates"],
-            graded=scoring["models"][0],
+        # A regrade is not a graded submission of the miner: it never feeds the Ladder.
+        **(
+            {}
+            if regrade is not None
+            else {
+                "ladder_feedback_state": _record_ladder(
+                    adapter,
+                    submission_id,
+                    exam_key=snapshot.manifest_digest,
+                    exam_version=source["evaluation_version"],
+                    gates=registered["score_pack"]["hard_gates"],
+                    graded=scoring["models"][0],
+                )
+            }
         ),
+        **({} if koth is None else {"koth_comparison": koth}),
+    }
+
+
+def _pool_admit(store, adapter, submission_id, entry, artifacts):
+    """Admit the retained, already-reconstructed model into the pool store once, so its
+    private evaluation can be filed and contend. Replays keep the first rows."""
+    from carbon.battery.pool_store import StateError
+
+    try:
+        store.submission(submission_id)
+        return
+    except StateError as missing:
+        if missing.code != "unknown_submission":
+            raise
+    hotkey = adapter.owner(submission_id)
+    if hotkey is None:
+        raise RetentionUnavailable("pool_owner_unknown")
+    with adapter.ledger._db() as db:
+        row = db.execute(
+            "SELECT request_sha256 FROM recipe_task_intents "
+            "WHERE contract_digest=? AND submission_id=?",
+            (adapter.contract_digest, submission_id),
+        ).fetchone()
+    if row is None:
+        # No made-up digest: it would misstate the submission's provenance in the pool.
+        raise RetentionUnavailable("pool_admit_request_digest_unavailable")
+    request_digest = row[0]
+    recipe = json.loads(artifacts["recipe.json"])
+    store.admit(
+        submission_id,
+        request_digest=request_digest,
+        hotkey=hotkey,
+        challenge=entry["challenge"],
+        strategy=recipe,
+        binding={
+            "challenge": {
+                "id": entry["challenge"],
+                "version": entry["challenge_version"],
+            },
+            "recipe_digest": entry["recipe_digest"],
+        },
+    )
+    store.retain_model(
+        submission_id,
+        recipe_digest=entry["recipe_digest"],
+        seed=0,
+        state=artifacts["state.npz"],
+        reconstruction={
+            "scope": "LEAN_RECIPE_RETAINED_DEVELOPMENT",
+            "seed": "unrecorded",
+        },
+    )
+    store.mark(submission_id, "RECONSTRUCTED")
+
+
+def _contend(adapter, pool_store, submission_id, artifacts, bind_inputs, pin):
+    """File the bound evaluation in the pool store and let it meet the incumbent
+    (DEVELOPMENT king of the hill). Its own failure never unbinds the evaluation: the
+    result names the outcome and reason, or the refusal."""
+    try:
+        from carbon.battery.pool_store import PoolStore
+        from carbon.challenge_validator import koth_registry
+        from carbon.challenge_validator.bank_promotion import BankPromotion
+
+        promotion = (
+            BankPromotion(pool_store, registered_source_receipt_sha256=pin)
+            if type(pool_store) is PoolStore
+            else pool_store
+        )
+        _pool_admit(
+            promotion.store, adapter, submission_id, bind_inputs["entry"], artifacts
+        )
+        filed = promotion.retain_private(submission_id, **bind_inputs)
+        discovery = adapter.discovery
+        accuracy = discovery.evaluation_pack_snapshot.read_json_role(
+            discovery.evaluation_pack_public_root,
+            "public",
+            "accuracy_definition",
+            max_bytes=65536,
+        )
+        outcome = promotion.consider_private(
+            submission_id,
+            filed["evaluation_key"],
+            koth_registry.comparator(
+                adapter.challenge_id, bind_inputs["score_pack"], accuracy
+            ),
+        )
+    # A pool refusal, whatever its type, never unbinds the evaluation.
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "error": (
+                str(exc)
+                if isinstance(exc, RetentionUnavailable)
+                else str(getattr(exc, "code", type(exc).__name__))
+            )
+        }
+    return {
+        "outcome": outcome["outcome"],
+        "reason": outcome["reason"],
+        "evaluation_key": outcome["evaluation_key"],
     }
 
 
@@ -811,7 +935,12 @@ def _record_ladder(adapter, submission_id, *, exam_key, exam_version, gates, gra
 
 
 def retain_served_result(
-    adapter, submission_id: str, *, artifact_directory: Path, entry_directory: Path
+    adapter,
+    submission_id: str,
+    *,
+    artifact_directory: Path,
+    entry_directory: Path,
+    pool_store=None,
 ) -> dict:
     """Create one pending bank entry from trusted, already-successful task bytes.
 
@@ -871,7 +1000,12 @@ def retain_served_result(
             adapter, provider, submission_id, task, result
         )
         bound = _retain_selected_pack_evaluation(
-            adapter, submission_id, bound, artifacts, evidence
+            adapter,
+            submission_id,
+            bound,
+            artifacts,
+            evidence,
+            pool_store=pool_store,
         )
         return _retain_public_synthetic_measurement(
             bound, artifacts, submission_id, evidence
@@ -1231,7 +1365,12 @@ def retain_served_result(
     }
     bound = _retain_private_pack_binding(adapter, provider, submission_id, task, result)
     bound = _retain_selected_pack_evaluation(
-        adapter, submission_id, bound, artifacts, evidence
+        adapter,
+        submission_id,
+        bound,
+        artifacts,
+        evidence,
+        pool_store=pool_store,
     )
     return _retain_public_synthetic_measurement(
         bound, artifacts, submission_id, evidence
@@ -1239,7 +1378,12 @@ def retain_served_result(
 
 
 def retain_served_bundle_result(
-    adapter, submission_id: str, *, artifact_directory: Path, entry_directory: Path
+    adapter,
+    submission_id: str,
+    *,
+    artifact_directory: Path,
+    entry_directory: Path,
+    pool_store=None,
 ) -> dict:
     """Compatibility name for the original bundle-only operator call site."""
     return retain_served_result(
@@ -1247,6 +1391,7 @@ def retain_served_bundle_result(
         submission_id,
         artifact_directory=artifact_directory,
         entry_directory=entry_directory,
+        pool_store=pool_store,
     )
 
 
