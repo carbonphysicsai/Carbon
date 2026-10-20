@@ -32,6 +32,9 @@ SCOPE = physical_public.SCOPE
 REGISTERED = (
     (motor.CHALLENGE.challenge_id, motor.CHALLENGE.version),
     (cooling.CHALLENGE.challenge_id, cooling.CHALLENGE.version),
+    # The step-2 versions (STEP2_BATCH_VERSIONS_20261020): served v6, no step caps.
+    (motor.CHALLENGE.challenge_id, "1.1"),
+    (cooling.CHALLENGE.challenge_id, "1.1"),
     # Both F08 versions: 1.0 (255-row TRAIN v1) and 1.1 (287-row TRAIN v2, the straddling bank).
     *((f08_train.CHALLENGE_ID, version) for version in f08_train.CHALLENGE_VERSIONS),
     # F02 2.0 (TRAIN40-v2): its own public module and float32 TRAIN, like F08. Named explicitly,
@@ -49,7 +52,7 @@ def bundle_material(
     version: str = motor.CHALLENGE.version,
 ) -> dict:
     """Challenge-owned public bytes and arrays for the direct receiver."""
-    from carbon.challenge_kit.synthetic_linear_field_2d import allowlist_v5_bytes
+    from carbon.challenge_kit.served_versions import material_allowlist_bytes
     from carbon.level4.allowlist import Allowlist
 
     if not is_registered(challenge_id, version):
@@ -79,7 +82,7 @@ def bundle_material(
     interface = public.interface_document(challenge_id, version)
     limits = public.construction_limits_document(challenge_id, version)
     physics = physical_pack.physics_contract(challenge_id, version)
-    allowed = allowlist_v5_bytes()
+    allowed = material_allowlist_bytes(challenge_id, version)
     return {
         "challenge_key": ChallengeKey(challenge_id, version),
         "construction_kit": kit,

@@ -107,11 +107,30 @@ def _torch_documents(module, batch, allowlist):
     return {"forward": forward, "init_spec": spec}
 
 
-def lower(spec_path, out_dir, *, challenge, interface, batch, max_bytes):
+def lower(
+    spec_path,
+    out_dir,
+    *,
+    challenge,
+    interface,
+    batch,
+    max_bytes,
+    challenge_version=None,
+):
     from .. import allowlist as allowlist_module
     from .. import submission
 
-    allowlist = allowlist_module.load()
+    # With --challenge-version, that version's served graph allowlist (v6 for
+    # a step-2 version); without it, the Level 4 staging path's own v1, as
+    # before. An unregistered version is refused, never mapped.
+    if challenge_version is None:
+        allowlist = allowlist_module.load()
+    else:
+        from carbon.challenge_kit.served_versions import graph_allowlist_bytes
+
+        allowlist = allowlist_module.Allowlist(
+            graph_allowlist_bytes(challenge, challenge_version)
+        )
     module = _load(spec_path)
     if module.FRAMEWORK == "jax":
         documents = _jax_documents(module, batch, allowlist, max_bytes)
@@ -153,6 +172,7 @@ def main(argv=None):
     low.add_argument("spec")
     low.add_argument("out")
     low.add_argument("--challenge", required=True)
+    low.add_argument("--challenge-version", default=None)
     low.add_argument("--interface", required=True)
     low.add_argument("--batch", type=int, default=1)
     low.add_argument(
@@ -172,6 +192,7 @@ def main(argv=None):
         args.spec,
         args.out,
         challenge=args.challenge,
+        challenge_version=args.challenge_version,
         interface=args.interface,
         batch=args.batch,
         max_bytes=args.max_bytes,

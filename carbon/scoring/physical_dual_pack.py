@@ -135,15 +135,56 @@ def input_names(adapter):
     ]
 
 
+def reference_mask(bank):
+    """Which bank rows carry a measured reference (``reference_present``,
+    REFERENCE_PRESENT_MASK_INTERFACE_20261020), checked against the values.
+
+    A bank without the key is all-present (Motor, Cooling, F02, F08). The mask
+    is authoritative; an absent row's values are the NaN sentinel. A NaN in a
+    present row, or a finite value in an absent one, refuses
+    (``reference_invalid``): a reference is never filled or guessed.
+    """
+    references = bank["references"]
+    mask = bank.get("reference_present")
+    if mask is None:
+        mask = (True,) * len(references)
+    if type(mask) not in (tuple, list) or len(mask) != len(references):
+        raise ValueError("reference_invalid")
+    for present, row in zip(mask, references, strict=True):
+        values = [float(v) for v in row]
+        if type(present) is not bool or (
+            all(math.isfinite(v) for v in values)
+            if present is False
+            else not all(math.isfinite(v) for v in values)
+        ):
+            raise ValueError("reference_invalid")
+        if present is False and not all(math.isnan(v) for v in values):
+            raise ValueError("reference_invalid")
+    return tuple(mask)
+
+
+def flat_references(bank):
+    """The bank's references, flattened; an absent row is JSON null."""
+    width = len(bank["references"][0])
+    return [
+        v
+        for present, row in zip(reference_mask(bank), bank["references"], strict=True)
+        for v in ([float(x) for x in row] if present else [None] * width)
+    ]
+
+
 def bank_rows(bank, interface_names):
-    """Data Collection's bank as measurement rows, in its declared order."""
+    """Data Collection's bank as measurement rows, in its declared order. A
+    row without a measured reference carries ``reference`` None: it never
+    enters a measure as truth."""
     rows = []
-    for case_id, cohort, record, inputs, reference in zip(
+    for case_id, cohort, record, inputs, reference, present in zip(
         bank["case_ids"],
         bank["cohorts"],
         bank["reference_records"],
         bank["inputs"],
         bank["references"],
+        reference_mask(bank),
         strict=True,
     ):
         row = {
@@ -153,7 +194,8 @@ def bank_rows(bank, interface_names):
             "inputs": dict(
                 zip(interface_names, (float(v) for v in inputs), strict=True)
             ),
-            "reference": [float(v) for v in reference],
+            "reference": [float(v) for v in reference] if present else None,
+            "reference_present": present,
         }
         if cohort.startswith("decision_"):
             # decision-<design>-<condition>; design order is the objective's.
@@ -173,6 +215,12 @@ def bank_digest(bank):
                 "cohorts": list(bank["cohorts"]),
                 "inputs": [[float(v) for v in row] for row in bank["inputs"]],
                 "records": list(bank["reference_records"]),
+                # Only a masked bank adds the mask, so unmasked digests stay.
+                **(
+                    {"reference_present": list(reference_mask(bank))}
+                    if "reference_present" in bank
+                    else {}
+                ),
             }
         )
     )
@@ -210,6 +258,43 @@ def leg_minimum_platform(inference_image_id, device_class=DEVICE_CLASS):
 
 
 BASELINE_ROLE = "BASELINE_LEG_MINIMUM_SOURCE_NOT_A_CONTENDER"
+
+
+class Variant:
+    """One adapter for another version of its Challenge: its own ``VERSION``,
+    evaluation version and case id; measurement and producer files are the
+    adapter module's own."""
+
+    def __init__(self, module, version, evaluation_version, case_id):
+        self._module = module
+        self.VERSION = version
+        self.EVALUATION_VERSION = evaluation_version
+        self.CASE_ID = case_id
+
+    def pack_documents(self, **kwargs):
+        return pack_documents(self, **kwargs)
+
+    def write_development_pack(self, root, **platform):
+        return write_development_pack(self, root, **platform)
+
+    def produce(self, **kwargs):
+        return produce(self, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self._module, name)
+
+
+def versioned(module, version):
+    """The adapter for exactly ``version`` of ``module``'s Challenge, or None.
+    ``module.VERSIONS`` maps each registered version to its evaluation version
+    and case id; there is no default version."""
+    entry = module.VERSIONS.get(version) if type(version) is str else None
+    if entry is None:
+        return None
+    evaluation_version, case_id = entry
+    if version == module.VERSION:
+        return module
+    return Variant(module, version, evaluation_version, case_id)
 
 
 def _evaluation_version(adapter, platform, minimums):
@@ -342,8 +427,23 @@ def pack_documents(
     reference_row = {
         "id": adapter.CASE_ID,
         "status": "RESOLVED",
-        "outputs": [float(v) for row in bank["references"] for v in row],
-        "elapsed_s": float(sum(float(r["wall_s"]) for r in bank["reference_records"])),
+        "outputs": flat_references(bank),
+        # Only a masked bank adds the mask, so unmasked reference rows stay.
+        **(
+            {"reference_present": list(reference_mask(bank))}
+            if not all(reference_mask(bank))
+            else {}
+        ),
+        # The measured solves only: a row without a reference has no wall time.
+        "elapsed_s": float(
+            sum(
+                float(r["wall_s"])
+                for r, present in zip(
+                    bank["reference_records"], reference_mask(bank), strict=True
+                )
+                if present
+            )
+        ),
         "source": "MEASURED_ENGINEERING_REFERENCE_RUN",
         "solver_digest": identity["solver_digest"],
         "fidelity_digest": identity["fidelity_digest"],
@@ -702,8 +802,7 @@ def _inputs(
             else "dual_native_reference_unresolved"
         )
     require(
-        references[0].get("outputs")
-        == [float(v) for row in bank["references"] for v in row],
+        references[0].get("outputs") == flat_references(bank),
         "dual_native_reference_flat_binding",
     )
     receipt, worker, values, inference = source_module._authenticated_graph_outputs(
@@ -750,6 +849,35 @@ def _inputs(
     }
 
 
+def _timed_agreement(timed_query, graded_total, step, total_of, rows_of, size, refused):
+    """The timed batched query's outputs, scored through the same adapter, must
+    land within ``step`` of the graded total (Validator, 2026-10-20). Outputs
+    that cannot be read or scored disagree; a graded run with no total (a
+    failed gate) has no speed to protect."""
+    if graded_total is None:
+        return
+    if type(step) not in (int, float) or not math.isfinite(step) or step <= 0:
+        raise refused("timed_query_step_unavailable")
+    raw = timed_query.get("predictions_raw") if type(timed_query) is dict else None
+    try:
+        flat = _flat_values(json.loads(raw))
+        if len(flat) != size:
+            raise ValueError("timed query shape")
+        timed_total = total_of(rows_of(flat))
+    except (TypeError, ValueError, KeyError) as exc:
+        raise refused("timed_query_disagrees") from exc
+    if timed_total is None or not abs(timed_total - graded_total) < step:
+        raise refused("timed_query_disagrees")
+
+
+def _flat_values(value):
+    if type(value) is list:
+        return [v for item in value for v in _flat_values(item)]
+    if type(value) in (int, float) and math.isfinite(value):
+        return [float(value)]
+    raise ValueError("timed query value")
+
+
 def produce(
     adapter,
     *,
@@ -764,8 +892,14 @@ def produce(
     source_raw,
     bank,
     interface_names,
+    timing_step,
 ):
-    """The dual benchmark input for one retained model, or a typed refusal."""
+    """The dual benchmark input for one retained model, or a typed refusal.
+
+    ``timing_step`` is the Ladder step, max(eta, the registered rebuild noise):
+    a separately timed batched query must score within it of the graded run,
+    or the whole evaluation refuses (``timed_query_disagrees``), so speed is
+    never measured on outputs that were not graded."""
     from carbon.scoring import bundle_benchmark_core as bundle
     from carbon.scoring.dual_score import score
 
@@ -792,54 +926,73 @@ def produce(
     def rows_of(flat):
         return [list(flat[i * width : (i + 1) * width]) for i in range(n)]
 
-    try:
-        measured = adapter.measure(
-            bank_rows=bank_rows(bank, interface_names),
-            outputs=rows_of(values),
-            repeats=[rows_of(r) for r in repeats],
-            definition=definition,
-            limits=roles["important_limit_definition"],
-            objective=roles["design_objective"],
-            train_raw=train_raw,
-            names=interface_names,
-        )
-    except adapter.Refused as exc:
-        raise refused("dual_native_" + exc.code) from exc
     pack = roles["score_pack"]
     gates = list(pack.get("hard_gates", []))
-    require(
-        gates == registration["mandatory_gates"] == list(measured["gates"]),
-        "dual_native_gate_contract",
-    )
 
     def leg(value):
         if value is None:
             return {"status": "CANDIDATE_INVALID", "value": None, "unit": "1"}
         return {"status": "RESOLVED", "value": value, "unit": "1"}
 
-    benchmark = {
-        "schema": "carbon.scoring.dual-benchmark-input.v1",
-        "scope": pack["scope"],
-        "challenge": adapter.CHALLENGE,
-        "physics_contract_digest": pack["physics_contract_digest"],
-        "measurement_contract_digest": pack["measurement_contract_digest"],
-        "population_role": source["cases"][0]["role"],
-        "common_mask_digest": sha(canonical(source["cases"])),
-        "models": [
-            {
-                "artifact_digest": entry["entry_id"],
-                "gates": {
-                    k: ("PASS" if measured["gates"][k] else "FAIL") for k in gates
-                },
-                "measurements": {
-                    METRICS["A"]: leg(measured["A"]),
-                    METRICS["D"]: leg(measured["D"]),
-                },
-                "decision_outcome": measured["decision_outcome"],
-            }
-        ],
-    }
-    score(benchmark, pack)
+    def benchmark_of(outputs, repeat_rows):
+        """One set of outputs measured by this adapter and reduced to the
+        dual benchmark input, the graded run's or the timed run's alike."""
+        try:
+            measured = adapter.measure(
+                bank_rows=bank_rows(bank, interface_names),
+                outputs=outputs,
+                repeats=repeat_rows,
+                definition=definition,
+                limits=roles["important_limit_definition"],
+                objective=roles["design_objective"],
+                train_raw=train_raw,
+                names=interface_names,
+            )
+        except adapter.Refused as exc:
+            raise refused("dual_native_" + exc.code) from exc
+        require(
+            gates == registration["mandatory_gates"] == list(measured["gates"]),
+            "dual_native_gate_contract",
+        )
+        return measured, {
+            "schema": "carbon.scoring.dual-benchmark-input.v1",
+            "scope": pack["scope"],
+            "challenge": adapter.CHALLENGE,
+            "physics_contract_digest": pack["physics_contract_digest"],
+            "measurement_contract_digest": pack["measurement_contract_digest"],
+            "population_role": source["cases"][0]["role"],
+            "common_mask_digest": sha(canonical(source["cases"])),
+            "models": [
+                {
+                    "artifact_digest": entry["entry_id"],
+                    "gates": {
+                        k: ("PASS" if measured["gates"][k] else "FAIL") for k in gates
+                    },
+                    "measurements": {
+                        METRICS["A"]: leg(measured["A"]),
+                        METRICS["D"]: leg(measured["D"]),
+                    },
+                    "decision_outcome": measured["decision_outcome"],
+                }
+            ],
+        }
+
+    graded_rows = rows_of(values)
+    measured, benchmark = benchmark_of(graded_rows, [rows_of(r) for r in repeats])
+    graded_total = score(benchmark, pack)["models"][0]["score"]
+    timed_query = originals.get("timed_query")
+    if timed_query is not None:
+        _timed_agreement(
+            timed_query,
+            graded_total,
+            timing_step,
+            lambda timed_rows: score(
+                benchmark_of(timed_rows, [timed_rows, timed_rows])[1], pack
+            )["models"][0]["score"],
+            rows_of,
+            n * width,
+            refused,
+        )
     model = bundle.measurement_from_saved_inference(
         entry,
         registration,

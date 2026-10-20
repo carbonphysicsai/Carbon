@@ -27,6 +27,7 @@ mode.
 from __future__ import annotations
 
 import functools
+import hashlib
 import itertools
 import math
 import sys
@@ -37,6 +38,13 @@ CHALLENGE = "f02"
 VERSION = "2.0"
 EVALUATION_VERSION = "f02-dual-development-bank-8-v1"
 CASE_ID = "f02-development-bank-8"
+#: Every registered Challenge version: its evaluation version and case id
+#: (step-2 batch, STEP2_BATCH_VERSIONS_20261020: 2.1 serves allowlist v6 with no
+#: step caps; measurement unchanged). No default version.
+VERSIONS = {
+    "2.0": (EVALUATION_VERSION, CASE_ID),
+    "2.1": ("f02-dual-development-bank-8-v2", CASE_ID),
+}
 OUTPUT = {"quantity": "peak_top_c", "unit": "degC"}
 FILES = ("f02_dual_pack.py",)
 MINIMUM_LEGS = ("A", "D")
@@ -47,6 +55,17 @@ METHOD = "f02-cold-eight-dev1-rung-envelope"
 PHYSICS_VERSION = "f02-cold-eight-summary-basis-20261020"
 GATES = ("finite_peak", "paired_repeat", "reference_acceptance", "verified_pick")
 RUNGS = ("primary", "mesh2", "dt0.5")
+#: The bank's declared population decides how it is graded: the development
+#: bank's eight registered actions, or a sealed exam batch
+#: (OWNER-F02-F08-EXAM-DRAW-01; Validator, 2026-10-20: no response pairs, the
+#: whole batch is the near block, and its own solver evidence is the receipt).
+BANK_KINDS = {
+    "REGISTERED_EIGHT_ACTION_SET_NOT_INDEPENDENT": "development",
+    "SEALED_EXAM_BATCH_NEAR_LIMIT_S1": "sealed_batch",
+}
+SEALED_EVALUATION_VERSION = "f02-dual-sealed-batch-8-v1"
+#: A sealed exam batch's evaluation version, per Challenge version.
+SEALED_VERSIONS = {"2.1": SEALED_EVALUATION_VERSION}
 ANALYTIC_ENERGY = "analytic:(peak_w-20)*on_time_s"
 #: dev1 §7 DEVELOPMENT normalisation scales, not physical thresholds.
 S_VALUE_J = 100.0
@@ -131,17 +150,44 @@ def physics_contract():
     }
 
 
+def bank_kind(bank):
+    """``development`` or ``sealed_batch``, from the bank's own population."""
+    kind = BANK_KINDS.get(bank.get("population")) if type(bank) is dict else None
+    _require(kind is not None, "f02_bank_kind_unregistered")
+    return kind
+
+
+def receipt_of(bank, kind):
+    """The reference interval's receipt: RR-04's judgement for the development
+    bank, the sealed batch's own family evidence for a sealed bank."""
+    if kind == "development":
+        return _judgement_sha256()
+    evidence = bank.get("solver_evidence")
+    _require(type(evidence) is bytes and evidence, "f02_sealed_evidence_unavailable")
+    return "sha256:" + hashlib.sha256(evidence).hexdigest()
+
+
+def _schedules(bank_rows):
+    return {
+        row["case_id"]: (
+            row["record"]["action"]["peak_w"],
+            row["record"]["action"]["on_time_s"],
+        )
+        for row in bank_rows
+    }
+
+
 def _ids(bank_rows):
     ids = [row["case_id"] for row in bank_rows]
     _require(ids == sorted(ids) and len(ids) == 8, "f02_bank_order")
     return ids
 
 
-def reference(bank_rows):
+def reference(bank_rows, receipt):
     """The rich reference over the bank: each action's peak and margin as a
-    rung envelope bound to the RR-04 judgement, and its analytic objective."""
+    rung envelope bound to ``receipt`` (``receipt_of``), and its analytic
+    objective."""
     limit = _limit_c()
-    receipt = _judgement_sha256()
     cases, actions = {}, {}
     for row in bank_rows:
         record = row["record"]
@@ -218,10 +264,12 @@ def coverage_cases(bank_rows):
     return sides
 
 
-def policy(bank_rows):
-    """The registered Design policy (dev1 §5 f02, §7 scales)."""
+def policy(bank_rows, kind):
+    """The registered Design policy (dev1 §5 f02, §7 scales). A sealed batch
+    registers no response pairs (margin and decision only)."""
     ids = _ids(bank_rows)
     near = [f"cool-rect-near-{power}w" for power in (84, 85, 86, 87)]
+    _require(kind in BANK_KINDS.values(), "f02_bank_kind_unregistered")
     sides = coverage_cases(bank_rows)
     return {
         "id": "f02-cold-eight-dev1-v1",
@@ -251,15 +299,21 @@ def policy(bank_rows):
                 "cases": ids,
                 "pairs": [],
             },
-            {
-                "id": "response",
-                "kind": "response",
-                "quantity": "peak_top_c",
-                "unit": "C",
-                "scale": {"value": RESPONSE_SCALE_C, "unit": "C"},
-                "cases": [],
-                "pairs": [list(pair) for pair in itertools.pairwise(near)],
-            },
+            *(
+                []
+                if kind == "sealed_batch"
+                else [
+                    {
+                        "id": "response",
+                        "kind": "response",
+                        "quantity": "peak_top_c",
+                        "unit": "C",
+                        "scale": {"value": RESPONSE_SCALE_C, "unit": "C"},
+                        "cases": [],
+                        "pairs": [list(pair) for pair in itertools.pairwise(near)],
+                    }
+                ]
+            ),
         ],
         "coverage_slots": [
             {
@@ -281,16 +335,18 @@ def definition(*, bank, train_raw):
     from carbon.challenge_kit import f02_train
 
     rows = physical.bank_rows(bank, input_names())
+    kind = bank_kind(bank)
     return {
         "schema": DEFINITION_SCHEMA,
         "method": METHOD,
+        "bank_kind": kind,
         "train_peak_std_c": f02_train.load_public_train(VERSION)["train_peak_std_c"],
         "maximum_c": _limit_c(),
-        "policy": policy(rows),
+        "policy": policy(rows, kind),
         "reference_interval": {
             "kind": "rung_envelope",
             "rungs": list(RUNGS),
-            "receipt": _judgement_sha256(),
+            "receipt": receipt_of(bank, kind),
         },
         "paired_repeat_procedure": "per_case",
         "paired_repeat": {
@@ -313,12 +369,18 @@ def validate_definition(definition):
         == f02_train.load_public_train(VERSION)["train_peak_std_c"]
         and definition.get("maximum_c") == _limit_c()
         and type(definition.get("policy")) is dict
-        and definition.get("reference_interval")
-        == {
-            "kind": "rung_envelope",
-            "rungs": list(RUNGS),
-            "receipt": _judgement_sha256(),
-        }
+        and definition.get("bank_kind") in BANK_KINDS.values()
+        and type(definition.get("reference_interval")) is dict
+        and set(definition["reference_interval"]) == {"kind", "rungs", "receipt"}
+        and definition["reference_interval"]["kind"] == "rung_envelope"
+        and definition["reference_interval"]["rungs"] == list(RUNGS)
+        and (
+            definition["reference_interval"]["receipt"] == _judgement_sha256()
+            if definition.get("bank_kind") == "development"
+            else type(definition["reference_interval"]["receipt"]) is str
+            and len(definition["reference_interval"]["receipt"]) == 71
+            and definition["reference_interval"]["receipt"].startswith("sha256:")
+        )
         and definition.get("paired_repeat")
         == {
             "procedure": "per_case",
@@ -328,6 +390,25 @@ def validate_definition(definition):
         },
         "f02_definition",
     )
+    validate_policy(definition["policy"])
+
+
+def validate_policy(policy):
+    """The Design policy as design_fidelity registers it, and every case a
+    component names is a case of the bank (a pair naming an absent case
+    would otherwise pass silently and leave its component empty)."""
+    from carbon.scoring import design_fidelity
+
+    try:
+        design_fidelity.validate_policy(policy)
+    except design_fidelity.ReductionRefused as exc:
+        raise F02MeasurementRefused("f02_policy_invalid") from exc
+    cases = set(policy["case_ids"])
+    for component in policy["components"]:
+        named = set(component["cases"]) | {
+            c for pair in component["pairs"] for c in pair
+        }
+        _require(named <= cases, "f02_policy_case_absent")
 
 
 def applied_pack(**_):
@@ -377,11 +458,12 @@ def measure(
     from carbon.scoring import private_evaluation_source as source
 
     validate_definition(definition)
-    _require(policy(bank_rows) == definition["policy"], "f02_policy_binding")
+    kind = definition["bank_kind"]
+    _require(policy(bank_rows, kind) == definition["policy"], "f02_policy_binding")
     _require(all(len(row) == 1 for row in outputs), "f02_output_width")
     values = [row[0] for row in outputs]
     repeated = len(repeats) == 2 and all(r == outputs for r in repeats)
-    truth = reference(bank_rows)
+    truth = reference(bank_rows, definition["reference_interval"]["receipt"])
     if not all(type(v) in (int, float) and math.isfinite(v) for v in values):
         # A nonfinite peak is the candidate's own gate failure.
         return {
@@ -403,6 +485,7 @@ def measure(
         definition["policy"],
         definition["train_peak_std_c"],
         definition["maximum_c"],
+        schedules=_schedules(bank_rows) if kind == "sealed_batch" else None,
     )
     reduction = native["reduction"]
     # A reference limitation is never a candidate verdict.
@@ -428,6 +511,16 @@ def measure(
         "selected_action": native["model"]["selected_action"],
         "reduction": reduction,
     }
+
+
+def sealed_adapter(version):
+    """This adapter for a sealed exam batch of Challenge ``version``: its own
+    evaluation version (``SEALED_EVALUATION_VERSION``); grading reads the
+    bank kind from the definition, so measurement is this module's. None for
+    an unregistered version (no default)."""
+    if type(version) is not str or version not in SEALED_VERSIONS:
+        return None
+    return physical.Variant(_ADAPTER, version, SEALED_VERSIONS[version], CASE_ID)
 
 
 def producer_digest():

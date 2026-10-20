@@ -68,7 +68,7 @@ def test_train_v2_refuses_a_changed_source_or_split():
     with pytest.raises(ValueError, match="source identity differs"):
         f08_train.derive_public_train_v2(v1, changed)
     with pytest.raises(ValueError, match="unknown public f08 TRAIN version"):
-        f08_train.load_public_train("1.2")
+        f08_train.load_public_train("9.9")
 
 
 def test_train_v2_refuses_changed_bytes(tmp_path, monkeypatch):

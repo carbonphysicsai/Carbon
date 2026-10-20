@@ -43,6 +43,7 @@ for name in __STAGED_MODULES__:
     destination = work.joinpath(*name.split(".")).with_suffix(".py")
     shutil.copyfile(work / (name + ".py"), destination)
 shutil.copyfile(work / "allowlist_v1.json", work / "carbon/level4/allowlist_v1.json")
+shutil.copyfile(work / "allowlist_v6.json", work / "carbon/level4/allowlist_v6.json")
 lab = work / "carbon_battery_lab"
 lab.mkdir()
 (lab / "__init__.py").write_text("")
@@ -132,6 +133,10 @@ def staged_files(
         }
     )
     files["allowlist_v1.json"] = (root / "carbon/level4/allowlist_v1.json").read_bytes()
+    from carbon.level4.allowlist import served_bytes
+
+    # The served allowlist the staged direct_graph validates against.
+    files["allowlist_v6.json"] = served_bytes()
     files.update(
         {
             "state.npz": state,
