@@ -56,7 +56,8 @@ SOURCE = (
 
 
 def test_f02_is_registered_beside_the_others():
-    assert F02 in physical_material.REGISTERED
+    assert ("f02", "2.0") in physical_material.REGISTERED
+    assert F02 == ("f02", "2.0")  # the loader serves exactly what is registered
     assert physical_material.is_registered(*F02)
     assert not physical_material.is_registered("f02", "1.0")
 
@@ -110,6 +111,13 @@ def test_the_served_contract_is_registered():
         contract.construction_kit
         == physical_material.bundle_material(*F02)["construction_kit"]
     )
+
+
+def test_the_version_is_required_and_never_defaulted():
+    with pytest.raises(TypeError):
+        f02_train.load_public_train()
+    with pytest.raises(ValueError):
+        f02_train.load_public_train("2.1")
 
 
 def test_an_unknown_f02_version_is_refused():

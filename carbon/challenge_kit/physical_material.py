@@ -34,8 +34,9 @@ REGISTERED = (
     (cooling.CHALLENGE.challenge_id, cooling.CHALLENGE.version),
     # Both F08 versions: 1.0 (255-row TRAIN v1) and 1.1 (287-row TRAIN v2, the straddling bank).
     *((f08_train.CHALLENGE_ID, version) for version in f08_train.CHALLENGE_VERSIONS),
-    # F02 2.0 (TRAIN40-v2): its own public module and float32 TRAIN, like F08.
-    (f02_train.CHALLENGE_ID, f02_train.CHALLENGE_VERSION),
+    # F02 2.0 (TRAIN40-v2): its own public module and float32 TRAIN, like F08. Named explicitly,
+    # so a future version bump in the loader cannot silently move what is served.
+    ("f02", "2.0"),
 )
 
 
