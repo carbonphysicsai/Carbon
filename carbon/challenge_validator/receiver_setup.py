@@ -1,8 +1,15 @@
 """Operator setup for the DEVELOPMENT direct receiver: profile, configuration, start.
 
-    python -m carbon.challenge_validator.receiver_setup prepare \\
+    .venv/bin/python -B -m carbon.challenge_validator.receiver_setup prepare \\
         --installed-state STATE --receiver-state DIR --challenge ID VERSION [--pack DIR]
-    python -m carbon.challenge_validator.receiver_setup start --receiver-state DIR [--detach]
+    .venv/bin/python -B -m carbon.challenge_validator.receiver_setup start \\
+        --receiver-state DIR [--detach]
+
+Run Python with -B, as `install_validator.sh` does: without it Python writes
+`carbon/**/__pycache__` into this checkout, and `prepare` refuses a checkout
+with untracked runtime files. `start --detach` runs the receiver as a
+`systemd --user` unit, which stops when that user logs out unless linger is on:
+`loginctl enable-linger "$USER"` once per host.
 
 `scripts/install_miner.sh` (or `install_validator.sh`) installs the checkout and
 the pinned worker and analysis images and records them under STATE. This writes
@@ -246,12 +253,41 @@ def _command(receiver_state: Path) -> list[str]:
     ]
 
 
+def _lingers(user: str):
+    """Whether `user`'s systemd user manager outlives their logout: True,
+    False, or None when loginctl cannot say."""
+    try:
+        shown = subprocess.run(
+            ["loginctl", "show-user", user, "--property=Linger", "--value"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if shown.returncode != 0:
+        return None
+    return shown.stdout.strip() == "yes"
+
+
 def start(receiver_state: Path, *, detach: bool = False) -> int:
     """Run the receiver here, or as a transient user systemd unit with --detach."""
     command = _command(receiver_state)
     if not detach:
         os.chdir(REPO)
         os.execv(command[0], command)
+    import getpass
+
+    user = getpass.getuser()
+    if _lingers(user) is False:
+        # A user unit stops at logout without linger: refuse before starting it.
+        raise SetupRefused(
+            "receiver_linger_off",
+            f"a detached receiver would stop when {user} logs out; run "
+            f"`loginctl enable-linger {shlex.quote(user)}` once on this host, "
+            "then start again.",
+        )
     unit = "carbon-receiver-" + _sha(str(receiver_state).encode())[:12]
     started = subprocess.run(
         [
@@ -272,6 +308,8 @@ def start(receiver_state: Path, *, detach: bool = False) -> int:
                     "unit": unit,
                     "follow": f"journalctl --user -u {shlex.quote(unit)} -f",
                     "stop": f"systemctl --user stop {shlex.quote(unit)}",
+                    # A user unit stops at logout unless the user lingers.
+                    "keep_after_logout": 'loginctl enable-linger "$USER"',
                 }
             )
         )
@@ -280,7 +318,7 @@ def start(receiver_state: Path, *, detach: bool = False) -> int:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m carbon.challenge_validator.receiver_setup"
+        prog="python -B -m carbon.challenge_validator.receiver_setup"
     )
     sub = parser.add_subparsers(dest="command", required=True)
     prep = sub.add_parser("prepare")
