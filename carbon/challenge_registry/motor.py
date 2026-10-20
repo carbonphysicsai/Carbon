@@ -43,6 +43,19 @@ def describe():
     rebuildable = [
         value for value in capabilities if value["status"] == "rebuildable_development"
     ]
+    # What cannot be rebuilt here, each with its blocker, built as Battery's is
+    # (BUG MOTOR_OBSERVATION_UNSUPPORTED_20261020: the agent's observation
+    # counts these, and this description listed none).
+    unsupported = [
+        {
+            "id": value["id"],
+            "status": value["status"],
+            "blocker": value["blocker"],
+            "summary": value["summary"],
+        }
+        for value in capabilities
+        if value["status"] != "rebuildable_development"
+    ]
     controls = {
         name: {
             "group": group,
@@ -185,6 +198,7 @@ def describe():
         },
         "examples": [{"strategy": scaffold}],
         "examples_admission": [_verdict(scaffold)],
+        "unsupported": unsupported,
         "population": {
             "version": population.POPULATION_VERSION,
             "screen": "domain.validity returns no buildability reasons",
