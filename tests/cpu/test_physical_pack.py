@@ -301,3 +301,49 @@ def test_battery_plating_reference_refuses_anything_but_sealed_v2(monkeypatch):
     )
     with pytest.raises(ValueError):
         battery_pack.plating_reference()
+
+
+def test_f08_bank_is_the_eight_accepted_references_in_interface_layout(tmp_path):
+    from carbon.challenge_kit import f08_public, f08_train
+
+    cid, version = f08_train.CHALLENGE_ID, f08_train.CHALLENGE_VERSION
+    bank = physical_pack.development_bank(cid, version)
+    assert bank["case_ids"] == tuple(f"pilot-000{i}" for i in range(8))
+    assert bank["inputs"].shape == (8, 6) and bank["inputs"].dtype == "<f4"
+    assert bank["references"].shape == (8, 7) and bank["references"].dtype == "<f4"
+    assert bank["decision_coverage"] == "RANKING_ONLY_NO_FEASIBILITY_BOUNDARY"
+    slices = f08_public.interface_document(cid, version)["output"]["named_slices"]
+    observed = json.loads(bank["solver_evidence"])
+    best = observed["cases"]["pilot-0006-h1.7"]
+    row = bank["references"][6]
+    assert row[slices["static_tip_mm_per_n"][0]] == np.float32(
+        best["static_tip_mm_per_n"]
+    )
+    assert row[slices["peak_tip_z005_mm_per_n"][0]] == np.float32(
+        best["damping"]["zeta_0.005"]["worst_mm_per_n"]
+    )
+    assert all(r["status"] == "OK" for r in bank["reference_records"])
+    pack = tmp_path / "f08"
+    manifest = physical_pack.write_public_pack(
+        pack, cid, version, exposed_development_bank=True
+    )
+    prepared = prepare_pack(
+        pack,
+        manifest.name,
+        public_root=pack,
+        private_root=pack,
+        challenge_id=cid,
+        challenge_version=version,
+    )
+    missing = prepared.snapshot.verify_available(pack, pack)
+    assert set(missing["public"]) == {"physics_contract", "accuracy_definition"}
+    limits = prepared.snapshot.read_json_role(
+        pack, "public", "important_limit_definition", max_bytes=1 << 20
+    )
+    assert limits["constraints"] == {
+        "mass_kg_max": 0.45,
+        "static_tip_mm_per_n_max": 0.03,
+        "dynamic_tip_mm_per_n_max": 0.15,
+    }
+    assert limits["decision_coverage"] == "RANKING_ONLY_NO_FEASIBILITY_BOUNDARY"
+    assert set(missing["private"]) == {"score_pack"}

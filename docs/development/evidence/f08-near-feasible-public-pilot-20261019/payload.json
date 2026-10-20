@@ -1,0 +1,13 @@
+{
+ "schema": "carbon.packs.solver-run-payload.v1",
+ "challenge": "f08",
+ "kind": "calculix",
+ "head": "67dafcf31907ebc462a09ca0187a36b2f0dd3509",
+ "bundle_sha256": "bf0cea8db189e08c2702cb93d85fd8cc2c7cce8ba411c951ace6bee76c55dc02",
+ "image": "debian:trixie-20261005-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f",
+ "vcpu": 16,
+ "memory_gib": 200,
+ "pilot_plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/f08-near-feasible-one-case-resource-pilot.json",
+ "full_plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/f08-near-feasible-public-pilot.json",
+ "scope": "PUBLIC_DEVELOPMENT_REFERENCE_SOLVES_NO_ACCEPTANCE_CLAIM"
+}
