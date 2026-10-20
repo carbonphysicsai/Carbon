@@ -95,8 +95,12 @@ TASK_CORRECTIONS = {
         "(entrypoint, configuration, train_use, initial_state null) and output "
         "(format and the kit's interface_digest). A Level 0 strategy "
         "(schema_version, challenge_id, backbone, parameters) is not a recipe "
-        "here. public_material scaffold_recipe stages the published scaffold "
-        "and returns a ready recipe to edit. The recipe's own refusal is listed."
+        "here. For a ready recipe, where the discovery document lists "
+        "scaffold_recipe: call start_research_task with kind=workspace, "
+        'action=public_material and the arguments {"name": '
+        '"scaffold_recipe"}. It stages the published scaffold graph in '
+        "your workspace and returns the recipe document to practise, as it is "
+        "or edited. The recipe's own refusal is listed."
     ),
     "json_string_required": (
         "This field carries JSON encoded as a string: send the object as a "
@@ -204,8 +208,8 @@ TASK_CORRECTIONS = {
         "workspace."
     ),
     "public_material_unknown": (
-        "public_material serves only the material names listed below; choose "
-        "one of them."
+        "public_material serves only the material names listed below, the "
+        "ones this campaign's discovery document lists; choose one of them."
     ),
     "read_file_range": (
         "read_file reads count bytes from offset, 0 or more, of one of your "

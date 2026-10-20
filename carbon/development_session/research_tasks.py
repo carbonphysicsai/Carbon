@@ -2107,6 +2107,9 @@ class WorkspaceRequestRefused(ValueError):
         self.code, self.field, self.choices = code, field, tuple(choices)
 
 
+#: Battery's published scaffold as a ready direct recipe
+#: (`carbon.battery.research.BatteryPublicMaterial`, Validator option A).
+SCAFFOLD_RECIPE = "scaffold_recipe"
 #: The material names every bound material service serves.
 PUBLIC_MATERIALS = (
     "objective",
@@ -2125,7 +2128,7 @@ def every_public_material_name():
     from .julia_envelope import MATERIAL as ENVELOPE
     from .julia_research import MATERIAL
 
-    return (*PUBLIC_MATERIALS, MATERIAL, ADVECTION_MATERIAL, ENVELOPE)
+    return (*PUBLIC_MATERIALS, MATERIAL, ADVECTION_MATERIAL, ENVELOPE, SCAFFOLD_RECIPE)
 
 
 def public_material_names(public_material):
@@ -2147,6 +2150,13 @@ def public_material_names(public_material):
         names.append(ADVECTION_MATERIAL)
     if type(public_material) is JuliaEnvelopeMaterial:
         names += [MATERIAL, ENVELOPE]
+    # A material service's own declared names, inside the closed list: the
+    # names its discovery document lists are the names its door accepts
+    # (BUG GRAPHITE_SCAFFOLD_UNREACHABLE_20261020: Battery listed
+    # scaffold_recipe and the door refused it).
+    every = every_public_material_name()
+    declared = getattr(type(public_material), "NAMES", ())
+    names += [name for name in declared if type(name) is str and name in every]
     return tuple(dict.fromkeys(names))
 
 

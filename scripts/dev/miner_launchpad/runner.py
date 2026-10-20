@@ -1652,20 +1652,37 @@ def _operation_digest(operation, request):
 exception_code = supervision.exception_code
 
 
+def raised_at(exc):
+    """Where Carbon's own code raised `exc`: the innermost Carbon frame as
+    `module:function:line`, or None. Code identifiers only, never a value,
+    a message or a file path, so an untyped failure is still findable
+    (BUG MOTOR_RUN_INTERRUPTED_CANDIDATE_20261020)."""
+    at = None
+    trace = exc.__traceback__
+    while trace is not None:
+        frame = trace.tb_frame
+        module = frame.f_globals.get("__name__")
+        if type(module) is str and module.split(".")[0] in ("carbon", "scripts"):
+            at = f"{module}:{frame.f_code.co_name}:{trace.tb_lineno}"
+        trace = trace.tb_next
+    return at
+
+
 def record_interruption(root, stage, exc):
     """Keep why a campaign was interrupted, privately, for its owner.
 
     The page still shows only INTERRUPTED. This appends one line to the
-    campaign's owner-only interruptions.jsonl: the exception's type and, for
-    a typed failure, its code. Never its message or traceback, which could
-    carry a provider response or a path. Recording never masks the
-    interruption itself.
+    campaign's owner-only interruptions.jsonl: the exception's type, for a
+    typed failure its code, and where Carbon's code raised it (`raised_at`).
+    Never its message or traceback, which could carry a provider response or
+    a path. Recording never masks the interruption itself.
     """
     entry = {
         "at_unix": round(time.time(), 3),
         "stage": stage,
         "error_type": type(exc).__module__ + "." + type(exc).__qualname__,
         "code": exception_code(exc),
+        "raised_at": raised_at(exc),
     }
     try:
         path = Path(root) / "interruptions.jsonl"

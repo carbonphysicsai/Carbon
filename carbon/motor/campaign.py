@@ -188,7 +188,7 @@ async def prepare_motor(args, *, ledger=None, campaign):
     from carbon.development_session.profile import canonical
     from carbon.development_session.research_campaign import (
         PreparedCampaign,
-        accepted_implementation,
+        campaign_implementation,
         new_plan_input_default,
         new_plan_output_default,
         private_file,
@@ -264,7 +264,7 @@ async def prepare_motor(args, *, ledger=None, campaign):
         else:
             SelectionTransport(selection)
 
-    implementation = accepted_implementation(args.accepted_revision)
+    implementation = campaign_implementation(args, root)
     image = load_image_identity(args.image_manifest)
     verify_current_worker(image, implementation)
     if not doctor(image_id=image.image_id, image_identity=image).eligible:
