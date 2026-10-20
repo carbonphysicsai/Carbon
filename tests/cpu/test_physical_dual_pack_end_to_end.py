@@ -666,7 +666,9 @@ def test_a_batch_detecting_model_whose_timed_run_answers_differently_is_unavaila
     """Validator, 2026-10-20: speed is never measured on outputs that were not
     graded. A model that answers its per-case grade honestly but returns a
     cheap answer when it sees the full timing batch is UNAVAILABLE."""
-    cheap = [[0.0 for _ in row] for row in case["predictions"]]
+    # Scored but wrong (all-zero outputs are refused before any comparison
+    # for Motor), so only the timed-vs-graded comparison can catch it.
+    cheap = [[0.5 * v for v in row] for row in case["predictions"]]
     raw = json.dumps(cheap, separators=(",", ":")).encode()
     originals, entry = _timed(case, tmp_path, raw)
     with pytest.raises(
