@@ -206,7 +206,8 @@ class ExamCap:
         cap = self.caps.get(challenge_id)
         if cap is None:
             raise ExamCapRefused("exam_cap_unregistered")
-        epoch = epoch_of(block)
+        # A regrade is never counted and has no signed receipt block; its epoch is inert.
+        epoch = 0 if regrade and block is None else epoch_of(block)
         kind = "REGRADE" if regrade else "GRADED"
         key = (challenge_id, challenge_version, exam_key, submission_id)
         refusal = None
@@ -236,9 +237,7 @@ class ExamCap:
                 refusal = (
                     "exam_cap_reached"
                     if used >= cap
-                    else "epoch_limit_reached"
-                    if in_epoch >= 1
-                    else None
+                    else "epoch_limit_reached" if in_epoch >= 1 else None
                 )
             if refusal is None:
                 now = int(self.clock())
