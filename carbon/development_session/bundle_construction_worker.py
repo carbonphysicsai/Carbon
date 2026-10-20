@@ -747,6 +747,8 @@ def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
     else:
         if challenge_id == "f08-ribbed-bracket":
             from carbon.challenge_kit import f08_public as public_material
+        elif challenge_id == "f02":
+            from carbon.challenge_kit import f02_public as public_material
         else:
             from carbon.challenge_kit import physical_public as public_material
 

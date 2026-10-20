@@ -1,0 +1,36 @@
+{
+ "schema": "carbon.reference-solvers.pod-phase.v1",
+ "plan_id": "f02-rr08-train40v2-2026-10-19",
+ "pod_plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/f02-rr08-plan.json",
+ "pod_plan_sha256": "d02152b8828f8181d1484542dad2dac1d1cb1bbb5fae91f5742ddc1577d0c7d8",
+ "kind": "elmer",
+ "steps": [
+  {
+   "name": "f02-rr08-mms",
+   "status": "PASS",
+   "wall_s": 1430.910571122
+  },
+  {
+   "name": "f02-rr08-freeze",
+   "status": "PASS",
+   "wall_s": 4.01049953100005
+  },
+  {
+   "name": "f02-rr08-train40v2",
+   "status": "PASS",
+   "wall_s": 5319.2
+  },
+  {
+   "name": "f02-rr08-spot",
+   "status": "PASS",
+   "wall_s": 5746.5
+  },
+  {
+   "name": "f02-rr08-check",
+   "status": "PASS",
+   "wall_s": 0.20159833800062188
+  }
+ ],
+ "all_passed": true,
+ "maturity": "DEVELOPMENT engineering run on public decks; no adequacy, qualification or LIVE claim"
+}

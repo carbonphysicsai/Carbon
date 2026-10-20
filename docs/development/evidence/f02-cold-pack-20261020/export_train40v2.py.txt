@@ -1,0 +1,53 @@
+"""Export F02 TRAIN40-v2 rows (RR-PACKS-08) with the existing panel observer
+(f02_deck.observe), checking each case's deck.json against the run's freeze
+ledger (written before any solve), and summarise the per-stratum split."""
+
+import hashlib
+import json
+import statistics
+import sys
+from pathlib import Path
+
+code, full, out = map(Path, sys.argv[1:4])
+sys.path.insert(0, str(code / "scripts/dev/reference_packages/elmer"))
+import f02_deck as deck  # noqa: E402
+import f02_menu as menu  # noqa: E402
+
+ledger = json.loads((full / "f02-rr08-freeze" / "freeze-ledger.json").read_text())
+cases = ledger["steps"]["f02-rr08-train40v2"]["cases"]
+assert len(cases) == 40
+context = "c30-i40-s0.5-rectangular"
+base = next(b for c, b in menu.contexts() if c == context)
+rows, diag = [], []
+for name in sorted(cases):
+    work = full / "f02-rr08-train40v2" / "cases" / "f02" / name / "work"
+    raw = (work / "deck.json").read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == cases[name]["deck.json"], name
+    case = json.loads(raw)["case"]
+    o = deck.observe(work)
+    stratum = name.rsplit("-train-v2", 1)[1]
+    rows.append({"schema": "carbon.f02.train-record.v1", "case_id": name,
+                 "inputs": {**base, "peak_w": case["peak_w"], "on_time_s": case["on_time_s"]},
+                 "outputs": {"peak_top_c": o["peak_top_c"], "extra_energy_j": o["extra_energy_j"]}})
+    diag.append({"case_id": name, "stratum": stratum, "first_95c_crossing_s": o["first_95c_crossing_s"],
+                 "peak_time_s": o["peak_time_s"]})
+body = b"".join(json.dumps(r, sort_keys=True, separators=(",", ":")).encode() + b"\n" for r in rows)
+(out / "f02-cold-train40v2.jsonl").write_bytes(body)
+(out / "f02-cold-train40v2.diagnostics.jsonl").write_bytes(
+    b"".join(json.dumps(r, sort_keys=True).encode() + b"\n" for r in diag))
+peaks = [r["outputs"]["peak_top_c"] for r in rows]
+by = {}
+for r, dg in zip(rows, diag):
+    by.setdefault(dg["stratum"], []).append(r["outputs"]["peak_top_c"])
+summary = {
+    "rows": len(rows), "train_sha256": hashlib.sha256(body).hexdigest(),
+    "freeze_manifest_sha256": ledger["steps"]["f02-rr08-train40v2"]["manifest_sha256"],
+    "context": context,
+    "peak_top_c": {"min": min(peaks), "max": max(peaks), "mean": statistics.fmean(peaks),
+                   "std_population_ddof0": statistics.pstdev(peaks)},
+    "strata": {s: {"n": len(v), "at_or_below_95": sum(x <= 95.0 for x in v), "above_95": sum(x > 95.0 for x in v),
+                   "min": min(v), "max": max(v)} for s, v in sorted(by.items())},
+    "all_rows_at_or_below_95": sum(x <= 95.0 for x in peaks),
+}
+(out / "f02-cold-train40v2.summary.json").write_text(json.dumps(summary, indent=1) + "\n")
+print(json.dumps(summary, indent=1))
