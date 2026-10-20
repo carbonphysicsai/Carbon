@@ -1,0 +1,7286 @@
+{
+ "bases": 100,
+ "contract": {
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "probe_region": {
+   "c1": [
+    0.5,
+    2.0
+   ],
+   "c2": [
+    0.2,
+    1.0
+   ],
+   "soc0": [
+    0.05,
+    0.5
+   ],
+   "t_amb_c": [
+    5.0,
+    40.0
+   ]
+  },
+  "sha256": "fd2d92811ba2fe2f1f5c9ce6d296a943694530a9df306c7ff1ce271edc246cb2",
+  "version": "battery-physics-v1"
+ },
+ "jobs": 800,
+ "jobs_sha256": "eebb8066d60af75fc3cf0f71e65885688da35da16c99313e7f846ccdf1c98308",
+ "moves": [
+  {
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "step_fraction": 0.01
+  },
+  {
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "step_fraction": 0.05
+  },
+  {
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "step_fraction": 0.01
+  },
+  {
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "step_fraction": 0.05
+  },
+  {
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "step_fraction": 0.01
+  },
+  {
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "step_fraction": 0.01
+  },
+  {
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "step_fraction": 0.05
+  }
+ ],
+ "pairs": [
+  {
+   "base": "pc-000-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-000-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-000-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-000-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-000-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-000-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-000-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-000-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-000-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-000-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-000-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-000-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-000-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-000-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-001-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-001-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-001-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-001-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-001-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-001-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-001-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-001-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-001-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-001-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-001-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-001-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-001-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-001-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-002-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-002-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-002-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-002-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-002-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-002-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-002-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-002-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-002-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-002-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-002-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-002-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-002-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-002-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-003-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-003-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-003-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-003-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-003-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-003-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-003-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-003-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-003-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-003-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-003-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-003-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-003-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-003-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-004-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-004-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-004-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-004-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-004-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-004-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-004-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-004-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-004-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-004-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-004-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-004-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-004-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-004-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-005-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-005-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-005-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-005-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-005-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-005-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-005-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-005-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-005-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-005-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-005-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-005-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-005-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-005-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-006-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-006-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-006-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-006-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-006-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-006-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-006-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-006-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-006-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-006-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-006-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-006-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-006-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-006-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-007-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-007-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-007-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-007-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-007-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-007-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-007-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-007-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-007-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-007-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-007-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-007-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-007-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-007-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-008-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-008-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-008-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-008-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-008-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-008-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-008-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-008-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-008-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-008-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-008-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-008-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-008-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-008-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-009-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-009-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-009-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-009-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-009-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-009-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-009-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-009-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-009-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-009-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-009-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-009-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-009-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-009-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-010-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-010-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-010-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-010-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-010-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-010-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-010-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-010-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-010-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-010-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-010-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-010-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-010-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-010-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-011-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-011-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-011-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-011-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-011-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-011-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-011-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-011-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-011-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-011-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-011-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-011-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-011-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-011-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-012-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-012-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-012-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-012-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-012-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-012-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-012-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-012-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-012-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-012-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-012-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-012-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-012-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-012-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-013-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-013-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-013-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-013-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-013-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-013-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-013-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-013-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-013-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-013-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-013-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-013-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-013-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-013-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-014-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-014-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-014-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-014-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-014-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-014-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-014-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-014-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-014-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-014-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-014-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-014-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-014-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-014-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-015-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-015-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-015-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-015-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-015-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-015-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-015-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-015-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-015-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-015-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-015-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-015-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-015-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-015-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-016-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-016-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-016-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-016-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-016-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-016-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-016-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-016-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-016-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-016-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-016-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-016-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-016-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-016-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-017-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-017-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-017-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-017-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-017-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-017-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-017-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-017-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-017-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-017-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-017-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-017-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-017-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-017-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-018-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-018-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-018-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-018-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-018-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-018-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-018-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-018-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-018-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-018-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-018-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-018-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-018-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-018-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-019-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-019-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-019-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-019-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-019-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-019-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-019-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-019-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-019-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-019-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-019-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-019-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-019-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-019-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-020-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-020-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-020-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-020-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-020-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-020-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-020-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-020-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-020-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-020-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-020-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-020-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-020-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-020-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-021-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-021-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-021-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-021-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-021-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-021-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-021-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-021-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-021-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-021-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-021-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-021-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-021-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-021-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-022-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-022-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-022-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-022-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-022-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-022-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-022-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-022-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-022-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-022-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-022-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-022-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-022-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-022-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-023-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-023-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-023-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-023-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-023-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-023-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-023-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-023-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-023-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-023-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-023-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-023-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-023-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-023-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-024-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-024-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-024-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-024-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-024-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-024-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-024-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-024-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-024-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-024-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-024-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-024-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-024-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-024-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-025-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-025-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-025-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-025-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-025-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-025-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-025-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-025-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-025-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-025-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-025-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-025-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-025-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-025-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-026-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-026-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-026-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-026-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-026-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-026-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-026-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-026-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-026-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-026-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-026-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-026-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-026-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-026-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-027-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-027-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-027-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-027-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-027-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-027-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-027-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-027-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-027-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-027-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-027-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-027-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-027-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-027-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-028-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-028-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-028-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-028-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-028-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-028-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-028-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-028-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-028-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-028-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-028-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-028-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-028-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-028-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-029-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-029-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-029-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-029-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-029-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-029-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-029-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-029-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-029-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-029-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-029-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-029-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-029-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-029-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-030-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-030-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-030-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-030-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-030-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-030-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-030-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-030-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-030-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-030-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-030-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-030-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-030-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-030-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-031-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-031-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-031-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-031-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-031-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-031-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-031-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-031-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-031-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-031-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-031-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-031-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-031-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-031-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-032-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-032-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-032-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-032-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-032-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-032-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-032-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-032-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-032-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-032-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-032-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-032-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-032-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-032-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-033-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-033-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-033-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-033-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-033-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-033-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-033-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-033-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-033-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-033-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-033-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-033-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-033-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-033-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-034-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-034-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-034-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-034-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-034-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-034-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-034-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-034-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-034-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-034-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-034-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-034-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-034-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-034-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-035-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-035-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-035-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-035-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-035-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-035-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-035-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-035-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-035-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-035-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-035-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-035-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-035-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-035-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-036-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-036-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-036-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-036-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-036-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-036-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-036-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-036-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-036-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-036-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-036-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-036-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-036-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-036-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-037-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-037-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-037-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-037-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-037-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-037-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-037-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-037-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-037-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-037-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-037-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-037-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-037-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-037-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-038-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-038-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-038-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-038-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-038-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-038-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-038-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-038-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-038-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-038-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-038-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-038-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-038-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-038-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-039-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-039-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-039-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-039-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-039-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-039-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-039-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-039-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-039-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-039-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-039-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-039-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-039-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-039-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-040-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-040-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-040-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-040-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-040-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-040-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-040-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-040-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-040-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-040-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-040-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-040-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-040-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-040-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-041-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-041-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-041-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-041-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-041-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-041-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-041-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-041-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-041-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-041-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-041-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-041-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-041-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-041-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-042-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-042-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-042-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-042-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-042-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-042-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-042-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-042-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-042-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-042-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-042-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-042-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-042-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-042-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-043-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-043-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-043-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-043-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-043-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-043-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-043-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-043-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-043-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-043-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-043-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-043-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-043-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-043-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-044-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-044-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-044-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-044-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-044-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-044-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-044-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-044-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-044-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-044-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-044-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-044-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-044-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-044-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-045-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-045-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-045-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-045-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-045-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-045-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-045-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-045-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-045-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-045-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-045-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-045-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-045-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-045-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-046-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-046-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-046-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-046-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-046-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-046-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-046-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-046-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-046-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-046-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-046-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-046-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-046-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-046-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-047-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-047-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-047-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-047-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-047-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-047-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-047-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-047-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-047-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-047-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-047-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-047-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-047-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-047-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-048-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-048-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-048-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-048-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-048-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-048-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-048-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-048-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-048-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-048-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-048-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-048-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-048-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-048-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-049-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-049-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-049-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-049-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-049-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-049-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-049-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-049-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-049-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-049-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-049-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-049-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-049-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-049-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-050-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-050-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-050-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-050-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-050-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-050-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-050-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-050-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-050-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-050-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-050-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-050-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-050-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-050-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-051-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-051-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-051-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-051-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-051-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-051-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-051-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-051-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-051-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-051-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-051-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-051-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-051-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-051-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-052-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-052-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-052-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-052-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-052-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-052-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-052-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-052-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-052-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-052-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-052-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-052-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-052-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-052-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-053-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-053-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-053-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-053-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-053-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-053-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-053-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-053-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-053-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-053-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-053-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-053-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-053-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-053-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-054-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-054-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-054-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-054-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-054-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-054-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-054-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-054-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-054-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-054-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-054-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-054-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-054-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-054-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-055-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-055-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-055-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-055-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-055-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-055-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-055-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-055-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-055-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-055-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-055-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-055-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-055-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-055-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-056-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-056-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-056-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-056-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-056-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-056-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-056-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-056-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-056-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-056-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-056-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-056-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-056-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-056-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-057-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-057-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-057-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-057-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-057-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-057-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-057-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-057-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-057-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-057-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-057-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-057-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-057-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-057-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-058-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-058-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-058-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-058-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-058-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-058-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-058-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-058-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-058-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-058-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-058-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-058-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-058-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-058-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-059-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-059-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-059-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-059-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-059-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-059-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-059-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-059-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-059-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-059-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-059-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-059-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-059-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-059-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-060-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-060-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-060-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-060-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-060-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-060-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-060-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-060-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-060-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-060-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-060-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-060-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-060-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-060-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-061-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-061-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-061-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-061-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-061-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-061-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-061-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-061-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-061-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-061-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-061-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-061-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-061-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-061-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-062-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-062-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-062-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-062-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-062-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-062-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-062-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-062-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-062-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-062-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-062-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-062-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-062-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-062-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-063-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-063-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-063-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-063-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-063-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-063-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-063-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-063-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-063-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-063-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-063-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-063-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-063-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-063-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-064-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-064-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-064-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-064-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-064-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-064-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-064-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-064-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-064-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-064-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-064-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-064-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-064-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-064-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-065-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-065-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-065-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-065-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-065-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-065-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-065-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-065-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-065-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-065-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-065-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-065-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-065-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-065-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-066-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-066-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-066-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-066-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-066-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-066-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-066-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-066-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-066-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-066-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-066-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-066-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-066-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-066-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-067-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-067-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-067-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-067-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-067-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-067-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-067-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-067-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-067-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-067-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-067-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-067-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-067-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-067-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-068-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-068-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-068-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-068-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-068-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-068-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-068-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-068-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-068-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-068-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-068-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-068-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-068-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-068-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-069-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-069-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-069-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-069-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-069-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-069-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-069-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-069-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-069-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-069-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-069-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-069-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-069-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-069-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-070-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-070-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-070-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-070-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-070-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-070-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-070-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-070-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-070-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-070-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-070-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-070-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-070-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-070-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-071-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-071-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-071-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-071-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-071-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-071-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-071-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-071-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-071-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-071-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-071-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-071-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-071-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-071-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-072-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-072-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-072-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-072-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-072-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-072-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-072-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-072-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-072-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-072-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-072-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-072-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-072-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-072-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-073-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-073-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-073-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-073-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-073-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-073-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-073-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-073-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-073-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-073-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-073-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-073-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-073-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-073-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-074-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-074-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-074-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-074-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-074-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-074-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-074-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-074-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-074-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-074-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-074-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-074-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-074-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-074-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-075-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-075-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-075-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-075-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-075-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-075-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-075-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-075-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-075-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-075-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-075-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-075-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-075-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-075-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-076-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-076-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-076-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-076-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-076-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-076-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-076-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-076-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-076-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-076-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-076-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-076-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-076-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-076-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-077-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-077-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-077-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-077-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-077-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-077-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-077-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-077-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-077-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-077-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-077-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-077-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-077-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-077-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-078-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-078-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-078-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-078-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-078-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-078-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-078-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-078-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-078-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-078-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-078-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-078-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-078-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-078-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-079-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-079-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-079-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-079-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-079-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-079-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-079-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-079-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-079-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-079-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-079-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-079-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-079-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-079-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-080-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-080-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-080-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-080-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-080-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-080-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-080-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-080-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-080-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-080-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-080-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-080-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-080-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-080-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-081-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-081-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-081-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-081-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-081-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-081-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-081-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-081-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-081-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-081-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-081-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-081-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-081-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-081-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-082-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-082-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-082-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-082-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-082-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-082-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-082-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-082-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-082-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-082-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-082-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-082-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-082-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-082-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-083-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-083-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-083-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-083-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-083-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-083-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-083-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-083-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-083-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-083-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-083-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-083-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-083-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-083-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-084-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-084-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-084-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-084-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-084-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-084-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-084-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-084-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-084-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-084-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-084-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-084-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-084-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-084-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-085-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-085-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-085-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-085-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-085-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-085-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-085-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-085-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-085-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-085-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-085-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-085-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-085-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-085-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-086-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-086-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-086-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-086-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-086-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-086-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-086-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-086-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-086-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-086-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-086-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-086-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-086-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-086-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-087-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-087-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-087-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-087-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-087-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-087-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-087-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-087-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-087-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-087-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-087-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-087-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-087-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-087-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-088-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-088-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-088-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-088-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-088-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-088-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-088-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-088-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-088-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-088-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-088-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-088-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-088-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-088-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-089-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-089-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-089-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-089-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-089-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-089-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-089-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-089-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-089-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-089-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-089-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-089-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-089-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-089-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-090-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-090-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-090-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-090-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-090-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-090-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-090-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-090-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-090-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-090-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-090-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-090-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-090-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-090-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-091-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-091-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-091-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-091-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-091-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-091-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-091-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-091-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-091-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-091-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-091-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-091-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-091-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-091-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-092-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-092-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-092-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-092-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-092-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-092-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-092-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-092-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-092-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-092-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-092-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-092-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-092-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-092-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-093-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-093-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-093-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-093-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-093-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-093-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-093-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-093-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-093-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-093-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-093-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-093-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-093-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-093-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-094-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-094-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-094-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-094-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-094-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-094-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-094-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-094-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-094-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-094-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-094-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-094-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-094-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-094-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-095-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-095-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-095-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-095-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-095-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-095-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-095-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-095-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-095-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-095-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-095-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-095-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-095-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-095-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-096-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-096-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-096-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-096-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-096-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-096-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-096-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-096-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-096-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-096-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-096-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-096-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-096-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-096-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-097-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-097-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-097-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-097-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-097-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-097-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-097-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-097-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-097-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-097-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-097-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-097-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-097-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-097-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-098-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-098-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-098-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-098-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-098-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-098-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-098-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-098-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-098-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-098-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-098-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-098-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-098-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-098-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-099-base",
+   "input": "c1",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-099-c1+0.01",
+   "step": 0.015,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-099-base",
+   "input": "c1",
+   "laws": [
+    "B5a",
+    "B6"
+   ],
+   "partner": "pc-099-c1+0.05",
+   "step": 0.07500000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-099-base",
+   "input": "c2",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-099-c2+0.01",
+   "step": 0.008,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-099-base",
+   "input": "c2",
+   "laws": [
+    "B5b"
+   ],
+   "partner": "pc-099-c2+0.05",
+   "step": 0.04000000000000001,
+   "step_fraction": 0.05
+  },
+  {
+   "base": "pc-099-base",
+   "input": "soc0",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-099-soc0+0.01",
+   "step": 0.0045000000000000005,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-099-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B10"
+   ],
+   "partner": "pc-099-t_amb_c+0.01",
+   "step": 0.35000000000000003,
+   "step_fraction": 0.01
+  },
+  {
+   "base": "pc-099-base",
+   "input": "t_amb_c",
+   "laws": [
+    "B7",
+    "B8"
+   ],
+   "partner": "pc-099-t_amb_c+0.05",
+   "step": 1.75,
+   "step_fraction": 0.05
+  }
+ ],
+ "schema": "carbon.battery.physics-calibration-plan.v1",
+ "scope": "PUBLIC_DEVELOPMENT synthetic inputs; calibration of pair-law tolerances only",
+ "seed": "physics-calibration-01"
+}

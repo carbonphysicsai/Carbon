@@ -1,0 +1,29 @@
+{
+ "axes": {
+  "c1": 100,
+  "c2": 100
+ },
+ "bases": 100,
+ "contract": "carbon/battery/physics_contract.v2.json",
+ "contract_sha256": "7b46380e9a30e78107e4f198059f7a9705835b5bc8072117b8b00fd7590a5632",
+ "disjoint_from_screen": {
+  "checked": true,
+  "shared_pairs": 0,
+  "shared_points": 0
+ },
+ "generator": "PHYSICS-CALIBRATION-01 physcal_plan.py base draw, B15 c1/c2 moves",
+ "law": "B15",
+ "pairs": 200,
+ "plan_sha256": "5fb7a81f057364a3c63d9b5a80c98305dc2277298adf770195ab4dc7271d63f9",
+ "references_needed": false,
+ "schema": "carbon.battery.physics-probes-public-provenance.v1",
+ "scope": "PUBLIC_DEVELOPMENT_ONLY",
+ "screened_at": {
+  "jobs_sha256": "eebb8066d60af75fc3cf0f71e65885688da35da16c99313e7f846ccdf1c98308",
+  "pairs_per_base": 100,
+  "plan_sha256": "83d7ddce8a7e260fe2e0f19968b045abf15b522fa7d2df61b7fb0d3567ac6fdf",
+  "seed": "physics-calibration-01"
+ },
+ "sealed_exam": "keeps its private draw; this plan is not it",
+ "seed": "carbon-battery-b15-public-development-20261020"
+}
