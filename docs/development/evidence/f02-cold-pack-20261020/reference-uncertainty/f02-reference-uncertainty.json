@@ -1,0 +1,66 @@
+{
+ "U": {
+  "peak_top_c": 0.012
+ },
+ "justification": "one refinement per axis, so no observed order; conservative (about 3x the second-order estimate); this build's MMS shows order about 2 in space and time",
+ "kind": "single-refinement bound",
+ "label_flips_across_rungs": [],
+ "largest_shift_c": 0.011407803599979616,
+ "limit_c": 95.0,
+ "per_case": {
+  "cool-rect-long-high": {
+   "bound": 0.011407803599979616,
+   "dt05_shift": -2.2953899986077886e-05,
+   "mesh2_shift": -0.011407803599979616,
+   "primary": 145.63181943170002
+  },
+  "cool-rect-low": {
+   "bound": 0.0052291988000092715,
+   "dt05_shift": -0.00010048820001884451,
+   "mesh2_shift": -0.0052291988000092715,
+   "primary": 90.78052055710003
+  },
+  "cool-rect-middle": {
+   "bound": 0.00866147080000701,
+   "dt05_shift": -6.448189998309317e-05,
+   "mesh2_shift": -0.00866147080000701,
+   "primary": 119.38969691950001
+  },
+  "cool-rect-near-84w": {
+   "bound": 0.005469074000018281,
+   "dt05_shift": -0.00010720570003286412,
+   "mesh2_shift": -0.005469074000018281,
+   "primary": 93.73058745950004
+  },
+  "cool-rect-near-85w": {
+   "bound": 0.005529042799992112,
+   "dt05_shift": -0.00010888509996220819,
+   "mesh2_shift": -0.005529042799992112,
+   "primary": 94.4681041851
+  },
+  "cool-rect-near-86w": {
+   "bound": 0.005589011600022786,
+   "dt05_shift": -0.0001105645000052391,
+   "mesh2_shift": -0.005589011600022786,
+   "primary": 95.20562091070002
+  },
+  "cool-rect-near-87w": {
+   "bound": 0.005648980499984191,
+   "dt05_shift": -0.00011224399997900036,
+   "mesh2_shift": -0.005648980499984191,
+   "primary": 95.94313763640002
+  },
+  "cool-rect-short-high": {
+   "bound": 0.008827326299979177,
+   "dt05_shift": -0.0002012502999946264,
+   "mesh2_shift": -0.008827326299979177,
+   "primary": 135.0315240923
+  }
+ },
+ "quantity": "peak_top_c",
+ "rule": "max over the eight cold actions of max(|mesh2 - primary|, |dt0.5 - primary|), rounded up to 2 significant digits (Validator, 2026-10-20)",
+ "schema": "carbon.f02.reference-uncertainty.v1",
+ "scope": "DEVELOPMENT reference uncertainty; not a qualification",
+ "sha256": "29c3d7e6d71ee6cfc16313b6f2811ad93dd2ae2f8efcae0454921bff1e1d2abf",
+ "source": "RR-PACKS-04 judgement (docs/development/evidence/f02-cold-pack-20261020/rr04-judgement.json)"
+}
