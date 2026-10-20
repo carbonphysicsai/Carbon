@@ -87,15 +87,16 @@ TASK_CORRECTIONS = {
     ),
     "direct_recipe_required": (
         "This campaign practises construction recipes (every new Launchpad "
-        "campaign does): strategy_json is one carbon.construction-recipe.v1 "
-        "document as a JSON string, with exactly schema, challenge (the "
+        "campaign does): strategy_json is the recipe JSON string, one "
+        "carbon.construction-recipe.v1 document with exactly schema, challenge (the "
         "Challenge's construction kit: id, version, train_digest, "
         "interface_digest, construction_limits_digest), source (a graph staged "
         "in your workspace by its submission_digest, or a bundle), procedure "
         "(entrypoint, configuration, train_use, initial_state null) and output "
         "(format and the kit's interface_digest). A Level 0 strategy "
         "(schema_version, challenge_id, backbone, parameters) is not a recipe "
-        "here. The recipe's own refusal is listed."
+        "here. public_material scaffold_recipe stages the published scaffold "
+        "and returns a ready recipe to edit. The recipe's own refusal is listed."
     ),
     "json_string_required": (
         "This field carries JSON encoded as a string: send the object as a "
