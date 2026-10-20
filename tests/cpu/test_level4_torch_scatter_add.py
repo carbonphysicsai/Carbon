@@ -58,6 +58,10 @@ def test_v6_changes_only_the_listed_entries_and_keeps_graph_scatter_refused():
         "aten.sin.default",
         "aten.logical_not.default",
         "aten.max_pool2d_with_indices.default",
+        "aten.floor.default",
+        "aten.fmod.Scalar",
+        "aten.fmod.Tensor",
+        "aten.index_select.default",
     ):
         admitted = new["aten_core"].pop(added)
         assert admitted["default"] == "allow" and admitted["lowering"] == "emitted"
@@ -65,6 +69,10 @@ def test_v6_changes_only_the_listed_entries_and_keeps_graph_scatter_refused():
     # only (their JVP rule rejects the `out_sharding` v5 lists).
     assert new["carbon_ops"].pop("tan")["params"] == {"accuracy": "none"}
     assert new["carbon_ops"].pop("erfc")["params"] == {}
+    # CODANO: floor, and rem as C-style fmod (never aten.remainder).
+    assert new["carbon_ops"].pop("floor")["params"] == {}
+    assert new["carbon_ops"].pop("rem")["params"] == {}
+    assert "aten.remainder.Tensor" not in new["aten_core"]
     for op in ("reduce_max", "reduce_min"):
         assert new["carbon_ops"][op].pop("params") == {"axes": "int_tuple"}
         assert old["carbon_ops"][op].pop("params") == {

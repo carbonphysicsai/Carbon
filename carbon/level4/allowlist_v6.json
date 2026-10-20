@@ -154,6 +154,24 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.floor.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's floor (CODANO); floating inputs only."
+  },
+  "aten.fmod.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's rem, C-style as torch.fmod (CODANO); aten.remainder stays refused."
+  },
+  "aten.fmod.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's rem, C-style as torch.fmod; aten.remainder stays refused."
+  },
   "aten.full.default": {
    "category": "shape",
    "default": "allow",
@@ -197,6 +215,12 @@
    "default": "allow",
    "lowering": "emitted",
    "note": "Static int64 index on one dimension only; lowered to slices of consecutive index runs and one concatenate (no gather primitive, so no scatter-add gradient); dynamic or multi-dimensional indices refuse."
+  },
+  "aten.index_select.default": {
+   "category": "shape",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "one static int64 index on one dimension (CODANO), as aten.index.Tensor: slices + concatenate, never a gather primitive; bounds-checked."
   },
   "aten.item.default": {
    "category": "host_or_dynamic",
@@ -894,6 +918,18 @@
    ],
    "v0_interpreter": true
   },
+  "floor": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "floating operands only; gradient 0 everywhere, as torch's.",
+   "params": {},
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
   "gather": {
    "category": "shape",
    "default": "review",
@@ -1344,6 +1380,18 @@
     "axes": "int_tuple",
     "out_sharding": "none"
    },
+   "roles": [
+    "forward",
+    "init",
+    "loss"
+   ],
+   "v0_interpreter": true
+  },
+  "rem": {
+   "category": "elementwise",
+   "default": "allow",
+   "note": "C-style remainder (lax.rem): the result takes the dividend's sign, as aten.fmod; never Python-style aten.remainder. Floating operands only; a zero divisor gives NaN, which the finite-output checks refuse. Gradients: d/dx = 1, d/dy = -trunc(x / y), as torch's.",
+   "params": {},
    "roles": [
     "forward",
     "init",
