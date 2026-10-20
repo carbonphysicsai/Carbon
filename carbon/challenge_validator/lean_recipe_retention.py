@@ -777,21 +777,18 @@ def _retain_selected_pack_evaluation(
             exam_version=source["evaluation_version"],
             gates=registered["score_pack"]["hard_gates"],
             graded=scoring["models"][0],
-            # No Challenge registers rebuild noise yet (KOTH-TAKEOVER-RULE-01
-            # §2a), and no comparator is built here: when the KOTH comparator
-            # is wired into the receiver, pass its `rebuild_noise` here too.
-            rebuild_noise=None,
         ),
     }
 
 
-def _record_ladder(
-    adapter, submission_id, *, exam_key, exam_version, gates, graded, rebuild_noise
-):
+def _record_ladder(adapter, submission_id, *, exam_key, exam_version, gates, graded):
     """Apply the bound result to the miner's private-exam Ladder
-    (`ladder_store`). Its own failure never unbinds the evaluation: the state
-    says RECORDED or names the refusal."""
+    (`ladder_store`), stepped by the Challenge's registered rebuild noise from
+    the one source the KOTH comparator also reads (`koth_registry`). Its own
+    failure never unbinds the evaluation: the state says RECORDED or names the
+    refusal."""
     try:
+        from carbon.challenge_validator import koth_registry
         from carbon.challenge_validator.ladder_store import LadderStore
 
         hotkey = adapter.owner(submission_id)
@@ -804,7 +801,9 @@ def _record_ladder(
             graded,
             exam_version=exam_version,
             gates=gates,
-            rebuild_noise=rebuild_noise,
+            rebuild_noise=koth_registry.rebuild_noise(
+                adapter.discovery.info.challenge_key.challenge_id
+            ),
         )
     except (ImportError, OSError, ValueError, KeyError, TypeError) as exc:
         return "UNAVAILABLE: " + str(getattr(exc, "code", type(exc).__name__))

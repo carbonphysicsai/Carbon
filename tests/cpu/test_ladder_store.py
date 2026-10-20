@@ -389,9 +389,7 @@ def test_the_client_reads_back_the_best_and_a_gate_failed_latest(monkeypatch):
         assert refused.value.code == "exam_feedback_reply_invalid"
 
 
-def test_the_retention_hook_records_with_the_registered_noise(store):
-    # Retention never unbinds on a ladder failure, so it reports a state; a
-    # signature drift between hook and store would read UNAVAILABLE here.
+def _hook(store):
     from carbon.challenge_validator import lean_recipe_retention as retention
 
     adapter = SimpleNamespace(
@@ -399,14 +397,47 @@ def test_the_retention_hook_records_with_the_registered_noise(store):
         owner=lambda submission_id: "5Miner",
         discovery=SimpleNamespace(info=SimpleNamespace(challenge_key=MOTOR)),
     )
-    state = retention._record_ladder(
+    return retention._record_ladder(
         adapter,
         "submission-1",
         exam_key=EXAM,
         exam_version="motor-exam-1",
         gates=GATES,
         graded=_scored(0.63, 0.33, 0.93),
-        rebuild_noise=_noise(0.05),
     )
-    assert state == "RECORDED"
+
+
+def test_the_retention_hook_steps_at_eta_while_the_registry_is_empty(store):
+    # Retention never unbinds on a ladder failure, so it reports a state; a
+    # signature drift between hook and store would read UNAVAILABLE here.
+    from carbon.challenge_validator import koth_registry
+
+    assert koth_registry.rebuild_noise(MOTOR.challenge_id) is None
+    assert _hook(store) == "RECORDED"
+    assert store.served("5Miner", MOTOR, EXAM)["best"]["total"] == 0.62
+
+
+def test_the_retention_hook_reads_the_koth_registry(store, monkeypatch):
+    from carbon.challenge_validator import koth_registry
+
+    asked = []
+
+    def registered(challenge_id, **_):
+        asked.append(challenge_id)
+        return _noise(0.05)
+
+    monkeypatch.setattr(koth_registry, "rebuild_noise", registered)
+    assert _hook(store) == "RECORDED"
+    assert asked == [MOTOR.challenge_id]
     assert store.served("5Miner", MOTOR, EXAM)["best"]["total"] == 0.6
+
+
+def test_an_invalid_registry_records_nothing(store, monkeypatch):
+    from carbon.challenge_validator import koth_registry
+
+    def invalid(challenge_id, **_):
+        raise koth_registry.RegistryInvalid("koth_registry_invalid")
+
+    monkeypatch.setattr(koth_registry, "rebuild_noise", invalid)
+    assert _hook(store).startswith("UNAVAILABLE")
+    assert store.served("5Miner", MOTOR, EXAM) == {"best": None, "latest": None}
