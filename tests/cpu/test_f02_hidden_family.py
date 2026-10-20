@@ -6,6 +6,7 @@ family source."""
 from __future__ import annotations
 
 import json
+import random
 import sys
 from pathlib import Path
 
@@ -29,7 +30,7 @@ def test_the_producer_finds_f02_as_a_registered_family():
 def test_f02s_registration_is_its_hidden_rules_own_values():
     family = f02_family()
     assert (family.challenge_id, family.challenge_version) == ("f02", "2.1")
-    assert family.kinds == hidden.KINDS == ("cold_decision",)
+    assert family.kinds == hidden.KINDS == ("screening",)
     assert family.batch_cases == hidden.BATCH_CASES == 8
     assert family.every_blocks == hidden.ROTATION_EVERY_BLOCKS == 648_000
     assert family.active_batches == hidden.ACTIVE_BATCHES == 1
@@ -54,7 +55,7 @@ def test_the_rule_cites_the_exam_and_never_restates_scoring():
     rule = hidden.hidden_rule()
     assert rule["exam"] == {
         "pack_version": "f02-normal-construction-development-3",
-        "evaluation_version": "f02-dual-development-bank-8-v2",
+        "evaluation_version": "f02-dual-sealed-batch-8-v1",
     }
     assert rule["challenge"] == {"id": "f02", "version": "2.1"}
     assert rule["status"] == "PROVISIONAL_DEVELOPMENT_NON_QUALIFYING"
@@ -82,7 +83,7 @@ def document(cases=None):
         "schema": hidden.DOCUMENT_SCHEMA,
         "challenge": {"id": "f02", "version": "2.1"},
         "role": "exam",
-        "kind": "cold_decision",
+        "kind": "screening",
         "population": population.POPULATION_VERSION,
         "cases": [{"case_id": f"c{i}", "inputs": c} for i, c in enumerate(drawn)],
     }
@@ -97,7 +98,7 @@ def test_documents_are_checked():
         "inputs": {"peak_w": 85.0, "on_time_s": 5.0},
     }
     for bad in (
-        dict(good, kind="screening"),
+        dict(good, kind="finalist"),
         dict(good, challenge={"id": "f02", "version": "2.0"}),
         dict(good, cases=good["cases"][:7]),
         exam_action,
@@ -203,23 +204,56 @@ class Solver:
         return Done()
 
 
-def test_a_batch_is_drawn_solved_with_a_retry_and_sealed(tmp_path):
+def test_a_batch_is_drawn_solved_with_a_retry_and_sealed(tmp_path, monkeypatch):
     path = write_deployment(
         tmp_path / "producer-etc" / "f02.json",
         store=str(tmp_path / "producer-store"),
         custody=str(tmp_path / "producer-custody"),
     )
-    F02BatchSource.init(path)
+    # A custody root whose batch collided with a published case before the
+    # draw skipped them (found by search; checked below), so this test fails
+    # without the fix every time instead of about 44% (F02) or 4% (F08).
+    root = bytes.fromhex(
+        "f364aa162129bb1e1ae37d48932740951104fad7e04f81cfb71cc6516f299380"
+    )
+    published = hidden.published_keys(REPOSITORY)
+    stale = _pre_fix_draw(population, root, "f02-exam-S1", hidden.BATCH_CASES)
+    assert {hidden.overlap_key(c) for c in stale} & published
+    from carbon.challenge_validator import confirmation
+
+    with monkeypatch.context() as patch:
+        patch.setattr(confirmation.os, "urandom", lambda n: root)
+        F02BatchSource.init(path)
     solver = Solver()
     source = F02BatchSource(path, repository=REPOSITORY, runner=solver)
     producer = pr.Producer(tmp_path / "producer", [source])
-    drawn = producer.draw("f02", "f02-exam-S1", kind="cold_decision")
+    drawn = producer.draw("f02", "f02-exam-S1", kind="screening")
     published = hidden.published_keys(REPOSITORY)
     plan = source.jobs(drawn["fingerprint"])
     assert len(plan) == 8
     assert not {hidden.overlap_key(c["inputs"]) for c in plan} & published
     solver.fail = {plan[0]["case_id"]}
     producer.solve("f02", drawn["fingerprint"])
+    # FAILED_INFRA is left pending, never stored; the next solve resumes it.
+    assert source.sealed(drawn["fingerprint"]) is None
+    producer.solve("f02", drawn["fingerprint"])
     producer.seal("f02", drawn["fingerprint"])
     assert [len(p) for p in solver.planned] == [8, 1]  # only the retry
     assert source.sealed(drawn["fingerprint"])["cases"] == 8
+
+
+def _pre_fix_draw(pop, root, role, count):
+    """The batch a custody root draws for `role` under the pre-fix predicate
+    (no published-case skip), by make_batch's own seed derivation."""
+    import hashlib
+    import hmac
+
+    key = hmac.new(root, b"case-ids/" + role.encode(), hashlib.sha256).digest()
+    label = b"draw/" + pop.POPULATION_VERSION.encode()
+    seed = hmac.new(key, label, hashlib.sha256).digest()[:8]
+    saved = pop._published_key
+    pop._published_key = lambda case: False
+    try:
+        return pop.draw(random.Random(int.from_bytes(seed, "big")), count)[0]
+    finally:
+        pop._published_key = saved

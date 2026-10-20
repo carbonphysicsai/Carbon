@@ -4,15 +4,17 @@ The family's values (Validator, 2026-10-20):
 - version: F02 2.1, the step-2 version miners are graded on;
 - population: the approved TRAIN near-limit law S1 with fresh seeds
   (`carbon.f02.population`), disjoint from every published F02 schedule;
-- 8 cases per batch, kind `cold_decision` (one cold-context decision over its
-  actions, as the development exam);
+- 8 cases per batch, served kind `screening` (the producer's served tier; the
+  private pack's cohort `decision_cold_eight` carries the decision, as the
+  development exam's);
 - rotation: one active version, at most 90 days (648,000 blocks); weekly fresh
   draws come from the backlog through exam rotation, not from the family;
 - the rule document cites the pack and evaluation versions and never restates
   scoring: the scoring producer stays the single source of truth;
 - a sealed batch is graded as a private evaluation pack in the development
-  pack's format (`carbon.challenge_kit.f02_sealed_pack`), by the existing dual
-  adapter unchanged. There is no second scoring path.
+  pack's format (`carbon.challenge_kit.f02_sealed_pack`) by the dual adapter's
+  sealed evaluation version (no response pairs; the interval receipt is the
+  batch's own solver evidence). There is no second scoring path.
 
 DEVELOPMENT only: no qualification, weight, reward or LIVE authority.
 """
@@ -38,12 +40,12 @@ AUTHORITY = "OWNER-F02-F08-EXAM-DRAW-01"
 SOLVER_IMAGE = "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add"
 RUNNER = Path("scripts/dev/reference_packages/elmer/f02_exam_runner.py")
 TERMINAL = ("OK", "REFERENCE_INVALID", "REFERENCE_SOLVER_FAILED", "REFERENCE_TIMEOUT")
-KINDS = ("cold_decision",)
+KINDS = ("screening",)
 BATCH_CASES = 8
 ROTATION_EVERY_BLOCKS = 648_000  # the 90-day maximum
 ACTIVE_BATCHES = 1
 PACK_VERSION = "f02-normal-construction-development-3"
-EVALUATION_VERSION = "f02-dual-development-bank-8-v2"
+EVALUATION_VERSION = "f02-dual-sealed-batch-8-v1"
 OBSERVED = (
     "peak_top_c",
     "extra_energy_j",
@@ -181,11 +183,14 @@ def load_deployment(path):
     path = Path(path)
     try:
         info = os.lstat(path)
-        if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
-            raise F02FamilyError("f02_hidden_deployment_not_owner_only")
-        config = json.loads(path.read_text())
     except FileNotFoundError:
         raise F02FamilyError("f02_hidden_deployment_missing") from None
+    # Checked outside the parse's `except ValueError`, which the typed error
+    # (a ValueError) would otherwise be relabelled by.
+    if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
+        raise F02FamilyError("f02_hidden_deployment_not_owner_only")
+    try:
+        config = json.loads(path.read_text())
     except ValueError:
         raise F02FamilyError("f02_hidden_deployment_malformed") from None
     if (

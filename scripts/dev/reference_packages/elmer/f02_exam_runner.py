@@ -8,7 +8,9 @@ PLAN is {"batch", "kind", "cases": [{"case_id", "inputs": {"peak_w",
 were (RR-PACKS-04): the cold context, three rungs (primary, mesh2, dt0.5)
 written by `f02_deck.write_case`, solved by ElmerSolver in the pinned image
 with `f02_readiness.run`'s exact isolation, and judged by `f02_readiness.judge`
-(B1-B5 under F02-SCIENCE-VALUES-01, unchanged). The context's B6/B7 baselines
+(B1-B5 under F02-SCIENCE-VALUES-01, unchanged). The decks reproduce RR-PACKS-04's
+registered files byte for byte, except level-2 node coordinates, whose last
+bit depends on the host's C math library (float pow). The context's B6/B7 baselines
 were accepted once for this context (RR-PACKS-04, B10) and are not re-solved.
 
 One record per case in DIR/records.jsonl, statuses:

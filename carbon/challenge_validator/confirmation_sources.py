@@ -343,6 +343,14 @@ def _sources():
             "f02",
             ("f02-*", "reference-packages-01", "reference-solvers-2026-10-15"),
         ),
+        # F08's sealed exam (OWNER-F02-F08-EXAM-DRAW-01): every published
+        # geometry (TRAIN-256's manifest, the pilot, the ladder, N1r) is an
+        # overlap key, so a draw that repeats one is refused.
+        "f08-ribbed-bracket": PopulationSource(
+            "f08-ribbed-bracket",
+            "f08",
+            ("f08-*", "reference-solvers-2026-10-15"),
+        ),
     }
 
 

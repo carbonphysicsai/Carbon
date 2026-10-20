@@ -7,6 +7,8 @@ import json
 import random
 from pathlib import Path
 
+import pytest
+
 from carbon.f02 import population
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -67,3 +69,39 @@ def test_every_published_f02_schedule_is_an_overlap_key():
         .splitlines()
     ]
     assert all(source.key(r["inputs"]) in published for r in rows)
+
+
+def test_draws_never_repeat_a_published_case():
+    """The producer refuses a batch that repeats a published case and never
+    redraws a role; 45 of the law's 651 points are published, so the draw
+    itself must skip them (about 44% of 8-case batches would hit one)."""
+    from carbon.challenge_validator.confirmation_sources import source_for
+
+    source = source_for("f02")
+    published = source.published(ROOT)
+    for seed in range(300):
+        cases, _ = population.draw(random.Random(seed), 8)
+        assert not {source.key(c) for c in cases} & published
+
+
+def test_a_missing_evidence_root_fails_closed(tmp_path, monkeypatch):
+    monkeypatch.setattr(population, "_PUBLISHED", {})
+    monkeypatch.setattr(population, "REPOSITORY", tmp_path)
+    with pytest.raises(RuntimeError, match="f02_published_evidence_missing"):
+        population.draw(random.Random(1), 8)
+    assert population._PUBLISHED == {}  # nothing cached by the failure
+
+
+def test_an_empty_published_set_fails_closed_and_is_not_cached(monkeypatch):
+    from carbon.challenge_validator import confirmation_sources
+
+    monkeypatch.setattr(population, "_PUBLISHED", {})
+    real = confirmation_sources.PopulationSource.published
+    monkeypatch.setattr(
+        confirmation_sources.PopulationSource, "published", lambda self, repo: set()
+    )
+    with pytest.raises(RuntimeError, match="f02_published_set_empty"):
+        population.draw(random.Random(1), 8)
+    assert population._PUBLISHED == {}
+    monkeypatch.setattr(confirmation_sources.PopulationSource, "published", real)
+    assert len(population.draw(random.Random(1), 8)[0]) == 8  # a later good call works

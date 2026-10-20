@@ -23,7 +23,7 @@ def batch(seed=11):
         "schema": hidden.DOCUMENT_SCHEMA,
         "challenge": {"id": "f02", "version": "2.1"},
         "role": "exam",
-        "kind": "cold_decision",
+        "kind": "screening",
         "population": population.POPULATION_VERSION,
         "cases": [{"case_id": f"b-{i:02d}", "inputs": c} for i, c in enumerate(drawn)],
     }
