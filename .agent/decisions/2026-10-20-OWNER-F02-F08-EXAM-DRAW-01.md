@@ -16,3 +16,10 @@ Implementation: **not yet implemented.** Data Collection is building the F02 and
   - a 90-day maximum (`every_blocks` 648,000);
   - weekly fresh draws come from the backlog, and 2 QA-passed versions are kept.
 - **Every batch passes the exam batch QA** (`EXAM_BATCH_QA_SPEC_20261020.md`), with a straddle of at least a third per side and the registered U records, before going live.
+
+## Implementation note (Validator, 2026-10-20)
+
+- **The problem:** N1r's original rule placed cases nearest fixed predicted-compliance targets, so it ignored the seed, and a fresh seed would have redrawn the same geometries.
+- **What the F08 sealed draw keeps:** N1r's pinned log-linear fit, its band (0.125–0.175 mm/N) and its safe/unsafe split.
+- **What it changes:** each of the 8 cases is drawn uniformly, by seed, from the lattice candidates in one of 8 equal predicted-compliance strata (4 safe, 4 unsafe). That's `claude/exam-families` `1ff37e4f9`.
+- **This is the same approved law, made seedable.** It adds no new range.
