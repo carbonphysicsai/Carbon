@@ -53,12 +53,50 @@ def _transfer_deadline(files, chunk_bytes):
     return time.monotonic() + max(120.0, 3.0 * calls + 120.0)
 
 
+def _send_chunk(send, url, wire, headers, pacer):
+    """Send one staged chunk; a reset counts as the receiver's rate refusal.
+
+    The receiver answers an over-rate request with 429 before it reads the body, so for
+    a large chunk the closing connection can reach the client as a reset (or a broken
+    pipe) instead of the 429. A reset is ambiguous (the chunk may be stored and only the
+    reply lost), so the same local offset and chunk are re-signed and sent again after the
+    pace. That is safe because both receivers accept a replayed chunk below their
+    committed offset when its bytes are identical, and a finished file answers complete.
+    Only chunk POSTs get this; a reset that persists ends as a distinct closed refusal
+    (``construction_staging_connection_reset``) at the transfer deadline.
+    """
+    try:
+        return send(url, wire, headers)
+    except OSError as error:
+        cause = getattr(error, "reason", error)
+        if not isinstance(
+            cause, (ConnectionResetError, ConnectionAbortedError, BrokenPipeError)
+        ):
+            raise
+        pacer.saw_rate()
+        pacer.last_fault = "reset"
+        raise DirectIntakeRateLimit() from None
+
+
+def _retry_chunk(attempt, deadline, pacer):
+    """``retry_rate_limited`` for one chunk; only resets seen ends as a closed reset code."""
+    try:
+        return retry_rate_limited(attempt, deadline=deadline)
+    except DirectIntakeRateLimit:
+        if pacer.last_fault == "reset":
+            raise DirectIntakeRefusal("construction_staging_connection_reset") from None
+        raise
+
+
 class _UploadPacer:
     """Use the receiver's observed 1/s refill after an explicit rate refusal."""
 
     def __init__(self):
         self.paced = False
         self.next_call = 0.0
+        self.last_fault = (
+            None  # "rate" for an explicit 429, "reset" for a dropped chunk
+        )
 
     def before_call(self):
         if not self.paced:
@@ -116,6 +154,7 @@ def _stage_one(
                 facts = read(url)
             except DirectIntakeRateLimit:
                 pacer.saw_rate()
+                pacer.last_fault = "rate"
                 raise
             challenge, snapshot = _checked(
                 facts,
@@ -157,13 +196,14 @@ def _stage_one(
                 wire, receiver=receiver, nonce_ns=time.time_ns()
             )
             pacer.before_call()
-            status, answer = send(url, wire, headers)
+            status, answer = _send_chunk(send, url, wire, headers, pacer)
             if (
                 status == 429
                 and type(answer) is dict
                 and answer.get("refused") == "rate"
             ):
                 pacer.saw_rate()
+                pacer.last_fault = "rate"
                 raise DirectIntakeRateLimit()
             if status != 200 or type(answer) is not dict:
                 raise DirectIntakeRefusal(
@@ -196,7 +236,7 @@ def _stage_one(
                 raise DirectIntakeRefusal("construction_source_reply_invalid")
             return result
 
-        result = retry_rate_limited(attempt, deadline=deadline)
+        result = _retry_chunk(attempt, deadline, pacer)
         if result.complete:
             return fingerprint
         # An earlier interrupted transfer can already hold many chunks. The
@@ -328,6 +368,7 @@ def _stage_material_one(
                 facts = read(url)
             except DirectIntakeRateLimit:
                 pacer.saw_rate()
+                pacer.last_fault = "rate"
                 raise
             challenge, snapshot = _checked(
                 facts,
@@ -369,13 +410,14 @@ def _stage_material_one(
                 wire, receiver=receiver, nonce_ns=time.time_ns()
             )
             pacer.before_call()
-            status, answer = send(url, wire, headers)
+            status, answer = _send_chunk(send, url, wire, headers, pacer)
             if (
                 status == 429
                 and type(answer) is dict
                 and answer.get("refused") == "rate"
             ):
                 pacer.saw_rate()
+                pacer.last_fault = "rate"
                 raise DirectIntakeRateLimit()
             if status != 200 or type(answer) is not dict:
                 raise DirectIntakeRefusal(
@@ -411,7 +453,7 @@ def _stage_material_one(
                 raise DirectIntakeRefusal("construction_material_reply_invalid")
             return result
 
-        result = retry_rate_limited(attempt, deadline=deadline)
+        result = _retry_chunk(attempt, deadline, pacer)
         if result.complete:
             if final and not result.bundle_complete:
                 raise DirectIntakeRefusal("construction_material_closure_incomplete")

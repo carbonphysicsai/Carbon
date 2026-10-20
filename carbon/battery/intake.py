@@ -515,6 +515,10 @@ def refresher(window, context, *, reader=None, period=REFRESH_S, stop=None, out=
 class PeerLimits:
     """Token buckets per peer address plus a global in-flight cap.
 
+    An over-rate request is refused before its body is read, so a client still sending a
+    large body may see a connection reset rather than the 429; clients treat a reset on a
+    resumable chunk POST as a rate refusal (direct_source_submission._send_chunk).
+
     At most `MAX_PEERS` buckets are kept; the least recently seen is evicted.
     Clearing every bucket at the limit, as before, let anyone with many
     addresses reset the limits of all (VALIDATOR-01 security review,
