@@ -150,10 +150,23 @@ def test_the_pack_physics_role_is_the_adapters_and_adopts_no_law():
     assert json.loads(public["physics_contract"]) == physics
 
 
-def test_the_bank_records_no_reference_wall_time_yet():
+def test_the_real_pack_refuses_until_its_references_record_wall_time():
     # The shared core needs each reference's solver wall time for the speed
     # benchmark; F02's pack records none, so its real pack cannot build yet.
+    # No non-test path supplies a stand-in (Validator, 2026-10-20).
     assert not any("wall_s" in r for r in _bank()["reference_records"])
+    public = physical_pack.public_roles("f02", "2.0")
+    with pytest.raises(KeyError, match="wall_s"):
+        adapter.pack_documents(
+            bank=_bank(),
+            physics=adapter.physics_contract(),
+            interface_raw=public["interface"],
+            train_raw=public["train"],
+            limits_raw=public["important_limit_definition"],
+            objective_raw=public["design_objective"],
+            platform=PLATFORM,
+            minimums="calibration",
+        )
 
 
 def test_the_calibration_pack_registers_with_no_minimums():
