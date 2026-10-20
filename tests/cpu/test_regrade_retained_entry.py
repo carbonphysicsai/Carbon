@@ -329,3 +329,105 @@ def test_regrade_refuses_without_a_selected_pack(tmp_path, monkeypatch):
             _regrade(fixture)
     finally:
         fixture.provider.close()
+
+
+# --- the regrade is recorded for the incumbent's own submission id (KOTH lookup) -------
+
+
+def test_regraded_evidence_is_found_for_the_incumbent_on_the_new_key(tmp_path):
+    from test_bank_private_evaluation import admitted, inputs
+    from test_score_lab_private_evaluation_evidence import _graph_case
+
+    from carbon.battery.pool_store import PoolStore, StateError
+    from carbon.challenge_validator.bank_promotion import BankPromotion
+
+    case = _graph_case(tmp_path)
+    store = PoolStore(tmp_path / "private.sqlite", clock=lambda: 123.0)
+    for model in ("king", "challenger"):
+        admitted(store, case, model)
+    store.set_incumbent("king", "historical fixture")
+    # The king was graded on the old exam version.
+    old_pin, old_args = inputs(case, version="synthetic-eval-v1")
+    BankPromotion(store, registered_source_receipt_sha256=old_pin).retain_private(
+        "king", **old_args
+    )
+    # The exam rotates: the challenger is graded on the new key, the king has no evidence.
+    pin, args = inputs(case, version="synthetic-eval-v2")
+    flow = BankPromotion(store, registered_source_receipt_sha256=pin)
+    challenger = flow.retain_private("challenger", **args)
+    key = challenger["evaluation_key"]
+    with pytest.raises(StateError, match="incumbent_evaluation_required"):
+        flow.private_pair("challenger", key)
+    # The regrade records the king's evaluation under the king's own submission id.
+    regrade = retention._Regrade(
+        "fixture-king", object(), "king", case["entry"]["entry_id"], flow
+    )
+    recorded = retention._record_regraded_evidence(regrade, args)
+    pair = flow.private_pair("challenger", key)
+    assert pair["incumbent"] == recorded
+    assert pair["incumbent"]["submission_id"] == "king"
+    assert pair["expected_incumbent"] == "king"
+
+
+def test_recording_a_regrade_names_the_store_refusal(tmp_path):
+    from test_bank_private_evaluation import admitted, inputs
+    from test_score_lab_private_evaluation_evidence import _graph_case
+
+    from carbon.battery.pool_store import PoolStore
+    from carbon.challenge_validator.bank_promotion import BankPromotion
+
+    case = _graph_case(tmp_path)
+    store = PoolStore(tmp_path / "private.sqlite", clock=lambda: 123.0)
+    admitted(store, case, "king")
+    _, args = inputs(case)
+    regrade = retention._Regrade(
+        "fixture-king", object(), "king", "e", BankPromotion(store)
+    )
+    with pytest.raises(
+        retention.RetentionUnavailable, match="regrade_record_source_pin_missing"
+    ):
+        retention._record_regraded_evidence(regrade, args)
+
+
+def test_the_grading_core_hands_the_binding_inputs_to_the_promotion(
+    tmp_path, monkeypatch
+):
+    from test_normal_dual_pack_retention import _fixture, _producer
+
+    from carbon.scoring import private_evaluation_source as source
+    from carbon.scoring.private_evaluation_evidence import (
+        bind_private_evaluation_evidence,
+    )
+
+    fixture = _fixture(tmp_path, monkeypatch)
+    monkeypatch.setattr(source, "produce_dual_benchmark_input", _producer(fixture))
+    first = fixture.retain()
+    assert first["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY"
+    written = json.loads(first["private_evaluation_path"].read_bytes())
+
+    class Promotion:
+        def __init__(self):
+            self.calls = []
+
+        def retain_private(self, submission_id, **inputs):
+            self.calls.append((submission_id, inputs))
+            return {"recorded": submission_id}
+
+    promotion = Promotion()
+    regrade = retention._Regrade(
+        "fixture-owner", object(), "origin-task", "origin-entry", promotion
+    )
+    again = retention._retain_selected_pack_evaluation(
+        fixture.adapter, fixture.task_id, first, fixture.artifacts, None, regrade
+    )
+    assert again["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY"
+    ((submission_id, inputs),) = promotion.calls
+    assert submission_id == "origin-task"
+    assert "registered_source_receipt_sha256" not in inputs
+    # The same inputs and the registered pin reproduce the written binding exactly.
+    assert (
+        bind_private_evaluation_evidence(
+            registered_source_receipt_sha256=written["source_receipt_sha256"], **inputs
+        )
+        == written
+    )

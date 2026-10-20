@@ -716,30 +716,37 @@ def _retain_selected_pack_evaluation(
             ).encode("utf-8")
         )
         task_root = _owner_directory(result["artifact_path"], "task_artifacts")
-        binding = bind_private_evaluation_evidence(
-            entry=registered["entry"],
-            custody_receipt_raw=_private_measurement_bytes(
+        bind_inputs = {
+            "entry": registered["entry"],
+            "custody_receipt_raw": _private_measurement_bytes(
                 task_root.parent / (submission_id + ".custody.json"), 1024**2
             ),
-            trusted_job=source["trusted_job"],
-            registration=source["benchmark_registration"],
-            references=registered["references"],
-            measured_model=prepared.measured_model,
-            score_pack=registered["score_pack"],
-            graph_originals=originals,
-            expected_result_digest=expected_result,
-            ordered_query_bytes=queries,
-            evaluation_source_receipt_raw=registered["evaluation_source_receipt_raw"],
+            "trusted_job": source["trusted_job"],
+            "registration": source["benchmark_registration"],
+            "references": registered["references"],
+            "measured_model": prepared.measured_model,
+            "score_pack": registered["score_pack"],
+            "graph_originals": originals,
+            "expected_result_digest": expected_result,
+            "ordered_query_bytes": queries,
+            "evaluation_source_receipt_raw": registered[
+                "evaluation_source_receipt_raw"
+            ],
+            "expected_evaluation_pack_digest": snapshot.manifest_digest,
+            "dual_measurement_receipt_raw": raw,
+            "registered_dual_measurement_sha256": pin["dual_measurement_sha256"],
+            "selected_evaluation_pack": snapshot,
+        }
+        binding = bind_private_evaluation_evidence(
             registered_source_receipt_sha256=registered[
                 "registered_source_receipt_sha256"
             ],
-            expected_evaluation_pack_digest=snapshot.manifest_digest,
-            dual_measurement_receipt_raw=raw,
-            registered_dual_measurement_sha256=pin["dual_measurement_sha256"],
-            selected_evaluation_pack=snapshot,
+            **bind_inputs,
         )
         binding_path = directory / "private-evaluation-binding.json"
         write_once(binding_path, _json(binding))
+        if regrade is not None and regrade.promotion is not None:
+            _record_regraded_evidence(regrade, bind_inputs)
     except (
         ImportError,
         OSError,
@@ -1216,6 +1223,19 @@ class _Regrade:
     recipe: object
     origin_task_id: str
     origin_entry_id: str
+    #: A BankPromotion: the regraded evidence is recorded under the origin task's own
+    #: submission id on the new evaluation key, so KOTH finds it for the incumbent.
+    promotion: object = None
+
+
+def _record_regraded_evidence(regrade, bind_inputs):
+    """Record the regrade's evaluation for the incumbent's submission id (new key)."""
+    from carbon.battery.pool_store import StateError
+
+    try:
+        return regrade.promotion.retain_private(regrade.origin_task_id, **bind_inputs)
+    except StateError as refused:
+        raise RetentionUnavailable("regrade_record_" + refused.code) from refused
 
 
 def _regrade_origin(adapter, base, entries, entry_id):
@@ -1265,6 +1285,7 @@ def regrade_retained_entry(
     artifact_directory: Path,
     entry_directory: Path,
     runner=None,
+    promotion=None,
 ) -> dict:
     """Regrade a retained model on the receiver's selected (rotated) evaluation pack.
 
@@ -1273,7 +1294,10 @@ def regrade_retained_entry(
     that entry is graded through the standard private evaluation, so the result carries the
     v4 receipts on the new evaluation key. The owner is the retained task's own, the cap
     slot is a REGRADE (never counted, no epoch limit), and provenance is recorded beside
-    the result. Only bundle recipes are supported; a graph recipe is typed unavailable.
+    the result. With ``promotion`` (a BankPromotion), the evaluation is also recorded under
+    the origin task's submission id on the new evaluation key, which is where the incumbent
+    comparison looks it up. Only bundle recipes are supported; a graph recipe is typed
+    unavailable.
     """
     import io
     from types import SimpleNamespace
@@ -1520,7 +1544,7 @@ def regrade_retained_entry(
         bound,
         artifacts,
         evidence,
-        _Regrade(owner, recipe, origin, entry_id),
+        _Regrade(owner, recipe, origin, entry_id, promotion),
     )
     return {**regraded, "regrade_of": entry_id, "regrade_task_id": regrade_id}
 
