@@ -200,6 +200,24 @@ def _fixture(tmp_path, monkeypatch, *, gate_minimum=0.0):
     adapter = object.__new__(LeanRecipeAdapter)
     adapter.discovery = discovery
     adapter.challenge_id, adapter.challenge_version = key.challenge_id, key.version
+    # Grading is capped per miner and epoch: the adapter carries its attempt ledger, the
+    # signed receipt block of this submission, and a cap for this fixture Challenge.
+    from carbon.challenge_validator.ledger import AttemptLedger
+
+    ledger_directory = tmp_path / "attempt-ledger"
+    ledger_directory.mkdir(mode=0o700)
+    adapter.ledger = AttemptLedger(ledger_directory / "attempts.sqlite3")
+    adapter.contract_digest = "sha256:" + "c" * 64
+    adapter.exam_cap_caps = {key.challenge_id: 20}
+    adapter.ledger.record(
+        SimpleNamespace(
+            hotkey="fixture-owner",
+            receipt={"sequence": 1, "digest": "d", "block": 360},
+            contract_digest=adapter.contract_digest,
+        ),
+        kind="OUTCOME",
+        submission_id=task_id,
+    )
     monkeypatch.setattr(
         LeanRecipeAdapter, "owner", lambda _self, _task: "fixture-owner"
     )
@@ -220,9 +238,9 @@ def _fixture(tmp_path, monkeypatch, *, gate_minimum=0.0):
         "worker-evidence.json": "stage/worker-evidence.json",
     }
     artifacts = {name: case["originals"][path] for name, path in roles.items()}
-    artifacts["task-receipt.json"] = (
-        b"inert fixture terminal receipt; never network evidence"
-    )
+    artifacts[
+        "task-receipt.json"
+    ] = b"inert fixture terminal receipt; never network evidence"
     monkeypatch.setattr(retention, "_collect_graph_artifacts", lambda *_args: artifacts)
     intake = object.__new__(DirectRecipeIntake)
     intake.adapter = adapter

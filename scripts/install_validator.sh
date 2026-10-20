@@ -105,6 +105,15 @@ elif command -v systemd-detect-virt >/dev/null 2>&1 \
   && systemd-detect-virt --container --quiet 2>/dev/null; then
   in_container=1
 fi
+# Test knob only: fixes the machine type so the checks do not depend on where they run.
+case "${CARBON_VALIDATOR_ASSUME_MACHINE:-}" in
+  host) in_container=0 ;;
+  container) in_container=1 ;;
+esac
+if [[ -n "${CARBON_VALIDATOR_ASSUME_MACHINE:-}" ]]; then
+  # Never silent: a stale variable would otherwise skip the machine-type refusal unseen.
+  printf 'Note: CARBON_VALIDATOR_ASSUME_MACHINE=%s overrides the machine-type check (tests only).\n' "${CARBON_VALIDATOR_ASSUME_MACHINE}" >&2
+fi
 docker_ok=0
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   docker_ok=1

@@ -554,6 +554,7 @@ def _retain_selected_pack_evaluation(
     """Apply only trusted, versioned measurement evidence after bank custody."""
     if result.get("evaluation_pack_digest") is None:
         return result
+    cap = reservation = None
     try:
         from carbon.development_session.data import write_once
         from carbon.scoring import dual_score
@@ -585,6 +586,26 @@ def _retain_selected_pack_evaluation(
         )
 
         source = snapshot.read_source_registration(private_root)
+        # The per-miner cap and the epoch limit refuse here, before any grading (and so
+        # before any exam wear); the slot is settled once the outcome is known.
+        from carbon.challenge_validator import exam_cap
+
+        # Recovery of crashed reservations runs at receiver start-up, never here.
+        cap = exam_cap.ExamCap(
+            adapter.ledger, caps=getattr(adapter, "exam_cap_caps", None)
+        )
+        reservation = cap.reserve(
+            hotkey=adapter.owner(submission_id),
+            challenge_id=adapter.challenge_id,
+            challenge_version=adapter.challenge_version,
+            # The sealed exam's identity: the pack digest binds the case bank, so a
+            # rotation that changes the bank starts new counts.
+            exam_key=snapshot.manifest_digest,
+            submission_id=submission_id,
+            block=exam_cap.submission_block(
+                adapter.ledger, adapter.contract_digest, submission_id
+            ),
+        )
         queries = [artifacts["inputs.npz"]]
         registered = _register_retained_pack_source(
             adapter,
@@ -671,6 +692,9 @@ def _retain_selected_pack_evaluation(
         scoring = ScoreEngine.score_dual_benchmark_v4(
             benchmark, registered["score_pack"]
         )
+        # The exam was applied: a graded outcome keeps the slot, anything else gives it back.
+        cap.settle(reservation, scoring["models"][0]["status"])
+        reservation = None
         expected_result = _sha(
             (
                 json.dumps(
@@ -712,6 +736,9 @@ def _retain_selected_pack_evaluation(
         TypeError,
         AttributeError,
     ) as exc:
+        if reservation is not None:
+            # Grading did not complete (infrastructure or evidence), so the slot is returned.
+            cap.settle(reservation, "UNAVAILABLE")
         reason = (
             str(exc)
             if isinstance(exc, RetentionUnavailable)

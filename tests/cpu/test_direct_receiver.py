@@ -669,6 +669,7 @@ def test_selected_inference_image_admits_only_compatible_jax_or_cpu(
 def test_main_uses_process_stop_and_closed_failure_without_private_text(
     tmp_path, monkeypatch, capsys
 ):
+    (tmp_path / "config.json").write_text("{}")  # main() names a missing file first
     def fail(*args, **kwargs):
         assert isinstance(kwargs["stop"], threading.Event)
         raise ValueError("PRIVATE PATH MUST NOT APPEAR")
@@ -684,6 +685,7 @@ def test_main_uses_process_stop_and_closed_failure_without_private_text(
 def test_main_one_shot_retention_uses_operator_paths_and_reports_only_bank_status(
     tmp_path, monkeypatch, capsys
 ):
+    (tmp_path / "config.json").write_text("{}")  # main() names a missing file first
     task_id = "rtsk_" + "a" * 64
     artifacts = tmp_path / "private-artifacts"
     entries = tmp_path / "private-entries"
@@ -732,6 +734,7 @@ def test_main_one_shot_retention_uses_operator_paths_and_reports_only_bank_statu
 def test_operator_retention_reports_only_closed_optional_measurement_state(
     tmp_path, monkeypatch, capsys, measurement_state, expected_code
 ):
+    (tmp_path / "config.json").write_text("{}")  # main() names a missing file first
     monkeypatch.setattr(
         receiver,
         "serve",
@@ -771,6 +774,7 @@ def test_operator_retention_reports_only_closed_optional_measurement_state(
 def test_main_one_shot_retention_reports_only_closed_refusal(
     tmp_path, monkeypatch, capsys, reason
 ):
+    (tmp_path / "config.json").write_text("{}")  # main() names a missing file first
     from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
 
     def refused(*_args, **_kwargs):

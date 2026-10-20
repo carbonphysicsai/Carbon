@@ -177,6 +177,25 @@ def test_every_code_states_its_class_and_ambiguity_favours_the_miner():
 
 
 @pytest.mark.parametrize(
+    ("code", "expected"),
+    [
+        ("aten_index_not_static", build_refusal.GAP),
+        ("aten_index_shape_or_dtype_not_supported", build_refusal.GAP),
+        ("aten_scatter_lowering_expansion_bound", build_refusal.GAP),
+        ("aten_index_lowering_expansion_bound", build_refusal.GAP),
+        ("aten_index_out_of_bounds", build_refusal.REFUSED),
+        ("key_dtype_outside_init", build_refusal.REFUSED),
+        ("allowlist_version_mismatch", build_refusal.REFUSED),
+        ("aten_scatter_registered_resource_bound", build_refusal.REFUSED),
+        ("aten_index_registered_resource_bound", build_refusal.REFUSED),
+    ],
+)
+def test_the_v6_classification_change_is_registered(code, expected):
+    """Recorded at 5cc80cbe8 (OWNER-BUILD-REFUSAL-SPLIT-01, Classification change)."""
+    assert build_refusal.CODES[code] == expected
+
+
+@pytest.mark.parametrize(
     ("code", "at", "refusal_code", "outcome"),
     [
         (
