@@ -34,10 +34,13 @@ def _load(path=REGISTRY):
         or type(document["challenges"]) is not dict
     ):
         raise RegistryInvalid("koth_registry_invalid")
+    from carbon.challenge_validator.exam_cap import registered_caps
+
+    known = registered_caps()
     for challenge, noise in document["challenges"].items():
         if (
-            type(challenge) is not str
-            or not challenge
+            # A plain lookup would silently ignore a misspelled id: refuse it.
+            challenge not in known
             or type(noise) is not dict
             or set(noise) != {"value", "measurement_digest"}
             or type(noise["value"]) not in (int, float)

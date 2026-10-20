@@ -72,3 +72,13 @@ def test_the_comparator_is_the_one_bank_promotion_accepts(tmp_path):
     assert rule["rebuild_noise"]["value"] == 0.05
     assert rule["minimum_source_entry_ids"] == [source]
     assert rule["ties"] == "incumbent_keeps"
+
+
+def test_an_id_that_is_not_a_registered_challenge_refuses(tmp_path):
+    # Otherwise the value would sit in the file and nothing would read it.
+    path = _write(
+        tmp_path,
+        {"electric-motor-magnetic": {"value": 0.05, "measurement_digest": RECORD}},
+    )
+    with pytest.raises(kr.RegistryInvalid):
+        kr.rebuild_noise("electric-motor-magnetics", path=path)
