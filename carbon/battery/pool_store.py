@@ -1739,6 +1739,18 @@ class PoolStore:
             raise StateError("private_evaluation_owner_changed")
         return body
 
+    def private_evaluation_body(
+        self, submission_id, key, *, registered_source_receipt_sha256
+    ):
+        """One filed private evaluation of a submission on an evaluation key, or None.
+
+        Operator view for the weekly fresh-draw check; it changes nothing.
+        """
+        with self.transaction() as db:
+            return self._private_evaluation(
+                db, submission_id, key, registered_source_receipt_sha256
+            )
+
     def private_evaluation_pair(
         self, submission_id, key, *, registered_source_receipt_sha256
     ):

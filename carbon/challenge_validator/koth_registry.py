@@ -34,9 +34,9 @@ def _load(path=REGISTRY):
         or type(document["challenges"]) is not dict
     ):
         raise RegistryInvalid("koth_registry_invalid")
-    from carbon.challenge_validator.exam_cap import registered_caps
+    from carbon.challenge_validator.exam_cap import registered_challenges
 
-    known = registered_caps()
+    known = registered_challenges()
     for challenge, noise in document["challenges"].items():
         if (
             # A plain lookup would silently ignore a misspelled id: refuse it.
