@@ -135,15 +135,56 @@ def input_names(adapter):
     ]
 
 
+def reference_mask(bank):
+    """Which bank rows carry a measured reference (``reference_present``,
+    REFERENCE_PRESENT_MASK_INTERFACE_20261020), checked against the values.
+
+    A bank without the key is all-present (Motor, Cooling, F02, F08). The mask
+    is authoritative; an absent row's values are the NaN sentinel. A NaN in a
+    present row, or a finite value in an absent one, refuses
+    (``reference_invalid``): a reference is never filled or guessed.
+    """
+    references = bank["references"]
+    mask = bank.get("reference_present")
+    if mask is None:
+        mask = (True,) * len(references)
+    if type(mask) not in (tuple, list) or len(mask) != len(references):
+        raise ValueError("reference_invalid")
+    for present, row in zip(mask, references, strict=True):
+        values = [float(v) for v in row]
+        if type(present) is not bool or (
+            all(math.isfinite(v) for v in values)
+            if present is False
+            else not all(math.isfinite(v) for v in values)
+        ):
+            raise ValueError("reference_invalid")
+        if present is False and not all(math.isnan(v) for v in values):
+            raise ValueError("reference_invalid")
+    return tuple(mask)
+
+
+def flat_references(bank):
+    """The bank's references, flattened; an absent row is JSON null."""
+    width = len(bank["references"][0])
+    return [
+        v
+        for present, row in zip(reference_mask(bank), bank["references"], strict=True)
+        for v in ([float(x) for x in row] if present else [None] * width)
+    ]
+
+
 def bank_rows(bank, interface_names):
-    """Data Collection's bank as measurement rows, in its declared order."""
+    """Data Collection's bank as measurement rows, in its declared order. A
+    row without a measured reference carries ``reference`` None: it never
+    enters a measure as truth."""
     rows = []
-    for case_id, cohort, record, inputs, reference in zip(
+    for case_id, cohort, record, inputs, reference, present in zip(
         bank["case_ids"],
         bank["cohorts"],
         bank["reference_records"],
         bank["inputs"],
         bank["references"],
+        reference_mask(bank),
         strict=True,
     ):
         row = {
@@ -153,7 +194,8 @@ def bank_rows(bank, interface_names):
             "inputs": dict(
                 zip(interface_names, (float(v) for v in inputs), strict=True)
             ),
-            "reference": [float(v) for v in reference],
+            "reference": [float(v) for v in reference] if present else None,
+            "reference_present": present,
         }
         if cohort.startswith("decision_"):
             # decision-<design>-<condition>; design order is the objective's.
@@ -173,6 +215,12 @@ def bank_digest(bank):
                 "cohorts": list(bank["cohorts"]),
                 "inputs": [[float(v) for v in row] for row in bank["inputs"]],
                 "records": list(bank["reference_records"]),
+                # Only a masked bank adds the mask, so unmasked digests stay.
+                **(
+                    {"reference_present": list(reference_mask(bank))}
+                    if "reference_present" in bank
+                    else {}
+                ),
             }
         )
     )
@@ -379,8 +427,23 @@ def pack_documents(
     reference_row = {
         "id": adapter.CASE_ID,
         "status": "RESOLVED",
-        "outputs": [float(v) for row in bank["references"] for v in row],
-        "elapsed_s": float(sum(float(r["wall_s"]) for r in bank["reference_records"])),
+        "outputs": flat_references(bank),
+        # Only a masked bank adds the mask, so unmasked reference rows stay.
+        **(
+            {"reference_present": list(reference_mask(bank))}
+            if not all(reference_mask(bank))
+            else {}
+        ),
+        # The measured solves only: a row without a reference has no wall time.
+        "elapsed_s": float(
+            sum(
+                float(r["wall_s"])
+                for r, present in zip(
+                    bank["reference_records"], reference_mask(bank), strict=True
+                )
+                if present
+            )
+        ),
         "source": "MEASURED_ENGINEERING_REFERENCE_RUN",
         "solver_digest": identity["solver_digest"],
         "fidelity_digest": identity["fidelity_digest"],
@@ -739,8 +802,7 @@ def _inputs(
             else "dual_native_reference_unresolved"
         )
     require(
-        references[0].get("outputs")
-        == [float(v) for row in bank["references"] for v in row],
+        references[0].get("outputs") == flat_references(bank),
         "dual_native_reference_flat_binding",
     )
     receipt, worker, values, inference = source_module._authenticated_graph_outputs(

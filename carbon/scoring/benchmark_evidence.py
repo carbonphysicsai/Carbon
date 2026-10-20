@@ -289,6 +289,32 @@ def _outputs(values, size):
     return [_number(value) for value in values]
 
 
+def _masked_outputs(values, size, mask):
+    """A masked reference row (REFERENCE_PRESENT_MASK_INTERFACE_20261020): a
+    value is null exactly where its case has no measured reference, and a
+    number everywhere else; the mask is authoritative."""
+    if (
+        type(values) is not list
+        or len(values) != size
+        or type(mask) is not list
+        or not mask
+        or any(type(present) is not bool for present in mask)
+        or all(mask)
+        or size % len(mask)
+    ):
+        raise BenchmarkRefused("output_shape")
+    width = size // len(mask)
+    return [
+        _number(value) if mask[index // width] else _absent(value)
+        for index, value in enumerate(values)
+    ]
+
+
+def _absent(value):
+    if value is not None:
+        raise BenchmarkRefused("reference_invalid")
+
+
 def compare(registration, references, models, *, score_pack=None):
     """Report paired accuracy, gates and measured speed on the full roster.
 
@@ -315,7 +341,7 @@ def compare(registration, references, models, *, score_pack=None):
             raise BenchmarkRefused("reference_status")
         if status == "RESOLVED":
             if (
-                set(row)
+                set(row) - {"reference_present"}
                 != {
                     "id",
                     "status",
@@ -348,7 +374,15 @@ def compare(registration, references, models, *, score_pack=None):
                     else "solver_measurement_required"
                 )
             reference_rows[cid] = {
-                "outputs": _outputs(row["outputs"], registration["output"]["size"]),
+                "outputs": (
+                    _masked_outputs(
+                        row["outputs"],
+                        registration["output"]["size"],
+                        row["reference_present"],
+                    )
+                    if "reference_present" in row
+                    else _outputs(row["outputs"], registration["output"]["size"])
+                ),
                 "elapsed_s": _number(row["elapsed_s"], positive=True),
                 "peak_memory_bytes": _peak_memory(
                     row["peak_memory_bytes"], registration
@@ -470,9 +504,11 @@ def compare(registration, references, models, *, score_pack=None):
                     counts["scientific_inadmissible"] += 1
                 reference = reference_rows[cid]
                 try:
+                    # Descriptive only; a masked case (no reference) has no error.
                     case_error = statistics.fmean(
                         _derived(abs(a - b))
                         for a, b in zip(prediction, reference["outputs"], strict=True)
+                        if b is not None
                     )
                 except OverflowError as exc:
                     raise BenchmarkRefused("derived_nonfinite") from exc

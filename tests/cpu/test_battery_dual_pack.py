@@ -235,6 +235,17 @@ def test_d_is_the_quiz_regret_over_ev4_development_under_v2_truth():
         for r in records
         if r["case_id"].startswith("ev4:D-")
     }
+    from carbon.battery.value import contract as ev
+    from carbon.battery.value import quiz
+
+    # EV4's own 35-candidate grid, the grid its references cover.
+    assert len(ev.candidates(contract)) == 35
+    assert len(predictions) == 12 * 35
+    for entry in scenarios:
+        scenario = quiz.q3_scenario(entry["id"], entry["conditions"][0])
+        judged = bdm.q3_judge_v2(contract, scenario, predictions, refs)
+        # A model that answers every grid case is never "output missing".
+        assert judged is None or judged["kind"] != "MODEL_OUTPUT_MISSING"
     q, measures = bdm.decision_value(contract, scenarios, predictions, refs)
     assert 0 < q <= 1
     assert 0 < measures["scenarios"] <= 12

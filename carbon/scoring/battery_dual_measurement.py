@@ -177,13 +177,16 @@ def false_feasible_rate_v2(contract, predictions, case_ids, refs, labels):
 def q3_judge_v2(contract, scenario, grid_predictions, grid_refs):
     """``quiz.q3_judge`` with the reference grid assessed under the plating-v2
     gate (``gate_plating_v2.assess_reference``), or None for a scenario whose
-    reference grid holds no feasible design (``quiz.q3_feasible``'s rule)."""
+    reference grid holds no feasible design (``quiz.q3_feasible``'s rule).
+
+    The candidates are EV4's own frozen grid (``contract.candidates``, 35), the
+    grid the decision references cover; ``quiz.q3_candidates`` is the quiz's
+    finer 117-member grid, whose EV4 subset has the same order."""
     from carbon.battery.value import contract as ev
     from carbon.battery.value import decision as d
     from carbon.battery.value import gate_plating_v2 as gp
-    from carbon.battery.value import quiz
 
-    candidates = quiz.q3_candidates()
+    candidates = ev.candidates(contract)
     keys = {(c["id"], 0): ev.case_id(contract, scenario, c, 0) for c in candidates}
     refs = {key: grid_refs[cid] for key, cid in keys.items() if cid in grid_refs}
     reference = gp.assess_reference(contract, scenario, candidates, refs, keys)
