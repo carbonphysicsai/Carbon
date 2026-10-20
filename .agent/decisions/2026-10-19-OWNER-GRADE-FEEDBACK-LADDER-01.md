@@ -2,7 +2,14 @@
 
 Date: 2026-10-19
 Status: APPROVED by the owner ("Approve both. We have to make sure we have the right data and right questions for the exam."). Confirmed in the Test Lead's session and relayed to the Carbon Validator, who records it.
-Implementation: **not yet implemented.** The private-exam grade disclosure (rounded total, A and D on the η = 0.02 ladder, registry gate names) is unbuilt as of `a3e0771df`.
+Implementation:
+- **The document builder is built** in `carbon/scoring/grade_feedback.py`, at `claude/grade-feedback-ladder` `570189455`:
+  - an allow-listed document;
+  - total, A and D floored to max(0.02, rebuild noise);
+  - the ladder per exam version;
+  - gate names from the registry only;
+  - NOT_SCORED with no numbers for any result that doesn't count.
+- **Not yet built:** storing each miner's best document and serving the documents to miners. Until that's built, no private-exam feedback reaches miners.
 Design: `codex-queue/reports/RECIPE_GRADE_DISCLOSURE_PROPOSAL_20261019.md`.
 
 ## Decided
