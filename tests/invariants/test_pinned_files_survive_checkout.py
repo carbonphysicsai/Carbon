@@ -19,6 +19,10 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.invariant
+
 ROOT = Path(__file__).resolve().parents[2]
 SCANNED = ("carbon", "scripts", "tests")
 _HEX = re.compile(r"[0-9a-f]{64}\Z")
