@@ -15,6 +15,7 @@ from carbon.reconstruction.accelerators import (
     RTX3060_LAPTOP_PROFILE,
     AcceleratorRole,
 )
+from carbon.reconstruction.profile import ACCELERATOR_ENVIRONMENT_VERSION
 from carbon.reconstruction.worker import accelerator_runtime as runtime
 from carbon.reconstruction.worker.controller import IsolatedReconstructionController
 from carbon.reconstruction.worker.docker_runtime import create_arguments
@@ -345,7 +346,9 @@ def _gpu_fixture(tmp_path, monkeypatch):
 
     original = c02_fixtures.compile_c02_plan
     monkeypatch.setattr(c02_fixtures, "ENVIRONMENT_ID", GPU_PROFILE.profile_id)
-    monkeypatch.setattr(c02_fixtures, "ENVIRONMENT_VERSION", "1.0")
+    monkeypatch.setattr(
+        c02_fixtures, "ENVIRONMENT_VERSION", ACCELERATOR_ENVIRONMENT_VERSION
+    )
     monkeypatch.setattr(
         c02_fixtures,
         "DEPENDENCY_SPECS",
