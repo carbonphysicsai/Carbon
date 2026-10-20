@@ -144,3 +144,21 @@ def test_a_chain_graph_network_lowers_under_v6_and_matches_torch():
     np.testing.assert_allclose(
         np.asarray(got), module(h).detach().numpy(), rtol=1e-6, atol=1e-6
     )
+
+
+def test_the_miner_s_tensor_and_carbon_s_unrolling_are_refused_apart():
+    program = _export(Gather([3, 0, 0, -1, 1, 2]), torch.ones(2, 5, 3))
+    original = dict(allowlist_module.CAPS)
+    try:
+        allowlist_module.CAPS["largest_intermediate_bytes"] = 8
+        with pytest.raises(graph.GraphRefused) as refused:
+            lower_torch.lower(program, allowlist=allowlist_module.load(V6))
+        assert refused.value.code == "aten_index_registered_resource_bound"
+        allowlist_module.CAPS.update(original)
+        allowlist_module.CAPS["nodes_executed"] = 1
+        with pytest.raises(graph.GraphRefused) as refused:
+            lower_torch.lower(program, allowlist=allowlist_module.load(V6))
+        assert refused.value.code == "aten_index_lowering_expansion_bound"
+    finally:
+        allowlist_module.CAPS.clear()
+        allowlist_module.CAPS.update(original)

@@ -324,7 +324,8 @@ def test_static_out_of_bounds_and_registered_cost_refuse():
             lower_torch.lower(program, allowlist=_prospective())
     finally:
         allowlist_module.CAPS["nodes_executed"] = original
-    assert refused.value.code == "aten_scatter_registered_resource_bound"
+    # Only Carbon's unrolling overflows: a capability gap, not the miner's tensor.
+    assert refused.value.code == "aten_scatter_lowering_expansion_bound"
 
     original = allowlist_module.CAPS["largest_intermediate_bytes"]
     allowlist_module.CAPS["largest_intermediate_bytes"] = 31

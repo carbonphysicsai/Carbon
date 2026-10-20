@@ -708,14 +708,17 @@ def _scatter_add_static(b, node, env):
     # sum of all outputs; graph.measure applies that same registered meaning.
     nodes = 2 + 7 * count
     bytes_per_result = math.prod(shape) * max(graph.itemsize(dtype), 4)
+    # The miner's own tensor first (a candidate refusal), then what only Carbon's
+    # unrolling adds (a Carbon capability gap; Validator classes, 5cc80cbe8).
+    if bytes_per_result > allowlist_module.CAPS["largest_intermediate_bytes"]:
+        raise graph.GraphRefused("aten_scatter_registered_resource_bound", target)
     if (
         len(b.nodes) + nodes > allowlist_module.CAPS["nodes_executed"]
-        or bytes_per_result > allowlist_module.CAPS["largest_intermediate_bytes"]
         or graph.VALUE_BYTES
         * (graph.unique_constant_values(b.constants) + emitted_values)
         > allowlist_module.CAPS["constant_bytes"]
     ):
-        raise graph.GraphRefused("aten_scatter_registered_resource_bound", target)
+        raise graph.GraphRefused("aten_scatter_lowering_expansion_bound", target)
 
     coordinates = b.emit(
         "iota",
@@ -839,11 +842,10 @@ def _index_static(b, node, env):
         else:
             runs.append([i, i + 1])
     bytes_per_result = math.prod(expected) * max(graph.itemsize(dtype), 4)
-    if (
-        len(b.nodes) + len(runs) + 1 > allowlist_module.CAPS["nodes_executed"]
-        or bytes_per_result > allowlist_module.CAPS["largest_intermediate_bytes"]
-    ):
+    if bytes_per_result > allowlist_module.CAPS["largest_intermediate_bytes"]:
         raise graph.GraphRefused("aten_index_registered_resource_bound", target)
+    if len(b.nodes) + len(runs) + 1 > allowlist_module.CAPS["nodes_executed"]:
+        raise graph.GraphRefused("aten_index_lowering_expansion_bound", target)
     pieces = []
     for start, stop in runs:
         piece_shape = list(shape)
