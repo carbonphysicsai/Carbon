@@ -125,6 +125,49 @@ def test_start_needs_a_prepared_state(tmp_path):
         receiver_setup.start(tmp_path)
 
 
+def _prepared_state(tmp_path):
+    config = tmp_path / "receiver" / receiver_setup.CONFIG_NAME
+    config.parent.mkdir(parents=True)
+    config.write_text("{}")
+    return tmp_path
+
+
+@pytest.mark.parametrize("linger", ["no", "yes"])
+def test_a_detached_start_refuses_without_linger(tmp_path, monkeypatch, linger):
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append(argv[0])
+        stdout = linger + "\n" if argv[0] == "loginctl" else ""
+        return type("Done", (), {"returncode": 0, "stdout": stdout})()
+
+    monkeypatch.setattr(receiver_setup.subprocess, "run", run)
+    state = _prepared_state(tmp_path)
+    if linger == "no":
+        with pytest.raises(receiver_setup.SetupRefused) as refused:
+            receiver_setup.start(state, detach=True)
+        assert refused.value.code == "receiver_linger_off"
+        assert "loginctl enable-linger" in str(refused.value)
+        assert calls == ["loginctl"]  # nothing was started
+    else:
+        assert receiver_setup.start(state, detach=True) == 0
+        assert calls == ["loginctl", "systemd-run"]
+
+
+def test_a_detached_start_proceeds_when_loginctl_cannot_say(tmp_path, monkeypatch):
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append(argv[0])
+        if argv[0] == "loginctl":
+            raise FileNotFoundError("loginctl")
+        return type("Done", (), {"returncode": 0, "stdout": ""})()
+
+    monkeypatch.setattr(receiver_setup.subprocess, "run", run)
+    assert receiver_setup.start(_prepared_state(tmp_path), detach=True) == 0
+    assert calls == ["loginctl", "systemd-run"]
+
+
 def test_a_receiver_with_no_configuration_names_the_missing_file(tmp_path, capsys):
     missing = tmp_path / "receiver.json"
     assert direct_receiver.main(["--config", str(missing)]) == 1

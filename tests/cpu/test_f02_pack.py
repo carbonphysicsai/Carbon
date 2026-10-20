@@ -18,7 +18,7 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 
 
 def test_train40_v2_is_pinned_and_rederives_byte_for_byte():
-    material = f02_train.load_public_train()
+    material = f02_train.load_public_train("2.0")
     assert hashlib.sha256(material["train"]).hexdigest() == f02_train.TRAIN_SHA256
     assert material["inputs"].shape == (40, 2) and material["targets"].shape == (40, 1)
     assert not material["inputs"].flags.writeable
@@ -43,7 +43,7 @@ def test_the_decided_spread_is_the_s1_population_std():
     ]
     s1 = [r["outputs"]["peak_top_c"] for r in rows if r["case_id"].endswith("v2s1")]
     assert len(s1) == 24
-    std = f02_train.load_public_train()["train_peak_std_c"]
+    std = f02_train.load_public_train("2.0")["train_peak_std_c"]
     assert std == pytest.approx(float(np.std(s1, ddof=0)), rel=1e-15)
     assert round(std, 3) == 6.701 == f02_train.TRAIN_PEAK_STD_RECORDED_C
     # Not the full-TRAIN figure the owner did not pick.
@@ -64,7 +64,7 @@ def test_a_changed_source_or_version_refuses(tmp_path, monkeypatch):
     (tmp_path / f02_train._TRAIN).write_bytes(body[:-1] + bytes([body[-1] ^ 1]))
     monkeypatch.setattr(f02_train, "_DATA", tmp_path)
     with pytest.raises(ValueError, match="artifact identity differs"):
-        f02_train.load_public_train()
+        f02_train.load_public_train("2.0")
 
 
 def test_the_pack_actions_are_the_scoring_producers():
@@ -85,7 +85,7 @@ def test_bank_is_the_eight_accepted_primaries_and_straddles():
     peaks = bank["references"][:, 0]
     assert (peaks <= 95.0).sum() == 3 and (peaks > 95.0).sum() == 5
     assert bank["decision_coverage"] == "RANKING_AND_FEASIBILITY_STRADDLE"
-    train = f02_train.load_public_train()["inputs"].tolist()
+    train = f02_train.load_public_train("2.0")["inputs"].tolist()
     assert not {tuple(r) for r in bank["inputs"].tolist()} & {tuple(r) for r in train}
 
 
@@ -140,7 +140,7 @@ def test_kit_carries_the_spread_and_the_pack_prepares(tmp_path):
     assert set(missing["public"]) == {"accuracy_definition"}
     assert set(missing["private"]) == {"score_pack"}
     assert (pack / "public" / "train.npz").read_bytes() == (
-        f02_train.load_public_train()["train"]
+        f02_train.load_public_train("2.0")["train"]
     )
 
 

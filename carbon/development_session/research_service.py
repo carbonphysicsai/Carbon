@@ -234,10 +234,10 @@ class DirectFixtureDiscovery:
         practice_ids = material.get("practice_case_ids")
         battery = key == battery_challenge.CHALLENGE
         physical = physical_material.is_registered(key.challenge_id, key.version)
-        # F08 is a float32 numeric interface; Motor, Cooling and Battery are float64.
+        # F08 and F02 are float32 numeric interfaces; Motor, Cooling and Battery are float64.
         expected_dtype = (
             np.float32
-            if key.challenge_id == "f08-ribbed-bracket"
+            if key.challenge_id in ("f08-ribbed-bracket", "f02")
             else (np.float64 if battery or physical else np.float32)
         )
         if type(practice) is not np.ndarray or type(reference) is not np.ndarray:
