@@ -98,14 +98,16 @@ def next_best(best, document):
     return best
 
 
-def ladder_feedback(graded, *, best, exam_version, gate_registry, rebuild_noise=None):
+def ladder_feedback(graded, *, best, exam_version, gate_registry, rebuild_noise):
     """The miner's feedback document for one graded result.
 
     ``graded`` is the ScoreEngine's row for the miner's model (``status``,
     ``score``, ``legs``, ``gates``); ``best`` the miner's best document for
     this Challenge (its last IMPROVED one, see ``next_best``), or None;
     ``gate_registry`` the Challenge's closed set of registered gate names;
-    ``rebuild_noise`` its registered value, or None.
+    ``rebuild_noise`` its registered value, or None when none is registered.
+    It has no default, so a caller that forgets it fails instead of silently
+    showing values finer than the registered noise allows.
     """
     if type(exam_version) is not str or not exam_version:
         raise LadderFeedbackRefused("exam_version")
