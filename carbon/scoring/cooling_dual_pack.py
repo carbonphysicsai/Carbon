@@ -199,7 +199,16 @@ def measure(
 
 def _baseline_outputs(bank_rows, train):
     """The packet's learned-krr-v1 baseline, rebuilt from public TRAIN, on the
-    bank (log-rise/log-pressure targets, the study's length and ridge)."""
+    bank (log-rise/log-pressure targets, the study's length and ridge), with
+    its linear algebra pinned to one thread."""
+    return physical.single_threaded(
+        "carbon.scoring.cooling_dual_pack:_baseline_here",
+        cases=[row["inputs"] for row in bank_rows],
+        train=train,
+    )
+
+
+def _baseline_here(*, cases, train):
     import numpy as np
 
     from carbon import learned_baseline
@@ -221,7 +230,6 @@ def _baseline_outputs(bank_rows, train):
     krr = learned_baseline.KernelRidge(
         x, np.asarray(targets), spec["length"], spec["ridge"]
     )
-    cases = [row["inputs"] for row in bank_rows]
     rows = krr.predict(
         learned_baseline.scale(cases, domain.INPUTS, domain.INPUT_BOUNDS)
     )

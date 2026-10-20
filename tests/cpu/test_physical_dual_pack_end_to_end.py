@@ -24,8 +24,6 @@ from test_public_bundle_model_custody import _json, _npz, _sha
 
 from carbon.challenge_kit import physical_pack
 from carbon.challenge_validator.evaluation_pack import parse_pack, prepare_pack
-from carbon.motor import recipes
-from carbon.motor.challenge import PublicMaterial
 from carbon.scoring import bundle_benchmark_core as bundle
 from carbon.scoring import cooling_dual_pack as cooling
 from carbon.scoring import f08_dual_pack as f08
@@ -254,18 +252,9 @@ def _pair(receipt, outputs):
 
 def _baseline(name, bank, public, names):
     if name == "motor":
-        model = recipes.build(
-            "kernel_ridge",
-            {"length": 4.0, "ridge": 1e-4},
-            PublicMaterial.load(physical_pack._REPOSITORY).train,
+        return motor.baseline_outputs(
+            [dict(zip(names, map(float, row))) for row in bank["inputs"]]
         )
-        return [
-            [
-                float(v)
-                for v in model.predict(dict(zip(names, map(float, row))))["torque_nm"]
-            ]
-            for row in bank["inputs"]
-        ]
     if name.startswith("f08"):
         return f08._baseline_outputs(
             physical.bank_rows(bank, names), public["train"], names

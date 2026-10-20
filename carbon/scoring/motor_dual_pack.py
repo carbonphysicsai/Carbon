@@ -169,6 +169,31 @@ def _train_records(train_raw):
     ]
 
 
+#: The registered Motor baseline (learned-krr-v1: kernel ridge, length 4,
+#: ridge 1e-4; Launchpad's KRR baseline packet 5e200e38).
+BASELINE = {"model": "kernel_ridge", "length": 4.0, "ridge": 1e-4}
+
+
+def baseline_outputs(cases):
+    """The registered baseline rebuilt from public TRAIN, predicted on
+    ``cases`` (input dicts), with its linear algebra pinned to one thread."""
+    return physical.single_threaded(
+        "carbon.scoring.motor_dual_pack:_baseline_here", cases=list(cases)
+    )
+
+
+def _baseline_here(*, cases):
+    from carbon.motor import recipes
+    from carbon.motor.challenge import PublicMaterial
+
+    model = recipes.build(
+        BASELINE["model"],
+        {"length": BASELINE["length"], "ridge": BASELINE["ridge"]},
+        PublicMaterial.load(Path(__file__).resolve().parents[2]).train,
+    )
+    return [[float(v) for v in model.predict(case)["torque_nm"]] for case in cases]
+
+
 def measure(
     *, bank_rows, outputs, repeats, definition, limits, objective, train_raw, names
 ):

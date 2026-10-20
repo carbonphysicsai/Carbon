@@ -161,7 +161,21 @@ def measure(
 
 def _baseline_outputs(bank_rows, train_raw, names):
     """The packet's registered baseline (KRR, length 2, ridge 1e-4) rebuilt
-    from public TRAIN, on the bank."""
+    from public TRAIN, on the bank, with its linear algebra pinned to one
+    thread."""
+    import base64
+
+    return physical.single_threaded(
+        "carbon.scoring.f08_dual_pack:_baseline_here",
+        cases=[row["inputs"] for row in bank_rows],
+        train_b64=base64.b64encode(train_raw).decode("ascii"),
+        names=list(names),
+    )
+
+
+def _baseline_here(*, cases, train_b64, names):
+    import base64
+
     import numpy as np
 
     from carbon import learned_baseline
@@ -170,6 +184,7 @@ def _baseline_outputs(bank_rows, train_raw, names):
 
     # The registered geometry bounds (the packet's BOUNDS, the same values).
     bounds = dict(zip(f08_train.FIELDS, structures_readiness.BOUNDS, strict=True))
+    train_raw = base64.b64decode(train_b64)
     with np.load(io.BytesIO(train_raw), allow_pickle=False) as data:
         inputs = np.asarray(data["inputs"], dtype=float)
         targets = np.asarray(data["targets"], dtype=float)
@@ -181,9 +196,7 @@ def _baseline_outputs(bank_rows, train_raw, names):
         spec["length"],
         spec["ridge"],
     )
-    predicted = model.predict(
-        learned_baseline.scale([row["inputs"] for row in bank_rows], names, bounds)
-    )
+    predicted = model.predict(learned_baseline.scale(cases, names, bounds))
     return [[float(v) for v in row] for row in predicted]
 
 

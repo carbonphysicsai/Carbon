@@ -48,6 +48,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 MANIFEST_NAME = "evaluation-pack.json"
@@ -69,6 +72,46 @@ def canonical(value):
 
 def sha(raw):
     return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+#: Every BLAS/OpenMP pool a numpy build may use, pinned to one thread.
+_SINGLE_THREAD = {
+    name: "1"
+    for name in (
+        "OMP_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+    )
+}
+_CHILD = (
+    "import importlib, json, sys\n"
+    "sys.path.insert(0, sys.argv[1])\n"
+    "module, name = sys.argv[2].split(':')\n"
+    "kwargs = json.loads(sys.stdin.read())\n"
+    "result = getattr(importlib.import_module(module), name)(**kwargs)\n"
+    "sys.stdout.write(json.dumps(result, allow_nan=False))\n"
+)
+
+
+def single_threaded(target, **kwargs):
+    """``module:function(**kwargs)`` run in a child Python whose BLAS and
+    OpenMP pools are pinned to one thread from start-up (Validator,
+    2026-10-20): linear algebra in a baseline must not depend on the host's
+    core count. Arguments and result are JSON; floats round-trip exactly."""
+    root = str(Path(__file__).resolve().parents[2])
+    done = subprocess.run(
+        [sys.executable, "-c", _CHILD, root, target],
+        input=json.dumps(kwargs, allow_nan=False),
+        capture_output=True,
+        text=True,
+        env={**os.environ, **_SINGLE_THREAD},
+        check=False,
+    )
+    if done.returncode != 0:
+        raise RuntimeError("single-threaded baseline failed: " + done.stderr[-2000:])
+    return json.loads(done.stdout)
 
 
 def producer_digest(adapter):

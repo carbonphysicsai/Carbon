@@ -5,8 +5,11 @@ baseline legs (A 0.28108361796711556, D 0.3419193228890681), computed on
 18 Oct from saved workflow summaries. Rebuilding that same model from public
 TRAIN and measuring its predictions on the 90-row exposed development bank
 must give the same legs: the port computes the registered definition, not a
-new one. Then: an altered prediction changes the result; a gate failure, a
-missing cohort row and an invalid curve are typed, never silent.
+new one. The rebuild runs with BLAS pinned to one thread (Validator,
+2026-10-20), and its legs are asserted exactly: A 0.28108361796791453 (G1 +
+8.0e-13: the recorded value came from another host's thread count) and D
+exactly G1's. Then: an altered prediction changes the result; a gate failure,
+a missing cohort row and an invalid curve are typed, never silent.
 """
 
 from __future__ import annotations
@@ -16,13 +19,13 @@ from pathlib import Path
 
 import pytest
 
-from carbon.motor import recipes
 from carbon.motor.challenge import PublicMaterial
 from carbon.scoring import motor_dual_measurement as mdm
 from carbon.scoring import motor_dual_pack
 
 ROOT = Path(__file__).resolve().parents[2]
-BASELINE_A = 0.28108361796711556
+#: The pinned single-thread rebuild's legs, asserted exactly.
+BASELINE_A = 0.28108361796791453
 BASELINE_D = 0.3419193228890681
 #: MOTOR_DUAL_TRANSFER_ACQUISITION_MANIFEST_20261018 pilot_case_ids.
 PILOT_ORDER = (
@@ -119,10 +122,7 @@ def bank():
 @pytest.fixture(scope="module")
 def baseline(bank):
     material = PublicMaterial.load(ROOT)
-    model = recipes.build(
-        "kernel_ridge", {"length": 4.0, "ridge": 1e-4}, material.train
-    )
-    outputs = [list(model.predict(row["inputs"])["torque_nm"]) for row in bank]
+    outputs = motor_dual_pack.baseline_outputs([row["inputs"] for row in bank])
     return material, outputs
 
 
@@ -150,8 +150,8 @@ def test_the_rebuilt_baseline_reproduces_the_recorded_legs(bank, baseline):
         "native_motor_valid": True,
         "complete_fixed_coverage": True,
     }
-    assert result["A"] == pytest.approx(BASELINE_A, rel=0, abs=1e-12)
-    assert result["D"] == pytest.approx(BASELINE_D, rel=0, abs=1e-12)
+    assert result["A"] == BASELINE_A
+    assert result["D"] == BASELINE_D
     assert result["decision_outcome"] == "VERIFIED_FEASIBLE"
 
 
