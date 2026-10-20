@@ -43,3 +43,12 @@ The class's actual values. They're measured from the calibration host, not chose
   - **A rebuild on one GPU of the class is bit-identical when repeated.** Deterministic GPU kernels are enforced in the judge: XLA deterministic ops, torch deterministic algorithms, and a fixed cuBLAS workspace. If a recipe can't rebuild deterministically on that GPU, that's a typed refusal, not a silent pass.
   - **JAX and PyTorch match on that GPU** (backend parity).
   - **Everything is re-measured on the GPU class:** the paired-repeat floors, rebuild noise, leg minimums, rebuild wall time, and the cadence capacity R. That's the mainnet recalibration.
+
+## Revision: the mainnet validator machine is TBD (owner, 2026-10-20, directly in the Carbon Validator's session)
+
+> Just go TBD on the validator machine it's not a needed decision until launch time.
+
+- **The mainnet validator hardware is TBD until launch.** The earlier "GPUs, RTX 4090 confirmed for now" is a working assumption only, not a registered requirement.
+- **Nothing is built for a GPU class yet:** no GPU fields in the install check, and no GPU determinism probe as a gate. These wait for the launch-time hardware decision.
+- **The 4-vCPU DEVELOPMENT class stays the only registered class,** for testnet and rehearsal.
+- **The one-host-class rule itself stands.**
