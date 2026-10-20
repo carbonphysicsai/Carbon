@@ -111,7 +111,8 @@ def lower(spec_path, out_dir, *, challenge, interface, batch, max_bytes):
     from .. import allowlist as allowlist_module
     from .. import submission
 
-    allowlist = allowlist_module.load()
+    # The allowlist every Challenge serves, so the graph is admitted as served.
+    allowlist = allowlist_module.load_served()
     module = _load(spec_path)
     if module.FRAMEWORK == "jax":
         documents = _jax_documents(module, batch, allowlist, max_bytes)

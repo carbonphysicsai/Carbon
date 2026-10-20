@@ -81,7 +81,8 @@ def build():
 
 @pytest.fixture(scope="module")
 def allowlist():
-    return allowlist_module.load()
+    # The CLI lowers under the allowlist every Challenge serves.
+    return allowlist_module.load_served()
 
 
 def _lower(tmp_path, source, batch=4):
