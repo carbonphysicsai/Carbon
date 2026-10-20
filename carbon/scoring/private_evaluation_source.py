@@ -127,18 +127,11 @@ def produce_dual_benchmark_input(
 
 
 def _physical_adapter(challenge, version):
-    """The physical Challenge version's dual pack adapter, or None."""
-    from carbon.scoring import cooling_dual_pack, f08_dual_pack, motor_dual_pack
+    """The physical Challenge version's dual pack adapter, or None
+    (``physical_adapters``, outside every producer's identity)."""
+    from carbon.scoring import physical_adapters
 
-    if challenge == f08_dual_pack.CHALLENGE:
-        return (
-            f08_dual_pack.adapter(version=version)
-            if version in f08_dual_pack.VERSIONS
-            else None
-        )
-    return {
-        adapter.CHALLENGE: adapter for adapter in (motor_dual_pack, cooling_dual_pack)
-    }.get(challenge)
+    return physical_adapters.adapter(challenge, version)
 
 
 def produce_registered_dual_measurement(
@@ -923,6 +916,8 @@ def _authenticated_graph_outputs(entry, registration, originals):
             registration,
             inference,
             gates={name: False for name in registration["mandatory_gates"]},
+            # A per-case graded graph reads timing only from its timed query.
+            timed_query=originals.get("timed_query"),
         )
     except (
         bundle.BundleBenchmarkRefused,

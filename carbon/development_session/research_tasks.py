@@ -1230,12 +1230,8 @@ class DirectDevelopmentTasksV3:
             or evidence.get("predictions_digest") != receipt.predictions_digest
             or evidence.get("state_digest") != receipt.state_digest
             or type(inference) is not dict
-            or inference.get("schema")
-            != (
-                "carbon.development.bundle-inference.v2"
-                if measured and source["kind"] == "graph"
-                else "carbon.development.bundle-inference.v1"
-            )
+            # Graph and bundle alike grade one case at a time (v1).
+            or inference.get("schema") != "carbon.development.bundle-inference.v1"
             or inference.get("recipe_digest") != view.immutable_bindings.recipe_digest
             or inference.get("state_digest") != receipt.state_digest
             or inference.get("predictions_digest") != receipt.predictions_digest
@@ -1244,23 +1240,20 @@ class DirectDevelopmentTasksV3:
         if measured:
             from .bundle_construction_worker import _tensors
 
-            if source["kind"] != "graph":
-                # A bundle's graded query runs one case at a time; the measurement
-                # belongs to the separate batched cold query kept only for timing.
-                timed = evidence.get("timed_receipt")
-                if (
-                    type(timed) is not dict
-                    or timed.get("schema") != "carbon.development.bundle-inference.v2"
-                    or timed.get("recipe_digest") != inference.get("recipe_digest")
-                    or timed.get("state_digest") != receipt.state_digest
-                    or type(evidence.get("timed_operation")) is not str
-                    or re.fullmatch(
-                        r"operation-[0-9a-f]{64}", evidence["timed_operation"]
-                    )
-                    is None
-                ):
-                    raise ValueError("retained direct timed query differs")
-                inference = timed
+            # The graded query runs one case at a time; the measurement belongs
+            # to the separate batched cold query kept only for timing.
+            timed = evidence.get("timed_receipt")
+            if (
+                type(timed) is not dict
+                or timed.get("schema") != "carbon.development.bundle-inference.v2"
+                or timed.get("recipe_digest") != inference.get("recipe_digest")
+                or timed.get("state_digest") != receipt.state_digest
+                or type(evidence.get("timed_operation")) is not str
+                or re.fullmatch(r"operation-[0-9a-f]{64}", evidence["timed_operation"])
+                is None
+            ):
+                raise ValueError("retained direct timed query differs")
+            inference = timed
             measurement = inference.get("measurement")
             material = self.discovery._material
             import numpy as np

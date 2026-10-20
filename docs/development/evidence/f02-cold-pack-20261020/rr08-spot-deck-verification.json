@@ -1,0 +1,117 @@
+{
+ "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-rr08-spot-manifest.json",
+ "decks": "regenerated on the pod",
+ "cases": [
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p85-d5.8-v2spot-primary",
+   "selected": true,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p85-d5.8-v2spot-mesh2",
+   "selected": true,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p85-d5.8-v2spot-dt0.5",
+   "selected": true,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p87-d4.9-v2spot-primary",
+   "selected": true,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p87-d4.9-v2spot-mesh2",
+   "selected": true,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p87-d4.9-v2spot-dt0.5",
+   "selected": true,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p84-d4.2-v2spot-primary",
+   "selected": true,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p84-d4.2-v2spot-mesh2",
+   "selected": true,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p84-d4.2-v2spot-dt0.5",
+   "selected": true,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p88-d5-v2spot-primary",
+   "selected": true,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p88-d5-v2spot-mesh2",
+   "selected": true,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "c30-i40-s0.5-rectangular-p88-d5-v2spot-dt0.5",
+   "selected": true,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  }
+ ],
+ "selected": 12,
+ "selected_refused": [],
+ "all_cases_matching": 12
+}

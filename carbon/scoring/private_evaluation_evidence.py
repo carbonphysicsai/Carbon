@@ -311,12 +311,11 @@ def _bind_dual_evaluation(
         raise PrivateEvaluationEvidenceRefused("dual_measurement_shape")
     graph = type(entry) is dict and entry.get("source_kind") == "graph"
     graded_keys = _GRADED_ORIGINALS if graph else _BUNDLE_ORIGINALS
-    # A bundle's per-case graded query may carry its pinned batched timed query.
+    # A per-case graded query (bundle or graph) may carry its pinned batched
+    # timed query, the sole source of timing.
     timed = (
         {"timed_query"}
-        if not graph
-        and type(graph_originals) is dict
-        and "timed_query" in graph_originals
+        if type(graph_originals) is dict and "timed_query" in graph_originals
         else set()
     )
     if (
@@ -351,12 +350,27 @@ def _bind_dual_evaluation(
         )
     ):
         raise PrivateEvaluationEvidenceRefused("model_query_originals_unavailable")
+    if graph and timed:
+        # The graph's timed query is one of its retained custody roles.
+        role = (entry.get("roles") or {}).get("timed_receipt")
+        raw = (graph_originals["timed_query"] or {}).get("receipt_raw")
+        if (
+            type(role) is not dict
+            or type(raw) is not bytes
+            or role.get("sha256") != _sha(raw)
+        ):
+            raise PrivateEvaluationEvidenceRefused("model_query_originals_unavailable")
     if not graph:
         _rederive_bundle_measurement(
             entry, registration, graph_originals, measured_model
         )
     graded_originals = (
-        {k: graph_originals[k] for k in _GRADED_ORIGINALS} if graph else None
+        {
+            **{k: graph_originals[k] for k in _GRADED_ORIGINALS},
+            **({"timed_query": graph_originals["timed_query"]} if timed else {}),
+        }
+        if graph
+        else None
     )
     # This existing reducer authenticates retained originals and raw reference
     # rows. Its descriptive MAE/speed outputs are never used as A or D here.
