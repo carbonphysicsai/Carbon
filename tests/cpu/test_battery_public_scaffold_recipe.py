@@ -61,6 +61,9 @@ def test_the_material_stages_the_graph_and_returns_a_ready_recipe(served):
     assert training == {"steps": 2000}  # only the scaffold's published field
     assert recipe.digest not in LEG_MINIMUM_RECIPES
     assert "scaffold graph is staged" in reply["use"]
+    # The anchors' dependency is served to the agent with the scaffold.
+    assert "train_fraction 1.0" in reply["anchors"]
+    assert "initial_voltage" in reply["anchors"]
 
 
 def test_the_served_recipe_resolves_and_validates_as_practice_would(served):
@@ -116,3 +119,52 @@ def test_the_recipe_passes_the_direct_practice_door(served, tmp_path):
         assert type(request.task_spec).__name__ == "DirectPracticeTaskSpecV1"
     finally:
         composition.tasks.close()
+
+
+def test_the_anchored_scaffold_passes_every_gate_on_public_practice():
+    """The published scaffold is anchored (T(0) = t_amb, V(0) = OCV(soc0) from
+    the published table, voltage inside the protocol window), so a miner's
+    first practice scores. Scored here as the practice door scores, with the
+    exam's own gates and frozen tolerances, on public PRACTICE only."""
+    import jax
+    import numpy as np
+
+    from carbon.battery import domain
+    from carbon.battery.practice import PracticeSet, score_practice
+
+    manifest, files = public_scaffold.graph()
+    recipe = ConstructionRecipe.from_dict(public_scaffold.recipe())
+    model = direct_graph.build_validated_graph(
+        recipe,
+        manifest,
+        files,
+        max_bytes=intake.BOUNDS["submission_bytes"],
+        train_cases=challenge.TRAIN_V1_CASES,
+    )
+    material = challenge.PublicMaterial.load(REPOSITORY)
+    practice = PracticeSet.load(REPOSITORY)
+    with jax.enable_x64(False):
+        model.fit(material.train, seed=7)
+        x = np.array(
+            [[r["inputs"][k] for k in domain.INPUTS] for r in practice.records],
+            dtype=np.float32,
+        )
+        out = model.predict(x)
+    predictions = {
+        r["case_id"]: {
+            "voltage_v": out["v"][i].tolist(),
+            "temperature_c": out["t"][i].tolist(),
+            "plating_margin_v": float(out["eta"][i]),
+            "capacity_ah": out["q"][i].tolist(),
+        }
+        for i, r in enumerate(practice.records)
+    }
+    rows, summary = score_practice(predictions, practice, material, REPOSITORY)
+    assert summary["n_gate_failed"] == 0 and summary["n_scored"] == 200
+    for gate in (
+        "initial_temperature",
+        "initial_voltage",
+        "voltage_ceiling",
+        "voltage_floor",
+    ):
+        assert all(row["gates"][gate] == "PASS" for row in rows), gate

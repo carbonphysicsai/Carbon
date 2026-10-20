@@ -536,6 +536,13 @@ class BatteryPublicMaterial:
                     "training field; the scaffold graph is staged in your "
                     "workspace, and a new graph needs its own staged files."
                 ),
+                # Validator, 2026-10-20: served with the scaffold, not only in
+                # a docstring the agent never reads.
+                "anchors": (
+                    "The scaffold's initial-state anchors assume "
+                    "procedure.train_use.train_fraction 1.0; changing it breaks "
+                    "the initial_temperature and initial_voltage gates."
+                ),
             }
         if name == "objective":
             value = objective()
