@@ -13,6 +13,19 @@ The graph is Carbon's own lowering (`unit(x)` to the published input bounds,
 dense [4, 64, 64, 64, 247] with gelu), traced at the registered default batch
 (400, full batch) under the graph path's allowlist v1, and kept here as bytes
 pinned by their digests.
+
+It is anchored so it can pass the initial-state and voltage-limit gates
+(Test Lead and Validator, 2026-10-20; the unanchored scaffold failed them on
+every PRACTICE case, so no edit of its training could score). Three fixed,
+untrained pieces of public structure on the output, each from the case's own
+inputs or a published protocol limit, never a reference or exam value:
+T(0) = the input t_amb_c; V(0) = OCV(soc0) from the published OCV table (the
+judge's own piecewise-linear curve, as relu hinges at a thinned set of the
+table's knots, within 50 uV of it); every later voltage clamped into the
+published [V_MIN, V_MAX] window, 5 uV inside. The direct adapter decodes
+out * sd + mu over TRAIN, so the anchors are written in that normalized space
+with the adapter's TRAIN statistics at train_fraction 1.0 (this recipe's).
+Built by scripts/dev/battery_public_scaffold_build.py.
 """
 
 from __future__ import annotations
@@ -26,10 +39,10 @@ from .scaffold import SCAFFOLD
 
 ROOT = Path(__file__).with_name("public_scaffold")
 #: The scaffold graph's submission digest (its manifest's sha256).
-GRAPH_DIGEST = "sha256:c3ff680d66501fa9fab2a0b2d9c5f5aee2199aa4155a070d7d96af737b5e64d6"
+GRAPH_DIGEST = "sha256:b370bbfc6c300c56d390fb531adfc4e0f783fda26ef84b67c87dbd70e5824b36"
 DOCUMENTS = {
-    "forward": "sha256:ee5beeff6ed6116fe3332861c297c9b6dbcf37c7e948c902428914fb23279fe1",
-    "init_spec": "sha256:c917c2e43b1933e5943c4e2e26bac24d39629ea7f9199b30bc2cc7e267ac0d21",
+    "forward": "sha256:2b834aa74b01a17623b36edff7a6f73f50b7e9f1d8e1e578e8fce92ef57847cc",
+    "init_spec": "sha256:aabc059e6cb7ef8bd58521725a00c84f1392f51bcc7dcb285be52c7cd4a013c2",
 }
 
 
