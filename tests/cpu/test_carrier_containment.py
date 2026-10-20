@@ -79,7 +79,7 @@ def contained(data):
         "canary_list": dict(ABSENT),
         "proc1_comm": {"outcome": "ok", "value": "python"},
         "self_cgroup": {"outcome": "ok", "value": "0::/\n"},
-        "host_home_mounts": {"outcome": "ok", "matches": 0},
+        "host_home_mounts": {"outcome": "ok", "matches": 0, "below_home": []},
         "host_home_identity": dict(ABSENT),
         "host_home_canary": dict(ABSENT),
         "network_tcp": dict(UNREACHABLE),
@@ -650,7 +650,7 @@ def _home_probe(observed, host=HOST):
 
 def _observed(**changes):
     return {
-        "host_home_mounts": {"outcome": "ok", "matches": 0},
+        "host_home_mounts": {"outcome": "ok", "matches": 0, "below_home": []},
         "host_home_identity": dict(ABSENT),
         "host_home_canary": dict(ABSENT),
         **changes,
@@ -698,16 +698,22 @@ def test_a_canary_that_was_not_planted_is_neutral_and_a_readable_one_fails():
     )
 
 
-def _mount_function(tmp_path, home, mountinfo):
-    """The cell's own home_mounts, run against a mountinfo text."""
+def _mount_function(tmp_path, home, mountinfo, *, dev="8:1", root="/home/ubuntu"):
+    """The cell's own home_mounts, run against a mountinfo text. ``dev`` and ``root`` are
+    where the host home lives on its filesystem (dev None: unknown, plain paths)."""
     source = cc.cell_source({"host_home": home})
     start = source.index("def inside(")
     end = source.index("def home_identity(")
     info = tmp_path / "mountinfo"
     info.write_text(mountinfo)
-    namespace = {"Path": lambda _path: info, "home": home}
+    namespace = {
+        "Path": lambda _path: info,
+        "home": home,
+        "hashlib": hashlib,
+        "DATA": {"home_fs_dev": dev, "home_fs_root": root},
+    }
     exec(source[start:end], namespace)  # noqa: S102 - the fixed cell, against a fixture
-    return namespace["home_mounts"]()["matches"]
+    return namespace["home_mounts"]()
 
 
 MOUNTINFO = (
@@ -717,27 +723,99 @@ MOUNTINFO = (
     "102 100 8:1 /home/ubuntu/.carbon/ledger/operation-1/input /input ro - ext4 /dev/sda1 rw\n"
     "103 100 0:52 / /proc rw - proc proc rw\n"
 )
+INPUT_SOURCE = cc.source_digest(
+    {"dev": "8:1", "root": "/home/ubuntu/.carbon/ledger/operation-1/input"}
+)
 
 
 @pytest.mark.parametrize(
-    "extra,expected",
+    "extra,matches,below",
     [
-        ("", 0),
+        # only the carrier's own mount, listed by point and a digest of its source
+        ("", 0, 1),
         # a bind of the whole home somewhere else
-        ("104 100 8:1 /home/ubuntu /mnt/h ro - ext4 /dev/sda1 rw\n", 1),
+        ("104 100 8:1 /home/ubuntu /mnt/h ro - ext4 /dev/sda1 rw\n", 1, 1),
         # a mount at the home's own path, and one inside it
-        ("104 100 8:1 /x /home/ubuntu ro - ext4 /dev/sda1 rw\n", 1),
-        ("104 100 8:1 /x /home/ubuntu/.carbon ro - ext4 /dev/sda1 rw\n", 1),
-        # a mount above it, and a bind of an ancestor
-        ("104 100 8:1 /x /home ro - ext4 /dev/sda1 rw\n", 1),
-        ("104 100 8:1 /home /mnt/h ro - ext4 /dev/sda1 rw\n", 1),
-        # unrelated mounts, including a sibling directory whose name starts the same
-        ("104 100 8:1 /home/ubuntu2 /mnt/o ro - ext4 /dev/sda1 rw\n", 0),
-        ("104 100 8:1 /x /home/ubuntu2 ro - ext4 /dev/sda1 rw\n", 0),
+        ("104 100 8:1 /x /home/ubuntu ro - ext4 /dev/sda1 rw\n", 1, 1),
+        ("104 100 8:1 /x /home/ubuntu/.carbon ro - ext4 /dev/sda1 rw\n", 1, 1),
+        # a mount above it, and a bind of an ancestor, or of the whole filesystem
+        ("104 100 8:1 /x /home ro - ext4 /dev/sda1 rw\n", 1, 1),
+        ("104 100 8:1 /home /mnt/h ro - ext4 /dev/sda1 rw\n", 1, 1),
+        ("104 100 8:1 / /host ro - ext4 /dev/sda1 rw\n", 1, 1),
+        # another directory of the home: not a match, but listed and so not exempt
+        ("104 100 8:1 /home/ubuntu/.ssh /mnt/s ro - ext4 /dev/sda1 rw\n", 0, 2),
+        # unrelated: a sibling whose name starts the same, and another filesystem
+        ("104 100 8:1 /home/ubuntu2 /mnt/o ro - ext4 /dev/sda1 rw\n", 0, 1),
+        ("104 100 8:1 /x /home/ubuntu2 ro - ext4 /dev/sda1 rw\n", 0, 1),
+        ("104 100 8:9 /home/ubuntu /mnt/h ro - ext4 /dev/sdb1 rw\n", 0, 1),
+        ("104 100 8:9 / /mnt/h ro - ext4 /dev/sdb1 rw\n", 0, 1),
     ],
 )
-def test_the_cell_counts_only_mounts_that_show_the_host_home(tmp_path, extra, expected):
-    assert _mount_function(tmp_path, "/home/ubuntu", MOUNTINFO + extra) == expected
+def test_the_cell_counts_mounts_that_show_the_host_home(
+    tmp_path, extra, matches, below
+):
+    seen = _mount_function(tmp_path, "/home/ubuntu", MOUNTINFO + extra)
+    assert seen["matches"] == matches and len(seen["below_home"]) == below
+    assert {"point": "/input", "source": INPUT_SOURCE} in seen["below_home"]
+    assert "ubuntu" not in json.dumps(seen["below_home"])  # points and digests only
+
+
+def test_when_the_hosts_filesystem_is_unknown_plain_paths_decide(tmp_path):
+    # No device: the root filesystem bind is not counted (the container's own root is "/"),
+    # but a bind of the home or an ancestor still is.
+    plain = {"dev": None, "root": "/home/ubuntu"}
+    assert _mount_function(tmp_path, "/home/ubuntu", MOUNTINFO, **plain)["matches"] == 0
+    bind = MOUNTINFO + "104 100 8:1 /home/ubuntu /mnt/h ro - ext4 /dev/sda1 rw\n"
+    assert _mount_function(tmp_path, "/home/ubuntu", bind, **plain)["matches"] == 1
+
+
+def test_fs_location_gives_the_device_and_the_path_inside_it(tmp_path):
+    info = tmp_path / "mountinfo"
+    info.write_text(
+        "1 0 8:1 / / rw - ext4 /dev/sda1 rw\n"
+        "2 1 8:2 /users /home rw - ext4 /dev/sda2 rw\n"
+        "3 1 8:3 / /home/ubuntu/big rw - ext4 /dev/sda3 rw\n"
+    )
+    assert cc.fs_location("/home/ubuntu/.carbon/x", str(info)) == {
+        "dev": "8:2",
+        "root": "/users/ubuntu/.carbon/x",
+    }
+    assert cc.fs_location("/home/ubuntu/big/y", str(info)) == {
+        "dev": "8:3",
+        "root": "/y",
+    }
+    assert cc.fs_location("/etc/x", str(info)) == {"dev": "8:1", "root": "/etc/x"}
+    # An unreadable mountinfo leaves plain paths.
+    assert cc.fs_location("/home/ubuntu", str(tmp_path / "absent")) == {
+        "dev": None,
+        "root": "/home/ubuntu",
+    }
+
+
+def _mounts_probe(below, declared):
+    observed = _observed(
+        host_home_mounts={"outcome": "ok", "matches": 0, "below_home": below}
+    )
+    return _home_probe(observed, {**HOST, "declared_mounts": declared})
+
+
+def test_only_the_carriers_declared_mount_sources_are_exempt():
+    own = {"point": "/input", "source": INPUT_SOURCE}
+    ssh = {
+        "point": "/input",
+        "source": cc.source_digest({"dev": "8:1", "root": "/home/ubuntu/.ssh"}),
+    }
+    assert _mounts_probe([own], [own]) == "PASS"
+    assert _mounts_probe([], []) == "PASS"
+    # An undeclared mount from under the home fails: another directory of the home, the
+    # same source at another mount point, and anything when nothing is declared.
+    assert _mounts_probe([ssh], [own]) == "FAIL"
+    assert _mounts_probe([{**own, "point": "/mnt/x"}], [own]) == "FAIL"
+    assert _mounts_probe([own], []) == "FAIL"
+    assert (
+        _home_probe(_observed(host_home_mounts={"outcome": "ok", "matches": 0}))
+        == "FAIL"
+    )
 
 
 def test_the_home_canary_is_planted_readable_and_removed(tmp_path):
@@ -790,3 +868,47 @@ def test_a_home_canary_left_behind_fails_the_check(tmp_path, monkeypatch):
         root=tmp_path / "gate", image=IMAGE, canary_parent=parent, host_home=str(home)
     )
     assert report["status"] == "FAIL" and report["reason"] == "home_canary_not_removed"
+
+
+class DeclaredMountDocker(FakeDocker):
+    """The cell reports a mount from under the home, as the lane's own /input is."""
+
+    def __init__(self, source_of):
+        super().__init__()
+        self.source_of = source_of
+
+    def stream_kept(self, arguments, operation, *, timeout):
+        super().stream_kept(arguments, operation, timeout=timeout)
+        output = operation / "scratch" / "output" / cc.OUTPUT_NAME
+        observed = json.loads(output.read_text())
+        observed["host_home_mounts"]["below_home"] = [
+            {"point": "/input", "source": self.source_of(operation)}
+        ]
+        output.write_text(json.dumps(observed))
+
+
+def test_the_lanes_own_input_mount_passes_and_any_other_source_fails(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        cc, "fs_location", lambda path, *_: {"dev": "8:1", "root": "/fs" + str(path)}
+    )
+
+    def own(operation):
+        return cc.source_digest(
+            {"dev": "8:1", "root": "/fs" + str(operation / "input")}
+        )
+
+    install(monkeypatch, DeclaredMountDocker(own))
+    report, _ = check(tmp_path / "own")
+    assert report["status"] == "PASS", report
+
+    def elsewhere(operation):
+        return cc.source_digest(
+            {"dev": "8:1", "root": "/fs" + str(operation / "other")}
+        )
+
+    install(monkeypatch, DeclaredMountDocker(elsewhere))
+    report, _ = check(tmp_path / "other")
+    failing = [p["probe"] for p in report["probes"] if p["status"] == "FAIL"]
+    assert report["status"] == "FAIL" and failing == ["host_home"]
