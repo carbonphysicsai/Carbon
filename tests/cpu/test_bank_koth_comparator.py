@@ -52,6 +52,8 @@ def comparator(noise=None, **changes):
         "rebuild_noise": noise,
         "ties": "incumbent_keeps",
         "minimum_source_entry_ids": [BASELINE_ENTRY],
+        # Carbon's baseline total at the leg minimums (the unpaid starting king).
+        "baseline_total": 0.5,
     }
     rule.update(changes)
     return rule
@@ -64,7 +66,14 @@ ZERO = {"value": 0, "measurement_digest": digest("rebuild noise record")}
 @pytest.mark.parametrize(
     ("candidate", "incumbent", "noise", "expected"),
     [
-        (body("c"), None, None, (bp.FIRST_INCUMBENT, "first_scored_contender")),
+        (body("c"), None, None, (bp.UNAVAILABLE, "rebuild_noise_unregistered")),
+        (
+            body("c"),
+            None,
+            NOISE,
+            (bp.FIRST_INCUMBENT, "first_scored_contender_beats_baseline"),
+        ),
+        (body("c", total=0.55), None, NOISE, (bp.NO_WINNER, "within_baseline_floor")),
         (
             body("c", "FAILED_INFRA"),
             None,
@@ -113,19 +122,26 @@ ZERO = {"value": 0, "measurement_digest": digest("rebuild noise record")}
             NOISE,
             (bp.UNAVAILABLE, "incumbent_evidence_unavailable"),
         ),
-        # KOTH-TAKEOVER-RULE-01 §3a: a measured gate failure dethrones,
-        # even against a lower-scoring contender and with no noise registered.
+        # KOTH-TAKEOVER-RULE-01 §3a: a measured gate failure dethrones. The
+        # crown passes only to a contender that beats Carbon's baseline by the
+        # margin (OWNER-FIRST-CROWN-BEATS-BASELINE-01); otherwise it vacates.
         (
-            body("c", total=0.1),
+            body("c", total=0.7),
             body("k", "MANDATORY_GATE_FAILED"),
             NOISE,
             (bp.CHALLENGER, "incumbent_failed_mandatory_gate"),
         ),
         (
             body("c", total=0.1),
+            body("k", "MANDATORY_GATE_FAILED"),
+            NOISE,
+            (bp.DETHRONED, "incumbent_failed_mandatory_gate"),
+        ),
+        (
+            body("c", total=0.7),
             body("k", "CANDIDATE_INVALID"),
             None,
-            (bp.CHALLENGER, "incumbent_failed_mandatory_gate"),
+            (bp.DETHRONED, "incumbent_failed_mandatory_gate"),
         ),
         (
             body("c", "FAILED_INFRA"),
@@ -331,4 +347,33 @@ def test_the_minimum_source_list_is_required(ids):
     with pytest.raises(StateError, match="comparator_invalid"):
         bp.compare_private_pair(
             pair(body("c"), body("k")), comparator(NOISE, minimum_source_entry_ids=ids)
+        )
+
+
+def test_an_unregistered_baseline_floor_crowns_nobody():
+    """A pack without leg minimums has no baseline floor: never a free crown."""
+    outcome = bp.compare_private_pair(
+        pair(body("c"), None), comparator(NOISE, baseline_total=None)
+    )
+    assert (outcome["outcome"], outcome["reason"]) == (
+        bp.UNAVAILABLE,
+        "baseline_floor_unregistered",
+    )
+
+
+def test_a_copy_of_the_baseline_never_takes_the_first_crown():
+    """A model sitting exactly on the leg minimums ties Carbon's baseline."""
+    outcome = bp.compare_private_pair(
+        pair(body("c", total=0.5), None), comparator(NOISE)
+    )
+    assert (outcome["outcome"], outcome["reason"]) == (
+        bp.NO_WINNER,
+        "within_baseline_floor",
+    )
+
+
+def test_a_malformed_baseline_floor_refuses():
+    with pytest.raises(StateError, match="comparator_invalid"):
+        bp.compare_private_pair(
+            pair(body("c"), None), comparator(NOISE, baseline_total="0.5")
         )
