@@ -79,3 +79,9 @@ Asked by the Test Lead, "Add Battery as a fifth Challenge?", the owner answered 
 - The registry pin for v3 (`sha256:4b488bce0a43bc9b1f3914bb11b72d026ba2a1154fae5a83bc6649774c5add71`) is, like v2's, over the compact sorted canonical JSON.
 - **The baseline run that sets a pack's leg minimums never contends.** The comparator requires `minimum_source_entry_ids` (the pack's `leg_minimum_source.entry_id`). Such an entry can neither take an empty throne nor beat a king (`leg_minimum_source_not_a_contender`).
 - `rebuild_noise.measurement_digest` is checked for **shape only**. Whether it records three real rebuilds on pinned images is the packs-lane measurement and the Validator's review, not the code.
+
+## §2a Hardware scope of the rebuild-noise margin (Carbon Validator, 2026-10-19)
+
+- **Same host and same image:** the paired repeat is a same-host comparison under an identical procedure. Motor and Cooling allow ≤ 32 ulp, F08 requires exact equality, and F02 uses its measured across-runs margin. No cross-host claim is made (`exam_environment.py`).
+- **King versus challenger may be on different hosts.** The `rebuild_noise` margin must therefore be measured over rebuilds that span every CPU or host class a validator may grade on, with at least one Targon host and one other host. A margin measured on one host class is registered for that class only. A comparison across classes it doesn't cover is `UNAVAILABLE`.
+- **Today no Challenge has a registered `rebuild_noise`,** so every takeover is `UNAVAILABLE` and the crown can't move. This fails closed.
