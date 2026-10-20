@@ -54,8 +54,8 @@ INFO_PATH = "/carbon/v1/construction/intake"
 SUBMIT_PATH = PATH
 SUBMIT_TOOL = "construction_submit"
 STATUS_TOOL = "construction_status"
-#: The signed read of the caller's own best private-exam Ladder document
-#: (OWNER-GRADE-FEEDBACK-LADDER-01). Advertised in its own facts entry, not
+#: The signed read of the caller's own private-exam Ladder documents, its best
+#: and its latest (OWNER-GRADE-FEEDBACK-LADDER-01). Advertised in its own facts entry, not
 #: in `tools`, which deployed clients pin exactly.
 FEEDBACK_TOOL = "exam_feedback"
 FEEDBACK_REPLY_SCHEMA = "carbon.private-exam.ladder-feedback-reply.v1"
@@ -249,16 +249,17 @@ class DirectRecipeIntake(BatteryIntake):
         return _refused(400, "tool")
 
     def _feedback(self, hotkey):
-        """The caller's own best Ladder document for the active exam, or None:
-        nothing else, and never another hotkey's (the signed hotkey is the key)."""
+        """The caller's own best and latest Ladder documents for the active exam
+        (each None until there is one): nothing else, and never another hotkey's
+        (the signed hotkey is the key)."""
         from .ladder_store import LadderStore, LadderStoreRefused
 
         snapshot = getattr(self.adapter.discovery, "evaluation_pack_snapshot", None)
         exam_key = getattr(snapshot, "manifest_digest", None)
-        document = None
+        documents = {"best": None, "latest": None}
         if exam_key is not None:
             try:
-                document = LadderStore(self.adapter.ledger).served(
+                documents = LadderStore(self.adapter.ledger).served(
                     hotkey, self.challenge, exam_key
                 )
             except LadderStoreRefused:
@@ -271,7 +272,8 @@ class DirectRecipeIntake(BatteryIntake):
                     "id": self.challenge.challenge_id,
                     "version": self.challenge.version,
                 },
-                "document": document,
+                "best": documents["best"],
+                "latest": documents["latest"],
             },
         )
 

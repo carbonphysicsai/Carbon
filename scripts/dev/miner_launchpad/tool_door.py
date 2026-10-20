@@ -355,9 +355,9 @@ class DirectToolDoor:
             return {"ok": False, "error": "construction_intake_unavailable"}
 
     async def exam_feedback(self, value):
-        """This miner's own best private-exam Ladder document for the recipe's
-        Challenge, read signed from the pinned receiver; None before any
-        result improved it (OWNER-GRADE-FEEDBACK-LADDER-01)."""
+        """This miner's own private-exam Ladder documents for the recipe's
+        Challenge, read signed from the pinned receiver: ``{"best", "latest"}``,
+        each None until there is one (OWNER-GRADE-FEEDBACK-LADDER-01)."""
         from carbon.development_session.construction_recipe import (
             ConstructionRecipe,
             RecipeRefused,

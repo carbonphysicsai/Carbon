@@ -331,8 +331,9 @@ def read_exam_feedback(
     read=read_intake,
     send=post,
 ):
-    """The signer's own best private-exam Ladder document for the active exam
-    (OWNER-GRADE-FEEDBACK-LADDER-01), or None before a result improved it.
+    """The signer's own private-exam Ladder documents for the active exam
+    (OWNER-GRADE-FEEDBACK-LADDER-01): ``{"best", "latest"}``, the best None
+    before a result improved it and the latest None before any graded result.
 
     Only the builder's allow-listed fields are accepted back: a reply of any
     other shape is refused, never trimmed."""
@@ -361,16 +362,21 @@ def read_exam_feedback(
         raise DirectIntakeRefusal(_refusal_code(answer, "exam_feedback_unavailable"))
     challenge = recipe.to_dict()["challenge"]
     if (
-        set(answer) != {"schema", "challenge", "document"}
+        set(answer) != {"schema", "challenge", "best", "latest"}
         or answer["schema"] != FEEDBACK_REPLY_SCHEMA
         or answer["challenge"]
         != {"id": challenge["id"], "version": challenge["version"]}
     ):
         raise DirectIntakeRefusal("exam_feedback_reply_invalid")
-    if answer["document"] is None:
-        return None
     try:
-        return checked(answer["document"])
+        return {
+            "best": None if answer["best"] is None else checked(answer["best"]),
+            "latest": (
+                None
+                if answer["latest"] is None
+                else checked(answer["latest"], latest=True)
+            ),
+        }
     except LadderStoreRefused:
         raise DirectIntakeRefusal("exam_feedback_reply_invalid") from None
 
