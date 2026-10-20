@@ -71,7 +71,7 @@ def test_graph_combination_marker_control_cannot_be_mistaken_for_valid_graph_acc
         level4_model,
         level4_worker,
     )
-    from carbon.battery import level4 as battery
+    from carbon.battery import level4_lowering as battery_lowering
     from carbon.level4 import allowlist, intake, staging, submission
 
     # S2 can compile metadata for a graph combination. The zero marker is
@@ -87,7 +87,7 @@ def test_graph_combination_marker_control_cannot_be_mistaken_for_valid_graph_acc
         development_rebuild.build_in_process(marker.construction, marker.record)
 
     # A real public bundle supplies a positive control for the same boundary.
-    manifest, files = battery.lower_recipe(
+    manifest, files = battery_lowering.lower_recipe(
         audit.strategies()["C0"],
         allowlist.load(),
         max_bytes=intake.BOUNDS["document_bytes"],

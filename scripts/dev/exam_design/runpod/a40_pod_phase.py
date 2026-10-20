@@ -104,6 +104,7 @@ import hashlib, json, sys, time
 import jax
 import numpy as np
 from carbon.battery import level4 as battery
+from carbon.battery import level4_lowering as battery_lowering
 from carbon.battery.recipes import features
 from carbon.level4 import allowlist as allowlist_module
 from carbon.level4 import intake, staging, submission, train, validate
@@ -116,13 +117,13 @@ allowlist = allowlist_module.load()
 digest, raw_manifest, files = staging.read_directory(directory)
 if digest != expected:
     raise SystemExit("the staged submission is not the run record's")
-interface = battery.interface(strategy)
+interface = battery_lowering.interface(strategy)
 _, parsed = submission.verify(
     raw_manifest, files, allowlist=allowlist, challenge=battery.challenge_id(),
     interface=interface.digest(), max_bytes=intake.BOUNDS["document_bytes"],
 )
 verdict = validate.validate_submission(
-    parsed, allowlist, interface=interface, batch=battery.training_batch(strategy)
+    parsed, allowlist, interface=interface, batch=battery_lowering.training_batch(strategy)
 )
 prepared = train.prepare(parsed, allowlist, verdict=verdict)
 result = train.train(battery, strategy, prepared, seed=seed)

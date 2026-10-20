@@ -143,13 +143,14 @@ def test_battery_kit_digests_are_the_published_arrays_from_either_source():
 
 def test_a_battery_state_carries_the_train_statistics_it_reads():
     from carbon.battery import level4 as battery
+    from carbon.battery import level4_lowering as battery_lowering
     from carbon.battery import level4_model, level4_worker
     from carbon.battery.compile import compile_recipe
     from carbon.level4 import intake, staging, submission
 
     strategy = battery._steps(battery.level0_strategies()["scaffold_mlp"], 16)
     _, recipe = compile_recipe(strategy)
-    manifest, files = battery.lower_recipe(
+    manifest, files = battery_lowering.lower_recipe(
         strategy, allowlist_module.load(), max_bytes=intake.BOUNDS["document_bytes"]
     )
     found = {"schema": level4_worker.SCHEMA, "submission": submission.digest(manifest)}

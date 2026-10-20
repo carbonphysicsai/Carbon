@@ -160,9 +160,10 @@ def test_battery_development_interface(allowlist):
     import jax
 
     from carbon.battery import level4 as battery
+    from carbon.battery import level4_lowering as battery_lowering
 
     strategy = battery.level0_strategies()["panel_deeponet"]
-    net = battery.jax_network(strategy, battery.material().train)
+    net = battery_lowering.jax_network(strategy, battery.material().train)
     _, p = net["init"](jax.random.PRNGKey(0))
     leaves = jax.tree_util.tree_leaves(p)
     f = jax.ShapeDtypeStruct((1, net["n_in"]), net["dtype"])
@@ -178,7 +179,7 @@ def test_battery_development_interface(allowlist):
         doc,
         allowlist,
         role="forward",
-        interface=battery.interface(strategy),
+        interface=battery_lowering.interface(strategy),
         caps=FIXTURE_CAPS,
     )
     assert verdict["status"] == "admitted" and verdict["batch"] == 1

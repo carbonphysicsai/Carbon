@@ -29,11 +29,12 @@ CHALLENGE = "battery-fastcharge-ageing-development-v1"
 @pytest.fixture(scope="module")
 def staged():
     from carbon.battery import level4 as battery
+    from carbon.battery import level4_lowering as battery_lowering
     from carbon.level4 import allowlist as allowlist_module
     from carbon.level4 import intake, staging, submission
 
     strategy = json.loads(json.dumps(battery.level0_strategies()["scaffold_mlp"]))
-    manifest, files = battery.lower_recipe(
+    manifest, files = battery_lowering.lower_recipe(
         strategy, allowlist_module.load(), max_bytes=intake.BOUNDS["document_bytes"]
     )
     raw = submission.canonical(manifest)

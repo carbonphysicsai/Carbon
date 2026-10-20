@@ -32,6 +32,7 @@ os.environ.setdefault("JAX_PLATFORMS", "cpu")
 
 from carbon.battery import level4 as battery
 from carbon.battery import level4_admission, level4_model
+from carbon.battery import level4_lowering as battery_lowering
 from carbon.level4 import allowlist as allowlist_module
 from carbon.level4 import graph, intake, staging, submission
 
@@ -45,7 +46,7 @@ def _strategy(label="scaffold_mlp", **settings):
 
 
 def _envelope(strategy):
-    manifest, files = battery.lower_recipe(
+    manifest, files = battery_lowering.lower_recipe(
         strategy,
         allowlist_module.load(),
         max_bytes=intake.BOUNDS["document_bytes"],
@@ -94,7 +95,7 @@ def test_a_loss_graph_without_the_variants_declaration_is_refused():
 
     strategy = _strategy()
     allowlist = allowlist_module.load()
-    manifest, files = battery.lower_recipe(
+    manifest, files = battery_lowering.lower_recipe(
         strategy, allowlist, max_bytes=intake.BOUNDS["document_bytes"]
     )
     by_slot = {slot: files[name] for slot, name in manifest["documents"].items()}
@@ -150,8 +151,8 @@ def test_admission_validates_where_the_miner_lowers_and_the_rebuild_trains(
         ensemble_members=members,
     )
     interface, batch = level4_admission.interface_and_batch(strategy)
-    assert interface == battery.interface(strategy)
-    assert batch == battery.training_batch(strategy)
+    assert interface == battery_lowering.interface(strategy)
+    assert batch == battery_lowering.training_batch(strategy)
     assert batch == used
 
 

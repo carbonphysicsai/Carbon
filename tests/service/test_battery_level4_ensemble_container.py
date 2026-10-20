@@ -30,6 +30,7 @@ sys.path[:0] = [str(REPOSITORY / "tests" / "service")]
 import battery_container_runner as runner
 
 from carbon.battery import level4 as battery
+from carbon.battery import level4_lowering as battery_lowering
 from carbon.battery import level4_model, level4_worker
 from carbon.battery.compile import compile_recipe
 from carbon.battery.pool_store import PoolStore
@@ -57,7 +58,7 @@ def test_a_graph_ensemble_rebuilds_and_infers_in_the_isolated_container(
 ):
     strategy = _ensemble(label)
     _, recipe = compile_recipe(strategy)
-    manifest, files = battery.lower_recipe(
+    manifest, files = battery_lowering.lower_recipe(
         strategy, allowlist_module.load(), max_bytes=intake.BOUNDS["document_bytes"]
     )
     found = {"schema": level4_worker.SCHEMA, "submission": submission.digest(manifest)}

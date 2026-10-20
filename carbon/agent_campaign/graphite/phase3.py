@@ -2717,10 +2717,10 @@ def dry_run_graph(strategy):
     """Lower Carbon's own benign fixture recipe, never participant model source."""
     import gzip
 
-    from carbon.battery import level4
+    from carbon.battery import level4, level4_lowering
     from carbon.level4 import allowlist, intake, staging, submission
 
-    manifest, files = level4.lower_recipe(
+    manifest, files = level4_lowering.lower_recipe(
         strategy, allowlist.load(), max_bytes=intake.BOUNDS["document_bytes"]
     )
     envelope = staging.envelope(submission.canonical(manifest), files)

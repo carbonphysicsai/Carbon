@@ -19,6 +19,7 @@ pytest.importorskip("jax")
 os.environ.setdefault("JAX_PLATFORMS", "cpu")
 
 from carbon.battery import level4 as battery
+from carbon.battery import level4_lowering as battery_lowering
 from carbon.battery import level4_worker
 from carbon.battery.compile import compile_recipe
 from carbon.level4 import allowlist as allowlist_module
@@ -29,7 +30,7 @@ STEPS = 16
 
 
 def _staged(strategy):
-    manifest, files = battery.lower_recipe(
+    manifest, files = battery_lowering.lower_recipe(
         strategy, allowlist_module.load(), max_bytes=intake.BOUNDS["document_bytes"]
     )
     raw = submission.canonical(manifest)

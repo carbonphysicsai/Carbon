@@ -17,7 +17,6 @@ pytest.importorskip("jax")
 os.environ.setdefault("JAX_PLATFORMS", "cpu")
 
 from carbon.agent_campaign.attack.adapters import battery_level1 as expressions
-
 from carbon.battery import (
     composed_graph,
     composed_worker,
@@ -28,6 +27,7 @@ from carbon.battery import (
     recipes,
 )
 from carbon.battery import level4 as battery
+from carbon.battery import level4_lowering as battery_lowering
 from carbon.battery.compile import compile_recipe
 from carbon.level4 import allowlist, graph, intake, staging, submission
 from carbon.reconstruction import development_composition as dc
@@ -71,7 +71,7 @@ def graph_input():
     # A deliberately different architecture: graph width 12, outer recipe width 8.
     # Removing the graph must therefore change the trained parameter tree.
     loaded = allowlist.load()
-    manifest, files = battery.lower_recipe(
+    manifest, files = battery_lowering.lower_recipe(
         strategy(width=12), loaded, max_bytes=intake.BOUNDS["document_bytes"]
     )
     return submission.digest(manifest), staging.workspace(
