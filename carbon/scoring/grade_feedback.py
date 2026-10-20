@@ -18,10 +18,18 @@ exam (per-case values, case ids, which cases failed, the picked design,
 references, unrounded legs) can appear: the output is built field by field
 from an allow-list, never by removing fields.
 
+The ladder's state is the miner's **best** document (its last IMPROVED one),
+kept apart from what each submission shows: NO_IMPROVEMENT and GATE_FAILED
+repeat the best values; NOT_SCORED (indeterminate evidence, a diagnostic-only
+result, infrastructure, an ineligible or invalid outcome) shows no total, A
+or D at all, so a result that does not count reveals no grade (Validator,
+2026-10-20; the cap releases its slot on that condition). ``next_best`` keeps
+the state.
+
 Values are rounded *down* to the step grid with exact decimal arithmetic, so a
 shown value never exceeds what was earned and never depends on float error.
-This module is pure: storing the previous shown document and serving it to
-the miner belong to the serving lane.
+This module is pure: storing the best document and serving documents to the
+miner belong to the serving lane.
 """
 
 from __future__ import annotations
@@ -80,37 +88,43 @@ def _document(exam_version, status, values, gate_names):
     return document
 
 
-def ladder_feedback(
-    graded, *, previous, exam_version, gate_registry, rebuild_noise=None
-):
+def next_best(best, document):
+    """The ladder state after ``document``: it replaces ``best`` only when it
+    improved, and a document for another exam version starts a fresh state."""
+    if document["status"] == "IMPROVED":
+        return document
+    if best is not None and best["exam_version"] != document["exam_version"]:
+        return None
+    return best
+
+
+def ladder_feedback(graded, *, best, exam_version, gate_registry, rebuild_noise=None):
     """The miner's feedback document for one graded result.
 
     ``graded`` is the ScoreEngine's row for the miner's model (``status``,
-    ``score``, ``legs``, ``gates``); ``previous`` the miner's last shown
-    document for this Challenge, or None; ``gate_registry`` the Challenge's
-    closed set of registered gate names; ``rebuild_noise`` its registered
-    value, or None.
+    ``score``, ``legs``, ``gates``); ``best`` the miner's best document for
+    this Challenge (its last IMPROVED one, see ``next_best``), or None;
+    ``gate_registry`` the Challenge's closed set of registered gate names;
+    ``rebuild_noise`` its registered value, or None.
     """
     if type(exam_version) is not str or not exam_version:
         raise LadderFeedbackRefused("exam_version")
     registry = frozenset(gate_registry)
     if not registry or not all(type(name) is str and name for name in registry):
         raise LadderFeedbackRefused("gate_registry")
-    if previous is not None and (
-        type(previous) is not dict
-        or set(previous) != FIELDS
-        or previous["schema"] != SCHEMA
+    if best is not None and (
+        type(best) is not dict
+        or set(best) != FIELDS
+        or best["schema"] != SCHEMA
+        or best["status"] != "IMPROVED"
     ):
-        raise LadderFeedbackRefused("previous")
+        raise LadderFeedbackRefused("best")
     grid = step(rebuild_noise)
     # A new exam version starts a fresh ladder.
-    if previous is not None and previous["exam_version"] != exam_version:
-        previous = None
-    shown = (
-        {k: previous[k] for k in ("total", "A", "D")}
-        if previous is not None
-        else {"total": None, "A": None, "D": None}
-    )
+    if best is not None and best["exam_version"] != exam_version:
+        best = None
+    none = {"total": None, "A": None, "D": None}
+    shown = {k: best[k] for k in ("total", "A", "D")} if best is not None else none
     if type(graded) is not dict or type(graded.get("status")) is not str:
         raise LadderFeedbackRefused("graded")
     status = graded["status"]
@@ -123,7 +137,8 @@ def ladder_feedback(
             raise LadderFeedbackRefused("gate_failed_without_gate")
         return _document(exam_version, "GATE_FAILED", shown, failed)
     if status not in _SCORED:
-        return _document(exam_version, "NOT_SCORED", shown, ())
+        # A result that does not count reveals no grade.
+        return _document(exam_version, "NOT_SCORED", none, ())
     total, legs = graded.get("score"), graded.get("legs")
     if type(legs) is not dict:
         raise LadderFeedbackRefused("graded")
@@ -132,7 +147,6 @@ def ladder_feedback(
         "A": _floor(legs.get("A"), grid),
         "D": _floor(legs.get("D"), grid),
     }
-    best = shown["total"]
-    if best is not None and not total >= best + grid:
+    if shown["total"] is not None and not total >= shown["total"] + grid:
         return _document(exam_version, "NO_IMPROVEMENT", shown, ())
     return _document(exam_version, "IMPROVED", rounded, ())
