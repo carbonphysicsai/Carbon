@@ -119,6 +119,20 @@ class _Impostor:
     VERSION = adapter.VERSION
 
 
+def test_no_registration_can_shadow_a_static_adapter():
+    from carbon.scoring import physical_adapters
+
+    class Shadow:
+        CHALLENGE = motor_dual_pack.CHALLENGE
+        VERSION = motor_dual_pack.VERSION
+
+    with pytest.raises(ValueError, match="statically named"):
+        physical_adapters.register(Shadow())
+    assert physical_adapters.adapter(Shadow.CHALLENGE, Shadow.VERSION) is (
+        motor_dual_pack
+    )
+
+
 def test_a_model_equal_to_the_reference_passes_every_practice_gate():
     measured = _practice(_truth())
     assert measured["A"] == 1.0

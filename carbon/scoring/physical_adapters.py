@@ -18,8 +18,36 @@ from __future__ import annotations
 _REGISTERED = {}
 
 
+def _static():
+    """The statically named adapters, by Challenge id (F08 and F02 choose a
+    version-specific adapter)."""
+    from carbon.scoring import (
+        cooling_dual_pack,
+        f02_dual_pack,
+        f08_dual_pack,
+        motor_dual_pack,
+    )
+
+    return {
+        motor_dual_pack.CHALLENGE: lambda version: motor_dual_pack,
+        cooling_dual_pack.CHALLENGE: lambda version: cooling_dual_pack,
+        f08_dual_pack.CHALLENGE: lambda version: (
+            f08_dual_pack.adapter(version=version)
+            if version in f08_dual_pack.VERSIONS
+            else None
+        ),
+        f02_dual_pack.CHALLENGE: lambda version: (
+            f02_dual_pack if version == f02_dual_pack.VERSION else None
+        ),
+    }
+
+
 def register(module):
-    """Make a validator-side adapter selectable (idempotent)."""
+    """Make a validator-side adapter selectable (idempotent). A statically
+    named Challenge, or a different adapter already registered, refuses: no
+    registration can shadow another adapter."""
+    if module.CHALLENGE in _static():
+        raise ValueError("a statically named Challenge cannot be registered")
     known = _REGISTERED.get(module.CHALLENGE)
     if known is not None and known is not module:
         raise ValueError("a different adapter is registered for this Challenge")
@@ -28,25 +56,12 @@ def register(module):
 
 
 def adapter(challenge, version):
-    """The physical Challenge version's dual pack adapter, or None."""
-    from carbon.scoring import (
-        cooling_dual_pack,
-        f02_dual_pack,
-        f08_dual_pack,
-        motor_dual_pack,
-    )
-
-    if challenge == f02_dual_pack.CHALLENGE:
-        return f02_dual_pack if version == f02_dual_pack.VERSION else None
-    if challenge == f08_dual_pack.CHALLENGE:
-        return (
-            f08_dual_pack.adapter(version=version)
-            if version in f08_dual_pack.VERSIONS
-            else None
-        )
+    """The physical Challenge version's dual pack adapter, or None
+    (statically named Challenges first, then validator-registered ones)."""
+    static = _static().get(challenge)
+    if static is not None:
+        return static(version)
     registered = _REGISTERED.get(challenge)
-    if registered is not None:
-        return registered if version == registered.VERSION else None
-    return {
-        module.CHALLENGE: module for module in (motor_dual_pack, cooling_dual_pack)
-    }.get(challenge)
+    if registered is not None and version == registered.VERSION:
+        return registered
+    return None
