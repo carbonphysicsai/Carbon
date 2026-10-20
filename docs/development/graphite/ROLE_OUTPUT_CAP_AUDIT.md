@@ -10,7 +10,7 @@ CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/canonical.sh pyth
 
 The current prospective public snapshot is
 `docs/development/evidence/role-output-cap-audit/audit-v4.json`. Its source
-basis is `91934b94ffd845f3d0a1a783f86b60a8ab4a140b`: 35 public grant files, each
+basis is `09c03aeea4b681fb532235407c070387a48c4ae1`: 35 public grant files, each
 hashed, and 11 hashed selection/role/price/grant/budget source files. It uses
 the real session selector and the phase-3/phase-4 budget calculators. It lists
 every role/model's uncached maximum input and output reservation. Reasoning
@@ -72,6 +72,17 @@ fail that control. V1, v2 and v3 bytes remain immutable; v3's SHA256 is
 `53124307c91faa286099b808a73ac73762499e574439505b79837a3cb87a7b95`.
 V4 supersedes that exact 34-grant v3. No owner-approved amount, rate, monetary
 cap, historical evidence or shared USD 100 operational grant changes.
+
+Before v4 merged, the Battery Level 4 lowering fix `09c03aeea` changed the
+pinned `phase3.py` source: `from carbon.battery import level4` became
+`level4, level4_lowering` and `level4.lower_recipe(` became
+`level4_lowering.lower_recipe(`, with the same arguments. As with the v2
+`provider.py` refresh above, this prospective snapshot is regenerated at the
+newer revision; all 35 grant files, the other ten source files and every
+cost/selection/capacity row retain their prior values. No grant figure, cap
+logic or accounting changes, and the exact regeneration control stays
+unchanged. A future re-bind carrying any non-mechanical change in those 11
+sources is the spending owner's decision, not an integrity re-pin.
 
 ## What changed at the larger cap
 
