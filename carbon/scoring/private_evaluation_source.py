@@ -82,14 +82,13 @@ def produce_dual_benchmark_input(
     adapter = _physical_adapter(entry.get("challenge") if type(entry) is dict else None)
     if adapter is not None:
         try:
-            from carbon.challenge_kit import physical_pack, physical_public_train
+            from carbon.challenge_kit import physical_pack
+            from carbon.scoring import physical_dual_pack
 
             bank = physical_pack.development_bank(
                 adapter.CHALLENGE, entry.get("challenge_version")
             )
-            names = physical_public_train.numeric_interface_document(adapter.CHALLENGE)[
-                "input_names"
-            ]
+            names = physical_dual_pack.input_names(adapter)
         except (ImportError, ValueError) as exc:
             raise PrivateEvaluationSourceRefused(
                 "dual_native_role_unavailable:development_bank"
@@ -124,10 +123,11 @@ def produce_dual_benchmark_input(
 
 def _physical_adapter(challenge):
     """The physical Challenge's dual pack adapter, or None."""
-    from carbon.scoring import cooling_dual_pack, motor_dual_pack
+    from carbon.scoring import cooling_dual_pack, f08_dual_pack, motor_dual_pack
 
     return {
-        adapter.CHALLENGE: adapter for adapter in (motor_dual_pack, cooling_dual_pack)
+        adapter.CHALLENGE: adapter
+        for adapter in (motor_dual_pack, cooling_dual_pack, f08_dual_pack)
     }.get(challenge)
 
 

@@ -1,0 +1,621 @@
+"""Product-run public f08 summary-output experiment; no solver or hidden access.
+
+Two frozen maintained KRR fits and nearest-neighbour control. Actual new whole
+geometries only; missing source-owned acceptance defers the shared score. This
+is exposed development evidence, not independent pre-truth custody or adoption.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib
+import json
+import math
+import os
+import sys
+import time
+from pathlib import Path
+
+for _name in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS"):
+    os.environ[_name] = "1"
+
+TRAIN_SHA = "bb2d030d486b313efe2c0ebf57151bb4a34727d6e307892a87e1d8a9211ccc45"
+MANIFEST_SHA = "ecad1a1205448aedccb4feb037f55663bc6dd96c9aae7f75b3c1251c193fa80c"
+SOURCE_SHA = {
+    "carbon/scoring/dual_score.py": "074bd79bfb41074f3a86ddf28de0d70107277d992217b31cd2f90f7b4e74ca83",
+    "carbon/scoring/engine.py": "df1770f78b0a904fd25fea44fdb328ee9ddb5ec72be307fea096da9aff96277b",
+    "carbon/learned_baseline.py": "b99f986c7576951ef645f1f4660fd04a45bd7a88399499748c22b126ae682926",
+}
+FIELDS = (
+    "length_mm",
+    "width_mm",
+    "thickness_mm",
+    "rib_height_mm",
+    "rib_thickness_mm",
+    "relief_length_mm",
+)
+BOUNDS = dict(zip(FIELDS, ((180, 260), (60, 100), (4, 8), (8, 16), (3, 5), (20, 60))))
+ZETAS = ("zeta_0.005", "zeta_0.01", "zeta_0.02")
+TARGETS = (
+    "mass_kg",
+    "static_tip_mm_per_n",
+    "peak_tip_z005_mm_per_n",
+    "peak_frequency_z005_hz",
+    "peak_tip_z010_mm_per_n",
+    "peak_frequency_z010_hz",
+    "peak_tip_z020_mm_per_n",
+    "peak_frequency_z020_hz",
+)
+BASELINE = "krr_length2_ridge1e-4"
+GATES = [
+    "finite_native_summary",
+    "paired_repeat",
+    "complete_accepted_reference",
+    "verified_pick_feasible",
+]
+
+
+class Refused(ValueError):
+    """Public source/material contract mismatch, never scientific failure."""
+
+
+def require(ok, reason):
+    if not ok:
+        raise Refused(reason)
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def canonical(value):
+    return json.dumps(
+        value, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode()
+
+
+def digest(value):
+    return "sha256:" + hashlib.sha256(canonical(value)).hexdigest()
+
+
+def pairs(items):
+    out = {}
+    for key, value in items:
+        require(key not in out, "duplicate_json_key")
+        out[key] = value
+    return out
+
+
+def invalid_constant(value):
+    raise Refused("nonfinite_json:" + value)
+
+
+def read(path, expected=None):
+    raw = Path(path).read_bytes()
+    if expected is not None:
+        require(
+            hashlib.sha256(raw).hexdigest() == expected, "material_sha256:" + str(path)
+        )
+    return json.loads(raw, object_pairs_hook=pairs, parse_constant=invalid_constant)
+
+
+def write(path, value):
+    with Path(path).open("x", encoding="utf-8", newline="\n") as stream:
+        json.dump(value, stream, indent=2, sort_keys=True, allow_nan=False)
+        stream.write("\n")
+
+
+def action(row):
+    value = row["case"]
+    require(type(value) is dict and set(value) == set(FIELDS), "six_geometry_fields")
+    for name, (lo, hi) in BOUNDS.items():
+        x = value[name]
+        require(
+            type(x) in (int, float) and math.isfinite(x) and lo <= x <= hi,
+            "geometry_bounds:" + name,
+        )
+    return {key: float(value[key]) for key in FIELDS}
+
+
+def mass(value):
+    # Exact synthetic CAD volumes: rounded rectangular relief; two full ribs.
+    length, width, thick, height, rib, relief = (value[k] for k in FIELDS)
+    volume = length * width * thick + 2 * length * height * rib
+    volume -= (20 * relief - (4 - math.pi) * 3**2) * thick
+    return volume * 2.7e-6  # mm^3 * kg/mm^3; no accuracy credit.
+
+
+def targets(row):
+    values = [row["mass_kg"], row["static_tip_mm_per_n"]]
+    require(set(row["damping"]) == set(ZETAS), "complete_three_dampings")
+    for zeta in ZETAS:
+        item = row["damping"][zeta]
+        values.extend((item["worst_mm_per_n"], item["worst_hz"]))
+    require(
+        all(type(x) in (int, float) and math.isfinite(x) and x >= 0 for x in values),
+        "native_summary_values",
+    )
+    require(all(80 <= values[i] <= 600 for i in (3, 5, 7)), "tip_peak_band")
+    return values
+
+
+def accepted(row, convergence):
+    return (
+        row.get("mode_ladder", {}).get("verdict") == "PASS"
+        and convergence.get("rungs", {}).get("h3", {}).get("verdict") == "PASS"
+    )
+
+
+def feasible(values):
+    return values[0] <= 0.45 and values[1] <= 0.03 and max(values[2::2]) <= 0.15
+
+
+def choice(values, ids):
+    candidates = [
+        (max(row[2::2]), ids[i]) for i, row in enumerate(values) if feasible(row)
+    ]
+    return min(candidates)[1] if candidates else None
+
+
+def measurement(value=None, status="RESOLVED"):
+    return {"status": status, "value": value, "unit": "1"}
+
+
+def pack(dual, physics, contract, floors=(None, None)):
+    return dual.register_pack(
+        {
+            "schema": dual.PACK_SCHEMA,
+            "scope": "PUBLIC_DEVELOPMENT",
+            "challenge": "f08",
+            "physics_contract_digest": physics,
+            "measurement_contract_digest": contract,
+            "hard_gates": GATES,
+            "legs": {
+                name: {
+                    "components": [
+                        {
+                            "metric": metric,
+                            "unit": "1",
+                            "transform": "unit_benefit",
+                            "scale": None,
+                            "weight": 1.0,
+                        }
+                    ],
+                    "minimum": floor,
+                }
+                for name, metric, floor in (
+                    ("A", "summary_physics_benefit", floors[0]),
+                    ("D", "verified_design_benefit", floors[1]),
+                )
+            },
+            "value_weight": 0.5,
+            "combination": "weighted_arithmetic_mean",
+            "decision_policy": {
+                "VERIFIED_FEASIBLE": {"eligible": True, "maximum_D": 1.0},
+                "MISSED_OPPORTUNITY": {"eligible": False, "maximum_D": 0.0},
+                "NONE_FEASIBLE": {"eligible": False, "maximum_D": 0.0},
+            },
+        }
+    )
+
+
+def load_source(root):
+    for relative, expected in SOURCE_SHA.items():
+        require(sha(root / relative) == expected, "source_sha256:" + relative)
+    sys.path.insert(0, str(root))
+    modules = [
+        importlib.import_module(name)
+        for name in (
+            "numpy",
+            "carbon.learned_baseline",
+            "carbon.scoring.engine",
+            "carbon.scoring.dual_score",
+        )
+    ]
+    for module in modules[1:]:
+        require(
+            Path(module.__file__).resolve().is_relative_to(root), "wrong_import_source"
+        )
+    return modules
+
+
+def find_manifest(args):
+    if args.train_manifest is not None:
+        return args.train_manifest
+    for parent in args.train_observed.resolve().parents:
+        candidate = parent / "pins/f08-train-256-h3-manifest.json"
+        if candidate.is_file():
+            return candidate
+    raise Refused("full_256_train_exclusion_manifest_missing")
+
+
+def run(args):
+    np, learned, engine, dual = load_source(args.source.resolve())
+    train = read(args.train_observed, TRAIN_SHA)
+    manifest_path = find_manifest(args)
+    manifest = read(manifest_path, MANIFEST_SHA)
+    require(manifest.get("bank", {}).get("role") == "train", "train_manifest_role")
+    frozen = {r["case"]: r["action"] for r in manifest["cases"]}
+    require(
+        len(frozen) == 256 and set(frozen) == {f"train-{i:04d}" for i in range(256)},
+        "full_256_train_manifest",
+    )
+    complete = {key: row for key, row in train["cases"].items() if key != "train-0016"}
+    require(
+        len(complete) == 255 and set(train["cases"]) == set(frozen),
+        "completed_255_train_rows",
+    )
+    for key, row in complete.items():
+        require(
+            row.get("mode_ladder", {}).get("verdict") == "PASS",
+            "train_mode_ladder:" + key,
+        )
+        require(action(row) == frozen[key], "train_geometry_manifest:" + key)
+    reference = read(args.reference_observed)
+    require(
+        type(reference.get("cases")) is dict and bool(reference["cases"]),
+        "new_reference_cases_required",
+    )
+    # The native observer preserves all24 primary/witness rows. Model queries
+    # are the eight distinct primary geometries; mesh witnesses are reference
+    # adequacy evidence, never additional model cases or duplicate actions.
+    ids = [f"pilot-{i:04d}" for i in range(8)]
+    expected_rows = set(ids) | {
+        key + suffix for key in ids for suffix in ("-h2.25", "-h1.7")
+    }
+    require(
+        set(reference["cases"]) == expected_rows, "eight_primary_sixteen_witness_rows"
+    )
+    require(
+        reference.get("bands_decision") == train.get("bands_decision")
+        and reference.get("bands") == train.get("bands"),
+        "native_reference_bands_identity",
+    )
+    rows = [reference["cases"][key] for key in ids]
+    actions = [action(row) for row in rows]
+    frozen_keys = {digest(value) for value in frozen.values()}
+    require(
+        len({digest(value) for value in actions}) == len(actions),
+        "duplicate_new_geometry",
+    )
+    require(
+        not frozen_keys.intersection(digest(value) for value in actions),
+        "new_geometry_overlaps_full_train256",
+    )
+    train_ids = sorted(complete)
+    tx = learned.scale([action(complete[key]) for key in train_ids], FIELDS, BOUNDS)
+    ty = np.asarray([targets(complete[key]) for key in train_ids], dtype=float)
+    x = learned.scale(actions, FIELDS, BOUNDS)
+    spread = ty.std(axis=0)
+    require(bool(np.all(spread[1:] > 0)), "nonzero_train_scales")
+    args.output.mkdir(parents=True, exist_ok=False)
+    write(
+        args.output / "frozen_experiment.json",
+        {
+            "scope": "PUBLIC_DEVELOPMENT",
+            "source_sha256": SOURCE_SHA,
+            "train_sha256": TRAIN_SHA,
+            "train_manifest_sha256": MANIFEST_SHA,
+            "reference_sha256": sha(args.reference_observed),
+            "inputs_mm": FIELDS,
+            "targets": TARGETS,
+            "physics_scored_target_indices": list(range(1, 8)),
+            "mass": "analytic derived gate quantity; learned mass retained without physics credit",
+            "fit_settings": [[2.0, 0.0001], [4.0, 0.0001]],
+            "baseline": BASELINE,
+            "train_std": spread.tolist(),
+            "A": "min reciprocal benefit of seven component mean normalized errors and worst-geometry mean error",
+            "D_scale_mm_per_n": 0.01,
+            "D_eligibility_minimum": None,
+            "D_minimum_policy": "graded safe outcomes; never copy a perfect baseline D into an automatic eligibility cutoff",
+            "verification_budget": "one complete geometry per arm, three damping conditions; no adaptive rescreen after truth",
+            "claims": "summary-only exposed public developmental experiment; no FRF/OOD/qualification claim",
+        },
+    )
+    predictions, artifacts, fits, repeats, calls = {}, {}, {}, {}, {}
+    for length in (2.0, 4.0):
+        name = f"krr_length{int(length)}_ridge1e-4"
+        started = time.monotonic()
+        model = learned.KernelRidge(tx, ty, length, 1e-4)
+        twin = learned.KernelRidge(tx, ty, length, 1e-4)
+        fit_s = time.monotonic() - started
+        state = args.output / (name + ".npz")
+        np.savez(
+            state,
+            x=model.x,
+            mean=model.mean,
+            std=model.std,
+            alpha=model.alpha,
+            length=length,
+            ridge=1e-4,
+        )
+        np.savez(
+            args.output / (name + "_twin.npz"),
+            x=twin.x,
+            mean=twin.mean,
+            std=twin.std,
+            alpha=twin.alpha,
+            length=length,
+            ridge=1e-4,
+        )
+        started = time.monotonic()
+        first = model.predict(x)
+        second = model.predict(x)
+        twin_pred = twin.predict(x)
+        # Reload independently from saved numeric state through maintained predictor.
+        with np.load(state, allow_pickle=False) as saved:
+            restored = learned.KernelRidge.__new__(learned.KernelRidge)
+            for field in ("x", "mean", "std", "alpha"):
+                setattr(restored, field, saved[field].copy())
+            restored.length = float(saved["length"])
+        reloaded = restored.predict(x)
+        infer_s = time.monotonic() - started
+        predictions[name] = first
+        repeats[name] = bool(
+            np.array_equal(first, second)
+            and np.array_equal(first, twin_pred)
+            and np.array_equal(first, reloaded)
+        )
+        artifacts[name] = "sha256:" + sha(state)
+        fits[name] = {
+            "fit_wall_s": fit_s,
+            "two_fit_count": 2,
+            "inference_wall_s": infer_s,
+            "state_sha256": sha(state),
+            "state_reload": True,
+        }
+        calls[name] = {
+            "prediction_batches": 4,
+            "attempted_geometry_predictions": 4 * len(ids),
+            "completed_geometry_predictions": 4 * len(ids),
+            "repeat_attempts_included": True,
+        }
+    nearest = np.argmin(((x[:, None, :] - tx[None, :, :]) ** 2).sum(axis=2), axis=1)
+    predictions["nearest_neighbour"] = ty[nearest].copy()
+    nearest_repeat = np.argmin(
+        ((x[:, None, :] - tx[None, :, :]) ** 2).sum(axis=2), axis=1
+    )
+    repeats["nearest_neighbour"] = bool(
+        np.array_equal(predictions["nearest_neighbour"], ty[nearest_repeat])
+    )
+    state = args.output / "nearest_neighbour.npz"
+    np.savez(state, x=tx, y=ty)
+    artifacts["nearest_neighbour"] = "sha256:" + sha(state)
+    calls["nearest_neighbour"] = {
+        "prediction_batches": 2,
+        "attempted_geometry_predictions": 2 * len(ids),
+        "completed_geometry_predictions": 2 * len(ids),
+        "repeat_attempts_included": True,
+    }
+    selected, payload = {}, {}
+    for name, values in predictions.items():
+        raw_mass = values[:, 0].tolist()
+        values[:, 0] = [mass(value) for value in actions]
+        require(values.shape == (len(ids), 8), "prediction_shape")
+        native = bool(
+            np.isfinite(values).all()
+            and (values >= 0).all()
+            and ((values[:, [3, 5, 7]] >= 80) & (values[:, [3, 5, 7]] <= 600)).all()
+        )
+        selected[name] = choice(values, ids) if native else None
+        payload[name] = {
+            "artifact_digest": artifacts[name],
+            "native_finite_summary": native,
+            "repeat_equal": repeats[name],
+            "prediction": values.tolist(),
+            "raw_learned_mass_kg_unscored": raw_mass,
+            "selected_case": selected[name],
+            "actual_calls": calls[name],
+        }
+    # Explicit disk boundary: all model outputs and picks precede target reduction.
+    write(
+        args.output / "committed_predictions.json",
+        {
+            "case_ids": ids,
+            "models": payload,
+            "exposed_public_inputs": True,
+            "independent_pretruth_custody_claim": False,
+        },
+    )
+    with (args.output / "reference_original.json").open("xb") as stream:
+        stream.write(args.reference_observed.read_bytes())
+    truth = []
+    coverage = []
+    for key, row in zip(ids, rows):
+        try:
+            values = targets(row)
+            ok = accepted(row, reference.get("convergence", {}).get(key, {}))
+        except (KeyError, TypeError, ValueError, Refused):
+            values, ok = None, False
+        truth.append(values)
+        coverage.append(
+            {
+                "case": key,
+                "accepted": ok,
+                "reference_status": "RESOLVED" if ok else "REFERENCE_UNRESOLVED",
+                "reason": (
+                    None
+                    if ok
+                    else "source_owned_mesh_mode_frequency_acceptance_missing_or_failed"
+                ),
+            }
+        )
+    all_ok = all(item["accepted"] for item in coverage)
+    reference_y = (
+        np.asarray(truth, dtype=float)
+        if all(value is not None for value in truth)
+        else None
+    )
+    ref_feasible = [
+        i
+        for i, values in enumerate(truth)
+        if values is not None and coverage[i]["accepted"] and feasible(values)
+    ]
+    best = min((max(truth[i][2::2]) for i in ref_feasible), default=None)
+    physics_basis = {
+        "challenge": "f08",
+        "input_units": "mm",
+        "targets": TARGETS,
+        "limits": [0.45, 0.03, 0.15],
+        "zetas": ZETAS,
+        "band_hz": [80, 600],
+        "objective": "min worst TIP peak, probe diagnostic only",
+    }
+    contract = {
+        "train_sha256": TRAIN_SHA,
+        "source_sha256": SOURCE_SHA,
+        "summary_only": True,
+        "normalization": spread.tolist(),
+        "D_scale": 0.01,
+        "D_eligibility_minimum": None,
+        "D_minimum_policy": "no automatic default-relative Design cutoff; native feasibility remains mandatory",
+        "A_excludes_mass": True,
+        "accepted_reference_shape": "cases[id].mode_ladder.PASS AND reference.convergence[id].rungs.h3.PASS; witnesses kept as reference-only rows",
+    }
+    physics, contract_digest = digest(physics_basis), digest(contract)
+    models, details = [], {}
+    for name, values in predictions.items():
+        losses = None
+        a = None
+        if reference_y is not None:
+            errors = np.abs(values[:, 1:] - reference_y[:, 1:]) / spread[1:]
+            losses = {
+                TARGETS[j + 1]: float(value)
+                for j, value in enumerate(errors.mean(axis=0))
+            }
+            losses["worst_geometry_mean"] = float(errors.mean(axis=1).max())
+            a = min(1 / (1 + value) for value in losses.values())
+        pick = selected[name]
+        index = ids.index(pick) if pick is not None else None
+        pick_ok = (
+            index is not None and coverage[index]["accepted"] and feasible(truth[index])
+        )
+        d = regret = achieved = None
+        outcome = "REFERENCE_UNRESOLVED" if not all_ok else "NOT_MEASURED"
+        if pick_ok:
+            achieved = max(truth[index][2::2])
+            if all_ok and best is not None:
+                regret = max(0.0, achieved - best)
+                d, outcome = 1 / (1 + regret / 0.01), "VERIFIED_FEASIBLE"
+        elif all_ok:
+            d = 0.0
+            outcome = "MISSED_OPPORTUNITY" if best is not None else "NONE_FEASIBLE"
+        gates = {
+            "finite_native_summary": (
+                "PASS" if payload[name]["native_finite_summary"] else "FAIL"
+            ),
+            "paired_repeat": "PASS" if repeats[name] else "FAIL",
+            "complete_accepted_reference": "PASS" if all_ok else "REFERENCE_UNRESOLVED",
+            "verified_pick_feasible": (
+                "PASS" if pick_ok else ("FAIL" if all_ok else "REFERENCE_UNRESOLVED")
+            ),
+        }
+        models.append(
+            {
+                "artifact_digest": artifacts[name],
+                "gates": gates,
+                "measurements": {
+                    "summary_physics_benefit": (
+                        measurement(a)
+                        if all_ok and a is not None
+                        else measurement(status="REFERENCE_UNRESOLVED")
+                    ),
+                    "verified_design_benefit": (
+                        measurement(d)
+                        if d is not None
+                        else measurement(status="REFERENCE_UNRESOLVED")
+                    ),
+                },
+                "decision_outcome": outcome,
+            }
+        )
+        details[name] = {
+            "physics_diagnostic_benefit": a,
+            "physics_losses": losses,
+            "selected_case": pick,
+            "verified_feasible": pick_ok,
+            "verified_achieved_mm_per_n": achieved,
+            "exact_finite_bank_regret_mm_per_n": regret,
+            "D": d,
+            "D_status": "RESOLVED" if d is not None else "UNMEASURED_REFERENCE",
+            "cost": fits.get(name, {}),
+            "actual_calls": calls[name],
+        }
+    benchmark = {
+        "schema": dual.INPUT_SCHEMA,
+        "scope": "PUBLIC_DEVELOPMENT",
+        "challenge": "f08",
+        "physics_contract_digest": physics,
+        "measurement_contract_digest": contract_digest,
+        "population_role": "P",
+        "common_mask_digest": digest(coverage),
+        "models": models,
+    }
+    candidate_pack = pack(dual, physics, contract_digest)
+    initial = engine.ScoreEngine.score_dual_benchmark_v4(benchmark, candidate_pack)
+    baseline = next(
+        row
+        for row in initial["models"]
+        if row["artifact_digest"] == artifacts[BASELINE]
+    )
+    floors = (None, None)
+    if baseline["status"] == "SCORED_DEVELOPMENT_CANDIDATE":
+        floors = (baseline["legs"]["A"], None)
+        candidate_pack = pack(dual, physics, contract_digest, floors)
+    result = engine.ScoreEngine.score_dual_benchmark_v4(benchmark, candidate_pack)
+    write(args.output / "measurement_contract.json", contract)
+    write(args.output / "score_pack.json", candidate_pack)
+    write(args.output / "benchmark_input.json", benchmark)
+    write(args.output / "score_result.json", result)
+    write(
+        args.output / "report.json",
+        {
+            "schema": "carbon.scorelab.f08-summary-public.v1",
+            "scope": "PUBLIC_DEVELOPMENT",
+            "status": (
+                "MEASURED_DEVELOPMENT" if all_ok else "REFERENCE_ACCEPTANCE_INCOMPLETE"
+            ),
+            "source_sha256": SOURCE_SHA,
+            "train_sha256": TRAIN_SHA,
+            "reference_sha256": sha(args.reference_observed),
+            "reference_coverage": coverage,
+            "train_completed_rows": 255,
+            "train_failed_row": "train-0016",
+            "train_exclusion_rows": 256,
+            "reference_rows": len(ids),
+            "models": details,
+            "baseline_leg_floors": floors,
+            "no_independent_fr_full_curve_or_ood_claim": True,
+            "reference_originals": str(args.reference_observed),
+            "comparator_preprocessing_cost": "UNKNOWN_NOT_FREE",
+            "official_score": False,
+            "independent_pretruth_custody_claim": False,
+        },
+    )
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    for name in ("source", "train-observed", "reference-observed", "output"):
+        parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--train-manifest", type=Path)
+    args = parser.parse_args()
+    try:
+        run(args)
+    except (Refused, OSError, KeyError, TypeError, ValueError) as exc:
+        print(
+            json.dumps(
+                {
+                    "status": "REFUSED_DEVELOPMENT_INPUT",
+                    "reason": str(exc),
+                    "candidate_penalty": False,
+                }
+            )
+        )
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

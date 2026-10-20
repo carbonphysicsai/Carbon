@@ -78,14 +78,28 @@ def producer_digest(adapter):
     return sha(canonical({name: sha((here / name).read_bytes()) for name in names}))
 
 
+def input_names(adapter):
+    """The Challenge's ordered numeric input names (its adapter's own, or the
+    physical public interface's)."""
+    own = getattr(adapter, "input_names", None)
+    if own is not None:
+        return own()
+    from carbon.challenge_kit import physical_public_train
+
+    return physical_public_train.numeric_interface_document(adapter.CHALLENGE)[
+        "input_names"
+    ]
+
+
 def bank_rows(bank, interface_names):
     """Data Collection's bank as measurement rows, in its declared order."""
     rows = []
-    for case_id, cohort, record, inputs in zip(
+    for case_id, cohort, record, inputs, reference in zip(
         bank["case_ids"],
         bank["cohorts"],
         bank["reference_records"],
         bank["inputs"],
+        bank["references"],
         strict=True,
     ):
         row = {
@@ -95,6 +109,7 @@ def bank_rows(bank, interface_names):
             "inputs": dict(
                 zip(interface_names, (float(v) for v in inputs), strict=True)
             ),
+            "reference": [float(v) for v in reference],
         }
         if cohort.startswith("decision_"):
             # decision-<design>-<condition>; design order is the objective's.
@@ -125,7 +140,11 @@ def _identities(bank, physics_digest):
     from carbon.scoring import benchmark_evidence as bench
 
     images = sorted(
-        {record.get("image") or "" for record in bank["reference_records"]} - {""}
+        {
+            (image if type(image) is str else canonical(image).decode("utf-8").strip())
+            for record in bank["reference_records"]
+            if (image := record.get("image"))
+        }
     )
     return {
         "solver_digest": sha(canonical({"reference_images": images})),
@@ -178,7 +197,6 @@ def pack_documents(
     ``minimums`` is None (the adapter's historical registered minimums),
     ``"calibration"`` (none) or ``baseline_minimums(...)``.
     """
-    from carbon.challenge_kit import physical_public_train
     from carbon.scoring import benchmark_evidence as bench
     from carbon.scoring import dual_score
     from carbon.scoring.private_evaluation_source import (
@@ -186,9 +204,7 @@ def pack_documents(
     )
 
     physics_digest = bench.physics_contract_identity(physics)["definition_digest"]
-    names = physical_public_train.numeric_interface_document(adapter.CHALLENGE)[
-        "input_names"
-    ]
+    names = input_names(adapter)
     definition = {
         **adapter.definition(bank=bank, train_raw=train_raw),
         "challenge": {"id": adapter.CHALLENGE, "version": adapter.VERSION},
