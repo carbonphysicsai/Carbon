@@ -17,7 +17,6 @@ from carbon.scoring import physical_dual_pack as physical
 from carbon.scoring import private_evaluation_source as source
 
 REPOSITORY = Path(__file__).resolve().parents[2]
-PRACTICE_BANK_VERSION = "1.0"
 DECISION_REFERENCES = (
     REPOSITORY / "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz"
 )
@@ -25,10 +24,8 @@ DECISION_REFERENCES = (
 
 @functools.cache
 def _bank():
-    # Battery 1.0's bank holds the same 200 PRACTICE rows the 2.0 bank opens
-    # with; the 2.0 bank (decision and probe rows) is Data Collection's, built
-    # to REFERENCE_PRESENT_MASK_INTERFACE_20261020.
-    return physical_pack.development_bank(adapter.CHALLENGE, PRACTICE_BANK_VERSION)
+    # Data Collection's Battery 2.0 bank (REFERENCE_PRESENT_MASK_INTERFACE).
+    return physical_pack.development_bank(adapter.CHALLENGE, adapter.VERSION)
 
 
 def _rows():
@@ -40,7 +37,22 @@ def _definition():
 
 
 def _truth():
-    return [list(map(float, row)) for row in _bank()["references"]]
+    """A model that predicts every reference exactly. Rows without a reference
+    still need an answer: a failed grid row takes its scenario's first present
+    row, and every probe row the same fixed curve, so each B15 pair agrees
+    before the switch."""
+    bank = _bank()
+    rows = [list(map(float, row)) for row in bank["references"]]
+    present = bank["reference_present"]
+    fixed = rows[0]
+    out, last = [], fixed
+    for row, ok, cohort in zip(rows, present, bank["cohorts"], strict=True):
+        if ok:
+            last = row
+            out.append(row)
+        else:
+            out.append(fixed if cohort == "probe" else last)
+    return out
 
 
 def _practice(outputs, repeats=None, definition=None):
@@ -67,11 +79,25 @@ def test_the_definition_is_the_registered_packet():
     mask = definition["unresolved_mask"]
     assert mask["reason"] == "plating_reference_unresolved"
     assert len(mask["case_ids"]) == 17
-    labels = {r["case_id"]: r["plating_label_v2"] for r in _bank()["reference_records"]}
+    labels = {
+        r["case_id"]: r["plating_label_v2"]
+        for r, cohort in zip(
+            _bank()["reference_records"], _bank()["cohorts"], strict=True
+        )
+        if cohort == "practice"
+    }
     assert all(labels[c]["rule"] == "pending-m160-r1" for c in mask["case_ids"])
-    # HUMAN_INPUT until the Battery v2 material asks for their rows.
-    assert definition["decision_scenarios"] is None
-    assert definition["b15_probe_plan"] is None
+    assert len(definition["decision_scenarios"]) == 12
+    assert definition["b15_probe_plan"]["sha256"].startswith("sha256:5fb7a81f")
+    assert definition["ev4_references"]["sha256"].startswith("sha256:ff10f9ae")
+    # The 2.0 bank: 200 practice, 420 grid (5 without a reference), 400 probes.
+    bank = _bank()
+    assert [bank["cohorts"].count(c) for c in ("practice", "decision", "probe")] == [
+        200,
+        420,
+        400,
+    ]
+    assert sum(bank["reference_present"]) == 615
 
 
 def test_the_applied_pack_registers_as_an_arithmetic_half_and_half():
@@ -189,22 +215,56 @@ def test_a_definition_whose_mask_differs_refuses():
     assert refused.value.code == "battery_unresolved_mask"
 
 
-def test_battery_stays_unscored_while_d_and_b15_are_human_input():
-    with pytest.raises(bdm.BatteryMeasurementRefused) as refused:
-        adapter.measure(
-            bank_rows=_rows(),
-            outputs=_truth(),
-            repeats=[_truth(), _truth()],
-            definition=_definition(),
-            limits={},
-            objective={},
-            train_raw=b"",
-            names=adapter.input_names(),
-        )
-    assert refused.value.code == "battery_d_unregistered"
+def _measure(outputs, repeats=None):
+    return adapter.measure(
+        bank_rows=_rows(),
+        outputs=outputs,
+        repeats=[outputs, outputs] if repeats is None else repeats,
+        definition=_definition(),
+        limits={},
+        objective={},
+        train_raw=b"",
+        names=adapter.input_names(),
+    )
+
+
+def test_a_model_equal_to_the_reference_scores_on_every_leg_and_gate():
+    measured = _measure(_truth())
+    assert measured["A"] == 1.0
+    assert 0 < measured["D"] <= 1
+    assert measured["gates"] == {
+        "exam_gates": True,
+        "g_feas": True,
+        "physics_b15": True,
+        "paired_repeat": True,
+    }
+    assert measured["decision_outcome"] == "VERIFIED_FEASIBLE"
+    assert measured["b15"]["n_pairs"] == 200 and measured["b15"]["n_violations"] == 0
     with pytest.raises(bdm.BatteryMeasurementRefused) as refused:
         adapter.baseline_outputs([])
     assert refused.value.code == "battery_baseline_graded_not_rebuilt"
+
+
+def test_a_rest_temperature_that_moves_with_the_protocol_fails_b15():
+    bank, outputs = _bank(), [list(row) for row in _truth()]
+    partner = bank["case_ids"].index("p0-partner")
+    # B15: before the switch the protocol has not acted, so temperature must not move.
+    outputs[partner][121] += 0.01
+    measured = _measure(outputs)
+    assert measured["gates"]["physics_b15"] is False
+    assert measured["b15"]["n_violations"] >= 1
+
+
+def test_a_failed_grid_reference_is_never_truth():
+    # Any answer on the five twice-failed grid rows leaves A and the gates alone.
+    bank, outputs = _bank(), [list(row) for row in _truth()]
+    for i, (ok, cohort) in enumerate(
+        zip(bank["reference_present"], bank["cohorts"], strict=True)
+    ):
+        if cohort == "decision" and not ok:
+            outputs[i] = [v + 50.0 for v in outputs[i]]
+    changed, base = _measure(outputs), _measure(_truth())
+    assert changed["A"] == base["A"] and changed["gates"] == base["gates"]
 
 
 def test_a_changed_registry_refuses(monkeypatch):
