@@ -23,6 +23,24 @@ TORCH = {
     "physicsnemo.FullyConnected",
     "transolver",
 }
+#: The eleven tested jNO (foundax) entries: python-cpu-py311 bundles on the C-03
+#: CPU worker parent, catalogued as "jno.<name>".
+JNO = {
+    "jno." + name
+    for name in (
+        "deeponet",
+        "fno1d",
+        "fno2d",
+        "fno3d",
+        "geofno",
+        "linear",
+        "mgno1d",
+        "mgno2d",
+        "mlp",
+        "unet1d",
+        "unet2d",
+    )
+}
 #: A coverage-build entry as the cleaned DeepXDE/THUML bundles will declare it.
 COVERAGE_ITEM = {
     "catalog_id": "thuml.FNO",
@@ -35,16 +53,22 @@ COVERAGE_ITEM = {
 }
 
 
-def test_every_entry_verifies_and_motor_1_2_offers_the_eleven_torch_backbones():
-    assert set(pipeline.verify_all()) == TORCH
-    for version in ("1.2", "1.3"):
-        assert {
-            e["catalog_id"] for e in pipeline.entries(MOTOR["id"], version)
-        } == TORCH
+def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
+    assert set(pipeline.verify_all()) == TORCH | JNO
+    # Motor 1.2 is unchanged: the five Torch entries. Motor 1.3 (1.2 plus
+    # allowlist v7) adds the eleven jNO entries, built on the C-03 CPU parent.
+    assert {e["catalog_id"] for e in pipeline.entries(MOTOR["id"], "1.2")} == TORCH
+    assert {
+        e["catalog_id"] for e in pipeline.entries(MOTOR["id"], "1.3")
+    } == TORCH | JNO
     # Never on a released or step-2 version (Validator): only Motor's catalog
-    # versions, 1.2 and 1.3 (1.2 plus allowlist v7).
+    # versions.
     for item in pipeline.entries():
-        assert item["challenges"] == [MOTOR, {**MOTOR, "version": "1.3"}]
+        assert item["challenges"] == (
+            [{**MOTOR, "version": "1.3"}]
+            if item["catalog_id"] in JNO
+            else [MOTOR, {**MOTOR, "version": "1.3"}]
+        )
     for version in ("1.0", "1.1"):
         assert pipeline.entries(MOTOR["id"], version) == []
 
@@ -311,3 +335,14 @@ def test_the_jax_levers_build_refuses_what_it_would(configuration, train_use, co
 def test_torch_levers_still_refuse_float32_precision():
     with pytest.raises(catalog_entries.CatalogRefused):
         settings.resolve(pipeline.entry("neuralop.FNO"), {}, {"precision": "float32"})
+
+
+def test_each_entry_names_its_own_runtime_and_jno_keeps_its_build_name():
+    for item in pipeline.entries():
+        runtime = item["bundle_ref"]["runtime_profile_id"]
+        if item["catalog_id"] in JNO:
+            assert runtime == "python-cpu-py311"
+            assert item["settings_schema"] == "carbon-candidate-jax-levers-v1"
+            assert item["backbone"] == item["catalog_id"].removeprefix("jno.")
+        else:
+            assert runtime == "torch-cpu-py311"

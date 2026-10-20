@@ -64,9 +64,15 @@ def test_only_motor_1_3_also_serves_the_catalog():
     assert "backbone_catalog" not in physical_public.construction_limits_document(
         COOLING, "1.2"
     )
-    assert {e["catalog_id"] for e in pipeline.entries(MOTOR, "1.3")} == {
-        e["catalog_id"] for e in pipeline.entries(MOTOR, "1.2")
-    }
+    # 1.3 offers every 1.2 entry, plus the jNO entries (python-cpu-py311).
+    on_1_2 = {e["catalog_id"] for e in pipeline.entries(MOTOR, "1.2")}
+    on_1_3 = {e["catalog_id"]: e for e in pipeline.entries(MOTOR, "1.3")}
+    assert on_1_2 < set(on_1_3)
+    assert {
+        e["bundle_ref"]["runtime_profile_id"]
+        for name, e in on_1_3.items()
+        if name not in on_1_2
+    } == {"python-cpu-py311"}
     for challenge_id, version in sv.V7 - {(MOTOR, "1.3")}:
         assert pipeline.entries(challenge_id, version) == []
 

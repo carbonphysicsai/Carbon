@@ -190,7 +190,7 @@ def verify_all(*, wheelhouse=None):
     return sorted(seen)
 
 
-def add(packet, *, challenges, receipt, receipt_key):
+def add(packet, *, challenges, receipt, receipt_key, catalog_id=None):
     """Copy a tested packet's bundle in, import its receipt, write its line."""
     from . import settings
 
@@ -204,9 +204,12 @@ def add(packet, *, challenges, receipt, receipt_key):
     if procedure["train_use"] != {}:
         raise CatalogBroken("a baseline packet trains with no levers")
     backbone = procedure["configuration"]["backbone"]
+    # The catalog id names the entry; the build keeps its own backbone name
+    # (jNO's "fno1d" is catalogued as "jno.fno1d").
+    catalog_id = catalog_id or backbone
     report = _json(receipt)
     record = report[receipt_key]
-    root = BUNDLES / backbone
+    root = BUNDLES / catalog_id
     root.mkdir(parents=True, exist_ok=True)
     for name in FILES[:-1]:
         (root / name).write_bytes((packet / name).read_bytes())
@@ -222,12 +225,12 @@ def add(packet, *, challenges, receipt, receipt_key):
         (json.dumps(baseline, sort_keys=True, indent=1) + "\n").encode()
     )
     RECEIPTS.mkdir(exist_ok=True)
-    (RECEIPTS / (backbone + ".json")).write_bytes(
+    (RECEIPTS / (catalog_id + ".json")).write_bytes(
         (
             json.dumps(
                 {
                     "schema": RECEIPT_SCHEMA,
-                    "catalog_id": backbone,
+                    "catalog_id": catalog_id,
                     "source_report": Path(receipt).name,
                     "source_report_sha256": _digest(Path(receipt).read_bytes()),
                     "key": receipt_key,
@@ -257,7 +260,7 @@ def add(packet, *, challenges, receipt, receipt_key):
             raise CatalogBroken("a Challenge is named id@version")
         bound.append({"id": match[1], "version": match[2]})
     item = {
-        "catalog_id": backbone,
+        "catalog_id": catalog_id,
         "backbone": backbone,
         "bundle_ref": recipe["source"]["bundle_ref"],
         "entrypoint": procedure["entrypoint"],
@@ -274,7 +277,7 @@ def add(packet, *, challenges, receipt, receipt_key):
     }
     manifest = load()
     manifest["entries"] = sorted(
-        [e for e in manifest["entries"] if e["catalog_id"] != backbone] + [item],
+        [e for e in manifest["entries"] if e["catalog_id"] != catalog_id] + [item],
         key=lambda e: e["catalog_id"],
     )
     verify(item)
@@ -323,6 +326,7 @@ def main(argv=None):
     grow.add_argument("--challenge", action="append", required=True)
     grow.add_argument("--receipt", type=Path, required=True)
     grow.add_argument("--receipt-key", required=True)
+    grow.add_argument("--catalog-id")
     moved = commands.add_parser("install")
     moved.add_argument("rest", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
@@ -349,6 +353,7 @@ def main(argv=None):
                         challenges=args.challenge,
                         receipt=args.receipt,
                         receipt_key=args.receipt_key,
+                        catalog_id=args.catalog_id,
                     ),
                     indent=1,
                 )
