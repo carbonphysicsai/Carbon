@@ -201,14 +201,17 @@ def _fixture(tmp_path, monkeypatch, *, gate_minimum=0.0):
     adapter.discovery = discovery
     adapter.challenge_id, adapter.challenge_version = key.challenge_id, key.version
     # Grading is capped per miner and epoch: the adapter carries its attempt ledger, the
-    # signed receipt block of this submission, and a cap for this fixture Challenge.
+    # signed receipt block of this submission, and a cadence for this fixture Challenge.
     from carbon.challenge_validator.ledger import AttemptLedger
 
     ledger_directory = tmp_path / "attempt-ledger"
     ledger_directory.mkdir(mode=0o700)
     adapter.ledger = AttemptLedger(ledger_directory / "attempts.sqlite3")
     adapter.contract_digest = "sha256:" + "c" * 64
-    adapter.exam_cap_caps = {key.challenge_id: 20}
+    adapter.exam_cadence = {
+        "capacity_cpu_hours_per_day": 270.0,
+        "rebuild_cpu_hours_placeholder": {key.challenge_id: 1.0},
+    }
     adapter.ledger.record(
         SimpleNamespace(
             hotkey="fixture-owner",

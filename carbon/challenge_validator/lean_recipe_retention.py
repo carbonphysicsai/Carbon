@@ -638,13 +638,14 @@ def _retain_selected_pack_evaluation(
         physical_adapters.register(battery_dual_pack)
 
         source = snapshot.read_source_registration(private_root)
-        # The per-miner cap and the epoch limit refuse here, before any grading (and so
-        # before any exam wear); the slot is settled once the outcome is known.
+        # The daily allowance, the epoch limit and the exam key's age refuse here, before
+        # any grading (and so before any exam wear); the slot is settled once the
+        # outcome is known.
         from carbon.challenge_validator import exam_cap
 
         # Recovery of crashed reservations runs at receiver start-up, never here.
         cap = exam_cap.ExamCap(
-            adapter.ledger, caps=getattr(adapter, "exam_cap_caps", None)
+            adapter.ledger, cadence=getattr(adapter, "exam_cadence", None)
         )
         reservation = cap.reserve(
             hotkey=adapter.owner(submission_id) if regrade is None else regrade.owner,
@@ -757,7 +758,17 @@ def _retain_selected_pack_evaluation(
             benchmark, registered["score_pack"]
         )
         # The exam was applied: a graded outcome keeps the slot, anything else gives it back.
-        cap.settle(reservation, scoring["models"][0]["status"])
+        cap.settle(
+            reservation,
+            scoring["models"][0]["status"],
+            cpu_seconds=(
+                None
+                if regrade is not None
+                else _rebuild_cpu_seconds(
+                    adapter, submission_id, evidence, snapshot.manifest_digest
+                )
+            ),
+        )
         reservation = None
         expected_result = _sha(
             (
@@ -849,6 +860,42 @@ def _retain_selected_pack_evaluation(
         ),
         **({} if koth is None else {"koth_comparison": koth}),
     }
+
+
+def _rebuild_cpu_seconds(adapter, submission_id, evidence, exam_key):
+    """Allocated CPU-seconds of one graded submission's rebuild, from the ledger's receipts:
+    the metered compute time of its worker operations (build, graded inference, timed
+    query, repeat pair) times the policy's CPU count. None when the receipts carry none,
+    so the registered placeholder keeps standing in for it."""
+    try:
+        from carbon.development_session.paired_inference import pair_identities
+
+        policy = adapter.discovery._material["construction_limits_document"][
+            "reconstruction_resource_policy"
+        ]
+        cpus = policy["cpu_count_max"]
+        provider = adapter._provider(adapter.owner(submission_id))
+        operations = [
+            evidence.get(name)
+            for name in ("build_operation", "inference_operation", "timed_operation")
+        ]
+        operations += list(pair_identities("pair-" + exam_key + "-" + submission_id))
+        milliseconds = 0
+        with provider.ledger.db() as db:
+            for operation in operations:
+                if type(operation) is not str:
+                    continue
+                row = db.execute(
+                    "SELECT actual FROM operations WHERE id=?", (operation,)
+                ).fetchone()
+                if row is not None and row[0]:
+                    milliseconds += json.loads(row[0]).get("numerical_milliseconds", 0)
+        if type(cpus) is not int or cpus < 1 or milliseconds <= 0:
+            return None
+        return milliseconds / 1000.0 * cpus
+    # A missing receipt only leaves the registered placeholder in force.
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _pool_admit(store, adapter, submission_id, entry, artifacts):

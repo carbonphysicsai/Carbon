@@ -1,0 +1,12 @@
+{
+  "capacity_cpu_hours_per_day": 270,
+  "rebuild_cpu_hours_placeholder": {
+    "battery-fastcharge-ageing-development-v1": 2.0,
+    "chip-cold-plate": 1.0,
+    "electric-motor-magnetics": 1.0,
+    "f02": 0.2,
+    "f08-ribbed-bracket": 0.5
+  },
+  "schema": "carbon.exam.cadence-registry.v1",
+  "source": "OWNER-CADENCE-AND-ROTATION-02, proposal rev 2"
+}
