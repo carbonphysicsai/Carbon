@@ -34,22 +34,25 @@ def allowlist():
 
 def _trained(allowlist, label, steps=16):
     from carbon.battery import level4 as battery
+    from carbon.battery import level4_lowering as battery_lowering
 
     strategy = battery._steps(battery.level0_strategies()[label], steps)
-    manifest, files = battery.lower_recipe(strategy, allowlist, max_bytes=MAX_BYTES)
+    manifest, files = battery_lowering.lower_recipe(
+        strategy, allowlist, max_bytes=MAX_BYTES
+    )
     _, parsed = submission.verify(
         submission.canonical(manifest),
         files,
         allowlist=allowlist,
         challenge=battery.challenge_id(),
-        interface=battery.interface(strategy).digest(),
+        interface=battery_lowering.interface(strategy).digest(),
         max_bytes=MAX_BYTES,
     )
     verdict = validate.validate_submission(
         parsed,
         allowlist,
-        interface=battery.interface(strategy),
-        batch=battery.training_batch(strategy),
+        interface=battery_lowering.interface(strategy),
+        batch=battery_lowering.training_batch(strategy),
     )
     prepared = train.prepare(parsed, allowlist, verdict=verdict)
     result = train.train(battery, strategy, prepared, seed=7)

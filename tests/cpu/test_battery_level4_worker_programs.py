@@ -38,6 +38,7 @@ os.environ.setdefault("JAX_PLATFORMS", "cpu")
 
 from carbon.battery import development_rebuild, level4_worker, worker
 from carbon.battery import level4 as battery
+from carbon.battery import level4_lowering as battery_lowering
 from carbon.battery.compile import compile_recipe
 from carbon.battery.domain import INPUTS
 from carbon.level4 import allowlist as allowlist_module
@@ -77,7 +78,7 @@ def _strategy(label):
 
 def _staged(strategy):
     allowlist = allowlist_module.load()
-    manifest, files = battery.lower_recipe(
+    manifest, files = battery_lowering.lower_recipe(
         strategy, allowlist, max_bytes=intake.BOUNDS["document_bytes"]
     )
     found = {"schema": level4_worker.SCHEMA, "submission": submission.digest(manifest)}

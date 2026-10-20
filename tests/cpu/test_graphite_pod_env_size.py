@@ -98,12 +98,13 @@ def _level4_job():
     its envelope, all through the paths a run takes (`experiment.admit`,
     `pod_phase.level4_transport`), so its configuration is not a stand-in."""
     from carbon.battery import level4 as battery
+    from carbon.battery import level4_lowering as battery_lowering
     from carbon.level4 import allowlist as allowlist_module
     from carbon.level4 import intake, staging, submission
     from carbon.reconstruction import development_variants as dv
 
     strategy = json.loads(json.dumps(battery.level0_strategies()["scaffold_mlp"]))
-    manifest, files = battery.lower_recipe(
+    manifest, files = battery_lowering.lower_recipe(
         strategy, allowlist_module.load(), max_bytes=intake.BOUNDS["document_bytes"]
     )
     raw = submission.canonical(manifest)

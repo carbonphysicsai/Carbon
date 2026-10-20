@@ -55,11 +55,12 @@ class Door(RecordingMinerTools):
 @pytest.fixture(scope="module")
 def lowered():
     from carbon.battery import level4 as battery
+    from carbon.battery import level4_lowering as battery_lowering
     from carbon.level4 import allowlist as allowlist_module
     from carbon.level4 import intake, staging, submission
 
     strategy = json.loads(json.dumps(p3f.BASELINE))
-    manifest, files = battery.lower_recipe(
+    manifest, files = battery_lowering.lower_recipe(
         strategy, allowlist_module.load(), max_bytes=intake.BOUNDS["document_bytes"]
     )
     envelope = staging.envelope(submission.canonical(manifest), files)

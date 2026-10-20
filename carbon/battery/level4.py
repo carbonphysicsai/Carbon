@@ -124,20 +124,21 @@ def structure(m):
 
 
 def _model(strategy_, train):
-    """The native battery model; a single model gets TRAIN's layout early.
-
-    Ensemble wrappers stay intact for training. Interface and graph lowering
-    explicitly use one identical member's metadata instead.
-    """
+    """The battery model a strategy compiles to, with its output layout set
+    from TRAIN's shapes (what `fit` sets before building a network)."""
     from carbon.battery import recipes
     from carbon.battery.compile import build_model, compile_recipe
 
-    from .level4_model import interface_model
-
     _, recipe = compile_recipe(strategy_)
     model = build_model(recipe)
-    if recipe.family != "knn" and not isinstance(model, recipes.Ensemble):
-        interface_model(model, train)
+    if recipe.family != "knn":
+        model.layout = recipes.Layout(
+            train.v.shape[1],
+            train.q.shape[1],
+            bounded_v=model.bounded_v,
+            predict_v0=model.predict_v0,
+            fade=model.fade,
+        )
     return recipe, model
 
 
@@ -152,14 +153,11 @@ def interface(strategy_):
     from ..level4.validate import Interface
 
     _, model = _model(strategy_, material().train)
-    from .level4_model import interface_model, published_kit
-
-    n_in, n_out = _dims(interface_model(model, material().train))
+    n_in, n_out = _dims(model)
     dtype = "float64" if model.settings["precision"] == "float64" else "float32"
     return Interface(
         inputs=(("inputs/features", dtype, (n_in,)),),
         outputs=((dtype, (n_out,)),),
-        kit=published_kit(dtype)[0],
     )
 
 
@@ -170,9 +168,6 @@ def jax_network(strategy_, train):
     import numpy as np
 
     recipe, model = _model(strategy_, train)
-    from .level4_model import interface_model
-
-    model = interface_model(model, train)
     dtype = np.float64 if model.settings["precision"] == "float64" else np.float32
     n_in, n_out = _dims(model)
     init, apply = model._network(jax, dtype, n_in, n_out)
@@ -1037,9 +1032,6 @@ def lower_recipe(strategy_, allowlist, *, max_bytes):
 
     m = material()
     _, model = _model(strategy_, m.train)
-    from .level4_model import interface_model
-
-    model = interface_model(model, m.train)
     n = training_batch(strategy_)
     x64 = model.settings["precision"] == "float64"
     with jax.enable_x64(x64):

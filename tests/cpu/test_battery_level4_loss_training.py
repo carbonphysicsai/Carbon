@@ -32,6 +32,7 @@ pytest.importorskip("jax")
 os.environ.setdefault("JAX_PLATFORMS", "cpu")
 
 from carbon.battery import level4 as battery
+from carbon.battery import level4_lowering as battery_lowering
 from carbon.battery import level4_model, level4_worker, recipes
 from carbon.battery.compile import compile_recipe
 from carbon.level4 import allowlist as allowlist_module
@@ -74,7 +75,7 @@ def _with_loss(strategy, native, case, loss_override="graph"):
     from carbon.level4.tooling import through_bprime
 
     allowlist = allowlist_module.load()
-    manifest, files = battery.lower_recipe(
+    manifest, files = battery_lowering.lower_recipe(
         strategy, allowlist, max_bytes=intake.BOUNDS["document_bytes"]
     )
     by_slot = {slot: files[name] for slot, name in manifest["documents"].items()}

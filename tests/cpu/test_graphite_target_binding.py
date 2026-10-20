@@ -26,11 +26,12 @@ def public_template():
         pytest.skip("metadata admission imports POSIX Graphite")
     from carbon.agent_campaign.graphite import delivery, experiment
     from carbon.battery import level4 as battery
+    from carbon.battery import level4_lowering as battery_lowering
     from carbon.level4 import allowlist, intake, staging, submission
     from carbon.reconstruction.artifact_identity import build_identity
 
     strategy = json.loads(json.dumps(battery.level0_strategies()["scaffold_mlp"]))
-    manifest, files = battery.lower_recipe(
+    manifest, files = battery_lowering.lower_recipe(
         strategy, allowlist.load(), max_bytes=intake.BOUNDS["document_bytes"]
     )
     raw = submission.canonical(manifest)

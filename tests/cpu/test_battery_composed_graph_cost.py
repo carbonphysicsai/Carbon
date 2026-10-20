@@ -110,11 +110,11 @@ def profiles(tmp_path_factory, graph_input):
         selected_graph = graph_input
         selected_g5 = base_g5
         if name == "l3_float64":
-            from test_battery_composed_graph import battery, strategy
+            from test_battery_composed_graph import battery_lowering, strategy
 
             from carbon.level4 import allowlist, intake, staging, submission
 
-            manifest, files = battery.lower_recipe(
+            manifest, files = battery_lowering.lower_recipe(
                 strategy(width=12, precision="float64"),
                 allowlist.load(),
                 max_bytes=intake.BOUNDS["document_bytes"],
