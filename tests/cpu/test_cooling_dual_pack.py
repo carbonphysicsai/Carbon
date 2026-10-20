@@ -8,13 +8,13 @@ A 0.5624469259870758, D 0, infeasible pick d08. The port, regenerated from
 committed sources and reading predictions as the producer does, must give the
 same values; the packet's leg-minimum rule then sets the baseline's legs.
 
-Only the cross-platform comparison with the operator readout carries a
-tolerance (KRR_PLATFORM_TOL): the ridge-1e-6 kernel solve rounds differently
-across BLAS builds (measured 2.52e-11: canonical A 0.8275828263660854, the
-operator's 0.827582826340918; Test Lead, da401c13d). Scoring absorbs no drift:
-the pack's minimums are bound to one grading platform and hold at equality on
-it; another platform is refused. The analytic and nearest-neighbour controls
-have no linear solve and hold exactly.
+The KRR baseline's ridge-1e-6 solve depends on the BLAS thread count, so it
+is rebuilt with BLAS pinned to one thread (Validator, 2026-10-20) and its A is
+asserted exactly: 0.8275828262024278. The operator's 0.827582826340918 came
+from a multi-threaded fit (delta -1.4e-10), and so did the earlier canonical
+0.8275828263660854: neither is a tolerance here. Scoring absorbs no drift:
+the pack's minimums are bound to one grading platform. The analytic and
+nearest-neighbour controls have no linear solve and hold exactly.
 """
 
 from __future__ import annotations
@@ -35,12 +35,12 @@ from carbon.scoring import cooling_dual_pack as cooling
 from carbon.scoring import physical_dual_pack as physical
 
 ROOT = Path(__file__).resolve().parents[2]
-KRR = {"A": 0.827582826340918, "D": 1.0, "pick": "d03"}
+#: The pinned single-thread rebuild (the operator's multi-threaded fit gave
+#: A 0.827582826340918).
+KRR = {"A": 0.8275828262024278, "D": 1.0, "pick": "d03"}
 ANALYTIC_A = 0.844420842483987
 NEAREST = {"A": 0.5624469259870758, "D": 0.0, "pick": "d08"}
 PLATFORM = {"inference_image_id": "sha256:" + "1" * 64}
-#: Just above the measured cross-platform KRR difference (2.52e-11).
-KRR_PLATFORM_TOL = 3e-11
 SCRIPT = (
     ROOT / "carbon/challenge_kit/data/optimizer-counted-dual-packets-20261018.py.txt"
 )
@@ -108,7 +108,7 @@ def test_the_rebuilt_baseline_reproduces_the_packets_legs(case):
         "complete48_common_mask": True,
         "selected_design_verified_feasible": True,
     }
-    assert result["A"] == pytest.approx(KRR["A"], rel=0, abs=KRR_PLATFORM_TOL)
+    assert result["A"] == KRR["A"]
     assert result["D"] == KRR["D"]
     assert result["pick"] == KRR["pick"]
     assert result["decision_outcome"] == "VERIFIED_FEASIBLE"
