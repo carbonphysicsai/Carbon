@@ -87,9 +87,14 @@ def published_kit(precision, public=None):
 
     m = public
     if m is None:
-        from .level4 import material
+        # The repository's public material, loaded here rather than through
+        # `level4.material`: this module is miner-reachable and must not reach
+        # `level4` (and through it the development variants).
+        from pathlib import Path
 
-        m = material()
+        from .challenge import PublicMaterial
+
+        m = PublicMaterial.load(Path(__file__).resolve().parents[2])
     dtype = "float64" if precision == "float64" else "float32"
     entries, arrays = [], {}
     for name, values in zip(KIT_INPUTS, (m.ocv_soc, m.ocv_v)):
