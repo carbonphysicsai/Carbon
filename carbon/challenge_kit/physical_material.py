@@ -1,4 +1,4 @@
-"""Public Motor and Cooling construction material for the direct receiver (DEVELOPMENT only).
+"""Public Motor, Cooling and F08 construction material for the direct receiver (DEVELOPMENT only).
 
 The receiver serves a registered Challenge's fixed public TRAIN, interface, limits
 and physics contract, and runs the miner's recipe through the normal fresh build
@@ -17,13 +17,21 @@ from carbon.development_session.profile import canonical, digest
 from carbon.motor import challenge as motor
 from carbon.research import ChallengeKey
 
-from . import physical_pack, physical_public, physical_public_train
+from . import (
+    f08_public,
+    f08_train,
+    physical_pack,
+    physical_public,
+    physical_public_train,
+)
 
 SCOPE = physical_public.SCOPE
 #: Registered public physical Challenges, by (id, version).
 REGISTERED = (
     (motor.CHALLENGE.challenge_id, motor.CHALLENGE.version),
     (cooling.CHALLENGE.challenge_id, cooling.CHALLENGE.version),
+    # Both F08 versions: 1.0 (255-row TRAIN v1) and 1.1 (287-row TRAIN v2, the straddling bank).
+    *((f08_train.CHALLENGE_ID, version) for version in f08_train.CHALLENGE_VERSIONS),
 )
 
 
@@ -41,12 +49,19 @@ def bundle_material(
 
     if not is_registered(challenge_id, version):
         raise ValueError("unregistered public physical Challenge")
-    source = physical_public_train.load_public_train(challenge_id)
+    # F08 keeps its own public module and float32 TRAIN (v1: 255 rows, v2: 287); the rest shares one.
+    f08 = challenge_id == f08_train.CHALLENGE_ID
+    public = f08_public if f08 else physical_public
+    source = (
+        f08_train.load_public_train(version)
+        if f08
+        else physical_public_train.load_public_train(challenge_id)
+    )
     bank = physical_pack.development_bank(challenge_id, version)
     inputs, reference = bank["inputs"].copy(), bank["references"].copy()
-    kit = physical_public.construction_kit(challenge_id, version)
-    interface = physical_public.interface_document(challenge_id, version)
-    limits = physical_public.construction_limits_document(challenge_id, version)
+    kit = public.construction_kit(challenge_id, version)
+    interface = public.interface_document(challenge_id, version)
+    limits = public.construction_limits_document(challenge_id, version)
     physics = physical_pack.physics_contract(challenge_id, version)
     allowed = allowlist_v5_bytes()
     return {
@@ -76,7 +91,7 @@ def bundle_material(
             "provider_spend_usd": None,
         },
         "disclosure": {
-            "scope": SCOPE,
+            "scope": public.SCOPE,
             "train_role": "PUBLIC_TRAIN",
             "practice_role": "EXPOSED_DEVELOPMENT_DECISION_BANK",
             "train_and_practice_labels_public": True,

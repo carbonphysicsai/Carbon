@@ -27,7 +27,7 @@ KIT_1_0 = {
 
 def test_version_1_0_is_unchanged():
     assert f08_public.construction_kit(CID, "1.0") == KIT_1_0
-    assert f08_train.load_public_train()["inputs"].shape == (255, 6)
+    assert f08_train.load_public_train("1.0")["inputs"].shape == (255, 6)
 
 
 def test_train_v2_is_v1_then_the_near_limit_stratum():

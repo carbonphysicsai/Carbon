@@ -13,7 +13,7 @@ from carbon.development_session import construction_tensor_codec as codec
 
 def test_kit_reuses_exact_pinned_partial_train_and_named_numeric_interface():
     challenge_id, version = f08_train.CHALLENGE_ID, f08_train.CHALLENGE_VERSION
-    material = f08_train.load_public_train()
+    material = f08_train.load_public_train("1.0")
     kit = f08_public.construction_kit(challenge_id, version)
     assert set(kit) == {
         "id",
@@ -74,7 +74,7 @@ def test_f08_limits_bind_partial_source_and_actual_c03_profile():
     assert limits["train_cases"] == 255
     assert limits["train_dtype"] == "<f4"
     assert limits["train_case_ids_sha256"] == f08_public._digest(
-        f08_train.load_public_train()["case_ids"]
+        f08_train.load_public_train("1.0")["case_ids"]
     )
     assert limits["train_provenance_sha256"] == "sha256:" + f08_train.PROVENANCE_SHA256
     assert limits["original_256_complete"] is False

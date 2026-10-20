@@ -16,8 +16,10 @@ from pathlib import Path
 
 import numpy as np
 
-from carbon.cold_plate import challenge as cooling, domain as cooling_domain
-from carbon.motor import challenge as motor, domain as motor_domain
+from carbon.cold_plate import challenge as cooling
+from carbon.cold_plate import domain as cooling_domain
+from carbon.motor import challenge as motor
+from carbon.motor import domain as motor_domain
 
 _DATA = Path(__file__).with_name("data")
 _SCHEMA = "carbon.physical-public-train.provenance.v1"
