@@ -102,6 +102,25 @@ def training_settings(recipe: ConstructionRecipe) -> dict:
     return values
 
 
+#: Battery's graph allowlist per Challenge version, as
+#: `carbon.challenge_kit.served_versions.graph_allowlist_bytes` registers it:
+#: 1.0 keeps v1, step-2's 2.0 serves v6. Kept here, not imported, because this
+#: module runs inside the isolated worker with only its staged modules.
+GRAPH_ALLOWLISTS = {"1.0": "allowlist_v1.json", "2.0": "allowlist_v6.json"}
+
+
+def graph_allowlist(version: str):
+    """The Allowlist a Battery graph recipe of `version` validates against."""
+    from carbon.level4 import allowlist as allowlist_module
+
+    name = GRAPH_ALLOWLISTS.get(version) if type(version) is str else None
+    if name is None:
+        raise RecipeRefused("battery_graph_challenge_version_unregistered")
+    if name == "allowlist_v6.json":
+        return allowlist_module.load_served()
+    return allowlist_module.load(allowlist_module.PATH.with_name(name))
+
+
 def graph_interface(settings: dict):
     """Fixed raw-input/flat-normalized-target interface of this adapter."""
     from carbon.level4.validate import Interface
@@ -241,7 +260,6 @@ def build_validated_graph(
     Hostile graph compilation/training still belongs in an isolated worker;
     this function is intentionally not registered as a public campaign hook.
     """
-    from carbon.level4 import allowlist as allowlist_module
     from carbon.level4 import intake, validate
     from carbon.level4.train import prepare
 
@@ -255,7 +273,7 @@ def build_validated_graph(
         raise RecipeRefused("battery_graph_trusted_context_invalid")
     graph_workspace(recipe, raw_manifest, files, max_bytes=max_bytes)
     interface = graph_interface(settings)
-    allowlist = allowlist_module.load_served()
+    allowlist = graph_allowlist(recipe.to_dict()["challenge"]["version"])
     _, parsed = intake.intake(
         raw_manifest,
         files,

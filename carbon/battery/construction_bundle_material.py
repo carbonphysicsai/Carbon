@@ -12,11 +12,12 @@ from pathlib import Path
 
 import numpy as np
 
+from carbon.challenge_kit.served_versions import material_allowlist_bytes
 from carbon.challenge_kit.synthetic_linear_field_2d import (
     construction_limits_document as c03_limits,
 )
 from carbon.development_session.profile import canonical, digest
-from carbon.level4.allowlist import Allowlist, served_bytes
+from carbon.level4.allowlist import Allowlist
 
 from . import challenge, construction_material, domain, practice
 
@@ -92,7 +93,9 @@ def bundle_material(root: Path | None = None) -> dict:
         or physics.get("version") != "battery-physics-v2"
     ):
         raise challenge.MaterialMismatch("registered physics contract differs")
-    allowed = served_bytes()
+    allowed = material_allowlist_bytes(
+        challenge.CHALLENGE.challenge_id, challenge.CHALLENGE.version
+    )
     limits = construction_limits_document()
     interface = interface_document()
     kit = {

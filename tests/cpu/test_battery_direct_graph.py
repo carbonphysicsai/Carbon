@@ -106,7 +106,7 @@ def test_novel_affine_graph_is_rebuilt_and_trained_from_pinned_train(
     )
     from carbon.level4.tooling import through_bprime
 
-    registry = allowlist.load_served()
+    registry = allowlist.load()
     settings = direct_graph.training_settings(
         _recipe("sha256:" + "a" * 64, precision=precision)
     )

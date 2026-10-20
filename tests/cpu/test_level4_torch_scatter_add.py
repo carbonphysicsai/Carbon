@@ -26,7 +26,6 @@ def test_v6_changes_only_the_listed_entries_and_keeps_graph_scatter_refused():
     import json
 
     from carbon.development_session.bundle_construction_worker import _trusted_allowlist
-    from carbon.development_session.construction_recipe import RecipeRefused
 
     old, new = json.loads(V5.read_bytes()), json.loads(V6.read_bytes())
     assert hashlib.sha256(V5.read_bytes()).hexdigest() == (
@@ -85,8 +84,8 @@ def test_v6_changes_only_the_listed_entries_and_keeps_graph_scatter_refused():
     with pytest.raises(graph.GraphRefused) as refused:
         _prospective().admit("scatter_add", "forward")
     assert refused.value.code == "op_not_supported_v0"
-    with pytest.raises(RecipeRefused, match="bundle_allowlist_unregistered"):
-        _trusted_allowlist(V6.read_bytes())
+    # v6 is served by the step-2 versions, so the bundle worker now trusts it.
+    assert _trusted_allowlist(V6.read_bytes()).version == "level4-allowlist-v6"
 
 
 def _static_program():

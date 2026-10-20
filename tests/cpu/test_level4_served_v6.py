@@ -1,13 +1,15 @@
-"""v6 is the allowlist every Challenge serves (Validator, 2026-10-20): one
-evaluation version before the single recalibration, with no rescoring.
+"""v6 is the allowlist the step-2 versions serve (Validator, 2026-10-20,
+STEP2_BATCH_VERSIONS_20261020): Motor 1.1, Cooling 1.1, F08 1.2, F02 2.1 and
+Battery 2.0. Existing versions keep their bytes (v5, and Battery 1.0's graph
+path v1) and are never rescored.
 
-Claims: the served bytes are frozen by their sha and v1-v5 stay loadable for
-history; every served material (Motor, Cooling, F08, Battery bundles) and
-Battery's direct graph path serve exactly those bytes; dot_general precision
-HIGHEST stays refused (no fp32-accumulation interpreter yet); the caps are
-unchanged; and the backbones v6 was opened for (neuraloperator UNO,
-PhysicsNeMo FNO and AFNO, an efficient-KAN layer) lower and rebuild under the
-served allowlist, matching torch, while v5 refuses each.
+Claims: the served v6 bytes are frozen by their sha and v1-v5 stay loadable for
+history; the version table serves v6 to exactly the step-2 versions, keeps
+every existing version's allowlist, and refuses an unregistered version (no
+default); the bundle worker trusts v6 and its history; dot_general precision
+HIGHEST stays refused under v6; the caps are unchanged; and the backbones v6
+was opened for (neuraloperator UNO, PhysicsNeMo FNO and AFNO, an efficient-KAN
+layer) lower and rebuild under v6, matching torch, while v5 refuses each.
 """
 
 from __future__ import annotations
@@ -47,25 +49,75 @@ def test_changed_served_bytes_are_refused(tmp_path, monkeypatch):
         allowlist_module.served_bytes()
 
 
-def test_every_served_material_serves_the_v6_bytes():
+def test_the_version_table_serves_v6_to_exactly_the_step2_versions():
+    from carbon.challenge_kit import served_versions as sv
+    from carbon.challenge_kit.synthetic_linear_field_2d import allowlist_v5_bytes
+
+    served, v5 = allowlist_module.served_bytes(), allowlist_v5_bytes()
+    assert {key[0] for key in sv.STEP2} == {key[0] for key in sv.EXISTING}
+    assert sv.STEP2.isdisjoint(sv.EXISTING) and len(sv.STEP2) == 5
+    for challenge_id, version in sv.STEP2:
+        assert sv.material_allowlist_bytes(challenge_id, version) == served
+        assert sv.graph_allowlist_bytes(challenge_id, version) == served
+        assert sv.step_caps(challenge_id, version) is False
+    for challenge_id, version in sv.EXISTING:
+        assert sv.material_allowlist_bytes(challenge_id, version) == v5
+        assert sv.step_caps(challenge_id, version) is True
+    # Battery 1.0's direct graph path has always validated against v1.
+    assert (
+        sv.graph_allowlist_bytes(sv.BATTERY, "1.0")
+        == allowlist_module.PATH.read_bytes()
+    )
+    assert sv.graph_allowlist_bytes(sv.MOTOR, "1.0") == v5
+
+
+@pytest.mark.parametrize(
+    "key",
+    [("electric-motor-magnetics", "1.2"), ("chip-cold-plate", ""), ("unknown", "1.0")],
+)
+def test_an_unregistered_version_is_refused_never_mapped(key):
+    from carbon.challenge_kit import served_versions as sv
+
+    for read in (sv.material_allowlist_bytes, sv.graph_allowlist_bytes, sv.step_caps):
+        with pytest.raises(sv.UnregisteredVersion):
+            read(*key)
+
+
+def test_existing_materials_keep_their_v5_bytes():
+    from carbon.battery import construction_bundle_material
     from carbon.challenge_kit import physical_material
+    from carbon.challenge_kit import served_versions as sv
+    from carbon.challenge_kit.synthetic_linear_field_2d import allowlist_v5_bytes
 
-    served = allowlist_module.served_bytes()
     for challenge_id, version in sorted(physical_material.REGISTERED):
-        material = physical_material.bundle_material(challenge_id, version)
-        assert material["allowlist_bytes"] == served, challenge_id
-        assert material["allowlist_digest"] == allowlist_module.load_served().digest
-
-
-def test_battery_bundles_and_direct_graph_serve_v6():
-    from carbon.battery import construction_bundle_material, direct_graph
-
-    material = construction_bundle_material.bundle_material(
+        if (challenge_id, version) in sv.EXISTING:
+            material = physical_material.bundle_material(challenge_id, version)
+            assert material["allowlist_bytes"] == allowlist_v5_bytes(), challenge_id
+    battery = construction_bundle_material.bundle_material(
         Path(__file__).resolve().parents[2]
     )
-    assert material["allowlist_bytes"] == allowlist_module.served_bytes()
-    source = Path(direct_graph.__file__).read_text(encoding="utf-8")
-    assert "allowlist_module.load_served()" in source
+    assert battery["allowlist_bytes"] == allowlist_v5_bytes()
+
+
+def test_batterys_worker_side_graph_choice_matches_the_version_table():
+    from carbon.battery import direct_graph
+    from carbon.challenge_kit import served_versions as sv
+
+    battery = sorted(v for c, v in sv.STEP2 | sv.EXISTING if c == sv.BATTERY)
+    assert sorted(direct_graph.GRAPH_ALLOWLISTS) == battery
+    for version in battery:
+        assert (
+            direct_graph.graph_allowlist(version).digest
+            == allowlist_module.Allowlist(
+                sv.graph_allowlist_bytes(sv.BATTERY, version)
+            ).digest
+        )
+    from carbon.development_session.construction_recipe import RecipeRefused
+
+    with pytest.raises(
+        RecipeRefused, match="battery_graph_challenge_version_unregistered"
+    ):
+        direct_graph.graph_allowlist("1.1")
 
 
 def test_the_bundle_worker_trusts_v6_and_still_trusts_history():

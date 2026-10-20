@@ -44,7 +44,8 @@ def bundle_material(
     version: str = motor.CHALLENGE.version,
 ) -> dict:
     """Challenge-owned public bytes and arrays for the direct receiver."""
-    from carbon.level4.allowlist import Allowlist, served_bytes
+    from carbon.challenge_kit.served_versions import material_allowlist_bytes
+    from carbon.level4.allowlist import Allowlist
 
     if not is_registered(challenge_id, version):
         raise ValueError("unregistered public physical Challenge")
@@ -62,7 +63,7 @@ def bundle_material(
     interface = public.interface_document(challenge_id, version)
     limits = public.construction_limits_document(challenge_id, version)
     physics = physical_pack.physics_contract(challenge_id, version)
-    allowed = served_bytes()
+    allowed = material_allowlist_bytes(challenge_id, version)
     return {
         "challenge_key": ChallengeKey(challenge_id, version),
         "construction_kit": kit,
