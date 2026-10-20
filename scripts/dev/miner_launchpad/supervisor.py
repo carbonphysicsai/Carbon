@@ -142,6 +142,13 @@ NEXT_ACTIONS = {
         "base settings or wait for the named check; changing a level label "
         "does not resolve it."
     ),
+    "construction_staging_connection_reset": (
+        "The validator kept dropping the connection while your source "
+        "uploaded, until the transfer time ran out. The validator keeps what "
+        "it already received, so submit the same recipe again and the upload "
+        "continues from there. If it keeps happening, check for a proxy or an "
+        "unstable network between you and the validator."
+    ),
     "construction_selector_retired": (
         "Remove construction_level, construction_variant_digest, and arm from "
         "the launch request (carbon_launch). For a new direct campaign, supply "
