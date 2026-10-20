@@ -44,6 +44,13 @@ RECORD_SCHEMA = "carbon.f02.exam-reference-record.v1"
 CONTEXT = "c30-i40-s0.5-rectangular"
 BASE_PANEL = "cool-rect-low"  # the cold panel case the exam actions vary
 RUNGS = (("primary", 1, 1.0), ("mesh2", 2, 1.0), ("dt0.5", 1, 0.5))
+OBSERVED = (
+    "peak_top_c",
+    "extra_energy_j",
+    "first_95c_crossing_s",
+    "peak_time_s",
+    "recovery_s",
+)
 TERMINAL = ("OK", "REFERENCE_INVALID", "REFERENCE_SOLVER_FAILED", "REFERENCE_TIMEOUT")
 DOCKER_START_FAILURES = {125, 126, 127}
 
@@ -195,9 +202,12 @@ def main(argv=None):
         }
         if status in ("OK", "REFERENCE_INVALID"):
             primary = judgement["observables"][f"{cid}-primary"]
-            record["outputs"] = {
-                k: primary[k]
-                for k in ("peak_top_c", "first_95c_crossing_s", "extra_energy_j")
+            # The development bank's record content (physical_pack._f02_bank),
+            # so a sealed batch becomes a private pack in the same format.
+            record["outputs"] = {k: primary[k] for k in OBSERVED}
+            record["rung_peaks_c"] = {
+                tag: judgement["observables"][f"{cid}-{tag}"]["peak_top_c"]
+                for tag, _, _ in RUNGS
             }
             record["rung_comparison"] = row
         with records.open("a", encoding="utf-8") as handle:

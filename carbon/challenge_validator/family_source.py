@@ -464,14 +464,20 @@ def _motor():
 #: The registered families, by name: each a function returning its source
 #: class, imported only when the producer serves that Challenge (a static
 #: import, never a dynamic one).
-FAMILY_SOURCES = {"motor": _motor}
+def _f02():
+    from .f02_source import F02BatchSource
+
+    return F02BatchSource
+
+
+FAMILY_SOURCES = {"motor": _motor, "f02": _f02}
 
 
 def family_source_class(challenge_id):
     """The registered family source class for `challenge_id`, or None."""
     from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
 
-    names = {MOTOR_CHALLENGE: "motor"}
+    names = {MOTOR_CHALLENGE: "motor", "f02": "f02"}
     if challenge_id not in names:
         return None
     return FAMILY_SOURCES[names[challenge_id]]()
