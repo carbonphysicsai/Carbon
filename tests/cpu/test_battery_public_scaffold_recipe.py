@@ -61,6 +61,9 @@ def test_the_material_stages_the_graph_and_returns_a_ready_recipe(served):
     assert training == {"steps": 2000}  # only the scaffold's published field
     assert recipe.digest not in LEG_MINIMUM_RECIPES
     assert "scaffold graph is staged" in reply["use"]
+    # The anchors' dependency is served to the agent with the scaffold.
+    assert "train_fraction 1.0" in reply["anchors"]
+    assert "initial_voltage" in reply["anchors"]
 
 
 def test_the_served_recipe_resolves_and_validates_as_practice_would(served):
