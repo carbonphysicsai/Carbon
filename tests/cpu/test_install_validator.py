@@ -50,6 +50,8 @@ def machine(tmp_path):
         merged = {
             **os.environ,
             "PATH": f"{stubs}:{os.environ['PATH']}",
+            # The canonical container is itself a container: fix the machine type.
+            "CARBON_VALIDATOR_ASSUME_MACHINE": "host",
             "CARBON_STATE_DIR": str(state),
             "CARBON_VALIDATOR_MIN_FREE_GIB": "0",
             "CARBON_VALIDATOR_MIN_CPUS": "1",
@@ -122,7 +124,7 @@ def test_gpu_needs_a_recent_driver_and_defers_the_toolkit_to_the_functional_chec
 
 
 def test_a_container_without_a_daemon_is_a_machine_type_refusal(machine):
-    done = machine(STUB_DOCKER_DOWN="1", STUB_VIRT="docker")
+    done = machine(STUB_DOCKER_DOWN="1", CARBON_VALIDATOR_ASSUME_MACHINE="container")
     assert done.returncode == 2
     assert "V_MACHINE_TYPE" in done.stderr and "V_DOCKER" not in done.stderr
 
@@ -146,6 +148,7 @@ def test_a_container_without_a_docker_cli_is_not_told_to_install_docker(tmp_path
         env={
             "PATH": str(bin_dir),
             "CARBON_STATE_DIR": str(tmp_path / "state"),
+            "CARBON_VALIDATOR_ASSUME_MACHINE": "container",
             "CARBON_VALIDATOR_MIN_FREE_GIB": "0",
             "CARBON_VALIDATOR_MIN_CPUS": "1",
             "CARBON_VALIDATOR_MIN_RAM_GIB": "0",
