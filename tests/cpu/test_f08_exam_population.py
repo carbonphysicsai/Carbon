@@ -69,8 +69,8 @@ def test_off_lattice_invalid_and_out_of_band_geometries_are_refused():
     assert population.admitted(case)
     assert not population.admitted({**case, "length_mm": case["length_mm"] + 1.0})
     assert not population.admitted({k: v for k, v in case.items() if k != "width_mm"})
-    # The rib/relief rule: width 60 with rib thickness 5 leaves no ligament.
-    assert not population.admitted({**case, "width_mm": 60.0, "rib_thickness_mm": 5.0})
+    # Outside the registered range (thickness 4-8 mm).
+    assert not population.admitted({**case, "thickness_mm": 8.5})
     far = {
         "length_mm": 180.0,
         "width_mm": 100.0,
