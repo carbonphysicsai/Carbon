@@ -174,8 +174,17 @@ def development_candidate_implementation(
         ".agent/runtime/",
         "website/ask-carbon/.wrangler/",
     }
-    if any(path not in isolated for path in ignored):
-        raise ValueError("development candidate has ignored runtime source")
+    stray = [path for path in ignored if path not in isolated]
+    if stray:
+        # Fail closed (a stale .pyc can shadow source), but name the paths and
+        # the usual cause: `python` without -B writes carbon/**/__pycache__.
+        raise ValueError(
+            "development candidate has ignored runtime source: "
+            + ", ".join(stray[:5])
+            + (" ..." if len(stray) > 5 else "")
+            + "; remove them (a __pycache__ comes from running python without"
+            " -B or PYTHONDONTWRITEBYTECODE=1) and run again"
+        )
     tree = git("rev-parse", "HEAD^{tree}")
     if tree != expected_tree:
         raise ValueError("development candidate tree differs")

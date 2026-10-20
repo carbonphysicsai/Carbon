@@ -1,8 +1,15 @@
 """Operator setup for the DEVELOPMENT direct receiver: profile, configuration, start.
 
-    python -m carbon.challenge_validator.receiver_setup prepare \\
+    .venv/bin/python -B -m carbon.challenge_validator.receiver_setup prepare \\
         --installed-state STATE --receiver-state DIR --challenge ID VERSION [--pack DIR]
-    python -m carbon.challenge_validator.receiver_setup start --receiver-state DIR [--detach]
+    .venv/bin/python -B -m carbon.challenge_validator.receiver_setup start \\
+        --receiver-state DIR [--detach]
+
+Run Python with -B, as `install_validator.sh` does: without it Python writes
+`carbon/**/__pycache__` into this checkout, and `prepare` refuses a checkout
+with untracked runtime files. `start --detach` runs the receiver as a
+`systemd --user` unit, which stops when that user logs out unless linger is on:
+`loginctl enable-linger "$USER"` once per host.
 
 `scripts/install_miner.sh` (or `install_validator.sh`) installs the checkout and
 the pinned worker and analysis images and records them under STATE. This writes
@@ -272,6 +279,8 @@ def start(receiver_state: Path, *, detach: bool = False) -> int:
                     "unit": unit,
                     "follow": f"journalctl --user -u {shlex.quote(unit)} -f",
                     "stop": f"systemctl --user stop {shlex.quote(unit)}",
+                    # A user unit stops at logout unless the user lingers.
+                    "keep_after_logout": 'loginctl enable-linger "$USER"',
                 }
             )
         )
@@ -280,7 +289,7 @@ def start(receiver_state: Path, *, detach: bool = False) -> int:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m carbon.challenge_validator.receiver_setup"
+        prog="python -B -m carbon.challenge_validator.receiver_setup"
     )
     sub = parser.add_subparsers(dest="command", required=True)
     prep = sub.add_parser("prepare")
