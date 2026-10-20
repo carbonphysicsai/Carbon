@@ -311,7 +311,14 @@ def measurement_contract():
         m.ScientificValueBinding(m.ScientificValueState.HUMAN_INPUT),
         definition(kind.APPLICABILITY_POLICY, "public_development_population_only"),
         m.UncertaintyPolicyBinding(m.ScientificValueState.HUMAN_INPUT),
-        (),
+        # The measurement layer requires at least one stratum binding; its
+        # applicability is unresolved, as Battery's is (HUMAN_INPUT).
+        (
+            m.StratumApplicabilityBinding(
+                definition(kind.STRATUM, "public_development_population"),
+                m.StratumApplicabilityStatus.HUMAN_INPUT,
+            ),
+        ),
         (
             definition(
                 kind.KNOWN_LIMITATION,
