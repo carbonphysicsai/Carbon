@@ -71,7 +71,7 @@ Asked by the Test Lead, "Add Battery as a fifth Challenge?", the owner answered 
 - **N at launch is whatever policy is registered then.**
 - Battery's pack labels use the sealed `battery-plating-ref-v2` (`VALIDATOR-PLATING-REF-V2-02`, on main).
 
-## 5. Implementation (branch `codex/p3-paired-key`)
+## 5. Implementation (written on `codex/p3-paired-key`; brought to the base on `codex/koth-on-base`)
 
 - `compare_private_pair` takes the comparator's `rebuild_noise` (`value`, `measurement_digest`). A challenger wins only if `total > king_total + value`. If no noise is registered, the result is UNAVAILABLE.
 - `winner_eligibility.decide` accepts a bank-comparison promotion kind. It uses the existing predecessor check and the same-miner `no_reset`.
