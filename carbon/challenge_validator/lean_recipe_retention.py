@@ -655,18 +655,19 @@ def _retain_selected_pack_evaluation(
                     "receipt_raw": artifacts["timed-query-receipt.json"],
                     "registered_sha256": _sha(artifacts["timed-query-receipt.json"]),
                 }
-            # Never gates retention: this runs after bank custody, and a missing
-            # or failed pair leaves the evaluation UNAVAILABLE with a typed reason.
-            pair_raw = _inference_pair_raw(
-                adapter,
-                submission_id,
-                result,
-                artifacts,
-                registered["entry"],
-                regrade,
-            )
-            originals["inference_pair_raw"] = pair_raw
-            originals["inference_pair_sha256"] = _sha(pair_raw)
+        # Graph and bundle alike: the paired repeat is what the KOTH comparison
+        # binds (v4). Never gates retention: this runs after bank custody, and a
+        # missing or failed pair leaves the evaluation UNAVAILABLE with a typed reason.
+        pair_raw = _inference_pair_raw(
+            adapter,
+            submission_id,
+            result,
+            artifacts,
+            registered["entry"],
+            regrade,
+        )
+        originals["inference_pair_raw"] = pair_raw
+        originals["inference_pair_sha256"] = _sha(pair_raw)
         prepared = produce_registered_dual_measurement(
             selected_pack=snapshot,
             public_root=discovery.evaluation_pack_public_root,

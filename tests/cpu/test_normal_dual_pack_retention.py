@@ -238,10 +238,14 @@ def _fixture(tmp_path, monkeypatch, *, gate_minimum=0.0):
         "worker-evidence.json": "stage/worker-evidence.json",
     }
     artifacts = {name: case["originals"][path] for name, path in roles.items()}
-    artifacts[
-        "task-receipt.json"
-    ] = b"inert fixture terminal receipt; never network evidence"
+    artifacts["task-receipt.json"] = (
+        b"inert fixture terminal receipt; never network evidence"
+    )
     monkeypatch.setattr(retention, "_collect_graph_artifacts", lambda *_args: artifacts)
+    # The paired repeat a graph recipe now carries too (the inert producer ignores it).
+    monkeypatch.setattr(
+        retention, "_inference_pair_raw", lambda *_args: b"inert fixture pair\n"
+    )
     intake = object.__new__(DirectRecipeIntake)
     intake.adapter = adapter
     artifact_root, entries = tmp_path / "bank-artifacts", tmp_path / "bank-entries"
@@ -287,7 +291,11 @@ def _producer(fixture, *, wrong_challenge=False):
             "predictions": predictions,
             "worker_operation": worker["inference_operation"],
             "receipt": worker["inference_receipt"],
-            **originals,
+            # The graded run's originals only, as the real producers pass them.
+            **{
+                k: originals[k]
+                for k in ("inference_receipt_raw", "worker_evidence_raw")
+            },
         }
         measured = bundle_benchmark_core.measurement_from_saved_inference(
             arguments["entry"],
@@ -349,6 +357,8 @@ def test_normal_retention_routes_trusted_fixture_to_same_core(
     )
     assert result["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY"
     binding = json.loads(result["private_evaluation_path"].read_bytes())
+    # A graph recipe binds the paired form the KOTH comparison requires.
+    assert binding["schema"] == "carbon.scoring.private-evaluation-binding.v4"
     assert binding["scoring"] == ScoreEngine.score_dual_benchmark_v4(
         fixture.produced[-1], fixture.pack
     )
