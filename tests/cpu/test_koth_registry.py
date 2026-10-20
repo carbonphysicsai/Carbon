@@ -56,6 +56,16 @@ def test_a_malformed_or_zero_noise_refuses(tmp_path, noise):
         kr.rebuild_noise("f02", path=path)
 
 
+def _pack(minimum_a, minimum_d, combination="weighted_arithmetic_mean", weight=0.5):
+    leg = {"components": [], "minimum": None}
+    return {
+        "pack_digest": digest("score pack"),
+        "legs": {"A": {**leg, "minimum": minimum_a}, "D": {**leg, "minimum": minimum_d}},
+        "value_weight": weight,
+        "combination": combination,
+    }
+
+
 def test_the_comparator_is_the_one_bank_promotion_accepts(tmp_path):
     path = _write(
         tmp_path,
@@ -64,7 +74,7 @@ def test_the_comparator_is_the_one_bank_promotion_accepts(tmp_path):
     source = digest("baseline run that set the leg minimums")
     rule = kr.comparator(
         "electric-motor-magnetics",
-        {"pack_digest": digest("score pack")},
+        _pack(0.4, 0.8),
         {"leg_minimum_source": {"role": BASELINE_ROLE, "entry_id": source}},
         path=path,
     )
@@ -72,6 +82,7 @@ def test_the_comparator_is_the_one_bank_promotion_accepts(tmp_path):
     assert rule["rebuild_noise"]["value"] == 0.05
     assert rule["minimum_source_entry_ids"] == [source]
     assert rule["ties"] == "incumbent_keeps"
+    assert rule["baseline_total"] == pytest.approx(0.6)
 
 
 def test_an_id_that_is_not_a_registered_challenge_refuses(tmp_path):
@@ -82,3 +93,22 @@ def test_an_id_that_is_not_a_registered_challenge_refuses(tmp_path):
     )
     with pytest.raises(kr.RegistryInvalid):
         kr.rebuild_noise("electric-motor-magnetics", path=path)
+
+
+@pytest.mark.parametrize(
+    ("pack", "expected"),
+    [
+        (_pack(0.4, 0.8), 0.6),
+        (_pack(0.4, 0.8, weight=0.25), 0.5),
+        (_pack(None, 0.8), None),
+        (_pack(0.4, None), None),
+        (_pack(0.25, 1.0, "bottleneck_capped_geometric"), 0.125),
+        (_pack(0.0, 1.0, "bottleneck_capped_geometric"), 0.0),
+    ],
+)
+def test_the_baseline_total_is_the_packs_own_total_at_its_leg_minimums(pack, expected):
+    """OWNER-FIRST-CROWN-BEATS-BASELINE-01: the same combination dual_score uses."""
+    if expected is None:
+        assert kr.baseline_total(pack) is None
+    else:
+        assert kr.baseline_total(pack) == pytest.approx(expected)
