@@ -170,3 +170,8 @@ def test_start_receiver_without_a_receiver_is_refused(machine):
     done = machine("--start-receiver")
     assert done.returncode == 2
     assert "--receiver ID VERSION" in done.stderr
+
+
+def test_the_machine_type_override_is_never_silent(machine):
+    done = machine()
+    assert "overrides the machine-type check" in done.stderr
