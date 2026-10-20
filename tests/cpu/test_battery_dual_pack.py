@@ -12,7 +12,7 @@ import pytest
 from carbon.challenge_kit import physical_pack
 from carbon.scoring import battery_dual_measurement as bdm
 from carbon.scoring import battery_dual_pack as adapter
-from carbon.scoring import dual_score
+from carbon.scoring import cooling_dual_pack, dual_score, motor_dual_pack
 from carbon.scoring import physical_dual_pack as physical
 from carbon.scoring import private_evaluation_source as source
 
@@ -88,10 +88,13 @@ def test_the_applied_pack_registers_as_an_arithmetic_half_and_half():
     assert all(leg["minimum"] is None for leg in pack["legs"].values())
 
 
-def test_battery_is_not_dispatched_until_its_d_and_b15_rows_are_served():
-    # Routing Battery edits a shared producer file (every physical producer's
-    # digest); it lands once, with the Battery v2 material.
-    assert source._physical_adapter(adapter.CHALLENGE, adapter.VERSION) is None
+def test_battery_dispatches_and_the_dispatch_table_is_in_no_producer_digest():
+    # Selecting an adapter measures nothing: registering a Challenge must not
+    # re-version (and unbind the calibration packs of) any other producer.
+    assert source._physical_adapter(adapter.CHALLENGE, adapter.VERSION) is adapter
+    assert "physical_adapters.py" not in physical._SHARED_FILES
+    for module in (adapter, motor_dual_pack, cooling_dual_pack):
+        assert "physical_adapters.py" not in module.FILES
 
 
 def test_a_model_equal_to_the_reference_passes_every_practice_gate():
