@@ -456,9 +456,11 @@ class FamilyBankSource(BankSource):
 
 
 def _motor():
-    from .motor_source import MotorBatchSource
+    # Motor 1.0's hidden pool or Motor 1.1's sealed exam, by the deployment
+    # file's schema (motor_sealed_source).
+    from .motor_sealed_source import motor_source_for
 
-    return MotorBatchSource
+    return motor_source_for
 
 
 #: The registered families, by name: each a function returning its source
