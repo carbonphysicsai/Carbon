@@ -169,9 +169,13 @@ with the fields in [Record](#record).
    Record the check: the images; for this machine's GPU, the device; for a
    remote setup, the transport, what the check found and whether the worker
    was sent.
-6. **Agent.** Choose Carbon's autonomous agent or Hermes. Leave the operator
-   field empty: setup reads the network and its publisher from the chain, and
-   records the block it read.
+6. **Agent.** Choose one of the three agents setup offers: Graphite, Carbon's
+   research agent (`carbon-graphite`); your own agent over MCP (`own-agent`,
+   for example Claude Code or Codex, with its own model and provider); or
+   Hermes (`hermes`). Leave the operator field empty: setup reads the network
+   and its publisher from the chain, and records the block it read.
+   - For your own agent, setup skips the Inference step and shows the MCP
+     command and the client snippets.
    - For Hermes, install it first (its installer), read the files setup will
      write, and tick to agree.
    - Record the Hermes version and the files written.
@@ -183,7 +187,9 @@ with the fields in [Record](#record).
    the intake reports another receiver.
 8. **Choose a Challenge and launch.** Under Challenges, read each one's
    description and research environment, and choose an implemented one. For
-   Carbon's agent, launch from Campaigns with finite ceilings. For Hermes, run `hermes -p carbon chat` and ask it to launch,
+   Graphite, launch from Campaigns with finite ceilings. For your own agent,
+   connect it to `python -m carbon.miner_mcp.standard_cli` and ask it to work
+   through the same tools. For Hermes, run `hermes -p carbon chat` and ask it to launch,
    practise, freeze and submit; it asks you before each such tool.
 9. **Practise on the GPU.** Every practice feedback records its backend:
    - on this machine's GPU, `ISOLATED_CARRIER_GPU`, with the device record and

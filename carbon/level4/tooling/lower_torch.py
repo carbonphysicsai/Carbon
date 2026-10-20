@@ -9,6 +9,18 @@ refused (`aten_op_not_lowered`), and so is one the allowlist refuses.
 
 Parameters become named graph inputs (Carbon feeds them); buffers and lifted
 tensor constants become counted constants.
+
+Limits a miner may meet (allowlist v6):
+
+- `max_pool2d` is supported only with non-overlapping windows (stride equal
+  to the kernel), 4-D input, no padding, dilation or `ceil_mode`, and no
+  indices output. Anything else, `MaxPool2d(3, 2)` for one, is refused as
+  `aten_arguments_not_supported`, a Carbon capability gap that does not count
+  against the miner.
+- Its gradients at exact ties inside a window are split as in JAX, not given
+  to the first index as in torch. Carbon's rebuild trains through its own
+  `reduce_max` on both backends, so this differs only from a miner's local
+  torch training.
 """
 
 from __future__ import annotations
@@ -346,6 +358,71 @@ def _split_with_sizes(b, node, env):
         )
         start += n
     return tuple(parts)
+
+
+def _max_pool2d(b, node, env):
+    """Non-overlapping 2-D max pooling (kernel = stride, no padding or dilation),
+    as U-Net-style encoders use it: crop to whole windows (floor mode), reshape
+    so each window is two axes, and reduce_max over them. Only the values are
+    selectable; the indices output is refused. Gradients match torch's except
+    at exact ties inside a window (JAX's reduce_max shares them)."""
+    target = str(node.target)
+    args = list(node.args) + [None] * (6 - len(node.args))
+    x_arg, kernel, stride, padding, dilation, ceil_mode = args[:6]
+    kw = node.kwargs
+    stride = kw.get("stride", stride) or kernel
+    padding = kw.get("padding", padding) or [0, 0]
+    dilation = kw.get("dilation", dilation) or [1, 1]
+    ceil_mode = kw.get("ceil_mode", ceil_mode) or False
+    if not hasattr(x_arg, "op"):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    x = env[x_arg]
+    dtype, shape = b.avals[x]
+    kernel = list(kernel) * (2 if len(kernel) == 1 else 1)
+    stride = list(stride) * (2 if len(stride) == 1 else 1)
+    if (
+        len(shape) != 4
+        or kernel != stride
+        or any(int(p) != 0 for p in padding)
+        or any(int(d) != 1 for d in dilation)
+        or ceil_mode
+        or any(type(k) is not int or k < 1 for k in kernel)
+    ):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    (n, c, h, w), (kh, kw_) = shape, kernel
+    oh, ow = h // kh, w // kw_
+    if oh < 1 or ow < 1:
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    if (oh * kh, ow * kw_) != (h, w):
+        x = b.emit(
+            "slice",
+            [x],
+            dtype,
+            [n, c, oh * kh, ow * kw_],
+            limit_indices=[n, c, oh * kh, ow * kw_],
+            start_indices=[0, 0, 0, 0],
+            strides=None,
+        )
+    windows = [n, c, oh, kh, ow, kw_]
+    x = b.emit(
+        "reshape",
+        [x],
+        dtype,
+        windows,
+        dimensions=None,
+        new_sizes=windows,
+        sharding=None,
+    )
+    spec = b.allowlist.ops["reduce_max"]["params"]
+    values = b.emit(
+        "reduce_max",
+        [x],
+        dtype,
+        [n, c, oh, ow],
+        axes=[3, 5],
+        **({"out_sharding": None} if "out_sharding" in spec else {}),
+    )
+    return (values, None)
 
 
 def _native_layer_norm(b, node, env):
@@ -909,6 +986,8 @@ def _emit(b, node, env):
         return _index_static(b, node, env)
     if target == "aten.split_with_sizes.default":
         return _split_with_sizes(b, node, env)
+    if target == "aten.max_pool2d_with_indices.default":
+        return _max_pool2d(b, node, env)
     dtype, shape = (
         _aval(node)
         if "val" in node.meta and node.meta["val"] is not None
@@ -971,6 +1050,12 @@ def _emit(b, node, env):
         return _gelu(b, x, kw.get("approximate", "none"))
     if target == "aten.tanh.default":
         return b.unary("tanh", x, accuracy=None)
+    if target in ("aten.cos.default", "aten.sin.default"):
+        return b.unary(target.split(".")[1], x, accuracy=None)
+    if target == "aten.logical_not.default":
+        if b.avals[x][0] != "bool" or dtype != "bool":
+            raise graph.GraphRefused("aten_arguments_not_supported", target)
+        return b.unary("not", x)
     if target == "aten.sigmoid.default":
         return b.unary("logistic", x, accuracy=None)
     if target in ("aten.exp.default", "aten.log1p.default", "aten.sqrt.default"):

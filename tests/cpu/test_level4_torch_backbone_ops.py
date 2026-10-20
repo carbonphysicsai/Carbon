@@ -250,3 +250,36 @@ def test_kan_spline_interval_ops_match_torch_and_v5_refuses_them():
     with pytest.raises(graph.GraphRefused) as refused:
         lower_torch.lower(program, allowlist=allowlist_module.load(V5))
     assert refused.value.code == "aten_op_not_allowlisted"
+
+
+class PoolTrig(torch.nn.Module):
+    """U-Net's 2x2 max pooling (with a floor crop), OFormer's cos/sin, and the
+    Transformer's boolean `logical_not`."""
+
+    def forward(self, x):
+        pooled = torch.nn.functional.max_pool2d(x, 2)
+        mask = torch.logical_not(pooled > 0.0)
+        return torch.cos(pooled) * torch.sin(pooled) + mask.to(x.dtype)
+
+
+def test_max_pool_cos_sin_logical_not_match_torch_values_and_gradients():
+    import numpy as np
+
+    module = PoolTrig()
+    x = torch.randn(2, 3, 7, 6, generator=torch.Generator().manual_seed(8))
+    doc, got = _lower_and_run(module, x, V6)
+    np.testing.assert_allclose(got, module(x).numpy(), rtol=1e-6, atol=1e-6)
+    parsed = graph.parse(
+        graph.dumps(doc), max_bytes=allowlist_module.CAPS["document_bytes"]
+    )
+    rebuilt = interpret.rebuild(parsed, allowlist_module.load(V6))
+    grad = jax.grad(lambda v: rebuilt(v)[0].sum())(jax.numpy.asarray(x.numpy()))
+    want = x.clone().requires_grad_(True)
+    module(want).sum().backward()
+    np.testing.assert_allclose(
+        np.asarray(grad), want.grad.numpy(), rtol=1e-5, atol=1e-6
+    )
+    program = torch.export.export(module, (x,)).run_decompositions()
+    with pytest.raises(graph.GraphRefused) as refused:
+        lower_torch.lower(program, allowlist=allowlist_module.load(V5))
+    assert refused.value.code == "aten_op_not_allowlisted"
