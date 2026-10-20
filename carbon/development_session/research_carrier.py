@@ -430,6 +430,7 @@ _PRIVATE_PROGRAM_FILES = frozenset(
         "private-program-baseline.json",
         "private-program-failure-evidence.json",
         "private-export-failure-evidence.json",
+        "private-container-end-evidence.json",
         "private-owned-cancel-observation.json",
     }
 )
@@ -554,6 +555,102 @@ def _fixed_program_container_observation(
         return result
     except Exception:  # noqa: BLE001 - unknown is never absence or a new failure
         return unknown
+
+
+_CONTAINER_END_LOG_BYTES = 1200
+_CONTAINER_END_STATUS = frozenset(
+    {"created", "exited", "dead", "removing", "paused", "restarting", "running"}
+)
+_CONTAINER_END_TIME = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]{8,20}Z")
+
+
+def _printable(raw, limit):
+    """Closed text for a private record: printable ASCII and newlines only."""
+    return bytes(
+        byte if 32 <= byte < 127 or byte == 10 else 63 for byte in bytes(raw)[-limit:]
+    ).decode("ascii")
+
+
+def _fixed_program_container_end(cli, *, container_name, launch_digest, deadline):
+    """How a container that is no longer running ended: its State and PID 1's last output.
+
+    The receiver removes the container at cleanup and its log goes with it, so a worker
+    that ends by itself otherwise leaves only an exit code. Private observation only; a
+    container that is still running, or any read that fails, gives nothing."""
+    try:
+        if (
+            type(deadline) not in (int, float)
+            or not math.isfinite(deadline)
+            or type(launch_digest) is not str
+            or re.fullmatch(r"sha256:[0-9a-f]{64}", launch_digest) is None
+            or container_name != "carbon-d4-" + launch_digest[7:31]
+        ):
+            return None
+
+        def budget():
+            remaining = deadline - time.monotonic()
+            if not math.isfinite(remaining) or remaining <= 0:
+                raise TimeoutError("private observation budget elapsed")
+            return min(1.0, remaining)
+
+        value = cli.json(
+            ["inspect", container_name, "--format", "{{json .State}}"],
+            timeout=budget(),
+        )
+        if type(value) is not dict or value.get("Running") is not False:
+            return None
+        exit_code = value.get("ExitCode")
+        status = value.get("Status")
+        state = {
+            "status": status if status in _CONTAINER_END_STATUS else None,
+            "exit_code": (
+                exit_code if type(exit_code) is int and 0 <= exit_code <= 255 else None
+            ),
+            "oom_killed": (
+                value["OOMKilled"] if type(value.get("OOMKilled")) is bool else None
+            ),
+            "daemon_error": (
+                _printable(value["Error"].encode("ascii", "replace"), 200)
+                if type(value.get("Error")) is str
+                else None
+            ),
+        }
+        for key, field in (("started_at", "StartedAt"), ("finished_at", "FinishedAt")):
+            moment = value.get(field)
+            state[key] = (
+                moment
+                if type(moment) is str and _CONTAINER_END_TIME.fullmatch(moment)
+                else None
+            )
+        log_tail = None
+        try:
+            logs = cli.run(["logs", "--tail", "40", container_name], timeout=budget())
+            log_tail = _printable(logs.stdout + logs.stderr, _CONTAINER_END_LOG_BYTES)
+        except Exception:  # noqa: BLE001, S110 - the State alone still helps
+            pass
+        return {
+            "schema": "carbon.autoresearch.container-end-evidence.v1",
+            "launch_digest": launch_digest,
+            "observed_unix": time.time(),
+            "state": state,
+            "log_tail": log_tail,
+            "interpretation": "Observations only; no inferred cause.",
+        }
+    except Exception:  # noqa: BLE001 - unknown is never absence or a new failure
+        return None
+
+
+def _retain_container_end(cli, operation, *, container_name, launch_digest, deadline):
+    end = _fixed_program_container_end(
+        cli,
+        container_name=container_name,
+        launch_digest=launch_digest,
+        deadline=deadline,
+    )
+    if end is not None:
+        _retain_fixed_program_evidence(
+            operation, "private-container-end-evidence.json", end
+        )
 
 
 @contextmanager
@@ -1117,6 +1214,13 @@ def _run_locked(
                                 "interpretation": "Observations only; no inferred kill cause.",
                             },
                         )
+                        _retain_container_end(
+                            cli,
+                            operation,
+                            container_name=name,
+                            launch_digest=launch,
+                            deadline=min(time.monotonic() + 2, started + seconds - 30),
+                        )
                     except Exception:  # noqa: BLE001, S110 - preserve original failure
                         pass
                 raise
@@ -1177,6 +1281,13 @@ def _run_locked(
                                 ),
                                 "interpretation": "Observations only; no inferred export failure cause.",
                             },
+                        )
+                        _retain_container_end(
+                            cli,
+                            operation,
+                            container_name=name,
+                            launch_digest=launch,
+                            deadline=min(time.monotonic() + 2, started + seconds - 30),
                         )
                     except Exception:  # noqa: BLE001, S110 - preserve original failure
                         pass
