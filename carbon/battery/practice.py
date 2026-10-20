@@ -55,7 +55,10 @@ PRACTICE_CASES = 200
 #: v3 computes the block's B4 on the committed practice decision set (or
 #: gives its typed refusal), and the block's `unmeasured` also counts that
 #: set's cases. A v2 result keeps its meaning: its B4 is always BLOCKED.
-FEEDBACK_SCHEMA = "carbon.battery.practice-feedback.v3"
+#: v4 adds the safety block's B5 (plating under battery-plating-ref-v2,
+#: informational); v1-v3 results keep their meaning and are never rescored.
+FEEDBACK_SCHEMA = "carbon.battery.practice-feedback.v4"
+FEEDBACK_SCHEMA_V3 = "carbon.battery.practice-feedback.v3"
 FEEDBACK_SCHEMA_V2 = "carbon.battery.practice-feedback.v2"
 FEEDBACK_SCHEMA_V1 = "carbon.battery.practice-feedback.v1"
 PROVENANCE = "BATTERY_PUBLIC_PRACTICE"
@@ -275,8 +278,10 @@ def feedback(summary, fit, *, recipe, backend, worker, safety=None):
     """The public practice feedback: the exam aggregate on public PRACTICE,
     with fit statistics and the backend that actually ran.
 
-    With `safety` (`practice_safety.safety`), the v3 shape: v2's fields, the
-    safety block carrying B4 computed. Without it, exactly the v1 shape.
+    With `safety` (`practice_safety.safety`), the v4 shape: v3's fields, the
+    safety block carrying B4 computed and B5 (plating under
+    battery-plating-ref-v2, informational, not graded). Without it, exactly
+    the v1 shape.
     """
     out = {
         "schema": FEEDBACK_SCHEMA if safety is not None else FEEDBACK_SCHEMA_V1,

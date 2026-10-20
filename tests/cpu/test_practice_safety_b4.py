@@ -302,7 +302,7 @@ def test_an_incomplete_grid_is_refused_as_a_shape(decision):
 def _document(b4_metric):
     return ps.document(
         CHALLENGE.challenge_id,
-        {"B1": None, "B2": None, "B3": None, "B4": b4_metric},
+        {"B1": None, "B2": None, "B3": None, "B4": b4_metric, "B5": None},
         unmeasured=0,
         unresolved=0,
         material={"path": "p", "sha256": "s"},

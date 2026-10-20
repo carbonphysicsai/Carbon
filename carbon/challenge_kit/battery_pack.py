@@ -19,7 +19,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from carbon.battery import challenge, practice
+from carbon.battery import challenge, plating_v2, practice
 from carbon.battery.construction_bundle_material import (
     PHYSICS_PATH,
     PHYSICS_SHA256,
@@ -39,10 +39,7 @@ _PLATING_LABELS = (
     "docs/development/evidence/plating-rereference-01/d3-results/labels-v2-r1.json",
     "cac1e23001c227d9221653b2a90cee4755f62ca06fec58305d11cb9cba510069",
 )
-_PLATING_READER = (
-    "scripts/dev/battery/plating_rereference.py",
-    "dc8fe7f3f2cadb1993a9fce125ed44d292583e81576de10863e99bd5137351bc",
-)
+_PLATING_READER = plating_v2.READER
 PLATING_RULES = (
     "m20-above-window-r1",
     "m160-d3-r1",
@@ -109,19 +106,6 @@ def plating_reference() -> dict:
     }
 
 
-def _v2_label():
-    """The sealed reference's own reader, `plating_rereference.v2_label`,
-    loaded from its pinned file (standard library only)."""
-    import types
-
-    # Execute exactly the verified bytes; never re-read the file after the check.
-    raw = _pinned(_PLATING_READER)
-    module = types.ModuleType("carbon_plating_rereference")
-    module.__file__ = str(_REPOSITORY / _PLATING_READER[0])
-    exec(compile(raw, module.__file__, "exec"), module.__dict__)
-    return module.v2_label
-
-
 def practice_plating_labels(records) -> list:
     """Each PRACTICE case's v2 plating label from its mesh-20 margin.
 
@@ -129,8 +113,12 @@ def practice_plating_labels(records) -> list:
     is `pending-m160-r1` UNRESOLVED and is never a mesh-20 FEASIBLE; None is
     v2's own "no claim" (|m20| >= 15 mV).
     """
-    v2_label = _v2_label()
-    return [v2_label(float(r["outputs"]["plating_margin_v"])) for r in records]
+    if _PLATING_READER != plating_v2.READER:
+        raise ValueError("plating reader pin differs from carbon.battery.plating_v2")
+    try:
+        return plating_v2.labels(records, str(_REPOSITORY))
+    except plating_v2.ReaderUnavailable as exc:
+        raise ValueError(str(exc)) from exc
 
 
 def public_roles(version: str) -> dict[str, bytes]:
