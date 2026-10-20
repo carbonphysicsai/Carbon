@@ -527,3 +527,127 @@ def test_signed_stage_resumes_at_receiver_acknowledged_offset(monkeypatch, mater
         )
     assert result == "sha256:" + hashlib.sha256(body).hexdigest()
     assert offsets == [0, 2 * size]
+
+
+def _stage_fixture(monkeypatch, material):
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+    body = b"x" * 100
+    facts = _stage_facts()
+    facts["material_staging"] = {
+        "tool": client.SOURCE_TOOL,
+        "operation": client.MATERIAL_OPERATION,
+        "request_schema": client.MATERIAL_REQUEST_SCHEMA,
+        "reply_schema": client.STAGE_REPLY_SCHEMA,
+        "path": client.SUBMIT_PATH,
+        "owner": "authenticated_hotkey",
+    }
+
+    def accepted(wire):
+        request = research.load_canonical(
+            base64.b64decode(json.loads(wire)["fields"]["call_base64"]),
+            research.ServiceCall,
+        ).request
+        result = (
+            research.DirectStageMaterialResultV1(
+                request.name, len(body), request.content_digest, True, False
+            )
+            if material
+            else research.DirectStageSourceResultV1(
+                request.name, len(body), request.content_digest, True
+            )
+        )
+        reply = research.ServiceReply(research.ReplyStatus.OK, result)
+        return 200, {
+            "schema": client.STAGE_REPLY_SCHEMA,
+            "protocol_reply_base64": base64.b64encode(
+                research.canonical_bytes(reply)
+            ).decode(),
+        }
+
+    def stage(send, pacer, deadline):
+        common = {
+            "recipe": _recipe(),
+            "contract_digest": _CONTRACT,
+            "receiver": _RECEIVER,
+            "context": _CONTEXT,
+            "name": (
+                "source.tar.gz"
+                if material
+                else staging.WORKSPACE_PREFIX + "a" * 64 + ".json"
+            ),
+            "body": body,
+            "read": lambda _: facts,
+            "send": send,
+            "deadline": deadline,
+            "pacer": pacer,
+        }
+        if material:
+            return client._stage_material_one(
+                _URL,
+                "external-signer",
+                bundle_digest="sha256:" + "b" * 64,
+                final=False,
+                **common,
+            )
+        return client._stage_one(
+            _URL, "external-signer", expected_digest=None, **common
+        )
+
+    return body, accepted, stage
+
+
+@pytest.mark.parametrize("material", [False, True])
+@pytest.mark.parametrize("failure", ["reset", "pipe", "aborted", "wrapped"])
+def test_a_reset_on_a_chunk_post_is_paced_and_resumed_like_a_rate_refusal(
+    monkeypatch, material, failure
+):
+    import time
+    import urllib.error
+
+    body, accepted, stage = _stage_fixture(monkeypatch, material)
+    calls = []
+
+    def send(url, wire, headers):
+        calls.append(wire)
+        if len(calls) == 1:
+            if failure == "wrapped":
+                raise urllib.error.URLError(ConnectionResetError(104, "reset"))
+            raise {
+                "reset": ConnectionResetError,
+                "pipe": BrokenPipeError,
+                "aborted": ConnectionAbortedError,
+            }[failure]()
+        return accepted(wire)
+
+    pacer = client._UploadPacer()
+    result = stage(send, pacer, time.monotonic() + 30)
+    assert result == "sha256:" + hashlib.sha256(body).hexdigest()
+    assert len(calls) == 2 and calls[0] != calls[1]  # re-signed, not replayed
+    assert pacer.paced
+
+
+def test_a_persistent_reset_ends_as_the_rate_refusal_and_other_errors_pass_through(
+    monkeypatch,
+):
+    import time
+
+    _, _accepted, stage = _stage_fixture(monkeypatch, True)
+
+    def always_reset(url, wire, headers):
+        raise ConnectionResetError(104, "reset")
+
+    with pytest.raises(DirectIntakeRefusal, match="rate"):
+        stage(always_reset, client._UploadPacer(), time.monotonic() + 3)
+
+    def denied(url, wire, headers):
+        raise PermissionError("not a connection fault")
+
+    with pytest.raises(PermissionError):
+        stage(denied, client._UploadPacer(), time.monotonic() + 30)

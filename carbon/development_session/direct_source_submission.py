@@ -53,6 +53,27 @@ def _transfer_deadline(files, chunk_bytes):
     return time.monotonic() + max(120.0, 3.0 * calls + 120.0)
 
 
+def _send_chunk(send, url, wire, headers, pacer):
+    """Send one staged chunk; a reset counts as the receiver's rate refusal.
+
+    The receiver answers an over-rate request with 429 before it reads the body, so for
+    a large chunk the closing connection can reach the client as a reset (or a broken
+    pipe) instead of the 429. Chunk staging is resumable (offset and fingerprint), so the
+    chunk is paced and sent again exactly as after an explicit refusal; a reset that
+    persists ends as the same rate refusal at the transfer deadline.
+    """
+    try:
+        return send(url, wire, headers)
+    except OSError as error:
+        cause = getattr(error, "reason", error)
+        if not isinstance(
+            cause, (ConnectionResetError, ConnectionAbortedError, BrokenPipeError)
+        ):
+            raise
+        pacer.saw_rate()
+        raise DirectIntakeRateLimit() from None
+
+
 class _UploadPacer:
     """Use the receiver's observed 1/s refill after an explicit rate refusal."""
 
@@ -157,7 +178,7 @@ def _stage_one(
                 wire, receiver=receiver, nonce_ns=time.time_ns()
             )
             pacer.before_call()
-            status, answer = send(url, wire, headers)
+            status, answer = _send_chunk(send, url, wire, headers, pacer)
             if (
                 status == 429
                 and type(answer) is dict
@@ -369,7 +390,7 @@ def _stage_material_one(
                 wire, receiver=receiver, nonce_ns=time.time_ns()
             )
             pacer.before_call()
-            status, answer = send(url, wire, headers)
+            status, answer = _send_chunk(send, url, wire, headers, pacer)
             if (
                 status == 429
                 and type(answer) is dict
