@@ -30,6 +30,9 @@ SCOPE = physical_public.SCOPE
 REGISTERED = (
     (motor.CHALLENGE.challenge_id, motor.CHALLENGE.version),
     (cooling.CHALLENGE.challenge_id, cooling.CHALLENGE.version),
+    # The step-2 versions (STEP2_BATCH_VERSIONS_20261020): served v6, no step caps.
+    (motor.CHALLENGE.challenge_id, "1.1"),
+    (cooling.CHALLENGE.challenge_id, "1.1"),
     # Both F08 versions: 1.0 (255-row TRAIN v1) and 1.1 (287-row TRAIN v2, the straddling bank).
     *((f08_train.CHALLENGE_ID, version) for version in f08_train.CHALLENGE_VERSIONS),
 )
