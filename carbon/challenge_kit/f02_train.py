@@ -177,8 +177,11 @@ def derive_public_train(source_raw: bytes) -> tuple[bytes, dict]:
     return raw, provenance
 
 
-def load_public_train(version: str = CHALLENGE_VERSION) -> dict:
-    """Load pinned inert tensors; admission and scientific use belong elsewhere."""
+def load_public_train(version: str) -> dict:
+    """Load pinned inert tensors; admission and scientific use belong elsewhere.
+
+    The version is required, never defaulted: a version bump must not silently move what is served.
+    """
     import numpy as np
 
     if version != CHALLENGE_VERSION:
