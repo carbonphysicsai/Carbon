@@ -162,3 +162,26 @@ def test_the_construction_worker_admits_the_f02_kit_and_refuses_edits():
         verify_direct_resource_policy(
             dict(kit, train_digest="sha256:" + "0" * 64), limits
         )
+
+
+def test_each_reference_carries_its_measured_primary_wall_time():
+    bank = physical_pack.development_bank(CID, VERSION)
+    ledger = [
+        json.loads(line)
+        for line in (REPOSITORY / physical_pack._F02_LEDGER[0]).read_text().splitlines()
+    ]
+    finished = {e["case"]: e for e in ledger if e.get("event") == "FINISHED"}
+    for record in bank["reference_records"]:
+        solve = finished[record["case_id"] + "-primary"]
+        assert record["wall_s"] == solve["wall_s"] > 0
+        assert solve["outcome"] == "COMPLETED" and solve["exit"] == 0
+    assert [r["wall_s"] for r in bank["reference_records"]] == [
+        224.033,
+        167.579,
+        184.539,
+        166.959,
+        168.551,
+        166.014,
+        164.61,
+        167.224,
+    ]
