@@ -9,7 +9,13 @@ Implementation:
   - build refusals, FAILED_INFRA and indeterminate outcomes don't count;
   - a crash-held slot is released as FAILED_INFRA at start-up, and start-up fails closed without the deadline policy.
 - **Daily rotation is operational, not code.** A rotation restarts the receiver with the next QA-passed pack. The pack-digest key starts new counts automatically.
-- **Not yet built:** regrading the king on the new pack after a rotation (route A, in progress). Until it lands, a comparison after a rotation is UNAVAILABLE.
+- **King regrade after a rotation: built for bundle recipes** (`claude/step1-motor` at `5371defb6`, carrying `897fbe8ea` and `8e7d8e262`).
+  - The retained model's frozen state runs on the new pack's cases.
+  - The owner comes from the receiver's ledger. The state, recipe and retained files are digest-checked, and any change fails closed.
+  - The slot is a REGRADE: it never counts toward the cap or the epoch limit.
+  - The result is filed under the king's submission id on the new key, so the KOTH pair finds it.
+  - Operator step: restart the receiver with the next pack, then run `direct_receiver --regrade-entry … --pool-store <path>`.
+- **Gap:** a graph-recipe king can't be regraded yet (`regrade_source_kind_unavailable`). After a rotation, a comparison against such a king stays UNAVAILABLE.
 Proposal: `codex-queue/reports/PRIVATE_EXAM_CAP_PROPOSAL_20261019.md`.
 Supersedes the C value in `OWNER-GRADE-FEEDBACK-LADDER-01` (which was C = 10), prospectively. The Ladder rule and η = 0.02 are unchanged.
 
