@@ -808,6 +808,16 @@ def _retain_selected_pack_evaluation(
         write_once(binding_path, _json(binding))
         if regrade is not None and regrade.promotion is not None:
             _record_regraded_evidence(regrade, bind_inputs, source_pin)
+        if regrade is not None and regrade.exam_se:
+            _write_exam_se(
+                adapter,
+                snapshot,
+                directory,
+                registered,
+                source,
+                originals,
+                scoring,
+            )
         koth = None
         if pool_store is not None and regrade is None:
             koth = _contend(
@@ -860,6 +870,57 @@ def _retain_selected_pack_evaluation(
         ),
         **({} if koth is None else {"koth_comparison": koth}),
     }
+
+
+def _write_exam_se(
+    adapter, snapshot, directory, registered, source, originals, scoring
+):
+    """The exam-total standard error of this evaluation (a case bootstrap), write-once beside
+    the binding; an adapter that cannot measure a resample leaves UNAVAILABLE with the reason.
+    Read only by the operator's weekly fresh-draw check (``exam_rotation``)."""
+    from carbon.challenge_kit import physical_pack
+    from carbon.challenge_validator import exam_rotation
+    from carbon.development_session.data import write_once
+    from carbon.scoring import physical_dual_pack, private_evaluation_source
+
+    document = {
+        "schema": exam_rotation.SE_SCHEMA,
+        "exam_key": snapshot.manifest_digest,
+        "resamples": 200,
+        "total": scoring["models"][0].get("score"),
+    }
+    try:
+        module = private_evaluation_source._physical_adapter(
+            adapter.challenge_id, adapter.challenge_version
+        )
+        if module is None:
+            raise private_evaluation_source.PrivateEvaluationSourceRefused(
+                "bootstrap_adapter_unavailable"
+            )
+        discovery = adapter.discovery
+        document["standard_error"] = physical_dual_pack.bootstrap_total_se(
+            module,
+            selected=snapshot,
+            public_root=discovery.evaluation_pack_public_root,
+            private_root=discovery.evaluation_pack_private_root,
+            entry=registered["entry"],
+            job=source["trusted_job"],
+            registration=source["benchmark_registration"],
+            references=registered["references"],
+            originals=originals,
+            source_raw=registered["evaluation_source_receipt_raw"],
+            bank=physical_pack.development_bank(
+                adapter.challenge_id, adapter.challenge_version
+            ),
+            interface_names=physical_dual_pack.input_names(module),
+            exam_key=snapshot.manifest_digest,
+            resamples=document["resamples"],
+        )
+        document["status"] = "MEASURED"
+    except private_evaluation_source.PrivateEvaluationSourceRefused as refused:
+        document["status"] = "UNAVAILABLE"
+        document["reason"] = refused.code
+    write_once(directory / exam_rotation.SE_SIDECAR, _json(document))
 
 
 def _rebuild_cpu_seconds(adapter, submission_id, evidence, exam_key):
@@ -1495,6 +1556,8 @@ class _Regrade:
     #: A BankPromotion: the regraded evidence is recorded under the origin task's own
     #: submission id on the new evaluation key, so KOTH finds it for the incumbent.
     promotion: object = None
+    #: Also compute the exam-total standard error (case bootstrap) into a sidecar.
+    exam_se: bool = False
 
 
 def _record_regraded_evidence(regrade, bind_inputs, pin=None):
@@ -1563,6 +1626,7 @@ def regrade_retained_entry(
     entry_directory: Path,
     runner=None,
     promotion=None,
+    exam_se: bool = False,
 ) -> dict:
     """Regrade a retained model on the receiver's selected (rotated) evaluation pack.
 
@@ -1817,7 +1881,7 @@ def regrade_retained_entry(
         bound,
         artifacts,
         evidence,
-        _Regrade(owner, recipe, origin, entry_id, promotion),
+        _Regrade(owner, recipe, origin, entry_id, promotion, exam_se),
     )
     return {**regraded, "regrade_of": entry_id, "regrade_task_id": regrade_id}
 

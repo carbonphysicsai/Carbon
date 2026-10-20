@@ -1792,3 +1792,36 @@ def test_main_retain_with_a_pool_store_reports_the_koth_comparison(
     assert reported["koth_outcome"] == "UNAVAILABLE"
     assert reported["koth_reason"] == "rebuild_noise_unregistered"
     assert "evaluation_key" not in reported
+
+
+def test_main_regrade_exam_se_reaches_the_receiver_and_needs_a_regrade(
+    tmp_path, monkeypatch, capsys
+):
+    (tmp_path / "config.json").write_text("{}")  # main() names a missing file first
+    entry_id = "sha256:" + "a" * 64
+    seen = []
+
+    def regrade(config, **kwargs):
+        seen.append((kwargs["regrade"], kwargs["exam_se"]))
+        return {
+            "status": "CREATED",
+            "entry_id": "sha256:" + "b" * 64,
+            "score_state": "NOT_COMPUTED",
+            "official_eligible": False,
+        }
+
+    monkeypatch.setattr(receiver, "serve", regrade)
+    monkeypatch.setattr(receiver.signal, "signal", lambda *_: None)
+    base = [
+        "--config",
+        str(tmp_path / "config.json"),
+        "--artifact-directory",
+        str(tmp_path / "a"),
+        "--entry-directory",
+        str(tmp_path / "e"),
+    ]
+    assert receiver.main([*base, "--regrade-entry", entry_id, "--exam-se"]) == 0
+    capsys.readouterr()
+    assert seen == [(True, True)]
+    with pytest.raises(SystemExit):
+        receiver.main([*base, "--retain-task", "rtsk_" + "d" * 64, "--exam-se"])
