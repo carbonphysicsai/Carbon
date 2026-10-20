@@ -198,7 +198,10 @@ def main(argv=None):
             "status": status,
             "reasons": reasons,
             "wall_s": round(sum(runs[f"{cid}-{t}"][2] for t, _, _ in RUNGS), 1),
-            "rungs": {t: {"outcome": o, "exit": c} for t, (o, c, _) in rungs.items()},
+            "rungs": {
+                t: {"outcome": o, "exit": c, "wall_s": round(runs[f"{cid}-{t}"][2], 3)}
+                for t, (o, c, _) in rungs.items()
+            },
         }
         if status in ("OK", "REFERENCE_INVALID"):
             primary = judgement["observables"][f"{cid}-primary"]
