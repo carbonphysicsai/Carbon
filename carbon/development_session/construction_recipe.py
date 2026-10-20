@@ -1,6 +1,8 @@
 """Inert identity for the prospective direct construction path.
 
-This is the one public recipe shape shared by graph and source-bundle builds.
+This is the one public recipe shape shared by graph, source-bundle and
+catalog builds (a catalog recipe runs as the Carbon bundle it names:
+`carbon.backbone_catalog.served.expand`).
 Parsing and binding never admit code, verify a graph, provision an image, or
 grant scientific authority. The isolated builder must verify the referenced
 bytes and execute the actual declared procedure against Challenge TRAIN.
@@ -28,6 +30,8 @@ _CHALLENGE = {
     "construction_limits_digest",
 }
 _PROCEDURE = {"entrypoint", "configuration", "train_use", "initial_state"}
+#: A graph, a source bundle, or one of Carbon's tested backbones by catalog id.
+SOURCE_KINDS = ("graph", "bundle", "catalog")
 _OUTPUT = {"format", "interface_digest"}
 
 
@@ -79,11 +83,22 @@ def _document(value: object) -> dict:
         )
     ):
         raise RecipeRefused("construction_recipe_challenge_invalid")
-    if type(source) is not dict or source.get("kind") not in ("graph", "bundle"):
+    if type(source) is not dict or source.get("kind") not in SOURCE_KINDS:
         raise RecipeRefused("construction_recipe_source_invalid")
     if source["kind"] == "graph":
         if set(source) != {"kind", "submission_digest"} or not _digest(
             source["submission_digest"]
+        ):
+            raise RecipeRefused("construction_recipe_source_invalid")
+    elif source["kind"] == "catalog":
+        # One of Carbon's tested backbones by catalog id (OWNER-BACKBONE-
+        # CATALOG-01). Structural only: which ids a Challenge version serves,
+        # and what they run, is `carbon.backbone_catalog.served`'s.
+        if (
+            set(source) != {"kind", "catalog_id", "catalog_digest"}
+            or type(source["catalog_id"]) is not str
+            or _TOKEN.fullmatch(source["catalog_id"]) is None
+            or not _digest(source["catalog_digest"])
         ):
             raise RecipeRefused("construction_recipe_source_invalid")
     else:
@@ -110,7 +125,7 @@ def _document(value: object) -> dict:
     if type(procedure) is not dict or set(procedure) != _PROCEDURE:
         raise RecipeRefused("construction_recipe_procedure_invalid")
     entrypoint = procedure["entrypoint"]
-    if source["kind"] == "graph":
+    if source["kind"] in ("graph", "catalog"):
         if entrypoint is not None:
             raise RecipeRefused("construction_recipe_procedure_invalid")
     elif (

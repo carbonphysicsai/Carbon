@@ -205,6 +205,7 @@ def campaign_args(cfg, **fields):
         receivers=receivers(cfg),
         validators=validators(cfg),
         remote_machine=cfg.get("remote_machine"),
+        direct_intake_target=cfg.get("direct_intake_target"),
         **fields,
     )
 

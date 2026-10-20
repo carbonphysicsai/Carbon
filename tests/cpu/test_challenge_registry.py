@@ -48,9 +48,16 @@ def test_the_catalog_names_launch_reserved_and_deferred_challenges():
     assert listed[COLD_PLATE]["status"] == "IMPLEMENTED"
     assert listed[COLD_PLATE]["version"] == "1.0"
     assert {p["profile"] for p in listed[COLD_PLATE]["profiles"]} == {"cpu_research"}
-    assert listed[MOTOR]["status"] == "IMPLEMENTED"
-    assert listed[MOTOR]["version"] == "1.0"
-    assert {p["profile"] for p in listed[MOTOR]["profiles"]} == {"cpu_research"}
+    # Motor registers two versions: 1.0 (Level 0) and 1.2 (the backbone catalog).
+    motor = {
+        c["version"]: c
+        for c in challenges.catalog(NOTHING)["challenges"]
+        if c["challenge_id"] == MOTOR
+    }
+    assert set(motor) == {"1.0", "1.2"}
+    for entry in motor.values():
+        assert entry["status"] == "IMPLEMENTED"
+        assert {p["profile"] for p in entry["profiles"]} == {"cpu_research"}
     reserved = "photonic-coupler"
     # A reserved Challenge has a name and an issue, and nothing to run.
     assert listed[reserved]["status"] == "RESERVED"
@@ -295,3 +302,17 @@ def test_battery_states_the_scope_of_its_submission_exclusions():
     assert "Julia submission" in scope["submission"]
     text = " ".join(scope["not_excluded"])
     assert "TRAIN" in text and "truth service" in text
+
+
+def test_motor_resolves_each_registered_version_exactly():
+    from carbon.challenge_registry import registry as reg
+
+    assert reg.describe(MOTOR, "1.0")["version"] == "1.0"
+    catalog = reg.describe(MOTOR, "1.2")
+    assert catalog["version"] == "1.2"
+    assert catalog["examples"][0]["recipe"]["source"]["kind"] == "catalog"
+    assert {m["selector"] for m in catalog["models"]["rebuildable"]} == set(
+        catalog["models"]["catalog"]["entries"]
+    )
+    with pytest.raises(reg.UnsupportedVersion, match="1.0, 1.2"):
+        reg.describe(MOTOR, "1.1")

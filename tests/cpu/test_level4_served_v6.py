@@ -73,7 +73,8 @@ def test_the_version_table_serves_v6_to_exactly_the_step2_versions():
 
 @pytest.mark.parametrize(
     "key",
-    [("electric-motor-magnetics", "1.2"), ("chip-cold-plate", ""), ("unknown", "1.0")],
+    # Motor 1.2 is the backbone-catalog version; 1.3 is unregistered.
+    [("electric-motor-magnetics", "1.3"), ("chip-cold-plate", ""), ("unknown", "1.0")],
 )
 def test_an_unregistered_version_is_refused_never_mapped(key):
     from carbon.challenge_kit import served_versions as sv
@@ -295,3 +296,16 @@ def test_an_efficient_kan_layer_lowers_under_served_v6():
     module = torch.nn.Sequential(KANLayer(4, 8), KANLayer(8, 3))
     x = torch.rand(5, 4, generator=torch.Generator().manual_seed(4)) * 3.0 - 1.5
     _served_matches_torch_and_v5_refuses(module, x)
+
+
+def test_the_catalog_version_serves_as_a_step2_version():
+    from carbon.challenge_kit import served_versions as sv
+
+    assert sv.serves_catalog("electric-motor-magnetics", "1.2")
+    assert sv.is_step2("electric-motor-magnetics", "1.2")
+    assert not sv.step_caps("electric-motor-magnetics", "1.2")
+    assert sv.material_allowlist_bytes(
+        "electric-motor-magnetics", "1.2"
+    ) == sv.material_allowlist_bytes("electric-motor-magnetics", "1.1")
+    for key in sv.STEP2 | sv.EXISTING:
+        assert not sv.serves_catalog(*key)

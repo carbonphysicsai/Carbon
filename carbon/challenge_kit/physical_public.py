@@ -86,6 +86,17 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
         # versions keep their bytes.
         document["training_step_cap"] = None
         document["training_limit"] = "build_wall_seconds_max"
+    from .served_versions import serves_catalog
+
+    if serves_catalog(challenge_id, version):
+        # OWNER-BACKBONE-CATALOG-01: the exact catalog this version serves; a
+        # catalog recipe's catalog_digest must equal it.
+        from carbon.backbone_catalog import served
+
+        document["backbone_catalog"] = {
+            "schema": served.SCHEMA,
+            "digest": served.digest(challenge_id, version),
+        }
     return document
 
 

@@ -893,6 +893,20 @@ async def _hunt(run, ledger):
     return run.stages.finish(HUNT, body)
 
 
+def _direct_selection(run):
+    """A direct campaign's SELECT builds the direct record (catalog, graph or
+    bundle recipe); any other campaign's keeps the engine's own."""
+    prepared = run.prepared
+    if prepared.manifest.get("construction_mode") != "direct":
+        return {}
+    from carbon.development_session.research_campaign import direct_candidate_record
+
+    def build(strategy, reason, used_feedback):
+        return direct_candidate_record(prepared, strategy, reason, used_feedback)
+
+    return {"direct_candidate": build}
+
+
 async def _session(ledger, **keywords):
     """One research loop session on a stage ledger; its outcome.
 
@@ -1136,6 +1150,7 @@ async def _build(run, plan_doc, plan_digest):
             stage=None,
             finish=None,
             **run.engine(BUILD),
+            **_direct_selection(run),
         )
         report(ledger, owner=owner)
         _learn(run, plan_doc, plan_digest, epoch, result)
