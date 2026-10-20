@@ -120,6 +120,20 @@ def test_candidate_rejects_ignored_runtime_bytes(tmp_path, path):
         _checked(repo, revision, tree, source_digest)
 
 
+def test_a_stray_pycache_refusal_names_the_path_and_the_fix(tmp_path):
+    # `python` without -B writes carbon/**/__pycache__ into the checkout; the
+    # refusal stays closed but says what to remove and why it appeared.
+    repo, revision, tree, source_digest = _candidate(tmp_path)
+    cache = repo / "carbon" / "__pycache__" / "module.cpython-311.pyc"
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_bytes(b"stale bytecode")
+    with pytest.raises(ValueError) as refused:
+        _checked(repo, revision, tree, source_digest)
+    message = str(refused.value)
+    assert message.startswith("development candidate has ignored runtime source: ")
+    assert "carbon/__pycache__/" in message and "-B" in message
+
+
 def test_candidate_allows_only_isolated_environment_and_cache(tmp_path):
     repo, revision, tree, source_digest = _candidate(tmp_path)
     for name in (".venv/lib/dependency.py", ".pytest_cache/v/cache/nodeids"):

@@ -1119,7 +1119,7 @@ def main(argv=None):
                 {
                     "unavailable": "receiver_config_missing",
                     "config": str(args.config),
-                    "next": "write it with `python -m carbon.challenge_validator."
+                    "next": "write it with `python -B -m carbon.challenge_validator."
                     "receiver_setup prepare`",
                 }
             ),
