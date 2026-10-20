@@ -467,10 +467,13 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
         inputs = _tensors(inputs=material["practice_inputs"])
         build_operation = "operation-" + "1" * 64
         inference_operation = "operation-" + "2" * 64
+        timed_operation = "operation-" + "3" * 64
         build = campaign.root / build_operation / "snapshot"
         inference = campaign.root / inference_operation / "snapshot"
+        timed_root = campaign.root / timed_operation / "snapshot"
         build.mkdir(parents=True)
         inference.mkdir(parents=True)
+        timed_root.mkdir(parents=True)
         build_receipt = {
             "schema": "carbon.development.graph-build.v1",
             "recipe_digest": recipe.digest,
@@ -481,7 +484,15 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
             "framework": "jax",
             "fit": {"fixture_only": True},
         }
+        # Graded one case at a time (v1); timing is the separate timed query's.
         inference_receipt = {
+            "schema": "carbon.development.bundle-inference.v1",
+            "recipe_digest": recipe.digest,
+            "state_digest": _digest(state),
+            "inputs_digest": _digest(inputs),
+            "predictions_digest": _digest(predictions),
+        }
+        timed_receipt = {
             "schema": "carbon.development.bundle-inference.v2",
             "recipe_digest": recipe.digest,
             "state_digest": _digest(state),
@@ -505,6 +516,7 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
         (build / "receipt.json").write_bytes(canonical(build_receipt))
         (inference / "predictions.json").write_bytes(predictions)
         (inference / "receipt.json").write_bytes(canonical(inference_receipt))
+        (timed_root / "receipt.json").write_bytes(canonical(timed_receipt))
         queued = provider._views[task_id]
         terminal = DirectTaskReceiptV3(
             queued.task_id,
@@ -539,6 +551,8 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
             "inference_receipt": inference_receipt,
             "predictions_raw_base64": base64.b64encode(predictions).decode(),
             "submission_digest": recipe_doc["source"]["submission_digest"],
+            "timed_operation": timed_operation,
+            "timed_receipt": timed_receipt,
         }
         with provider._db() as db:
             db.execute(
@@ -558,6 +572,7 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
         assert artifacts["state.npz"] == state
         assert artifacts["predictions.json"] == predictions
         assert artifacts["inference-receipt.json"] == canonical(inference_receipt)
+        assert artifacts["timed-query-receipt.json"] == canonical(timed_receipt)
         assert "source.tar.gz" not in artifacts
         assert "environment.json" not in artifacts
         assert "lineage.json" not in artifacts
@@ -575,10 +590,10 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
         import scripts.dev.score_lab.public_unbound_custody as bank_custody
         import scripts.dev.score_lab.public_unbound_entry as bank_entry
 
-        graph_bank_present = hasattr(bank_custody, "GRAPH_ROLE_SCHEMA_V3")
+        graph_bank_present = hasattr(bank_custody, "GRAPH_ROLE_SCHEMA_V5")
         with monkeypatch.context() as unavailable_role:
             if graph_bank_present:
-                unavailable_role.delattr(bank_custody, "GRAPH_ROLE_SCHEMA_V3")
+                unavailable_role.delattr(bank_custody, "GRAPH_ROLE_SCHEMA_V5")
             with pytest.raises(
                 RetentionUnavailable, match="graph_bank_role_contract_unavailable"
             ):
@@ -593,8 +608,8 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
         with monkeypatch.context() as unavailable_entry:
             unavailable_entry.setattr(
                 bank_custody,
-                "GRAPH_ROLE_SCHEMA_V3",
-                "carbon.scorelab.public-model-artifact-roles.v3",
+                "GRAPH_ROLE_SCHEMA_V5",
+                "carbon.scorelab.public-model-artifact-roles.v5",
                 raising=False,
             )
             unavailable_entry.delattr(bank_entry, "create_entry_v5")
@@ -701,7 +716,10 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
             manifest = json.loads(
                 (artifact_root / (task_id + ".roles.json")).read_bytes()
             )
-            assert manifest["schema"] == bank_custody.GRAPH_ROLE_SCHEMA_V3
+            assert manifest["schema"] == bank_custody.GRAPH_ROLE_SCHEMA_V5
+            assert manifest["roles"]["timed_receipt"]["file"] == (
+                "timed-query-receipt.json"
+            )
             assert "environment" not in manifest["roles"]
             assert manifest["roles"]["inference_receipt"]["file"] == (
                 "inference-receipt.json"

@@ -422,32 +422,49 @@ def reconstruct_and_infer_graph_public(
     state = expected.read_bytes()
     if _digest(state) != build.state_digest:
         raise RecipeRefused("direct_graph_state_changed")
+    query = {
+        "ledger": ledger,
+        "owner": owner,
+        "inference_image": image,
+        "recipe": recipe,
+        "binding": binding,
+        "state": state,
+        "state_digest": build.state_digest,
+        "inputs": inputs,
+        "expected_output_shape": expected_output_shape,
+        "expected_output_dtype": "float32",
+        "allowlist_bytes": allowlist_bytes,
+        "input_name": "inputs/forcing",
+        "provenance": INFERENCE_PROVENANCE,
+        "runner": runner,
+    }
+    # Graded one case at a time, as a bundle is (row 0 plus zero filler), so no
+    # output can depend on its batch; the batched cold query is kept only for
+    # timing when the task is measured, never graded.
     inference = _infer_state(
-        ledger,
-        owner=owner,
+        **query,
         identity=inference_identity,
-        inference_image=image,
-        recipe=recipe,
-        binding=binding,
-        state=state,
-        state_digest=build.state_digest,
-        inputs=inputs,
-        expected_output_shape=expected_output_shape,
-        expected_output_dtype="float32",
-        measure_query=measure_query,
-        # Graph sources keep the batched query until the graph bank role carries
-        # a separate timed receipt; the bundle path grades one case at a time.
-        per_case=False,
-        allowlist_bytes=allowlist_bytes,
-        input_name="inputs/forcing",
-        provenance=INFERENCE_PROVENANCE,
+        measure_query=False,
+        per_case=True,
         seconds=phase_seconds("inference_wall_seconds_max"),
-        runner=runner,
+    )
+    timed = (
+        _infer_state(
+            **query,
+            identity=direct_child_identity(identity, "timed"),
+            measure_query=True,
+            per_case=False,
+            seconds=phase_seconds("inference_wall_seconds_max"),
+        )
+        if measure_query
+        else None
     )
     elapsed = time.monotonic() - started
     if elapsed > policy["total_reconstruction_wall_seconds_max"]:
         raise RecipeRefused("construction_total_deadline_reached")
-    if build.state_digest != inference.state_digest:
+    if build.state_digest != inference.state_digest or (
+        timed is not None and timed.state_digest != build.state_digest
+    ):
         raise RecipeRefused("direct_graph_inference_custody_invalid")
     controls = (
         (
@@ -477,4 +494,5 @@ def reconstruct_and_infer_graph_public(
         controls[0],
         controls[1],
         elapsed,
+        timed=timed,
     )

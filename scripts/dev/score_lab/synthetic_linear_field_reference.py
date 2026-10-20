@@ -186,6 +186,7 @@ def reduce_public_measurement(
     query_bytes: bytes,
     inference: dict,
     graph_originals: dict,
+    timed_query: dict | None = None,
 ) -> dict:
     """Reduce original saved inference against the registered public P query.
 
@@ -251,7 +252,11 @@ def reduce_public_measurement(
             raise SyntheticReferenceRefused("public_prediction_shape_or_finite")
         gates = {gate: True for gate in PUBLIC_MEASUREMENT_GATES}
         measured = bundle_benchmark.measurement_from_saved_inference(
-            entry, registration, inference, gates=gates
+            entry,
+            registration,
+            inference,
+            gates=gates,
+            **({} if timed_query is None else {"timed_query": timed_query}),
         )
         result = bundle_benchmark.benchmark_saved_entry(
             entry,
@@ -276,7 +281,11 @@ def reduce_public_measurement(
         "source_registration_sha256": _sha(source_registration_raw),
         "source_receipt_sha256": _sha(source_receipt_raw),
         "reference_row_sha256": _sha(reference_row_raw),
-        "model_timing_scope": inference["receipt"]["measurement"]["scope"],
+        "model_timing_scope": (
+            inference["receipt"]
+            if timed_query is None
+            else json.loads(timed_query["receipt_raw"])
+        )["measurement"]["scope"],
         "reference_timing_scope": "IN_PROCESS_PUBLIC_REFERENCE_ARRAY_ONLY",
         "speedup_comparability": "NOT_ESTABLISHED",
         "result": result,

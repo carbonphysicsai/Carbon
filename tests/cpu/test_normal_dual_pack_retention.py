@@ -238,6 +238,22 @@ def _fixture(tmp_path, monkeypatch, *, gate_minimum=0.0):
         "worker-evidence.json": "stage/worker-evidence.json",
     }
     artifacts = {name: case["originals"][path] for name, path in roles.items()}
+    # The graph is graded one case at a time (v1); its measured batched query is
+    # the separate timed receipt, as a bundle's (graph per-case grading).
+    measured = json.loads(artifacts["inference-receipt.json"])
+    graded = {
+        **{k: v for k, v in measured.items() if k != "measurement"},
+        "schema": "carbon.development.bundle-inference.v1",
+    }
+    worker = {
+        **worker,
+        "inference_receipt": graded,
+        "timed_operation": "operation-" + "9" * 64,
+        "timed_receipt": measured,
+    }
+    artifacts["inference-receipt.json"] = _raw(graded)
+    artifacts["timed-query-receipt.json"] = _raw(measured)
+    artifacts["worker-evidence.json"] = _raw(worker)
     artifacts["task-receipt.json"] = (
         b"inert fixture terminal receipt; never network evidence"
     )
@@ -302,6 +318,7 @@ def _producer(fixture, *, wrong_challenge=False):
             arguments["registration"],
             inference,
             gates={"toy_gate": passed},
+            timed_query=originals.get("timed_query"),
         )
         target = arguments["references"][0]["outputs"][0]
         evidence = json.loads(arguments["evaluation_source_receipt_raw"])
@@ -380,6 +397,22 @@ def test_missing_producer_does_not_invalidate_retained_model(tmp_path, monkeypat
     assert (
         result["private_evaluation_reason"] == "dual_measurement_producer_unavailable"
     )
+
+
+def test_a_graph_graded_by_its_batched_query_is_never_retained(tmp_path, monkeypatch):
+    """Graph per-case grading: a graded receipt that is the batched measured
+    query (a batch-dependent grade) is refused before bank custody."""
+    from carbon.challenge_validator.lean_recipe_retention import RetentionUnavailable
+
+    fixture = _fixture(tmp_path, monkeypatch)
+    fixture.artifacts["inference-receipt.json"] = fixture.artifacts[
+        "timed-query-receipt.json"
+    ]
+    with pytest.raises(
+        RetentionUnavailable, match="graph_per_case_receipt_unavailable"
+    ):
+        fixture.retain()
+    assert not list(fixture.artifact_root.iterdir())
 
 
 @pytest.mark.parametrize("tamper", ["reference", "wrong_challenge"])

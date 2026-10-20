@@ -40,7 +40,14 @@ _ENTRY_BINDINGS = (
     "original_files",
 )
 _GRAPH_SOURCE_SCHEMA = "carbon.development.graph-source-state.v1"
-_GRAPH_ROLE_SCHEMA = "carbon.scorelab.public-model-artifact-roles.v3"
+#: v3: a measured batched graded query (history); v5: graded one case at a
+#: time beside a separate timed query, as a bundle is.
+_GRAPH_ROLE_SCHEMAS = frozenset(
+    {
+        "carbon.scorelab.public-model-artifact-roles.v3",
+        "carbon.scorelab.public-model-artifact-roles.v5",
+    }
+)
 _GRAPH_ROLE_CODECS = {
     "recipe": "json",
     "construction_kit": "json",
@@ -57,11 +64,13 @@ _GRAPH_ROLE_CODECS = {
     "fixture": "numeric_npz",
     "seed": "json",
     "task_receipt": "raw_bytes",
+    "timed_receipt": "json",
 }
 _GRAPH_REQUIRED_ROLES = frozenset(_GRAPH_ROLE_CODECS) - {
     "fixture",
     "seed",
     "task_receipt",
+    "timed_receipt",
 }
 _GRAPH_ENTRY_BINDINGS = (
     "source_kind",
@@ -159,7 +168,7 @@ def _graph_saved_inference_binding(entry, inference):
     if (
         entry.get("source_schema") != _GRAPH_SOURCE_SCHEMA
         or entry.get("source_kind") != "graph"
-        or entry.get("role_schema") != _GRAPH_ROLE_SCHEMA
+        or entry.get("role_schema") not in _GRAPH_ROLE_SCHEMAS
         or type(entry.get("roles")) is not dict
     ):
         raise BundleBenchmarkRefused("graph_saved_entry")
@@ -269,8 +278,8 @@ def _graph_custody_binding(entry, receipt):
         or receipt.get("source_schema") != _GRAPH_SOURCE_SCHEMA
         or entry.get("source_kind") != "graph"
         or receipt.get("source_kind") != "graph"
-        or entry.get("role_schema") != _GRAPH_ROLE_SCHEMA
-        or receipt.get("role_schema") != _GRAPH_ROLE_SCHEMA
+        or entry.get("role_schema") not in _GRAPH_ROLE_SCHEMAS
+        or receipt.get("role_schema") != entry.get("role_schema")
         or any(
             field not in entry or field not in receipt
             for field in _GRAPH_ENTRY_BINDINGS

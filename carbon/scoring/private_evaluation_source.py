@@ -916,6 +916,8 @@ def _authenticated_graph_outputs(entry, registration, originals):
             registration,
             inference,
             gates={name: False for name in registration["mandatory_gates"]},
+            # A per-case graded graph reads timing only from its timed query.
+            timed_query=originals.get("timed_query"),
         )
     except (
         bundle.BundleBenchmarkRefused,

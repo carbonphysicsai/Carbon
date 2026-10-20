@@ -97,9 +97,15 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
         "predictions_raw_base64",
         "submission_digest",
     }
+    # A measured graph keeps its batched cold query as a separate timed receipt.
+    timed_fields = (
+        {"timed_operation", "timed_receipt"}
+        if type(evidence) is dict and "timed_receipt" in evidence
+        else set()
+    )
     if (
         type(evidence) is not dict
-        or set(evidence) != worker_fields | {"predictions"}
+        or set(evidence) != worker_fields | timed_fields | {"predictions"}
         or type(evidence["build_receipt"]) is not dict
         or type(evidence["inference_receipt"]) is not dict
         or any(
@@ -187,6 +193,19 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
     inference_receipt = _receipt_snapshot(
         inference / "receipt.json", evidence["inference_receipt"], "inference_receipt"
     )
+    timed_receipt = None
+    if timed_fields:
+        if (
+            type(evidence["timed_operation"]) is not str
+            or re.fullmatch(r"operation-[0-9a-f]{64}", evidence["timed_operation"])
+            is None
+        ):
+            raise RetentionUnavailable("timed_operation_invalid")
+        timed_receipt = _receipt_snapshot(
+            root / evidence["timed_operation"] / "snapshot" / "receipt.json",
+            evidence["timed_receipt"],
+            "timed_receipt",
+        )
     train = material["train"]
     if _sha(train) != recipe.to_dict()["challenge"]["train_digest"]:
         raise RetentionUnavailable("public_train_changed")
@@ -216,6 +235,9 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
         "inference-receipt.json": inference_receipt,
         "worker-evidence.json": _json(worker),
         "task-receipt.json": canonical_bytes(task.terminal_receipt),
+        **(
+            {} if timed_receipt is None else {"timed-query-receipt.json": timed_receipt}
+        ),
     }
     return artifacts
 
@@ -227,18 +249,19 @@ def _retain_graph_artifacts(
 
     try:
         from scripts.dev.score_lab.public_unbound_custody import (
-            GRAPH_ROLE_SCHEMA_V3,
+            GRAPH_ROLE_SCHEMA_V5,
             prepare_custody_v5,
         )
         from scripts.dev.score_lab.public_unbound_entry import create_entry_v5
     except ImportError as exc:
         raise RetentionUnavailable("graph_bank_role_contract_unavailable") from exc
-    if GRAPH_ROLE_SCHEMA_V3 != "carbon.scorelab.public-model-artifact-roles.v3":
+    if GRAPH_ROLE_SCHEMA_V5 != "carbon.scorelab.public-model-artifact-roles.v5":
         raise RetentionUnavailable("graph_bank_role_contract_unavailable")
+    # Graded one case at a time, as a bundle is; timing is the timed query's.
     if json.loads(artifacts["inference-receipt.json"]).get("schema") != (
-        "carbon.development.bundle-inference.v2"
+        "carbon.development.bundle-inference.v1"
     ):
-        raise RetentionUnavailable("graph_measured_receipt_unavailable")
+        raise RetentionUnavailable("graph_per_case_receipt_unavailable")
     roles = {
         "recipe": ("recipe.json", "json"),
         "construction_kit": ("construction-kit.json", "json"),
@@ -254,9 +277,14 @@ def _retain_graph_artifacts(
         "inference_receipt": ("inference-receipt.json", "json"),
         "worker_evidence": ("worker-evidence.json", "json"),
         "task_receipt": ("task-receipt.json", "raw_bytes"),
+        **(
+            {"timed_receipt": ("timed-query-receipt.json", "json")}
+            if "timed-query-receipt.json" in artifacts
+            else {}
+        ),
     }
     role_manifest = {
-        "schema": GRAPH_ROLE_SCHEMA_V3,
+        "schema": GRAPH_ROLE_SCHEMA_V5,
         "scope": "PUBLIC_DEVELOPMENT_BUNDLE_MODEL",
         "source_schema": "carbon.development.graph-source-state.v1",
         "roles": {
@@ -421,9 +449,20 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id, evide
             write_once(receipt_path, receipt_raw)
             write_once(reference_path, reference_raw)
         worker = json.loads(artifacts["worker-evidence.json"]) if graph else evidence
-        # The measurement belongs to the batched cold query kept for timing.
+        # The measurement belongs to the batched cold query kept for timing; a
+        # graph binds its graded receipt and passes that query separately.
+        timed_query = (
+            {
+                "receipt_raw": artifacts["timed-query-receipt.json"],
+                "registered_sha256": _sha(artifacts["timed-query-receipt.json"]),
+            }
+            if graph and "timed-query-receipt.json" in artifacts
+            else None
+        )
         inference_receipt = json.loads(
-            artifacts.get(
+            artifacts["inference-receipt.json"]
+            if graph
+            else artifacts.get(
                 "timed-query-receipt.json", artifacts["inference-receipt.json"]
             )
         )
@@ -451,10 +490,12 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id, evide
                 {
                     "inference_receipt_raw": artifacts["inference-receipt.json"],
                     "worker_evidence_raw": artifacts["worker-evidence.json"],
+                    **({} if timed_query is None else {"timed_query": timed_query}),
                 }
                 if graph
                 else None
             ),
+            timed_query=timed_query,
         )
         document = {
             "schema": "carbon.lean-recipe.public-development-measurement.v1",
@@ -650,11 +691,12 @@ def _retain_selected_pack_evaluation(
                 )
                 + b"\n",
             }
-            if "timed-query-receipt.json" in artifacts:
-                originals["timed_query"] = {
-                    "receipt_raw": artifacts["timed-query-receipt.json"],
-                    "registered_sha256": _sha(artifacts["timed-query-receipt.json"]),
-                }
+        # A per-case graded query (graph or bundle) carries its pinned timed query.
+        if "timed-query-receipt.json" in artifacts:
+            originals["timed_query"] = {
+                "receipt_raw": artifacts["timed-query-receipt.json"],
+                "registered_sha256": _sha(artifacts["timed-query-receipt.json"]),
+            }
         # Graph and bundle alike: the paired repeat is what the KOTH comparison
         # binds (v4). Never gates retention: this runs after bank custody, and a
         # missing or failed pair leaves the evaluation UNAVAILABLE with a typed reason.
