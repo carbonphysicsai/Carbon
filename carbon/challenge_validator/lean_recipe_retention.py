@@ -583,9 +583,14 @@ def _retain_selected_pack_evaluation(
             or type(evidence.get("inference_image_id")) is not str
         ):
             raise RetentionUnavailable("dual_model_originals_unavailable")
+        from carbon.scoring import battery_dual_pack, physical_adapters
         from carbon.scoring.private_evaluation_source import (
             produce_registered_dual_measurement,
         )
+
+        # Validator-only: Battery's adapter is never imported by the shared
+        # dispatch, which miner surfaces reach (physical_adapters).
+        physical_adapters.register(battery_dual_pack)
 
         source = snapshot.read_source_registration(private_root)
         # The per-miner cap and the epoch limit refuse here, before any grading (and so

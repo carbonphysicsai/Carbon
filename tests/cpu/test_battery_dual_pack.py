@@ -88,13 +88,35 @@ def test_the_applied_pack_registers_as_an_arithmetic_half_and_half():
     assert all(leg["minimum"] is None for leg in pack["legs"].values())
 
 
-def test_battery_dispatches_and_the_dispatch_table_is_in_no_producer_digest():
-    # Selecting an adapter measures nothing: registering a Challenge must not
-    # re-version (and unbind the calibration packs of) any other producer.
-    assert source._physical_adapter(adapter.CHALLENGE, adapter.VERSION) is adapter
+def test_battery_dispatches_only_once_validator_code_registers_it():
+    import ast
+    import inspect
+
+    from carbon.scoring import physical_adapters
+
+    # The shared dispatch never imports Battery: its pinned value modules reach
+    # the panel's attack harness, which no miner surface may (invariant).
+    tree = ast.parse(inspect.getsource(physical_adapters))
+    named = {
+        alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.Import, ast.ImportFrom))
+        for alias in node.names
+    }
+    assert "battery_dual_pack" not in named
     assert "physical_adapters.py" not in physical._SHARED_FILES
     for module in (adapter, motor_dual_pack, cooling_dual_pack):
         assert "physical_adapters.py" not in module.FILES
+    physical_adapters.register(adapter)
+    assert source._physical_adapter(adapter.CHALLENGE, adapter.VERSION) is adapter
+    assert source._physical_adapter(adapter.CHALLENGE, "9.9") is None
+    with pytest.raises(ValueError):
+        physical_adapters.register(_Impostor())
+
+
+class _Impostor:
+    CHALLENGE = adapter.CHALLENGE
+    VERSION = adapter.VERSION
 
 
 def test_a_model_equal_to_the_reference_passes_every_practice_gate():
@@ -213,3 +235,11 @@ def test_d_is_the_quiz_regret_over_ev4_development_under_v2_truth():
     dropped.pop(next(k for k in dropped if k.startswith("ev4:" + first["id"] + ":")))
     worse, _ = bdm.decision_value(contract, [first], dropped, refs)
     assert worse == 1 / (1 + contract["mistake_costs"]["missed_opportunity"])
+
+
+def test_g_feas_is_the_pinned_exceeds_comparison():
+    from carbon.battery.value import score_tuning as st
+
+    for measured in (None, 0.0, 0.04999, 0.05, 0.0500001, 0.3, 1.0):
+        pinned = st.exceeds_verdict(measured, 0.05) == st.admissibility.PASS
+        assert bdm.g_feas_passes(measured, 0.05) is pinned
