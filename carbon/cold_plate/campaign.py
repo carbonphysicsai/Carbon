@@ -384,7 +384,9 @@ def agent_observation(prepared, epoch, feedback):
     from .research import SCAFFOLD
 
     document = describe(CHALLENGE.challenge_id, CHALLENGE.version)
-    unsupported = document.pop("unsupported")
+    # Battery's registry entry lists its unsupported capabilities; Motor's and
+    # Cooling's list none (BUG MOTOR_OBSERVATION_UNSUPPORTED_20261020).
+    unsupported = document.pop("unsupported", [])
     rule = frozen_tools_rule(prepared.manifest)
     extra = {}
     if rule is not None:
