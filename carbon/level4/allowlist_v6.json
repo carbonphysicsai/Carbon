@@ -84,6 +84,12 @@
    "lowering": "refused",
    "note": "RNG in inference is refused"
   },
+  "aten.bitwise_and.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "boolean masks only, as Carbon's and."
+  },
   "aten.bmm.default": {
    "category": "linear_algebra",
    "default": "allow",
@@ -153,6 +159,18 @@
    "lowering": "emitted",
    "note": "A constant fill at the result's own declared dtype and shape (torch.zeros_like/ones_like/full_like)."
   },
+  "aten.ge.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison, boolean result (KAN spline intervals)."
+  },
+  "aten.ge.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison, boolean result (KAN spline intervals)."
+  },
   "aten.gelu.default": {
    "category": "elementwise",
    "default": "allow",
@@ -179,6 +197,18 @@
    "default": "refuse",
    "lowering": "refused",
    "note": "host synchronization or a data-dependent shape"
+  },
+  "aten.le.Scalar": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison, boolean result (KAN spline intervals)."
+  },
+  "aten.le.Tensor": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "comparison, boolean result (KAN spline intervals)."
   },
   "aten.log1p.default": {
    "category": "elementwise",

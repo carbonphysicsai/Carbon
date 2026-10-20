@@ -49,6 +49,11 @@ def test_v6_changes_only_the_listed_entries_and_keeps_graph_scatter_refused():
         "aten.split_with_sizes.default",
         "aten._native_batch_norm_legit_no_training.default",
         "aten._native_batch_norm_legit.no_stats",
+        "aten.ge.Scalar",
+        "aten.ge.Tensor",
+        "aten.le.Scalar",
+        "aten.le.Tensor",
+        "aten.bitwise_and.Tensor",
     ):
         admitted = new["aten_core"].pop(added)
         assert admitted["default"] == "allow" and admitted["lowering"] == "emitted"

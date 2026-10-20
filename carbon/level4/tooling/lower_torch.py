@@ -944,6 +944,10 @@ def _emit(b, node, env):
         "aten.gt.Scalar",
         "aten.gt.Tensor",
         "aten.eq.Scalar",
+        "aten.ge.Scalar",
+        "aten.ge.Tensor",
+        "aten.le.Scalar",
+        "aten.le.Tensor",
     ):
         op = target.split(".")[1]
         operand_dtype = b.avals[env[args[0]]][0]
@@ -953,6 +957,11 @@ def _emit(b, node, env):
         yes = b.operand(args[1], env, dtype, shape)
         no = b.operand(args[2], env, dtype, shape)
         return b.emit("select_n", [cond, no, yes], dtype, shape)
+    if target == "aten.bitwise_and.Tensor":
+        # Boolean masks only (KAN's spline interval test): Carbon's `and`.
+        if dtype != "bool" or any(b.avals[env[a]][0] != "bool" for a in args[:2]):
+            raise graph.GraphRefused("aten_arguments_not_supported", target)
+        return b.binary("and", args[0], args[1], env, node)
     if target in ("aten.abs.default", "aten.sign.default"):
         # Both have derivative sign(x) and 0 at zero, as torch's.
         return b.unary(target.split(".")[1], x)

@@ -228,3 +228,25 @@ def test_norms_split_reciprocal_match_torch_values_and_gradients():
         np.testing.assert_allclose(np.asarray(g), w.grad.numpy(), rtol=1e-4, atol=1e-5)
     with pytest.raises(graph.GraphRefused):
         lower_torch.lower(core, allowlist=allowlist_module.load(V5))
+
+
+class SplineIntervals(torch.nn.Module):
+    """KAN's B-spline interval test: `ge`, `lt`, `le` and a boolean `and`."""
+
+    def forward(self, x):
+        grid = torch.tensor([-1.0, 0.0, 1.0])
+        inside = (x.unsqueeze(-1) >= grid[:-1]) & (x.unsqueeze(-1) < grid[1:])
+        return inside.to(x.dtype).sum(-1) + (x <= 0.25).to(x.dtype) + (x >= x * 0.5)
+
+
+def test_kan_spline_interval_ops_match_torch_and_v5_refuses_them():
+    import numpy as np
+
+    module = SplineIntervals()
+    x = torch.tensor([[-1.5, -1.0, -0.2, 0.0, 0.25, 0.9, 1.0, 2.0]])
+    _, got = _lower_and_run(module, x, V6)
+    np.testing.assert_array_equal(got, module(x).numpy())
+    program = torch.export.export(module, (x,)).run_decompositions()
+    with pytest.raises(graph.GraphRefused) as refused:
+        lower_torch.lower(program, allowlist=allowlist_module.load(V5))
+    assert refused.value.code == "aten_op_not_allowlisted"
