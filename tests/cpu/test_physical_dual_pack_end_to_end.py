@@ -15,12 +15,14 @@ envelopes around those same predictions; no worker or solver runs here.
 
 from __future__ import annotations
 
+import io
 import json
+import zipfile
 from copy import deepcopy
 
 import pytest
 from test_inference_pair_evidence import encode, fixture, original
-from test_public_bundle_model_custody import _json, _npz, _sha
+from test_public_bundle_model_custody import _json, _npy, _sha
 
 from carbon.challenge_kit import physical_pack
 from carbon.challenge_validator.evaluation_pack import parse_pack, prepare_pack
@@ -57,6 +59,16 @@ def _public(adapter):
         raw = json.dumps(generated, sort_keys=True, separators=(",", ":")).encode()
         public = {**public, "physics_contract": raw}
     return public
+
+
+def _npz(**arrays):
+    """A fixed-timestamp npz: a re-retained entry's state is byte-identical."""
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w") as archive:
+        for name, (descr, raw, shape) in arrays.items():
+            info = zipfile.ZipInfo(f"{name}.npy", date_time=(1980, 1, 1, 0, 0, 0))
+            archive.writestr(info, _npy(descr, raw, shape))
+    return out.getvalue()
 
 
 def _write_pack(adapter, root, public, **options):
@@ -102,8 +114,13 @@ def _write_pack(adapter, root, public, **options):
     return snapshot, documents
 
 
-def _retain_bundle(adapter, tmp, *, public, case_bank, predictions_raw, shapes):
-    """Bundle custody as retention keeps a measured JAX export."""
+def _retain_bundle(
+    adapter, tmp, *, public, case_bank, predictions_raw, shapes, timed_raw=None
+):
+    """Bundle custody as retention keeps a measured JAX export. ``timed_raw``
+    is the batched timed run's own outputs (an honest model's equal the
+    graded ones)."""
+    timed_raw = predictions_raw if timed_raw is None else timed_raw
     root = tmp / "task"
     root.mkdir()
     interface = _sha(public["interface"])
@@ -159,6 +176,7 @@ def _retain_bundle(adapter, tmp, *, public, case_bank, predictions_raw, shapes):
     }
     timed = {
         **graded,
+        "predictions_digest": _sha(timed_raw),
         "schema": "carbon.development.bundle-inference.v2",
         "measurement": {
             "scope": bundle.TIMED_SCOPE,
@@ -185,8 +203,7 @@ def _retain_bundle(adapter, tmp, *, public, case_bank, predictions_raw, shapes):
         "image.json": _json({"image": "fixture"}),
         "inference-receipt.json": encode(graded),
         "timed-query-receipt.json": encode(timed),
-        # An honest model: its batched timed run answers as its graded run does.
-        "timed-query-predictions.json": predictions_raw,
+        "timed-query-predictions.json": timed_raw,
     }
     roles = {
         "recipe": ("recipe.json", "json"),
@@ -339,14 +356,17 @@ def case(request, tmp_path_factory):
         "case_bank": case_bank,
         "originals": originals,
         "predictions": predictions,
+        "predictions_raw": predictions_raw.encode(),
+        "shapes": (list(bank["inputs"].shape), list(bank["references"].shape)),
         "direct": direct,
     }
 
 
-def _produce(case, originals=None):
+def _produce(case, originals=None, entry=None):
+    entry = case["entry"] if entry is None else entry
     prepared_source = source.build_pack_source_receipt(
         selected_pack=case["snapshot"],
-        entry=case["entry"],
+        entry=entry,
         trusted_job=case["job"],
         registration=case["registration"],
         references=case["references"],
@@ -357,7 +377,7 @@ def _produce(case, originals=None):
         selected_pack=case["snapshot"],
         public_root=case["root"],
         private_root=case["root"],
-        entry=case["entry"],
+        entry=entry,
         trusted_job=case["job"],
         registration=case["registration"],
         references=case["references"],
@@ -616,50 +636,63 @@ def test_the_baseline_graded_on_the_judge_image_sets_the_minimums(case, tmp_path
             )
 
 
-def _timed(case, predictions_raw):
-    """The timed query's originals for other timed outputs (same receipt form)."""
-    receipt = json.loads(case["originals"]["timed_query"]["receipt_raw"])
-    receipt["predictions_digest"] = _sha(predictions_raw)
-    raw = encode(receipt)
-    return {
+def _timed(case, tmp, timed_raw):
+    """The same model retained with other batched timed outputs: its own
+    custody entry (the timed receipt and predictions are retained originals,
+    as retention keeps them) and the matching originals."""
+    entry, _custody, artifacts, _ = _retain_bundle(
+        case["adapter"],
+        tmp,
+        public=case["public"],
+        case_bank=case["case_bank"],
+        predictions_raw=case["predictions_raw"],
+        shapes=case["shapes"],
+        timed_raw=timed_raw,
+    )
+    originals = {
         **case["originals"],
         "timed_query": {
-            "receipt_raw": raw,
-            "registered_sha256": _sha(raw),
-            "predictions_raw": predictions_raw,
+            "receipt_raw": artifacts["timed-query-receipt.json"],
+            "registered_sha256": _sha(artifacts["timed-query-receipt.json"]),
+            "predictions_raw": artifacts["timed-query-predictions.json"],
         },
     }
+    return originals, entry
 
 
 def test_a_batch_detecting_model_whose_timed_run_answers_differently_is_unavailable(
-    case,
+    case, tmp_path
 ):
     """Validator, 2026-10-20: speed is never measured on outputs that were not
     graded. A model that answers its per-case grade honestly but returns a
     cheap answer when it sees the full timing batch is UNAVAILABLE."""
     cheap = [[0.0 for _ in row] for row in case["predictions"]]
     raw = json.dumps(cheap, separators=(",", ":")).encode()
+    originals, entry = _timed(case, tmp_path, raw)
     with pytest.raises(
         source.PrivateEvaluationSourceRefused, match="timed_query_disagrees"
     ):
-        _produce(case, _timed(case, raw))
+        _produce(case, originals, entry)
 
 
 @pytest.mark.parametrize("raw", [b"not json", b"[]", None])
-def test_timed_outputs_that_cannot_be_scored_disagree(case, raw):
-    originals = (
-        _timed(case, raw)
-        if raw is not None
-        else {
-            **case["originals"],
-            "timed_query": {
-                k: v
-                for k, v in case["originals"]["timed_query"].items()
-                if k != "predictions_raw"
+def test_timed_outputs_that_cannot_be_scored_disagree(case, tmp_path, raw):
+    if raw is None:
+        # The timed receipt retained but its outputs withheld.
+        originals, entry = (
+            {
+                **case["originals"],
+                "timed_query": {
+                    k: v
+                    for k, v in case["originals"]["timed_query"].items()
+                    if k != "predictions_raw"
+                },
             },
-        }
-    )
+            None,
+        )
+    else:
+        originals, entry = _timed(case, tmp_path, raw)
     with pytest.raises(
         source.PrivateEvaluationSourceRefused, match="timed_query_disagrees"
     ):
-        _produce(case, originals)
+        _produce(case, originals, entry)
