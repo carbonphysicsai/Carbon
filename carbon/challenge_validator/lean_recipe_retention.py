@@ -737,16 +737,14 @@ def _retain_selected_pack_evaluation(
             "registered_dual_measurement_sha256": pin["dual_measurement_sha256"],
             "selected_evaluation_pack": snapshot,
         }
+        source_pin = registered["registered_source_receipt_sha256"]
         binding = bind_private_evaluation_evidence(
-            registered_source_receipt_sha256=registered[
-                "registered_source_receipt_sha256"
-            ],
-            **bind_inputs,
+            registered_source_receipt_sha256=source_pin, **bind_inputs
         )
         binding_path = directory / "private-evaluation-binding.json"
         write_once(binding_path, _json(binding))
         if regrade is not None and regrade.promotion is not None:
-            _record_regraded_evidence(regrade, bind_inputs)
+            _record_regraded_evidence(regrade, bind_inputs, source_pin)
     except (
         ImportError,
         OSError,
@@ -1228,12 +1226,20 @@ class _Regrade:
     promotion: object = None
 
 
-def _record_regraded_evidence(regrade, bind_inputs):
-    """Record the regrade's evaluation for the incumbent's submission id (new key)."""
-    from carbon.battery.pool_store import StateError
+def _record_regraded_evidence(regrade, bind_inputs, pin=None):
+    """Record the regrade's evaluation for the incumbent's submission id (new key).
 
+    ``promotion`` is a BankPromotion with its own registered pin, or a bare PoolStore, which
+    gets the pin this evaluation registered in owner custody (the operator's own).
+    """
+    from carbon.battery.pool_store import PoolStore, StateError
+    from carbon.challenge_validator.bank_promotion import BankPromotion
+
+    promotion = regrade.promotion
+    if type(promotion) is PoolStore:
+        promotion = BankPromotion(promotion, registered_source_receipt_sha256=pin)
     try:
-        return regrade.promotion.retain_private(regrade.origin_task_id, **bind_inputs)
+        return promotion.retain_private(regrade.origin_task_id, **bind_inputs)
     except StateError as refused:
         raise RetentionUnavailable("regrade_record_" + refused.code) from refused
 
@@ -1294,7 +1300,7 @@ def regrade_retained_entry(
     that entry is graded through the standard private evaluation, so the result carries the
     v4 receipts on the new evaluation key. The owner is the retained task's own, the cap
     slot is a REGRADE (never counted, no epoch limit), and provenance is recorded beside
-    the result. With ``promotion`` (a BankPromotion), the evaluation is also recorded under
+    the result. With ``promotion`` (a BankPromotion or a PoolStore), the evaluation is also recorded under
     the origin task's submission id on the new evaluation key, which is where the incumbent
     comparison looks it up. Only bundle recipes are supported; a graph recipe is typed
     unavailable.

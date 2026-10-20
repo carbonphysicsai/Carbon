@@ -781,6 +781,7 @@ def serve(
     ready=None,
     retention=None,
     regrade=False,
+    pool_store=None,
 ):
     """Run the same signed intake/task loop with finite admission and owned stop."""
     from carbon.battery import challenge as battery_challenge
@@ -1005,6 +1006,7 @@ def serve(
                         task_id,
                         artifact_directory=artifact_directory,
                         entry_directory=entry_directory,
+                        promotion=_open_pool_store(pool_store),
                     )
                 return intake.retain_result(
                     task_id,
@@ -1032,6 +1034,22 @@ def serve(
                 providers.close()
 
 
+class PoolStoreUnavailable(ValueError):
+    code = "pool_store_unavailable"
+
+
+def _open_pool_store(path):
+    """The existing pool store a regrade is recorded in, or None; never created here."""
+    if path is None:
+        return None
+    from carbon.battery.pool_store import PoolStore
+
+    path = Path(path)
+    if path.is_symlink() or not path.is_file():
+        raise PoolStoreUnavailable
+    return PoolStore(path)
+
+
 def _exam_cap_startup(ledger, discovery, restore):
     """Start-up, nothing is grading: return reservations a crash left open.
 
@@ -1055,6 +1073,12 @@ def main(argv=None):
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--retain-task")
     parser.add_argument(
+        "--pool-store",
+        type=Path,
+        help="with --regrade-entry: also record the regrade for the incumbent in this "
+        "existing pool store, where the takeover comparison looks it up",
+    )
+    parser.add_argument(
         "--regrade-entry",
         help="regrade this retained bank entry on the receiver's selected pack",
     )
@@ -1063,6 +1087,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.retain_task is not None and args.regrade_entry is not None:
         parser.error("retain a task or regrade an entry, not both")
+    if args.pool_store is not None and args.regrade_entry is None:
+        parser.error("--pool-store applies to --regrade-entry only")
     retention_args = (
         args.retain_task if args.regrade_entry is None else args.regrade_entry,
         args.artifact_directory,
@@ -1097,6 +1123,7 @@ def main(argv=None):
             ready=lambda item: print(json.dumps(item), flush=True),
             retention=retention,
             regrade=args.regrade_entry is not None,
+            pool_store=args.pool_store,
         )
     except Exception as failure:  # noqa: BLE001 - no private exception text
         code = getattr(failure, "code", None)

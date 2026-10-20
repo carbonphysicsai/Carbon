@@ -272,7 +272,9 @@ class DirectRecipeIntake(BatteryIntake):
         """Operator-only single-task progress; the HTTP route never invokes it."""
         return self.adapter.advance()
 
-    def regrade_result(self, entry_id, *, artifact_directory, entry_directory):
+    def regrade_result(
+        self, entry_id, *, artifact_directory, entry_directory, promotion=None
+    ):
         """Operator-only regrade of a retained model on the selected pack; never a route."""
         from .lean_recipe_retention import regrade_retained_entry
 
@@ -281,6 +283,7 @@ class DirectRecipeIntake(BatteryIntake):
             entry_id,
             artifact_directory=artifact_directory,
             entry_directory=entry_directory,
+            promotion=promotion,
         )
 
     def retain_result(self, submission_id, *, artifact_directory, entry_directory):

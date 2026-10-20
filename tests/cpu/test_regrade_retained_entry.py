@@ -367,6 +367,11 @@ def test_regraded_evidence_is_found_for_the_incumbent_on_the_new_key(tmp_path):
     assert pair["incumbent"] == recorded
     assert pair["incumbent"]["submission_id"] == "king"
     assert pair["expected_incumbent"] == "king"
+    # A bare pool store (the CLI's --pool-store) gets the registered pin and files the same.
+    bare = retention._Regrade(
+        "fixture-king", object(), "king", case["entry"]["entry_id"], store
+    )
+    assert retention._record_regraded_evidence(bare, args, pin) == recorded
 
 
 def test_recording_a_regrade_names_the_store_refusal(tmp_path):

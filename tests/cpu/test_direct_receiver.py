@@ -1695,7 +1695,7 @@ def test_main_regrade_entry_runs_the_regrade_and_reports_the_pack_outcome(
     seen = []
 
     def regrade(config, **kwargs):
-        seen.append((kwargs["retention"], kwargs["regrade"]))
+        seen.append((kwargs["retention"], kwargs["regrade"], kwargs["pool_store"]))
         return {
             "status": "CREATED",
             "entry_id": "sha256:" + "b" * 64,
@@ -1718,10 +1718,12 @@ def test_main_regrade_entry_runs_the_regrade_and_reports_the_pack_outcome(
         str(artifacts),
         "--entry-directory",
         str(entries),
+        "--pool-store",
+        str(tmp_path / "pool.sqlite"),
     ]
     assert receiver.main(argv) == 0
     reported = json.loads(capsys.readouterr().out)
-    assert seen == [((entry_id, artifacts, entries), True)]
+    assert seen == [((entry_id, artifacts, entries), True, tmp_path / "pool.sqlite")]
     assert reported["regrade_of"] == entry_id
     assert reported["private_evaluation_state"] == "UNAVAILABLE"
     assert (
@@ -1729,3 +1731,26 @@ def test_main_regrade_entry_runs_the_regrade_and_reports_the_pack_outcome(
     )
     with pytest.raises(SystemExit):
         receiver.main([*argv, "--retain-task", "rtsk_" + "d" * 64])
+
+
+def test_pool_store_is_opened_only_when_it_exists_and_only_with_a_regrade(tmp_path):
+    assert receiver._open_pool_store(None) is None
+    with pytest.raises(receiver.PoolStoreUnavailable):
+        receiver._open_pool_store(tmp_path / "missing.sqlite")
+    assert not (tmp_path / "missing.sqlite").exists()
+    (tmp_path / "config.json").write_text("{}")
+    with pytest.raises(SystemExit):
+        receiver.main(
+            [
+                "--config",
+                str(tmp_path / "config.json"),
+                "--retain-task",
+                "rtsk_" + "a" * 64,
+                "--artifact-directory",
+                str(tmp_path),
+                "--entry-directory",
+                str(tmp_path),
+                "--pool-store",
+                str(tmp_path / "pool.sqlite"),
+            ]
+        )
