@@ -180,3 +180,80 @@ def test_the_measurement_values_are_the_committed_packets():
     assert constants["BASELINE"] == "krr_length2_ridge1e-4"
     assert [baseline["length"], baseline["ridge"]] in fields["fit_settings"]
     assert int(baseline["length"]) == 2
+
+
+@pytest.fixture(scope="module")
+def near_limit():
+    """F08 1.1: the near-limit ladder, straddling the dynamic limit (4/4)."""
+    adapter = f08.adapter(version="1.1")
+    bank = physical_pack.development_bank(adapter.CHALLENGE, adapter.VERSION)
+    public = physical_pack.public_roles(adapter.CHALLENGE, adapter.VERSION)
+    names = adapter.input_names()
+    rows = physical.bank_rows(bank, names)
+    return {
+        "adapter": adapter,
+        "bank": bank,
+        "public": public,
+        "names": names,
+        "rows": rows,
+        "definition": adapter.definition(bank=bank, train_raw=public["train"]),
+        "limits": json.loads(public["important_limit_definition"]),
+        "baseline": f08._baseline_outputs(rows, public["train"], names),
+    }
+
+
+def test_the_near_limit_version_is_its_own_evaluation_and_straddles(near_limit):
+    case = near_limit
+    assert case["definition"]["decision_coverage"] == "RANKING_AND_FEASIBILITY_STRADDLE"
+    limit = case["limits"]["constraints"]["dynamic_tip_mm_per_n_max"]
+    tips = [
+        case["definition"]["targets"].index(n)
+        for n in case["definition"]["tip_targets"]
+    ]
+    unsafe = [max(r["reference"][j] for j in tips) > limit for r in case["rows"]]
+    assert sum(unsafe) == 4 and len(unsafe) == 8
+    result = _measure(case, case["baseline"])
+    assert result["gates"] == {gate: True for gate in fdm.GATES}
+    assert result["pick"] == "ladder-7" and result["D"] == 1.0
+    kwargs = {
+        "bank": case["bank"],
+        "physics": f08.physics_contract(),
+        "interface_raw": case["public"]["interface"],
+        "train_raw": case["public"]["train"],
+        "limits_raw": case["public"]["important_limit_definition"],
+        "objective_raw": case["public"]["design_objective"],
+        "platform": PLATFORM,
+    }
+    documents = f08.pack_documents(version="1.1", **kwargs)
+    registration = json.loads(documents["source_registration"])
+    assert registration["evaluation_version"] == "f08-dual-near-limit-bank-8-v1"
+    assert registration["benchmark_registration"]["cases"][0]["id"] == (
+        "f08-near-limit-bank-8"
+    )
+    variant = f08.pack_documents(
+        version="1.1", rule="baseline_a_no_d_minimum", **kwargs
+    )
+    assert json.loads(variant["source_registration"])["evaluation_version"] == (
+        "f08-dual-near-limit-bank-8-v1-no-d-minimum"
+    )
+    assert json.loads(variant["score_pack"])["legs"]["D"]["minimum"] is None
+
+
+def test_a_false_feasible_pick_is_seen_on_the_straddling_exam(near_limit):
+    """A model predicting an unsafe geometry safe and best picks it; the
+    references show it infeasible, so it is not verified: D = 0 and the
+    verified-pick gate fails. 1.0's all-feasible exam could not see this."""
+    case = near_limit
+    definition = case["definition"]
+    tips = [definition["targets"].index(n) for n in definition["tip_targets"]]
+    oracle = [list(r["reference"]) for r in case["rows"]]
+    unsafe = case["bank"]["case_ids"].index("ladder-5")
+    wrong = [list(row) for row in oracle]
+    for j in tips:
+        wrong[unsafe][j] = 0.10
+    result = _measure(case, wrong)
+    assert result["pick"] == "ladder-5"
+    assert result["gates"]["verified_pick_feasible"] is False
+    assert result["D"] == 0.0
+    assert result["decision_outcome"] == "MISSED_OPPORTUNITY"
+    assert _measure(case, oracle)["D"] == 1.0

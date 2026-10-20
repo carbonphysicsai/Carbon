@@ -79,7 +79,11 @@ def produce_dual_benchmark_input(
     Other Challenge adapters remain explicitly unavailable. A required repeat
     gate cannot be inferred from the one retained normal inference.
     """
-    adapter = _physical_adapter(entry.get("challenge") if type(entry) is dict else None)
+    adapter = (
+        _physical_adapter(entry.get("challenge"), entry.get("challenge_version"))
+        if type(entry) is dict
+        else None
+    )
     if adapter is not None:
         try:
             from carbon.challenge_kit import physical_pack
@@ -93,7 +97,8 @@ def produce_dual_benchmark_input(
             raise PrivateEvaluationSourceRefused(
                 "dual_native_role_unavailable:development_bank"
             ) from exc
-        return adapter.produce(
+        return physical_dual_pack.produce(
+            adapter,
             selected=selected_pack,
             public_root=public_root,
             private_root=private_root,
@@ -121,13 +126,18 @@ def produce_dual_benchmark_input(
     )
 
 
-def _physical_adapter(challenge):
-    """The physical Challenge's dual pack adapter, or None."""
+def _physical_adapter(challenge, version):
+    """The physical Challenge version's dual pack adapter, or None."""
     from carbon.scoring import cooling_dual_pack, f08_dual_pack, motor_dual_pack
 
+    if challenge == f08_dual_pack.CHALLENGE:
+        return (
+            f08_dual_pack.adapter(version=version)
+            if version in f08_dual_pack.VERSIONS
+            else None
+        )
     return {
-        adapter.CHALLENGE: adapter
-        for adapter in (motor_dual_pack, cooling_dual_pack, f08_dual_pack)
+        adapter.CHALLENGE: adapter for adapter in (motor_dual_pack, cooling_dual_pack)
     }.get(challenge)
 
 

@@ -43,6 +43,7 @@ CHALLENGES = {
     "motor": (motor, "native_motor_valid"),
     "cooling": (cooling, "native_cold_plate"),
     "f08": (f08, "paired_repeat"),
+    "f08-1.1": (f08.adapter(version="1.1"), "paired_repeat"),
 }
 GRADED_OPERATION = "operation-" + "a" * 64
 IMAGE = _sha(b"fixture-motor-inference-image")
@@ -265,7 +266,7 @@ def _baseline(name, bank, public, names):
             ]
             for row in bank["inputs"]
         ]
-    if name == "f08":
+    if name.startswith("f08"):
         return f08._baseline_outputs(
             physical.bank_rows(bank, names), public["train"], names
         )

@@ -16,8 +16,13 @@ regenerated from committed sources; no operator output is copied.
   ``krr_length2_ridge1e-4``); the packet's own no-D-minimum rule is the
   separately versioned DEVELOPMENT variant. Both are reported; adoption is
   the owner's.
-- D can only test ranking: every reference geometry is feasible
-  (``RANKING_ONLY_NO_FEASIBILITY_BOUNDARY``).
+- Each Challenge version has its own evaluation version (its own bank key):
+  1.0, the accepted bank, where every reference is feasible so D tests ranking
+  only (``RANKING_ONLY_NO_FEASIBILITY_BOUNDARY``); and 1.1, the near-limit
+  ladder, which straddles the dynamic limit (4 safe / 4 unsafe,
+  ``RANKING_AND_FEASIBILITY_STRADDLE``), so an infeasible pick is seen: it is
+  not verified, fails ``verified_pick_feasible`` and scores D = 0. The same
+  measurement serves both; feasibility comes from each reference.
 """
 
 from __future__ import annotations
@@ -62,13 +67,18 @@ _FREQUENCIES = (
     "peak_frequency_z010_hz",
     "peak_frequency_z020_hz",
 )
+#: Per Challenge version: its evaluation version and its bank's case id.
+VERSIONS = {
+    "1.0": (EVALUATION_VERSION, CASE_ID),
+    "1.1": ("f08-dual-near-limit-bank-8-v1", "f08-near-limit-bank-8"),
+}
 LEG_MINIMUM_RULES = {
     "baseline_legs": (
-        EVALUATION_VERSION,
+        "",
         ("The common rule: the registered baseline's A and D are the leg " "minimums."),
     ),
     "baseline_a_no_d_minimum": (
-        EVALUATION_VERSION + "-no-d-minimum",
+        "-no-d-minimum",
         (
             "The packet's rule, a DEVELOPMENT comparison variant: the baseline's "
             "A is the A minimum and D has no minimum (never copy a perfect "
@@ -78,16 +88,16 @@ LEG_MINIMUM_RULES = {
 }
 
 
-def input_names():
+def input_names(version=VERSION):
     from carbon.challenge_kit import f08_public
 
-    return list(f08_public.interface_document(CHALLENGE, VERSION)["input"]["names"])
+    return list(f08_public.interface_document(CHALLENGE, version)["input"]["names"])
 
 
-def _targets():
+def _targets(version=VERSION):
     from carbon.challenge_kit import f08_public
 
-    return list(f08_public.interface_document(CHALLENGE, VERSION)["output"]["names"])
+    return list(f08_public.interface_document(CHALLENGE, version)["output"]["names"])
 
 
 def physics_contract():
@@ -108,14 +118,14 @@ def physics_contract():
     }
 
 
-def definition(*, bank, train_raw, rule="baseline_legs"):
+def definition(*, bank, train_raw, rule="baseline_legs", version=VERSION):
     """F08's registered accuracy definition fields (the shared module adds the
     producer, TRAIN, bank and platform pins)."""
     return {
         "schema": fdm.DEFINITION_SCHEMA,
         "method": fdm.METHOD,
         "source_script_sha256": SOURCE_SCRIPT_SHA256,
-        "targets": _targets(),
+        "targets": _targets(version),
         "tip_targets": list(_TIPS),
         "frequency_targets": list(_FREQUENCIES),
         "static_target": "static_tip_mm_per_n",
@@ -236,43 +246,65 @@ def applied_pack(*, bank_rows, definition, limits, objective, train_raw, names):
 
 
 class _Variant:
-    """This adapter under a non-default leg-minimum rule: its own evaluation
-    version and definition; everything else is the default adapter's."""
+    """This adapter for another Challenge version or leg-minimum rule: its own
+    evaluation version, case id and definition; everything else (measurement,
+    producer files) is the default adapter's."""
 
-    CALIBRATION_ADAPTER = _ADAPTER
-
-    def __init__(self, rule):
+    def __init__(self, rule, version):
         self.rule = rule
-        self.EVALUATION_VERSION = LEG_MINIMUM_RULES[rule][0]
+        self.VERSION = version
+        evaluation_version, self.CASE_ID = VERSIONS[version]
+        self.EVALUATION_VERSION = evaluation_version + LEG_MINIMUM_RULES[rule][0]
         self.MINIMUM_LEGS = ("A", "D") if rule == "baseline_legs" else ("A",)
+        # The calibration run is graded under the default rule's calibration
+        # pack for the same Challenge version; its legs serve every rule.
+        self.CALIBRATION_ADAPTER = (
+            self if rule == "baseline_legs" else adapter(version=version)
+        )
 
     def definition(self, **kwargs):
-        return definition(**kwargs, rule=self.rule)
+        return definition(**kwargs, rule=self.rule, version=self.VERSION)
+
+    def input_names(self):
+        return input_names(self.VERSION)
+
+    # This variant's own entry points, so its version and rule are never lost
+    # to the module-level (1.0, default-rule) functions.
+    def pack_documents(self, **kwargs):
+        return physical.pack_documents(self, **kwargs)
+
+    def write_development_pack(self, root, **platform):
+        return physical.write_development_pack(self, root, **platform)
+
+    def produce(self, **kwargs):
+        return physical.produce(self, **kwargs)
 
     def __getattr__(self, name):
         return getattr(_ADAPTER, name)
 
 
-def adapter(rule="baseline_legs"):
-    if rule not in LEG_MINIMUM_RULES:
-        raise ValueError("unknown F08 leg-minimum rule")
-    return _ADAPTER if rule == "baseline_legs" else _Variant(rule)
+def adapter(rule="baseline_legs", version=VERSION):
+    if rule not in LEG_MINIMUM_RULES or version not in VERSIONS:
+        raise ValueError("unknown F08 leg-minimum rule or Challenge version")
+    if rule == "baseline_legs" and version == VERSION:
+        return _ADAPTER
+    return _Variant(rule, version)
 
 
 def producer_digest():
     return physical.producer_digest(_ADAPTER)
 
 
-def pack_documents(*, rule="baseline_legs", **kwargs):
-    return physical.pack_documents(adapter(rule), **kwargs)
+def pack_documents(*, rule="baseline_legs", version=VERSION, **kwargs):
+    return physical.pack_documents(adapter(rule, version), **kwargs)
 
 
-def write_development_pack(root, rule="baseline_legs", **platform):
-    return physical.write_development_pack(adapter(rule), root, **platform)
+def write_development_pack(root, rule="baseline_legs", version=VERSION, **platform):
+    return physical.write_development_pack(adapter(rule, version), root, **platform)
 
 
-def produce(**kwargs):
-    return physical.produce(_ADAPTER, **kwargs)
+def produce(version=VERSION, **kwargs):
+    return physical.produce(adapter(version=version), **kwargs)
 
 
 def main(argv=None):
@@ -286,11 +318,15 @@ def main(argv=None):
     parser.add_argument(
         "--leg-minimum-rule", choices=sorted(LEG_MINIMUM_RULES), default="baseline_legs"
     )
+    parser.add_argument(
+        "--challenge-version", choices=sorted(VERSIONS), default=VERSION
+    )
     args = parser.parse_args(argv)
     print(
         write_development_pack(
             Path(args.root).resolve(),
             args.leg_minimum_rule,
+            args.challenge_version,
             **physical.builder_options(args),
         )
     )
