@@ -1,0 +1,485 @@
+{
+ "schema": "carbon.packs.rr08-freeze-ledger.v1",
+ "steps": {
+  "f02-rr08-spot": {
+   "cases": {
+    "c30-i40-s0.5-rectangular-p84-d4.2-v2spot-dt0.5": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "4eb9c93f48d8f77ed924da1fadc0c681a7f01a17c598da0a7916cdedd217e7b0",
+     "deck.json": "596ffc9fe96b4cf73a7d1187f18b9df80d4404220f6039cbc9b4034800a823a4",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p84-d4.2-v2spot-mesh2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "4e4e85a52d5a596c51c6eb7315d2001908226737b476f43f2f4243cb2a9c163d",
+     "deck.json": "adb68c8fe18e75f1ff2b6553490e064c9db945671516c208ea172b7eba248e7f",
+     "mesh/mesh.boundary": "d1794d12f426c6e0e1bb38b3a78e729a338404b4295f2d9b8b5a29841304bd8c",
+     "mesh/mesh.elements": "747905cc33e0b3b4240442e8dd401a27049ad50822d831f17ffbdb3eb4fff03a",
+     "mesh/mesh.header": "a85441a42c3ed194d73c2402ad5b60faedde248c9507e8ff1c4948494ebb6202",
+     "mesh/mesh.nodes": "5c3138dcff1313c472716b0bcee2c6508f46ef51772634ea4132c8a590bee28e"
+    },
+    "c30-i40-s0.5-rectangular-p84-d4.2-v2spot-primary": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "4e4e85a52d5a596c51c6eb7315d2001908226737b476f43f2f4243cb2a9c163d",
+     "deck.json": "e3231dcba44fb560344551b9d91d268b6ab30534cf607728c050ba7678c9a48a",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p85-d5.8-v2spot-dt0.5": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "3f9cd866ce7099cab43ee4a3b9b71ed574cb8c5f65475fad7cbe2e970da05fa8",
+     "deck.json": "0fa36ca97f3fd863852de333c5a0240c83fa8aa1dfc35140a77b84269f20c73e",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p85-d5.8-v2spot-mesh2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "4091f228f435619e62c33066cc66ebeac30e255f700a5a3a9169380e02dedd39",
+     "deck.json": "74ff6012be55b24bb62fab5e47e15c11e1a9dc84ff6cfca6c2f63b31d96c3eba",
+     "mesh/mesh.boundary": "d1794d12f426c6e0e1bb38b3a78e729a338404b4295f2d9b8b5a29841304bd8c",
+     "mesh/mesh.elements": "747905cc33e0b3b4240442e8dd401a27049ad50822d831f17ffbdb3eb4fff03a",
+     "mesh/mesh.header": "a85441a42c3ed194d73c2402ad5b60faedde248c9507e8ff1c4948494ebb6202",
+     "mesh/mesh.nodes": "5c3138dcff1313c472716b0bcee2c6508f46ef51772634ea4132c8a590bee28e"
+    },
+    "c30-i40-s0.5-rectangular-p85-d5.8-v2spot-primary": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "4091f228f435619e62c33066cc66ebeac30e255f700a5a3a9169380e02dedd39",
+     "deck.json": "75e84b2902710619d195ffa093081017dc76f81ccf39d0b650c190d08a95e409",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p87-d4.9-v2spot-dt0.5": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "10bb722cdb3842f5677c733cec2d501ae6c25b46304a9e2846573582d70d9df2",
+     "deck.json": "3280517eb111b409c05cb688faf221a89190a9b9fe865deaff18e5911afd2d54",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p87-d4.9-v2spot-mesh2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "e903680ada33f1d80b153841dcca957a4a4e26bbf4ef9c20b3324386ef6310de",
+     "deck.json": "e96041f6955cdd75c3661937c4658075d7b6c014020d5cec7354ec16eef213f9",
+     "mesh/mesh.boundary": "d1794d12f426c6e0e1bb38b3a78e729a338404b4295f2d9b8b5a29841304bd8c",
+     "mesh/mesh.elements": "747905cc33e0b3b4240442e8dd401a27049ad50822d831f17ffbdb3eb4fff03a",
+     "mesh/mesh.header": "a85441a42c3ed194d73c2402ad5b60faedde248c9507e8ff1c4948494ebb6202",
+     "mesh/mesh.nodes": "5c3138dcff1313c472716b0bcee2c6508f46ef51772634ea4132c8a590bee28e"
+    },
+    "c30-i40-s0.5-rectangular-p87-d4.9-v2spot-primary": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "e903680ada33f1d80b153841dcca957a4a4e26bbf4ef9c20b3324386ef6310de",
+     "deck.json": "24264289107c1c62a5442025978fcda99f473fb712b024c84297b1c39aa257b0",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p88-d5-v2spot-dt0.5": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "cf5da145bc638b4dc5bf48f1859609fcde43660bea04eefe37055705d17dac73",
+     "deck.json": "c67fdf942385fab22a60e3c6a6b5938946c64aa422055bf2f2c9888f7a64fe61",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p88-d5-v2spot-mesh2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "c312d9a9f789459ed927d6e803ac37eb21a2832e4a152ad2ea8b5cf0a757f918",
+     "deck.json": "ebfb4cab2b3e3a0d5ed106eab04f891d30ec290b1842497a8e9b1af1538d6c5c",
+     "mesh/mesh.boundary": "d1794d12f426c6e0e1bb38b3a78e729a338404b4295f2d9b8b5a29841304bd8c",
+     "mesh/mesh.elements": "747905cc33e0b3b4240442e8dd401a27049ad50822d831f17ffbdb3eb4fff03a",
+     "mesh/mesh.header": "a85441a42c3ed194d73c2402ad5b60faedde248c9507e8ff1c4948494ebb6202",
+     "mesh/mesh.nodes": "5c3138dcff1313c472716b0bcee2c6508f46ef51772634ea4132c8a590bee28e"
+    },
+    "c30-i40-s0.5-rectangular-p88-d5-v2spot-primary": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "c312d9a9f789459ed927d6e803ac37eb21a2832e4a152ad2ea8b5cf0a757f918",
+     "deck.json": "74a05d62d90ecf1f0edc6f9b7927f4718bfa25d77383e973db6172530fb47154",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    }
+   },
+   "manifest_sha256": "2fdea11c2084e6e565f2408a389799ff000b5ca0f1b569568950e02f55f0432f",
+   "pin": "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-rr08-spot-manifest.json"
+  },
+  "f02-rr08-train40v2": {
+   "cases": {
+    "c30-i40-s0.5-rectangular-p100-d4.3-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "3ef353754cfe97625fc9995fa84d9fffc6f6b9016ebfa29c016f9294058cb24d",
+     "deck.json": "1208b5ff101d317c98ab40d02cc43a03bdd549e2dc7816ad2866665b1c6fd1ea",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p101-d19.6-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "be76b25fdf3ae94ef0e240fcbbccbdb35dd7c0960aa2235454cce6562f3bcb68",
+     "deck.json": "d2b1154e4509274decbb29dcb5a7a6fce26ed3b5e2c03015cf1c499328b65e51",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p110-d10.4-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "a2c72d3440f183c96cad363154cb2107a4c72b42510543600d1f3438e0e3a33c",
+     "deck.json": "d9b096bf3e0785a1e8d9b3f1c9f4af65e616885b382237e3534e15a6ccbeff13",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p110-d14.9-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "8108136737040744021c92c3b2e089b1b8775285fae914363212c0adbe96fdcc",
+     "deck.json": "8fc361d6dae88d545b103de9e6866c2a9d6ede5c067a63d2d4b92fa5484d5d71",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p111-d6-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "fdab00e954aea8ac6dacdab6c913cedf30ef7a6748a8cf0911b161f18996c11f",
+     "deck.json": "bfa0b39f81c683c149a35163c20746130c0887a0f657c795d8730037f6ea910d",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p112-d7.7-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "3e2c659a3e785a2b6cf650968801bcd5b03df8feac2258fee0c4aa66c01aa758",
+     "deck.json": "a16ee171674743e5f34a66877465d2b911983deef26b6a885313785f5a7e8876",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p114-d18.3-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "7cc21e23955a043310169bb0ea8f097c95ceaf882801f1822376e58ed8f1a9a1",
+     "deck.json": "ea8a874e30d5bb99317c8cd41385e47428ea7ba361f9802496ebb64887cbe5b5",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p114-d18.9-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "40d968133c23b805e48f039d9e573795496792ddc6825243080b9b79d37c4d62",
+     "deck.json": "6301277e4ab86ee6501bf93083a91e4ee24adfd5882ba66b5e8021ec7cf9bffd",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p118-d13.3-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "f344910f9bd94f8ecd8167bfbf290e3f3c8d22f21d494250992c044974512097",
+     "deck.json": "deed330fe0c00d4c7c9b86a2d36707d31c613f1ce9b70feba77f65a837823997",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p118-d9.8-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "df5b07a97ebec97003e19a3ea15e21ca57f5d2f75ec992c7da245f2f12f8f7d6",
+     "deck.json": "6eafcdeba07b97f774d87b2440c0553666c0476765fbbccf399184a59e2c6aad",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p120-d5.5-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "b3892b3dfc21e24ad5a4587a924ffc771da4d558e3a48ec4262b00982e1c8a26",
+     "deck.json": "1020a6917633322e4c4b6eae1b72bbf5d58fec74ab2e18118763e5dc4cca593a",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p124-d12.9-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "33066bf21684f0145ca72b150ebb3bab351df530de519e2116c8637ff09b848f",
+     "deck.json": "4c6ba9a311631468058208698cbfe286a1694fd9da43cb536c26e423f09f38fb",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p128-d6.2-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "69e45410359621e513783b52e4a2cb2d21fa8ef1918483f35164c28f5aee732b",
+     "deck.json": "ff6e27a4c6011c9e348ad5ac9a73263f9e89dfb9e7c2b8455875570e0f6e5c54",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p140-d6.7-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "900298e671e1c024d1a204d044beee586e073dac2f542c5560e304a5f403f221",
+     "deck.json": "b1feb2c8e50244859986c385b4742da2ad513385a5939169efb03fbeded8541f",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p147-d15.3-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "0d8ad19f54138f643480e02ee9df0fd40d4a8df7af377142a3bc5ed410212a5b",
+     "deck.json": "1719e8a88523e9469a37fff91c65788f46cbefb8c01ba2bea706f78627893f38",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p70-d5.7-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "6ec5e9b4f76bb8d40c1f440abe7a7fe8a232fd151dda0e70090c961029892ab5",
+     "deck.json": "634a735112f300369f5895fe010a72378e79f9cb57457a60eea0c0f165840d35",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p72-d4.2-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "34090183b3205503fdcccb0bc617d27c77119da4e02e0113c4b6a66343830e34",
+     "deck.json": "5780e334512d724353df8971509ef622d73a51b5ccbcd24aa24bcb373da17fc2",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p75-d5.2-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "06ff5273083fc27a180dddc30e98586058b3ce9149d2db15b5874687d47ff0f6",
+     "deck.json": "86897bf3aec9e085bc48e8d3b69710057732ac1e885c7a07ea073ee6cd07c620",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p76-d5.5-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "befe520f9f1dc75151bcb4383e1e3cbfaa2816ec639716387bc7f34f0dee6d7a",
+     "deck.json": "cad5de40803430b0ca90cb7506acd19717bd6789b9daf9bc19620a861fe419eb",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p78-d4-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "42db52aff0254d7ccd0f6701479d2af0bfd8a3b0feecdf30cbae3cd8c949080c",
+     "deck.json": "978934b720c264cbdf679de9fa91fddd36b9f4ef523cae47362543719fd129be",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p78-d4.5-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "10c1a0cec41dc6ebe668c90b3621f322a1cbda733b98fb7bea8ac44a4fee97d6",
+     "deck.json": "ddf4000e2198033c91f0d2ef736680d7c5aeee597c3f861957d18a07f5207359",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p78-d4.7-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "a45b61858df84cfbefe1ae3134881d342b10b387886eed67c97bfb1c25e65eb8",
+     "deck.json": "6f9a7e480e0498092cb067e012eb3848a9b5604f33205131f2a53bb60d5fba7b",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p79-d5.4-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "14f0cbf2c55dd5cc9521dc255b7428887f496e47ce7292ad566a182e23b76027",
+     "deck.json": "511c6facf6e4e84f9eac300203aa5e0d15a5c3d770d7c01450b9cac7db634fd5",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p81-d4.4-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "cfe647b8e656cbe4c6b7a32bb0ffe4b7f25e444e72ce667248d9b3346f6bd0c0",
+     "deck.json": "6e44b84372b09a2f83dd2f08484a661cae21dc27e10a3b23025c75a5d970ae80",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p82-d4-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "1231d598397dc3c1241197d86b0322f6e59124520bb1d166a56b97ef0cdb4417",
+     "deck.json": "7d9fe2fc17a733921bb05fea323b0b8163f8e223b488c57163b856170ea62961",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p82-d6-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "9c1b50a9271a5f0ee3992e0e60bc7d85b3b397352aa60cdd4a86506877f3b41c",
+     "deck.json": "d873998ffccf1f93d1192033001d72f57450ed5865725f74b823530cd5768f79",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p84-d4.2-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "4e4e85a52d5a596c51c6eb7315d2001908226737b476f43f2f4243cb2a9c163d",
+     "deck.json": "e3231dcba44fb560344551b9d91d268b6ab30534cf607728c050ba7678c9a48a",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p85-d5.8-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "4091f228f435619e62c33066cc66ebeac30e255f700a5a3a9169380e02dedd39",
+     "deck.json": "75e84b2902710619d195ffa093081017dc76f81ccf39d0b650c190d08a95e409",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p87-d4.9-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "e903680ada33f1d80b153841dcca957a4a4e26bbf4ef9c20b3324386ef6310de",
+     "deck.json": "24264289107c1c62a5442025978fcda99f473fb712b024c84297b1c39aa257b0",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p88-d17.8-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "80faff54ed462ceefa5b5189f2e598ffe5e65eb9f2adb6cce1eb5f691d27b043",
+     "deck.json": "b0ff35988a35736ef90c8267c2f75bf1486dff0926bb2726cb365ea07fd256ce",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p88-d4.3-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "0ab70dd77f1b2a64f23830470b1ccf708a36092244921e4095e471799e560c83",
+     "deck.json": "78564f6055eef9eba431cf4c20574f14f6c0bd70a6be9fe224b768f4126f8e4c",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p88-d5-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "c312d9a9f789459ed927d6e803ac37eb21a2832e4a152ad2ea8b5cf0a757f918",
+     "deck.json": "74a05d62d90ecf1f0edc6f9b7927f4718bfa25d77383e973db6172530fb47154",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p89-d4.1-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "abec10fbc7efdbecd79af205dcc617e85380f4b91d873f4c90f0e6cdb7a6e684",
+     "deck.json": "9194b3699a6250d6269ad9a8f9c69281d0e88c855a6a27055d353c1c8ce7d7b5",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p90-d4.8-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "eecb1b871e3e4f83b30a995acf8111c7ab91347547ffecc6c95b3885480f5246",
+     "deck.json": "078efebe160602de7ca9fdef6fda95b53f79a7cc2fb6f0551e90c2d9787ad1d0",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p94-d5.1-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "29ad7ffbfb22c23894b881eae356b175ac0505ab097e509bcc72a4985b8653b9",
+     "deck.json": "df14def82a8223bf176c9cb7a7c01160caacbb1bbc09f418837a390b6c70b494",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p97-d17.6-train-v2s2": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "7917d8bba03d21df27fd638fb15579f220f49474eb7ad6d1e89c42c99cb173c0",
+     "deck.json": "bb997e7800cadb3e2e8f3aa058aabb98d4e47f03f274e9683693b5eb409c9cdf",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p97-d5-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "586e367643a7dda354d69fe7db780c9e91b8534eb57e06601045e25eafff113d",
+     "deck.json": "4a72b10634909a464919060bad919d9a0e3bbc849efb640c719e00c83fe526e0",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p99-d5-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "da5b567cefe0ead8c822a3d927042e868421acbd27ce798f99164772bef9e532",
+     "deck.json": "e940fa289a6b2df735238a79f0ec04e87f4e3c0b316ed0043adde93830637714",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p99-d5.1-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "3459c06b7d693d2c223c8c2912ae449ddf706148e560c7313fc87d49bf6a7e77",
+     "deck.json": "f2f8201f81d2be309371b190404df61a0a0307440a10ca5aa2b510f5f16545f7",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    },
+    "c30-i40-s0.5-rectangular-p99-d5.8-train-v2s1": {
+     "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+     "case.sif": "26479d80ff18aa36e43c58ceeb30cb063b274e7430628010a100c446d249525e",
+     "deck.json": "d1fd26e5bd8f64080641f1d6a34a13db7d8cab119b8d691985d84e8fbda621e6",
+     "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+     "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+     "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+     "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+    }
+   },
+   "manifest_sha256": "caeaefc14c61423557ed54725c251558ad14baa552c735c78514bed74040fc46",
+   "pin": "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-rr08-train40v2-manifest.json"
+  }
+ }
+}
