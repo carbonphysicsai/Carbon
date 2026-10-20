@@ -8,6 +8,7 @@ import pytest
 from test_c03_worker_contract import _sha
 
 from carbon.reconstruction.accelerators import GPU_PROFILE, TPU_PROFILE
+from carbon.reconstruction.profile import ACCELERATOR_ENVIRONMENT_VERSION
 from carbon.reconstruction.worker.model import (
     LOCAL_DEVELOPMENT_AUTHORITY,
     STRICT_HOST_GRANT_AUTHORITY,
@@ -128,7 +129,9 @@ def _compiled_gpu_profile(monkeypatch, tmp_path):
     from carbon.reconstruction.profile import compile_development_profile
 
     monkeypatch.setattr(c02_fixtures, "ENVIRONMENT_ID", GPU_PROFILE.profile_id)
-    monkeypatch.setattr(c02_fixtures, "ENVIRONMENT_VERSION", "1.0")
+    monkeypatch.setattr(
+        c02_fixtures, "ENVIRONMENT_VERSION", ACCELERATOR_ENVIRONMENT_VERSION
+    )
     monkeypatch.setattr(
         c02_fixtures,
         "DEPENDENCY_SPECS",
