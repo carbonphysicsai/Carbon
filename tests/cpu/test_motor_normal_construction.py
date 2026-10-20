@@ -135,3 +135,69 @@ def test_fresh_rebuild_then_per_case_source_free_inference(
     predictions = np.asarray(inferred.predictions, dtype=np.float64)
     assert predictions.shape == material["practice_reference"].shape
     np.testing.assert_allclose(predictions, _expected(material), rtol=1e-6, atol=1e-6)
+
+
+@CHALLENGES
+def test_a_measured_task_is_admitted_for_physical_material(
+    tmp_path, monkeypatch, challenge_id, version
+):
+    """The receiver runs measured tasks; the numeric interface keeps its dtype at the
+    top level, so admission must read it there (it refused direct_reference_mismatch).
+    """
+    import test_direct_v3_durable_tasks as durable
+
+    material = physical_material.bundle_material(challenge_id, version)
+    request, provider, _ = durable._fixture(tmp_path, monkeypatch, material=material)
+    tasks = provider()
+    try:
+        started = tasks.start_research_task(request, measure_query=True)
+        assert started.task.state.name in ("QUEUED", "RUNNING")
+    finally:
+        tasks.close()
+
+
+@CHALLENGES
+def test_measured_query_accepts_the_registered_dtype_spelling(
+    tmp_path, monkeypatch, challenge_id, version
+):
+    """Physical interfaces spell the dtype "<f8"; the program reports "float64".
+    The timed query validator must compare dtypes, not strings (MS1 stage B
+    ended FAILED_INFRA at VALIDATE on exactly this)."""
+    monkeypatch.setattr(acceptance, "SOURCE", SOURCE)
+    material = physical_material.bundle_material(challenge_id, version)
+    spelled = material["interface_document"]["dtype"]
+    assert spelled != "float64"
+    image, installed = acceptance._source_bundle(tmp_path)
+    recipe = acceptance._recipe(material, image)
+    runner = acceptance.LocalProcessRunner(installed)
+    ledger = CampaignLedger(tmp_path / "campaign")
+    built = reconstruct_public(
+        ledger,
+        owner="miner",
+        identity="motor-build",
+        image=image,
+        recipe=recipe,
+        challenge_binding=acceptance._binding(material),
+        train=material["train"],
+        example=material["example"],
+        seed=11,
+        allowlist_bytes=material["allowlist_bytes"],
+        runner=runner,
+    )
+    timed = infer_public(
+        ledger,
+        owner="miner",
+        identity="motor-timed",
+        image=image,
+        inference_image=image.parent,
+        recipe=recipe,
+        challenge_binding=acceptance._binding(material),
+        build=built,
+        inputs=material["practice_inputs"],
+        expected_output_shape=material["expected_output_shape"],
+        allowlist_bytes=material["allowlist_bytes"],
+        expected_output_dtype=spelled,
+        measure_query=True,
+        runner=runner,
+    )
+    assert timed.receipt["measurement"]["output_dtype"] == "float64"
