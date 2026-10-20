@@ -431,8 +431,9 @@ def test_without_safety_the_result_is_exactly_v1_and_with_it_v2_adds_only_safety
     assert set(v1) == V1_FIELDS
     safety = {"schema": ps.SCHEMA, "feedback_only": True}
     v2 = module.feedback(summary, {}, safety=safety, **kwargs)
-    # Battery's v3 has v2's fields; only its safety block's B4 differs.
-    latest = ".v3" if module is battery_practice else ".v2"
+    # Battery's v4 has v2's fields; only its safety block differs (B4 computed
+    # since v3, B5 since v4).
+    latest = ".v4" if module is battery_practice else ".v2"
     assert v2["schema"] == module.FEEDBACK_SCHEMA and v2["schema"].endswith(latest)
     assert set(v2) == V1_FIELDS | {"safety"} and v2["safety"] is safety
     assert {k: v for k, v in v2.items() if k not in ("schema", "safety")} == {
@@ -511,12 +512,15 @@ def test_each_practice_provider_returns_its_latest_shape_with_its_safety(
     )
     provider.compile = lambda strategy: (None, _recipe({"id": challenge}))
     result = provider("task-1", {"strategy": "fixture"})
-    assert result["schema"].endswith(".v3" if challenge == "battery" else ".v2")
+    assert result["schema"].endswith(".v4" if challenge == "battery" else ".v2")
     assert result["safety"]["schema"] == ps.SCHEMA
     assert result["safety"]["unmeasured"] == 0
     if challenge == "battery":
         expected = battery_safety.safety(predictions, practice, decision)
         assert result["safety"]["metrics"]["B4"] == ORACLE_B4
+        assert (
+            result["safety"]["metrics"]["B5"]["reference"] == "battery-plating-ref-v2"
+        )
         # The worker is asked for PRACTICE and the decision set; the practice
         # score is PRACTICE's alone.
         inputs = json.loads(staged["practice-inputs.json"])
