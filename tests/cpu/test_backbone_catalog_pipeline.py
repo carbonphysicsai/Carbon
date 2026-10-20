@@ -264,3 +264,50 @@ def test_an_empty_lock_is_accepted_only_beside_an_empty_wheel_set(monkeypatch):
     item = _with_wheels(monkeypatch)
     with pytest.raises(pipeline.CatalogBroken, match="lock and wheel set disagree"):
         pipeline.verify(item)
+
+
+#: A jNO entry as the JAX levers build declares it (the 11 jNO baselines wait
+#: on the parent-image decision before they are listed).
+JAX_ITEM = {
+    "catalog_id": "jno.fno1d",
+    "backbone": "fno1d",
+    "settings_schema": "carbon-candidate-jax-levers-v1",
+    "defaults": {
+        "configuration": {"backbone": "fno1d", "learning_rate": 0.001},
+        "train_use": {},
+    },
+}
+
+
+def test_the_jax_levers_build_takes_its_own_settings():
+    configuration, train_use = settings.resolve(
+        JAX_ITEM,
+        {"learning_rate": 0.002},
+        {"steps": 400, "precision": "float32", "averaging": {"kind": "swa"}},
+    )
+    assert configuration == {"backbone": "fno1d", "learning_rate": 0.002}
+    assert train_use["precision"] == "float32"
+
+
+@pytest.mark.parametrize(
+    "configuration, train_use, code",
+    [
+        ({"arch": {"modes": 8}}, {}, "catalog_setting_unknown"),
+        ({}, {"distill": {"teacher": {"backbone": "mlp"}}}, "catalog_setting_invalid"),
+        (
+            {},
+            {"search": {"candidates": [{"backbone": "mlp"}]}},
+            "catalog_setting_invalid",
+        ),
+        ({}, {"precision": "int8"}, "catalog_setting_invalid"),
+    ],
+)
+def test_the_jax_levers_build_refuses_what_it_would(configuration, train_use, code):
+    with pytest.raises(catalog_entries.CatalogRefused) as refused:
+        settings.resolve(JAX_ITEM, configuration, train_use)
+    assert refused.value.code == code
+
+
+def test_torch_levers_still_refuse_float32_precision():
+    with pytest.raises(catalog_entries.CatalogRefused):
+        settings.resolve(pipeline.entry("neuralop.FNO"), {}, {"precision": "float32"})
