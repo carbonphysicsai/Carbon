@@ -32,3 +32,14 @@ The class's actual values. They're measured from the calibration host, not chose
 - **Scope:** testnet and rehearsal only. **The mainnet class comes from the owner's choice of validator hardware before launch.** That's a new registration, with re-measured rebuild noise and leg minimums.
 - **Consequence for cadence:** R in `exam_cadence.json` (270 CPU-h a day) assumed a 16-vCPU host. On this 4-vCPU class the measured capacity is about a quarter of that, so R must be re-registered from the class. That's a measured value, not a choice.
 - **What a miner experiences:** on this class, the daily graded-submission allowance per Challenge (OWNER-CADENCE-AND-ROTATION-02) is about 7 at 2 active miners, 2 at 5 miners, and 1 (the floor) at 25 or more. That replaces the 11 at 5 miners and 2 at 25 the 16-vCPU assumption gave.
+
+## Mainnet hardware (owner, 2026-10-20, directly in the Carbon Validator's session)
+
+> They will run GPUs so we limit no rebuild options. Likely 4090s
+
+- **Mainnet validators run GPUs,** likely the RTX 4090. The exact model is to be confirmed by the owner before registration.
+- **The mainnet host class** adds the GPU: model, VRAM, driver and CUDA version, and compute capability, alongside the CPU fields. It's measured once on the chosen hardware and registered the same way. The DEVELOPMENT 4-vCPU class above stays for testnet and rehearsal until then.
+- **Required before the GPU class is registered (Validator):**
+  - **A rebuild on one GPU of the class is bit-identical when repeated.** Deterministic GPU kernels are enforced in the judge: XLA deterministic ops, torch deterministic algorithms, and a fixed cuBLAS workspace. If a recipe can't rebuild deterministically on that GPU, that's a typed refusal, not a silent pass.
+  - **JAX and PyTorch match on that GPU** (backend parity).
+  - **Everything is re-measured on the GPU class:** the paired-repeat floors, rebuild noise, leg minimums, rebuild wall time, and the cadence capacity R. That's the mainnet recalibration.
