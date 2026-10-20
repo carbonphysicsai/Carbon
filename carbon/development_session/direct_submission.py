@@ -309,6 +309,72 @@ def _binding(url, recipe, contract_digest, receiver, context, epoch):
     }
 
 
+FEEDBACK_TOOL = "exam_feedback"
+FEEDBACK_REPLY_SCHEMA = "carbon.private-exam.ladder-feedback-reply.v1"
+FEEDBACK_FACTS = {
+    "tool": FEEDBACK_TOOL,
+    "fields": [],
+    "reply_schema": FEEDBACK_REPLY_SCHEMA,
+    "path": SUBMIT_PATH,
+    "owner": "authenticated_hotkey",
+}
+
+
+def read_exam_feedback(
+    url,
+    signer,
+    *,
+    recipe,
+    contract_digest,
+    receiver,
+    context,
+    read=read_intake,
+    send=post,
+):
+    """The signer's own best private-exam Ladder document for the active exam
+    (OWNER-GRADE-FEEDBACK-LADDER-01), or None before a result improved it.
+
+    Only the builder's allow-listed fields are accepted back: a reply of any
+    other shape is refused, never trimmed."""
+    from carbon.challenge_validator.ladder_store import LadderStoreRefused, checked
+
+    if type(recipe) is not ConstructionRecipe:
+        raise DirectIntakeRefusal("construction_recipe_required")
+    facts = read(url)
+    if facts.get("exam_feedback") != FEEDBACK_FACTS:
+        raise DirectIntakeRefusal("exam_feedback_unavailable")
+    body = _body(
+        facts,
+        recipe=recipe,
+        contract_digest=contract_digest,
+        receiver=receiver,
+        context=context,
+        tool=FEEDBACK_TOOL,
+        fields={},
+        request=f"exam-feedback-{time.time_ns()}",
+    )
+    headers = BittensorMessageSigner(signer).sign(
+        body, receiver=receiver, nonce_ns=time.time_ns()
+    )
+    status, answer = send(url, body, headers)
+    if status != 200 or type(answer) is not dict:
+        raise DirectIntakeRefusal(_refusal_code(answer, "exam_feedback_unavailable"))
+    challenge = recipe.to_dict()["challenge"]
+    if (
+        set(answer) != {"schema", "challenge", "document"}
+        or answer["schema"] != FEEDBACK_REPLY_SCHEMA
+        or answer["challenge"]
+        != {"id": challenge["id"], "version": challenge["version"]}
+    ):
+        raise DirectIntakeRefusal("exam_feedback_reply_invalid")
+    if answer["document"] is None:
+        return None
+    try:
+        return checked(answer["document"])
+    except LadderStoreRefused:
+        raise DirectIntakeRefusal("exam_feedback_reply_invalid") from None
+
+
 def submit_and_wait(
     url,
     signer,

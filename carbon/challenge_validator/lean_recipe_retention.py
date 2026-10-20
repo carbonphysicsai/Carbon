@@ -770,7 +770,38 @@ def _retain_selected_pack_evaluation(
         **result,
         "private_evaluation_state": "BOUND_DEVELOPMENT_ONLY",
         "private_evaluation_path": binding_path,
+        "ladder_feedback_state": _record_ladder(
+            adapter,
+            submission_id,
+            exam_key=snapshot.manifest_digest,
+            exam_version=source["evaluation_version"],
+            gates=registered["score_pack"]["hard_gates"],
+            graded=scoring["models"][0],
+        ),
     }
+
+
+def _record_ladder(adapter, submission_id, *, exam_key, exam_version, gates, graded):
+    """Apply the bound result to the miner's private-exam Ladder
+    (`ladder_store`). Its own failure never unbinds the evaluation: the state
+    says RECORDED or names the refusal."""
+    try:
+        from carbon.challenge_validator.ladder_store import LadderStore
+
+        hotkey = adapter.owner(submission_id)
+        if hotkey is None:
+            return "UNAVAILABLE: ladder_owner_unknown"
+        LadderStore(adapter.ledger).record(
+            hotkey,
+            adapter.discovery.info.challenge_key,
+            exam_key,
+            graded,
+            exam_version=exam_version,
+            gates=gates,
+        )
+    except (ImportError, OSError, ValueError, KeyError, TypeError) as exc:
+        return "UNAVAILABLE: " + str(getattr(exc, "code", type(exc).__name__))
+    return "RECORDED"
 
 
 def retain_served_result(
