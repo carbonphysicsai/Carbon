@@ -419,7 +419,9 @@ def test_silent_clients_never_freeze_the_host(tmp_path, published, capsys, monke
             # A fifth connection from this peer, with four open, is refused.
             asker_slot = socket.create_connection(("127.0.0.1", port))
             extra = socket.create_connection(("127.0.0.1", port))
-            extra.settimeout(5.0)
+            # The host closes it at once; the bound is only the failure path, generous like the
+            # timed-out connection below, because a loaded box can delay the close by seconds.
+            extra.settimeout(60.0)
             assert extra.recv(1) == b""
             extra.close()
             asker_slot.close()
