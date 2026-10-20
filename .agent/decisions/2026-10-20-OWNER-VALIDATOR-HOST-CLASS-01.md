@@ -22,3 +22,12 @@ Implementation: **not yet implemented.** There's no machine check in the validat
 ## Not decided here
 
 The class's actual values. They're measured from the calibration host, not chosen.
+
+## The registered DEVELOPMENT class (measured by the Test Lead, 2026-10-20)
+
+- **Source:** measured on the calibration VM, carbon-motorcal3-step1-20261020 (a Targon cpu-small-amd host).
+- **Processor:** `AMD EPYC-v4 Processor`, with avx2 and fma; no avx512f, avx512_bf16 or amx.
+- **vCPU:** 4.
+- **Memory:** at least 50 GiB, the measured MemTotal of 52,858,868 KiB rounded down to whole GiB.
+- **Scope:** testnet and rehearsal only. **The mainnet class comes from the owner's choice of validator hardware before launch.** That's a new registration, with re-measured rebuild noise and leg minimums.
+- **Consequence for cadence:** R in `exam_cadence.json` (270 CPU-h a day) assumed a 16-vCPU host. On this 4-vCPU class the measured capacity is about a quarter of that, so R must be re-registered from the class. That's a measured value, not a choice.
