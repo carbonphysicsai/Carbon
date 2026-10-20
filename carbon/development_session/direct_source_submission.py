@@ -58,9 +58,12 @@ def _send_chunk(send, url, wire, headers, pacer):
 
     The receiver answers an over-rate request with 429 before it reads the body, so for
     a large chunk the closing connection can reach the client as a reset (or a broken
-    pipe) instead of the 429. Chunk staging is resumable (offset and fingerprint), so the
-    chunk is paced and sent again exactly as after an explicit refusal; a reset that
-    persists ends as the same rate refusal at the transfer deadline.
+    pipe) instead of the 429. A reset is ambiguous (the chunk may be stored and only the
+    reply lost), so the same local offset and chunk are re-signed and sent again after the
+    pace. That is safe because both receivers accept a replayed chunk below their
+    committed offset when its bytes are identical, and a finished file answers complete.
+    Only chunk POSTs get this; a reset that persists ends as a distinct closed refusal
+    (``construction_staging_connection_reset``) at the transfer deadline.
     """
     try:
         return send(url, wire, headers)
@@ -71,7 +74,18 @@ def _send_chunk(send, url, wire, headers, pacer):
         ):
             raise
         pacer.saw_rate()
+        pacer.last_fault = "reset"
         raise DirectIntakeRateLimit() from None
+
+
+def _retry_chunk(attempt, deadline, pacer):
+    """``retry_rate_limited`` for one chunk; only resets seen ends as a closed reset code."""
+    try:
+        return retry_rate_limited(attempt, deadline=deadline)
+    except DirectIntakeRateLimit:
+        if pacer.last_fault == "reset":
+            raise DirectIntakeRefusal("construction_staging_connection_reset") from None
+        raise
 
 
 class _UploadPacer:
@@ -80,6 +94,9 @@ class _UploadPacer:
     def __init__(self):
         self.paced = False
         self.next_call = 0.0
+        self.last_fault = (
+            None  # "rate" for an explicit 429, "reset" for a dropped chunk
+        )
 
     def before_call(self):
         if not self.paced:
@@ -137,6 +154,7 @@ def _stage_one(
                 facts = read(url)
             except DirectIntakeRateLimit:
                 pacer.saw_rate()
+                pacer.last_fault = "rate"
                 raise
             challenge, snapshot = _checked(
                 facts,
@@ -185,6 +203,7 @@ def _stage_one(
                 and answer.get("refused") == "rate"
             ):
                 pacer.saw_rate()
+                pacer.last_fault = "rate"
                 raise DirectIntakeRateLimit()
             if status != 200 or type(answer) is not dict:
                 raise DirectIntakeRefusal(
@@ -217,7 +236,7 @@ def _stage_one(
                 raise DirectIntakeRefusal("construction_source_reply_invalid")
             return result
 
-        result = retry_rate_limited(attempt, deadline=deadline)
+        result = _retry_chunk(attempt, deadline, pacer)
         if result.complete:
             return fingerprint
         # An earlier interrupted transfer can already hold many chunks. The
@@ -349,6 +368,7 @@ def _stage_material_one(
                 facts = read(url)
             except DirectIntakeRateLimit:
                 pacer.saw_rate()
+                pacer.last_fault = "rate"
                 raise
             challenge, snapshot = _checked(
                 facts,
@@ -397,6 +417,7 @@ def _stage_material_one(
                 and answer.get("refused") == "rate"
             ):
                 pacer.saw_rate()
+                pacer.last_fault = "rate"
                 raise DirectIntakeRateLimit()
             if status != 200 or type(answer) is not dict:
                 raise DirectIntakeRefusal(
@@ -432,7 +453,7 @@ def _stage_material_one(
                 raise DirectIntakeRefusal("construction_material_reply_invalid")
             return result
 
-        result = retry_rate_limited(attempt, deadline=deadline)
+        result = _retry_chunk(attempt, deadline, pacer)
         if result.complete:
             if final and not result.bundle_complete:
                 raise DirectIntakeRefusal("construction_material_closure_incomplete")

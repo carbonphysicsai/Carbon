@@ -633,7 +633,7 @@ def test_a_reset_on_a_chunk_post_is_paced_and_resumed_like_a_rate_refusal(
     assert pacer.paced
 
 
-def test_a_persistent_reset_ends_as_the_rate_refusal_and_other_errors_pass_through(
+def test_a_persistent_reset_ends_as_a_closed_reset_refusal_and_other_errors_pass_through(
     monkeypatch,
 ):
     import time
@@ -643,7 +643,9 @@ def test_a_persistent_reset_ends_as_the_rate_refusal_and_other_errors_pass_throu
     def always_reset(url, wire, headers):
         raise ConnectionResetError(104, "reset")
 
-    with pytest.raises(DirectIntakeRefusal, match="rate"):
+    with pytest.raises(
+        DirectIntakeRefusal, match="construction_staging_connection_reset"
+    ):
         stage(always_reset, client._UploadPacer(), time.monotonic() + 3)
 
     def denied(url, wire, headers):
