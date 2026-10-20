@@ -19,8 +19,6 @@ import shutil
 import subprocess
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).resolve().parents[2]
 SCANNED = ("carbon", "scripts", "tests")
 _HEX = re.compile(r"[0-9a-f]{64}\Z")
@@ -87,8 +85,14 @@ def test_pins_are_found():
     assert len(found) >= 48
 
 
-@pytest.mark.skipif(shutil.which("git") is None, reason="git is required")
 def test_every_pin_survives_an_autocrlf_checkout():
+    # Fail, never skip, when git or HEAD is missing (Validator, 2026-10-20).
+    assert shutil.which("git"), "git is required for this invariant"
+    subprocess.run(
+        ["git", "-C", str(ROOT), "rev-parse", "--verify", "HEAD"],
+        capture_output=True,
+        check=True,
+    )
     failures = []
     for path, pinned in sorted(pins().items()):
         tracked = subprocess.run(
