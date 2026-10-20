@@ -26,7 +26,8 @@ Implementation (placeholders):
 - **The baseline entry never contends** (`leg_minimum_source_not_a_contender`), so Carbon's own model never takes a crown.
 - **Each new baseline is a recalibration.** It's a new leg-minimum source on the judge image, and it's prospective, so nothing is re-scored.
 
-## Consequence (stated to the owner)
+## Consequence (stated to the owner, corrected 2026-10-20)
 
-- **A miner must beat Carbon's best agent-built model on both legs to score at all.**
-- **Until one does, the Challenge has no winner, and its share burns** under the KOTH rule.
+- **A submission scores** when it meets Carbon's best agent-built model's leg minimums. Meeting is enough: `legs < minimum` fails.
+- **Taking the crown requires beating that baseline's total by the registered margin** (OWNER-FIRST-CROWN-BEATS-BASELINE-01). Until someone does, the Challenge has no winner and its share burns.
+- **This corrects the earlier wording,** "must beat … on both legs to score at all", which the code never implemented.
