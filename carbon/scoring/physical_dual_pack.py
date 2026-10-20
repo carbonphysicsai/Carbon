@@ -979,7 +979,7 @@ def produce(
 
     graded_rows = rows_of(values)
     measured, benchmark = benchmark_of(graded_rows, [rows_of(r) for r in repeats])
-    graded_total = score(benchmark, pack)["models"][0]["total"]
+    graded_total = score(benchmark, pack)["models"][0]["score"]
     timed_query = originals.get("timed_query")
     if timed_query is not None:
         _timed_agreement(
@@ -988,7 +988,7 @@ def produce(
             timing_step,
             lambda timed_rows: score(
                 benchmark_of(timed_rows, [timed_rows, timed_rows])[1], pack
-            )["models"][0]["total"],
+            )["models"][0]["score"],
             rows_of,
             n * width,
             refused,
