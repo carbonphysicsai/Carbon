@@ -73,4 +73,21 @@ def comparator(challenge_id, score_pack, accuracy_definition, *, path=REGISTRY):
         "rebuild_noise": rebuild_noise(challenge_id, path=path),
         "ties": "incumbent_keeps",
         "minimum_source_entry_ids": minimum_source_entry_ids(accuracy_definition),
+        "baseline_total": baseline_total(score_pack),
     }
+
+
+def baseline_total(score_pack):
+    """The total of a model sitting exactly on the pack's leg minimums: Carbon's
+    baseline, the unpaid starting king the first crown must beat by the margin
+    (OWNER-FIRST-CROWN-BEATS-BASELINE-01). None when the pack has no minimums."""
+    legs = score_pack["legs"]
+    a, d = legs["A"]["minimum"], legs["D"]["minimum"]
+    if a is None or d is None:
+        return None
+    w = score_pack["value_weight"]
+    if score_pack["combination"] == "weighted_arithmetic_mean":
+        return (1 - w) * a + w * d
+    if a == 0 or d == 0:
+        return 0.0
+    return min(a, d) * math.exp((1 - w) * math.log(a) + w * math.log(d))
