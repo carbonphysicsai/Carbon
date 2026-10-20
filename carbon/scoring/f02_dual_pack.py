@@ -64,6 +64,8 @@ BANK_KINDS = {
     "SEALED_EXAM_BATCH_NEAR_LIMIT_S1": "sealed_batch",
 }
 SEALED_EVALUATION_VERSION = "f02-dual-sealed-batch-8-v1"
+#: A sealed exam batch's evaluation version, per Challenge version.
+SEALED_VERSIONS = {"2.1": SEALED_EVALUATION_VERSION}
 ANALYTIC_ENERGY = "analytic:(peak_w-20)*on_time_s"
 #: dev1 §7 DEVELOPMENT normalisation scales, not physical thresholds.
 S_VALUE_J = 100.0
@@ -516,9 +518,9 @@ def sealed_adapter(version):
     evaluation version (``SEALED_EVALUATION_VERSION``); grading reads the
     bank kind from the definition, so measurement is this module's. None for
     an unregistered version (no default)."""
-    if version not in VERSIONS:
+    if type(version) is not str or version not in SEALED_VERSIONS:
         return None
-    return physical.Variant(_ADAPTER, version, SEALED_EVALUATION_VERSION, CASE_ID)
+    return physical.Variant(_ADAPTER, version, SEALED_VERSIONS[version], CASE_ID)
 
 
 def producer_digest():

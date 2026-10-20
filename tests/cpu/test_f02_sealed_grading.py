@@ -128,3 +128,8 @@ def test_a_definition_whose_sealed_receipt_is_malformed_refuses():
     definition["reference_interval"]["receipt"] = "not-a-digest"
     with pytest.raises(adapter.Refused):
         adapter.validate_definition(definition)
+
+
+def test_only_the_graded_version_has_a_sealed_adapter():
+    assert adapter.sealed_adapter("2.0") is None
+    assert adapter.sealed_adapter(None) is None
