@@ -158,12 +158,25 @@ def _published_key(case):
     return key(case) in published
 
 
-@functools.cache
-def _published():
-    from carbon.challenge_validator.confirmation_sources import source_for
+_PUBLISHED = {}
 
-    source = source_for("f08-ribbed-bracket")
-    return source.published(REPOSITORY), source.key
+
+def _published():
+    """The published f08-ribbed-bracket keys and the overlap key function, validated before
+    they are cached: a missing evidence root or an empty published set fails
+    closed (never caches an empty set that would let every case through).
+    The producer's own published-case refusal stays the authority."""
+    if "set" not in _PUBLISHED:
+        from carbon.challenge_validator.confirmation_sources import source_for
+
+        if not (REPOSITORY / "docs" / "development" / "evidence").is_dir():
+            raise RuntimeError("f08_published_evidence_missing")
+        source = source_for("f08-ribbed-bracket")
+        published = source.published(REPOSITORY)
+        if not published:
+            raise RuntimeError("f08_published_set_empty")
+        _PUBLISHED["set"] = (frozenset(published), source.key)
+    return _PUBLISHED["set"]
 
 
 def draw(rng, count, *, max_attempts=None):

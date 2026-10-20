@@ -229,13 +229,26 @@ class Solver:
         return Done()
 
 
-def test_a_batch_is_drawn_solved_with_a_retry_and_sealed(tmp_path):
+def test_a_batch_is_drawn_solved_with_a_retry_and_sealed(tmp_path, monkeypatch):
     path = write_deployment(
         tmp_path / "producer-etc" / "f08.json",
         store=str(tmp_path / "producer-store"),
         custody=str(tmp_path / "producer-custody"),
     )
-    F08BatchSource.init(path)
+    # A custody root whose batch collided with a published case before the
+    # draw skipped them (found by search; checked below), so this test fails
+    # without the fix every time instead of about 44% (F02) or 4% (F08).
+    root = bytes.fromhex(
+        "a42ee5f0de9ca700f911335bf4f490cca1ba13b465d10b614627beeef2f59265"
+    )
+    published = hidden.published_keys(REPOSITORY)
+    stale = _pre_fix_draw(population, root, "f08-exam-N1r", hidden.BATCH_CASES)
+    assert {hidden.overlap_key(c) for c in stale} & published
+    from carbon.challenge_validator import confirmation
+
+    with monkeypatch.context() as patch:
+        patch.setattr(confirmation.os, "urandom", lambda n: root)
+        F08BatchSource.init(path)
     solver = Solver()
     source = F08BatchSource(path, repository=REPOSITORY, runner=solver)
     producer = pr.Producer(tmp_path / "producer", [source])
@@ -252,3 +265,20 @@ def test_a_batch_is_drawn_solved_with_a_retry_and_sealed(tmp_path):
     producer.seal("f08-ribbed-bracket", drawn["fingerprint"])
     assert [len(p) for p in solver.planned] == [8, 1]  # only the retry
     assert source.sealed(drawn["fingerprint"])["cases"] == 8
+
+
+def _pre_fix_draw(pop, root, role, count):
+    """The batch a custody root draws for `role` under the pre-fix predicate
+    (no published-case skip), by make_batch's own seed derivation."""
+    import hashlib
+    import hmac
+
+    key = hmac.new(root, b"case-ids/" + role.encode(), hashlib.sha256).digest()
+    label = b"draw/" + pop.POPULATION_VERSION.encode()
+    seed = hmac.new(key, label, hashlib.sha256).digest()[:8]
+    saved = pop._published_key
+    pop._published_key = lambda case: False
+    try:
+        return pop.draw(random.Random(int.from_bytes(seed, "big")), count)[0]
+    finally:
+        pop._published_key = saved

@@ -18,11 +18,12 @@ evaluation may use it.
 
 from __future__ import annotations
 
-import functools
+from pathlib import Path
 
 from .domain import INPUTS
 
 POPULATION_VERSION = "carbon.f02.exam-near-limit-s1.v1"
+REPOSITORY = Path(__file__).resolve().parents[2]
 PEAK_W = (70, 100)
 ON_TIME_DECISECONDS = (40, 60)
 #: The development exam's eight cold actions (peak W, on-time s).
@@ -53,14 +54,25 @@ def _published_key(case):
     return key(case) in published
 
 
-@functools.cache
+_PUBLISHED = {}
+
+
 def _published():
-    from pathlib import Path
+    """The published f02 keys and the overlap key function, validated before
+    they are cached: a missing evidence root or an empty published set fails
+    closed (never caches an empty set that would let every case through).
+    The producer's own published-case refusal stays the authority."""
+    if "set" not in _PUBLISHED:
+        from carbon.challenge_validator.confirmation_sources import source_for
 
-    from carbon.challenge_validator.confirmation_sources import source_for
-
-    source = source_for("f02")
-    return source.published(Path(__file__).resolve().parents[2]), source.key
+        if not (REPOSITORY / "docs" / "development" / "evidence").is_dir():
+            raise RuntimeError("f02_published_evidence_missing")
+        source = source_for("f02")
+        published = source.published(REPOSITORY)
+        if not published:
+            raise RuntimeError("f02_published_set_empty")
+        _PUBLISHED["set"] = (frozenset(published), source.key)
+    return _PUBLISHED["set"]
 
 
 def draw(rng, count, *, max_attempts=None):
