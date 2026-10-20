@@ -981,8 +981,18 @@ def serve(
                 )
 
         try:
+            ledger = AttemptLedger(root / "attempts.sqlite3")
             if retention is None:
                 providers.restore()
+                # Start-up, nothing is grading: return reservations a crash left open.
+                from carbon.challenge_validator import exam_cap
+
+                exam_cap.ExamCap(
+                    ledger,
+                    grading_deadline_seconds=exam_cap.grading_deadline_seconds(
+                        getattr(discovery, "_material", None)
+                    ),
+                )
             intake = DirectRecipeIntake(
                 context=network.context,
                 receiver=cfg["receiver_hotkey"],
@@ -991,7 +1001,7 @@ def serve(
                 window=window,
                 discovery=discovery,
                 provider_for=providers,
-                attempt_ledger=AttemptLedger(root / "attempts.sqlite3"),
+                attempt_ledger=ledger,
                 measure_query=cfg["measure_query"],
             )
             if retention is not None:

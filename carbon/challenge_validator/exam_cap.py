@@ -30,13 +30,14 @@ import time
 EPOCH_BLOCKS = 360
 #: Registered policy (Validator): every registered Challenge has C = 20. Battery's earlier cap of
 #: 10 stays a recorded policy fallback and is not applied by the check. An unregistered Challenge
-#: gets no default and is refused (`exam_cap_unregistered`). F02 joins when it registers an id.
+#: gets no default and is refused (`exam_cap_unregistered`). F02's id is `f02` (families.json).
 DEFAULT_CAP = 20
 BATTERY_FALLBACK_CAP = 10
 _LEAN_CHALLENGES = (
     "electric-motor-magnetics",
     "chip-cold-plate",
     "f08-ribbed-bracket",
+    "f02",
 )
 
 #: The outcomes that spend a slot: anything that ran the sealed evaluation against the
@@ -100,6 +101,20 @@ def registered_caps() -> dict:
     }
 
 
+def grading_deadline_seconds(material):
+    """How long an unsettled reservation may stand before start-up recovery returns it:
+    the Challenge's registered total reconstruction wall limit, or None when the material
+    carries no such policy (recovery is then explicit)."""
+    try:
+        policy = material["construction_limits_document"][
+            "reconstruction_resource_policy"
+        ]
+        value = policy["total_reconstruction_wall_seconds_max"]
+    except (KeyError, TypeError):
+        return None
+    return value if type(value) in (int, float) and value > 0 else None
+
+
 def epoch_of(block: int) -> int:
     if type(block) is not int or block < 0:
         raise ExamCapRefused("exam_cap_block_unavailable")
@@ -141,7 +156,12 @@ class ExamCap:
             self.recover(grading_deadline_seconds)
 
     def recover(self, grading_deadline_seconds) -> int:
-        """Release every open reservation past its grading deadline as FAILED_INFRA."""
+        """Release every open reservation past its grading deadline as FAILED_INFRA.
+
+        Call it only at start-up, when nothing is grading: it is the recovery after a
+        crash. A reservation younger than the deadline is never touched, so a grading
+        that is still within its deadline keeps its slot even if this runs.
+        """
         if type(grading_deadline_seconds) not in (int, float) or not (
             grading_deadline_seconds > 0
         ):

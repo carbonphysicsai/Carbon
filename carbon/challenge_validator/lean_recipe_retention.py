@@ -548,20 +548,6 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry):
     return raw
 
 
-def _grading_deadline_seconds(adapter):
-    """How long an unsettled grading reservation may stand before recovery returns it:
-    the Challenge's registered total reconstruction wall limit, or None when the adapter
-    carries no such policy (recovery is then explicit)."""
-    try:
-        policy = adapter.discovery._material["construction_limits_document"][
-            "reconstruction_resource_policy"
-        ]
-        value = policy["total_reconstruction_wall_seconds_max"]
-    except (AttributeError, KeyError, TypeError):
-        return None
-    return value if type(value) in (int, float) and value > 0 else None
-
-
 def _retain_selected_pack_evaluation(
     adapter, submission_id, result, artifacts, evidence=None
 ):
@@ -604,10 +590,9 @@ def _retain_selected_pack_evaluation(
         # before any exam wear); the slot is settled once the outcome is known.
         from carbon.challenge_validator import exam_cap
 
+        # Recovery of crashed reservations runs at receiver start-up, never here.
         cap = exam_cap.ExamCap(
-            adapter.ledger,
-            caps=getattr(adapter, "exam_cap_caps", None),
-            grading_deadline_seconds=_grading_deadline_seconds(adapter),
+            adapter.ledger, caps=getattr(adapter, "exam_cap_caps", None)
         )
         reservation = cap.reserve(
             hotkey=adapter.owner(submission_id),

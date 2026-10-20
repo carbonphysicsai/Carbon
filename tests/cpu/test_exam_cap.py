@@ -145,7 +145,7 @@ def test_counts_are_per_hotkey_and_per_challenge(cap):
 def test_every_registered_challenge_has_the_cap_and_others_are_refused(cap):
     caps = exam_cap.registered_caps()
     assert set(caps.values()) == {20}
-    assert {MOTOR[0], "chip-cold-plate", "f08-ribbed-bracket"} <= set(caps)
+    assert {MOTOR[0], "chip-cold-plate", "f08-ribbed-bracket", "f02"} <= set(caps)
     assert exam_cap.BATTERY_FALLBACK_CAP == 10  # recorded, never applied
     with pytest.raises(exam_cap.ExamCapRefused) as refused:
         _reserve(cap, 0, challenge=("not-registered", "1.0"))
@@ -302,3 +302,40 @@ def test_retention_with_no_signed_block_does_not_grade(cap):
     contract = "sha256:" + "c" * 64  # no OUTCOME attempt row: no receipt block
     refused = _retain(_adapter(cap, contract), "rtsk_new")
     assert refused["private_evaluation_reason"] == "exam_cap_block_unavailable"
+
+
+def test_the_grading_deadline_is_the_challenges_registered_wall_limit():
+    material = {
+        "construction_limits_document": {
+            "reconstruction_resource_policy": {
+                "total_reconstruction_wall_seconds_max": 1800
+            }
+        }
+    }
+    assert exam_cap.grading_deadline_seconds(material) == 1800
+    for missing in ({}, None, {"construction_limits_document": {}}):
+        assert exam_cap.grading_deadline_seconds(missing) is None
+
+
+def test_retention_never_recovers_reservations_only_start_up_does(cap, clock):
+    """Recovery is a start-up act: a retention call leaves another attempt's slot alone."""
+    contract = "sha256:" + "c" * 64
+    _reserve(cap, 7)  # another attempt, left open
+    clock.now += 100_000 * 1_000_000_000  # long past any deadline
+    _record(cap, contract, "rtsk_new", 360 * 30)
+    _retain(_adapter(cap, contract), "rtsk_new")  # reaches the cap hook, then stops
+    with cap.ledger._db() as db:
+        row = db.execute(
+            "SELECT state FROM exam_graded WHERE submission_id='rtsk_7'"
+        ).fetchone()
+    assert row == ("RESERVED",)
+    restarted = exam_cap.ExamCap(cap.ledger, clock=clock, grading_deadline_seconds=1800)
+    assert (
+        restarted.count(
+            hotkey=HOTKEY,
+            challenge_id=MOTOR[0],
+            challenge_version=MOTOR[1],
+            exam_key=EXAM,
+        )
+        == 0
+    )
