@@ -24,15 +24,17 @@ NEW = {
 
 
 def _same_bank(a, b):
-    return (
-        a["case_ids"] == b["case_ids"]
-        and a["cohorts"] == b["cohorts"]
-        and np.array_equal(a["inputs"], b["inputs"])
-        and np.array_equal(a["references"], b["references"])
-        and a["reference_records"] == b["reference_records"]
-        and a["solver_evidence"] == b["solver_evidence"]
-        and a["decision_coverage"] == b["decision_coverage"]
-    )
+    """Same keys, and every value equal (arrays elementwise, NaN == NaN)."""
+    if set(a) != set(b):
+        return False
+    for key in a:
+        x, y = a[key], b[key]
+        if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
+            if not np.array_equal(x, y, equal_nan=True):
+                return False
+        elif x != y:
+            return False
+    return True
 
 
 def test_every_new_version_has_its_own_explicit_pack_version():
