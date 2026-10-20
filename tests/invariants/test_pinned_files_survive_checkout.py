@@ -93,7 +93,7 @@ def test_every_pin_survives_an_autocrlf_checkout():
         capture_output=True,
         check=True,
     )
-    failures = []
+    failures, verified = [], 0
     for path, pinned in sorted(pins().items()):
         tracked = subprocess.run(
             ["git", "-C", str(ROOT), "ls-files", "--error-unmatch", path],
@@ -118,6 +118,9 @@ def test_every_pin_survives_an_autocrlf_checkout():
             capture_output=True,
             check=True,
         ).stdout
+        verified += 1
         if hashlib.sha256(checkout).hexdigest() not in pinned:
             failures.append(path)
     assert not failures, f"pinned files altered by an autocrlf checkout: {failures}"
+    # A checkout without history would skip every pin one by one; count them.
+    assert verified >= 48, f"only {verified} pins were checked"
