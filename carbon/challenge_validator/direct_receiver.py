@@ -12,6 +12,7 @@ import asyncio
 import hashlib
 import json
 import os
+import re
 import signal
 import tempfile
 import threading
@@ -779,6 +780,8 @@ def serve(
     verifier=None,
     ready=None,
     retention=None,
+    regrade=False,
+    pool_store=None,
 ):
     """Run the same signed intake/task loop with finite admission and owned stop."""
     from carbon.battery import challenge as battery_challenge
@@ -997,6 +1000,14 @@ def serve(
             )
             if retention is not None:
                 task_id, artifact_directory, entry_directory = retention
+                if regrade:
+                    # ``task_id`` is the retained bank entry id to regrade.
+                    return intake.regrade_result(
+                        task_id,
+                        artifact_directory=artifact_directory,
+                        entry_directory=entry_directory,
+                        promotion=_open_pool_store(pool_store),
+                    )
                 return intake.retain_result(
                     task_id,
                     artifact_directory=artifact_directory,
@@ -1023,6 +1034,22 @@ def serve(
                 providers.close()
 
 
+class PoolStoreUnavailable(ValueError):
+    code = "pool_store_unavailable"
+
+
+def _open_pool_store(path):
+    """The existing pool store a regrade is recorded in, or None; never created here."""
+    if path is None:
+        return None
+    from carbon.battery.pool_store import PoolStore
+
+    path = Path(path)
+    if path.is_symlink() or not path.is_file():
+        raise PoolStoreUnavailable
+    return PoolStore(path)
+
+
 def _exam_cap_startup(ledger, discovery, restore):
     """Start-up, nothing is grading: return reservations a crash left open.
 
@@ -1045,11 +1072,25 @@ def main(argv=None):
     )
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--retain-task")
+    parser.add_argument(
+        "--pool-store",
+        type=Path,
+        help="with --regrade-entry: also record the regrade for the incumbent in this "
+        "existing pool store, where the takeover comparison looks it up",
+    )
+    parser.add_argument(
+        "--regrade-entry",
+        help="regrade this retained bank entry on the receiver's selected pack",
+    )
     parser.add_argument("--artifact-directory", type=Path)
     parser.add_argument("--entry-directory", type=Path)
     args = parser.parse_args(argv)
+    if args.retain_task is not None and args.regrade_entry is not None:
+        parser.error("retain a task or regrade an entry, not both")
+    if args.pool_store is not None and args.regrade_entry is None:
+        parser.error("--pool-store applies to --regrade-entry only")
     retention_args = (
-        args.retain_task,
+        args.retain_task if args.regrade_entry is None else args.regrade_entry,
         args.artifact_directory,
         args.entry_directory,
     )
@@ -1057,7 +1098,7 @@ def main(argv=None):
         value is not None for value in retention_args
     ):
         parser.error("retention requires task and both operator directories")
-    retention = retention_args if args.retain_task is not None else None
+    retention = retention_args if retention_args[0] is not None else None
     if not args.config.is_file():
         # The one missing input an operator can fix, named instead of the generic code.
         print(
@@ -1081,6 +1122,8 @@ def main(argv=None):
             stop=stop,
             ready=lambda item: print(json.dumps(item), flush=True),
             retention=retention,
+            regrade=args.regrade_entry is not None,
+            pool_store=args.pool_store,
         )
     except Exception as failure:  # noqa: BLE001 - no private exception text
         code = getattr(failure, "code", None)
@@ -1113,6 +1156,18 @@ def main(argv=None):
                 )
                 return 1
             reported["measurement_state"] = state
+        # Operator-only: whether the selected pack graded the retained model, and why not.
+        if result.get("private_evaluation_state") in (
+            "BOUND_DEVELOPMENT_ONLY",
+            "UNAVAILABLE",
+        ):
+            reported["private_evaluation_state"] = result["private_evaluation_state"]
+            reason = result.get("private_evaluation_reason")
+            if type(reason) is str and re.fullmatch(r"[A-Za-z0-9_]{1,80}", reason):
+                reported["private_evaluation_reason"] = reason
+        for key in ("regrade_of", "regrade_task_id"):
+            if type(result.get(key)) is str:
+                reported[key] = result[key]
         print(
             json.dumps(reported),
             flush=True,

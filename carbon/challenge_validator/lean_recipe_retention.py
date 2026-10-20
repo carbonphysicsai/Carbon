@@ -12,7 +12,7 @@ import json
 import os
 import re
 import stat
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 
@@ -476,7 +476,7 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id, evide
     }
 
 
-def _inference_pair_raw(adapter, submission_id, result, artifacts, entry):
+def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrade=None):
     """The two fresh repeat queries of the retained model, kept write-once beside
     the dual measurement. Two new carrier operations with new identities; a
     retry reads the retained bytes and never replays an identity."""
@@ -490,7 +490,7 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry):
     path = _private_evaluation_directory(result, submission_id) / "inference-pair.json"
     if path.exists() or path.is_symlink():
         return _private_measurement_bytes(path, 1024**2)
-    owner = adapter.owner(submission_id)
+    owner = adapter.owner(submission_id) if regrade is None else regrade.owner
     provider = adapter._provider(owner)
     material = adapter.discovery._material
     kit = material["construction_kit"]
@@ -515,8 +515,10 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry):
             + "-"
             + submission_id,
             inference_image=provider.inference_image,
-            recipe=ConstructionRecipe.from_dict(
-                provider._requests[submission_id].recipe
+            recipe=(
+                ConstructionRecipe.from_dict(provider._requests[submission_id].recipe)
+                if regrade is None
+                else regrade.recipe
             ),
             challenge_binding={
                 "challenge_id": kit["id"],
@@ -549,7 +551,7 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry):
 
 
 def _retain_selected_pack_evaluation(
-    adapter, submission_id, result, artifacts, evidence=None
+    adapter, submission_id, result, artifacts, evidence=None, regrade=None
 ):
     """Apply only trusted, versioned measurement evidence after bank custody."""
     if result.get("evaluation_pack_digest") is None:
@@ -595,16 +597,21 @@ def _retain_selected_pack_evaluation(
             adapter.ledger, caps=getattr(adapter, "exam_cap_caps", None)
         )
         reservation = cap.reserve(
-            hotkey=adapter.owner(submission_id),
+            hotkey=adapter.owner(submission_id) if regrade is None else regrade.owner,
             challenge_id=adapter.challenge_id,
             challenge_version=adapter.challenge_version,
             # The sealed exam's identity: the pack digest binds the case bank, so a
             # rotation that changes the bank starts new counts.
             exam_key=snapshot.manifest_digest,
             submission_id=submission_id,
-            block=exam_cap.submission_block(
-                adapter.ledger, adapter.contract_digest, submission_id
+            block=(
+                exam_cap.submission_block(
+                    adapter.ledger, adapter.contract_digest, submission_id
+                )
+                if regrade is None
+                else None
             ),
+            regrade=regrade is not None,
         )
         queries = [artifacts["inputs.npz"]]
         registered = _register_retained_pack_source(
@@ -646,7 +653,12 @@ def _retain_selected_pack_evaluation(
             # Never gates retention: this runs after bank custody, and a missing
             # or failed pair leaves the evaluation UNAVAILABLE with a typed reason.
             pair_raw = _inference_pair_raw(
-                adapter, submission_id, result, artifacts, registered["entry"]
+                adapter,
+                submission_id,
+                result,
+                artifacts,
+                registered["entry"],
+                regrade,
             )
             originals["inference_pair_raw"] = pair_raw
             originals["inference_pair_sha256"] = _sha(pair_raw)
@@ -704,30 +716,35 @@ def _retain_selected_pack_evaluation(
             ).encode("utf-8")
         )
         task_root = _owner_directory(result["artifact_path"], "task_artifacts")
-        binding = bind_private_evaluation_evidence(
-            entry=registered["entry"],
-            custody_receipt_raw=_private_measurement_bytes(
+        bind_inputs = {
+            "entry": registered["entry"],
+            "custody_receipt_raw": _private_measurement_bytes(
                 task_root.parent / (submission_id + ".custody.json"), 1024**2
             ),
-            trusted_job=source["trusted_job"],
-            registration=source["benchmark_registration"],
-            references=registered["references"],
-            measured_model=prepared.measured_model,
-            score_pack=registered["score_pack"],
-            graph_originals=originals,
-            expected_result_digest=expected_result,
-            ordered_query_bytes=queries,
-            evaluation_source_receipt_raw=registered["evaluation_source_receipt_raw"],
-            registered_source_receipt_sha256=registered[
-                "registered_source_receipt_sha256"
+            "trusted_job": source["trusted_job"],
+            "registration": source["benchmark_registration"],
+            "references": registered["references"],
+            "measured_model": prepared.measured_model,
+            "score_pack": registered["score_pack"],
+            "graph_originals": originals,
+            "expected_result_digest": expected_result,
+            "ordered_query_bytes": queries,
+            "evaluation_source_receipt_raw": registered[
+                "evaluation_source_receipt_raw"
             ],
-            expected_evaluation_pack_digest=snapshot.manifest_digest,
-            dual_measurement_receipt_raw=raw,
-            registered_dual_measurement_sha256=pin["dual_measurement_sha256"],
-            selected_evaluation_pack=snapshot,
+            "expected_evaluation_pack_digest": snapshot.manifest_digest,
+            "dual_measurement_receipt_raw": raw,
+            "registered_dual_measurement_sha256": pin["dual_measurement_sha256"],
+            "selected_evaluation_pack": snapshot,
+        }
+        source_pin = registered["registered_source_receipt_sha256"]
+        binding = bind_private_evaluation_evidence(
+            registered_source_receipt_sha256=source_pin, **bind_inputs
         )
         binding_path = directory / "private-evaluation-binding.json"
         write_once(binding_path, _json(binding))
+        if regrade is not None and regrade.promotion is not None:
+            _record_regraded_evidence(regrade, bind_inputs, source_pin)
     except (
         ImportError,
         OSError,
@@ -1194,6 +1211,348 @@ def retain_served_bundle_result(
         artifact_directory=artifact_directory,
         entry_directory=entry_directory,
     )
+
+
+@dataclass(frozen=True)
+class _Regrade:
+    """The incumbent's identity for one regrade, copied from its own retained task."""
+
+    owner: str
+    recipe: object
+    origin_task_id: str
+    origin_entry_id: str
+    #: A BankPromotion: the regraded evidence is recorded under the origin task's own
+    #: submission id on the new evaluation key, so KOTH finds it for the incumbent.
+    promotion: object = None
+
+
+def _record_regraded_evidence(regrade, bind_inputs, pin=None):
+    """Record the regrade's evaluation for the incumbent's submission id (new key).
+
+    ``promotion`` is a BankPromotion with its own registered pin, or a bare PoolStore, which
+    gets the pin this evaluation registered in owner custody (the operator's own).
+    """
+    from carbon.battery.pool_store import PoolStore, StateError
+    from carbon.challenge_validator.bank_promotion import BankPromotion
+
+    promotion = regrade.promotion
+    if type(promotion) is PoolStore:
+        promotion = BankPromotion(promotion, registered_source_receipt_sha256=pin)
+    try:
+        return promotion.retain_private(regrade.origin_task_id, **bind_inputs)
+    except StateError as refused:
+        raise RetentionUnavailable("regrade_record_" + refused.code) from refused
+
+
+def _regrade_origin(adapter, base, entries, entry_id):
+    """The retained task behind one bank entry, with its owner from the receiver's ledger."""
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+
+    if (
+        type(entry_id) is not str
+        or re.fullmatch(r"sha256:[0-9a-f]{64}", entry_id) is None
+    ):
+        raise RetentionUnavailable("regrade_entry_identity_invalid")
+    entry_path = entries / (entry_id.removeprefix("sha256:") + ".json")
+    entry = json.loads(_private_measurement_bytes(entry_path, 1024**2))
+    if type(entry) is not dict or entry.get("entry_id") != entry_id:
+        raise RetentionUnavailable("regrade_entry_changed")
+    receipt_name = (entry.get("custody_receipt") or {}).get("file")
+    match = re.fullmatch(r"(rtsk_[0-9a-f]{64})\.custody\.json", str(receipt_name))
+    if match is None:
+        raise RetentionUnavailable("regrade_origin_task_unavailable")
+    origin = match.group(1)
+    owner = adapter.ledger.owned_outcome(adapter.contract_digest, origin)
+    if owner is None:
+        raise RetentionUnavailable("regrade_owner_unavailable")
+    task_root = _owner_directory(base / origin, "task_artifacts")
+    manifest = json.loads(
+        _private_measurement_bytes(base / (origin + ".roles.json"), 1024**2)
+    )
+    files = {}
+    for name, digest in sorted(manifest["retained_files"].items()):
+        raw = _private_measurement_bytes(task_root / name, 128 * 1024**2)
+        if _sha(raw) != digest:
+            raise RetentionUnavailable("regrade_origin_file_changed")
+        files[name] = raw
+    # The state is the entry's own: never a stand-in.
+    if _sha(files["state.npz"]) != entry["state_digest"]:
+        raise RetentionUnavailable("regrade_state_digest_changed")
+    recipe = ConstructionRecipe.from_dict(json.loads(files["recipe.json"]))
+    if recipe.digest != entry["recipe_digest"]:
+        raise RetentionUnavailable("regrade_recipe_changed")
+    return entry, origin, owner, manifest, files, recipe
+
+
+def regrade_retained_entry(
+    adapter,
+    entry_id: str,
+    *,
+    artifact_directory: Path,
+    entry_directory: Path,
+    runner=None,
+    promotion=None,
+) -> dict:
+    """Regrade a retained model on the receiver's selected (rotated) evaluation pack.
+
+    Operator-only, like retention. The retained frozen state runs again on the pack's own
+    case bank, becoming a new bank entry (the same state, new inputs and predictions), and
+    that entry is graded through the standard private evaluation, so the result carries the
+    v4 receipts on the new evaluation key. The owner is the retained task's own, the cap
+    slot is a REGRADE (never counted, no epoch limit), and provenance is recorded beside
+    the result. With ``promotion`` (a BankPromotion or a PoolStore), the evaluation is also recorded under
+    the origin task's submission id on the new evaluation key, which is where the incumbent
+    comparison looks it up. Only bundle recipes are supported; a graph recipe is typed
+    unavailable.
+    """
+    import io
+    from types import SimpleNamespace
+
+    import numpy as np
+
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.development_session.bundle_construction_worker import (
+        _checked_binding,
+        _infer_state,
+        _tensors,
+        verify_direct_resource_policy,
+    )
+    from carbon.development_session.construction_recipe import RecipeRefused
+    from carbon.development_session.data import write_once
+
+    if type(adapter) is not LeanRecipeAdapter:
+        raise TypeError("trusted served adapter required")
+    discovery = adapter.discovery
+    snapshot = discovery.evaluation_pack_snapshot
+    if snapshot is None or discovery.evaluation_pack_digest != snapshot.manifest_digest:
+        raise RetentionUnavailable("evaluation_pack_not_selected")
+    base = _owner_directory(artifact_directory, "artifact_directory")
+    entries = _owner_directory(entry_directory, "entry_directory")
+    entry, origin, owner, manifest, files, recipe = _regrade_origin(
+        adapter, base, entries, entry_id
+    )
+    if recipe.to_dict()["source"]["kind"] != "bundle":
+        raise RetentionUnavailable("regrade_source_kind_unavailable")
+    if (entry["challenge"], entry["challenge_version"]) != (
+        adapter.challenge_id,
+        adapter.challenge_version,
+    ):
+        raise RetentionUnavailable("regrade_challenge_changed")
+    regrade_id = (
+        "rtsk_"
+        + hashlib.sha256(
+            (origin + "\0REGRADE\0" + snapshot.manifest_digest).encode()
+        ).hexdigest()
+    )
+    material = discovery._material
+    provider = adapter._provider(owner)
+    try:
+        bank_raw = snapshot.read_role(
+            discovery.evaluation_pack_private_root,
+            "private",
+            "case_bank",
+            max_bytes=16 * 1024 * 1024,
+        )
+        with np.load(io.BytesIO(bank_raw), allow_pickle=False) as loaded:
+            if list(loaded.files) != ["inputs"]:
+                raise ValueError("case bank members differ")
+            bank = loaded["inputs"]
+    except (OSError, ValueError, KeyError) as exc:
+        raise RetentionUnavailable("regrade_case_bank_unavailable") from exc
+    practice = material["practice_inputs"]
+    if (
+        bank.dtype != practice.dtype
+        or bank.ndim != practice.ndim
+        or bank.shape[1:] != practice.shape[1:]
+        or not len(bank)
+        or _tensors(inputs=bank) != bank_raw
+    ):
+        raise RetentionUnavailable("regrade_case_bank_contract_changed")
+
+    task_root = base / regrade_id
+    operations_path = base / (regrade_id + ".regrade-operation.json")
+    # Like the origin: the graded query runs one case at a time (v1 receipt, a bank role);
+    # a task that kept the batched cold query for timing gets the same on the new bank.
+    timed = "timed-query-receipt.json" in files
+    if (task_root / "inference-receipt.json").exists():
+        # A retry reads the retained bytes and never replays an identity.
+        task_root = _owner_directory(task_root, "task_artifacts")
+        predictions = _private_measurement_bytes(
+            task_root / "predictions.json", 16 * 1024**2
+        )
+        receipt_raw = _private_measurement_bytes(
+            task_root / "inference-receipt.json", 65536
+        )
+        timed_raw = (
+            _private_measurement_bytes(task_root / "timed-query-receipt.json", 65536)
+            if timed
+            else None
+        )
+        operations = json.loads(_private_measurement_bytes(operations_path, 65536))
+    else:
+        kit = material["construction_kit"]
+        limits = material["construction_limits_document"]
+        policy = limits["reconstruction_resource_policy"]
+        interface = material["interface_document"]
+        output_shape = (len(bank), *tuple(material["expected_output_shape"])[1:])
+        try:
+            binding = _checked_binding(
+                recipe,
+                {
+                    "challenge_id": kit["id"],
+                    "challenge_version": kit["version"],
+                    "train_digest": kit["train_digest"],
+                    "interface_digest": kit["interface_digest"],
+                    "construction_limits_digest": kit["construction_limits_digest"],
+                },
+            )
+            verify_direct_resource_policy(binding, limits)
+
+            def infer(label, measure):
+                return _infer_state(
+                    provider.ledger,
+                    owner=owner,
+                    identity="regrade-"
+                    + label
+                    + "-"
+                    + hashlib.sha256(regrade_id.encode()).hexdigest(),
+                    inference_image=provider.inference_image,
+                    recipe=recipe,
+                    binding=binding,
+                    state=files["state.npz"],
+                    state_digest=entry["state_digest"],
+                    inputs=bank,
+                    expected_output_shape=output_shape,
+                    expected_output_dtype=(
+                        interface["outputs"]["dtype"]
+                        if "outputs" in interface
+                        else interface["dtype"]
+                    ),
+                    allowlist_bytes=material["allowlist_bytes"],
+                    measure_query=measure,
+                    seconds=policy["inference_wall_seconds_max"],
+                    accelerator=getattr(provider, "inference_accelerator", None),
+                    runner=runner,
+                )
+
+            graded = infer("graded", False)
+            timed_result = infer("timed", True) if timed else None
+        except RecipeRefused as refused:
+            raise RetentionUnavailable("regrade_inference_" + refused.code) from refused
+
+        def kept(result, label):
+            output = provider.ledger.root / result.worker_operation / "snapshot"
+            return _snapshot(
+                output / "predictions.json",
+                limit=16 * 1024**2,
+                digest=result.predictions_digest,
+                label=label + "_prediction_snapshot",
+            ), _receipt_snapshot(
+                output / "receipt.json", result.receipt, label + "_inference_receipt"
+            )
+
+        predictions, receipt_raw = kept(graded, "regrade")
+        timed_raw = kept(timed_result, "regrade_timed")[1] if timed else None
+        operations = {
+            "inference_operation": graded.worker_operation,
+            "timed_operation": (
+                timed_result.worker_operation if timed_result is not None else None
+            ),
+        }
+    operation = operations["inference_operation"]
+
+    artifacts = dict(files)
+    artifacts["inputs.npz"] = bank_raw
+    artifacts["predictions.json"] = predictions
+    artifacts["inference-receipt.json"] = receipt_raw
+    if timed:
+        artifacts["timed-query-receipt.json"] = timed_raw
+    lineage = json.loads(artifacts["lineage.json"])
+    lineage.update(
+        task_id=regrade_id,
+        prediction_digest=_sha(predictions),
+        inference_operation=operation,
+    )
+    artifacts["lineage.json"] = _json(lineage)
+    new_manifest = dict(manifest)
+    new_manifest["roles"] = {
+        role: spec
+        for role, spec in manifest["roles"].items()
+        if spec["file"] in artifacts
+    }
+    new_manifest["retained_files"] = {
+        name: _sha(raw) for name, raw in sorted(artifacts.items())
+    }
+
+    from scripts.dev.score_lab.public_unbound_custody import prepare_custody_v5
+    from scripts.dev.score_lab.public_unbound_entry import create_entry_v5
+
+    task_root.mkdir(mode=0o700, exist_ok=True)
+    _owner_directory(task_root, "task_artifacts")
+    try:
+        for name, raw in artifacts.items():
+            write_once(task_root / name, raw)
+        # Beside the task (not in it): the custody inventory is exactly the declared files.
+        write_once(
+            base / (regrade_id + ".regrade-operation.json"),
+            _json(operations),
+        )
+        manifest_path = base / (regrade_id + ".roles.json")
+        write_once(manifest_path, _json(new_manifest))
+        custody = prepare_custody_v5(task_root, manifest_path)
+        custody_path = base / (regrade_id + ".custody.json")
+        write_once(custody_path, _json(custody))
+        saved = create_entry_v5(task_root, manifest_path, custody_path, entries)
+    except (OSError, ValueError) as exc:
+        raise RetentionUnavailable("operator_bank_custody_unavailable") from exc
+    if saved["entry"]["state_digest"] != entry["state_digest"]:
+        raise RetentionUnavailable("regrade_state_digest_changed")
+    result = {
+        "status": saved["status"],
+        "entry_id": saved["entry"]["entry_id"],
+        "entry_path": entries / saved["path"],
+        "artifact_path": task_root,
+        "score_state": saved["entry"]["score_state"],
+        "official_eligible": False,
+    }
+    stand_in = SimpleNamespace(
+        terminal_receipt=SimpleNamespace(
+            state_digest=entry["state_digest"], predictions_digest=_sha(predictions)
+        )
+    )
+    bound = _retain_private_pack_binding(
+        adapter, provider, regrade_id, stand_in, result
+    )
+    directory = _private_evaluation_directory(bound, regrade_id)
+    write_once(
+        directory / "regrade-provenance.json",
+        _json(
+            {
+                "schema": "carbon.lean-recipe.regrade-provenance.v1",
+                "kind": "REGRADE",
+                "regrade_task_id": regrade_id,
+                "origin_task_id": origin,
+                "origin_entry_id": entry_id,
+                "entry_id": result["entry_id"],
+                "hotkey": owner,
+                "state_digest": entry["state_digest"],
+                "evaluation_pack_digest": snapshot.manifest_digest,
+            }
+        ),
+    )
+    evidence = {
+        "inference_operation": operation,
+        "inference_image_id": provider.inference_image.image_id,
+    }
+    regraded = _retain_selected_pack_evaluation(
+        adapter,
+        regrade_id,
+        bound,
+        artifacts,
+        evidence,
+        _Regrade(owner, recipe, origin, entry_id, promotion),
+    )
+    return {**regraded, "regrade_of": entry_id, "regrade_task_id": regrade_id}
 
 
 def register_served_pack_source(
