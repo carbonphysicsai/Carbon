@@ -849,6 +849,35 @@ def _inputs(
     }
 
 
+def _timed_agreement(timed_query, graded_total, step, total_of, rows_of, size, refused):
+    """The timed batched query's outputs, scored through the same adapter, must
+    land within ``step`` of the graded total (Validator, 2026-10-20). Outputs
+    that cannot be read or scored disagree; a graded run with no total (a
+    failed gate) has no speed to protect."""
+    if graded_total is None:
+        return
+    if type(step) not in (int, float) or not math.isfinite(step) or step <= 0:
+        raise refused("timed_query_step_unavailable")
+    raw = timed_query.get("predictions_raw") if type(timed_query) is dict else None
+    try:
+        flat = _flat_values(json.loads(raw))
+        if len(flat) != size:
+            raise ValueError("timed query shape")
+        timed_total = total_of(rows_of(flat))
+    except (TypeError, ValueError, KeyError) as exc:
+        raise refused("timed_query_disagrees") from exc
+    if timed_total is None or not abs(timed_total - graded_total) < step:
+        raise refused("timed_query_disagrees")
+
+
+def _flat_values(value):
+    if type(value) is list:
+        return [v for item in value for v in _flat_values(item)]
+    if type(value) in (int, float) and math.isfinite(value):
+        return [float(value)]
+    raise ValueError("timed query value")
+
+
 def produce(
     adapter,
     *,
@@ -863,8 +892,14 @@ def produce(
     source_raw,
     bank,
     interface_names,
+    timing_step,
 ):
-    """The dual benchmark input for one retained model, or a typed refusal."""
+    """The dual benchmark input for one retained model, or a typed refusal.
+
+    ``timing_step`` is the Ladder step, max(eta, the registered rebuild noise):
+    a separately timed batched query must score within it of the graded run,
+    or the whole evaluation refuses (``timed_query_disagrees``), so speed is
+    never measured on outputs that were not graded."""
     from carbon.scoring import bundle_benchmark_core as bundle
     from carbon.scoring.dual_score import score
 
@@ -891,54 +926,73 @@ def produce(
     def rows_of(flat):
         return [list(flat[i * width : (i + 1) * width]) for i in range(n)]
 
-    try:
-        measured = adapter.measure(
-            bank_rows=bank_rows(bank, interface_names),
-            outputs=rows_of(values),
-            repeats=[rows_of(r) for r in repeats],
-            definition=definition,
-            limits=roles["important_limit_definition"],
-            objective=roles["design_objective"],
-            train_raw=train_raw,
-            names=interface_names,
-        )
-    except adapter.Refused as exc:
-        raise refused("dual_native_" + exc.code) from exc
     pack = roles["score_pack"]
     gates = list(pack.get("hard_gates", []))
-    require(
-        gates == registration["mandatory_gates"] == list(measured["gates"]),
-        "dual_native_gate_contract",
-    )
 
     def leg(value):
         if value is None:
             return {"status": "CANDIDATE_INVALID", "value": None, "unit": "1"}
         return {"status": "RESOLVED", "value": value, "unit": "1"}
 
-    benchmark = {
-        "schema": "carbon.scoring.dual-benchmark-input.v1",
-        "scope": pack["scope"],
-        "challenge": adapter.CHALLENGE,
-        "physics_contract_digest": pack["physics_contract_digest"],
-        "measurement_contract_digest": pack["measurement_contract_digest"],
-        "population_role": source["cases"][0]["role"],
-        "common_mask_digest": sha(canonical(source["cases"])),
-        "models": [
-            {
-                "artifact_digest": entry["entry_id"],
-                "gates": {
-                    k: ("PASS" if measured["gates"][k] else "FAIL") for k in gates
-                },
-                "measurements": {
-                    METRICS["A"]: leg(measured["A"]),
-                    METRICS["D"]: leg(measured["D"]),
-                },
-                "decision_outcome": measured["decision_outcome"],
-            }
-        ],
-    }
-    score(benchmark, pack)
+    def benchmark_of(outputs, repeat_rows):
+        """One set of outputs measured by this adapter and reduced to the
+        dual benchmark input, the graded run's or the timed run's alike."""
+        try:
+            measured = adapter.measure(
+                bank_rows=bank_rows(bank, interface_names),
+                outputs=outputs,
+                repeats=repeat_rows,
+                definition=definition,
+                limits=roles["important_limit_definition"],
+                objective=roles["design_objective"],
+                train_raw=train_raw,
+                names=interface_names,
+            )
+        except adapter.Refused as exc:
+            raise refused("dual_native_" + exc.code) from exc
+        require(
+            gates == registration["mandatory_gates"] == list(measured["gates"]),
+            "dual_native_gate_contract",
+        )
+        return measured, {
+            "schema": "carbon.scoring.dual-benchmark-input.v1",
+            "scope": pack["scope"],
+            "challenge": adapter.CHALLENGE,
+            "physics_contract_digest": pack["physics_contract_digest"],
+            "measurement_contract_digest": pack["measurement_contract_digest"],
+            "population_role": source["cases"][0]["role"],
+            "common_mask_digest": sha(canonical(source["cases"])),
+            "models": [
+                {
+                    "artifact_digest": entry["entry_id"],
+                    "gates": {
+                        k: ("PASS" if measured["gates"][k] else "FAIL") for k in gates
+                    },
+                    "measurements": {
+                        METRICS["A"]: leg(measured["A"]),
+                        METRICS["D"]: leg(measured["D"]),
+                    },
+                    "decision_outcome": measured["decision_outcome"],
+                }
+            ],
+        }
+
+    graded_rows = rows_of(values)
+    measured, benchmark = benchmark_of(graded_rows, [rows_of(r) for r in repeats])
+    graded_total = score(benchmark, pack)["models"][0]["total"]
+    timed_query = originals.get("timed_query")
+    if timed_query is not None:
+        _timed_agreement(
+            timed_query,
+            graded_total,
+            timing_step,
+            lambda timed_rows: score(
+                benchmark_of(timed_rows, [timed_rows, timed_rows])[1], pack
+            )["models"][0]["total"],
+            rows_of,
+            n * width,
+            refused,
+        )
     model = bundle.measurement_from_saved_inference(
         entry,
         registration,

@@ -27,6 +27,7 @@ from carbon.challenge_validator.evaluation_pack import parse_pack, prepare_pack
 from carbon.scoring import bundle_benchmark_core as bundle
 from carbon.scoring import cooling_dual_pack as cooling
 from carbon.scoring import f08_dual_pack as f08
+from carbon.scoring import grade_feedback
 from carbon.scoring import motor_dual_pack as motor
 from carbon.scoring import physical_dual_pack as physical
 from carbon.scoring import private_evaluation_evidence as evidence
@@ -184,6 +185,8 @@ def _retain_bundle(adapter, tmp, *, public, case_bank, predictions_raw, shapes):
         "image.json": _json({"image": "fixture"}),
         "inference-receipt.json": encode(graded),
         "timed-query-receipt.json": encode(timed),
+        # An honest model: its batched timed run answers as its graded run does.
+        "timed-query-predictions.json": predictions_raw,
     }
     roles = {
         "recipe": ("recipe.json", "json"),
@@ -315,6 +318,7 @@ def case(request, tmp_path_factory):
         "timed_query": {
             "receipt_raw": artifacts["timed-query-receipt.json"],
             "registered_sha256": _sha(artifacts["timed-query-receipt.json"]),
+            "predictions_raw": artifacts["timed-query-predictions.json"],
         },
         "inference_pair_raw": pair_raw,
         "inference_pair_sha256": _sha(pair_raw),
@@ -359,6 +363,7 @@ def _produce(case, originals=None):
         references=case["references"],
         graph_originals=originals or case["originals"],
         evaluation_source_receipt_raw=prepared_source.raw,
+        timing_step=grade_feedback.step(None),
     )
     return prepared_source, measured
 
@@ -609,3 +614,52 @@ def test_the_baseline_graded_on_the_judge_image_sets_the_minimums(case, tmp_path
                 baseline_binding_raw=physical.canonical(binding),
                 calibration_pack_root=calibration["root"],
             )
+
+
+def _timed(case, predictions_raw):
+    """The timed query's originals for other timed outputs (same receipt form)."""
+    receipt = json.loads(case["originals"]["timed_query"]["receipt_raw"])
+    receipt["predictions_digest"] = _sha(predictions_raw)
+    raw = encode(receipt)
+    return {
+        **case["originals"],
+        "timed_query": {
+            "receipt_raw": raw,
+            "registered_sha256": _sha(raw),
+            "predictions_raw": predictions_raw,
+        },
+    }
+
+
+def test_a_batch_detecting_model_whose_timed_run_answers_differently_is_unavailable(
+    case,
+):
+    """Validator, 2026-10-20: speed is never measured on outputs that were not
+    graded. A model that answers its per-case grade honestly but returns a
+    cheap answer when it sees the full timing batch is UNAVAILABLE."""
+    cheap = [[0.0 for _ in row] for row in case["predictions"]]
+    raw = json.dumps(cheap, separators=(",", ":")).encode()
+    with pytest.raises(
+        source.PrivateEvaluationSourceRefused, match="timed_query_disagrees"
+    ):
+        _produce(case, _timed(case, raw))
+
+
+@pytest.mark.parametrize("raw", [b"not json", b"[]", None])
+def test_timed_outputs_that_cannot_be_scored_disagree(case, raw):
+    originals = (
+        _timed(case, raw)
+        if raw is not None
+        else {
+            **case["originals"],
+            "timed_query": {
+                k: v
+                for k, v in case["originals"]["timed_query"].items()
+                if k != "predictions_raw"
+            },
+        }
+    )
+    with pytest.raises(
+        source.PrivateEvaluationSourceRefused, match="timed_query_disagrees"
+    ):
+        _produce(case, originals)

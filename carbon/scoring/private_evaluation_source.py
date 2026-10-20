@@ -71,6 +71,7 @@ def produce_dual_benchmark_input(
     references: list[dict],
     graph_originals: dict,
     evaluation_source_receipt_raw: bytes,
+    timing_step: float,
 ) -> tuple[dict, dict, str]:
     """Run the fixed DEVELOPMENT cold-eight producer, or refuse unavailable roles.
 
@@ -110,6 +111,7 @@ def produce_dual_benchmark_input(
             source_raw=evaluation_source_receipt_raw,
             bank=bank,
             interface_names=names,
+            timing_step=timing_step,
         )
     if type(entry) is not dict or entry.get("challenge") != "f02":
         raise PrivateEvaluationSourceRefused("dual_measurement_producer_unavailable")
@@ -145,6 +147,7 @@ def produce_registered_dual_measurement(
     references: list[dict],
     graph_originals: dict,
     evaluation_source_receipt_raw: bytes,
+    timing_step: float,
 ) -> PreparedPrivateDualMeasurement:
     """Bind a fixed producer's output with the real source/pack receipt checks.
 
@@ -161,6 +164,7 @@ def produce_registered_dual_measurement(
         references=references,
         graph_originals=graph_originals,
         evaluation_source_receipt_raw=evaluation_source_receipt_raw,
+        timing_step=timing_step,
     )
     return build_dual_measurement_receipt(
         selected_pack=selected_pack,
