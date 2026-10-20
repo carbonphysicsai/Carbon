@@ -114,3 +114,68 @@ def test_the_record_carries_its_own_digest():
     record = qa.judge(batch, SPEC, _fine(batch))
     body = {k: v for k, v in record.items() if k != "sha256"}
     assert record["sha256"] == qa.hashlib.sha256(qa._canonical(body)).hexdigest()
+
+
+def test_registered_u_is_read_by_sha_and_refuses_a_change(tmp_path, monkeypatch):
+    assert qa.registered_u("f08-ribbed-bracket") == {
+        "static_tip_mm_per_n": 6.7e-07,
+        "worst_dynamic_mm_per_n": 3.9e-05,
+    }
+    assert qa.registered_u("f02") == {"peak_top_c": 0.012}
+    path, _pin = qa.U_RECORDS["f02"]
+    changed = tmp_path / path
+    changed.parent.mkdir(parents=True)
+    changed.write_bytes((ROOT / path).read_bytes() + b" ")
+    try:
+        qa.registered_u("f02", root=tmp_path)
+    except ValueError as exc:
+        assert "differs" in str(exc)
+    else:
+        raise AssertionError("a changed record was accepted")
+    try:
+        qa.registered_u("motor")
+    except ValueError as exc:
+        assert "no registered" in str(exc)
+    spec = {
+        "challenge": "f02",
+        "verified_image_digests": [IMAGE],
+        "limits": [{"quantity": "peak_top_c", "threshold": 95.0, "feasible": "<="}],
+        "u": "registered",
+    }
+    batch = {
+        "batch_digest": "f02-b",
+        "image_digest": IMAGE,
+        "cases": [
+            {"case_id": f"c{i}", "quantities": {"peak_top_c": v}}
+            for i, v in enumerate([90.0, 93.0, 94.5, 95.5, 97.0, 100.0])
+        ],
+    }
+    fine = {
+        i: {"peak_top_c": c["quantities"]["peak_top_c"] + 0.005}
+        for c in batch["cases"]
+        for i in [c["case_id"]]
+        if i in qa.spot_case_ids(batch)
+    }
+    assert qa.judge(batch, spec, fine)["verdict"] == "PASS"
+
+
+def test_the_f08_record_regenerates_from_its_committed_script_and_ladder():
+    import json
+    import subprocess
+    import sys
+
+    folder = ROOT / "docs/development/evidence/f08-near-limit-public-20261020"
+    out = subprocess.run(
+        [
+            sys.executable,
+            str(folder / "reference-uncertainty/f08_reference_uncertainty.py.txt"),
+            str(folder / "ladder-observed.json"),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    committed = json.loads(
+        (folder / "reference-uncertainty/f08-reference-uncertainty.json").read_text()
+    )
+    assert json.loads(out) == committed

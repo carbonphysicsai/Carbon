@@ -12,7 +12,7 @@ BATCH.json: {"batch_digest", "image_digest",
              "cases": [{"case_id", "quantities": {q: value}}]}
 SPEC.json:  {"challenge", "verified_image_digests": [...],
              "limits": [{"quantity", "threshold", "feasible": "<=" | ">="}],
-             "u": {q: number or null},            # from the Challenge's U record
+             "u": {q: number or null} | "registered",  # the Challenge's U record
              "straddle_min_fraction": 1/3 unless the owner set another}
 FINE.json:  {case_id: {q: value}} for the selected cases, solved one ratio-2
             refinement finer on the same image.
@@ -43,6 +43,19 @@ import sys
 from pathlib import Path
 
 SCHEMA = "carbon.exam-batch-qa.v1"
+REPOSITORY = Path(__file__).resolve().parents[3]
+#: Validator-approved reference-uncertainty records (2026-10-20), read by sha.
+#: `"u": "registered"` in a spec takes U from here; no other source is read.
+U_RECORDS = {
+    "f08-ribbed-bracket": (
+        "docs/development/evidence/f08-near-limit-public-20261020/reference-uncertainty/f08-reference-uncertainty.json",
+        "19bb06c321c5294a9f598bfc3ca3998d9a4ba1f45500117127cd8e20620d4359",
+    ),
+    "f02": (
+        "docs/development/evidence/f02-cold-pack-20261020/reference-uncertainty/f02-reference-uncertainty.json",
+        "e2262bf8eeca845c2b33d0e32b5f184751693a1771d9bd156cadd5613ac2dc6c",
+    ),
+}
 SPOT_CASES = 3
 PASS, FAIL = "PASS", "FAIL"
 
@@ -62,6 +75,18 @@ def side(value, limit) -> str:
         else (value >= limit["threshold"])
     )
     return "feasible" if feasible else "infeasible"
+
+
+def registered_u(challenge: str, root: Path = REPOSITORY) -> dict:
+    """U per limit quantity from the Challenge's pinned record; refuses a
+    missing record or changed bytes (QA then fails closed upstream)."""
+    if challenge not in U_RECORDS:
+        raise ValueError(f"no registered reference uncertainty for {challenge}")
+    path, pin = U_RECORDS[challenge]
+    raw = (Path(root) / path).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != pin:
+        raise ValueError(f"reference-uncertainty record for {challenge} differs")
+    return dict(json.loads(raw)["U"])
 
 
 def spot_case_ids(batch) -> list[str]:
@@ -125,6 +150,8 @@ def _spot(batch, spec, fine):
 
 def judge(batch, spec, fine) -> dict:
     """The host-only QA record; `public()` gives what may be shown."""
+    if spec.get("u") == "registered":
+        spec = {**spec, "u": registered_u(spec["challenge"])}
     record = {
         "schema": SCHEMA,
         "challenge": spec["challenge"],
