@@ -121,5 +121,14 @@ def test_only_registered_lean_challenges_are_accepted():
 
 
 def test_start_needs_a_prepared_state(tmp_path):
-    with pytest.raises(receiver_setup.SetupRefused, match="receiver_not_prepared"):
+    with pytest.raises(receiver_setup.SetupRefused, match="receiver_config_missing"):
         receiver_setup.start(tmp_path)
+
+
+def test_a_receiver_with_no_configuration_names_the_missing_file(tmp_path, capsys):
+    missing = tmp_path / "receiver.json"
+    assert direct_receiver.main(["--config", str(missing)]) == 1
+    printed = json.loads(capsys.readouterr().out)
+    assert printed["unavailable"] == "receiver_config_missing"
+    assert printed["config"] == str(missing)
+    assert "receiver_setup prepare" in printed["next"]

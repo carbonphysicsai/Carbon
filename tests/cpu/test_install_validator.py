@@ -161,3 +161,9 @@ def test_every_failed_requirement_is_reported_together(machine):
     done = machine(STUB_CGROUP="1", STUB_CURL_FAIL="1")
     assert done.returncode == 2
     assert "V_CGROUP" in done.stderr and "V_NETWORK" in done.stderr
+
+
+def test_start_receiver_without_a_receiver_is_refused(machine):
+    done = machine("--start-receiver")
+    assert done.returncode == 2
+    assert "--receiver ID VERSION" in done.stderr

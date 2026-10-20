@@ -1041,6 +1041,20 @@ def main(argv=None):
     ):
         parser.error("retention requires task and both operator directories")
     retention = retention_args if args.retain_task is not None else None
+    if not args.config.is_file():
+        # The one missing input an operator can fix, named instead of the generic code.
+        print(
+            json.dumps(
+                {
+                    "unavailable": "receiver_config_missing",
+                    "config": str(args.config),
+                    "next": "write it with `python -m carbon.challenge_validator."
+                    "receiver_setup prepare`",
+                }
+            ),
+            flush=True,
+        )
+        return 1
     stop = threading.Event()
     for number in (signal.SIGTERM, signal.SIGINT):
         signal.signal(number, lambda *_: stop.set())
