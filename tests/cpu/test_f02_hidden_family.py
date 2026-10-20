@@ -29,7 +29,7 @@ def test_the_producer_finds_f02_as_a_registered_family():
 def test_f02s_registration_is_its_hidden_rules_own_values():
     family = f02_family()
     assert (family.challenge_id, family.challenge_version) == ("f02", "2.1")
-    assert family.kinds == hidden.KINDS == ("cold_decision",)
+    assert family.kinds == hidden.KINDS == ("screening",)
     assert family.batch_cases == hidden.BATCH_CASES == 8
     assert family.every_blocks == hidden.ROTATION_EVERY_BLOCKS == 648_000
     assert family.active_batches == hidden.ACTIVE_BATCHES == 1
@@ -82,7 +82,7 @@ def document(cases=None):
         "schema": hidden.DOCUMENT_SCHEMA,
         "challenge": {"id": "f02", "version": "2.1"},
         "role": "exam",
-        "kind": "cold_decision",
+        "kind": "screening",
         "population": population.POPULATION_VERSION,
         "cases": [{"case_id": f"c{i}", "inputs": c} for i, c in enumerate(drawn)],
     }
@@ -97,7 +97,7 @@ def test_documents_are_checked():
         "inputs": {"peak_w": 85.0, "on_time_s": 5.0},
     }
     for bad in (
-        dict(good, kind="screening"),
+        dict(good, kind="finalist"),
         dict(good, challenge={"id": "f02", "version": "2.0"}),
         dict(good, cases=good["cases"][:7]),
         exam_action,
@@ -213,7 +213,7 @@ def test_a_batch_is_drawn_solved_with_a_retry_and_sealed(tmp_path):
     solver = Solver()
     source = F02BatchSource(path, repository=REPOSITORY, runner=solver)
     producer = pr.Producer(tmp_path / "producer", [source])
-    drawn = producer.draw("f02", "f02-exam-S1", kind="cold_decision")
+    drawn = producer.draw("f02", "f02-exam-S1", kind="screening")
     published = hidden.published_keys(REPOSITORY)
     plan = source.jobs(drawn["fingerprint"])
     assert len(plan) == 8

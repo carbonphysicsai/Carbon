@@ -42,7 +42,7 @@ def test_f08s_registration_is_its_hidden_rules_own_values():
         "f08-ribbed-bracket",
         "1.2",
     )
-    assert family.kinds == hidden.KINDS == ("near_limit_decision",)
+    assert family.kinds == hidden.KINDS == ("screening",)
     assert family.batch_cases == hidden.BATCH_CASES == 8
     assert family.every_blocks == hidden.ROTATION_EVERY_BLOCKS == 648_000
     assert family.active_batches == hidden.ACTIVE_BATCHES == 1
@@ -90,7 +90,7 @@ def document(seed=3):
         "schema": hidden.DOCUMENT_SCHEMA,
         "challenge": {"id": "f08-ribbed-bracket", "version": "1.2"},
         "role": "exam",
-        "kind": "near_limit_decision",
+        "kind": "screening",
         "population": population.POPULATION_VERSION,
         "cases": [{"case_id": f"c{i}", "inputs": c} for i, c in enumerate(drawn)],
     }
@@ -102,7 +102,7 @@ def test_documents_are_checked():
     off_lattice = copy.deepcopy(good)
     off_lattice["cases"][0]["inputs"]["length_mm"] += 1.0
     for bad in (
-        dict(good, kind="cold_decision"),
+        dict(good, kind="finalist"),
         dict(good, challenge={"id": "f08-ribbed-bracket", "version": "1.1"}),
         dict(good, cases=good["cases"][:7]),
         off_lattice,
@@ -239,9 +239,7 @@ def test_a_batch_is_drawn_solved_with_a_retry_and_sealed(tmp_path):
     solver = Solver()
     source = F08BatchSource(path, repository=REPOSITORY, runner=solver)
     producer = pr.Producer(tmp_path / "producer", [source])
-    drawn = producer.draw(
-        "f08-ribbed-bracket", "f08-exam-N1r", kind="near_limit_decision"
-    )
+    drawn = producer.draw("f08-ribbed-bracket", "f08-exam-N1r", kind="screening")
     plan = source.jobs(drawn["fingerprint"])
     assert len(plan) == 8
     published = hidden.published_keys(REPOSITORY)

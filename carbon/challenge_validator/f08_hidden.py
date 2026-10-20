@@ -5,9 +5,9 @@ The family's values (Validator, 2026-10-20), as F02's:
 - population: the approved TRAIN near-limit law N1r, stratified so the seed
   chooses the geometry (`carbon.f08.population`, Validator-accepted
   2026-10-20), disjoint from every published F08 geometry;
-- 8 cases per batch, kind `near_limit_decision` (one decision over its
-  geometries at the 0.15 mm/N limit, as the development exam's
-  `decision_near_limit` cohort);
+- 8 cases per batch, served kind `screening` (the producer's served tier; the
+  private pack's cohort `decision_near_limit` carries the decision at the
+  0.15 mm/N limit, as the development exam's);
 - rotation: one active version, at most 90 days (648,000 blocks);
 - the rule cites the pack and the sealed evaluation version and never
   restates scoring;
@@ -43,7 +43,7 @@ AUTHORITY = "OWNER-F02-F08-EXAM-DRAW-01"
 SOLVER_IMAGE = "sha256:6098f39d40d642ab7aaa3fc300a44ff866e330db52b8d8b1bd9ee9709b0098c3"
 RUNNER = Path("scripts/dev/reference_packages/calculix/f08_exam_runner.py")
 TERMINAL = ("OK", "REFERENCE_INVALID", "REFERENCE_SOLVER_FAILED", "REFERENCE_TIMEOUT")
-KINDS = ("near_limit_decision",)
+KINDS = ("screening",)
 BATCH_CASES = 8
 ROTATION_EVERY_BLOCKS = 648_000  # the 90-day maximum
 ACTIVE_BATCHES = 1

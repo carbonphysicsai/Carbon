@@ -4,8 +4,9 @@ The family's values (Validator, 2026-10-20):
 - version: F02 2.1, the step-2 version miners are graded on;
 - population: the approved TRAIN near-limit law S1 with fresh seeds
   (`carbon.f02.population`), disjoint from every published F02 schedule;
-- 8 cases per batch, kind `cold_decision` (one cold-context decision over its
-  actions, as the development exam);
+- 8 cases per batch, served kind `screening` (the producer's served tier; the
+  private pack's cohort `decision_cold_eight` carries the decision, as the
+  development exam's);
 - rotation: one active version, at most 90 days (648,000 blocks); weekly fresh
   draws come from the backlog through exam rotation, not from the family;
 - the rule document cites the pack and evaluation versions and never restates
@@ -39,7 +40,7 @@ AUTHORITY = "OWNER-F02-F08-EXAM-DRAW-01"
 SOLVER_IMAGE = "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add"
 RUNNER = Path("scripts/dev/reference_packages/elmer/f02_exam_runner.py")
 TERMINAL = ("OK", "REFERENCE_INVALID", "REFERENCE_SOLVER_FAILED", "REFERENCE_TIMEOUT")
-KINDS = ("cold_decision",)
+KINDS = ("screening",)
 BATCH_CASES = 8
 ROTATION_EVERY_BLOCKS = 648_000  # the 90-day maximum
 ACTIVE_BATCHES = 1
