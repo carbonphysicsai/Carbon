@@ -233,3 +233,56 @@ def test_forged_npy_header_refuses_before_numpy_materializes(
     monkeypatch.setattr(bundle_graph_state.np, "load", never_load)
     with pytest.raises(RecipeRefused, match="bundle_state_archive_invalid"):
         bundle_graph_state.load(output.getvalue(), _recipe(), allowlist.load())
+
+
+class _UnpicklingCanary:
+    """Benign marker: unpickling it flips a flag and does nothing else."""
+
+    loaded = False
+
+    def __reduce__(self):
+        return (_canary_loaded, ())
+
+
+def _canary_loaded():
+    _UnpicklingCanary.loaded = True
+    return None
+
+
+def test_a_genuinely_pickled_parameter_is_refused_and_never_unpickled():
+    """Containment matrix row 5: model state reaching the judge is plain numeric
+    arrays only. A real pickled object array (not just a forged header) is
+    refused with a typed code, and its payload is never deserialized."""
+    import jax.numpy as jnp
+
+    recipe, permitted = _recipe(), allowlist.load()
+    traced = lower_jax.trace(
+        lambda p, x: p * x,
+        jnp.ones((2,), dtype=jnp.float32),
+        jnp.ones((2,), dtype=jnp.float32),
+    )
+    doc = lower_jax.lower(
+        traced,
+        role="forward",
+        allowlist=permitted,
+        input_names=["params/0", "inputs/x"],
+    )
+    state = bundle_graph_state.freeze(
+        recipe, doc, [np.ones((2,), dtype=np.float32)], permitted
+    )
+    # Control specimen: the untouched state loads.
+    bundle_graph_state.load(state, recipe, permitted)
+
+    with np.load(io.BytesIO(state), allow_pickle=False) as original:
+        arrays = {name: original[name] for name in original.files}
+    pickled = np.empty((2,), dtype=object)
+    pickled[:] = [_UnpicklingCanary(), _UnpicklingCanary()]
+    arrays["parameter0000"] = pickled
+    out = io.BytesIO()
+    np.savez(out, **arrays)  # np.save pickles object arrays by default
+    assert b"pickle" in out.getvalue() or b"\x80" in out.getvalue()
+
+    _UnpicklingCanary.loaded = False
+    with pytest.raises(RecipeRefused, match="bundle_state_archive_invalid"):
+        bundle_graph_state.load(out.getvalue(), recipe, permitted)
+    assert _UnpicklingCanary.loaded is False
