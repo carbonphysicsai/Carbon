@@ -116,3 +116,87 @@ def test_the_listed_codes_are_exactly_the_recipes_own():
     assert RECIPE_REFUSAL_CODES == set(
         re.findall(r'RecipeRefused\("(construction_recipe_[a-z_]+)"\)', source)
     )
+
+
+# --- BUG GRAPHITE_SCAFFOLD_UNREACHABLE_20261020 --------------------------------
+# Battery run 21e560f0: Graphite was refused public_material_unknown on
+# arguments_json.name and never reached scaffold_recipe, which Battery's
+# discovery listed but the door refused.
+
+
+@pytest.fixture
+def material_door(tmp_path):
+    from carbon.battery.research import BatteryPublicMaterial
+
+    meter = ledger(tmp_path / "ledger")
+    composition = make_battery_research_service(
+        root=tmp_path / "tasks",
+        ledger=meter,
+        owner="alice",
+        image=SimpleNamespace(),
+        practice=SimpleNamespace(root=tmp_path, construction_mode="direct"),
+        material=BatteryPublicMaterial(Path(__file__).resolve().parents[2]),
+    )
+    sdk = ResearchMinerTools(
+        connection=None,
+        wrapper=None,
+        composition=composition,
+        ledger=meter,
+        owner="alice",
+    )
+    try:
+        yield sdk, meter
+    finally:
+        composition.tasks.close()
+
+
+def material(name):
+    return chat_completions(
+        {
+            "kind": "workspace",
+            "strategy_json": None,
+            "action": "public_material",
+            "arguments_json": json.dumps({"name": name}),
+            "hypothesis": "read the public material",
+            "expected_effect": "a document in the workspace",
+        }
+    )
+
+
+def test_the_scaffold_recipe_passes_the_material_door(material_door):
+    sdk, _ = material_door
+    request = sdk._request("start_research_task", material("scaffold_recipe"), IDENTITY)
+    assert request.task_spec.action == "public_material"
+
+
+def test_an_unknown_material_lists_every_name_discovery_lists(material_door):
+    from carbon.battery.research import BatteryPublicMaterial
+
+    sdk, meter = material_door
+    result = refused(sdk, meter, material("simple bundle string"), IDENTITY)
+    assert result["correction_code"] == "public_material_unknown"
+    assert (
+        "Allowed here: " + ", ".join(BatteryPublicMaterial.NAMES) + "."
+        in result["correction"]
+    )
+    assert "scaffold_recipe" in BatteryPublicMaterial.NAMES
+
+
+def test_the_recipe_correction_says_how_to_get_the_scaffold(direct_door):
+    sdk, meter = direct_door
+    result = refused(
+        sdk,
+        meter,
+        practice(json.dumps({"source": "resolved_plan_ref as source bundle"})),
+        IDENTITY,
+    )
+    assert result["correction_code"] == "direct_recipe_required"
+    for words in ("action=public_material", "scaffold_recipe", "kind=workspace"):
+        assert words in result["correction"]
+
+
+def test_the_scaffold_name_is_batterys():
+    from carbon.battery.research import BatteryPublicMaterial
+    from carbon.development_session.research_tasks import SCAFFOLD_RECIPE
+
+    assert SCAFFOLD_RECIPE in BatteryPublicMaterial.NAMES
