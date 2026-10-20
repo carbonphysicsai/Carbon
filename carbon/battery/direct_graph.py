@@ -255,7 +255,7 @@ def build_validated_graph(
         raise RecipeRefused("battery_graph_trusted_context_invalid")
     graph_workspace(recipe, raw_manifest, files, max_bytes=max_bytes)
     interface = graph_interface(settings)
-    allowlist = allowlist_module.load()
+    allowlist = allowlist_module.load_served()
     _, parsed = intake.intake(
         raw_manifest,
         files,
