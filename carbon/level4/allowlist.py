@@ -36,6 +36,13 @@ CAPS = {
 }
 
 
+def _refusal(code, where, op):
+    """The typed refusal, naming the primitive too (`op`, a public op name)."""
+    refusal = graph.GraphRefused(code, where)
+    refusal.op = op
+    return refusal
+
+
 class Allowlist:
     def __init__(self, raw):
         self.raw = raw
@@ -65,13 +72,13 @@ class Allowlist:
         """The parameter spec of `op` in `role`, or `GraphRefused`."""
         entry = self.ops.get(op)
         if entry is None:
-            raise graph.GraphRefused("op_not_allowlisted", where)
+            raise _refusal("op_not_allowlisted", where, op)
         if entry["default"] == "refuse":
-            raise graph.GraphRefused("op_refused", where)
+            raise _refusal("op_refused", where, op)
         if role not in entry["roles"]:
-            raise graph.GraphRefused("op_not_allowed_in_role", where)
+            raise _refusal("op_not_allowed_in_role", where, op)
         if not entry["v0_interpreter"]:
-            raise graph.GraphRefused("op_not_supported_v0", where)
+            raise _refusal("op_not_supported_v0", where, op)
         return entry["params"]
 
     def check(self, doc):
