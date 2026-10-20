@@ -9,6 +9,11 @@ Each Challenge's leg minimums (the A and D a model must reach before it can scor
 
 > There's no reason we shouldn't set the minimum during agent testing with our best results
 
+Implementation (placeholders):
+- **Battery's placeholder is `scaffold_mlp` against the direct graph interface,** recipe `sha256:2b9ccd38…e3`, graph `sha256:c3ff680d…d6`.
+  - The Level 0 graph `530026ba` reproduces, but it has 245 outputs where the direct path needs 247, so the same architecture was re-lowered against the direct interface: dense [4, 64, 64, 64, 247], gelu, 2000 steps, batch 400.
+- **F02's placeholder is KRR on TRAIN40-v2,** recipe `sha256:2ddb2f17…4e2c`, chosen by leave-one-out on TRAIN only.
+
 ## Decided
 
 - **The baseline:** each Challenge's registered baseline is the best recipe from Carbon's own agent testing (the agent-miner rehearsal), chosen by total score on that Challenge's calibration pack. Its A and D are the leg minimums.
