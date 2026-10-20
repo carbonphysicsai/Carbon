@@ -230,6 +230,15 @@ def decision_value(contract, scenarios, grid_predictions, grid_refs):
     }
 
 
+def g_feas_passes(measured, cutoff):
+    """``score_tuning.exceeds_verdict``'s registered comparison (registry v5,
+    ``comparison: exceeds``): PASS at or below the cutoff; above it, or
+    unmeasured, fails. Not imported: ``score_tuning`` reaches the battery
+    panel's attack harness, which no miner-reachable module may import
+    (OWNER-GRAPHITE-ATTACKER-01); a test pins it equal to the pinned function."""
+    return measured is not None and not measured > cutoff
+
+
 def paired_repeat_exact(outputs, repeats):
     """The graded run and both fresh repeats agree exactly (registered floor 0)."""
     return len(repeats) == 2 and all(r == outputs for r in repeats)
@@ -240,7 +249,6 @@ def practice_measures(*, bank, outputs, repeats, definition, contract):
     PRACTICE rows; ``bank`` is the shared producer's bank rows, ``outputs`` and
     ``repeats`` the graded run's and the two fresh repeats' flat rows."""
     from carbon.battery import construction_material as cm
-    from carbon.battery.value import score_tuning as st
 
     practice = [i for i, row in enumerate(bank) if row["cohort"] == "practice"]
     _require(practice, "battery_practice_rows")
@@ -263,7 +271,7 @@ def practice_measures(*, bank, outputs, repeats, definition, contract):
         "A": a,
         "gates": {
             "exam_gates": exam_ok,
-            "g_feas": st.exceeds_verdict(rate, gate["cutoff"]) == st.admissibility.PASS,
+            "g_feas": g_feas_passes(rate, gate["cutoff"]),
             "paired_repeat": paired_repeat_exact(outputs, repeats),
         },
         "false_feasible_rate": rate,
