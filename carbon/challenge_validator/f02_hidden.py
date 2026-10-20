@@ -11,8 +11,9 @@ The family's values (Validator, 2026-10-20):
 - the rule document cites the pack and evaluation versions and never restates
   scoring: the scoring producer stays the single source of truth;
 - a sealed batch is graded as a private evaluation pack in the development
-  pack's format (`carbon.challenge_kit.f02_sealed_pack`), by the existing dual
-  adapter unchanged. There is no second scoring path.
+  pack's format (`carbon.challenge_kit.f02_sealed_pack`) by the dual adapter's
+  sealed evaluation version (no response pairs; the interval receipt is the
+  batch's own solver evidence). There is no second scoring path.
 
 DEVELOPMENT only: no qualification, weight, reward or LIVE authority.
 """
@@ -43,7 +44,7 @@ BATCH_CASES = 8
 ROTATION_EVERY_BLOCKS = 648_000  # the 90-day maximum
 ACTIVE_BATCHES = 1
 PACK_VERSION = "f02-normal-construction-development-3"
-EVALUATION_VERSION = "f02-dual-development-bank-8-v2"
+EVALUATION_VERSION = "f02-dual-sealed-batch-8-v1"
 OBSERVED = (
     "peak_top_c",
     "extra_energy_j",
