@@ -14,7 +14,6 @@ from test_normal_dual_pack_retention import _fixture, _producer
 from test_physical_dual_pack_end_to_end import _produce, case  # noqa: F401
 
 from carbon.battery.pool_store import PoolStore, StateError
-from carbon.challenge_validator import bank_promotion
 from carbon.challenge_validator import lean_recipe_retention as retention
 from carbon.challenge_validator.bank_promotion import BankPromotion
 from carbon.scoring import physical_dual_pack
@@ -34,12 +33,6 @@ def _intent(adapter, submission_id):
 
 def _setup(tmp_path, monkeypatch):
     fixture = _fixture(tmp_path, monkeypatch)
-    # The inert graph fixture binds a v3 dual evaluation (no repeat pair, hence no v4). The
-    # comparison itself is the real one; only its paired-binding schema gate is pointed at
-    # the fixture's schema so the wiring around it can be exercised.
-    monkeypatch.setattr(
-        bank_promotion, "PAIRED_BINDING", "carbon.scoring.private-evaluation-binding.v3"
-    )
     monkeypatch.setattr(source, "produce_dual_benchmark_input", _producer(fixture))
     _intent(fixture.adapter, fixture.task_id)
     return fixture, PoolStore(tmp_path / "pool.sqlite", clock=lambda: 123.0)

@@ -48,6 +48,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import subprocess
 import sys
@@ -604,7 +605,7 @@ def builder_options(args):
     }
 
 
-def produce(
+def _inputs(
     adapter,
     *,
     selected,
@@ -619,13 +620,12 @@ def produce(
     bank,
     interface_names,
 ):
-    """The dual benchmark input for one retained model, or a typed refusal."""
+    """Validate one retained model's evidence against the selected pack and gather what
+    the measurement takes, or a typed refusal."""
     import numpy as np
 
     from carbon.development_session.bundle_construction_worker import _tensors
-    from carbon.scoring import bundle_benchmark_core as bundle
     from carbon.scoring import private_evaluation_source as source_module
-    from carbon.scoring.dual_score import score
 
     refused = source_module.PrivateEvaluationSourceRefused
     require = source_module._producer_require
@@ -734,6 +734,61 @@ def produce(
     )
     require(all(len(r) == n * width for r in repeats), "dual_repeat_evidence_shape")
 
+    return {
+        "refused": refused,
+        "require": require,
+        "roles": roles,
+        "definition": definition,
+        "train_raw": train_raw,
+        "source": source,
+        "values": values,
+        "repeats": repeats,
+        "inference": inference,
+        "n": n,
+        "width": width,
+        "identity": identity,
+    }
+
+
+def produce(
+    adapter,
+    *,
+    selected,
+    public_root,
+    private_root,
+    entry,
+    job,
+    registration,
+    references,
+    originals,
+    source_raw,
+    bank,
+    interface_names,
+):
+    """The dual benchmark input for one retained model, or a typed refusal."""
+    from carbon.scoring import bundle_benchmark_core as bundle
+    from carbon.scoring.dual_score import score
+
+    ctx = _inputs(
+        adapter,
+        selected=selected,
+        public_root=public_root,
+        private_root=private_root,
+        entry=entry,
+        job=job,
+        registration=registration,
+        references=references,
+        originals=originals,
+        source_raw=source_raw,
+        bank=bank,
+        interface_names=interface_names,
+    )
+    refused, require = ctx["refused"], ctx["require"]
+    roles = ctx["roles"]
+    definition, train_raw, source = ctx["definition"], ctx["train_raw"], ctx["source"]
+    values, repeats, inference = ctx["values"], ctx["repeats"], ctx["inference"]
+    n, width, identity = ctx["n"], ctx["width"], ctx["identity"]
+
     def rows_of(flat):
         return [list(flat[i * width : (i + 1) * width]) for i in range(n)]
 
@@ -793,3 +848,123 @@ def produce(
         timed_query=originals.get("timed_query"),
     )
     return model, benchmark, identity
+
+
+def bootstrap_total_se(
+    adapter,
+    *,
+    selected,
+    public_root,
+    private_root,
+    entry,
+    job,
+    registration,
+    references,
+    originals,
+    source_raw,
+    bank,
+    interface_names,
+    exam_key,
+    resamples=200,
+):
+    """Standard error of one retained model's exam total: a case bootstrap.
+
+    The bank's rows are resampled with replacement (inside each cohort, which the adapters'
+    measurements require), the model's saved outputs and its two repeats are taken for the
+    same rows, the total is recomputed through the adapter's own ``measure`` and the pack's
+    score, and the SE is the standard deviation of the totals. The seed is the first 8
+    bytes of the exam key. A resample the adapter cannot measure makes the whole SE
+    unavailable for this Challenge (a typed refusal), never an estimate from fewer.
+    """
+    import numpy as np
+
+    from carbon.scoring.dual_score import score
+
+    ctx = _inputs(
+        adapter,
+        selected=selected,
+        public_root=public_root,
+        private_root=private_root,
+        entry=entry,
+        job=job,
+        registration=registration,
+        references=references,
+        originals=originals,
+        source_raw=source_raw,
+        bank=bank,
+        interface_names=interface_names,
+    )
+    refused, definition, source = ctx["refused"], ctx["definition"], ctx["source"]
+    roles, n, width = ctx["roles"], ctx["n"], ctx["width"]
+    if type(exam_key) is not str or not exam_key.startswith("sha256:"):
+        raise refused("bootstrap_exam_key_invalid")
+    try:
+        seed = int.from_bytes(bytes.fromhex(exam_key[7:])[:8], "big")
+    except ValueError:
+        raise refused("bootstrap_exam_key_invalid") from None
+    rows = bank_rows(bank, interface_names)
+
+    def rows_of(flat):
+        return [list(flat[i * width : (i + 1) * width]) for i in range(n)]
+
+    outputs = rows_of(ctx["values"])
+    repeats = [rows_of(r) for r in ctx["repeats"]]
+    by_cohort = {}
+    for index, row in enumerate(rows):
+        by_cohort.setdefault(row["cohort"], []).append(index)
+    pack, totals = roles["score_pack"], []
+    generator = np.random.Generator(np.random.PCG64(seed))
+    for _ in range(resamples):
+        order = []
+        for indexes in by_cohort.values():
+            order.extend(
+                int(i)
+                for i in generator.choice(indexes, size=len(indexes), replace=True)
+            )
+        try:
+            measured = adapter.measure(
+                bank_rows=[rows[i] for i in order],
+                outputs=[outputs[i] for i in order],
+                repeats=[[repeat[i] for i in order] for repeat in repeats],
+                definition=definition,
+                limits=roles["important_limit_definition"],
+                objective=roles["design_objective"],
+                train_raw=ctx["train_raw"],
+                names=interface_names,
+            )
+        except adapter.Refused as exc:
+            raise refused("bootstrap_unmeasurable:" + exc.code) from exc
+        gates = list(pack.get("hard_gates", []))
+        benchmark = {
+            "schema": "carbon.scoring.dual-benchmark-input.v1",
+            "scope": pack["scope"],
+            "challenge": adapter.CHALLENGE,
+            "physics_contract_digest": pack["physics_contract_digest"],
+            "measurement_contract_digest": pack["measurement_contract_digest"],
+            "population_role": source["cases"][0]["role"],
+            "common_mask_digest": sha(canonical(source["cases"])),
+            "models": [
+                {
+                    "artifact_digest": entry["entry_id"],
+                    "gates": {
+                        k: ("PASS" if measured["gates"][k] else "FAIL") for k in gates
+                    },
+                    "measurements": {
+                        METRICS["A"]: _leg(measured["A"]),
+                        METRICS["D"]: _leg(measured["D"]),
+                    },
+                    "decision_outcome": measured["decision_outcome"],
+                }
+            ],
+        }
+        total = score(benchmark, pack)["models"][0]["score"]
+        if type(total) not in (int, float) or not math.isfinite(total):
+            raise refused("bootstrap_total_unscored")
+        totals.append(float(total))
+    return float(np.std(np.asarray(totals), ddof=1)) if len(totals) > 1 else 0.0
+
+
+def _leg(value):
+    if value is None:
+        return {"status": "CANDIDATE_INVALID", "value": None, "unit": "1"}
+    return {"status": "RESOLVED", "value": value, "unit": "1"}

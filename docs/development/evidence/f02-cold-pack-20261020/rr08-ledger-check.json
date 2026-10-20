@@ -1,0 +1,21 @@
+{
+ "all_match": true,
+ "steps": {
+  "f02-rr08-spot": {
+   "ledgered": "2fdea11c2084e6e565f2408a389799ff000b5ca0f1b569568950e02f55f0432f",
+   "pin_now": "2fdea11c2084e6e565f2408a389799ff000b5ca0f1b569568950e02f55f0432f",
+   "in_step_record": true,
+   "selected": 12,
+   "selected_refused": [],
+   "match": true
+  },
+  "f02-rr08-train40v2": {
+   "ledgered": "caeaefc14c61423557ed54725c251558ad14baa552c735c78514bed74040fc46",
+   "pin_now": "caeaefc14c61423557ed54725c251558ad14baa552c735c78514bed74040fc46",
+   "in_step_record": true,
+   "selected": 40,
+   "selected_refused": [],
+   "match": true
+  }
+ }
+}

@@ -1,0 +1,29 @@
+{
+ "rows": 40,
+ "train_sha256": "b6875185efbaef2d759d9b1159d4343ae7b1f2b3a8f23aa21b212685a4caf754",
+ "freeze_manifest_sha256": "caeaefc14c61423557ed54725c251558ad14baa552c735c78514bed74040fc46",
+ "context": "c30-i40-s0.5-rectangular",
+ "peak_top_c": {
+  "min": 83.47296970550002,
+  "max": 151.12099543920004,
+  "mean": 106.05045250933502,
+  "std_population_ddof0": 16.704132283267995
+ },
+ "strata": {
+  "s1": {
+   "n": 24,
+   "at_or_below_95": 12,
+   "above_95": 12,
+   "min": 83.47296970550002,
+   "max": 106.43270236400002
+  },
+  "s2": {
+   "n": 16,
+   "at_or_below_95": 0,
+   "above_95": 16,
+   "min": 102.6426981093,
+   "max": 151.12099543920004
+  }
+ },
+ "all_rows_at_or_below_95": 12
+}

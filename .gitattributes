@@ -8,6 +8,9 @@ carbon/miner_mcp/apps_ui/workbench.html text eol=lf
 docs/history/WAVE_2026-09-22_90dd9670.md whitespace=-trailing-space
 # Frozen F08 action pins (CRLF bytes are the pinned sha256; never normalize).
 docs/development/evidence/f08-near-limit-public-20261020/*-actions.json -text whitespace=-trailing-space
+# F02 RR-04 judgement and TRAIN40-v2 summary: CRLF bytes are the recorded sha256; never normalize.
+docs/development/evidence/f02-cold-pack-20261020/rr04-judgement*.json -text whitespace=-trailing-space
+docs/development/evidence/f02-cold-pack-20261020/train40v2.summary.json -text whitespace=-trailing-space
 # Sha256-pinned files keep their committed bytes in every clone (Validator,
 # 2026-10-20): no line-ending conversion, whatever core.autocrlf says.
 # tests/invariants/test_pinned_files_survive_checkout.py fails on any pinned

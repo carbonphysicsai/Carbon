@@ -1,0 +1,254 @@
+{
+ "U": {
+  "static_tip_mm_per_n": 6.7e-07,
+  "worst_dynamic_mm_per_n": 3.9e-05
+ },
+ "adaptation": "F08 rungs are h = 3, 2.25, 1.7 mm (ratios 1.333, 1.324), not ratio 2; the non-uniform form reduces to the written rule at r = 2",
+ "angular_term": "not applicable",
+ "detail": {
+  "static_tip_mm_per_n": {
+   "U": 6.7e-07,
+   "largest_fine_estimate": 6.699069835239145e-07,
+   "p_lowest": 1.995165210132952
+  },
+  "worst_dynamic_mm_per_n": {
+   "U": 3.9e-05,
+   "largest_fine_estimate": 3.8524599250314205e-05,
+   "p_lowest": 2.235324313999291
+  }
+ },
+ "method": "MOTOR_REF_UNCERTAINTY_METHOD_20261019, Roache non-uniform-ratio form",
+ "panel": [
+  "pilot-0000",
+  "pilot-0001",
+  "pilot-0002",
+  "pilot-0003",
+  "pilot-0004",
+  "pilot-0005",
+  "pilot-0006",
+  "pilot-0007"
+ ],
+ "per_case": {
+  "pilot-0000": {
+   "h_mm": [
+    3.0,
+    2.25,
+    1.7
+   ],
+   "static_tip_mm_per_n": {
+    "monotone": true,
+    "p": 2.9061738930697874,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.001676045,
+     0.001677143,
+     0.001677611
+    ]
+   },
+   "worst_dynamic_mm_per_n": {
+    "monotone": true,
+    "p": 3.0495447634719275,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.15496001140504637,
+     0.15503224304173813,
+     0.15506179762858988
+    ]
+   }
+  },
+  "pilot-0001": {
+   "h_mm": [
+    3.0,
+    2.25,
+    1.7
+   ],
+   "static_tip_mm_per_n": {
+    "monotone": true,
+    "p": 2.843741220468515,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.001553404,
+     0.001554561,
+     0.001555063
+    ]
+   },
+   "worst_dynamic_mm_per_n": {
+    "monotone": true,
+    "p": 2.969181244505857,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.14323780299141023,
+     0.14330664338476812,
+     0.1433354630098562
+    ]
+   }
+  },
+  "pilot-0002": {
+   "h_mm": [
+    3.0,
+    2.25,
+    1.7
+   ],
+   "static_tip_mm_per_n": {
+    "monotone": true,
+    "p": 2.6224845249293303,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.001663749,
+     0.001664818,
+     0.001665312
+    ]
+   },
+   "worst_dynamic_mm_per_n": {
+    "monotone": true,
+    "p": 3.2082451260011613,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.15276022448842977,
+     0.15283318342810523,
+     0.1528617152205129
+    ]
+   }
+  },
+  "pilot-0003": {
+   "h_mm": [
+    3.0,
+    2.25,
+    1.7
+   ],
+   "static_tip_mm_per_n": {
+    "monotone": true,
+    "p": 2.499817389623405,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.001552074,
+     0.001552983,
+     0.001553418
+    ]
+   },
+   "worst_dynamic_mm_per_n": {
+    "monotone": true,
+    "p": 2.859570504271678,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.14450450658050334,
+     0.14457221676610366,
+     0.14460146268946578
+    ]
+   }
+  },
+  "pilot-0004": {
+   "h_mm": [
+    3.0,
+    2.25,
+    1.7
+   ],
+   "static_tip_mm_per_n": {
+    "monotone": true,
+    "p": 1.995165210132952,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.001567939,
+     0.001568777,
+     0.00156924
+    ]
+   },
+   "worst_dynamic_mm_per_n": {
+    "monotone": true,
+    "p": 2.235324313999291,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.14678838805998404,
+     0.14684939522340126,
+     0.14688087425431628
+    ]
+   }
+  },
+  "pilot-0005": {
+   "h_mm": [
+    3.0,
+    2.25,
+    1.7
+   ],
+   "static_tip_mm_per_n": {
+    "monotone": true,
+    "p": 2.6179225795884435,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.001768935,
+     0.001769981,
+     0.001770465
+    ]
+   },
+   "worst_dynamic_mm_per_n": {
+    "monotone": true,
+    "p": 2.95128139889479,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.1656036492044701,
+     0.16568340867686174,
+     0.1657169702885437
+    ]
+   }
+  },
+  "pilot-0006": {
+   "h_mm": [
+    3.0,
+    2.25,
+    1.7
+   ],
+   "static_tip_mm_per_n": {
+    "monotone": true,
+    "p": 2.5853188238198825,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.001678883,
+     0.001679793,
+     0.001680218
+    ]
+   },
+   "worst_dynamic_mm_per_n": {
+    "monotone": true,
+    "p": 2.6829892851516304,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.15682997819087624,
+     0.15689665173037318,
+     0.15692693595313056
+    ]
+   }
+  },
+  "pilot-0007": {
+   "h_mm": [
+    3.0,
+    2.25,
+    1.7
+   ],
+   "static_tip_mm_per_n": {
+    "monotone": true,
+    "p": 2.3502539945065415,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.001440843,
+     0.001441642,
+     0.001442041
+    ]
+   },
+   "worst_dynamic_mm_per_n": {
+    "monotone": true,
+    "p": 2.795351446901716,
+    "r21": 1.3235294117647058,
+    "values": [
+     0.13487209688733448,
+     0.1349343953275693,
+     0.1349618007188119
+    ]
+   }
+  }
+ },
+ "schema": "carbon.f08.reference-uncertainty.v1",
+ "scope": "DEVELOPMENT reference uncertainty; not a qualification",
+ "sha256": "cb889778857d53ce41416d33757bab58ac65f36caa2755fa36d9ffb9ae8c70f6",
+ "source": "RR-PACKS-07 ladder (docs/development/evidence/f08-near-limit-public-20261020/ladder-observed.json)",
+ "stop_triggers_fired": []
+}

@@ -1,0 +1,40 @@
+{
+ "schema": "carbon.reference-bulk.summary.v1",
+ "plan_id": "f02-rr08-spot",
+ "family": "f02",
+ "image_ref": "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add",
+ "image_pin": "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add",
+ "manifest_sha256": "sha256:2fdea11c2084e6e565f2408a389799ff000b5ca0f1b569568950e02f55f0432f",
+ "cases_in_manifest": 12,
+ "launches": 12,
+ "outcomes": {
+  "COMPLETED": 12
+ },
+ "refused": 0,
+ "not_launched": {},
+ "acceptance": null,
+ "ceilings": {
+  "launches": 12,
+  "cpu_hours": 4.0
+ },
+ "allocated_cpu_hours": 2.1824,
+ "cgroup_cpu_hours": 0.0,
+ "measured_cpu_hours": 2.1821,
+ "executors": [
+  "native"
+ ],
+ "wall_s": {
+  "total": 7856.6,
+  "p50": 318.307,
+  "p95": 1507.403,
+  "max": 1507.403
+ },
+ "memory_peak_mib": {
+  "p50": 29.0,
+  "p95": 120.6,
+  "max": 120.6,
+  "cases_with_peak": 12,
+  "limit": 2048.0
+ },
+ "maturity": "DEVELOPMENT cost measurement; no qualification or adequacy claim"
+}

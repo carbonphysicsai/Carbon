@@ -99,9 +99,15 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
         "predictions_raw_base64",
         "submission_digest",
     }
+    # A measured graph keeps its batched cold query as a separate timed receipt.
+    timed_fields = (
+        {"timed_operation", "timed_receipt"}
+        if type(evidence) is dict and "timed_receipt" in evidence
+        else set()
+    )
     if (
         type(evidence) is not dict
-        or set(evidence) != worker_fields | {"predictions"}
+        or set(evidence) != worker_fields | timed_fields | {"predictions"}
         or type(evidence["build_receipt"]) is not dict
         or type(evidence["inference_receipt"]) is not dict
         or any(
@@ -189,6 +195,19 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
     inference_receipt = _receipt_snapshot(
         inference / "receipt.json", evidence["inference_receipt"], "inference_receipt"
     )
+    timed_receipt = None
+    if timed_fields:
+        if (
+            type(evidence["timed_operation"]) is not str
+            or re.fullmatch(r"operation-[0-9a-f]{64}", evidence["timed_operation"])
+            is None
+        ):
+            raise RetentionUnavailable("timed_operation_invalid")
+        timed_receipt = _receipt_snapshot(
+            root / evidence["timed_operation"] / "snapshot" / "receipt.json",
+            evidence["timed_receipt"],
+            "timed_receipt",
+        )
     train = material["train"]
     if _sha(train) != recipe.to_dict()["challenge"]["train_digest"]:
         raise RetentionUnavailable("public_train_changed")
@@ -218,6 +237,9 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
         "inference-receipt.json": inference_receipt,
         "worker-evidence.json": _json(worker),
         "task-receipt.json": canonical_bytes(task.terminal_receipt),
+        **(
+            {} if timed_receipt is None else {"timed-query-receipt.json": timed_receipt}
+        ),
     }
     return artifacts
 
@@ -229,18 +251,19 @@ def _retain_graph_artifacts(
 
     try:
         from scripts.dev.score_lab.public_unbound_custody import (
-            GRAPH_ROLE_SCHEMA_V3,
+            GRAPH_ROLE_SCHEMA_V5,
             prepare_custody_v5,
         )
         from scripts.dev.score_lab.public_unbound_entry import create_entry_v5
     except ImportError as exc:
         raise RetentionUnavailable("graph_bank_role_contract_unavailable") from exc
-    if GRAPH_ROLE_SCHEMA_V3 != "carbon.scorelab.public-model-artifact-roles.v3":
+    if GRAPH_ROLE_SCHEMA_V5 != "carbon.scorelab.public-model-artifact-roles.v5":
         raise RetentionUnavailable("graph_bank_role_contract_unavailable")
+    # Graded one case at a time, as a bundle is; timing is the timed query's.
     if json.loads(artifacts["inference-receipt.json"]).get("schema") != (
-        "carbon.development.bundle-inference.v2"
+        "carbon.development.bundle-inference.v1"
     ):
-        raise RetentionUnavailable("graph_measured_receipt_unavailable")
+        raise RetentionUnavailable("graph_per_case_receipt_unavailable")
     roles = {
         "recipe": ("recipe.json", "json"),
         "construction_kit": ("construction-kit.json", "json"),
@@ -256,9 +279,14 @@ def _retain_graph_artifacts(
         "inference_receipt": ("inference-receipt.json", "json"),
         "worker_evidence": ("worker-evidence.json", "json"),
         "task_receipt": ("task-receipt.json", "raw_bytes"),
+        **(
+            {"timed_receipt": ("timed-query-receipt.json", "json")}
+            if "timed-query-receipt.json" in artifacts
+            else {}
+        ),
     }
     role_manifest = {
-        "schema": GRAPH_ROLE_SCHEMA_V3,
+        "schema": GRAPH_ROLE_SCHEMA_V5,
         "scope": "PUBLIC_DEVELOPMENT_BUNDLE_MODEL",
         "source_schema": "carbon.development.graph-source-state.v1",
         "roles": {
@@ -423,9 +451,20 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id, evide
             write_once(receipt_path, receipt_raw)
             write_once(reference_path, reference_raw)
         worker = json.loads(artifacts["worker-evidence.json"]) if graph else evidence
-        # The measurement belongs to the batched cold query kept for timing.
+        # The measurement belongs to the batched cold query kept for timing; a
+        # graph binds its graded receipt and passes that query separately.
+        timed_query = (
+            {
+                "receipt_raw": artifacts["timed-query-receipt.json"],
+                "registered_sha256": _sha(artifacts["timed-query-receipt.json"]),
+            }
+            if graph and "timed-query-receipt.json" in artifacts
+            else None
+        )
         inference_receipt = json.loads(
-            artifacts.get(
+            artifacts["inference-receipt.json"]
+            if graph
+            else artifacts.get(
                 "timed-query-receipt.json", artifacts["inference-receipt.json"]
             )
         )
@@ -453,10 +492,12 @@ def _retain_public_synthetic_measurement(result, artifacts, submission_id, evide
                 {
                     "inference_receipt_raw": artifacts["inference-receipt.json"],
                     "worker_evidence_raw": artifacts["worker-evidence.json"],
+                    **({} if timed_query is None else {"timed_query": timed_query}),
                 }
                 if graph
                 else None
             ),
+            timed_query=timed_query,
         )
         document = {
             "schema": "carbon.lean-recipe.public-development-measurement.v1",
@@ -587,18 +628,24 @@ def _retain_selected_pack_evaluation(
             or type(evidence.get("inference_image_id")) is not str
         ):
             raise RetentionUnavailable("dual_model_originals_unavailable")
+        from carbon.scoring import battery_dual_pack, physical_adapters
         from carbon.scoring.private_evaluation_source import (
             produce_registered_dual_measurement,
         )
 
+        # Validator-only: Battery's adapter is never imported by the shared
+        # dispatch, which miner surfaces reach (physical_adapters).
+        physical_adapters.register(battery_dual_pack)
+
         source = snapshot.read_source_registration(private_root)
-        # The per-miner cap and the epoch limit refuse here, before any grading (and so
-        # before any exam wear); the slot is settled once the outcome is known.
+        # The daily allowance, the epoch limit and the exam key's age refuse here, before
+        # any grading (and so before any exam wear); the slot is settled once the
+        # outcome is known.
         from carbon.challenge_validator import exam_cap
 
         # Recovery of crashed reservations runs at receiver start-up, never here.
         cap = exam_cap.ExamCap(
-            adapter.ledger, caps=getattr(adapter, "exam_cap_caps", None)
+            adapter.ledger, cadence=getattr(adapter, "exam_cadence", None)
         )
         reservation = cap.reserve(
             hotkey=adapter.owner(submission_id) if regrade is None else regrade.owner,
@@ -649,23 +696,25 @@ def _retain_selected_pack_evaluation(
                 )
                 + b"\n",
             }
-            if "timed-query-receipt.json" in artifacts:
-                originals["timed_query"] = {
-                    "receipt_raw": artifacts["timed-query-receipt.json"],
-                    "registered_sha256": _sha(artifacts["timed-query-receipt.json"]),
-                }
-            # Never gates retention: this runs after bank custody, and a missing
-            # or failed pair leaves the evaluation UNAVAILABLE with a typed reason.
-            pair_raw = _inference_pair_raw(
-                adapter,
-                submission_id,
-                result,
-                artifacts,
-                registered["entry"],
-                regrade,
-            )
-            originals["inference_pair_raw"] = pair_raw
-            originals["inference_pair_sha256"] = _sha(pair_raw)
+        # A per-case graded query (graph or bundle) carries its pinned timed query.
+        if "timed-query-receipt.json" in artifacts:
+            originals["timed_query"] = {
+                "receipt_raw": artifacts["timed-query-receipt.json"],
+                "registered_sha256": _sha(artifacts["timed-query-receipt.json"]),
+            }
+        # Graph and bundle alike: the paired repeat is what the KOTH comparison
+        # binds (v4). Never gates retention: this runs after bank custody, and a
+        # missing or failed pair leaves the evaluation UNAVAILABLE with a typed reason.
+        pair_raw = _inference_pair_raw(
+            adapter,
+            submission_id,
+            result,
+            artifacts,
+            registered["entry"],
+            regrade,
+        )
+        originals["inference_pair_raw"] = pair_raw
+        originals["inference_pair_sha256"] = _sha(pair_raw)
         prepared = produce_registered_dual_measurement(
             selected_pack=snapshot,
             public_root=discovery.evaluation_pack_public_root,
@@ -709,7 +758,17 @@ def _retain_selected_pack_evaluation(
             benchmark, registered["score_pack"]
         )
         # The exam was applied: a graded outcome keeps the slot, anything else gives it back.
-        cap.settle(reservation, scoring["models"][0]["status"])
+        cap.settle(
+            reservation,
+            scoring["models"][0]["status"],
+            cpu_seconds=(
+                None
+                if regrade is not None
+                else _rebuild_cpu_seconds(
+                    adapter, submission_id, evidence, snapshot.manifest_digest
+                )
+            ),
+        )
         reservation = None
         expected_result = _sha(
             (
@@ -749,6 +808,16 @@ def _retain_selected_pack_evaluation(
         write_once(binding_path, _json(binding))
         if regrade is not None and regrade.promotion is not None:
             _record_regraded_evidence(regrade, bind_inputs, source_pin)
+        if regrade is not None and regrade.exam_se:
+            _write_exam_se(
+                adapter,
+                snapshot,
+                directory,
+                registered,
+                source,
+                originals,
+                scoring,
+            )
         koth = None
         if pool_store is not None and regrade is None:
             koth = _contend(
@@ -801,6 +870,93 @@ def _retain_selected_pack_evaluation(
         ),
         **({} if koth is None else {"koth_comparison": koth}),
     }
+
+
+def _write_exam_se(
+    adapter, snapshot, directory, registered, source, originals, scoring
+):
+    """The exam-total standard error of this evaluation (a case bootstrap), write-once beside
+    the binding; an adapter that cannot measure a resample leaves UNAVAILABLE with the reason.
+    Read only by the operator's weekly fresh-draw check (``exam_rotation``)."""
+    from carbon.challenge_kit import physical_pack
+    from carbon.challenge_validator import exam_rotation
+    from carbon.development_session.data import write_once
+    from carbon.scoring import physical_dual_pack, private_evaluation_source
+
+    document = {
+        "schema": exam_rotation.SE_SCHEMA,
+        "exam_key": snapshot.manifest_digest,
+        "resamples": 200,
+        "total": scoring["models"][0].get("score"),
+    }
+    try:
+        module = private_evaluation_source._physical_adapter(
+            adapter.challenge_id, adapter.challenge_version
+        )
+        if module is None:
+            raise private_evaluation_source.PrivateEvaluationSourceRefused(
+                "bootstrap_adapter_unavailable"
+            )
+        discovery = adapter.discovery
+        document["standard_error"] = physical_dual_pack.bootstrap_total_se(
+            module,
+            selected=snapshot,
+            public_root=discovery.evaluation_pack_public_root,
+            private_root=discovery.evaluation_pack_private_root,
+            entry=registered["entry"],
+            job=source["trusted_job"],
+            registration=source["benchmark_registration"],
+            references=registered["references"],
+            originals=originals,
+            source_raw=registered["evaluation_source_receipt_raw"],
+            bank=physical_pack.development_bank(
+                adapter.challenge_id, adapter.challenge_version
+            ),
+            interface_names=physical_dual_pack.input_names(module),
+            exam_key=snapshot.manifest_digest,
+            resamples=document["resamples"],
+        )
+        document["status"] = "MEASURED"
+    except private_evaluation_source.PrivateEvaluationSourceRefused as refused:
+        document["status"] = "UNAVAILABLE"
+        document["reason"] = refused.code
+    write_once(directory / exam_rotation.SE_SIDECAR, _json(document))
+
+
+def _rebuild_cpu_seconds(adapter, submission_id, evidence, exam_key):
+    """Allocated CPU-seconds of one graded submission's rebuild, from the ledger's receipts:
+    the metered compute time of its worker operations (build, graded inference, timed
+    query, repeat pair) times the policy's CPU count. None when the receipts carry none,
+    so the registered placeholder keeps standing in for it."""
+    try:
+        from carbon.development_session.paired_inference import pair_identities
+
+        policy = adapter.discovery._material["construction_limits_document"][
+            "reconstruction_resource_policy"
+        ]
+        cpus = policy["cpu_count_max"]
+        provider = adapter._provider(adapter.owner(submission_id))
+        operations = [
+            evidence.get(name)
+            for name in ("build_operation", "inference_operation", "timed_operation")
+        ]
+        operations += list(pair_identities("pair-" + exam_key + "-" + submission_id))
+        milliseconds = 0
+        with provider.ledger.db() as db:
+            for operation in operations:
+                if type(operation) is not str:
+                    continue
+                row = db.execute(
+                    "SELECT actual FROM operations WHERE id=?", (operation,)
+                ).fetchone()
+                if row is not None and row[0]:
+                    milliseconds += json.loads(row[0]).get("numerical_milliseconds", 0)
+        if type(cpus) is not int or cpus < 1 or milliseconds <= 0:
+            return None
+        return milliseconds / 1000.0 * cpus
+    # A missing receipt only leaves the registered placeholder in force.
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _pool_admit(store, adapter, submission_id, entry, artifacts):
@@ -1400,6 +1556,8 @@ class _Regrade:
     #: A BankPromotion: the regraded evidence is recorded under the origin task's own
     #: submission id on the new evaluation key, so KOTH finds it for the incumbent.
     promotion: object = None
+    #: Also compute the exam-total standard error (case bootstrap) into a sidecar.
+    exam_se: bool = False
 
 
 def _record_regraded_evidence(regrade, bind_inputs, pin=None):
@@ -1468,6 +1626,7 @@ def regrade_retained_entry(
     entry_directory: Path,
     runner=None,
     promotion=None,
+    exam_se: bool = False,
 ) -> dict:
     """Regrade a retained model on the receiver's selected (rotated) evaluation pack.
 
@@ -1722,7 +1881,7 @@ def regrade_retained_entry(
         bound,
         artifacts,
         evidence,
-        _Regrade(owner, recipe, origin, entry_id, promotion),
+        _Regrade(owner, recipe, origin, entry_id, promotion, exam_se),
     )
     return {**regraded, "regrade_of": entry_id, "regrade_task_id": regrade_id}
 

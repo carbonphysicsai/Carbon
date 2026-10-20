@@ -1,0 +1,64 @@
+"""F02 reference uncertainty: the single-refinement bound (Validator, 2026-10-20).
+
+    python3 f02_reference_uncertainty.py RR04_JUDGEMENT.json > record.json
+
+F02's rungs are one refinement per axis against the primary (mesh2: space,
+dt0.5: time), so no observed order is possible. The Validator's rule:
+U(peak_top_c) = max over the eight cold actions of
+max(|mesh2 - primary|, |dt0.5 - primary|), rounded up to 2 significant digits.
+Conservative (about 3x a second-order estimate), justified because this
+build's MMS shows order about 2 in space and time (RR-PACKS-05/08 evidence).
+"""
+
+import hashlib
+import json
+import math
+import sys
+
+ACTIONS = ["cool-rect-long-high", "cool-rect-low", "cool-rect-middle", "cool-rect-short-high"] + [
+    f"cool-rect-near-{p}w" for p in (84, 85, 86, 87)
+]
+
+
+def round_up_2sig(x):
+    e = math.floor(math.log10(x)) - 1
+    return math.ceil(x / 10**e) * 10**e
+
+
+def record(judgement):
+    obs, rows = judgement["observables"], {}
+    for a in ACTIONS:
+        primary = obs[a + "-primary"]["peak_top_c"]
+        rows[a] = {
+            "primary": primary,
+            "mesh2_shift": obs[a + "-mesh2"]["peak_top_c"] - primary,
+            "dt05_shift": obs[a + "-dt0.5"]["peak_top_c"] - primary,
+        }
+        rows[a]["bound"] = max(abs(rows[a]["mesh2_shift"]), abs(rows[a]["dt05_shift"]))
+    largest = max(r["bound"] for r in rows.values())
+    flips = [
+        a for a, r in rows.items()
+        if len({v <= 95.0 for v in (r["primary"], r["primary"] + r["mesh2_shift"], r["primary"] + r["dt05_shift"])}) != 1
+    ]
+    body = {
+        "schema": "carbon.f02.reference-uncertainty.v1",
+        "scope": "DEVELOPMENT reference uncertainty; not a qualification",
+        "kind": "single-refinement bound",
+        "rule": "max over the eight cold actions of max(|mesh2 - primary|, |dt0.5 - primary|), "
+        "rounded up to 2 significant digits (Validator, 2026-10-20)",
+        "justification": "one refinement per axis, so no observed order; conservative "
+        "(about 3x the second-order estimate); this build's MMS shows order about 2 in space and time",
+        "source": "RR-PACKS-04 judgement (docs/development/evidence/f02-cold-pack-20261020/rr04-judgement.json)",
+        "quantity": "peak_top_c",
+        "limit_c": 95.0,
+        "per_case": rows,
+        "largest_shift_c": largest,
+        "U": {"peak_top_c": round_up_2sig(largest)},
+        "label_flips_across_rungs": flips,
+    }
+    body["sha256"] = hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return body
+
+
+if __name__ == "__main__":
+    print(json.dumps(record(json.load(open(sys.argv[1], encoding="utf-8"))), indent=1, sort_keys=True))

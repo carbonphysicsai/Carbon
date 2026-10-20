@@ -1613,6 +1613,10 @@ def prepare_custody_v4(artifact_root: Path, role_manifest_path: Path) -> dict:
 BUNDLE_ROLE_SCHEMA_V2 = "carbon.scorelab.public-model-artifact-roles.v2"
 GRAPH_ROLE_SCHEMA_V3 = "carbon.scorelab.public-model-artifact-roles.v3"
 GRAPH_ROLE_SCHEMA_V4 = "carbon.scorelab.public-model-artifact-roles.v4"
+#: v5: a direct graph graded one case at a time (an unmeasured v1 graded
+#: receipt), its batched cold query kept as a separate timed receipt, exactly
+#: as a bundle's. v3 (a measured batched graded query) stays readable history.
+GRAPH_ROLE_SCHEMA_V5 = "carbon.scorelab.public-model-artifact-roles.v5"
 BUNDLE_CUSTODY_SCHEMA_V5 = "carbon.scorelab.public-model-custody-receipt.v5"
 BUNDLE_STATE_SCHEMA = "carbon.development.bundle-graph-state.v1"
 GRAPH_SOURCE_STATE_SCHEMA = "carbon.development.graph-source-state.v1"
@@ -1653,6 +1657,7 @@ _GRAPH_ROLE_CODECS = {
     "construction_kit": "json",
     "worker_evidence": "json",
     "task_receipt": "raw_bytes",
+    "timed_receipt": "json",
 }
 _GRAPH_CORE_ROLES = frozenset(
     {
@@ -1942,9 +1947,12 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
 
     if manifest["source_schema"] != GRAPH_SOURCE_STATE_SCHEMA:
         raise CustodyRefused("graph_role_scope")
+    per_case = manifest["schema"] == GRAPH_ROLE_SCHEMA_V5
     roles = manifest["roles"]
-    if type(roles) is not dict or not _GRAPH_CORE_ROLES <= set(roles) <= set(
-        _GRAPH_ROLE_CODECS
+    if (
+        type(roles) is not dict
+        or not _GRAPH_CORE_ROLES <= set(roles) <= set(_GRAPH_ROLE_CODECS)
+        or (not per_case and "timed_receipt" in roles)
     ):
         raise CustodyRefused("graph_roles")
     role_paths = {}
@@ -2123,9 +2131,32 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
     ):
         raise CustodyRefused("graph_build_receipt")
     inference = _graph_json(by_role["inference_receipt"], "inference_receipt")
-    measured = inference.get("measurement")
-    if (
-        set(inference)
+    timed = None
+    if per_case:
+        # Graded one case at a time: an unmeasured receipt; timing and shapes
+        # come only from the separate timed query, when the task was measured.
+        if (
+            set(inference)
+            != {
+                "schema",
+                "recipe_digest",
+                "state_digest",
+                "inputs_digest",
+                "predictions_digest",
+            }
+            or inference["schema"] != "carbon.development.bundle-inference.v1"
+            or inference["recipe_digest"] != recipe_digest
+            or inference["state_digest"] != _sha(by_role["state"])
+            or inference["inputs_digest"] != _sha(by_role["inputs"])
+            or inference["predictions_digest"] != _sha(by_role["predictions"])
+        ):
+            raise CustodyRefused("graph_per_case_inference_receipt")
+        if "timed_receipt" in by_role:
+            timed = _graph_json(by_role["timed_receipt"], "timed_receipt")
+    measured_receipt = timed if per_case else inference
+    measured = None if measured_receipt is None else measured_receipt.get("measurement")
+    if measured_receipt is not None and (
+        set(measured_receipt)
         != {
             "schema",
             "recipe_digest",
@@ -2134,11 +2165,14 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
             "predictions_digest",
             "measurement",
         }
-        or inference["schema"] != "carbon.development.bundle-inference.v2"
-        or inference["recipe_digest"] != recipe_digest
-        or inference["state_digest"] != _sha(by_role["state"])
-        or inference["inputs_digest"] != _sha(by_role["inputs"])
-        or inference["predictions_digest"] != _sha(by_role["predictions"])
+        or measured_receipt["schema"] != "carbon.development.bundle-inference.v2"
+        or measured_receipt["recipe_digest"] != recipe_digest
+        or measured_receipt["state_digest"] != _sha(by_role["state"])
+        or measured_receipt["inputs_digest"] != _sha(by_role["inputs"])
+        or (
+            not per_case
+            and measured_receipt["predictions_digest"] != _sha(by_role["predictions"])
+        )
         or type(measured) is not dict
         or set(measured)
         != {
@@ -2201,7 +2235,15 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
         "inference_receipt",
         "predictions_raw_base64",
         "submission_digest",
-    }
+    } | ({"timed_operation", "timed_receipt"} if timed is not None else set())
+    if timed is not None and (
+        worker.get("timed_receipt") != timed
+        or type(worker.get("timed_operation")) is not str
+        or re.fullmatch(r"operation-[0-9a-f]{64}", worker["timed_operation"]) is None
+        or worker["timed_operation"]
+        in (worker.get("build_operation"), worker.get("inference_operation"))
+    ):
+        raise CustodyRefused("graph_worker_timed_query")
     if (
         set(worker) != worker_fields
         or worker["schema"] != "carbon.direct-private-attempt.graph.v1"
@@ -2269,7 +2311,7 @@ def _prepare_graph_custody_v5(root, manifest_raw, manifest):
     return {
         "schema": BUNDLE_CUSTODY_SCHEMA_V5,
         "source_kind": "graph",
-        "role_schema": GRAPH_ROLE_SCHEMA_V3,
+        "role_schema": GRAPH_ROLE_SCHEMA_V5 if per_case else GRAPH_ROLE_SCHEMA_V3,
         "source_schema": GRAPH_SOURCE_STATE_SCHEMA,
         "scope": BUNDLE_SCOPE,
         "challenge": challenge["id"],
@@ -2560,7 +2602,7 @@ def prepare_custody_v5(artifact_root: Path, role_manifest_path: Path) -> dict:
         raise CustodyRefused("bundle_role_scope")
     if manifest["schema"] == GRAPH_ROLE_SCHEMA_V4:
         return _prepare_native_graph_custody_v5(root, manifest_raw, manifest)
-    if manifest["schema"] == GRAPH_ROLE_SCHEMA_V3:
+    if manifest["schema"] in (GRAPH_ROLE_SCHEMA_V3, GRAPH_ROLE_SCHEMA_V5):
         return _prepare_graph_custody_v5(root, manifest_raw, manifest)
     if (
         manifest["schema"] != BUNDLE_ROLE_SCHEMA_V2

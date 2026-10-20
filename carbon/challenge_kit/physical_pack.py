@@ -33,6 +33,8 @@ from carbon.motor import challenge as motor
 
 from . import (
     battery_pack,
+    f02_public,
+    f02_train,
     f08_public,
     f08_train,
     physical_public,
@@ -84,7 +86,32 @@ PACK_VERSIONS = {
     cooling.CHALLENGE.challenge_id: "cooling-normal-construction-development-1",
     battery_pack.CHALLENGE_ID: battery_pack.PACK_VERSION,
     f08_train.CHALLENGE_ID: "f08-normal-construction-development-1",
+    f02_train.CHALLENGE_ID: "f02-normal-construction-development-2",
 }
+#: F02's eight registered cold actions (the scoring producer's
+#: `_F02_ACTIONS`), judged B10 ACCEPTED_FOR_DEVELOPMENT_BANK by RR-PACKS-04's
+#: plan rejudge under F02-SCIENCE-VALUES-01. Each reference is the primary
+#: rung; mesh2 and dt0.5 are its convergence rungs.
+F02_ACTIONS = {
+    "cool-rect-low": (80, 5),
+    "cool-rect-middle": (110, 10),
+    "cool-rect-short-high": (140, 5),
+    "cool-rect-long-high": (140, 20),
+    **{f"cool-rect-near-{power}w": (power, 5) for power in (84, 85, 86, 87)},
+}
+_F02_JUDGEMENT = (
+    f02_train.EVIDENCE + "/rr04-judgement.json",
+    "f7cc8c877e25a14658997f484377beffe91f971db2f3ba565393c18343bfdf1a",
+)
+#: RR-PACKS-04's bulk ledger for the same plan: each primary's measured solve
+#: wall time (FINISHED, exit 0, COMPLETED) for the solver-speed benchmark.
+_F02_LEDGER = (
+    f02_train.EVIDENCE + "/rr04-convergence-ledger.jsonl",
+    "f0b33758961b9eb0ccd23155cc05ed1f9d5c550e905064a4118308057d6e4a1b",
+)
+F02_DECISION_COVERAGE = "RANKING_AND_FEASIBILITY_STRADDLE"
+F02_POPULATION = "REGISTERED_EIGHT_ACTION_SET_NOT_INDEPENDENT"
+_F02_RUNGS = ("primary", "mesh2", "dt0.5")
 #: F08's first accepted decision references (RR-PACKS-03, Validator-reviewed
 #: 2026-10-19): eight TRAIN-informed near-feasible geometries at h = 1.7 mm.
 _F08_OBSERVED = (
@@ -229,6 +256,9 @@ def _files(challenge_id: str, version: str) -> dict:
     if challenge_id == f08_train.CHALLENGE_ID:
         f08_public.construction_kit(challenge_id, version)  # refuses unknown
         return {}
+    if challenge_id == f02_train.CHALLENGE_ID:
+        f02_public.construction_kit(challenge_id, version)  # refuses unknown
+        return {}
     if challenge_id not in _ROLE_FILES:
         raise ValueError("no normal-construction pack for this Challenge")
     physical_public.construction_kit(challenge_id, version)  # refuses unknown versions
@@ -254,6 +284,12 @@ _PHYSICS_VERSIONS = {
 def physics_contract(challenge_id: str, version: str) -> dict | None:
     """The Challenge's versioned physics contract for the construction material
     and the pack to carry, or None while it is not bound."""
+    if challenge_id == f02_train.CHALLENGE_ID:
+        _files(challenge_id, version)
+        # F02 adopts no law; its summary basis is the scoring producer's.
+        from carbon.scoring import f02_dual_pack
+
+        return f02_dual_pack.physics_contract()
     if challenge_id == f08_train.CHALLENGE_ID:
         _files(challenge_id, version)
         # F08's physics contract is the scoring producer's source binding.
@@ -280,6 +316,8 @@ def public_roles(challenge_id: str, version: str) -> dict[str, bytes]:
     and HUMAN_INPUT in the manifest. Nothing is defaulted or inferred."""
     if challenge_id == battery_pack.CHALLENGE_ID:
         return battery_pack.public_roles(version)
+    if challenge_id == f02_train.CHALLENGE_ID:
+        return _f02_public_roles(challenge_id, version)
     if challenge_id == f08_train.CHALLENGE_ID:
         brief = _pinned_repository_file(_F08_BRIEF)
         brief_text = brief.decode("utf-8")
@@ -375,6 +413,8 @@ def development_bank(challenge_id: str, version: str) -> dict:
         return battery_pack.development_bank(version)
     if challenge_id == f08_train.CHALLENGE_ID:
         return _f08_bank(challenge_id, version)
+    if challenge_id == f02_train.CHALLENGE_ID:
+        return _f02_bank(challenge_id, version)
     if challenge_id not in _BANKS:
         raise ValueError("no development bank for this Challenge")
     study = json.loads(_bank_file(challenge_id, "study"))
@@ -595,6 +635,164 @@ def _f08_bank(challenge_id: str, version: str) -> dict:
     }
 
 
+def _f02_public_roles(challenge_id: str, version: str) -> dict[str, bytes]:
+    """F02's public roles. The accuracy definition and the Design policy and
+    scales are scoring authority, so they stay HUMAN_INPUT here; the decided
+    TRAIN spread is carried by the TRAIN provenance and the kit's limits."""
+    _files(challenge_id, version)
+    identity = {"id": challenge_id, "version": version}
+    sources = [
+        {"path": "scripts/dev/reference_packages/elmer/f02_menu.py",
+         "symbol": "existing bounds (95 C)"},
+        {"path": ".agent/decisions/2026-10-19-OWNER-F02-TRAIN40-V2-01.md"},
+    ]  # fmt: skip
+    return {
+        "construction_kit": _canonical(
+            f02_public.construction_kit(challenge_id, version)
+        ),
+        "interface": _canonical(f02_public.interface_document(challenge_id, version)),
+        "train": f02_train.load_public_train(version)["train"],
+        "physics_contract": _canonical(physics_contract(challenge_id, version)),
+        "important_limit_definition": _canonical(
+            {
+                "schema": "carbon.f02.important-limit-definition.v1",
+                "challenge": identity,
+                "context": dict(f02_train.CONTEXT),
+                "constraints": {"peak_top_c_max": f02_train.LIMIT_C},
+                "inclusive_boundaries": True,
+                "decision_coverage": F02_DECISION_COVERAGE,
+                "population": F02_POPULATION,
+                "train_peak_std_c": dict(
+                    f02_train.load_public_train(version)["provenance"][
+                        "train_peak_std_c"
+                    ]
+                ),
+                "sources": sources,
+            }
+        ),
+        "design_objective": _canonical(
+            {
+                "schema": "carbon.f02.design-objective.v1",
+                "challenge": identity,
+                "sense": "maximize",
+                "quantity": "extra_energy_j",
+                "definition": "analytic (peak_w - 20) * on_time_s of a schedule whose "
+                "peak top temperature is within the limit",
+                "decision_coverage": F02_DECISION_COVERAGE,
+                "design_policy_and_scales": UNAVAILABLE,
+                "sources": sources,
+            }
+        ),
+    }
+
+
+def _f02_bank(challenge_id: str, version: str) -> dict:
+    """F02's eight accepted primaries, laid out by the interface."""
+    interface = f02_public.interface_document(challenge_id, version)
+    names = interface["input"]["names"]
+    slices = interface["output"]["named_slices"]
+    width = max(end for _, end in slices.values())
+    raw = _pinned_repository_file(_F02_JUDGEMENT)
+    judgement = json.loads(raw)
+    acceptance = judgement.get("family_acceptance", {})
+    if (
+        judgement.get("schema") != "carbon.f02-readiness.judgement.v1"
+        or acceptance.get("status") != "ACCEPTED_FOR_DEVELOPMENT_BANK"
+        or acceptance.get("primaries_passing") != acceptance.get("primaries")
+        or acceptance.get("baseline_checks_passing")
+        != acceptance.get("baseline_checks_expected")
+    ):
+        raise ValueError("F02 judgement is not an accepted development bank")
+    observables, rungs = judgement["observables"], judgement["rung_comparisons"]
+    finished = {}
+    for line in _pinned_repository_file(_F02_LEDGER).decode("utf-8").splitlines():
+        event = json.loads(line)
+        if event.get("event") == "FINISHED":
+            if event.get("case") in finished:
+                raise ValueError("F02 ledger repeats a case")
+            finished[event.get("case")] = event
+    case_ids, rows, references, records = [], [], [], []
+    for case_id in sorted(F02_ACTIONS):
+        power, on_time = F02_ACTIONS[case_id]
+        compared = rungs.get(case_id, {})
+        values = {r: observables.get(f"{case_id}-{r}", {}) for r in _F02_RUNGS}
+        peaks = [values[r].get("peak_top_c") for r in _F02_RUNGS]
+        if (
+            compared.get("pass") is not True
+            or not all(type(v) is float and np.isfinite(v) for v in peaks)
+            or compared.get("primary_peak_c") != peaks[0]
+            or len({v <= f02_train.LIMIT_C for v in peaks}) != 1
+        ):
+            raise ValueError(f"{case_id} has no accepted reference")
+        primary = values["primary"]
+        energy = primary.get("extra_energy_j")
+        # The observer sums the energy in floating point (2399.9999999999995).
+        if type(energy) is not float or not np.isclose(
+            energy, (power - 20) * on_time, rtol=1e-12, atol=0.0
+        ):
+            raise ValueError(f"{case_id} action differs from its registered schedule")
+        solve = finished.get(case_id + "-primary", {})
+        wall_s = solve.get("wall_s")
+        if (
+            solve.get("outcome") != "COMPLETED"
+            or solve.get("exit") != 0
+            or solve.get("reservation") != "primary"
+            or solve.get("image_pin") != judgement["image"]
+            or type(wall_s) is not float
+            or not wall_s > 0
+        ):
+            raise ValueError(f"{case_id} has no measured primary solve")
+        target = [0.0] * width
+        target[slice(*slices["peak_top_c"])] = [peaks[0]]
+        case_ids.append(case_id)
+        rows.append([float({"peak_w": power, "on_time_s": on_time}[n]) for n in names])
+        references.append(target)
+        records.append(
+            {
+                "status": "OK",
+                "case_id": case_id,
+                "design_id": case_id,
+                "action": {"peak_w": power, "on_time_s": on_time},
+                "context": dict(f02_train.CONTEXT),
+                "image": judgement["image"],
+                "wall_s": wall_s,
+                "observed": {
+                    k: primary[k]
+                    for k in (
+                        "peak_top_c",
+                        "extra_energy_j",
+                        "first_95c_crossing_s",
+                        "peak_time_s",
+                        "recovery_s",
+                    )
+                },
+                "rung_peaks_c": dict(zip(_F02_RUNGS, peaks, strict=True)),
+                "convergence": compared,
+            }
+        )
+    dtype = interface["train_dtype"]
+    inputs = np.asarray(rows, dtype=dtype)
+    targets = np.asarray(references, dtype=dtype)
+    if inputs.shape != (8, len(names)) or targets.shape != (8, width):
+        raise ValueError("F02 bank tensor differs")
+    train = f02_train.load_public_train(version)["inputs"]
+    seen = {tuple(row) for row in np.asarray(train, dtype=inputs.dtype).tolist()}
+    if any(tuple(row) in seen for row in inputs.tolist()):
+        raise ValueError("F02 exam action is a TRAIN action")
+    inputs.setflags(write=False)
+    targets.setflags(write=False)
+    return {
+        "case_ids": tuple(case_ids),
+        "cohorts": ("decision_cold_eight",) * len(case_ids),
+        "inputs": inputs,
+        "references": targets,
+        "reference_records": records,
+        "solver_evidence": raw,
+        "decision_coverage": F02_DECISION_COVERAGE,
+        "population": F02_POPULATION,
+    }
+
+
 def _development_private_roles(challenge_id: str, version: str) -> dict[str, bytes]:
     from carbon.development_session.bundle_construction_worker import _tensors
 
@@ -681,6 +879,8 @@ def main(argv: list[str] | None = None) -> int:
         version = battery_pack.challenge.CHALLENGE.version
     elif args.challenge == f08_train.CHALLENGE_ID:
         version = args.f08_version or f08_train.CHALLENGE_VERSION
+    elif args.challenge == f02_train.CHALLENGE_ID:
+        version = f02_train.CHALLENGE_VERSION
     elif args.challenge in _ROLE_FILES:
         version = physical_public_train._source(args.challenge)[0].CHALLENGE.version
     else:

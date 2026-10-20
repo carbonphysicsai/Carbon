@@ -782,6 +782,7 @@ def serve(
     retention=None,
     regrade=False,
     pool_store=None,
+    exam_se=False,
 ):
     """Run the same signed intake/task loop with finite admission and owned stop."""
     from carbon.battery import challenge as battery_challenge
@@ -1007,6 +1008,7 @@ def serve(
                         artifact_directory=artifact_directory,
                         entry_directory=entry_directory,
                         promotion=_open_pool_store(pool_store),
+                        exam_se=exam_se,
                     )
                 return intake.retain_result(
                     task_id,
@@ -1080,6 +1082,12 @@ def main(argv=None):
         "existing pool store, where the takeover comparison looks it up",
     )
     parser.add_argument(
+        "--exam-se",
+        action="store_true",
+        help="with --regrade-entry: also write the exam-total standard error (a case "
+        "bootstrap) beside the binding, for the weekly fresh-draw check",
+    )
+    parser.add_argument(
         "--regrade-entry",
         help="regrade this retained bank entry on the receiver's selected pack",
     )
@@ -1088,6 +1096,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.retain_task is not None and args.regrade_entry is not None:
         parser.error("retain a task or regrade an entry, not both")
+    if args.exam_se and args.regrade_entry is None:
+        parser.error("--exam-se applies to --regrade-entry only")
     if args.pool_store is not None and (
         args.regrade_entry is None and args.retain_task is None
     ):
@@ -1127,6 +1137,7 @@ def main(argv=None):
             retention=retention,
             regrade=args.regrade_entry is not None,
             pool_store=args.pool_store,
+            exam_se=args.exam_se,
         )
     except Exception as failure:  # noqa: BLE001 - no private exception text
         code = getattr(failure, "code", None)

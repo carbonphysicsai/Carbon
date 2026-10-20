@@ -318,7 +318,13 @@ class DirectRecipeIntake(BatteryIntake):
         return self.adapter.advance()
 
     def regrade_result(
-        self, entry_id, *, artifact_directory, entry_directory, promotion=None
+        self,
+        entry_id,
+        *,
+        artifact_directory,
+        entry_directory,
+        promotion=None,
+        exam_se=False,
     ):
         """Operator-only regrade of a retained model on the selected pack; never a route."""
         from .lean_recipe_retention import regrade_retained_entry
@@ -329,6 +335,7 @@ class DirectRecipeIntake(BatteryIntake):
             artifact_directory=artifact_directory,
             entry_directory=entry_directory,
             promotion=promotion,
+            exam_se=exam_se,
         )
 
     def retain_result(
