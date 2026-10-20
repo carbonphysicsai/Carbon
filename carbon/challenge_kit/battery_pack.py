@@ -140,27 +140,40 @@ def practice_plating_labels(records) -> list:
 def public_roles(version: str) -> dict[str, bytes]:
     """Bound public roles' exact bytes; accuracy_definition stays HUMAN_INPUT."""
     _check(version)
-    material = bundle_material(_REPOSITORY)
-    physics_raw = (_REPOSITORY / PHYSICS_PATH).read_bytes()
-    if hashlib.sha256(physics_raw).hexdigest() != PHYSICS_SHA256:
-        raise ValueError("pinned Battery physics contract differs")
     ev4 = json.loads(_pinned(_EV4))
     source = {"path": _EV4[0], "sha256": _EV4[1]}
     challenge_identity = {"id": CHALLENGE_ID, "version": version}
+    limits = {
+        "schema": "carbon.battery.important-limit-definition.v1",
+        "challenge": challenge_identity,
+        "constraints": ev4["constraints"],
+        "source": source,
+        "plating_reference": plating_reference(),
+    }
+    if version == "1.0":
+        material = bundle_material(_REPOSITORY)
+        physics = (_REPOSITORY / PHYSICS_PATH).read_bytes()
+        if hashlib.sha256(physics).hexdigest() != PHYSICS_SHA256:
+            raise ValueError("pinned Battery physics contract differs")
+    else:
+        # 2.0's kit, interface, TRAIN and physics envelope are its served
+        # material's (Launchpad), which serves this module's own bank rows.
+        from carbon.battery.construction_bundle_material import versioned_material
+
+        material = versioned_material(version)
+        physics = _canonical(material["physics_contract"])
+        # The bank's extra rows, pinned the way the plating reference is.
+        limits["b15_probe_plan"] = {"path": _B15_PLAN[0], "sha256": _B15_PLAN[1]}
+        limits["ev4_decision_references"] = {
+            "path": _EV4_REFERENCES[0],
+            "sha256": _EV4_REFERENCES[1],
+        }
     return {
         "construction_kit": _canonical(material["construction_kit"]),
         "interface": _canonical(material["interface_document"]),
         "train": material["train"],
-        "physics_contract": physics_raw,
-        "important_limit_definition": _canonical(
-            {
-                "schema": "carbon.battery.important-limit-definition.v1",
-                "challenge": challenge_identity,
-                "constraints": ev4["constraints"],
-                "source": source,
-                "plating_reference": plating_reference(),
-            }
-        ),
+        "physics_contract": physics,
+        "important_limit_definition": _canonical(limits),
         "design_objective": _canonical(
             {
                 "schema": "carbon.battery.design-objective.v1",

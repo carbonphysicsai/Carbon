@@ -24,15 +24,17 @@ NEW = {
 
 
 def _same_bank(a, b):
-    return (
-        a["case_ids"] == b["case_ids"]
-        and a["cohorts"] == b["cohorts"]
-        and np.array_equal(a["inputs"], b["inputs"])
-        and np.array_equal(a["references"], b["references"])
-        and a["reference_records"] == b["reference_records"]
-        and a["solver_evidence"] == b["solver_evidence"]
-        and a["decision_coverage"] == b["decision_coverage"]
-    )
+    """Same keys, and every value equal (arrays elementwise, NaN == NaN)."""
+    if set(a) != set(b):
+        return False
+    for key in a:
+        x, y = a[key], b[key]
+        if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
+            if not np.array_equal(x, y, equal_nan=True):
+                return False
+        elif x != y:
+            return False
+    return True
 
 
 def test_every_new_version_has_its_own_explicit_pack_version():
@@ -81,3 +83,51 @@ def test_there_is_no_default_version():
 def test_an_unregistered_version_writes_no_pack(tmp_path):
     with pytest.raises(ValueError):
         pp.write_public_pack(tmp_path / "x", F02, "2.2")
+
+
+def test_step2_kits_carry_no_step_cap_and_existing_kits_keep_their_bytes():
+    for public, cid, new, old in (
+        (f08_public, F08, "1.2", "1.1"),
+        (f02_public, F02, "2.1", "2.0"),
+    ):
+        limits = public.construction_limits_document(cid, new)
+        assert limits["training_step_cap"] is None
+        assert limits["training_limit"] == "build_wall_seconds_max"
+        assert "training_step_cap" not in public.construction_limits_document(cid, old)
+    # The existing kits' digests at base 10368fa86, unchanged.
+    assert f08_public.construction_kit(F08, "1.1")["construction_limits_digest"] == (
+        "sha256:28a77a5beaf259a73acfa5b807fb5fd683353ee2c7de20ddb5ee155c94c7fb78"
+    )
+    assert f02_public.construction_kit(F02, "2.0")["construction_limits_digest"] == (
+        "sha256:df88cb39b0213803cf7c6ad0a7cdc60f9ee55a3418f054d17776e433391dae99"
+    )
+
+
+def test_battery_2_0_roles_come_from_its_served_material():
+    import json
+
+    from carbon.battery.construction_bundle_material import versioned_material
+    from carbon.challenge_kit import battery_pack
+
+    roles = battery_pack.public_roles("2.0")
+    material = versioned_material("2.0")
+    assert json.loads(roles["construction_kit"]) == material["construction_kit"]
+    assert json.loads(roles["construction_kit"])["version"] == "2.0"
+    assert roles["train"] == material["train"]
+    assert json.loads(roles["physics_contract"]) == material["physics_contract"]
+    limits = json.loads(roles["important_limit_definition"])
+    assert limits["b15_probe_plan"]["sha256"] == battery_pack._B15_PLAN[1]
+    assert (
+        limits["ev4_decision_references"]["sha256"] == battery_pack._EV4_REFERENCES[1]
+    )
+    # 1.0's limit role names neither (its bytes are unchanged).
+    old = json.loads(battery_pack.public_roles("1.0")["important_limit_definition"])
+    assert "b15_probe_plan" not in old and "ev4_decision_references" not in old
+
+
+@pytest.mark.parametrize("cid", ["electric-motor-magnetics", "chip-cold-plate"])
+def test_motor_and_cooling_1_1_differ_from_1_0_only_in_the_kit(cid):
+    assert _same_bank(pp.development_bank(cid, "1.0"), pp.development_bank(cid, "1.1"))
+    old, new = pp.public_roles(cid, "1.0"), pp.public_roles(cid, "1.1")
+    assert set(old) == set(new)
+    assert {role for role in old if old[role] != new[role]} == {"construction_kit"}

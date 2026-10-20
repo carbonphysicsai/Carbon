@@ -44,6 +44,8 @@ _DTYPES = {
     "torch.int32": "int32",
     "torch.bool": "bool",
 }
+#: Carbon dtypes the floating-only emitters (floor, fmod) admit.
+_FLOATS = frozenset({"float32", "float64"})
 
 
 def export(apply, params, example):
@@ -888,7 +890,38 @@ def _index_static(b, node, env):
     if len(given) != 1 or not hasattr(given[0][1], "op"):
         raise graph.GraphRefused("aten_index_shape_or_dtype_not_supported", target)
     dim, index_node = given[0]
-    x = env[args[0]]
+    return _take_static(b, node, env, args[0], dim, index_node, wrap=True)
+
+
+def _index_select(b, node, env):
+    """`torch.index_select(x, dim, index)`: the same static take as
+    `aten.index.Tensor` on one dimension (CODANO), with its bounds check and
+    refusals. Unlike `x[index]`, torch refuses a negative index here, so it
+    refuses as out of bounds instead of wrapping. Input-derived indices refuse."""
+    target = str(node.target)
+    args = node.args
+    if (
+        len(args) != 3
+        or node.kwargs
+        or not hasattr(args[0], "op")
+        or type(args[1]) is not int
+        or not hasattr(args[2], "op")
+    ):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    rank = len(b.avals[env[args[0]]][1])
+    if not -rank <= args[1] < rank:
+        raise graph.GraphRefused("aten_index_shape_or_dtype_not_supported", target)
+    return _take_static(
+        b, node, env, args[0], _norm(args[1], rank), args[2], wrap=False
+    )
+
+
+def _take_static(b, node, env, x_node, dim, index_node, *, wrap):
+    """`x` indexed by one captured int64 index on `dim`: one `slice` per run
+    of consecutive indices and one `concatenate` (see `_index_static`).
+    ``wrap`` admits torch's negative indices, as `x[index]` does."""
+    target = str(node.target)
+    x = env[x_node]
     dtype, shape = b.avals[x]
     index_value = env[index_node]
     index_dtype, index_shape = b.avals[index_value]
@@ -909,7 +942,8 @@ def _index_static(b, node, env):
         raise graph.GraphRefused("aten_index_not_static", target)
     size = shape[dim]
     index = [int(i) for i in static]
-    index = [i + size if i < 0 else i for i in index]
+    if wrap:
+        index = [i + size if i < 0 else i for i in index]
     if any(not 0 <= i < size for i in index):
         raise graph.GraphRefused("aten_index_out_of_bounds", target)
     runs = []  # [start, stop) of each run of consecutive indices
@@ -984,6 +1018,8 @@ def _emit(b, node, env):
         return _scatter_add_static(b, node, env)
     if target == "aten.index.Tensor":
         return _index_static(b, node, env)
+    if target == "aten.index_select.default":
+        return _index_select(b, node, env)
     if target == "aten.split_with_sizes.default":
         return _split_with_sizes(b, node, env)
     if target == "aten.max_pool2d_with_indices.default":
@@ -1043,6 +1079,20 @@ def _emit(b, node, env):
         if dtype != "bool" or any(b.avals[env[a]][0] != "bool" for a in args[:2]):
             raise graph.GraphRefused("aten_arguments_not_supported", target)
         return b.binary("and", args[0], args[1], env, node)
+    if target == "aten.floor.default":
+        # Floating inputs only; its gradient is 0 everywhere, as torch's.
+        if dtype not in _FLOATS or b.avals[x][0] != dtype:
+            raise graph.GraphRefused("aten_arguments_not_supported", target)
+        return b.unary("floor", x)
+    if target in ("aten.fmod.Scalar", "aten.fmod.Tensor"):
+        # C-style, the dividend's sign: Carbon's rem (lax.rem), never mapped
+        # from aten.remainder (Python-style, the divisor's sign), which stays
+        # refused. Gradients d/dx = 1, d/dy = -trunc(x / y), as torch's.
+        if dtype not in _FLOATS or any(
+            hasattr(a, "op") and b.avals[env[a]][0] not in _FLOATS for a in args[:2]
+        ):
+            raise graph.GraphRefused("aten_arguments_not_supported", target)
+        return b.binary("rem", args[0], args[1], env, node)
     if target in ("aten.abs.default", "aten.sign.default"):
         # Both have derivative sign(x) and 0 at zero, as torch's.
         return b.unary(target.split(".")[1], x)

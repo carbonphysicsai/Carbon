@@ -566,7 +566,8 @@ class OwnerProviders:
             raise ValueError("direct receiver authority binding required")
         admission = self._admission(hotkey)
         challenge = self.discovery.info.challenge_key
-        battery_selected = challenge == BATTERY_CHALLENGE
+        # Battery 1.0 and the step-2 2.0 share the scope and objective labels.
+        battery_selected = challenge.challenge_id == BATTERY_CHALLENGE.challenge_id
         physical_selected = physical_material.is_registered(
             challenge.challenge_id, challenge.version
         )
@@ -787,7 +788,7 @@ def serve(
     """Run the same signed intake/task loop with finite admission and owned stop."""
     from carbon.battery import challenge as battery_challenge
     from carbon.battery.construction_bundle_material import (
-        bundle_material as battery_bundle_material,
+        versioned_material as battery_versioned_material,
     )
     from carbon.chain.auth import BittensorHotkeyVerifier
     from carbon.chain.sdk import BittensorReader
@@ -893,7 +894,8 @@ def serve(
     _private_directory(cache)
     selected_id = cfg.get("challenge", {}).get("id")
     material = (
-        battery_bundle_material()
+        # The configured Battery version exactly (1.0, or step-2's 2.0).
+        battery_versioned_material(cfg["challenge"]["version"])
         if selected_id == battery_challenge.CHALLENGE.challenge_id
         else (
             physical_material.bundle_material(selected_id, cfg["challenge"]["version"])
@@ -1119,7 +1121,7 @@ def main(argv=None):
                 {
                     "unavailable": "receiver_config_missing",
                     "config": str(args.config),
-                    "next": "write it with `python -m carbon.challenge_validator."
+                    "next": "write it with `python -B -m carbon.challenge_validator."
                     "receiver_setup prepare`",
                 }
             ),
