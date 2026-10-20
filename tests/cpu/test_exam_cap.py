@@ -339,3 +339,49 @@ def test_retention_never_recovers_reservations_only_start_up_does(cap, clock):
         )
         == 0
     )
+
+
+def test_a_capped_challenge_without_the_wall_policy_refuses_to_start():
+    material = {"construction_limits_document": {"reconstruction_resource_policy": {}}}
+    for challenge_id in (MOTOR[0], "chip-cold-plate", "f08-ribbed-bracket", "f02"):
+        with pytest.raises(exam_cap.ExamCapRefused) as refused:
+            exam_cap.require_grading_deadline(material, challenge_id)
+        assert refused.value.code == "exam_cap_deadline_unregistered"
+    assert exam_cap.require_grading_deadline(material, "not-a-capped-challenge") is None
+    present = {
+        "construction_limits_document": {
+            "reconstruction_resource_policy": {
+                "total_reconstruction_wall_seconds_max": 900
+            }
+        }
+    }
+    assert exam_cap.require_grading_deadline(present, MOTOR[0]) == 900
+
+
+def test_receiver_start_up_refuses_before_restoring_when_the_policy_is_missing(
+    tmp_path,
+):
+    from types import SimpleNamespace
+
+    from carbon.challenge_validator import direct_receiver
+    from carbon.challenge_validator.ledger import AttemptLedger
+
+    ledger = AttemptLedger(tmp_path / "attempts.sqlite3")
+    restored = []
+
+    def discovery(challenge_id, material):
+        return SimpleNamespace(
+            _material=material,
+            info=SimpleNamespace(
+                challenge_key=SimpleNamespace(challenge_id=challenge_id)
+            ),
+        )
+
+    with pytest.raises(exam_cap.ExamCapRefused) as refused:
+        direct_receiver._exam_cap_startup(
+            ledger, discovery(MOTOR[0], {}), lambda: restored.append(1)
+        )
+    assert refused.value.code == "exam_cap_deadline_unregistered" and not restored
+    uncapped = discovery("some-fixture", {})
+    direct_receiver._exam_cap_startup(ledger, uncapped, lambda: restored.append(1))
+    assert restored == [1]

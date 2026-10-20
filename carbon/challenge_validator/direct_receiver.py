@@ -983,16 +983,7 @@ def serve(
         try:
             ledger = AttemptLedger(root / "attempts.sqlite3")
             if retention is None:
-                providers.restore()
-                # Start-up, nothing is grading: return reservations a crash left open.
-                from carbon.challenge_validator import exam_cap
-
-                exam_cap.ExamCap(
-                    ledger,
-                    grading_deadline_seconds=exam_cap.grading_deadline_seconds(
-                        getattr(discovery, "_material", None)
-                    ),
-                )
+                _exam_cap_startup(ledger, discovery, providers.restore)
             intake = DirectRecipeIntake(
                 context=network.context,
                 receiver=cfg["receiver_hotkey"],
@@ -1030,6 +1021,22 @@ def serve(
                     providers.cancel()
             finally:
                 providers.close()
+
+
+def _exam_cap_startup(ledger, discovery, restore):
+    """Start-up, nothing is grading: return reservations a crash left open.
+
+    A capped Challenge without the wall-limit policy refuses to start
+    (``exam_cap_deadline_unregistered``), before anything is restored.
+    """
+    from carbon.challenge_validator import exam_cap
+
+    deadline = exam_cap.require_grading_deadline(
+        getattr(discovery, "_material", None),
+        discovery.info.challenge_key.challenge_id,
+    )
+    restore()
+    exam_cap.ExamCap(ledger, grading_deadline_seconds=deadline)
 
 
 def main(argv=None):

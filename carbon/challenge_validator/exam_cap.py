@@ -104,7 +104,8 @@ def registered_caps() -> dict:
 def grading_deadline_seconds(material):
     """How long an unsettled reservation may stand before start-up recovery returns it:
     the Challenge's registered total reconstruction wall limit, or None when the material
-    carries no such policy (recovery is then explicit)."""
+    carries no such policy (``require_grading_deadline`` refuses that for a capped Challenge).
+    """
     try:
         policy = material["construction_limits_document"][
             "reconstruction_resource_policy"
@@ -113,6 +114,18 @@ def grading_deadline_seconds(material):
     except (KeyError, TypeError):
         return None
     return value if type(value) in (int, float) and value > 0 else None
+
+
+def require_grading_deadline(material, challenge_id: str) -> float:
+    """The recovery deadline for a capped Challenge, or refuse (fail closed).
+
+    Without the policy, recovery would silently never run and a crash's held slots would
+    stay charged to the miner for good, so the receiver start-up refuses instead.
+    """
+    deadline = grading_deadline_seconds(material)
+    if deadline is None and challenge_id in registered_caps():
+        raise ExamCapRefused("exam_cap_deadline_unregistered")
+    return deadline
 
 
 def epoch_of(block: int) -> int:
