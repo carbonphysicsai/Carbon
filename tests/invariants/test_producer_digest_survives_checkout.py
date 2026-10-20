@@ -30,14 +30,21 @@ def _hashed():
     return sorted({*physical._SHARED_FILES, *(n for a in ADAPTERS for n in a.FILES)})
 
 
-def test_a_crlf_copy_has_the_lf_trees_digest(tmp_path, monkeypatch):
+def test_a_crlf_copy_has_the_lf_trees_digest(tmp_path):
     lf = {a.CHALLENGE: physical.producer_digest(a) for a in ADAPTERS}
     for name in _hashed():
         raw = (SCORING / name).read_bytes()
         assert b"\r\n" not in raw, name
         (tmp_path / name).write_bytes(raw.replace(b"\n", b"\r\n"))
-    monkeypatch.setattr(physical, "__file__", str(tmp_path / "physical_dual_pack.py"))
-    assert {a.CHALLENGE: physical.producer_digest(a) for a in ADAPTERS} == lf
+    # producer_digest reads its files beside its own module: point it at the
+    # CRLF copy, and always restore the module global.
+    saved = physical.__file__
+    physical.__file__ = str(tmp_path / "physical_dual_pack.py")
+    try:
+        crlf = {a.CHALLENGE: physical.producer_digest(a) for a in ADAPTERS}
+    finally:
+        physical.__file__ = saved
+    assert crlf == lf
 
 
 def test_an_autocrlf_checkout_never_converts_a_hashed_file():
