@@ -10,6 +10,7 @@ or promotion; no current result from that binder can qualify a winner.
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import asdict, dataclass
 
 from carbon.battery.pool_store import PoolStore, StateError, canonical
@@ -121,15 +122,13 @@ def private_evaluation_key(evidence):
             "reference_coverage": coverage,
             **{field: evidence[field] for field in fields},
         }
-        if paired:
-            if not is_digest(evidence.get("inference_pair_sha256")):
-                raise StateError("private_evaluation_invalid")
-            dual_identity.update(
-                dual_measurement_receipt_sha256=evidence[
-                    "dual_measurement_receipt_sha256"
-                ],
-                inference_pair_sha256=evidence["inference_pair_sha256"],
-            )
+        # v4 requires the paired-inference receipt, but like the dual
+        # measurement receipt it belongs to one model's run: it stays bound in
+        # the retained evidence and out of the key. A key is the shared
+        # evaluation context, so a compatible incumbent and contender meet
+        # under the same key; `binding_schema` keeps v3 and v4 apart.
+        if paired and not is_digest(evidence.get("inference_pair_sha256")):
+            raise StateError("private_evaluation_invalid")
     return digest(
         {
             "challenge": evidence["challenge"],
@@ -331,3 +330,164 @@ class BankPromotion:
         if type(result) is not BankResult:
             raise TypeError("a BankResult is required")
         raise StateError("evaluation_binding_unavailable")
+
+    def consider_private(self, submission_id, evaluation_key, comparator):
+        """King of the hill on one shared evaluation key, DEVELOPMENT only.
+
+        The contender meets the incumbent's retained evidence for the same
+        key (`private_pair`); `compare_private_pair` decides. A win moves the
+        incumbent with the reason `bank_comparison_development`, which the
+        reward layer refuses to pay (`PROMOTION_DEVELOPMENT_ONLY`).
+        """
+        pair = self.private_pair(submission_id, evaluation_key)
+        outcome = compare_private_pair(pair, comparator)
+        if outcome["outcome"] in (FIRST_INCUMBENT, CHALLENGER):
+            self.store.set_incumbent(
+                submission_id,
+                DEVELOPMENT_PROMOTION,
+                expected=pair["expected_incumbent"],
+            )
+        elif outcome["outcome"] == DETHRONED:
+            # No valid successor: the Challenge has no winner and its share
+            # burns until one exists.
+            self.store.vacate_incumbent(
+                pair["expected_incumbent"], "incumbent_failed_mandatory_gate"
+            )
+        return outcome
+
+
+PAIRED_BINDING = "carbon.scoring.private-evaluation-binding.v4"
+COMPARATOR_SCHEMA = "carbon.challenge-validator.bank-comparator.v1"
+DEVELOPMENT_PROMOTION = "bank_comparison_development"
+SCORED = "SCORED_DEVELOPMENT_CANDIDATE"
+#: Statuses that say nothing about the model: infrastructure or evidence,
+#: never a science failure, so they can neither win nor be dethroned.
+NOT_MEASURED = frozenset({"FAILED_INFRA", "INDETERMINATE_EVIDENCE"})
+#: A measured failure of a mandatory gate (an invalid output is one): it
+#: dethrones a king (KOTH-TAKEOVER-RULE-01 §3). Other ineligible statuses are
+#: not gate failures and change nothing.
+GATE_FAILED = frozenset({"MANDATORY_GATE_FAILED", "CANDIDATE_INVALID"})
+DETHRONED = "INCUMBENT_DETHRONED"
+FIRST_INCUMBENT = "FIRST_INCUMBENT"
+CHALLENGER = "CHALLENGER"
+INCUMBENT_KEEPS = "INCUMBENT_KEEPS"
+NO_WINNER = "NO_WINNER"
+UNAVAILABLE = "UNAVAILABLE"
+
+
+def _comparator(comparator, evidence):
+    """The registered comparison rule. Only DEVELOPMENT rules exist: a payable
+    rule needs an adopted score pack (KOTH-TAKEOVER-RULE-01)."""
+    noise = comparator.get("rebuild_noise") if type(comparator) is dict else None
+    if (
+        type(comparator) is not dict
+        or set(comparator)
+        != {
+            "schema",
+            "scope",
+            "challenge",
+            "score_pack_digest",
+            "rebuild_noise",
+            "ties",
+            "minimum_source_entry_ids",
+        }
+        or comparator["schema"] != COMPARATOR_SCHEMA
+        or type(comparator["minimum_source_entry_ids"]) is not list
+        or not all(is_digest(e) for e in comparator["minimum_source_entry_ids"])
+        or comparator["ties"] != "incumbent_keeps"
+        or not (
+            noise is None
+            or (
+                type(noise) is dict
+                and set(noise) == {"value", "measurement_digest"}
+                and type(noise["value"]) in (int, float)
+                and math.isfinite(noise["value"])
+                and noise["value"] >= 0
+                and is_digest(noise["measurement_digest"])
+            )
+        )
+    ):
+        raise StateError("comparator_invalid")
+    if comparator["scope"] != "DEVELOPMENT":
+        raise StateError("comparator_scope_unadopted")
+    if (
+        comparator["challenge"] != evidence["challenge"]
+        or comparator["score_pack_digest"]
+        != evidence["score_compatibility"]["score_pack_digest"]
+    ):
+        raise StateError("comparator_not_for_this_evaluation")
+    return noise, frozenset(comparator["minimum_source_entry_ids"])
+
+
+def _scored(body):
+    evidence = body["evidence"]
+    if evidence.get("schema") != PAIRED_BINDING:
+        raise StateError("comparator_requires_paired_dual")
+    model = evidence.get("model_p")
+    status = model.get("score_status") if type(model) is dict else None
+    if type(status) is not str:
+        raise StateError("private_evaluation_invalid")
+    total = model.get("total_score")
+    if status == SCORED and (
+        type(total) not in (int, float) or not math.isfinite(total)
+    ):
+        raise StateError("private_evaluation_invalid")
+    return status, total
+
+
+def compare_private_pair(pair, comparator):
+    """One contender against the incumbent on the same evaluation key.
+
+    - A contender that is not scored never wins.
+    - With no incumbent, a scored contender is the first incumbent.
+    - An incumbent whose evidence is infrastructure or indeterminate is
+      UNAVAILABLE: nothing changes. One that measurably fails a mandatory
+      gate on this evaluation is dethroned: a scored contender takes the
+      crown, otherwise the Challenge has no winner (KOTH-TAKEOVER-RULE-01 §3).
+      Any other unscored incumbent status changes nothing.
+    - Otherwise the contender must exceed the incumbent's total by the
+      Challenge's measured rebuild noise; within it is a tie and the
+      incumbent keeps the crown (KOTH-TAKEOVER-RULE-01). No noise registered is
+      UNAVAILABLE, never zero.
+    """
+    candidate = pair["candidate"]
+    noise, minimum_sources = _comparator(comparator, candidate["evidence"])
+    status, total = _scored(candidate)
+
+    def decided(outcome, reason):
+        return {
+            "outcome": outcome,
+            "reason": reason,
+            "evaluation_key": pair["evaluation_key"],
+            "candidate": candidate["submission_id"],
+            "incumbent": pair["expected_incumbent"],
+        }
+
+    incumbent = pair["incumbent"]
+    if candidate["evidence"]["entry_id"] in minimum_sources:
+        # The baseline run that set the pack's leg minimums sets the bar; it
+        # never contends (BASELINE_LEG_MINIMUM_SOURCE_NOT_A_CONTENDER).
+        return decided(
+            NO_WINNER if incumbent is None else INCUMBENT_KEEPS,
+            "leg_minimum_source_not_a_contender",
+        )
+    if incumbent is None:
+        if status != SCORED:
+            return decided(NO_WINNER, "candidate_not_scored")
+        return decided(FIRST_INCUMBENT, "first_scored_contender")
+    if status != SCORED:
+        if _scored(incumbent)[0] in GATE_FAILED:
+            return decided(DETHRONED, "incumbent_failed_mandatory_gate")
+        return decided(INCUMBENT_KEEPS, "candidate_not_scored")
+    held, held_total = _scored(incumbent)
+    if held in GATE_FAILED:
+        return decided(CHALLENGER, "incumbent_failed_mandatory_gate")
+    if held in NOT_MEASURED:
+        return decided(UNAVAILABLE, "incumbent_evidence_unavailable")
+    if held != SCORED:
+        return decided(UNAVAILABLE, "incumbent_not_scored")
+    if noise is None:
+        return decided(UNAVAILABLE, "rebuild_noise_unregistered")
+    if total > held_total + noise["value"]:
+        return decided(CHALLENGER, "exceeds_incumbent_beyond_rebuild_noise")
+    return decided(INCUMBENT_KEEPS, "within_rebuild_noise_or_tie")

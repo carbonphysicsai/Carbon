@@ -177,7 +177,7 @@ def test_trusted_dual_key_retains_development_evidence_without_promotion(
         private_evaluation_key(incompatible)
 
 
-def test_paired_dual_key_pins_both_receipts_and_preserves_historical_v3(
+def test_paired_dual_key_requires_both_receipts_and_preserves_historical_v3(
     store, tmp_path
 ):
     case = _dual_case(tmp_path / "dual")
@@ -222,24 +222,24 @@ def test_paired_dual_key_pins_both_receipts_and_preserves_historical_v3(
     paired["schema"] = "carbon.scoring.private-evaluation-binding.v4"
     paired["inference_pair_sha256"] = digest("fresh paired inference operation")
     paired_key = private_evaluation_key(paired)
-    assert paired_key == digest(
-        {
-            **identity,
-            "binding_schema": paired["schema"],
-            "dual_measurement_receipt_sha256": paired[
-                "dual_measurement_receipt_sha256"
-            ],
-            "inference_pair_sha256": paired["inference_pair_sha256"],
-        }
-    )
+    # The key is the shared evaluation context; only the binding schema
+    # separates v4 from v3, so v3 evidence is never reused as v4.
+    assert paired_key == digest({**identity, "binding_schema": paired["schema"]})
     assert paired_key != historical_key
     for field in ("dual_measurement_receipt_sha256", "inference_pair_sha256"):
-        changed = deepcopy(paired)
-        changed[field] = digest([field, "other operation"])
-        assert private_evaluation_key(changed) != paired_key
-        del changed[field]
+        # Another model's run (its own receipts) under the same context meets
+        # this one under the same key: an incumbent and a contender can pair.
+        other_run = deepcopy(paired)
+        other_run[field] = digest([field, "another model's run"])
+        assert private_evaluation_key(other_run) == paired_key
+        # Each receipt is still required.
+        del other_run[field]
         with pytest.raises(StateError, match="private_evaluation_invalid"):
-            private_evaluation_key(changed)
+            private_evaluation_key(other_run)
+    # A context change still separates keys under v4.
+    other_context = deepcopy(paired)
+    other_context["reference_rows_digest"] = digest("other reference rows")
+    assert private_evaluation_key(other_context) != paired_key
 
 
 @pytest.mark.parametrize(

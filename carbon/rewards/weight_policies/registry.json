@@ -2,6 +2,8 @@
   "current": "testnet-winner-v1",
   "schema": "carbon.rewards.weight-policy-registry.v1",
   "versions": {
-    "testnet-winner-v1": "sha256:7a80942605b7895374dd45a24494d465dd77e7395cb794be2b9343c11e7a89ae"
+    "testnet-winner-v1": "sha256:7a80942605b7895374dd45a24494d465dd77e7395cb794be2b9343c11e7a89ae",
+    "testnet-winner-v2-four-challenge-dev": "sha256:4a95d3133c33b099f8d3dd60f0226c965f8238e412355118b6957e7586082aad",
+    "testnet-winner-v3-five-challenge-dev": "sha256:4b488bce0a43bc9b1f3914bb11b72d026ba2a1154fae5a83bc6649774c5add71"
   }
 }

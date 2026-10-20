@@ -389,3 +389,54 @@ def test_a_battery_first_incumbent_is_read_from_the_validator(
     assert promotion["kind"] == we.FIRST
     assert (promotion["model_id"], promotion["hotkey"]) == (sid, "hk1")
     assert promotion["contract_digest"]
+
+
+def bank(model, hotkey, previous, previous_hotkey):
+    return {
+        "model_id": model,
+        "hotkey": hotkey,
+        "previous": previous,
+        "previous_hotkey": previous_hotkey,
+        "kind": we.BANK,
+    }
+
+
+def test_a_bank_improvement_by_another_miner_restarts_the_clock(tmp_path):
+    """KOTH-TAKEOVER-RULE-01 §1: no fresh-case tournament; the better score on
+    the shared bank key takes the crown and starts a full 24 hours."""
+    book = ledger(tmp_path)
+    book.observe(POLICY, BATTERY, first("m1", "hk-a"), {"hk-a": "ck-a"}, T0)
+    later = T0 + 3 * DAY_MS
+    record = book.observe(
+        POLICY, BATTERY, bank("m2", "hk-b", "m1", "hk-a"), {"hk-b": "ck-b"}, later
+    )
+    assert (record["eligible"], record["reason"], record["clock_ms"]) == (
+        True,
+        "bank_improvement",
+        later,
+    )
+    paid = wd.epoch_targets(POLICY, {BATTERY: we.payable(record, {"hk-b"})}, later)
+    assert paid["winners"] == {"hk-b": Q12 // 3}
+
+
+@pytest.mark.parametrize(
+    ("hotkey", "coldkeys"),
+    [("hk-a", {}), ("hk-a2", {"hk-a": "ck-a", "hk-a2": "ck-a"})],
+)
+def test_a_king_beating_himself_on_the_bank_keeps_his_clock(tmp_path, hotkey, coldkeys):
+    """KOTH-TAKEOVER-RULE-01 §2: the better model is the incumbent, the clock
+    does not reset, and halving continues from the first promotion."""
+    book = ledger(tmp_path)
+    book.observe(POLICY, BATTERY, first("m1", "hk-a"), coldkeys, T0)
+    record = book.observe(
+        POLICY, BATTERY, bank("m2", hotkey, "m1", "hk-a"), coldkeys, T0 + 2 * DAY_MS
+    )
+    assert (record["eligible"], record["reason"], record["clock_ms"]) == (
+        True,
+        "same_miner_no_reset",
+        T0,
+    )
+    paid = wd.epoch_targets(
+        POLICY, {BATTERY: we.payable(record, {hotkey})}, T0 + 2 * DAY_MS
+    )
+    assert paid["winners"] == {hotkey: (Q12 // 3) // 4}
