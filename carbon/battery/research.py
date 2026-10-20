@@ -474,6 +474,7 @@ class BatteryPublicMaterial:
         "training_data",
         "practice_data",
         "reference_method",
+        "scaffold_recipe",
     )
 
     def __init__(self, root="."):
@@ -505,6 +506,36 @@ class BatteryPublicMaterial:
                 "source_sha256": PRACTICE_SOURCE_SHA256,
                 "format": "gzip JSON lines: case_id, inputs, outputs, t_max_c",
                 "adaptively_seen": True,
+            }
+        if name == "scaffold_recipe":
+            # The published scaffold as a ready direct recipe: its graph is
+            # staged where practice reads a workspace graph, so editing the
+            # recipe's training block and practising it needs no lowering.
+            from carbon.level4 import staging
+
+            from . import public_scaffold
+
+            manifest, files = public_scaffold.graph()
+            workspace.put(staging.WORKSPACE_MANIFEST, manifest)
+            staged = {staging.WORKSPACE_MANIFEST: digest(manifest)}
+            for document, body in files.items():
+                name_in_workspace = staging.WORKSPACE_PREFIX + document[7:] + ".json"
+                workspace.put(name_in_workspace, body)
+                staged[name_in_workspace] = digest(body)
+            value = public_scaffold.recipe()
+            payload = canonical(value)
+            workspace.put("battery-scaffold-recipe.json", payload)
+            return {
+                "document": value,
+                "file": "battery-scaffold-recipe.json",
+                "digest": digest(payload),
+                "files": staged,
+                "use": (
+                    "Practise it as strategy_json (kind=practice). Edit "
+                    "procedure.configuration.training with any registered "
+                    "training field; the scaffold graph is staged in your "
+                    "workspace, and a new graph needs its own staged files."
+                ),
             }
         if name == "objective":
             value = objective()

@@ -85,6 +85,19 @@ TASK_CORRECTIONS = {
         "action, use kind=workspace, strategy_json=null and the action's arguments_json. "
         "Only files explicitly listed in run_python arguments are staged."
     ),
+    "direct_recipe_required": (
+        "This campaign practises construction recipes (every new Launchpad "
+        "campaign does): strategy_json is the recipe JSON string, one "
+        "carbon.construction-recipe.v1 document with exactly schema, challenge (the "
+        "Challenge's construction kit: id, version, train_digest, "
+        "interface_digest, construction_limits_digest), source (a graph staged "
+        "in your workspace by its submission_digest, or a bundle), procedure "
+        "(entrypoint, configuration, train_use, initial_state null) and output "
+        "(format and the kit's interface_digest). A Level 0 strategy "
+        "(schema_version, challenge_id, backbone, parameters) is not a recipe "
+        "here. public_material scaffold_recipe stages the published scaffold "
+        "and returns a ready recipe to edit. The recipe's own refusal is listed."
+    ),
     "json_string_required": (
         "This field carries JSON encoded as a string: send the object as a "
         'quoted string such as "{\\"name\\":\\"objective\\"}", not as a '
@@ -298,6 +311,26 @@ TASK_CORRECTIONS = {
 _CHOICE = re.compile(r"[A-Za-z0-9_.:+-]{1,96}\Z")
 
 
+#: The closed codes `construction_recipe.ConstructionRecipe` refuses with;
+#: a test holds this equal to that module's own list.
+RECIPE_REFUSAL_CODES = frozenset(
+    {
+        "construction_recipe_binding_mismatch",
+        "construction_recipe_challenge_invalid",
+        "construction_recipe_graph_bytes_invalid",
+        "construction_recipe_graph_digest_mismatch",
+        "construction_recipe_graph_manifest_invalid",
+        "construction_recipe_graph_workspace_missing",
+        "construction_recipe_malformed",
+        "construction_recipe_output_invalid",
+        "construction_recipe_oversized",
+        "construction_recipe_pretrained_state_forbidden",
+        "construction_recipe_procedure_invalid",
+        "construction_recipe_source_invalid",
+    }
+)
+
+
 @functools.cache
 def _correction_choices():
     from carbon.challenge_registry.campaigns import implemented_backends
@@ -322,6 +355,8 @@ def _correction_choices():
         # The names the carrier stages itself, and the remote wrapper's own.
         "run_files_invalid": reserved_stage_names("run_julia") | {WRAPPED},
         "julia_environment_unknown": frozenset(ENVIRONMENTS),
+        # A direct recipe's own refusal codes (`construction_recipe`).
+        "direct_recipe_required": RECIPE_REFUSAL_CODES,
     }
 
 
@@ -994,9 +1029,19 @@ class ResearchMinerTools:
                 )
                 == "direct"
             ):
-                spec = research.DirectPracticeTaskSpecV1(
-                    "carbon.direct-practice.v1", strategy
-                )
+                try:
+                    spec = research.DirectPracticeTaskSpecV1(
+                        "carbon.direct-practice.v1", strategy
+                    )
+                except ValueError as exc:
+                    # Named here, not by the catch-all: a Level 0 strategy or a
+                    # malformed recipe is the requester's to correct.
+                    code = getattr(exc, "code", None)
+                    raise TaskContractMismatch(
+                        "direct_recipe_required",
+                        "strategy_json",
+                        (code,) if code in RECIPE_REFUSAL_CODES else (),
+                    ) from None
             else:
                 spec = research.PracticeTaskSpec(strategy, None)
         elif args["kind"] == "workspace":
