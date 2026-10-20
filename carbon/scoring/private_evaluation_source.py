@@ -718,16 +718,29 @@ def paired_repeat_verdict(originals, *, receipt, worker, outputs, rule, quantity
     return True
 
 
-def _f02_point_measurements(predictions, reference, policy, train_std_c, ceiling_c):
+def _f02_point_measurements(
+    predictions, reference, policy, train_std_c, ceiling_c, *, schedules=None
+):
     """Existing native cold-eight A and rich Design over source-owned points.
 
     No default scales or source acceptance are chosen here. This returns a
     deterministic selection derived from predictions, not a saved commitment.
     Analytic extra energy has no learned-fidelity credit.
+
+    ``schedules`` is a sealed batch's own ``{case_id: (peak_w, on_time_s)}``
+    (OWNER-F02-F08-EXAM-DRAW-01). It is None for the development bank's eight
+    registered actions. A sealed batch is drawn wholly from the near-limit S1
+    law, so the whole batch is the near block (Validator, 2026-10-20), and its
+    policy registers no response pairs (margin only).
     """
     from carbon.scoring import design_fidelity
 
-    ids = sorted(_F02_ACTIONS)
+    sealed = schedules is not None
+    schedules = _F02_ACTIONS if schedules is None else schedules
+    _producer_require(
+        type(schedules) is dict and len(schedules) == 8, "dual_f02_policy_mapping"
+    )
+    ids = sorted(schedules)
     _producer_require(
         type(policy) is dict
         and type(policy.get("objective")) is dict
@@ -777,18 +790,21 @@ def _f02_point_measurements(predictions, reference, policy, train_std_c, ceiling
     except design_fidelity.ReductionRefused as exc:
         raise PrivateEvaluationSourceRefused("dual_f02_policy_mapping") from exc
     components = policy["components"]
-    _producer_require(len(components) == 2, "dual_f02_critical_components")
     by_kind = {c["kind"]: c for c in components}
     _producer_require(
-        set(by_kind) == {"margin", "response"}
+        len(components) == (1 if sealed else 2)
+        and set(by_kind) == ({"margin"} if sealed else {"margin", "response"})
         and by_kind["margin"]["quantity"] == "thermal_margin_c"
         and by_kind["margin"]["cases"] == ids
-        and by_kind["response"]["quantity"] == "peak_top_c"
-        and by_kind["response"]["pairs"]
-        == [
-            [f"cool-rect-near-{power}w", f"cool-rect-near-{power+1}w"]
-            for power in (84, 85, 86)
-        ],
+        and (
+            sealed
+            or by_kind["response"]["quantity"] == "peak_top_c"
+            and by_kind["response"]["pairs"]
+            == [
+                [f"cool-rect-near-{power}w", f"cool-rect-near-{power+1}w"]
+                for power in (84, 85, 86)
+            ]
+        ),
         "dual_f02_critical_components",
     )
     points, actions, errors = {}, {}, []
@@ -814,7 +830,7 @@ def _f02_point_measurements(predictions, reference, policy, train_std_c, ceiling
                 == [ceiling_c - peak["interval"][1], ceiling_c - peak["interval"][0]],
                 "dual_f02_reference_interval_binding",
             )
-        energy = (_F02_ACTIONS[key][0] - 20) * _F02_ACTIONS[key][1]
+        energy = (schedules[key][0] - 20) * schedules[key][1]
         action = reference["actions"][key]
         _producer_require(
             type(action) is dict
@@ -843,13 +859,19 @@ def _f02_point_measurements(predictions, reference, policy, train_std_c, ceiling
         if feasible
         else None
     )
-    near = [error for key, error in zip(ids, errors, strict=True) if "-near-" in key]
+    near = [
+        error
+        for key, error in zip(ids, errors, strict=True)
+        if sealed or "-near-" in key
+    ]
     _producer_require(
         all(math.isfinite(v) for v in errors), "dual_native_candidate_numeric_overflow"
     )
     # Divide before summing so large finite forecasts do not overflow the sum.
     loss = max(
-        math.fsum(v / 8 for v in errors), math.fsum(v / 4 for v in near), max(errors)
+        math.fsum(v / len(errors) for v in errors),
+        math.fsum(v / len(near) for v in near),
+        max(errors),
     )
     _producer_require(math.isfinite(loss), "dual_f02_derived_nonfinite")
     model = {
