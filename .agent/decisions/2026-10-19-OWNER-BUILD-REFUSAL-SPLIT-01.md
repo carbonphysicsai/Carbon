@@ -79,3 +79,12 @@ Build refusals happen before any grading, so neither class discloses anything ab
 - **Order:** check the miner's tensor first, so that if both causes apply the code is CANDIDATE.
 - **Shipping:** v6 is prospective and not served, so the split ships with v6 and no interim class is needed.
 - **Cap values are unchanged.** The same registered `CAPS` still refuse the graph, so containment holds. Only the label and the accounting differ.
+
+## Policy item: `dot_general` precision HIGHEST (Carbon Validator, 2026-10-19)
+
+- **Admitted, with conditions.** `precision ∈ {DEFAULT, HIGHEST}` is allowed. Any other non-default value stays `parameter_not_default`, which is CANDIDATE.
+- **Why:** HIGHEST asks for full fp32 accumulation. It narrows the numerical freedom rather than widening it, it discloses nothing, and its extra cost is already captured by the per-case inference_cost.
+- **Conditions:**
+  - the Carbon interpreter executes HIGHEST as fp32 accumulation, never TF32 or bf16 passes;
+  - the JAX-vs-PyTorch backend parity tests include a HIGHEST `dot_general` case.
+- **Until both hold,** the code stays refused.
