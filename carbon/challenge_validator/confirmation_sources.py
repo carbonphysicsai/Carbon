@@ -335,6 +335,14 @@ def _sources():
             COLD_PLATE_CHALLENGE, "cold_plate", ("cold-plate-*",)
         ),
         MOTOR_CHALLENGE: PopulationSource(MOTOR_CHALLENGE, "motor", ("motor-*",)),
+        # F02's sealed exam (OWNER-F02-F08-EXAM-DRAW-01): every published F02
+        # schedule (TRAIN40/TRAIN40-v2, the menu-v2 panels, the cold pilot) is
+        # an overlap key, so a draw that repeats one is refused.
+        "f02": PopulationSource(
+            "f02",
+            "f02",
+            ("f02-*", "reference-packages-01", "reference-solvers-2026-10-15"),
+        ),
     }
 
 
