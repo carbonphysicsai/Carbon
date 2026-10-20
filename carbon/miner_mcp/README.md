@@ -275,7 +275,9 @@ python -m carbon.miner_mcp.standard_cli            # add --state-dir if the Cont
 
 The Control Center's step 3 shows the command for its machine with snippets
 for Claude Code, Codex and Hermes, from each client's documentation, read
-2026-10-02. UNVERIFIED: Carbon has not run those clients against this server.
+2026-10-02. Setup's MCP step (`environment_setup.mcp_connect`) records which
+were run against this server: Claude Code 2.1.294 and Codex 0.161.0 on
+2026-10-08; the Hermes MCP-client snippet is UNVERIFIED.
 
 ## The prepared-campaign profile
 
