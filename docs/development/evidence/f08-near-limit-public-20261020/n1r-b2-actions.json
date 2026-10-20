@@ -1,0 +1,71 @@
+{
+ "schema": "carbon.f08-public-near-feasible-actions.v1",
+ "scope": "PUBLIC_DEVELOPMENT_ONLY",
+ "selection": "TRAIN v2 near-limit stratum N1 REDRAW, batch 2 of 4 (RR-07 N1 had 4/32 safe, under its one-third rule): lattice actions predicted 0.12-0.18 mm/N by a log-linear fit to RR-07's 40 solves, 16 predicted safe spread over 0.125-0.150 and 16 unsafe over 0.150-0.175 (seed 20261020 tie order); disjoint from TRAIN-256, the pilot, the ladder and RR-07 N1.",
+ "actions": [
+  {
+   "length_mm": 180.0,
+   "width_mm": 75.0,
+   "thickness_mm": 6.5,
+   "rib_height_mm": 15.0,
+   "rib_thickness_mm": 5.0,
+   "relief_length_mm": 55.0
+  },
+  {
+   "length_mm": 180.0,
+   "width_mm": 90.0,
+   "thickness_mm": 8.0,
+   "rib_height_mm": 15.0,
+   "rib_thickness_mm": 3.5,
+   "relief_length_mm": 50.0
+  },
+  {
+   "length_mm": 190.0,
+   "width_mm": 65.0,
+   "thickness_mm": 8.0,
+   "rib_height_mm": 16.0,
+   "rib_thickness_mm": 4.0,
+   "relief_length_mm": 35.0
+  },
+  {
+   "length_mm": 195.0,
+   "width_mm": 80.0,
+   "thickness_mm": 8.0,
+   "rib_height_mm": 15.0,
+   "rib_thickness_mm": 5.0,
+   "relief_length_mm": 35.0
+  },
+  {
+   "length_mm": 190.0,
+   "width_mm": 80.0,
+   "thickness_mm": 8.0,
+   "rib_height_mm": 15.0,
+   "rib_thickness_mm": 4.5,
+   "relief_length_mm": 50.0
+  },
+  {
+   "length_mm": 180.0,
+   "width_mm": 85.0,
+   "thickness_mm": 6.5,
+   "rib_height_mm": 15.0,
+   "rib_thickness_mm": 4.5,
+   "relief_length_mm": 55.0
+  },
+  {
+   "length_mm": 185.0,
+   "width_mm": 95.0,
+   "thickness_mm": 7.5,
+   "rib_height_mm": 16.0,
+   "rib_thickness_mm": 3.0,
+   "relief_length_mm": 25.0
+  },
+  {
+   "length_mm": 185.0,
+   "width_mm": 85.0,
+   "thickness_mm": 7.5,
+   "rib_height_mm": 15.0,
+   "rib_thickness_mm": 4.0,
+   "relief_length_mm": 30.0
+  }
+ ]
+}

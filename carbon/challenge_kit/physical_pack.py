@@ -99,6 +99,47 @@ _F08_REFERENCE_RUNG = "h1.7"
 #: Validator ruling: every F08 reference is feasible, so D tests ranking only.
 F08_DECISION_COVERAGE = "RANKING_ONLY_NO_FEASIBILITY_BOUNDARY"
 F08_POPULATION = "TRAIN_INFORMED_LOCAL_NEIGHBOURHOOD_NOT_INDEPENDENT"
+#: F08 1.1's exam (RR-PACKS-07 ladder; Validator-approved 2026-10-20): eight
+#: pilot-0000 lattice neighbours at h = 1.7 mm, 4 safe and 4 unsafe at the
+#: 0.15 mm/N dynamic limit, smallest margin 0.00286 mm/N (about 95x its
+#: h2.25 - h1.7 reference error and 22x the TRAIN h3 shift).
+_F08_LADDER_DIR = "docs/development/evidence/f08-near-limit-public-20261020"
+_F08_LADDER_OBSERVED = (
+    _F08_LADDER_DIR + "/ladder-observed.json",
+    "26aef1d5f33a29e42c9f208b4b88220bffd488a2d68e9be73d0c93c9c13b03e9",
+)
+_F08_LADDER_ENVIRONMENT = (
+    _F08_LADDER_DIR + "/rr07-pod-environment.json",
+    "5c16f95d2c5db972d50757e493f0218ce5a7c50adb52764d4e4449d053cac463",
+)
+_F08_LADDER_ACTIONS = (
+    _F08_LADDER_DIR + "/ladder-actions.json",
+    "9b9b3534e51f4351793ba43ae4f78d6c8dc4b4a07a4092732c1cbf73d365ef2b",
+)
+F08_LADDER_DECISION_COVERAGE = "RANKING_AND_FEASIBILITY_STRADDLE"
+F08_LADDER_POPULATION = "PILOT_LATTICE_LADDER_AT_THE_LIMIT_NOT_INDEPENDENT"
+#: Per F08 version: (observed, environment, case-id prefix, cohort, coverage,
+#: population, pack version).
+_F08_EXAMS = {
+    "1.0": (
+        _F08_OBSERVED,
+        _F08_ENVIRONMENT,
+        None,
+        "decision_near_feasible",
+        F08_DECISION_COVERAGE,
+        F08_POPULATION,
+        "f08-normal-construction-development-1",
+    ),
+    "1.1": (
+        _F08_LADDER_OBSERVED,
+        _F08_LADDER_ENVIRONMENT,
+        "ladder",
+        "decision_near_limit",
+        F08_LADDER_DECISION_COVERAGE,
+        F08_LADDER_POPULATION,
+        "f08-normal-construction-development-2",
+    ),
+}
 _F08_BRIEF = (
     "docs/development/challenge_pipeline/onboarding-runs/generated/f08/brief.json",
     "2c15f096f43b02a4da4b1455d4c629d8979ad1319c8efb61afb141674f682330",
@@ -245,6 +286,7 @@ def public_roles(challenge_id: str, version: str) -> dict[str, bytes]:
         if not all(v in brief_text for v in ("0.45 kg", "0.03 mm/N", "0.15 mm/N")):
             raise ValueError("F08 brief no longer states the registered limits")
         identity = {"id": challenge_id, "version": version}
+        coverage, population = _F08_EXAMS[version][4:6]
         sources = [
             {"path": _F08_BRIEF[0], "sha256": _F08_BRIEF[1]},
             {"path": "carbon/challenge_pipeline/structures_readiness.py",
@@ -257,7 +299,7 @@ def public_roles(challenge_id: str, version: str) -> dict[str, bytes]:
             "interface": _canonical(
                 f08_public.interface_document(challenge_id, version)
             ),
-            "train": f08_train.load_public_train()["train"],
+            "train": f08_train.load_public_train(version)["train"],
             "physics_contract": _canonical(physics_contract(challenge_id, version)),
             "important_limit_definition": _canonical(
                 {
@@ -270,9 +312,10 @@ def public_roles(challenge_id: str, version: str) -> dict[str, bytes]:
                     },
                     "inclusive_boundaries": True,
                     "mass_role": "analytic CAD mass; feasibility only, not a learned target",
-                    "decision_coverage": F08_DECISION_COVERAGE,
-                    "population": F08_POPULATION,
+                    "decision_coverage": coverage,
+                    "population": population,
                     "sources": sources,
+                    **_f08_limit_extras(version),
                 }
             ),
             "design_objective": _canonical(
@@ -283,7 +326,7 @@ def public_roles(challenge_id: str, version: str) -> dict[str, bytes]:
                     "quantity": "worst_dynamic_mm_per_n",
                     "definition": "worst-band TIP dynamic compliance over all damping; "
                     "probe is diagnostic only",
-                    "decision_coverage": F08_DECISION_COVERAGE,
+                    "decision_coverage": coverage,
                     "sources": sources,
                 }
             ),
@@ -419,16 +462,45 @@ def _pinned_repository_file(path_and_sha: tuple[str, str]) -> bytes:
     return raw
 
 
+def _f08_limit_extras(version: str) -> dict:
+    """1.1's limit statement: the exam straddles the dynamic limit, and the
+    TRAIN mesh reads slightly lower than the exam truth there."""
+    if version == "1.0":
+        return {}
+    return {
+        "exam_straddle": {
+            "limit": "dynamic_tip_mm_per_n_max",
+            "safe": 4,
+            "unsafe": 4,
+            "smallest_margin_mm_per_n": 0.00286,
+            "largest_reference_error_mm_per_n": 3.4e-5,
+        },
+        "train_mesh": dict(f08_train.TRAIN_MESH_STATEMENT),
+    }
+
+
 def _f08_bank(challenge_id: str, version: str) -> dict:
     """F08's accepted references, laid out by the interface's named slices."""
     interface = f08_public.interface_document(challenge_id, version)
     names = interface["input"]["names"]
     slices = interface["output"]["named_slices"]
     width = max(end for _, end in slices.values())
-    observed_raw = _pinned_repository_file(_F08_OBSERVED)
+    observed_pin, environment_pin, prefix, cohort, coverage, population, _ = _F08_EXAMS[
+        version
+    ]
+    observed_raw = _pinned_repository_file(observed_pin)
     observed = json.loads(observed_raw)
-    environment = json.loads(_pinned_repository_file(_F08_ENVIRONMENT))
+    environment = json.loads(_pinned_repository_file(environment_pin))
     geometries = sorted(observed["convergence"])
+    if prefix is not None:
+        # The ladder was run under the pilot's geometry names; its rows must be
+        # exactly the frozen ladder actions, in order.
+        actions = json.loads(_pinned_repository_file(_F08_LADDER_ACTIONS))["actions"]
+        if geometries != [f"pilot-{k:04d}" for k in range(len(actions))] or any(
+            observed["cases"][g]["case"] != a
+            for g, a in zip(geometries, actions, strict=True)
+        ):
+            raise ValueError("F08 ladder rows differ from the frozen actions")
     case_ids, rows, references, records = [], [], [], []
     for geometry in geometries:
         verdict = observed["convergence"][geometry]
@@ -453,14 +525,15 @@ def _f08_bank(challenge_id: str, version: str) -> dict:
         target = [0.0] * width
         for name, (start, end) in slices.items():
             target[start:end] = [float(values[name])]
-        case_ids.append(geometry)
+        case_id = geometry if prefix is None else f"{prefix}-{geometry[-1]}"
+        case_ids.append(case_id)
         rows.append([float(observed["cases"][geometry]["case"][n]) for n in names])
         references.append(target)
         records.append(
             {
                 "status": "OK",
-                "case_id": geometry,
-                "design_id": geometry,
+                "case_id": case_id,
+                "design_id": case_id,
                 "reference_rung_h_mm": case["h_mm"],
                 "wall_s": case["cost"]["wall_s"],
                 "image": {
@@ -500,13 +573,13 @@ def _f08_bank(challenge_id: str, version: str) -> dict:
     targets.setflags(write=False)
     return {
         "case_ids": tuple(case_ids),
-        "cohorts": ("decision_near_feasible",) * len(case_ids),
+        "cohorts": (cohort,) * len(case_ids),
         "inputs": inputs,
         "references": targets,
         "reference_records": records,
         "solver_evidence": observed_raw,
-        "decision_coverage": F08_DECISION_COVERAGE,
-        "population": F08_POPULATION,
+        "decision_coverage": coverage,
+        "population": population,
     }
 
 
@@ -561,7 +634,11 @@ def write_public_pack(
         public[role] = {"path": name}
     public.update({role: UNAVAILABLE for role in PUBLIC_ROLES if role not in public})
     private = {role: UNAVAILABLE for role in PRIVATE_ROLES}
-    pack_version = PACK_VERSIONS[challenge_id]
+    pack_version = (
+        _F08_EXAMS[version][6]
+        if challenge_id == f08_train.CHALLENGE_ID
+        else PACK_VERSIONS[challenge_id]
+    )
     if exposed_development_bank:
         (root / "private").mkdir(mode=0o700)
         for role, body in _development_private_roles(challenge_id, version).items():
@@ -586,11 +663,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("root", type=Path)
     parser.add_argument("--challenge", required=True)
     parser.add_argument("--exposed-development-bank", action="store_true")
+    parser.add_argument("--f08-version", choices=f08_train.CHALLENGE_VERSIONS)
     args = parser.parse_args(argv)
     if args.challenge == battery_pack.CHALLENGE_ID:
         version = battery_pack.challenge.CHALLENGE.version
     elif args.challenge == f08_train.CHALLENGE_ID:
-        version = f08_train.CHALLENGE_VERSION
+        version = args.f08_version or f08_train.CHALLENGE_VERSION
     elif args.challenge in _ROLE_FILES:
         version = physical_public_train._source(args.challenge)[0].CHALLENGE.version
     else:

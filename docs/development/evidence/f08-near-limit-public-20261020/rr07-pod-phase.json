@@ -1,0 +1,56 @@
+{
+ "schema": "carbon.reference-solvers.pod-phase.v1",
+ "plan_id": "f08-rr07-near-limit-2026-10-19",
+ "pod_plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/f08-rr07-plan.json",
+ "pod_plan_sha256": "79de88076ffe4b82384caacc9db1e9507dc39411507cfe5bd3029f4c58c7f97c",
+ "kind": "calculix",
+ "steps": [
+  {
+   "name": "f08-rr07-verify",
+   "status": "PASS",
+   "wall_s": 24.96705602899965
+  },
+  {
+   "name": "f08-rr07-freeze",
+   "status": "PASS",
+   "wall_s": 592.4869814220001
+  },
+  {
+   "name": "f08-rr07-lineage",
+   "status": "PASS",
+   "wall_s": 1048.9
+  },
+  {
+   "name": "f08-rr07-ladder",
+   "status": "PASS",
+   "wall_s": 2366.1
+  },
+  {
+   "name": "f08-rr07-n1-b0",
+   "status": "PASS",
+   "wall_s": 2885.8
+  },
+  {
+   "name": "f08-rr07-n1-b1",
+   "status": "PASS",
+   "wall_s": 1019.3
+  },
+  {
+   "name": "f08-rr07-n1-b2",
+   "status": "PASS",
+   "wall_s": 958.6
+  },
+  {
+   "name": "f08-rr07-n1-b3",
+   "status": "PASS",
+   "wall_s": 960.8
+  },
+  {
+   "name": "f08-rr07-check",
+   "status": "PASS",
+   "wall_s": 0.10099798499868484
+  }
+ ],
+ "all_passed": true,
+ "maturity": "DEVELOPMENT engineering run on public decks; no adequacy, qualification or LIVE claim"
+}

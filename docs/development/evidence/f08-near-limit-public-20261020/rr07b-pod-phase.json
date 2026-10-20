@@ -1,0 +1,46 @@
+{
+ "schema": "carbon.reference-solvers.pod-phase.v1",
+ "plan_id": "f08-rr07b-n1-redraw-2026-10-20",
+ "pod_plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/f08-rr07b-plan.json",
+ "pod_plan_sha256": "652ca42e4c83622d66492c5c0535232992ea3ebd3592ddc2df0b27a92c48a480",
+ "kind": "calculix",
+ "steps": [
+  {
+   "name": "f08-rr07b-verify",
+   "status": "PASS",
+   "wall_s": 25.263193073000366
+  },
+  {
+   "name": "f08-rr07b-freeze",
+   "status": "PASS",
+   "wall_s": 348.50474216699877
+  },
+  {
+   "name": "f08-rr07b-n1r-b0",
+   "status": "PASS",
+   "wall_s": 833.7
+  },
+  {
+   "name": "f08-rr07b-n1r-b1",
+   "status": "PASS",
+   "wall_s": 742.8
+  },
+  {
+   "name": "f08-rr07b-n1r-b2",
+   "status": "PASS",
+   "wall_s": 786.9
+  },
+  {
+   "name": "f08-rr07b-n1r-b3",
+   "status": "PASS",
+   "wall_s": 758.3
+  },
+  {
+   "name": "f08-rr07b-check",
+   "status": "PASS",
+   "wall_s": 0.10103093100042315
+  }
+ ],
+ "all_passed": true,
+ "maturity": "DEVELOPMENT engineering run on public decks; no adequacy, qualification or LIVE claim"
+}
