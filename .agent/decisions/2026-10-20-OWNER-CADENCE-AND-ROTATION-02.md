@@ -5,7 +5,9 @@ Status: APPROVED by the owner. Confirmed in the Test Lead's session and relayed 
 Supersedes, prospectively: OWNER-EXAM-CAP-ROTATION-01 (C = 20 per version with daily rotation).
 Proposal: `codex-queue/reports/EXAM_ROTATION_RULE_PROPOSAL_20261020.md`, revision 2.
 Implementation:
-- **Built and approved** at `claude/cadence-final` `b4c599f9c`, landing with the step-2 recalibration.
+- **Built and approved** at `90cead71f1b9ef53ad984398664c3df8bb8c3201` (rebased from the reviewed `b4c599f9c`).
+  - **The rebase:** product code under `carbon/` is identical; the tests were adapted to graph per-case grading and to F08 1.1's key-dependent bootstrap.
+  - **When it lands:** before the single recalibration, so that one recalibration covers it.
 - **The overfit check is measurable only where a case bootstrap works:** F08 1.1 today. For every other Challenge it's UNAVAILABLE, so only the 90-day limit rotates them. That's deliberate: it keeps the rule simple and never rotates falsely.
 - **Until it lands,** the base still enforces C = 20 per version.
 
