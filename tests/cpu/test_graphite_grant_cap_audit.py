@@ -193,7 +193,7 @@ def test_v4_binds_the_named_qwen_grant_and_preserves_the_prior_snapshot():
     current = json.loads((directory / "audit-v4.json").read_bytes())
     assert current.pop("snapshot_version") == 4
     assert current.pop("source_revision") == (
-        "91934b94ffd845f3d0a1a783f86b60a8ab4a140b"
+        "09c03aeea4b681fb532235407c070387a48c4ae1"
     )
     assert current.pop("supersedes") == {
         "path": "docs/development/evidence/role-output-cap-audit/audit-v3.json",
@@ -220,7 +220,12 @@ def test_v4_binds_the_named_qwen_grant_and_preserves_the_prior_snapshot():
         for path, value in current["source_sha256"].items()
         if value != previous["source_sha256"][path]
     }
-    assert changed_sources == {"carbon/agent_campaign/graphite/grant_binding.py"}
+    # phase3.py: the 09c03aeea import and call-site redirect to
+    # level4_lowering, no logic and no grant figure changed.
+    assert changed_sources == {
+        "carbon/agent_campaign/graphite/grant_binding.py",
+        "carbon/agent_campaign/graphite/phase3.py",
+    }
 
 
 @pytest.mark.parametrize("name", ["audit-v2.json", "audit-v3.json"])
