@@ -31,7 +31,10 @@ def _digest(document: object) -> str:
 
 
 def _check_identity(challenge_id: str, version: str) -> dict:
-    if challenge_id != f02_train.CHALLENGE_ID or version != f02_train.CHALLENGE_VERSION:
+    if (
+        challenge_id != f02_train.CHALLENGE_ID
+        or version not in f02_train.CHALLENGE_VERSIONS
+    ):
         raise ValueError("unknown public f02 Challenge identity")
     return f02_train.load_public_train(version)["provenance"]
 
