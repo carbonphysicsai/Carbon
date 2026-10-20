@@ -37,7 +37,7 @@ The class's actual values. They're measured from the calibration host, not chose
 
 > They will run GPUs so we limit no rebuild options. Likely 4090s
 
-- **Mainnet validators run GPUs,** likely the RTX 4090. The exact model is to be confirmed by the owner before registration.
+- **Mainnet validators run GPUs: the RTX 4090.** Owner, verbatim, later the same day: "RTX 4090 confirmed for now." It's revisable ("for now"); a change of card is a new class registration with re-measurement.
 - **The mainnet host class** adds the GPU: model, VRAM, driver and CUDA version, and compute capability, alongside the CPU fields. It's measured once on the chosen hardware and registered the same way. The DEVELOPMENT 4-vCPU class above stays for testnet and rehearsal until then.
 - **Required before the GPU class is registered (Validator):**
   - **A rebuild on one GPU of the class is bit-identical when repeated.** Deterministic GPU kernels are enforced in the judge: XLA deterministic ops, torch deterministic algorithms, and a fixed cuBLAS workspace. If a recipe can't rebuild deterministically on that GPU, that's a typed refusal, not a silent pass.
