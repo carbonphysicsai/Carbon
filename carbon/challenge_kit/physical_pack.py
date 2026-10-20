@@ -81,12 +81,29 @@ _ROLE_FILES = {
         ),
     },
 }
+#: The pack version of every registered (Challenge, version), named
+#: explicitly; there is no default. Step-2 batch (STEP2_BATCH_VERSIONS_20261020):
+#: Motor 1.1, Cooling 1.1, F08 1.2, F02 2.1 and Battery 2.0 are new versions
+#: whose exam content is unchanged apart from the version binding (Battery 2.0
+#: adds its v2 material rows). Existing versions keep their pack versions.
 PACK_VERSIONS = {
-    motor.CHALLENGE.challenge_id: "motor-normal-construction-development-1",
-    cooling.CHALLENGE.challenge_id: "cooling-normal-construction-development-1",
-    battery_pack.CHALLENGE_ID: battery_pack.PACK_VERSION,
-    f08_train.CHALLENGE_ID: "f08-normal-construction-development-1",
-    f02_train.CHALLENGE_ID: "f02-normal-construction-development-2",
+    (motor.CHALLENGE.challenge_id, "1.0"): "motor-normal-construction-development-1",
+    (motor.CHALLENGE.challenge_id, "1.1"): "motor-normal-construction-development-2",
+    (
+        cooling.CHALLENGE.challenge_id,
+        "1.0",
+    ): "cooling-normal-construction-development-1",
+    (
+        cooling.CHALLENGE.challenge_id,
+        "1.1",
+    ): "cooling-normal-construction-development-2",
+    (battery_pack.CHALLENGE_ID, "1.0"): battery_pack.PACK_VERSION,
+    (battery_pack.CHALLENGE_ID, "2.0"): "battery-normal-construction-development-3",
+    (f08_train.CHALLENGE_ID, "1.0"): "f08-normal-construction-development-1",
+    (f08_train.CHALLENGE_ID, "1.1"): "f08-normal-construction-development-2",
+    (f08_train.CHALLENGE_ID, "1.2"): "f08-normal-construction-development-3",
+    (f02_train.CHALLENGE_ID, "2.0"): "f02-normal-construction-development-2",
+    (f02_train.CHALLENGE_ID, "2.1"): "f02-normal-construction-development-3",
 }
 #: F02's eight registered cold actions (the scoring producer's
 #: `_F02_ACTIONS`), judged B10 ACCEPTED_FOR_DEVELOPMENT_BANK by RR-PACKS-04's
@@ -165,6 +182,16 @@ _F08_EXAMS = {
         F08_LADDER_DECISION_COVERAGE,
         F08_LADDER_POPULATION,
         "f08-normal-construction-development-2",
+    ),
+    # 1.2: 1.1's ladder bank and TRAIN v2, unchanged; only the binding differs.
+    "1.2": (
+        _F08_LADDER_OBSERVED,
+        _F08_LADDER_ENVIRONMENT,
+        "ladder",
+        "decision_near_limit",
+        F08_LADDER_DECISION_COVERAGE,
+        F08_LADDER_POPULATION,
+        "f08-normal-construction-development-3",
     ),
 }
 _F08_BRIEF = (
@@ -844,11 +871,9 @@ def write_public_pack(
         public[role] = {"path": name}
     public.update({role: UNAVAILABLE for role in PUBLIC_ROLES if role not in public})
     private = {role: UNAVAILABLE for role in PRIVATE_ROLES}
-    pack_version = (
-        _F08_EXAMS[version][6]
-        if challenge_id == f08_train.CHALLENGE_ID
-        else PACK_VERSIONS[challenge_id]
-    )
+    if (challenge_id, version) not in PACK_VERSIONS:
+        raise ValueError("no pack version registered for this Challenge version")
+    pack_version = PACK_VERSIONS[(challenge_id, version)]
     if exposed_development_bank:
         (root / "private").mkdir(mode=0o700)
         for role, body in _development_private_roles(challenge_id, version).items():
@@ -873,22 +898,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("root", type=Path)
     parser.add_argument("--challenge", required=True)
     parser.add_argument("--exposed-development-bank", action="store_true")
-    parser.add_argument("--f08-version", choices=f08_train.CHALLENGE_VERSIONS)
+    # Every pack names its Challenge version: there is no default version.
+    parser.add_argument("--version", required=True)
     args = parser.parse_args(argv)
-    if args.challenge == battery_pack.CHALLENGE_ID:
-        version = battery_pack.challenge.CHALLENGE.version
-    elif args.challenge == f08_train.CHALLENGE_ID:
-        version = args.f08_version or f08_train.CHALLENGE_VERSION
-    elif args.challenge == f02_train.CHALLENGE_ID:
-        version = f02_train.CHALLENGE_VERSION
-    elif args.challenge in _ROLE_FILES:
-        version = physical_public_train._source(args.challenge)[0].CHALLENGE.version
-    else:
-        parser.error("no normal-construction pack for this Challenge")
+    if (args.challenge, args.version) not in PACK_VERSIONS:
+        parser.error("no pack registered for this Challenge version")
     path = write_public_pack(
         args.root,
         args.challenge,
-        version,
+        args.version,
         exposed_development_bank=args.exposed_development_bank,
     )
     print(path)

@@ -31,7 +31,10 @@ def _digest(document: object) -> str:
 
 
 def _check_identity(challenge_id: str, version: str) -> dict:
-    if challenge_id != f02_train.CHALLENGE_ID or version != f02_train.CHALLENGE_VERSION:
+    if (
+        challenge_id != f02_train.CHALLENGE_ID
+        or version not in f02_train.CHALLENGE_VERSIONS
+    ):
         raise ValueError("unknown public f02 Challenge identity")
     return f02_train.load_public_train(version)["provenance"]
 
@@ -73,7 +76,7 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
 
     provenance = _check_identity(challenge_id, version)
     profile = _worker_profile(None, LIBRARY_BUILD_PROVENANCE).body
-    return {
+    document = {
         "schema": LIMITS_SCHEMA,
         "scope": SCOPE,
         "challenge": {"id": challenge_id, "version": version},
@@ -101,6 +104,15 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
         "accuracy_gate": None,
         "live_eligible": False,
     }
+    from .served_versions import step_caps
+
+    if not step_caps(challenge_id, version):
+        # OWNER-REBUILD-TIME-LIMIT-01 (a step-2 version): no fixed training-step
+        # cap; the build wall time above is the only training limit. Existing
+        # versions keep their bytes (as physical_public).
+        document["training_step_cap"] = None
+        document["training_limit"] = "build_wall_seconds_max"
+    return document
 
 
 def construction_kit(challenge_id: str, version: str) -> dict:
