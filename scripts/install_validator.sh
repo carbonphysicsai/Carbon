@@ -33,6 +33,12 @@ MIN_CPUS="${CARBON_VALIDATOR_MIN_CPUS:-2}"
 MIN_RAM_GIB="${CARBON_VALIDATOR_MIN_RAM_GIB:-4}"
 MIN_NVIDIA_DRIVER_MAJOR="${CARBON_VALIDATOR_MIN_NVIDIA_DRIVER_MAJOR:-580}"
 STATE_DIR="${CARBON_STATE_DIR:-${HOME}/.carbon/development-launchpad}"
+# The one registered validator host class (OWNER-VALIDATOR-HOST-CLASS-01): every validator runs the
+# same hardware. The two overrides below, and CARBON_VALIDATOR_ASSUME_MACHINE, are test knobs: with
+# any of them set the script only runs the checks (--check-only) and never installs.
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+HOST_CLASS_FILE="${CARBON_VALIDATOR_HOST_CLASS_FILE:-${SCRIPT_DIR}/../carbon/challenge_validator/validator-host-class.json}"
+MEMINFO_FILE="${CARBON_VALIDATOR_MEMINFO_FILE:-/proc/meminfo}"
 
 usage() {
   cat <<'EOF'
@@ -133,6 +139,119 @@ cpus="$(nproc 2>/dev/null || echo 0)"
 (( cpus >= MIN_CPUS )) || refuse V_CPU "${cpus} CPUs; at least ${MIN_CPUS} are required for one isolated worker." "use a machine with more CPUs."
 ram_gib="$(awk '/^MemTotal:/ { printf "%d", $2 / 1048576 }' /proc/meminfo 2>/dev/null || echo 0)"
 (( ram_gib >= MIN_RAM_GIB )) || refuse V_RAM "${ram_gib} GiB of RAM; at least ${MIN_RAM_GIB} GiB are required for one isolated worker." "use a machine with more memory."
+
+# One host class (OWNER-VALIDATOR-HOST-CLASS-01): the CPU model name and ISA flags and the vCPU
+# count must equal the registered class and the memory must reach its minimum, or nothing is
+# installed. The class is measured on the calibration host and registered in
+# carbon/challenge_validator/validator-host-class.json; an unmeasured file refuses everything.
+if command -v python3 >/dev/null 2>&1; then
+  while IFS=$'\t' read -r code message next; do
+    if [[ -n "${code}" ]]; then refuse "${code}" "${message}" "${next}"; fi
+  done < <(python3 - "${HOST_CLASS_FILE}" "${MEMINFO_FILE}" <<'PY'
+import json
+import os
+import re
+import subprocess
+import sys
+
+FLAGS = ("avx2", "fma", "avx512f", "avx512_bf16", "amx")
+SCHEMA = "carbon.validator.host-class.v1"
+path, meminfo = sys.argv[1], sys.argv[2]
+
+
+def refuse(code, message, nxt):
+    print("\t".join((code, message, nxt)))
+
+
+def run(*command):
+    done = subprocess.run(command, capture_output=True, text=True, env={**os.environ, "LC_ALL": "C"}, check=False)
+    return done.stdout
+
+
+try:
+    with open(path, encoding="utf-8") as stream:
+        registered = json.load(stream)
+    flags = registered["isa_flags_present"]
+    if (
+        registered["schema"] != SCHEMA
+        or registered["scope"] not in ("DEVELOPMENT", "MAINNET")
+        or type(registered["cpu_model_name"]) is not str
+        or not registered["cpu_model_name"]
+        or set(flags) != set(FLAGS)
+        or any(type(flags[name]) is not bool for name in FLAGS)
+        or type(registered["nproc"]) is not int
+        or registered["nproc"] < 1
+        or type(registered["mem_total_min_gib"]) is not int
+        or registered["mem_total_min_gib"] < 1
+    ):
+        raise ValueError("malformed")
+except (OSError, ValueError, KeyError, TypeError):
+    refuse(
+        "V_HOST_CLASS_UNREGISTERED",
+        "no measured validator host class is registered (" + path + ").",
+        "register carbon/challenge_validator/validator-host-class.json from the calibration host before installing.",
+    )
+    sys.exit(0)
+
+lscpu = run("lscpu")
+model = next(
+    (m.group(1).strip() for m in re.finditer(r"^Model name:\s*(.*)$", lscpu, re.M)), ""
+)
+present = set(
+    next((m.group(1).split() for m in re.finditer(r"^Flags:\s*(.*)$", lscpu, re.M)), [])
+)
+seen = {name: name in present for name in FLAGS if name != "amx"}
+seen["amx"] = any(flag.startswith("amx_") for flag in present)
+try:
+    cpus = int(run("nproc").strip())
+except ValueError:
+    cpus = 0
+try:
+    with open(meminfo, encoding="ascii") as stream:
+        kib = int(re.search(r"^MemTotal:\s+(\d+) kB", stream.read(), re.M).group(1))
+except (OSError, AttributeError, ValueError):
+    kib = 0
+mem_gib = kib // 1048576
+
+if model != registered["cpu_model_name"]:
+    refuse(
+        "V_HOST_CLASS_MODEL",
+        "this CPU is '" + (model or "unknown") + "'; the validator host class is '" + registered["cpu_model_name"] + "'.",
+        "use the registered validator hardware.",
+    )
+if seen != flags:
+    refuse(
+        "V_HOST_CLASS_ISA",
+        "CPU flags " + json.dumps(seen, sort_keys=True) + " differ from the host class " + json.dumps(flags, sort_keys=True) + ".",
+        "use the registered validator hardware.",
+    )
+if cpus != registered["nproc"]:
+    refuse(
+        "V_HOST_CLASS_VCPU",
+        str(cpus) + " vCPUs; the validator host class has exactly " + str(registered["nproc"]) + ".",
+        "use a machine with exactly the registered vCPU count.",
+    )
+if mem_gib < registered["mem_total_min_gib"]:
+    refuse(
+        "V_HOST_CLASS_MEMORY",
+        str(mem_gib) + " GiB of memory; the validator host class needs at least " + str(registered["mem_total_min_gib"]) + " GiB.",
+        "use a machine with the registered memory.",
+    )
+PY
+)
+else
+  refuse V_TOOL "python3 is not installed." "install python3 from your OS packages."
+fi
+
+# The test knobs can only produce a check result, never an install: a validator cannot use them to
+# pass as another host class.
+overrides=()
+for knob in CARBON_VALIDATOR_ASSUME_MACHINE CARBON_VALIDATOR_HOST_CLASS_FILE CARBON_VALIDATOR_MEMINFO_FILE; do
+  if [[ -n "${!knob:-}" ]]; then overrides+=("${knob}"); fi
+done
+if (( ${#overrides[@]} > 0 && check_only == 0 )); then
+  refuse V_TEST_OVERRIDE "${overrides[*]} set; these are test knobs and never allowed for an install." "unset them and run again on the registered validator host."
+fi
 
 MIN_FREE_GIB="${CARBON_VALIDATOR_MIN_FREE_GIB:-$(( gpu == 1 ? MIN_FREE_GIB_GPU : MIN_FREE_GIB_CPU ))}"
 probe="${STATE_DIR}"

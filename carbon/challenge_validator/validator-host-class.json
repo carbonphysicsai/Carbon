@@ -1,0 +1,14 @@
+{
+  "cpu_model_name": "AMD EPYC-v4 Processor",
+  "isa_flags_present": {
+    "amx": false,
+    "avx2": true,
+    "avx512_bf16": false,
+    "avx512f": false,
+    "fma": true
+  },
+  "mem_total_min_gib": 50,
+  "nproc": 4,
+  "schema": "carbon.validator.host-class.v1",
+  "scope": "DEVELOPMENT"
+}
