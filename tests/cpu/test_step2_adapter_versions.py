@@ -15,6 +15,7 @@ from carbon.scoring import physical_dual_pack as physical
 EVALUATION_VERSIONS = {
     (motor.CHALLENGE, "1.0"): "motor-dual-development-bank-90-v2",
     (motor.CHALLENGE, "1.1"): "motor-dual-development-bank-90-v3",
+    (motor.CHALLENGE, "1.2"): "motor-dual-development-bank-90-v3",
     (cooling.CHALLENGE, "1.0"): "cooling-dual-development-bank-48-v2",
     (cooling.CHALLENGE, "1.1"): "cooling-dual-development-bank-48-v3",
     (f08.CHALLENGE, "1.0"): "f08-dual-accepted-bank-8-v1",
@@ -36,15 +37,29 @@ def test_each_registered_version_has_its_own_evaluation_version(key):
     assert chosen.EVALUATION_VERSION == EVALUATION_VERSIONS[key]
 
 
-def test_evaluation_versions_never_repeat():
-    values = list(EVALUATION_VERSIONS.values())
+#: Versions the Validator ruled are one measurement under one name (Motor 1.2
+#: is 1.1's bank, physics and roles with only the construction kit changed).
+SHARED = {(motor.CHALLENGE, "1.2"): (motor.CHALLENGE, "1.1")}
+
+
+def test_evaluation_versions_repeat_only_where_ruled_shared():
+    values = [v for k, v in EVALUATION_VERSIONS.items() if k not in SHARED]
     assert len(values) == len(set(values))
+    for key, same in SHARED.items():
+        assert EVALUATION_VERSIONS[key] == EVALUATION_VERSIONS[same]
+
+
+def test_motor_1_2_is_1_1s_measurement():
+    one_two = physical_adapters.adapter(motor.CHALLENGE, "1.2")
+    one_one = physical_adapters.adapter(motor.CHALLENGE, "1.1")
+    assert one_two.CASE_ID == one_one.CASE_ID
+    assert one_two.measure is one_one.measure
 
 
 @pytest.mark.parametrize(
     "challenge, version",
     [
-        (motor.CHALLENGE, "1.2"),
+        (motor.CHALLENGE, "1.3"),
         (motor.CHALLENGE, None),
         (cooling.CHALLENGE, "2.0"),
         (f08.CHALLENGE, "1.3"),
