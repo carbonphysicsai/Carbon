@@ -87,7 +87,20 @@ def training_settings(recipe: ConstructionRecipe) -> dict:
     values.update(selected)
     values["train_fraction"] = use["train_fraction"]
     values["curriculum"] = use["curriculum"]
-    if any(not _surface_value(value, surfaces[name]) for name, value in values.items()):
+    version = doc["challenge"]["version"]
+    if version not in GRAPH_ALLOWLISTS:
+        raise RecipeRefused("battery_graph_challenge_version_unregistered")
+    uncapped = UNCAPPED_STEP_SURFACES.get(version, frozenset())
+
+    def admitted(name, value):
+        if name in uncapped:
+            # OWNER-REBUILD-TIME-LIMIT-01: no fixed step cap; uint64 still bounds
+            # the number, and the rebuild wall time bounds the training.
+            low = surfaces[name][2]
+            return type(value) is int and low <= value < 2**63
+        return _surface_value(value, surfaces[name])
+
+    if any(not admitted(name, value) for name, value in values.items()):
         raise RecipeRefused("battery_graph_training_value_invalid")
     if values["backend"] != "jax":
         raise RecipeRefused("battery_graph_backend_unsupported")
@@ -107,6 +120,9 @@ def training_settings(recipe: ConstructionRecipe) -> dict:
 #: 1.0 keeps v1, step-2's 2.0 serves v6. Kept here, not imported, because this
 #: module runs inside the isolated worker with only its staged modules.
 GRAPH_ALLOWLISTS = {"1.0": "allowlist_v1.json", "2.0": "allowlist_v6.json"}
+#: Per version, the training surfaces with no upper bound: 2.0's step surfaces
+#: (`construction_kit.STEP_SURFACES`, held equal by a test).
+UNCAPPED_STEP_SURFACES = {"2.0": frozenset({"steps", "warmup_steps", "polish_steps"})}
 
 
 def graph_allowlist(version: str):

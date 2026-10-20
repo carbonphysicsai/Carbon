@@ -721,10 +721,23 @@ def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
     if challenge_id == BATTERY_CHALLENGE:
         from carbon.battery import challenge, construction_bundle_material
 
-        if version != challenge.CHALLENGE.version:
+        if version not in construction_bundle_material.VERSIONS:
             raise RecipeRefused("construction_resource_policy_binding_invalid")
-        trusted_limits = construction_bundle_material.construction_limits_document()
-        expected_schema = "carbon.battery.bundle-construction-limits.v1"
+        if version == challenge.CHALLENGE.version:
+            trusted_limits = construction_bundle_material.construction_limits_document()
+            expected_schema = "carbon.battery.bundle-construction-limits.v1"
+        else:
+            # The step-2 version: its limits carry the bank's row count, so they
+            # are read from its own served material, the one source.
+            try:
+                trusted_limits = construction_bundle_material.versioned_material(
+                    version
+                )["construction_limits_document"]
+            except (ValueError, OSError):
+                raise RecipeRefused(
+                    "construction_resource_policy_binding_invalid"
+                ) from None
+            expected_schema = construction_bundle_material.LIMITS_SCHEMA_V2
         expected_scope = "PUBLIC_BATTERY_DEVELOPMENT_ONLY"
         resource_schema = "carbon.battery.bundle-reconstruction-resources.v1"
     elif (

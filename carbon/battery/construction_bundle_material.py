@@ -147,3 +147,111 @@ def bundle_material(root: Path | None = None) -> dict:
         },
         "disclosure": disclosure,
     }
+
+
+#: Battery's served construction versions, as `carbon.challenge_kit.
+#: served_versions` registers them: 1.0 as above, unchanged; 2.0 the step-2
+#: version (STEP2_BATCH_VERSIONS_20261020).
+VERSIONS = ("1.0", "2.0")
+LIMITS_SCHEMA_V2 = "carbon.battery.bundle-construction-limits.v2"
+PHYSICS_VERSION = "battery-physics-v2"
+
+
+def _version(version: str) -> str:
+    if version not in VERSIONS:
+        raise challenge.MaterialMismatch(
+            f"unregistered Battery construction version {version!r}"
+        )
+    return version
+
+
+def construction_limits_document_for(version: str, rows: int | None = None) -> dict:
+    """A version's limits: 1.0's bytes as above; 2.0 with no fixed training-step
+    cap, the build wall time its only training limit (OWNER-REBUILD-TIME-
+    LIMIT-01), and its graded query's row count."""
+    if _version(version) == "1.0":
+        return construction_limits_document()
+    if type(rows) is not int or rows <= 0:
+        raise challenge.MaterialMismatch("Battery 2.0 limits need the bank's row count")
+    document = construction_limits_document()
+    document["schema"] = LIMITS_SCHEMA_V2
+    document["challenge"] = {"id": challenge.CHALLENGE.challenge_id, "version": "2.0"}
+    document["practice_cases"] = rows
+    document["training_step_cap"] = None
+    document["training_limit"] = "build_wall_seconds_max"
+    return document
+
+
+def versioned_material(version: str, root: Path | None = None) -> dict:
+    """The served construction material of an exact Battery version; no default.
+
+    1.0 is `bundle_material` unchanged. 2.0 serves Data Collection's bank
+    (`physical_pack.development_bank`, the reference_present mask interface
+    §3): the graded query is the bank's rows in its order, absent references
+    stay NaN beside the authoritative mask, the physics role is the
+    {version, definition} envelope, and the allowlist is v6.
+    """
+    from carbon.challenge_kit import physical_pack
+    from carbon.challenge_kit.served_versions import material_allowlist_bytes
+    from carbon.registry import ChallengeKey
+
+    if _version(version) == "1.0":
+        return bundle_material(root)
+    material = bundle_material(root)
+    bank = physical_pack.development_bank(challenge.CHALLENGE.challenge_id, "2.0")
+    inputs = np.array(bank["inputs"], dtype=np.float64)
+    references = np.array(bank["references"], dtype=np.float64)
+    present = tuple(bank["reference_present"])
+    cohorts = tuple(bank["cohorts"])
+    n = len(bank["case_ids"])
+    if (
+        inputs.shape != (n, len(domain.INPUTS))
+        or references.shape != (n, construction_material.OUTPUT_WIDTH)
+        or len(present) != n
+        or len(cohorts) != n
+        or not all(type(p) is bool for p in present)
+        or not np.isfinite(inputs).all()
+        or any(
+            (p and not np.isfinite(row).all()) or (not p and not np.isnan(row).all())
+            for p, row in zip(present, references, strict=True)
+        )
+    ):
+        raise challenge.MaterialMismatch("reference_invalid: Battery 2.0 bank rows")
+    limits = construction_limits_document_for("2.0", rows=n)
+    physics = {"version": PHYSICS_VERSION, "definition": material["physics_contract"]}
+    allowed = material_allowlist_bytes(challenge.CHALLENGE.challenge_id, "2.0")
+    material.update(
+        {
+            "challenge_key": ChallengeKey(challenge.CHALLENGE.challenge_id, "2.0"),
+            "construction_kit": {
+                **material["construction_kit"],
+                "version": "2.0",
+                "construction_limits_digest": digest(canonical(limits)),
+            },
+            "example": inputs.copy(),
+            "practice_inputs": inputs,
+            "practice_case_ids": tuple(bank["case_ids"]),
+            "practice_reference": references,
+            "reference_present": present,
+            "practice_cohorts": cohorts,
+            # What public practice feedback and fixture targets read: the
+            # PRACTICE rows with a reference, the same 200 cases as 1.0.
+            "public_practice_rows": tuple(
+                i
+                for i, (cohort, p) in enumerate(zip(cohorts, present, strict=True))
+                if cohort == "practice" and p
+            ),
+            "expected_output_shape": references.shape,
+            "allowlist_bytes": allowed,
+            "allowlist_digest": Allowlist(allowed).digest,
+            "construction_limits_document": limits,
+            "physics_contract": physics,
+            "physics_digest": digest(canonical(physics)),
+        }
+    )
+    material["resource_facts"] = {
+        **material["resource_facts"],
+        "practice_input_bytes": int(inputs.nbytes),
+        "practice_reference_bytes": int(references.nbytes),
+    }
+    return material
