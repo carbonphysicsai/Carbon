@@ -1,0 +1,213 @@
+"""An F08 sealed exam batch as a private evaluation bank (OWNER-F02-F08-EXAM-DRAW-01).
+
+As F02's (`f02_sealed_pack`; Validator, 2026-10-20): the sealed batch
+document and its terminal records become a bank shaped exactly as
+``physical_pack.development_bank`` returns F08's, and its private roles are
+written as ``physical_pack._development_private_roles`` writes them. The
+sealed evaluation version grades it (no response pairs; the interval
+receipt is the batch's own solver evidence).
+
+Whole batch or nothing: a case without an accepted reference refuses the
+pack (the batch then fails QA and the backlog serves another version). The
+checks are the development bank's own (asymptotic, every rung comparison
+PASS, the reference rung's mode ladder PASS, the solver build pinned) plus:
+the three rungs agree on the side of the 0.15 mm/N limit, no case is a
+TRAIN geometry, and the references straddle the limit (the registered
+decision coverage is ranking and feasibility straddle).
+
+DEVELOPMENT only: it creates no qualification, weight, reward or LIVE
+authority. The output is private; it is never written to a public surface.
+"""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+import numpy as np
+
+COHORT = "decision_near_limit"
+POPULATION = "SEALED_EXAM_BATCH_NEAR_LIMIT_N1R"
+DECISION_COVERAGE = "RANKING_AND_FEASIBILITY_STRADDLE"
+EVIDENCE_SCHEMA = "carbon.f08.sealed-batch-evidence.v1"
+TARGETS = (
+    ("static_tip_mm_per_n", None, None),
+    ("peak_tip_z005_mm_per_n", "zeta_0.005", "worst_mm_per_n"),
+    ("peak_frequency_z005_hz", "zeta_0.005", "worst_hz"),
+    ("peak_tip_z010_mm_per_n", "zeta_0.01", "worst_mm_per_n"),
+    ("peak_frequency_z010_hz", "zeta_0.01", "worst_hz"),
+    ("peak_tip_z020_mm_per_n", "zeta_0.02", "worst_mm_per_n"),
+    ("peak_frequency_z020_hz", "zeta_0.02", "worst_hz"),
+)
+
+
+class SealedPackRefused(ValueError):
+    """A typed refusal; the code names the check, never the hidden content."""
+
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
+def _canonical(value) -> bytes:
+    """The development pack's own canonical form (byte identity is tested)."""
+    from carbon.challenge_kit.physical_pack import _canonical as canonical
+
+    return canonical(value)
+
+
+def _accepted(case_id, inputs, record, limit):
+    from carbon.challenge_validator import f08_hidden as hidden
+
+    try:
+        hidden.check_reference(record, inputs)
+    except ValueError:
+        raise SealedPackRefused("f08_sealed_record_malformed") from None
+    if record["status"] != "OK" or record.get("case_id") != case_id:
+        raise SealedPackRefused("f08_sealed_case_unresolved")
+    rungs = record["rung_worst_dynamic_mm_per_n"]
+    if len({v <= limit for v in rungs.values()}) != 1:
+        raise SealedPackRefused("f08_sealed_rungs_disagree")
+    wall_s = (record.get("rungs") or {}).get("h1.7", {}).get("wall_s")
+    if type(wall_s) not in (int, float) or not wall_s > 0:
+        raise SealedPackRefused("f08_sealed_no_measured_reference_rung")
+    return float(wall_s)
+
+
+def sealed_bank(document, records, *, version="1.2") -> dict:
+    """The sealed batch as a bank in ``physical_pack.development_bank``'s format."""
+    from carbon.challenge_kit import f08_public, physical_pack
+    from carbon.challenge_validator import f08_hidden as hidden
+    from carbon.f08.domain import LIMIT_MM_PER_N
+
+    if version != hidden.CHALLENGE_VERSION:
+        raise SealedPackRefused("f08_sealed_version")
+    try:
+        cases = hidden.check_document(document)
+    except ValueError:
+        raise SealedPackRefused("f08_sealed_document_malformed") from None
+    by_case = {}
+    for record in records:
+        case_id = record.get("case_id") if type(record) is dict else None
+        if case_id not in cases or case_id in by_case:
+            raise SealedPackRefused("f08_sealed_records_mismatch")
+        by_case[case_id] = record
+    if set(by_case) != set(cases):
+        raise SealedPackRefused("f08_sealed_case_unresolved")
+    interface = f08_public.interface_document(hidden.CHALLENGE_ID, version)
+    names = interface["input"]["names"]
+    slices = interface["output"]["named_slices"]
+    if set(slices) != {name for name, _, _ in TARGETS}:
+        raise SealedPackRefused("f08_sealed_interface_differs")
+    width = max(end for _, end in slices.values())
+    case_ids, rows, references, out_records, sides = [], [], [], [], set()
+    for case_id in sorted(cases):
+        inputs, record = cases[case_id], by_case[case_id]
+        wall_s = _accepted(case_id, inputs, record, LIMIT_MM_PER_N)
+        outputs, damping = record["outputs"], record["damping"]
+        sides.add(outputs["worst_dynamic_mm_per_n"] <= LIMIT_MM_PER_N)
+        target = [0.0] * width
+        for name, zeta, key in TARGETS:
+            value = outputs[name] if zeta is None else damping[zeta][key]
+            start, end = slices[name]
+            target[start:end] = [float(value)]
+        case_ids.append(case_id)
+        rows.append([float(inputs[n]) for n in names])
+        references.append(target)
+        out_records.append(
+            {
+                "status": "OK",
+                "case_id": case_id,
+                "design_id": case_id,
+                "reference_rung_h_mm": record["reference_rung_h_mm"],
+                "wall_s": wall_s,
+                "image": {
+                    "kind": record["solvers"]["kind"],
+                    "solvers": record["solvers"]["solvers"],
+                },
+                "cad_mass_kg": outputs["cad_mass_kg"],
+                "observed": {
+                    k: outputs[k]
+                    for k in (
+                        "static_tip_mm_per_n",
+                        "worst_dynamic_mm_per_n",
+                        "mass_kg",
+                        "modes",
+                        "mode_ladder",
+                        "in_band_modes_hz",
+                    )
+                },
+                "damping": {
+                    zeta: {k: damping[zeta][k] for k in ("worst_mm_per_n", "worst_hz")}
+                    for zeta in damping
+                },
+                "convergence": record["convergence"],
+            }
+        )
+    if sides != {True, False}:
+        raise SealedPackRefused("f08_sealed_no_straddle")
+    dtype = interface["train_dtype"]
+    inputs_array = np.asarray(rows, dtype=dtype)
+    targets = np.asarray(references, dtype=dtype)
+    if (
+        inputs_array.shape != (hidden.BATCH_CASES, len(names))
+        or targets.shape != (hidden.BATCH_CASES, width)
+        or not np.isfinite(inputs_array).all()
+        or not np.isfinite(targets).all()
+    ):
+        raise SealedPackRefused("f08_sealed_bank_shape")
+    try:
+        physical_pack._f08_refuse_train_overlap(inputs_array, version)
+    except ValueError:
+        raise SealedPackRefused("f08_sealed_train_geometry") from None
+    inputs_array.setflags(write=False)
+    targets.setflags(write=False)
+    evidence = _canonical(
+        {
+            "schema": EVIDENCE_SCHEMA,
+            "document": document,
+            "records": [by_case[c] for c in case_ids],
+        }
+    )
+    return {
+        "case_ids": tuple(case_ids),
+        "cohorts": (COHORT,) * len(case_ids),
+        "inputs": inputs_array,
+        "references": targets,
+        "reference_records": out_records,
+        "solver_evidence": evidence,
+        "decision_coverage": DECISION_COVERAGE,
+        "population": POPULATION,
+    }
+
+
+def private_roles(bank) -> dict[str, bytes]:
+    """The bank's private roles, byte for byte as the development pack's."""
+    from carbon.challenge_kit.f02_sealed_pack import private_roles as roles
+
+    return roles(bank)
+
+
+def write_private_roles(root, bank) -> dict:
+    """Write the private roles under a new, empty, owner-only ``root``."""
+    root = Path(root)
+    root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if any(root.iterdir()):
+        raise SealedPackRefused("f08_sealed_pack_not_empty")
+    (root / "private").mkdir(mode=0o700)
+    entries = {}
+    for role, body in private_roles(bank).items():
+        name = f"private/{role}.{'npz' if role == 'case_bank' else 'json'}"
+        fd = os.open(root / name, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(body)
+        entries[role] = {"path": name}
+    return entries
+
+
+__all__ = [
+    "SealedPackRefused",
+    "private_roles",
+    "sealed_bank",
+    "write_private_roles",
+]
