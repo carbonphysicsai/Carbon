@@ -15,6 +15,8 @@ import stat
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from carbon.challenge_kit.interface_dtype import output_dtype
+
 
 class RetentionUnavailable(ValueError):
     """The named original-byte or custody dependency is unavailable."""
@@ -532,11 +534,7 @@ def _inference_pair_raw(adapter, submission_id, result, artifacts, entry, regrad
             expected_state_digest=entry["state_digest"],
             inputs=material["practice_inputs"],
             expected_output_shape=tuple(material["expected_output_shape"]),
-            expected_output_dtype=(
-                interface["outputs"]["dtype"]
-                if "outputs" in interface
-                else interface["dtype"]
-            ),
+            expected_output_dtype=output_dtype(interface),
             allowlist_bytes=material["allowlist_bytes"],
             seconds=policy["inference_wall_seconds_max"],
             total_seconds=policy["total_reconstruction_wall_seconds_max"],
@@ -1169,11 +1167,7 @@ def retain_served_result(
                     evidence["inference_operation"],
                     evidence["inference_receipt"],
                 ),
-                expected_output_dtype=(
-                    material["interface_document"]["outputs"]["dtype"]
-                    if "outputs" in material["interface_document"]
-                    else material["interface_document"]["dtype"]
-                ),
+                expected_output_dtype=output_dtype(material["interface_document"]),
             )
         except (ValueError, TypeError, KeyError) as exc:
             raise RetentionUnavailable("native_comparison_unavailable") from exc
@@ -1460,11 +1454,7 @@ def regrade_retained_entry(
                     state_digest=entry["state_digest"],
                     inputs=bank,
                     expected_output_shape=output_shape,
-                    expected_output_dtype=(
-                        interface["outputs"]["dtype"]
-                        if "outputs" in interface
-                        else interface["dtype"]
-                    ),
+                    expected_output_dtype=output_dtype(interface),
                     allowlist_bytes=material["allowlist_bytes"],
                     measure_query=measure,
                     seconds=policy["inference_wall_seconds_max"],

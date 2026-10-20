@@ -896,14 +896,15 @@ class DirectDevelopmentTasksV3:
         with self._lock:
             bindings = self._bindings(request)
             if measure_query:
-                interface = self.discovery._material.get("interface_document", {})
-                # The numeric physical interface keeps its dtype at the top level.
-                dtype = (
-                    interface["outputs"].get("dtype")
-                    if type(interface.get("outputs")) is dict
-                    else interface.get("dtype")
-                )
-                if type(dtype) is not str or not dtype:
+                from carbon.challenge_kit.interface_dtype import output_dtype
+
+                try:
+                    declared = output_dtype(
+                        self.discovery._material.get("interface_document", {})
+                    )
+                except ValueError:
+                    declared = None
+                if type(declared) is not str or not declared:
                     raise ResearchTaskProviderError(
                         ResearchServiceErrorCode.REFERENCE_MISMATCH
                     )
@@ -1262,16 +1263,13 @@ class DirectDevelopmentTasksV3:
                 inference = timed
             measurement = inference.get("measurement")
             material = self.discovery._material
-            expected_dtype = (
-                material["interface_document"]["outputs"]["dtype"]
-                if "outputs" in material["interface_document"]
-                else material["interface_document"]["dtype"]
-            )
             import numpy as np
 
+            from carbon.challenge_kit.interface_dtype import output_dtype
+
             # The program reports the canonical name ("float64"); registered
-            # interfaces may spell the same dtype "<f8".
-            expected_dtype = str(np.dtype(expected_dtype))
+            # interfaces may spell the same dtype "<f8" (F08: "<f4").
+            expected_dtype = str(np.dtype(output_dtype(material["interface_document"])))
             if (
                 set(inference)
                 != {
@@ -1658,6 +1656,7 @@ class DirectDevelopmentTasksV3:
                 provisioning = False
             self._bindings(request)
             from carbon.challenge_kit import physical_material
+            from carbon.challenge_kit.interface_dtype import output_dtype
 
             material = self.discovery._material
             kit = material["construction_kit"]
@@ -1703,11 +1702,7 @@ class DirectDevelopmentTasksV3:
                     expected_output_shape=material["expected_output_shape"],
                     allowlist_bytes=material["allowlist_bytes"],
                     expected_output_dtype=(
-                        (
-                            material["interface_document"]["outputs"]["dtype"]
-                            if "outputs" in material["interface_document"]
-                            else material["interface_document"]["dtype"]
-                        )
+                        output_dtype(material["interface_document"])
                         if (kit["id"] == BATTERY_CHALLENGE and kit["version"] == "1.0")
                         or kit["version"] == "1.3"
                         or physical_material.is_registered(kit["id"], kit["version"])
