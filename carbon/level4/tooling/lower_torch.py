@@ -9,6 +9,18 @@ refused (`aten_op_not_lowered`), and so is one the allowlist refuses.
 
 Parameters become named graph inputs (Carbon feeds them); buffers and lifted
 tensor constants become counted constants.
+
+Limits a miner may meet (allowlist v6):
+
+- `max_pool2d` is supported only with non-overlapping windows (stride equal
+  to the kernel), 4-D input, no padding, dilation or `ceil_mode`, and no
+  indices output. Anything else, `MaxPool2d(3, 2)` for one, is refused as
+  `aten_arguments_not_supported`, a Carbon capability gap that does not count
+  against the miner.
+- Its gradients at exact ties inside a window are split as in JAX, not given
+  to the first index as in torch. Carbon's rebuild trains through its own
+  `reduce_max` on both backends, so this differs only from a miner's local
+  torch training.
 """
 
 from __future__ import annotations
