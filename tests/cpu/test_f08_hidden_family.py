@@ -55,24 +55,24 @@ def test_f08s_registration_is_its_hidden_rules_own_values():
     assert hidden.OBSERVED == runner.OBSERVED
 
 
-def test_the_family_is_closed_until_its_sealed_evaluation_version_exists():
-    assert hidden.EVALUATION_VERSION is None
-    with pytest.raises(hidden.F08FamilyError) as refused:
-        hidden.hidden_rule()
-    assert refused.value.code == "f08_sealed_evaluation_version_unregistered"
-
-
-def test_the_rule_cites_the_exam(monkeypatch):
-    monkeypatch.setattr(hidden, "EVALUATION_VERSION", "fixture-sealed-version")
+def test_the_rule_cites_the_exam_and_never_restates_scoring():
     rule = hidden.hidden_rule()
     assert rule["exam"] == {
         "pack_version": "f08-normal-construction-development-3",
-        "evaluation_version": "fixture-sealed-version",
+        "evaluation_version": "f08-dual-sealed-batch-8-v1",
     }
+    assert rule["challenge"] == {"id": "f08-ribbed-bracket", "version": "1.2"}
     assert rule["references"] == {"terminal": list(hidden.TERMINAL), "scored": ["OK"]}
     text = json.dumps(rule)
     for scoring in ("weight", "threshold", "margin", "reward"):
         assert scoring not in text
+
+
+def test_an_unregistered_evaluation_version_closes_the_family(monkeypatch):
+    monkeypatch.setattr(hidden, "EVALUATION_VERSION", None)
+    with pytest.raises(hidden.F08FamilyError) as refused:
+        hidden.hidden_rule()
+    assert refused.value.code == "f08_sealed_evaluation_version_unregistered"
 
 
 def test_the_contract_digest_is_the_1_2_kit():
@@ -229,8 +229,7 @@ class Solver:
         return Done()
 
 
-def test_a_batch_is_drawn_solved_with_a_retry_and_sealed(tmp_path, monkeypatch):
-    monkeypatch.setattr(hidden, "EVALUATION_VERSION", "fixture-sealed-version")
+def test_a_batch_is_drawn_solved_with_a_retry_and_sealed(tmp_path):
     path = write_deployment(
         tmp_path / "producer-etc" / "f08.json",
         store=str(tmp_path / "producer-store"),

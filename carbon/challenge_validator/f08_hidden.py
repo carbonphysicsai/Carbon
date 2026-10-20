@@ -17,10 +17,6 @@ The family's values (Validator, 2026-10-20), as F02's:
   receipt is the batch's own solver evidence). There is no second scoring
   path.
 
-The sealed F08 evaluation version is not registered yet: `EVALUATION_VERSION`
-is None and the rule refuses, so no F08 source can be built (fail closed)
-until ScoreLab registers it.
-
 DEVELOPMENT only: no qualification, weight, reward or LIVE authority.
 """
 
@@ -52,8 +48,9 @@ BATCH_CASES = 8
 ROTATION_EVERY_BLOCKS = 648_000  # the 90-day maximum
 ACTIVE_BATCHES = 1
 PACK_VERSION = "f08-normal-construction-development-3"
-#: ScoreLab's sealed F08 evaluation version: not registered yet (fail closed).
-EVALUATION_VERSION = None
+#: The Test Engineer's sealed F08 evaluation version (1.2's measurement
+#: unchanged; Validator, 2026-10-20).
+EVALUATION_VERSION = "f08-dual-sealed-batch-8-v1"
 RUNGS = ("h3", "h2.25", "h1.7")
 ZETAS = ("zeta_0.005", "zeta_0.01", "zeta_0.02")
 OBSERVED = (
