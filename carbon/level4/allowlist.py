@@ -117,6 +117,27 @@ def load(path=PATH):
     return Allowlist(Path(path).read_bytes())
 
 
+#: The allowlist every Challenge serves (Validator, 2026-10-20: v6 for every
+#: Challenge, one evaluation version before the recalibration). Frozen by its
+#: sha; v1-v5 stay loadable by path for historical evidence.
+SERVED_PATH = Path(__file__).with_name("allowlist_v6.json")
+SERVED_SHA256 = "c21dd41476ab7cd83badc62a2f3d17fc4de8ada721b03c8d456ca9c64af99bf2"
+
+
+def served_bytes():
+    """The served allowlist's exact frozen bytes, or ValueError."""
+    import hashlib
+
+    raw = SERVED_PATH.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != SERVED_SHA256:
+        raise ValueError("served allowlist bytes differ")
+    return raw
+
+
+def load_served():
+    return Allowlist(served_bytes())
+
+
 #: How the `constant_bytes` cap is measured, versioned prospectively:
 #: v1 summed every embedded constant's bytes; v2 (OWNER-L4-CONSTANT-
 #: ACCOUNTING-02) counted identical constants once; v3 (OWNER-L4-CONSTANT-

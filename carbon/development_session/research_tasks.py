@@ -1696,7 +1696,10 @@ class DirectDevelopmentTasksV3:
                     allowlist_bytes=material["allowlist_bytes"],
                     expected_output_dtype=(
                         output_dtype(material["interface_document"])
-                        if (kit["id"] == BATTERY_CHALLENGE and kit["version"] == "1.0")
+                        if (
+                            kit["id"] == BATTERY_CHALLENGE
+                            and kit["version"] in ("1.0", "2.0")
+                        )
                         or kit["version"] == "1.3"
                         or physical_material.is_registered(kit["id"], kit["version"])
                         or task_id.value in self._measured_tasks
