@@ -49,7 +49,7 @@ def sealed_bank(document, records, *, version="1.1") -> dict:
     from carbon.challenge_kit import physical_public_train
     from carbon.challenge_validator import motor_sealed as sealed
 
-    if version != sealed.CHALLENGE_VERSION:
+    if version not in sealed.SERVED_VERSIONS:
         raise SealedPackRefused("motor_sealed_version")
     try:
         cases = sealed.check_document(document)

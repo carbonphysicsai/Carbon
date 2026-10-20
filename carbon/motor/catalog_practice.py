@@ -1,0 +1,201 @@
+"""Motor catalog practice (OWNER-BACKBONE-CATALOG-01): a catalog recipe built
+on public TRAIN and scored on public PRACTICE, exactly as the receiver builds it.
+
+A catalog recipe names one of Carbon's tested backbones; it is expanded to the
+Carbon bundle it stands for (`backbone_catalog.served.expand`) and rebuilt by
+the receiver's own two-phase call, `bundle_construction_worker.
+reconstruct_and_infer_public`, with the receiver's inputs: the version's public
+construction material, its installed child image over the campaign's PyTorch
+CPU parent, and seed 0. So a practice predicts what the judge will rebuild.
+The 30 PRACTICE rows of the development bank are scored with Motor's own
+practice scorer; nothing private is read.
+
+A catalog entry whose child image is not installed on this host is refused
+before anything runs or is charged (`backend_not_served`, listing the entries
+that are installed).
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from .challenge import CHALLENGE
+
+VERSION = "1.2"
+PROVENANCE = "MOTOR_PUBLIC_PRACTICE"
+FEEDBACK_SCHEMA = "carbon.motor.catalog-practice-feedback.v1"
+
+
+class MotorCatalogPractice:
+    construction_mode = "direct"
+
+    def __init__(
+        self,
+        *,
+        ledger,
+        owner,
+        parent,
+        cache_root,
+        root=".",
+        version=VERSION,
+        runner=None,
+        resolver=None,
+    ):
+        self.ledger, self.owner = ledger, owner
+        self.parent, self.cache_root = parent, Path(cache_root)
+        self.root, self.version, self.runner = Path(root), version, runner
+        self.resolver = resolver
+        self.backends = ("torch_cpu",)
+        self.gpu_image = None
+
+    # -- what this host can build ---------------------------------------------
+
+    def _resolve(self, bundle_ref):
+        if self.resolver is not None:
+            return self.resolver(bundle_ref)
+        from carbon.miner_mcp.standard_cli import DirectOwnerImageResolver
+        from carbon.reconstruction.worker.docker_runtime import DockerCLI
+
+        return DirectOwnerImageResolver(
+            self.cache_root, self.parent
+        ).provision_admitted(bundle_ref, parent=self.parent, cli=DockerCLI())
+
+    def installed(self):
+        """The catalog ids whose child image is installed on this host."""
+        from carbon.backbone_catalog import pipeline
+
+        found = []
+        for item in pipeline.entries(CHALLENGE.challenge_id, self.version):
+            try:
+                self._resolve(_bundle_ref(item["bundle_ref"]))
+            except (FileNotFoundError, ValueError, OSError):
+                continue
+            found.append(item["catalog_id"])
+        return tuple(found)
+
+    def backend_refusal(self, strategy):
+        """The installed entries when `strategy`'s entry has no installed child
+        here (`backend_not_served`, before dispatch, nothing charged); None
+        when it can run, or when the recipe itself is refused later by code."""
+        try:
+            expanded = self._expanded(strategy)
+        except (ValueError, TypeError, KeyError):
+            return None
+        try:
+            self._resolve(_bundle_ref(expanded["source"]["bundle_ref"]))
+        except (FileNotFoundError, ValueError, OSError):
+            return self.installed()
+        return None
+
+    # -- one practice -----------------------------------------------------------
+
+    def _material(self):
+        from carbon.challenge_kit import physical_material
+
+        return physical_material.bundle_material(CHALLENGE.challenge_id, self.version)
+
+    def _expanded(self, strategy, material=None):
+        from carbon.backbone_catalog.served import expand
+        from carbon.development_session.construction_recipe import bind_recipe
+
+        kit = (material or self._material())["construction_kit"]
+        recipe = bind_recipe(
+            strategy,
+            challenge_id=kit["id"],
+            challenge_version=kit["version"],
+            train_digest=kit["train_digest"],
+            interface_digest=kit["interface_digest"],
+            construction_limits_digest=kit["construction_limits_digest"],
+        )
+        if recipe.to_dict()["source"]["kind"] != "catalog":
+            raise ValueError("motor_catalog_recipe_required")
+        return expand(recipe.to_dict())
+
+    def __call__(self, identity, strategy):
+        from carbon.challenge_kit.interface_dtype import output_dtype
+        from carbon.development_session.bundle_construction_worker import (
+            reconstruct_and_infer_public,
+        )
+        from carbon.development_session.construction_recipe import ConstructionRecipe
+        from carbon.development_session.profile import canonical, digest
+        from carbon.development_session.research_workspace import ResearchWorkspace
+
+        from .challenge import PublicMaterial
+        from .practice import PracticeSet, score_practice
+
+        material = self._material()
+        recipe = ConstructionRecipe.from_dict(self._expanded(strategy, material))
+        kit = material["construction_kit"]
+        image = self._resolve(_bundle_ref(recipe.to_dict()["source"]["bundle_ref"]))
+        result = reconstruct_and_infer_public(
+            self.ledger,
+            owner=self.owner,
+            identity=identity,
+            image=image,
+            inference_image=self.parent,
+            construction_parent=self.parent,
+            recipe=recipe,
+            challenge_binding=dict(kit),
+            limits_document=material["construction_limits_document"],
+            train=material["train"],
+            example=material["example"],
+            seed=0,
+            inputs=material["practice_inputs"],
+            expected_output_shape=material["expected_output_shape"],
+            allowlist_bytes=material["allowlist_bytes"],
+            expected_output_dtype=output_dtype(material["interface_document"]),
+            runner=self.runner,
+        )
+        if result.build.state_digest != result.inference.state_digest:
+            raise ValueError("motor catalog practice state differs between phases")
+        rows = result.inference.predictions
+        practice = PracticeSet.load(self.root)
+        by_case = dict(zip(material["practice_case_ids"], rows))
+        predictions = {
+            record["case_id"]: {
+                "torque_nm": [float(v) for v in by_case[record["case_id"]]]
+            }
+            for record in practice.records
+            if record["case_id"] in by_case
+        }
+        _rows, summary = score_practice(
+            predictions, practice, PublicMaterial.load(self.root)
+        )
+        source = json.loads(canonical(strategy))["source"]
+        out = {
+            "schema": FEEDBACK_SCHEMA,
+            "provenance": PROVENANCE,
+            "challenge": {"id": kit["id"], "version": kit["version"]},
+            "catalog_id": source["catalog_id"],
+            "catalog_digest": source["catalog_digest"],
+            "recipe_digest": ConstructionRecipe.from_dict(strategy).digest,
+            "bundle_recipe_digest": recipe.digest,
+            "summary": summary,
+            "fit": {"state_digest": result.build.state_digest},
+            "backend": {
+                "kind": "C03_DOCKER",
+                "parent": getattr(self.parent, "image_id", None),
+            },
+            "adaptively_seen": True,
+            "final_exam": False,
+            "official_eligible": False,
+            "recipe": strategy,
+        }
+        ResearchWorkspace(self.ledger, self.owner).put(
+            "trial-" + digest(identity.encode())[7:23] + "-motor-catalog-practice.json",
+            canonical(out),
+        )
+        return out
+
+
+def _bundle_ref(value):
+    from carbon.development_session.library_bundles import LibraryBundleRef
+
+    return LibraryBundleRef(
+        value["schema"],
+        value["bundle_digest"],
+        value["language"],
+        value["runtime_profile_id"],
+        value["environment_digest"],
+    )

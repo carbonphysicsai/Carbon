@@ -31,6 +31,10 @@ from . import motor_hidden
 REPOSITORY = Path(__file__).resolve().parents[2]
 CHALLENGE_ID = "electric-motor-magnetics"
 CHALLENGE_VERSION = "1.1"
+#: Challenge versions whose evaluation packs are built from these 1.1 sealed
+#: batches: 1.1, and the backbone catalog 1.2, which changes only the
+#: construction source (Validator, 2026-10-20). The batches stay 1.1's.
+SERVED_VERSIONS = (CHALLENGE_VERSION, "1.2")
 RULE_SCHEMA = "carbon.motor.sealed-batch-rule.v1"
 DOCUMENT_SCHEMA = "carbon.motor.sealed-batch.v1"
 DEPLOYMENT_SCHEMA = "carbon.motor.sealed-deployment.v1"

@@ -35,6 +35,9 @@ REGISTERED = (
     # The step-2 versions (STEP2_BATCH_VERSIONS_20261020): served v6, no step caps.
     (motor.CHALLENGE.challenge_id, "1.1"),
     (cooling.CHALLENGE.challenge_id, "1.1"),
+    # The backbone-catalog version (OWNER-BACKBONE-CATALOG-01): step-2 serving
+    # plus Carbon's tested backbones by catalog id.
+    (motor.CHALLENGE.challenge_id, "1.2"),
     # Both F08 versions: 1.0 (255-row TRAIN v1) and 1.1 (287-row TRAIN v2, the straddling bank).
     *((f08_train.CHALLENGE_ID, version) for version in f08_train.CHALLENGE_VERSIONS),
     # F02 2.0 (TRAIN40-v2): its own public module and float32 TRAIN, like F08. Named explicitly,

@@ -62,6 +62,12 @@ CREATE TABLE IF NOT EXISTS recipe_task_intents(
     request_sha256 TEXT NOT NULL,
     PRIMARY KEY(contract_digest, submission_id)
 );
+CREATE TABLE IF NOT EXISTS catalog_submissions(
+    contract_digest TEXT NOT NULL,
+    submission_id TEXT NOT NULL,
+    document BLOB NOT NULL,
+    PRIMARY KEY(contract_digest, submission_id)
+);
 CREATE TABLE IF NOT EXISTS overflow(
     hotkey TEXT NOT NULL,
     hour INTEGER NOT NULL,
@@ -318,6 +324,43 @@ class AttemptLedger:
             ).fetchone()
             if row != values:
                 raise ValueError("recipe task intent conflict")
+
+    def record_catalog_submission(self, contract_digest, submission_id, document):
+        """Keep the miner's own catalog recipe behind a direct task, create-only
+        (OWNER-BACKBONE-CATALOG-01, Validator: the catalog recipe is the
+        submission identity; the task runs the bundle it expands to). The
+        same bytes again are accepted; different bytes are refused."""
+        if (
+            type(contract_digest) is not str
+            or type(submission_id) is not str
+            or type(document) is not bytes
+            or not contract_digest
+            or not submission_id
+            or not document
+        ):
+            raise ValueError("catalog submission incomplete")
+        with self._db() as db:
+            db.execute(
+                "INSERT OR IGNORE INTO catalog_submissions VALUES(?,?,?)",
+                (contract_digest, submission_id, document),
+            )
+            row = db.execute(
+                "SELECT document FROM catalog_submissions "
+                "WHERE contract_digest=? AND submission_id=?",
+                (contract_digest, submission_id),
+            ).fetchone()
+            if row is None or bytes(row[0]) != document:
+                raise ValueError("catalog submission conflict")
+
+    def catalog_submission(self, contract_digest, submission_id):
+        """The catalog submission document behind a task, or None."""
+        with self._db() as db:
+            row = db.execute(
+                "SELECT document FROM catalog_submissions "
+                "WHERE contract_digest=? AND submission_id=?",
+                (contract_digest, submission_id),
+            ).fetchone()
+        return None if row is None else bytes(row[0])
 
     def submitted_outcomes(self, contract_digest):
         """Authenticated task IDs for one adapter's restart-safe advance pass."""

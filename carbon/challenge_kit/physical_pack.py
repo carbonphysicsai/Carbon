@@ -89,6 +89,10 @@ _ROLE_FILES = {
 PACK_VERSIONS = {
     (motor.CHALLENGE.challenge_id, "1.0"): "motor-normal-construction-development-1",
     (motor.CHALLENGE.challenge_id, "1.1"): "motor-normal-construction-development-2",
+    # Motor 1.2, the backbone catalog: 1.1's exam content under its own pack
+    # version; graded by 1.1's evaluation versions (Validator, 2026-10-20:
+    # only the construction source changes).
+    (motor.CHALLENGE.challenge_id, "1.2"): "motor-normal-construction-development-3",
     (
         cooling.CHALLENGE.challenge_id,
         "1.0",

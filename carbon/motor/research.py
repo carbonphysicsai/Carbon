@@ -48,7 +48,10 @@ from .contracts import (
     authored_contracts,
     canonical,
     digest,
+    key_for,
+    keyed,
     motor_contracts,
+    research_key,
     semantic,
 )
 from .practice import (
@@ -78,7 +81,10 @@ def objective():
     interface = interface_document()
     return {
         "schema": "carbon.motor.research-objective.v1",
-        "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
+        "challenge": {
+            "id": research_key().challenge_id,
+            "version": research_key().version,
+        },
         "identity": IDENTITY,
         "task": (
             "Learn a fast surrogate for the registered two-dimensional motor "
@@ -135,7 +141,7 @@ def population_and_sampling():
     common = {
         "schema_version": "1.0",
         "canonicalization_profile": CANONICALIZATION_PROFILE,
-        "challenge_key": CHALLENGE,
+        "challenge_key": research_key(),
         "object_version": "1.0",
     }
     clause = semantic
@@ -282,7 +288,7 @@ def measurement_contract():
 
     def definition(kind, label):
         return m.MeasurementDefinitionRef(
-            CHALLENGE,
+            research_key(),
             kind,
             label,
             "1.0",
@@ -291,7 +297,7 @@ def measurement_contract():
 
     kind = m.MeasurementDefinitionKind
     return m.MeasurementContract(
-        CHALLENGE,
+        research_key(),
         "motor_development_error_vector",
         "1.0",
         definition(kind.SCIENTIFIC_PROPERTY, "mean_torque_and_ripple_shape_error"),
@@ -305,7 +311,7 @@ def measurement_contract():
         definition(kind.AGGREGATION, "mean_case_error_not_official_score"),
         definition(kind.PRECISION, "binary64_scoring"),
         m.ReferencePolicyRef(
-            CHALLENGE,
+            research_key(),
             digest(canonical({"reference": "carbon.motor.gmsh-getdp.v1"})),
         ),
         m.ScientificValueBinding(m.ScientificValueState.HUMAN_INPUT),
@@ -370,6 +376,44 @@ class MotorPublicMaterial:
             value = reference_method()
         else:
             raise ValueError("material outside public allowlist")
+        body = canonical(value)
+        workspace.put("motor-" + name + ".json", body)
+        return {
+            "document": value,
+            "file": "motor-" + name + ".json",
+            "digest": digest(body),
+        }
+
+
+class MotorCatalogMaterial(MotorPublicMaterial):
+    """Motor 1.2's public material: 1.0's, plus the backbone catalog it serves
+    (each entry and its settings, with a ready recipe) and its construction
+    kit (OWNER-BACKBONE-CATALOG-01)."""
+
+    VERSION = "1.2"
+    NAMES = (*MotorPublicMaterial.NAMES, "catalog", "construction_kit")
+
+    def __call__(self, name, workspace):
+        if name not in ("catalog", "construction_kit"):
+            return super().__call__(name, workspace)
+        from carbon.backbone_catalog import served
+        from carbon.challenge_kit import physical_public
+        from carbon.challenge_registry.motor import catalog_recipe
+
+        if name == "catalog":
+            value = {
+                **served.document(MOTOR_CHALLENGE, self.VERSION),
+                "catalog_digest": served.digest(MOTOR_CHALLENGE, self.VERSION),
+                "ready_recipe": catalog_recipe(version=self.VERSION),
+                "use": (
+                    "Practise a recipe as strategy_json (kind=practice): source "
+                    "{kind: catalog, catalog_id, catalog_digest}; set settings in "
+                    "procedure.configuration and procedure.train_use, each from the "
+                    "entry's own list; unset settings keep the tested baseline's."
+                ),
+            }
+        else:
+            value = physical_public.construction_kit(MOTOR_CHALLENGE, self.VERSION)
         body = canonical(value)
         workspace.put("motor-" + name + ".json", body)
         return {
@@ -505,24 +549,63 @@ def implementation_files():
     )
 
 
-def challenge_parts():
+def _bound(key, function):
+    """`function` run under research key `key`, however late it is called."""
+
+    def call(*args, **kwargs):
+        with keyed(key):
+            return function(*args, **kwargs)
+
+    return call
+
+
+def challenge_parts(version=None):
+    """Motor's research parts for `version` (default 1.0). The backbone-catalog
+    version (1.2) is keyed 1.2 throughout, so its recipes bind its own key."""
+    key = key_for(version)
+    with keyed(key):
+        return _challenge_parts(key)
+
+
+def _challenge_parts(key):
     from carbon.development_session.research_resources import resources
     from carbon.development_session.research_service import ChallengeParts
 
     contracts = motor_contracts()
     practice_population, sampling = population_and_sampling()
     catalog = public_registry(MOTOR_CHALLENGE)
+    scaffold_catalog = {
+        "schema": "carbon.motor.scaffold-catalog.v1",
+        "templates": [SCAFFOLD],
+        "contract_digest": contract(MOTOR_CHALLENGE).digest,
+    }
+    scaffold = SCAFFOLD
+    if key != CHALLENGE:
+        # The catalog version: its served catalog and a ready catalog recipe.
+        from carbon.backbone_catalog import served
+        from carbon.challenge_registry.motor import catalog_recipe
+
+        catalog = served.document(key.challenge_id, key.version)
+        scaffold = catalog_recipe(version=key.version)
+        scaffold_catalog = {
+            "schema": "carbon.motor.scaffold-catalog.v1",
+            "templates": [scaffold],
+            "contract_digest": served.digest(key.challenge_id, key.version),
+        }
     return ChallengeParts(
-        key=CHALLENGE,
+        key=key,
         contracts=contracts,
         recipe_compiler=compile_recipe,
-        resources=lambda compiler: resources(
-            contracts,
-            compiler,
-            key=CHALLENGE,
-            clause=semantic,
-            class_id="motor_research_linux_cpu",
-            policy_id="motor_research_static_policy",
+        resources=_bound(
+            key,
+            lambda compiler: resources(
+                contracts,
+                compiler,
+                key=key,
+                clause=_bound(key, semantic),
+                class_id="motor_research_linux_cpu",
+                policy_id="motor_research_static_policy",
+            ),
         ),
         population=practice_population,
         sampling=sampling,
@@ -534,12 +617,8 @@ def challenge_parts():
         },
         strategy_schema=catalog,
         practice_scope=objective(),
-        scaffold_catalog={
-            "schema": "carbon.motor.scaffold-catalog.v1",
-            "templates": [SCAFFOLD],
-            "contract_digest": contract(MOTOR_CHALLENGE).digest,
-        },
-        scaffold_strategy=SCAFFOLD,
+        scaffold_catalog=scaffold_catalog,
+        scaffold_strategy=scaffold,
         implementation_files=implementation_files(),
         disclosure=b"carbon.motor.public-research-result.v1",
     )
@@ -556,17 +635,22 @@ def make_motor_research_service(
     demand=None,
     cleanup_only=False,
     julia_image=None,
+    version=None,
 ):
     from carbon.development_session.research_service import compose_research_service
 
     composition = compose_research_service(
-        challenge_parts(),
+        challenge_parts(version),
         root=root,
         ledger=ledger,
         owner=owner,
         image=image,
         public_material=(
-            MotorPublicMaterial(practice.root) if material is None else material
+            (MotorCatalogMaterial if version == "1.2" else MotorPublicMaterial)(
+                practice.root
+            )
+            if material is None
+            else material
         ),
         practice=practice,
         julia_image=julia_image,

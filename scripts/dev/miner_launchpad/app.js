@@ -2515,7 +2515,9 @@
   }
   function constructionPathsFor(challenge) {
     if (launchOptions?.schema !== "carbon.launchpad.launch-options.v2" || !challenge?.id) return null;
-    const document = launchOptions.construction_paths?.[challenge.id];
+    // A later registered version (Motor 1.2) is keyed "id@version"; the first, by id.
+    const paths = launchOptions.construction_paths || {};
+    const document = paths[challenge.id + "@" + challenge.version] || paths[challenge.id];
     if (document?.schema !== "carbon.launchpad.construction-paths.v1"
         || document.challenge?.id !== challenge.id
         || document.challenge?.version !== challenge.version
