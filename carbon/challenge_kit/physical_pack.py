@@ -213,6 +213,12 @@ _PHYSICS_VERSIONS = {
 def physics_contract(challenge_id: str, version: str) -> dict | None:
     """The Challenge's versioned physics contract for the construction material
     and the pack to carry, or None while it is not bound."""
+    if challenge_id == f08_train.CHALLENGE_ID:
+        _files(challenge_id, version)
+        # F08's physics contract is the scoring producer's source binding.
+        from carbon.scoring import f08_dual_pack
+
+        return f08_dual_pack.physics_contract()
     if challenge_id == cooling.CHALLENGE.challenge_id:
         _files(challenge_id, version)
         # Cooling's physics contract is the scoring producer's exact native
@@ -252,6 +258,7 @@ def public_roles(challenge_id: str, version: str) -> dict[str, bytes]:
                 f08_public.interface_document(challenge_id, version)
             ),
             "train": f08_train.load_public_train()["train"],
+            "physics_contract": _canonical(physics_contract(challenge_id, version)),
             "important_limit_definition": _canonical(
                 {
                     "schema": "carbon.f08.important-limit-definition.v1",
