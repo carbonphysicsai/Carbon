@@ -37,6 +37,21 @@ def build(train_inputs, train_targets, *, seed, configuration, train_use):
     return {"framework": "jax", "apply": apply, "parameters": []}
 """
 
+#: A model that closes over more graph constants than the cap allows (its own construct).
+OVER_CAP = """import jax.numpy as jnp
+import numpy as np
+
+
+def build(train_inputs, train_targets, *, seed, configuration, train_use):
+    w = jnp.asarray(np.ones((train_inputs.shape[1], 600)))
+    v = jnp.asarray(np.ones((600, 60)))
+
+    def apply(x):
+        return (x @ w) @ v
+
+    return {"framework": "jax", "apply": apply, "parameters": []}
+"""
+
 CRASH = """\
 def build(train_inputs, train_targets, *, seed, configuration, train_use):
     raise RuntimeError("the candidate's own bug")
@@ -92,6 +107,17 @@ def test_the_unsupported_op_is_a_typed_candidate_refusal_naming_the_op(
         build()
     assert refused.value.code in build_refusal.CODES
     assert refused.value.at is not None and "floor" in refused.value.at.lower()
+    # A primitive Carbon cannot lower yet is Carbon's gap, not the miner's fault.
+    assert refused.value.outcome == build_refusal.GAP
+
+
+def test_the_candidates_own_construct_is_a_candidate_build_refusal(
+    tmp_path, monkeypatch
+):
+    build = _build(tmp_path, monkeypatch, OVER_CAP)
+    with pytest.raises(CandidateBuildRefused) as refused:
+        build()
+    assert refused.value.outcome == build_refusal.REFUSED
 
 
 def test_a_crash_without_a_refusal_file_is_not_a_candidate_refusal(
@@ -139,8 +165,32 @@ def test_refusal_file_parsing_is_closed(raw, expected):
     assert build_refusal.parse(raw) == expected
 
 
+def test_every_code_states_its_class_and_ambiguity_favours_the_miner():
+    assert set(build_refusal.CODES.values()) == {
+        build_refusal.GAP,
+        build_refusal.REFUSED,
+    }
+    assert build_refusal.outcome("op_not_allowlisted") == build_refusal.GAP
+    assert build_refusal.outcome("value_undefined") == build_refusal.REFUSED
+    for ambiguous in (build_refusal.UNSPECIFIED, "an unregistered code"):
+        assert build_refusal.outcome(ambiguous) == build_refusal.GAP
+
+
+@pytest.mark.parametrize(
+    ("code", "at", "refusal_code", "outcome"),
+    [
+        (
+            "aten_op_not_allowlisted",
+            "aten.index.Tensor",
+            "carbon_capability_gap",
+            "CARBON_CAPABILITY_GAP",
+        ),
+        ("value_undefined", None, "candidate_build_refused", "CANDIDATE_BUILD_REFUSED"),
+        ("unspecified", None, "carbon_capability_gap", "CARBON_CAPABILITY_GAP"),
+    ],
+)
 def test_the_task_completes_refused_with_a_typed_code_not_infrastructure(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, code, at, refusal_code, outcome
 ):
     request, provider, _ = durable._fixture(tmp_path, monkeypatch)
     tasks = provider()
@@ -148,14 +198,20 @@ def test_the_task_completes_refused_with_a_typed_code_not_infrastructure(
         started = tasks.start_research_task(request)
 
         def refuse(*args, **kwargs):
-            raise CandidateBuildRefused("aten_op_not_allowlisted", "aten.index.Tensor")
+            raise CandidateBuildRefused(code, at)
 
         monkeypatch.setattr(
             bundle_construction_worker, "reconstruct_and_infer_public", refuse
         )
         view = tasks.run_queued_task(started.task.task_id)
         assert view.state is DirectTaskStateV3.REFUSED
-        assert view.terminal_receipt.refusal_code == "candidate_build_refused"
+        assert view.terminal_receipt.refusal_code == refusal_code
         assert view.terminal_receipt.infrastructure_failure_class is None
+        detail = tasks.private_refusal(started.task.task_id)
+        assert (detail["outcome"], detail["reason_code"], detail["operation"]) == (
+            outcome,
+            code,
+            at,
+        )
     finally:
         tasks.close()
