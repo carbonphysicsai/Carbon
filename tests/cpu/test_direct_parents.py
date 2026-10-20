@@ -35,7 +35,7 @@ def torch_image():
         lock_digest=torch_profile.requirements_digest(ROOT),
         base_image_digest=parent,
         build_recipe_digest=sha(".devcontainer/torch/Dockerfile"),
-        entrypoint_digest="sha256:" + "e" * 64,
+        entrypoint_digest=sha("carbon/reconstruction/worker/entrypoint.py"),
     )
 
 
