@@ -6,16 +6,19 @@ and on-time uniform on 4.0-6.0 s in 0.1 s steps, the draw TRAIN40-v2 used
 (`f02_rr08.py`). Each batch is drawn from its own custody-keyed generator.
 
 **Disjointness:** a drawn action is never one of the development exam's eight
-cold actions (they are code, not published inputs) or repeated within the
-batch. Every published case, TRAIN included, is excluded by the family's
-overlap check (`confirmation_sources`), so a drawn case that repeats one is
-refused and redrawn there.
+cold actions (they are code, not published inputs), never repeated within the
+batch, and never a published case: the draw skips every published F02 key
+(`confirmation_sources`, TRAIN included). The producer refuses a whole batch
+that repeats a published case and never redraws a role, and 45 of the law's
+651 lattice points are published, so the skip is part of the draw.
 
 A DEVELOPMENT population; not qualified, and no LIVE or reward-bearing
 evaluation may use it.
 """
 
 from __future__ import annotations
+
+import functools
 
 from .domain import INPUTS
 
@@ -44,6 +47,22 @@ def admitted(case):
     )
 
 
+def _published_key(case):
+    """Whether `case` repeats a published F02 case (the family's overlap key)."""
+    published, key = _published()
+    return key(case) in published
+
+
+@functools.cache
+def _published():
+    from pathlib import Path
+
+    from carbon.challenge_validator.confirmation_sources import source_for
+
+    source = source_for("f02")
+    return source.published(Path(__file__).resolve().parents[2]), source.key
+
+
 def draw(rng, count, *, max_attempts=None):
     """`count` distinct admitted actions from `rng`, in draw order."""
     max_attempts = max_attempts or 100 * count
@@ -59,7 +78,7 @@ def draw(rng, count, *, max_attempts=None):
             round(rng.randint(*ON_TIME_DECISECONDS) / 10, 1),
         )
         case = dict(zip(INPUTS, action, strict=True))
-        if action in seen or not admitted(case):
+        if action in seen or not admitted(case) or _published_key(case):
             continue
         seen.add(action)
         cases.append(case)

@@ -22,8 +22,10 @@ coefficients below are the fit's to the last bit, with the five source files'
 SHA-256; a test pins that they place every committed N1r geometry on its
 registered target.
 
-**Disjointness:** every published F08 geometry (TRAIN, pilot, ladder, N1r)
-is excluded by the family's overlap check (`confirmation_sources`). A
+**Disjointness:** the draw skips every published F08 geometry (TRAIN, pilot,
+ladder, N1r; `confirmation_sources`). The producer refuses a whole batch that
+repeats a published case and never redraws a role, and 50 published
+geometries lie in the band, so the skip is part of the draw. A
 prediction is placement only: it is not a reference and never a label.
 
 A DEVELOPMENT population; not qualified, and no LIVE or reward-bearing
@@ -150,6 +152,20 @@ def admitted(case):
     return stratum(predicted(case)) is not None and _on_lattice(case)
 
 
+def _published_key(case):
+    """Whether `case` repeats a published F08 geometry (the overlap key)."""
+    published, key = _published()
+    return key(case) in published
+
+
+@functools.cache
+def _published():
+    from carbon.challenge_validator.confirmation_sources import source_for
+
+    source = source_for("f08-ribbed-bracket")
+    return source.published(REPOSITORY), source.key
+
+
 def draw(rng, count, *, max_attempts=None):
     """`count` distinct geometries, case i uniformly from stratum i mod 8."""
     max_attempts = max_attempts or 100 * count
@@ -163,7 +179,7 @@ def draw(rng, count, *, max_attempts=None):
         attempts += 1
         case = rng.choice(pools[len(cases) % STRATA])
         key = tuple(case[name] for name in INPUTS)
-        if key in seen:
+        if key in seen or _published_key(case):
             continue
         seen.add(key)
         cases.append(dict(case))

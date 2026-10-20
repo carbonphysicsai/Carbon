@@ -102,3 +102,16 @@ def test_every_published_f08_geometry_is_an_overlap_key():
             assert source.key(action) in published
     for action in json.loads((EVIDENCE / "ladder-actions.json").read_text())["actions"]:
         assert source.key(action) in published
+
+
+def test_draws_never_repeat_a_published_geometry():
+    """The producer refuses a batch that repeats a published case and never
+    redraws a role; 50 published geometries lie in the band."""
+    from carbon.challenge_kit import f08_train
+    from carbon.challenge_validator.confirmation_sources import source_for
+
+    source = source_for(f08_train.CHALLENGE_ID)
+    published = source.published(ROOT)
+    for seed in range(300):
+        cases, _ = population.draw(random.Random(seed), 8)
+        assert not {source.key(c) for c in cases} & published

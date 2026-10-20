@@ -67,3 +67,16 @@ def test_every_published_f02_schedule_is_an_overlap_key():
         .splitlines()
     ]
     assert all(source.key(r["inputs"]) in published for r in rows)
+
+
+def test_draws_never_repeat_a_published_case():
+    """The producer refuses a batch that repeats a published case and never
+    redraws a role; 45 of the law's 651 points are published, so the draw
+    itself must skip them (about 44% of 8-case batches would hit one)."""
+    from carbon.challenge_validator.confirmation_sources import source_for
+
+    source = source_for("f02")
+    published = source.published(ROOT)
+    for seed in range(300):
+        cases, _ = population.draw(random.Random(seed), 8)
+        assert not {source.key(c) for c in cases} & published
