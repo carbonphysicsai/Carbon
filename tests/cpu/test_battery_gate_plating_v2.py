@@ -99,7 +99,32 @@ def test_a_mesh160_case_uses_its_resolve(ev5_refs):
         CONTRACT, SCENARIO, candidates, refs, {("k0", 0): M160_CASE}
     )
     assert out["k0"]["plating_v2"][0] == {"label": "UNRESOLVED", "rule": "m160-d3-r1"}
-    assert gate.m160_by_case(str(ROOT))[M160_CASE] == pytest.approx(0.834e-3, rel=1e-3)
+    assert gate.m160_by_case(str(ROOT))[M160_CASE][1] == pytest.approx(
+        0.834e-3, rel=1e-3
+    )
+
+
+def test_an_id_match_with_a_different_m20_refuses(ev5_refs):
+    """A case id alone is not a physics key: the record's m20 must equal the
+    measured margin, or the binding refuses (never falls back to pending)."""
+    candidates = _candidates(1)
+    refs = {("k0", 0): _record(ev5_refs, 2.0e-3)}  # record m20 is 2.2573 mV
+    with pytest.raises(gate.M160BindingRefused, match="plating_v2_m20_mismatch"):
+        gate.assess_reference(
+            CONTRACT, SCENARIO, candidates, refs, {("k0", 0): M160_CASE}
+        )
+    with pytest.raises(gate.M160BindingRefused):
+        gate.false_acceptance(
+            CONTRACT,
+            {M160_CASE: refs[("k0", 0)]["outputs"]},
+            [M160_CASE],
+            {M160_CASE: refs[("k0", 0)]},
+        )
+    with pytest.raises(gate.M160BindingRefused):
+        gate.label_counts(CONTRACT, {M160_CASE: refs[("k0", 0)]}, [M160_CASE])
+    # Inside the tolerance it binds.
+    entry = gate.m160_by_case(str(ROOT))[M160_CASE]
+    assert gate.bound_m160(entry, entry[0] / 1000.0) == entry[1]
 
 
 def test_reader_unavailable_fails_closed(ev5_refs, monkeypatch):

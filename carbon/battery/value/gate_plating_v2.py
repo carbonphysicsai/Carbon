@@ -16,7 +16,9 @@ unchanged. Only the reference's plating verdict changes:
   safe, and is counted and reported.
 
 The mesh-160 margins come only from the pinned v2 label record
-(`labels-v2-r1.json`), by case id. EV5's population has no rows there, so its
+(`labels-v2-r1.json`), by case id, and bind only when the record's mesh-20
+margin equals the reference's measured one (a case id alone is not a unique
+physics key); a mismatch refuses, never falls back. EV5's population has no rows there, so its
 in-window cases are `pending-m160-r1` UNRESOLVED (the named coverage gap).
 
 Public DEVELOPMENT evidence: no qualification, reward or LIVE change.
@@ -44,12 +46,21 @@ LABELS = (
     "docs/development/evidence/plating-rereference-01/d3-results/labels-v2-r1.json",
     "cac1e23001c227d9221653b2a90cee4755f62ca06fec58305d11cb9cba510069",
 )
+#: |m20 record - m20 measured| allowed when binding a mesh-160 margin, in mV.
+M20_BINDING_TOLERANCE_MV = 1e-9
 _VERDICT = {"FEASIBLE": d.PASS, "INFEASIBLE": d.FAIL, "UNRESOLVED": d.UNRESOLVED}
+
+
+class M160BindingRefused(plating_v2.ReaderUnavailable):
+    """A label row's case id matched but its mesh-20 margin did not."""
+
+    code = "plating_v2_m20_mismatch"
 
 
 @lru_cache(maxsize=4)
 def m160_by_case(root: str = str(_REPOSITORY)) -> dict:
-    """Case id -> mesh-160 plating margin in volts, from the pinned record."""
+    """Case id -> (recorded mesh-20 margin in mV, mesh-160 margin in volts),
+    from the pinned record."""
     raw = (Path(root) / LABELS[0]).read_bytes()
     if hashlib.sha256(raw).hexdigest() != LABELS[1]:
         raise plating_v2.ReaderUnavailable(f"pinned {LABELS[0]} differs")
@@ -59,8 +70,25 @@ def m160_by_case(root: str = str(_REPOSITORY)) -> dict:
     out = {}
     for row in record["rows"]:
         if row.get("m160_mv") is not None:
-            out[row["case_id"]] = row["m160_mv"] / 1000.0
+            if row["case_id"] in out:
+                raise plating_v2.ReaderUnavailable("plating label case id repeats")
+            out[row["case_id"]] = (float(row["m20_mv"]), row["m160_mv"] / 1000.0)
     return out
+
+
+def bound_m160(entry, margin_v):
+    """The mesh-160 margin of a matched label row, or None without a row.
+
+    The row binds only if its recorded m20 equals the measured margin (x1000,
+    exact or within `M20_BINDING_TOLERANCE_MV`); otherwise this refuses.
+    """
+    if entry is None:
+        return None
+    m20_mv, m160_v = entry
+    measured_mv = float(margin_v) * 1000.0
+    if m20_mv != measured_mv and abs(m20_mv - measured_mv) > M20_BINDING_TOLERANCE_MV:
+        raise M160BindingRefused(M160BindingRefused.code)
+    return m160_v
 
 
 def plating_label(v2_label, margin_v, m160_v=None):
@@ -101,7 +129,11 @@ def assess_reference(
             continue
         per = [d.measure(contract, r["outputs"]) for r in records]
         labels = [
-            plating_label(v2_label, q["plating_margin_v"], m160.get(case_ids.get(key)))
+            plating_label(
+                v2_label,
+                q["plating_margin_v"],
+                bound_m160(m160.get(case_ids.get(key)), q["plating_margin_v"]),
+            )
             for q, key in zip(per, keys, strict=True)
         ]
         checks = [
@@ -151,7 +183,9 @@ def false_acceptance(contract, predictions, case_ids, refs, *, root=None):
             return None
         quantities = d.measure(contract, reference)
         label = plating_label(
-            v2_label, quantities["plating_margin_v"], m160.get(case_id)
+            v2_label,
+            quantities["plating_margin_v"],
+            bound_m160(m160.get(case_id), quantities["plating_margin_v"]),
         )
         truth = check(contract, quantities, bands, label)
         said = d.check(contract, d.measure(contract, outputs))
@@ -193,7 +227,7 @@ def label_counts(contract, refs, case_ids, *, root=None):
     counts, unresolved = {}, []
     for case_id in case_ids:
         margin = d.measure(contract, refs[case_id]["outputs"])["plating_margin_v"]
-        label = plating_label(v2_label, margin, m160.get(case_id))
+        label = plating_label(v2_label, margin, bound_m160(m160.get(case_id), margin))
         key = (
             "mesh20-no-v2-claim"
             if label is None
