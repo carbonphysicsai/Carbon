@@ -54,6 +54,11 @@ INFO_PATH = "/carbon/v1/construction/intake"
 SUBMIT_PATH = PATH
 SUBMIT_TOOL = "construction_submit"
 STATUS_TOOL = "construction_status"
+#: The signed read of the caller's own private-exam Ladder documents, its best
+#: and its latest (OWNER-GRADE-FEEDBACK-LADDER-01). Advertised in its own facts entry, not
+#: in `tools`, which deployed clients pin exactly.
+FEEDBACK_TOOL = "exam_feedback"
+FEEDBACK_REPLY_SCHEMA = "carbon.private-exam.ladder-feedback-reply.v1"
 PUBLIC_SCHEMA = "carbon.construction.intake-public.v1"
 SOURCE_REPLY_SCHEMA = "carbon.construction.source-stage-reply.v1"
 
@@ -141,6 +146,13 @@ class DirectRecipeIntake(BatteryIntake):
                     in self.adapter.discovery.manifest.supported_operations
                     else {}
                 ),
+                "exam_feedback": {
+                    "tool": FEEDBACK_TOOL,
+                    "fields": [],
+                    "reply_schema": FEEDBACK_REPLY_SCHEMA,
+                    "path": SUBMIT_PATH,
+                    "owner": "authenticated_hotkey",
+                },
                 "served_contracts": self.door.served_contracts(),
                 "limits": {
                     "max_body": MAX_BODY,
@@ -230,7 +242,40 @@ class DirectRecipeIntake(BatteryIntake):
                     received.receipt.hotkey,
                 ),
             )
+        if received.call.tool == FEEDBACK_TOOL:
+            if fields:
+                return _refused(400, "feedback_fields")
+            return self._feedback(received.receipt.hotkey)
         return _refused(400, "tool")
+
+    def _feedback(self, hotkey):
+        """The caller's own best and latest Ladder documents for the active exam
+        (each None until there is one): nothing else, and never another hotkey's
+        (the signed hotkey is the key)."""
+        from .ladder_store import LadderStore, LadderStoreRefused
+
+        snapshot = getattr(self.adapter.discovery, "evaluation_pack_snapshot", None)
+        exam_key = getattr(snapshot, "manifest_digest", None)
+        documents = {"best": None, "latest": None}
+        if exam_key is not None:
+            try:
+                documents = LadderStore(self.adapter.ledger).served(
+                    hotkey, self.challenge, exam_key
+                )
+            except LadderStoreRefused:
+                return _refused(503, "feedback_unavailable")
+        return Answer(
+            200,
+            {
+                "schema": FEEDBACK_REPLY_SCHEMA,
+                "challenge": {
+                    "id": self.challenge.challenge_id,
+                    "version": self.challenge.version,
+                },
+                "best": documents["best"],
+                "latest": documents["latest"],
+            },
+        )
 
     def _stage_source(self, received):
         """Stage graph bytes in the exact receiver-owned construction workspace.

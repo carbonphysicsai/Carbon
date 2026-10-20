@@ -354,6 +354,46 @@ class DirectToolDoor:
         except (OSError, ValueError, LookupError):
             return {"ok": False, "error": "construction_intake_unavailable"}
 
+    async def exam_feedback(self, value):
+        """This miner's own private-exam Ladder documents for the recipe's
+        Challenge, read signed from the pinned receiver: ``{"best", "latest"}``,
+        each None until there is one (OWNER-GRADE-FEEDBACK-LADDER-01)."""
+        from carbon.development_session.construction_recipe import (
+            ConstructionRecipe,
+            RecipeRefused,
+        )
+        from carbon.development_session.direct_submission import (
+            DirectIntakeRefusal,
+            read_exam_feedback,
+        )
+        from carbon.reconstruction.served_recipe_contract import registered
+
+        if self.intake_target is None:
+            return {"ok": False, "error": "construction_intake_unconfigured"}
+        if type(value) is not dict or set(value) != {"recipe"}:
+            return {"ok": False, "error": "construction_recipe_required"}
+        try:
+            recipe = ConstructionRecipe.from_dict(value["recipe"])
+            contract = registered(
+                self.adapter.challenge.challenge_id, self.adapter.challenge.version
+            )
+            document = await asyncio.to_thread(
+                read_exam_feedback,
+                self.intake_target["intake_url"],
+                self.adapter.connection.miner_key,
+                recipe=recipe,
+                contract_digest=contract.digest,
+                receiver=self.intake_target["receiver_hotkey"],
+                context=self.adapter.connection.chain_context,
+            )
+            return {"ok": True, "exam_feedback": document, "official_eligible": False}
+        except DirectIntakeRefusal as refused:
+            return {"ok": False, "error": refused.code}
+        except RecipeRefused as refused:
+            return {"ok": False, "error": refused.code}
+        except (OSError, ValueError, LookupError):
+            return {"ok": False, "error": "construction_intake_unavailable"}
+
     async def stage_construction_graph(self, value):
         """Copy this owner's locally staged graph to the pinned receiver."""
         from carbon.development_session.construction_recipe import (
@@ -749,6 +789,14 @@ class ToolSessions:
             raise Rejected("construction_session_required", 409)
         return session.run(session.door.observe_construction(value), CALL_SECONDS)
 
+    def exam_feedback(self, campaign, value, *, exclusive_token=None):
+        from scripts.dev.miner_launchpad.controller import Rejected
+
+        session = self._session(campaign, exclusive_token=exclusive_token)
+        if type(session.door) is not DirectToolDoor:
+            raise Rejected("construction_session_required", 409)
+        return session.run(session.door.exam_feedback(value), CALL_SECONDS)
+
     def stage_construction_graph(self, campaign, value, *, exclusive_token=None):
         from scripts.dev.miner_launchpad.controller import Rejected
 
@@ -769,6 +817,7 @@ ACTIONS = (
     "submit_construction",
     "observe_construction",
     "stage_construction_graph",
+    "exam_feedback",
 )
 DIRECT_DEVELOPMENT_SESSION = "direct-development"
 DIRECT_DEVELOPMENT_V13_SESSION = "direct-development-1.3"
@@ -854,6 +903,10 @@ def route(host, campaign, action, value):
         return sessions.observe_construction(
             campaign, value, exclusive_token=exclusive_token
         )
+    if action == "exam_feedback":
+        if campaign != DIRECT_DEVELOPMENT_V13_SESSION:
+            raise Rejected("construction_session_required", 409)
+        return sessions.exam_feedback(campaign, value, exclusive_token=exclusive_token)
     if action == "stage_construction_graph":
         if campaign != DIRECT_DEVELOPMENT_V13_SESSION:
             raise Rejected("construction_session_required", 409)
