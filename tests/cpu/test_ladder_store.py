@@ -54,10 +54,64 @@ def store(tmp_path):
     return LadderStore(AttemptLedger(root / "attempts.sqlite3"))
 
 
-def _record(store, graded, hotkey="5Miner", exam=EXAM):
+def _record(store, graded, hotkey="5Miner", exam=EXAM, noise=None):
     return store.record(
-        hotkey, MOTOR, exam, graded, exam_version="motor-exam-1", gates=GATES
+        hotkey,
+        MOTOR,
+        exam,
+        graded,
+        exam_version="motor-exam-1",
+        gates=GATES,
+        rebuild_noise=noise,
     )
+
+
+def _noise(value):
+    # The KOTH comparator's registration shape (KOTH-TAKEOVER-RULE-01 §1).
+    return {"value": value, "measurement_digest": "sha256:" + "9" * 64}
+
+
+def test_a_registered_rebuild_noise_above_eta_widens_the_step(store, tmp_path):
+    coarse = _record(store, _scored(0.63, 0.33, 0.93), noise=_noise(0.05))
+    assert (coarse["total"], coarse["A"], coarse["D"]) == (0.6, 0.3, 0.9)
+    # 0.64 clears eta (0.60 + 0.02) but not the registered 0.05 step.
+    assert (
+        _record(store, _scored(0.64, 0.34, 0.94), noise=_noise(0.05))["status"]
+        == "NO_IMPROVEMENT"
+    )
+    assert (
+        _record(store, _scored(0.66, 0.36, 0.96), noise=_noise(0.05))["status"]
+        == "IMPROVED"
+    )
+    # The same results under no registration step at eta.
+    root = tmp_path / "eta"
+    root.mkdir(mode=0o700)
+    os.chmod(root, 0o700)
+    eta = LadderStore(AttemptLedger(root / "attempts.sqlite3"))
+    fine = _record(eta, _scored(0.63, 0.33, 0.93))
+    assert (fine["total"], fine["A"], fine["D"]) == (0.62, 0.32, 0.92)
+    assert _record(eta, _scored(0.64, 0.34, 0.94))["status"] == "IMPROVED"
+
+
+def test_a_noise_below_eta_keeps_eta_and_a_malformed_one_is_refused(store):
+    fine = _record(store, _scored(0.63, 0.33, 0.93), noise=_noise(0.001))
+    assert fine["total"] == 0.62
+    for bad in ({"value": 0.05}, {**_noise(0.05), "host": "x"}, 0.05):
+        with pytest.raises(LadderStoreRefused) as refused:
+            _record(store, _scored(0.7, 0.4, 0.9), noise=bad)
+        assert refused.value.code == "ladder_rebuild_noise"
+
+
+def test_record_cannot_leave_out_the_rebuild_noise(store):
+    with pytest.raises(TypeError):
+        store.record(
+            "5Miner",
+            MOTOR,
+            EXAM,
+            _scored(0.6, 0.3, 0.9),
+            exam_version="motor-exam-1",
+            gates=GATES,
+        )
 
 
 def test_only_the_latest_best_document_is_kept_exactly_as_the_builder_emits_it(store):
@@ -326,3 +380,26 @@ def test_the_client_reads_back_the_best_and_a_gate_failed_latest(monkeypatch):
         with pytest.raises(client.DirectIntakeRefusal) as refused:
             _client_read(monkeypatch, reply)
         assert refused.value.code == "exam_feedback_reply_invalid"
+
+
+def test_the_retention_hook_records_with_the_registered_noise(store):
+    # Retention never unbinds on a ladder failure, so it reports a state; a
+    # signature drift between hook and store would read UNAVAILABLE here.
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    adapter = SimpleNamespace(
+        ledger=store.ledger,
+        owner=lambda submission_id: "5Miner",
+        discovery=SimpleNamespace(info=SimpleNamespace(challenge_key=MOTOR)),
+    )
+    state = retention._record_ladder(
+        adapter,
+        "submission-1",
+        exam_key=EXAM,
+        exam_version="motor-exam-1",
+        gates=GATES,
+        graded=_scored(0.63, 0.33, 0.93),
+        rebuild_noise=_noise(0.05),
+    )
+    assert state == "RECORDED"
+    assert store.served("5Miner", MOTOR, EXAM)["best"]["total"] == 0.6

@@ -777,11 +777,17 @@ def _retain_selected_pack_evaluation(
             exam_version=source["evaluation_version"],
             gates=registered["score_pack"]["hard_gates"],
             graded=scoring["models"][0],
+            # No Challenge registers rebuild noise yet (KOTH-TAKEOVER-RULE-01
+            # §2a), and no comparator is built here: when the KOTH comparator
+            # is wired into the receiver, pass its `rebuild_noise` here too.
+            rebuild_noise=None,
         ),
     }
 
 
-def _record_ladder(adapter, submission_id, *, exam_key, exam_version, gates, graded):
+def _record_ladder(
+    adapter, submission_id, *, exam_key, exam_version, gates, graded, rebuild_noise
+):
     """Apply the bound result to the miner's private-exam Ladder
     (`ladder_store`). Its own failure never unbinds the evaluation: the state
     says RECORDED or names the refusal."""
@@ -798,6 +804,7 @@ def _record_ladder(adapter, submission_id, *, exam_key, exam_version, gates, gra
             graded,
             exam_version=exam_version,
             gates=gates,
+            rebuild_noise=rebuild_noise,
         )
     except (ImportError, OSError, ValueError, KeyError, TypeError) as exc:
         return "UNAVAILABLE: " + str(getattr(exc, "code", type(exc).__name__))
