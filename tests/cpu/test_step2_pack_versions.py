@@ -131,3 +131,24 @@ def test_motor_and_cooling_1_1_differ_from_1_0_only_in_the_kit(cid):
     old, new = pp.public_roles(cid, "1.0"), pp.public_roles(cid, "1.1")
     assert set(old) == set(new)
     assert {role for role in old if old[role] != new[role]} == {"construction_kit"}
+
+
+def test_motor_1_2_is_1_1_with_its_own_kit_and_pack_id():
+    """Motor 1.2 (backbone catalog) changes only what a miner may build: the
+    pack reuses 1.1's bank, physics and public roles except the kit."""
+    import numpy as np
+
+    from carbon.challenge_kit import physical_pack as pp
+
+    m = "electric-motor-magnetics"
+    assert pp.PACK_VERSIONS[(m, "1.2")] == "motor-normal-construction-development-3"
+    assert len({pp.PACK_VERSIONS[(m, v)] for v in ("1.0", "1.1", "1.2")}) == 3
+    a, b = pp.public_roles(m, "1.1"), pp.public_roles(m, "1.2")
+    assert set(a) == set(b)
+    assert [k for k in a if a[k] != b[k]] == ["construction_kit"]
+    x, y = pp.development_bank(m, "1.1"), pp.development_bank(m, "1.2")
+    assert x["case_ids"] == y["case_ids"] and x["cohorts"] == y["cohorts"]
+    assert np.array_equal(x["inputs"], y["inputs"])
+    assert np.array_equal(x["references"], y["references"])
+    assert x["reference_records"] == y["reference_records"]
+    assert pp.physics_contract(m, "1.1") == pp.physics_contract(m, "1.2")
