@@ -98,6 +98,9 @@ _PINNED_NUMPY_PAYLOADS = {
     "carbon/challenge_kit/data/f08-dev-train-255-v1.npz": (
         "65eb6a5f4e95ab3e2120c78cf3cd6a60d37554934c7d7ddea71e53cdadaac947"
     ),
+    "carbon/challenge_kit/data/f08-dev-train-287-v2.npz": (
+        "4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a"
+    ),
 }
 
 
