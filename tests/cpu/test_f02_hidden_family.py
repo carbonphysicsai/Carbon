@@ -220,6 +220,9 @@ def test_a_batch_is_drawn_solved_with_a_retry_and_sealed(tmp_path):
     assert not {hidden.overlap_key(c["inputs"]) for c in plan} & published
     solver.fail = {plan[0]["case_id"]}
     producer.solve("f02", drawn["fingerprint"])
+    # FAILED_INFRA is left pending, never stored; the next solve resumes it.
+    assert source.sealed(drawn["fingerprint"]) is None
+    producer.solve("f02", drawn["fingerprint"])
     producer.seal("f02", drawn["fingerprint"])
     assert [len(p) for p in solver.planned] == [8, 1]  # only the retry
     assert source.sealed(drawn["fingerprint"])["cases"] == 8

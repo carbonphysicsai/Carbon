@@ -195,6 +195,9 @@ def test_a_sealed_batch_is_drawn_solved_with_a_retry_sealed_and_packed(tmp_path)
     assert len(jobs) == 30
     solver.fail = {jobs[0]["case_id"]}
     producer.solve(MOTOR, drawn["fingerprint"])
+    # FAILED_INFRA is left pending, never stored; the next solve resumes it.
+    assert source.sealed(drawn["fingerprint"]) is None
+    producer.solve(MOTOR, drawn["fingerprint"])
     producer.seal(MOTOR, drawn["fingerprint"])
     assert [len(p) for p in solver.planned] == [30, 1]  # only the retry
     assert source.sealed(drawn["fingerprint"])["cases"] == 30
