@@ -71,6 +71,9 @@ _FREQUENCIES = (
 VERSIONS = {
     "1.0": (EVALUATION_VERSION, CASE_ID),
     "1.1": ("f08-dual-near-limit-bank-8-v1", "f08-near-limit-bank-8"),
+    # Step-2 batch (STEP2_BATCH_VERSIONS_20261020): 1.1's TRAIN v2 and ladder
+    # bank, served allowlist v6 with no step caps; measurement unchanged.
+    "1.2": ("f08-dual-near-limit-bank-8-v2", "f08-near-limit-bank-8"),
 }
 LEG_MINIMUM_RULES = {
     "baseline_legs": (

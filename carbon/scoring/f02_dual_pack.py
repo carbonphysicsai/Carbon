@@ -37,6 +37,13 @@ CHALLENGE = "f02"
 VERSION = "2.0"
 EVALUATION_VERSION = "f02-dual-development-bank-8-v1"
 CASE_ID = "f02-development-bank-8"
+#: Every registered Challenge version: its evaluation version and case id
+#: (step-2 batch, STEP2_BATCH_VERSIONS_20261020: 2.1 serves allowlist v6 with no
+#: step caps; measurement unchanged). No default version.
+VERSIONS = {
+    "2.0": (EVALUATION_VERSION, CASE_ID),
+    "2.1": ("f02-dual-development-bank-8-v2", CASE_ID),
+}
 OUTPUT = {"quantity": "peak_top_c", "unit": "degC"}
 FILES = ("f02_dual_pack.py",)
 MINIMUM_LEGS = ("A", "D")

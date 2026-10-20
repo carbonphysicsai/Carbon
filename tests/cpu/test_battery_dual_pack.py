@@ -17,6 +17,7 @@ from carbon.scoring import physical_dual_pack as physical
 from carbon.scoring import private_evaluation_source as source
 
 REPOSITORY = Path(__file__).resolve().parents[2]
+PRACTICE_BANK_VERSION = "1.0"
 DECISION_REFERENCES = (
     REPOSITORY / "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz"
 )
@@ -24,7 +25,10 @@ DECISION_REFERENCES = (
 
 @functools.cache
 def _bank():
-    return physical_pack.development_bank(adapter.CHALLENGE, adapter.VERSION)
+    # Battery 1.0's bank holds the same 200 PRACTICE rows the 2.0 bank opens
+    # with; the 2.0 bank (decision and probe rows) is Data Collection's, built
+    # to REFERENCE_PRESENT_MASK_INTERFACE_20261020.
+    return physical_pack.development_bank(adapter.CHALLENGE, PRACTICE_BANK_VERSION)
 
 
 def _rows():

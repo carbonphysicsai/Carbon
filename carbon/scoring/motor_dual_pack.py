@@ -118,6 +118,13 @@ def _applied_pack():
 #: (batched repeats) stay as history and are not re-scored.
 EVALUATION_VERSION = "motor-dual-development-bank-90-v2"
 CASE_ID = "motor-development-bank-90"
+#: Every registered Challenge version: its evaluation version and case id
+#: (step-2 batch, STEP2_BATCH_VERSIONS_20261020: 1.1 serves allowlist v6 with no
+#: step caps; measurement unchanged). No default version.
+VERSIONS = {
+    "1.0": (EVALUATION_VERSION, CASE_ID),
+    "1.1": ("motor-dual-development-bank-90-v3", CASE_ID),
+}
 OUTPUT = {"quantity": "torque_nm", "unit": "N.m"}
 FILES = ("motor_dual_pack.py", "motor_dual_measurement.py")
 #: Legs a measured baseline run sets minimums for.

@@ -212,6 +212,43 @@ def leg_minimum_platform(inference_image_id, device_class=DEVICE_CLASS):
 BASELINE_ROLE = "BASELINE_LEG_MINIMUM_SOURCE_NOT_A_CONTENDER"
 
 
+class Variant:
+    """One adapter for another version of its Challenge: its own ``VERSION``,
+    evaluation version and case id; measurement and producer files are the
+    adapter module's own."""
+
+    def __init__(self, module, version, evaluation_version, case_id):
+        self._module = module
+        self.VERSION = version
+        self.EVALUATION_VERSION = evaluation_version
+        self.CASE_ID = case_id
+
+    def pack_documents(self, **kwargs):
+        return pack_documents(self, **kwargs)
+
+    def write_development_pack(self, root, **platform):
+        return write_development_pack(self, root, **platform)
+
+    def produce(self, **kwargs):
+        return produce(self, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self._module, name)
+
+
+def versioned(module, version):
+    """The adapter for exactly ``version`` of ``module``'s Challenge, or None.
+    ``module.VERSIONS`` maps each registered version to its evaluation version
+    and case id; there is no default version."""
+    entry = module.VERSIONS.get(version) if type(version) is str else None
+    if entry is None:
+        return None
+    evaluation_version, case_id = entry
+    if version == module.VERSION:
+        return module
+    return Variant(module, version, evaluation_version, case_id)
+
+
 def _evaluation_version(adapter, platform, minimums):
     if minimums is None:
         return adapter.EVALUATION_VERSION

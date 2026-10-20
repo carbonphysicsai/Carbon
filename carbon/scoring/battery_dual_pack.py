@@ -21,9 +21,13 @@ from carbon.scoring import battery_dual_measurement as bdm
 from carbon.scoring import physical_dual_pack as physical
 
 CHALLENGE = "battery-fastcharge-ageing-development-v1"
-VERSION = "1.0"
-EVALUATION_VERSION = "battery-dual-development-bank-v1"
+#: Battery 2.0 (step-2 batch, STEP2_BATCH_VERSIONS_20261020): the v2 material
+#: (practice, the EV4 grid and the B15 probe pairs, with the reference mask) and
+#: bundle recipes. Battery 1.0 never had a dual pack. No default version.
+VERSION = "2.0"
+EVALUATION_VERSION = "battery-dual-development-bank-v2"
 CASE_ID = "battery-development-bank"
+VERSIONS = {"2.0": (EVALUATION_VERSION, CASE_ID)}
 OUTPUT = {
     "quantity": "voltage_v,temperature_c,plating_margin_v,capacity_ah",
     "unit": "V,degC,V,Ah",
