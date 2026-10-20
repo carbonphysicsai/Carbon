@@ -103,6 +103,12 @@ _F02_JUDGEMENT = (
     f02_train.EVIDENCE + "/rr04-judgement.json",
     "f7cc8c877e25a14658997f484377beffe91f971db2f3ba565393c18343bfdf1a",
 )
+#: RR-PACKS-04's bulk ledger for the same plan: each primary's measured solve
+#: wall time (FINISHED, exit 0, COMPLETED) for the solver-speed benchmark.
+_F02_LEDGER = (
+    f02_train.EVIDENCE + "/rr04-convergence-ledger.jsonl",
+    "f0b33758961b9eb0ccd23155cc05ed1f9d5c550e905064a4118308057d6e4a1b",
+)
 F02_DECISION_COVERAGE = "RANKING_AND_FEASIBILITY_STRADDLE"
 F02_POPULATION = "REGISTERED_EIGHT_ACTION_SET_NOT_INDEPENDENT"
 _F02_RUNGS = ("primary", "mesh2", "dt0.5")
@@ -691,6 +697,13 @@ def _f02_bank(challenge_id: str, version: str) -> dict:
     ):
         raise ValueError("F02 judgement is not an accepted development bank")
     observables, rungs = judgement["observables"], judgement["rung_comparisons"]
+    finished = {}
+    for line in _pinned_repository_file(_F02_LEDGER).decode("utf-8").splitlines():
+        event = json.loads(line)
+        if event.get("event") == "FINISHED":
+            if event.get("case") in finished:
+                raise ValueError("F02 ledger repeats a case")
+            finished[event.get("case")] = event
     case_ids, rows, references, records = [], [], [], []
     for case_id in sorted(F02_ACTIONS):
         power, on_time = F02_ACTIONS[case_id]
@@ -711,6 +724,17 @@ def _f02_bank(challenge_id: str, version: str) -> dict:
             energy, (power - 20) * on_time, rtol=1e-12, atol=0.0
         ):
             raise ValueError(f"{case_id} action differs from its registered schedule")
+        solve = finished.get(case_id + "-primary", {})
+        wall_s = solve.get("wall_s")
+        if (
+            solve.get("outcome") != "COMPLETED"
+            or solve.get("exit") != 0
+            or solve.get("reservation") != "primary"
+            or solve.get("image_pin") != judgement["image"]
+            or type(wall_s) is not float
+            or not wall_s > 0
+        ):
+            raise ValueError(f"{case_id} has no measured primary solve")
         target = [0.0] * width
         target[slice(*slices["peak_top_c"])] = [peaks[0]]
         case_ids.append(case_id)
@@ -724,6 +748,7 @@ def _f02_bank(challenge_id: str, version: str) -> dict:
                 "action": {"peak_w": power, "on_time_s": on_time},
                 "context": dict(f02_train.CONTEXT),
                 "image": judgement["image"],
+                "wall_s": wall_s,
                 "observed": {
                     k: primary[k]
                     for k in (

@@ -42,6 +42,10 @@ rectangular pulse).
 
 **Files:**
 - `rr04-judgement.json` and `rr04-judgement.provenance.json`.
+- `rr04-convergence-ledger.jsonl` (`f0b33758…`): RR-PACKS-04's bulk ledger, extracted
+  unchanged from `F02_SOLVER_OUT_20261019.tgz` (sha256 `19cdfe67…`). Each primary's
+  `wall_s` (FINISHED, exit 0, COMPLETED, the judgement's image pin) becomes its
+  reference record's `wall_s`, for the solver-speed benchmark.
 - `train40v2.jsonl`, `train40v2.diagnostics.jsonl` and `train40v2.summary.json`.
 - `export_train40v2.py.txt`, kept as text so the formatters never rewrite it.
 - `rr08-freeze-ledger.json`, `rr08-ledger-check.json`, `rr08-mms-evidence.json`,
