@@ -30,7 +30,8 @@ SCOPE = physical_public.SCOPE
 REGISTERED = (
     (motor.CHALLENGE.challenge_id, motor.CHALLENGE.version),
     (cooling.CHALLENGE.challenge_id, cooling.CHALLENGE.version),
-    (f08_train.CHALLENGE_ID, f08_train.CHALLENGE_VERSION),
+    # Both F08 versions: 1.0 (255-row TRAIN v1) and 1.1 (287-row TRAIN v2, the straddling bank).
+    *((f08_train.CHALLENGE_ID, version) for version in f08_train.CHALLENGE_VERSIONS),
 )
 
 
@@ -48,11 +49,11 @@ def bundle_material(
 
     if not is_registered(challenge_id, version):
         raise ValueError("unregistered public physical Challenge")
-    # F08 keeps its own public module and 255-row float32 TRAIN; the rest shares one.
+    # F08 keeps its own public module and float32 TRAIN (v1: 255 rows, v2: 287); the rest shares one.
     f08 = challenge_id == f08_train.CHALLENGE_ID
     public = f08_public if f08 else physical_public
     source = (
-        f08_train.load_public_train()
+        f08_train.load_public_train(version)
         if f08
         else physical_public_train.load_public_train(challenge_id)
     )

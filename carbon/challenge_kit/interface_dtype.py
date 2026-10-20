@@ -9,9 +9,13 @@ from __future__ import annotations
 
 
 def output_dtype(interface: dict) -> str:
-    outputs = interface.get("outputs")
-    if type(outputs) is dict and type(outputs.get("dtype")) is str:
-        return outputs["dtype"]
+    if "outputs" in interface:
+        # A document that declares `outputs` must declare the dtype there; a malformed
+        # `outputs` never falls through to another spelling.
+        outputs = interface["outputs"]
+        if type(outputs) is dict and type(outputs.get("dtype")) is str:
+            return outputs["dtype"]
+        raise ValueError("interface outputs declare no dtype")
     for name in ("dtype", "train_dtype"):
         if type(interface.get(name)) is str:
             return interface[name]

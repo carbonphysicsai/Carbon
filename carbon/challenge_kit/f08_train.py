@@ -422,7 +422,7 @@ def _load_v2() -> dict:
     }
 
 
-def load_public_train(version: str = CHALLENGE_VERSION) -> dict:
+def load_public_train(version: str) -> dict:
     """Load pinned inert tensors; admission and scientific use belong elsewhere."""
     import numpy as np
 

@@ -168,3 +168,78 @@ def test_the_resource_policy_binds_the_f08_limits():
         verify_direct_resource_policy(binding, material["construction_limits_document"])
         == kit["construction_limits_digest"]
     )
+
+
+F08_11 = ("f08-ribbed-bracket", "1.1")
+
+
+def test_version_1_1_serves_the_287_row_train_and_the_v2_digest():
+    from carbon.challenge_kit import f08_train
+
+    old = physical_material.bundle_material(*F08)
+    new = physical_material.bundle_material(*F08_11)
+    assert np.load(io.BytesIO(old["train"]))["inputs"].shape == (255, 6)
+    assert np.load(io.BytesIO(new["train"]))["inputs"].shape == (287, 6)
+    assert len(new["train_case_ids"]) == 287 and len(old["train_case_ids"]) == 255
+    assert new["construction_kit"]["version"] == "1.1"
+    # The kit binds the v2 TRAIN's own digest, not v1's.
+    assert (
+        new["construction_kit"]["train_digest"] == "sha256:" + f08_train.TRAIN_V2_SHA256
+    )
+    assert old["construction_kit"]["train_digest"] == "sha256:" + f08_train.TRAIN_SHA256
+    assert (
+        new["construction_kit"]["train_digest"]
+        != old["construction_kit"]["train_digest"]
+    )
+    assert new["interface_document"] is not None
+    assert output_dtype(new["interface_document"]) == "<f4"
+    assert new["practice_inputs"].dtype == np.float32
+
+
+def test_version_1_1_is_a_registered_served_contract_and_discoverable():
+    contract = served_recipe_contract.registered(*F08_11)
+    assert contract.evidence_label == "DEVELOPMENT_PUBLIC_PHYSICAL"
+    material = physical_material.bundle_material(*F08_11)
+    assert contract.construction_kit == material["construction_kit"]
+    discovery = DirectFixtureDiscovery(material, task_admission=True)
+    assert discovery.info.challenge_key.version == "1.1"
+    # The two versions are different Challenges to the receiver.
+    assert (
+        served_recipe_contract.registered(*F08).digest
+        != served_recipe_contract.registered(*F08_11).digest
+    )
+
+
+def test_an_unknown_f08_version_is_refused():
+    with pytest.raises(ValueError):
+        physical_material.bundle_material("f08-ribbed-bracket", "1.2")
+
+
+def test_the_version_is_required_and_never_defaulted():
+    from carbon.challenge_kit import f08_train
+
+    with pytest.raises(TypeError):
+        f08_train.load_public_train()
+    with pytest.raises(ValueError):
+        f08_train.load_public_train("1.2")
+
+
+def test_the_output_dtype_reader_refuses_a_malformed_outputs_block():
+    ok = {"outputs": {"dtype": "<f8"}}
+    assert output_dtype(ok) == "<f8"
+    assert output_dtype({"dtype": "<f8"}) == output_dtype({"train_dtype": "<f8"})
+    for malformed in (
+        {"outputs": {}, "dtype": "<f8"},
+        {"outputs": {"dtype": 8}, "train_dtype": "<f4"},
+        {"outputs": [], "dtype": "<f8"},
+        {"outputs": None, "dtype": "<f8"},
+        {},
+    ):
+        with pytest.raises(ValueError):
+            output_dtype(malformed)
+    # Every registered physical Challenge still declares one.
+    for key in physical_material.REGISTERED:
+        assert isinstance(
+            output_dtype(physical_material.bundle_material(*key)["interface_document"]),
+            str,
+        )

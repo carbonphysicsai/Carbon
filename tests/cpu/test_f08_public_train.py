@@ -11,7 +11,7 @@ from carbon.challenge_kit import f08_train
 
 
 def test_f08_public_train_is_partial_pinned_and_immutable():
-    material = f08_train.load_public_train()
+    material = f08_train.load_public_train("1.0")
     assert hashlib.sha256(material["train"]).hexdigest() == f08_train.TRAIN_SHA256
     assert material["inputs"].shape == (255, 6)
     assert material["targets"].shape == (255, 7)
@@ -40,4 +40,4 @@ def test_f08_public_train_refuses_changed_bytes(tmp_path, monkeypatch):
     (tmp_path / f08_train._PROVENANCE).write_bytes(provenance)
     monkeypatch.setattr(f08_train, "_DATA", tmp_path)
     with pytest.raises(ValueError, match="artifact identity differs"):
-        f08_train.load_public_train()
+        f08_train.load_public_train("1.0")
