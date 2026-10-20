@@ -252,6 +252,7 @@ def test_the_client_refuses_any_field_beyond_the_builders(extra):
             best=None,
             exam_version="motor-exam-1",
             gate_registry=GATES,
+            rebuild_noise=None,
         )
     )
     with pytest.raises(LadderStoreRefused):
@@ -266,6 +267,7 @@ def test_a_latest_document_takes_any_builder_status_and_nothing_else():
         best=None,
         exam_version="motor-exam-1",
         gate_registry=GATES,
+        rebuild_noise=None,
     )
     assert checked(doc, latest=True)["status"] == "NOT_SCORED"
     with pytest.raises(LadderStoreRefused):
@@ -354,7 +356,11 @@ def _client_read(monkeypatch, reply):
 
 def test_the_client_reads_back_the_best_and_a_gate_failed_latest(monkeypatch):
     best = gf.ladder_feedback(
-        _scored(0.6, 0.3, 0.9), best=None, exam_version="e1", gate_registry=GATES
+        _scored(0.6, 0.3, 0.9),
+        best=None,
+        exam_version="e1",
+        gate_registry=GATES,
+        rebuild_noise=None,
     )
     latest = gf.ladder_feedback(
         {
@@ -365,6 +371,7 @@ def test_the_client_reads_back_the_best_and_a_gate_failed_latest(monkeypatch):
         best=best,
         exam_version="e1",
         gate_registry=GATES,
+        rebuild_noise=None,
     )
     read = _client_read(monkeypatch, {"best": best, "latest": latest})
     assert read == {"best": best, "latest": latest}
