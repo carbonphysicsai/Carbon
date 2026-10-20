@@ -479,6 +479,16 @@ def _f08_limit_extras(version: str) -> dict:
     }
 
 
+def _f08_refuse_train_overlap(inputs, version: str) -> None:
+    """No exam action may be a TRAIN action (Validator condition on 1.1):
+    exact equality of the six inputs, both sides in the interface's float32,
+    the dtype a model receives them in."""
+    train = f08_train.load_public_train(version)["inputs"]
+    seen = {tuple(row) for row in np.asarray(train, dtype=inputs.dtype).tolist()}
+    if any(tuple(row) in seen for row in inputs.tolist()):
+        raise ValueError("F08 exam action is a TRAIN action")
+
+
 def _f08_bank(challenge_id: str, version: str) -> dict:
     """F08's accepted references, laid out by the interface's named slices."""
     interface = f08_public.interface_document(challenge_id, version)
@@ -569,6 +579,8 @@ def _f08_bank(challenge_id: str, version: str) -> dict:
         or not np.isfinite(targets).all()
     ):
         raise ValueError("F08 bank tensor differs")
+    if version != "1.0":
+        _f08_refuse_train_overlap(inputs, version)
     inputs.setflags(write=False)
     targets.setflags(write=False)
     return {

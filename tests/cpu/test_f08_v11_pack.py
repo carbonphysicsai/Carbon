@@ -157,3 +157,28 @@ def test_ladder_refuses_rows_that_differ_from_the_frozen_actions(monkeypatch):
     monkeypatch.setattr(physical_pack, "_F08_LADDER_ACTIONS", (path, "0" * 64))
     with pytest.raises(ValueError):
         physical_pack.development_bank(CID, "1.1")
+
+
+def test_no_train_v2_action_is_a_ladder_action():
+    bank = physical_pack.development_bank(CID, "1.1")
+    train = f08_train.load_public_train("1.1")["inputs"]
+    exam = {tuple(row) for row in bank["inputs"].tolist()}
+    assert not exam & {tuple(row) for row in train.tolist()}
+
+
+def test_a_planted_train_exam_overlap_is_refused(monkeypatch):
+    bank = physical_pack.development_bank(CID, "1.1")
+    real = f08_train.load_public_train
+
+    def planted(version=f08_train.CHALLENGE_VERSION):
+        material = dict(real(version))
+        if version != "1.1":
+            return material
+        inputs = np.array(material["inputs"])
+        inputs[100] = bank["inputs"][3]
+        material["inputs"] = inputs
+        return material
+
+    monkeypatch.setattr(f08_train, "load_public_train", planted)
+    with pytest.raises(ValueError, match="exam action is a TRAIN action"):
+        physical_pack.development_bank(CID, "1.1")
