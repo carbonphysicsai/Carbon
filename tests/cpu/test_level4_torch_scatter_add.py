@@ -54,6 +54,10 @@ def test_v6_changes_only_the_listed_entries_and_keeps_graph_scatter_refused():
         "aten.le.Scalar",
         "aten.le.Tensor",
         "aten.bitwise_and.Tensor",
+        "aten.cos.default",
+        "aten.sin.default",
+        "aten.logical_not.default",
+        "aten.max_pool2d_with_indices.default",
     ):
         admitted = new["aten_core"].pop(added)
         assert admitted["default"] == "allow" and admitted["lowering"] == "emitted"

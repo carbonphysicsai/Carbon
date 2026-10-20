@@ -127,6 +127,12 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.cos.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's cos (OFormer positional encodings)."
+  },
   "aten.div.Tensor": {
    "category": "elementwise",
    "default": "allow",
@@ -215,6 +221,12 @@
    "default": "allow",
    "lowering": "emitted"
   },
+  "aten.logical_not.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "boolean masks only, as Carbon's not."
+  },
   "aten.lt.Scalar": {
    "category": "elementwise",
    "default": "allow",
@@ -224,6 +236,12 @@
    "category": "elementwise",
    "default": "allow",
    "lowering": "emitted"
+  },
+  "aten.max_pool2d_with_indices.default": {
+   "category": "reduction",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "non-overlapping windows (kernel = stride, no padding): reshape + reduce_max; the indices output is refused."
   },
   "aten.mean.dim": {
    "category": "reduction",
@@ -330,6 +348,12 @@
    "default": "allow",
    "lowering": "emitted",
    "note": "Carbon's sign (AFNO softshrink)."
+  },
+  "aten.sin.default": {
+   "category": "elementwise",
+   "default": "allow",
+   "lowering": "emitted",
+   "note": "Carbon's sin."
   },
   "aten.slice.Tensor": {
    "category": "shape",
