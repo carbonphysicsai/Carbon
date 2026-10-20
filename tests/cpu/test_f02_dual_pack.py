@@ -206,4 +206,4 @@ def test_the_real_calibration_pack_builds_with_no_minimums():
     assert row["elapsed_s"] == sum(r["wall_s"] for r in _bank()["reference_records"])
     with pytest.raises(adapter.Refused) as refused:
         adapter.baseline_outputs([])
-    assert refused.value.code == "f02_baseline_unregistered"
+    assert refused.value.code == "f02_baseline_graded_not_rebuilt"

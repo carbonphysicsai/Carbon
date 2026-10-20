@@ -6,11 +6,10 @@ committed repository material): never a hidden-exam or paying claim.
 ``physical_dual_pack`` owns the pack documents, the builder and the producer;
 this module owns only what is Battery's. The values are the Carbon
 Validator's registered Battery A/D packet (BATTERY_DUAL_PACKET_20261020),
-measured by ``battery_dual_measurement``. Still HUMAN_INPUT, so Battery stays
-unscored (fail closed): D's EV4 grid rows and B15's public probe pairs (both
-wait for the Battery v2 material, which asks for their rows), and the
-registered baseline recipe that sets the leg minimums (owner decision;
-calibration mode until then).
+measured by ``battery_dual_measurement``; the score is OWNER-BATTERY-DUAL-SCORE-01.
+Still HUMAN_INPUT, so Battery stays unscored (fail closed): D's EV4 grid rows
+and B15's public probe pairs, both waiting for the Battery v2 material, which
+asks for their rows.
 """
 
 from __future__ import annotations
@@ -38,9 +37,15 @@ Refused = bdm.BatteryMeasurementRefused
 validate_definition = bdm.validate_definition
 _ADAPTER = sys.modules[__name__]
 _REPOSITORY = Path(__file__).resolve().parents[2]
-#: HUMAN_INPUT: the registered baseline recipe (owner decision; the packet
-#: recommends Launchpad's Level 0 scaffold_mlp).
-BASELINE = None
+#: The leg-minimum baseline (OWNER-LEG-MINIMUM-BEST-AGENT-01): Carbon's best
+#: agent-tested recipe by total on the calibration pack; until one exists, the
+#: placeholder below. It is graded as a submitted recipe on the judge image
+#: (``physical_dual_pack.baseline_minimums``), never rebuilt in process, and
+#: never contends. A new best is a prospective recalibration.
+BASELINE = {
+    "decision": "OWNER-LEG-MINIMUM-BEST-AGENT-01",
+    "placeholder": "scaffold_mlp",
+}
 
 
 def input_names():
@@ -129,8 +134,9 @@ def physics_contract():
 
 
 def baseline_outputs(cases):
-    """The registered baseline is HUMAN_INPUT: refuse, never default."""
-    raise Refused("battery_baseline_unregistered")
+    """The baseline is graded as a submitted recipe on the judge image, not
+    rebuilt here: refuse, never substitute."""
+    raise Refused("battery_baseline_graded_not_rebuilt")
 
 
 def measure(

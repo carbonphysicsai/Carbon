@@ -200,7 +200,7 @@ def test_battery_stays_unscored_while_d_and_b15_are_human_input():
     assert refused.value.code == "battery_d_unregistered"
     with pytest.raises(bdm.BatteryMeasurementRefused) as refused:
         adapter.baseline_outputs([])
-    assert refused.value.code == "battery_baseline_unregistered"
+    assert refused.value.code == "battery_baseline_graded_not_rebuilt"
 
 
 def test_a_changed_registry_refuses(monkeypatch):

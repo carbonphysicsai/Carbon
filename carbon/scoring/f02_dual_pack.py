@@ -19,8 +19,9 @@ alone. The spread is TRAIN40-v2's exact computed ``train_peak_std_c``.
 A and D are the existing native cold-eight reduction
 (``private_evaluation_source._f02_point_measurements``), called, never
 reimplemented. A reference limitation leaves the evaluation unavailable, never
-a candidate failure. The baseline recipe is HUMAN_INPUT (owner decision):
-calibration mode until then.
+a candidate failure. The leg-minimum baseline is OWNER-LEG-MINIMUM-BEST-AGENT-01's
+(KRR on TRAIN40-v2 as its placeholder), graded on the judge image in calibration
+mode.
 """
 
 from __future__ import annotations
@@ -52,9 +53,15 @@ S_VALUE_J = 100.0
 MARGIN_SCALE_C = 1.0
 RESPONSE_SCALE_C = 1.0
 _ADAPTER = sys.modules[__name__]
-#: HUMAN_INPUT: the registered baseline recipe (owner decision; the packet
-#: recommends a kernel-ridge fit on TRAIN40-v2).
-BASELINE = None
+#: The leg-minimum baseline (OWNER-LEG-MINIMUM-BEST-AGENT-01): Carbon's best
+#: agent-tested recipe by total on the calibration pack; until one exists, the
+#: placeholder below. It is graded as a submitted recipe on the judge image
+#: (``physical_dual_pack.baseline_minimums``), never rebuilt in process, and
+#: never contends. A new best is a prospective recalibration.
+BASELINE = {
+    "decision": "OWNER-LEG-MINIMUM-BEST-AGENT-01",
+    "placeholder": "kernel ridge on TRAIN40-v2",
+}
 
 
 class F02MeasurementRefused(ValueError):
@@ -358,8 +365,9 @@ def applied_pack(**_):
 
 
 def baseline_outputs(cases):
-    """The registered baseline is HUMAN_INPUT: refuse, never default."""
-    raise Refused("f02_baseline_unregistered")
+    """The baseline is graded as a submitted recipe on the judge image, not
+    rebuilt here: refuse, never substitute."""
+    raise Refused("f02_baseline_graded_not_rebuilt")
 
 
 def measure(
