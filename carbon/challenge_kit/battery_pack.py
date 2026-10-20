@@ -112,14 +112,13 @@ def plating_reference() -> dict:
 def _v2_label():
     """The sealed reference's own reader, `plating_rereference.v2_label`,
     loaded from its pinned file (standard library only)."""
-    import importlib.util
+    import types
 
-    _pinned(_PLATING_READER)
-    spec = importlib.util.spec_from_file_location(
-        "carbon_plating_rereference", _REPOSITORY / _PLATING_READER[0]
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Execute exactly the verified bytes; never re-read the file after the check.
+    raw = _pinned(_PLATING_READER)
+    module = types.ModuleType("carbon_plating_rereference")
+    module.__file__ = str(_REPOSITORY / _PLATING_READER[0])
+    exec(compile(raw, module.__file__, "exec"), module.__dict__)
     return module.v2_label
 
 
