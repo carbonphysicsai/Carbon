@@ -253,12 +253,41 @@ def _command(receiver_state: Path) -> list[str]:
     ]
 
 
+def _lingers(user: str):
+    """Whether `user`'s systemd user manager outlives their logout: True,
+    False, or None when loginctl cannot say."""
+    try:
+        shown = subprocess.run(
+            ["loginctl", "show-user", user, "--property=Linger", "--value"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if shown.returncode != 0:
+        return None
+    return shown.stdout.strip() == "yes"
+
+
 def start(receiver_state: Path, *, detach: bool = False) -> int:
     """Run the receiver here, or as a transient user systemd unit with --detach."""
     command = _command(receiver_state)
     if not detach:
         os.chdir(REPO)
         os.execv(command[0], command)
+    import getpass
+
+    user = getpass.getuser()
+    if _lingers(user) is False:
+        # A user unit stops at logout without linger: refuse before starting it.
+        raise SetupRefused(
+            "receiver_linger_off",
+            f"a detached receiver would stop when {user} logs out; run "
+            f"`loginctl enable-linger {shlex.quote(user)}` once on this host, "
+            "then start again.",
+        )
     unit = "carbon-receiver-" + _sha(str(receiver_state).encode())[:12]
     started = subprocess.run(
         [
