@@ -31,3 +31,4 @@ The class's actual values. They're measured from the calibration host, not chose
 - **Memory:** at least 50 GiB, the measured MemTotal of 52,858,868 KiB rounded down to whole GiB.
 - **Scope:** testnet and rehearsal only. **The mainnet class comes from the owner's choice of validator hardware before launch.** That's a new registration, with re-measured rebuild noise and leg minimums.
 - **Consequence for cadence:** R in `exam_cadence.json` (270 CPU-h a day) assumed a 16-vCPU host. On this 4-vCPU class the measured capacity is about a quarter of that, so R must be re-registered from the class. That's a measured value, not a choice.
+- **What a miner experiences:** on this class, the daily graded-submission allowance per Challenge (OWNER-CADENCE-AND-ROTATION-02) is about 7 at 2 active miners, 2 at 5 miners, and 1 (the floor) at 25 or more. That replaces the 11 at 5 miners and 2 at 25 the 16-vCPU assumption gave.
