@@ -71,6 +71,16 @@ def test_the_step_is_the_larger_of_eta_and_registered_rebuild_noise():
         ladder.step(float("nan"))
 
 
+def test_rebuild_noise_must_be_passed_explicitly():
+    with pytest.raises(TypeError, match="rebuild_noise"):
+        ladder.ladder_feedback(
+            _scored(0.6, 0.6, 0.6),
+            best=None,
+            exam_version="exam-1",
+            gate_registry=(),
+        )
+
+
 def test_improvements_under_the_step_give_byte_identical_documents():
     first = _feedback(_scored(0.61, 0.3, 0.9))
     second = _feedback(_scored(0.615, 0.31, 0.95), best=first)

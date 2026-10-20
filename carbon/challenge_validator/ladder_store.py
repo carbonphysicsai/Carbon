@@ -16,6 +16,11 @@ its counts, so a rotated bank starts a fresh ladder even under an unchanged
 evaluation version. The document's own ``exam_version`` is the registered
 evaluation version.
 
+The step is the builder's, max(eta, the Challenge's registered rebuild
+noise): ``record`` takes that registration in the KOTH comparator's own shape
+(``{"value", "measurement_digest"}``, KOTH-TAKEOVER-RULE-01 §1) or None when
+none is registered, and has no default, so it cannot be left out.
+
 The table sits beside the exam cap's in the receiver's owner-only
 `AttemptLedger` file.
 """
@@ -72,6 +77,20 @@ def checked(document, *, latest=False):
     return {name: document[name] for name in sorted(gf.FIELDS)}
 
 
+def _noise_value(rebuild_noise):
+    """The registered rebuild noise's value, or None when none is registered."""
+    if rebuild_noise is None:
+        return None
+    if (
+        type(rebuild_noise) is not dict
+        or set(rebuild_noise) != {"value", "measurement_digest"}
+        or type(rebuild_noise["measurement_digest"]) is not str
+        or not rebuild_noise["measurement_digest"].startswith("sha256:")
+    ):
+        raise LadderStoreRefused("ladder_rebuild_noise")
+    return rebuild_noise["value"]
+
+
 def _raw(document, *, latest=False):
     if document is None:
         return None
@@ -115,14 +134,21 @@ class LadderStore:
             checked(json.loads(latest), latest=True),
         )
 
-    def record(self, hotkey, challenge, exam_key, graded, *, exam_version, gates):
+    def record(
+        self, hotkey, challenge, exam_key, graded, *, exam_version, gates, rebuild_noise
+    ):
         """Apply one graded private-exam result (the score row) and return the
         document it shows: stored as the latest, and as the best only when it
-        improved."""
+        improved. ``rebuild_noise`` is the Challenge's registration or None."""
         key = self._key(hotkey, challenge, exam_key)
+        noise = _noise_value(rebuild_noise)
         best, _ = self._documents(key)
         shown = gf.ladder_feedback(
-            graded, best=best, exam_version=exam_version, gate_registry=gates
+            graded,
+            best=best,
+            exam_version=exam_version,
+            gate_registry=gates,
+            rebuild_noise=noise,
         )
         kept = gf.next_best(best, shown)
         with self.ledger._db() as db:
