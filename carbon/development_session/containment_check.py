@@ -15,8 +15,12 @@ the host user's real home path go into the cell as data. The cell tries to:
 
 - read the canary (and list its directory);
 - read `/proc/1/comm` and `/proc/self/cgroup`;
-- stat, list and read the host home (byte and entry counts only, no names or
-  content leave the cell);
+- look for the host home: a mount or bind of it in `/proc/self/mountinfo`, the
+  host home's own device and inode (recorded here before launch) at the same
+  path, and a canary planted in the host home (only counts, device and inode
+  numbers and a digest leave the cell). The image's own directory of the same
+  name (`/home/ubuntu` in an Ubuntu base) is not the host home: it is told
+  apart by identity, not by whether the path exists;
 - connect to 1.1.1.1:53 over TCP, send to it over UDP, and resolve a name;
 - write outside `/scratch`: the image root, `/tmp`, `/opt`, `/input` and the
   canary's own host directory.
@@ -24,7 +28,8 @@ the host user's real home path go into the cell as data. The cell tries to:
 Each probe passes only on containment: the canary absent or denied; PID 1 the
 container's own init, not the host's (compared with the host's own
 `/proc/1/comm`, read here); the cgroup the container's namespaced root, not the
-host's hierarchy; the host home absent or denied; every network attempt failed;
+host's hierarchy; the host home not visible (no mount or bind of it, not the host's own device and
+inode, its canary unreadable); every network attempt failed;
 every write outside `/scratch` refused. The canary is removed afterwards, even
 on failure, and its removal is checked.
 
@@ -122,6 +127,46 @@ def write(directory):
     return {}
 
 
+def inside(path, base):
+    return path == base or path.startswith(base.rstrip("/") + "/")
+
+
+def covers(path, base):
+    return path != "/" and base.startswith(path.rstrip("/") + "/")
+
+
+def home_mounts():
+    # Mounts that show the host home. By path in the container: one at or under it, or above
+    # it (not the root). By source, on the home's own filesystem: a bind of the home itself
+    # or of an ancestor (including the whole filesystem). A mount whose source is strictly
+    # below the home is listed with a digest of its source, not counted: the host exempts
+    # exactly the carrier's own declared sources, and any other fails.
+    hits, below = 0, []
+    known = DATA.get("home_fs_dev") is not None
+    home_root = DATA["home_fs_root"]
+    for line in Path("/proc/self/mountinfo").read_text().splitlines():
+        fields = line.split()
+        dev = fields[2]
+        root, point = fields[3].replace("\\040", " "), fields[4].replace("\\040", " ")
+        if inside(point, home) or covers(point, home):
+            hits += 1
+        elif known and dev != DATA["home_fs_dev"]:
+            continue
+        elif root == home_root or home_root.startswith(root.rstrip("/") + "/") and (
+            root != "/" or known
+        ):
+            hits += 1
+        elif inside(root, home_root):
+            source = hashlib.sha256((dev + " " + root).encode()).hexdigest()
+            below.append({"point": point, "source": source})
+    return {"matches": hits, "below_home": below[:16]}
+
+
+def home_identity():
+    status = os.stat(home)
+    return {"mode": oct(status.st_mode), "st_dev": status.st_dev, "st_ino": status.st_ino}
+
+
 home = DATA["host_home"]
 observed = {
     "uid": os.getuid(),
@@ -133,10 +178,12 @@ observed = {
     "self_cgroup": attempt(
         lambda: {"value": Path("/proc/self/cgroup").read_text()[:4096]}
     ),
-    "host_home_stat": attempt(lambda: {"mode": oct(os.stat(home).st_mode)}),
-    "host_home_list": attempt(lambda: {"entries": len(os.listdir(home))}),
-    "host_home_read": attempt(
-        lambda: {"bytes": len(Path(home, ".profile").read_bytes())}
+    "host_home_mounts": attempt(home_mounts),
+    "host_home_identity": attempt(home_identity),
+    "host_home_canary": (
+        attempt(lambda: read_digest(DATA["home_canary_file"]))
+        if DATA.get("home_canary_file")
+        else {"outcome": "not_planted"}
     ),
     "network_tcp": attempt(tcp),
     "network_udp": attempt(udp),
@@ -189,6 +236,73 @@ def plant_canary(parent=None):
     return directory, canary, hashlib.sha256(marker).hexdigest()
 
 
+def fs_location(path, mountinfo="/proc/self/mountinfo"):
+    """Where `path` lives on its filesystem, as a mount of it shows it in mountinfo: the
+    filesystem's device (major:minor) and the path inside it. (None, the path) when this
+    host's mountinfo cannot be read, which makes the cell compare plain paths."""
+    try:
+        target = os.path.realpath(path)
+        best = None
+        for line in Path(mountinfo).read_text().splitlines():
+            fields = line.split()
+            point = fields[4].replace("\\040", " ")
+            under = target == point or target.startswith(point.rstrip("/") + "/")
+            if under and (best is None or len(point) >= len(best[0])):
+                best = (point, fields[2], fields[3].replace("\040", " "))
+        if best is None:
+            return {"dev": None, "root": target}
+        point, dev, root = best
+        relative = os.path.relpath(target, point)
+        joined = root if relative == "." else root.rstrip("/") + "/" + relative
+        return {"dev": dev, "root": os.path.normpath(joined).replace("//", "/")}
+    except (OSError, IndexError, ValueError):
+        return {"dev": None, "root": str(path)}
+
+
+def source_digest(location):
+    """The digest the cell reports for a mount source: the filesystem and the path in it."""
+    return hashlib.sha256(
+        (str(location["dev"]) + " " + location["root"]).encode()
+    ).hexdigest()
+
+
+def home_identity(home):
+    """The host home's own device and inode, recorded before launch; None if it
+    cannot be stat'd here (the check then cannot clear an image directory of the
+    same name and fails closed on a visible one)."""
+    try:
+        status = os.stat(home)
+    except OSError:
+        return None
+    return {"st_dev": status.st_dev, "st_ino": status.st_ino}
+
+
+def plant_home_canary(home):
+    """A readable canary file with a random marker in the host home itself.
+    Returns its path, or None when the home cannot be written."""
+    marker = ("CARBON-CONTAINMENT-HOME-CANARY:" + secrets.token_hex(16)).encode()
+    canary = Path(home) / (".carbon-containment-canary-" + secrets.token_hex(8))
+    try:
+        descriptor = os.open(canary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(marker)
+        canary.chmod(0o644)
+    except OSError:
+        return None
+    return canary
+
+
+def remove_home_canary(planted):
+    """True when there was none or it is observed gone."""
+    if planted is None:
+        return True
+    try:
+        planted.unlink(missing_ok=True)
+    except OSError:
+        pass
+    return not os.path.lexists(planted)
+
+
 def remove_canary(directory):
     """Remove the canary directory; True only when it is observed gone."""
     shutil.rmtree(directory, ignore_errors=True)
@@ -227,6 +341,37 @@ def _cgroup_is_namespaced_root(text):
     return bool(lines) and all(line == "0::/" for line in lines)
 
 
+def _home_hidden(mounts, identity, canary, host_identity, declared=()):
+    """The host home is not visible from inside: it is not mounted or bound there, the
+    path is not the host's own directory (same device and inode), and its canary is not
+    readable. An image directory of the same name passes: it has another identity."""
+    below = mounts.get("below_home") if type(mounts) is dict else None
+    unmounted = (
+        type(mounts) is dict
+        and mounts.get("outcome") == "ok"
+        and mounts.get("matches") == 0
+        and type(below) is list
+        # Mounts sourced from under the home pass only when they are the carrier's own
+        # declared ones (exact mount point and source); a mount of ~/.ssh or ~/ fails.
+        and all(entry in declared for entry in below)
+    )
+    if type(identity) is not dict:
+        distinct = False
+    elif identity.get("outcome") in ("absent", "denied"):
+        distinct = True
+    elif identity.get("outcome") == "ok" and type(host_identity) is dict:
+        distinct = (identity.get("st_dev"), identity.get("st_ino")) != (
+            host_identity.get("st_dev"),
+            host_identity.get("st_ino"),
+        )
+    else:
+        # Visible but the host's identity is unknown, or the stat failed oddly:
+        # it cannot be told apart, so it fails closed.
+        distinct = False
+    canary_hidden = type(canary) is dict and canary.get("outcome") != "ok"
+    return unmounted and distinct and canary_hidden
+
+
 def evaluate(observed, host, *, canary_digest, write_targets):
     """Each probe, what was observed, PASS or FAIL. Pure: tested directly."""
     observed = observed if type(observed) is dict else {}
@@ -250,7 +395,8 @@ def evaluate(observed, host, *, canary_digest, write_targets):
     cgroup = observed.get("self_cgroup")
     cgroup_value = cgroup.get("value") if type(cgroup) is dict else None
     home = [
-        observed.get(k) for k in ("host_home_stat", "host_home_list", "host_home_read")
+        observed.get(k)
+        for k in ("host_home_mounts", "host_home_identity", "host_home_canary")
     ]
     network = {k: observed.get("network_" + k) for k in ("tcp", "udp", "dns")}
     writes = observed.get("writes") if type(observed.get("writes")) is dict else {}
@@ -277,9 +423,16 @@ def evaluate(observed, host, *, canary_digest, write_targets):
         ),
         probe(
             "host_home",
-            {"stat": home[0], "list": home[1], "read": home[2]},
-            all(_denied_or_absent(item) for item in home),
-            "the host home is absent (or denied) inside the container",
+            {"mounts": home[0], "identity": home[1], "canary": home[2]},
+            _home_hidden(
+                home[0],
+                home[1],
+                home[2],
+                host.get("home_identity"),
+                host.get("declared_mounts") or (),
+            ),
+            "the host home is not visible: no mount or bind of it, not the host's own "
+            "device and inode, its canary unreadable",
         ),
         probe(
             "network",
@@ -407,33 +560,65 @@ def containment_check(
         return unavailable(
             "pinned_image_unavailable", image_id=image.image_id, detail=str(error)[:200]
         )
-    host = host_view()
     home = str(host_home or Path.home())
+    host = {**host_view(), "home_identity": home_identity(home)}
     directory, canary, canary_digest = plant_canary(canary_parent)
+    home_canary = plant_home_canary(home)
     fields = {"image_id": image.image_id, "host_home": home}
     report = unavailable("containment_check_interrupted", **fields)
     try:
         report = _run_cell(
-            root, image, host, home, directory, canary, canary_digest, fields
+            root,
+            image,
+            host,
+            home,
+            directory,
+            canary,
+            canary_digest,
+            fields,
+            home_canary=home_canary,
         )
     finally:
         removed = remove_canary(directory)
+        home_removed = remove_home_canary(home_canary)
     report["canary"] = {"planted_in": str(directory.parent), "removed": removed}
+    report["home_canary"] = {
+        "planted": home_canary is not None,
+        "removed": home_removed,
+    }
     if not removed:
         report["status"], report["code"] = "FAIL", report["code"] or FAILED
         report["reason"] = "canary_not_removed"
+    elif not home_removed:
+        report["status"], report["code"] = "FAIL", report["code"] or FAILED
+        report["reason"] = "home_canary_not_removed"
     return report
 
 
-def _run_cell(root, image, host, home, directory, canary, canary_digest, fields):
+def _run_cell(
+    root,
+    image,
+    host,
+    home,
+    directory,
+    canary,
+    canary_digest,
+    fields,
+    *,
+    home_canary=None,
+):
     from . import research_carrier
     from .research_carrier import MinerProgramFailure, run_script
 
     write_targets = [*WRITE_TARGETS, str(directory)]
+    location = fs_location(home)
     data = {
         "canary_file": str(canary),
         "canary_dir": str(directory),
         "host_home": home,
+        "home_fs_dev": location["dev"],
+        "home_fs_root": location["root"],
+        "home_canary_file": None if home_canary is None else str(home_canary),
         "network_target": list(NETWORK_TARGET),
         "dns_name": DNS_NAME,
         "write_targets": write_targets,
@@ -475,8 +660,17 @@ def _run_cell(root, image, host, home, directory, canary, canary_digest, fields)
         observed = json.loads((folder / "snapshot" / OUTPUT_NAME).read_bytes())
     except (OSError, ValueError):
         observed = None
+    # The carrier's own declared mount sources: the launch's /input (and, in the unbounded
+    # lane, /scratch) directories, exactly. Nothing else under the home is exempt.
+    declared = [
+        {"point": point, "source": source_digest(fs_location(folder / name))}
+        for point, name in (("/input", "input"), ("/scratch", "scratch"))
+    ]
     probes = evaluate(
-        observed, host, canary_digest=canary_digest, write_targets=write_targets
+        observed,
+        {**host, "declared_mounts": declared},
+        canary_digest=canary_digest,
+        write_targets=write_targets,
     )
     passed = (
         type(observed) is dict
