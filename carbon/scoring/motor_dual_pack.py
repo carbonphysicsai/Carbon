@@ -113,10 +113,15 @@ def _applied_pack():
     }
 
 
-EVALUATION_VERSION = "motor-dual-development-bank-90-v1"
+#: v2: the paired repeat is the identical graded procedure (per-case pairs,
+#: Validator 2026-10-19), the registered repeat tolerance unchanged; v1 packs
+#: (batched repeats) stay as history and are not re-scored.
+EVALUATION_VERSION = "motor-dual-development-bank-90-v2"
 CASE_ID = "motor-development-bank-90"
 OUTPUT = {"quantity": "torque_nm", "unit": "N.m"}
 FILES = ("motor_dual_pack.py", "motor_dual_measurement.py")
+#: Legs a measured baseline run sets minimums for.
+MINIMUM_LEGS = ("A", "D")
 MANIFEST_NAME = physical.MANIFEST_NAME
 bank_digest = physical.bank_digest
 Refused = mdm.MotorMeasurementRefused
@@ -132,6 +137,7 @@ def definition(*, bank, train_raw):
         "method": mdm.METHOD,
         "source_definition_sha256": SOURCE_DEFINITION_SHA256,
         "g1_measurement_contract_sha256": G1_MEASUREMENT_CONTRACT_SHA256,
+        "paired_repeat_procedure": "per_case",
         "cohort_counts": {
             "practice": 30,
             "pilot_ordinary": 8,
@@ -185,8 +191,8 @@ def pack_documents(**kwargs):
     return physical.pack_documents(_ADAPTER, **kwargs)
 
 
-def write_development_pack(root):
-    return physical.write_development_pack(_ADAPTER, root)
+def write_development_pack(root, **platform):
+    return physical.write_development_pack(_ADAPTER, root, **platform)
 
 
 def produce(**kwargs):
@@ -199,9 +205,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Write the complete Motor DEVELOPMENT evaluation pack."
     )
-    parser.add_argument("root", type=Path, help="new or empty pack directory")
+    physical.add_builder_arguments(parser)
     args = parser.parse_args(argv)
-    print(write_development_pack(args.root.resolve()))
+    print(write_development_pack(args.root.resolve(), **physical.builder_options(args)))
     return 0
 
 

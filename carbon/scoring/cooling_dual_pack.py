@@ -36,9 +36,14 @@ from carbon.scoring.physical_dual_pack import sha as _sha
 CHALLENGE = "chip-cold-plate"
 VERSION = "1.0"
 CASE_ID = "cooling-development-bank-48"
-EVALUATION_VERSION = "cooling-dual-development-bank-48-v1"
+#: v2: the paired repeat is the identical graded procedure (per-case pairs,
+#: Validator 2026-10-19), the registered repeat tolerance unchanged; v1 packs
+#: (batched repeats) stay as history and are not re-scored.
+EVALUATION_VERSION = "cooling-dual-development-bank-48-v2"
 OUTPUT = {"quantity": "peak_c,profile_c[30],pressure_drop_pa", "unit": "degC,degC,Pa"}
 FILES = ("cooling_dual_pack.py", "cooling_dual_measurement.py")
+#: Legs a measured baseline run sets minimums for (default rule).
+MINIMUM_LEGS = ("A", "D")
 Refused = cdm.CoolingMeasurementRefused
 validate_definition = cdm.validate_definition
 _ADAPTER = sys.modules[__name__]
@@ -146,6 +151,7 @@ def definition(*, bank, train_raw, rule="baseline_legs"):
         "cohort_counts": dict(cdm.COHORT_COUNTS),
         "target_slices": {k: list(v) for k, v in slices.items()},
         "leg_minimum_rule": rule,
+        "paired_repeat_procedure": "per_case",
         "leg_minimum_note": LEG_MINIMUM_RULES[rule][1],
         **_MEASUREMENT,
     }
@@ -329,9 +335,14 @@ class _Variant:
     version and definition; everything else (measurement, producer) is the
     default adapter's."""
 
+    #: The calibration run is graded under the default rule's calibration
+    #: pack; its legs serve every rule.
+    CALIBRATION_ADAPTER = _ADAPTER
+
     def __init__(self, rule):
         self.rule = rule
         self.EVALUATION_VERSION = LEG_MINIMUM_RULES[rule][0]
+        self.MINIMUM_LEGS = ("A", "D") if rule == "baseline_legs" else ("A",)
 
     def definition(self, **kwargs):
         return definition(**kwargs, rule=self.rule)
@@ -354,8 +365,8 @@ def pack_documents(*, rule="baseline_legs", **kwargs):
     return physical.pack_documents(adapter(rule), **kwargs)
 
 
-def write_development_pack(root, rule="baseline_legs"):
-    return physical.write_development_pack(adapter(rule), root)
+def write_development_pack(root, rule="baseline_legs", **platform):
+    return physical.write_development_pack(adapter(rule), root, **platform)
 
 
 def produce(**kwargs):
@@ -368,12 +379,16 @@ def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Write the complete Cooling DEVELOPMENT evaluation pack."
     )
-    parser.add_argument("root", type=Path, help="new or empty pack directory")
+    physical.add_builder_arguments(parser)
     parser.add_argument(
         "--leg-minimum-rule", choices=sorted(LEG_MINIMUM_RULES), default="baseline_legs"
     )
     args = parser.parse_args(argv)
-    print(write_development_pack(args.root.resolve(), args.leg_minimum_rule))
+    print(
+        write_development_pack(
+            args.root.resolve(), args.leg_minimum_rule, **physical.builder_options(args)
+        )
+    )
     return 0
 
 

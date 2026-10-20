@@ -36,20 +36,11 @@ from carbon.scoring.engine import ScoreEngine
 from scripts.dev.score_lab import public_unbound_custody as custody
 from scripts.dev.score_lab import public_unbound_entry as unbound_entry
 
-#: adapter, recorded baseline legs, native gate.
+#: adapter, native gate. The producer path must reproduce the baseline's own
+#: same-platform measurement exactly (no tolerance).
 CHALLENGES = {
-    "motor": (
-        motor,
-        {"A": 0.28108361796711556, "D": 0.3419193228890681, "tol": 1e-12},
-        "native_motor_valid",
-    ),
-    # Cooling's KRR solve rounds across BLAS builds: measured 2.52e-11
-    # (test_cooling_dual_pack.KRR_PLATFORM_TOL).
-    "cooling": (
-        cooling,
-        {"A": 0.827582826340918, "D": 1.0, "tol": 3e-11},
-        "native_cold_plate",
-    ),
+    "motor": (motor, "native_motor_valid"),
+    "cooling": (cooling, "native_cold_plate"),
 }
 GRADED_OPERATION = "operation-" + "a" * 64
 IMAGE = _sha(b"fixture-motor-inference-image")
@@ -66,7 +57,7 @@ def _public(adapter):
     return public
 
 
-def _write_pack(adapter, root, public):
+def _write_pack(adapter, root, public, **options):
     """The pack exactly as ``write_development_pack`` writes it (the executor's
     command), sealed as the receiver seals it."""
     with pytest.MonkeyPatch.context() as patch:
@@ -78,7 +69,9 @@ def _write_pack(adapter, root, public):
                 lambda *_: json.loads(public["physics_contract"]),
             )
             patch.setattr(physical_pack, "public_roles", lambda *_: public)
-        manifest = adapter.write_development_pack(root)
+        manifest = adapter.write_development_pack(
+            root, **{"inference_image_id": IMAGE, **options}
+        )
     assert manifest == root / physical.MANIFEST_NAME
     prepared = prepare_pack(
         root,
@@ -278,7 +271,7 @@ def _baseline(name, bank, public, names):
 
 @pytest.fixture(scope="module", params=sorted(CHALLENGES))
 def case(request, tmp_path_factory):
-    adapter, expected, native_gate = CHALLENGES[request.param]
+    adapter, native_gate = CHALLENGES[request.param]
     tmp = tmp_path_factory.mktemp(request.param + "-e2e")
     bank = physical_pack.development_bank(adapter.CHALLENGE, adapter.VERSION)
     public = _public(adapter)
@@ -287,9 +280,21 @@ def case(request, tmp_path_factory):
         "input_names"
     ]
     predictions = _baseline(request.param, bank, public, names)
+    # The same baseline measured directly on this platform: the producer path
+    # must reproduce it exactly.
+    direct = adapter.measure(
+        bank_rows=physical.bank_rows(bank, names),
+        outputs=predictions,
+        repeats=[predictions, predictions],
+        definition=json.loads(documents["accuracy_definition"]),
+        limits=json.loads(public["important_limit_definition"]),
+        objective=json.loads(public["design_objective"]),
+        train_raw=public["train"],
+        names=names,
+    )
     predictions_raw = json.dumps(predictions, allow_nan=False, separators=(",", ":"))
     case_bank = (tmp / "pack/private/case_bank.npz").read_bytes()
-    entry, custody_raw, artifacts, timed = _retain_bundle(
+    entry, custody_raw, artifacts, _timed = _retain_bundle(
         adapter,
         tmp,
         public=public,
@@ -298,8 +303,9 @@ def case(request, tmp_path_factory):
         shapes=(list(bank["inputs"].shape), list(bank["references"].shape)),
     )
     registration_doc = json.loads(documents["source_registration"])
-    # Platform's pair runs the same batched cold query form as the timed one.
-    pair_raw = _pair(timed, [predictions, predictions])
+    # The pair repeats the identical graded per-case procedure (v1 receipts).
+    graded = json.loads(artifacts["inference-receipt.json"])
+    pair_raw = _pair(graded, [predictions, predictions])
     originals = {
         "inference_receipt_raw": artifacts["inference-receipt.json"],
         "predictions_raw": artifacts["predictions.json"],
@@ -321,7 +327,7 @@ def case(request, tmp_path_factory):
     }
     return {
         "adapter": adapter,
-        "expected": expected,
+        "public": public,
         "native_gate": native_gate,
         "root": tmp / "pack",
         "snapshot": snapshot,
@@ -335,6 +341,7 @@ def case(request, tmp_path_factory):
         "case_bank": case_bank,
         "originals": originals,
         "predictions": predictions,
+        "direct": direct,
     }
 
 
@@ -387,12 +394,8 @@ def test_a_retained_bundle_scores_the_recorded_baseline_and_binds_v4(case):
     prepared_source, measured = _produce(case)
     benchmark = json.loads(measured.raw)["benchmark"]
     legs = benchmark["models"][0]["measurements"]
-    assert legs["robust_fidelity_benefit"]["value"] == pytest.approx(
-        case["expected"]["A"], rel=0, abs=case["expected"]["tol"]
-    )
-    assert legs["verified_value_benefit"]["value"] == pytest.approx(
-        case["expected"]["D"], rel=0, abs=case["expected"]["tol"]
-    )
+    assert legs["robust_fidelity_benefit"]["value"] == case["direct"]["A"]
+    assert legs["verified_value_benefit"]["value"] == case["direct"]["D"]
     gates = benchmark["models"][0]["gates"]
     assert sorted(gates) == sorted(case["score_pack"]["hard_gates"])
     assert set(gates.values()) == {"PASS"}
@@ -405,11 +408,43 @@ def test_a_retained_bundle_scores_the_recorded_baseline_and_binds_v4(case):
     assert case["entry"]["score_state"] == "NOT_COMPUTED"
 
 
+def test_another_grading_image_is_refused_not_failed(case):
+    """A receiver inference-image override (direct_receiver's
+    inference_image_manifest) changes the retained inference_image_id; grading
+    compares that retained value, never config, with the pack's platform."""
+    other = source._canonical(
+        {
+            **json.loads(case["originals"]["bundle_evidence_raw"]),
+            "inference_image_id": _sha(b"another-judge-image"),
+        }
+    )
+    with pytest.raises(
+        source.PrivateEvaluationSourceRefused, match="leg_minimum_platform_mismatch"
+    ):
+        _produce(case, {**case["originals"], "bundle_evidence_raw": other})
+
+
+def test_a_batched_repeat_is_not_a_repeat_of_the_per_case_grade(case):
+    """Validator, 2026-10-19: the pair must repeat the identical graded
+    procedure; a batched measured pair measures batch dependence instead."""
+    timed = json.loads(case["originals"]["timed_query"]["receipt_raw"])
+    pair_raw = _pair(timed, [case["predictions"], case["predictions"]])
+    batched = {
+        **case["originals"],
+        "inference_pair_raw": pair_raw,
+        "inference_pair_sha256": _sha(pair_raw),
+    }
+    with pytest.raises(
+        source.PrivateEvaluationSourceRefused, match="dual_repeat_evidence_unavailable"
+    ):
+        _produce(case, batched)
+
+
 def test_a_repeat_beyond_the_native_rule_fails_its_gate_not_the_run(case):
     drifted = deepcopy(case["predictions"])
     drifted[0] = [t + 1e-3 for t in drifted[0]]
-    timed = json.loads(case["originals"]["timed_query"]["receipt_raw"])
-    pair_raw = _pair(timed, [case["predictions"], drifted])
+    graded = json.loads(case["originals"]["inference_receipt_raw"])
+    pair_raw = _pair(graded, [case["predictions"], drifted])
     originals = {
         **case["originals"],
         "inference_pair_raw": pair_raw,
@@ -486,3 +521,97 @@ def test_a_pinned_measurement_must_be_what_the_retained_originals_reduce_to(case
         match="model_query_originals_unavailable",
     ):
         _bind(case, prepared_source, forged, scoring)
+
+
+def _with_pack(case, root, **options):
+    """The same retained model and originals under another built pack."""
+    snapshot, documents = _write_pack(case["adapter"], root, case["public"], **options)
+    registration = json.loads(documents["source_registration"])
+    return {
+        **case,
+        "root": root,
+        "snapshot": snapshot,
+        "job": registration["trusted_job"],
+        "registration": registration["benchmark_registration"],
+        "version": registration["evaluation_version"],
+        "references": json.loads(documents["reference_rows"]),
+        "score_pack": json.loads(documents["score_pack"]),
+        "definition": json.loads(documents["accuracy_definition"]),
+    }
+
+
+def _graded_binding(case):
+    prepared_source, measured = _produce(case)
+    benchmark = json.loads(measured.raw)["benchmark"]
+    scoring = ScoreEngine.score_dual_benchmark_v4(benchmark, case["score_pack"])
+    return scoring, _bind(case, prepared_source, measured, scoring)
+
+
+def test_the_baseline_graded_on_the_judge_image_sets_the_minimums(case, tmp_path):
+    """Validator, 2026-10-19: the minimums are the registered baseline's own
+    legs graded on the judge image; that run sets them and never contends."""
+    calibration = _with_pack(case, tmp_path / "calibration", calibration=True)
+    assert all(
+        leg["minimum"] is None for leg in calibration["score_pack"]["legs"].values()
+    )
+    assert calibration["definition"]["leg_minimum_mode"] == "calibration"
+    assert "-calibration-" in calibration["version"]
+    _, bound = _graded_binding(calibration)
+    graded_under = {
+        "baseline_binding_raw": physical.canonical(bound),
+        "calibration_pack_root": calibration["root"],
+    }
+    # The per-image platform is the baseline run's, never a caller value: no
+    # image needed, and a differing one (e.g. the analysis image) is refused.
+    judge = _with_pack(
+        case, tmp_path / "judge", inference_image_id=None, **graded_under
+    )
+    with pytest.raises(ValueError, match="differs from the baseline run"):
+        _with_pack(
+            case,
+            tmp_path / "analysis",
+            inference_image_id=_sha(b"fixture-analysis-image"),
+            **graded_under,
+        )
+    legs = bound["scoring"]["models"][0]["legs"]
+    assert {k: v["minimum"] for k, v in judge["score_pack"]["legs"].items()} == {
+        "A": legs["A"],
+        "D": legs["D"],
+    }
+    record = judge["definition"]["leg_minimum_source"]
+    assert record["role"] == physical.BASELINE_ROLE
+    assert record["entry_id"] == case["entry"]["entry_id"]
+    assert record["inference_image_id"] == IMAGE
+    assert record["binding_sha256"] == _sha(physical.canonical(bound))
+    assert physical.minimum_source_entry_ids(judge["definition"]) == [
+        case["entry"]["entry_id"]
+    ]
+    assert physical.minimum_source_entry_ids(calibration["definition"]) == []
+    assert "-judge-" in judge["version"] and judge["version"] != case["version"]
+    if case["adapter"] is cooling:
+        # The comparison variant takes the same run's A and no D minimum.
+        variant = _with_pack(
+            case,
+            tmp_path / "variant",
+            rule="baseline_a_no_d_minimum",
+            **graded_under,
+        )
+        assert variant["score_pack"]["legs"]["A"]["minimum"] == legs["A"]
+        assert variant["score_pack"]["legs"]["D"]["minimum"] is None
+    # The same baseline on the same image passes its own minimums at equality.
+    scoring, other = _graded_binding(judge)
+    assert scoring["models"][0]["status"] == "SCORED_DEVELOPMENT_CANDIDATE"
+    # A binding from any other pack, or with changed legs, sets nothing.
+    forged = deepcopy(bound)
+    forged["scoring"]["models"][0]["legs"]["A"] = 0.0
+    for name, binding, reason in (
+        ("other", other, "not graded under this calibration pack"),
+        ("forged", forged, "scored calibration run"),
+    ):
+        with pytest.raises(ValueError, match=reason):
+            _with_pack(
+                case,
+                tmp_path / name,
+                baseline_binding_raw=physical.canonical(binding),
+                calibration_pack_root=calibration["root"],
+            )

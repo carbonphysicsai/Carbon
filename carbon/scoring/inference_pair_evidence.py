@@ -24,6 +24,16 @@ SCHEMA = "carbon.source-free-inference-pair.v1"
 _MAX_BYTES = 4 * 1024**2
 _MAX_RECEIPT = 64 * 1024
 _TIMINGS = {"preprocess", "export", "inference", "postprocess"}
+#: Repeat procedures: Platform's batched cold measured query (v2 receipts), or
+#: the graded per-case procedure itself (unmeasured v1 receipts; no timing).
+PROCEDURES = ("batched_measured", "per_case")
+_RECEIPT = {
+    "schema",
+    "recipe_digest",
+    "state_digest",
+    "inputs_digest",
+    "predictions_digest",
+}
 _EXPECTED = {
     "recipe_digest",
     "state_digest",
@@ -278,7 +288,7 @@ def _expected(value):
     )
 
 
-def _phase(value, expected, index):
+def _phase(value, expected, index, procedure="batched_measured"):
     _shape(
         value,
         {"worker_operation", "controls_digest", "originals", "accounting"},
@@ -296,20 +306,17 @@ def _phase(value, expected, index):
     prediction_raw = _original(originals["predictions.json"], _MAX_BYTES)
     receipt_raw = _original(originals["receipt.json"], _MAX_RECEIPT)
     receipt = _parse(receipt_raw, _MAX_RECEIPT, "receipt")
+    per_case = procedure == "per_case"
     _shape(
-        receipt,
-        {
-            "schema",
-            "recipe_digest",
-            "state_digest",
-            "inputs_digest",
-            "predictions_digest",
-            "measurement",
-        },
-        "receipt_shape",
+        receipt, _RECEIPT if per_case else _RECEIPT | {"measurement"}, "receipt_shape"
     )
     _require(
-        receipt["schema"] == "carbon.development.bundle-inference.v2"
+        receipt["schema"]
+        == (
+            "carbon.development.bundle-inference.v1"
+            if per_case
+            else "carbon.development.bundle-inference.v2"
+        )
         and all(
             receipt[k] == expected[k]
             for k in ("recipe_digest", "state_digest", "inputs_digest")
@@ -317,6 +324,21 @@ def _phase(value, expected, index):
         and receipt["predictions_digest"] == _sha(prediction_raw),
         "receipt_binding",
     )
+    if per_case:
+        _accounting(
+            value["accounting"],
+            expected["ledger_identities"][index],
+            value["worker_operation"],
+            originals,
+        )
+        try:
+            outputs = _flat(
+                _parse(prediction_raw, _MAX_BYTES, "prediction"),
+                expected["output_shape"],
+            )
+        except RecursionError as exc:
+            raise PairEvidenceRefused("prediction_shape") from exc
+        return outputs, None, receipt_raw, prediction_raw
     measured = receipt["measurement"]
     _shape(
         measured,
@@ -368,6 +390,7 @@ def read_inference_pair(
     *,
     registered_sha256: str,
     expected: dict,
+    procedure: str = "batched_measured",
 ) -> InferencePairEvidence:
     """Read pinned public evidence; authenticity remains the trusted caller's job.
 
@@ -378,7 +401,11 @@ def read_inference_pair(
     reader neither compares them nor selects a tolerance. All accounting and
     cold-stage timings are retained at operation granularity. Omitted budget
     dimensions are preserved, never filled with invented zeros.
+    ``procedure`` is the repeat query form the caller requires: a
+    ``per_case`` pair repeats the graded per-case procedure itself (v1
+    receipts, no timing); the default is Platform's batched measured query.
     """
+    _require(procedure in PROCEDURES, "pair_procedure")
     _require(_digest(registered_sha256), "registered_digest")
     _require(type(raw) is bytes and 0 < len(raw) <= _MAX_BYTES, "pair_bytes")
     _require(_sha(raw) == registered_sha256, "registered_digest")
@@ -419,8 +446,8 @@ def read_inference_pair(
         _finite(value["elapsed_seconds"]) and value["elapsed_seconds"] >= 0,
         "pair_elapsed",
     )
-    primary = _phase(value["primary"], expected, 0)
-    repeat = _phase(value["repeat"], expected, 1)
+    primary = _phase(value["primary"], expected, 0, procedure)
+    repeat = _phase(value["repeat"], expected, 1, procedure)
     return InferencePairEvidence(
         evidence=_freeze(value),
         outputs=(primary[0], repeat[0]),
@@ -428,6 +455,9 @@ def read_inference_pair(
             _freeze(value["primary"]["accounting"]),
             _freeze(value["repeat"]["accounting"]),
         ),
-        timing_s=(_freeze(primary[1]), _freeze(repeat[1])),
+        timing_s=(
+            None if primary[1] is None else _freeze(primary[1]),
+            None if repeat[1] is None else _freeze(repeat[1]),
+        ),
         sha256=registered_sha256,
     )

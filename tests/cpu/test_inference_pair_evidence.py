@@ -531,3 +531,34 @@ def test_raw_byte_bounds_and_nonfinite_json(raw):
     _packet, kwargs = fixture()
     with pytest.raises(PairEvidenceRefused):
         read_inference_pair(raw, registered_sha256=sha(raw), **kwargs)
+
+
+def per_case(packet):
+    """The same pair as two runs of the graded per-case procedure: unmeasured
+    v1 receipts (Validator, 2026-10-19: a repeat is the identical procedure)."""
+    for name in ("primary", "repeat"):
+
+        def unmeasured(receipt):
+            receipt.pop("measurement")
+            receipt["schema"] = "carbon.development.bundle-inference.v1"
+
+        change_receipt(packet[name], unmeasured)
+    return packet
+
+
+def test_a_per_case_pair_repeats_the_graded_procedure_and_carries_no_timing():
+    packet, kwargs = fixture()
+    result = read(per_case(packet), {**kwargs, "procedure": "per_case"})
+    assert result.outputs == ((1.0, 2.0, 3.0), (1.0, 2.0, 3.0))
+    assert result.timing_s == (None, None)
+
+
+def test_a_pair_of_the_other_procedure_is_refused():
+    packet, kwargs = fixture()
+    with pytest.raises(PairEvidenceRefused, match="receipt_shape"):
+        read(packet, {**kwargs, "procedure": "per_case"})
+    packet, kwargs = fixture()
+    with pytest.raises(PairEvidenceRefused, match="receipt_shape"):
+        read(per_case(packet), kwargs)
+    with pytest.raises(PairEvidenceRefused, match="pair_procedure"):
+        read(fixture()[0], {**fixture()[1], "procedure": "interleaved"})

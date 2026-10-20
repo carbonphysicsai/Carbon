@@ -611,7 +611,9 @@ def query_measurement(entry, registration, originals, receipt):
         raise PrivateEvaluationSourceRefused("dual_native_inference_binding") from exc
 
 
-def read_inference_repeats(originals, *, receipt, worker, measurement=None):
+def read_inference_repeats(
+    originals, *, receipt, worker, measurement=None, procedure="batched_measured"
+):
     """The two fresh repeat runs of the graded model: Platform's pinned
     source-free pair, bound to the graded run's recipe, state, inputs, image
     and shapes, and independent of the graded operation. Missing or
@@ -621,6 +623,11 @@ def read_inference_repeats(originals, *, receipt, worker, measurement=None):
 
     if not _PAIR_ORIGINALS <= set(originals):
         raise PrivateEvaluationSourceRefused("dual_repeat_evidence_unavailable")
+    if procedure == "per_case" and (
+        receipt.get("schema") != "carbon.development.bundle-inference.v1"
+    ):
+        # An identical-procedure repeat needs a per-case graded run.
+        raise PrivateEvaluationSourceRefused("dual_repeat_procedure")
     measured = measurement or receipt.get("measurement") or {}
     raw, pin = originals["inference_pair_raw"], originals["inference_pair_sha256"]
     try:
@@ -640,7 +647,7 @@ def read_inference_repeats(originals, *, receipt, worker, measurement=None):
             "output_dtype": measured["output_dtype"],
         }
         pair = pair_reader.read_inference_pair(
-            raw, registered_sha256=pin, expected=expected
+            raw, registered_sha256=pin, expected=expected, procedure=procedure
         )
     except pair_reader.PairEvidenceRefused as exc:
         raise PrivateEvaluationSourceRefused(
