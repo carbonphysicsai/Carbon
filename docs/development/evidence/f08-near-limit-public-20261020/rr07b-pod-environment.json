@@ -1,0 +1,29 @@
+{
+ "schema": "carbon.reference-solvers.pod-environment.v1",
+ "kind": "calculix",
+ "environment": null,
+ "code_ref": null,
+ "python": "3.13.5",
+ "host": {
+  "nproc": 8,
+  "mem_total_bytes": 110040035328,
+  "cpu_model": "AMD EPYC-v4 Processor",
+  "boot_unix": 1792445985,
+  "host_cgroup_version": 2
+ },
+ "affinity_cores": 8,
+ "cgroup_cpu_max": "800000 100000",
+ "cgroup_memory_max": "103079215104",
+ "usable_cpus": 8,
+ "usable_memory_bytes": 103079215104,
+ "solvers": {
+  "ccx": {
+   "path": "/opt/calculix/bin/ccx",
+   "sha256": "cf2fb358357e440315b4a75fd754f27a68758ab73da863a5b78f5cb835dc2b93"
+  },
+  "gmsh": {
+   "path": "/opt/gmsh/bin/gmsh",
+   "sha256": "aebfb5b25decf2260acbce3c3de592a7e1231ee2089b8432f13e2fa10e05a9e5"
+  }
+ }
+}

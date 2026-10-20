@@ -1,0 +1,71 @@
+{
+ "schema": "carbon.f08-public-near-feasible-actions.v1",
+ "scope": "PUBLIC_DEVELOPMENT_ONLY",
+ "selection": "Validator-approved near-limit exam ladder (2026-10-19), placed on the registered lattice around the measured 0.15 mm/N crossing; prospective, not an independent population.",
+ "actions": [
+  {
+   "length_mm": 180.0,
+   "width_mm": 90.0,
+   "thickness_mm": 5.5,
+   "rib_height_mm": 16.0,
+   "rib_thickness_mm": 4.5,
+   "relief_length_mm": 35.0
+  },
+  {
+   "length_mm": 180.0,
+   "width_mm": 90.0,
+   "thickness_mm": 5.5,
+   "rib_height_mm": 16.0,
+   "rib_thickness_mm": 5.0,
+   "relief_length_mm": 35.0
+  },
+  {
+   "length_mm": 180.0,
+   "width_mm": 95.0,
+   "thickness_mm": 5.5,
+   "rib_height_mm": 16.0,
+   "rib_thickness_mm": 4.5,
+   "relief_length_mm": 35.0
+  },
+  {
+   "length_mm": 180.0,
+   "width_mm": 90.0,
+   "thickness_mm": 6.0,
+   "rib_height_mm": 16.0,
+   "rib_thickness_mm": 4.5,
+   "relief_length_mm": 35.0
+  },
+  {
+   "length_mm": 180.0,
+   "width_mm": 85.0,
+   "thickness_mm": 6.0,
+   "rib_height_mm": 16.0,
+   "rib_thickness_mm": 4.5,
+   "relief_length_mm": 35.0
+  },
+  {
+   "length_mm": 180.0,
+   "width_mm": 90.0,
+   "thickness_mm": 6.0,
+   "rib_height_mm": 15.0,
+   "rib_thickness_mm": 4.5,
+   "relief_length_mm": 35.0
+  },
+  {
+   "length_mm": 185.0,
+   "width_mm": 90.0,
+   "thickness_mm": 6.0,
+   "rib_height_mm": 16.0,
+   "rib_thickness_mm": 4.5,
+   "relief_length_mm": 35.0
+  },
+  {
+   "length_mm": 180.0,
+   "width_mm": 90.0,
+   "thickness_mm": 6.5,
+   "rib_height_mm": 16.0,
+   "rib_thickness_mm": 4.5,
+   "relief_length_mm": 35.0
+  }
+ ]
+}

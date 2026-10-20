@@ -1,0 +1,37 @@
+{
+ "all_match": true,
+ "steps": {
+  "f08-rr07b-n1r-b0": {
+   "ledgered": "a1d3e7f07c4e9d6a52844bb422e1f18b6a387719d038c988431a1fb9b97630b8",
+   "pin_now": "a1d3e7f07c4e9d6a52844bb422e1f18b6a387719d038c988431a1fb9b97630b8",
+   "in_step_record": true,
+   "selected": 8,
+   "selected_refused": [],
+   "match": true
+  },
+  "f08-rr07b-n1r-b1": {
+   "ledgered": "0538d51de64bb856b65d9529143c3143581c18487031ab72e2f43cde87b64b93",
+   "pin_now": "0538d51de64bb856b65d9529143c3143581c18487031ab72e2f43cde87b64b93",
+   "in_step_record": true,
+   "selected": 8,
+   "selected_refused": [],
+   "match": true
+  },
+  "f08-rr07b-n1r-b2": {
+   "ledgered": "f6cfee24ed6dd052a1f565066896d0f438ab10984c0c8ffb7402a0e252668023",
+   "pin_now": "f6cfee24ed6dd052a1f565066896d0f438ab10984c0c8ffb7402a0e252668023",
+   "in_step_record": true,
+   "selected": 8,
+   "selected_refused": [],
+   "match": true
+  },
+  "f08-rr07b-n1r-b3": {
+   "ledgered": "914da4cc37148d4fcf110207e295f81e39222758e144edceeb55ebd0426e0a3d",
+   "pin_now": "914da4cc37148d4fcf110207e295f81e39222758e144edceeb55ebd0426e0a3d",
+   "in_step_record": true,
+   "selected": 8,
+   "selected_refused": [],
+   "match": true
+  }
+ }
+}

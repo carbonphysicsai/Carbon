@@ -1,0 +1,225 @@
+{
+ "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/f08-rr07b-n1r-b0-manifest.json",
+ "decks": "regenerated on the pod",
+ "cases": [
+  {
+   "family": "f08",
+   "case": "pilot-0000",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0001",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0002",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0003",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0004",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0005",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0006",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0007",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0000-h2.25",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0000-h1.7",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0001-h2.25",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0001-h1.7",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0002-h2.25",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0002-h1.7",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0003-h2.25",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0003-h1.7",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0004-h2.25",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0004-h1.7",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0005-h2.25",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0005-h1.7",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0006-h2.25",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0006-h1.7",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0007-h2.25",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "pilot-0007-h1.7",
+   "selected": false,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  }
+ ],
+ "selected": 8,
+ "selected_refused": [],
+ "all_cases_matching": 24
+}

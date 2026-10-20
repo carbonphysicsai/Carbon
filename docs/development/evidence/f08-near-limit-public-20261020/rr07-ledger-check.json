@@ -1,0 +1,53 @@
+{
+ "all_match": true,
+ "steps": {
+  "f08-rr07-ladder": {
+   "ledgered": "4333fa54281975705bc8ca4381b8263df82a4b7cfc5fc753a26c232088350ae6",
+   "pin_now": "4333fa54281975705bc8ca4381b8263df82a4b7cfc5fc753a26c232088350ae6",
+   "in_step_record": true,
+   "selected": 24,
+   "selected_refused": [],
+   "match": true
+  },
+  "f08-rr07-lineage": {
+   "ledgered": "3db4dd3fdaa728be4908543dd8b57cd93cdd3537398558a305ee30fed9f1c3f2",
+   "pin_now": "3db4dd3fdaa728be4908543dd8b57cd93cdd3537398558a305ee30fed9f1c3f2",
+   "in_step_record": true,
+   "selected": 8,
+   "selected_refused": [],
+   "match": true
+  },
+  "f08-rr07-n1-b0": {
+   "ledgered": "dc36a19fc56d0d2efae0827867e678a0f0df059417fb0740c772c54d43e836f2",
+   "pin_now": "dc36a19fc56d0d2efae0827867e678a0f0df059417fb0740c772c54d43e836f2",
+   "in_step_record": true,
+   "selected": 24,
+   "selected_refused": [],
+   "match": true
+  },
+  "f08-rr07-n1-b1": {
+   "ledgered": "2aa3e119578a02262997450a357c4c98f14c973b5c9b56c52b848732f355c4ab",
+   "pin_now": "2aa3e119578a02262997450a357c4c98f14c973b5c9b56c52b848732f355c4ab",
+   "in_step_record": true,
+   "selected": 8,
+   "selected_refused": [],
+   "match": true
+  },
+  "f08-rr07-n1-b2": {
+   "ledgered": "4e4e13e19db7d2a09bc1c5c4f09aff8f032af310e77fbf63ec82a18c48fc5415",
+   "pin_now": "4e4e13e19db7d2a09bc1c5c4f09aff8f032af310e77fbf63ec82a18c48fc5415",
+   "in_step_record": true,
+   "selected": 8,
+   "selected_refused": [],
+   "match": true
+  },
+  "f08-rr07-n1-b3": {
+   "ledgered": "9be4855bdb4b89d9573688d0c5e6544c8b2d79a550f0c09241c9341f92c43c03",
+   "pin_now": "9be4855bdb4b89d9573688d0c5e6544c8b2d79a550f0c09241c9341f92c43c03",
+   "in_step_record": true,
+   "selected": 8,
+   "selected_refused": [],
+   "match": true
+  }
+ }
+}

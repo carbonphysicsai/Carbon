@@ -1,6 +1,7 @@
 """Prospective public f08 construction identity for its partial TRAIN bank.
 
-The existing 255-row float32 artifact is reused byte-for-byte. This module
+Version 1.0 reuses the existing 255-row float32 artifact byte-for-byte;
+version 1.1 binds TRAIN v2 (those rows plus the 32 near-limit rows). This module
 describes a DEVELOPMENT-only numeric interface and the actual C-03 worker
 envelope; it does not provide held-out references or evaluation authority.
 """
@@ -30,9 +31,12 @@ def _digest(document: object) -> str:
 
 
 def _check_identity(challenge_id: str, version: str) -> dict:
-    if challenge_id != f08_train.CHALLENGE_ID or version != f08_train.CHALLENGE_VERSION:
+    if (
+        challenge_id != f08_train.CHALLENGE_ID
+        or version not in f08_train.CHALLENGE_VERSIONS
+    ):
         raise ValueError("unknown public f08 Challenge identity")
-    return f08_train.load_public_train()["provenance"]
+    return f08_train.load_public_train(version)["provenance"]
 
 
 def interface_document(challenge_id: str, version: str) -> dict:
@@ -71,14 +75,19 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
 
     provenance = _check_identity(challenge_id, version)
     profile = _worker_profile(None, LIBRARY_BUILD_PROVENANCE).body
-    return {
+    provenance_sha256 = (
+        f08_train.PROVENANCE_SHA256
+        if version == "1.0"
+        else f08_train.PROVENANCE_V2_SHA256
+    )
+    document = {
         "schema": LIMITS_SCHEMA,
         "scope": SCOPE,
         "challenge": {"id": challenge_id, "version": version},
         "train_cases": len(provenance["case_ids"]),
         "train_dtype": "<f4",
         "train_case_ids_sha256": _digest(provenance["case_ids"]),
-        "train_provenance_sha256": "sha256:" + f08_train.PROVENANCE_SHA256,
+        "train_provenance_sha256": "sha256:" + provenance_sha256,
         "original_256_complete": provenance["original_256_complete"],
         "failed_case": dict(provenance["failed_case"]),
         "original_action_evaluation_role": provenance[
@@ -102,6 +111,19 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
         "accuracy_gate": None,
         "live_eligible": False,
     }
+    if version != "1.0":
+        # 1.0's document (and so its digest) is unchanged; 1.1 states the
+        # near-limit stratum and the TRAIN-versus-exam mesh shift.
+        stratum = provenance["near_limit_stratum"]
+        document["near_limit_stratum"] = {
+            "rows": dict(stratum["rows"]),
+            "measured_split": dict(stratum["measured_split"]),
+        }
+        document["near_limit_action_evaluation_role"] = provenance[
+            "near_limit_action_evaluation_role"
+        ]
+        document["train_mesh"] = dict(provenance["mesh"])
+    return document
 
 
 def construction_kit(challenge_id: str, version: str) -> dict:
