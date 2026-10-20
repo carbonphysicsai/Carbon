@@ -142,6 +142,13 @@ NEXT_ACTIONS = {
         "base settings or wait for the named check; changing a level label "
         "does not resolve it."
     ),
+    # One line for the whole GAP class (Validator, 2026-10-20): the public
+    # receipt carries only this code, never the private reason or op.
+    "carbon_capability_gap": (
+        "Carbon capability gap: this doesn't count against you; the op is on "
+        "Carbon's add list; see the kit's supported-ops notes for an "
+        "alternative (the carbon.level4.tooling.lower_torch module docs)."
+    ),
     "construction_staging_connection_reset": (
         "The validator kept dropping the connection while your source "
         "uploaded, until the transfer time ran out. The validator keeps what "
