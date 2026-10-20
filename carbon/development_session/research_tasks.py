@@ -230,8 +230,21 @@ class DirectDevelopmentTasksV3:
         inference_image,
         image_resolver=None,
         construction_parent=None,
+        construction_parents=None,
         evaluation_pack_digest=None,
     ) -> None:
+        from .gpu_practice import DirectParents
+
+        # Two CPU construction parents (OWNER-BACKBONE-CATALOG-01): each bundle
+        # task builds on its pinned runtime's parent, never a miner's choice.
+        if construction_parents is not None and (
+            type(construction_parents) is not DirectParents
+            or not construction_parents.runtimes()
+            or construction_parent is not None
+            or image is not None
+            or image_resolver is None
+        ):
+            raise ValueError("per-runtime parents need the per-recipe resolver")
         if (
             not isinstance(root, Path)
             or not root.is_absolute()
@@ -271,10 +284,15 @@ class DirectDevelopmentTasksV3:
         self.evaluation_pack_digest = evaluation_pack_digest
         self.image, self.inference_image = image, inference_image
         self.image_resolver = image_resolver
+        self.construction_parents = construction_parents
         self.construction_parent = (
-            construction_parent
-            if construction_parent is not None
-            else image.parent if image is not None else inference_image
+            None
+            if construction_parents is not None
+            else (
+                construction_parent
+                if construction_parent is not None
+                else image.parent if image is not None else inference_image
+            )
         )
         self._requests: dict[str, DirectStartTaskRequestV3] = {}
         self._views: dict[str, DirectTaskViewV3] = {}
@@ -313,9 +331,23 @@ class DirectDevelopmentTasksV3:
                             "PER_RECIPE_LIBRARY_IMAGE",
                             inference_image.image_id,
                             *(
-                                [self.construction_parent.image_id]
-                                if self.construction_parent != inference_image
-                                else []
+                                (
+                                    [self.construction_parent.image_id]
+                                    if self.construction_parent != inference_image
+                                    else []
+                                )
+                                if construction_parents is None
+                                else [
+                                    item
+                                    for runtime in construction_parents.runtimes()
+                                    for item in (
+                                        "CONSTRUCTION_PARENT",
+                                        runtime,
+                                        construction_parents.for_runtime(
+                                            runtime
+                                        ).image_id,
+                                    )
+                                ]
                             ),
                             *(
                                 ["EVALUATION_PACK", evaluation_pack_digest]
@@ -430,9 +462,16 @@ class DirectDevelopmentTasksV3:
         from .gpu_practice import direct_bundle_accelerators
         from .research_image import LibraryWorkerImage
 
-        if (
-            type(self.inference_image) is not WorkerImageIdentity
-            or type(self.construction_parent) is not WorkerImageIdentity
+        parents = (
+            [self.construction_parent]
+            if self.construction_parents is None
+            else [
+                self.construction_parents.for_runtime(runtime)
+                for runtime in self.construction_parents.runtimes()
+            ]
+        )
+        if type(self.inference_image) is not WorkerImageIdentity or any(
+            type(parent) is not WorkerImageIdentity for parent in parents
         ):
             raise ValueError("exact C-03 library child and parent images required")
         if self.image_resolver is not None:
@@ -443,9 +482,23 @@ class DirectDevelopmentTasksV3:
             or self.image.parent != self.construction_parent
         ):
             raise ValueError("exact C-03 library child and parent images required")
-        self.build_accelerator, self.inference_accelerator = direct_bundle_accelerators(
-            self.construction_parent, self.inference_image
-        )
+        accelerators = {
+            direct_bundle_accelerators(parent, self.inference_image)
+            for parent in parents
+        }
+        if len(accelerators) != 1:
+            raise ValueError("construction parents differ in accelerator")
+        self.build_accelerator, self.inference_accelerator = accelerators.pop()
+
+    def _parent_for(self, bundle):
+        """The construction parent for `bundle`: its pinned runtime's alone.
+
+        An unregistered runtime is refused (`construction_runtime_unknown`); a
+        registered one whose parent is not installed is `backend_not_served`.
+        """
+        if self.construction_parents is None:
+            return self.construction_parent
+        return self.construction_parents.for_bundle(bundle)
 
     def _verify_images(self) -> None:
         from .research_image import verify_library_worker_image
@@ -472,11 +525,13 @@ class DirectDevelopmentTasksV3:
             raise ValueError("direct task source unavailable")
         if self.image_resolver is None:
             return self.image
-        image = self.image_resolver(LibraryBundleRef.from_dict(source["bundle_ref"]))
+        bundle = LibraryBundleRef.from_dict(source["bundle_ref"])
+        parent = self._parent_for(bundle)
+        image = self.image_resolver(bundle)
         if (
             type(image) is not LibraryWorkerImage
             or image.bundle_ref != source["bundle_ref"]
-            or image.parent != self.construction_parent
+            or image.parent != parent
         ):
             raise ValueError("resolved library worker identity differs")
         verify_library_worker_image(image)
@@ -488,6 +543,7 @@ class DirectDevelopmentTasksV3:
 
         source = request.recipe["source"]
         bundle = LibraryBundleRef.from_dict(source["bundle_ref"])
+        self._parent_for(bundle)
         inspected = self.image_resolver.inspect_source(bundle)
         if inspected != bundle:
             raise ValueError("inspected direct bundle source differs")
@@ -518,6 +574,7 @@ class DirectDevelopmentTasksV3:
         from .research_image import LibraryWorkerImage, verify_library_worker_image
 
         bundle = LibraryBundleRef.from_dict(request.recipe["source"]["bundle_ref"])
+        parent = self._parent_for(bundle)
         task = self._task_id(request)
 
         def check_cancel():
@@ -538,7 +595,7 @@ class DirectDevelopmentTasksV3:
             self.image_resolver.cache_root, bundle
         )
         material = load_pinned_bundle_directory(directory)
-        verify_bundle_parent_environment(material[0], self.construction_parent)
+        verify_bundle_parent_environment(material[0], parent)
         check_cancel()
         # A library child has no registered GPU lock/profile fields. A GPU
         # bundle must use the checked parent plus a verified source overlay,
@@ -547,7 +604,7 @@ class DirectDevelopmentTasksV3:
         if self.build_accelerator is None:
             try:
                 image = self.image_resolver.provision_admitted(
-                    bundle, parent=self.construction_parent, cli=DockerCLI()
+                    bundle, parent=parent, cli=DockerCLI()
                 )
             except FileNotFoundError as error:
                 if str(error) != (
@@ -558,7 +615,7 @@ class DirectDevelopmentTasksV3:
             if (
                 type(image) is not LibraryWorkerImage
                 or image.bundle_ref != bundle.to_dict()
-                or image.parent != self.construction_parent
+                or image.parent != parent
             ):
                 raise ValueError("provisioned direct library image differs")
             verify_library_worker_image(image)
@@ -582,7 +639,7 @@ class DirectDevelopmentTasksV3:
             self.ledger,
             owner=self.owner,
             identity=direct_child_identity(task.value, "prep"),
-            parent=self.construction_parent,
+            parent=parent,
             recipe=ConstructionRecipe.from_dict(request.recipe),
             challenge_binding=binding,
             limits_document=self.discovery._material["construction_limits_document"],
@@ -602,7 +659,7 @@ class DirectDevelopmentTasksV3:
             prep.snapshot,
             self.image_resolver.cache_root,
             expected_bundle=bundle,
-            expected_parent=self.construction_parent,
+            expected_parent=parent,
             expected_receipt=prep.receipt,
             material_cache_bytes=capacity,
             deadline=deadline,
@@ -887,6 +944,7 @@ class DirectDevelopmentTasksV3:
     def start_research_task(self, request, *, measure_query=False):
         from carbon.research.refs import ResearchTaskId
 
+        from .gpu_practice import DirectParentRefused
         from .research_ledger import LedgerRefusal
 
         if (
@@ -947,6 +1005,14 @@ class DirectDevelopmentTasksV3:
                         recipe,
                         graph_envelope_from_workspace(self.ledger, self.owner, recipe),
                     )
+            except DirectParentRefused as refused:
+                # A registered runtime without its parent here is a capability
+                # gap; an unregistered runtime is the miner's mismatch.
+                raise ResearchTaskProviderError(
+                    ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE
+                    if refused.code == "backend_not_served"
+                    else ResearchServiceErrorCode.REFERENCE_MISMATCH
+                ) from None
             except FileNotFoundError:
                 raise ResearchTaskProviderError(
                     ResearchServiceErrorCode.REFERENCE_NOT_FOUND
@@ -1548,6 +1614,7 @@ class DirectDevelopmentTasksV3:
             GraphConstructionDecision,
             reconstruct_and_infer_graph_public,
         )
+        from .library_bundles import LibraryBundleRef
 
         with self._lock:
             view = self._views.get(task_id.value)
@@ -1687,7 +1754,11 @@ class DirectDevelopmentTasksV3:
                     identity=task_id.value,
                     image=image,
                     inference_image=self.inference_image,
-                    construction_parent=self.construction_parent,
+                    construction_parent=self._parent_for(
+                        LibraryBundleRef.from_dict(
+                            request.recipe["source"]["bundle_ref"]
+                        )
+                    ),
                     recipe=recipe,
                     challenge_binding=binding,
                     limits_document=material["construction_limits_document"],
