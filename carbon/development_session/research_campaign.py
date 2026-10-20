@@ -118,6 +118,27 @@ def accepted_implementation(revision):
     }
 
 
+def campaign_implementation(args, root):
+    """The implementation a product campaign runs: the installed development
+    candidate its runner profile names, else the exact clean accepted
+    revision. Battery's campaign resolves it the same way; a Challenge that
+    skipped the candidate refused every campaign on a candidate install
+    (BUG MOTOR_RUN_INTERRUPTED_CANDIDATE_20261020)."""
+    source_profile = getattr(args, "source_profile", None)
+    if source_profile is not None:
+        from scripts.dev.miner_launchpad import installed
+
+        implementation = installed.profile_candidate(source_profile)
+        if implementation is not None:
+            if (
+                root.parent != Path(source_profile).parent / "campaigns"
+                or args.accepted_revision != implementation["revision"]
+            ):
+                raise ValueError("development candidate campaign differs from profile")
+            return implementation
+    return accepted_implementation(args.accepted_revision)
+
+
 def development_candidate_implementation(
     revision, *, expected_tree, expected_source_tree_digest, repository=None
 ):
