@@ -145,3 +145,21 @@ SOLVED = {h: run() for h in runner.RUNGS}
 def test_outcomes_keep_infrastructure_apart_from_the_reference(runs, obs, ver, status):
     assert runner.classify(runs, obs, ver)[0] == status
     assert (status in runner.TERMINAL) is (status != "FAILED_INFRA")
+
+
+def test_a_candidate_build_is_verifiable_but_never_sealable(tmp_path):
+    from carbon.challenge_validator import f08_hidden
+
+    pinned = runner.pinned_solvers()
+    candidate = json.loads(json.dumps(pinned))
+    candidate["solvers"]["ccx"]["sha256"] = "1" * 64
+    path = tmp_path / "candidate.json"
+    path.write_text(json.dumps(candidate))
+    assert runner.candidate_solvers(path) == candidate
+    assert runner.solvers_id(candidate) != f08_hidden.SOLVER_IMAGE
+    path.write_text(json.dumps(pinned))
+    with pytest.raises(SystemExit, match="is the pinned build"):
+        runner.candidate_solvers(path)
+    path.write_text(json.dumps({**candidate, "extra": 1}))
+    with pytest.raises(SystemExit, match="only"):
+        runner.candidate_solvers(path)

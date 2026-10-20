@@ -17,6 +17,11 @@ SHA-256 in `rr07-pod-environment.json` (pinned here by its own SHA-256), whose
 f08_verify (MMS and rod) passed in that run. The runner refuses a host whose
 binaries differ, so a rebuilt solver needs its own verification first.
 
+A rebuilt build is verified against the pinned evidence with
+CARBON_F08_CANDIDATE_ENVIRONMENT=<its {kind, solvers} record> (and
+CARBON_F08_SOLVERS=<its id>): every record then carries `candidate: true` and an
+identity the sealed family refuses, so verification output never enters an exam.
+
 One record per case in DIR/records.jsonl, statuses:
 - OK: every rung solved, every rung comparison PASS, asymptotic, and the
   reference rung's mode ladder PASS;
@@ -91,6 +96,25 @@ def pinned_solvers():
         raise SystemExit("the pinned F08 environment record differs")
     environment = json.loads(raw)
     return {"kind": environment["kind"], "solvers": environment["solvers"]}
+
+
+def candidate_solvers(path):
+    """A rebuilt solver's {kind, solvers} record, for verifying the rebuild
+    against the pinned evidence only. Its records carry `candidate: true` and
+    an identity no sealed family accepts (`f08_hidden.SOLVER_IMAGE` is the
+    pinned build's), so they can never enter an exam."""
+    record = json.loads(Path(path).read_text())
+    if (
+        type(record) is not dict
+        or set(record) != {"kind", "solvers"}
+        or record["kind"] != "calculix"
+        or set(record["solvers"]) != {"ccx", "gmsh"}
+        or any(set(pin) != {"path", "sha256"} for pin in record["solvers"].values())
+    ):
+        raise SystemExit("candidate environment: {kind, solvers: {ccx, gmsh}} only")
+    if record == pinned_solvers():
+        raise SystemExit("candidate environment is the pinned build")
+    return record
 
 
 def solvers_id(solvers=None):
@@ -274,7 +298,8 @@ def main(argv=None):
     parser.add_argument("--timeout-s", type=float, default=5400.0)
     parser.add_argument("--keep", choices=("none", "failed", "all"), default="none")
     args = parser.parse_args(argv)
-    solvers = pinned_solvers()
+    candidate = os.environ.get("CARBON_F08_CANDIDATE_ENVIRONMENT")
+    solvers = candidate_solvers(candidate) if candidate else pinned_solvers()
     image = os.environ.get("CARBON_F08_SOLVERS")
     if image != solvers_id(solvers):
         raise SystemExit("CARBON_F08_SOLVERS must be the pinned F08 solver identity")
@@ -317,6 +342,8 @@ def main(argv=None):
             except (KeyError, IndexError, ValueError):
                 verdict = None
         record = record_for(plan, case, runs, observed, verdict, image, solvers)
+        if candidate:
+            record["candidate"] = True
         with lock, records.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(record, sort_keys=True) + "\n")
         keep = args.keep == "all" or (
