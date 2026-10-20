@@ -137,7 +137,7 @@ def test_kit_carries_the_spread_and_the_pack_prepares(tmp_path):
         challenge_version=VERSION,
     )
     missing = prepared.snapshot.verify_available(pack, pack)
-    assert set(missing["public"]) == {"accuracy_definition", "physics_contract"}
+    assert set(missing["public"]) == {"accuracy_definition"}
     assert set(missing["private"]) == {"score_pack"}
     assert (pack / "public" / "train.npz").read_bytes() == (
         f02_train.load_public_train()["train"]

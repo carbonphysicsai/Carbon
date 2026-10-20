@@ -14,6 +14,7 @@ def adapter(challenge, version):
     from carbon.scoring import (
         battery_dual_pack,
         cooling_dual_pack,
+        f02_dual_pack,
         f08_dual_pack,
         motor_dual_pack,
     )
@@ -24,6 +25,8 @@ def adapter(challenge, version):
             if version in f08_dual_pack.VERSIONS
             else None
         )
+    if challenge == f02_dual_pack.CHALLENGE:
+        return f02_dual_pack if version == f02_dual_pack.VERSION else None
     return {
         module.CHALLENGE: module
         for module in (motor_dual_pack, cooling_dual_pack, battery_dual_pack)
