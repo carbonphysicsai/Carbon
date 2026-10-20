@@ -8,3 +8,36 @@ carbon/miner_mcp/apps_ui/workbench.html text eol=lf
 docs/history/WAVE_2026-09-22_90dd9670.md whitespace=-trailing-space
 # Frozen F08 action pins (CRLF bytes are the pinned sha256; never normalize).
 docs/development/evidence/f08-near-limit-public-20261020/*-actions.json -text whitespace=-trailing-space
+# Sha256-pinned files keep their committed bytes in every clone (Validator,
+# 2026-10-20): no line-ending conversion, whatever core.autocrlf says.
+# tests/invariants/test_pinned_files_survive_checkout.py fails on any pinned
+# file a checkout would change, including one these rules miss.
+*.json -text
+*.jsonl -text
+docs/development/evidence/** -text
+# Pinned source files outside those patterns (found by that test).
+Business/research/battery-advantage-families/analyze.py -text
+Business/research/value-metric-audit/res07-analyze.py.txt -text
+Business/research/value-metric-v2-rev2-curves/analyze.py -text
+carbon/battery/truth_env.py -text
+carbon/traineval/model.py -text
+carbon/traineval/service.py -text
+scripts/dev/battery/feasibility02.py -text
+scripts/dev/battery/feasibility02_tier4.py -text
+scripts/dev/battery/feasibility02_v2.py -text
+scripts/dev/battery/guarded_reference.py -text
+scripts/dev/battery/middle_bands.py -text
+scripts/dev/battery/middle_bands_refine.py -text
+scripts/dev/battery/plating_rereference.py -text
+scripts/dev/battery/v3_panel_export.py -text
+scripts/dev/evidence_runs/common.py -text
+scripts/dev/evidence_runs/comparison_inputs.py -text
+scripts/dev/evidence_runs/settlement.py -text
+scripts/dev/motor/feasibility02/panel_export.py -text
+scripts/dev/motor/feasibility02/run.py -text
+scripts/dev/reference_packages/elmer/f02_baselines.py -text
+scripts/dev/reference_packages/elmer/f02_deck.py -text
+scripts/dev/reference_packages/elmer/f02_export.py -text
+scripts/dev/reference_packages/elmer/f02_menu.py -text
+scripts/dev/score_lab/guarded419_t9.py -text
+tests/cpu/test_scoring_engine.py -text
