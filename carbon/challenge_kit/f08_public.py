@@ -123,6 +123,14 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
             "near_limit_action_evaluation_role"
         ]
         document["train_mesh"] = dict(provenance["mesh"])
+    from .served_versions import step_caps
+
+    if not step_caps(challenge_id, version):
+        # OWNER-REBUILD-TIME-LIMIT-01 (a step-2 version): no fixed training-step
+        # cap; the build wall time above is the only training limit. Existing
+        # versions keep their bytes (as physical_public).
+        document["training_step_cap"] = None
+        document["training_limit"] = "build_wall_seconds_max"
     return document
 
 
