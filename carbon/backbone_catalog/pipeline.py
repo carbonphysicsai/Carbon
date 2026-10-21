@@ -161,9 +161,22 @@ def verify(item, *, wheelhouse=None):
         or receipt.get("differ")
     ):
         raise CatalogBroken(f"{item['catalog_id']}: no clean pair-identity receipt")
+    from carbon.challenge_kit.served_versions import UnregisteredVersion, serves_catalog
+
     for challenge in item["challenges"]:
         if set(challenge) != {"id", "version"}:
             raise CatalogBroken(f"{item['catalog_id']}: Challenge binding malformed")
+        # Offered only on a version that serves the catalog: its construction
+        # limits bind the catalog, so no other version can name an entry.
+        try:
+            served = serves_catalog(challenge["id"], challenge["version"])
+        except UnregisteredVersion:
+            served = False
+        if not served:
+            raise CatalogBroken(
+                f"{item['catalog_id']}: {challenge['id']} {challenge['version']} "
+                "serves no backbone catalog"
+            )
     settings.resolve(item, {}, {})  # the defaults pass their own door
 
 

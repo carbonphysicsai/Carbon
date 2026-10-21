@@ -116,14 +116,14 @@ def test_the_served_contract_is_registered():
 def test_the_version_is_required_and_never_defaulted():
     with pytest.raises(TypeError):
         f02_train.load_public_train()
-    # 2.1 is registered by the step-2 batch; 2.2 is not.
+    # 2.1 and 2.2 are registered (step-2, v7); 9.9 never is.
     with pytest.raises(ValueError):
-        f02_train.load_public_train("2.2")
+        f02_train.load_public_train("9.9")
 
 
 def test_an_unknown_f02_version_is_refused():
     with pytest.raises(ValueError):
-        physical_material.bundle_material("f02", "2.2")
+        physical_material.bundle_material("f02", "9.9")
 
 
 def test_fresh_rebuild_then_source_free_inference(tmp_path, monkeypatch):

@@ -93,6 +93,10 @@ PACK_VERSIONS = {
     # version; graded by 1.1's evaluation versions (Validator, 2026-10-20:
     # only the construction source changes).
     (motor.CHALLENGE.challenge_id, "1.2"): "motor-normal-construction-development-3",
+    # The v7 catalog versions (Launchpad 294c3f1e7; Validator): each is its
+    # predecessor's exam content under its own pack version; only the
+    # construction kit (and the version in identity-bearing roles) differs.
+    (motor.CHALLENGE.challenge_id, "1.3"): "motor-normal-construction-development-4",
     (
         cooling.CHALLENGE.challenge_id,
         "1.0",
@@ -101,13 +105,20 @@ PACK_VERSIONS = {
         cooling.CHALLENGE.challenge_id,
         "1.1",
     ): "cooling-normal-construction-development-2",
+    (
+        cooling.CHALLENGE.challenge_id,
+        "1.2",
+    ): "cooling-normal-construction-development-3",
     (battery_pack.CHALLENGE_ID, "1.0"): battery_pack.PACK_VERSION,
     (battery_pack.CHALLENGE_ID, "2.0"): "battery-normal-construction-development-3",
+    (battery_pack.CHALLENGE_ID, "2.1"): "battery-normal-construction-development-4",
     (f08_train.CHALLENGE_ID, "1.0"): "f08-normal-construction-development-1",
     (f08_train.CHALLENGE_ID, "1.1"): "f08-normal-construction-development-2",
     (f08_train.CHALLENGE_ID, "1.2"): "f08-normal-construction-development-3",
+    (f08_train.CHALLENGE_ID, "1.3"): "f08-normal-construction-development-4",
     (f02_train.CHALLENGE_ID, "2.0"): "f02-normal-construction-development-2",
     (f02_train.CHALLENGE_ID, "2.1"): "f02-normal-construction-development-3",
+    (f02_train.CHALLENGE_ID, "2.2"): "f02-normal-construction-development-4",
 }
 #: F02's eight registered cold actions (the scoring producer's
 #: `_F02_ACTIONS`), judged B10 ACCEPTED_FOR_DEVELOPMENT_BANK by RR-PACKS-04's
@@ -196,6 +207,16 @@ _F08_EXAMS = {
         F08_LADDER_DECISION_COVERAGE,
         F08_LADDER_POPULATION,
         "f08-normal-construction-development-3",
+    ),
+    # 1.3 (v7 catalog): 1.2's ladder bank and TRAIN v2, unchanged.
+    "1.3": (
+        _F08_LADDER_OBSERVED,
+        _F08_LADDER_ENVIRONMENT,
+        "ladder",
+        "decision_near_limit",
+        F08_LADDER_DECISION_COVERAGE,
+        F08_LADDER_POPULATION,
+        "f08-normal-construction-development-4",
     ),
 }
 _F08_BRIEF = (

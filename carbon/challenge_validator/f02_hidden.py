@@ -30,6 +30,11 @@ from pathlib import Path
 REPOSITORY = Path(__file__).resolve().parents[2]
 CHALLENGE_ID = "f02"
 CHALLENGE_VERSION = "2.1"
+#: Challenge versions whose evaluation packs are built from these 2.1 sealed
+#: batches: 2.1, and the v7 catalog 2.2, which changes only the construction
+#: kit (Validator, 2026-10-20: one rule, a catalog version is graded from its
+#: predecessor's sealed batches). The batches stay 2.1's.
+SERVED_VERSIONS = (CHALLENGE_VERSION, "2.2")
 RULE_SCHEMA = "carbon.f02.hidden-pool-rule.v1"
 DOCUMENT_SCHEMA = "carbon.f02.hidden-batch.v1"
 DEPLOYMENT_SCHEMA = "carbon.f02.hidden-deployment.v1"

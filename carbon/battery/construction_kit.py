@@ -109,8 +109,9 @@ def construction_kit() -> dict:
 
 
 #: The graph kit's registered versions: 1.0 above, unchanged; 2.0 the step-2
-#: version (STEP2_BATCH_VERSIONS_20261020), with no fixed training-step caps.
-VERSIONS = ("1.0", "2.0")
+#: version (STEP2_BATCH_VERSIONS_20261020), with no fixed training-step caps;
+#: 2.1 the catalog version, 2.0's limits under its own version binding.
+VERSIONS = ("1.0", "2.0", "2.1")
 #: The training surfaces whose upper bound was a fixed step cap; for 2.0 they
 #: keep only their lower bounds and dependency rules (warmup below the main
 #: steps, polish leaving 16 main steps: `battery.compile.rebuild_issues`).
@@ -133,7 +134,7 @@ def construction_limits_document_for(version: str) -> dict:
         return construction_limits_document()
     document = construction_limits_document()
     document["schema"] = "carbon.battery.construction-limits.v2"
-    document["challenge"] = {"id": challenge.CHALLENGE.challenge_id, "version": "2.0"}
+    document["challenge"] = {"id": challenge.CHALLENGE.challenge_id, "version": version}
     for name in STEP_SURFACES:
         document["train_surfaces"][name]["high"] = None
     document["training_step_cap"] = None

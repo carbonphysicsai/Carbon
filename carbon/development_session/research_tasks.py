@@ -1701,7 +1701,7 @@ class DirectDevelopmentTasksV3:
                         output_dtype(material["interface_document"])
                         if (
                             kit["id"] == BATTERY_CHALLENGE
-                            and kit["version"] in ("1.0", "2.0")
+                            and kit["version"] in ("1.0", "2.0", "2.1")
                         )
                         or kit["version"] == "1.3"
                         or physical_material.is_registered(kit["id"], kit["version"])

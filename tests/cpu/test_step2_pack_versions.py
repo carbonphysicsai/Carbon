@@ -73,7 +73,7 @@ def test_there_is_no_default_version():
     with pytest.raises(TypeError):
         f08_train.load_public_train()
     with pytest.raises(ValueError):
-        f02_train.load_public_train("2.2")
+        f02_train.load_public_train("9.9")  # 2.2 is registered (v7)
     with pytest.raises(SystemExit):
         pp.main(["out", "--challenge", F02])  # --version is required
     with pytest.raises(SystemExit):
@@ -82,7 +82,7 @@ def test_there_is_no_default_version():
 
 def test_an_unregistered_version_writes_no_pack(tmp_path):
     with pytest.raises(ValueError):
-        pp.write_public_pack(tmp_path / "x", F02, "2.2")
+        pp.write_public_pack(tmp_path / "x", F02, "9.9")  # 2.2 is registered (v7)
 
 
 def test_step2_kits_carry_no_step_cap_and_existing_kits_keep_their_bytes():
@@ -152,3 +152,51 @@ def test_motor_1_2_is_1_1_with_its_own_kit_and_pack_id():
     assert np.array_equal(x["references"], y["references"])
     assert x["reference_records"] == y["reference_records"]
     assert pp.physics_contract(m, "1.1") == pp.physics_contract(m, "1.2")
+
+
+V7 = {
+    # version: (predecessor, own pack version)
+    ("electric-motor-magnetics", "1.3"): (
+        "1.2",
+        "motor-normal-construction-development-4",
+    ),
+    ("chip-cold-plate", "1.2"): ("1.1", "cooling-normal-construction-development-3"),
+    (F08, "1.3"): ("1.2", "f08-normal-construction-development-4"),
+    (F02, "2.2"): ("2.1", "f02-normal-construction-development-4"),
+    (
+        "battery-fastcharge-ageing-development-v1",
+        "2.1",
+    ): ("2.0", "battery-normal-construction-development-4"),
+}
+
+
+def _without_version(raw, version, predecessor):
+    """A role's bytes with this version's identity written as the
+    predecessor's, so only real content differences remain."""
+    import json
+
+    text = json.dumps(json.loads(raw), sort_keys=True)
+    return text.replace(f'"version": "{version}"', f'"version": "{predecessor}"')
+
+
+@pytest.mark.parametrize("key", sorted(V7))
+def test_v7_versions_are_their_predecessors_exam_under_their_own_pack(key):
+    """The v7 catalog versions change what a miner may build: the exam (bank,
+    references, physics, limits, objective, interface) is the predecessor's,
+    and only the construction kit differs; each has its own pack version."""
+    cid, version = key
+    predecessor, pack_version = V7[key]
+    assert pp.PACK_VERSIONS[key] == pack_version
+    assert _same_bank(
+        pp.development_bank(cid, predecessor), pp.development_bank(cid, version)
+    )
+    assert pp.physics_contract(cid, predecessor) == pp.physics_contract(cid, version)
+    old, new = pp.public_roles(cid, predecessor), pp.public_roles(cid, version)
+    assert set(old) == set(new)
+    for role in old:
+        if role in ("construction_kit", "train"):
+            continue
+        assert _without_version(old[role], version, predecessor) == _without_version(
+            new[role], version, predecessor
+        ), role
+    assert old["train"] == new["train"]
