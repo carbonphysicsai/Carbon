@@ -278,3 +278,40 @@ def test_a_state_over_64_mib_freezes_and_loads_only_under_v7():
     with pytest.raises(RecipeRefused) as refused:
         bundle_graph_state.freeze(_recipe(), doc_for(V6), parameters, V6)
     assert refused.value.code == "bundle_state_oversized"
+
+
+def test_intake_bounds_follow_the_allowlist_version():
+    from carbon.level4 import intake
+
+    assert intake.bounds_for(V6) == intake.BOUNDS
+    assert intake.BOUNDS["document_bytes"] == 1024**2
+    assert intake.bounds_for(V7) == {
+        "manifest_bytes": 16 * 1024,
+        "document_bytes": 64 * 1024**2,
+        "submission_bytes": 192 * 1024**2,
+        "parse_seconds": 120,
+        "parse_memory_bytes": 4 * 1024**3,
+    }
+    assert intake.bounds_for("level4-allowlist-v99") == intake.BOUNDS
+
+
+def test_intake_sizes_are_containment_under_v7():
+    from carbon.level4 import intake
+
+    manifest = b"{}"
+    two_mib = {"forward": b"x" * (2 * 1024**2)}
+    intake._sizes(manifest, two_mib, intake._bounds(None, V7))
+    with pytest.raises(graph.GraphRefused) as refused:
+        intake._sizes(manifest, two_mib, intake._bounds(None, V6))
+    assert refused.value.code == "oversized_document"
+    over = {"forward": b"x" * (64 * 1024**2 + 1)}
+    with pytest.raises(graph.GraphRefused) as refused:
+        intake._sizes(manifest, over, intake._bounds(None, V7))
+    assert refused.value.code == "oversized_document"
+    three = {k: b"x" * (64 * 1024**2) for k in ("forward", "init", "loss")}
+    intake._sizes(
+        manifest, {k: three[k] for k in ("forward", "init")}, intake._bounds(None, V7)
+    )
+    with pytest.raises(graph.GraphRefused) as refused:
+        intake._sizes(manifest, three, intake._bounds(None, V7))
+    assert refused.value.code == "oversized_submission"
