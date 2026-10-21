@@ -18,6 +18,18 @@
     return match ? match[1] : "";
   }
   const linkToken = takeSessionLink();
+  // ---- The session this tab keeps (owner, 2026-10-21): a reload must not drop
+  // it, and getting back in must not need a terminal. The token is held in
+  // this tab's sessionStorage only: gone when the tab closes, never in
+  // localStorage, an address or a template, and forgotten the moment the
+  // controller refuses it.
+  const sessionKey = "carbon.launchpad.session.v1";
+  function keptSession() {
+    try { const value = sessionStorage.getItem(sessionKey); return value && /^[!-~]{1,512}$/.test(value) ? value : null; }
+    catch (_) { return null; }
+  }
+  function keepSession(value) { try { sessionStorage.setItem(sessionKey, value); } catch (_) { /* this tab asks again after a reload */ } }
+  function forgetSession() { try { sessionStorage.removeItem(sessionKey); } catch (_) { /* nothing kept */ } }
   let selected = "";
   let runs = [];
   let pending = null;
@@ -460,6 +472,8 @@
     $("settings-recheck").disabled = !connected || busy;
     // Connected: the token form steps aside; interrupted or new, it returns.
     $("connect-panel").hidden = connected;
+    // One click back in, from the session this tab kept.
+    $("reconnect").hidden = connected || !keptSession();
     // The research surface (research_view.js) redraws with the page.
     for (const hook of renderHooks) hook();
   }
@@ -1712,9 +1726,17 @@
       setText($("connection-state"), "Connected");
     } catch (error) {
       connected = false;
-      quietly(render);
-      setText($("connection-state"), "Connection interrupted");
-      message("Controller connection interrupted. Runs may still be active. Reconnect before issuing another command.", true);
+      if (error.status === 401 || error.status === 403) {
+        // The controller no longer knows this token: it was restarted.
+        token = ""; forgetSession();
+        quietly(render);
+        setText($("connection-state"), "Disconnected");
+        message(SESSION_ENDED, true);
+      } else {
+        quietly(render);
+        setText($("connection-state"), "Connection interrupted");
+        message("Lost contact with the controller. Your campaigns may still be running. This page keeps trying; press Reconnect to try now.", true);
+      }
     } finally { polling = false; }
   }
   // A returning miner lands on their active campaign; otherwise where they were.
@@ -1727,6 +1749,11 @@
     const last = stored(routeKey, null);
     if (last && typeof last.hash === "string" && last.hash.startsWith("#")) location.hash = last.hash;
   }
+  $("reconnect").addEventListener("click", () => {
+    const resumed = keptSession();
+    if (!resumed || busy || polling) return;
+    token = ""; connect(resumed, true);
+  });
   $("connect-form").addEventListener("submit", event => {
     event.preventDefault();
     if (busy || polling) return;
@@ -1734,15 +1761,17 @@
   });
   // The session link connects as a pasted token does. One read while a
   // refresh or an operation is under way waits for it, rather than being lost.
-  function connectFromLink(value) {
+  function connectFromLink(value, resumed = false) {
     if (!value) {
       message("This address held a session link this page cannot read. Open the link the Control Center printed again, or paste its local session token.", true);
       return;
     }
-    if (busy || polling) { setTimeout(() => connectFromLink(value), 250); return; }
-    connect(value);
+    if (busy || polling) { setTimeout(() => connectFromLink(value, resumed), 250); return; }
+    connect(value, resumed);
   }
-  async function connect(value) {
+  // The same words wherever a refused session is met.
+  const SESSION_ENDED = "Your session ended: the Control Center was restarted and printed a new link. Open that link, or paste its token.";
+  async function connect(value, resumed = false) {
     connected = false;
     render();
     token = value;
@@ -1765,6 +1794,7 @@
       await renderExamEnvironment();
       renderComputeChoices(caps.compute.destinations || []);
       await onboardingRequirements();
+      keepSession(value);
       store(footerSeenKey, {seen: true});
       message("Connected. Records persist on this machine.");
       await refresh();
@@ -1773,8 +1803,13 @@
       token = "";
       connected = false;
       $("connection-state").textContent = "Disconnected";
+      // A refused token is forgotten; a controller that did not answer leaves
+      // it, so Reconnect is one click once the controller is running again.
+      if (error.status === 401 || error.status === 403) forgetSession();
       render();
-      message("Could not connect: " + error.message, true);
+      if (resumed && (error.status === 401 || error.status === 403)) message(SESSION_ENDED, true);
+      else if (resumed) message("The Control Center did not answer. Start it, then press Reconnect.", true);
+      else message("Could not connect: " + error.message, true);
     }
   }
   $("settings-recheck").addEventListener("click", async () => {
@@ -4253,4 +4288,5 @@
   show();
   setInterval(refresh, 1500);
   if (linkToken !== null) connectFromLink(linkToken);
+  else { const resumed = keptSession(); if (resumed) connectFromLink(resumed, true); }
 })();

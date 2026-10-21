@@ -1234,9 +1234,10 @@ scenario("Tools: a read answered as text (v2 rule) or as base64 (historical) sho
   clean(page);
 });
 
-// ---- 10. The session link (LP-PROD-C D14): read once, kept nowhere. ----
+// ---- 10. The session link (LP-PROD-C D14): read once from the address; the tab keeps the token (owner,
+// 2026-10-21: a reload must not drop the session) in its own sessionStorage and nowhere else. ----
 const kept = storage => [...storage.map.values()].join("\n");
-scenario("a session link connects once and leaves its token nowhere", async () => {
+scenario("a session link connects once; this tab keeps the token and nothing else does", async () => {
   const LINK = "link_" + "A1b2-C3d4_".repeat(4);
   const state = launchable(world());
   const session = new Storage(), local = new Storage();
@@ -1248,11 +1249,12 @@ scenario("a session link connects once and leaves its token nowhere", async () =
   assert.deepEqual(page.replaced, ["http://127.0.0.1:8788/"], "this history entry replaced, no other");
   assert.ok(page.requests.length > 3 && page.requests.every(r => r.headers.Authorization === "Bearer " + LINK));
   assert.equal(page.$("token").value, "");
-  // Browsing on saves routes, never the token.
+  // Browsing on saves routes, never the token; the tab's own session holds it.
   page.go("#campaigns");
   await page.advance(0);
   assert.match(kept(local), /#campaigns/);
-  assert.ok(!kept(local).includes(LINK) && !kept(session).includes(LINK));
+  assert.ok(!kept(local).includes(LINK), "never in localStorage");
+  assert.ok(kept(session).includes(LINK), "kept in this tab's sessionStorage");
   // A link opened later in this same tab (the Control Center restarted with
   // a new token) is taken the same way, before the route is read.
   const OTHER = "other_" + "Z9y8-X7w6_".repeat(4);
@@ -1263,7 +1265,8 @@ scenario("a session link connects once and leaves its token nowhere", async () =
   assert.equal(page.text("connection-state"), "Connected");
   const after = page.requests.slice(before);
   assert.ok(after.length && after.every(r => r.headers.Authorization === "Bearer " + OTHER));
-  assert.ok(!kept(local).includes(OTHER) && !kept(session).includes(OTHER));
+  assert.ok(!kept(local).includes(OTHER), "never in localStorage");
+  assert.ok(kept(session).includes(OTHER) && !kept(session).includes(LINK), "the newer token replaces the older one");
   assert.ok(page.replaced.every(address => !address.includes(LINK) && !address.includes(OTHER)));
   clean(page);
 });
@@ -1277,6 +1280,64 @@ scenario("an unreadable session link is removed, kept nowhere, and said", async 
   assert.match(page.text("message"), /session link this page cannot read/);
   assert.equal(page.requests.length, 0, "nothing sent with it");
   assert.ok(!kept(local).includes("space"));
+  clean(page);
+});
+
+// A reload, and the way back in after the controller restarts (owner, 2026-10-21).
+scenario("a reload keeps the session: the tab's token connects again with no link and no paste", async () => {
+  const LINK = "link_" + "A1b2-C3d4_".repeat(4);
+  const state = launchable(world());
+  const session = new Storage(), local = new Storage();
+  const first = await openPage(ROOT, state.server, {sessionStorage: session, localStorage: local, hash: "#token=" + LINK});
+  first.state = state;
+  await first.advance(0);
+  assert.equal(first.text("connection-state"), "Connected");
+  // The same tab, reloaded: a new page over the same sessionStorage, no fragment.
+  const second = await openPage(ROOT, state.server, {sessionStorage: session, localStorage: local});
+  second.state = state;
+  await second.advance(0);
+  assert.equal(second.text("connection-state"), "Connected", "connected by the tab's kept session alone");
+  assert.equal(second.$("connect-panel").hidden, true);
+  assert.ok(second.requests.length > 3 && second.requests.every(r => r.headers.Authorization === "Bearer " + LINK));
+  assert.ok(!kept(local).includes(LINK), "never in localStorage");
+  assert.ok(second.replaced.every(address => !address.includes(LINK)));
+  clean(first); clean(second);
+});
+scenario("a session the controller refuses is forgotten, and the page says it ended", async () => {
+  const OLD = "old_" + "Q1w2-E3r4_".repeat(4);
+  const state = launchable(world());
+  state.script.push({match: r => r.path === "/api/v1/control-center/capabilities", answer: {status: 401, body: {error: "unauthorized"}}, keep: true});
+  const session = new Storage();
+  session.setItem("carbon.launchpad.session.v1", OLD);
+  const page = await openPage(ROOT, state.server, {sessionStorage: session});
+  page.state = state;
+  await page.advance(0);
+  assert.notEqual(page.text("connection-state"), "Connected");
+  assert.match(page.text("message"), /Your session ended: the Control Center was restarted and printed a new link/);
+  assert.ok(!kept(session).includes(OLD), "a refused token is forgotten");
+  assert.equal(page.$("connect-panel").hidden, false);
+  assert.equal(page.$("reconnect").hidden, true, "nothing to reconnect with");
+  clean(page);
+});
+scenario("a controller that does not answer keeps the session, and Reconnect is one click", async () => {
+  const KEPT = "kept_" + "Z9y8-X7w6_".repeat(4);
+  const state = launchable(world());
+  state.script.push({match: r => r.path === "/api/v1/control-center/capabilities", answer: {network: true}, keep: true});
+  const session = new Storage();
+  session.setItem("carbon.launchpad.session.v1", KEPT);
+  const page = await openPage(ROOT, state.server, {sessionStorage: session});
+  page.state = state;
+  await page.advance(0);
+  assert.notEqual(page.text("connection-state"), "Connected");
+  assert.match(page.text("message"), /did not answer\. Start it, then press Reconnect/);
+  assert.ok(kept(session).includes(KEPT), "an unanswered controller does not lose the session");
+  assert.equal(page.$("reconnect").hidden, false);
+  state.script.length = 0;  // the controller is back
+  await page.press(page.$("reconnect"));
+  await page.advance(0);
+  assert.equal(page.text("connection-state"), "Connected");
+  assert.equal(page.$("reconnect").hidden, true);
+  assert.ok(page.requests.slice(-3).every(r => r.headers.Authorization === "Bearer " + KEPT));
   clean(page);
 });
 
@@ -2362,7 +2423,7 @@ scenario("Library: a controller without it says so, and nothing is asked of it",
   clean(page);
 });
 
-scenario("Library: a session link opened on a Library address connects and keeps its token nowhere", async () => {
+scenario("Library: a session link opened on a Library address connects, and only this tab keeps the token", async () => {
   const LINK = "link_" + "L1b2-R3d4_".repeat(4);
   const state = graphiteWorld();
   const session = new Storage(), local = new Storage();
@@ -2376,7 +2437,7 @@ scenario("Library: a session link opened on a Library address connects and keeps
   await refresh(page);
   assert.match(page.text(one(page, "#library-body [data-part=plan]")), /Written by/);
   assert.match(kept(local), /#library\/plans\//);
-  assert.ok(!kept(local).includes(LINK) && !kept(session).includes(LINK));
+  assert.ok(!kept(local).includes(LINK) && kept(session).includes(LINK));
   assert.ok(page.requests.every(r => r.headers.Authorization === "Bearer " + LINK));
   for (const r of page.requests) assert.ok(!JSON.stringify(r.body || {}).includes(LINK) && !r.path.includes(LINK));
   clean(page);
