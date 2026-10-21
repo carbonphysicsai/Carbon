@@ -92,18 +92,33 @@ def implementation_digest():
 
 
 def interface_document(spec):
-    key = research_key(spec)
-    return spec.public().interface_document(key.challenge_id, key.version)
+    return _document(spec, "interface")
 
 
 def limits_document(spec):
-    key = research_key(spec)
-    return spec.public().construction_limits_document(key.challenge_id, key.version)
+    return _document(spec, "limits")
 
 
 def construction_kit(spec):
+    return _document(spec, "kit")
+
+
+def _document(spec, name):
     key = research_key(spec)
-    return spec.public().construction_kit(key.challenge_id, key.version)
+    return json.loads(_documents(spec, key.version)[name])
+
+
+@functools.lru_cache(maxsize=8)
+def _documents(spec, version):
+    """The version's registered public documents, read once per process: the
+    contracts author hundreds of clauses, each binding the same profile."""
+    public = spec.public()
+    challenge_id = key_for(spec, version).challenge_id
+    return {
+        "interface": canonical(public.interface_document(challenge_id, version)),
+        "limits": canonical(public.construction_limits_document(challenge_id, version)),
+        "kit": canonical(public.construction_kit(challenge_id, version)),
+    }
 
 
 def direct_sources(spec):
@@ -121,6 +136,16 @@ def direct_sources(spec):
 
 
 def profile_document(spec):
+    return json.loads(_profile(spec, research_key(spec).version))
+
+
+@functools.lru_cache(maxsize=4)
+def _profile(spec, version):
+    with keyed(spec, key_for(spec, version)):
+        return canonical(_profile_document(spec))
+
+
+def _profile_document(spec):
     from carbon.reconstruction.served_recipe_contract import registered
 
     key = research_key(spec)
@@ -157,10 +182,14 @@ def semantic(spec, kind, label):
         scope_binding=ChallengeScope(research_key(spec)),
         object_id=label,
         object_version="1.0",
-        content_digest=digest(
-            canonical({"clause": label, "profile": profile_document(spec)})
-        ),
+        content_digest=_clause_digest(spec, research_key(spec).version, label),
     )
+
+
+@functools.lru_cache(maxsize=1024)
+def _clause_digest(spec, version, label):
+    profile = json.loads(_profile(spec, version))
+    return digest(canonical({"clause": label, "profile": profile}))
 
 
 def na(spec, label):
