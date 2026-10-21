@@ -20,3 +20,13 @@ Status: APPROVED by the owner as security decisions.
   - A material issue goes back to the owner; it isn't rewritten unilaterally.
 - **These accept the design and the named commit only.**
   - A later change to token handling or key handling is a new acceptance.
+
+## Password entry: the design's Q2 (owner, 2026-10-21)
+
+- **The relay:** the owner first answered "whatever is easiest" in the Test Lead's session. The Test Lead relayed that as browser entry through the Control Center.
+- **Confirmed directly in the Carbon Validator's session:** the password is typed in the browser, in **the helper's own page only**.
+  - Only the helper process handles it, and passes it to the Bittensor SDK's encryption call.
+  - The Control Center never receives it.
+  - It is never stored, logged or transmitted.
+- **Not accepted:** browser entry routed through the Control Center.
+- **The ship gate stays:** the secret-sentinel search, covering the controller and helper state, the logs, every response and the page storage.
