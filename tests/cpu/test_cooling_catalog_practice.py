@@ -95,7 +95,9 @@ def test_a_catalog_recipe_runs_as_its_bundle_on_the_public_practice_inputs(pract
     assert result["catalog_id"] == STAND_IN
     assert result["recipe"] == recipe
     assert result["official_eligible"] is False and result["final_exam"] is False
-    assert "safety" in result
+    # As Motor's catalog practice: no safety field (PRACTICE-SAFETY-01's code
+    # is imported only by the registered practice providers).
+    assert "safety" not in result
 
 
 def test_the_columns_map_back_to_coolings_outputs_in_the_interfaces_order(practice):

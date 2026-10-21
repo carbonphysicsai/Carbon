@@ -166,7 +166,6 @@ class CoolingCatalogPractice:
         from carbon.development_session.profile import canonical, digest
         from carbon.development_session.research_workspace import ResearchWorkspace
 
-        from . import practice_safety
         from .challenge import PublicMaterial
         from .practice import PracticeSet, score_practice
 
@@ -235,8 +234,6 @@ class CoolingCatalogPractice:
                 "kind": "C03_DOCKER",
                 "parent": getattr(construction_parent, "image_id", None),
             },
-            # PRACTICE-SAFETY-01: feedback only, on the same public cases.
-            "safety": practice_safety.safety(predictions, practice),
             "adaptively_seen": True,
             "final_exam": False,
             "official_eligible": False,
