@@ -257,3 +257,14 @@ a.rs-change:hover { background: var(--muted); }
 .rs-recovery button, .rs-refusal .button { align-self: flex-start; min-height: 44px; }
 .rs-active .rs-refusal, .rs-active .rs-recovery { margin-top: 8px; }
 .rs-bench-slot:empty, .rs-journey-part:empty { display: none; }
+
+/* The one campaign control bar (UI cleanup, 2026-10-21): the primary action,
+   Pause and Stop in reach, the rest under More. */
+.rs-actions { align-items: center; }
+.rs-bar-main { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rs-more { position: relative; }
+.rs-more > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; min-height: 44px; padding: 8px 16px; border: 1px solid var(--border); font-size: 15px; }
+.rs-more > summary::-webkit-details-marker { display: none; }
+.rs-more[open] > summary { background: var(--muted); }
+.rs-more[open] { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+@media (max-width: 600px) { .rs-more { width: 100%; } }

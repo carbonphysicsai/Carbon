@@ -748,6 +748,21 @@
     } catch (_) { /* the next poll tries again */ }
     finally { setupPolling = false; }
   }
+  // A refused key, said as a person would say it: who refused, what to check,
+  // and that the key field empties after every check (a key is never kept in
+  // the page), so it is pasted again to retry.
+  const KEY_REFUSALS = {
+    provider_refused_completion: "refused this key. Check the account's balance, or copy the key again.",
+    provider_refused_model_list: "would not list its models for this key. Copy the key again.",
+  };
+  function setupErrorText(step, body, error) {
+    if (step === "inference" && Object.hasOwn(KEY_REFUSALS, error.code || "")) {
+      const id = typeof body?.provider_id === "string" ? body.provider_id : "";
+      const name = (setupState?.choices?.inference || []).find(c => c.id === id)?.display_name || (id ? words(id) : "The provider");
+      return name + " " + KEY_REFUSALS[error.code] + " The key field clears after each check, so paste it again to retry.";
+    }
+    return (error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : "");
+  }
   async function setupCall(step, body, timeout = 60000) {
     try {
       const result = await api("/api/v1/setup/" + step, body, undefined, timeout);
@@ -778,8 +793,7 @@
       if (step === "review") refresh();
       return true;
     } catch (error) {
-      const text = (error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : "");
-      $("setup-result").replaceChildren(setupLine(text, "error"));
+      $("setup-result").replaceChildren(setupLine(setupErrorText(step, body, error), "error"));
       return false;
     }
   }
@@ -1553,7 +1567,7 @@
     // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
     const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver hotkey (its public ss58 address; required with an intake URL)");
     intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
-    const directMore = advanced(review, "Advanced: DEVELOPMENT construction receiver");
+    const directMore = advanced(review, "Advanced: where your recipe is checked");
     researchNote(directMore, "For the 1.3 construction-recipe session only. This receiver rebuilds a model but does not return a scored verdict or reward.", "hint");
     const directIntake = setupField(directMore, "direct_intake_url", "Construction intake URL (https, or loopback)");
     const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Construction receiver hotkey (public ss58 address)");
@@ -1751,6 +1765,7 @@
       await renderExamEnvironment();
       renderComputeChoices(caps.compute.destinations || []);
       await onboardingRequirements();
+      store(footerSeenKey, {seen: true});
       message("Connected. Records persist on this machine.");
       await refresh();
       if (storageError) message("Browser retry storage is unavailable. Launch is disabled to preserve duplicate protection.", true);
@@ -2077,6 +2092,8 @@
     // A submit through a validator intake that was not a verdict
     // (LAUNCHPAD-ACCEPT-04): queued, the validator's side, or yours to act on.
     if (refusal.intake_outcome) box.append(el("p", "Validator intake: " + INTAKE_OUTCOMES[refusal.intake_outcome], "hint"));
+    // What stopped it, by its code, so it can be named to someone who can help.
+    if (refusal.kind === "interrupted") box.append(el("p", "Code: " + refusal.code, "hint"));
     if (refusal.next_action && !practiceMessage(refusal.code)) box.append(el("p", (compact ? "" : "What to do: ") + refusal.next_action, compact ? "hint" : "refusal-next"));
     const fix = refusalFix(refusal.code);
     if (fix && !compact) box.append(link(fix, "button fix"));
@@ -2542,7 +2559,7 @@
         ? "available for a compatible bounded recipe"
         : path.reason === "public_reconstruction_registered_host_readiness_unverified"
           ? "registered capability; host serving unverified"
-          : "unserved";
+          : "not served yet";
       researchNote(target, labels[path.id] + " · " + availability + (path.reason ? " · " + words(path.reason) : ""), path.availability === "available" ? "hint" : "reason");
     }
     if (document.qualification !== true) researchNote(target, "Scientific qualification: untested.", "hint");
@@ -3355,7 +3372,15 @@
     rebuild(notes, JSON.stringify([capsVersion, Boolean(caps), wizard.agentChoice]), node => {
       if (!caps) return;
       if (wizard.agentChoice === "external_mcp" && external) researchNote(node, "After launch, connect your client with: " + external.command + ". It sees this campaign and calls the same practice, freeze and submit operations.", "code");
-      for (const item of caps.agents.unavailable) researchNote(node, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
+      // Agents this machine cannot use yet: one fold, each with its reason and
+      // next step, instead of a line per agent under the choices.
+      const unavailable = caps.agents.unavailable || [];
+      if (unavailable.length) {
+        const fold = el("details", undefined, "inline-more");
+        fold.append(el("summary", unavailable.length + (unavailable.length === 1 ? " other agent is" : " other agents are") + " not available here"));
+        for (const item of unavailable) researchNote(fold, words(item.id) + ": " + words(item.reason) + " · Next: " + item.next_action, "reason");
+        node.append(fold);
+      }
     });
   }
   // Graphite's choices, under the Agent step once Graphite is chosen: built
@@ -3394,8 +3419,15 @@
       const choice = el("label", undefined, "choice");
       const input = el("input"); input.type = "radio"; input.name = "wizard-graphite-mode"; input.value = mode; input.id = "wizard-graphite-mode-" + mode.toLowerCase();
       input.addEventListener("change", () => setGraphite({mode}));
-      const span = el("span"); span.append(el("strong", label + (mode === "FULL" ? " · the default" : "")), el("span", text, "hint"));
+      // One line each; the rest of what a mode does is one click away.
+      const [first, ...rest] = text.split(/(?<=\.)\s+/);
+      const span = el("span"); span.append(el("strong", label + (mode === "FULL" ? " · the default" : "")), el("span", first, "hint"));
       choice.append(input, span); modes.append(choice);
+      if (rest.length) {
+        const more = el("details", undefined, "inline-more");
+        more.append(el("summary", "More about " + label), el("p", rest.join(" "), "hint"));
+        modes.append(more);
+      }
     }
     box.append(modes);
     // The edition: its choices are the controller's (patched in place).
@@ -3589,12 +3621,15 @@
     target.replaceChildren();
     target.dataset.key = key;
     if (!entry) { researchNote(target, "Choose a Challenge first: its tools come from its description.", "hint"); return; }
-    target.append(el("h3", "Tools for " + entry.title));
+    // What the Challenge gives the agent to work with: one line, the list one
+    // click away (the two fields people set are the limits below).
     const grid = el("dl", undefined, "review-grid");
     for (const [name, detail] of Object.entries(entry.tools?.workflow || {})) grid.append(el("dt", name), el("dd", detail));
     if (entry.tools?.public_material?.length) grid.append(el("dt", "public material"), el("dd", entry.tools.public_material.join(", ")));
     if (entry.tools?.rebuildable_models?.length) grid.append(el("dt", "rebuildable models"), el("dd", entry.tools.rebuildable_models.join(", ")));
-    target.append(grid);
+    const fold = el("details", undefined, "inline-more tools-fold");
+    fold.append(el("summary", "Tools for " + entry.title + " (" + grid.children.length / 2 + ")"), grid);
+    target.append(fold);
     // The Challenge's own feedback modes; FULL is every Challenge's default.
     const modes = entry.setup_offers?.feedback_modes || [];
     if (modes.length > 1) {
@@ -4209,6 +4244,11 @@
     budgetLine,
     onRender(hook) { renderHooks.push(hook); },
   };
+  // The private-tool notice is shown once, on the first connect, then no longer
+  // on every page; the Help card and the keys note still carry it.
+  const footerSeenKey = "carbon.launchpad.footer-seen.v1";
+  const pageFooter = document.querySelector("main > footer");
+  if (pageFooter && stored(footerSeenKey, {}).seen === true) pageFooter.hidden = true;
   buildNavigation();
   show();
   setInterval(refresh, 1500);

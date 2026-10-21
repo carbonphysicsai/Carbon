@@ -426,3 +426,8 @@ label.check input{width:auto;min-height:0}
   .lib-card{padding:14px}
   .graphite-options{padding:14px}
 }
+
+/* A line of detail one click away (UI cleanup, 2026-10-21). */
+.inline-more { margin: 4px 0 8px 28px; }
+.inline-more > summary { cursor: pointer; font-size: 14px; color: var(--muted-fg); }
+.inline-more > p, .inline-more > .reason { margin: 6px 0 0; }

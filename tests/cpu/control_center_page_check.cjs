@@ -116,7 +116,7 @@ scenario("normal challenge selection shows only its construction serving paths",
   await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id));
   assert.equal(one(page, "#wizard-construction-options").hidden, false);
   assert.match(page.text("wizard-construction-options"), /Construction serving paths/);
-  assert.match(page.text("wizard-construction-options"), /Official submission · unserved/);
+  assert.match(page.text("wizard-construction-options"), /Official submission · not served yet/);
   clean(page);
 
   const unknown = world();
@@ -127,7 +127,7 @@ scenario("normal challenge selection shows only its construction serving paths",
   await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id));
   assert.equal(one(second, "#wizard-construction-options").hidden, false);
   assert.match(second.text("wizard-construction-options"), /Construction path status unavailable/);
-  assert.doesNotMatch(second.text("wizard-construction-options"), /Official submission · unserved/,
+  assert.doesNotMatch(second.text("wizard-construction-options"), /Official submission · not served yet/,
     "an unrelated response key must not supply construction paths for this Challenge");
   clean(second);
 });
@@ -158,11 +158,11 @@ scenario("v2 construction paths render without family admission claims", async (
   const notice = page.text("wizard-construction-options");
   assert.match(notice, /Construction serving paths/);
   assert.match(notice, /Public reconstruction · available for a compatible bounded recipe/);
-  assert.match(notice, /Official submission · unserved/);
+  assert.match(notice, /Official submission · not served yet/);
   assert.match(notice, /Scientific qualification: untested/);
   assert.doesNotMatch(notice, /Families you can freeze|What you can change/);
   const availability = page.text("launch-availability");
-  assert.match(availability, /Official submission · unserved/);
+  assert.match(availability, /Official submission · not served yet/);
   assert.doesNotMatch(availability, /Model families/);
   clean(page);
 
@@ -748,7 +748,7 @@ scenario("a campaign without last_refusal shows no refusal", async () => {
 // Reconcile for each of these states (the lead's W3 contract; review repair).
 const LABELS = {reconcile: "Reconcile", resume: "Resume", stop: "Stop"};
 for (const stateName of ["RECONCILIATION_REQUIRED", "INTERRUPTED", "PAUSE_REQUESTED"]) {
-  scenario("Reconcile is on the Live tab, with why, for " + stateName, async () => {
+  scenario("the control bar offers what " + stateName + " needs, with why", async () => {
     const real = fx.recovering[stateName];
     const offered = real.view.recovery.map(item => item.action);
     assert.ok(offered.includes("reconcile"), "the controller offers Reconcile for " + stateName + ": " + offered);
@@ -760,23 +760,31 @@ for (const stateName of ["RECONCILIATION_REQUIRED", "INTERRUPTED", "PAUSE_REQUES
     const page = await open(state);
     page.go("#campaigns/" + run.id + "/live");
     await page.advance(0);
-    const now = "#campaign-detail [data-part=now]";
-    // Each action the controller offers is among the Live tab's controls,
-    // ready, and the ways forward (Stop aside) are primary.
+    // The one control bar is the campaign header's: the page's controls are
+    // drawn there once, and the Live tab's Now card draws none.
+    const bar = "#campaign-detail [data-part=head]";
+    assert.equal(all(page, "#campaign-detail [data-part=now] [data-action]").length, 0, "no second set of controls");
+    // Each action the controller offers is in the bar, ready, and the first
+    // way forward is the one primary button.
     for (const action of offered) {
-      const button = one(page, now + " [data-action=" + action + "]");
+      const button = one(page, bar + " [data-action=" + action + "]");
       assert.equal(button.disabled, false, action);
-      assert.equal(button.classList.contains("primary"), action !== "stop", action);
+      assert.equal(button.classList.contains("primary"), action === offered[0] && action !== "stop", action);
     }
+    assert.equal(all(page, bar + " .primary").length, 1, "one primary button");
     // Reconcile is there, once, ready.
-    assert.equal(all(page, now + " [data-action=reconcile]").length, 1);
-    const button = one(page, now + " [data-action=reconcile]");
+    assert.equal(all(page, bar + " [data-action=reconcile]").length, 1);
+    const button = one(page, bar + " [data-action=reconcile]");
     assert.equal(button.disabled, false);
     // Why, naming the way forward and Reconcile.
     const attention = page.text(one(page, "#campaign-detail [data-part=attention]"));
     assert.match(attention, /Needs attention/);
     assert.ok(attention.includes(LABELS[offered[0]]), "why names the way forward: " + attention);
-    assert.match(attention, /Reconcile/, "why says what Reconcile is for: " + attention);
+    if (offered[0] === "reconcile") assert.match(attention, /Reconcile/, "why says what Reconcile is for: " + attention);
+    if (stateName === "INTERRUPTED") {
+      assert.match(attention, /stopped mid-step/, "says only that it stopped: " + attention);
+      assert.doesNotMatch(attention, /Nothing is lost|restarted|slept/, "no guessed cause and no promise: " + attention);
+    }
     await page.press(button);
     assert.ok(state.posted.some(entry => entry.path === "/api/v1/research/" + run.id + "/reconcile"));
     clean(page);
@@ -794,7 +802,7 @@ scenario("a controller that publishes no recovery list gets Reconcile from the s
     const page = await open(state);
     page.go("#campaigns/" + run.id + "/live");
     await page.advance(0);
-    const button = one(page, "#campaign-detail [data-part=now] [data-action=reconcile]");
+    const button = one(page, "#campaign-detail [data-part=head] [data-action=reconcile]");
     assert.equal(button.disabled, false, name);
     assert.match(page.text(one(page, "#campaign-detail [data-part=attention]")), /Needs attention/, name);
     await page.press(button);
@@ -802,15 +810,18 @@ scenario("a controller that publishes no recovery list gets Reconcile from the s
     clean(page);
   }
 });
-scenario("a healthy campaign's Live tab keeps Reconcile in the header only", async () => {
+scenario("a healthy campaign's control bar keeps Reconcile and Export under More", async () => {
   const state = launchable(world());
   state.runs = [copy(fx.run)];
   state.view = copy(fx.view);
   const page = await open(state);
   page.go("#campaigns/" + fx.run.id + "/live");
   await page.advance(0);
-  assert.equal(all(page, "#campaign-detail [data-part=now] [data-action=reconcile]").length, 0);
+  assert.equal(all(page, "#campaign-detail [data-part=now] [data-action]").length, 0);
   assert.equal(all(page, "#campaign-detail .rs-head [data-action=reconcile]").length, 1);
+  assert.equal(all(page, "#campaign-detail .rs-more [data-action=reconcile]").length, 1, "Reconcile is under More when nothing needs it");
+  assert.equal(all(page, "#campaign-detail .rs-more [data-action=export]").length, 1);
+  assert.equal(all(page, "#campaign-detail .rs-head .primary").length, 0, "a healthy campaign has no primary button");
   assert.equal(page.text(one(page, "#campaign-detail [data-part=attention]")), "");
   // No model call's outcome is unknown: nothing to settle is shown.
   assert.equal(one(page, "#campaign-detail [data-part=settlement]").hidden, true);
@@ -863,7 +874,7 @@ scenario("the controller's own recovery actions are offered when its record carr
 // What Reconcile settles (LP-PROD-W2), over a real campaign's documents
 // (fx.reconciled: a model call answered by another model, so its outcome is
 // unknown, published awaiting Reconcile and again once it settled it).
-scenario("the Live tab says what Reconcile books before the press, and what it booked after", async () => {
+scenario("the campaign page says what Reconcile books before the press, and what it booked after", async () => {
   const {awaiting, settled} = fx.reconciled;
   const state = launchable(world());
   const run = copy(awaiting.run);
@@ -886,7 +897,7 @@ scenario("the Live tab says what Reconcile books before the press, and what it b
   // A press refused with the settlement's own step: the page says that step.
   const step = "a model call of this campaign is still being admitted or in flight; settle once it has ended";
   state.script.push({match: r => r.path === "/api/v1/research/" + run.id + "/reconcile", answer: {status: 409, body: {error: "call_in_flight", next_step: step}}});
-  await page.press(one(page, "#campaign-detail [data-part=now] [data-action=reconcile]"));
+  await page.press(one(page, "#campaign-detail [data-part=head] [data-action=reconcile]"));
   assert.match(page.text("message"), /call_in_flight/);
   assert.ok(page.text("message").includes("Next: " + step + "."), page.text("message"));
   // The press, answered as the controller answers it: the settled campaign.
@@ -895,7 +906,7 @@ scenario("the Live tab says what Reconcile books before the press, and what it b
     state.view = copy(settled.view);
     return {body: settled.run};
   }});
-  await page.press(one(page, "#campaign-detail [data-part=now] [data-action=reconcile]"));
+  await page.press(one(page, "#campaign-detail [data-part=head] [data-action=reconcile]"));
   assert.ok(state.posted.some(entry => entry.path === "/api/v1/research/" + run.id + "/reconcile"));
   for (let i = 0; i < 3; i++) await refresh(page);
   // After: what it booked, why the outcome was unknown, and the caveat that
