@@ -228,6 +228,24 @@ scenario("acceptance labels name a revision and never follow availability", asyn
   clean(page);
 });
 
+scenario("an exam Carbon has not set yet renders and the page stays connected", async () => {
+  // A direct version (F08 1.4, F02 2.3) registers its exam components and
+  // gates as HUMAN_INPUT until the owner sets them: the catalog says so, and
+  // every refresh still connects (the 2026-10-21 M1 interruption).
+  const state = world();
+  const entry = state.caps.challenges.find(item => item.implemented);
+  assert.ok(entry, "an implemented Challenge");
+  entry.description = {...(entry.description || {}), exam: {components: "HUMAN_INPUT", gates: "HUMAN_INPUT", rule: "HUMAN_INPUT", qualification: false}};
+  const page = await open(state);
+  for (const route of ["#challenges", "#setup", "#overview"]) {
+    page.go(route);
+    await refresh(page);
+    assert.equal(page.text("connection-state"), "Connected", "connected on " + route);
+  }
+  assert.ok(page.text("challenge-catalog").includes("not yet set by Carbon"), "the catalog names the unset exam");
+  clean(page);
+});
+
 scenario("acceptance defaults label offered Agents Compute and Connections catalogs", async () => {
   const state = launchable(world());
   for (const provider of state.caps.model.providers) provider.availability = "available";

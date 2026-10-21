@@ -2167,8 +2167,12 @@
     row("Never disclosed", (material.never_disclosed || []).join("; "));
     row("Tools", Object.entries(entry.tools?.workflow || {}).map(([name, detail]) => name + ": " + detail).join(" · "));
     row("Rebuildable models", (entry.tools?.rebuildable_models || []).join(", "));
-    row("Practice metrics", [d.feedback?.practice, d.exam?.components ? "components: " + d.exam.components.join(", ") : ""].filter(Boolean).join(" · "));
-    row("Exam gates", (d.exam?.gates || []).join(", "));
+    // A registered list, or a value Carbon has not set yet (HUMAN_INPUT): a
+    // direct version's exam components and gates are the owner's to set.
+    const listed = value => Array.isArray(value) ? value.join(", ") : value === "HUMAN_INPUT" ? "not yet set by Carbon" : "";
+    const components = listed(d.exam?.components);
+    row("Practice metrics", [d.feedback?.practice, components ? "components: " + components : ""].filter(Boolean).join(" · "));
+    row("Exam gates", listed(d.exam?.gates));
     row("Submission", [d.prediction_contract?.produced_by, d.workflow?.freeze, d.workflow?.submit].filter(Boolean).join(" · "));
     row("Reconstruction", d.exclusion_scope?.submission);
     row("Exam version", "version " + entry.version + (d.contract_digest ? " · contract " + d.contract_digest : "") + (d.exam?.rule?.status ? " · " + words(d.exam.rule.status) : ""));

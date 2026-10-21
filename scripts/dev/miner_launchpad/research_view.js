@@ -995,9 +995,12 @@
       group.append(list); caps.append(group);
     }
     const exam = section(panel, "Exam gates and what is never disclosed", "Evaluation");
-    para(exam, "Gates: " + c.exam.gates.map(words).join(", ") + ". A gate failure is never compensated by score.");
-    para(exam, "Components: " + c.exam.components.join(", ") + ".");
-    const never = el("ul", undefined, "rs-list"); for (const item of c.never_disclosed) never.append(el("li", item)); exam.append(el("p", "Never disclosed:", "status-line"), never);
+    // A list, or a value Carbon has not set yet (HUMAN_INPUT) for a direct version.
+    const unset = "not yet set by Carbon";
+    const gates = Array.isArray(c.exam?.gates) ? c.exam.gates.map(words).join(", ") : unset;
+    para(exam, "Gates: " + gates + ". A gate failure is never compensated by score.");
+    para(exam, "Components: " + (Array.isArray(c.exam?.components) ? c.exam.components.join(", ") : unset) + ".");
+    const never = el("ul", undefined, "rs-list"); for (const item of Array.isArray(c.never_disclosed) ? c.never_disclosed : []) never.append(el("li", item)); exam.append(el("p", "Never disclosed:", "status-line"), never);
     const limits = section(panel, "Limits", "Yours, or none");
     const ld = el("dl", undefined, "review-grid");
     for (const [k, v] of Object.entries(c.limits || {})) ld.append(el("dt", words(k)), el("dd", typeof v === "string" ? v : JSON.stringify(v)));
