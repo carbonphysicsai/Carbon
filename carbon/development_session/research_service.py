@@ -428,11 +428,30 @@ class DirectFixtureDiscovery:
         return info, manifest
 
     def graph_adapter_for(self, key):
-        """Return the exact registered 1.3 graph adapter, or no capability.
+        """Return the exact registered graph adapter, or no capability.
 
-        The selector follows the existing full fixture recheck. A caller's
-        recipe or an unverified material flag cannot select an adapter.
+        Synthetic 1.3, and F08 1.4 / F02 2.3 (the Validator, 2026-10-20), each
+        only when the served limits carry that adapter's exact block. The
+        selector follows the existing full fixture recheck. A caller's recipe
+        or an unverified material flag cannot select an adapter.
         """
+        from . import physical_graph_adapter
+
+        if (
+            type(key) is research.ChallengeKey
+            and (key.challenge_id, key.version) in physical_graph_adapter.SPECS
+        ):
+            if key != self.info.challenge_key:
+                return None
+            self._checked(key)
+            spec = physical_graph_adapter.SPECS[(key.challenge_id, key.version)]
+            block = self._material["construction_limits_document"].get(
+                "graph_training_adapter"
+            )
+            expected = physical_graph_adapter.adapter_block(
+                spec.challenge_id, spec.version
+            )
+            return spec.adapter_id if block == expected else None
         if (
             type(key) is not research.ChallengeKey
             or key.version != "1.3"

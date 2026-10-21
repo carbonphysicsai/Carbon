@@ -510,15 +510,17 @@ class DirectDevelopmentTasksV3:
     def _resolved_image(self, request):
         """Resolve only a recipe ref; runtime verifies the selected child anew."""
         from .construction_recipe import ConstructionRecipe
+        from .direct_graph_construction_worker import graph_adapter_ids
         from .library_bundles import LibraryBundleRef
         from .research_image import LibraryWorkerImage, verify_library_worker_image
-        from .synthetic_graph_adapter import ADAPTER_ID
 
         recipe = ConstructionRecipe.from_dict(request.recipe)
         source = recipe.to_dict()["source"]
         if source["kind"] == "graph":
             adapter = getattr(self.discovery, "graph_adapter_for", None)
-            if not callable(adapter) or adapter(request.challenge_key) != ADAPTER_ID:
+            if not callable(adapter) or (
+                adapter(request.challenge_key) not in graph_adapter_ids()
+            ):
                 raise ValueError("direct graph adapter unavailable for Challenge")
             return self.inference_image
         if source["kind"] != "bundle":
@@ -811,7 +813,7 @@ class DirectDevelopmentTasksV3:
         )
         from carbon.research import canonical_digest
 
-        from .synthetic_graph_adapter import ADAPTER_ID
+        from .direct_graph_construction_worker import graph_adapter_ids
 
         info, manifest = self.discovery._checked(request.challenge_key)
         material = self.discovery._material
@@ -859,7 +861,7 @@ class DirectDevelopmentTasksV3:
                 source["kind"] == "graph"
                 and (
                     not callable(graph_adapter)
-                    or graph_adapter(request.challenge_key) != ADAPTER_ID
+                    or graph_adapter(request.challenge_key) not in graph_adapter_ids()
                 )
             )
             or (
@@ -1746,6 +1748,7 @@ class DirectDevelopmentTasksV3:
                     expected_output_shape=material["expected_output_shape"],
                     allowlist_bytes=material["allowlist_bytes"],
                     measure_query=task_id.value in self._measured_tasks,
+                    adapter_id=self.discovery.graph_adapter_for(request.challenge_key),
                 )
             else:
                 result = reconstruct_and_infer_public(
