@@ -43,6 +43,34 @@ BOUNDS = {
     "parse_seconds": 10,
     "parse_memory_bytes": 512 * 1024**2,
 }
+#: The intake bounds of an allowlist version with no model-size caps
+#: (`allowlist.UNCAPPED_VERSIONS`; owner, 2026-10-21), as containment only:
+#: what the host reads and parses before isolation, never a model rule
+#: (Validator, 2026-10-21). Proposed values, not a security acceptance: a
+#: document at `allowlist.CONTAINMENT`'s 64 MiB, a submission of three such
+#: role documents, and parse limits sized from a measured 64 MiB parse
+#: (13 s, 841 MiB peak; three documents about 39 s and 2.5 GB).
+CONTAINMENT_BOUNDS = {
+    "manifest_bytes": 16 * 1024,
+    "document_bytes": 64 * 1024**2,
+    "submission_bytes": 192 * 1024**2,
+    "parse_seconds": 120,
+    "parse_memory_bytes": 4 * 1024**3,
+}
+
+
+def bounds_for(allowlist):
+    """The intake bounds for documents validated under ``allowlist`` (an
+    `Allowlist` or its version string): `CONTAINMENT_BOUNDS` for an uncapped
+    version, else the owner's `BOUNDS`."""
+    from .allowlist import UNCAPPED_VERSIONS
+
+    version = (
+        allowlist if type(allowlist) is str else getattr(allowlist, "version", None)
+    )
+    return dict(CONTAINMENT_BOUNDS if version in UNCAPPED_VERSIONS else BOUNDS)
+
+
 FAILED_INFRA = "FAILED_INFRA"
 
 
@@ -57,8 +85,8 @@ class IntakeInfraFailure(RuntimeError):
     kind = FAILED_INFRA
 
 
-def _bounds(bounds):
-    merged = {**BOUNDS, **(bounds or {})}
+def _bounds(bounds, allowlist=None):
+    merged = {**bounds_for(allowlist), **(bounds or {})}
     unset = sorted(k for k, v in merged.items() if v == HUMAN_INPUT or v is None)
     if unset:
         raise IntakeBlocked("unset intake bounds: " + ", ".join(unset))
@@ -146,7 +174,7 @@ def intake(
     `worker` replaces the isolated parser's command (tests only)."""
     from . import loss as loss_slot
 
-    bounds = _bounds(bounds)
+    bounds = _bounds(bounds, allowlist)
     if type(raw_manifest) is not bytes or type(files) is not dict:
         raise graph.GraphRefused("intake_malformed")
     if not all(type(k) is str and type(v) is bytes for k, v in files.items()):
