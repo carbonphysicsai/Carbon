@@ -137,10 +137,19 @@
   function path(w, action) { return "/api/v1/tools/" + encodeURIComponent(w.id) + (action ? "/" + action : ""); }
   async function post(w, action, body) { return CC.api(path(w, action), body, undefined, 130000); }
   function toolName(w, operation) { return (w.state?.tools || []).find(t => t.operation === operation)?.name; }
+  // A refusal before dispatch, as the agent reads it: its registered
+  // correction code, the field and the correction's own text, where it names
+  // one. Every such refusal's `reason` is contract_incompatibility, so the
+  // reason alone told a miner nothing (S22: a catalog practice refused
+  // backend_not_served read as a bare "contract incompatibility").
+  function refusalText(payload) {
+    if (!payload?.correction_code) return words(payload?.reason) + ": " + (payload?.detail ?? "");
+    return words(payload.correction_code) + (payload.field ? " (" + payload.field + ")" : "") + ": " + (payload.correction || payload.detail || "");
+  }
   function unwrap(reply) {
     if (!reply.ok) return {error: reply.error};
     const payload = reply.result?.payload || {};
-    if (payload.status === "REJECTED_BEFORE_DISPATCH" || payload.status === "UNAVAILABLE") return {error: words(payload.reason) + ": " + payload.detail, payload};
+    if (payload.status === "REJECTED_BEFORE_DISPATCH" || payload.status === "UNAVAILABLE") return {error: refusalText(payload), payload};
     return {payload, value: payload.public_result ? payload.public_result.result : payload.reply};
   }
   async function callTool(w, operation, args) {
@@ -368,7 +377,7 @@
       if (!reply.task) {
         const text = reply.result?.content?.[0]?.text || "";
         const parsed = parseJSON(text).value?.payload;
-        area.replaceChildren(el("p", parsed?.status === "REJECTED_BEFORE_DISPATCH" ? "Refused before it started: " + words(parsed.reason) + ". " + parsed.detail : "Not started.", "reason"));
+        area.replaceChildren(el("p", parsed?.status === "REJECTED_BEFORE_DISPATCH" ? "Refused before it started: " + refusalText(parsed) : "Not started.", "reason"));
         return;
       }
       track(w, reply.task.taskId, area);
@@ -457,8 +466,23 @@
   function recipePanel(w, body) {
     const box = el("details", undefined, "rs-tool");
     box.append(el("summary", "Recipe: validate, compile, estimate, practice, freeze, submit"));
-    const example = (w.doc.toolbox?.examples || [])[0];
+    // A catalog version's backbones, each with its ready recipe at the tested
+    // baseline, as the controller lists them (S22): picking one fills its
+    // recipe in. Nothing here names a backbone of its own.
+    const catalog = (w.doc.toolbox?.catalog || []).filter(item => typeof item?.catalog_id === "string" && item.recipe && typeof item.recipe === "object");
+    const listed = (w.doc.toolbox?.examples || [])[0];
+    const chosen = catalog.find(item => item.catalog_id === listed?.source?.catalog_id) || catalog[0];
+    const example = listed || chosen?.recipe;
     const recipe = input("textarea", example ? JSON.stringify(example, null, 2) : "{}", "Recipe JSON"); recipe.className = "rs-code"; recipe.rows = 10;
+    if (chosen) {
+      const picker = select(catalog.map(item => [item.catalog_id, item.catalog_id === item.backbone ? item.catalog_id : item.catalog_id + " · " + item.backbone]), chosen.catalog_id, "Backbone");
+      picker.dataset.picker = "backbone";
+      field(box, "Backbone (Carbon's tested catalog)", picker, "Fills in the chosen backbone's catalog recipe at its tested baseline settings.");
+      picker.addEventListener("change", () => {
+        const item = catalog.find(entry => entry.catalog_id === picker.value);
+        if (item) recipe.value = JSON.stringify(item.recipe, null, 2);
+      });
+    }
     field(box, "Recipe (JSON)", recipe, example ? "Prefilled with the Challenge's registered example." : "This Challenge registers no example recipe.");
     const result = out(box);
     const strategy = () => { const parsed = parseJSON(recipe.value); if (parsed.error) { show(result, parsed.error); return null; } return parsed.value; };

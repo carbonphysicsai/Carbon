@@ -84,6 +84,53 @@ def _sources(challenge_id, version):
     )
 
 
+def _catalog_recipe(challenge_id, version, catalog_id):
+    """The registered ready catalog recipe for one entry: the Challenge's own
+    helper (Motor's, Cooling's, or the direct versions')."""
+    from carbon.challenge_registry import cold_plate, direct, motor
+    from carbon.direct_campaign.spec import SPECS
+    from carbon.reconstruction.capability_registry import (
+        COLD_PLATE_CHALLENGE,
+        MOTOR_CHALLENGE,
+    )
+
+    if challenge_id == MOTOR_CHALLENGE:
+        return motor.catalog_recipe(catalog_id, version=version)
+    if challenge_id == COLD_PLATE_CHALLENGE:
+        return cold_plate.catalog_recipe(catalog_id, version=version)
+    return direct.catalog_recipe(SPECS[challenge_id], catalog_id, version=version)
+
+
+@functools.lru_cache(maxsize=16)
+def _catalog_recipes(challenge_id, version):
+    from carbon.backbone_catalog import listing
+    from carbon.challenge_kit.served_versions import UnregisteredVersion, serves_catalog
+
+    try:
+        if type(version) is not str or not serves_catalog(challenge_id, version):
+            return "[]"
+    except UnregisteredVersion:
+        return "[]"
+    return json.dumps(
+        [
+            {
+                "catalog_id": item["catalog_id"],
+                "backbone": item["backbone"],
+                "recipe": _catalog_recipe(challenge_id, version, item["catalog_id"]),
+            }
+            for item in listing.entries(challenge_id, version)
+        ]
+    )
+
+
+def catalog_recipes(challenge_id, version):
+    """The backbone picker for a catalog version (S22): each entry of the
+    version's catalog (`backbone_catalog.listing.entries`) with its ready
+    catalog recipe at the tested baseline (empty settings keep the
+    baseline's). [] for a version that serves no catalog."""
+    return json.loads(_catalog_recipes(challenge_id, version))
+
+
 def _tools():
     from carbon import research
     from carbon.development_session.research_tasks import workspace_fields
@@ -455,12 +502,17 @@ def build(challenge, *, lanes=None, compute=None):
                 },
                 "limits": limits,
                 # The Challenge's registered example recipes, for the page's
-                # recipe editor (RSURF-D15).
+                # recipe editor (RSURF-D15): a Level 0 version's strategies,
+                # a catalog version's construction recipes (S22).
                 "examples": [
-                    e["strategy"]
+                    e.get("strategy", e.get("recipe"))
                     for e in described.get("examples") or []
-                    if type(e) is dict and type(e.get("strategy")) is dict
+                    if type(e) is dict
+                    and type(e.get("strategy", e.get("recipe"))) is dict
                 ][:4],
+                # The editor's backbone picker: each catalog entry and its
+                # ready recipe; [] where the version serves no catalog.
+                "catalog": catalog_recipes(challenge["id"], challenge.get("version")),
                 "lanes": {
                     name: _availability(lanes.get(name))
                     for name in ("julia", "gpu", "remote_gpu")

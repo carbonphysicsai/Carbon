@@ -319,6 +319,13 @@ def _challenges(profile_state, host):
                 if examples
                 else None
             )
+            # A catalog version's backbone picker: each entry and its ready
+            # recipe, from the version's catalog (S22); [] elsewhere.
+            from scripts.dev.miner_launchpad.toolbox import catalog_recipes
+
+            item["catalog_recipes"] = catalog_recipes(
+                entry["challenge_id"], entry["version"]
+            )
         if refusal is None and not profile_state["configured"]:
             refusal = {
                 "code": profile_state["reason"],
