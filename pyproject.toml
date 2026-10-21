@@ -10,6 +10,7 @@ dependencies = []
 carbon-control-center = "carbon_control_center:main"
 carbon-mcp = "carbon.miner_mcp.standard_cli:main"
 carbon-miner-signer = "carbon_miner_signer:main"
+carbon-miner-identity = "carbon_miner_identity:main"
 
 [build-system]
 requires = ["setuptools==84.0.0"]
