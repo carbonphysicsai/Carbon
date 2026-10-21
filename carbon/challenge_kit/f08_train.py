@@ -20,7 +20,9 @@ CHALLENGE_ID = "f08-ribbed-bracket"
 CHALLENGE_VERSION = "1.0"
 #: 1.1 adds the near-limit TRAIN stratum and the straddling exam ladder; 1.0
 #: stays loadable and unchanged.
-CHALLENGE_VERSIONS = ("1.0", "1.1")
+#: 1.2 (step-2 batch, STEP2_BATCH_VERSIONS_20261020) serves 1.1's TRAIN v2 bytes
+#: unchanged; only the version binding differs.
+CHALLENGE_VERSIONS = ("1.0", "1.1", "1.2")
 TRAIN_SHA256 = "65eb6a5f4e95ab3e2120c78cf3cd6a60d37554934c7d7ddea71e53cdadaac947"
 PROVENANCE_SHA256 = "f510f92f77ec0c1d3655069703e70d25585648dc2766e14cef5f4689089c1860"
 OBSERVED_SHA256 = "bb2d030d486b313efe2c0ebf57151bb4a34727d6e307892a87e1d8a9211ccc45"
@@ -428,7 +430,7 @@ def load_public_train(version: str) -> dict:
 
     if version not in CHALLENGE_VERSIONS:
         raise ValueError("unknown public f08 TRAIN version")
-    if version == "1.1":
+    if version in ("1.1", "1.2"):
         return _load_v2()
     raw = (_DATA / _TRAIN).read_bytes()
     provenance_raw = (_DATA / _PROVENANCE).read_bytes()

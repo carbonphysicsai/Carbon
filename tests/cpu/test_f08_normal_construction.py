@@ -212,7 +212,7 @@ def test_version_1_1_is_a_registered_served_contract_and_discoverable():
 
 def test_an_unknown_f08_version_is_refused():
     with pytest.raises(ValueError):
-        physical_material.bundle_material("f08-ribbed-bracket", "1.2")
+        physical_material.bundle_material("f08-ribbed-bracket", "1.3")
 
 
 def test_the_version_is_required_and_never_defaulted():
@@ -221,7 +221,8 @@ def test_the_version_is_required_and_never_defaulted():
     with pytest.raises(TypeError):
         f08_train.load_public_train()
     with pytest.raises(ValueError):
-        f08_train.load_public_train("1.2")
+        # 1.2 is registered (step-2 batch); an unregistered version refuses.
+        f08_train.load_public_train("9.9")
 
 
 def test_the_output_dtype_reader_refuses_a_malformed_outputs_block():

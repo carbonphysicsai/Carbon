@@ -118,6 +118,27 @@ def accepted_implementation(revision):
     }
 
 
+def campaign_implementation(args, root):
+    """The implementation a product campaign runs: the installed development
+    candidate its runner profile names, else the exact clean accepted
+    revision. Battery's campaign resolves it the same way; a Challenge that
+    skipped the candidate refused every campaign on a candidate install
+    (BUG MOTOR_RUN_INTERRUPTED_CANDIDATE_20261020)."""
+    source_profile = getattr(args, "source_profile", None)
+    if source_profile is not None:
+        from scripts.dev.miner_launchpad import installed
+
+        implementation = installed.profile_candidate(source_profile)
+        if implementation is not None:
+            if (
+                root.parent != Path(source_profile).parent / "campaigns"
+                or args.accepted_revision != implementation["revision"]
+            ):
+                raise ValueError("development candidate campaign differs from profile")
+            return implementation
+    return accepted_implementation(args.accepted_revision)
+
+
 def development_candidate_implementation(
     revision, *, expected_tree, expected_source_tree_digest, repository=None
 ):
@@ -174,8 +195,17 @@ def development_candidate_implementation(
         ".agent/runtime/",
         "website/ask-carbon/.wrangler/",
     }
-    if any(path not in isolated for path in ignored):
-        raise ValueError("development candidate has ignored runtime source")
+    stray = [path for path in ignored if path not in isolated]
+    if stray:
+        # Fail closed (a stale .pyc can shadow source), but name the paths and
+        # the usual cause: `python` without -B writes carbon/**/__pycache__.
+        raise ValueError(
+            "development candidate has ignored runtime source: "
+            + ", ".join(stray[:5])
+            + (" ..." if len(stray) > 5 else "")
+            + "; remove them (a __pycache__ comes from running python without"
+            " -B or PYTHONDONTWRITEBYTECODE=1) and run again"
+        )
     tree = git("rev-parse", "HEAD^{tree}")
     if tree != expected_tree:
         raise ValueError("development candidate tree differs")
@@ -1372,6 +1402,89 @@ def freeze_refusal(root, strategy):
     return None
 
 
+def direct_candidate_record(prepared, strategy, reason, used_feedback):
+    """A direct campaign's frozen-candidate record and its source envelope (or
+    None), whoever selects it: a miner's freeze or Graphite's SELECT. One
+    builder, so the two cannot differ (OWNER-BACKBONE-CATALOG-01: Graphite
+    could select no direct recipe, since its record wanted a Level 0
+    challenge_id). A catalog recipe is recorded as the miner wrote it, with
+    the Carbon bundle it stands for as its construction source."""
+    from .construction_recipe import (
+        RecipeRefused,
+        bind_recipe,
+        graph_envelope_from_workspace,
+    )
+
+    if type(reason) is not str or not 1 <= len(reason) <= 4096:
+        raise ValueError("a bounded selection reason is required")
+    if type(used_feedback) is not bool:
+        raise ValueError("used_feedback is a Boolean")
+    ledger, owner = prepared.ledger, prepared.owner
+    campaign = prepared.campaign
+    if not callable(
+        getattr(campaign, "construction_reconstruct", None)
+    ) or not callable(getattr(campaign, "construction_kit", None)):
+        raise OperationRefused("construction_reconstruction_unserved")
+    catalog = None
+    try:
+        kit = campaign.construction_kit()
+        recipe = bind_recipe(
+            strategy,
+            challenge_id=kit["id"],
+            challenge_version=kit["version"],
+            train_digest=kit["train_digest"],
+            interface_digest=kit["interface_digest"],
+            construction_limits_digest=kit["construction_limits_digest"],
+        )
+        source = recipe.to_dict()["source"]
+        envelope = None
+        if source["kind"] == "graph":
+            envelope = graph_envelope_from_workspace(ledger, owner, recipe)
+            source_digest = source["submission_digest"]
+        elif source["kind"] == "catalog":
+            from carbon.backbone_catalog.entries import CatalogRefused
+            from carbon.backbone_catalog.served import expand
+
+            try:
+                expanded = expand(recipe.to_dict())
+            except CatalogRefused as refused:
+                raise OperationRefused(refused.code) from None
+            source_digest = expanded["source"]["bundle_ref"]["bundle_digest"]
+            catalog = {
+                "catalog_id": source["catalog_id"],
+                "catalog_digest": source["catalog_digest"],
+            }
+        elif callable(getattr(campaign, "construction_bundle_material", None)):
+            source_digest = source["bundle_ref"]["bundle_digest"]
+        else:
+            raise RecipeRefused("construction_reconstruction_unserved")
+    except RecipeRefused as refused:
+        raise OperationRefused(refused.code) from None
+    record = {
+        "schema": (
+            "carbon.direct-selected-recipe.v1"
+            if source["kind"] == "graph"
+            else "carbon.direct-selected-recipe.v2"
+        ),
+        "status": "SELECTED",
+        "strategy": recipe.to_dict(),
+        "reason": reason,
+        "used_feedback": used_feedback,
+        "strategy_hash": recipe.digest,
+        "construction_recipe_digest": recipe.digest,
+        "construction_source_digest": source_digest,
+        "construction_limits_digest": kit["construction_limits_digest"],
+        "train_digest": kit["train_digest"],
+        "interface_digest": kit["interface_digest"],
+        "final_evidence": False,
+    }
+    if catalog is not None:
+        record["catalog"] = catalog
+    if envelope is not None:
+        record["source_envelope_digest"] = digest(envelope)
+    return record, envelope
+
+
 async def freeze_candidate(
     prepared, *, strategy, reason, used_feedback=False, level4_directory=None
 ):
@@ -1402,62 +1515,11 @@ async def freeze_candidate(
         raise ValueError("used_feedback is a Boolean")
     direct = prepared.manifest.get("construction_mode") == "direct"
     if direct:
-        from .construction_recipe import (
-            RecipeRefused,
-            bind_recipe,
-            graph_envelope_from_workspace,
-        )
-
         if level4_directory is not None:
             raise OperationRefused("construction_source_from_workspace_required")
-        campaign = prepared.campaign
-        if not callable(
-            getattr(campaign, "construction_reconstruct", None)
-        ) or not callable(getattr(campaign, "construction_kit", None)):
-            raise OperationRefused("construction_reconstruction_unserved")
-        try:
-            kit = campaign.construction_kit()
-            recipe = bind_recipe(
-                strategy,
-                challenge_id=kit["id"],
-                challenge_version=kit["version"],
-                train_digest=kit["train_digest"],
-                interface_digest=kit["interface_digest"],
-                construction_limits_digest=kit["construction_limits_digest"],
-            )
-            source = recipe.to_dict()["source"]
-            if source["kind"] == "graph":
-                envelope = graph_envelope_from_workspace(ledger, owner, recipe)
-            elif callable(getattr(campaign, "construction_bundle_material", None)):
-                envelope = None
-            else:
-                raise RecipeRefused("construction_reconstruction_unserved")
-        except RecipeRefused as refused:
-            raise OperationRefused(refused.code) from None
-        record = {
-            "schema": (
-                "carbon.direct-selected-recipe.v1"
-                if source["kind"] == "graph"
-                else "carbon.direct-selected-recipe.v2"
-            ),
-            "status": "SELECTED",
-            "strategy": recipe.to_dict(),
-            "reason": reason,
-            "used_feedback": used_feedback,
-            "strategy_hash": recipe.digest,
-            "construction_recipe_digest": recipe.digest,
-            "construction_source_digest": (
-                source["submission_digest"]
-                if source["kind"] == "graph"
-                else source["bundle_ref"]["bundle_digest"]
-            ),
-            "construction_limits_digest": kit["construction_limits_digest"],
-            "train_digest": kit["train_digest"],
-            "interface_digest": kit["interface_digest"],
-            "final_evidence": False,
-        }
-        if envelope is not None:
-            record["source_envelope_digest"] = digest(envelope)
+        record, envelope = direct_candidate_record(
+            prepared, strategy, reason, used_feedback
+        )
     else:
         found = cl.binding(prepared.manifest)
         try:

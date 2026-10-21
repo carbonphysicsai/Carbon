@@ -71,7 +71,13 @@ _FREQUENCIES = (
 VERSIONS = {
     "1.0": (EVALUATION_VERSION, CASE_ID),
     "1.1": ("f08-dual-near-limit-bank-8-v1", "f08-near-limit-bank-8"),
+    # Step-2 batch (STEP2_BATCH_VERSIONS_20261020): 1.1's TRAIN v2 and ladder
+    # bank, served allowlist v6 with no step caps; measurement unchanged.
+    "1.2": ("f08-dual-near-limit-bank-8-v2", "f08-near-limit-bank-8"),
 }
+#: A sealed exam batch's evaluation version, per Challenge version (Validator,
+#: 2026-10-20): the same measurement as that version's, under its own name.
+SEALED_VERSIONS = {"1.2": "f08-dual-sealed-batch-8-v1"}
 LEG_MINIMUM_RULES = {
     "baseline_legs": (
         "",
@@ -263,10 +269,12 @@ class _Variant:
     evaluation version, case id and definition; everything else (measurement,
     producer files) is the default adapter's."""
 
-    def __init__(self, rule, version):
+    def __init__(self, rule, version, sealed=False):
         self.rule = rule
         self.VERSION = version
         evaluation_version, self.CASE_ID = VERSIONS[version]
+        if sealed:
+            evaluation_version = SEALED_VERSIONS[version]
         self.EVALUATION_VERSION = evaluation_version + LEG_MINIMUM_RULES[rule][0]
         self.MINIMUM_LEGS = ("A", "D") if rule == "baseline_legs" else ("A",)
         # The calibration run is graded under the default rule's calibration
@@ -302,6 +310,14 @@ def adapter(rule="baseline_legs", version=VERSION):
     if rule == "baseline_legs" and version == VERSION:
         return _ADAPTER
     return _Variant(rule, version)
+
+
+def sealed_adapter(version):
+    """The adapter for a sealed exam batch of exactly Challenge ``version``
+    (``SEALED_VERSIONS``), or None: no default."""
+    if type(version) is not str or version not in SEALED_VERSIONS:
+        return None
+    return _Variant("baseline_legs", version, sealed=True)
 
 
 def producer_digest():

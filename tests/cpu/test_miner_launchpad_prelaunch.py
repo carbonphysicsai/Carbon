@@ -386,7 +386,7 @@ def test_review_states_where_a_frozen_candidate_is_evaluated(tmp_path, monkeypat
     endpoints = review["evaluation_endpoints"]
     assert endpoints["configured"] == "NOT_CONFIGURED"
     assert endpoints["challenges"][0]["status"] == "NONE_PUBLISHED"
-    assert "cannot submit" in endpoints["challenges"][0]["next_step"]
+    assert "nothing for you to fix" in endpoints["challenges"][0]["next_step"]
     readiness = review["readiness"]["independent_development_evaluation_available"]
     assert readiness == "NOT_CONFIGURED"
 
@@ -411,7 +411,20 @@ def test_review_states_where_a_frozen_candidate_is_evaluated(tmp_path, monkeypat
             "receivers": {challenge["id"]: receiver},
         }
     )
-    assert written["configured"] == "CONFIGURED_FOR_ALL"
+    # Every other intake Challenge (Motor 1.2 since its catalog landing) has
+    # no endpoint published: CONFIGURED_FOR_SOME, each plainly NONE_PUBLISHED.
+    others = environment_setup.intake_challenges()[1:]
+    assert written["configured"] == (
+        "CONFIGURED_FOR_SOME" if others else "CONFIGURED_FOR_ALL"
+    )
+    for other, item in zip(others, written["challenges"][1:], strict=True):
+        assert (item["challenge_id"], item["status"]) == (
+            other["id"],
+            "NONE_PUBLISHED",
+        )
+        assert item["next_step"] == environment_setup.NO_ENDPOINT.format(
+            title=other["title"]
+        )
     assert written["challenges"][0] == {
         "challenge_id": challenge["id"],
         "title": challenge["title"],
@@ -423,7 +436,13 @@ def test_review_states_where_a_frozen_candidate_is_evaluated(tmp_path, monkeypat
     # A profile from before receivers were pinned (LAUNCHPAD-ACCEPT-03): still
     # configured, never refused, and the review says so.
     legacy = evaluation({**cfg, "intakes": {challenge["id"]: url}})
-    assert legacy["configured"] == "CONFIGURED_FOR_ALL"
+    assert legacy["configured"] == written["configured"]
+    # With every intake Challenge configured, it is configured for all.
+    every = {c["id"]: url for c in environment_setup.intake_challenges()}
+    configured_all = evaluation(
+        {**cfg, "intakes": every, "receivers": dict.fromkeys(every, receiver)}
+    )
+    assert configured_all["configured"] == "CONFIGURED_FOR_ALL"
     item = legacy["challenges"][0]
     assert (item["receiver_pinned"], item["warning"]) == (
         False,

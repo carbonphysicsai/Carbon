@@ -106,3 +106,54 @@ def construction_kit() -> dict:
         "interface_digest": interface_digest(),
         "construction_limits_digest": construction_limits_digest(),
     }
+
+
+#: The graph kit's registered versions: 1.0 above, unchanged; 2.0 the step-2
+#: version (STEP2_BATCH_VERSIONS_20261020), with no fixed training-step caps.
+VERSIONS = ("1.0", "2.0")
+#: The training surfaces whose upper bound was a fixed step cap; for 2.0 they
+#: keep only their lower bounds and dependency rules (warmup below the main
+#: steps, polish leaving 16 main steps: `battery.compile.rebuild_issues`).
+STEP_SURFACES = ("steps", "warmup_steps", "polish_steps")
+
+
+def _version(version: str) -> str:
+    if version not in VERSIONS:
+        raise challenge.MaterialMismatch(
+            f"unregistered Battery construction version {version!r}"
+        )
+    return version
+
+
+def construction_limits_document_for(version: str) -> dict:
+    """1.0's limits as above; 2.0 with the step surfaces uncapped and the
+    worker's productive deadline named as the only training limit
+    (OWNER-REBUILD-TIME-LIMIT-01)."""
+    if _version(version) == "1.0":
+        return construction_limits_document()
+    document = construction_limits_document()
+    document["schema"] = "carbon.battery.construction-limits.v2"
+    document["challenge"] = {"id": challenge.CHALLENGE.challenge_id, "version": "2.0"}
+    for name in STEP_SURFACES:
+        document["train_surfaces"][name]["high"] = None
+    document["training_step_cap"] = None
+    document["training_limit"] = "worker.productive_deadline_seconds"
+    return document
+
+
+def construction_kit_for(version: str) -> dict:
+    """The exact five-field graph kit of a registered Battery version."""
+    if _version(version) == "1.0":
+        return construction_kit()
+    body = json.dumps(
+        construction_limits_document_for(version),
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    return {
+        **construction_kit(),
+        "version": version,
+        "construction_limits_digest": "sha256:"
+        + hashlib.sha256(body.encode("utf-8")).hexdigest(),
+    }

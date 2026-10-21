@@ -23,6 +23,10 @@ CHALLENGE_ID = "f02"
 #: TRAIN40-v2 is F02's evaluation version 2 (the owner record calls it a new
 #: evaluation version); TRAIN40 (v1) is history and is not served here.
 CHALLENGE_VERSION = "2.0"
+#: 2.1 (step-2 batch, STEP2_BATCH_VERSIONS_20261020) serves 2.0's TRAIN40-v2
+#: bytes unchanged; only the version binding differs. Every loader names its
+#: version; there is no default.
+CHALLENGE_VERSIONS = ("2.0", "2.1")
 CONTEXT = {
     "coolant_c": 30.0,
     "h_w_m2_k": 2500.0,
@@ -177,11 +181,14 @@ def derive_public_train(source_raw: bytes) -> tuple[bytes, dict]:
     return raw, provenance
 
 
-def load_public_train(version: str = CHALLENGE_VERSION) -> dict:
-    """Load pinned inert tensors; admission and scientific use belong elsewhere."""
+def load_public_train(version: str) -> dict:
+    """Load pinned inert tensors; admission and scientific use belong elsewhere.
+
+    The version is required, never defaulted: a version bump must not silently move what is served.
+    """
     import numpy as np
 
-    if version != CHALLENGE_VERSION:
+    if version not in CHALLENGE_VERSIONS:
         raise ValueError("unknown public f02 TRAIN version")
     raw = (_DATA / _TRAIN).read_bytes()
     provenance_raw = (_DATA / _PROVENANCE).read_bytes()

@@ -32,6 +32,7 @@ from .bundle_construction_worker import (
 )
 from .bundle_graph_state import MAX_BYTES as MAX_STATE_BYTES
 from .bundle_graph_state import load as load_state
+from .bundle_graph_state import state_limit
 from .construction_recipe import ConstructionRecipe, RecipeRefused, graph_workspace
 from .profile import canonical
 from .research_carrier import PRECHARGED_TRIAL, _run
@@ -299,12 +300,16 @@ def reconstruct_public_graph(
             return outcome
         if names != {"state.npz", "receipt.json"}:
             raise ValueError("direct graph build output set differs")
-        for name, ceiling in (("state.npz", MAX_STATE_BYTES), ("receipt.json", 65536)):
+        for name, ceiling in (
+            ("state.npz", state_limit(allowed)),
+            ("receipt.json", 65536),
+        ):
             path = snapshot / name
             if (
                 path.is_symlink()
                 or not path.is_file()
-                or not 0 < path.stat().st_size <= ceiling
+                or not 0 < path.stat().st_size
+                or (ceiling is not None and path.stat().st_size > ceiling)
             ):
                 raise ValueError("bounded direct graph build output required")
         state = (snapshot / "state.npz").read_bytes()

@@ -220,6 +220,12 @@ def _motor():
     return describe()
 
 
+def _motor_catalog():
+    from .motor import describe_catalog
+
+    return describe_catalog()
+
+
 def _compile_burgers(strategy):
     from carbon.development_session.research_catalog import compile_recipe
 
@@ -341,6 +347,28 @@ def _entries():
             _motor,
             _compile_motor,
         ),
+        # The backbone-catalog version (OWNER-BACKBONE-CATALOG-01): Carbon's
+        # tested backbones by catalog id on the direct recipe path; the
+        # Level 0 strategy compiler stays 1.0's.
+        Entry(
+            MOTOR_CHALLENGE,
+            "1.2",
+            "Electric-motor magnetics (DEVELOPMENT periodic cross-section, backbone catalog)",
+            IMPLEMENTED,
+            "launch",
+            "carbonphysicsai/Carbon#344",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch practice of Carbon's tested catalog backbones in the "
+                    "isolated C-03 CPU worker; exact public TRAIN and bundle bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    carrier,
+                ),
+            ),
+            _motor_catalog,
+            None,
+        ),
         Entry(
             "photonic-coupler",
             None,
@@ -388,7 +416,9 @@ def _find(challenge_id, version):
     matches = [e for e in _entries() if e.challenge_id == challenge_id]
     if not matches:
         raise UnknownChallenge(f"no Challenge {challenge_id!r} is registered")
-    entry = matches[0]
+    # A Challenge may register several versions; the exact one is served.
+    exact = [e for e in matches if e.version == version]
+    entry = exact[0] if exact else matches[0]
     if entry.status == RETIRED:
         raise ChallengeRetired(f"{challenge_id} is retired from the research path")
     if entry.status == DEFERRED:
@@ -398,8 +428,9 @@ def _find(challenge_id, version):
             f"{challenge_id} is a reserved launch Challenge ({entry.tracking})"
         )
     if version != entry.version:
+        versions = ", ".join(str(e.version) for e in matches)
         raise UnsupportedVersion(
-            f"{challenge_id} is registered at version {entry.version}, not {version!r}"
+            f"{challenge_id} is registered at version {versions}, not {version!r}"
         )
     return entry
 

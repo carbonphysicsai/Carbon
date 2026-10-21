@@ -1,0 +1,136 @@
+{
+ "schema": "carbon.packs.f08-rebuild-verify.v1",
+ "candidate_solver_image": "sha256:22a7902fcd32a3bc454e7617e775b1be39e77e4826f6fc1ddd43ad534378539d",
+ "candidate_solvers_id": "sha256:adcdd02bcb9a906046d8276f797f2c7f2c79bcc8745546cd35407a70bebd86a2",
+ "candidate_environment": {
+  "kind": "calculix",
+  "solvers": {
+   "ccx": {
+    "path": "/opt/calculix/bin/ccx",
+    "sha256": "cdd00603c70dae940e6c48ab64c4776daa429c360ca515f257cc173bcfa0c9cd"
+   },
+   "gmsh": {
+    "path": "/opt/gmsh/bin/gmsh",
+    "sha256": "aebfb5b25decf2260acbce3c3de592a7e1231ee2089b8432f13e2fa10e05a9e5"
+   }
+  }
+ },
+ "f08_verify_pass": true,
+ "lineage_complete": true,
+ "max_abs_diff": {
+  "worst_dynamic_mm_per_n": 0.0,
+  "static_tip_mm_per_n": 0.0,
+  "peak_zeta_0.005": 0.0,
+  "peak_zeta_0.01": 0.0,
+  "peak_zeta_0.02": 0.0
+ },
+ "registered_U": {
+  "worst_dynamic_mm_per_n": 3.9e-05,
+  "static_tip_mm_per_n": 6.7e-07
+ },
+ "within_U": {
+  "worst_dynamic_mm_per_n": true,
+  "static_tip_mm_per_n": true
+ },
+ "labels_unchanged": true,
+ "rows": [
+  {
+   "case": 0,
+   "status": "OK",
+   "abs_diff_h1_7": {
+    "worst_dynamic_mm_per_n": 0.0,
+    "static_tip_mm_per_n": 0.0,
+    "peak_zeta_0.005": 0.0,
+    "peak_zeta_0.01": 0.0,
+    "peak_zeta_0.02": 0.0
+   },
+   "same_side_of_0.15": true
+  },
+  {
+   "case": 1,
+   "status": "OK",
+   "abs_diff_h1_7": {
+    "worst_dynamic_mm_per_n": 0.0,
+    "static_tip_mm_per_n": 0.0,
+    "peak_zeta_0.005": 0.0,
+    "peak_zeta_0.01": 0.0,
+    "peak_zeta_0.02": 0.0
+   },
+   "same_side_of_0.15": true
+  },
+  {
+   "case": 2,
+   "status": "OK",
+   "abs_diff_h1_7": {
+    "worst_dynamic_mm_per_n": 0.0,
+    "static_tip_mm_per_n": 0.0,
+    "peak_zeta_0.005": 0.0,
+    "peak_zeta_0.01": 0.0,
+    "peak_zeta_0.02": 0.0
+   },
+   "same_side_of_0.15": true
+  },
+  {
+   "case": 3,
+   "status": "OK",
+   "abs_diff_h1_7": {
+    "worst_dynamic_mm_per_n": 0.0,
+    "static_tip_mm_per_n": 0.0,
+    "peak_zeta_0.005": 0.0,
+    "peak_zeta_0.01": 0.0,
+    "peak_zeta_0.02": 0.0
+   },
+   "same_side_of_0.15": true
+  },
+  {
+   "case": 4,
+   "status": "OK",
+   "abs_diff_h1_7": {
+    "worst_dynamic_mm_per_n": 0.0,
+    "static_tip_mm_per_n": 0.0,
+    "peak_zeta_0.005": 0.0,
+    "peak_zeta_0.01": 0.0,
+    "peak_zeta_0.02": 0.0
+   },
+   "same_side_of_0.15": true
+  },
+  {
+   "case": 5,
+   "status": "OK",
+   "abs_diff_h1_7": {
+    "worst_dynamic_mm_per_n": 0.0,
+    "static_tip_mm_per_n": 0.0,
+    "peak_zeta_0.005": 0.0,
+    "peak_zeta_0.01": 0.0,
+    "peak_zeta_0.02": 0.0
+   },
+   "same_side_of_0.15": true
+  },
+  {
+   "case": 6,
+   "status": "OK",
+   "abs_diff_h1_7": {
+    "worst_dynamic_mm_per_n": 0.0,
+    "static_tip_mm_per_n": 0.0,
+    "peak_zeta_0.005": 0.0,
+    "peak_zeta_0.01": 0.0,
+    "peak_zeta_0.02": 0.0
+   },
+   "same_side_of_0.15": true
+  },
+  {
+   "case": 7,
+   "status": "OK",
+   "abs_diff_h1_7": {
+    "worst_dynamic_mm_per_n": 0.0,
+    "static_tip_mm_per_n": 0.0,
+    "peak_zeta_0.005": 0.0,
+    "peak_zeta_0.01": 0.0,
+    "peak_zeta_0.02": 0.0
+   },
+   "same_side_of_0.15": true
+  }
+ ],
+ "adopted": false,
+ "note": "a candidate build; the Validator decides the pin"
+}

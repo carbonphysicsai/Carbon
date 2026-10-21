@@ -641,6 +641,12 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "'carbon.agent_campaign.attack.adapters.' + adapter_name",
         ),
         (
+            "tests/cpu/test_campaign_challenge_parts.py",
+            "_research",
+            "importlib.import_module",
+            "campaign.compose.__module__.rsplit('.', 1)[0] + '.research'",
+        ),
+        (
             "tests/cpu/test_package_installation.py",
             "test_import_a0_role_package",
             "importlib.import_module",

@@ -42,6 +42,7 @@ class ServedRecipeContract:
             "PUBLIC_BATTERY_DEVELOPMENT_ONLY": "DEVELOPMENT_PUBLIC_BATTERY",
             "PUBLIC_PHYSICAL_DEVELOPMENT_ONLY": "DEVELOPMENT_PUBLIC_PHYSICAL",
             "PUBLIC_F08_DEVELOPMENT_ONLY": "DEVELOPMENT_PUBLIC_PHYSICAL",
+            "PUBLIC_F02_DEVELOPMENT_ONLY": "DEVELOPMENT_PUBLIC_PHYSICAL",
         }
         try:
             return labels[self.scope]
@@ -87,6 +88,14 @@ def registered(challenge_id: str, version: str) -> ServedRecipeContract:
         material = battery_bundle_material()
         attachment = RemoteStageAttachment(
             "remote-stage-battery-v1.0", "SIGNED_RESEARCH"
+        )
+    elif (challenge_id, version) == (battery_challenge.CHALLENGE.challenge_id, "2.0"):
+        # The step-2 version (STEP2_BATCH_VERSIONS_20261020).
+        from carbon.battery.construction_bundle_material import versioned_material
+
+        material = versioned_material("2.0")
+        attachment = RemoteStageAttachment(
+            "remote-stage-battery-v2.0", "SIGNED_RESEARCH"
         )
     elif physical_material.is_registered(challenge_id, version):
         material = physical_material.bundle_material(challenge_id, version)

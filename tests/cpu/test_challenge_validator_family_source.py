@@ -30,6 +30,7 @@ from carbon.challenge_validator.family_source import (
     FamilySource,
     family_source_class,
 )
+from carbon.challenge_validator.motor_sealed_source import motor_source_for
 from carbon.challenge_validator.motor_source import (
     RUN_BATCH,
     MotorBatchSource,
@@ -39,7 +40,9 @@ from carbon.reconstruction import capability_registry as registry
 
 
 def test_the_producer_finds_motor_as_a_registered_family():
-    assert family_source_class(registry.MOTOR_CHALLENGE) is MotorBatchSource
+    # Motor's registration selects 1.0's hidden pool or 1.1's sealed exam by
+    # the deployment schema (test_motor_sealed_family covers the choice).
+    assert family_source_class(registry.MOTOR_CHALLENGE) is motor_source_for
     assert issubclass(MotorBatchSource, FamilySource)
     # Battery keeps its own source (its quiz and duplicates).
     assert family_source_class(registry.BATTERY_CHALLENGE) is None

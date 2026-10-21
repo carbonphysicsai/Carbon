@@ -71,6 +71,14 @@ RECIPE_SCREEN_REFUSALS = (
     "construction_recipe_output_invalid",
     "construction_recipe_oversized",
     "construction_recipe_binding_mismatch",
+    # A catalog recipe's own refusals (`carbon.backbone_catalog.entries`):
+    # REFUSED, the miner's input, except catalog_library_not_pinned (Carbon's
+    # GAP) (Validator, OWNER-BACKBONE-CATALOG-01).
+    "catalog_entry_unknown",
+    "catalog_setting_unknown",
+    "catalog_setting_invalid",
+    "catalog_settings_inconsistent",
+    "catalog_library_not_pinned",
 )
 
 

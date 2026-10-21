@@ -14,6 +14,7 @@ from test_normal_dual_pack_retention import _fixture, _producer
 from test_physical_dual_pack_end_to_end import _produce, case  # noqa: F401
 
 from carbon.battery.pool_store import PoolStore, StateError
+from carbon.challenge_validator import koth_registry
 from carbon.challenge_validator import lean_recipe_retention as retention
 from carbon.challenge_validator.bank_promotion import BankPromotion
 from carbon.scoring import physical_dual_pack
@@ -31,10 +32,55 @@ def _intent(adapter, submission_id):
     )
 
 
-def _setup(tmp_path, monkeypatch):
+def _register_koth(
+    monkeypatch, tmp_path, challenge_id, *, noise=0.001, minima=(0.0, 0.0)
+):
+    """Register a Challenge's rebuild noise and, unless ``minima`` is "pack", the pack's leg minimums.
+
+    The retention reads the real registry file and the pack's own minimums; neither is set for
+    the inert fixture, so the comparator is built from a temporary registry and, for the fixture,
+    a pack copy with the given minimums (the baseline total is then that pack's total at them).
+    The returned settings can be changed between runs: noise None means unregistered."""
+    settings = {"noise": noise, "minima": minima}
+    real = koth_registry.comparator
+
+    def comparator(challenge, score_pack, accuracy_definition):
+        registry = {"schema": koth_registry.SCHEMA, "challenges": {}}
+        if settings["noise"] is not None:
+            registry["challenges"][challenge] = {
+                "value": settings["noise"],
+                "measurement_digest": "sha256:" + "7" * 64,
+            }
+        path = tmp_path / "koth-rebuild-noise.json"
+        path.write_text(json.dumps(registry))
+        pack = score_pack
+        if settings["minima"] != "pack":
+            legs = {
+                name: {**score_pack["legs"][name], "minimum": settings["minima"][i]}
+                for i, name in enumerate(("A", "D"))
+            }
+            pack = {**score_pack, "legs": legs}
+        return real(challenge, pack, accuracy_definition, path=path)
+
+    monkeypatch.setattr(koth_registry, "comparator", comparator)
+    # The fixture's Challenge id is not a real one: let the registry loader accept it.
+    from carbon.challenge_validator import exam_cap
+
+    known = exam_cap.registered_challenges()
+    monkeypatch.setattr(
+        exam_cap, "registered_challenges", lambda: (*known, challenge_id)
+    )
+    return settings
+
+
+def _setup(tmp_path, monkeypatch, *, registered=True):
     fixture = _fixture(tmp_path, monkeypatch)
     monkeypatch.setattr(source, "produce_dual_benchmark_input", _producer(fixture))
     _intent(fixture.adapter, fixture.task_id)
+    if registered:
+        fixture.koth = _register_koth(
+            monkeypatch, tmp_path, fixture.adapter.challenge_id
+        )
     return fixture, PoolStore(tmp_path / "pool.sqlite", clock=lambda: 123.0)
 
 
@@ -73,7 +119,7 @@ def test_the_first_scored_submission_becomes_the_first_incumbent(tmp_path, monke
     assert result["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY"
     koth = result["koth_comparison"]
     assert koth.get("outcome") == "FIRST_INCUMBENT", koth
-    assert koth["reason"] == "first_scored_contender"
+    assert koth["reason"] == "first_scored_contender_beats_baseline"
     held = store.incumbent()
     assert held == {
         "model_id": fixture.task_id,
@@ -105,6 +151,7 @@ def test_without_a_pool_store_nothing_changes(tmp_path, monkeypatch):
 def test_with_no_registered_noise_a_challenger_is_unavailable(tmp_path, monkeypatch):
     fixture, store = _setup(tmp_path, monkeypatch)
     _run(fixture, tmp_path, store)
+    fixture.koth["noise"] = None  # the registry loses the Challenge's noise
     second = _second_submission(fixture)
     result = _run(fixture, tmp_path, store, second)
     koth = result["koth_comparison"]
@@ -113,6 +160,38 @@ def test_with_no_registered_noise_a_challenger_is_unavailable(tmp_path, monkeypa
     # The incumbent and its clock are untouched; the evaluation is still bound.
     assert store.incumbent()["model_id"] == fixture.task_id
     assert result["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY"
+
+
+def test_with_nothing_registered_the_first_crown_is_unavailable(tmp_path, monkeypatch):
+    """The empty registry (and a pack with no leg minimums) crowns nobody."""
+    fixture, store = _setup(tmp_path, monkeypatch, registered=False)
+    result = _run(fixture, tmp_path, store)
+    koth = result["koth_comparison"]
+    assert koth["outcome"] == "UNAVAILABLE"
+    assert koth["reason"] == "baseline_floor_unregistered"
+    assert store.incumbent() is None
+    assert result["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY"
+
+
+def test_a_floor_without_registered_noise_crowns_nobody(tmp_path, monkeypatch):
+    fixture, store = _setup(tmp_path, monkeypatch)
+    fixture.koth["noise"] = None
+    koth = _run(fixture, tmp_path, store)["koth_comparison"]
+    assert koth["outcome"] == "UNAVAILABLE"
+    assert koth["reason"] == "rebuild_noise_unregistered"
+    assert store.incumbent() is None
+
+
+def test_a_first_contender_that_does_not_beat_the_baseline_is_no_winner(
+    tmp_path, monkeypatch
+):
+    fixture, store = _setup(tmp_path, monkeypatch)
+    # A baseline whose legs sit at the top: nothing in the fixture beats it by the margin.
+    fixture.koth["minima"] = (1.0, 1.0)
+    koth = _run(fixture, tmp_path, store)["koth_comparison"]
+    assert koth["outcome"] == "NO_WINNER"
+    assert koth["reason"] == "within_baseline_floor"
+    assert store.incumbent() is None
 
 
 def test_the_leg_minimum_baseline_never_contends(tmp_path, monkeypatch):
@@ -262,9 +341,16 @@ def _adapter_for(case, tmp_path):
     return adapter
 
 
-def test_the_real_v4_binding_of_each_physical_challenge_contends(case, tmp_path):
+def test_the_real_v4_binding_of_each_physical_challenge_contends(
+    case, tmp_path, monkeypatch
+):
     inputs, pin, artifacts = _v4(case)
     adapter = _adapter_for(case, tmp_path)
+    # The real evidence meets a registered noise and a zero baseline (the pack's own minimums are
+    # the calibration's, not a floor this wiring test should depend on).
+    koth = _register_koth(
+        monkeypatch, tmp_path, adapter.challenge_id, noise=1e-9, minima=(0.0, 0.0)
+    )
     store = PoolStore(tmp_path / "pool.sqlite", clock=lambda: 123.0)
     first, second = "rtsk_" + "1" * 64, "rtsk_" + "2" * 64
     for submission_id in (first, second):
@@ -275,6 +361,7 @@ def test_the_real_v4_binding_of_each_physical_challenge_contends(case, tmp_path)
     assert one["outcome"] == "FIRST_INCUMBENT", one
     assert store.incumbent()["model_id"] == first
     # The same graded model again: with no registered noise it is unavailable, never a win.
+    koth["noise"] = None
     two = retention._contend(adapter, store, second, artifacts, inputs, pin)
     assert two["outcome"] == "UNAVAILABLE", two
     assert two["reason"] == "rebuild_noise_unregistered"

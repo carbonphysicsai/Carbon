@@ -40,6 +40,13 @@ CASE_ID = "cooling-development-bank-48"
 #: Validator 2026-10-19), the registered repeat tolerance unchanged; v1 packs
 #: (batched repeats) stay as history and are not re-scored.
 EVALUATION_VERSION = "cooling-dual-development-bank-48-v2"
+#: Every registered Challenge version: its evaluation version and case id
+#: (step-2 batch, STEP2_BATCH_VERSIONS_20261020: 1.1 serves allowlist v6 with no
+#: step caps; measurement unchanged). No default version.
+VERSIONS = {
+    "1.0": (EVALUATION_VERSION, CASE_ID),
+    "1.1": ("cooling-dual-development-bank-48-v3", CASE_ID),
+}
 OUTPUT = {"quantity": "peak_c,profile_c[30],pressure_drop_pa", "unit": "degC,degC,Pa"}
 FILES = ("cooling_dual_pack.py", "cooling_dual_measurement.py")
 #: Legs a measured baseline run sets minimums for (default rule).

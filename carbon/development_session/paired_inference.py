@@ -22,7 +22,6 @@ import numpy as np
 from carbon.reconstruction.worker.model import WorkerImageIdentity
 
 from .bundle_construction_worker import (
-    MAX_STATE_BYTES,
     _accelerator_kwargs,
     _checked_binding,
     _digest,
@@ -33,7 +32,7 @@ from .bundle_construction_worker import (
     _trusted_allowlist,
     verify_direct_resource_policy,
 )
-from .bundle_graph_state import load
+from .bundle_graph_state import load, state_fits
 from .construction_recipe import RecipeRefused
 
 SCHEMA = "carbon.source-free-inference-pair.v1"
@@ -203,7 +202,7 @@ def infer_frozen_pair(
     if (
         type(inference_image) is not WorkerImageIdentity
         or type(state_bytes) is not bytes
-        or not 0 < len(state_bytes) <= MAX_STATE_BYTES
+        or not state_fits(len(state_bytes), allowlist_bytes)
         or _digest(state_bytes) != expected_state_digest
         or type(inputs) is not np.ndarray
         or inputs.ndim < 1

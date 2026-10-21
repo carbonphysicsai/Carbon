@@ -34,6 +34,27 @@ CAPS = {
     "document_bytes": 1024**2,
     "largest_intermediate_bytes": 256 * 1024**2,
 }
+#: Containment bounds (Validator, VALIDATOR_NO_MODEL_SIZE_CAP_SPEC_20261021):
+#: what the host parses before any isolation, never a model rule and never
+#: miner-tunable. Proposals under containment, not a security acceptance
+#: (the owner's security review).
+CONTAINMENT = {"document_bytes": 64 * 1024**2, "call_depth": graph.MAX_CALL_DEPTH}
+#: Allowlist versions served with no model-size caps (owner, 2026-10-21: "No
+#: cap. Only cap should be if it fits the training resource limit"): only the
+#: constants cap, which enforces from-scratch (owner: kept), and containment.
+#: The training resource limits bind instead. Every earlier version keeps CAPS.
+UNCAPPED_VERSIONS = frozenset({"level4-allowlist-v7"})
+UNCAPPED_CAPS = {"constant_bytes": CAPS["constant_bytes"], **CONTAINMENT}
+
+
+def caps_for(allowlist):
+    """The caps a document validated under ``allowlist`` (an `Allowlist` or
+    its version string) is measured against: `UNCAPPED_CAPS` for an uncapped
+    version, else the owner's `CAPS`. An unknown version gets `CAPS`."""
+    version = (
+        allowlist if type(allowlist) is str else getattr(allowlist, "version", None)
+    )
+    return dict(UNCAPPED_CAPS if version in UNCAPPED_VERSIONS else CAPS)
 
 
 def _refusal(code, where, op):
@@ -115,6 +136,41 @@ class Allowlist:
 
 def load(path=PATH):
     return Allowlist(Path(path).read_bytes())
+
+
+#: The allowlist every Challenge serves (Validator, 2026-10-20: v6 for every
+#: Challenge, one evaluation version before the recalibration). Frozen by its
+#: sha; v1-v5 stay loadable by path for historical evidence.
+SERVED_PATH = Path(__file__).with_name("allowlist_v6.json")
+SERVED_SHA256 = "c21dd41476ab7cd83badc62a2f3d17fc4de8ada721b03c8d456ca9c64af99bf2"
+
+
+def served_bytes():
+    """The served allowlist's exact frozen bytes, or ValueError."""
+    import hashlib
+
+    raw = SERVED_PATH.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != SERVED_SHA256:
+        raise ValueError("served allowlist bytes differ")
+    return raw
+
+
+def load_served():
+    return Allowlist(served_bytes())
+
+
+#: Allowlist v7 (prospective, not yet served): frozen by its sha. A Challenge
+#: serves it only on a new version registered for it, never in place of v6.
+V7_PATH = Path(__file__).with_name("allowlist_v7.json")
+V7_SHA256 = "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c"
+
+
+def v7_bytes():
+    """Allowlist v7's exact frozen bytes, or ValueError."""
+    raw = V7_PATH.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != V7_SHA256:
+        raise ValueError("allowlist v7 bytes differ")
+    return raw
 
 
 #: How the `constant_bytes` cap is measured, versioned prospectively:

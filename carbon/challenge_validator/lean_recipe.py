@@ -150,8 +150,11 @@ class LeanRecipeAdapter(ChallengeAdapter):
         return json.loads(json.dumps(self._identities))
 
     def validate_strategy(self, strategy):
-        """Strict recipe and exact Challenge binding before any worker reservation."""
-        return bind_recipe(
+        """Strict recipe and exact Challenge binding before any worker
+        reservation. A catalog recipe is returned as the Carbon bundle recipe
+        it names (`backbone_catalog.served.expand`), its settings checked by
+        that bundle's own door; it then runs as that bundle."""
+        recipe = bind_recipe(
             strategy,
             challenge_id=self._kit["id"],
             challenge_version=self._kit["version"],
@@ -159,6 +162,14 @@ class LeanRecipeAdapter(ChallengeAdapter):
             interface_digest=self._kit["interface_digest"],
             construction_limits_digest=self._kit["construction_limits_digest"],
         )
+        if recipe.to_dict()["source"]["kind"] == "catalog":
+            from carbon.backbone_catalog.served import expand
+            from carbon.development_session.construction_recipe import (
+                ConstructionRecipe,
+            )
+
+            return ConstructionRecipe.from_dict(expand(recipe.to_dict()))
+        return recipe
 
     def _provider(self, hotkey):
         from carbon.development_session.research_tasks import DirectDevelopmentTasksV3
@@ -240,6 +251,14 @@ class LeanRecipeAdapter(ChallengeAdapter):
             submission.hotkey,
             "sha256:" + hashlib.sha256(canonical_bytes(request)).hexdigest(),
         )
+        if submission.strategy.get("source", {}).get("kind") == "catalog":
+            from carbon.backbone_catalog.served import submission_document
+
+            self.ledger.record_catalog_submission(
+                self.contract_digest,
+                task_id.value,
+                submission_document(submission.strategy, recipe.to_dict()),
+            )
         try:
             task = provider.start_research_task(
                 request, measure_query=self._measure_query

@@ -229,10 +229,12 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
     # static), so an over-cap graph is refused before even the shape-only
     # trace below runs it.
     measurements = graph.measure(doc)
-    # A cap the caller does not name is the owner's (`allowlist.CAPS`); one a
-    # caller sets to HUMAN_INPUT blocks, it never passes.
+    # A cap the caller does not name is the allowlist version's
+    # (`allowlist.caps_for`: the owner's CAPS, or for an uncapped version only
+    # the constants cap and containment); one a caller sets to HUMAN_INPUT
+    # blocks, it never passes.
     verdicts = allowlist_module.check_caps(
-        measurements, {**allowlist_module.CAPS, **(caps or {})}
+        measurements, {**allowlist_module.caps_for(allowlist), **(caps or {})}
     )
     exceeded = sorted(name for name, v in verdicts.items() if v == "refuse")
     if exceeded:

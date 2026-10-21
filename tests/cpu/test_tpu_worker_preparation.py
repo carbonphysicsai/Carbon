@@ -12,7 +12,10 @@ from carbon.reconstruction.accelerators import (
     require_reconstruction_profile_admission,
 )
 from carbon.reconstruction.model import ReconstructionFailure
-from carbon.reconstruction.profile import compile_development_profile
+from carbon.reconstruction.profile import (
+    ACCELERATOR_ENVIRONMENT_VERSION,
+    compile_development_profile,
+)
 from carbon.reconstruction.worker.model import (
     DevelopmentWorkerProfile,
     RequestDerivedWorkerProfile,
@@ -78,7 +81,9 @@ def test_fabricated_typed_tpu_profile_cannot_enable_reconstruction(
     import c02_fixtures
 
     monkeypatch.setattr(c02_fixtures, "ENVIRONMENT_ID", TPU_PROFILE.profile_id)
-    monkeypatch.setattr(c02_fixtures, "ENVIRONMENT_VERSION", "1.0")
+    monkeypatch.setattr(
+        c02_fixtures, "ENVIRONMENT_VERSION", ACCELERATOR_ENVIRONMENT_VERSION
+    )
     monkeypatch.setattr(
         c02_fixtures,
         "DEPENDENCY_SPECS",

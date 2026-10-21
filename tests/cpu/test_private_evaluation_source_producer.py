@@ -383,6 +383,7 @@ def test_actual_challenge_has_no_implicit_dual_producer(tmp_path):
             references=[],
             graph_originals=args["graph_originals"],
             evaluation_source_receipt_raw=args["evaluation_source_receipt_raw"],
+            timing_step=0.02,
         )
     assert raised.value.code == "dual_measurement_producer_unavailable"
 
@@ -408,6 +409,7 @@ def test_fixture_producer_uses_real_receipt_builder(monkeypatch, tmp_path):
         references=[],
         graph_originals=args["graph_originals"],
         evaluation_source_receipt_raw=args["evaluation_source_receipt_raw"],
+        timing_step=0.02,
     )
     assert json.loads(prepared.raw)["benchmark"] == args["benchmark"]
     assert prepared.sha256 == _sha(prepared.raw)

@@ -33,11 +33,15 @@ from carbon.development_session.research_ledger import CampaignLedger
 from carbon.development_session.research_service import DirectFixtureDiscovery
 from carbon.reconstruction import served_recipe_contract
 
-#: Motor and Cooling share this float64 harness; F08 (float32, its own interface) has
-#: tests/cpu/test_f08_normal_construction.py.
+#: Motor and Cooling share this float64 harness; F08 and F02 (float32, their own interfaces)
+#: have tests/cpu/test_f08_normal_construction.py and test_f02_normal_construction.py.
 CHALLENGES = pytest.mark.parametrize(
     ("challenge_id", "version"),
-    [item for item in physical_material.REGISTERED if item[0] != "f08-ribbed-bracket"],
+    [
+        item
+        for item in physical_material.REGISTERED
+        if item[0] not in ("f08-ribbed-bracket", "f02")
+    ],
 )
 
 SOURCE = (

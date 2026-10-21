@@ -229,6 +229,7 @@ def test_unknown_challenge_has_no_implicit_producer():
             references=[],
             graph_originals={},
             evaluation_source_receipt_raw=b"",
+            timing_step=0.02,
         )
     assert raised.value.code == "dual_measurement_producer_unavailable"
 

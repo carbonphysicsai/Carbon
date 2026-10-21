@@ -234,9 +234,14 @@ SCRATCH_CAP_BYTES = 2 * 1024**3
 SCRATCH_CAP_INODES = 100_000
 #: Exactly what the bounded lane mounts at /scratch, and what its inspection
 #: requires to read back: writable, no set-uid, no devices, nothing executed
-#: from it, and at most `SCRATCH_CAP_BYTES` and `SCRATCH_CAP_INODES`.
+#: from it, at most `SCRATCH_CAP_BYTES` and `SCRATCH_CAP_INODES`, and owned by
+#: the worker alone. Without `uid`, `gid` and `mode` Docker's tmpfs is root-owned
+#: 0755, so the worker (uid 65532) cannot create `/scratch/home` and every run
+#: died (containment Run E, 2026-10-20).
 SCRATCH_TMPFS_OPTIONS = (
-    "rw,nosuid,nodev,noexec," f"size={SCRATCH_CAP_BYTES},nr_inodes={SCRATCH_CAP_INODES}"
+    "rw,nosuid,nodev,noexec,"
+    f"size={SCRATCH_CAP_BYTES},nr_inodes={SCRATCH_CAP_INODES},"
+    f"uid={WORKER_UID},gid={WORKER_GID},mode=0700"
 )
 #: The closed refusal a bounded run is typed with when its program failed
 #: and its scratch was found full (bytes or inodes), never a score.

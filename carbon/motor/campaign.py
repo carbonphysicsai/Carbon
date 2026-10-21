@@ -33,15 +33,48 @@ FEEDBACK_MODES = ("FULL",)
 PRACTICE_PROVENANCE = "MOTOR_PUBLIC_PRACTICE"
 BACKENDS = ("numpy",)
 RUNTIME_KEYS = frozenset({"implementation", "images", "authored_research"})
+#: The backbone-catalog version (OWNER-BACKBONE-CATALOG-01): direct catalog
+#: recipes, PyTorch CPU practice, submit through the signed construction
+#: receiver. Built under its research key (`contracts.keyed`); 1.0 is unchanged.
+CATALOG_VERSION = "1.2"
+
+
+def _key():
+    from .contracts import research_key
+
+    return research_key()
+
+
+def _catalog():
+    return _key().version == CATALOG_VERSION
+
+
+def _contract_digest():
+    if _catalog():
+        from carbon.reconstruction.served_recipe_contract import registered
+
+        return registered(CHALLENGE.challenge_id, CATALOG_VERSION).digest
+    from carbon.reconstruction.capability_registry import contract_digest
+
+    return contract_digest(CHALLENGE.challenge_id)
+
+
+def _control():
+    if _catalog():
+        from carbon.challenge_registry.motor import catalog_recipe
+
+        return catalog_recipe(version=CATALOG_VERSION)
+    from .research import SCAFFOLD
+
+    return SCAFFOLD
 
 
 def manifest_document(
     product, *, owner, implementation, images, selection=None, graphite=None
 ):
     from carbon.development_session.research_ledger import VERSION
-    from carbon.reconstruction.capability_registry import contract_digest
 
-    from .research import SCAFFOLD, objective
+    from .research import objective
 
     return {
         "schema": VERSION,
@@ -51,9 +84,9 @@ def manifest_document(
         "owner": owner,
         "implementation": implementation,
         "objective": objective(),
-        "contract_digest": contract_digest(CHALLENGE.challenge_id),
+        "contract_digest": _contract_digest(),
         "sampling": {"practice": "30 fixed public PRACTICE cases"},
-        "control": SCAFFOLD,
+        "control": _control(),
         "selection": SELECTION,
         "replica_policy": REPLICAS,
         "provider": provider_plan(
@@ -65,6 +98,7 @@ def manifest_document(
         "images": images,
         "new_network_transactions": 0,
         "feedback_mode": "FULL",
+        **({"construction_mode": "direct"} if _catalog() else {}),
         **product.manifest_fields(),
     }
 
@@ -97,8 +131,6 @@ def research_runtime(declared, *, implementation, images, julia_image):
 def check_attached(
     manifest, *, implementation, images, julia_image=None, gpu_image=None
 ):
-    from carbon.reconstruction.capability_registry import contract_digest
-
     from .research import objective
 
     if gpu_image is not None:
@@ -107,8 +139,8 @@ def check_attached(
         "implementation": implementation,
         "images": images,
         "objective": objective(),
-        "contract_digest": contract_digest(CHALLENGE.challenge_id),
-        "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
+        "contract_digest": _contract_digest(),
+        "challenge": {"id": _key().challenge_id, "version": _key().version},
     }
     for field, value in expected.items():
         if manifest.get(field) != value:
@@ -145,14 +177,29 @@ def compose(
 
     if gpu_image is not None or remote is not None:
         raise ValueError("motor Level 0 offers CPU practice only")
-    practice = MotorPractice(
-        ledger=ledger,
-        owner=owner,
-        image=image,
-        root=REPOSITORY,
-        runner=runner,
-        backend=backend,
-    )
+    if _catalog():
+        from .catalog_practice import MotorCatalogPractice
+
+        # The campaign's PyTorch CPU worker is the parent of every catalog
+        # bundle's child; children are installed by `backbone_catalog.pipeline
+        # install` into the owner's library cache beside the campaigns.
+        practice = MotorCatalogPractice(
+            ledger=ledger,
+            owner=owner,
+            parent=image,
+            cache_root=ledger.root.parent / ".direct-development" / "library-cache",
+            root=REPOSITORY,
+            runner=runner,
+        )
+    else:
+        practice = MotorPractice(
+            ledger=ledger,
+            owner=owner,
+            image=image,
+            root=REPOSITORY,
+            runner=runner,
+            backend=backend,
+        )
     composition = make_motor_research_service(
         root=ledger.root / "research-tasks",
         ledger=ledger,
@@ -162,11 +209,12 @@ def compose(
         demand=demand,
         cleanup_only=cleanup_only,
         julia_image=julia_image,
+        version=_key().version,
     )
     base = connection.service.gateway
     gateway = AuthenticatedGateway(
         base.context,
-        CHALLENGE,
+        _key(),
         base.receiver,
         base.adapter,
         base.verifier,
@@ -188,7 +236,7 @@ async def prepare_motor(args, *, ledger=None, campaign):
     from carbon.development_session.profile import canonical
     from carbon.development_session.research_campaign import (
         PreparedCampaign,
-        accepted_implementation,
+        campaign_implementation,
         new_plan_input_default,
         new_plan_output_default,
         private_file,
@@ -243,8 +291,8 @@ async def prepare_motor(args, *, ledger=None, campaign):
                     args,
                     root,
                     challenge={
-                        "id": CHALLENGE.challenge_id,
-                        "version": CHALLENGE.version,
+                        "id": _key().challenge_id,
+                        "version": _key().version,
                     },
                 )
             plan = provider_plan(
@@ -264,9 +312,16 @@ async def prepare_motor(args, *, ledger=None, campaign):
         else:
             SelectionTransport(selection)
 
-    implementation = accepted_implementation(args.accepted_revision)
+    implementation = campaign_implementation(args, root)
     image = load_image_identity(args.image_manifest)
     verify_current_worker(image, implementation)
+    if _catalog():
+        from carbon.development_session.gpu_practice import direct_parent_backend
+
+        if direct_parent_backend(image) != "torch_cpu":
+            raise ValueError(
+                "motor catalog practice needs the PyTorch CPU worker image"
+            )
     if not doctor(image_id=image.image_id, image_identity=image).eligible:
         raise ValueError("accepted numerical host unavailable")
     analysis = load_analysis_image(args.analysis_image_manifest)
@@ -365,25 +420,110 @@ async def prepare_motor(args, *, ledger=None, campaign):
         grant=None,
         agent_policy=getattr(args, "agent_policy", None),
         campaign=campaign,
-        challenge=CHALLENGE,
+        challenge=_key(),
         selection=selection,
     )
 
 
+def _direct_target(args):
+    """The signed construction receiver this campaign submits to: the
+    profile's per-Challenge intake and receiver, else its direct target."""
+    from carbon.development_session.intake_targets import validate
+
+    url = (getattr(args, "intakes", None) or {}).get(CHALLENGE.challenge_id)
+    hotkey = (getattr(args, "receivers", None) or {}).get(CHALLENGE.challenge_id)
+    if url is not None and hotkey is not None:
+        return validate([{"intake_url": url, "receiver_hotkey": hotkey}])[0]
+    target = getattr(args, "direct_intake_target", None)
+    return None if target is None else validate([target])[0]
+
+
 async def evaluate_frozen(prepared, epoch, strategy):
-    """The scoring adapter is deliberately absent from this engineering slice."""
+    """1.0: the scoring adapter is deliberately absent (fail closed). The
+    catalog version submits the frozen recipe to the signed construction
+    receiver, which rebuilds and judges it, and stores its feedback."""
+    import asyncio
+
     from carbon.development_session.research_campaign import OperationRefused
 
-    raise OperationRefused("motor_validator_not_served")
+    if not _catalog():
+        raise OperationRefused("motor_validator_not_served")
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.development_session.direct_submission import (
+        DirectConstructionPending,
+        DirectIntakeRefusal,
+        read_exam_feedback,
+        submit_and_wait,
+    )
+    from carbon.reconstruction.served_recipe_contract import registered
+
+    ledger, owner = prepared.ledger, prepared.owner
+    folder = ledger.root / ("epoch-" + str(epoch))
+    record = json.loads((folder / "selected-recipe.json").read_bytes())
+    if record["strategy"] != strategy:
+        raise ValueError("submitted strategy differs from the frozen candidate")
+    target = _direct_target(prepared.args)
+    if target is None:
+        raise OperationRefused("construction_intake_unconfigured")
+    recipe = ConstructionRecipe.from_dict(strategy)
+    contract = registered(CHALLENGE.challenge_id, CATALOG_VERSION)
+    connection = prepared.sdk.connection
+    try:
+        result = await asyncio.to_thread(
+            submit_and_wait,
+            target["intake_url"],
+            connection.miner_key,
+            root=ledger.root,
+            epoch=epoch,
+            recipe=recipe,
+            contract_digest=contract.digest,
+            receiver=target["receiver_hotkey"],
+            context=connection.chain_context,
+        )
+        ladder = await asyncio.to_thread(
+            read_exam_feedback,
+            target["intake_url"],
+            connection.miner_key,
+            recipe=recipe,
+            contract_digest=contract.digest,
+            receiver=target["receiver_hotkey"],
+            context=connection.chain_context,
+        )
+    except DirectConstructionPending:
+        raise OperationRefused("evaluation_queued") from None
+    except DirectIntakeRefusal as refused:
+        raise OperationRefused(refused.code) from None
+    except OSError:
+        raise OperationRefused("construction_intake_unavailable") from None
+    feedback = {
+        "schema": "carbon.motor.permitted-feedback.v1",
+        "challenge": {"id": CHALLENGE.challenge_id, "version": CATALOG_VERSION},
+        "recipe_digest": recipe.digest,
+        "result": result,
+        "exam_feedback": ladder,
+    }
+    record_verdict(ledger, owner, epoch, feedback)
+    return feedback
+
+
+def record_verdict(ledger, owner, epoch, feedback):
+    """Store an epoch's permitted feedback once, as Battery stores its own."""
+    from carbon.development_session.data import write_once
+    from carbon.development_session.profile import canonical
+    from carbon.development_session.research_report import report
+
+    write_once(
+        ledger.root / ("epoch-" + str(epoch)) / "permitted-final-feedback.json",
+        canonical(feedback),
+    )
+    report(ledger, owner=owner)
 
 
 def agent_observation(prepared, epoch, feedback):
     from carbon.challenge_registry import describe
     from carbon.development_session.research_tools import frozen_tools_rule
 
-    from .research import SCAFFOLD
-
-    document = describe(CHALLENGE.challenge_id, CHALLENGE.version)
+    document = describe(_key().challenge_id, _key().version)
     unsupported = document.pop("unsupported")
     rule = frozen_tools_rule(prepared.manifest)
     extra = {}
@@ -407,7 +547,7 @@ def agent_observation(prepared, epoch, feedback):
             "read_with": "public_material capabilities or roadmap",
         },
         **extra,
-        "scaffold_recipe": SCAFFOLD,
+        "scaffold_recipe": _control(),
         "scaffold_basis": "An unexecuted template; it has no measured result.",
         "epoch": epoch,
         "prior_permitted_evaluation_feedback": feedback,

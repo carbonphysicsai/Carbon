@@ -49,7 +49,14 @@ def for_challenges():
         registered = kit is not None and callable(
             getattr(campaign, "construction_reconstruct", None)
         )
-        found[entry.challenge_id] = {
+        # A Challenge's first registered version keeps its id as the key; a
+        # later version (Motor 1.2, the backbone catalog) is "id@version".
+        slot = (
+            entry.challenge_id
+            if entry.challenge_id not in found
+            else entry.challenge_id + "@" + entry.version
+        )
+        found[slot] = {
             "schema": "carbon.launchpad.construction-paths.v1",
             "challenge": {"id": entry.challenge_id, "version": entry.version},
             "construction_kit": kit,
