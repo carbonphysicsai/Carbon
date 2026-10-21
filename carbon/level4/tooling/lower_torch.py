@@ -427,6 +427,313 @@ def _max_pool2d(b, node, env):
     return (values, None)
 
 
+def _area_scale(np_type, size_in, size_out, align_corners, scale):
+    """torch's `area_pixel_compute_scale` in the op's scalar type."""
+    if align_corners:
+        return (
+            np_type(size_in - 1) / np_type(size_out - 1) if size_out > 1 else np_type(0)
+        )
+    if scale is not None and scale > 0:
+        return np_type(1.0 / scale)
+    return np_type(size_in) / np_type(size_out)
+
+
+def _aa_bicubic_matrix(b, dtype, size_in, size_out, scale):
+    """The (size_out, size_in) antialiased bicubic weights of torch's
+    `_compute_weights_aa` (Keys a = -0.5, support 2 * scale when shrinking),
+    built in the graph from iota so no weight constant is embedded. Each row
+    is the filter over its window [xmin, xmax), normalized by its sum."""
+    import numpy as np
+
+    key = (dtype, size_in, size_out, float(scale))
+    cache = b.__dict__.setdefault("aa_bicubic", {})
+    if key in cache:
+        return cache[key]
+    np_type = np.dtype(dtype).type
+    # Both are computed in double and stored in the scalar type, as torch's.
+    support = np_type(2.0 * float(scale)) if scale >= 1 else np_type(2.0)
+    invscale = np_type(1.0 / float(scale)) if scale >= 1 else np_type(1.0)
+    shape = [size_out, size_in]
+    filled = {}
+
+    def k(value, of=dtype):
+        if (value, of) not in filled:
+            filled[(value, of)] = b.broadcast(b.scalar(value, of), shape)
+        return filled[(value, of)]
+
+    def emit(op, ins, of=dtype, **params):
+        return b.emit(op, ins, of, shape, **params)
+
+    def ramp(axis):
+        return emit("iota", [], dtype=dtype, dimension=axis, shape=shape, sharding=None)
+
+    i, j = ramp(0), ramp(1)
+    # center = scale * (i + 0.5): i + 0.5 is exact and the product of two
+    # scalar-type values rounds once, as torch's double product stored back.
+    center = emit("mul", [emit("add", [i, k(0.5)]), k(float(scale))], out_dtype=None)
+
+    def truncated(op):
+        # static_cast<int64_t>(center -+ support + 0.5), computed exactly in
+        # the scalar type: floor(c) + (frac(c) >= 0.5). A negative sum gives
+        # at most 0, which xmin's max with 0 then makes 0, as torch's.
+        edge = emit(op, [center, k(support)])
+        whole = emit("floor", [edge])
+        up = emit("ge", [emit("sub", [edge, whole]), k(0.5)], "bool")
+        return emit("add", [whole, emit("select_n", [up, k(0.0), k(1.0)])])
+
+    xmin = emit("max", [truncated("sub"), k(0.0)])
+    xmax = emit("min", [truncated("add"), k(float(size_in))])
+    inside = emit(
+        "and",
+        [emit("ge", [j, xmin], "bool"), emit("lt", [j, xmax], "bool")],
+        "bool",
+    )
+    # filter((j - center + 0.5) * invscale), in the scalar type; torch forms
+    # the last two steps in double, so this argument may differ by an ulp
+    # where the filter is smooth (its branches meet at |t| = 1 and 2).
+    offset = emit("add", [emit("sub", [j, center]), k(0.5)])
+    offset = emit("mul", [offset, k(float(invscale))], out_dtype=None)
+    t = emit("abs", [offset])
+    a = -0.5
+
+    def mul(p, q):
+        return emit("mul", [p, q], out_dtype=None)
+
+    near = emit(
+        "add",
+        [mul(mul(emit("sub", [mul(k(a + 2), t), k(a + 3)]), t), t), k(1.0)],
+    )
+    far = emit(
+        "sub",
+        [
+            mul(
+                emit("add", [mul(emit("sub", [mul(k(a), t), k(5 * a)]), t), k(8 * a)]),
+                t,
+            ),
+            k(4 * a),
+        ],
+    )
+    value = emit(
+        "select_n",
+        [
+            emit("lt", [t, k(1.0)], "bool"),
+            emit("select_n", [emit("lt", [t, k(2.0)], "bool"), k(0.0), far]),
+            near,
+        ],
+    )
+    weight = emit("select_n", [inside, k(0.0), value])
+    spec = b.allowlist.ops["reduce_sum"]["params"]
+    total = b.emit(
+        "reduce_sum",
+        [weight],
+        dtype,
+        [size_out],
+        axes=[1],
+        **({"out_sharding": None} if "out_sharding" in spec else {}),
+    )
+    total = b.broadcast(
+        b.emit(
+            "reshape",
+            [total],
+            dtype,
+            [size_out, 1],
+            dimensions=None,
+            new_sizes=[size_out, 1],
+            sharding=None,
+        ),
+        shape,
+    )
+    # A row whose weights sum to 0 keeps them (torch skips the division).
+    safe = emit("select_n", [emit("eq", [total, k(0.0)], "bool"), total, k(1.0)])
+    cache[key] = emit("div", [weight, safe])
+    return cache[key]
+
+
+def _upsample_bicubic2d_aa(b, node, env):
+    """Antialiased bicubic resize of an (N, C, H, W) floating tensor (CNO's
+    up/down sampling): the separable weights of torch's AA kernel applied by
+    dot_general along W, then H, as torch's separable kernel orders them. An
+    axis whose size is unchanged is skipped, as torch skips it."""
+    import numpy as np
+
+    target = str(node.target)
+    args = list(node.args) + [None] * (5 - len(node.args))
+    x_arg, size, align_corners, scale_h, scale_w = args[:5]
+    kw = node.kwargs
+    align_corners = kw.get("align_corners", align_corners)
+    scale_h, scale_w = kw.get("scales_h", scale_h), kw.get("scales_w", scale_w)
+    if not hasattr(x_arg, "op") or type(align_corners) is not bool:
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    x = env[x_arg]
+    dtype, have = b.avals[x]
+    if (
+        dtype not in _FLOATS
+        or len(have) != 4
+        or not isinstance(size, (list, tuple))
+        or len(size) != 2
+        or any(type(s) is not int or s < 1 for s in size)
+        or any(
+            s is not None and (type(s) not in (int, float) or not math.isfinite(s))
+            for s in (scale_h, scale_w)
+        )
+        or _aval(node) != (dtype, have[:2] + list(size))
+        # torch 2.13's kernel returns its first output row for every row when
+        # it resizes H at width 1, unlike its own weights: refused, not copied.
+        or (size[0] != have[2] and size[1] == 1)
+    ):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    np_type = np.dtype(dtype).type
+    out = x
+    for axis, size_out, given in ((3, size[1], scale_w), (2, size[0], scale_h)):
+        size_in = b.avals[out][1][axis]
+        if size_in == size_out:
+            continue
+        scale = _area_scale(np_type, size_in, size_out, align_corners, given)
+        matrix = _aa_bicubic_matrix(b, dtype, size_in, size_out, scale)
+        current = b.avals[out][1]
+        free = [d for i, d in enumerate(current) if i != axis]
+        out = b.emit(
+            "dot_general",
+            [out, matrix],
+            dtype,
+            free + [size_out],
+            dimension_numbers=[[[axis], [1]], [[], []]],
+            out_sharding=None,
+            precision=None,
+            preferred_element_type=dtype,
+        )
+        if axis != 3:
+            order = list(range(axis)) + [3] + list(range(axis, 3))
+            placed = list(current)
+            placed[axis] = size_out
+            out = b.emit("transpose", [out], dtype, placed, permutation=order)
+    return out
+
+
+def _slice_scatter_strided(b, node, env, dim, step):
+    """slice_scatter with step > 1 (v7 form `strided`, MWT's even/odd
+    interleave): the source placed every `step` along `dim` by an interior
+    pad, and a padded mask selecting it over the base. Gradients: the base's
+    outside the slice, the source's a strided slice of the result's."""
+    target = str(node.target)
+    args = node.args
+    base, src = env[args[0]], env[args[1]]
+    dtype, have = b.avals[base]
+    start = args[3] if len(args) > 3 else None
+    end = args[4] if len(args) > 4 else None
+    if any(v is not None and type(v) is not int for v in (start, end)):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    first, _, _ = slice(start, end, step).indices(have[dim])
+    count = len(range(*slice(start, end, step).indices(have[dim])))
+    want = list(have)
+    want[dim] = count
+    if b.avals[src][1] != want or _aval(node) != (dtype, have):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    if count == 0:
+        return base
+    config = [[0, 0, 0] for _ in have]
+    config[dim] = [first, have[dim] - first - (count - 1) * step - 1, step - 1]
+    placed = b.emit(
+        "pad",
+        [b.to(src, dtype), b.scalar(0, dtype)],
+        dtype,
+        have,
+        padding_config=config,
+    )
+    ones = b.broadcast(b.scalar(1, "int32"), want)
+    mask = b.emit(
+        "pad", [ones, b.scalar(0, "int32")], "int32", have, padding_config=config
+    )
+    mask = b.emit("gt", [mask, b.broadcast(b.scalar(0, "int32"), have)], "bool", have)
+    return b.emit("select_n", [mask, base, placed], dtype, have)
+
+
+def _convolution_transposed(b, node, env):
+    """A transposed convolution (v7 form `transposed`, WNO-style): the direct
+    convolution with lhs_dilation = stride, padding d * (k - 1) - p (plus the
+    output padding on the high side), and the kernel flipped spatially with
+    its input and output channels swapped within each group."""
+    target = str(node.target)
+    args = node.args
+    x, w = env[args[0]], env[args[1]]
+    bias, stride, padding, dilation, _, output_padding, groups = args[2:9]
+    dtype, shape = _aval(node)
+    wdtype, wshape = b.avals[w]
+    spatial = len(shape) - 2
+    if (
+        wdtype != dtype
+        or b.avals[x][0] != dtype
+        or len(wshape) != spatial + 2
+        or type(groups) is not int
+        or groups < 1
+        or wshape[0] % groups
+        or any(
+            len(v) != spatial or any(type(i) is not int for i in v)
+            for v in (stride, padding, dilation, output_padding)
+        )
+        or any(s < 1 for s in stride)
+        or any(d < 1 for d in dilation)
+        or any(
+            o < 0 or o >= max(s, d) for o, s, d in zip(output_padding, stride, dilation)
+        )
+    ):
+        raise graph.GraphRefused("aten_arguments_not_supported", target)
+    c_in, c_out_group, kernel = wshape[0], wshape[1], wshape[2:]
+    in_group = c_in // groups
+    grouped = [groups, in_group, c_out_group, *kernel]
+    w = b.emit(
+        "reshape",
+        [w],
+        dtype,
+        grouped,
+        dimensions=None,
+        new_sizes=grouped,
+        sharding=None,
+    )
+    swapped = [groups, c_out_group, in_group, *kernel]
+    w = b.emit(
+        "transpose", [w], dtype, swapped, permutation=[0, 2, 1, *range(3, 3 + spatial)]
+    )
+    direct = [groups * c_out_group, in_group, *kernel]
+    w = b.emit(
+        "reshape", [w], dtype, direct, dimensions=None, new_sizes=direct, sharding=None
+    )
+    w = b.emit("rev", [w], dtype, direct, dimensions=list(range(2, 2 + spatial)))
+    pads = [
+        [d * (k - 1) - p, d * (k - 1) - p + o]
+        for k, p, d, o in zip(kernel, padding, dilation, output_padding)
+    ]
+    spec = list(range(spatial + 2))
+    out = b.emit(
+        "conv_general_dilated",
+        [x, w],
+        dtype,
+        shape,
+        batch_group_count=1,
+        dimension_numbers=[spec, spec, spec],
+        feature_group_count=groups,
+        lhs_dilation=list(stride),
+        out_sharding=None,
+        padding=pads,
+        precision=None,
+        preferred_element_type=None,
+        rhs_dilation=list(dilation),
+        window_strides=[1] * spatial,
+    )
+    if bias is not None:
+        bvalue = b.emit(
+            "broadcast_in_dim",
+            [env[bias]],
+            dtype,
+            shape,
+            broadcast_dimensions=[1],
+            shape=shape,
+            sharding=None,
+        )
+        out = b.emit("add", [out, bvalue], dtype, shape)
+    return out
+
+
 def _native_layer_norm(b, node, env):
     """Lower all three results of Core ATen layer norm from trusted metadata."""
     target = str(node.target)
@@ -622,9 +929,19 @@ def _sum_dim(b, node, env):
         # Torch treats a scalar as logical rank one for axis validation,
         # while its result remains a scalar even with keepdim=True.
         axes = [_norm(axis, rank or 1) for axis in requested_axes]
+    # v7 form `complex` (CODANO's spectral contraction): a complex sum in
+    # its own dtype.
+    complex_ok = (
+        "complex" in _forms(b, target)
+        and input_dtype == output_dtype
+        and input_dtype in ("complex64", "complex128")
+    )
     if (
-        input_dtype not in ("float32", "float64")
-        or output_dtype not in ("float32", "float64")
+        not complex_ok
+        and (
+            input_dtype not in ("float32", "float64")
+            or output_dtype not in ("float32", "float64")
+        )
         or any(not 0 <= axis < (rank or 1) for axis in axes)
         or len(set(axes)) != len(axes)
     ):
@@ -671,6 +988,11 @@ _SHAPE_ONLY = ("reshape", "broadcast_in_dim", "convert_element_type")
 _FOLDABLE = ("add", "sub", "mul", "max", "min", "lt", "gt")
 
 
+def _forms(b, target):
+    """The argument forms `b`'s allowlist admits for `target` (v7 on)."""
+    return frozenset((b.allowlist.aten.get(target) or {}).get("forms", ()))
+
+
 def _static_array(b, value):
     """The array `value` holds when it is a captured constant, or one computed
     from constants and iotas only through shape-only and exactly rounded
@@ -691,6 +1013,16 @@ def _static_array(b, value):
         axis = np.arange(out["shape"][dim], dtype=out["dtype"])
         kept = [-1 if i == dim else 1 for i in range(len(out["shape"]))]
         return np.broadcast_to(axis.reshape(kept), out["shape"]).copy()
+    if producer["op"] == "rem" and "integer" in _forms(b, "aten.fmod.Scalar"):
+        # C-style integer remainder (v7), exact: np.fmod truncates as lax.rem.
+        operands = [_static_array(b, v) for v in producer["in"]]
+        if any(o is None for o in operands) or out["dtype"] != "int32":
+            return None
+        return np.fmod(*operands).astype(out["dtype"])
+    if producer["op"] == "floor" and "static_outer" in _forms(b, "aten.index.Tensor"):
+        # Exact; v7 on (the form's indices are floor(arange * scale) - k).
+        source = _static_array(b, producer["in"][0])
+        return None if source is None else np.floor(source).astype(out["dtype"])
     if producer["op"] in _FOLDABLE or producer["op"] == "select_n":
         operands = [_static_array(b, v) for v in producer["in"]]
         if any(o is None for o in operands):
@@ -887,10 +1219,73 @@ def _index_static(b, node, env):
     ):
         raise graph.GraphRefused("aten_arguments_not_supported", target)
     given = [(axis, index) for axis, index in enumerate(args[1]) if index is not None]
+    if len(given) > 1 and "static_outer" in _forms(b, target):
+        return _index_static_outer(b, node, env, given)
     if len(given) != 1 or not hasattr(given[0][1], "op"):
         raise graph.GraphRefused("aten_index_shape_or_dtype_not_supported", target)
     dim, index_node = given[0]
     return _take_static(b, node, env, args[0], dim, index_node, wrap=True)
+
+
+def _index_static_outer(b, node, env, given):
+    """`x[..., i0, i1, ...]` with several static int64 indices on adjacent
+    dims that broadcast as an outer product (v7 form `static_outer`: index k
+    varies only along broadcast axis k, as neuralop's grid interpolation
+    `x[..., iy[:, None], ix]`). Torch places the broadcast shape where the
+    indexed dims were; that is one static take per dim, in order, never a
+    gather primitive."""
+    import numpy as np
+
+    target = str(node.target)
+    x = env[node.args[0]]
+    dtype, shape = b.avals[x]
+    dims = [axis for axis, _ in given]
+    if (
+        any(not hasattr(i, "op") for _, i in given)
+        or dims != list(range(dims[0], dims[0] + len(dims)))
+        or dims[-1] >= len(shape)
+    ):
+        raise graph.GraphRefused("aten_index_shape_or_dtype_not_supported", target)
+    arrays = []
+    for dim, index_node in given:
+        value = env[index_node]
+        if (
+            b.avals[value][0] != "int32"
+            or str(getattr(index_node.meta.get("val"), "dtype", None)) != "torch.int64"
+        ):
+            raise graph.GraphRefused("aten_index_shape_or_dtype_not_supported", target)
+        static = _static_array(b, value)
+        if static is None:
+            raise graph.GraphRefused("aten_index_not_static", target)
+        arrays.append(np.asarray(static, dtype=np.int64))
+    try:
+        broadcast = list(np.broadcast_shapes(*(a.shape for a in arrays)))
+    except ValueError:
+        raise graph.GraphRefused(
+            "aten_index_shape_or_dtype_not_supported", target
+        ) from None
+    if len(broadcast) != len(arrays):
+        raise graph.GraphRefused("aten_index_shape_or_dtype_not_supported", target)
+    vectors = []
+    for k, array in enumerate(arrays):
+        full = np.broadcast_to(array, broadcast)
+        line = np.moveaxis(full, k, 0).reshape(broadcast[k], -1)
+        if not (line == line[:, :1]).all():  # varies along another axis
+            raise graph.GraphRefused("aten_index_shape_or_dtype_not_supported", target)
+        size = shape[dims[k]]
+        vector = [int(i) + size if int(i) < 0 else int(i) for i in line[:, 0]]
+        if any(not 0 <= i < size for i in vector):
+            raise graph.GraphRefused("aten_index_out_of_bounds", target)
+        vectors.append(vector)
+    expected = shape[: dims[0]] + broadcast + shape[dims[-1] + 1 :]
+    if _aval(node) != (dtype, expected):
+        raise graph.GraphRefused("aten_result_metadata_not_supported", target)
+    out = x
+    for k, vector in enumerate(vectors):
+        partial = list(b.avals[out][1])
+        partial[dims[k]] = len(vector)
+        out = _take_runs(b, target, out, dims[k], vector, partial)
+    return out
 
 
 def _index_select(b, node, env):
@@ -946,6 +1341,13 @@ def _take_static(b, node, env, x_node, dim, index_node, *, wrap):
         index = [i + size if i < 0 else i for i in index]
     if any(not 0 <= i < size for i in index):
         raise graph.GraphRefused("aten_index_out_of_bounds", target)
+    return _take_runs(b, target, x, dim, index, expected)
+
+
+def _take_runs(b, target, x, dim, index, expected):
+    """`x` taken at the in-bounds static `index` on `dim`: one `slice` per run
+    of consecutive indices and one `concatenate`."""
+    dtype, shape = b.avals[x]
     runs = []  # [start, stop) of each run of consecutive indices
     for i in index:
         if runs and i == runs[-1][1]:
@@ -955,7 +1357,16 @@ def _take_static(b, node, env, x_node, dim, index_node, *, wrap):
     bytes_per_result = math.prod(expected) * max(graph.itemsize(dtype), 4)
     if bytes_per_result > allowlist_module.CAPS["largest_intermediate_bytes"]:
         raise graph.GraphRefused("aten_index_registered_resource_bound", target)
-    if len(b.nodes) + len(runs) + 1 > allowlist_module.CAPS["nodes_executed"]:
+    if "static_outer" in _forms(b, "aten.index.Tensor"):
+        # v7 on: the slices and concatenates every take adds stay in the
+        # graph, so they alone are held to the node cap here; the static
+        # index arithmetic before them is pruned, and the whole graph is
+        # measured against the cap afterwards.
+        added = b.__dict__.get("take_nodes", 0) + len(runs) + 1
+        if added > allowlist_module.CAPS["nodes_executed"]:
+            raise graph.GraphRefused("aten_index_lowering_expansion_bound", target)
+        b.take_nodes = added
+    elif len(b.nodes) + len(runs) + 1 > allowlist_module.CAPS["nodes_executed"]:
         raise graph.GraphRefused("aten_index_lowering_expansion_bound", target)
     pieces = []
     for start, stop in runs:
@@ -1024,6 +1435,10 @@ def _emit(b, node, env):
         return _split_with_sizes(b, node, env)
     if target == "aten.max_pool2d_with_indices.default":
         return _max_pool2d(b, node, env)
+    if target == "aten._upsample_bicubic2d_aa.default":
+        return _upsample_bicubic2d_aa(b, node, env)
+    # Argument forms an allowlist admits beyond an op's base form (v7 on).
+    forms = frozenset(entry.get("forms", ()))
     dtype, shape = (
         _aval(node)
         if "val" in node.meta and node.meta["val"] is not None
@@ -1088,6 +1503,18 @@ def _emit(b, node, env):
         # C-style, the dividend's sign: Carbon's rem (lax.rem), never mapped
         # from aten.remainder (Python-style, the divisor's sign), which stays
         # refused. Gradients d/dx = 1, d/dy = -trunc(x / y), as torch's.
+        if (
+            target == "aten.fmod.Scalar"
+            and "integer" in forms
+            and dtype == "int32"
+            and b.avals[x][0] == "int32"
+            and type(args[1]) is int
+            and args[1] != 0
+        ):
+            # v7 form `integer` (CODANO's (arange + k) fmod n roll index): a
+            # nonzero integer divisor, so no division by zero; C-style as
+            # torch's integer fmod.
+            return b.binary("rem", args[0], args[1], env, node)
         if dtype not in _FLOATS or any(
             hasattr(a, "op") and b.avals[env[a]][0] not in _FLOATS for a in args[:2]
         ):
@@ -1106,6 +1533,70 @@ def _emit(b, node, env):
         if b.avals[x][0] != "bool" or dtype != "bool":
             raise graph.GraphRefused("aten_arguments_not_supported", target)
         return b.unary("not", x)
+    if target == "aten.neg.default":
+        if b.avals[x][0] != dtype or dtype == "bool":
+            raise graph.GraphRefused("aten_arguments_not_supported", target)
+        return b.unary("neg", x)
+    if target == "aten.log.default":
+        if dtype not in _FLOATS or b.avals[x][0] != dtype:
+            raise graph.GraphRefused("aten_arguments_not_supported", target)
+        return b.unary("log", x, accuracy=None)
+    if target == "aten.leaky_relu.default":
+        # x where x > 0, else slope * x: the gradient at 0 is the slope, as
+        # torch's (its backward tests x > 0).
+        slope = args[1] if len(args) > 1 else kw.get("negative_slope", 0.01)
+        if (
+            dtype not in _FLOATS
+            or b.avals[x][0] != dtype
+            or type(slope) not in (int, float)
+            or not math.isfinite(slope)
+        ):
+            raise graph.GraphRefused("aten_arguments_not_supported", target)
+        positive = b.emit(
+            "gt", [x, b.broadcast(b.scalar(0, dtype), shape)], "bool", shape
+        )
+        scaled = b.emit(
+            "mul",
+            [x, b.broadcast(b.scalar(slope, dtype), shape)],
+            dtype,
+            shape,
+            out_dtype=None,
+        )
+        return b.emit("select_n", [positive, scaled, x], dtype, shape)
+    if target == "aten.any.dim":
+        # Boolean masks only: any is the int32 mask's reduce_max, then > 0.
+        have = b.avals[x][1]
+        if b.avals[x][0] != "bool" or dtype != "bool" or not have:
+            raise graph.GraphRefused("aten_arguments_not_supported", target)
+        dim = args[1] if len(args) > 1 else kw.get("dim")
+        keepdim = args[2] if len(args) > 2 else kw.get("keepdim", False)
+        dim = _norm(dim, len(have)) if type(dim) is int else -1
+        if type(keepdim) is not bool or not 0 <= dim < len(have):
+            raise graph.GraphRefused("aten_arguments_not_supported", target)
+        reduced = [d for i, d in enumerate(have) if i != dim]
+        spec = b.allowlist.ops["reduce_max"]["params"]
+        out = b.emit(
+            "reduce_max",
+            [b.to(x, "int32")],
+            "int32",
+            reduced,
+            axes=[dim],
+            **({"out_sharding": None} if "out_sharding" in spec else {}),
+        )
+        out = b.emit(
+            "gt", [out, b.broadcast(b.scalar(0, "int32"), reduced)], "bool", reduced
+        )
+        if reduced != shape:
+            out = b.emit(
+                "reshape",
+                [out],
+                "bool",
+                shape,
+                dimensions=None,
+                new_sizes=shape,
+                sharding=None,
+            )
+        return out
     if target == "aten.sigmoid.default":
         return b.unary("logistic", x, accuracy=None)
     if target in ("aten.exp.default", "aten.log1p.default", "aten.sqrt.default"):
@@ -1306,7 +1797,9 @@ def _emit(b, node, env):
         start = args[3] if len(args) > 3 and args[3] is not None else 0
         step = args[5] if len(args) > 5 else 1
         if step != 1:
-            raise graph.GraphRefused("aten_arguments_not_supported", target)
+            if "strided" not in forms or type(step) is not int or step < 1:
+                raise graph.GraphRefused("aten_arguments_not_supported", target)
+            return _slice_scatter_strided(b, node, env, dim, step)
         indices = [
             b.scalar(start % have[dim] if d == dim else 0, "int32")
             for d in range(len(have))
@@ -1512,7 +2005,9 @@ def _emit(b, node, env):
         w = env[args[1]]
         bias, stride, padding, dilation, transposed, _, groups = args[2:9]
         if transposed:
-            raise graph.GraphRefused("aten_arguments_not_supported", target)
+            if "transposed" not in forms:
+                raise graph.GraphRefused("aten_arguments_not_supported", target)
+            return _convolution_transposed(b, node, env)
         spatial = len(shape) - 2
         spec = list(range(spatial + 2))
         out = b.emit(

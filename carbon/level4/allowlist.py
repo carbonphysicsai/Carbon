@@ -138,6 +138,20 @@ def load_served():
     return Allowlist(served_bytes())
 
 
+#: Allowlist v7 (prospective, not yet served): frozen by its sha. A Challenge
+#: serves it only on a new version registered for it, never in place of v6.
+V7_PATH = Path(__file__).with_name("allowlist_v7.json")
+V7_SHA256 = "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c"
+
+
+def v7_bytes():
+    """Allowlist v7's exact frozen bytes, or ValueError."""
+    raw = V7_PATH.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != V7_SHA256:
+        raise ValueError("allowlist v7 bytes differ")
+    return raw
+
+
 #: How the `constant_bytes` cap is measured, versioned prospectively:
 #: v1 summed every embedded constant's bytes; v2 (OWNER-L4-CONSTANT-
 #: ACCOUNTING-02) counted identical constants once; v3 (OWNER-L4-CONSTANT-
