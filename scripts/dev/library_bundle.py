@@ -196,7 +196,7 @@ def install_receiver_bundle(directory, receiver_config):
     from carbon.challenge_validator import direct_receiver
 
     cfg = direct_receiver.load_config(Path(receiver_config))
-    _implementation, parent, _network, cache = direct_receiver.installed_source(
+    implementation, parent, _network, cache = direct_receiver.installed_source(
         Path(cfg["runner_profile"]),
         **(
             {"construction_image_manifest": Path(cfg["construction_image_manifest"])}
@@ -206,6 +206,20 @@ def install_receiver_bundle(directory, receiver_config):
     )
     material = load_pinned_bundle_directory(directory)
     selected = bundle_ref(*material)
+    if "construction_runtimes" in cfg:
+        # The receiver's per-runtime parents: the bundle's pinned runtime alone
+        # picks the one it builds on, as the receiver's resolver will.
+        from carbon.development_session.gpu_practice import DirectParentRefused
+
+        try:
+            parent = direct_receiver.construction_parents(
+                parent, implementation
+            ).for_bundle(selected)
+        except DirectParentRefused as refused:
+            raise ValueError(
+                f"{refused.code}: the receiver has no construction parent for "
+                f"{selected.runtime_profile_id} bundles"
+            ) from None
     try:
         verify_bundle_parent_environment(material[0], parent)
     except ValueError as error:
