@@ -148,6 +148,24 @@ def profile(setup):
     return runner.validated_profile(json.loads(setup.profile_path.read_bytes()))
 
 
+def unpublished(*configured):
+    """Review's warning for each other intake Challenge with no endpoint.
+
+    Battery was once the only intake Challenge; Motor 1.2 has one too, and
+    Review says truthfully that Carbon has not published its endpoint
+    (Validator, Motor 1.2 landing, 2026-10-20)."""
+    named = {challenge["id"] for challenge in configured}
+    return [
+        {
+            "code": "no_evaluation_endpoint",
+            "challenge": challenge["id"],
+            "message": environment.NO_ENDPOINT.format(title=challenge["title"]),
+        }
+        for challenge in intake_challenges()
+        if challenge["id"] not in named
+    ]
+
+
 def own_review(challenge, receiver=HOTKEY):
     """Review naming the miner's own intake with its receiver hotkey
     (required since LAUNCHPAD-ACCEPT-03)."""
@@ -481,7 +499,7 @@ def test_an_update_keeps_the_intake_the_miner_named(tmp_path, state, head, chall
     rebuild(tmp_path, state, NEW)
     report = setup.after_install()
     assert report["profile"]["written"] is True
-    assert report["profile"]["warnings"] == []
+    assert report["profile"]["warnings"] == unpublished(challenge)
     assert profile(setup)["intakes"] == {challenge["id"]: OWN}
     # Its receiver is pinned again (LAUNCHPAD-ACCEPT-03).
     assert profile(setup)["receivers"] == {challenge["id"]: HOTKEY}
@@ -511,7 +529,8 @@ def test_a_profile_written_before_intakes_were_recorded_keeps_the_miners_own(
     # (LAUNCHPAD-ACCEPT-03's working decision).
     assert report["profile"]["written"] is True
     assert [w["code"] for w in report["profile"]["warnings"]] == [
-        "intake_receiver_not_pinned"
+        "intake_receiver_not_pinned",
+        *(w["code"] for w in unpublished(challenge)),
     ]
     assert profile(setup)["intakes"] == {challenge["id"]: OWN}
     assert "receivers" not in profile(setup)
@@ -565,7 +584,14 @@ def test_review_writes_the_published_endpoint_without_reaching_it(
 ):
     """`Checks` has no intake check: a published endpoint is written without
     one, and checked by the intake client at submit."""
-    publish(tmp_path, monkeypatch, [entry(challenge["id"])])
+    # Every intake Challenge published, each at its own endpoint.
+    every = intake_challenges()
+    urls = {c["id"]: URL if c is every[0] else f"{URL}/{c['id']}" for c in every}
+    publish(
+        tmp_path,
+        monkeypatch,
+        [entry(c["id"], intake_url=urls[c["id"]]) for c in every],
+    )
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Reinstalled())
     completed(tmp_path, setup)
     before = setup.state()["steps"]["evaluation"]
@@ -573,7 +599,7 @@ def test_review_writes_the_published_endpoint_without_reaching_it(
     assert before["challenges"][0]["source"] == "published"
     result = setup.review({"confirm": True})
     assert result["warnings"] == []
-    assert profile(setup)["intakes"] == {challenge["id"]: URL}
+    assert profile(setup)["intakes"] == urls
     written = result["steps"]["evaluation"]["challenges"][0]
     assert (written["intake"], written["source"]) == (URL, "published")
     assert written["receiver_hotkey"] == HOTKEY
@@ -581,7 +607,7 @@ def test_review_writes_the_published_endpoint_without_reaching_it(
     # entry, without reaching the endpoint, and setup says so.
     assert written["receiver_hotkey_note"] == environment.RECEIVER_NOTE
     assert "binding" in environment.RECEIVER_NOTE
-    assert profile(setup)["receivers"] == {challenge["id"]: HOTKEY}
+    assert profile(setup)["receivers"] == {c["id"]: HOTKEY for c in every}
 
 
 def test_with_none_published_review_says_so_and_still_writes(
@@ -591,21 +617,28 @@ def test_with_none_published_review_says_so_and_still_writes(
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Reinstalled())
     completed(tmp_path, setup)
     result = setup.review({"confirm": True})
-    assert result["warnings"] == [
-        {
-            "code": "no_evaluation_endpoint",
-            "challenge": challenge["id"],
-            "message": environment.NO_ENDPOINT.format(title=challenge["title"]),
-        }
-    ]
+    assert result["warnings"] == unpublished()
+    assert result["warnings"][0]["challenge"] == challenge["id"]
     assert "intakes" not in profile(setup)
     evaluation = result["steps"]["evaluation"]
     assert evaluation["ready"] is False
-    assert "cannot submit" in evaluation["challenges"][0]["note"]
+    assert "nothing for you to fix" in evaluation["challenges"][0]["note"]
     # Published after Review: setup says to review again.
     publish(tmp_path, monkeypatch, [entry(challenge["id"])])
     note = setup.state()["steps"]["evaluation"]["challenges"][0]["note"]
     assert "since your profile was written: review again" in note
+
+
+def test_the_no_endpoint_note_names_carbon_and_asks_nothing_of_the_miner():
+    # Validator (Motor 1.2 landing): Carbon is the party that has not
+    # published it; nothing for the miner to fix; their own intake is an
+    # alternative, never a remedy.
+    note = environment.NO_ENDPOINT.format(title="Motor")
+    assert note.startswith("Carbon has not published an evaluation endpoint")
+    assert "nothing for you to fix" in note
+    assert "once Carbon publishes one" in note
+    assert "name a validator intake you run yourself" in note
+    assert "update Carbon" not in note and "review again" not in note
 
 
 def test_a_named_intake_wins_over_the_published_one(

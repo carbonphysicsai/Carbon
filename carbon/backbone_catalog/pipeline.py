@@ -19,10 +19,13 @@ line; `verify` re-checks every entry (each entry also runs in the tests):
 
     python -m carbon.backbone_catalog.pipeline verify [--wheelhouse DIR]
 
-and installs each entry's child image over the profile's PyTorch CPU parent
-(owner-run, on the miner and on the receiver host):
+and installs each entry's child image over the PyTorch CPU parent (owner-run).
+On a miner it reads the checked Launchpad setup; on a receiver host, which has
+no miner setup, it reads the receiver's operator record and installs over the
+parent and into the cache the receiver itself verifies at start:
 
     python -m carbon.backbone_catalog.pipeline install [IDS...] [--wheelhouse DIR]
+        [--state-dir DIR | --receiver-config RECEIVER.json]
 
 Checked per entry:
 - the bundle's digest is its manifest's canonical digest, and the source,
@@ -326,14 +329,19 @@ def bundle_directory(item, target, *, wheelhouse=None):
     return target
 
 
-def install(catalog_ids=None, *, wheelhouse=None, state_dir=None):
-    """Install each entry's child image over the profile's PyTorch CPU parent
-    (the owner installer, `scripts/dev/library_bundle.install_bundle`), so
-    practice and the receiver can build it. Owner-run; never from MCP."""
+def install(catalog_ids=None, *, wheelhouse=None, state_dir=None, receiver_config=None):
+    """Install each entry's child image over its PyTorch CPU parent, so
+    practice and the receiver can build it. Owner-run; never from MCP.
+
+    A miner installs from its checked Launchpad setup (`state_dir`,
+    `library_bundle.install_bundle`); a receiver host from its operator record
+    (`receiver_config`, `library_bundle.install_receiver_bundle`)."""
     import tempfile
 
     from scripts.dev import library_bundle
 
+    if state_dir is not None and receiver_config is not None:
+        raise CatalogBroken("install for a miner setup or a receiver, not both")
     installed = []
     for item in load()["entries"]:
         if catalog_ids and item["catalog_id"] not in catalog_ids:
@@ -343,13 +351,14 @@ def install(catalog_ids=None, *, wheelhouse=None, state_dir=None):
             directory = bundle_directory(
                 item, Path(work) / "bundle", wheelhouse=wheelhouse
             )
-            kwargs = {} if state_dir is None else {"state_dir": state_dir}
-            installed.append(
-                {
-                    "catalog_id": item["catalog_id"],
-                    **library_bundle.install_bundle(directory, **kwargs),
-                }
-            )
+            if receiver_config is not None:
+                result = library_bundle.install_receiver_bundle(
+                    directory, receiver_config
+                )
+            else:
+                kwargs = {} if state_dir is None else {"state_dir": state_dir}
+                result = library_bundle.install_bundle(directory, **kwargs)
+            installed.append({"catalog_id": item["catalog_id"], **result})
     return installed
 
 
@@ -368,7 +377,9 @@ def main(argv=None):
     put = commands.add_parser("install")
     put.add_argument("catalog_id", nargs="*")
     put.add_argument("--wheelhouse", type=Path)
-    put.add_argument("--state-dir", type=Path)
+    host = put.add_mutually_exclusive_group()
+    host.add_argument("--state-dir", type=Path)
+    host.add_argument("--receiver-config", type=Path)
     args = parser.parse_args(argv)
     try:
         if args.command == "verify":
@@ -384,6 +395,7 @@ def main(argv=None):
                         args.catalog_id,
                         wheelhouse=args.wheelhouse,
                         state_dir=args.state_dir,
+                        receiver_config=args.receiver_config,
                     ),
                     indent=1,
                     default=str,
