@@ -119,13 +119,16 @@ def test_f08_and_f02_catalog_kits_serve_their_predecessors_train(public, train, 
     )
 
 
-def test_receiver_registration_follows_each_predecessor():
-    # Motor, Cooling and F08 versions are receivable; F02 2.1 is not, and F02
-    # 2.2 follows it (an open question for the Validator, not widened here).
-    for key in ((MOTOR, "1.3"), (COOLING, "1.2"), (F08, "1.3")):
+def test_every_catalog_version_is_receivable_with_its_pack():
+    # Validator, 2026-10-20: F02 2.1/2.2 and Battery 2.x are receivable too.
+    for key in (
+        (MOTOR, "1.3"),
+        (COOLING, "1.2"),
+        (F08, "1.3"),
+        (F02, "2.1"),
+        (F02, "2.2"),
+    ):
         assert physical_material.is_registered(*key)
-    assert physical_material.is_registered(F02, "2.1") is False
-    assert physical_material.is_registered(F02, "2.2") is False
 
 
 def test_motor_1_2_is_byte_for_byte_unchanged():
@@ -243,3 +246,31 @@ def test_motor_1_3_material_serves_its_own_catalog():
     assert MotorCatalogMaterial(".").VERSION == "1.2"
     with pytest.raises(ValueError, match="motor catalog version"):
         MotorCatalogMaterial(".", "1.0")
+
+
+@pytest.mark.parametrize(
+    "challenge, accepted",
+    [
+        ({"id": BATTERY, "version": "1.0"}, True),
+        ({"id": BATTERY, "version": "2.0"}, True),
+        ({"id": BATTERY, "version": "2.1"}, True),
+        ({"id": BATTERY, "version": "3.0"}, False),
+        ({"id": F02, "version": "2.1"}, True),
+        ({"id": F02, "version": "2.2"}, True),
+        ({"id": F02, "version": "2.9"}, False),
+    ],
+)
+def test_the_receiver_selects_every_served_battery_and_f02_version(
+    tmp_path, monkeypatch, challenge, accepted
+):
+    from test_direct_receiver import _config
+
+    from carbon.challenge_validator import direct_receiver as receiver
+
+    cfg = {**_config(tmp_path), "challenge": challenge}
+    monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
+    if accepted:
+        assert receiver.load_config(tmp_path / "config.json") == cfg
+    else:
+        with pytest.raises(ValueError, match="registered direct Challenge"):
+            receiver.load_config(tmp_path / "config.json")

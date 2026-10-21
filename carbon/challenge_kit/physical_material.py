@@ -47,6 +47,10 @@ REGISTERED = (
     # F02 2.0 (TRAIN40-v2): its own public module and float32 TRAIN, like F08. Named explicitly,
     # so a future version bump in the loader cannot silently move what is served.
     ("f02", "2.0"),
+    # F02 2.1 (step 2) and 2.2 (its catalog version, allowlist v7), receivable with their
+    # approved packs (Validator, 2026-10-20).
+    ("f02", "2.1"),
+    ("f02", "2.2"),
 )
 
 

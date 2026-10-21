@@ -108,12 +108,20 @@ def load_config(path: Path) -> dict:
         from carbon.challenge_kit.synthetic_linear_field_2d import CHALLENGE
 
         selected = value["challenge"]
+        from carbon.battery.construction_bundle_material import (
+            VERSIONS as BATTERY_VERSIONS,
+        )
+
         registered = (
             {"id": CHALLENGE.challenge_id, "version": "1.3"},
-            {
-                "id": battery_challenge.CHALLENGE.challenge_id,
-                "version": battery_challenge.CHALLENGE.version,
-            },
+            # Every served Battery construction version (1.0; step-2 2.0; the
+            # catalog version 2.1), each with its approved pack (Validator,
+            # 2026-10-20). Battery serves its own versioned material, not a
+            # physical kit, so it is listed here rather than in REGISTERED.
+            *(
+                {"id": battery_challenge.CHALLENGE.challenge_id, "version": version}
+                for version in BATTERY_VERSIONS
+            ),
             *(
                 {"id": challenge_id, "version": version}
                 for challenge_id, version in physical_material.REGISTERED

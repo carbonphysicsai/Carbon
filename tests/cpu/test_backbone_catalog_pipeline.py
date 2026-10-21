@@ -357,3 +357,25 @@ def test_each_entry_names_its_own_runtime_and_jno_keeps_its_build_name():
             assert item["backbone"] == item["catalog_id"].removeprefix("jno.")
         else:
             assert runtime == "torch-cpu-py311"
+
+
+def test_no_entry_names_thuml_transolver_plus_until_its_noise_free_receipt():
+    """A deliberate absence (Validator, 2026-10-20), not a forgotten entry.
+
+    Every shipped coverage bundle carries `thuml.Transolver_plus` and its MIT
+    source, unreachable because no entry names that catalog id and
+    `settings.resolve` sets the entry's own backbone last. Upstream samples
+    Gumbel noise (`rand_like`) on every forward pass, inference included.
+
+    WHAT LIFTS THIS GUARD: the Validator's receipt for a separate Transolver++
+    entry whose bundle's eval forward is noise-free (the Gumbel noise used only
+    while training, from the training loop's seeded generator) and whose two
+    inferences of one trained state are bit-identical, i.e. the packet
+    `codex-queue/inputs/motor_step1/catalog_clean/t_thuml_transolver_plus_baseline`
+    (owner yes, 2026-10-20) once pair-identity and that receipt exist. Replace
+    this test with that entry's own noise-free double-inference test then.
+    """
+    named = {e["catalog_id"] for e in pipeline.entries()} | {
+        e["backbone"] for e in pipeline.entries()
+    }
+    assert "thuml.Transolver_plus" not in named
