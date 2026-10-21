@@ -81,23 +81,38 @@ class Identity:
         self.stage = "confirmed"
         return {"confirmed": True}
 
-    # -- 3. save: the password, then public addresses only ----------------------------------------
-    def save(self, password, again):
+    # -- 3. save: the two passwords, then public addresses only ----------------------------------------
+    def save(self, coldkey_password, coldkey_again, hotkey_password, hotkey_again):
         if self.stage != "confirmed":
             raise IdentityRefused("Give back the words first.")
-        if (
-            not isinstance(password, str)
-            or not isinstance(again, str)
-            or not hmac.compare_digest(password.encode(), again.encode())
+        for label, first, second in (
+            ("money (coldkey)", coldkey_password, coldkey_again),
+            ("mining (hotkey)", hotkey_password, hotkey_again),
         ):
-            raise IdentityRefused("The two passwords differ.")
-        if not MIN_PASSWORD <= len(password) <= MAX_PASSWORD:
+            if (
+                not isinstance(first, str)
+                or not isinstance(second, str)
+                or not hmac.compare_digest(first.encode(), second.encode())
+            ):
+                raise IdentityRefused(
+                    f"The two entries for the {label} password differ."
+                )
+            if not MIN_PASSWORD <= len(first) <= MAX_PASSWORD:
+                raise IdentityRefused(
+                    f"Use a {label} password of at least {MIN_PASSWORD} characters."
+                )
+        if hmac.compare_digest(coldkey_password.encode(), hotkey_password.encode()):
             raise IdentityRefused(
-                f"Use a password of at least {MIN_PASSWORD} characters."
+                "Use two different passwords: the mining password is typed more often, "
+                "so it must not be the one that guards your money."
             )
         try:
             cold, hot = self.backend.save(
-                self._name, self.hotkey_name, self._phrase, password
+                self._name,
+                self.hotkey_name,
+                self._phrase,
+                coldkey_password,
+                hotkey_password,
             )
         finally:
             self._phrase = None
@@ -108,6 +123,7 @@ class Identity:
             "hotkey": self.hotkey_name,
             "coldkey_address": cold,
             "hotkey_address": hot,
+            "folder": self.backend.folder(name),
         }
 
     def discard(self):
