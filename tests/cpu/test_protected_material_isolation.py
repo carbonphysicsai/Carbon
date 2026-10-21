@@ -252,7 +252,7 @@ def test_the_validator_orchestration_records_no_protected_value():
     assert document["schema"] == CANCEL_SCHEMA
 
 
-# --- M1 rehearsal, 2026-10-21: the checkout deny rule reads path-like text ----
+# --- M1 rehearsal, 2026-10-21: a miner tool's result is checked by token ----
 
 import pytest
 
@@ -267,8 +267,10 @@ from carbon.agent_campaign.graphite import protected_material as _pm
         "Reuse of the reference solver awaits a confirmation design",
     ],
 )
-def test_carbon_prose_never_trips_the_checkout_deny_rule(text):
-    assert not _pm.protected(text) and _pm.marker_classes(text) == []
+def test_carbon_prose_never_withholds_a_result(text):
+    assert not _pm.protected_result({"x": text})
+    # Requests, briefs and literature keep the whole-string rule.
+    assert _pm.protected({"x": text})
 
 
 @pytest.mark.parametrize(
@@ -278,21 +280,28 @@ def test_carbon_prose_never_trips_the_checkout_deny_rule(text):
         "docs/development/evidence/x/records.jsonl",  # a relative path
         r"docs\development\ev4\out.json",  # a Windows path
         ".env",
+        "see tests/cpu/x.py for it",  # a path inside a sentence
+        "credential.json ",  # with whitespace around it
     ],
 )
-def test_a_path_like_string_still_trips_it(text):
-    assert _pm.protected(text)
-    assert _pm.marker_classes(text) == [_pm.CHECKOUT_DENY_CLASS]
+def test_a_path_like_token_still_withholds_a_result(text):
+    assert _pm.protected_result({"x": text})
 
 
-def test_graphite_markers_still_read_every_string():
-    assert _pm.marker_classes("the official seed of this exam") == ["seed_material"]
+def test_graphite_markers_still_read_every_string_of_a_result():
+    assert _pm.protected_result({"x": "the official seed of this exam"})
+    assert _pm.protected_result({"x": "hidden_case 7"})
 
 
-def test_motor_objective_and_roadmap_pass_the_guard():
+def test_a_public_practice_path_token_is_public():
+    (path,) = sorted(_pm.PUBLIC_PRACTICE_PATHS)[:1]
+    assert not _pm.protected_result({"x": path})
+
+
+def test_motor_objective_and_roadmap_pass_the_result_check():
     from carbon.development_session.capability_demand import public_roadmap
     from carbon.motor import research as motor_research
     from carbon.reconstruction import capability_registry as registry
 
-    assert not _pm.protected(public_roadmap(None, registry.MOTOR_CHALLENGE))
-    assert not _pm.protected(motor_research.objective())
+    assert not _pm.protected_result(public_roadmap(None, registry.MOTOR_CHALLENGE))
+    assert not _pm.protected_result(motor_research.objective())

@@ -52,6 +52,14 @@ def protected(value):
     return check(value)
 
 
+def protected_result(value):
+    """The result check (`protected_material.protected_result`): Graphite's
+    markers in every string, the checkout deny rule on path-like tokens."""
+    from ..protected_material import protected_result as check
+
+    return check(value)
+
+
 def marker_classes(value):
     """The class names of the protected material `value` names, never a
     marker or the text (`protected_material.marker_classes`)."""
@@ -200,7 +208,7 @@ class MinerToolbox:
             result = await self.sdk.call(name, arguments, identity)
             if type(result) is not dict:
                 result = refusal("UNAVAILABLE", "malformed_tool_result")
-        if protected(result):
+        if protected_result(result):
             # The classes of what matched, never a marker or the text
             # (`protected_material.marker_classes`), so a withheld result
             # says why it was withheld.
