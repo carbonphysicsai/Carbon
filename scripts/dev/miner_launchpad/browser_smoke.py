@@ -1732,7 +1732,7 @@ def setup_journey():
                     session,
                     "!document.getElementById('setup-agent-connect').hidden"
                     " && document.getElementById('setup-agent-connect').textContent"
-                    ".includes('Skips Inference')",
+                    ".includes('Skips the AI model step')",
                 )
                 snippets = json.loads(
                     session.evaluate(

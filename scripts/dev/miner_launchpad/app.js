@@ -754,7 +754,7 @@
     ["register", "Get your keys and join", "Make your mining keys, put some TAO in your wallet, then join Carbon's network (the subnet). You sign in your own wallet."],
     ["signer", "Start your signer", "Your signer holds your mining key on this machine and signs your work. Carbon never sees your key."],
     ["agent", "Who researches?", "Carbon's agent, or your own agent over MCP. This step also checks your signer."],
-    ["inference", "Inference", "Choose the model Carbon's agent calls, with your own key."],
+    ["inference", "AI model", "Choose the AI model Carbon's agent uses. You bring your own key from the model's provider."],
     ["compute", "Compute", "Choose where practice runs: this machine, or a GPU you run elsewhere."],
     ["review", "Review and launch", "Carbon writes your runner profile and loads it. Then you choose a Challenge."],
   ];
@@ -1581,7 +1581,7 @@
       connectBox.hidden = !choice?.connect;
       if (!choice?.connect) return;
       const connect = choice.connect;
-      connectBox.append(el("h3", "Connect your agent"), el("p", "Skips Inference: " + choice.skips.inference + ". " + connect.note, "hint"));
+      connectBox.append(el("h3", "Connect your agent"), el("p", "Skips the AI model step: " + choice.skips.inference + ". " + connect.note, "hint"));
       copyRow(connectBox, "The one command, run from your Carbon checkout (" + connect.cwd + ")", connect.command, "setup-agent-command-copy");
       // One disclosure per client: its snippets, its source and what Carbon
       // has not verified.
@@ -1644,7 +1644,7 @@
     const reviewPanel = stepPanel(body, "review", written ? "Your profile is written." : null);
     const review = stepForm(reviewPanel, "review");
     const summary = el("dl", undefined, "review-grid"); review.append(summary);
-    for (const [name, label] of [["agent", "Who researches"], ["inference", "Inference"], ["compute", "Compute"]]) {
+    for (const [name, label] of [["agent", "Who researches"], ["inference", "AI model"], ["compute", "Compute"]]) {
       const state = steps[name] || {};
       summary.append(el("dt", label), el("dd", state.checked ? checkedText(name, steps) : j.skipped[name] ? "Skipped: your agent uses its own model" : "Not checked yet"));
     }
@@ -3392,7 +3392,7 @@
         }
         if (provider.availability !== "available") return provider.provider + " is unavailable: " + words(provider.reason) + ". Next: " + provider.next_action;
         if (!provider.models.some(model => model.id === wizard.model)) {
-          return provider.models.length ? "Choose a model." : provider.provider + " lists no models here. Choose it with your model under Set up, Inference: that model is then offered here.";
+          return provider.models.length ? "Choose a model." : provider.provider + " lists no models here. Choose it with your model under Set up, AI model: that model is then offered here.";
         }
         const cap = outputCap();
         if (cap?.problem) return "Fix the output cap: " + cap.problem + ", or leave it blank for " + outputDefault(cap) + ".";
@@ -3767,7 +3767,7 @@
         }
         // A provider whose adapter lists no models is chosen with its model
         // in setup; a launch never names a model this page has not listed.
-        if (!provider.models.length) researchNote(group, "No model is listed for this provider here. Choose it with your model under Set up, Inference, and that model is offered here.", "hint");
+        if (!provider.models.length) researchNote(group, "No model is listed for this provider here. Choose it with your model under Set up, AI model, and that model is offered here.", "hint");
         researchNote(group, "Credential: " + provider.credential.reference + " · " + (provider.credential.configured === null ? provider.credential.basis : provider.credential.configured ? "configured" : "not configured"), "hint");
         if (provider.availability !== "available") unavailableNote(group, provider);
         node.append(group);
