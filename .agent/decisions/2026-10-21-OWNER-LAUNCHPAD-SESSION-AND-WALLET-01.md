@@ -30,3 +30,9 @@ Status: APPROVED by the owner as security decisions.
   - It is never stored, logged or transmitted.
 - **Not accepted:** browser entry routed through the Control Center.
 - **The ship gate stays:** the secret-sentinel search, covering the controller and helper state, the logs, every response and the page storage.
+
+## Separate passwords (owner, 2026-10-21, directly in the Carbon Validator's session)
+
+- **The reason:** the Validator's code review of `3ed1e5255fa0e2d0889075f715582861a1f6ea05` found that the coldkey and hotkey were locked with one password. The hotkey password is typed every time the signer starts, so that would expose the coldkey's password.
+- **The owner's choice: "Two passwords."** The wizard asks for a separate hotkey (mining) password and a coldkey (money) password.
+- **The code-level security acceptance follows the fixed head.**
