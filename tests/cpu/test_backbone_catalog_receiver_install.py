@@ -15,7 +15,7 @@ from carbon.backbone_catalog import pipeline
 from carbon.challenge_validator import direct_receiver
 from carbon.reconstruction import torch_profile
 from carbon.reconstruction.worker.model import WorkerImageIdentity
-from scripts.dev import library_bundle
+from scripts.dev import catalog_install, library_bundle
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -77,7 +77,9 @@ def receiver(tmp_path, monkeypatch):
 
 
 def test_a_receiver_installs_over_its_own_parent_into_its_own_cache(receiver):
-    installed = pipeline.install(["neuralop.FNO"], receiver_config=receiver["config"])
+    installed = catalog_install.install(
+        ["neuralop.FNO"], receiver_config=receiver["config"]
+    )
     item = pipeline.entry("neuralop.FNO")
     assert installed == [
         {
@@ -100,31 +102,41 @@ def test_a_receiver_installs_over_its_own_parent_into_its_own_cache(receiver):
 def test_a_receiver_parent_that_cannot_build_the_runtime_is_not_served(receiver):
     receiver["parent"] = torch_parent(lock_digest=sha("uv.lock"))
     with pytest.raises(ValueError, match="backend_not_served"):
-        pipeline.install(["neuralop.FNO"], receiver_config=receiver["config"])
+        catalog_install.install(["neuralop.FNO"], receiver_config=receiver["config"])
     assert receiver["installed"] == []
 
 
 def test_a_receiver_without_its_campaigns_root_is_refused(receiver):
     receiver["cache"].parent.parent.rmdir()
     with pytest.raises(ValueError, match="campaigns root missing"):
-        pipeline.install(["neuralop.FNO"], receiver_config=receiver["config"])
+        catalog_install.install(["neuralop.FNO"], receiver_config=receiver["config"])
     assert receiver["installed"] == []
 
 
 def test_install_is_for_a_miner_or_a_receiver_never_both(tmp_path, capsys):
     with pytest.raises(pipeline.CatalogBroken, match="not both"):
-        pipeline.install(state_dir=tmp_path, receiver_config=tmp_path / "r.json")
+        catalog_install.install(state_dir=tmp_path, receiver_config=tmp_path / "r.json")
     with pytest.raises(SystemExit):
-        pipeline.main(
-            ["install", "--state-dir", str(tmp_path), "--receiver-config", "r.json"]
+        catalog_install.main(
+            ["--state-dir", str(tmp_path), "--receiver-config", "r.json"]
         )
     assert "not allowed with" in capsys.readouterr().err
 
 
+def test_the_old_pipeline_install_names_the_owner_installer(capsys):
+    # The catalog package imports nothing from scripts/ (Validator): the old
+    # command refuses and names the new one, never installing.
+    assert pipeline.main(["install", "neuralop.FNO", "--receiver-config", "r"]) == 2
+    err = capsys.readouterr().err
+    assert (
+        "python -m scripts.dev.catalog_install neuralop.FNO --receiver-config r" in err
+    )
+
+
 def test_the_cli_passes_the_receiver_record(receiver, capsys):
     assert (
-        pipeline.main(
-            ["install", "neuralop.FNO", "--receiver-config", str(receiver["config"])]
+        catalog_install.main(
+            ["neuralop.FNO", "--receiver-config", str(receiver["config"])]
         )
         == 0
     )

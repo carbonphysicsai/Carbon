@@ -223,12 +223,12 @@ CATALOG_VERSION = "1.2"
 def catalog_recipe(catalog_id="neuralop.FNO", version=CATALOG_VERSION):
     """A ready catalog recipe: the version's kit, one catalog entry, its
     tested baseline settings (empty: unset settings keep the baseline's)."""
-    from carbon.backbone_catalog import pipeline, served
+    from carbon.backbone_catalog import listing, served
     from carbon.challenge_kit import physical_public
     from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
 
     kit = physical_public.construction_kit(MOTOR_CHALLENGE, version)
-    item = pipeline.entry(catalog_id, MOTOR_CHALLENGE, version)
+    item = listing.entry(catalog_id, MOTOR_CHALLENGE, version)
     return {
         "schema": "carbon.construction-recipe.v1",
         "challenge": kit,

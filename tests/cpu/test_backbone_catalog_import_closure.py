@@ -45,3 +45,38 @@ def test_miner_surfaces_import_no_torch():
     )
     assert result.returncode == 0, result.stderr[-3000:]
     assert json.loads(result.stdout.strip().splitlines()[-1]) == []
+
+
+def _attack_invariant():
+    import importlib.util
+
+    path = ROOT / "tests/invariants/test_attack_store_unreachable.py"
+    spec = importlib.util.spec_from_file_location("_catalog_closure_scan", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_no_miner_surface_reaches_the_owner_pipeline_or_the_receiver():
+    # Validator, 2026-10-20: the catalog is cut at its boundary. Miner paths
+    # read `listing` only; the owner pipeline, its installers and the receiver
+    # are unreachable, by the attack invariant's own static closure (every
+    # import anywhere in a file, function-level ones included).
+    invariant = _attack_invariant()
+    reached = {path.relative_to(ROOT).as_posix() for path in invariant.closure(ROOT)}
+    assert "carbon/backbone_catalog/listing.py" in reached
+    assert "carbon/agent_campaign/graphite/miner/driver.py" in reached
+    for owner_only in (
+        "carbon/backbone_catalog/pipeline.py",
+        "carbon/challenge_validator/direct_receiver.py",
+        "scripts/dev/library_bundle.py",
+        "scripts/dev/catalog_install.py",
+    ):
+        assert owner_only not in reached, owner_only
+
+
+def test_the_catalog_package_imports_nothing_from_scripts():
+    invariant = _attack_invariant()
+    for path in sorted((ROOT / "carbon/backbone_catalog").glob("*.py")):
+        names = invariant.SCAN.imported_names(path, ROOT)
+        assert not [n for n in names if n.split(".")[0] == "scripts"], path.name

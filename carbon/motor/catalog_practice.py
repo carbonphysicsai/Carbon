@@ -63,10 +63,10 @@ class MotorCatalogPractice:
 
     def installed(self):
         """The catalog ids whose child image is installed on this host."""
-        from carbon.backbone_catalog import pipeline
+        from carbon.backbone_catalog import listing
 
         found = []
-        for item in pipeline.entries(CHALLENGE.challenge_id, self.version):
+        for item in listing.entries(CHALLENGE.challenge_id, self.version):
             try:
                 self._resolve(_bundle_ref(item["bundle_ref"]))
             except (FileNotFoundError, ValueError, OSError):
