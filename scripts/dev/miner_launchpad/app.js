@@ -456,7 +456,12 @@
     return {view: views.includes(parts[0]) ? parts[0] : "overview", id: parts[1] || "", tab: TABS.some(([name]) => name === tab) ? tab : "overview"};
   }
   function campaignHref(id, tab = "live") { return "#campaigns/" + encodeURIComponent(id) + "/" + tab; }
+  let launchNoticeFor = null;
   function show() {
+    if (launchNoticeFor !== null && !location.hash.startsWith(launchNoticeFor)) {
+      launchNoticeFor = null;
+      if (connected) message("Connected. Records persist on this machine.");
+    }
     const current = route();
     for (const view of document.querySelectorAll("main > .view")) view.hidden = view.id !== current.view;
     for (const link of document.querySelectorAll("#tool-nav a")) {
@@ -657,6 +662,8 @@
   async function onboardingRequirements() {
     try {
       const value = await api("/api/v1/onboarding/requirements");
+      const stale = $("onboarding-result");
+      if (stale.dataset.key === "disconnected") { stale.replaceChildren(); stale.dataset.key = ""; }
       // The network this controller registers on, always in view.
       $("network-pill").textContent = (String(value.network).includes("test") ? "Testnet" : words(value.network)) + " · netuid " + value.netuid;
       const facts = $("onboarding-facts");
@@ -665,9 +672,9 @@
       // claim from unknown, and neither is a figure to plan around.
       const rows = [
         ["Network", value.network + " · netuid " + value.netuid],
-        ["Mechanism", value.mechanism],
-        ["Recycle amount", value.cost && value.cost.value === "NOT_READ"
-          ? "Not read by Carbon — your wallet shows it at signing"
+        ["How joining works", value.mechanism === "BURNED_REGISTRATION" ? "A one-time payment from your own wallet; Carbon does not receive it" : words(value.mechanism)],
+        ["Joining cost", value.cost && value.cost.value === "NOT_READ"
+          ? "Not read by Carbon: your wallet shows the exact amount before you sign"
           : String((value.cost || {}).value)],
         ["Carbon signs", "Never"]
       ];
@@ -2247,8 +2254,9 @@
     // (LAUNCHPAD-ACCEPT-04): queued, the validator's side, or yours to act on.
     if (refusal.intake_outcome) box.append(el("p", "Validator intake: " + INTAKE_OUTCOMES[refusal.intake_outcome], "hint"));
     // What stopped it, by its code, so it can be named to someone who can help.
-    if (refusal.kind === "interrupted") box.append(el("p", "Code: " + refusal.code, "hint"));
-    if (refusal.next_action && !practiceMessage(refusal.code)) box.append(el("p", (compact ? "" : "What to do: ") + refusal.next_action, compact ? "hint" : "refusal-next"));
+    if (refusal.kind === "interrupted" && !compact) box.append(el("p", "Code: " + refusal.code, "hint"));
+    // A card in a list says what stopped it; the code and the long next action are in the campaign.
+    if (refusal.next_action && !practiceMessage(refusal.code)) box.append(el("p", compact ? "Open the campaign to see what to do." : "What to do: " + refusal.next_action, compact ? "hint" : "refusal-next"));
     const fix = refusalFix(refusal.code);
     if (fix && !compact) box.append(link(fix, "button fix"));
     parent.append(box);
@@ -4378,6 +4386,8 @@
       const run = await api("/api/v1/research", pendingResearch.body, pendingResearch.key);
       forgetLaunch();
       message("Research launch recorded. Runtime preflight and actual outcome appear in the campaign.");
+      // It belongs to the campaign it opens: leaving that campaign ends it (show()).
+      launchNoticeFor = run && run.id ? "#campaigns/" + encodeURIComponent(run.id) : location.hash;
       wizard.step = "challenge"; saveWizard();
       if (run && run.id) location.hash = campaignHref(run.id);
     } catch (error) {

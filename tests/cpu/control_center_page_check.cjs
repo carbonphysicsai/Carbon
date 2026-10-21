@@ -2598,6 +2598,53 @@ scenario("Library: a session link opened on a Library address connects, and only
   clean(page);
 });
 
+// Smoke items S23-S26 (2026-10-21).
+scenario("the launch notice ends when the miner leaves the campaign it opened (S23)", async () => {
+  const state = launchable(world());
+  const page = await open(state);
+  await wizardTo(page, "launch");
+  const id = "d".repeat(32);
+  state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id}}});
+  await page.press(page.$("research-launch"));
+  assert.match(page.text("message"), /Research launch recorded/);
+  page.go("#campaigns/" + id + "/result");
+  await page.advance(0);
+  assert.match(page.text("message"), /Research launch recorded/, "still on its own campaign");
+  page.go("#challenges");
+  await page.advance(0);
+  assert.doesNotMatch(page.text("message"), /Research launch recorded/);
+  assert.match(page.text("message"), /Connected\. Records persist on this machine\./);
+  clean(page);
+});
+
+scenario("the wallet page does not say connect while connected, and uses plain words (S25, S26)", async () => {
+  const state = world();
+  const page = await open(state);
+  page.go("#wallet");
+  await page.advance(0);
+  const panel = page.text("onboarding-panel");
+  assert.doesNotMatch(panel, /Connect this browser to read/);
+  assert.match(panel, /Joining cost/);
+  assert.doesNotMatch(panel, /Recycle|recycle|BURNED_REGISTRATION|COLDKEY|ss58/);
+  assert.match(panel, /Joining is paid from your coldkey/);
+  clean(page);
+});
+
+scenario("a campaign card in a list gives the reason, not the code or the long next action (S24)", async () => {
+  const state = world();
+  const run = manualRun();
+  Object.assign(run, {state: "INTERRUPTED", last_refusal: {kind: "interrupted", code: "research_share_too_small", next_action: "Cap max_output_tokens or max_input_tokens in model_settings.", at: 1800000100}});
+  state.runs = [run];
+  const page = await open(state);
+  page.go("#overview");
+  await page.advance(0);
+  const card = page.text(one(page, "#overview-active .campaign-card"));
+  assert.doesNotMatch(card, /max_output_tokens|max_input_tokens|Code:/);
+  assert.match(card, /Interrupted: research share too small/);
+  assert.match(card, /Open the campaign to see what to do\./);
+  clean(page);
+});
+
 (async () => {
   const passed = [], failed = [];
   for (const [name, run] of scenarios) {
