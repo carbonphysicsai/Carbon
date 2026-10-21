@@ -31,10 +31,18 @@ from pathlib import Path
 
 GRAPHITE = "graphite"
 EDITION = "carbon.graphite.miner-edition.v1"
+DEPTH_EDITION = "carbon.graphite.miner-edition.v2"
 PLAN_SCHEMA = "carbon.graphite.miner-plan.v1"
 GRAPHITE_LABEL = "Graphite, Carbon's research agent"
 #: The launch operation's Graphite fields (S4's launch operation).
-LAUNCH_FIELDS = ("graphite_mode", "research_share", "plan", "hunt", "limits")
+LAUNCH_FIELDS = (
+    "graphite_mode",
+    "graphite_edition",
+    "research_share",
+    "plan",
+    "hunt",
+    "limits",
+)
 _READ = ["request", "profile"]
 _WRITE = ["request", "profile", "replay"]
 #: The Library's rows of S4's operations table, as `describe()` lists them:
@@ -69,6 +77,18 @@ MODE_SUMMARIES = {
         "select and submit."
     ),
     "FULL": "Research within the research share of your budget, then build. The default.",
+}
+#: S4's edition summaries (`runner.GRAPHITE_EDITION_SUMMARIES`).
+EDITION_SUMMARIES = {
+    EDITION: (
+        "The original edition: the Reader, Planner and Constructor as first "
+        "published. The default."
+    ),
+    DEPTH_EDITION: (
+        "The depth edition: the Planner plans deeper research per role, at a "
+        "higher reasoning effort and a larger output cap, so each planning "
+        "call can cost more of your model budget."
+    ),
 }
 #: S4's planning figures per abstract (`runner.READER_TOKENS_PER_ABSTRACT`).
 READER_TOKENS_PER_ABSTRACT = {"input": 1000, "output": 250}
@@ -247,6 +267,10 @@ def graphite_options():
     return {
         "agent": GRAPHITE,
         "edition": EDITION,
+        "editions": [
+            {"id": edition, "summary": summary, "default": edition == EDITION}
+            for edition, summary in EDITION_SUMMARIES.items()
+        ],
         "modes": [
             {"id": mode, "summary": MODE_SUMMARIES[mode], "default": mode == "FULL"}
             for mode in ("RESEARCH", "BUILD", "FULL")

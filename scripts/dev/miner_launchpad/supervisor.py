@@ -1225,9 +1225,11 @@ NEXT_ACTIONS = {
         "they were."
     ),
     "graphite_edition_unknown": (
-        "This campaign names a Graphite edition this Carbon does not have, so "
-        "nothing was called. Update Carbon (re-run the installer), then "
-        "resume; or launch a new campaign."
+        "This launch or campaign names a Graphite edition this Carbon does not "
+        "have, so nothing was called. For a new launch, send graphite_edition "
+        "as one carbon_options lists (graphite.editions), or omit it for v1. "
+        "For a campaign, update Carbon (re-run the installer), then resume; "
+        "or launch a new campaign."
     ),
     "graphite_not_offered_for_challenge": (
         "Graphite runs only on a Challenge with a registered research "
@@ -1235,8 +1237,8 @@ NEXT_ACTIONS = {
         "Graphite is offered), or launch with agent=none."
     ),
     "graphite_fields_need_the_graphite_agent": (
-        "graphite_mode, research_share, plan, hunt and limits are Graphite's: "
-        "send agent=graphite, or leave them out."
+        "graphite_mode, graphite_edition, research_share, plan, hunt and "
+        "limits are Graphite's: send agent=graphite, or leave them out."
     ),
     "graphite_mode_invalid": "Send graphite_mode as RESEARCH, BUILD or FULL, or omit it for FULL.",
     "graphite_field_not_used_by_mode": (

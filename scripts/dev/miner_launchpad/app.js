@@ -2808,7 +2808,7 @@
   ];
   const GRAPHITE_MODE_LABEL = Object.fromEntries(GRAPHITE_MODES.map(([mode, label]) => [mode, label]));
   // The launch fields Graphite's choices travel in (S4's launch operation).
-  const GRAPHITE_FIELDS = ["graphite_mode", "research_share", "plan", "hunt", "limits", "submission_policy"];
+  const GRAPHITE_FIELDS = ["graphite_mode", "graphite_edition", "research_share", "plan", "hunt", "limits", "submission_policy"];
   // Optional per-epoch counts: blank leaves only the campaign's own limits.
   const GRAPHITE_LIMITS = [["calls_per_epoch", "Model calls per epoch"], ["trials_per_epoch", "Practice trials per epoch"], ["planner_calls", "Planner model calls"]];
   // A hunt's closed query grammar (the design's): at most 8 queries of at
@@ -2865,6 +2865,14 @@
     const value = launchOptions?.graphite ?? caps?.graphite;
     return value && typeof value === "object" && !Array.isArray(value) ? value : {};
   }
+  // The miner editions the controller publishes (options.graphite.editions:
+  // {id, summary, default}), or none from a controller that lists none:
+  // then no edition is offered or sent, and its own default runs.
+  function graphiteEditions() {
+    const listed = graphiteOffer().editions;
+    return Array.isArray(listed) ? listed.filter(item => item && typeof item.id === "string" && item.id && typeof item.summary === "string") : [];
+  }
+  function graphiteEdition(id) { return graphiteEditions().find(item => item.id === id) || null; }
   const bound = (value, fallback) => Number.isSafeInteger(value) && value >= 1 ? value : fallback;
   // The hunt's bounds: the controller's when stated, the design's otherwise.
   function huntBounds() {
@@ -2893,11 +2901,14 @@
     const offered = graphiteOffer();
     const modes = Array.isArray(offered.modes) ? offered.modes : [];
     const mode = modes.find(item => item && item.default === true)?.id;
+    const editions = graphiteEditions();
+    const edition = (editions.find(item => item.default === true) || editions[0])?.id || "";
     const share = offered.research_share?.default;
     const hunt = offered.hunt || {};
     const records = hunt.default_records ?? hunt.max_records_default;
     return {
       mode: GRAPHITE_MODE_LABEL[mode] ? mode : "FULL",
+      edition,
       share: percentText(typeof share === "number" && share >= 0 && share <= 1 ? share : 0.10),
       plan: "", hunt: false,
       retain: false,
@@ -2928,6 +2939,7 @@
   // Why the mode, share or hunt cannot launch, or null.
   function graphiteChoiceProblem(g = graphiteChoices()) {
     if (!GRAPHITE_MODE_LABEL[g.mode]) return "choose a mode";
+    if (graphiteEditions().length && !graphiteEdition(g.edition)) return "choose an edition";
     if (typeof g.retain !== "boolean") return "choose whether to retain the candidate before submit";
     if (g.mode === "FULL" && Number.isNaN(shareOf(g.share))) return "the research share is a percentage from 0 to 100, at most two decimal places";
     if (huntApplies(g) && g.hunt) {
@@ -2952,6 +2964,7 @@
   // The launch fields for these choices: each only where its mode uses it.
   function graphiteFields(g = graphiteChoices()) {
     const fields = {graphite_mode: g.mode};
+    if (graphiteEditions().length && g.edition) fields.graphite_edition = g.edition;
     if (g.retain && g.mode !== "RESEARCH") fields.submission_policy = "retain_only_v1";
     if (g.mode === "FULL") fields.research_share = shareOf(g.share);
     if (g.mode === "BUILD" && g.plan) fields.plan = g.plan;
@@ -2986,6 +2999,7 @@
     const hunt = value.hunt && typeof value.hunt === "object" ? value.hunt : null;
     return {
       mode: GRAPHITE_MODE_LABEL[value.graphite_mode] ? value.graphite_mode : defaults.mode,
+      edition: typeof value.graphite_edition === "string" ? value.graphite_edition : defaults.edition,
       share: typeof value.research_share === "number" ? percentText(value.research_share) : defaults.share,
       plan: typeof value.plan === "string" ? value.plan : "",
       hunt: Boolean(hunt),
@@ -3384,6 +3398,9 @@
       choice.append(input, span); modes.append(choice);
     }
     box.append(modes);
+    // The edition: its choices are the controller's (patched in place).
+    const editions = el("fieldset", undefined, "selects"); editions.id = "wizard-graphite-editions";
+    box.append(editions);
     const retain = el("div", undefined, "graphite-field"); retain.id = "wizard-graphite-retain";
     const retainLabel = el("label", undefined, "check");
     const retainCheck = el("input"); retainCheck.type = "checkbox"; retainCheck.id = "wizard-retain-before-submit";
@@ -3442,9 +3459,25 @@
     const text = String(value ?? "");
     if (input && document.activeElement !== input && input.value !== text) input.value = text;
   }
+  function drawGraphiteEditions(box) {
+    const editions = graphiteEditions();
+    if (!editions.length) return;
+    box.append(el("legend", "Edition"));
+    for (const [index, item] of editions.entries()) {
+      const choice = el("label", undefined, "choice");
+      const input = el("input"); input.type = "radio"; input.name = "wizard-graphite-edition"; input.value = item.id; input.id = "wizard-graphite-edition-" + index;
+      input.addEventListener("change", () => setGraphite({edition: item.id}));
+      const span = el("span"); span.append(el("strong", item.id + (item.default === true ? " · the default" : "")), el("span", item.summary, "hint"));
+      choice.append(input, span); box.append(choice);
+    }
+  }
   function patchGraphiteOptions() {
     const g = graphiteChoices();
     for (const input of document.querySelectorAll("input[name=wizard-graphite-mode]")) input.checked = input.value === g.mode;
+    const editions = $("wizard-graphite-editions");
+    rebuild(editions, JSON.stringify(graphiteEditions().map(item => [item.id, item.summary, item.default === true])), drawGraphiteEditions);
+    editions.hidden = !graphiteEditions().length;
+    for (const input of document.querySelectorAll("input[name=wizard-graphite-edition]")) input.checked = input.value === g.edition;
     $("wizard-graphite-retain").hidden = g.mode === "RESEARCH";
     $("wizard-retain-before-submit").checked = g.retain;
     $("wizard-graphite-share").hidden = g.mode !== "FULL";
@@ -3630,6 +3663,7 @@
       if (agent?.launch_agent === GRAPHITE) {
         const g = graphiteChoices();
         row("Graphite", graphiteSummary(g));
+        if (graphiteEditions().length) { const edition = graphiteEdition(g.edition); row("Graphite edition", edition ? edition.id + " · " + edition.summary : "Not chosen"); }
         if (huntApplies(g) && g.hunt && !graphiteChoiceProblem(g)) row("Hunt cost", huntEstimate(g));
         const limits = graphiteLimitsProblem(g) ? {} : graphiteFields(g).limits || {};
         row("Graphite's limits", GRAPHITE_LIMITS.map(([key, label]) => label + ": " + (key in limits ? limits[key] : "no limit")).join(" · ") + ". Unset, only your campaign's own limits bind.");

@@ -219,6 +219,18 @@ FIELDS = {
             "Frozen at launch."
         ),
     ),
+    "graphite_edition": (
+        "string",
+        (
+            "Graphite only: the miner edition the campaign runs. "
+            "carbon.graphite.miner-edition.v1, the default, is the original "
+            "edition; carbon.graphite.miner-edition.v2 is the depth edition, "
+            "whose Planner plans deeper research per role at a higher "
+            "reasoning effort and a larger output cap, so each planning call "
+            "can cost more. carbon_options lists them (graphite.editions). "
+            "Frozen at launch; a resumed campaign keeps its edition."
+        ),
+    ),
     "submission_policy": (
         "string",
         (
@@ -369,6 +381,12 @@ CHOICES = {
     "action": ("stop", "pause", "reconcile"),
     "note_kind": ("hypothesis", "plan", "observation", "reply"),
     "graphite_mode": ("RESEARCH", "BUILD", "FULL"),
+    # The edition registry's ids (`MINER_EDITIONS`; a test holds the two
+    # equal), so an edition a new Carbon publishes is added here with it.
+    "graphite_edition": (
+        "carbon.graphite.miner-edition.v1",
+        "carbon.graphite.miner-edition.v2",
+    ),
     "submission_policy": ("retain_only_v1",),
     "mode": ("full", "smoke"),
 }
@@ -487,6 +505,7 @@ REFUSAL_FIELDS = {
     "graphite_fields_need_the_graphite_agent": "agent",
     "graphite_mode_invalid": "graphite_mode",
     "graphite_field_not_used_by_mode": "graphite_mode",
+    "graphite_edition_unknown": "graphite_edition",
     "submission_policy_invalid": "submission_policy",
     "submission_retained_by_policy": "submission_policy",
     "research_share_invalid": "research_share",
@@ -621,6 +640,7 @@ OPERATIONS = {
                     "model_settings",
                     "feedback_mode",
                     "graphite_mode",
+                    "graphite_edition",
                     "research_share",
                     "submission_policy",
                     "plan",
@@ -966,7 +986,14 @@ OPERATIONS = {
 #: sent with nulls (a browser) and without them (MCP, which strips None) is
 #: one request with one identity, whichever agent it names. These fields are
 #: new, so no recorded launch's identity changes.
-NULLABLE_GRAPHITE_FIELDS = ("graphite_mode", "research_share", "plan", "hunt", "limits")
+NULLABLE_GRAPHITE_FIELDS = (
+    "graphite_mode",
+    "graphite_edition",
+    "research_share",
+    "plan",
+    "hunt",
+    "limits",
+)
 
 
 def without_null_graphite_fields(request):

@@ -417,6 +417,7 @@ def _agents(options, refusal, profile_path=None):
                 "modes": graphite.get("modes", []),
                 "launch_fields": [
                     "graphite_mode",
+                    "graphite_edition",
                     "research_share",
                     "plan",
                     "hunt",
@@ -890,6 +891,7 @@ def _launch():
             "model_settings",
             # Graphite's own, with agent=graphite only (S4).
             "graphite_mode",
+            "graphite_edition",
             "research_share",
             "plan",
             "hunt",
