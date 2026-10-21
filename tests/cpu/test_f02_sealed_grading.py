@@ -133,3 +133,10 @@ def test_a_definition_whose_sealed_receipt_is_malformed_refuses():
 def test_only_the_graded_version_has_a_sealed_adapter():
     assert adapter.sealed_adapter("2.0") is None
     assert adapter.sealed_adapter(None) is None
+
+
+def test_the_v7_catalog_version_serves_the_same_sealed_batches():
+    assert adapter.sealed_adapter("2.2").EVALUATION_VERSION == (
+        "f02-dual-sealed-batch-8-v1"
+    )
+    assert adapter.sealed_adapter("2.3") is None

@@ -46,6 +46,9 @@ EVALUATION_VERSION = "cooling-dual-development-bank-48-v2"
 VERSIONS = {
     "1.0": (EVALUATION_VERSION, CASE_ID),
     "1.1": ("cooling-dual-development-bank-48-v3", CASE_ID),
+    # Allowlist v7's catalog version (Validator, 2026-10-20): the predecessor's
+    # measurement under its evaluation version; only the served allowlist differs.
+    "1.2": ("cooling-dual-development-bank-48-v3", CASE_ID),
 }
 OUTPUT = {"quantity": "peak_c,profile_c[30],pressure_drop_pa", "unit": "degC,degC,Pa"}
 FILES = ("cooling_dual_pack.py", "cooling_dual_measurement.py")
