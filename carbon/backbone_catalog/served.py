@@ -19,7 +19,7 @@ from __future__ import annotations
 import hashlib
 import json
 
-from . import pipeline, settings
+from . import listing, settings
 from .entries import CatalogRefused
 
 SCHEMA = "carbon.backbone-catalog.served.v1"
@@ -41,7 +41,7 @@ def document(challenge_id, version):
                 "output_format": item["output_format"],
                 "settings": settings.document(item),
             }
-            for item in pipeline.entries(challenge_id, version)
+            for item in listing.entries(challenge_id, version)
         },
         "source_kind": "catalog",
         "defaults": "the tested baseline's settings; unset settings keep them",
@@ -111,7 +111,7 @@ def expand(recipe):
             "catalog_entry_unknown",
             "catalog_digest is not the catalog this Challenge version serves",
         )
-    item = pipeline.entry(source["catalog_id"], challenge["id"], challenge["version"])
+    item = listing.entry(source["catalog_id"], challenge["id"], challenge["version"])
     if item is None:
         raise CatalogRefused(
             "catalog_entry_unknown",
