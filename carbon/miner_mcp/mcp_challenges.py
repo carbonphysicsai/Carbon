@@ -21,7 +21,8 @@ CATALOG_URI = "carbon://challenges/v1/catalog"
 def configured_host_facts(profile=None):
     """This host's facts, with the operator-configured ones from a runner
     profile: a trusted worker image counts only once it loads and the host's
-    numerical doctor accepts it."""
+    numerical doctor accepts it, and counts as the PyTorch CPU worker only
+    when it is that pinned parent."""
     from carbon.challenge_registry import HostFacts
 
     configured = set()
@@ -37,6 +38,13 @@ def configured_host_facts(profile=None):
             image = load_image_identity(manifest)
             if doctor(image_id=image.image_id, image_identity=image).eligible:
                 configured.add("trusted_worker_image")
+                from carbon.challenge_registry.registry import TORCH_CPU_WORKER
+                from carbon.development_session.gpu_practice import (
+                    direct_parent_backend,
+                )
+
+                if direct_parent_backend(image) == "torch_cpu":
+                    configured.add(TORCH_CPU_WORKER)
         except Exception:  # noqa: BLE001, S110 - an unusable image is a missing fact
             pass
     return HostFacts.observe(configured)

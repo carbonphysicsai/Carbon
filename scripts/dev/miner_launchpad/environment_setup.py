@@ -374,6 +374,15 @@ RECHECK_STEP = "check Compute again in setup"
 #: unusable, or this checkout moved since it ran (a check made now would be
 #: made at a revision the installer built no images for).
 REINSTALL_STEP = "run scripts/install_miner.sh --update"
+#: What a Challenge version that practises on the PyTorch CPU worker needs
+#: when this install's worker is the JAX CPU one (M1 rehearsal, 2026-10-21):
+#: said at the compute step and at Review, not first at launch.
+PYTORCH_STEP = "run scripts/install_miner.sh --update --pytorch"
+PYTORCH_NEEDED = (
+    "{title} {version} practises on the PyTorch CPU worker, and this "
+    "install's worker is the JAX CPU one, so a launch on it is refused. To "
+    "mine it, " + PYTORCH_STEP + ", then check compute again."
+)
 #: Where `after_install` moves a runner profile whose compute check it set
 #: aside, so no restarted Control Center attaches it (LP-PROD-E).
 STALE_PROFILE = "runner-profile.stale.json"
@@ -1229,6 +1238,11 @@ class LiveChecks:
         return {
             "implementation": implementation,
             "images": [image.image_id, analysis.image_id],
+            # Which pinned CPU parent the worker is: a torch-cpu Challenge
+            # version needs the PyTorch one (installed with --pytorch).
+            "worker_parent": (
+                "torch_cpu" if direct_parent_backend(image) == "torch_cpu" else "cpu"
+            ),
         }
 
     def gpu(self, gpu_manifest: Path, campaign=None) -> dict:
@@ -1646,6 +1660,26 @@ def intake_challenges() -> list[dict]:
         {"id": entry.challenge_id, "version": entry.version, "title": entry.title}
         for entry, campaign in implemented_campaigns()
         if campaign.intake_check is not None
+    ]
+
+
+def torch_challenges() -> list[dict]:
+    """The implemented Challenge versions whose CPU practice runs on the
+    PyTorch CPU worker: their execution profile requires it."""
+    from carbon.challenge_registry import catalog
+    from carbon.challenge_registry.registry import IMPLEMENTED, TORCH_CPU_WORKER
+
+    return [
+        {
+            "id": entry["challenge_id"],
+            "version": entry["version"],
+            "title": entry["title"],
+        }
+        for entry in catalog()["challenges"]
+        if entry["status"] == IMPLEMENTED
+        and any(
+            TORCH_CPU_WORKER in profile["requirements"] for profile in entry["profiles"]
+        )
     ]
 
 
@@ -2495,6 +2529,13 @@ class EnvironmentSetup:
                 "images": runtime["images"],
                 "balance": "not applicable: your own machine",
             }
+            if runtime.get("worker_parent") is not None:
+                check["worker_parent"] = runtime["worker_parent"]
+            if runtime.get("worker_parent") == "cpu":
+                needing = torch_challenges()
+                if needing:
+                    check["pytorch_needed_for"] = needing
+                    check["pytorch_step"] = PYTORCH_STEP
             step = {
                 "choice": value["choice"],
                 "paths": paths,
@@ -3010,6 +3051,17 @@ class EnvironmentSetup:
             for challenge in intake_challenges()
             if challenge["id"] in intakes and challenge["id"] not in receivers
         ]
+        with self.lock:
+            needing = self._pytorch_needed(self._record())
+        for challenge in needing:
+            warnings.append(
+                {
+                    "code": "pytorch_worker_required",
+                    "challenge": challenge["id"],
+                    "version": challenge["version"],
+                    "message": PYTORCH_NEEDED.format(**challenge),
+                }
+            )
         if published["problem"]:
             warnings.append(
                 {
@@ -3119,6 +3171,16 @@ class EnvironmentSetup:
             self._save(record)
         attached = self.attach(self.profile_path) if self.attach is not None else False
         return {**self.state(), "attached": attached, "warnings": warnings}
+
+    @staticmethod
+    def _pytorch_needed(record) -> list:
+        """The torch-cpu Challenge versions the checked compute step said this
+        install's JAX CPU worker cannot practise; none when the check did not
+        name its worker's parent."""
+        check = (record.get("compute") or {}).get("check") or {}
+        if check.get("worker_parent") != "cpu":
+            return []
+        return torch_challenges()
 
     def _own_intakes(self, record) -> dict:
         """The intakes the miner named in their last Review, which an update

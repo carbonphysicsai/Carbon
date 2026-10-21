@@ -763,10 +763,15 @@
       // Carbon rents no compute (OWNER-MINER-COMPUTE-LINK-ONLY-01): when the
       // compute check deleted Carbon's copy of a rented-GPU key, it says so.
       const removed = step === "compute" ? result.steps?.compute?.check?.retired_compute_key : null;
+      // A JAX CPU worker cannot practise a Challenge version built on the
+      // PyTorch CPU worker: said here, at the compute check, not first at launch.
+      const check = step === "compute" ? result.steps?.compute?.check : null;
+      const needing = Array.isArray(check?.pytorch_needed_for) ? check.pytorch_needed_for.filter(item => typeof item?.title === "string") : [];
+      const pytorch = needing.length ? [setupLine("This install's worker is the JAX CPU one. " + needing.map(item => item.title + " " + item.version).join(", ") + " practise" + (needing.length === 1 ? "s" : "") + " on the PyTorch CPU worker; to mine " + (needing.length === 1 ? "it" : "them") + ", " + String(check.pytorch_step || "reinstall with --pytorch") + ", then check compute again.", "error")] : [];
       // Review writes the profile and says what it could not do: a Challenge
       // with no evaluation endpoint, an unreadable published list (LP-PROD-E).
       const warnings = step === "review" && Array.isArray(result.warnings) ? result.warnings.filter(item => typeof item?.message === "string") : [];
-      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")), ...warnings.map(item => setupLine(item.message, "error")));
+      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")), ...pytorch, ...warnings.map(item => setupLine(item.message, "error")));
       // The written profile changes what can launch: read it again now.
       if (step === "review") { try { await readCapabilities(); } catch (_) { /* re-read on request */ } }
       await readSetup();

@@ -33,6 +33,9 @@ from dataclasses import dataclass, field
 from carbon.reconstruction.capability_registry import is_development_variant
 
 CATALOG_SCHEMA = "carbon.challenge-catalog.v1"
+#: The host fact a torch-cpu execution profile requires: the configured
+#: trusted worker image is the PyTorch CPU worker (installed with --pytorch).
+TORCH_CPU_WORKER = "torch_cpu_worker_image"
 DESCRIPTION_SCHEMA = "carbon.challenge-description.v1"
 
 IMPLEMENTED, RESERVED, DEFERRED, RETIRED = (
@@ -291,6 +294,9 @@ def _entries():
     )
 
     carrier = ("docker_cli", "trusted_worker_image", "jax", "optax")
+    #: A torch-cpu practice builds on the separate pinned PyTorch CPU worker
+    #: (`gpu_practice.direct_parent_backend`): installed with --pytorch.
+    torch_carrier = carrier + (TORCH_CPU_WORKER,)
     return (
         Entry(
             BURGERS_CHALLENGE,
@@ -391,7 +397,7 @@ def _entries():
                     "PyTorch practice of Carbon's tested catalog backbones in the "
                     "isolated C-03 CPU worker; exact public TRAIN and bundle bytes staged",
                     "torch-cpu/isolated-carrier",
-                    carrier,
+                    torch_carrier,
                 ),
             ),
             _motor_catalog,
@@ -413,7 +419,7 @@ def _entries():
                     "PyTorch practice of Carbon's tested catalog backbones in the "
                     "isolated C-03 CPU worker; exact public TRAIN and bundle bytes staged",
                     "torch-cpu/isolated-carrier",
-                    carrier,
+                    torch_carrier,
                 ),
             ),
             _motor_catalog_v7,
@@ -437,7 +443,7 @@ def _entries():
                     "PyTorch practice of Carbon's tested catalog backbones in the "
                     "isolated C-03 CPU worker; exact public TRAIN and bundle bytes staged",
                     "torch-cpu/isolated-carrier",
-                    carrier,
+                    torch_carrier,
                 ),
             ),
             _cold_plate_catalog,
@@ -463,7 +469,7 @@ def _entries():
                     "of a graph by Carbon's graph training adapter, in the isolated "
                     "C-03 CPU worker; exact public TRAIN and recipe bytes staged",
                     "torch-cpu/isolated-carrier",
-                    carrier,
+                    torch_carrier,
                 ),
             ),
             _f08_direct,
@@ -484,7 +490,7 @@ def _entries():
                     "of a graph by Carbon's graph training adapter, in the isolated "
                     "C-03 CPU worker; exact public TRAIN and recipe bytes staged",
                     "torch-cpu/isolated-carrier",
-                    carrier,
+                    torch_carrier,
                 ),
             ),
             _f02_direct,
