@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Never write bytecode into the checkout: a development candidate refuses
+# an ignored runtime source such as carbon/**/__pycache__ (M1, 2026-10-21).
+export PYTHONDONTWRITEBYTECODE=1
 
 # Build images only; no GPU flag, installation on the host, or allocation.
 script_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
