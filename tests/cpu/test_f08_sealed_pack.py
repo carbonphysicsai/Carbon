@@ -122,7 +122,7 @@ def test_the_v7_version_is_graded_from_the_same_sealed_batches():
 
     doc, records = batch()
     old = sealed.sealed_bank(doc, records, version="1.2")
-    for version in ('1.3', '1.4'):
+    for version in ("1.3", "1.4"):
         new = sealed.sealed_bank(doc, records, version=version)
         assert set(old) == set(new)
         for key in old:
