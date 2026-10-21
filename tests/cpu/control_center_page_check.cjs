@@ -228,6 +228,22 @@ scenario("acceptance labels name a revision and never follow availability", asyn
   clean(page);
 });
 
+scenario("a Challenge pending readiness reads planned for launch, never Launch", async () => {
+  // Validator, 2026-10-21: launch_pending_readiness shows "Planned for
+  // launch · readiness not yet confirmed" and never the bare word Launch.
+  const state = world();
+  const entry = state.caps.challenges.find(item => item.implemented);
+  entry.portfolio = "launch_pending_readiness";
+  const page = await open(state);
+  page.go("#challenges");
+  await refresh(page);
+  const text = page.text("challenge-catalog");
+  assert.ok(text.includes("Planned for launch · readiness not yet confirmed"), "the label is shown");
+  assert.ok(!/launch pending readiness/i.test(text), "the raw value is never shown");
+  assert.ok(!/Launch/.test(text.replace(/Launch Challenge|Launchpad|Launch a|Launch it|Launch again/g, "")), "never the bare word Launch");
+  clean(page);
+});
+
 scenario("an exam Carbon has not set yet renders and the page stays connected", async () => {
   // A direct version (F08 1.4, F02 2.3) registers its exam components and
   // gates as HUMAN_INPUT until the owner sets them: the catalog says so, and

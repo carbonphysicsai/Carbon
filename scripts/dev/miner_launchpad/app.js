@@ -107,6 +107,10 @@
     if ($("message").className !== kind) $("message").className = kind;
   };
   function words(value) { return String(value ?? "").replaceAll("_", " "); }
+  // A portfolio value as a miner reads it. A launch-portfolio Challenge with
+  // no readiness record yet never reads as launch (Validator, 2026-10-21).
+  const PORTFOLIO_LABELS = {launch_pending_readiness: "Planned for launch · readiness not yet confirmed"};
+  function portfolioLabel(value) { return PORTFOLIO_LABELS[value] || words(value); }
   // A blocker as a person reads it: the controller's own plain sentence when it
   // has one, else the code said in words and capitalised. The code itself stays
   // behind Details, never in the sentence.
@@ -2319,7 +2323,7 @@
         renderDescription(description.querySelector(".detail-body"), entry);
       }
       details(box, "Details", [
-        entry.challenge_id + (entry.version ? " · version " + entry.version : "") + " · " + words(entry.portfolio) + (entry.tracking ? " · " + entry.tracking : ""),
+        entry.challenge_id + (entry.version ? " · version " + entry.version : "") + " · " + portfolioLabel(entry.portfolio) + (entry.tracking ? " · " + entry.tracking : ""),
         "Status: " + challengeStatus(entry),
         entry.implemented ? "This host: " + (entry.usable_here ? "shows every requirement of " + entry.profile : "has not shown " + entry.missing_here.map(words).join(", ") + " (the launch still reads your profile's runtime)") : null,
         entry.reason ? "Code: " + entry.reason : null,
