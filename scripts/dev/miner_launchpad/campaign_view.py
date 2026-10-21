@@ -95,6 +95,38 @@ NON_CLAIMS = (
 )
 
 
+#: A refusal's codes, most specific first: a research tool's registered
+#: correction, a Graphite toolbox refusal's reason code, then the generic
+#: reason (M1 S16, 2026-10-21: a toolbox refusal read "no reason recorded",
+#: and a correction read only "contract_incompatibility").
+REFUSAL_CODE_FIELDS = ("correction_code", "reason_code", "reason")
+_REFUSAL_CODE = re.compile(r"[a-z][a-z0-9_]{0,95}\Z")
+
+
+def refusal_code(item):
+    """The most specific closed code a refusal record carries, or None."""
+    for field in REFUSAL_CODE_FIELDS:
+        value = item.get(field) if type(item) is dict else None
+        if type(value) is str and _REFUSAL_CODE.fullmatch(value):
+            return value
+    return None
+
+
+def refusal_meaning(code):
+    """One plain sentence for a refusal code: its registered correction's
+    first sentence, else its registered next step's, else None."""
+    if code is None:
+        return None
+    from carbon.development_session.research_tools import TASK_CORRECTIONS
+    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
+
+    text = TASK_CORRECTIONS.get(code) or NEXT_ACTIONS.get(code)
+    if type(text) is not str or not text.strip():
+        return None
+    first = text.strip().split(". ")[0].rstrip(".")
+    return first[:240] + "."
+
+
 def clean_text(value, limit=NOTE_MAX):
     """Journal text as the view shows it: a string, unsafe characters
     removed, bounded; None when there is no text."""
@@ -985,6 +1017,8 @@ def feed(own, notes):
             }
         )
     for item in own.get("refusals") or []:
+        code = refusal_code(item)
+        meaning = refusal_meaning(code)
         entries.append(
             {
                 "sequence": item.get("sequence"),
@@ -992,8 +1026,10 @@ def feed(own, notes):
                 "via": "controller",
                 "text": (clean_text(item.get("operation"), 64) or "A request")
                 + " refused: "
-                + (clean_text(item.get("reason"), 256) or "no reason recorded"),
+                + (code or "no reason recorded")
+                + (". " + meaning if meaning else ""),
                 "detail": clean_text(item.get("detail"), 512),
+                **({"code": code} if code else {}),
             }
         )
     for note in notes:

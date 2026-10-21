@@ -134,6 +134,14 @@ _CODE = re.compile(r"[a-z][a-z0-9_]{0,63}|[A-Z][A-Z0-9_]{0,63}")
 #: Each step is fixed text; it names an MCP tool in parentheses where one
 #: helps, as the Control Center's own steps do.
 NEXT_ACTIONS = {
+    # A Graphite tool result withheld by the protected-material guard: the
+    # request itself was fine; the record names the classes that matched.
+    "protected_material_in_result": (
+        "Carbon withheld this tool result because it named material an agent "
+        "is never shown; the request itself was not wrong. Use another source "
+        "for what you needed; if the result was Carbon's own public document, "
+        "report the campaign and the marker classes its refusal record names."
+    ),
     "submission_policy_invalid": "Restore the campaign’s original frozen launch records; this policy cannot change on resume.",
     "submission_retained_by_policy": "This launch retains candidates without commitment or validator submission. Launch a separate campaign to submit.",
     "construction_checks_unavailable": (
