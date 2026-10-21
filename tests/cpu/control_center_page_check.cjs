@@ -476,12 +476,13 @@ scenario("the model step offers a provider call timeout with its default and sen
   assert.equal(input.placeholder, "Default: 600");
   assert.equal(input.min, String(timeout.bounds[0]));
   assert.equal(input.max, String(timeout.bounds[1]));
-  assert.match(page.text("wizard-timeout-note"), /^Default: 600 seconds\./);
+  assert.match(page.text("wizard-timeout-note"), /^Default: 600 seconds, or your elapsed limit where that is shorter\./);
+  assert.match(page.text("wizard-timeout-note"), /New calls stop when less than the timeout remains of your elapsed limit/);
   // Outside the runner's bounds: the step does not pass, and says why.
   for (const bad of [String(timeout.bounds[0] - 1), String(timeout.bounds[1] + 1), "1.5"]) {
     await page.type(input, bad);
     assert.equal(page.$("wizard-next").disabled, true, bad);
-    assert.match(page.text("wizard-next-reason"), /Fix the provider call timeout: the provider call timeout must be a whole number of seconds from 10 to 600, or leave it blank for 600 seconds\./);
+    assert.match(page.text("wizard-next-reason"), /Fix the provider call timeout: the provider call timeout must be a whole number of seconds from 10 to 600, or leave it blank for the default\./);
     assert.match(page.text("wizard-timeout-note"), /^Not valid: /);
   }
   await page.type(input, "300");
@@ -497,10 +498,18 @@ scenario("the model step offers a provider call timeout with its default and sen
   await wizardTo(page, "model", agent);
   await page.type(page.$("wizard-timeout-seconds"), "");
   for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
-  assert.match(page.text("wizard-review"), /Call timeoutNot set: 600 seconds per provider call, the default/);
+  assert.match(page.text("wizard-review"), /Call timeoutNot set: 600 seconds per provider call, the default\. New calls stop when less than the timeout remains of your elapsed limit/);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "0".repeat(32)}}});
   await page.press(page.$("research-launch"));
   assert.equal("model_settings" in lastPost(state, "/api/v1/research").body, false);
+  // An elapsed limit shorter than the default bounds it, as the runner does.
+  page.window.CarbonControlCenter.goWizard("limits");
+  await page.advance(0);
+  await page.press(page.$("path-advanced"));
+  await page.type(page.$("budget-elapsed"), "300");
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  assert.match(page.text("wizard-review"), /Call timeoutNot set: 300 seconds per provider call, the default \(your elapsed limit\)\. New calls stop/);
   clean(page);
 });
 

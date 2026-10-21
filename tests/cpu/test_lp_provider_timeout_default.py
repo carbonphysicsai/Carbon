@@ -6,7 +6,8 @@ Engy requests that were still being answered; each left an unknown outcome
 and forced a Reconcile. So:
 - a new Graphite or autonomous plan that sets no timeout_seconds freezes
   `select`'s own upper bound, 600 s (`TIMEOUT_DEFAULT_V2`), in its recorded
-  selection;
+  selection, or its own elapsed limit where that is shorter (never under
+  10 s), so the default alone never stops its first call;
 - a timeout_seconds the miner sets binds;
 - a plan frozen before replays at the 120 s it recorded, and the pinned
   default (`DEFAULT_SETTINGS`) is byte-for-byte unchanged;
@@ -24,13 +25,16 @@ from types import SimpleNamespace
 
 import pytest
 from test_battery_graphite_plan import block
-from test_model_provider import HISTORICAL_PROVIDER_BLOCK
+from test_cw1_research_ledger import ledger
+from test_model_provider import HISTORICAL_PROVIDER_BLOCK, completed, request
 
 from carbon.agent_campaign.graphite.miner import edition as editions
 from carbon.battery import campaign as battery
 from carbon.development_session import model_provider as mp
 from carbon.development_session import research_campaign as campaigns
 from carbon.development_session.profile import canonical
+from carbon.development_session.research_agent import request_model
+from carbon.development_session.research_ledger import DEVELOPMENT_CEILINGS
 from scripts.dev.miner_launchpad import capabilities, runner
 from scripts.dev.miner_launchpad.operations import FIELDS
 
@@ -38,10 +42,11 @@ ENGY = {"provider_id": "engy-chat", "model_id": mp.ENGY_DEFAULT_MODEL}
 BUDGET = {"ceilings": {"provider_attempts": 100, "provider_nanodollars": 10**11}}
 
 
-def launch(model_selection=None, *, product=True):
-    """What a launch hands a campaign's own selection builder."""
+def launch(model_selection=None, *, product=True, budget=None):
+    """What a launch hands a campaign's own selection builder: its product
+    (with the miner's budget) or none, and the miner's choice, if any."""
     return SimpleNamespace(
-        product=object() if product else None,
+        product=SimpleNamespace(budget=budget or {}) if product else None,
         model_selection=model_selection,
         api_key_file="/nonexistent/fixture.key",
     )
@@ -55,6 +60,7 @@ def new_plan(args, agent):
         output_default=campaigns.new_plan_output_default(args),
         input_default=campaigns.new_plan_input_default(args, agent),
         timeout_default=campaigns.new_plan_timeout_default(args),
+        elapsed_seconds=campaigns.new_plan_elapsed_seconds(args),
     )
 
 
@@ -240,3 +246,68 @@ def test_the_launch_surfaces_read_the_same_bounds_and_default():
     text = FIELDS["model_settings"][1]
     assert "timeout_seconds one from 10 to 600" in text
     assert "timeout_seconds, which is 600 seconds" in text
+
+
+@pytest.mark.parametrize(
+    ("elapsed", "timeout"),
+    ((None, 600), (3600, 600), (600, 600), (300, 300), (10, 10), (5, 10)),
+)
+def test_an_elapsed_limit_bounds_the_default(elapsed, timeout):
+    budget = {} if elapsed is None else {"elapsed_seconds": elapsed}
+    assert mp.timeout_default_seconds(elapsed) == timeout
+    for agent in ("graphite", "autonomous"):
+        chosen = new_plan(launch(ENGY, budget=budget), agent)
+        assert chosen.settings.timeout_seconds == timeout
+        extra = {"graphite": block()} if agent == "graphite" else {}
+        plan = json.loads(
+            json.dumps(battery.provider_plan(agent, BUDGET, chosen, **extra))
+        )
+        # The plan records the resolved value and replays it, with or
+        # without the same choice supplied again.
+        assert plan["model_selection"]["settings"]["timeout_seconds"] == timeout
+        for args in (launch(), launch(ENGY)):
+            assert battery.plan_selection(args, plan).record() == chosen.record()
+    # A timeout the miner sets still wins over the limit.
+    own = new_plan(
+        launch({**ENGY, "settings": {"timeout_seconds": 450}}, budget=budget),
+        "autonomous",
+    )
+    assert own.settings.timeout_seconds == 450
+
+
+def test_the_elapsed_limit_reads_only_under_the_new_rule():
+    with pytest.raises(mp.ModelSelectionRefused, match="only the v2 timeout"):
+        mp.select(
+            credential={"kind": "file", "reference": "unset"},
+            elapsed_seconds=300,
+            **ENGY,
+        )
+    for bad in (0, -1, 1.5, "300", True):
+        with pytest.raises(mp.ModelSelectionRefused, match="elapsed limit"):
+            mp.timeout_default_seconds(bad)
+    # A development grant's campaign reads no limit and keeps 120 s.
+    granted = launch(ENGY, product=False)
+    assert campaigns.new_plan_elapsed_seconds(granted) is None
+    assert new_plan(granted, "autonomous").settings.timeout_seconds == 120
+
+
+def test_a_short_elapsed_limit_still_admits_the_first_call(tmp_path):
+    # The pinned model, which the fixture reply names.
+    pinned = {"provider_id": "openai-responses", "model_id": mp.GPT5_MINI}
+    selection = new_plan(launch(pinned, budget={"elapsed_seconds": 300}), "autonomous")
+    assert selection.settings.timeout_seconds == 300
+    ceilings = {**DEVELOPMENT_CEILINGS, "provider_nanodollars": 10**12}
+    meter = ledger(tmp_path / "ledger", ceilings=ceilings, elapsed_seconds=300)
+    sent = []
+    request_model(
+        meter,
+        owner="alice",
+        identity="model-1",
+        request=request(selection),
+        credential_file=None,
+        transport=lambda value: sent.append(value) or completed(),
+        provider=selection,
+        sleep=pytest.fail,
+    )
+    assert len(sent) == 1
+    assert meter.status(owner="alice")["used"]["provider_attempts"] == 1

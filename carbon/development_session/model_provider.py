@@ -518,11 +518,14 @@ INPUT_DEFAULTS = (None, INPUT_DEFAULT_V2)
 #: miner sets none (M1 rehearsal 2026-10-21: two ~150 KB Engy requests were
 #: cut at the historical 120 s while still being answered, each leaving an
 #: unknown outcome to reconcile). Its default is `TIMEOUT_SECONDS_BOUNDS`'
-#: upper limit, 600 s (`TIMEOUT_DEFAULT_V2_SECONDS`), and a `timeout_seconds`
-#: the miner sets binds. A timeout is no spend: nothing is reserved or
-#: metered by it. A call's hard deadline is still the timeout plus
-#: `DEADLINE_MARGIN_SECONDS`, and a call is still admitted only while the
-#: timeout fits the campaign's remaining elapsed limit. A selection built
+#: upper limit, 600 s (`TIMEOUT_DEFAULT_V2_SECONDS`), or the plan's own
+#: elapsed limit where that is shorter, never below the lower bound
+#: (`timeout_default_seconds`), so the default alone never stops a campaign's
+#: first call. A `timeout_seconds` the miner sets binds. A timeout is no
+#: spend: nothing is reserved or metered by it. A call's hard deadline is
+#: still the timeout plus `DEADLINE_MARGIN_SECONDS`, and a new call is still
+#: admitted only while the timeout fits the campaign's remaining elapsed
+#: limit, so new calls stop once less than the timeout remains. A selection built
 #: without it (None, the historical rule) keeps `DEFAULT_SETTINGS`' 120 s, so
 #: what an earlier plan recorded, and every caller that is not a new plan, is
 #: unchanged. A plan records its timeout, so it replays the same under either
@@ -530,6 +533,20 @@ INPUT_DEFAULTS = (None, INPUT_DEFAULT_V2)
 TIMEOUT_DEFAULT_V2 = "carbon.model-selection.timeout-default.v2"
 TIMEOUT_DEFAULTS = (None, TIMEOUT_DEFAULT_V2)
 TIMEOUT_DEFAULT_V2_SECONDS = TIMEOUT_SECONDS_BOUNDS[1]
+
+
+def timeout_default_seconds(elapsed_seconds=None):
+    """The timeout `TIMEOUT_DEFAULT_V2` chooses for a plan whose miner sets
+    none: `TIMEOUT_DEFAULT_V2_SECONDS`, or the plan's elapsed limit
+    (`elapsed_seconds`, None for no limit) where that is shorter, never
+    below `TIMEOUT_SECONDS_BOUNDS`' lower limit."""
+    low = TIMEOUT_SECONDS_BOUNDS[0]
+    if elapsed_seconds is None:
+        return TIMEOUT_DEFAULT_V2_SECONDS
+    if type(elapsed_seconds) is not int or elapsed_seconds < 1:
+        raise ModelSelectionRefused("an elapsed limit is a whole number of seconds")
+    return max(low, min(TIMEOUT_DEFAULT_V2_SECONDS, elapsed_seconds))
+
 
 _MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}")
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
@@ -951,6 +968,7 @@ def select(
     output_default=None,
     input_default=None,
     timeout_default=None,
+    elapsed_seconds=None,
     adapters=None,
 ):
     """Validate a miner's choice into a `ModelSelection`.
@@ -973,8 +991,10 @@ def select(
     (`ModelSelection.input_window`). `timeout_default` is how an unset
     timeout_seconds is chosen: None, the historical 120, or
     `TIMEOUT_DEFAULT_V2` for a new agent campaign plan, 600
-    (`TIMEOUT_DEFAULT_V2_SECONDS`); a timeout_seconds in `settings` binds
-    either way. `adapters` is the registry
+    (`TIMEOUT_DEFAULT_V2_SECONDS`) or the plan's `elapsed_seconds` limit
+    where that is shorter (`timeout_default_seconds`); a timeout_seconds in
+    `settings` binds either way. `elapsed_seconds` is read only under
+    `TIMEOUT_DEFAULT_V2`, and refused under any other rule. `adapters` is the registry
     `provider_id` must be in: `ADAPTERS` (every miner-facing caller) unless
     Carbon's own Graphite passes its own
     (`graphite.model_providers.GRAPHITE_ADAPTERS`).
@@ -989,6 +1009,10 @@ def select(
         raise ModelSelectionRefused("unknown input default")
     if timeout_default not in TIMEOUT_DEFAULTS:
         raise ModelSelectionRefused("unknown timeout default")
+    if elapsed_seconds is not None and timeout_default != TIMEOUT_DEFAULT_V2:
+        raise ModelSelectionRefused(
+            "an elapsed limit bounds only the v2 timeout default"
+        )
     if model_id is None:
         model_id = adapter.default_model
     if type(model_id) is not str or not _MODEL_ID.fullmatch(model_id):
@@ -1001,7 +1025,7 @@ def select(
             provider_id, model_id, adapters=registry
         )["max_output_tokens"]
     if timeout_default == TIMEOUT_DEFAULT_V2:
-        chosen["timeout_seconds"] = TIMEOUT_DEFAULT_V2_SECONDS
+        chosen["timeout_seconds"] = timeout_default_seconds(elapsed_seconds)
     if settings is not None:
         if type(settings) is not dict or not set(settings) <= set(chosen):
             raise ModelSelectionRefused("unknown model setting")

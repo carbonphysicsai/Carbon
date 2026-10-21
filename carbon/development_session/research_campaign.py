@@ -38,7 +38,6 @@ from .model_provider import (
     OUTPUT_DEFAULT_V2,
     OUTPUT_DEFAULTS,
     TIMEOUT_DEFAULT_V2,
-    TIMEOUT_DEFAULTS,
     SelectionTransport,
     check_budget,
     select,
@@ -960,14 +959,20 @@ async def prepare_burgers(args, *, ledger=None, campaign):
 
 
 def supplied_selection(
-    args, *, output_default=None, input_default=None, timeout_default=None
+    args,
+    *,
+    output_default=None,
+    input_default=None,
+    timeout_default=None,
+    elapsed_seconds=None,
 ):
     """The miner's `args.model_selection` ({provider_id, model_id, settings?,
     endpoint?, declared_pricing?, credential?}), or the pinned default when
     none is given. A file credential is the `--api-key-file` supplied at run
     time; its path is never recorded. `output_default`, `input_default` and
     `timeout_default` are how an unset output cap, input window and provider
-    call timeout are chosen (`model_provider.select`)."""
+    call timeout are chosen, and `elapsed_seconds` the plan's elapsed limit
+    that bounds the v2 timeout default (`model_provider.select`)."""
     supplied = getattr(args, "model_selection", None)
     path = getattr(args, "api_key_file", None)
     spec = (
@@ -985,6 +990,7 @@ def supplied_selection(
             "output_default": output_default,
             "input_default": input_default,
             "timeout_default": timeout_default,
+            "elapsed_seconds": elapsed_seconds,
         }
     )
 
@@ -1021,6 +1027,18 @@ def new_plan_timeout_default(args):
     return TIMEOUT_DEFAULT_V2 if getattr(args, "product", None) is not None else None
 
 
+def new_plan_elapsed_seconds(args):
+    """The elapsed limit a new product plan freezes (its launch budget's
+    `elapsed_seconds`), which bounds its v2 timeout default so the default
+    never stops its first call; None for no limit, and for a campaign that
+    is not a product launch (which keeps the historical timeout)."""
+    product = getattr(args, "product", None)
+    budget = getattr(product, "budget", None)
+    if type(budget) is not dict:
+        return None
+    return budget.get("elapsed_seconds")
+
+
 def resolve_selection(args, record):
     """A frozen campaign's selection from its recorded block; a differing
     `model_selection` supplied on resume is refused.
@@ -1028,10 +1046,16 @@ def resolve_selection(args, record):
     A supplied choice that sets no output cap, input window or timeout names
     the frozen one under either default: the plan recorded the values its
     own rules chose, and resolving it again under today's rules must not
-    refuse an earlier plan."""
+    refuse an earlier plan. Under the v2 timeout default that includes the
+    timeout the plan's own elapsed limit chose, which it recorded."""
     path = getattr(args, "api_key_file", None)
     chosen = selection_from_record(
         record, credential_file=None if path is None else str(path)
+    )
+    timeout_rules = (
+        (None, None),
+        (TIMEOUT_DEFAULT_V2, None),
+        (TIMEOUT_DEFAULT_V2, chosen.settings.timeout_seconds),
     )
     if getattr(args, "model_selection", None) is not None and all(
         supplied_selection(
@@ -1039,11 +1063,12 @@ def resolve_selection(args, record):
             output_default=output_rule,
             input_default=input_rule,
             timeout_default=timeout_rule,
+            elapsed_seconds=elapsed,
         ).record()
         != chosen.record()
         for output_rule in OUTPUT_DEFAULTS
         for input_rule in INPUT_DEFAULTS
-        for timeout_rule in TIMEOUT_DEFAULTS
+        for timeout_rule, elapsed in timeout_rules
     ):
         raise ValueError("model selection differs from the frozen campaign's")
     return chosen
@@ -1063,6 +1088,7 @@ def campaign_selection(args):
         args,
         output_default=new_plan_output_default(args),
         timeout_default=new_plan_timeout_default(args),
+        elapsed_seconds=new_plan_elapsed_seconds(args),
     )
 
 

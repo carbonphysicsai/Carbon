@@ -255,6 +255,7 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
     from carbon.development_session.research_campaign import (
         PreparedCampaign,
         campaign_implementation,
+        new_plan_elapsed_seconds,
         new_plan_input_default,
         new_plan_output_default,
         new_plan_timeout_default,
@@ -304,6 +305,7 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
                 args,
                 output_default=new_plan_output_default(args),
                 timeout_default=new_plan_timeout_default(args),
+                elapsed_seconds=new_plan_elapsed_seconds(args),
                 input_default=new_plan_input_default(args, agent),
             )
             if agent == "graphite":

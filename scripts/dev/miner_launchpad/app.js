@@ -1674,7 +1674,12 @@
         value = null;
       }
     }
-    return {low, high, fallback: timeout.default, value, problem};
+    // The default the runner chooses: the controller's, or the launch's
+    // elapsed limit where that is shorter, never under the lower bound.
+    const elapsed = composition.budget?.elapsed_seconds;
+    const bounded = timeout.bounded_by === "budget.elapsed_seconds" && Number.isSafeInteger(elapsed) && elapsed >= 1;
+    const fallback = bounded ? Math.max(low, Math.min(timeout.default, elapsed)) : timeout.default;
+    return {low, high, fallback, standard: timeout.default, bounded, value, problem};
   }
   // The model settings a launch sends: only what the miner set.
   function modelSettings() {
@@ -3216,7 +3221,7 @@
         const cap = outputCap();
         if (cap?.problem) return "Fix the output cap: " + cap.problem + ", or leave it blank for " + outputDefault(cap) + ".";
         const timeout = callTimeout();
-        if (timeout?.problem) return "Fix the provider call timeout: " + timeout.problem + ", or leave it blank for " + timeout.fallback + " seconds.";
+        if (timeout?.problem) return "Fix the provider call timeout: " + timeout.problem + ", or leave it blank for the default.";
       }
     }
     if (step === "compute") {
@@ -3608,11 +3613,11 @@
     const input = $("wizard-timeout-seconds");
     if (input.min !== String(timeout.low)) input.min = String(timeout.low);
     if (input.max !== String(timeout.high)) input.max = String(timeout.high);
-    const placeholder = "Default: " + timeout.fallback;
+    const placeholder = "Default: " + timeout.standard;
     if (input.placeholder !== placeholder) input.placeholder = placeholder;
     fill(input, wizard.timeoutSeconds ?? "");
     input.setAttribute("aria-invalid", timeout.problem ? "true" : "false");
-    let note = "Default: " + timeout.fallback + " seconds. How long each model call may wait for the provider's answer; a call still unanswered then ends with its outcome unknown and is reconciled, never resent. A new call starts only while this much of your elapsed limit is left; it reserves no money. Leave it blank for the default, or enter a whole number of seconds from " + timeout.low.toLocaleString("en-US") + " to " + timeout.high.toLocaleString("en-US") + ". The Control Center checks it again at launch.";
+    let note = "Default: " + timeout.standard + " seconds, or your elapsed limit where that is shorter. How long each model call may wait for the provider's answer; a call still unanswered then ends with its outcome unknown and is reconciled, never resent. New calls stop when less than the timeout remains of your elapsed limit; it reserves no money. Leave it blank for the default, or enter a whole number of seconds from " + timeout.low.toLocaleString("en-US") + " to " + timeout.high.toLocaleString("en-US") + ". The Control Center checks it again at launch.";
     if (timeout.problem) note = "Not valid: " + timeout.problem + ". " + note;
     setText($("wizard-timeout-note"), note);
     const kind = timeout.problem ? "reason" : "hint";
@@ -3724,7 +3729,7 @@
       const cap = outputCap();
       if (cap && !cap.problem) row("Max output", cap.value !== null ? cap.value.toLocaleString("en-US") + " tokens per reply, your cap" : "Not set: " + outputDefault(cap));
       const timeout = callTimeout();
-      if (timeout && !timeout.problem) row("Call timeout", timeout.value !== null ? timeout.value.toLocaleString("en-US") + " seconds per provider call, your timeout" : "Not set: " + timeout.fallback.toLocaleString("en-US") + " seconds per provider call, the default");
+      if (timeout && !timeout.problem) row("Call timeout", timeout.value !== null ? timeout.value.toLocaleString("en-US") + " seconds per provider call, your timeout" : "Not set: " + timeout.fallback.toLocaleString("en-US") + " seconds per provider call, the default" + (timeout.bounded && timeout.fallback < timeout.standard ? " (your elapsed limit)" : "") + ". New calls stop when less than the timeout remains of your elapsed limit");
       row("Compute", compute ? compute.label + " · " + compute.lane + " lane · " + compute.availability : "Unavailable");
       row("Tools", entry ? Object.keys(entry.tools?.workflow || {}).join(", ") || "none listed" : "Choose a Challenge");
       // Stated before launch, not learnt at submit (LAUNCHPAD-PAGE-USABILITY-01).

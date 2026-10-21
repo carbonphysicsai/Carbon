@@ -533,8 +533,10 @@ def _call_timeout():
     (`model_settings.timeout_seconds`, M1 rehearsal 2026-10-21): its bounds
     and the default a launch that sets none gets, exactly what the campaign's
     builder chooses for a new plan (`select(timeout_default=
-    TIMEOUT_DEFAULT_V2)`). The page shows and pre-checks these; the runner
-    validates the launch and has the last word."""
+    TIMEOUT_DEFAULT_V2)`): `default`, or the launch's `elapsed_seconds` where
+    that is shorter, never below the lower bound (`bounded_by`). The page
+    shows and pre-checks these; the runner validates the launch and has the
+    last word."""
     from carbon.development_session.model_provider import (
         DEADLINE_MARGIN_SECONDS,
         TIMEOUT_DEFAULT_V2,
@@ -548,13 +550,15 @@ def _call_timeout():
         "bounds": [low, high],
         "default": TIMEOUT_DEFAULT_V2_SECONDS,
         "default_rule": TIMEOUT_DEFAULT_V2,
+        "bounded_by": "budget.elapsed_seconds",
         "basis": (
             "Optional. Blank: "
-            f"{TIMEOUT_DEFAULT_V2_SECONDS} seconds. How long each model call "
-            "may wait for the provider's answer; a call still unanswered then "
-            f"is ended (at most {DEADLINE_MARGIN_SECONDS} seconds later) with "
-            "its outcome unknown, and is reconciled, never resent. A new call "
-            "starts only while this much of your elapsed limit is left. It "
+            f"{TIMEOUT_DEFAULT_V2_SECONDS} seconds, or your elapsed limit where "
+            f"that is shorter (never under {low}). How long each model call may "
+            "wait for the provider's answer; a call still unanswered then is "
+            f"ended (at most {DEADLINE_MARGIN_SECONDS} seconds later) with its "
+            "outcome unknown, and is reconciled, never resent. New calls stop "
+            "when less than the timeout remains of your elapsed limit. It "
             "reserves no money. Sent only with a provider and model, and "
             "validated by the runner at launch."
         ),

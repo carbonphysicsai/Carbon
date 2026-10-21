@@ -886,7 +886,13 @@ MODEL_SELECTION_FIELDS = frozenset(
 
 
 def setup_selection(
-    cfg, *, settings=None, output_default=None, input_default=None, timeout_default=None
+    cfg,
+    *,
+    settings=None,
+    output_default=None,
+    input_default=None,
+    timeout_default=None,
+    elapsed_seconds=None,
 ):
     """The profile's setup choice as a validated selection, with its key file.
 
@@ -902,6 +908,7 @@ def setup_selection(
         output_default=output_default,
         input_default=input_default,
         timeout_default=timeout_default,
+        elapsed_seconds=elapsed_seconds,
         **chosen,
     )
 
@@ -3182,10 +3189,17 @@ class RunnerAdapter:
             if refusal is not None:
                 raise Rejected(refusal, 409)
             try:
+                # The launch's elapsed limit bounds the timeout default; a
+                # budget that does not validate is refused below, as before.
+                elapsed = miner_budget(request.get("budget")).get("elapsed_seconds")
+            except ValueError:
+                elapsed = None
+            try:
                 # A launch makes a new plan: an unset output cap is the
                 # model's own maximum (OWNER-LAUNCHPAD-PROD-02) and an unset
-                # timeout the longest (`TIMEOUT_DEFAULT_V2`), as the
-                # campaign's own builder will choose them.
+                # timeout the longest, or the launch's elapsed limit where
+                # that is shorter (`TIMEOUT_DEFAULT_V2`), as the campaign's
+                # own builder will choose them.
                 selection = (
                     setup_selection(
                         cfg,
@@ -3193,6 +3207,7 @@ class RunnerAdapter:
                         output_default=OUTPUT_DEFAULT_V2,
                         input_default=input_default,
                         timeout_default=TIMEOUT_DEFAULT_V2,
+                        elapsed_seconds=elapsed,
                     )
                     if same_as_setup
                     else select(
@@ -3203,6 +3218,7 @@ class RunnerAdapter:
                         output_default=OUTPUT_DEFAULT_V2,
                         input_default=input_default,
                         timeout_default=TIMEOUT_DEFAULT_V2,
+                        elapsed_seconds=elapsed,
                     )
                 )
                 budget = miner_budget(request.get("budget"))
