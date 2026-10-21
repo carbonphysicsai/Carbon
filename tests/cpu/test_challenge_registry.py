@@ -344,3 +344,43 @@ def test_cooling_resolves_each_registered_version_exactly():
     )
     with pytest.raises(reg.UnsupportedVersion, match="1.0, 1.2"):
         reg.describe(COLD_PLATE, "1.1")
+
+
+# --- Validator, 2026-10-21: pending readiness never counts as launch ----------
+
+
+def test_launch_pending_readiness_never_counts_as_launch():
+    from carbon.challenge_registry.registry import LAUNCH_PENDING_READINESS, entries
+
+    pending = {
+        e.challenge_id for e in entries() if e.portfolio == LAUNCH_PENDING_READINESS
+    }
+    launch = {e.challenge_id for e in entries() if e.portfolio == "launch"}
+    assert pending == {"f08-ribbed-bracket", "f02"}
+    assert not pending & launch
+    # The catalog carries the value as it is; nothing rewrites it to launch.
+    listed = challenges.catalog(NOTHING)["challenges"]
+    for item in listed:
+        if item["challenge_id"] in pending:
+            assert item["portfolio"] == LAUNCH_PENDING_READINESS
+
+
+def test_no_code_reads_a_portfolio_prefix_as_launch():
+    """Launch is only `== "launch"`: no reader may match a prefix or a
+    substring, which would count launch_pending_readiness as launch."""
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    loose = re.compile(
+        r"portfolio[^\n]{0,40}(startswith\(\s*[\"']launch|[\"']launch[\"']\s+in\b)"
+        r"|[\"']launch[\"']\s+in\s+[^\n]{0,40}portfolio"
+    )
+    offenders = [
+        str(path.relative_to(root))
+        for base in ("carbon", "scripts")
+        for path in (root / base).rglob("*")
+        if path.suffix in (".py", ".js")
+        and loose.search(path.read_text(encoding="utf-8", errors="replace"))
+    ]
+    assert offenders == []
