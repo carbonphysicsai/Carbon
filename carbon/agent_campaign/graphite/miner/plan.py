@@ -16,6 +16,14 @@ or an authority, and its cards stay UNCHECKED literature.
 another origin than its own, or leaves out a pinned card (`plan_invalid`). A
 miner's edit is a new plan with its own digest whose parent is the plan it
 edits (`new_version`); a plan, once stored, never changes.
+
+Schema `carbon.graphite.miner-plan.v2` (the depth edition's,
+`edition.DEPTH_EDITION`) is v1 with three more required texts per hypothesis
+(`DEPTH_FIELDS`): `physics_rationale` (what in the data or the governing
+physics motivates it), `architecture_match` (why this model family or
+construction suits that structure) and `ablation` (the control it is compared
+against and the one factor that differs, at equal budget). A v1 plan keeps its
+own shape and meaning; an edit keeps the schema of the plan it edits.
 """
 
 from __future__ import annotations
@@ -25,9 +33,12 @@ import re
 
 from carbon.development_session.profile import canonical, digest
 
-from .edition import ORIGINS
+from .edition import DEPTH_FIELDS, MINER_PLAN_SCHEMAS, ORIGINS
 
-PLAN_SCHEMA = "carbon.graphite.miner-plan.v1"
+#: `carbon.graphite.miner-plan.v1`, and the depth edition's v2: v1 and
+#: `DEPTH_FIELDS`, each a required text.
+PLAN_SCHEMA, PLAN_SCHEMA_V2 = MINER_PLAN_SCHEMAS
+PLAN_SCHEMAS = MINER_PLAN_SCHEMAS
 CREATORS = ("planner", "miner")
 #: Shape bounds. They keep a plan a readable document inside one tool call
 #: and one observation; they are not research limits.
@@ -46,6 +57,17 @@ PLAN_FIELDS = frozenset(
 HYPOTHESIS_FIELDS = frozenset(
     {"rank", "hypothesis", "expected_effect", "stopping_rule", "cites"}
 )
+#: Each schema's required texts of a hypothesis, in the order a refusal
+#: names them.
+TEXT_FIELDS = {
+    PLAN_SCHEMA: ("hypothesis", "expected_effect", "stopping_rule"),
+    PLAN_SCHEMA_V2: (
+        "hypothesis",
+        "expected_effect",
+        *DEPTH_FIELDS,
+        "stopping_rule",
+    ),
+}
 
 PLAN_INVALID = "plan_invalid"
 CARD_NOT_FOUND = "card_not_found"
@@ -183,10 +205,24 @@ def _challenge(challenge):
     return {"id": challenge["id"], "version": challenge["version"]}
 
 
-def from_arguments(arguments, *, challenge, parent=None, created_by="planner"):
+def _schema(schema):
+    if schema not in PLAN_SCHEMAS:
+        raise ValueError("unknown miner plan schema")
+    return schema
+
+
+def _argument_fields(schema):
+    return (*TEXT_FIELDS[schema], "recipe_json", "cites")
+
+
+def from_arguments(
+    arguments, *, challenge, parent=None, created_by="planner", schema=PLAN_SCHEMA
+):
     """The plan the Planner's `graphite_record_plan` call records, or
     `PlanInvalid` naming the field to fix. Structure only; the literature
-    checks are `validate_plan`'s."""
+    checks are `validate_plan`'s. `schema` is the edition's plan schema
+    (`MinerEdition.plan_schema`): v2 requires `DEPTH_FIELDS` too."""
+    schema = _schema(schema)
     if type(arguments) is not dict or set(arguments) != {
         "hypotheses",
         "pins_considered",
@@ -208,29 +244,18 @@ def from_arguments(arguments, *, challenge, parent=None, created_by="planner"):
     ranked = []
     for index, item in enumerate(hypotheses):
         field = f"hypotheses[{index}]"
-        if type(item) is not dict or set(item) != {
-            "hypothesis",
-            "expected_effect",
-            "stopping_rule",
-            "recipe_json",
-            "cites",
-        }:
+        names = _argument_fields(schema)
+        if type(item) is not dict or set(item) != set(names):
             raise PlanInvalid(
                 PLAN_INVALID,
                 field,
-                "a hypothesis has hypothesis, expected_effect, stopping_rule, "
-                "recipe_json and cites",
+                "a hypothesis has " + ", ".join(names[:-1]) + " and " + names[-1],
                 "send each hypothesis with exactly those fields",
             )
-        entry = {
-            "rank": index + 1,
-            "hypothesis": _text(item["hypothesis"], field + ".hypothesis"),
-            "expected_effect": _text(
-                item["expected_effect"], field + ".expected_effect"
-            ),
-            "stopping_rule": _text(item["stopping_rule"], field + ".stopping_rule"),
-            "cites": _cites(item["cites"], field + ".cites"),
-        }
+        entry = {"rank": index + 1}
+        for name in TEXT_FIELDS[schema]:
+            entry[name] = _text(item[name], field + "." + name)
+        entry["cites"] = _cites(item["cites"], field + ".cites")
         recipe = _recipe(item["recipe_json"], field + ".recipe_json")
         if recipe is not None:
             entry["recipe"] = recipe
@@ -241,12 +266,15 @@ def from_arguments(arguments, *, challenge, parent=None, created_by="planner"):
         pins_considered=_pins(arguments["pins_considered"]),
         parent=parent,
         created_by=created_by,
+        schema=schema,
     )
 
 
-def document(*, challenge, hypotheses, pins_considered, parent, created_by):
+def document(
+    *, challenge, hypotheses, pins_considered, parent, created_by, schema=PLAN_SCHEMA
+):
     plan = {
-        "schema": PLAN_SCHEMA,
+        "schema": _schema(schema),
         "challenge": _challenge(challenge),
         "hypotheses": hypotheses,
         "pins_considered": pins_considered,
@@ -263,13 +291,15 @@ def check_shape(plan):
         raise PlanInvalid(
             PLAN_INVALID, "plan", "not a miner plan", "send a miner plan document"
         )
-    if plan["schema"] != PLAN_SCHEMA:
+    if plan["schema"] not in PLAN_SCHEMAS:
         raise PlanInvalid(
             PLAN_INVALID,
             "schema",
-            "a plan is " + PLAN_SCHEMA,
-            "send a plan in this schema",
+            "a plan is " + " or ".join(PLAN_SCHEMAS),
+            "send a plan in one of these schemas",
         )
+    texts = TEXT_FIELDS[plan["schema"]]
+    shape = HYPOTHESIS_FIELDS | set(texts)
     try:
         _challenge(plan["challenge"])
     except ValueError:
@@ -307,17 +337,18 @@ def check_shape(plan):
         field = f"hypotheses[{index}]"
         if (
             type(item) is not dict
-            or not HYPOTHESIS_FIELDS <= set(item) <= HYPOTHESIS_FIELDS | {"recipe"}
+            or not shape <= set(item) <= shape | {"recipe"}
             or item["rank"] != index + 1
         ):
             raise PlanInvalid(
                 PLAN_INVALID,
                 field,
-                "a ranked hypothesis has rank, hypothesis, expected_effect, "
-                "stopping_rule, cites and optionally recipe, ranked from 1",
+                "a ranked hypothesis has rank, "
+                + ", ".join(texts)
+                + ", cites and optionally recipe, ranked from 1",
                 "send each hypothesis with exactly those fields, in rank order",
             )
-        for name in ("hypothesis", "expected_effect", "stopping_rule"):
+        for name in texts:
             _text(item[name], field + "." + name)
         if _cites(item["cites"], field + ".cites") != item["cites"]:
             raise PlanInvalid(
@@ -449,4 +480,5 @@ def new_version(plan, *, parent, created_by="miner", **changes):
         pins_considered=changes.get("pins_considered", plan["pins_considered"]),
         parent=parent,
         created_by=created_by,
+        schema=plan["schema"],
     )

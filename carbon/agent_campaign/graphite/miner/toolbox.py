@@ -62,14 +62,15 @@ def refusal(status, code, **extra):
     }
 
 
-def stage_tools(role, schemas, *, guidance=True):
+def stage_tools(role, schemas, *, guidance=True, finish_tool=None):
     """The function schemas a stage offers, in the role's manifest order.
 
     `schemas` are the research SDK's schemas for this campaign
     (`research_tools.tools_for_sdk`, under the campaign's frozen tools rule).
     The research task tool's `kind` and `action` choices are narrowed to what
     the role may start. The reply tool is offered only when the campaign froze
-    a miner-guidance rule (`guidance`)."""
+    a miner-guidance rule (`guidance`). `finish_tool` is the edition's
+    Planner finishing tool (`MinerEdition.finish`); None is v1's."""
     from carbon.development_session.miner_guidance import REPLY_TOOL
     from carbon.development_session.research_agent_policy import STOP_TOOL
     from carbon.development_session.research_loop import SELECTION_TOOL
@@ -78,7 +79,7 @@ def stage_tools(role, schemas, *, guidance=True):
         editions.SELECT: SELECTION_TOOL,
         editions.STOP: STOP_TOOL,
         editions.REPLY: REPLY_TOOL,
-        editions.FINISH: editions.FINISH_TOOL,
+        editions.FINISH: editions.FINISH_TOOL if finish_tool is None else finish_tool,
         **{tool["name"]: tool for tool in editions.LITERATURE_TOOLS},
     }
     research = {tool["name"]: tool for tool in schemas}

@@ -243,6 +243,9 @@ def freeze_launch(args, root, *, challenge):
         fields = editions.launch_fields(
             getattr(args, "graphite", None),
             curation_digest=getattr(args, "graphite_curation_digest", None),
+            # The edition a door names (`args.graphite_edition`); none is
+            # the default a new launch freezes.
+            edition=getattr(args, "graphite_edition", None) or editions.EDITION_ID,
         )
     except editions.LaunchRefused as refusal:
         raise refused(refusal.code) from None
@@ -297,15 +300,22 @@ def research_share_shortfall(launch, ceilings, selection):
     (`edition.HUNT_PART_OF_SHARE`), each reserving a call's whole cost
     before it is sent (`budget.call_reservation`), so each must fit one.
     `launch` is the frozen block or `edition.launch_fields`' result; a door
-    may ask this before a campaign exists, as its launch estimate."""
+    may ask this before a campaign exists, as its launch estimate. Each
+    stage's call is reserved on its role's selection
+    (`edition.role_selection`: the Planner's for the plan, the Reader's for
+    the hunt), so an edition that raises the Planner's output cap is checked
+    at that cap."""
     if launch["mode"] != editions.FULL_MODE:
         return None
+    edition = editions.resolve(launch.get("edition", editions.EDITION_ID))
     fraction = editions.share_fraction(launch)
-    per_call = budget.call_reservation(selection)
-    stages = [(PLAN, fraction)]
+    stages = [(PLAN, "planner", fraction)]
     if launch.get("hunt") is not None:
-        stages.append((HUNT, fraction * editions.HUNT_PART_OF_SHARE))
-    for stage, part in stages:
+        stages.append((HUNT, "reader", fraction * editions.HUNT_PART_OF_SHARE))
+    for stage, role, part in stages:
+        per_call = budget.call_reservation(
+            editions.role_selection(edition, role, selection)[0]
+        )
         short = budget.share_shortfall(ceilings or {}, part, per_call)
         if short is not None:
             return {"stage": stage, **short}
@@ -657,9 +667,27 @@ class _Run:
 
         return self.prepared.selection or DEFAULT_SELECTION
 
-    def provider_kw(self):
+    def provider_kw(self, role=None):
+        """The `provider` a role's session runs on: the campaign's selection,
+        or - where the edition has settings for `role` - its role selection
+        (`role_selection`). None of either keeps the engine's default."""
         selection = self.prepared.selection
+        if role is not None and self.edition.settings_for(role) is not None:
+            return {"provider": self.role_selection(role)[0]}
         return {} if selection is None else {"provider": selection}
+
+    def role_selection(self, role):
+        """`edition.role_selection` for `role` over the campaign's selection;
+        a campaign on the historical default names its key file."""
+        credential = None
+        if self.prepared.selection is None:
+            credential = self.prepared.args.api_key_file
+        return editions.role_selection(
+            self.edition,
+            role,
+            self.selection,
+            credential_file=None if credential is None else str(credential),
+        )
 
     def snapshot(self):
         """The private library snapshot this campaign's stages read: the one
@@ -692,7 +720,12 @@ class _Run:
         )
 
         schemas = tools_for_sdk(self.prepared.sdk, frozen_tools_rule(self.manifest))
-        return stage_tools(role, schemas, guidance=self.guidance is not None)
+        return stage_tools(
+            role,
+            schemas,
+            guidance=self.guidance is not None,
+            finish_tool=self.edition.finish,
+        )
 
     @property
     def guidance(self):
@@ -709,8 +742,9 @@ class _Run:
             bans=self.curation["bans"],
         )
 
-    def engine(self, stage):
-        """The research loop keywords every miner-edition stage shares."""
+    def engine(self, stage, role=None):
+        """The research loop keywords every miner-edition stage shares, on
+        `role`'s selection (`provider_kw`)."""
         return {
             "owner": self.owner,
             "credential_file": self.prepared.args.api_key_file,
@@ -721,7 +755,7 @@ class _Run:
             "miner_guidance": self.guidance,
             "limits": self.provider_plan["limits"][stage],
             "compaction": self.provider_plan["compaction"],
-            **self.provider_kw(),
+            **self.provider_kw(role),
         }
 
     def observation(self, epoch, feedback):
@@ -840,7 +874,7 @@ async def _hunt(run, ledger):
     reader = MinerReader(
         ledger=ledger,
         owner=run.owner,
-        selection=run.selection,
+        selection=run.role_selection("reader")[0],
         credential_file=run.prepared.args.api_key_file,
         transport=run.transport,
         role=run.edition.role("reader"),
@@ -929,10 +963,17 @@ async def _session(ledger, **keywords):
 
 def _stopped(outcome):
     """What a stage record keeps of a session outcome that ended with a
-    code: the code and, for a limit, the dimension that bound."""
+    code: the code, for a limit the dimension that bound, and - where the
+    loop named one - the typed cause of the stop and the output cap it hit
+    (`research_loop.OUTPUT_CAP_HIT`, `turn_hit_output_cap`), so a cap that
+    is still too low shows in the stage record a campaign view reads."""
     kept = {"code": outcome.get("code")}
     if outcome.get("dimension") is not None:
         kept["dimension"] = outcome["dimension"]
+    if type(outcome.get("cause")) is str:
+        kept["cause"] = outcome["cause"]
+        if type(outcome.get("output_cap")) is dict:
+            kept["output_cap"] = outcome["output_cap"]
     return kept
 
 
@@ -974,10 +1015,12 @@ async def _plan(run, ledger):
     curation = run.curation
     challenge = run.challenge
 
+    schema = run.edition.plan_schema
+
     def validate(arguments):
         try:
             candidate = plans.from_arguments(
-                arguments, challenge=challenge, created_by="planner"
+                arguments, challenge=challenge, created_by="planner", schema=schema
             )
         except plans.PlanInvalid as invalid:
             return False, invalid.refusal()
@@ -1000,11 +1043,11 @@ async def _plan(run, ledger):
         tools=run.tools(role),
         stage=PLAN,
         finish={
-            "tool": editions.FINISH_TOOL,
+            "tool": run.edition.finish,
             "validate": validate,
             "status": "PLANNED",
         },
-        **run.engine(PLAN),
+        **run.engine(PLAN, "planner"),
     )
     reached = getattr(ledger, "reached", None)
     if reached is not None:
@@ -1021,6 +1064,7 @@ async def _plan(run, ledger):
             _finish_arguments(outcome, folder),
             challenge=challenge,
             created_by="planner",
+            schema=schema,
         )
         body = {
             "status": "PLANNED",
@@ -1038,6 +1082,10 @@ async def _plan(run, ledger):
         }
     from carbon.development_session.research_report import report
 
+    applied = run.role_selection("planner")[1]
+    if applied is not None:
+        # What the edition's role settings did to the Planner's selection.
+        body["role_settings"] = applied
     _note_stage_end(run, PLAN, body)
     report(run.ledger, owner=run.owner)
     return run.stages.finish(PLAN, body)
@@ -1149,7 +1197,7 @@ async def _build(run, plan_doc, plan_digest):
             tools=run.tools(role),
             stage=None,
             finish=None,
-            **run.engine(BUILD),
+            **run.engine(BUILD, "constructor"),
             **_direct_selection(run),
         )
         report(ledger, owner=owner)
@@ -1188,6 +1236,9 @@ async def _build(run, plan_doc, plan_digest):
         "ended": ended,
         "plan_digest": plan_digest,
     }
+    applied = run.role_selection("constructor")[1]
+    if applied is not None:
+        body["role_settings"] = applied
     _note_stage_end(run, BUILD, body)
     run.stages.finish(BUILD, body)
     campaigns._complete(run.prepared)
