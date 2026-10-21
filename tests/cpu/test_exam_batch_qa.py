@@ -49,6 +49,7 @@ def test_a_good_batch_passes_and_only_digest_and_verdict_are_public():
         "feasible": 3,
         "infeasible": 3,
         "unresolved": 0,
+        "unresolved_cases": {},
     }
     assert len({r["case_id"] for r in record["spot_check"]}) == 3
     assert qa.public(record) == {"batch_digest": "b1", "verdict": "PASS"}
@@ -77,8 +78,39 @@ def test_cases_within_u_are_unresolved_and_count_on_neither_side():
         "feasible": 2,
         "infeasible": 2,
         "unresolved": 2,
+        # Logged with their reference values (host-only record).
+        "unresolved_cases": {"c2": 95.05, "c3": 94.95},
     }
     assert record["failure"] is None  # 2 of 6 is a third on each side
+
+
+def test_more_unresolved_than_the_allowed_fraction_fails():
+    """Motor (Validator, 2026-10-20): more than 1/3 of a batch within U stops."""
+    values = [90.0, 91.0, 95.05, 94.95, 95.02, 99.0, 100.0, 101.0, 89.0]
+    batch = _batch(values)
+    spec = {**SPEC, "unresolved_max_fraction": 1 / 3, "straddle_min_fraction": 0.2}
+    assert qa.judge(batch, spec, _fine(batch))["failure"] is None  # 3 of 9
+    over = _batch(values[:3] + [95.0, 94.99] + values[3:])
+    record = qa.judge(over, spec, _fine(over))
+    assert record["failure"] == "unresolved_over_fraction:peak"  # 5 of 11
+    assert len(record["straddle"]["peak"]["unresolved_cases"]) == 5
+    # Without the field, no such stop (the other Challenges' rule).
+    assert (
+        qa.judge(over, {**SPEC, "straddle_min_fraction": 0.2}, _fine(over))["failure"]
+        is None
+    )
+
+
+def test_motor_u_is_the_validators_rounded_up_bands():
+    import json
+
+    u = qa.registered_u("electric-motor-magnetics")
+    assert u == {"mean_torque_nm": 0.0052, "ripple_fraction": 0.026}
+    path, _pin = qa.U_RECORDS["electric-motor-magnetics"]
+    record = json.loads((ROOT / path).read_text())
+    # Each U covers its own measured full-range band (rounded up, never down).
+    for q, band in record["bands"].items():
+        assert u[q] >= band["largest_full_range"]
 
 
 def test_no_registered_u_fails_closed():
@@ -179,3 +211,50 @@ def test_the_f08_record_regenerates_from_its_committed_script_and_ladder():
         (folder / "reference-uncertainty/f08-reference-uncertainty.json").read_text()
     )
     assert json.loads(out) == committed
+
+
+def _motor_batch():
+    values = [
+        (4.5, 0.10), (4.6, 0.12), (4.7, 0.20), (4.8, 0.15), (3.0, 0.50), (3.1, 0.60),
+        (3.2, 0.45), (3.3, 0.40), (4.9, 0.11), (3.4, 0.55), (5.0, 0.18), (2.9, 0.70),
+    ]  # fmt: skip
+    return {
+        "batch_digest": "m1",
+        "image_digest": IMAGE,
+        "cases": [
+            {
+                "case_id": f"m{i}",
+                "quantities": {"mean_torque_nm": t, "ripple_fraction": r},
+            }
+            for i, (t, r) in enumerate(values)
+        ],
+    }
+
+
+MOTOR_SPEC = {
+    "challenge": "electric-motor-magnetics",
+    "verified_image_digests": [IMAGE],
+    "limits": [
+        {"quantity": "mean_torque_nm", "threshold": 4.0, "feasible": ">="},
+        {"quantity": "ripple_fraction", "threshold": 0.30, "feasible": "<="},
+    ],
+    "u": "registered",
+}
+
+
+def test_a_motor_spec_cannot_drop_or_change_the_pinned_unresolved_stop():
+    """The 1/3 stop is in Motor's pinned U record (Validator): a spec that
+    omits it, or sets another value, is refused before any other check."""
+    assert qa.registered_unresolved_max("electric-motor-magnetics") == 1 / 3
+    batch = _motor_batch()
+    by = {c["case_id"]: c["quantities"] for c in batch["cases"]}
+    fine = {i: dict(by[i]) for i in qa.spot_case_ids(batch)}
+    omitted = qa.judge(batch, MOTOR_SPEC, fine)
+    assert omitted["verdict"] == "FAIL"
+    assert omitted["failure"] == "spec_unresolved_max_fraction"
+    changed = qa.judge(batch, {**MOTOR_SPEC, "unresolved_max_fraction": 0.5}, fine)
+    assert changed["failure"] == "spec_unresolved_max_fraction"
+    kept = qa.judge(batch, {**MOTOR_SPEC, "unresolved_max_fraction": 1 / 3}, fine)
+    assert kept["verdict"] == "PASS" and kept["failure"] is None
+    # A record without the field (F02, F08) imposes no such stop.
+    assert qa.registered_unresolved_max("f02") is None
