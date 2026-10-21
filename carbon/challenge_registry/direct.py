@@ -4,8 +4,9 @@ F02 (Burst Thermal) 2.3.
 A description names the registered interface, construction kit, served backbone
 catalog and graph training adapter (each from its registered source), and a
 ready catalog recipe and graph recipe template. What the registration does
-not state - the task wording, the intended use, the exam, the practice error
-scale, the per-case policy - is `HUMAN_INPUT`. Miner source bundles stay closed.
+not state - the task wording, the intended use, the exam, the per-case policy -
+is `HUMAN_INPUT`. Practice reports aggregate errors on the registered scale
+(Validator, 2026-10-21). Miner source bundles stay closed.
 """
 
 from __future__ import annotations
@@ -181,7 +182,9 @@ def describe(spec, version):
             "qualification": False,
         },
         "feedback": {
-            "practice": HUMAN_INPUT,
+            # Validator, 2026-10-21: aggregate errors on the registered scale
+            # (`direct_campaign.practice.error_scale`), no per-case value.
+            "practice": "aggregate public-practice errors on the registered scale",
             "evaluation": "the receiver's judged feedback",
         },
         "examples": (

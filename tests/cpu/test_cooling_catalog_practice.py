@@ -8,6 +8,7 @@ tested yet."""
 
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 
 import numpy as np
@@ -95,9 +96,71 @@ def test_a_catalog_recipe_runs_as_its_bundle_on_the_public_practice_inputs(pract
     assert result["catalog_id"] == STAND_IN
     assert result["recipe"] == recipe
     assert result["official_eligible"] is False and result["final_exam"] is False
-    # As Motor's catalog practice: no safety field (PRACTICE-SAFETY-01's code
-    # is imported only by the registered practice providers).
-    assert "safety" not in result
+    # PRACTICE-SAFETY-01's safety block (Validator, 2026-10-21), read through
+    # the provider; the feedback schema is versioned for it.
+    assert result["schema"] == catalog_practice.FEEDBACK_SCHEMA
+    assert result["schema"].endswith(".v2")
+    assert result["safety"]["schema"] == "carbon.practice-safety-feedback.v1"
+
+
+def _optimistic_rows():
+    """Each reference run 5 C cool at half the pressure drop: a model the
+    safety block flags (PRACTICE-SAFETY-01's own optimist)."""
+    return [
+        [row[0] - 5.0, *(t - 5.0 for t in row[1:-1]), row[-1] * 0.5]
+        for row in _native_rows()
+    ]
+
+
+@pytest.mark.parametrize("kind", ["reference", "optimistic"])
+def test_the_safety_block_is_level_0_practices_for_the_same_predictions(
+    practice, monkeypatch, tmp_path, kind
+):
+    from test_practice_safety_feedback import _recipe, _runner, _Workspace
+
+    from carbon.cold_plate import research
+    from carbon.development_session import research_workspace
+
+    item, _, _, _ = practice
+    rows = _native_rows() if kind == "reference" else _optimistic_rows()
+    if kind == "optimistic":
+        monkeypatch.setattr(
+            worker,
+            "reconstruct_and_infer_public",
+            lambda ledger_, **kwargs: SimpleNamespace(
+                build=SimpleNamespace(state_digest="sha256:" + "5" * 64),
+                inference=SimpleNamespace(
+                    state_digest="sha256:" + "5" * 64, predictions=rows
+                ),
+            ),
+        )
+    result = item("cooling-catalog-0006", catalog_recipe(STAND_IN, version="1.2"))
+    # Level 0 practice (`ColdPlatePractice`) on the same predictions.
+    records = PracticeSet.load(ROOT).records
+    slices = item._material()["interface_document"]["target_slices"]
+    predictions = {
+        record["case_id"]: catalog_practice._outputs(row, slices)
+        for record, row in zip(records, rows, strict=True)
+    }
+    monkeypatch.setattr(research_workspace, "ResearchWorkspace", _Workspace)
+    level0 = research.ColdPlatePractice(
+        ledger=SimpleNamespace(root=tmp_path / "level0"),
+        owner="o",
+        image=SimpleNamespace(image_id="sha256:" + "1" * 64),
+        root=ROOT,
+        runner=_runner(predictions, research.digest),
+    )
+    level0.compile = lambda strategy: (None, _recipe({"id": "cooling"}))
+    expected = level0("task-1", {"strategy": "fixture"})["safety"]
+    assert result["safety"] == expected
+    metrics = expected["metrics"]
+    if kind == "optimistic":
+        assert metrics["C1"]["false_feasible"] > 0
+    else:
+        assert metrics["C1"]["rate"] == 0.0 and metrics["C2"]["rate"] == 0.0
+    # No public PRACTICE case id leaves in the safety block.
+    text = json.dumps(result["safety"])
+    assert not [r["case_id"] for r in records if r["case_id"] in text]
 
 
 def test_the_columns_map_back_to_coolings_outputs_in_the_interfaces_order(practice):

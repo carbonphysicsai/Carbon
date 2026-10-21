@@ -3,8 +3,10 @@
 Mirrors Motor's research parts (objective, population and sampling,
 measurement contract, public material) for the shared research composition.
 Each part names only registered facts; what is not registered for F08 or F02
-(sampling law, gates, score, reference method, per-case disclosure, the
-practice error scale) is `HUMAN_INPUT`, so it fails closed where it is read.
+(sampling law, gates, score, reference method, per-case disclosure) is
+`HUMAN_INPUT`, so it fails closed where it is read. The practice error scale
+and aggregation are each Challenge's registered ones
+(`practice.error_scale`; Validator, 2026-10-21).
 Construction sees only registered public TRAIN and the exposed DEVELOPMENT
 bank's inputs; no reference label, private pool or hidden role is served.
 """
@@ -92,7 +94,7 @@ def objective(spec):
         "gates": HUMAN_INPUT,
         "score": HUMAN_INPUT,
         "practice_feedback_schema": spec.practice_schema,
-        "practice_error_scale": direct_practice.ERROR_SCALE,
+        "practice_error_scale": direct_practice.error_scale(spec, key.version),
         "non_claims": [
             "not scientifically, security or production qualified",
             "no reward, frontier, settlement or chain authority",
@@ -287,6 +289,18 @@ def population_and_sampling(spec):
     return practice_population, plan
 
 
+#: The practice measurement's registered normalisation and aggregation,
+#: by Challenge (`practice.error_scale` names their records).
+_NORMALIZATION = {
+    "f02": "train40_v2_train_peak_std_c",
+    "f08": "dev1_section7_f08_critical_scales",
+}
+_AGGREGATION = {
+    "f02": "max_of_mean_near_block_mean_and_worst",
+    "f08": "dev1_worst_over_quantity_and_case_mean_recorded",
+}
+
+
 def measurement_contract(spec):
     source = digest(Path(direct_practice.__file__).read_bytes())
     key = research_key(spec)
@@ -309,11 +323,12 @@ def measurement_contract(spec):
         (definition(kind.OBSERVABLE, "interface_outputs"),),
         definition(kind.COORDINATE_SYSTEM, "human_input_coordinate_system"),
         definition(kind.UNIT, "interface_units"),
-        definition(kind.NUMERICAL_OPERATOR, "human_input_practice_error"),
+        definition(kind.NUMERICAL_OPERATOR, "absolute_error_over_registered_scale"),
         definition(kind.DISCRETIZATION, "one_row_per_case"),
         definition(kind.SAMPLING_QUADRATURE, "human_input_sampling_quadrature"),
-        definition(kind.NORMALIZATION, "human_input_practice_error_scale"),
-        definition(kind.AGGREGATION, "human_input_practice_aggregation"),
+        # The registered scale and its record's aggregation (practice.py).
+        definition(kind.NORMALIZATION, _NORMALIZATION[spec.prefix]),
+        definition(kind.AGGREGATION, _AGGREGATION[spec.prefix]),
         definition(kind.PRECISION, "float32_outputs"),
         m.ReferencePolicyRef(key, digest(canonical({"reference": HUMAN_INPUT}))),
         m.ScientificValueBinding(m.ScientificValueState.HUMAN_INPUT),

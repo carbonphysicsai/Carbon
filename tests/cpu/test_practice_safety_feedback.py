@@ -660,6 +660,13 @@ def test_a_provider_calls_the_safety_code_only_inside_its_practice_trial(
     # names, so the module is loaded there; safety is called only by the two
     # practice paths. Both Battery paths load the public decision set for B4.
     expected = [(provider, "__call__", "safety")]
+    if provider != "BatteryPractice":
+        # Validator, 2026-10-21: the catalog practice carries the same safety
+        # feedback. It reads it through this provider's one module-level
+        # function, `safety_feedback`, so the catalog module imports no safety
+        # code (IMPORTERS is unchanged); that function's callers are pinned by
+        # `test_the_catalog_practice_reads_safety_only_inside_its_trial`.
+        expected = [(None, "safety_feedback", "safety"), *expected]
     if provider == "BatteryPractice":
         expected = [
             (provider, "__call__", "decision_set"),
@@ -668,6 +675,47 @@ def test_a_provider_calls_the_safety_code_only_inside_its_practice_trial(
             (provider, "_direct_practice", "safety"),
         ]
     assert _safety_calls(REPO / module) == expected
+
+
+def _uses(path, name):
+    """Each reference to `name` in `path`, as (class, function), with None
+    for a module-level reference (import-time use)."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    found = []
+
+    def visit(node, owner, function):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, ast.ClassDef):
+                visit(child, child.name, function)
+            elif isinstance(child, ast.FunctionDef):
+                visit(child, owner, function or child.name)
+            else:
+                if (isinstance(child, ast.Name) and child.id == name) or (
+                    isinstance(child, ast.alias) and child.name == name
+                ):
+                    found.append((owner, function))
+                visit(child, owner, function)
+
+    visit(tree, None, None)
+    return found
+
+
+def test_the_catalog_practice_reads_safety_only_inside_its_trial():
+    # `safety_feedback` is defined by the Motor and Cooling providers; outside
+    # them, only each catalog practice trial (its `__call__`) uses it.
+    found = {
+        path.relative_to(REPO).as_posix(): _uses(path, "safety_feedback")
+        for root in ("carbon", "scripts")
+        for path in (REPO / root).rglob("*.py")
+    }
+    found = {path: uses for path, uses in found.items() if uses}
+    assert found == {
+        "carbon/motor/catalog_practice.py": [("MotorCatalogPractice", "__call__")] * 2,
+        "carbon/cold_plate/catalog_practice.py": [
+            ("CoolingCatalogPractice", "__call__")
+        ]
+        * 2,
+    }
 
 
 def test_official_scoring_rank_and_reward_code_loads_no_safety_module():

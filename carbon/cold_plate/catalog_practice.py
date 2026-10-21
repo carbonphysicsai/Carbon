@@ -18,7 +18,10 @@ back to Cooling's outputs by the interface's own target slices (peak_c,
 profile_c, pressure_drop_pa) and scored with Cooling's own practice scorer
 (`carbon.cold_plate.practice.score_practice`); labels stay on this host and
 nothing private is read. The result carries Cooling's practice provenance, so
-a practised recipe supports a freeze as Level 0's does.
+a practised recipe supports a freeze as Level 0's does, and PRACTICE-SAFETY-01's
+feedback-only safety block for the same predictions, exactly as Level 0
+practice attaches it, read through the provider (`research.safety_feedback`;
+Validator, 2026-10-21), so this module never imports the safety code.
 
 A catalog entry whose child image is not installed on this host is refused
 before anything runs or is charged (`backend_not_served`, listing the entries
@@ -33,7 +36,9 @@ from pathlib import Path
 from .challenge import CHALLENGE, PUBLIC_OUTPUTS
 from .practice import PROVENANCE
 
-FEEDBACK_SCHEMA = "carbon.cold-plate.catalog-practice-feedback.v1"
+#: v2 adds the `safety` block (Validator, 2026-10-21); v1 had none.
+FEEDBACK_SCHEMA = "carbon.cold-plate.catalog-practice-feedback.v2"
+FEEDBACK_SCHEMA_V1 = "carbon.cold-plate.catalog-practice-feedback.v1"
 
 
 class CoolingCatalogPractice:
@@ -168,6 +173,7 @@ class CoolingCatalogPractice:
 
         from .challenge import PublicMaterial
         from .practice import PracticeSet, score_practice
+        from .research import safety_feedback
 
         material = self._material()
         recipe = ConstructionRecipe.from_dict(self._expanded(strategy, material))
@@ -246,6 +252,8 @@ class CoolingCatalogPractice:
             "final_exam": False,
             "official_eligible": False,
             "scientific_qualification": False,
+            # PRACTICE-SAFETY-01: feedback only, on the same public cases.
+            "safety": safety_feedback(predictions, practice),
             "recipe": strategy,
         }
         ResearchWorkspace(self.ledger, self.owner).put(

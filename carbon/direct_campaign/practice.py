@@ -16,37 +16,183 @@ The query is the version's exposed DEVELOPMENT bank inputs, seed 0. Outputs
 must be float32 (the interface's `<f4`), one finite row per case, of the
 interface's width; anything else is refused.
 
-Practice feedback (Validator ruling, 2026-10-20): aggregate errors on
-registered scales only, no dual-pack Ladder, no per-case labels, no new
-normalisation. No practice error scale is registered for F08 or F02, so the
-summary carries structural facts only and its error scale is `HUMAN_INPUT`:
-no error is computed and no reference label is read. The result carries the
-Challenge's practice provenance, so a practised recipe supports a freeze.
+Practice feedback (Validator rulings, 2026-10-20 and 2026-10-21): aggregate
+errors on each Challenge's REGISTERED error scale, as Motor's and Cooling's
+practice report theirs; no dual-pack Ladder (no A, D, TOP or leg minimum), no
+per-case value and no new normalisation. The exposed bank's references are read
+on this host only; nothing per case leaves. The scales and aggregations are the
+records' own (`error_scale`):
+
+- **F02:** TRAIN40-v2's exact ``train_peak_std_c`` (OWNER-F02-TRAIN40-V2-01:
+  population std, ddof 0, of the 24 S1 rows' peak; recorded 6.701 degC and
+  recomputed from the pinned rows, ``challenge_kit/f02_train.py:51-54,118-127``).
+  Each case's error is ``|prediction - primary-rung reference| / train_peak_std_c``
+  and the aggregate is ``max(mean, near-limit block mean, worst)``, the
+  registered F02 measurement's own reduction
+  (``scoring/private_evaluation_source.py:848,862-875``).
+- **F08:** dev1 section 7's f08 scales
+  (``docs/development/scorelab/four_challenge_design_fidelity_dev1.md:125``):
+  static margin 0.003 mm/N, each dynamic margin 0.015 mm/N, resonance frequency
+  10 Hz. A margin's error is its output's error (a margin is the limit minus
+  the output, dev1:108); each peak frequency is a resonance (dev1:111). The
+  aggregate is dev1 section 1's ``L = max over registered quantity and case of
+  error / scale`` (dev1:19), with the mean recorded beside the worst (dev1:24).
+  The bank's references are points, so the result is a
+  ``POINT_ESTIMATE_DIAGNOSTIC`` (dev1:39).
+
+The result carries the Challenge's practice provenance, so a practised recipe
+supports a freeze.
 """
 
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
-from .spec import HUMAN_INPUT, key_for
+from .spec import key_for
 
-#: The practice error scale this Challenge's summary would report on: none
-#: is registered, so it is the unresolved decision itself.
-ERROR_SCALE = HUMAN_INPUT
 OUTPUT_DTYPE = "<f4"
+F02_SCALE_RECORD = "OWNER-F02-TRAIN40-V2-01 train_peak_std_c"
+F08_SCALE_RECORD = (
+    "docs/development/scorelab/four_challenge_design_fidelity_dev1.md section 7 (f08)"
+)
+#: dev1 section 7's f08 scales, by interface output: (component, scale, unit).
+#: DEVELOPMENT normalisation scales, not physical thresholds (dev1:118).
+F08_SCALES = {
+    "static_tip_mm_per_n": ("margin", 0.003, "mm/N"),
+    **{
+        f"peak_tip_{tag}_mm_per_n": ("margin", 0.015, "mm/N")
+        for tag in ("z005", "z010", "z020")
+    },
+    **{
+        f"peak_frequency_{tag}_hz": ("resonance", 10.0, "Hz")
+        for tag in ("z005", "z010", "z020")
+    },
+}
+#: The summary components each Challenge reports, in order.
+COMPONENTS = {
+    "f02": ("mean", "near_mean", "worst"),
+    "f08": ("margin_mean", "margin_worst", "resonance_mean", "resonance_worst"),
+}
 
 
-def summary(interface, rows):
-    """What a practice may report under the Validator's ruling: the rows'
-    structural facts. No error, normalisation or per-case value."""
+def _f02_scale(version):
+    from carbon.challenge_kit import f02_train
+
+    # The exact computed value, never the rounded record (f02_train.py:51-54).
+    return f02_train.load_public_train(version)["train_peak_std_c"]
+
+
+def error_scale(spec, version):
+    """The registered practice error scale this Challenge reports on, and the
+    record's error and aggregation (no value is chosen here)."""
+    if spec.prefix == "f02":
+        return {
+            "record": F02_SCALE_RECORD,
+            "scales": {"peak_top_c": {"value": _f02_scale(version), "unit": "degC"}},
+            "error": "abs(prediction - primary-rung reference) / train_peak_std_c",
+            "aggregation": "max(mean, near-limit block mean, worst) over the bank",
+            "direction": "lower_is_better",
+        }
+    if spec.prefix == "f08":
+        return {
+            "record": F08_SCALE_RECORD,
+            "scales": {
+                name: {"component": component, "value": value, "unit": unit}
+                for name, (component, value, unit) in F08_SCALES.items()
+            },
+            "error": "abs(prediction - point reference) / scale",
+            "aggregation": (
+                "max over registered quantity and case (dev1 section 1); "
+                "the mean is recorded beside the worst"
+            ),
+            "reference": "POINT_ESTIMATE_DIAGNOSTIC",
+            "direction": "lower_is_better",
+        }
+    raise ValueError(spec.prefix + "_practice_error_scale_unregistered")
+
+
+def _mean(values):
+    # Divide before summing so large finite errors cannot overflow the sum.
+    return math.fsum(v / len(values) for v in values)
+
+
+def _f02_aggregate(rows, references, case_ids, scale):
+    """The registered F02 reduction (private_evaluation_source.py:848,862-875):
+    each case's ``|p - r| / train_peak_std_c``, then max(mean, near mean,
+    worst); the near block is the ``-near-`` actions."""
+    errors = [
+        abs(row[0] - ref) / scale for row, ref in zip(rows, references, strict=True)
+    ]
+    near = [e for e, case in zip(errors, case_ids, strict=True) if "-near-" in case]
+    components = {"mean": _mean(errors), "near_mean": _mean(near), "worst": max(errors)}
+    return max(components.values()), components
+
+
+def _f08_aggregate(rows, references, names):
+    """dev1 section 1 over section 7's scales: each output's error over its
+    scale; per component the worst over registered quantity and case (its L)
+    and the mean beside it; the aggregate is the worst component."""
+    errors = {"margin": [], "resonance": []}
+    for row, reference in zip(rows, references, strict=True):
+        for j, name in enumerate(names):
+            component, scale, _unit = F08_SCALES[name]
+            errors[component].append(abs(row[j] - reference[j]) / scale)
+    components = {}
+    for component, values in errors.items():
+        components[component + "_mean"] = _mean(values)
+        components[component + "_worst"] = max(values)
+    return (
+        max(components["margin_worst"], components["resonance_worst"]),
+        components,
+    )
+
+
+def summary(spec, version, interface, rows, material):
+    """What a practice reports under the Validator's rulings: the rows'
+    structural facts and the aggregate errors on the registered scale. No
+    per-case value, Ladder or new normalisation."""
+    names = list(interface["output"]["names"])
+    case_ids = list(material["practice_case_ids"])
+    values = [[float(v) for v in row] for row in rows]
+    if spec.prefix == "f02":
+        from carbon.challenge_kit import physical_pack
+
+        bank = physical_pack.development_bank(spec.challenge_id, version)
+        if list(bank["case_ids"]) != case_ids:
+            raise ValueError("f02_practice_bank_order")
+        # The registered measurement's reference: each action's primary rung
+        # (f02_dual_pack.reference, `rungs["primary"]`).
+        references = [
+            float(record["rung_peaks_c"]["primary"])
+            for record in bank["reference_records"]
+        ]
+        aggregate, components = _f02_aggregate(
+            values, references, case_ids, _f02_scale(version)
+        )
+    elif spec.prefix == "f08":
+        if set(names) != set(F08_SCALES):
+            raise ValueError("f08_practice_outputs_unscaled")
+        references = [[float(v) for v in row] for row in material["practice_reference"]]
+        aggregate, components = _f08_aggregate(values, references, names)
+    else:
+        raise ValueError(spec.prefix + "_practice_error_scale_unregistered")
+    if not math.isfinite(aggregate) or not all(
+        math.isfinite(v) for v in components.values()
+    ):
+        raise ValueError(spec.prefix + "_practice_error_nonfinite")
     return {
         "cases": len(rows),
-        "outputs": list(interface["output"]["names"]),
+        "outputs": names,
         "dtype": OUTPUT_DTYPE,
-        "aggregate_error": None,
-        "error_scale": ERROR_SCALE,
-        "status": "practice_error_scale_unregistered",
+        "n_cases": len(rows),
+        "n_scored": len(rows),
+        "score": aggregate,
+        "aggregate_error": aggregate,
+        "components": {k: components[k] for k in COMPONENTS[spec.prefix]},
+        "error_scale": error_scale(spec, version),
+        "status": "aggregate_on_registered_scale",
     }
 
 
@@ -211,7 +357,7 @@ class DirectPractice:
             "source_kind": source["kind"],
             "recipe_digest": ConstructionRecipe.from_dict(strategy).digest,
             "built_recipe_digest": built.digest,
-            "summary": summary(interface, rows),
+            "summary": summary(self.spec, self.version, interface, rows, material),
             "fit": {"state_digest": result.build.state_digest},
             "backend": backend,
             "adaptively_seen": True,
