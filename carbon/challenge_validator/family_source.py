@@ -478,14 +478,25 @@ def _f08():
     return F08BatchSource
 
 
-FAMILY_SOURCES = {"motor": _motor, "f02": _f02, "f08": _f08}
+def _cooling():
+    from .cooling_source import CoolingBatchSource
+
+    return CoolingBatchSource
+
+
+FAMILY_SOURCES = {"motor": _motor, "f02": _f02, "f08": _f08, "cooling": _cooling}
 
 
 def family_source_class(challenge_id):
     """The registered family source class for `challenge_id`, or None."""
     from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
 
-    names = {MOTOR_CHALLENGE: "motor", "f02": "f02", "f08-ribbed-bracket": "f08"}
+    names = {
+        MOTOR_CHALLENGE: "motor",
+        "f02": "f02",
+        "f08-ribbed-bracket": "f08",
+        "chip-cold-plate": "cooling",
+    }
     if challenge_id not in names:
         return None
     return FAMILY_SOURCES[names[challenge_id]]()
