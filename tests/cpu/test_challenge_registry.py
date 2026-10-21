@@ -45,9 +45,17 @@ def test_the_catalog_names_launch_reserved_and_deferred_challenges():
     # Retired from the research path: still listed, never selectable.
     assert listed[r.BURGERS_CHALLENGE]["status"] == "RETIRED"
     assert all(not p["implemented"] for p in listed[r.BURGERS_CHALLENGE]["profiles"])
-    assert listed[COLD_PLATE]["status"] == "IMPLEMENTED"
-    assert listed[COLD_PLATE]["version"] == "1.0"
-    assert {p["profile"] for p in listed[COLD_PLATE]["profiles"]} == {"cpu_research"}
+    # Cooling registers two versions: 1.0 (Level 0) and 1.2 (allowlist v7 and
+    # the backbone catalog).
+    cooling = {
+        c["version"]: c
+        for c in challenges.catalog(NOTHING)["challenges"]
+        if c["challenge_id"] == COLD_PLATE
+    }
+    assert set(cooling) == {"1.0", "1.2"}
+    for entry in cooling.values():
+        assert entry["status"] == "IMPLEMENTED"
+        assert {p["profile"] for p in entry["profiles"]} == {"cpu_research"}
     # Motor registers three versions: 1.0 (Level 0), 1.2 (the backbone catalog)
     # and 1.3 (1.2 plus allowlist v7).
     motor = {
@@ -317,3 +325,17 @@ def test_motor_resolves_each_registered_version_exactly():
     )
     with pytest.raises(reg.UnsupportedVersion, match="1.0, 1.2"):
         reg.describe(MOTOR, "1.1")
+
+
+def test_cooling_resolves_each_registered_version_exactly():
+    from carbon.challenge_registry import registry as reg
+
+    assert reg.describe(COLD_PLATE, "1.0")["version"] == "1.0"
+    catalog = reg.describe(COLD_PLATE, "1.2")
+    assert catalog["version"] == "1.2"
+    assert catalog["identity"] == "carbon.chip-cold-plate-catalog.1.2"
+    assert {m["selector"] for m in catalog["models"]["rebuildable"]} == set(
+        catalog["models"]["catalog"]["entries"]
+    )
+    with pytest.raises(reg.UnsupportedVersion, match="1.0, 1.2"):
+        reg.describe(COLD_PLATE, "1.1")

@@ -87,7 +87,8 @@ def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
 @pytest.mark.parametrize(
     "challenge",
     [
-        {"id": "chip-cold-plate", "version": "1.2"},  # v7, no catalog yet
+        {"id": "f08-ribbed-bracket", "version": "1.3"},  # v7, no catalog yet
+        {"id": "chip-cold-plate", "version": "1.1"},  # step 2
         {"id": "electric-motor-magnetics", "version": "1.1"},  # step 2
         {"id": "electric-motor-magnetics", "version": "1.4"},  # unregistered
     ],

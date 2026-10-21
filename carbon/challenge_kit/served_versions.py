@@ -10,7 +10,8 @@ is refused, never mapped to a nearby one.
 
 Allowlist v7 (Test Engineer, 294c3f1e7; Validator 2026-10-20) is served only
 on each Challenge's catalog version: Cooling 1.2, Battery 2.1, F08 1.3, F02 2.2
-and Motor 1.3 (Motor 1.2 plus v7). Motor 1.2 keeps v6.
+and Motor 1.3 (Motor 1.2 plus v7). Motor 1.2 keeps v6. Motor 1.2, Motor 1.3
+and Cooling 1.2 also serve the backbone catalog.
 """
 
 from __future__ import annotations
@@ -34,12 +35,20 @@ STEP2 = frozenset(
 #: The backbone-catalog versions (OWNER-BACKBONE-CATALOG-01; Validator: each
 #: Challenge's next version, never in place): step-2 serving plus Carbon's
 #: tested backbones by catalog id (`carbon.backbone_catalog`).
-CATALOG = frozenset({(MOTOR, "1.2"), (MOTOR, "1.3")})
+#: Cooling 1.2 serves it too (owner priority via the Test Lead, 2026-10-20):
+#: only Motor served the catalog before because no Cooling entry was tested.
+#: Cooling's entries arrive by pipeline add, each with its own Cooling
+#: pair-identity receipt; until one does, Cooling 1.2's catalog is empty and
+#: its catalog campaign refuses to start (`carbon.cold_plate.campaign`). This
+#: changes Cooling 1.2's construction limits (they now bind its catalog
+#: digest) in place, where the rule below asked for a new version: open for
+#: the Validator to confirm.
+CATALOG = frozenset({(MOTOR, "1.2"), (MOTOR, "1.3"), (COOLING, "1.2")})
 #: Each Challenge's catalog version, serving allowlist v7 (the Validator,
 #: 2026-10-20) with step-2 serving. A version's construction limits bind the
-#: exact catalog it serves, so only Motor 1.3, whose entries are tested, also
-#: serves the catalog; the others bind none until tested entries exist for
-#: them, which is then a new version, never this one changed in place.
+#: exact catalog it serves, so only Motor 1.3 and Cooling 1.2 also serve the
+#: catalog; the others bind none until tested entries exist for them, which
+#: is then a new version, never this one changed in place.
 V7 = frozenset(
     {
         (MOTOR, "1.3"),

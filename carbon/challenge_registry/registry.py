@@ -214,6 +214,12 @@ def _cold_plate():
     return describe()
 
 
+def _cold_plate_catalog():
+    from .cold_plate import describe_catalog
+
+    return describe_catalog("1.2")
+
+
 def _motor():
     from .motor import describe
 
@@ -395,6 +401,30 @@ def _entries():
                 ),
             ),
             _motor_catalog_v7,
+            None,
+        ),
+        # Cooling 1.2, Cooling's catalog version (allowlist v7 and the backbone
+        # catalog, as Motor 1.2/1.3): Carbon's tested backbones by catalog id
+        # on the direct recipe path; the Level 0 strategy compiler stays 1.0's.
+        # Its catalog is empty until a Cooling entry is tested.
+        Entry(
+            COLD_PLATE_CHALLENGE,
+            "1.2",
+            "AI-chip liquid cold plate (DEVELOPMENT periodic cell, backbone catalog, "
+            "allowlist v7)",
+            IMPLEMENTED,
+            "launch",
+            "carbonphysicsai/Carbon#342",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch practice of Carbon's tested catalog backbones in the "
+                    "isolated C-03 CPU worker; exact public TRAIN and bundle bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    carrier,
+                ),
+            ),
+            _cold_plate_catalog,
             None,
         ),
         Entry(

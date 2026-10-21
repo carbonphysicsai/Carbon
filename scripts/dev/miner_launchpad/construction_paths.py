@@ -50,7 +50,8 @@ def for_challenges():
             getattr(campaign, "construction_reconstruct", None)
         )
         # A Challenge's first registered version keeps its id as the key; a
-        # later version (Motor 1.2, the backbone catalog) is "id@version".
+        # later version (the backbone-catalog versions: Motor 1.2 and 1.3,
+        # Cooling 1.2) is "id@version".
         slot = (
             entry.challenge_id
             if entry.challenge_id not in found
