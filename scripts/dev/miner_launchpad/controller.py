@@ -942,7 +942,10 @@ class Handler(BaseHTTPRequestHandler):
                 runner = self.server.research_runner
                 if runner is None:
                     raise Rejected("research_admission_unavailable", 409)
-                self.reply(200, runner.get(self.path.removeprefix("/api/v1/research/")))
+                # The campaign host's read settles a phantom in-flight
+                # campaign first (`RunnerAdapter.read`); a fixture has none.
+                read = getattr(runner, "read", runner.get)
+                self.reply(200, read(self.path.removeprefix("/api/v1/research/")))
             elif self.path.startswith("/api/v1/tools/"):
                 # The page's tool session for one campaign (RSURF-D15).
                 from scripts.dev.miner_launchpad.tool_door import route

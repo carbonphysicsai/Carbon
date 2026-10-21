@@ -30,6 +30,7 @@ from carbon.development_session import research_campaign, research_control
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_control import CampaignControl
 from carbon.development_session.research_ledger import CampaignLedger
+from scripts.dev.miner_launchpad import runner as runner_module
 from scripts.dev.miner_launchpad import supervisor as supervision
 from scripts.dev.miner_launchpad.campaign_view import (
     controls,
@@ -652,6 +653,179 @@ def test_reconcile_on_a_held_campaign_is_refused_by_name(journey):
     # Nothing outstanding and the miner selects: reconciled, it waits for
     # them (READY), rather than reading as interrupted.
     assert host.control(identity, "reconcile")["state"] == "READY"
+
+
+# --- a read settles a phantom in-flight campaign (M1 rehearsal, 2026-10-21) ---
+
+
+def phantom(journey, *, prepared=False):
+    """A campaign whose run ended without settling its ledger: RUNNING under
+    the generation it took, nothing holding it and nothing queued for it, as
+    the Control Center's own thread left it in the M1 rehearsal. Read by a
+    CLIENT on a clock the test moves."""
+    client = journey.peer(supervision.CLIENT)
+    if prepared:
+        identity = launch(journey.host)["id"]
+        join(journey.host)
+    else:
+        identity = launch(client)["id"]
+    root = campaign_root(client, identity)
+    with client.db() as db:
+        db.execute("UPDATE launchpad_dispatch SET state='DONE', outcome='finished'")
+    ledger = CampaignLedger(root)
+    ledger.generation = CampaignControl(ledger).acquire()
+    with ledger.db() as db:
+        db.execute("UPDATE launchpad_control SET observed='RUNNING' WHERE id=1")
+    now = [1000.0]
+    client.phantom_clock = lambda: now[0]
+    return client, identity, root, ledger, now
+
+
+def counted_locks(monkeypatch, root):
+    """Every ownership-lock try on `root` through the runner."""
+    calls = []
+    real = runner_module.owner_lock
+
+    def counting(directory):
+        if Path(directory) == root:
+            calls.append(1)
+        return real(directory)
+
+    monkeypatch.setattr(runner_module, "owner_lock", counting)
+    return calls
+
+
+def control_of(root):
+    return CampaignControl(CampaignLedger(root)).status()
+
+
+def test_a_read_settles_a_run_nothing_holds_and_redispatches_nothing(
+    journey, monkeypatch
+):
+    """The page showed RUNNING for 3.4 hours until the miner pressed
+    Reconcile. Now the page's read settles it, through recovery's own step:
+    INTERRUPTED with nothing outstanding, told why - and the launch it never
+    prepared is not carried out again, as only a supervisor's recovery may."""
+    client, identity, root, _ledger, now = phantom(journey)
+    locks = counted_locks(monkeypatch, root)
+    before, spawned = dispatches(client), list(journey.spawned)
+    generation = control_of(root)["generation"]
+    # The first sighting only records it; polls within the throttle neither
+    # read it again nor take its lock.
+    for _ in range(19):
+        assert client.read(identity)["state"] == "RUNNING"
+        now[0] += 1.5
+    assert locks == [] and control_of(root)["generation"] == generation
+    now[0] = 1030.0
+    (view,) = client.recent()
+    assert view["id"] == identity and view["state"] == "INTERRUPTED"
+    assert view["last_refusal"]["code"] == "campaign_interrupted"
+    assert view["last_refusal"]["kind"] == "interrupted"
+    assert view["recovery"] == [RESUME, RECONCILE, STOP]
+    assert locks == [1]
+    # Nothing queued, replayed or woken; nothing prepared.
+    assert dispatches(client) == before and journey.spawned == spawned
+    assert not (root / "campaign-manifest.json").exists()
+    assert view["in_flight"] is None
+    # Settled, its lock is never tried again.
+    for _ in range(40):
+        now[0] += 1.5
+        assert client.read(identity)["state"] == "INTERRUPTED"
+    assert locks == [1]
+
+
+def test_a_read_sends_a_phantom_with_work_reserved_to_reconciliation(journey):
+    """An operation left RESERVED (the rehearsal's provider call) is never
+    settled by a read: the campaign awaits the miner's Reconcile, by name,
+    through the observe operation as through the page."""
+    client, identity, _root, ledger, now = phantom(journey, prepared=True)
+    ledger.reserve(
+        "crashed-operation",
+        owner="miner-requester",
+        phase="research",
+        request={"fixture": 1},
+        resources={"research_trials": 1},
+    )
+    request = {"campaign": identity}
+    assert perform(client, "observe", request)["state"] == "RUNNING"
+    now[0] += 30.0
+    view = perform(client, "observe", request)
+    assert view["state"] == "RECONCILIATION_REQUIRED"
+    assert view["last_refusal"]["code"] == "reconciliation_required"
+    assert view["recovery"] == [RECONCILE, STOP]
+    with ledger.db() as db:
+        (state,) = db.execute(
+            "SELECT state FROM operations WHERE id='crashed-operation'"
+        ).fetchone()
+    assert state == "RESERVED"
+
+
+def test_a_read_never_settles_a_campaign_its_holder_still_holds(journey, monkeypatch):
+    client, identity, root, _ledger, now = phantom(journey)
+    locks = counted_locks(monkeypatch, root)
+    status = control_of(root)
+    with owner_lock(root):  # a live run, an attached agent or the page's tools
+        for _ in range(60):
+            view = client.read(identity)
+            assert view["state"] == "RUNNING" and view["last_refusal"] is None
+            now[0] += 1.5
+        assert control_of(root) == status
+    # One non-blocking try per 30 s after the first sighting, never more.
+    assert len(locks) == 2
+    # Its holder gone, the sighting stands: the next probe settles it.
+    now[0] += 30.0
+    assert client.read(identity)["state"] == "INTERRUPTED"
+
+
+def test_a_read_leaves_claimed_and_queued_work_to_carry_it_out(journey):
+    """A claimed queue item is its supervisor's: a live one settles it, and a
+    dead one's is an orphan only a supervisor taking the lock interrupts. A
+    queued resume with nothing outstanding settles it when it runs."""
+    client, identity, _root, _ledger, now = phantom(journey)
+    with client.db() as db:
+        supervision.enqueue(
+            db,
+            principal="alice",
+            campaign=identity,
+            operation="practice",
+            params={},
+            config_digest="sha256:dead",
+            state=supervision.RUNNING,
+            supervisor="sup-dead-process",
+        )
+    before = dispatches(client)
+    for _ in range(3):
+        assert client.read(identity)["state"] == "RUNNING"
+        now[0] += 30.0
+    assert dispatches(client) == before
+
+    host = journey.host
+    queued = launch(host, key="launch-key-0000002")["id"]
+    join(host)
+    host.control(queued, "pause")
+    client.control(queued, "resume")
+    root = campaign_root(host, queued)
+    before = dispatches(client)
+    for _ in range(3):
+        assert client.read(queued)["state"] == "RESUME_REQUESTED"
+        now[0] += 30.0
+    assert dispatches(client) == before
+    assert control_of(root)["state"] == "RESUME_REQUESTED"
+
+
+def test_a_read_waits_for_a_holder_between_steps(journey):
+    """A holder between steps - a thread started and not yet holding the
+    lock - moves the generation within the throttle, so one sighting is
+    never taken for a phantom."""
+    client, identity, _root, ledger, now = phantom(journey)
+    assert client.read(identity)["state"] == "RUNNING"
+    ledger.generation = CampaignControl(ledger).acquire()  # a new holder began
+    with ledger.db() as db:
+        db.execute("UPDATE launchpad_control SET observed='RUNNING' WHERE id=1")
+    now[0] += 30.0
+    assert client.read(identity)["state"] == "RUNNING"
+    now[0] += 30.0
+    assert client.read(identity)["state"] == "INTERRUPTED"
 
 
 # --- last_refusal: what no caller saw, with its next action --------------------
