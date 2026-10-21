@@ -12,6 +12,11 @@ Allowlist v7 (Test Engineer, 294c3f1e7; Validator 2026-10-20) is served only
 on each Challenge's catalog version: Cooling 1.2, Battery 2.1, F08 1.3, F02 2.2
 and Motor 1.3 (Motor 1.2 plus v7). Motor 1.2 keeps v6. Motor 1.2, Motor 1.3
 and Cooling 1.2 also serve the backbone catalog.
+
+F08 1.4 and F02 2.3 (the Validator, 2026-10-20: graph joins them before they
+freeze; no 1.5 / 2.4) serve v7, the backbone catalog binding and Carbon's
+graph training adapter (`development_session.physical_graph_adapter`); F08
+1.3 and F02 2.2 keep their bytes.
 """
 
 from __future__ import annotations
@@ -40,15 +45,24 @@ STEP2 = frozenset(
 #: Cooling's entries arrive by pipeline add, each with its own Cooling
 #: pair-identity receipt; until one does, Cooling 1.2's catalog is empty and
 #: its catalog campaign refuses to start (`carbon.cold_plate.campaign`). This
-#: changes Cooling 1.2's construction limits (they now bind its catalog
-#: digest) in place, where the rule below asked for a new version: open for
-#: the Validator to confirm.
-CATALOG = frozenset({(MOTOR, "1.2"), (MOTOR, "1.3"), (COOLING, "1.2")})
+#: binds Cooling 1.2's limits to its catalog before it freezes (open for the
+#: Validator to confirm, as F08 1.4 / F02 2.3 bind theirs before freezing).
+CATALOG = frozenset(
+    {
+        (MOTOR, "1.2"),
+        (MOTOR, "1.3"),
+        (COOLING, "1.2"),
+        # The Validator, 2026-10-20: F08 1.4 and F02 2.3 bind the catalog (and
+        # Carbon's graph training adapter) before they freeze.
+        (F08, "1.4"),
+        (F02, "2.3"),
+    }
+)
 #: Each Challenge's catalog version, serving allowlist v7 (the Validator,
 #: 2026-10-20) with step-2 serving. A version's construction limits bind the
-#: exact catalog it serves, so only Motor 1.3 and Cooling 1.2 also serve the
-#: catalog; the others bind none until tested entries exist for them, which
-#: is then a new version, never this one changed in place.
+#: exact catalog it serves: Motor 1.3 and Cooling 1.2, and F08 1.4 / F02 2.3
+#: (no entries yet); Battery 2.1, F08 1.3 and F02 2.2 bind none, and are never
+#: changed in place to bind one.
 V7 = frozenset(
     {
         (MOTOR, "1.3"),
@@ -56,6 +70,10 @@ V7 = frozenset(
         (F08, "1.3"),
         (F02, "2.2"),
         (BATTERY, "2.1"),
+        # The Validator, 2026-10-20: F08 1.4 / F02 2.3 serve v7 with the catalog
+        # binding and the graph training adapter.
+        (F08, "1.4"),
+        (F02, "2.3"),
     }
 )
 #: Versions registered before step 2: served v5 and their step caps, unchanged.

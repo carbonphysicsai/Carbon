@@ -47,6 +47,9 @@ VERSIONS = {
     # Allowlist v7's catalog version (Validator, 2026-10-20): the predecessor's
     # measurement under its evaluation version; only the served allowlist differs.
     "2.2": ("f02-dual-development-bank-8-v2", CASE_ID),
+    # Catalog + graph version (Launchpad, allowlist v7): the predecessor's
+    # measurement under its evaluation version.
+    "2.3": ("f02-dual-development-bank-8-v2", CASE_ID),
 }
 OUTPUT = {"quantity": "peak_top_c", "unit": "degC"}
 FILES = ("f02_dual_pack.py",)
@@ -68,7 +71,11 @@ BANK_KINDS = {
 }
 SEALED_EVALUATION_VERSION = "f02-dual-sealed-batch-8-v1"
 #: A sealed exam batch's evaluation version, per Challenge version.
-SEALED_VERSIONS = {"2.1": SEALED_EVALUATION_VERSION, "2.2": SEALED_EVALUATION_VERSION}
+SEALED_VERSIONS = {
+    "2.1": SEALED_EVALUATION_VERSION,
+    "2.2": SEALED_EVALUATION_VERSION,
+    "2.3": SEALED_EVALUATION_VERSION,
+}
 ANALYTIC_ENERGY = "analytic:(peak_w-20)*on_time_s"
 #: dev1 §7 DEVELOPMENT normalisation scales, not physical thresholds.
 S_VALUE_J = 100.0

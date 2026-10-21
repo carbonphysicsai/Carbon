@@ -51,6 +51,10 @@ REGISTERED = (
     # approved packs (Validator, 2026-10-20).
     ("f02", "2.1"),
     ("f02", "2.2"),
+    # F02 2.3 (the Validator, 2026-10-20): the catalog binding plus Carbon's graph training
+    # adapter. F08 1.4 registers through f08_train.CHALLENGE_VERSIONS above. Their material
+    # loads once their pack labels exist (physical_pack); until then it fails closed.
+    ("f02", "2.3"),
 )
 
 

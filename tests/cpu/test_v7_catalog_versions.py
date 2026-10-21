@@ -3,7 +3,10 @@ Cooling 1.2, Battery 2.1, F08 1.3, F02 2.2 and Motor 1.3 (Motor 1.2 plus v7)
 serve v7 with step-2 serving (no fixed training-step caps). Motor 1.3, whose
 entries are tested, and Cooling 1.2 (owner priority via the Test Lead; its
 catalog is empty until a Cooling entry is tested) also serve the backbone
-catalog. Every earlier version keeps its bytes and its allowlist.
+catalog. F08 1.4 and F02 2.3 (the Validator, 2026-10-20) serve v7, the catalog
+binding (no entries yet) and Carbon's graph training adapter
+(tests/cpu/test_f08_f02_graph_adapters.py). Every earlier version keeps its
+bytes and its allowlist.
 
 Exam banks and pack labels are Data Collection's and grading versions the
 Test Engineer's; a stand-in Battery bank here checks only this lane's wiring.
@@ -37,6 +40,9 @@ PREDECESSOR = {
     (F02, "2.2"): "2.1",
     (BATTERY, "2.1"): "2.0",
 }
+#: The graph versions (the Validator, 2026-10-20), each 1.3 / 2.2 plus the
+#: catalog binding and the graph adapter.
+GRAPH = {(F08, "1.4"): "1.3", (F02, "2.3"): "2.2"}
 
 
 def _digest(raw):
@@ -45,7 +51,10 @@ def _digest(raw):
 
 def test_exactly_the_catalog_versions_serve_v7_and_nothing_else_moves():
     v7 = allowlist_module.v7_bytes()
-    assert sv.V7 == frozenset(PREDECESSOR)
+    assert sv.V7 == frozenset(PREDECESSOR) | frozenset(GRAPH)
+    for key, before in GRAPH.items():
+        assert sv.material_allowlist_bytes(*key) == v7
+        assert sv.material_allowlist_bytes(key[0], before) == v7
     for key, before in PREDECESSOR.items():
         assert sv.material_allowlist_bytes(*key) == v7
         assert sv.is_step2(*key) and not sv.step_caps(*key)
@@ -58,10 +67,11 @@ def test_exactly_the_catalog_versions_serve_v7_and_nothing_else_moves():
         assert not sv.serves_v7(*key)
 
 
-def test_only_motor_1_3_and_cooling_1_2_also_serve_the_catalog():
+def test_only_motor_1_3_cooling_1_2_and_the_graph_versions_serve_the_catalog():
     assert {key for key in sv.V7 if sv.serves_catalog(*key)} == {
         (MOTOR, "1.3"),
         (COOLING, "1.2"),
+        *GRAPH,
     }
     for key in ((MOTOR, "1.3"), (COOLING, "1.2")):
         limits = physical_public.construction_limits_document(*key)

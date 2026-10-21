@@ -417,8 +417,8 @@ STAGED_MODULES = (
     "carbon.development_session.construction_recipe",
     "carbon.development_session.bundle_graph_state",
 )
-from . import build_refusal  # noqa: E402
-from .build_refusal import CandidateBuildRefused  # noqa: E402,F401
+from . import build_refusal
+from .build_refusal import CandidateBuildRefused
 
 BUILD_PROGRAM = BUILD_PROGRAM.replace("__STAGED_MODULES__", repr(STAGED_MODULES))
 INFER_PROGRAM = INFER_PROGRAM.replace("__STAGED_MODULES__", repr(STAGED_MODULES))
@@ -1387,7 +1387,12 @@ def _infer_state(
     seconds: int = 600,
     accelerator: str | None = None,
     runner=None,
+    program: str | None = None,
+    staged_files: dict[str, bytes] | None = None,
 ) -> BundleInferenceResult:
+    """`program` and `staged_files` serve a graph adapter's own inference
+    program and its extra trusted modules (`direct_graph_construction_worker`).
+    Omitted, this is the plain inference program."""
     if provenance not in (
         "DIRECT_BUNDLE_PUBLIC_INFERENCE",
         "DIRECT_GRAPH_PUBLIC_INFERENCE",
@@ -1396,6 +1401,10 @@ def _infer_state(
     allowed = _trusted_allowlist(allowlist_bytes)
     inputs_bytes = _tensors(inputs=inputs)
     files, codec_modules = _stage_bundle_modules(binding, training=False)
+    if staged_files is not None:
+        if any(name in files for name in staged_files):
+            raise RecipeRefused("bundle_worker_module_closure_changed")
+        files.update(staged_files)
     control = {
         "recipe_digest": recipe.digest,
         "binding": binding,
@@ -1414,7 +1423,7 @@ def _infer_state(
         # graded query runs one case at a time (the program's default).
         control["per_case"] = False
     if input_name != "inputs/x":
-        if input_name != "inputs/forcing":
+        if input_name not in ("inputs/forcing", "inputs/features"):
             raise RecipeRefused("direct_inference_input_name_invalid")
         control["input_name"] = input_name
     files.update(
@@ -1508,7 +1517,7 @@ def _infer_state(
         ledger,
         owner=owner,
         identity=identity,
-        source=INFER_PROGRAM,
+        source=INFER_PROGRAM if program is None else program,
         files=files,
         image=inference_image,
         seconds=seconds,

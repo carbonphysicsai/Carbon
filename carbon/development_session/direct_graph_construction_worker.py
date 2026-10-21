@@ -181,6 +181,198 @@ receipt = {
 '''.replace("__STAGED_MODULES__", repr(STAGED_MODULES))
 
 
+#: The F08/F02 graph adapters (Validator, 2026-10-20): their own staged modules
+#: and programs, so the synthetic adapter's program and stage keep their bytes.
+PHYSICAL_STAGED_MODULES = (
+    *(name for name in STAGED_MODULES if not name.endswith("synthetic_graph_adapter")),
+    "carbon.development_session.build_refusal",
+    "carbon.development_session.physical_graph_state",
+    "carbon.development_session.physical_graph_trainer",
+    "carbon.development_session.physical_graph_adapter",
+)
+
+PHYSICAL_BUILD_PROGRAM = r'''"""Fixed F08/F02 direct-graph construction (Carbon's pinned trainer); no judge."""
+import hashlib, json, shutil, sys
+from pathlib import Path
+import numpy as np
+
+work = Path.cwd()
+out = work.parent / "output"
+for package in ("carbon", "carbon/challenge_validator", "carbon/level4",
+                "carbon/development_session"):
+    folder = work / package
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "__init__.py").write_text("")
+for name in __STAGED_MODULES__:
+    destination = work.joinpath(*name.split(".")).with_suffix(".py")
+    shutil.copyfile(work / (name + ".py"), destination)
+sys.path.insert(0, str(work))
+
+from carbon.development_session import build_refusal
+from carbon.development_session.construction_recipe import ConstructionRecipe, RecipeRefused, bind_recipe
+from carbon.development_session.physical_graph_adapter import (
+    TRAINER_SHA256, build_validated_graph, checked_train, spec_for,
+)
+from carbon.development_session.physical_graph_state import load
+from carbon.level4 import intake, staging
+from carbon.level4.allowlist import Allowlist
+from carbon.level4.graph import GraphRefused
+
+digest = lambda body: "sha256:" + hashlib.sha256(body).hexdigest()
+control = json.loads((work / "control.json").read_bytes())
+trainer = (work / "carbon.development_session.physical_graph_trainer.py").read_bytes()
+if digest(trainer) != "sha256:" + TRAINER_SHA256:
+    raise ValueError("pinned graph trainer differs")
+recipe = ConstructionRecipe.from_bytes((work / "recipe.json").read_bytes())
+if recipe.digest != control["recipe_digest"]:
+    raise ValueError("graph build recipe differs")
+bind_recipe(recipe.to_dict(), **control["binding"])
+source = recipe.to_dict()["source"]
+if source["kind"] != "graph" or source["submission_digest"] != control["submission_digest"]:
+    raise ValueError("graph build source differs")
+raw_envelope = (work / "source-envelope.json").read_bytes()
+if digest(raw_envelope) != control["envelope_digest"]:
+    raise ValueError("graph source envelope differs")
+declared, raw_manifest, files = staging.from_envelope(json.loads(raw_envelope))
+if declared != source["submission_digest"]:
+    raise ValueError("graph source digest differs")
+allowed_raw = (work / "allowlist.json").read_bytes()
+allowed = Allowlist(allowed_raw)
+if allowed.digest != control["allowlist_digest"]:
+    raise ValueError("graph allowlist differs")
+def decline(code):
+    # OWNER-BUILD-REFUSAL-SPLIT-01: a registered candidate refusal is REFUSED;
+    # Carbon's gaps, and any unregistered code, stay UNRESOLVED.
+    state = ("REFUSED" if build_refusal.outcome(code) == build_refusal.REFUSED
+             else "UNRESOLVED")
+    reason = ("graph_submission_invalid" if state == "REFUSED"
+              else "carbon_graph_adapter_unavailable")
+    (out / "outcome.json").write_text(json.dumps({
+        "schema": "carbon.development.graph-build-outcome.v1",
+        "state": state,
+        "reason_code": reason,
+        "detail_code": code,
+    }, sort_keys=True, allow_nan=False))
+
+named = recipe.to_dict()["challenge"]
+try:
+    spec = spec_for(named["id"], named["version"])
+    inputs, targets = checked_train(
+        spec, (work / "train.npz").read_bytes(), control["binding"]["train_digest"]
+    )
+    model = build_validated_graph(
+        recipe, raw_manifest, files, allowlist_bytes=allowed_raw,
+        train_cases=len(inputs),
+    )
+except GraphRefused as error:
+    decline(error.code)
+    sys.exit(0)
+except RecipeRefused as error:
+    decline(error.code)
+    sys.exit(0)
+except intake.IntakeBlocked:
+    decline("graph_validation_not_ready")
+    sys.exit(0)
+try:
+    fit = model.fit(inputs, targets, seed=control["seed"])
+except RecipeRefused as error:
+    if not error.code.endswith("_graph_nonfinite_state"):
+        raise
+    decline(error.code)
+    sys.exit(0)
+state = model.frozen_state()
+load(state, recipe, allowed)
+(out / "state.npz").write_bytes(state)
+receipt = {
+    "schema": "carbon.development.graph-build.v1",
+    "recipe_digest": recipe.digest,
+    "submission_digest": source["submission_digest"],
+    "train_digest": control["binding"]["train_digest"],
+    "state_digest": digest(state),
+    "allowlist_digest": allowed.digest,
+    "framework": "jax",
+    "fit": fit,
+}
+(out / "receipt.json").write_text(json.dumps(receipt, sort_keys=True, allow_nan=False))
+'''.replace(
+    "__STAGED_MODULES__", repr(PHYSICAL_STAGED_MODULES)
+)
+
+
+def _decoded_infer_program() -> str:
+    """The plain inference program, reading the decoded state and applying its
+    decoder to every prediction; nothing else differs."""
+    from .bundle_construction_worker import INFER_PROGRAM
+    from .bundle_construction_worker import STAGED_MODULES as INFER_MODULES
+
+    program = INFER_PROGRAM
+    for old, new in (
+        (
+            '"""Fixed input-only graph inference; no source or TRAIN."""',
+            '"""Fixed input-only decoded graph inference; no source or TRAIN."""',
+        ),
+        (
+            repr(INFER_MODULES),
+            repr((*INFER_MODULES, "carbon.development_session.physical_graph_state")),
+        ),
+        (
+            "from carbon.development_session.bundle_graph_state import load\n",
+            "from carbon.development_session.physical_graph_state import load\n",
+        ),
+        (
+            "doc, parameters = load(state, recipe, allowed)\n",
+            "doc, parameters, decoder_mu, decoder_sd = load(state, recipe, allowed)\n",
+        ),
+        (
+            "result = np.asarray(outputs[0])\n",
+            "result = np.asarray(outputs[0]) * decoder_sd + decoder_mu\n",
+        ),
+    ):
+        if program.count(old) != 1:
+            raise RuntimeError("decoded graph inference program anchor moved")
+        program = program.replace(old, new)
+    return program
+
+
+#: The F08/F02 adapters' inference program: the plain one plus the decoder.
+PHYSICAL_INFER_PROGRAM = _decoded_infer_program()
+SYNTHETIC_ADAPTER_ID = "synthetic-linear-field-2d-public-jax-graph-v1"
+
+
+def graph_adapter_ids() -> frozenset:
+    """Every graph adapter the receiver can run: the synthetic one (1.3) and
+    the F08 1.4 / F02 2.3 adapters."""
+    from .physical_graph_adapter import ADAPTER_IDS
+
+    return frozenset({SYNTHETIC_ADAPTER_ID}) | ADAPTER_IDS
+
+
+def _physical_stage(binding: dict, limits_document: dict, allowlist_bytes: bytes):
+    """Check a physical adapter's served identity; return its staged files."""
+    from carbon.level4.allowlist import Allowlist
+
+    from . import physical_graph_adapter as adapter
+
+    spec = adapter.spec_for(binding["challenge_id"], binding["challenge_version"])
+    if limits_document.get("graph_training_adapter") != adapter.adapter_block(
+        spec.challenge_id, spec.version
+    ):
+        raise RecipeRefused("direct_graph_adapter_identity_invalid")
+    if allowlist_bytes != adapter.served_allowlist_bytes(
+        spec.challenge_id, spec.version
+    ):
+        raise RecipeRefused("direct_graph_allowlist_unregistered")
+    if binding["train_digest"] != "sha256:" + spec.train_sha256:
+        raise RecipeRefused("direct_graph_train_binding_invalid")
+    adapter.trainer_source()
+    root = Path(__file__).resolve().parents[2]
+    files = {
+        name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
+        for name in PHYSICAL_STAGED_MODULES
+    }
+    return spec, Allowlist(allowlist_bytes), files
+
+
 def _checked_envelope(recipe: ConstructionRecipe, source_envelope: bytes) -> bytes:
     if (
         type(recipe) is not ConstructionRecipe
@@ -220,8 +412,13 @@ def reconstruct_public_graph(
     seed: int,
     seconds: int,
     runner=None,
+    adapter_id: str = SYNTHETIC_ADAPTER_ID,
 ) -> BundleBuildResult:
-    """Rebuild the actual graph in a fresh isolated C-03 construction child."""
+    """Rebuild the actual graph in a fresh isolated C-03 construction child.
+
+    `adapter_id` selects the Challenge's graph adapter (`graph_adapter_ids`):
+    the synthetic 1.3 adapter keeps its exact program and stage; the F08 1.4 /
+    F02 2.3 adapter runs its own program with Carbon's pinned trainer."""
     if (
         type(image) is not WorkerImageIdentity
         or type(seed) is not int
@@ -237,15 +434,38 @@ def reconstruct_public_graph(
     if _digest(train) != binding["train_digest"]:
         raise RecipeRefused("direct_graph_train_binding_invalid")
     _checked_envelope(recipe, source_envelope)
-    allowed = _trusted_allowlist(allowlist_bytes)
-    files = _stage_modules()
-    root = Path(__file__).resolve().parents[2]
-    files.update(
-        {
-            name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
-            for name in STAGED_MODULES
-        }
-    )
+    if adapter_id == SYNTHETIC_ADAPTER_ID:
+        allowed = _trusted_allowlist(allowlist_bytes)
+        files = _stage_modules()
+        root = Path(__file__).resolve().parents[2]
+        files.update(
+            {
+                name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
+                for name in STAGED_MODULES
+            }
+        )
+        program = BUILD_PROGRAM
+
+        def load_built(state):
+            load_state(state, recipe, allowed)
+
+    elif adapter_id in graph_adapter_ids():
+        from . import physical_graph_state
+
+        spec, allowed, physical_files = _physical_stage(
+            binding, limits_document, allowlist_bytes
+        )
+        if spec.adapter_id != adapter_id:
+            raise RecipeRefused("direct_graph_adapter_identity_invalid")
+        files = _stage_modules()
+        files.update(physical_files)
+        program = PHYSICAL_BUILD_PROGRAM
+
+        def load_built(state):
+            physical_graph_state.load(state, recipe, allowed)
+
+    else:
+        raise RecipeRefused("direct_graph_adapter_unavailable")
     files.update(
         {
             "recipe.json": recipe.canonical_bytes,
@@ -326,14 +546,14 @@ def reconstruct_public_graph(
         }
         if receipt != expected or type(receipt["fit"]) is not dict:
             raise ValueError("direct graph build receipt identity differs")
-        load_state(state, recipe, allowed)
+        load_built(state)
         return state, receipt
 
     worker = (runner or _run)(
         ledger,
         owner=owner,
         identity=identity,
-        source=BUILD_PROGRAM,
+        source=program,
         files=files,
         image=image,
         seconds=seconds,
@@ -385,6 +605,7 @@ def reconstruct_and_infer_graph_public(
     seed: int,
     measure_query: bool = False,
     runner=None,
+    adapter_id: str = SYNTHETIC_ADAPTER_ID,
 ) -> DirectReconstructionResult:
     """Use the normal two-child budget and source-free inference boundary."""
     binding = _checked_binding(recipe, challenge_binding)
@@ -415,6 +636,7 @@ def reconstruct_and_infer_graph_public(
         seed=seed,
         seconds=phase_seconds("build_wall_seconds_max"),
         runner=runner,
+        adapter_id=adapter_id,
     )
     expected = ledger.root / build.worker_operation / "snapshot" / "state.npz"
     if build.state_path != expected or expected.is_symlink() or not expected.is_file():
@@ -438,6 +660,15 @@ def reconstruct_and_infer_graph_public(
         "provenance": INFERENCE_PROVENANCE,
         "runner": runner,
     }
+    if adapter_id != SYNTHETIC_ADAPTER_ID:
+        # The F08/F02 adapter: its decoded state, applied by its own program.
+        root = Path(__file__).resolve().parents[2]
+        name = "carbon.development_session.physical_graph_state"
+        query["input_name"] = "inputs/features"
+        query["program"] = PHYSICAL_INFER_PROGRAM
+        query["staged_files"] = {
+            name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
+        }
     # Graded one case at a time, as a bundle is (row 0 plus zero filler), so no
     # output can depend on its batch; the batched cold query is kept only for
     # timing when the task is measured, never graded.

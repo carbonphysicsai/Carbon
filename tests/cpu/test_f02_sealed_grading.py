@@ -139,4 +139,7 @@ def test_the_v7_catalog_version_serves_the_same_sealed_batches():
     assert adapter.sealed_adapter("2.2").EVALUATION_VERSION == (
         "f02-dual-sealed-batch-8-v1"
     )
-    assert adapter.sealed_adapter("2.3") is None
+    assert adapter.sealed_adapter("2.3").EVALUATION_VERSION == (
+        "f02-dual-sealed-batch-8-v1"
+    )
+    assert adapter.sealed_adapter("2.4") is None
