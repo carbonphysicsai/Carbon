@@ -89,25 +89,16 @@ PUBLIC_PRACTICE_PATHS = frozenset(
 )
 
 
-def _path_like(text):
-    """Whether `text` could name a checkout file: no whitespace, and a '/',
-    '\' or '.' in it (Validator, 2026-10-21). The checkout deny rule names
-    paths, so it reads only these: Carbon's own prose ("... not confirmation")
-    tripped it on M1 (`protected_material_in_result` on Motor's public
-    objective and roadmap), while a bare file name such as
-    ev5_confirmation_evidence.json, a relative path and a Windows path are
-    still path-like. Graphite's own markers still read every string."""
-    return not any(c.isspace() for c in text) and any(c in text for c in r"/\.")
-
-
 def _checkout_denied(text, lowered):
-    """The checkout deny rule, for a path-like string, except one that is
-    exactly one of `PUBLIC_PRACTICE_PATHS`."""
-    return (
-        text not in PUBLIC_PRACTICE_PATHS
-        and _path_like(text)
-        and boundaries._denied(lowered)
-    )
+    """The checkout deny rule, except for a string that is exactly one of
+    `PUBLIC_PRACTICE_PATHS`."""
+    return text not in PUBLIC_PRACTICE_PATHS and boundaries._denied(lowered)
+
+
+def _path_like(token):
+    """Whether one whitespace-free token could name a checkout file: a '/',
+    '\' or '.' in it (Validator, 2026-10-21)."""
+    return any(c in token for c in ("/", "\\", "."))
 
 
 def _protected_text(text):
@@ -120,6 +111,32 @@ def _protected_text(text):
 def protected(value):
     """True when any string in `value` names protected material."""
     return any(_protected_text(text) for text in _strings(value))
+
+
+def protected_result(value):
+    """`protected`, for a miner tool's result (M1 rehearsal, 2026-10-21).
+
+    Graphite's markers read every string, exactly as `protected` does. The
+    checkout deny rule names paths, so here it reads each path-like token of
+    a string (whitespace-free, with a '/', '\' or '.'; Validator): Carbon's
+    own prose ("... not confirmation" in Motor's public objective and
+    roadmap) no longer withholds a result, while a bare file name such as
+    ev5_confirmation_evidence.json, a relative or Windows path, and a path
+    inside a sentence still do. A token that is exactly one of
+    `PUBLIC_PRACTICE_PATHS` is public. Requests, briefs and literature keep
+    `protected` unchanged."""
+    for text in _strings(value):
+        lowered = text.lower()
+        if any(marker in lowered for marker in PROTECTED_MARKERS):
+            return True
+        for token in text.split():
+            if (
+                token not in PUBLIC_PRACTICE_PATHS
+                and _path_like(token)
+                and boundaries._denied(token.lower())
+            ):
+                return True
+    return False
 
 
 #: Each marker's class: a category name that is never a marker itself and
