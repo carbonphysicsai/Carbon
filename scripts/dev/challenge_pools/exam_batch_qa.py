@@ -13,7 +13,8 @@ BATCH.json: {"batch_digest", "image_digest",
 SPEC.json:  {"challenge", "verified_image_digests": [...],
              "limits": [{"quantity", "threshold", "feasible": "<=" | ">="}],
              "u": {q: number or null} | "registered",  # the Challenge's U record
-             "straddle_min_fraction": 1/3 unless the owner set another}
+             "straddle_min_fraction": 1/3 unless the owner set another,
+             "unresolved_max_fraction": optional; e.g. Motor's 1/3}
 FINE.json:  {case_id: {q: value}} for the selected cases, solved one ratio-2
             refinement finer on the same image.
 
@@ -26,6 +27,12 @@ with the same batch):
    count on neither side; each side needs at least the minimum fraction of
    all cases (`straddle_short:<q>`). No registered U fails closed
    (`u_unregistered:<q>`): an unresolved band cannot be drawn without it.
+   With `unresolved_max_fraction`, more UNRESOLVED cases than that fraction
+   fail (`unresolved_over_fraction:<q>`; Validator, Motor U decision
+   2026-10-20). A Challenge whose pinned U record declares the fraction
+   (Motor: 1/3) refuses a spec that omits it or sets another value
+   (`spec_unresolved_max_fraction`), before any other check. Each
+   UNRESOLVED case's reference value is logged in the host-only record.
 3. spot-check: 3 cases drawn with the seed sha256(batch digest); for every
    limit quantity, |fine - reference| <= U and no label flips
    (`spot_check:<case>:<q>`). A label is a side only where the reference is
@@ -55,6 +62,11 @@ U_RECORDS = {
         "docs/development/evidence/f02-cold-pack-20261020/reference-uncertainty/f02-reference-uncertainty.json",
         "e2262bf8eeca845c2b33d0e32b5f184751693a1771d9bd156cadd5613ac2dc6c",
     ),
+    # Motor: bounded full-range bands (VALIDATOR_MOTOR_U_DECISION_20261020).
+    "electric-motor-magnetics": (
+        "docs/development/evidence/motor-reference-uncertainty-20261020/motor-reference-uncertainty.json",
+        "cba00b15c17b644c713b594accc853b027150b950db9c20488ec5478b5cdabab",
+    ),
 }
 SPOT_CASES = 3
 PASS, FAIL = "PASS", "FAIL"
@@ -77,16 +89,28 @@ def side(value, limit) -> str:
     return "feasible" if feasible else "infeasible"
 
 
-def registered_u(challenge: str, root: Path = REPOSITORY) -> dict:
-    """U per limit quantity from the Challenge's pinned record; refuses a
-    missing record or changed bytes (QA then fails closed upstream)."""
+def _record(challenge: str, root: Path = REPOSITORY) -> dict:
     if challenge not in U_RECORDS:
         raise ValueError(f"no registered reference uncertainty for {challenge}")
     path, pin = U_RECORDS[challenge]
     raw = (Path(root) / path).read_bytes()
     if hashlib.sha256(raw).hexdigest() != pin:
         raise ValueError(f"reference-uncertainty record for {challenge} differs")
-    return dict(json.loads(raw)["U"])
+    return json.loads(raw)
+
+
+def registered_u(challenge: str, root: Path = REPOSITORY) -> dict:
+    """U per limit quantity from the Challenge's pinned record; refuses a
+    missing record or changed bytes (QA then fails closed upstream)."""
+    return dict(_record(challenge, root)["U"])
+
+
+def registered_unresolved_max(challenge: str, root: Path = REPOSITORY):
+    """The unresolved-fraction stop a Challenge's pinned record declares, or
+    None (Motor: 1/3, VALIDATOR_MOTOR_U_DECISION_20261020)."""
+    if challenge not in U_RECORDS:
+        return None
+    return _record(challenge, root).get("unresolved_max_fraction")
 
 
 def spot_case_ids(batch) -> list[str]:
@@ -105,16 +129,20 @@ def _straddle(batch, spec):
         q, u = limit["quantity"], spec["u"].get(limit["quantity"])
         if not _finite(u) or u < 0:
             return counts, f"u_unregistered:{q}"
-        row = {"feasible": 0, "infeasible": 0, "unresolved": 0}
+        row = {"feasible": 0, "infeasible": 0, "unresolved": 0, "unresolved_cases": {}}
         for case in batch["cases"]:
             value = case["quantities"].get(q)
             if not _finite(value):
                 return counts, f"straddle_short:{q}"
             if abs(value - limit["threshold"]) <= u:
                 row["unresolved"] += 1
+                row["unresolved_cases"][case["case_id"]] = value
             else:
                 row[side(value, limit)] += 1
         counts[q] = row
+        most = spec.get("unresolved_max_fraction")
+        if most is not None and row["unresolved"] > most * n:
+            return counts, f"unresolved_over_fraction:{q}"
         if min(row["feasible"], row["infeasible"]) < fraction * n:
             return counts, f"straddle_short:{q}"
     return counts, None
@@ -152,6 +180,10 @@ def judge(batch, spec, fine) -> dict:
     """The host-only QA record; `public()` gives what may be shown."""
     if spec.get("u") == "registered":
         spec = {**spec, "u": registered_u(spec["challenge"])}
+    # A stop the pinned record declares can't be dropped or changed by a
+    # spec (no silent default): omitting or altering it refuses the batch.
+    required = registered_unresolved_max(spec["challenge"])
+    refused = required is not None and spec.get("unresolved_max_fraction") != required
     record = {
         "schema": SCHEMA,
         "challenge": spec["challenge"],
@@ -163,7 +195,9 @@ def judge(batch, spec, fine) -> dict:
         "verdict": FAIL,
         "failure": None,
     }
-    if batch["image_digest"] not in spec["verified_image_digests"]:
+    if refused:
+        record["failure"] = "spec_unresolved_max_fraction"
+    elif batch["image_digest"] not in spec["verified_image_digests"]:
         record["failure"] = "image_not_verified"
     else:
         record["straddle"], failure = _straddle(batch, spec)

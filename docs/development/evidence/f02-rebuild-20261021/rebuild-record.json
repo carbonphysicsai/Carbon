@@ -1,0 +1,87 @@
+{
+ "A3_mms": {
+  "band": [
+   1.7,
+   2.3
+  ],
+  "pass": true,
+  "space_orders": [
+   {
+    "max": 1.990896981658971,
+    "pair": "8->16",
+    "rms": 1.8672007218098918
+   },
+   {
+    "max": 1.9772036077833561,
+    "pair": "16->32",
+    "rms": 1.9126074316624817
+   }
+  ],
+  "time_orders": [
+   {
+    "max": 1.7865064369932997,
+    "pair": "1/8->1/16",
+    "rms": 1.786506454091733
+   },
+   {
+    "max": 2.1175515880065547,
+    "pair": "1/16->1/32",
+    "rms": 2.1175527294759604
+   }
+  ]
+ },
+ "A5_lineage": {
+  "cases_compared": 48,
+  "earlier": "docs/development/evidence/f02-cold-pack-20261020/rr04-judgement.json",
+  "earlier_side_gaps": {
+   "cases": [
+    "c30-i40-s0.5-baseline",
+    "c30-i40-s0.8-baseline",
+    "c30-i55-s0.5-baseline",
+    "c30-i55-s0.8-baseline",
+    "c40-i40-s0.5-baseline",
+    "c40-i40-s0.8-baseline",
+    "c40-i55-s0.5-baseline",
+    "c40-i55-s0.8-baseline"
+   ],
+   "cause": "RR-04's judge recorded energy {'error': 'StopIteration()'} on these baseline cases, so it has no earlier value; not a solver difference",
+   "count": 8,
+   "field": "energy.residual_rel"
+  },
+  "holds": true,
+  "max_abs_diff_solved_outputs": 0.0,
+  "printed_pass": false,
+  "rows": 136,
+  "rows_passing": 128
+ },
+ "decision": "Carbon Validator, 2026-10-21: A5 lineage holds; re-pin to the rebuild provided the 8 newly computed residuals are inside the registered energy band",
+ "evidence": {
+  "image.json": "sha256:91125d26ba68e7137538928520627ee0a5c01fcc8b703ddd8ab30c841df1f515",
+  "judgement.json": "sha256:1f0674d6cadcf8d34d3e16ca0ef870b97629605d5757d0d6a3d3a34d5d031085",
+  "ledger.jsonl": "sha256:b2df76456de38b61db1bda4afd34aa1fa49cd208ee380f04b2b2984a50943fa6",
+  "lineage.json": "sha256:0942ac0a7cc1bd525300ee7bd01fe7393515dfd1c2de0f864d95e6889c1a00d3",
+  "mms-evidence.json": "sha256:28cda31812d3008f51d582afec0d7154ad708fbe01487a21dc066bf3cea631b8"
+ },
+ "image": "sha256:fe8a5b1abebf56bbd9cd1aae2ee08f1825b2991abc0bb14b5be3fae26e6512ec",
+ "newly_computed_residuals": {
+  "band": "B5_energy_residual_rel",
+  "band_value": 0.01,
+  "inside_band": true,
+  "max_abs": 0.0007192779490253542,
+  "values": {
+   "c30-i40-s0.5-baseline": 4.2971938576670254e-05,
+   "c30-i40-s0.8-baseline": 4.2971799974035697e-05,
+   "c30-i55-s0.5-baseline": 0.0007192779490253542,
+   "c30-i55-s0.8-baseline": 0.0007192778289500742,
+   "c40-i40-s0.5-baseline": -0.00040615244557272944,
+   "c40-i40-s0.8-baseline": -0.00040615219884955424,
+   "c40-i55-s0.5-baseline": 7.663276795710771e-07,
+   "c40-i55-s0.8-baseline": 7.665372487508649e-07
+  }
+ },
+ "previous_image": "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add",
+ "previous_image_status": "lost on every host (Test Lead, 2026-10-20)",
+ "run": "SOLVER_REBUILD_F02_F08/f02_rebuild_verify.sh on the AX42 (Test Lead, 2026-10-20/21)",
+ "schema": "carbon.packs.f02-rebuild-record.v1",
+ "scope": "DEVELOPMENT reference-solver re-pin; not a qualification"
+}

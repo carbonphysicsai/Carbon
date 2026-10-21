@@ -208,6 +208,13 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
             evidence["timed_receipt"],
             "timed_receipt",
         )
+        # The timed run's own outputs, for the producer's agreement check.
+        timed_predictions = _snapshot(
+            root / evidence["timed_operation"] / "snapshot" / "predictions.json",
+            limit=16 * 1024**2,
+            digest=evidence["timed_receipt"].get("predictions_digest"),
+            label="timed_prediction_snapshot",
+        )
     train = material["train"]
     if _sha(train) != recipe.to_dict()["challenge"]["train_digest"]:
         raise RetentionUnavailable("public_train_changed")
@@ -238,7 +245,12 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
         "worker-evidence.json": _json(worker),
         "task-receipt.json": canonical_bytes(task.terminal_receipt),
         **(
-            {} if timed_receipt is None else {"timed-query-receipt.json": timed_receipt}
+            {}
+            if timed_receipt is None
+            else {
+                "timed-query-receipt.json": timed_receipt,
+                "timed-query-predictions.json": timed_predictions,
+            }
         ),
     }
     return artifacts
@@ -701,6 +713,11 @@ def _retain_selected_pack_evaluation(
             originals["timed_query"] = {
                 "receipt_raw": artifacts["timed-query-receipt.json"],
                 "registered_sha256": _sha(artifacts["timed-query-receipt.json"]),
+                **(
+                    {"predictions_raw": artifacts["timed-query-predictions.json"]}
+                    if "timed-query-predictions.json" in artifacts
+                    else {}
+                ),
             }
         # Graph and bundle alike: the paired repeat is what the KOTH comparison
         # binds (v4). Never gates retention: this runs after bank custody, and a
@@ -725,6 +742,7 @@ def _retain_selected_pack_evaluation(
             references=registered["references"],
             graph_originals=originals,
             evaluation_source_receipt_raw=registered["evaluation_source_receipt_raw"],
+            timing_step=_timing_step(adapter),
         )
         directory = _private_evaluation_directory(result, submission_id)
         measurement_path = directory / "dual-measurement.json"
@@ -1059,6 +1077,18 @@ def _contend(adapter, pool_store, submission_id, artifacts, bind_inputs, pin):
     }
 
 
+def _timing_step(adapter):
+    """The Ladder step for this Challenge, max(eta, its registered rebuild
+    noise): the precision a timed query must agree with the graded run to."""
+    from carbon.challenge_validator import koth_registry
+    from carbon.scoring import grade_feedback
+
+    noise = koth_registry.rebuild_noise(
+        adapter.discovery.info.challenge_key.challenge_id
+    )
+    return grade_feedback.step(None if noise is None else noise["value"])
+
+
 def _record_ladder(adapter, submission_id, *, exam_key, exam_version, gates, graded):
     """Apply the bound result to the miner's private-exam Ladder
     (`ladder_store`), stepped by the Challenge's registered rebuild noise from
@@ -1341,6 +1371,13 @@ def retain_served_result(
             evidence["timed_receipt"],
             "timed_receipt",
         )
+        # The timed run's own outputs, for the producer's agreement check.
+        timed_predictions = _snapshot(
+            root / evidence["timed_operation"] / "snapshot" / "predictions.json",
+            limit=16 * 1024**2,
+            digest=evidence["timed_receipt"].get("predictions_digest"),
+            label="timed_prediction_snapshot",
+        )
     material = adapter.discovery._material
     train = material["train"]
     if _sha(train) != recipe.to_dict()["challenge"]["train_digest"]:
@@ -1367,8 +1404,19 @@ def retain_served_result(
     if evidence["inference_receipt"]["inputs_digest"] != _sha(inputs):
         raise RetentionUnavailable("practice_inputs_changed")
 
+    # A catalog submission keeps the miner's own recipe beside the bundle it
+    # ran as (Validator): its identity, re-expanded here to the exact bundle.
+    catalog = adapter.ledger.catalog_submission(adapter.contract_digest, submission_id)
+    if catalog is not None:
+        from carbon.backbone_catalog.served import check_reexpansion
+
+        try:
+            check_reexpansion(catalog, recipe.digest)
+        except ValueError:
+            raise RetentionUnavailable("catalog_reexpansion_differs") from None
     artifacts = {
         "recipe.json": recipe.canonical_bytes,
+        **({} if catalog is None else {"catalog-submission.json": catalog}),
         train_name: train,
         "fixture.npz": fixture,
         "inputs.npz": inputs,
@@ -1381,7 +1429,12 @@ def retain_served_result(
         "inference-receipt.json": inference_receipt,
         "task-receipt.json": canonical_bytes(task.terminal_receipt),
         **(
-            {} if timed_receipt is None else {"timed-query-receipt.json": timed_receipt}
+            {}
+            if timed_receipt is None
+            else {
+                "timed-query-receipt.json": timed_receipt,
+                "timed-query-predictions.json": timed_predictions,
+            }
         ),
         "lineage.json": _json(
             {
@@ -1615,6 +1668,15 @@ def _regrade_origin(adapter, base, entries, entry_id):
     recipe = ConstructionRecipe.from_dict(json.loads(files["recipe.json"]))
     if recipe.digest != entry["recipe_digest"]:
         raise RetentionUnavailable("regrade_recipe_changed")
+    if "catalog-submission.json" in files:
+        # The retained bundle is rebuilt only while the miner's catalog recipe
+        # still expands to exactly it (Validator).
+        from carbon.backbone_catalog.served import check_reexpansion
+
+        try:
+            check_reexpansion(files["catalog-submission.json"], recipe.digest)
+        except ValueError:
+            raise RetentionUnavailable("regrade_catalog_reexpansion_differs") from None
     return entry, origin, owner, manifest, files, recipe
 
 
@@ -1723,6 +1785,13 @@ def regrade_retained_entry(
             if timed
             else None
         )
+        timed_predictions = (
+            _private_measurement_bytes(
+                task_root / "timed-query-predictions.json", 16 * 1024**2
+            )
+            if timed
+            else None
+        )
         operations = json.loads(_private_measurement_bytes(operations_path, 65536))
     else:
         kit = material["construction_kit"]
@@ -1783,7 +1852,9 @@ def regrade_retained_entry(
             )
 
         predictions, receipt_raw = kept(graded, "regrade")
-        timed_raw = kept(timed_result, "regrade_timed")[1] if timed else None
+        timed_predictions, timed_raw = (
+            kept(timed_result, "regrade_timed") if timed else (None, None)
+        )
         operations = {
             "inference_operation": graded.worker_operation,
             "timed_operation": (
@@ -1798,6 +1869,7 @@ def regrade_retained_entry(
     artifacts["inference-receipt.json"] = receipt_raw
     if timed:
         artifacts["timed-query-receipt.json"] = timed_raw
+        artifacts["timed-query-predictions.json"] = timed_predictions
     lineage = json.loads(artifacts["lineage.json"])
     lineage.update(
         task_id=regrade_id,

@@ -244,12 +244,14 @@ PUBLISHED_KEYS = frozenset({"schema", "about", "entry_fields", "endpoints"})
 PUBLISHED_FIELDS = frozenset(
     {"network", "netuid", "challenge", "intake_url", "receiver_hotkey"}
 )
-#: What Review says for a Challenge with no evaluation endpoint.
+#: What Review says for a Challenge with no evaluation endpoint. Carbon is the
+#: party that has not published it, and there is nothing for the miner to fix
+#: (Validator, Motor 1.2 landing, 2026-10-20).
 NO_ENDPOINT = (
-    "No evaluation endpoint is published for {title} yet. Your profile can "
-    "practise and freeze, but cannot submit to it until one is published; "
-    "update Carbon and review again then, or name a validator intake you "
-    "run yourself."
+    "Carbon has not published an evaluation endpoint for {title} yet, so "
+    "there is nothing for you to fix. Your profile can practise and freeze "
+    "for it now, and can submit to it once Carbon publishes one. You can "
+    "also name a validator intake you run yourself."
 )
 #: What setup says beside a pinned receiver hotkey (LAUNCHPAD-ACCEPT-03).
 RECEIVER_NOTE = (

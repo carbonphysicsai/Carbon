@@ -7,9 +7,9 @@ committed repository material): never a hidden-exam or paying claim.
 this module owns only what is Battery's. The values are the Carbon
 Validator's registered Battery A/D packet (BATTERY_DUAL_PACKET_20261020),
 measured by ``battery_dual_measurement``; the score is OWNER-BATTERY-DUAL-SCORE-01.
-Still HUMAN_INPUT, so Battery stays unscored (fail closed): D's EV4 grid rows
-and B15's public probe pairs, both waiting for the Battery v2 material, which
-asks for their rows.
+It grades Battery 2.0's bank (REFERENCE_PRESENT_MASK_INTERFACE_20261020):
+PRACTICE for A and G-FEAS, the EV4 development grid for D, the B15 public probe
+pairs for B15; graph and bundle recipes alike (OWNER-REBUILD-TIME-LIMIT-01).
 """
 
 from __future__ import annotations
@@ -21,9 +21,13 @@ from carbon.scoring import battery_dual_measurement as bdm
 from carbon.scoring import physical_dual_pack as physical
 
 CHALLENGE = "battery-fastcharge-ageing-development-v1"
-VERSION = "1.0"
-EVALUATION_VERSION = "battery-dual-development-bank-v1"
+#: Battery 2.0 (step-2 batch, STEP2_BATCH_VERSIONS_20261020): the v2 material
+#: (practice, the EV4 grid and the B15 probe pairs, with the reference mask) and
+#: bundle recipes. Battery 1.0 never had a dual pack. No default version.
+VERSION = "2.0"
+EVALUATION_VERSION = "battery-dual-development-bank-v2"
 CASE_ID = "battery-development-bank"
+VERSIONS = {"2.0": (EVALUATION_VERSION, CASE_ID)}
 OUTPUT = {
     "quantity": "voltage_v,temperature_c,plating_margin_v,capacity_ah",
     "unit": "V,degC,V,Ah",
@@ -85,9 +89,9 @@ def definition(*, bank, train_raw):
         "paired_repeat_procedure": "per_case",
         "paired_repeat": {"procedure": "per_case", "floor": 0},
         "unresolved_mask": mask,
-        # HUMAN_INPUT until the Battery v2 material asks for their rows.
-        "decision_scenarios": None,
-        "b15_probe_plan": None,
+        "decision_scenarios": bdm.decision_scenarios(),
+        "ev4_references": bdm.pinned("ev4_references"),
+        "b15_probe_plan": bdm.pinned("b15_probe_plan"),
     }
 
 

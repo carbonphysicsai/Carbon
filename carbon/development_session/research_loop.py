@@ -1598,6 +1598,7 @@ async def run_epoch(
     miner_guidance=None,
     max_provider_calls=None,
     stage=None,
+    direct_candidate=None,
     finish=None,
     limits=None,
     compaction=None,
@@ -2057,6 +2058,14 @@ async def run_epoch(
         if intent_file.exists() and not local:
             raise ValueError("tool dispatch incomplete; reconcile without duplication")
         selected_envelope = None
+        direct_envelope = None
+
+        def direct_selection(strategy, reason, used_feedback):
+            # A direct campaign's record (`research_campaign.
+            # direct_candidate_record`): its caller passes the builder.
+            nonlocal direct_envelope
+            record, direct_envelope = direct_candidate(strategy, reason, used_feedback)
+            return record
 
         def contract_candidate(strategy, reason, used_feedback):
             nonlocal selected_envelope
@@ -2078,7 +2087,9 @@ async def run_epoch(
                 arguments,
                 check=select_check,
                 candidate_factory=(
-                    contract_candidate if construction is not None else None
+                    contract_candidate
+                    if construction is not None
+                    else direct_selection if direct_candidate is not None else None
                 ),
             )
         elif finishing:
@@ -2102,6 +2113,8 @@ async def run_epoch(
                 from .construction_level import write_envelope
 
                 write_envelope(root, selected_envelope)
+            if direct_envelope is not None:
+                write_once(root / "direct-source-envelope.json", direct_envelope)
             write_once(root / "selected-recipe.json", canonical(result))
         write_once(result_file, canonical(result))
         return result

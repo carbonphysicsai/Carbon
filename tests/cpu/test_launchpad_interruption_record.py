@@ -71,3 +71,30 @@ def test_an_interrupted_operation_records_its_cause(tmp_path, monkeypatch):
     entry = json.loads(root.read_text().splitlines()[-1])
     assert entry["stage"] == "operation"
     assert entry["code"] == TransportCode.CONFLICT.value
+
+
+def test_an_untyped_failure_says_where_carbon_raised_it_and_nothing_else(tmp_path):
+    """BUG MOTOR_RUN_INTERRUPTED_CANDIDATE_20261020: a bare ValueError with
+    code null took a second rehearsal to place. The record now names the
+    innermost Carbon frame: code identifiers, never the message."""
+    from carbon.motor.campaign import research_runtime
+
+    try:
+        research_runtime(
+            {"SECRET-SENTINEL": 1}, implementation=None, images=[], julia_image=None
+        )
+    except ValueError as exc:
+        assert "SECRET-SENTINEL" in str(exc)  # specimen
+        record_interruption(tmp_path, "run", exc)
+    entry = json.loads((tmp_path / "interruptions.jsonl").read_text())
+    assert entry["error_type"] == "builtins.ValueError" and entry["code"] is None
+    module, function, line = entry["raised_at"].split(":")
+    assert (module, function) == ("carbon.motor.campaign", "research_runtime")
+    assert line.isdigit()
+    assert "SECRET-SENTINEL" not in json.dumps(entry)
+
+
+def test_a_failure_outside_carbon_has_no_raise_site(tmp_path):
+    record_interruption(tmp_path, "run", ValueError("no traceback"))
+    entry = json.loads((tmp_path / "interruptions.jsonl").read_text())
+    assert entry["raised_at"] is None

@@ -197,6 +197,9 @@ class DirectFixtureDiscovery:
         from carbon.battery.construction_bundle_material import (
             bundle_material as battery_bundle_material,
         )
+        from carbon.battery.construction_bundle_material import (
+            versioned_material as battery_versioned_material,
+        )
         from carbon.challenge_kit import physical_material
         from carbon.challenge_kit.synthetic_linear_field_2d import (
             bundle_material,
@@ -233,12 +236,19 @@ class DirectFixtureDiscovery:
         train_ids = material.get("train_case_ids")
         practice_ids = material.get("practice_case_ids")
         battery = key == battery_challenge.CHALLENGE
+        # Battery 2.0 (step 2): the bank's rows with the reference_present
+        # mask; an absent reference stays NaN (mask interface §3).
+        battery_v2 = (
+            key.challenge_id == battery_challenge.CHALLENGE.challenge_id
+            and key.version == "2.0"
+        )
+        present = material.get("reference_present") if battery_v2 else None
         physical = physical_material.is_registered(key.challenge_id, key.version)
-        # F08 is a float32 numeric interface; Motor, Cooling and Battery are float64.
+        # F08 and F02 are float32 numeric interfaces; Motor, Cooling and Battery are float64.
         expected_dtype = (
             np.float32
-            if key.challenge_id == "f08-ribbed-bracket"
-            else (np.float64 if battery or physical else np.float32)
+            if key.challenge_id in ("f08-ribbed-bracket", "f02")
+            else (np.float64 if battery or battery_v2 or physical else np.float32)
         )
         if type(practice) is not np.ndarray or type(reference) is not np.ndarray:
             practice_shape_invalid = True
@@ -249,6 +259,14 @@ class DirectFixtureDiscovery:
             ) or reference.shape != (
                 battery_practice.PRACTICE_CASES,
                 battery_tensors.OUTPUT_WIDTH,
+            )
+        elif battery_v2:
+            practice_shape_invalid = (
+                practice.shape != (practice.shape[0], len(battery_domain.INPUTS))
+                or reference.shape != (practice.shape[0], battery_tensors.OUTPUT_WIDTH)
+                or type(present) is not tuple
+                or len(present) != practice.shape[0]
+                or not all(type(p) is bool for p in present)
             )
         elif physical:
             practice_shape_invalid = practice.shape[:1] != reference.shape[:1]
@@ -262,7 +280,14 @@ class DirectFixtureDiscovery:
             or practice_shape_invalid
             or practice.ndim < 2
             or not np.isfinite(practice).all()
-            or not np.isfinite(reference).all()
+            or not (
+                all(
+                    np.isfinite(row).all() if p else np.isnan(row).all()
+                    for p, row in zip(present, reference, strict=True)
+                )
+                if battery_v2
+                else np.isfinite(reference).all()
+            )
             or type(train_ids) is not tuple
             or type(practice_ids) is not tuple
             or len(practice_ids) != practice.shape[0]
@@ -272,18 +297,22 @@ class DirectFixtureDiscovery:
             battery_bundle_material
             if battery
             else (
-                (
-                    lambda: physical_material.bundle_material(
-                        key.challenge_id, key.version
+                (lambda: battery_versioned_material("2.0"))
+                if battery_v2
+                else (
+                    (
+                        lambda: physical_material.bundle_material(
+                            key.challenge_id, key.version
+                        )
                     )
+                    if physical
+                    else {
+                        "1.0": bundle_material,
+                        "1.1": bundle_material_v3,
+                        "1.2": bundle_material_v4,
+                        "1.3": bundle_material_v5,
+                    }.get(key.version)
                 )
-                if physical
-                else {
-                    "1.0": bundle_material,
-                    "1.1": bundle_material_v3,
-                    "1.2": bundle_material_v4,
-                    "1.3": bundle_material_v5,
-                }.get(key.version)
             )
         )
         if registered_material is None:
@@ -291,6 +320,7 @@ class DirectFixtureDiscovery:
         if (
             self._task_admission
             and not battery
+            and not battery_v2
             and not physical
             and key.version
             not in (
@@ -311,7 +341,15 @@ class DirectFixtureDiscovery:
             or practice_ids != registered["practice_case_ids"]
             or not np.array_equal(material.get("example"), registered["example"])
             or not np.array_equal(practice, registered["practice_inputs"])
-            or not np.array_equal(reference, registered["practice_reference"])
+            # Battery 2.0's absent references are NaN in the same rows, under
+            # the same authoritative mask.
+            or not np.array_equal(
+                reference, registered["practice_reference"], equal_nan=battery_v2
+            )
+            or (
+                battery_v2
+                and material.get("reference_present") != registered["reference_present"]
+            )
             or material.get("expected_output_shape")
             != registered["expected_output_shape"]
             or any(

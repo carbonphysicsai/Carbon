@@ -456,22 +456,36 @@ class FamilyBankSource(BankSource):
 
 
 def _motor():
-    from .motor_source import MotorBatchSource
+    # Motor 1.0's hidden pool or Motor 1.1's sealed exam, by the deployment
+    # file's schema (motor_sealed_source).
+    from .motor_sealed_source import motor_source_for
 
-    return MotorBatchSource
+    return motor_source_for
 
 
 #: The registered families, by name: each a function returning its source
 #: class, imported only when the producer serves that Challenge (a static
 #: import, never a dynamic one).
-FAMILY_SOURCES = {"motor": _motor}
+def _f02():
+    from .f02_source import F02BatchSource
+
+    return F02BatchSource
+
+
+def _f08():
+    from .f08_source import F08BatchSource
+
+    return F08BatchSource
+
+
+FAMILY_SOURCES = {"motor": _motor, "f02": _f02, "f08": _f08}
 
 
 def family_source_class(challenge_id):
     """The registered family source class for `challenge_id`, or None."""
     from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
 
-    names = {MOTOR_CHALLENGE: "motor"}
+    names = {MOTOR_CHALLENGE: "motor", "f02": "f02", "f08-ribbed-bracket": "f08"}
     if challenge_id not in names:
         return None
     return FAMILY_SOURCES[names[challenge_id]]()

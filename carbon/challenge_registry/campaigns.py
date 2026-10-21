@@ -16,6 +16,7 @@ typed reason, never run as another Challenge.
 
 from __future__ import annotations
 
+import functools
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -301,6 +302,71 @@ def _motor():
     )
 
 
+def _motor_catalog():
+    """Motor 1.2 (OWNER-BACKBONE-CATALOG-01): Carbon's tested backbones by
+    catalog id on the direct recipe path. Each hook runs under the 1.2
+    research key, so Motor's shared campaign code serves exactly 1.2."""
+    from carbon.challenge_kit import physical_material, physical_public
+    from carbon.development_session import direct_submission
+    from carbon.motor import campaign as motor
+    from carbon.motor import research_view as motor_view
+    from carbon.motor.contracts import key_for, keyed
+
+    key = key_for(motor.CATALOG_VERSION)
+
+    def bound(function):
+        @functools.wraps(function)
+        def call(*args, **kwargs):
+            with keyed(key):
+                return function(*args, **kwargs)
+
+        return call
+
+    def bound_async(function):
+        @functools.wraps(function)
+        async def call(*args, **kwargs):
+            with keyed(key):
+                return await function(*args, **kwargs)
+
+        return call
+
+    def intake(url):
+        facts = direct_submission.read_intake(url)
+        return facts
+
+    return ChallengeCampaign(
+        key=key,
+        prepare=bound_async(motor.prepare_motor),
+        evaluate=bound_async(motor.evaluate_frozen),
+        observation=bound(motor.agent_observation),
+        refusal_retains_candidate=True,
+        check_attached=bound(motor.check_attached),
+        compose=bound(motor.compose),
+        feedback_modes=motor.FEEDBACK_MODES,
+        feedback_schema="carbon.motor.permitted-feedback.v1",
+        research_view=motor_view.research_view,
+        practice_provenance=motor.PRACTICE_PROVENANCE,
+        backends=("torch_cpu",),
+        construction_kit=lambda: physical_public.construction_kit(
+            key.challenge_id, key.version
+        ),
+        construction_reconstruct=lambda *args, **kwargs: None,
+        construction_bundle_material=lambda: physical_material.bundle_material(
+            key.challenge_id, key.version
+        ),
+        intake_check=intake,
+        record_verdict=motor.record_verdict,
+    )
+
+
+def _versioned_campaigns():
+    """Campaigns registered for a Challenge version beyond its first, by
+    (Challenge id, version)."""
+    from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
+
+    return {(MOTOR_CHALLENGE, "1.2"): _motor_catalog}
+
+
 def _campaigns():
     from carbon.reconstruction.capability_registry import (
         BATTERY_CHALLENGE,
@@ -341,12 +407,35 @@ def campaign_for(challenge):
     if type(challenge) is not dict:
         raise TypeError("a challenge {id, version} mapping is required")
     entry, _ = resolve(challenge.get("id"), challenge.get("version"), CPU_RESEARCH)
+    campaign = _composed_for(entry)
+    if campaign is None:
+        raise NoCampaignComposition(
+            f"{entry.challenge_id} {entry.version} has no research campaign composition"
+        )
+    return campaign
+
+
+def _composed_for(entry):
+    """The campaign composed for exactly `entry`'s version, or None. A campaign
+    serves the version its own key names; another registered version of the
+    same Challenge has no composition until one is registered for it."""
+    from .registry import entries
+
+    build = _versioned_campaigns().get((entry.challenge_id, entry.version))
+    if build is not None:
+        return build()
     build = _campaigns().get(entry.challenge_id)
     if build is None:
-        raise NoCampaignComposition(
-            f"{entry.challenge_id} has no research campaign composition"
-        )
-    return build()
+        return None
+    campaign = build()
+    # The id-level campaign belongs to the version its key names; it never
+    # serves another registered version of the same Challenge.
+    owned_elsewhere = campaign.key.version != entry.version and any(
+        other.challenge_id == entry.challenge_id
+        and other.version == campaign.key.version
+        for other in entries()
+    )
+    return None if owned_elsewhere else campaign
 
 
 def campaign_for_manifest(manifest):
@@ -374,8 +463,10 @@ def implemented_campaigns():
 
     found = []
     for entry in entries():
-        if entry.status == IMPLEMENTED and entry.challenge_id in _campaigns():
-            found.append((entry, _campaigns()[entry.challenge_id]()))
+        if entry.status == IMPLEMENTED:
+            campaign = _composed_for(entry)
+            if campaign is not None:
+                found.append((entry, campaign))
     return found
 
 

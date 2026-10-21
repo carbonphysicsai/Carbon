@@ -43,6 +43,19 @@ def describe():
     rebuildable = [
         value for value in capabilities if value["status"] == "rebuildable_development"
     ]
+    # What cannot be rebuilt here, each with its blocker, built as Battery's is
+    # (BUG MOTOR_OBSERVATION_UNSUPPORTED_20261020: the agent's observation
+    # counts these, and this description listed none).
+    unsupported = [
+        {
+            "id": value["id"],
+            "status": value["status"],
+            "blocker": value["blocker"],
+            "summary": value["summary"],
+        }
+        for value in capabilities
+        if value["status"] != "rebuildable_development"
+    ]
     controls = {
         name: {
             "group": group,
@@ -185,6 +198,7 @@ def describe():
         },
         "examples": [{"strategy": scaffold}],
         "examples_admission": [_verdict(scaffold)],
+        "unsupported": unsupported,
         "population": {
             "version": population.POPULATION_VERSION,
             "screen": "domain.validity returns no buildability reasons",
@@ -192,6 +206,178 @@ def describe():
         },
         "exclusion_scope": {
             "level_0": "declarative kernel-ridge settings only",
+            "excluded": [
+                "participant code or weights",
+                "reference-solver reuse",
+                "private, decision-study or confirmation evidence",
+                "three-dimensional end effects, thermal and drive transients",
+            ],
+        },
+    }
+
+
+#: Motor's backbone-catalog version (OWNER-BACKBONE-CATALOG-01).
+CATALOG_VERSION = "1.2"
+
+
+def catalog_recipe(catalog_id="neuralop.FNO", version=CATALOG_VERSION):
+    """A ready catalog recipe: the version's kit, one catalog entry, its
+    tested baseline settings (empty: unset settings keep the baseline's)."""
+    from carbon.backbone_catalog import listing, served
+    from carbon.challenge_kit import physical_public
+    from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
+
+    kit = physical_public.construction_kit(MOTOR_CHALLENGE, version)
+    item = listing.entry(catalog_id, MOTOR_CHALLENGE, version)
+    return {
+        "schema": "carbon.construction-recipe.v1",
+        "challenge": kit,
+        "source": {
+            "kind": "catalog",
+            "catalog_id": catalog_id,
+            "catalog_digest": served.digest(MOTOR_CHALLENGE, version),
+        },
+        "procedure": {
+            "entrypoint": None,
+            "configuration": {},
+            "train_use": {},
+            "initial_state": None,
+        },
+        "output": {
+            "format": item["output_format"],
+            "interface_digest": kit["interface_digest"],
+        },
+    }
+
+
+def describe_catalog(version=CATALOG_VERSION):
+    """Motor's catalog version: Carbon's tested backbones by catalog id, built
+    and judged as the Carbon bundle each names, on the direct recipe path."""
+    from carbon.backbone_catalog import served
+    from carbon.motor import domain, exam
+    from carbon.motor.challenge import (
+        PRACTICE_CASES,
+        TRAIN_CASES,
+        TRAIN_PATH,
+        TRAIN_SHA256,
+    )
+    from carbon.reconstruction.capability_registry import (
+        MOTOR_CHALLENGE,
+        public_registry,
+    )
+    from carbon.reconstruction.served_recipe_contract import registered
+
+    contract = registered(MOTOR_CHALLENGE, version)
+    catalog = served.document(MOTOR_CHALLENGE, version)
+    capabilities = public_registry(MOTOR_CHALLENGE)["capabilities"]
+    # The Level 0 registry's unrebuildable capabilities. Neural operators
+    # stay listed: only Carbon-tested ones are served, by catalog id
+    # (Validator, 2026-10-20).
+    unsupported = [
+        {
+            "id": value["id"],
+            "status": value["status"],
+            "blocker": (
+                "only Carbon-tested ones, by catalog id; miner-authored "
+                "neural operators are not rebuildable"
+                if value["id"] == "model_family.neural_operator"
+                else value["blocker"]
+            ),
+            "summary": value["summary"],
+        }
+        for value in capabilities
+        if value["status"] != "rebuildable_development"
+    ]
+    return {
+        "identity": "carbon.electric-motor-magnetics-catalog." + version,
+        "contract_digest": contract.digest,
+        "task": (
+            "Predict the 60-angle electromagnetic torque curve over one "
+            "15-degree rotor period for the registered two-dimensional "
+            "surface-PM motor cross-section."
+        ),
+        "intended_use": (
+            "Public DEVELOPMENT construction and practice only; not a three-"
+            "dimensional end-effect, thermal, transient-drive, hardware or "
+            "customer-acceptance model."
+        ),
+        "interface": {
+            "inputs": list(domain.INPUTS),
+            "outputs": {"torque_nm": [domain.ANGLE_STEPS]},
+            "conventions": (
+                "millimetres, degrees, A/mm^2 and N.m; torque has 60 evenly "
+                "spaced samples over the 15-degree periodic rotor sweep"
+            ),
+        },
+        "public_material": {
+            "names": [
+                "objective",
+                "capabilities",
+                "training_data",
+                "practice_data",
+                "reference_method",
+                "catalog",
+                "construction_kit",
+            ],
+            "access": (
+                "start_research_task kind=workspace action=public_material with "
+                "arguments_json encoding one listed name"
+            ),
+            "train": {"path": TRAIN_PATH, "cases": TRAIN_CASES, "sha256": TRAIN_SHA256},
+            "practice": {"cases": PRACTICE_CASES, "adaptively_seen": True},
+        },
+        "models": {
+            "rebuildable": [
+                {
+                    "id": "catalog." + catalog_id,
+                    "selector": catalog_id,
+                    "summary": "Carbon's tested " + entry["backbone"] + " bundle",
+                }
+                for catalog_id, entry in catalog["entries"].items()
+            ],
+            "catalog": catalog,
+            "note": (
+                "Choose a backbone by catalog_id; its settings are that "
+                "bundle's own, defaulted to the tested baseline's."
+            ),
+        },
+        "prediction_contract": {
+            "per_case": {"torque_nm": [domain.ANGLE_STEPS]},
+            "produced_by": (
+                "Carbon builds the named tested bundle on the pinned public "
+                "TRAIN; a miner supplies neither code, predictions nor weights"
+            ),
+        },
+        "execution": {
+            "backend": "PyTorch in the pinned Linux CPU isolated C-03 worker",
+            "worker_image": "the campaign's verified C-03 PyTorch CPU worker image",
+            "gpu_lane": False,
+            "recipe": "carbon.construction-recipe.v1, source kind catalog",
+        },
+        "limits": {
+            "budget": "the campaign ledger; discovery charges nothing",
+            "training": "the rebuild's wall time is the only training limit",
+        },
+        "workflow": {
+            "validate": "the recipe door refuses an unknown entry or setting by code",
+            "practice": "Carbon builds the bundle on public TRAIN, scores public PRACTICE",
+            "freeze": "the campaign freezes one practised recipe",
+            "submit": "the signed construction receiver rebuilds and judges it",
+        },
+        "exam": {
+            "gates": [gate.gate_id for gate in exam.GATES],
+            "components": list(exam.COMPONENTS),
+            "rule": "development normalized prediction error; lower is better",
+            "qualification": False,
+        },
+        "feedback": {
+            "practice": "aggregate public-practice components and typed gates",
+            "evaluation": "the receiver's judged feedback",
+        },
+        "examples": [{"recipe": catalog_recipe(version=version)}],
+        "unsupported": unsupported,
+        "exclusion_scope": {
+            "catalog": "Carbon's tested bundles only; miner source stays closed",
             "excluded": [
                 "participant code or weights",
                 "reference-solver reuse",

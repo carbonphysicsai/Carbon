@@ -517,6 +517,7 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
         (inference / "predictions.json").write_bytes(predictions)
         (inference / "receipt.json").write_bytes(canonical(inference_receipt))
         (timed_root / "receipt.json").write_bytes(canonical(timed_receipt))
+        (timed_root / "predictions.json").write_bytes(predictions)
         queued = provider._views[task_id]
         terminal = DirectTaskReceiptV3(
             queued.task_id,
@@ -573,6 +574,7 @@ def test_graph_collector_uses_admitted_source_and_measured_originals_without_wor
         assert artifacts["predictions.json"] == predictions
         assert artifacts["inference-receipt.json"] == canonical(inference_receipt)
         assert artifacts["timed-query-receipt.json"] == canonical(timed_receipt)
+        assert artifacts["timed-query-predictions.json"] == predictions
         assert "source.tar.gz" not in artifacts
         assert "environment.json" not in artifacts
         assert "lineage.json" not in artifacts

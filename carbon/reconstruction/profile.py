@@ -33,6 +33,9 @@ FOUNDAX_LICENSE_DIGEST = (
 )
 ENVIRONMENT_ID = "carbon_jax_linux_x86_64_py311"
 ENVIRONMENT_VERSION = "2.0"
+#: The environment version every JAX accelerator profile (GPU, TPU) is
+#: authored under; the CPU profile's is ``ENVIRONMENT_VERSION``.
+ACCELERATOR_ENVIRONMENT_VERSION = "1.0"
 
 
 def _tagged(payload: bytes) -> str:
@@ -191,7 +194,9 @@ def compile_development_profile(
     expected_environment_id = (
         ENVIRONMENT_ID if accelerator is None else accelerator.profile_id
     )
-    expected_environment_version = ENVIRONMENT_VERSION if accelerator is None else "1.0"
+    expected_environment_version = (
+        ENVIRONMENT_VERSION if accelerator is None else ACCELERATOR_ENVIRONMENT_VERSION
+    )
     expected_environment_digest = (
         ENVIRONMENT_DIGEST if accelerator is None else accelerator.digest
     )
@@ -355,6 +360,7 @@ def compile_development_profile(
 
 
 __all__ = [
+    "ACCELERATOR_ENVIRONMENT_VERSION",
     "DEPENDENCY_SPECS",
     "ENVIRONMENT_DIGEST",
     "ENVIRONMENT_ID",

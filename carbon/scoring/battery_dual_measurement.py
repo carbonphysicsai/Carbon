@@ -22,9 +22,9 @@ reference assessment for ``gate_plating_v2``'s. A PRACTICE case whose v2
 plating label is UNRESOLVED is removed from A and G-FEAS as a whole case and
 recorded in the mask; a reference failure is never a candidate failure.
 
-D and B15 need query rows the served Battery material does not yet ask for
-(the EV4 grid and the public probe pairs). Until the definition registers
-them they are HUMAN_INPUT and ``measure`` refuses: Battery stays unscored.
+D and B15 read Battery 2.0's decision and probe rows (the EV4 development
+grid and the approved public B15 plan, both pinned in the definition); a row
+without a reference is never truth, and no feasible scenario refuses.
 """
 
 from __future__ import annotations
@@ -100,10 +100,58 @@ def validate_definition(definition):
         and definition["unresolved_mask"].get("reason") == UNRESOLVED_REASON
         and type(definition["unresolved_mask"].get("case_ids")) is list
         and all(type(c) is str for c in definition["unresolved_mask"]["case_ids"])
-        # HUMAN_INPUT until the served material asks for their rows.
-        and "decision_scenarios" in definition and "b15_probe_plan" in definition,
+        and definition.get("decision_scenarios") == decision_scenarios()
+        and definition.get("ev4_references") == pinned("ev4_references")
+        and definition.get("b15_probe_plan") == pinned("b15_probe_plan"),
         "battery_definition",
     )
+
+
+def pinned(name):
+    """A pinned Battery 2.0 source, as the pack carries it (battery_pack)."""
+    from carbon.challenge_kit import battery_pack
+
+    path, sha = {
+        "ev4_references": battery_pack._EV4_REFERENCES,
+        "b15_probe_plan": battery_pack._B15_PLAN,
+    }[name]
+    return {"path": path, "sha256": "sha256:" + sha}
+
+
+def decision_scenarios():
+    """D's scenarios: EV4's development scenarios, in its order."""
+    from carbon.battery import quiz_stratum
+    from carbon.battery.value import contract as ev
+
+    contract = quiz_stratum.contract(_REPOSITORY)
+    return [
+        {"id": s["id"], "conditions": s["conditions"]}
+        for s in ev.scenarios(contract, "development")
+    ]
+
+
+def physics_b15(probe_predictions):
+    """B15 over the public probe pairs, by the pinned checker
+    (``physics_gate.BatteryPhysics``, OWNER-PHYSICS-GATES-01): it validates the
+    contract adoption and every pair of the approved plan, then measures the
+    model's own pair residuals. Returns the checker's B15 verdict."""
+    from carbon.battery import construction_bundle_material as material
+    from carbon.battery import physics_gate
+
+    plan = pinned("b15_probe_plan")
+    term = {
+        "contract_sha256": material.PHYSICS_SHA256,
+        "probes_path": plan["path"],
+        "probes_sha256": plan["sha256"].removeprefix("sha256:"),
+        "reference_image": physics_gate.REFERENCE_IMAGE,
+    }
+    try:
+        checker = physics_gate.BatteryPhysics(
+            term, _REPOSITORY, reference_image=physics_gate.REFERENCE_IMAGE
+        )
+    except physics_gate.PhysicsRefused as exc:
+        raise BatteryMeasurementRefused("battery_b15_" + exc.code) from exc
+    return checker.measure(probe_predictions, [])["B15"]
 
 
 def store(records):
@@ -177,13 +225,16 @@ def false_feasible_rate_v2(contract, predictions, case_ids, refs, labels):
 def q3_judge_v2(contract, scenario, grid_predictions, grid_refs):
     """``quiz.q3_judge`` with the reference grid assessed under the plating-v2
     gate (``gate_plating_v2.assess_reference``), or None for a scenario whose
-    reference grid holds no feasible design (``quiz.q3_feasible``'s rule)."""
+    reference grid holds no feasible design (``quiz.q3_feasible``'s rule).
+
+    The candidates are EV4's own frozen grid (``contract.candidates``, 35), the
+    grid the decision references cover; ``quiz.q3_candidates`` is the quiz's
+    finer 117-member grid, whose EV4 subset has the same order."""
     from carbon.battery.value import contract as ev
     from carbon.battery.value import decision as d
     from carbon.battery.value import gate_plating_v2 as gp
-    from carbon.battery.value import quiz
 
-    candidates = quiz.q3_candidates()
+    candidates = ev.candidates(contract)
     keys = {(c["id"], 0): ev.case_id(contract, scenario, c, 0) for c in candidates}
     refs = {key: grid_refs[cid] for key, cid in keys.items() if cid in grid_refs}
     reference = gp.assess_reference(contract, scenario, candidates, refs, keys)
@@ -280,17 +331,61 @@ def practice_measures(*, bank, outputs, repeats, definition, contract):
 
 
 def measure(*, bank, outputs, repeats, definition, contract):
-    """Battery's A, D and gate verdicts on the exposed bank, or a refusal."""
+    """Battery's A, D and gate verdicts on the 2.0 bank, or a refusal.
+
+    PRACTICE rows give A, the exam gates and G-FEAS; the decision rows give D
+    (EV4 development, plating-v2 truth, the quiz's rules); the probe rows give
+    B15; the paired repeat covers every row. A row without a reference is never
+    truth (the shared core's mask); a reference limitation refuses, never a
+    candidate verdict.
+    """
+    from carbon.battery import construction_material as cm
+
     validate_definition(definition)
-    practice_measures(
+    practice = practice_measures(
         bank=bank,
         outputs=outputs,
         repeats=repeats,
         definition=definition,
         contract=contract,
     )
-    # HUMAN_INPUT until the served Battery material asks for their rows.
-    _require(definition["decision_scenarios"] is not None, "battery_d_unregistered")
-    _require(definition["b15_probe_plan"] is not None, "battery_b15_unregistered")
-    # Registered values without their rows' wiring never score.
-    raise BatteryMeasurementRefused("battery_decision_rows_unwired")
+
+    def predictions(cohort):
+        rows = [i for i, row in enumerate(bank) if row["cohort"] == cohort]
+        _require(rows, "battery_" + cohort + "_rows")
+        try:
+            return rows, cm.output_predictions(
+                [outputs[i] for i in rows], [bank[i]["case_id"] for i in rows]
+            )
+        except ValueError as exc:
+            raise BatteryMeasurementRefused("battery_prediction_tensor") from exc
+
+    decision_rows, grid_predictions = predictions("decision")
+    grid_refs = {
+        bank[i]["case_id"]: bank[i]["record"]
+        for i in decision_rows
+        if bank[i]["reference_present"]
+    }
+    d, decision = decision_value(
+        contract, definition["decision_scenarios"], grid_predictions, grid_refs
+    )
+    # No feasible scenario is a reference limitation common to every model.
+    _require(d is not None, "battery_d_reference_unresolved")
+    _probe_rows, probe_predictions = predictions("probe")
+    b15 = physics_b15(probe_predictions)
+    return {
+        "A": practice["A"],
+        "D": d,
+        "gates": {
+            "exam_gates": practice["gates"]["exam_gates"],
+            "g_feas": practice["gates"]["g_feas"],
+            "physics_b15": b15["eligible"] is True,
+            "paired_repeat": practice["gates"]["paired_repeat"],
+        },
+        # D is the quiz's q, which already prices every pick (packet section 2).
+        "decision_outcome": "VERIFIED_FEASIBLE",
+        "false_feasible_rate": practice["false_feasible_rate"],
+        "unresolved_mask": practice["unresolved_mask"],
+        "decision": decision,
+        "b15": b15,
+    }

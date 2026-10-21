@@ -73,7 +73,7 @@ def test_the_definition_is_the_registered_packet():
 
 
 def test_each_reference_is_its_rung_envelope_bound_to_the_judgement():
-    truth = adapter.reference(_rows())
+    truth = adapter.reference(_rows(), "sha256:" + physical_pack._F02_JUDGEMENT[1])
     receipt = "sha256:" + physical_pack._F02_JUDGEMENT[1]
     for row in _rows():
         rungs = row["record"]["rung_peaks_c"]

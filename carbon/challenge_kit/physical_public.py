@@ -28,9 +28,13 @@ def _digest(value: dict) -> str:
 
 
 def _identity(challenge_id: str, version: str):
+    from .served_versions import UnregisteredVersion, is_step2
+
     challenge, domain, count = physical_public_train._source(challenge_id)
-    if version != challenge.CHALLENGE.version:
-        raise ValueError("unknown public physical Challenge version")
+    try:
+        is_step2(challenge_id, version)
+    except UnregisteredVersion:
+        raise ValueError("unknown public physical Challenge version") from None
     return challenge, domain, count
 
 
@@ -48,9 +52,11 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
         _worker_profile,
     )
 
+    from .served_versions import step_caps
+
     _, _, count = _identity(challenge_id, version)
     profile = _worker_profile(None, LIBRARY_BUILD_PROVENANCE).body
-    return {
+    document = {
         "schema": LIMITS_SCHEMA,
         "scope": SCOPE,
         "challenge": {"id": challenge_id, "version": version},
@@ -74,6 +80,24 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
         "accuracy_gate": None,
         "live_eligible": False,
     }
+    if not step_caps(challenge_id, version):
+        # OWNER-REBUILD-TIME-LIMIT-01 (a step-2 version): no fixed training-step
+        # cap; the build wall time above is the only training limit. Existing
+        # versions keep their bytes.
+        document["training_step_cap"] = None
+        document["training_limit"] = "build_wall_seconds_max"
+    from .served_versions import serves_catalog
+
+    if serves_catalog(challenge_id, version):
+        # OWNER-BACKBONE-CATALOG-01: the exact catalog this version serves; a
+        # catalog recipe's catalog_digest must equal it.
+        from carbon.backbone_catalog import served
+
+        document["backbone_catalog"] = {
+            "schema": served.SCHEMA,
+            "digest": served.digest(challenge_id, version),
+        }
+    return document
 
 
 def construction_kit(challenge_id: str, version: str) -> dict:

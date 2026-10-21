@@ -17,6 +17,7 @@ from carbon.reconstruction.accelerators import (
     validate_worker_observation,
     worker_environment,
 )
+from carbon.reconstruction.profile import ACCELERATOR_ENVIRONMENT_VERSION
 from carbon.reconstruction.worker.backend_probe import (
     BackendObservation,
     BackendProbeError,
@@ -224,7 +225,9 @@ def test_compiler_binds_prospective_environment_and_existing_service_rejects_adm
     # Modify only the fixture's authoring contract before genuine compilation.
     # A CPU-pinned existing plan is never reinterpreted as an accelerator plan.
     monkeypatch.setattr(c02_fixtures, "ENVIRONMENT_ID", accelerator.profile_id)
-    monkeypatch.setattr(c02_fixtures, "ENVIRONMENT_VERSION", "1.0")
+    monkeypatch.setattr(
+        c02_fixtures, "ENVIRONMENT_VERSION", ACCELERATOR_ENVIRONMENT_VERSION
+    )
     monkeypatch.setattr(
         c02_fixtures,
         "DEPENDENCY_SPECS",

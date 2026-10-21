@@ -27,17 +27,24 @@ def _static():
         f08_dual_pack,
         motor_dual_pack,
     )
+    from carbon.scoring import physical_dual_pack as physical
 
+    # Exactly the registered version, never a default (an unknown version is
+    # None: the evaluation is unavailable).
     return {
-        motor_dual_pack.CHALLENGE: lambda version: motor_dual_pack,
-        cooling_dual_pack.CHALLENGE: lambda version: cooling_dual_pack,
+        motor_dual_pack.CHALLENGE: lambda version: physical.versioned(
+            motor_dual_pack, version
+        ),
+        cooling_dual_pack.CHALLENGE: lambda version: physical.versioned(
+            cooling_dual_pack, version
+        ),
         f08_dual_pack.CHALLENGE: lambda version: (
             f08_dual_pack.adapter(version=version)
             if version in f08_dual_pack.VERSIONS
             else None
         ),
-        f02_dual_pack.CHALLENGE: lambda version: (
-            f02_dual_pack if version == f02_dual_pack.VERSION else None
+        f02_dual_pack.CHALLENGE: lambda version: physical.versioned(
+            f02_dual_pack, version
         ),
     }
 
@@ -62,6 +69,8 @@ def adapter(challenge, version):
     if static is not None:
         return static(version)
     registered = _REGISTERED.get(challenge)
-    if registered is not None and version == registered.VERSION:
-        return registered
-    return None
+    if registered is None:
+        return None
+    from carbon.scoring import physical_dual_pack as physical
+
+    return physical.versioned(registered, version)

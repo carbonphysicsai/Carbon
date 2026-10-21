@@ -1,0 +1,350 @@
+"""Tested backbone -> catalog entry -> Launchpad and the miner path, as one pipeline.
+
+OWNER-BACKBONE-CATALOG-01 (2026-10-20): "make sure the pipeline from tested
+to on Launchpad and in the miner path is clean and easy". A catalog entry is a
+backbone Carbon has already rebuilt and judged: its tested **baseline** bundle
+(exact digest), the settings that bundle's own build accepts (defaulted to the
+baseline's, never a tuning case's), the Challenges it is offered on, and the
+Test Lead's pair-identity receipt. Launchpad and the miner path read
+`manifest.json` only; nothing else is edited per backbone.
+
+Adding a backbone:
+
+    python -m carbon.backbone_catalog.pipeline add PACKET_DIR \\
+        --challenge electric-motor-magnetics@1.2 \\
+        --receipt PAIR_IDENTITY_REPORT.json --receipt-key fno
+
+copies the packet's bundle files, imports its receipt and writes one manifest
+line; `verify` re-checks every entry (each entry also runs in the tests):
+
+    python -m carbon.backbone_catalog.pipeline verify [--wheelhouse DIR]
+
+Installing each entry's child image is the owner installer's
+(`python -m scripts.dev.catalog_install`, on a miner or a receiver host): this
+package imports nothing from `scripts/`, and miner paths read only
+`listing` (Validator, 2026-10-20).
+
+Checked per entry:
+- the bundle's digest is its manifest's canonical digest, and the source,
+  lock and licence bytes are the ones it names (with `--wheelhouse`, the full
+  `library_bundles.validate_bundle`, wheels included);
+- the source's build module is the one its settings schema mirrors;
+- the defaults are the tested baseline's own (`train_use` empty, the packet a
+  `_baseline`), never a tuning case's;
+- the pair-identity receipt shows every paired rebuild identical.
+Licence screening (OWNER: KNO and WNO left out) happens before `add`.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import io
+import json
+import re
+import sys
+import tarfile
+from pathlib import Path
+
+from .listing import (  # noqa: F401  (the owner commands' API)
+    HERE,
+    MANIFEST,
+    CatalogBroken,
+    _json,
+    entries,
+    entry,
+    load,
+)
+
+BUNDLES = HERE / "bundles"
+RECEIPTS = HERE / "receipts"
+RECEIPT_SCHEMA = "carbon.backbone-catalog-pair-identity.v1"
+FILES = ("bundle.json", "source.tar.gz", "LICENSE", "requirements.txt", "baseline.json")
+_CHALLENGE = re.compile(r"([a-z0-9][a-z0-9-]*)@([0-9]+\.[0-9]+)\Z")
+
+
+def _digest(body):
+    return "sha256:" + hashlib.sha256(body).hexdigest()
+
+
+def _canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+
+
+def bundle_files(item):
+    """The entry's pinned files, by name."""
+    root = BUNDLES / item["catalog_id"]
+    return {name: (root / name).read_bytes() for name in FILES}
+
+
+def _source_member(source, suffix):
+    with tarfile.open(fileobj=io.BytesIO(source), mode="r:gz") as archive:
+        members = [
+            m for m in archive.getmembers() if m.isfile() and m.name.endswith(suffix)
+        ]
+        if len(members) != 1:
+            raise CatalogBroken(f"bundle source holds {len(members)} {suffix}")
+        return archive.extractfile(members[0]).read()
+
+
+def verify(item, *, wheelhouse=None):
+    """Raise `CatalogBroken` unless `item` is exactly what it claims."""
+    from . import settings
+
+    files = bundle_files(item)
+    manifest = json.loads(files["bundle.json"])
+    ref = item["bundle_ref"]
+    if _digest(_canonical(manifest)) != ref["bundle_digest"]:
+        raise CatalogBroken(f"{item['catalog_id']}: bundle digest differs")
+    if (
+        manifest["environment_digest"] != ref["environment_digest"]
+        or manifest["runtime_profile_id"] != ref["runtime_profile_id"]
+        or manifest["language"] != ref["language"]
+        or _digest(files["source.tar.gz"]) != manifest["source_sha256"]
+        or _digest(files["requirements.txt"]) != manifest["lock_sha256"]
+        or _digest(files["LICENSE"]) != manifest["license_sha256"]
+    ):
+        raise CatalogBroken(
+            f"{item['catalog_id']}: bundle bytes differ from its manifest"
+        )
+    # An empty lock is genuine only beside an empty wheel set, and the other
+    # way round: a lock step that silently produced nothing is refused.
+    if (files["requirements.txt"] == b"") != (manifest["wheels"] == {}):
+        raise CatalogBroken(f"{item['catalog_id']}: lock and wheel set disagree")
+    if wheelhouse is not None:
+        from carbon.development_session.library_bundles import (
+            load_cached_wheels,
+            validate_bundle,
+        )
+
+        wheels = load_cached_wheels(wheelhouse, manifest)
+        if (
+            validate_bundle(
+                manifest,
+                files["source.tar.gz"],
+                wheels,
+                files["requirements.txt"],
+                files["LICENSE"],
+            )
+            != ref["bundle_digest"]
+        ):
+            raise CatalogBroken(f"{item['catalog_id']}: full bundle validation differs")
+    schema = settings.SCHEMAS.get(item["settings_schema"])
+    if schema is None:
+        raise CatalogBroken(f"{item['catalog_id']}: unknown settings schema")
+    if (
+        _digest(_source_member(files["source.tar.gz"], schema.build_member))
+        != schema.build_sha256
+    ):
+        raise CatalogBroken(
+            f"{item['catalog_id']}: build module differs from its settings schema"
+        )
+    baseline = json.loads(files["baseline.json"])
+    if (
+        not baseline["packet"].endswith("_baseline")
+        or baseline["train_use"] != {}
+        or baseline["bundle_ref"] != ref
+        or baseline["entrypoint"] != item["entrypoint"]
+        or item["defaults"]
+        != {"configuration": baseline["configuration"], "train_use": {}}
+        or baseline["configuration"].get("backbone") != item["backbone"]
+    ):
+        raise CatalogBroken(
+            f"{item['catalog_id']}: defaults are not the tested baseline's"
+        )
+    receipt = _json(RECEIPTS / (item["catalog_id"] + ".json"))
+    if (
+        receipt.get("schema") != RECEIPT_SCHEMA
+        or receipt.get("catalog_id") != item["catalog_id"]
+        or not receipt.get("pairs")
+        or receipt.get("identical") != receipt["pairs"]
+        or receipt.get("differ")
+    ):
+        raise CatalogBroken(f"{item['catalog_id']}: no clean pair-identity receipt")
+    for challenge in item["challenges"]:
+        if set(challenge) != {"id", "version"}:
+            raise CatalogBroken(f"{item['catalog_id']}: Challenge binding malformed")
+    settings.resolve(item, {}, {})  # the defaults pass their own door
+
+
+def verify_all(*, wheelhouse=None):
+    seen = set()
+    for item in load()["entries"]:
+        if item["catalog_id"] in seen:
+            raise CatalogBroken(f"{item['catalog_id']}: listed twice")
+        seen.add(item["catalog_id"])
+        verify(item, wheelhouse=wheelhouse)
+    return sorted(seen)
+
+
+def add(packet, *, challenges, receipt, receipt_key):
+    """Copy a tested packet's bundle in, import its receipt, write its line."""
+    from . import settings
+
+    packet = Path(packet)
+    if not packet.name.endswith("_baseline"):
+        raise CatalogBroken(
+            "only a tested baseline packet becomes an entry; tuning cases stay private"
+        )
+    recipe = _json(packet / "recipe.json")
+    procedure = recipe["procedure"]
+    if procedure["train_use"] != {}:
+        raise CatalogBroken("a baseline packet trains with no levers")
+    backbone = procedure["configuration"]["backbone"]
+    report = _json(receipt)
+    record = report[receipt_key]
+    root = BUNDLES / backbone
+    root.mkdir(parents=True, exist_ok=True)
+    for name in FILES[:-1]:
+        (root / name).write_bytes((packet / name).read_bytes())
+    baseline = {
+        "configuration": procedure["configuration"],
+        "train_use": {},
+        "entrypoint": procedure["entrypoint"],
+        "output_format": recipe["output"]["format"],
+        "bundle_ref": recipe["source"]["bundle_ref"],
+        "packet": packet.name,
+    }
+    (root / "baseline.json").write_bytes(
+        (json.dumps(baseline, sort_keys=True, indent=1) + "\n").encode()
+    )
+    RECEIPTS.mkdir(exist_ok=True)
+    (RECEIPTS / (backbone + ".json")).write_bytes(
+        (
+            json.dumps(
+                {
+                    "schema": RECEIPT_SCHEMA,
+                    "catalog_id": backbone,
+                    "source_report": Path(receipt).name,
+                    "source_report_sha256": _digest(Path(receipt).read_bytes()),
+                    "key": receipt_key,
+                    **{
+                        k: record[k]
+                        for k in (
+                            "pairs",
+                            "identical",
+                            "differ",
+                            "unpaired",
+                            "distinct_states",
+                            "files",
+                        )
+                        if k in record
+                    },
+                },
+                sort_keys=True,
+                indent=1,
+            )
+            + "\n"
+        ).encode()
+    )
+    bound = []
+    for text in challenges:
+        match = _CHALLENGE.fullmatch(text)
+        if match is None:
+            raise CatalogBroken("a Challenge is named id@version")
+        bound.append({"id": match[1], "version": match[2]})
+    item = {
+        "catalog_id": backbone,
+        "backbone": backbone,
+        "bundle_ref": recipe["source"]["bundle_ref"],
+        "entrypoint": procedure["entrypoint"],
+        "output_format": recipe["output"]["format"],
+        "settings_schema": settings.schema_for_build(
+            _digest(
+                _source_member(
+                    (root / "source.tar.gz").read_bytes(), "carbon_candidate/build.py"
+                )
+            )
+        ),
+        "defaults": {"configuration": procedure["configuration"], "train_use": {}},
+        "challenges": bound,
+    }
+    manifest = load()
+    manifest["entries"] = sorted(
+        [e for e in manifest["entries"] if e["catalog_id"] != backbone] + [item],
+        key=lambda e: e["catalog_id"],
+    )
+    verify(item)
+    MANIFEST.write_bytes(
+        (json.dumps(manifest, sort_keys=True, indent=1) + "\n").encode()
+    )
+    return item
+
+
+def bundle_directory(item, target, *, wheelhouse=None):
+    """Write `item`'s pinned bundle as the directory the owner installer reads
+    (bundle.json, source.tar.gz, requirements.txt, LICENSE, wheels/). Wheels
+    come from `wheelhouse` by their pinned names and digests; the repository
+    holds none."""
+    target = Path(target)
+    target.mkdir(mode=0o700)
+    files = bundle_files(item)
+    for name in FILES[:-1]:
+        (target / name).write_bytes(files[name])
+    wheels = target / "wheels"
+    wheels.mkdir(mode=0o700)
+    declared = json.loads(files["bundle.json"])["wheels"]
+    if declared and wheelhouse is None:
+        raise CatalogBroken(
+            f"{item['catalog_id']}: its pinned wheels need --wheelhouse"
+        )
+    for name, expected in declared.items():
+        body = (Path(wheelhouse) / name).read_bytes()
+        if _digest(body) != expected:
+            raise CatalogBroken(
+                f"{item['catalog_id']}: wheel {name} differs from its pin"
+            )
+        (wheels / name).write_bytes(body)
+    return target
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    commands = parser.add_subparsers(dest="command", required=True)
+    check = commands.add_parser("verify")
+    check.add_argument("--wheelhouse", type=Path)
+    grow = commands.add_parser("add")
+    grow.add_argument("packet", type=Path)
+    grow.add_argument("--challenge", action="append", required=True)
+    grow.add_argument("--receipt", type=Path, required=True)
+    grow.add_argument("--receipt-key", required=True)
+    moved = commands.add_parser("install")
+    moved.add_argument("rest", nargs=argparse.REMAINDER)
+    args = parser.parse_args(argv)
+    if args.command == "install":
+        # The installer moved out of this package (Validator, 2026-10-20).
+        print(
+            "refused: install moved; run python -m scripts.dev.catalog_install "
+            + " ".join(args.rest),
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        if args.command == "verify":
+            print(
+                json.dumps(
+                    {"verified": verify_all(wheelhouse=args.wheelhouse)}, indent=1
+                )
+            )
+        else:
+            print(
+                json.dumps(
+                    add(
+                        args.packet,
+                        challenges=args.challenge,
+                        receipt=args.receipt,
+                        receipt_key=args.receipt_key,
+                    ),
+                    indent=1,
+                )
+            )
+    except CatalogBroken as broken:
+        print("refused: " + str(broken), file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -537,16 +537,24 @@ def timed_query_receipt(entry, registration, timed_query):
     `timed_query` is `{"receipt_raw", "registered_sha256"}`: the batched cold
     query the speed figure is read from, pinned by its trusted caller. It must
     be the same recipe, state and inputs as the graded entry, at the registered
-    timing batch shape, so grading's own query form never feeds speed.
+    timing batch shape, so grading's own query form never feeds speed. It may
+    also carry `predictions_raw`, the timed run's own outputs (bound to the
+    receipt's predictions digest), for the producer's agreement check.
     """
     if (
         type(timed_query) is not dict
-        or set(timed_query) != {"receipt_raw", "registered_sha256"}
+        or set(timed_query) - {"predictions_raw"}
+        != {"receipt_raw", "registered_sha256"}
         or type(timed_query["receipt_raw"]) is not bytes
         or _sha(timed_query["receipt_raw"]) != timed_query["registered_sha256"]
     ):
         raise BundleBenchmarkRefused("timed_query_binding")
     receipt = _parse_graph_original(timed_query["receipt_raw"], "timed_query")
+    if "predictions_raw" in timed_query and (
+        type(timed_query["predictions_raw"]) is not bytes
+        or _sha(timed_query["predictions_raw"]) != receipt.get("predictions_digest")
+    ):
+        raise BundleBenchmarkRefused("timed_query_binding")
     input_role = (entry.get("roles") or {}).get("inputs")
     if (
         set(receipt)

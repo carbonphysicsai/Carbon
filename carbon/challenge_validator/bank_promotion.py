@@ -390,11 +390,19 @@ def _comparator(comparator, evidence):
             "rebuild_noise",
             "ties",
             "minimum_source_entry_ids",
+            "baseline_total",
         }
         or comparator["schema"] != COMPARATOR_SCHEMA
         or type(comparator["minimum_source_entry_ids"]) is not list
         or not all(is_digest(e) for e in comparator["minimum_source_entry_ids"])
         or comparator["ties"] != "incumbent_keeps"
+        or not (
+            comparator["baseline_total"] is None
+            or (
+                type(comparator["baseline_total"]) in (int, float)
+                and math.isfinite(comparator["baseline_total"])
+            )
+        )
         or not (
             noise is None
             or (
@@ -416,7 +424,7 @@ def _comparator(comparator, evidence):
         != evidence["score_compatibility"]["score_pack_digest"]
     ):
         raise StateError("comparator_not_for_this_evaluation")
-    return noise, frozenset(comparator["minimum_source_entry_ids"])
+    return noise, frozenset(comparator["minimum_source_entry_ids"]), comparator["baseline_total"]
 
 
 def _scored(body):
@@ -439,7 +447,9 @@ def compare_private_pair(pair, comparator):
     """One contender against the incumbent on the same evaluation key.
 
     - A contender that is not scored never wins.
-    - With no incumbent, a scored contender is the first incumbent.
+    - With no incumbent, a scored contender is the first incumbent only if it
+      beats Carbon's baseline (the total at the pack's leg minimums) by the
+      registered noise; otherwise there is no winner.
     - An incumbent whose evidence is infrastructure or indeterminate is
       UNAVAILABLE: nothing changes. One that measurably fails a mandatory
       gate on this evaluation is dethroned: a scored contender takes the
@@ -451,7 +461,7 @@ def compare_private_pair(pair, comparator):
       UNAVAILABLE, never zero.
     """
     candidate = pair["candidate"]
-    noise, minimum_sources = _comparator(comparator, candidate["evidence"])
+    noise, minimum_sources, floor = _comparator(comparator, candidate["evidence"])
     status, total = _scored(candidate)
 
     def decided(outcome, reason):
@@ -471,16 +481,35 @@ def compare_private_pair(pair, comparator):
             NO_WINNER if incumbent is None else INCUMBENT_KEEPS,
             "leg_minimum_source_not_a_contender",
         )
+    def beats_baseline():
+        # Carbon's baseline is the unpaid starting king: the first crown, or a
+        # crown after a dethrone, must beat it by the margin
+        # (OWNER-FIRST-CROWN-BEATS-BASELINE-01).
+        if floor is None:
+            return UNAVAILABLE, "baseline_floor_unregistered"
+        if noise is None:
+            return UNAVAILABLE, "rebuild_noise_unregistered"
+        if total > floor + noise["value"]:
+            return None
+        return NO_WINNER, "within_baseline_floor"
+
     if incumbent is None:
         if status != SCORED:
             return decided(NO_WINNER, "candidate_not_scored")
-        return decided(FIRST_INCUMBENT, "first_scored_contender")
+        held_back = beats_baseline()
+        if held_back is not None:
+            return decided(*held_back)
+        return decided(FIRST_INCUMBENT, "first_scored_contender_beats_baseline")
     if status != SCORED:
         if _scored(incumbent)[0] in GATE_FAILED:
             return decided(DETHRONED, "incumbent_failed_mandatory_gate")
         return decided(INCUMBENT_KEEPS, "candidate_not_scored")
     held, held_total = _scored(incumbent)
     if held in GATE_FAILED:
+        held_back = beats_baseline()
+        if held_back is not None:
+            # The failing king is still dethroned; nobody takes the crown.
+            return decided(DETHRONED, "incumbent_failed_mandatory_gate")
         return decided(CHALLENGER, "incumbent_failed_mandatory_gate")
     if held in NOT_MEASURED:
         return decided(UNAVAILABLE, "incumbent_evidence_unavailable")
