@@ -64,8 +64,9 @@ git clone https://github.com/carbonphysicsai/Carbon.git ~/carbon
   little disk (5 GiB beside the checkout; 12 GiB for Docker's images, 24 GiB
   with the GPU worker; their sum when one filesystem holds both).
 - **The evaluation endpoint.** Setup's Review writes the endpoint Carbon
-  publishes for each Challenge (`scripts/dev/miner_launchpad/published_endpoints.json`)
-  into the runner profile's intakes. With none published, setup and the
+  publishes for each Challenge version (`scripts/dev/miner_launchpad/published_endpoints.json`,
+  v2 since 2026-10-21) into the runner profile's `version_intakes`, for
+  exactly that version. With none published, setup and the
   prelaunch review say plainly that the profile can practise and freeze but
   cannot submit. The published receiver hotkey is shown for reference only;
   nothing compares it yet with the receiver the intake reports at submit.

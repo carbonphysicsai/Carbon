@@ -123,6 +123,12 @@ OPTIONAL_PROFILE_FIELDS = {
     # for it. Review pins it; a profile written before has none, and its
     # intake is not checked (setup and the prelaunch review warn).
     "receivers",
+    # Per Challenge version (published-endpoints v2): {challenge_id: {version:
+    # [receiver-paired targets]}}, Carbon's published endpoint for exactly that
+    # version, written by Review. A Challenge named here is named nowhere by
+    # id, so each version's submit reads only its own version's endpoint
+    # (`intake_targets.for_version`).
+    "version_intakes",
     # Legacy names from C-MLP-03, still read exactly as before: the intake and
     # the validator deployment of the one Challenge they were written for.
     "battery_intake",
@@ -203,6 +209,7 @@ def campaign_args(cfg, **fields):
         intakes=intakes(cfg),
         intake_targets=cfg.get("intake_targets", {}),
         receivers=receivers(cfg),
+        version_intakes=cfg.get("version_intakes", {}),
         validators=validators(cfg),
         remote_machine=cfg.get("remote_machine"),
         direct_intake_target=cfg.get("direct_intake_target"),
@@ -221,6 +228,38 @@ def _registered_challenge_ids(values, field):
             campaign_for_id(challenge_id)
         except (ResolutionError, TypeError):
             raise ValueError(f"{field} names an unregistered Challenge") from None
+
+
+def _version_intakes(cfg):
+    """`version_intakes`, closed: each (Challenge id, version) registered with
+    a campaign that submits through an intake, each list receiver-paired, and
+    no Challenge named per version also named by id (`intakes`, `receivers`,
+    `intake_targets` or the legacy `battery_intake`), so no version's submit
+    can read an endpoint written for another."""
+    from carbon.challenge_registry import ResolutionError
+    from carbon.challenge_registry.campaigns import campaign_for
+    from carbon.development_session.intake_targets import versioned
+
+    table = versioned(cfg)
+    by_id = {
+        *(cfg.get("intakes") or {}),
+        *(cfg.get("receivers") or {}),
+        *(cfg.get("intake_targets") or {}),
+        *((_legacy_challenge(),) if LEGACY_INTAKE in cfg else ()),
+    }
+    for challenge_id, versions in table.items():
+        if challenge_id in by_id:
+            raise ValueError("a Challenge's intake is named by id or per version")
+        for version in versions:
+            try:
+                campaign = campaign_for({"id": challenge_id, "version": version})
+            except (ResolutionError, TypeError, LookupError, ValueError):
+                raise ValueError(
+                    "version_intakes names an unregistered Challenge version"
+                ) from None
+            if campaign.intake_check is None:
+                raise ValueError("version_intakes names a Challenge with no intake")
+    return table
 
 
 def feedback_modes(challenge=None):
@@ -622,11 +661,15 @@ def evaluation_refusal(cfg, manifest):
     None) needs no deployment here. A deployment that is configured but
     unusable is still refused by the campaign, by its own code."""
     from carbon.challenge_registry.campaigns import campaign_for_manifest
+    from carbon.development_session.intake_targets import for_version
 
-    challenge = (manifest.get("challenge") or {}).get("id")
+    named = manifest.get("challenge") or {}
+    challenge = named.get("id")
     if campaign_for_manifest(manifest).feedback_schema is None:
         return None
-    if validators(cfg).get(challenge) or intakes(cfg).get(challenge):
+    # The intake of exactly the frozen campaign's version (`version_intakes`).
+    own_version = for_version(cfg, challenge, named.get("version"))
+    if validators(cfg).get(challenge) or intakes(own_version).get(challenge):
         return None
     return "evaluation_unavailable"
 
@@ -742,6 +785,8 @@ def validated_profile(cfg):
         _registered_challenge_ids(cfg["intake_targets"], "intake_targets")
         for targets in cfg["intake_targets"].values():
             validate(targets)
+    if "version_intakes" in cfg:
+        _version_intakes(cfg)
     if "direct_intake_target" in cfg:
         from carbon.development_session.intake_targets import validate
 

@@ -106,12 +106,14 @@ def challenge():
     return intake_challenges()[0]
 
 
-def publish(tmp_path, monkeypatch, entries):
+def publish(tmp_path, monkeypatch, entries, schema="v1"):
+    """A published list; v1 (entries name a Challenge only) unless `schema`
+    is "v2" (each entry names its version)."""
     path = tmp_path / "published_endpoints.json"
     path.write_text(
         json.dumps(
             {
-                "schema": "carbon.launchpad.published-endpoints.v1",
+                "schema": f"carbon.launchpad.published-endpoints.{schema}",
                 "about": "fixture",
                 "endpoints": entries,
             }
@@ -159,6 +161,7 @@ def unpublished(*configured):
         {
             "code": "no_evaluation_endpoint",
             "challenge": challenge["id"],
+            "version": challenge["version"],
             "message": environment.NO_ENDPOINT.format(title=challenge["title"]),
         }
         for challenge in intake_challenges()
@@ -584,17 +587,21 @@ def test_review_writes_the_published_endpoint_without_reaching_it(
 ):
     """`Checks` has no intake check: a published endpoint is written without
     one, and checked by the intake client at submit."""
-    # Every intake Challenge published, each at its own endpoint. Endpoints are
-    # published per Challenge id (one entry each), while a Challenge may have
-    # several intake versions (Motor 1.2 and 1.3): publishing one per version
-    # would list the same Challenge twice, which the list refuses.
+    # Every intake Challenge version published (v2), each at its own endpoint:
+    # a receiver serves exactly one version (Motor 1.2 and 1.3 each have one).
     every = intake_challenges()
-    ids = list(dict.fromkeys(c["id"] for c in every))
-    urls = {i: URL if i == ids[0] else f"{URL}/{i}" for i in ids}
+    urls = [
+        URL if i == 0 else f"{URL}/{c['id']}/{c['version']}"
+        for i, c in enumerate(every)
+    ]
     publish(
         tmp_path,
         monkeypatch,
-        [entry(i, intake_url=urls[i]) for i in ids],
+        [
+            entry(c["id"], version=c["version"], intake_url=url)
+            for c, url in zip(every, urls, strict=True)
+        ],
+        schema="v2",
     )
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Reinstalled())
     completed(tmp_path, setup)
@@ -603,15 +610,34 @@ def test_review_writes_the_published_endpoint_without_reaching_it(
     assert before["challenges"][0]["source"] == "published"
     result = setup.review({"confirm": True})
     assert result["warnings"] == []
-    assert profile(setup)["intakes"] == urls
-    written = result["steps"]["evaluation"]["challenges"][0]
+    # Written for exactly each version, never by Challenge id alone.
+    written_profile = profile(setup)
+    assert "intakes" not in written_profile and "receivers" not in written_profile
+    expected = {}
+    for c, url in zip(every, urls, strict=True):
+        expected.setdefault(c["id"], {})[c["version"]] = [
+            {"intake_url": url, "receiver_hotkey": HOTKEY}
+        ]
+    assert written_profile["version_intakes"] == expected
+    items = result["steps"]["evaluation"]["challenges"]
+    assert [(i["id"], i["version"], i["intake"]) for i in items] == [
+        (c["id"], c["version"], url) for c, url in zip(every, urls, strict=True)
+    ]
+    written = items[0]
     assert (written["intake"], written["source"]) == (URL, "published")
     assert written["receiver_hotkey"] == HOTKEY
     # Binding (LAUNCHPAD-ACCEPT-03): pinned in the profile from the published
     # entry, without reaching the endpoint, and setup says so.
     assert written["receiver_hotkey_note"] == environment.RECEIVER_NOTE
     assert "binding" in environment.RECEIVER_NOTE
-    assert profile(setup)["receivers"] == {c["id"]: HOTKEY for c in every}
+    # Each version's campaign reads its own version's endpoint only.
+    from carbon.development_session.intake_targets import for_version
+
+    for c, url in zip(every, urls, strict=True):
+        own = for_version(written_profile, c["id"], c["version"])
+        assert runner.intakes(own)[c["id"]] == url
+        assert runner.receivers(own)[c["id"]] == HOTKEY
+    assert runner.validated_profile(dict(written_profile)) == written_profile
 
 
 def test_with_none_published_review_says_so_and_still_writes(
@@ -765,6 +791,7 @@ def test_a_malformed_published_list_publishes_nothing(
     assert published_endpoints(path) == {
         "endpoints": {},
         "problem": "published_endpoints_unreadable",
+        "unversioned": [],
     }
 
 
@@ -785,7 +812,9 @@ def test_the_repository_publishes_a_well_formed_list():
     found = published_endpoints()
     assert found["problem"] is None
     document = json.loads(environment.PUBLISHED_ENDPOINTS.read_bytes())
+    assert document["schema"] == environment.PUBLISHED_SCHEMA
     assert set(document["entry_fields"]) == environment.PUBLISHED_FIELDS
+    assert "version" in environment.PUBLISHED_FIELDS
 
 
 def test_a_malformed_published_list_is_a_review_warning(
