@@ -34,6 +34,27 @@ CAPS = {
     "document_bytes": 1024**2,
     "largest_intermediate_bytes": 256 * 1024**2,
 }
+#: Containment bounds (Validator, VALIDATOR_NO_MODEL_SIZE_CAP_SPEC_20261021):
+#: what the host parses before any isolation, never a model rule and never
+#: miner-tunable. Proposals under containment, not a security acceptance
+#: (the owner's security review).
+CONTAINMENT = {"document_bytes": 64 * 1024**2, "call_depth": graph.MAX_CALL_DEPTH}
+#: Allowlist versions served with no model-size caps (owner, 2026-10-21: "No
+#: cap. Only cap should be if it fits the training resource limit"): only the
+#: constants cap, which enforces from-scratch (owner: kept), and containment.
+#: The training resource limits bind instead. Every earlier version keeps CAPS.
+UNCAPPED_VERSIONS = frozenset({"level4-allowlist-v7"})
+UNCAPPED_CAPS = {"constant_bytes": CAPS["constant_bytes"], **CONTAINMENT}
+
+
+def caps_for(allowlist):
+    """The caps a document validated under ``allowlist`` (an `Allowlist` or
+    its version string) is measured against: `UNCAPPED_CAPS` for an uncapped
+    version, else the owner's `CAPS`. An unknown version gets `CAPS`."""
+    version = (
+        allowlist if type(allowlist) is str else getattr(allowlist, "version", None)
+    )
+    return dict(UNCAPPED_CAPS if version in UNCAPPED_VERSIONS else CAPS)
 
 
 def _refusal(code, where, op):

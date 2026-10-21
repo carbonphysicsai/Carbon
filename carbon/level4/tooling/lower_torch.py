@@ -988,6 +988,14 @@ _SHAPE_ONLY = ("reshape", "broadcast_in_dim", "convert_element_type")
 _FOLDABLE = ("add", "sub", "mul", "max", "min", "lt", "gt")
 
 
+def _over(b, cap, value):
+    """Whether ``value`` exceeds ``b``'s allowlist cap ``cap``; an uncapped
+    version has no node or intermediate cap (`allowlist.caps_for`), so the
+    tooling's pre-checks mirror exactly what the validator will measure."""
+    limit = allowlist_module.caps_for(b.allowlist).get(cap)
+    return type(limit) is int and value > limit
+
+
 def _forms(b, target):
     """The argument forms `b`'s allowlist admits for `target` (v7 on)."""
     return frozenset((b.allowlist.aten.get(target) or {}).get("forms", ()))
@@ -1121,13 +1129,13 @@ def _scatter_add_static(b, node, env):
     bytes_per_result = math.prod(shape) * max(graph.itemsize(dtype), 4)
     # The miner's own tensor first (a candidate refusal), then what only Carbon's
     # unrolling adds (a Carbon capability gap; Validator classes, 5cc80cbe8).
-    if bytes_per_result > allowlist_module.CAPS["largest_intermediate_bytes"]:
+    if _over(b, "largest_intermediate_bytes", bytes_per_result):
         raise graph.GraphRefused("aten_scatter_registered_resource_bound", target)
-    if (
-        len(b.nodes) + nodes > allowlist_module.CAPS["nodes_executed"]
-        or graph.VALUE_BYTES
-        * (graph.unique_constant_values(b.constants) + emitted_values)
-        > allowlist_module.CAPS["constant_bytes"]
+    if _over(b, "nodes_executed", len(b.nodes) + nodes) or _over(
+        b,
+        "constant_bytes",
+        graph.VALUE_BYTES
+        * (graph.unique_constant_values(b.constants) + emitted_values),
     ):
         raise graph.GraphRefused("aten_scatter_lowering_expansion_bound", target)
 
@@ -1355,18 +1363,18 @@ def _take_runs(b, target, x, dim, index, expected):
         else:
             runs.append([i, i + 1])
     bytes_per_result = math.prod(expected) * max(graph.itemsize(dtype), 4)
-    if bytes_per_result > allowlist_module.CAPS["largest_intermediate_bytes"]:
+    if _over(b, "largest_intermediate_bytes", bytes_per_result):
         raise graph.GraphRefused("aten_index_registered_resource_bound", target)
     if "static_outer" in _forms(b, "aten.index.Tensor"):
         # v7 on: the slices and concatenates every take adds stay in the
-        # graph, so they alone are held to the node cap here; the static
-        # index arithmetic before them is pruned, and the whole graph is
-        # measured against the cap afterwards.
+        # graph, so they alone are held to the node cap here (v7 has none:
+        # no model-size caps, so this guard is v7's only where a cap exists);
+        # the static index arithmetic before them is pruned.
         added = b.__dict__.get("take_nodes", 0) + len(runs) + 1
-        if added > allowlist_module.CAPS["nodes_executed"]:
+        if _over(b, "nodes_executed", added):
             raise graph.GraphRefused("aten_index_lowering_expansion_bound", target)
         b.take_nodes = added
-    elif len(b.nodes) + len(runs) + 1 > allowlist_module.CAPS["nodes_executed"]:
+    elif _over(b, "nodes_executed", len(b.nodes) + len(runs) + 1):
         raise graph.GraphRefused("aten_index_lowering_expansion_bound", target)
     pieces = []
     for start, stop in runs:

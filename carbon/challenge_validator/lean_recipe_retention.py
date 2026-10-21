@@ -22,6 +22,13 @@ class RetentionUnavailable(ValueError):
     """The named original-byte or custody dependency is unavailable."""
 
 
+#: Custody reads a state the worker already admitted under its version's
+#: ceiling (`bundle_graph_state.state_limit`: none for an uncapped version), so
+#: the bound here is the worker's registered output envelope, what any build
+#: could have written, never a model-size rule of its own.
+_STATE_CUSTODY_BYTES = 128 * 1024**2  # carbon.reconstruction.worker.model.OUTPUT_BYTES
+
+
 def _sha(raw: bytes) -> str:
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
@@ -179,7 +186,7 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
     inference = root / evidence["inference_operation"] / "snapshot"
     state = _snapshot(
         build / "state.npz",
-        limit=64 * 1024**2,
+        limit=_STATE_CUSTODY_BYTES,
         digest=task.terminal_receipt.state_digest,
         label="state_snapshot",
     )
@@ -1339,7 +1346,7 @@ def retain_served_result(
     inference = root / evidence["inference_operation"] / "snapshot"
     state = _snapshot(
         build / "state.npz",
-        limit=64 * 1024**2,
+        limit=_STATE_CUSTODY_BYTES,
         digest=task.terminal_receipt.state_digest,
         label="state_snapshot",
     )
