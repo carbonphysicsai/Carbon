@@ -113,3 +113,23 @@ def test_the_development_banks_checks_hold():
 def test_only_f08_1_2_is_packed():
     with pytest.raises(sealed.SealedPackRefused):
         sealed.sealed_bank(*batch(), version="1.1")
+
+
+def test_the_v7_version_is_graded_from_the_same_sealed_batches():
+    """F08 1.3 (v7 catalog) is graded from 1.2's sealed batches (Validator:
+    one rule for catalog versions): the same bank, byte for byte."""
+    import numpy as np
+
+    doc, records = batch()
+    old = sealed.sealed_bank(doc, records, version="1.2")
+    new = sealed.sealed_bank(doc, records, version="1.3")
+    assert set(old) == set(new)
+    for key in old:
+        if isinstance(old[key], np.ndarray):
+            assert (
+                np.array_equal(old[key], new[key]) and old[key].dtype == new[key].dtype
+            )
+        else:
+            assert old[key] == new[key], key
+    with pytest.raises(sealed.SealedPackRefused):
+        sealed.sealed_bank(*batch(), version="9.9")

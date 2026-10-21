@@ -32,6 +32,11 @@ from pathlib import Path
 REPOSITORY = Path(__file__).resolve().parents[2]
 CHALLENGE_ID = "f08-ribbed-bracket"
 CHALLENGE_VERSION = "1.2"
+#: Challenge versions whose evaluation packs are built from these 1.2 sealed
+#: batches: 1.2, and the v7 catalog 1.3, which changes only the construction
+#: kit (Validator, 2026-10-20: one rule, a catalog version is graded from its
+#: predecessor's sealed batches). The batches stay 1.2's.
+SERVED_VERSIONS = (CHALLENGE_VERSION, "1.3")
 RULE_SCHEMA = "carbon.f08.hidden-pool-rule.v1"
 DOCUMENT_SCHEMA = "carbon.f08.hidden-batch.v1"
 DEPLOYMENT_SCHEMA = "carbon.f08.hidden-deployment.v1"

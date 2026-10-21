@@ -80,7 +80,7 @@ def sealed_bank(document, records, *, version="1.2") -> dict:
     from carbon.challenge_validator import f08_hidden as hidden
     from carbon.f08.domain import LIMIT_MM_PER_N
 
-    if version != hidden.CHALLENGE_VERSION:
+    if version not in hidden.SERVED_VERSIONS:
         raise SealedPackRefused("f08_sealed_version")
     try:
         cases = hidden.check_document(document)
