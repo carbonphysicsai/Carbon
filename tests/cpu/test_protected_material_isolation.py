@@ -250,3 +250,49 @@ def test_the_validator_orchestration_records_no_protected_value():
     document = json.loads(path.read_text())
     assert set(document) == {"schema", "execution_id"}
     assert document["schema"] == CANCEL_SCHEMA
+
+
+# --- M1 rehearsal, 2026-10-21: the checkout deny rule reads path-like text ----
+
+import pytest
+
+from carbon.agent_campaign.graphite import protected_material as _pm
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # The two M1 strings' shape: Carbon's own prose naming "confirmation".
+        "public practice is adaptive research evidence, not confirmation",
+        "Reuse of the reference solver awaits a confirmation design",
+    ],
+)
+def test_carbon_prose_never_trips_the_checkout_deny_rule(text):
+    assert not _pm.protected(text) and _pm.marker_classes(text) == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "ev5_confirmation_evidence.json",  # a bare file name
+        "docs/development/evidence/x/records.jsonl",  # a relative path
+        r"docs\development\ev4\out.json",  # a Windows path
+        ".env",
+    ],
+)
+def test_a_path_like_string_still_trips_it(text):
+    assert _pm.protected(text)
+    assert _pm.marker_classes(text) == [_pm.CHECKOUT_DENY_CLASS]
+
+
+def test_graphite_markers_still_read_every_string():
+    assert _pm.marker_classes("the official seed of this exam") == ["seed_material"]
+
+
+def test_motor_objective_and_roadmap_pass_the_guard():
+    from carbon.development_session.capability_demand import public_roadmap
+    from carbon.motor import research as motor_research
+    from carbon.reconstruction import capability_registry as registry
+
+    assert not _pm.protected(public_roadmap(None, registry.MOTOR_CHALLENGE))
+    assert not _pm.protected(motor_research.objective())

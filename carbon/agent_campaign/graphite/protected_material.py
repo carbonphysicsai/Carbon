@@ -89,10 +89,25 @@ PUBLIC_PRACTICE_PATHS = frozenset(
 )
 
 
+def _path_like(text):
+    """Whether `text` could name a checkout file: no whitespace, and a '/',
+    '\' or '.' in it (Validator, 2026-10-21). The checkout deny rule names
+    paths, so it reads only these: Carbon's own prose ("... not confirmation")
+    tripped it on M1 (`protected_material_in_result` on Motor's public
+    objective and roadmap), while a bare file name such as
+    ev5_confirmation_evidence.json, a relative path and a Windows path are
+    still path-like. Graphite's own markers still read every string."""
+    return not any(c.isspace() for c in text) and any(c in text for c in r"/\.")
+
+
 def _checkout_denied(text, lowered):
-    """The checkout deny rule, except for a string that is exactly one of
-    `PUBLIC_PRACTICE_PATHS`."""
-    return text not in PUBLIC_PRACTICE_PATHS and boundaries._denied(lowered)
+    """The checkout deny rule, for a path-like string, except one that is
+    exactly one of `PUBLIC_PRACTICE_PATHS`."""
+    return (
+        text not in PUBLIC_PRACTICE_PATHS
+        and _path_like(text)
+        and boundaries._denied(lowered)
+    )
 
 
 def _protected_text(text):

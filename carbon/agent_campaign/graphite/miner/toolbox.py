@@ -52,6 +52,14 @@ def protected(value):
     return check(value)
 
 
+def marker_classes(value):
+    """The class names of the protected material `value` names, never a
+    marker or the text (`protected_material.marker_classes`)."""
+    from ..protected_material import marker_classes as classes
+
+    return classes(value)
+
+
 def refusal(status, code, **extra):
     return {
         "status": status,
@@ -193,11 +201,18 @@ class MinerToolbox:
             if type(result) is not dict:
                 result = refusal("UNAVAILABLE", "malformed_tool_result")
         if protected(result):
+            # The classes of what matched, never a marker or the text
+            # (`protected_material.marker_classes`), so a withheld result
+            # says why it was withheld.
             return self._refuse(
                 identity,
                 name,
                 arguments,
-                refusal(REFUSED_RESULT, "protected_material_in_result"),
+                refusal(
+                    REFUSED_RESULT,
+                    "protected_material_in_result",
+                    marker_classes=marker_classes(result),
+                ),
             )
         return result
 
