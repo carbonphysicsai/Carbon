@@ -1,0 +1,13 @@
+{
+ "catalog_id": "thuml.FNO",
+ "differ": [],
+ "distinct_states": 1,
+ "files": 2,
+ "identical": 1,
+ "key": "thuml_fno_clean",
+ "pairs": 1,
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "source_report": "PAIR_IDENTITY_CATALOG_CLEAN_20261020.json",
+ "source_report_sha256": "sha256:0cba03102d712f7fd39b0c194055b91fd0554a41c29bd2f917053e447d0f11e1",
+ "unpaired": 0
+}

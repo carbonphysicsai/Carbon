@@ -14,8 +14,7 @@ from carbon.backbone_catalog import entries as catalog_entries
 from carbon.backbone_catalog import pipeline, settings
 
 MOTOR = {"id": "electric-motor-magnetics", "version": "1.2"}
-#: The five clean tested Torch entries. The DeepXDE/THUML six are out until
-#: their bundles are rebuilt without KNO/WNO and re-tested (owner, 2026-10-20).
+#: The five clean tested Torch entries.
 TORCH = {
     "neuralop.FNO",
     "neuralop.TFNO",
@@ -41,7 +40,18 @@ JNO = {
         "unet2d",
     )
 }
-#: A coverage-build entry as the cleaned DeepXDE/THUML bundles will declare it.
+#: The six DeepXDE/THUML entries, rebuilt without KNO/WNO (MC601-606) and
+#: pair-identical (Test Lead, PAIR_IDENTITY_CATALOG_CLEAN_20261020): coverage
+#: builds with pinned wheels, offered on Motor 1.3.
+CLEAN = {
+    "deepxde.DeepONetCartesianProd",
+    "thuml.FNO",
+    "thuml.F_FNO",
+    "thuml.Factformer",
+    "thuml.Galerkin_Transformer",
+    "thuml.Transolver",
+}
+#: A coverage-build entry as the cleaned DeepXDE/THUML bundles declare it.
 COVERAGE_ITEM = {
     "catalog_id": "thuml.FNO",
     "backbone": "thuml.FNO",
@@ -54,19 +64,20 @@ COVERAGE_ITEM = {
 
 
 def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
-    assert set(pipeline.verify_all()) == TORCH | JNO
+    assert set(pipeline.verify_all()) == TORCH | JNO | CLEAN
     # Motor 1.2 is unchanged: the five Torch entries. Motor 1.3 (1.2 plus
-    # allowlist v7) adds the eleven jNO entries, built on the C-03 CPU parent.
+    # allowlist v7) adds the eleven jNO entries, built on the C-03 CPU parent,
+    # and the six cleaned DeepXDE/THUML entries.
     assert {e["catalog_id"] for e in pipeline.entries(MOTOR["id"], "1.2")} == TORCH
     assert {
         e["catalog_id"] for e in pipeline.entries(MOTOR["id"], "1.3")
-    } == TORCH | JNO
+    } == TORCH | JNO | CLEAN
     # Never on a released or step-2 version (Validator): only Motor's catalog
     # versions.
     for item in pipeline.entries():
         assert item["challenges"] == (
             [{**MOTOR, "version": "1.3"}]
-            if item["catalog_id"] in JNO
+            if item["catalog_id"] in JNO | CLEAN
             else [MOTOR, {**MOTOR, "version": "1.3"}]
         )
     for version in ("1.0", "1.1"):
