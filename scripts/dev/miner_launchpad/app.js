@@ -1657,6 +1657,34 @@
     }
     return {low, high, fallback, value, problem, basis: cap.basis};
   }
+  // The launch's optional provider call timeout, model_settings.timeout_seconds
+  // (M1 rehearsal 2026-10-21): offered, like the output cap, only when the
+  // launch names its provider and model. The bounds and the default are the
+  // controller's (model_provider's own); this check only mirrors the runner's.
+  function callTimeout() {
+    const timeout = caps?.model?.call_timeout;
+    if (!timeout || !Array.isArray(timeout.bounds) || timeout.bounds.length !== 2 || !Number.isSafeInteger(timeout.default) || !launchModel()) return null;
+    const [low, high] = timeout.bounds;
+    const text = String(wizard.timeoutSeconds ?? "").trim();
+    let value = null, problem = null;
+    if (text) {
+      value = /^\d+$/.test(text) ? Number(text) : NaN;
+      if (!Number.isSafeInteger(value) || value < low || value > high) {
+        problem = "the provider call timeout must be a whole number of seconds from " + low.toLocaleString("en-US") + " to " + high.toLocaleString("en-US");
+        value = null;
+      }
+    }
+    return {low, high, fallback: timeout.default, value, problem};
+  }
+  // The model settings a launch sends: only what the miner set.
+  function modelSettings() {
+    const settings = {};
+    const cap = outputCap();
+    if (cap && cap.value !== null) settings.max_output_tokens = cap.value;
+    const timeout = callTimeout();
+    if (timeout && timeout.value !== null) settings.timeout_seconds = timeout.value;
+    return Object.keys(settings).length ? settings : null;
+  }
   const OUTPUT_BASIS = {model_documented_maximum: "this model's documented maximum", provider_documented_maximum: "the provider's documented maximum", no_documented_maximum: "Carbon records no maximum for this model, so the conservative cap"};
   function outputDefault(cap) {
     if (!cap?.fallback) return "the runner's default";
@@ -3187,6 +3215,8 @@
         }
         const cap = outputCap();
         if (cap?.problem) return "Fix the output cap: " + cap.problem + ", or leave it blank for " + outputDefault(cap) + ".";
+        const timeout = callTimeout();
+        if (timeout?.problem) return "Fix the provider call timeout: " + timeout.problem + ", or leave it blank for " + timeout.fallback + " seconds.";
       }
     }
     if (step === "compute") {
@@ -3549,6 +3579,7 @@
       for (const item of caps.model.unavailable) researchNote(node, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
     });
     for (const input of target.querySelectorAll("input[name=wizard-model]")) input.checked = input.value === wizard.provider + "/" + wizard.model;
+    renderWizardTimeout();
     // The optional output cap, patched in place so typing is never redrawn.
     const cap = outputCap();
     const box = $("wizard-output");
@@ -3567,6 +3598,25 @@
     setText($("wizard-output-note"), note);
     const kind = cap.problem ? "reason" : "hint";
     if ($("wizard-output-note").className !== kind) $("wizard-output-note").className = kind;
+  }
+  // The optional provider call timeout, patched in place like the cap.
+  function renderWizardTimeout() {
+    const timeout = callTimeout();
+    const box = $("wizard-timeout");
+    if (box.hidden !== !timeout) box.hidden = !timeout;
+    if (!timeout) return;
+    const input = $("wizard-timeout-seconds");
+    if (input.min !== String(timeout.low)) input.min = String(timeout.low);
+    if (input.max !== String(timeout.high)) input.max = String(timeout.high);
+    const placeholder = "Default: " + timeout.fallback;
+    if (input.placeholder !== placeholder) input.placeholder = placeholder;
+    fill(input, wizard.timeoutSeconds ?? "");
+    input.setAttribute("aria-invalid", timeout.problem ? "true" : "false");
+    let note = "Default: " + timeout.fallback + " seconds. How long each model call may wait for the provider's answer; a call still unanswered then ends with its outcome unknown and is reconciled, never resent. A new call starts only while this much of your elapsed limit is left; it reserves no money. Leave it blank for the default, or enter a whole number of seconds from " + timeout.low.toLocaleString("en-US") + " to " + timeout.high.toLocaleString("en-US") + ". The Control Center checks it again at launch.";
+    if (timeout.problem) note = "Not valid: " + timeout.problem + ". " + note;
+    setText($("wizard-timeout-note"), note);
+    const kind = timeout.problem ? "reason" : "hint";
+    if ($("wizard-timeout-note").className !== kind) $("wizard-timeout-note").className = kind;
   }
   function renderWizardCompute() {
     rebuild($("wizard-compute"), JSON.stringify([capsVersion, Boolean(caps)]), target => {
@@ -3673,6 +3723,8 @@
         : setup ? "Your setup's choice: " + setup.model_id + " (" + setup.provider_id + ")" : "Not chosen");
       const cap = outputCap();
       if (cap && !cap.problem) row("Max output", cap.value !== null ? cap.value.toLocaleString("en-US") + " tokens per reply, your cap" : "Not set: " + outputDefault(cap));
+      const timeout = callTimeout();
+      if (timeout && !timeout.problem) row("Call timeout", timeout.value !== null ? timeout.value.toLocaleString("en-US") + " seconds per provider call, your timeout" : "Not set: " + timeout.fallback.toLocaleString("en-US") + " seconds per provider call, the default");
       row("Compute", compute ? compute.label + " · " + compute.lane + " lane · " + compute.availability : "Unavailable");
       row("Tools", entry ? Object.keys(entry.tools?.workflow || {}).join(", ") || "none listed" : "Choose a Challenge");
       // Stated before launch, not learnt at submit (LAUNCHPAD-PAGE-USABILITY-01).
@@ -3814,6 +3866,7 @@
   $("path-advanced").addEventListener("click", () => { launchPath = "advanced"; writeAdvanced(); saveWizard(); render(); });
   $("budget-elapsed").addEventListener("input", readAdvanced);
   $("wizard-max-output").addEventListener("input", () => { wizard.maxOutput = $("wizard-max-output").value; saveWizard(); render(); });
+  $("wizard-timeout-seconds").addEventListener("input", () => { wizard.timeoutSeconds = $("wizard-timeout-seconds").value; saveWizard(); render(); });
   $("budget-final-reserve").addEventListener("change", readAdvanced);
   $("template-save").addEventListener("click", () => {
     const name = $("template-name").value.trim();
@@ -4146,9 +4199,10 @@
     if (provider) {
       pendingResearch.body.model_provider = provider.id;
       pendingResearch.body.model = wizard.model;
-      // The output cap only when the miner set one: blank is the default.
-      const cap = outputCap();
-      if (cap && cap.value !== null) pendingResearch.body.model_settings = {max_output_tokens: cap.value};
+      // The output cap and call timeout only when the miner set them: blank
+      // is the default.
+      const settings = modelSettings();
+      if (settings) pendingResearch.body.model_settings = settings;
     }
     // Graphite's mode, research share, plan, hunt and limits: each where its
     // mode uses it, and only as the launch operation declares it.

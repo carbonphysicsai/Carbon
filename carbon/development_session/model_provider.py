@@ -77,6 +77,9 @@ UNKNOWN_SPEND = (
 OUTPUT_TOKEN_BOUNDS = (256, 131072)
 #: The input windows (`max_input_tokens`) a selection may carry, inclusive.
 INPUT_TOKEN_BOUNDS = (16384, 1048576)
+#: The provider call timeouts (`timeout_seconds`) a selection may carry,
+#: inclusive.
+TIMEOUT_SECONDS_BOUNDS = (10, 600)
 
 
 @dataclass(frozen=True)
@@ -511,6 +514,23 @@ OUTPUT_DEFAULTS = (None, OUTPUT_DEFAULT_V2)
 INPUT_DEFAULT_V2 = "carbon.model-selection.input-default.v2"
 INPUT_DEFAULTS = (None, INPUT_DEFAULT_V2)
 
+#: How a new agent campaign plan's provider call timeout is chosen when the
+#: miner sets none (M1 rehearsal 2026-10-21: two ~150 KB Engy requests were
+#: cut at the historical 120 s while still being answered, each leaving an
+#: unknown outcome to reconcile). Its default is `TIMEOUT_SECONDS_BOUNDS`'
+#: upper limit, 600 s (`TIMEOUT_DEFAULT_V2_SECONDS`), and a `timeout_seconds`
+#: the miner sets binds. A timeout is no spend: nothing is reserved or
+#: metered by it. A call's hard deadline is still the timeout plus
+#: `DEADLINE_MARGIN_SECONDS`, and a call is still admitted only while the
+#: timeout fits the campaign's remaining elapsed limit. A selection built
+#: without it (None, the historical rule) keeps `DEFAULT_SETTINGS`' 120 s, so
+#: what an earlier plan recorded, and every caller that is not a new plan, is
+#: unchanged. A plan records its timeout, so it replays the same under either
+#: rule.
+TIMEOUT_DEFAULT_V2 = "carbon.model-selection.timeout-default.v2"
+TIMEOUT_DEFAULTS = (None, TIMEOUT_DEFAULT_V2)
+TIMEOUT_DEFAULT_V2_SECONDS = TIMEOUT_SECONDS_BOUNDS[1]
+
 _MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}")
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 EFFORTS = (None, "minimal", "low", "medium", "high")
@@ -930,6 +950,7 @@ def select(
     published_pricing=None,
     output_default=None,
     input_default=None,
+    timeout_default=None,
     adapters=None,
 ):
     """Validate a miner's choice into a `ModelSelection`.
@@ -949,7 +970,11 @@ def select(
     miner-edition plan, the model's published context less the output cap
     (`input_window`); a max_input_tokens in `settings` binds either way, and
     the selection keeps the record of how its window was chosen
-    (`ModelSelection.input_window`). `adapters` is the registry
+    (`ModelSelection.input_window`). `timeout_default` is how an unset
+    timeout_seconds is chosen: None, the historical 120, or
+    `TIMEOUT_DEFAULT_V2` for a new agent campaign plan, 600
+    (`TIMEOUT_DEFAULT_V2_SECONDS`); a timeout_seconds in `settings` binds
+    either way. `adapters` is the registry
     `provider_id` must be in: `ADAPTERS` (every miner-facing caller) unless
     Carbon's own Graphite passes its own
     (`graphite.model_providers.GRAPHITE_ADAPTERS`).
@@ -962,6 +987,8 @@ def select(
         raise ModelSelectionRefused("unknown output default")
     if input_default not in INPUT_DEFAULTS:
         raise ModelSelectionRefused("unknown input default")
+    if timeout_default not in TIMEOUT_DEFAULTS:
+        raise ModelSelectionRefused("unknown timeout default")
     if model_id is None:
         model_id = adapter.default_model
     if type(model_id) is not str or not _MODEL_ID.fullmatch(model_id):
@@ -973,6 +1000,8 @@ def select(
         chosen["max_output_tokens"] = output_maximum(
             provider_id, model_id, adapters=registry
         )["max_output_tokens"]
+    if timeout_default == TIMEOUT_DEFAULT_V2:
+        chosen["timeout_seconds"] = TIMEOUT_DEFAULT_V2_SECONDS
     if settings is not None:
         if type(settings) is not dict or not set(settings) <= set(chosen):
             raise ModelSelectionRefused("unknown model setting")
@@ -1002,7 +1031,9 @@ def select(
         ),
         max_output_tokens=max_output_tokens,
         reasoning_effort=chosen["reasoning_effort"],
-        timeout_seconds=_int(chosen["timeout_seconds"], 10, 600, "timeout_seconds"),
+        timeout_seconds=_int(
+            chosen["timeout_seconds"], *TIMEOUT_SECONDS_BOUNDS, "timeout_seconds"
+        ),
     )
     listed = adapter.priced_models.get(model_id)
     if listed is not None and declared_pricing is not None:

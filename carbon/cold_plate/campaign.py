@@ -257,6 +257,7 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
         campaign_implementation,
         new_plan_input_default,
         new_plan_output_default,
+        new_plan_timeout_default,
         private_file,
         requester,
         supplied_selection,
@@ -302,6 +303,7 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
             selection = supplied_selection(
                 args,
                 output_default=new_plan_output_default(args),
+                timeout_default=new_plan_timeout_default(args),
                 input_default=new_plan_input_default(args, agent),
             )
             if agent == "graphite":

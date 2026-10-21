@@ -48,6 +48,20 @@ def _output_bounds():
     return " to ".join(format(value, ",") for value in OUTPUT_TOKEN_BOUNDS)
 
 
+def _timeout_bounds():
+    # The runner validates timeout_seconds against these (model_provider).
+    from carbon.development_session.model_provider import TIMEOUT_SECONDS_BOUNDS
+
+    return " to ".join(format(value, ",") for value in TIMEOUT_SECONDS_BOUNDS)
+
+
+def _timeout_default():
+    # What a new plan's builder chooses when none is set (TIMEOUT_DEFAULT_V2).
+    from carbon.development_session.model_provider import TIMEOUT_DEFAULT_V2_SECONDS
+
+    return format(TIMEOUT_DEFAULT_V2_SECONDS, ",")
+
+
 #: Every request field any operation takes, with its JSON type and meaning.
 #: Both doors read these: the browser validates bodies against them and MCP
 #: builds its tool schemas from them, so a field cannot mean two things.
@@ -154,9 +168,15 @@ FIELDS = {
             "model_provider; recorded in the campaign manifest. Omitted: the "
             "pinned defaults, except max_output_tokens, which is the chosen "
             "model's own maximum output where Carbon records one; set it to "
-            "cap the agent's replies (each call is reserved at the cap). "
-            "max_output_tokens is an integer from "
+            "cap the agent's replies (each call is reserved at the cap); and "
+            "timeout_seconds, which is "
+            + _timeout_default()
+            + " seconds, how long each call may wait for the provider's "
+            "answer before it ends with its outcome unknown (it reserves no "
+            "money). max_output_tokens is an integer from "
             + _output_bounds()
+            + " and timeout_seconds one from "
+            + _timeout_bounds()
             + "; any other value is refused model_selection_refused."
         ),
     ),

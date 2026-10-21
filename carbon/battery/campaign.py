@@ -501,6 +501,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
         from carbon.development_session.research_campaign import (
             new_plan_input_default,
             new_plan_output_default,
+            new_plan_timeout_default,
             supplied_selection,
         )
 
@@ -516,6 +517,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
             selection = supplied_selection(
                 args,
                 output_default=new_plan_output_default(args),
+                timeout_default=new_plan_timeout_default(args),
                 input_default=new_plan_input_default(args, agent),
             )
             if agent == "graphite":

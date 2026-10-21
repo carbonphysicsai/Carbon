@@ -885,7 +885,9 @@ MODEL_SELECTION_FIELDS = frozenset(
 )
 
 
-def setup_selection(cfg, *, settings=None, output_default=None, input_default=None):
+def setup_selection(
+    cfg, *, settings=None, output_default=None, input_default=None, timeout_default=None
+):
     """The profile's setup choice as a validated selection, with its key file.
 
     Raises `ModelSelectionRefused` when it does not validate.
@@ -899,6 +901,7 @@ def setup_selection(cfg, *, settings=None, output_default=None, input_default=No
         settings=settings,
         output_default=output_default,
         input_default=input_default,
+        timeout_default=timeout_default,
         **chosen,
     )
 
@@ -1334,27 +1337,31 @@ def graphite_default_selection(cfg):
     """The selection a Graphite launch naming no model and no model settings
     runs with (setup's choice, or the pinned default), exactly as its
     campaign's builder chooses it: the model's own maximum output
-    (OWNER-LAUNCHPAD-PROD-02) and its published context less that output
-    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01). None when it does not validate."""
+    (OWNER-LAUNCHPAD-PROD-02), its published context less that output
+    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01) and the longest provider call
+    timeout (`TIMEOUT_DEFAULT_V2`). None when it does not validate."""
     from carbon.development_session.model_provider import (
         DEFAULT_SELECTION,
         INPUT_DEFAULT_V2,
         OUTPUT_DEFAULT_V2,
+        TIMEOUT_DEFAULT_V2,
         ModelSelectionRefused,
         select,
     )
 
+    defaults = {
+        "output_default": OUTPUT_DEFAULT_V2,
+        "input_default": INPUT_DEFAULT_V2,
+        "timeout_default": TIMEOUT_DEFAULT_V2,
+    }
     try:
         if "model_selection" in cfg:
-            return setup_selection(
-                cfg, output_default=OUTPUT_DEFAULT_V2, input_default=INPUT_DEFAULT_V2
-            )
+            return setup_selection(cfg, **defaults)
         return select(
             provider_id=DEFAULT_SELECTION.provider_id,
             model_id=DEFAULT_SELECTION.model_id,
             credential={"kind": "file", "reference": "unset"},
-            output_default=OUTPUT_DEFAULT_V2,
-            input_default=INPUT_DEFAULT_V2,
+            **defaults,
         )
     except (ModelSelectionRefused, KeyError, TypeError, ValueError):
         return None
@@ -3123,6 +3130,7 @@ class RunnerAdapter:
             ADAPTERS,
             INPUT_DEFAULT_V2,
             OUTPUT_DEFAULT_V2,
+            TIMEOUT_DEFAULT_V2,
             ModelSelectionRefused,
             check_budget,
             select,
@@ -3175,14 +3183,16 @@ class RunnerAdapter:
                 raise Rejected(refusal, 409)
             try:
                 # A launch makes a new plan: an unset output cap is the
-                # model's own maximum (OWNER-LAUNCHPAD-PROD-02), as the
-                # campaign's own builder will choose it.
+                # model's own maximum (OWNER-LAUNCHPAD-PROD-02) and an unset
+                # timeout the longest (`TIMEOUT_DEFAULT_V2`), as the
+                # campaign's own builder will choose them.
                 selection = (
                     setup_selection(
                         cfg,
                         settings=settings,
                         output_default=OUTPUT_DEFAULT_V2,
                         input_default=input_default,
+                        timeout_default=TIMEOUT_DEFAULT_V2,
                     )
                     if same_as_setup
                     else select(
@@ -3192,6 +3202,7 @@ class RunnerAdapter:
                         settings=settings,
                         output_default=OUTPUT_DEFAULT_V2,
                         input_default=input_default,
+                        timeout_default=TIMEOUT_DEFAULT_V2,
                     )
                 )
                 budget = miner_budget(request.get("budget"))

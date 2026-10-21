@@ -528,6 +528,39 @@ def _output_cap(providers):
     }
 
 
+def _call_timeout():
+    """The launch's optional provider call timeout
+    (`model_settings.timeout_seconds`, M1 rehearsal 2026-10-21): its bounds
+    and the default a launch that sets none gets, exactly what the campaign's
+    builder chooses for a new plan (`select(timeout_default=
+    TIMEOUT_DEFAULT_V2)`). The page shows and pre-checks these; the runner
+    validates the launch and has the last word."""
+    from carbon.development_session.model_provider import (
+        DEADLINE_MARGIN_SECONDS,
+        TIMEOUT_DEFAULT_V2,
+        TIMEOUT_DEFAULT_V2_SECONDS,
+        TIMEOUT_SECONDS_BOUNDS,
+    )
+
+    low, high = TIMEOUT_SECONDS_BOUNDS
+    return {
+        "launch_field": "model_settings.timeout_seconds",
+        "bounds": [low, high],
+        "default": TIMEOUT_DEFAULT_V2_SECONDS,
+        "default_rule": TIMEOUT_DEFAULT_V2,
+        "basis": (
+            "Optional. Blank: "
+            f"{TIMEOUT_DEFAULT_V2_SECONDS} seconds. How long each model call "
+            "may wait for the provider's answer; a call still unanswered then "
+            f"is ended (at most {DEADLINE_MARGIN_SECONDS} seconds later) with "
+            "its outcome unknown, and is reconciled, never resent. A new call "
+            "starts only while this much of your elapsed limit is left. It "
+            "reserves no money. Sent only with a provider and model, and "
+            "validated by the runner at launch."
+        ),
+    }
+
+
 #: The closed advisory code the input window carries for Graphite (LA-F8).
 GRAPHITE_INPUT_WINDOW = "graphite_input_window_too_small"
 
@@ -542,6 +575,7 @@ def _graphite_window(provider_id, model_id):
     from carbon.development_session.model_provider import (
         INPUT_DEFAULT_V2,
         OUTPUT_DEFAULT_V2,
+        TIMEOUT_DEFAULT_V2,
         ModelSelectionRefused,
         select,
     )
@@ -553,6 +587,7 @@ def _graphite_window(provider_id, model_id):
             credential={"kind": "file", "reference": "unset"},
             output_default=OUTPUT_DEFAULT_V2,
             input_default=INPUT_DEFAULT_V2,
+            timeout_default=TIMEOUT_DEFAULT_V2,
         )
     except ModelSelectionRefused:
         return None
@@ -670,6 +705,7 @@ def _model(options, refusal, cfg=None):
         "setup_choice": setup,
         "launch_field": ["model_provider", "model"],
         "output_cap": _output_cap(providers),
+        "call_timeout": _call_timeout(),
         "input_window": _input_window(providers),
         "selection": (
             "The launch carries model_provider and model. The key file is the "
@@ -887,7 +923,8 @@ def _launch():
             "review_digest",
             "model_provider",
             "model",
-            # Only max_output_tokens, only with model_provider and model.
+            # Only max_output_tokens and timeout_seconds, only with
+            # model_provider and model.
             "model_settings",
             # Graphite's own, with agent=graphite only (S4).
             "graphite_mode",

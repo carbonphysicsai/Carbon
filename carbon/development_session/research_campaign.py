@@ -37,6 +37,8 @@ from .model_provider import (
     MODEL,
     OUTPUT_DEFAULT_V2,
     OUTPUT_DEFAULTS,
+    TIMEOUT_DEFAULT_V2,
+    TIMEOUT_DEFAULTS,
     SelectionTransport,
     check_budget,
     select,
@@ -957,13 +959,15 @@ async def prepare_burgers(args, *, ledger=None, campaign):
     )
 
 
-def supplied_selection(args, *, output_default=None, input_default=None):
+def supplied_selection(
+    args, *, output_default=None, input_default=None, timeout_default=None
+):
     """The miner's `args.model_selection` ({provider_id, model_id, settings?,
     endpoint?, declared_pricing?, credential?}), or the pinned default when
     none is given. A file credential is the `--api-key-file` supplied at run
-    time; its path is never recorded. `output_default` and `input_default`
-    are how an unset output cap and input window are chosen
-    (`model_provider.select`)."""
+    time; its path is never recorded. `output_default`, `input_default` and
+    `timeout_default` are how an unset output cap, input window and provider
+    call timeout are chosen (`model_provider.select`)."""
     supplied = getattr(args, "model_selection", None)
     path = getattr(args, "api_key_file", None)
     spec = (
@@ -980,6 +984,7 @@ def supplied_selection(args, *, output_default=None, input_default=None):
             **spec,
             "output_default": output_default,
             "input_default": input_default,
+            "timeout_default": timeout_default,
         }
     )
 
@@ -1005,25 +1010,40 @@ def new_plan_output_default(args):
     return OUTPUT_DEFAULT_V2 if getattr(args, "product", None) is not None else None
 
 
+def new_plan_timeout_default(args):
+    """How a new campaign's provider call timeout is chosen when the miner
+    sets none. A product campaign's agent may wait for a long reply on the
+    miner's own budget, so it waits up to `select`'s own maximum
+    (`TIMEOUT_DEFAULT_V2`, M1 rehearsal 2026-10-21) rather than cutting a
+    call that is still being answered into an unknown outcome. A campaign
+    admitted by a development grant keeps the historical 120 s its grant's
+    time checks were built with."""
+    return TIMEOUT_DEFAULT_V2 if getattr(args, "product", None) is not None else None
+
+
 def resolve_selection(args, record):
     """A frozen campaign's selection from its recorded block; a differing
     `model_selection` supplied on resume is refused.
 
-    A supplied choice that sets no output cap or input window names the
-    frozen one under either default: the plan recorded the values its own
-    rules chose, and resolving it again under today's rules must not refuse
-    an earlier plan."""
+    A supplied choice that sets no output cap, input window or timeout names
+    the frozen one under either default: the plan recorded the values its
+    own rules chose, and resolving it again under today's rules must not
+    refuse an earlier plan."""
     path = getattr(args, "api_key_file", None)
     chosen = selection_from_record(
         record, credential_file=None if path is None else str(path)
     )
     if getattr(args, "model_selection", None) is not None and all(
         supplied_selection(
-            args, output_default=output_rule, input_default=input_rule
+            args,
+            output_default=output_rule,
+            input_default=input_rule,
+            timeout_default=timeout_rule,
         ).record()
         != chosen.record()
         for output_rule in OUTPUT_DEFAULTS
         for input_rule in INPUT_DEFAULTS
+        for timeout_rule in TIMEOUT_DEFAULTS
     ):
         raise ValueError("model selection differs from the frozen campaign's")
     return chosen
@@ -1033,12 +1053,17 @@ def campaign_selection(args):
     """The campaign's model selection (`model_provider`). A frozen campaign's
     is the one its manifest records - every campaign frozen before selection
     existed resolves to the pinned default - otherwise the miner's, with a new
-    plan's output default (`new_plan_output_default`)."""
+    plan's output and timeout defaults (`new_plan_output_default`,
+    `new_plan_timeout_default`)."""
     manifest_path = args.root / "campaign-manifest.json"
     if manifest_path.exists():
         frozen = json.loads(manifest_path.read_bytes())
         return resolve_selection(args, frozen["provider"])
-    return supplied_selection(args, output_default=new_plan_output_default(args))
+    return supplied_selection(
+        args,
+        output_default=new_plan_output_default(args),
+        timeout_default=new_plan_timeout_default(args),
+    )
 
 
 @dataclasses.dataclass

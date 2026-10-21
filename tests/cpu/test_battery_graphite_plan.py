@@ -68,18 +68,19 @@ def new_plan_selection(args, agent=None):
     (OWNER-LAUNCHPAD-PROD-02: the model's own maximum output, unless the
     miner set a cap), else as before it; and for `agent`'s plan under the
     new-plan input default where this tree has it
-    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01)."""
+    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01); and under the new-plan timeout
+    default where this tree has it (`model_provider.TIMEOUT_DEFAULT_V2`)."""
     output_default = getattr(campaigns, "new_plan_output_default", None)
     if output_default is None:
         return campaigns.supplied_selection(args)
+    chosen = {"output_default": output_default(args)}
+    timeout_default = getattr(campaigns, "new_plan_timeout_default", None)
+    if timeout_default is not None:
+        chosen["timeout_default"] = timeout_default(args)
     input_default = getattr(campaigns, "new_plan_input_default", None)
-    if input_default is None or agent is None:
-        return campaigns.supplied_selection(args, output_default=output_default(args))
-    return campaigns.supplied_selection(
-        args,
-        output_default=output_default(args),
-        input_default=input_default(args, agent),
-    )
+    if input_default is not None and agent is not None:
+        chosen["input_default"] = input_default(args, agent)
+    return campaigns.supplied_selection(args, **chosen)
 
 
 #: What one model call of a new product plan on the pinned model reserves.
