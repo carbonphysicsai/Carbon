@@ -52,3 +52,11 @@ The class's actual values. They're measured from the calibration host, not chose
 - **Nothing is built for a GPU class yet:** no GPU fields in the install check, and no GPU determinism probe as a gate. These wait for the launch-time hardware decision.
 - **The 4-vCPU DEVELOPMENT class stays the only registered class,** for testnet and rehearsal.
 - **The one-host-class rule itself stands.**
+
+## Why the ISA match is an exact set (Validator, 2026-10-21, from measurement)
+
+- **The evidence:** the rebuilt KRR baseline legs reproduce the recorded values exactly on Intel (Hetzner cx43) and on AMD EPYC-Rome (cx43 hel1). They differ only on AMD EPYC-Genoa (cpx42): Cooling A differs by about 2.4e-10 and Motor A by about 9e-14.
+  - Genoa adds `avx512f`, so the maths library takes a different kernel path.
+  - The source is the Test Lead's gate results of 2026-10-20 and 2026-10-21, at bases 2a0f504a6, 283ee48da and 264a51220.
+- **Why that makes the rule exact:** a floor rule ("at least avx2+fma") would admit Genoa and its drifting legs. That's why the install check compares the ISA flags as an exact set, and why a host with extra instructions counts as another class.
+- **For any future class (mainnet included):** leg minimums and rebuild noise are re-measured on that class's own CPU. They're never carried over from another class.
