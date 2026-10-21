@@ -41,8 +41,10 @@ DEPLOYMENT_SCHEMA = "carbon.f02.hidden-deployment.v1"
 STORE_SCHEMA = "carbon.f02.hidden-store.v1"
 AUTHORITY = "OWNER-F02-F08-EXAM-DRAW-01"
 #: The pinned, MMS-verified F02 Elmer image (f02_readiness.IMAGE; a test pins
-#: the two equal).
-SOLVER_IMAGE = "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add"
+#: the two equal): the 2026-10-21 rebuild, re-pinned by the Validator on its MMS
+#: and A5 lineage (docs/development/evidence/f02-rebuild-20261021/); the RR-04
+#: image it replaces is lost on every host.
+SOLVER_IMAGE = "sha256:fe8a5b1abebf56bbd9cd1aae2ee08f1825b2991abc0bb14b5be3fae26e6512ec"
 RUNNER = Path("scripts/dev/reference_packages/elmer/f02_exam_runner.py")
 TERMINAL = ("OK", "REFERENCE_INVALID", "REFERENCE_SOLVER_FAILED", "REFERENCE_TIMEOUT")
 KINDS = ("screening",)

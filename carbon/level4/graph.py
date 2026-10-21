@@ -307,6 +307,12 @@ def prune(doc):
     return pruned
 
 
+#: Containment, not a model rule: the deepest call nesting the host walks, so
+#: a hostile document cannot overflow the parser's stack. Fixed, never
+#: miner-tunable (Validator, VALIDATOR_NO_MODEL_SIZE_CAP_SPEC_20261021).
+MAX_CALL_DEPTH = 256
+
+
 def call_depth(doc):
     """The deepest chain of nested calls from the entry (entry alone = 1)."""
     graphs, memo = doc["graphs"], {}
@@ -314,6 +320,8 @@ def call_depth(doc):
     def depth(name, stack):
         if name in stack:
             raise GraphRefused("graph_call_cycle", name)
+        if len(stack) >= MAX_CALL_DEPTH:
+            raise GraphRefused("graph_call_depth_containment", name)
         if name not in memo:
             refs = [
                 r for node in graphs[name]["nodes"] for r in graph_refs(node["params"])
