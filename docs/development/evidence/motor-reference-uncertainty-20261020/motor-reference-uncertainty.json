@@ -1,0 +1,272 @@
+{
+ "U": {
+  "mean_torque_nm": 0.0052,
+  "ripple_fraction": 0.026
+ },
+ "bands": {
+  "mean_torque_nm": {
+   "case": "unc-05",
+   "largest_full_range": 0.0051283764814098465
+  },
+  "ripple_fraction": {
+   "case": "unc-10",
+   "largest_full_range": 0.025227637956773297
+  }
+ },
+ "decision": {
+  "mean_torque_nm": "the full L0-L2 range over all 12 cases (0.005128, unc-05), rounded up to 2 significant figures",
+  "reference_level": "L0 (standard mesh); a sealed case within U of a limit is UNRESOLVED; a batch with more than 1/3 of its cases UNRESOLVED stops",
+  "ripple_fraction": "the largest band over all cases (0.025228, unc-10), rounded up to 2 significant figures; covers unc-08's unconverged monotone tail (about 0.024)"
+ },
+ "form": "bounded full-range bands (Validator, VALIDATOR_MOTOR_U_DECISION_20261020): the registered method STOPPED on trigger 1 and is not reinterpreted",
+ "limits": {
+  "mean_torque_nm": ">= 4.0",
+  "ripple_fraction": "<= 0.30"
+ },
+ "method": "MOTOR_REF_UNCERTAINTY_METHOD_20261019",
+ "method_verdict": "STOPPED",
+ "per_case": {
+  "unc-00": {
+   "mean_torque_nm": {
+    "angular_abs_delta": 9.20633502765611e-08,
+    "ladder_L0_L1_L2": [
+     3.9415120804327133,
+     3.9420296536497714,
+     3.9423351440776924
+    ]
+   },
+   "ripple_fraction": {
+    "angular_abs_delta": 3.486884512793331e-05,
+    "ladder_L0_L1_L2": [
+     0.1932979305571205,
+     0.19247746327924245,
+     0.19229056441553746
+    ]
+   },
+   "role": "near_torque"
+  },
+  "unc-01": {
+   "mean_torque_nm": {
+    "angular_abs_delta": 2.2602326854581634e-07,
+    "ladder_L0_L1_L2": [
+     4.081592174581702,
+     4.080971294094478,
+     4.08085302009838
+    ]
+   },
+   "ripple_fraction": {
+    "angular_abs_delta": 3.73951207807699e-05,
+    "ladder_L0_L1_L2": [
+     0.15254997071365073,
+     0.15113365816200394,
+     0.1506112258027722
+    ]
+   },
+   "role": "near_torque"
+  },
+  "unc-02": {
+   "mean_torque_nm": {
+    "ladder_L0_L1_L2": [
+     3.856887596242475,
+     3.857416846396863,
+     3.8577193066690625
+    ]
+   },
+   "ripple_fraction": {
+    "ladder_L0_L1_L2": [
+     0.516616374206127,
+     0.5170192002735516,
+     0.5170418958369585
+    ]
+   },
+   "role": "near_torque"
+  },
+  "unc-03": {
+   "mean_torque_nm": {
+    "ladder_L0_L1_L2": [
+     3.77653330190164,
+     3.7751633832972247,
+     3.7756846674046414
+    ]
+   },
+   "ripple_fraction": {
+    "ladder_L0_L1_L2": [
+     0.5894012053746787,
+     0.583141423938259,
+     0.5809498336435084
+    ]
+   },
+   "role": "near_torque"
+  },
+  "unc-04": {
+   "mean_torque_nm": {
+    "ladder_L0_L1_L2": [
+     4.180128660129851,
+     4.181720521761654,
+     4.182556577157906
+    ]
+   },
+   "ripple_fraction": {
+    "ladder_L0_L1_L2": [
+     0.5328223160621717,
+     0.5312841718604474,
+     0.5303208292421077
+    ]
+   },
+   "role": "near_torque"
+  },
+  "unc-05": {
+   "mean_torque_nm": {
+    "angular_abs_delta": 2.046382574505401e-08,
+    "ladder_L0_L1_L2": [
+     1.8560575274551645,
+     1.8509291509737547,
+     1.8512267555886173
+    ]
+   },
+   "ripple_fraction": {
+    "angular_abs_delta": 0.00032804204295927564,
+    "ladder_L0_L1_L2": [
+     0.300121698685523,
+     0.29900195062438273,
+     0.2984735195981943
+    ]
+   },
+   "role": "near_ripple"
+  },
+  "unc-06": {
+   "mean_torque_nm": {
+    "angular_abs_delta": 1.1422762025148359e-07,
+    "ladder_L0_L1_L2": [
+     7.304242973518942,
+     7.304201790153498,
+     7.305650903966282
+    ]
+   },
+   "ripple_fraction": {
+    "angular_abs_delta": 0.00022752216238108858,
+    "ladder_L0_L1_L2": [
+     0.31688957756011377,
+     0.31616063332230515,
+     0.31593895335815886
+    ]
+   },
+   "role": "near_ripple"
+  },
+  "unc-07": {
+   "mean_torque_nm": {
+    "ladder_L0_L1_L2": [
+     6.476205621664667,
+     6.47423453852511,
+     6.475100069276948
+    ]
+   },
+   "ripple_fraction": {
+    "ladder_L0_L1_L2": [
+     0.2815668253350755,
+     0.28173871154464986,
+     0.2819091154591527
+    ]
+   },
+   "role": "near_ripple"
+  },
+  "unc-08": {
+   "mean_torque_nm": {
+    "ladder_L0_L1_L2": [
+     0.7171663454365754,
+     0.7167204083112824,
+     0.716877139601435
+    ]
+   },
+   "ripple_fraction": {
+    "ladder_L0_L1_L2": [
+     0.3000871423797889,
+     0.2860481266024386,
+     0.2802520117701408
+    ]
+   },
+   "role": "near_ripple"
+  },
+  "unc-09": {
+   "mean_torque_nm": {
+    "ladder_L0_L1_L2": [
+     6.173286855527014,
+     6.171490156035326,
+     6.172690703672822
+    ]
+   },
+   "ripple_fraction": {
+    "ladder_L0_L1_L2": [
+     0.328345111420739,
+     0.3279642760431899,
+     0.3279573319780592
+    ]
+   },
+   "role": "near_ripple"
+  },
+  "unc-10": {
+   "mean_torque_nm": {
+    "ladder_L0_L1_L2": [
+     0.630174131302999,
+     0.6311729535385451,
+     0.6311889609847721
+    ]
+   },
+   "ripple_fraction": {
+    "ladder_L0_L1_L2": [
+     0.7993544695645756,
+     0.7821940077921844,
+     0.7741268316078023
+    ]
+   },
+   "role": "far"
+  },
+  "unc-11": {
+   "mean_torque_nm": {
+    "ladder_L0_L1_L2": [
+     6.15696591652823,
+     6.156958418605367,
+     6.15711452965436
+    ]
+   },
+   "ripple_fraction": {
+    "ladder_L0_L1_L2": [
+     0.15868133309418506,
+     0.15640407504166248,
+     0.1557336766313589
+    ]
+   },
+   "role": "far"
+  }
+ },
+ "schema": "carbon.motor.reference-uncertainty.v1",
+ "scope": "DEVELOPMENT reference uncertainty; not a qualification",
+ "sources": {
+  "computation": {
+   "output_sha256": "137abdf3e705d6352bd02c4d10c35a60c0da69605e19793411de5f7a3a4f8555",
+   "script_sha256": "8824f865eafcde43215af9631fc3fde716082dd5517fe40bf35e96254e31ca8f"
+  },
+  "image": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+  "panel": {
+   "file": "motor-panel.json",
+   "sha256": "d4d13c960517cdb2709e4dcaf95c533fb8514cd8fae03a3bf6b9eed4e7becbbb"
+  },
+  "rr13_records": {
+   "file": "rp-rr13-panel records-with-mesh.jsonl",
+   "sha256": "134e8084d76ad161bf86087055dcbb3840d2a65bae4ac399c52db5ba84ae8fee"
+  },
+  "rr13b_records": {
+   "file": "motor-rr13b records-with-mesh.jsonl",
+   "sha256": "a8b4fe3eb2cfd05e4ae34985551c9d9d1e12bc40a9435bb4d3a8d659cc3f49c6"
+  }
+ },
+ "stop_triggers": [
+  "1:non-monotone mean_torque_nm unc-03",
+  "1:non-monotone mean_torque_nm unc-05",
+  "1:non-monotone mean_torque_nm unc-06",
+  "1:non-monotone mean_torque_nm unc-07",
+  "1:order ripple_fraction unc-07 p=0.0125",
+  "1:non-monotone mean_torque_nm unc-08",
+  "1:non-monotone mean_torque_nm unc-09"
+ ]
+}

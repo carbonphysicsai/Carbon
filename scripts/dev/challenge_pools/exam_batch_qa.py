@@ -13,7 +13,8 @@ BATCH.json: {"batch_digest", "image_digest",
 SPEC.json:  {"challenge", "verified_image_digests": [...],
              "limits": [{"quantity", "threshold", "feasible": "<=" | ">="}],
              "u": {q: number or null} | "registered",  # the Challenge's U record
-             "straddle_min_fraction": 1/3 unless the owner set another}
+             "straddle_min_fraction": 1/3 unless the owner set another,
+             "unresolved_max_fraction": optional; e.g. Motor's 1/3}
 FINE.json:  {case_id: {q: value}} for the selected cases, solved one ratio-2
             refinement finer on the same image.
 
@@ -26,6 +27,10 @@ with the same batch):
    count on neither side; each side needs at least the minimum fraction of
    all cases (`straddle_short:<q>`). No registered U fails closed
    (`u_unregistered:<q>`): an unresolved band cannot be drawn without it.
+   With `unresolved_max_fraction`, more UNRESOLVED cases than that fraction
+   fail (`unresolved_over_fraction:<q>`; Validator, Motor U decision
+   2026-10-20). Each UNRESOLVED case's reference value is logged in the
+   host-only record.
 3. spot-check: 3 cases drawn with the seed sha256(batch digest); for every
    limit quantity, |fine - reference| <= U and no label flips
    (`spot_check:<case>:<q>`). A label is a side only where the reference is
@@ -54,6 +59,11 @@ U_RECORDS = {
     "f02": (
         "docs/development/evidence/f02-cold-pack-20261020/reference-uncertainty/f02-reference-uncertainty.json",
         "e2262bf8eeca845c2b33d0e32b5f184751693a1771d9bd156cadd5613ac2dc6c",
+    ),
+    # Motor: bounded full-range bands (VALIDATOR_MOTOR_U_DECISION_20261020).
+    "electric-motor-magnetics": (
+        "docs/development/evidence/motor-reference-uncertainty-20261020/motor-reference-uncertainty.json",
+        "04c68c4c0ddb612c2c5729548a6d6e42b849aaab87574dfdb146b10ba4a4b94a",
     ),
 }
 SPOT_CASES = 3
@@ -105,16 +115,20 @@ def _straddle(batch, spec):
         q, u = limit["quantity"], spec["u"].get(limit["quantity"])
         if not _finite(u) or u < 0:
             return counts, f"u_unregistered:{q}"
-        row = {"feasible": 0, "infeasible": 0, "unresolved": 0}
+        row = {"feasible": 0, "infeasible": 0, "unresolved": 0, "unresolved_cases": {}}
         for case in batch["cases"]:
             value = case["quantities"].get(q)
             if not _finite(value):
                 return counts, f"straddle_short:{q}"
             if abs(value - limit["threshold"]) <= u:
                 row["unresolved"] += 1
+                row["unresolved_cases"][case["case_id"]] = value
             else:
                 row[side(value, limit)] += 1
         counts[q] = row
+        most = spec.get("unresolved_max_fraction")
+        if most is not None and row["unresolved"] > most * n:
+            return counts, f"unresolved_over_fraction:{q}"
         if min(row["feasible"], row["infeasible"]) < fraction * n:
             return counts, f"straddle_short:{q}"
     return counts, None

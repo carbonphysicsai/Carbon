@@ -49,6 +49,7 @@ def test_a_good_batch_passes_and_only_digest_and_verdict_are_public():
         "feasible": 3,
         "infeasible": 3,
         "unresolved": 0,
+        "unresolved_cases": {},
     }
     assert len({r["case_id"] for r in record["spot_check"]}) == 3
     assert qa.public(record) == {"batch_digest": "b1", "verdict": "PASS"}
@@ -77,8 +78,39 @@ def test_cases_within_u_are_unresolved_and_count_on_neither_side():
         "feasible": 2,
         "infeasible": 2,
         "unresolved": 2,
+        # Logged with their reference values (host-only record).
+        "unresolved_cases": {"c2": 95.05, "c3": 94.95},
     }
     assert record["failure"] is None  # 2 of 6 is a third on each side
+
+
+def test_more_unresolved_than_the_allowed_fraction_fails():
+    """Motor (Validator, 2026-10-20): more than 1/3 of a batch within U stops."""
+    values = [90.0, 91.0, 95.05, 94.95, 95.02, 99.0, 100.0, 101.0, 89.0]
+    batch = _batch(values)
+    spec = {**SPEC, "unresolved_max_fraction": 1 / 3, "straddle_min_fraction": 0.2}
+    assert qa.judge(batch, spec, _fine(batch))["failure"] is None  # 3 of 9
+    over = _batch(values[:3] + [95.0, 94.99] + values[3:])
+    record = qa.judge(over, spec, _fine(over))
+    assert record["failure"] == "unresolved_over_fraction:peak"  # 5 of 11
+    assert len(record["straddle"]["peak"]["unresolved_cases"]) == 5
+    # Without the field, no such stop (the other Challenges' rule).
+    assert (
+        qa.judge(over, {**SPEC, "straddle_min_fraction": 0.2}, _fine(over))["failure"]
+        is None
+    )
+
+
+def test_motor_u_is_the_validators_rounded_up_bands():
+    import json
+
+    u = qa.registered_u("electric-motor-magnetics")
+    assert u == {"mean_torque_nm": 0.0052, "ripple_fraction": 0.026}
+    path, _pin = qa.U_RECORDS["electric-motor-magnetics"]
+    record = json.loads((ROOT / path).read_text())
+    # Each U covers its own measured full-range band (rounded up, never down).
+    for q, band in record["bands"].items():
+        assert u[q] >= band["largest_full_range"]
 
 
 def test_no_registered_u_fails_closed():
