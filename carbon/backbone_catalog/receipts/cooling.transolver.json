@@ -4,10 +4,12 @@
  "distinct_states": 1,
  "files": 2,
  "identical": 1,
+ "image_digest": "sha256:c12e01fb2a79d251aaf3d6ddcceec46f462e2ee74bcf13d71a7f2255e12cc2f6",
  "key": "cooling_transolver",
  "pairs": 1,
  "schema": "carbon.backbone-catalog-pair-identity.v1",
  "source_report": "PAIR_IDENTITY_COOLING_CATALOG_20261020.json",
  "source_report_sha256": "sha256:74c2afa464e79262a7b4ce634b8da1b051fc6d7cf888e8cb8d5935f5f7dff4df",
+ "tested_on": "chip-cold-plate@1.0",
  "unpaired": 0
 }

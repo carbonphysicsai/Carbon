@@ -4,10 +4,12 @@
  "distinct_states": 22,
  "files": 44,
  "identical": 22,
+ "image_digest": "sha256:250242d5da2ad50ee3ea07574b891e5e16997f2fb0102097c9cc7b0065313688",
  "key": "jno_unet1d",
  "pairs": 22,
  "schema": "carbon.backbone-catalog-pair-identity.v1",
  "source_report": "PAIR_IDENTITY_TUNED_BACKBONES_20261020.json",
  "source_report_sha256": "sha256:03487f8d645aff04f72f374c0247fb1361fe4fa52c1da22ed4ed5425f7a7a82f",
+ "tested_on": "electric-motor-magnetics@1.0",
  "unpaired": 0
 }

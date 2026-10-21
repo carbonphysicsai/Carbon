@@ -99,19 +99,88 @@ def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
 
 
 @pytest.mark.parametrize(
-    "challenge",
+    "catalog_id, challenge",
     [
-        {"id": "f08-ribbed-bracket", "version": "1.3"},  # v7, no catalog yet
-        {"id": "chip-cold-plate", "version": "1.1"},  # step 2
-        {"id": "electric-motor-magnetics", "version": "1.1"},  # step 2
-        {"id": "electric-motor-magnetics", "version": "1.4"},  # unregistered
+        ("cooling.neuralop.FNO", {"id": "chip-cold-plate", "version": "1.1"}),
+        ("neuralop.FNO", {"id": "electric-motor-magnetics", "version": "1.1"}),
+        ("neuralop.FNO", {"id": "electric-motor-magnetics", "version": "1.4"}),
     ],
 )
-def test_an_entry_offered_where_no_catalog_is_served_is_refused(challenge):
-    item = copy.deepcopy(pipeline.entry("neuralop.FNO"))
+def test_an_entry_offered_where_no_catalog_is_served_is_refused(catalog_id, challenge):
+    item = copy.deepcopy(pipeline.entry(catalog_id))
     item["challenges"].append(challenge)
     with pytest.raises(pipeline.CatalogBroken, match="serves no backbone catalog"):
         pipeline.verify(item)
+
+
+# --- the receipt binds its run facts (Validator, 2026-10-21) ------------------
+
+
+@pytest.mark.parametrize(
+    "catalog_id, challenge",
+    [
+        ("neuralop.FNO", {"id": "chip-cold-plate", "version": "1.2"}),
+        ("neuralop.FNO", {"id": "f08-ribbed-bracket", "version": "1.4"}),
+        ("cooling.neuralop.FNO", {"id": "electric-motor-magnetics", "version": "1.3"}),
+    ],
+)
+def test_an_entry_offered_off_its_tested_challenge_is_refused(catalog_id, challenge):
+    # A Motor-tested entry is never offered on Cooling (or F08) on the strength
+    # of its Motor receipt, nor a Cooling-tested one on Motor.
+    item = copy.deepcopy(pipeline.entry(catalog_id))
+    item["challenges"].append(challenge)
+    with pytest.raises(pipeline.CatalogBroken, match="but tested on"):
+        pipeline.verify(item)
+
+
+@pytest.mark.parametrize(
+    "fact, match", [("tested_on", "tested Challenge"), ("image_digest", "worker image")]
+)
+def test_a_receipt_missing_a_run_fact_is_refused(tmp_path, monkeypatch, fact, match):
+    receipts = tmp_path / "receipts"
+    shutil.copytree(pipeline.RECEIPTS, receipts)
+    path = receipts / "neuralop.FNO.json"
+    receipt = json.loads(path.read_bytes())
+    del receipt[fact]
+    path.write_text(json.dumps(receipt))
+    monkeypatch.setattr(pipeline, "RECEIPTS", receipts)
+    with pytest.raises(pipeline.CatalogBroken, match=match):
+        pipeline.verify(pipeline.entry("neuralop.FNO"))
+
+
+def test_every_receipt_binds_its_packets_challenge_and_one_worker_image():
+    import re
+
+    for item in pipeline.entries():
+        receipt = json.loads(
+            (pipeline.RECEIPTS / (item["catalog_id"] + ".json")).read_bytes()
+        )
+        assert re.fullmatch(r"sha256:[0-9a-f]{64}", receipt["image_digest"])
+        tested_id = receipt["tested_on"].split("@")[0]
+        assert {c["id"] for c in item["challenges"]} == {tested_id}
+
+
+def test_bind_refuses_a_fact_that_differs_from_the_bound_one(tmp_path, monkeypatch):
+    receipts = tmp_path / "receipts"
+    shutil.copytree(pipeline.RECEIPTS, receipts)
+    monkeypatch.setattr(pipeline, "RECEIPTS", receipts)
+    bound = json.loads((receipts / "neuralop.FNO.json").read_bytes())
+    again = pipeline.bind(
+        "neuralop.FNO",
+        tested_on=bound["tested_on"],
+        image_digest=bound["image_digest"],
+    )
+    assert again == bound
+    with pytest.raises(pipeline.CatalogBroken, match="already binds another"):
+        pipeline.bind(
+            "neuralop.FNO",
+            tested_on=bound["tested_on"],
+            image_digest="sha256:" + "0" * 64,
+        )
+    with pytest.raises(pipeline.CatalogBroken, match="id@version"):
+        pipeline.bind(
+            "neuralop.FNO", tested_on="motor", image_digest="sha256:" + "0" * 64
+        )
 
 
 def test_the_licence_screen_left_kno_and_wno_out():
@@ -171,6 +240,7 @@ def test_only_a_baseline_packet_becomes_an_entry(tmp_path):
             challenges=["electric-motor-magnetics@1.2"],
             receipt=tmp_path / "r.json",
             receipt_key="fno",
+            image_digest="sha256:" + "0" * 64,
         )
 
 

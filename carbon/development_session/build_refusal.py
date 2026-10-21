@@ -94,6 +94,9 @@ CODES = {
     "graph_call_cycle": REFUSED,
     "key_dtype_outside_init": REFUSED,
     "input_names_mismatch": REFUSED,
+    # A graph whose declared batch differs from its own registered batch_size is the
+    # candidate's construct (Validator, 2026-10-21), not a gap Carbon left open.
+    "interface_batch": REFUSED,
     "integer_constant_out_of_range": REFUSED,
     "named_function_arity": REFUSED,
     "named_function_refused": REFUSED,

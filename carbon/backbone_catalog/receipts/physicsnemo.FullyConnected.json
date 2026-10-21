@@ -4,10 +4,12 @@
  "distinct_states": 22,
  "files": 44,
  "identical": 22,
+ "image_digest": "sha256:9c73f964c40ecbd7913c23af6cf1c41e149e1c3be2c7b96e01c29914dee13580",
  "key": "pnemo_fc",
  "pairs": 22,
  "schema": "carbon.backbone-catalog-pair-identity.v1",
  "source_report": "PAIR_IDENTITY_TUNED_BACKBONES_20261020.json",
  "source_report_sha256": "sha256:03487f8d645aff04f72f374c0247fb1361fe4fa52c1da22ed4ed5425f7a7a82f",
+ "tested_on": "electric-motor-magnetics@1.0",
  "unpaired": 0
 }

@@ -61,6 +61,13 @@ RECEIPTS = HERE / "receipts"
 RECEIPT_SCHEMA = "carbon.backbone-catalog-pair-identity.v1"
 FILES = ("bundle.json", "source.tar.gz", "LICENSE", "requirements.txt", "baseline.json")
 _CHALLENGE = re.compile(r"([a-z0-9][a-z0-9-]*)@([0-9]+\.[0-9]+)\Z")
+_IMAGE = re.compile(r"sha256:[0-9a-f]{64}\Z")
+#: The run facts every receipt binds (Validator, 2026-10-21): the Challenge
+#: (id@version, the packet's kit) its pairs were rebuilt on, and the worker
+#: image digest they ran on, both from the pair-identity run's records. The
+#: offered Challenges are not copied here: `verify` checks the manifest's own
+#: offers against `tested_on`.
+RUN_FACTS = ("tested_on", "image_digest")
 
 
 def _digest(body):
@@ -161,11 +168,23 @@ def verify(item, *, wheelhouse=None):
         or receipt.get("differ")
     ):
         raise CatalogBroken(f"{item['catalog_id']}: no clean pair-identity receipt")
+    tested = _CHALLENGE.fullmatch(str(receipt.get("tested_on", "")))
+    if tested is None:
+        raise CatalogBroken(
+            f"{item['catalog_id']}: receipt binds no tested Challenge (id@version)"
+        )
+    if _IMAGE.fullmatch(str(receipt.get("image_digest", ""))) is None:
+        raise CatalogBroken(f"{item['catalog_id']}: receipt binds no worker image")
     from carbon.challenge_kit.served_versions import UnregisteredVersion, serves_catalog
 
     for challenge in item["challenges"]:
         if set(challenge) != {"id", "version"}:
             raise CatalogBroken(f"{item['catalog_id']}: Challenge binding malformed")
+        if challenge["id"] != tested[1]:
+            raise CatalogBroken(
+                f"{item['catalog_id']}: offered on {challenge['id']} but tested on "
+                f"{tested[0]}"
+            )
         # Offered only on a version that serves the catalog: its construction
         # limits bind the catalog, so no other version can name an entry.
         try:
@@ -190,7 +209,7 @@ def verify_all(*, wheelhouse=None):
     return sorted(seen)
 
 
-def add(packet, *, challenges, receipt, receipt_key, catalog_id=None):
+def add(packet, *, challenges, receipt, receipt_key, image_digest, catalog_id=None):
     """Copy a tested packet's bundle in, import its receipt, write its line."""
     from . import settings
 
@@ -207,6 +226,17 @@ def add(packet, *, challenges, receipt, receipt_key, catalog_id=None):
     # The catalog id names the entry; the build keeps its own backbone name
     # (jNO's "fno1d" is catalogued as "jno.fno1d").
     catalog_id = catalog_id or backbone
+    kit = recipe["challenge"]
+    tested_on = f"{kit['id']}@{kit['version']}"
+    if _IMAGE.fullmatch(str(image_digest)) is None:
+        raise CatalogBroken("the worker image the pairs ran on is required (sha256)")
+    for text in challenges:
+        match = _CHALLENGE.fullmatch(text)
+        if match is not None and match[1] != kit["id"]:
+            raise CatalogBroken(
+                f"{catalog_id}: offered on {match[1]} but its packet was tested on "
+                f"{tested_on}"
+            )
     report = _json(receipt)
     record = report[receipt_key]
     root = BUNDLES / catalog_id
@@ -234,6 +264,8 @@ def add(packet, *, challenges, receipt, receipt_key, catalog_id=None):
                     "source_report": Path(receipt).name,
                     "source_report_sha256": _digest(Path(receipt).read_bytes()),
                     "key": receipt_key,
+                    "tested_on": tested_on,
+                    "image_digest": image_digest,
                     **{
                         k: record[k]
                         for k in (
@@ -314,6 +346,25 @@ def bundle_directory(item, target, *, wheelhouse=None):
     return target
 
 
+def bind(catalog_id, *, tested_on, image_digest):
+    """Backfill an existing receipt's run facts from the pair-identity run's
+    records (Validator, 2026-10-21). Refuses a malformed value or one that
+    differs from a fact the receipt already binds."""
+    if _CHALLENGE.fullmatch(str(tested_on)) is None:
+        raise CatalogBroken("tested_on is a Challenge id@version")
+    if _IMAGE.fullmatch(str(image_digest)) is None:
+        raise CatalogBroken("image_digest is a sha256 digest")
+    path = RECEIPTS / (catalog_id + ".json")
+    receipt = _json(path)
+    facts = {"tested_on": tested_on, "image_digest": image_digest}
+    for name, value in facts.items():
+        if receipt.get(name) not in (None, value):
+            raise CatalogBroken(f"{catalog_id}: receipt already binds another {name}")
+    receipt.update(facts)
+    path.write_bytes((json.dumps(receipt, sort_keys=True, indent=1) + "\n").encode())
+    return receipt
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -327,6 +378,11 @@ def main(argv=None):
     grow.add_argument("--receipt", type=Path, required=True)
     grow.add_argument("--receipt-key", required=True)
     grow.add_argument("--catalog-id")
+    grow.add_argument("--image-digest", required=True)
+    tie = commands.add_parser("bind")
+    tie.add_argument("catalog_id")
+    tie.add_argument("--tested-on", required=True)
+    tie.add_argument("--image-digest", required=True)
     moved = commands.add_parser("install")
     moved.add_argument("rest", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
@@ -345,6 +401,17 @@ def main(argv=None):
                     {"verified": verify_all(wheelhouse=args.wheelhouse)}, indent=1
                 )
             )
+        elif args.command == "bind":
+            print(
+                json.dumps(
+                    bind(
+                        args.catalog_id,
+                        tested_on=args.tested_on,
+                        image_digest=args.image_digest,
+                    ),
+                    indent=1,
+                )
+            )
         else:
             print(
                 json.dumps(
@@ -353,6 +420,7 @@ def main(argv=None):
                         challenges=args.challenge,
                         receipt=args.receipt,
                         receipt_key=args.receipt_key,
+                        image_digest=args.image_digest,
                         catalog_id=args.catalog_id,
                     ),
                     indent=1,
