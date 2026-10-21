@@ -248,10 +248,14 @@ def build_validated_graph(
 ) -> SyntheticGraphModel:
     """Rebuild the submitted graph exactly under the synthetic I/O contract."""
     settings = training_settings(recipe, train_cases)
-    graph_workspace(
-        recipe, raw_manifest, files, max_bytes=intake.BOUNDS["submission_bytes"]
-    )
     allowed = Allowlist(allowlist_bytes)
+    # The allowlist's own intake bound (the owner's BOUNDS under v5).
+    graph_workspace(
+        recipe,
+        raw_manifest,
+        files,
+        max_bytes=intake.bounds_for(allowed)["submission_bytes"],
+    )
     interface = graph_interface()
     _, parsed = intake.intake(
         raw_manifest,

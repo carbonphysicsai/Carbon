@@ -383,10 +383,14 @@ def build_validated_graph(
     )
     if type(train_cases) is not int or train_cases != spec.rows:
         raise RecipeRefused(spec.prefix + "_graph_train_invalid")
-    graph_workspace(
-        recipe, raw_manifest, files, max_bytes=intake.BOUNDS["submission_bytes"]
-    )
     allowed = Allowlist(allowlist_bytes)
+    # The version's own intake bound: its allowlist's (containment on v7).
+    graph_workspace(
+        recipe,
+        raw_manifest,
+        files,
+        max_bytes=intake.bounds_for(allowed)["submission_bytes"],
+    )
     interface = graph_interface(spec)
     _, parsed = intake.intake(
         raw_manifest,

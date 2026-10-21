@@ -117,7 +117,7 @@ raw_manifest, files = staging.from_workspace(
 )
 model = direct_graph.build_validated_graph(
     recipe, raw_manifest, files,
-    max_bytes=intake.BOUNDS["submission_bytes"],
+    max_bytes=direct_graph.submission_bytes(recipe.to_dict()["challenge"]["version"]),
     train_cases=len(train.case_ids), resolved_settings=settings,
 )
 fit = model.fit(train, seed=control["seed"])
@@ -188,7 +188,7 @@ def staged_files(
     test_inputs: dict,
 ) -> dict[str, bytes]:
     """Host-verified public bytes for one fixed-program reconstruction."""
-    from carbon.level4 import intake, staging
+    from carbon.level4 import staging
 
     if type(recipe) is not ConstructionRecipe or type(seed) is not int or seed < 0:
         raise RecipeRefused("battery_direct_request_invalid")
@@ -204,10 +204,9 @@ def staged_files(
     if recipe.to_dict()["source"]["kind"] != "graph":
         raise RecipeRefused("battery_direct_source_unsupported")
     settings = direct_graph.training_settings(recipe)
-    if (
-        type(source_envelope) is not bytes
-        or len(source_envelope) > intake.BOUNDS["submission_bytes"] * 2
-    ):
+    # The version's own intake bound (`intake.bounds_for` its graph allowlist).
+    bound = direct_graph.submission_bytes(recipe.to_dict()["challenge"]["version"])
+    if type(source_envelope) is not bytes or len(source_envelope) > bound * 2:
         raise RecipeRefused("battery_direct_envelope_invalid")
     try:
         envelope = json.loads(source_envelope)
@@ -216,16 +215,14 @@ def staged_files(
         raise RecipeRefused("battery_direct_envelope_invalid") from None
     if declared != recipe.to_dict()["source"]["submission_digest"]:
         raise RecipeRefused("construction_recipe_graph_digest_mismatch")
-    workspace = graph_workspace(
-        recipe, raw_manifest, files, max_bytes=intake.BOUNDS["submission_bytes"]
-    )
+    workspace = graph_workspace(recipe, raw_manifest, files, max_bytes=bound)
     # The host checks G0/G3/G4 before reserving the carrier. The isolated
     # worker repeats every check against the staged bytes.
     direct_graph.build_validated_graph(
         recipe,
         raw_manifest,
         files,
-        max_bytes=intake.BOUNDS["submission_bytes"],
+        max_bytes=bound,
         train_cases=challenge.TRAIN_V1_CASES,
         resolved_settings=settings,
     )

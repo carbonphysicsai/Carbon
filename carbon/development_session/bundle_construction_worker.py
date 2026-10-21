@@ -24,6 +24,7 @@ import numpy as np
 from carbon.challenge_validator.strict_json import MalformedStrategy, parse_strategy
 
 from .bundle_graph_state import MAX_BYTES as MAX_STATE_BYTES
+from .bundle_graph_state import state_fits, state_limit
 from .construction_recipe import ConstructionRecipe, RecipeRefused, bind_recipe
 from .library_bundles import LibraryBundleRef, bundle_ref
 from .library_environment_cache import VerifiedLibraryOverlay
@@ -1094,7 +1095,9 @@ def reconstruct_public(
         }:
             raise ValueError("bundle build output set differs")
         for name, ceiling in (
-            ("state.npz", MAX_STATE_BYTES),
+            # The state's ceiling is the allowlist version's (none when
+            # uncapped: the worker's output envelope already bounded it).
+            ("state.npz", state_limit(allowed)),
             ("receipt.json", 65536),
             ("native-predictions.json", 16 * 1024**2),
         ):
@@ -1102,7 +1105,8 @@ def reconstruct_public(
             if (
                 path.is_symlink()
                 or not path.is_file()
-                or not 0 < path.stat().st_size <= ceiling
+                or not 0 < path.stat().st_size
+                or (ceiling is not None and path.stat().st_size > ceiling)
             ):
                 raise ValueError("bounded bundle build output required")
         state = (snapshot / "state.npz").read_bytes()
@@ -1236,9 +1240,9 @@ def infer_public(
         or build.state_path != expected
         or expected.is_symlink()
         or not expected.is_file()
-        or not 0 < expected.stat().st_size <= MAX_STATE_BYTES
         or type(allowlist_bytes) is not bytes
         or not 0 < len(allowlist_bytes) <= 1024**2
+        or not state_fits(expected.stat().st_size, allowlist_bytes)
         or type(expected_output_shape) is not tuple
         or not expected_output_shape
         or any(type(n) is not int or n < 1 for n in expected_output_shape)
@@ -1308,10 +1312,10 @@ def infer_saved_bundle(
         or image.bundle_ref != recipe.to_dict()["source"]["bundle_ref"]
         or recipe.to_dict()["output"]["format"] != "carbon.numeric-graph.v1"
         or type(state_bytes) is not bytes
-        or not 0 < len(state_bytes) <= MAX_STATE_BYTES
         or type(expected_state_digest) is not str
         or type(allowlist_bytes) is not bytes
         or not 0 < len(allowlist_bytes) <= 1024**2
+        or not state_fits(len(state_bytes), allowlist_bytes)
     ):
         raise RecipeRefused("saved_bundle_inference_binding_invalid")
     if _digest(state_bytes) != expected_state_digest:

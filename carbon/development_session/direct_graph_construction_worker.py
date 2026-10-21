@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 
 from carbon.challenge_validator.strict_json import MalformedStrategy, parse_strategy
-from carbon.level4 import intake, staging
+from carbon.level4 import staging
 from carbon.reconstruction.worker.model import WorkerImageIdentity
 
 from .bundle_construction_worker import (
@@ -32,7 +32,13 @@ from .bundle_construction_worker import (
 )
 from .bundle_graph_state import MAX_BYTES as MAX_STATE_BYTES
 from .bundle_graph_state import load as load_state
-from .construction_recipe import ConstructionRecipe, RecipeRefused, graph_workspace
+from .bundle_graph_state import state_limit
+from .construction_recipe import (
+    ConstructionRecipe,
+    RecipeRefused,
+    graph_workspace,
+    recipe_graph_bounds,
+)
 from .profile import canonical
 from .research_carrier import PRECHARGED_TRIAL, _run
 
@@ -377,9 +383,11 @@ def _checked_envelope(recipe: ConstructionRecipe, source_envelope: bytes) -> byt
     if (
         type(recipe) is not ConstructionRecipe
         or recipe.to_dict()["source"]["kind"] != "graph"
-        or type(source_envelope) is not bytes
-        or not 0 < len(source_envelope) <= 2 * intake.BOUNDS["submission_bytes"]
     ):
+        raise RecipeRefused("direct_graph_source_invalid")
+    # The recipe's exact version's intake bound (containment on v7).
+    bound = recipe_graph_bounds(recipe)["submission_bytes"]
+    if type(source_envelope) is not bytes or not 0 < len(source_envelope) <= 2 * bound:
         raise RecipeRefused("direct_graph_source_invalid")
     try:
         envelope = json.loads(source_envelope)
@@ -388,9 +396,7 @@ def _checked_envelope(recipe: ConstructionRecipe, source_envelope: bytes) -> byt
         raise RecipeRefused("direct_graph_source_invalid") from None
     if declared != recipe.to_dict()["source"]["submission_digest"]:
         raise RecipeRefused("construction_recipe_graph_digest_mismatch")
-    graph_workspace(
-        recipe, raw_manifest, files, max_bytes=intake.BOUNDS["submission_bytes"]
-    )
+    graph_workspace(recipe, raw_manifest, files, max_bytes=bound)
     canonical_envelope = canonical(staging.envelope(raw_manifest, files))
     if source_envelope != canonical_envelope:
         raise RecipeRefused("direct_graph_source_noncanonical")
@@ -519,12 +525,16 @@ def reconstruct_public_graph(
             return outcome
         if names != {"state.npz", "receipt.json"}:
             raise ValueError("direct graph build output set differs")
-        for name, ceiling in (("state.npz", MAX_STATE_BYTES), ("receipt.json", 65536)):
+        for name, ceiling in (
+            ("state.npz", state_limit(allowed)),
+            ("receipt.json", 65536),
+        ):
             path = snapshot / name
             if (
                 path.is_symlink()
                 or not path.is_file()
-                or not 0 < path.stat().st_size <= ceiling
+                or not 0 < path.stat().st_size
+                or (ceiling is not None and path.stat().st_size > ceiling)
             ):
                 raise ValueError("bounded direct graph build output required")
         state = (snapshot / "state.npz").read_bytes()
