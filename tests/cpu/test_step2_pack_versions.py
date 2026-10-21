@@ -195,10 +195,42 @@ def test_v7_versions_are_their_predecessors_exam_under_their_own_pack(key):
     assert pp.physics_contract(cid, predecessor) == pp.physics_contract(cid, version)
     old, new = pp.public_roles(cid, predecessor), pp.public_roles(cid, version)
     assert set(old) == set(new)
+    # F08 1.4's limit statement cites the registered U (3.9e-5) where 1.3's
+    # carries the pre-record 3.4e-5; the test below pins exactly that change.
+    differs = {(F08, "1.4"): ("important_limit_definition",)}.get(key, ())
     for role in old:
-        if role in ("construction_kit", "train"):
+        if role in ("construction_kit", "train", *differs):
             continue
         assert _without_version(old[role], version, predecessor) == _without_version(
             new[role], version, predecessor
         ), role
     assert old["train"] == new["train"]
+
+
+def test_f08_limit_cites_the_registered_u_from_1_4_and_served_versions_keep_bytes():
+    """Validator, 2026-10-21: the registered U (3.9e-5 mm/N, worst dynamic)
+    governs; the fix is prospective, so 1.1-1.3 keep their served statement."""
+    import json
+
+    record_path = (
+        "docs/development/evidence/f08-near-limit-public-20261020/"
+        "reference-uncertainty/f08-reference-uncertainty.json"
+    )
+    for version in ("1.1", "1.2", "1.3"):
+        limits = json.loads(pp.public_roles(F08, version)["important_limit_definition"])
+        assert limits["exam_straddle"]["largest_reference_error_mm_per_n"] == 3.4e-5
+        assert "reference_uncertainty_mm_per_n" not in limits["exam_straddle"]
+    old = json.loads(pp.public_roles(F08, "1.3")["important_limit_definition"])
+    new = json.loads(pp.public_roles(F08, "1.4")["important_limit_definition"])
+    straddle = new["exam_straddle"]
+    assert straddle["reference_uncertainty_mm_per_n"] == 3.9e-5
+    assert straddle["reference_uncertainty_record"]["path"] == record_path
+    assert "largest_reference_error_mm_per_n" not in straddle
+    assert straddle["smallest_margin_mm_per_n"] / 3.9e-5 > 70
+    # Only the reference term differs from 1.3's statement.
+    old["exam_straddle"].pop("largest_reference_error_mm_per_n")
+    for k in ("reference_uncertainty_mm_per_n", "reference_uncertainty_record"):
+        new["exam_straddle"].pop(k)
+    assert _without_version(json.dumps(old), "1.4", "1.3") == _without_version(
+        json.dumps(new), "1.4", "1.3"
+    )
