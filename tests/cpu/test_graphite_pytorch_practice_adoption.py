@@ -35,7 +35,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PARENT = "sha256:" + "2" * 64
 CHILD = "sha256:" + "3" * 64
 SOURCE = "sha256:" + "a" * 64
-TORCH_KINDS = ("torch", "torch-analysis", "accelerator")
+TORCH_KINDS = ("torch", "torch-analysis", "c03", "accelerator")
 
 
 @pytest.fixture
@@ -74,9 +74,11 @@ def test_release_installs_the_complete_torch_pair_without_a_build(
     assert result.returncode == 0, result.stderr
     log = sandbox.logged()
     assert built(log) == []
+    # c03 as well: the Torch image's parent, from which a jNO (JAX) entry's CPU parent derives.
     assert pulled(log) == [
         "torch-worker-image.release.json",
         "torch-analysis-worker-image.release.json",
+        "c03-worker-image.release.json",
     ]
     (recorded,) = [line for line in log if "installed write" in line]
     directory = sandbox.clone / ".carbon-artifacts/releases" / RELEASE
@@ -101,6 +103,32 @@ def test_missing_torch_companion_stops_before_checkout_bootstrap_or_pull(
     assert "could not download the torch-analysis release record" in result.stderr
     assert sandbox.head() == before
     assert sandbox.logged() == []
+
+
+def test_missing_c03_record_stops_a_torch_release_before_checkout_and_pull(
+    sandbox,
+):
+    before = sandbox.head()
+    publish_release(
+        sandbox,
+        commit=sandbox.publish("newer fixture source"),
+        kinds=("torch", "torch-analysis", "accelerator"),
+    )
+    result = run_release(sandbox, "--pytorch", "--release", RELEASE, "--no-start")
+    assert result.returncode == 2
+    assert "could not download the c03 release record" in result.stderr
+    assert sandbox.head() == before
+    assert sandbox.logged() == []
+
+
+def test_a_plain_release_install_still_pulls_only_its_own_pair(sandbox):
+    publish_release(sandbox)
+    result = run_release(sandbox, "--release", RELEASE, "--no-start")
+    assert result.returncode == 0, result.stderr
+    assert pulled(sandbox.logged()) == [
+        "c03-worker-image.release.json",
+        "analysis-worker-image.release.json",
+    ]
 
 
 def test_older_installer_without_selection_is_refused_before_checkout(
