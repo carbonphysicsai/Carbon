@@ -36,3 +36,12 @@ Status: APPROVED by the owner as security decisions.
 - **The reason:** the Validator's code review of `3ed1e5255fa0e2d0889075f715582861a1f6ea05` found that the coldkey and hotkey were locked with one password. The hotkey password is typed every time the signer starts, so that would expose the coldkey's password.
 - **The owner's choice: "Two passwords."** The wizard asks for a separate hotkey (mining) password and a coldkey (money) password.
 - **The code-level security acceptance follows the fixed head.**
+
+## Code-level security acceptance of the wallet helper (owner, 2026-10-21)
+
+- **Accepted:** `claude/miner-identity-helper` @ `34746fb9f97281e4914ad055d4351872fd78a052` (bundle sha256 `8757244b98c3202c1fb1c82f25a082ad84959a1f4a0feeaadbde579d5dbe7822`), after the Validator's re-review found it sound.
+  - It has two passwords that must differ, each key opening only with its own (a real-SDK test).
+  - It runs on loopback only, the token sits in the URL fragment, nothing is logged, the CSP is strict, the Control Center never touches a secret, and the sentinel ship gate passes.
+- **How it was given:** the owner said "yes" in the Test Lead's session, then confirmed directly in the Carbon Validator's session ("Yes, accept").
+- **Before it ships:** the Setup card that links to it and a real-browser run still follow.
+- **A later change** to its key, password or token handling is a new acceptance.
