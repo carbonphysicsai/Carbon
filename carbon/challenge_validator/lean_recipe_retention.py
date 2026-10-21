@@ -24,9 +24,10 @@ class RetentionUnavailable(ValueError):
 
 #: Custody reads a state the worker already admitted under its version's
 #: ceiling (`bundle_graph_state.state_limit`: none for an uncapped version), so
-#: the bound here is the worker's registered output envelope, what any build
-#: could have written, never a model-size rule of its own.
-_STATE_CUSTODY_BYTES = 128 * 1024**2  # carbon.reconstruction.worker.model.OUTPUT_BYTES
+#: the bound here is the largest registered worker output envelope, what any
+#: build could have written (OWNER-WORKER-RESOURCES-LARGE-MODELS-01: 2 GiB on
+#: next versions), never a model-size rule of its own.
+_STATE_CUSTODY_BYTES = 2 * 1024**3  # max output_bytes of worker_resources_for
 
 
 def _sha(raw: bytes) -> str:

@@ -247,11 +247,44 @@ def test_the_state_ceiling_follows_the_allowlist_version():
     assert not state.state_fits(0, V7.raw)
 
 
-def test_custody_reads_up_to_the_workers_output_envelope():
+def test_custody_reads_up_to_the_largest_worker_output_envelope():
     from carbon.challenge_validator import lean_recipe_retention as retention
     from carbon.reconstruction.worker import model as worker
 
-    assert retention._STATE_CUSTODY_BYTES == worker.OUTPUT_BYTES
+    largest = max(
+        worker.worker_resources_for(v)["output_bytes"] for v in (V6.version, V7.version)
+    )
+    assert retention._STATE_CUSTODY_BYTES == largest == 2 * 1024**3
+
+
+def test_worker_resources_follow_the_allowlist_version():
+    from carbon.reconstruction.worker import model as worker
+
+    # OWNER-WORKER-RESOURCES-LARGE-MODELS-01: next versions only.
+    assert worker.worker_resources_for(V7.version) == {
+        "output_bytes": 2 * 1024**3,
+        "scratch_bytes": 4 * 1024**3,
+        "memory_bytes": 16 * 1024**3,
+    }
+    today = {
+        "output_bytes": 128 * 1024**2,
+        "scratch_bytes": 512 * 1024**2,
+        "memory_bytes": 4 * 1024**3,
+    }
+    assert worker.worker_resources_for(V6.version) == today
+    assert worker.worker_resources_for("level4-allowlist-v99") == today
+    assert worker.worker_resources_for(None) == today
+    # Today's profile constants are unchanged.
+    assert (worker.OUTPUT_BYTES, worker.SCRATCH_BYTES, worker.MEMORY_BYTES) == (
+        128 * 1024**2,
+        512 * 1024**2,
+        4 * 1024**3,
+    )
+    # The same versions are uncapped and get the larger resources.
+    assert worker.LARGE_MODEL_ALLOWLIST_VERSIONS == allowlist_module.UNCAPPED_VERSIONS
+    # Scratch is counted inside lane memory.
+    large = worker.LARGE_MODEL_RESOURCES
+    assert large["scratch_bytes"] < large["memory_bytes"]
 
 
 def test_a_state_over_64_mib_freezes_and_loads_only_under_v7():

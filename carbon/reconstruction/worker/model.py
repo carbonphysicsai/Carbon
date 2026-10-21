@@ -34,6 +34,37 @@ CONTROL_BYTES = 1024**2
 OUTPUT_BYTES = 128 * 1024**2
 EXPANDED_OUTPUT_BYTES = 128 * 1024**2
 OUTPUT_MEMBERS = 1024
+#: Larger worker resources for the next Challenge versions, those serving an
+#: uncapped allowlist (OWNER-WORKER-RESOURCES-LARGE-MODELS-01; Validator spec
+#: VALIDATOR_WORKER_RESOURCES_PROPOSAL_20261021): the output envelope, the
+#: scratch tmpfs (inside lane memory) and the rebuild lane's memory, so a
+#: large model fits the training resources that alone bind (OWNER-NO-MODEL-
+#: SIZE-CAP-01). CPU, pids, network, read-only root and the rebuild wall time
+#: are unchanged. Keyed by allowlist version like `allowlist.caps_for`; a
+#: launch takes them only through a profile Launchpad binds, and they serve
+#: only after a real-lane containment run at that profile (a new containment
+#: acceptance, OWNER-CONTAINMENT-ACCEPT-TESTNET-01).
+LARGE_MODEL_ALLOWLIST_VERSIONS = frozenset({"level4-allowlist-v7"})
+LARGE_MODEL_RESOURCES = {
+    "output_bytes": 2 * 1024**3,
+    "scratch_bytes": 4 * 1024**3,
+    "memory_bytes": 16 * 1024**3,
+}
+
+
+def worker_resources_for(allowlist_version):
+    """The worker resources a reconstruction under ``allowlist_version`` (its
+    version string) may be given: `LARGE_MODEL_RESOURCES` for a next version,
+    else today's C-03 profile values. An unknown version gets today's."""
+    if allowlist_version in LARGE_MODEL_ALLOWLIST_VERSIONS:
+        return dict(LARGE_MODEL_RESOURCES)
+    return {
+        "output_bytes": OUTPUT_BYTES,
+        "scratch_bytes": SCRATCH_BYTES,
+        "memory_bytes": MEMORY_BYTES,
+    }
+
+
 DIAGNOSTIC_BYTES = 1024**2
 NOFILE_LIMIT = 1024
 WORKER_UID = 65532
