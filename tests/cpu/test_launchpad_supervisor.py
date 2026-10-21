@@ -1669,3 +1669,35 @@ def queue_refused_item(database):
             state=supervision.QUEUED,
         )
     return identity
+
+
+# --- M1 rehearsal, 2026-10-21: a stalled thread can be seen ------------------
+
+
+@pytest.mark.skipif(not hasattr(__import__("signal"), "SIGUSR1"), reason="POSIX")
+def test_sigusr1_writes_every_threads_stack_to_an_owner_only_file(tmp_path):
+    import faulthandler
+    import os
+    import signal
+    import stat
+    import threading
+
+    from scripts.dev.miner_launchpad import controller
+
+    release = threading.Event()
+    stalled = threading.Thread(
+        target=release.wait, name="stalled-supervisor", daemon=True
+    )
+    stalled.start()
+    handle = controller.thread_dump_on_signal(tmp_path)
+    try:
+        os.kill(os.getpid(), signal.SIGUSR1)
+        handle.flush()
+        text = (tmp_path / controller.THREAD_DUMP).read_text()
+        mode = stat.S_IMODE((tmp_path / controller.THREAD_DUMP).stat().st_mode)
+    finally:
+        faulthandler.unregister(signal.SIGUSR1)
+        release.set()
+        handle.close()
+    assert mode == 0o600
+    assert "Thread 0x" in text and "wait" in text
