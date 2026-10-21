@@ -2709,6 +2709,28 @@ scenario("setup starts with keys, funding and joining, then the signer (Dana 1)"
   clean(page);
 });
 
+scenario("miners are offered only the latest version of each Challenge, and no reserved, retired or deferred one (owner U-f)", async () => {
+  const state = world();
+  const page = await open(state);
+  const offered = fx.caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status));
+  const latest = id => offered.filter(entry => entry.challenge_id === id).map(entry => entry.version).sort((a, b) => parseFloat(b) - parseFloat(a))[0];
+  assert.ok(offered.filter(entry => entry.challenge_id === "electric-motor-magnetics").length > 1, "the fixture has several Motor versions");
+  page.go("#launch");
+  await page.advance(0);
+  const inputs = [...all(page, "#wizard-challenges input")];
+  const pairs = inputs.map(input => input.value + "@" + input.dataset.version);
+  assert.equal(new Set(inputs.map(input => input.value)).size, inputs.length, "one entry per Challenge: " + pairs);
+  for (const input of inputs) assert.equal(input.dataset.version, latest(input.value) || "", "the latest version of " + input.value);
+  assert.ok(!pairs.some(pair => /photonic|power-magnetics|airfoil|burgers-dynamics/.test(pair)), "no reserved, deferred or retired entry: " + pairs);
+  page.go("#challenges");
+  await page.advance(0);
+  const text = page.text("challenge-catalog");
+  assert.doesNotMatch(text, /Reserved|Deferred|Retired/);
+  assert.doesNotMatch(text, /electric-motor-magnetics · version 1\.(0|2)/);
+  assert.match(text, /electric-motor-magnetics · version 1\.3/);
+  clean(page);
+});
+
 (async () => {
   const passed = [], failed = [];
   for (const [name, run] of scenarios) {

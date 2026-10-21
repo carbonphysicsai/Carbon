@@ -1721,7 +1721,7 @@
     caps = value;
     capsVersion++;
     // A remembered choice is checked against what exists now.
-    if (wizard.challenge && !challengeEntry(wizard.challenge)) wizard.challenge = null;
+    if (wizard.challenge && !offeredChallenges().some(entry => entry.challenge_id === wizard.challenge.id && entry.version === wizard.challenge.version)) wizard.challenge = null;
     // A choice no longer offered (the autonomous agent, once Graphite
     // replaces it) is no longer chosen.
     if (wizard.agentChoice && !offeredAgent(wizard.agentChoice)) { wizard.agentChoice = null; composition = {...composition, agent: null}; }
@@ -1734,6 +1734,20 @@
     if (!wizard.provider && setupModel && listed(setupModel.provider_id, setupModel.model_id)) {
       wizard.provider = setupModel.provider_id; wizard.model = setupModel.model_id;
     }
+  }
+  // What a miner is offered to start on (owner decision U-f): the latest version of each Challenge, and no
+  // reserved, retired or deferred entry. Older versions stay readable (campaigns on them keep their titles:
+  // challengeEntry looks at the whole registry), they are just not offered.
+  function versionParts(value) { return String(value ?? "").split(".").map(part => Number.parseInt(part, 10) || 0); }
+  function newerVersion(a, b) {
+    const left = versionParts(a), right = versionParts(b);
+    for (let i = 0; i < Math.max(left.length, right.length); i++) { const diff = (left[i] || 0) - (right[i] || 0); if (diff) return diff > 0; }
+    return false;
+  }
+  function offeredChallenges() {
+    if (!caps) return [];
+    const open = caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status));
+    return open.filter(entry => !open.some(other => other !== entry && other.challenge_id === entry.challenge_id && newerVersion(other.version, entry.version)));
   }
   function challengeEntry(selection) {
     if (!caps || !selection) return null;
@@ -2339,7 +2353,7 @@
     return [{RESERVED: "Reserved", DEFERRED: "Deferred", RETIRED: "Retired"}[entry.status] || words(entry.status), "pill-wait"];
   }
   function renderChallengeCatalog(target) {
-    for (const entry of caps.challenges) {
+    for (const entry of offeredChallenges()) {
       const [tag, kind] = challengePill(entry);
       const box = card(target, entry.title, tag, kind);
       box.dataset.challenge = entry.challenge_id;
@@ -3514,8 +3528,8 @@
     renderConstructionOptions();
     const target = $("wizard-challenges");
     if (!caps) { rebuild(target, "none", node => node.append(el("p", "Connect to read the Challenge registry.", "hint"))); $("wizard-challenge-description").replaceChildren(); $("wizard-challenge-description").dataset.key = ""; return; }
-    rebuild(target, JSON.stringify([capsVersion, caps.challenges.map(entry => [entry.challenge_id, entry.version, entry.selectable]), connected]), node => {
-      for (const entry of caps.challenges) {
+    rebuild(target, JSON.stringify([capsVersion, offeredChallenges().map(entry => [entry.challenge_id, entry.version, entry.selectable]), connected]), node => {
+      for (const entry of offeredChallenges()) {
         const label = el("label", undefined, "choice" + (entry.selectable ? "" : " unavailable"));
         const input = el("input"); input.type = "radio"; input.name = "wizard-challenge"; input.value = entry.challenge_id;
         input.dataset.version = entry.version || "";
