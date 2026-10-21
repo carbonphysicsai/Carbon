@@ -162,14 +162,16 @@ def test_the_v7_version_is_graded_from_the_same_sealed_batches():
 
     doc, records = batch()
     old = sealed.sealed_bank(doc, records, version="2.1")
-    new = sealed.sealed_bank(doc, records, version="2.2")
-    assert set(old) == set(new)
-    for key in old:
-        if isinstance(old[key], np.ndarray):
-            assert (
-                np.array_equal(old[key], new[key]) and old[key].dtype == new[key].dtype
-            )
-        else:
-            assert old[key] == new[key], key
+    for version in ('2.2', '2.3'):
+        new = sealed.sealed_bank(doc, records, version=version)
+        assert set(old) == set(new)
+        for key in old:
+            if isinstance(old[key], np.ndarray):
+                assert (
+                    np.array_equal(old[key], new[key])
+                    and old[key].dtype == new[key].dtype
+                )
+            else:
+                assert old[key] == new[key], key
     with pytest.raises(sealed.SealedPackRefused):
         sealed.sealed_bank(doc, records, version="9.9")

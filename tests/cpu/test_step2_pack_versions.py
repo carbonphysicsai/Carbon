@@ -163,6 +163,8 @@ V7 = {
     ("chip-cold-plate", "1.2"): ("1.1", "cooling-normal-construction-development-3"),
     (F08, "1.3"): ("1.2", "f08-normal-construction-development-4"),
     (F02, "2.2"): ("2.1", "f02-normal-construction-development-4"),
+    (F08, "1.4"): ("1.3", "f08-normal-construction-development-5"),
+    (F02, "2.3"): ("2.2", "f02-normal-construction-development-5"),
     (
         "battery-fastcharge-ageing-development-v1",
         "2.1",
