@@ -1340,16 +1340,18 @@ def cut_planner(monkeypatch, engine, outcome=CAP_CUT):
     monkeypatch.setattr(driver, "run_epoch", run_epoch)
 
 
-def test_full_does_not_build_on_no_plan_when_the_planner_was_cut_at_the_cap(
-    world, monkeypatch
+@pytest.mark.parametrize("mode", ["FULL", "BUILD"])
+def test_no_build_on_no_plan_when_the_planner_was_cut_at_the_cap(
+    world, monkeypatch, mode
 ):
-    """GRAPHITE-PLAN-OUTPUT-CAP (M1 rehearsal, 2026-10-21): a FULL Planner
-    whose replies were cut at the output cap wrote no plan because the cap
-    was too low, so the build is not run on no plan. The build is recorded
-    STOPPED `graphite_plan_output_cap` with the cap, noted, and the campaign
-    completes; nothing is practised or submitted, and a resume sends
-    nothing."""
-    w = world()
+    """GRAPHITE-PLAN-OUTPUT-CAP (M1 rehearsal, 2026-10-21): a Planner whose
+    replies were cut at the output cap wrote no plan because the cap was too
+    low, so the build is not run on no plan - one rule for FULL and for a
+    BUILD with no chosen plan, whose Planner runs first. The build is
+    recorded STOPPED `graphite_plan_output_cap` with the cap, noted, and the
+    campaign completes; nothing is practised or submitted, and a resume
+    sends nothing."""
+    w = world(mode=mode)
     cut_planner(monkeypatch, w.engine)
     w.engine.scripts = {(None, 1): CONSTRUCTOR_TURNS, (None, 2): [STOP_TURN]}
     assert w.run(Transport()) is None
@@ -1402,22 +1404,25 @@ def test_full_does_not_build_on_no_plan_when_the_planner_was_cut_at_the_cap(
     assert len(w.engine.calls) == calls and len(graphite_notes(w)) == 2
 
 
+#: A cut reply run that was not every reply at the output cap: no named cause.
+UNCAUSED_CUT = {k: v for k, v in CAP_CUT.items() if k != "cause"}
+PLANNER_STOP = {"status": "STOPPED", "reason": "agent reported plateau"}
+
+
 @pytest.mark.parametrize(
     "mode, outcome",
     [
-        # Cut, but not every reply at the output cap: no named cause.
-        ("FULL", {k: v for k, v in CAP_CUT.items() if k != "cause"}),
-        ("FULL", {"status": "STOPPED", "reason": "agent reported plateau"}),
-        # BUILD with no chosen plan is not FULL: its Planner first, then its
-        # build as before.
-        ("BUILD", CAP_CUT),
+        ("FULL", UNCAUSED_CUT),
+        ("FULL", PLANNER_STOP),
+        ("BUILD", UNCAUSED_CUT),
+        ("BUILD", PLANNER_STOP),
     ],
 )
 def test_other_plan_stops_still_build_on_no_plan(world, monkeypatch, mode, outcome):
-    """Only a FULL Planner cut at the output cap holds the build: any other
-    stop of the plan stage (the research share and the miner's ceilings
-    above, the Planner's own stop, a cut with no cap cause) and BUILD leave
-    the build to run on no plan, as before."""
+    """Only a Planner cut at the output cap holds the build: any other stop
+    of the plan stage (the research share and the miner's ceilings above,
+    the Planner's own stop, a cut with no cap cause) leaves the build to
+    run on no plan, as before, in FULL and in BUILD."""
     w = world(mode=mode)
     cut_planner(monkeypatch, w.engine, outcome)
     w.engine.scripts = {(None, 1): CONSTRUCTOR_TURNS, (None, 2): [STOP_TURN]}
@@ -1427,6 +1432,24 @@ def test_other_plan_stops_still_build_on_no_plan(world, monkeypatch, mode, outco
     assert builds and builds[0]["observation"]["graphite"]["plan"] is None
     assert w.campaign.evaluated == [(1, RECIPE)]
     assert w.stage("build")["code"] is None
+
+
+def test_a_build_with_a_chosen_plan_runs_no_planner_and_builds(world, monkeypatch):
+    """A BUILD with a chosen plan never runs the Planner, so no output-cap
+    cut of a plan stage can hold its build: it builds from the plan."""
+    w = world(mode="BUILD")
+    cut_planner(monkeypatch, w.engine)
+    w.library.add(make_card(HUNTED, "miner_hunt"))
+    address, edited = saved_plan(w, (HUNTED, "miner_hunt"))
+    w.graphite["plan"] = address
+    w.engine.scripts = {(None, 1): CONSTRUCTOR_TURNS, (None, 2): [STOP_TURN]}
+    assert w.run(Transport()) is None
+    assert w.engine.stage_calls("plan") == [] and w.stage("plan") is None
+    first = w.engine.stage_calls(None)[0]
+    assert first["observation"]["graphite"]["plan"] == edited
+    assert w.campaign.evaluated == [(1, RECIPE)]
+    built = w.stage("build")
+    assert built["code"] is None and built["plan_digest"] == address
 
 
 def test_a_build_already_started_runs_on_after_a_cap_cut_plan(world, monkeypatch):
@@ -1446,8 +1469,12 @@ def test_the_cap_cut_rule_reads_only_a_full_plan_stopped_with_the_cap_cause():
     full, build = {"mode": "FULL"}, {"mode": "BUILD"}
     planned = {"status": "STOPPED", **driver._stopped(CAP_CUT)}
     assert driver.plan_cut_at_output_cap(full, planned)
-    assert not driver.plan_cut_at_output_cap(build, planned)
+    assert driver.plan_cut_at_output_cap(build, planned)
+    # RESEARCH has no build to hold; a BUILD with a chosen plan ran no
+    # Planner, so there is no plan stage record.
+    assert not driver.plan_cut_at_output_cap({"mode": "RESEARCH"}, planned)
     assert not driver.plan_cut_at_output_cap(full, None)
+    assert not driver.plan_cut_at_output_cap(build, None)
     assert not driver.plan_cut_at_output_cap(full, {**planned, "status": "PLANNED"})
     for code in (budget.RESEARCH_SHARE_REACHED, budget.MINER_CEILING_REACHED):
         assert not driver.plan_cut_at_output_cap(

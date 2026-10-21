@@ -1327,8 +1327,9 @@ NEXT_ACTIONS = {
         "stopped there and the build went on. Launch again with a larger "
         "research_share to research longer."
     ),
-    # A FULL campaign whose Planner's replies were cut at the output cap
-    # (`driver.plan_cut_at_output_cap`): its build is not run on no plan.
+    # A FULL campaign, or a BUILD with no chosen plan, whose Planner's
+    # replies were cut at the output cap (`driver.plan_cut_at_output_cap`):
+    # its build is not run on no plan.
     "graphite_plan_output_cap": (
         "The Planner's replies were cut at the output cap before it wrote a "
         "plan, so the build was not run without one. Launch a new campaign "

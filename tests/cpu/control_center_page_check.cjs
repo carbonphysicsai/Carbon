@@ -1939,8 +1939,9 @@ scenario("Graphite: the campaign shows its stage, plan, research and build spend
   clean(page);
 });
 
-// GRAPHITE-PLAN-OUTPUT-CAP: a FULL campaign whose Planner's replies were cut
-// at the output cap ends without a planless build (graphite_plan_output_cap);
+// GRAPHITE-PLAN-OUTPUT-CAP: a FULL campaign (or a BUILD with no chosen plan)
+// whose Planner's replies were cut at the output cap ends without a planless
+// build (graphite_plan_output_cap);
 // the plan stage names the cap and the step, as the campaign view states it.
 scenario("Graphite: a plan cut at the output cap names the cap and the step, and its build did not run", async () => {
   const state = graphiteWorld();

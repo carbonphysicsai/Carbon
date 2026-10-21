@@ -23,14 +23,18 @@ reconcile, `last_refusal` and the campaign's own submit.
   cannot pay for one research model call (the Planner's, and with a hunt the
   hunt's part too) is refused `research_share_too_small` before its manifest
   freezes (`check_research_share`), rather than run a research stage that
-  could send nothing. A plan stage that ends at the research share, or at
-  any other stop but one, leaves the build to run without a plan, as the
-  research share's next step says. The one exception: a Planner whose
-  replies were cut at the output cap (`research_loop.OUTPUT_CAP_HIT`)
-  stopped because the launch's cap was too low, not because research had
-  run its course, so the build is not run on no plan; it is recorded
-  STOPPED `graphite_plan_output_cap` and the campaign completes
-  (`plan_cut_at_output_cap`).
+  could send nothing.
+
+**A plan stage's end and the build** (FULL, and BUILD with no chosen plan:
+every mode whose campaign runs the Planner before its build). A plan stage
+that ends at the research share, or at any other stop but one, leaves the
+build to run without a plan, as the research share's next step says. The
+one exception, one rule for both modes: a Planner whose replies were cut at
+the output cap (`research_loop.OUTPUT_CAP_HIT`) stopped because the launch's
+cap was too low, not because research had run its course, so the build is
+not run on no plan; it is recorded STOPPED `graphite_plan_output_cap` and
+the campaign completes (`plan_cut_at_output_cap`). A BUILD with a chosen
+plan runs no Planner, so the rule never reaches it.
 
 **Limits are money and time** (OWNER-GRAPHITE-MINER-01 item 6). Every stage
 runs under the miner's own ceilings and elapsed time; a model call one of
@@ -102,8 +106,8 @@ LITERATURE_PACK_MISSING = "literature_pack_missing"
 CURATION_NOT_FOUND = "curation_not_found"
 TOO_MANY_PINS = "too_many_pins"
 RESEARCH_SHARE_TOO_SMALL = "research_share_too_small"
-#: The build a FULL campaign did not run because its Planner's replies were
-#: cut at the output cap (`plan_cut_at_output_cap`).
+#: The build a campaign did not run because its Planner's replies were cut
+#: at the output cap (`plan_cut_at_output_cap`).
 PLAN_OUTPUT_CAP = "graphite_plan_output_cap"
 #: The most cards one learning outcome names (the library's own bound,
 #: `library.MAX_OUTCOME_CARDS`); a plan's first-cited cards are kept.
@@ -1014,8 +1018,8 @@ async def _plan(run, ledger):
     nothing is left, its first model call is refused and it stops typed
     `research_share_reached`, having sent nothing. At one of the miner's own
     limits it stops typed `miner_ceiling_reached`. Replies cut at the output
-    cap stop it with the loop's cause and the cap kept (`_stopped`); in FULL
-    that one cause holds the build (`plan_cut_at_output_cap`)."""
+    cap stop it with the loop's cause and the cap kept (`_stopped`); that one
+    cause holds the build that follows (`plan_cut_at_output_cap`)."""
     done = run.stages.finished(PLAN)
     if done is not None:
         return done
@@ -1258,10 +1262,13 @@ async def _build(run, plan_doc, plan_digest):
 
 
 def plan_cut_at_output_cap(block, planned):
-    """Whether a FULL campaign's plan stage `planned` (its stage record)
-    stopped because the Planner's replies hit the launch's output cap: the
-    research loop's typed cause `turn_hit_output_cap`
-    (`research_loop.OUTPUT_CAP_HIT`), kept in the record by `_stopped`.
+    """Whether a campaign that builds - FULL, or BUILD with no chosen plan,
+    whose Planner runs first - has a plan stage `planned` (its stage record)
+    that stopped because the Planner's replies hit the launch's output cap:
+    the research loop's typed cause `turn_hit_output_cap`
+    (`research_loop.OUTPUT_CAP_HIT`), kept in the record by `_stopped`. One
+    rule for every mode that runs the Planner before a build; a BUILD with a
+    chosen plan runs none, so `planned` is None and the rule never holds.
 
     Only that cause holds the build. A Planner stopped at the research share
     (`research_share_reached`), at the miner's own ceilings or time
@@ -1274,7 +1281,7 @@ def plan_cut_at_output_cap(block, planned):
     build on no plan would spend the rest of the budget on a run the miner
     did not mean to launch."""
     return (
-        block["mode"] == editions.FULL_MODE
+        block["mode"] in (editions.FULL_MODE, editions.BUILD_MODE)
         and type(planned) is dict
         and planned.get("status") == "STOPPED"
         and planned.get("cause") == OUTPUT_CAP_HIT
@@ -1282,7 +1289,7 @@ def plan_cut_at_output_cap(block, planned):
 
 
 def _hold_build(run, planned):
-    """End a FULL campaign whose Planner was cut at the output cap
+    """End a campaign whose Planner was cut at the output cap
     (`plan_cut_at_output_cap`) without its build: the build is recorded
     STOPPED `graphite_plan_output_cap`, with the cap the Planner's replies
     hit, noted in the ledger, and the campaign completes - no Constructor
