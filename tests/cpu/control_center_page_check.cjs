@@ -2653,16 +2653,22 @@ scenario("Setup: a miner with no wallet is pointed at the identity helper, in pl
   await page.advance(0);
   const card = one(page, "#setup-identity-help");
   const text = card.textContent;
+  assert.match(text, /1\. Make your keys/);
   assert.match(text, /No wallet yet\?/);
   assert.equal(one(page, "#setup-identity-copy").closest(".copy-row").querySelector("code").textContent, "carbon-miner-identity");
-  assert.match(text, /hotkey address, which is public/);
+  assert.match(text, /Both are public/);
+  // Funding comes before joining, in plain words, with no balance or price claimed.
+  const fund = one(page, "#setup-fund").textContent;
+  assert.match(fund, /2\. Put some TAO in your wallet/);
+  assert.match(fund, /Buy TAO from an exchange/);
+  assert.doesNotMatch(fund, /\d{2,}|\$/);
   const folds = [...card.querySelectorAll("details > summary")].map(node => node.textContent);
-  assert.deepEqual(folds, ["What's a hotkey?", "Is my key safe?", "Lost my phrase?", "What does joining cost?"]);
+  assert.deepEqual(folds, ["What are the two keys?", "Is my key safe?", "Lost my phrase?", "What does joining cost?"]);
   // The cost answer names who pays, that Carbon neither charges nor receives it, and where the amount is read: no figure.
   const cost = [...card.querySelectorAll("details")].find(node => /joining cost/.test(node.textContent)).textContent;
-  assert.match(cost, /paid from your own coldkey/);
+  assert.match(cost, /paid from your own money key/);
   assert.match(cost, /Carbon neither charges nor receives it/);
-  assert.match(cost, /Recycle amount in Wallet & Identity/);
+  assert.match(cost, /Joining cost in Wallet & Identity/);
   assert.doesNotMatch(cost, /\d/);
   assert.equal(card.querySelector("a").getAttribute("href"), "#wallet");
   // The page holds no field for a key, phrase or password, and asks the helper for nothing.
@@ -2677,6 +2683,30 @@ scenario("Setup: a miner with no wallet is pointed at the identity helper, in pl
   await other.advance(0);
   assert.equal(all(other, "#setup-identity-help").length, 0);
   clean(other);
+});
+
+scenario("setup starts with keys, funding and joining, then the signer (Dana 1)", async () => {
+  const state = world();
+  state.setup = {...copy(fx.setups.none), registered_hotkey: null};
+  // Nothing done yet: the controller's own status says so.
+  for (const row of state.setup.status.steps) if (row.id === "register" || row.id === "signer") row.state = "open";
+  const page = await open(state);
+  page.go("#setup");
+  await page.advance(0);
+  const order = [...all(page, "#setup-progress button")].map(button => button.dataset.setupStep);
+  assert.deepEqual(order.slice(0, 2), ["register", "signer"]);
+  assert.equal(page.text("setup-heading"), "Get your keys and join", "heading: " + page.text("setup-heading"));
+  assert.match(page.text("setup-eyebrow"), /Step 1 of 6/);
+  // Until the miner has joined, the next step cannot be taken, and says why in plain words.
+  assert.equal(page.$("setup-next").disabled, true, "next disabled");
+  assert.match(page.text("setup-next-reason"), /Confirm you have joined first/);
+  // The three parts are in order: make keys, fund, join.
+  const body = page.text(one(page, "[data-step-panel=register]"));
+  assert.ok(body.indexOf("1. Make your keys") < body.indexOf("2. Put some TAO in your wallet") && body.indexOf("2. Put some TAO") < body.indexOf("3. Join"));
+  // The technical terms appear once, in brackets beside the plain ones, never as the label.
+  assert.doesNotMatch(body, /ss58|hotkey address|recycle/i);
+  assert.equal(one(page, "label[for=setup-register-address]").textContent, "Your mining-key address");
+  clean(page);
 });
 
 (async () => {

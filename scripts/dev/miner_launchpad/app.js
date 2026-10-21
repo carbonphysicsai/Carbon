@@ -751,8 +751,8 @@
   // researches comes before Inference, which only an agent calling setup's
   // model needs. Step ids are stable anchors: #setup/<id>.
   const SETUP_STEPS = [
-    ["signer", "Start your signer", "Your signer holds your hotkey on this machine. Carbon never sees your key."],
-    ["register", "Register on the subnet", "Your hotkey must be registered on the subnet. You sign that in your own wallet."],
+    ["register", "Get your keys and join", "Make your mining keys, put some TAO in your wallet, then join Carbon's network (the subnet). You sign in your own wallet."],
+    ["signer", "Start your signer", "Your signer holds your mining key on this machine and signs your work. Carbon never sees your key."],
     ["agent", "Who researches?", "Carbon's agent, or your own agent over MCP. This step also checks your signer."],
     ["inference", "Inference", "Choose the model Carbon's agent calls, with your own key."],
     ["compute", "Compute", "Choose where practice runs: this machine, or a GPU you run elsewhere."],
@@ -983,7 +983,7 @@
     const state = j.state[id];
     const steps = j.steps;
     if (id === "signer") return state === "done" ? "Your signer answered for " + shortKey(steps.signer?.hotkey || setupState?.registered_hotkey) + "." : "Start carbon-miner-signer in your own terminal, then check it here.";
-    if (id === "register") return state === "done" ? "Registered: " + shortKey(setupState.registered_hotkey) + "." : "Confirm your hotkey is registered on the subnet." + (state === "open" ? " Steps 1 and 2 can be done in either order." : "");
+    if (id === "register") return state === "done" ? "Registered: " + shortKey(setupState.registered_hotkey) + "." : "Confirm you have joined the network." + (state === "open" ? " Steps 1 and 2 can be done in either order." : "");
     if (state === "waiting" && id !== "review") return "Opens once your registration is confirmed.";
     if (state === "skipped") return "Skipped: your agent uses its own model.";
     if (id === "inference") return state === "done" ? "Checked: " + checkedText(id, steps) + "." : "Choose a provider and model, and check your key.";
@@ -1003,8 +1003,8 @@
   function reachable(id, j) { return id === "signer" || id === "register" || j.registered; }
   // Why Next cannot be taken from this step yet, or null.
   function nextProblem(id, j) {
-    if (id === "signer") return null;
-    if (id === "register") return j.registered ? null : "Confirm your registration first.";
+    if (id === "signer") return j.registered ? null : "Join the network first: the steps after this need it.";
+    if (id === "register") return j.registered ? null : "Confirm you have joined first.";
     if (id === "compute" && j.sendPending) return "Send your worker first.";
     if (["inference", "compute", "agent"].includes(id)) return j.done[id] || j.skipped[id] ? null : "Run this step's check first.";
     return null;
@@ -1020,7 +1020,7 @@
     const j = journey();
     const current = route();
     let wanted = current.view === "setup" && SETUP_IDS.includes(current.id) ? current.id : setupStepShown || j.current || "review";
-    if (!reachable(wanted, j)) wanted = j.state.signer === "next" ? "signer" : "register";
+    if (!reachable(wanted, j)) wanted = j.state.register === "next" ? "register" : "signer";
     return wanted;
   }
   // Show one step: its heading, progress, done state, Back and Next.
@@ -1101,12 +1101,12 @@
   // (it never asks for, receives or shows a key, a phrase or a password). Presentation only.
   function identityHelperCard(parent) {
     const box = el("div", undefined, "identity-help"); box.id = "setup-identity-help";
-    box.append(el("p", "No wallet yet?", "eyebrow"));
-    box.append(el("p", "A small helper on your own computer makes your keys. Run it in a terminal, open the link it prints, and follow its five steps. Carbon never sees your recovery phrase or your passwords.", "step-lede"));
+    box.append(el("p", "1. Make your keys", "eyebrow"));
+    box.append(el("p", "No wallet yet? A small helper on your own computer makes your keys. Run it in a terminal, open the link it prints, and follow its five steps. Carbon never sees your recovery phrase or your passwords. Already have a wallet? Skip to step 3.", "step-lede"));
     copyRow(box, null, "carbon-miner-identity", "setup-identity-copy");
-    box.append(el("p", "At the end it shows your hotkey address, which is public. Copy it into the box below.", "hint"));
-    details(box, "What's a hotkey?", [
-      "Your wallet holds two keys. The coldkey holds your funds. The hotkey signs your mining work and names you on the subnet; it cannot move your funds. Its address is public, and it is what you paste below."
+    box.append(el("p", "At the end it shows two wallet addresses. Both are public. Copy the mining-key address into step 3, and the money-key address into step 2.", "hint"));
+    details(box, "What are the two keys?", [
+      "Your wallet holds two keys. The money key (coldkey) holds your funds. The mining key (hotkey) signs your mining work and names you on the network; it cannot move your funds. Their addresses are public."
     ]);
     details(box, "Is my key safe?", [
       "The helper runs only on your computer and saves each key encrypted under its own password, one for your money and one for mining. Nothing it makes is sent anywhere, and Carbon never sees your keys, your recovery phrase or your passwords. Anyone who has your recovery phrase can take your funds, so write it on paper and keep it private."
@@ -1115,10 +1115,15 @@
       "The 12 words are the only way to get your funds back if you lose your money password or this computer, and Carbon cannot recover them for you. Your hotkey has no recovery phrase: keep a copy of the wallet folder the helper names at the end. Without a copy you would make a new hotkey and register it again."
     ]);
     const cost = details(box, "What does joining cost?", [
-      "Registering on the subnet is paid from your own coldkey, in your own wallet tool. Carbon neither charges nor receives it. The current amount is set by the network and changes, so read it before you sign: it is under Recycle amount in Wallet & Identity, and your wallet shows it at signing."
+      "Joining is paid from your own money key, in your own wallet tool. Carbon neither charges nor receives it. The current amount is set by the network and changes, so read it before you sign: it is under Joining cost in Wallet & Identity, and your wallet shows it at signing."
     ]);
     cost.append(link({label: "Open Wallet & Identity", href: "#wallet"}));
     parent.append(box);
+    // 2. Fund it. Carbon does not read a balance or a price here; the miner's own wallet does.
+    const fund = el("div", undefined, "identity-fund"); fund.id = "setup-fund";
+    fund.append(el("p", "2. Put some TAO in your wallet", "eyebrow"));
+    fund.append(el("p", "Joining is paid in TAO from your money key. Buy TAO from an exchange and send it to your money-key address (the helper shows it). Wait until your wallet shows it before step 3.", "step-lede"));
+    parent.append(fund);
   }
   function stepPanel(parent, id, doneText) {
     const panel = el("section", undefined, "setup-step"); panel.dataset.stepPanel = id;
@@ -1180,7 +1185,7 @@
     signer.append(el("p", "Start it in your own terminal and leave it open:", "step-lede"));
     copyRow(signer, null, offered.signer?.command || "carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>", "setup-signer-copy");
     researchNote(signer, "Use your own wallet and hotkey names. Carbon never asks for your key or its password.", "hint");
-    const signerLabel = el("label", "Your hotkey address (ss58)"); signerLabel.htmlFor = "setup-signer-address";
+    const signerLabel = el("label", "Your mining-key address"); signerLabel.htmlFor = "setup-signer-address";
     const signerAddress = el("input"); signerAddress.id = "setup-signer-address"; signerAddress.type = "text"; signerAddress.autocomplete = "off"; signerAddress.spellcheck = false; signerAddress.placeholder = "5...";
     signerAddress.value = signerHotkey || $("onboarding-address").value.trim();
     const signerCheck = el("button", j.done.signer ? "Check my signer again" : "Check my signer", j.done.signer ? "" : "primary"); signerCheck.type = "button"; signerCheck.id = "setup-signer-check";
@@ -1197,16 +1202,17 @@
     const register = stepPanel(body, "register", j.registered ? "Registered: " + setupState.registered_hotkey : null);
     if (!j.registered) {
       identityHelperCard(register);
-      register.append(el("p", "Paste your hotkey address. Carbon reads the chain to confirm it is registered.", "step-lede"));
-      const label = el("label", "Your hotkey address (ss58)"); label.htmlFor = "setup-register-address";
+      register.append(el("p", "3. Join", "eyebrow"));
+      register.append(el("p", "Sign the join in your own wallet, then paste your mining-key address here. Carbon reads the network to confirm you joined.", "step-lede"));
+      const label = el("label", "Your mining-key address"); label.htmlFor = "setup-register-address";
       const address = el("input"); address.id = "setup-register-address"; address.type = "text"; address.autocomplete = "off"; address.spellcheck = false; address.placeholder = "5...";
       address.value = steps.signer?.hotkey || $("onboarding-address").value.trim();
       const confirm = el("button", "Check my registration", "primary go"); confirm.type = "button"; confirm.id = "setup-register-confirm";
       confirm.addEventListener("click", () => confirmRegistration(address.value.trim()));
       const action = el("div", undefined, "step-action"); action.append(confirm);
       register.append(label, address, action);
-      researchNote(register, "Not registered yet? Wallet & Identity prepares the unsigned call; you sign it in your own wallet, paid from your coldkey.", "hint");
-      register.append(link({label: "Register under Wallet & Identity", href: "#wallet"}));
+      researchNote(register, "Not joined yet? Wallet & Identity prepares the join for you to sign in your own wallet, paid from your money key.", "hint");
+      register.append(link({label: "Join under Wallet & Identity", href: "#wallet"}));
       // What opens once registration is confirmed.
       register.append(el("p", "What happens next", "eyebrow"));
       const next = el("ol", undefined, "guide-steps");

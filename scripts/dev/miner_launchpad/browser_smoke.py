@@ -1699,7 +1699,7 @@ def setup_journey():
                 # miner registered first, so step 1 is the one next.
                 assert (
                     session.evaluate(
-                        "document.querySelector('#setup-progress li:first-child').className"
+                        "document.querySelector('#setup-progress li:nth-child(2)').className"
                     )
                     == "is-next"
                 ), "the signer is done only once a handshake has asked it"
@@ -1788,7 +1788,7 @@ def setup_journey():
                 # The Agent step asked the signer: step 1 is done only now.
                 wait(
                     session,
-                    "document.querySelector('#setup-progress li:first-child').className === 'is-done'",
+                    "document.querySelector('#setup-progress li:nth-child(2)').className === 'is-done'",
                 )
                 click(session, "setup-next")
                 wait(
@@ -2169,16 +2169,16 @@ def fresh_miner():
                     )
                 )
                 assert [s[0] for s in steps] == [
-                    "signer",
                     "register",
+                    "signer",
                     "agent",
                     "inference",
                     "compute",
                     "review",
                 ], steps
                 # Nothing is confirmed yet, so nothing is done. One step reads
-                # Next, the signer; registration is open beside it, in either
-                # order, and says so.
+                # Next, getting your keys and joining; the signer is open beside
+                # it, in either order, and says so.
                 assert [s[2] for s in steps] == ["Next", "Open"] + ["Waiting"] * 4
                 assert session.evaluate(
                     "document.querySelector('#getting-started-steps [data-step=register]')"
@@ -2191,10 +2191,10 @@ def fresh_miner():
                         " document.getElementById('overview-primary').getAttribute('href')])"
                     )
                 )
-                assert primary == ["Next: Start your signer", "#setup/signer"], primary
+                assert primary == ["Next: Get your keys and join", "#setup/register"], primary
                 # The same step leads in setup, with its command to copy; the
                 # steps after registration are locked until it is confirmed.
-                session.evaluate("document.getElementById('overview-primary').click()")
+                goto(session, "#setup/signer")
                 wait(
                     session,
                     "location.hash === '#setup/signer'"
@@ -2225,7 +2225,7 @@ def fresh_miner():
                 )
                 deadline = time.monotonic() + 15
                 while time.monotonic() < deadline and not session.evaluate(
-                    "document.querySelector('#setup-progress li:first-child').className === 'is-done'"
+                    "document.querySelector('#setup-progress li:nth-child(2)').className === 'is-done'"
                 ):
                     time.sleep(0.2)
                 assert session.evaluate(
@@ -2242,16 +2242,16 @@ def fresh_miner():
                 wait(
                     session,
                     "document.getElementById('setup-result').textContent === 'Checked: signer.'"
-                    " && document.querySelector('#setup-progress li:first-child').className === 'is-done'"
+                    " && document.querySelector('#setup-progress li:nth-child(2)').className === 'is-done'"
                     " && document.querySelector('[data-step-panel=signer] .step-done') !== null",
                 )
-                click(session, "setup-next")
+                goto(session, "#setup/register")
                 wait(
                     session,
                     "location.hash === '#setup/register'"
                     " && document.getElementById('setup-next').disabled"
                     " && document.getElementById('setup-next-reason').textContent"
-                    ".includes('Confirm your registration first')",
+                    ".includes('Confirm you have joined first')",
                 )
                 assert session.evaluate(
                     "Boolean(document.getElementById('setup-register-confirm'))"
