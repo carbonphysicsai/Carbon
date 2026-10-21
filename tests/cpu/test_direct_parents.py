@@ -132,3 +132,30 @@ def test_a_parent_of_the_wrong_kind_is_refused_for_its_runtime():
         gp.DirectParents({"python-cpu-py311": image})
     with pytest.raises(ValueError, match="registered runtimes"):
         gp.DirectParents({"jax-cuda13-py311": image})
+
+
+def test_the_torch_layer_repins_nothing_the_cpu_parent_carries():
+    # Inference stays on the PyTorch CPU worker for jNO entries too. It reads
+    # the C-03 stack only if the Torch layer moves no package the CPU parent
+    # installed: every pin is uv.lock's one version, and JAX is not re-pinned.
+    import tomllib
+
+    lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
+    versions = {}
+    for package in lock["package"]:
+        name = package["name"].lower().replace("_", "-")
+        versions.setdefault(name, set()).add(package.get("version"))
+    text = (ROOT / ".devcontainer/torch/torch-cpu-py311.txt").read_text(
+        encoding="utf-8"
+    )
+    pins = {
+        name.lower().replace("_", "-"): version
+        for name, version in re.findall(
+            r"^([A-Za-z0-9_.\-]+)==([^\s;]+)", text, re.MULTILINE
+        )
+    }
+    assert pins
+    assert {name: {version} for name, version in pins.items()} == {
+        name: versions.get(name) for name in pins
+    }
+    assert not {"jax", "jaxlib"} & set(pins)
