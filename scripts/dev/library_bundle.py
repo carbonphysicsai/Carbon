@@ -170,6 +170,55 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR):
     }
 
 
+def install_receiver_bundle(directory, receiver_config):
+    """Owner-initiated install on a DEVELOPMENT receiver host, never MCP.
+
+    A receiver has no Launchpad miner setup (signer, inference, agent): it
+    serves from its operator record's runner profile. The parent and library
+    cache are exactly the ones the receiver verifies when it starts
+    (`direct_receiver.installed_source`), so its resolver finds the child.
+    """
+    from carbon.challenge_validator import direct_receiver
+
+    cfg = direct_receiver.load_config(Path(receiver_config))
+    _implementation, parent, _network, cache = direct_receiver.installed_source(
+        Path(cfg["runner_profile"]),
+        **(
+            {"construction_image_manifest": Path(cfg["construction_image_manifest"])}
+            if "construction_image_manifest" in cfg
+            else {}
+        ),
+    )
+    material = load_pinned_bundle_directory(directory)
+    selected = bundle_ref(*material)
+    try:
+        verify_bundle_parent_environment(material[0], parent)
+    except ValueError as error:
+        raise ValueError(
+            "backend_not_served: the receiver's construction parent does not "
+            f"build {selected.runtime_profile_id} bundles ({error})"
+        ) from None
+    # The receiver's own campaigns root; the library cache under it is created
+    # owner-only here exactly where `installed_source` names it.
+    if not cache.parent.parent.is_dir() or cache.parent.parent.is_symlink():
+        raise ValueError("receiver campaigns root missing")
+    cache_root = _private_dir(_private_dir(cache.parent) / cache.name)
+    image = install_pinned_library_worker_image(
+        directory,
+        cache_root,
+        parent,
+        expected_bundle=selected,
+        cli=DockerCLI(),
+    )
+    return {
+        "status": "INSTALLED_VERIFIED",
+        "host": "receiver",
+        "bundle_ref": image.bundle_ref,
+        "parent_image": parent.image_id,
+        "qualification": "DEVELOPMENT_ONLY",
+    }
+
+
 def stage_bundle(directory, state_dir=DEFAULT_STATE_DIR):
     """Place an exact closure where direct admission can find its digest."""
     # Source staging precedes compute, agent and image setup. The launchpad's
