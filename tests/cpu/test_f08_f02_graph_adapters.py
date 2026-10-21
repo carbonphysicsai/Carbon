@@ -275,17 +275,19 @@ def test_every_adapter_code_is_registered_with_its_class():
         assert build_refusal.CODES[code] == build_refusal.REFUSED
 
 
-def test_f02_2_3_material_serves_the_adapter_and_f08_1_4_fails_closed():
-    # F02's development bank is version-free, so 2.3's material loads, with v7
-    # and the adapter block. F08's bank table (physical_pack._F08_EXAMS, the
-    # packs lane's) has no 1.4 row yet, so its material fails closed.
+def test_f02_2_3_and_f08_1_4_material_serve_the_adapter():
+    # Both versions have their pack labels (physical_pack, the packs lane's:
+    # the predecessor's exam under their own pack version), so each material
+    # loads with v7 and the adapter block.
     material = physical_material.bundle_material(F02, "2.3")
     assert material["allowlist_bytes"] == allowlist_module.v7_bytes()
     limits = material["construction_limits_document"]
     assert limits["graph_training_adapter"] == adapter.adapter_block(F02, "2.3")
     assert material["construction_kit"] == f02_public.construction_kit(F02, "2.3")
-    with pytest.raises(KeyError):
-        physical_material.bundle_material(F08, "1.4")
+    material = physical_material.bundle_material(F08, "1.4")
+    assert material["allowlist_bytes"] == allowlist_module.v7_bytes()
+    limits = material["construction_limits_document"]
+    assert limits["graph_training_adapter"] == adapter.adapter_block(F08, "1.4")
 
 
 # --- Training surfaces ---------------------------------------------------------------
