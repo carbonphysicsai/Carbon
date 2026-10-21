@@ -18,6 +18,18 @@
     return match ? match[1] : "";
   }
   const linkToken = takeSessionLink();
+  // ---- The session this tab keeps (owner, 2026-10-21): a reload must not drop
+  // it, and getting back in must not need a terminal. The token is held in
+  // this tab's sessionStorage only: gone when the tab closes, never in
+  // localStorage, an address or a template, and forgotten the moment the
+  // controller refuses it.
+  const sessionKey = "carbon.launchpad.session.v1";
+  function keptSession() {
+    try { const value = sessionStorage.getItem(sessionKey); return value && /^[!-~]{1,512}$/.test(value) ? value : null; }
+    catch (_) { return null; }
+  }
+  function keepSession(value) { try { sessionStorage.setItem(sessionKey, value); } catch (_) { /* this tab asks again after a reload */ } }
+  function forgetSession() { try { sessionStorage.removeItem(sessionKey); } catch (_) { /* nothing kept */ } }
   let selected = "";
   let runs = [];
   let pending = null;
@@ -95,6 +107,15 @@
     if ($("message").className !== kind) $("message").className = kind;
   };
   function words(value) { return String(value ?? "").replaceAll("_", " "); }
+  // A blocker as a person reads it: the controller's own plain sentence when it
+  // has one, else the code said in words and capitalised. The code itself stays
+  // behind Details, never in the sentence.
+  function why(item) {
+    const sentence = item?.plain?.sentence;
+    if (typeof sentence === "string" && sentence) return sentence.replace(/\.$/, "");
+    const text = words(item?.reason || "not available");
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
   function el(tag, text, className) {
     const node = document.createElement(tag);
     if (text !== undefined && text !== null) node.textContent = text;
@@ -362,6 +383,30 @@
       }
     }
   }
+  // The wiring guide is long: its introduction reads straight through, and each
+  // main section is a fold, so a researcher opens only the part they need.
+  // Every block is still there, and a link to a section opens it.
+  function renderGuideBlocks(parent, blocks) {
+    let section = null;
+    let group = [];
+    const flush = () => {
+      if (!group.length) return;
+      const target = section || parent;
+      renderBlocks(target, group);
+      group = [];
+    };
+    for (const block of blocks || []) {
+      if (block.type === "heading" && block.level <= 2) {
+        flush();
+        section = el("details", undefined, "guide-section");
+        const summary = el("summary"); const heading = el("h2"); heading.dataset.anchor = "guide/" + block.anchor;
+        renderSpans(heading, block.text); summary.append(heading); section.append(summary); parent.append(section);
+        continue;
+      }
+      group.push(block);
+    }
+    flush();
+  }
   // Carbon holds no key: the miner's own `carbon-miner-signer` signs. Each
   // way reaching it can fail is its own code and its own correction.
   const SIGNER_HELP = {
@@ -453,6 +498,7 @@
     renderOnboarding();
     renderDevelopment();
     renderOverview();
+    renderSetupBanner();
     renderCatalogs();
     renderCampaigns();
     renderWizard();
@@ -460,6 +506,8 @@
     $("settings-recheck").disabled = !connected || busy;
     // Connected: the token form steps aside; interrupted or new, it returns.
     $("connect-panel").hidden = connected;
+    // One click back in, from the session this tab kept.
+    $("reconnect").hidden = connected || !keptSession();
     // The research surface (research_view.js) redraws with the page.
     for (const hook of renderHooks) hook();
   }
@@ -479,11 +527,16 @@
     if (body.dataset.built !== "1") {
       body.replaceChildren();
       if (!guideDoc.available) body.append(el("p", "This checkout has no guide at " + guideDoc.source + ".", "reason"));
-      else { $("guide-heading").textContent = guideDoc.title; renderBlocks(body, guideDoc.blocks); }
+      else { $("guide-heading").textContent = guideDoc.title; renderGuideBlocks(body, guideDoc.blocks); }
       body.dataset.built = "1";
     }
     // Scroll once per anchor, not on every refresh.
-    if (anchor && anchor !== guideAnchor) document.querySelector('[data-anchor="guide/' + CSS.escape(anchor) + '"]')?.scrollIntoView();
+    if (anchor && anchor !== guideAnchor) {
+      const target = document.querySelector('[data-anchor="guide/' + CSS.escape(anchor) + '"]');
+      // A link to a section, or to a heading inside one, opens the fold it is in.
+      for (let fold = target?.closest("details"); fold; fold = fold.parentElement?.closest("details")) fold.open = true;
+      target?.scrollIntoView();
+    }
     guideAnchor = anchor || null;
   }
   function renderDevelopment() {
@@ -748,6 +801,21 @@
     } catch (_) { /* the next poll tries again */ }
     finally { setupPolling = false; }
   }
+  // A refused key, said as a person would say it: who refused, what to check,
+  // and that the key field empties after every check (a key is never kept in
+  // the page), so it is pasted again to retry.
+  const KEY_REFUSALS = {
+    provider_refused_completion: "refused this key. Check the account's balance, or copy the key again.",
+    provider_refused_model_list: "would not list its models for this key. Copy the key again.",
+  };
+  function setupErrorText(step, body, error) {
+    if (step === "inference" && Object.hasOwn(KEY_REFUSALS, error.code || "")) {
+      const id = typeof body?.provider_id === "string" ? body.provider_id : "";
+      const name = (setupState?.choices?.inference || []).find(c => c.id === id)?.display_name || (id ? words(id) : "The provider");
+      return name + " " + KEY_REFUSALS[error.code] + " The key field clears after each check, so paste it again to retry.";
+    }
+    return (error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : "");
+  }
   async function setupCall(step, body, timeout = 60000) {
     try {
       const result = await api("/api/v1/setup/" + step, body, undefined, timeout);
@@ -778,8 +846,7 @@
       if (step === "review") refresh();
       return true;
     } catch (error) {
-      const text = (error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : "");
-      $("setup-result").replaceChildren(setupLine(text, "error"));
+      $("setup-result").replaceChildren(setupLine(setupErrorText(step, body, error), "error"));
       return false;
     }
   }
@@ -1127,7 +1194,13 @@
     }
     const inference = stepForm(inferencePanel, "inference");
     const provider = setupSelect(inference, "provider_id", "Provider", offered.inference.map(c => [c.id, c.display_name + " · " + acceptanceText(c)]));
-    const model = setupField(inference, "model_id", "Model id");
+    const model = setupField(inference, "model_id", "Model (type to search the provider's models)");
+    // A searchable list of the models this provider offers, not a blind id. Any
+    // other id the provider serves can still be typed.
+    const modelOptions = document.createElement("datalist"); modelOptions.id = "setup-model-options";
+    model.setAttribute("list", modelOptions.id);
+    model.autocomplete = "off";
+    inference.append(modelOptions);
     // A generic adapter has no endpoint of its own: the miner names it here,
     // with an optional declared price (nanodollars per token). Without one the
     // spend is stated as unknown and no money ceiling can be set.
@@ -1147,6 +1220,13 @@
       inferenceCost.replaceChildren();
       if (choice) researchNote(inferenceCost, "Billed by " + choice.display_name + " to your account. Carbon bills nothing.", "hint");
       const listed = (choice?.models || []).map(m => m.model_id);
+      modelOptions.replaceChildren(...(choice?.models || []).map(m => {
+        const option = document.createElement("option"); option.value = m.model_id;
+        const price = m.pricing && Number.isFinite(m.pricing.input) && Number.isFinite(m.pricing.output_including_reasoning)
+          ? " · " + usd(m.pricing.input * 1e6) + " in / " + usd(m.pricing.output_including_reasoning * 1e6) + " out per million tokens" : "";
+        option.label = m.model_id + (m.default ? " · the default" : "") + price;
+        return option;
+      }));
       const about = details(inferenceCost, "About this provider", []);
       const aboutBody = about.querySelector(".detail-body");
       costNote(aboutBody, choice);
@@ -1553,7 +1633,7 @@
     // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
     const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver hotkey (its public ss58 address; required with an intake URL)");
     intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
-    const directMore = advanced(review, "Advanced: DEVELOPMENT construction receiver");
+    const directMore = advanced(review, "Advanced: where your recipe is checked");
     researchNote(directMore, "For the 1.3 construction-recipe session only. This receiver rebuilds a model but does not return a scored verdict or reward.", "hint");
     const directIntake = setupField(directMore, "direct_intake_url", "Construction intake URL (https, or loopback)");
     const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Construction receiver hotkey (public ss58 address)");
@@ -1732,9 +1812,17 @@
       setText($("connection-state"), "Connected");
     } catch (error) {
       connected = false;
-      quietly(render);
-      setText($("connection-state"), "Connection interrupted");
-      message("Controller connection interrupted. Runs may still be active. Reconnect before issuing another command.", true);
+      if (error.status === 401 || error.status === 403) {
+        // The controller no longer knows this token: it was restarted.
+        token = ""; forgetSession();
+        quietly(render);
+        setText($("connection-state"), "Disconnected");
+        message(SESSION_ENDED, true);
+      } else {
+        quietly(render);
+        setText($("connection-state"), "Connection interrupted");
+        message("Lost contact with the controller. Your campaigns may still be running. This page keeps trying; press Reconnect to try now.", true);
+      }
     } finally { polling = false; }
   }
   // A returning miner lands on their active campaign; otherwise where they were.
@@ -1747,6 +1835,11 @@
     const last = stored(routeKey, null);
     if (last && typeof last.hash === "string" && last.hash.startsWith("#")) location.hash = last.hash;
   }
+  $("reconnect").addEventListener("click", () => {
+    const resumed = keptSession();
+    if (!resumed || busy || polling) return;
+    token = ""; connect(resumed, true);
+  });
   $("connect-form").addEventListener("submit", event => {
     event.preventDefault();
     if (busy || polling) return;
@@ -1754,15 +1847,17 @@
   });
   // The session link connects as a pasted token does. One read while a
   // refresh or an operation is under way waits for it, rather than being lost.
-  function connectFromLink(value) {
+  function connectFromLink(value, resumed = false) {
     if (!value) {
       message("This address held a session link this page cannot read. Open the link the Control Center printed again, or paste its local session token.", true);
       return;
     }
-    if (busy || polling) { setTimeout(() => connectFromLink(value), 250); return; }
-    connect(value);
+    if (busy || polling) { setTimeout(() => connectFromLink(value, resumed), 250); return; }
+    connect(value, resumed);
   }
-  async function connect(value) {
+  // The same words wherever a refused session is met.
+  const SESSION_ENDED = "Your session ended: the Control Center was restarted and printed a new link. Open that link, or paste its token.";
+  async function connect(value, resumed = false) {
     connected = false;
     render();
     token = value;
@@ -1777,7 +1872,7 @@
       for (const item of catalog.unavailable) {
         const box = document.createElement("div"); box.className = "integration";
         const title = document.createElement("strong"); title.textContent = item.id;
-        const reason = document.createElement("p"); reason.textContent = item.reason.replaceAll("_", " ");
+        const reason = document.createElement("p"); reason.textContent = why(item);
         box.append(title, reason); $("integrations").append(box);
       }
       // Order matters: renderExamEnvironment clears the panel before filling
@@ -1785,6 +1880,8 @@
       await renderExamEnvironment();
       renderComputeChoices(caps.compute.destinations || []);
       await onboardingRequirements();
+      keepSession(value);
+      store(footerSeenKey, {seen: true});
       message("Connected. Records persist on this machine.");
       await refresh();
       if (storageError) message("Browser retry storage is unavailable. Launch is disabled to preserve duplicate protection.", true);
@@ -1792,8 +1889,13 @@
       token = "";
       connected = false;
       $("connection-state").textContent = "Disconnected";
+      // A refused token is forgotten; a controller that did not answer leaves
+      // it, so Reconnect is one click once the controller is running again.
+      if (error.status === 401 || error.status === 403) forgetSession();
       render();
-      message("Could not connect: " + error.message, true);
+      if (resumed && (error.status === 401 || error.status === 403)) message(SESSION_ENDED, true);
+      else if (resumed) message("The Control Center did not answer. Start it, then press Reconnect.", true);
+      else message("Could not connect: " + error.message, true);
     }
   }
   $("settings-recheck").addEventListener("click", async () => {
@@ -1941,7 +2043,10 @@
     const j = journey();
     const key = JSON.stringify([j.state, j.profile, research.runs.length, setupState?.registered_hotkey ?? null, setupVersion]);
     goTo(j.current ? "Next: " + stepTitle(j.current, j) : "New campaign", j.current ? stepHref(j.current, j) : "#launch");
-    setText($("overview-lede"), j.current ? "Step " + (SETUP_IDS.indexOf(j.current) + 1) + " of 6 is next. Each step is checked before it counts." : "You are set up. Choose a Challenge and launch.");
+    // Never "You are set up" above a page of failures: the steps may all be done
+    // while something the controller reads still blocks a launch.
+    const blocked = Boolean(caps) && prerequisites().some(item => item.ok === false);
+    setText($("overview-lede"), j.current ? "Step " + (SETUP_IDS.indexOf(j.current) + 1) + " of 6 is next. Each step is checked before it counts." : blocked ? "Your steps are done, but one thing still stops a launch. It is at the top of this page." : "You are set up. Choose a Challenge and launch.");
     rebuild(list, key, target => drawGettingStarted(target, j));
     setText($("getting-started-progress"), Object.values(j.state).filter(state => state === "done").length + " of 6 done");
   }
@@ -2018,6 +2123,35 @@
       if (group.plain.next) group.entry.append(link(group.plain.next, "button fix"));
       details(group.entry, "Details", group.lines);
     }
+  }
+  // One banner for the cause that is holding up the rest, on every page: the
+  // same missing thing used to turn into a red message on each of them.
+  function renderSetupBanner() {
+    const box = $("setup-banner");
+    const items = connected && caps ? prerequisites().filter(item => item.ok === false) : [];
+    // After an update the installed images are new, so the compute check no
+    // longer matches: say so, with the one place that re-checks it.
+    const stale = connected && setupState?.steps ? staleCompute(setupState.steps) : null;
+    if ((!items.length && !stale) || route().view === "setup") { box.hidden = true; box.dataset.key = ""; return; }
+    const groups = new Map();
+    if (stale) groups.set("stale", {plain: {sentence: stale.title + ". This happens after an update: check your computer again.", next: {label: "Re-check your computer", href: "#setup/compute"}}, areas: []});
+    for (const item of items) {
+      const source = item.item || {};
+      const plain = source.plain || {sentence: why(source) + ".", next: null};
+      const key = plain.sentence + "|" + (plain.next?.href || "");
+      if (!groups.has(key)) groups.set(key, {plain, areas: []});
+      groups.get(key).areas.push(item.area);
+    }
+    // The cause holding up the most comes first; others are said, not listed.
+    const ordered = [...groups.values()].sort((a, b) => (b === groups.get("stale")) - (a === groups.get("stale")) || b.areas.length - a.areas.length);
+    const lead = ordered[0];
+    const key = JSON.stringify([lead.plain, lead.areas, ordered.length]);
+    box.hidden = false;
+    rebuild(box, key, node => {
+      node.append(el("strong", ordered.length > 1 ? "Setup needs " + ordered.length + " fixes. First:" : "Setup needs one fix:"), el("span", " " + lead.plain.sentence));
+      if (lead.areas.length > 1) node.append(el("span", " It is holding up: " + lead.areas.join(", ") + ".", "hint"));
+      node.append(lead.plain.next ? link(lead.plain.next, "button fix") : link({label: "Open Setup", href: "#setup"}, "button fix"));
+    });
   }
   function renderChecklist(list, items) {
     list.replaceChildren();
@@ -2111,6 +2245,8 @@
     // A submit through a validator intake that was not a verdict
     // (LAUNCHPAD-ACCEPT-04): queued, the validator's side, or yours to act on.
     if (refusal.intake_outcome) box.append(el("p", "Validator intake: " + INTAKE_OUTCOMES[refusal.intake_outcome], "hint"));
+    // What stopped it, by its code, so it can be named to someone who can help.
+    if (refusal.kind === "interrupted") box.append(el("p", "Code: " + refusal.code, "hint"));
     if (refusal.next_action && !practiceMessage(refusal.code)) box.append(el("p", (compact ? "" : "What to do: ") + refusal.next_action, compact ? "hint" : "refusal-next"));
     const fix = refusalFix(refusal.code);
     if (fix && !compact) box.append(link(fix, "button fix"));
@@ -2576,7 +2712,7 @@
         ? "available for a compatible bounded recipe"
         : path.reason === "public_reconstruction_registered_host_readiness_unverified"
           ? "registered capability; host serving unverified"
-          : "unserved";
+          : "not served yet";
       researchNote(target, labels[path.id] + " · " + availability + (path.reason ? " · " + words(path.reason) : ""), path.availability === "available" ? "hint" : "reason");
     }
     if (document.qualification !== true) researchNote(target, "Scientific qualification: untested.", "hint");
@@ -3349,7 +3485,7 @@
         input.addEventListener("change", () => selectChallenge(entry));
         const text = el("span");
         text.append(el("strong", entry.title), el("span", " " + challengeStatus(entry) + (entry.version ? " · v" + entry.version : "") + " · " + acceptanceText(entry), "small-tag"));
-        if (!entry.selectable) text.append(el("span", "Unavailable: " + words(entry.reason) + " · Next: " + entry.next_action, "reason"));
+        if (!entry.selectable) text.append(el("span", "Unavailable: " + why(entry) + " · Next: " + entry.next_action, "reason"));
         label.append(input, text); node.append(label);
       }
     });
@@ -3381,7 +3517,7 @@
         input.addEventListener("change", () => { wizard.agentChoice = choice.id; composition = {...composition, agent: choice.launch_agent}; saveWizard(); render(); });
         const text = el("span");
         text.append(el("strong", choice.label), el("span", " " + choice.summary + " · " + acceptanceText(choice), "hint"));
-        if (choice.availability !== "available") text.append(el("span", "Unavailable: " + words(choice.reason) + " · Next: " + choice.next_action, "reason"));
+        if (choice.availability !== "available") text.append(el("span", "Unavailable: " + why(choice) + " · Next: " + choice.next_action, "reason"));
         else if (!here) text.append(el("span", "Not offered for " + entry.title + ": graphite not offered for challenge · Next: choose a Challenge with a registered Graphite campaign.", "reason"));
         label.append(input, text); node.append(label);
       }
@@ -3391,7 +3527,15 @@
     rebuild(notes, JSON.stringify([capsVersion, Boolean(caps), wizard.agentChoice]), node => {
       if (!caps) return;
       if (wizard.agentChoice === "external_mcp" && external) researchNote(node, "After launch, connect your client with: " + external.command + ". It sees this campaign and calls the same practice, freeze and submit operations.", "code");
-      for (const item of caps.agents.unavailable) researchNote(node, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
+      // Agents this machine cannot use yet: one fold, each with its reason and
+      // next step, instead of a line per agent under the choices.
+      const unavailable = caps.agents.unavailable || [];
+      if (unavailable.length) {
+        const fold = el("details", undefined, "inline-more");
+        fold.append(el("summary", unavailable.length + (unavailable.length === 1 ? " other agent is" : " other agents are") + " not available here"));
+        for (const item of unavailable) researchNote(fold, words(item.id) + ": " + why(item) + " · Next: " + item.next_action, "reason");
+        node.append(fold);
+      }
     });
   }
   // Graphite's choices, under the Agent step once Graphite is chosen: built
@@ -3430,8 +3574,15 @@
       const choice = el("label", undefined, "choice");
       const input = el("input"); input.type = "radio"; input.name = "wizard-graphite-mode"; input.value = mode; input.id = "wizard-graphite-mode-" + mode.toLowerCase();
       input.addEventListener("change", () => setGraphite({mode}));
-      const span = el("span"); span.append(el("strong", label + (mode === "FULL" ? " · the default" : "")), el("span", text, "hint"));
+      // One line each; the rest of what a mode does is one click away.
+      const [first, ...rest] = text.split(/(?<=\.)\s+/);
+      const span = el("span"); span.append(el("strong", label + (mode === "FULL" ? " · the default" : "")), el("span", first, "hint"));
       choice.append(input, span); modes.append(choice);
+      if (rest.length) {
+        const more = el("details", undefined, "inline-more");
+        more.append(el("summary", "More about " + label), el("p", rest.join(" "), "hint"));
+        modes.append(more);
+      }
     }
     box.append(modes);
     // The edition: its choices are the controller's (patched in place).
@@ -3582,7 +3733,7 @@
         if (provider.availability !== "available") unavailableNote(group, provider);
         node.append(group);
       }
-      for (const item of caps.model.unavailable) researchNote(node, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
+      for (const item of caps.model.unavailable) researchNote(node, words(item.id) + ": " + why(item) + " · Next: " + item.next_action, "reason");
     });
     for (const input of target.querySelectorAll("input[name=wizard-model]")) input.checked = input.value === wizard.provider + "/" + wizard.model;
     renderWizardTimeout();
@@ -3634,7 +3785,7 @@
         researchNote(box, "Lane: " + choice.lane + " · " + Object.entries(choice.lanes).map(([lane, state]) => lane + " " + state.availability + (state.reason ? " (" + words(state.reason) + ")" : "")).join(" · "));
         if (choice.availability !== "available") unavailableNote(box, choice);
       }
-      for (const item of caps.compute.unavailable) researchNote(target, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
+      for (const item of caps.compute.unavailable) researchNote(target, words(item.id) + ": " + why(item) + " · Next: " + item.next_action, "reason");
     });
   }
   function renderWizardTools() {
@@ -3645,12 +3796,15 @@
     target.replaceChildren();
     target.dataset.key = key;
     if (!entry) { researchNote(target, "Choose a Challenge first: its tools come from its description.", "hint"); return; }
-    target.append(el("h3", "Tools for " + entry.title));
+    // What the Challenge gives the agent to work with: one line, the list one
+    // click away (the two fields people set are the limits below).
     const grid = el("dl", undefined, "review-grid");
     for (const [name, detail] of Object.entries(entry.tools?.workflow || {})) grid.append(el("dt", name), el("dd", detail));
     if (entry.tools?.public_material?.length) grid.append(el("dt", "public material"), el("dd", entry.tools.public_material.join(", ")));
     if (entry.tools?.rebuildable_models?.length) grid.append(el("dt", "rebuildable models"), el("dd", entry.tools.rebuildable_models.join(", ")));
-    target.append(grid);
+    const fold = el("details", undefined, "inline-more tools-fold");
+    fold.append(el("summary", "Tools for " + entry.title + " (" + grid.children.length / 2 + ")"), grid);
+    target.append(fold);
     // The Challenge's own feedback modes; FULL is every Challenge's default.
     const modes = entry.setup_offers?.feedback_modes || [];
     if (modes.length > 1) {
@@ -4269,8 +4423,14 @@
     budgetLine,
     onRender(hook) { renderHooks.push(hook); },
   };
+  // The private-tool notice is shown once, on the first connect, then no longer
+  // on every page; the Help card and the keys note still carry it.
+  const footerSeenKey = "carbon.launchpad.footer-seen.v1";
+  const pageFooter = document.querySelector("main > footer");
+  if (pageFooter && stored(footerSeenKey, {}).seen === true) pageFooter.hidden = true;
   buildNavigation();
   show();
   setInterval(refresh, 1500);
   if (linkToken !== null) connectFromLink(linkToken);
+  else { const resumed = keptSession(); if (resumed) connectFromLink(resumed, true); }
 })();

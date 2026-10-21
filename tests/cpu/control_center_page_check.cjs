@@ -116,7 +116,7 @@ scenario("normal challenge selection shows only its construction serving paths",
   await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id));
   assert.equal(one(page, "#wizard-construction-options").hidden, false);
   assert.match(page.text("wizard-construction-options"), /Construction serving paths/);
-  assert.match(page.text("wizard-construction-options"), /Official submission · unserved/);
+  assert.match(page.text("wizard-construction-options"), /Official submission · not served yet/);
   clean(page);
 
   const unknown = world();
@@ -127,7 +127,7 @@ scenario("normal challenge selection shows only its construction serving paths",
   await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id));
   assert.equal(one(second, "#wizard-construction-options").hidden, false);
   assert.match(second.text("wizard-construction-options"), /Construction path status unavailable/);
-  assert.doesNotMatch(second.text("wizard-construction-options"), /Official submission · unserved/,
+  assert.doesNotMatch(second.text("wizard-construction-options"), /Official submission · not served yet/,
     "an unrelated response key must not supply construction paths for this Challenge");
   clean(second);
 });
@@ -158,11 +158,11 @@ scenario("v2 construction paths render without family admission claims", async (
   const notice = page.text("wizard-construction-options");
   assert.match(notice, /Construction serving paths/);
   assert.match(notice, /Public reconstruction · available for a compatible bounded recipe/);
-  assert.match(notice, /Official submission · unserved/);
+  assert.match(notice, /Official submission · not served yet/);
   assert.match(notice, /Scientific qualification: untested/);
   assert.doesNotMatch(notice, /Families you can freeze|What you can change/);
   const availability = page.text("launch-availability");
-  assert.match(availability, /Official submission · unserved/);
+  assert.match(availability, /Official submission · not served yet/);
   assert.doesNotMatch(availability, /Model families/);
   clean(page);
 
@@ -804,7 +804,7 @@ scenario("a campaign without last_refusal shows no refusal", async () => {
 // Reconcile for each of these states (the lead's W3 contract; review repair).
 const LABELS = {reconcile: "Reconcile", resume: "Resume", stop: "Stop"};
 for (const stateName of ["RECONCILIATION_REQUIRED", "INTERRUPTED", "PAUSE_REQUESTED"]) {
-  scenario("Reconcile is on the Live tab, with why, for " + stateName, async () => {
+  scenario("the control bar offers what " + stateName + " needs, with why", async () => {
     const real = fx.recovering[stateName];
     const offered = real.view.recovery.map(item => item.action);
     assert.ok(offered.includes("reconcile"), "the controller offers Reconcile for " + stateName + ": " + offered);
@@ -816,23 +816,31 @@ for (const stateName of ["RECONCILIATION_REQUIRED", "INTERRUPTED", "PAUSE_REQUES
     const page = await open(state);
     page.go("#campaigns/" + run.id + "/live");
     await page.advance(0);
-    const now = "#campaign-detail [data-part=now]";
-    // Each action the controller offers is among the Live tab's controls,
-    // ready, and the ways forward (Stop aside) are primary.
+    // The one control bar is the campaign header's: the page's controls are
+    // drawn there once, and the Live tab's Now card draws none.
+    const bar = "#campaign-detail [data-part=head]";
+    assert.equal(all(page, "#campaign-detail [data-part=now] [data-action]").length, 0, "no second set of controls");
+    // Each action the controller offers is in the bar, ready, and the first
+    // way forward is the one primary button.
     for (const action of offered) {
-      const button = one(page, now + " [data-action=" + action + "]");
+      const button = one(page, bar + " [data-action=" + action + "]");
       assert.equal(button.disabled, false, action);
-      assert.equal(button.classList.contains("primary"), action !== "stop", action);
+      assert.equal(button.classList.contains("primary"), action === offered[0] && action !== "stop", action);
     }
+    assert.equal(all(page, bar + " .primary").length, 1, "one primary button");
     // Reconcile is there, once, ready.
-    assert.equal(all(page, now + " [data-action=reconcile]").length, 1);
-    const button = one(page, now + " [data-action=reconcile]");
+    assert.equal(all(page, bar + " [data-action=reconcile]").length, 1);
+    const button = one(page, bar + " [data-action=reconcile]");
     assert.equal(button.disabled, false);
     // Why, naming the way forward and Reconcile.
     const attention = page.text(one(page, "#campaign-detail [data-part=attention]"));
     assert.match(attention, /Needs attention/);
     assert.ok(attention.includes(LABELS[offered[0]]), "why names the way forward: " + attention);
-    assert.match(attention, /Reconcile/, "why says what Reconcile is for: " + attention);
+    if (offered[0] === "reconcile") assert.match(attention, /Reconcile/, "why says what Reconcile is for: " + attention);
+    if (stateName === "INTERRUPTED") {
+      assert.match(attention, /stopped mid-step/, "says only that it stopped: " + attention);
+      assert.doesNotMatch(attention, /Nothing is lost|restarted|slept/, "no guessed cause and no promise: " + attention);
+    }
     await page.press(button);
     assert.ok(state.posted.some(entry => entry.path === "/api/v1/research/" + run.id + "/reconcile"));
     clean(page);
@@ -850,7 +858,7 @@ scenario("a controller that publishes no recovery list gets Reconcile from the s
     const page = await open(state);
     page.go("#campaigns/" + run.id + "/live");
     await page.advance(0);
-    const button = one(page, "#campaign-detail [data-part=now] [data-action=reconcile]");
+    const button = one(page, "#campaign-detail [data-part=head] [data-action=reconcile]");
     assert.equal(button.disabled, false, name);
     assert.match(page.text(one(page, "#campaign-detail [data-part=attention]")), /Needs attention/, name);
     await page.press(button);
@@ -858,15 +866,18 @@ scenario("a controller that publishes no recovery list gets Reconcile from the s
     clean(page);
   }
 });
-scenario("a healthy campaign's Live tab keeps Reconcile in the header only", async () => {
+scenario("a healthy campaign's control bar keeps Reconcile and Export under More", async () => {
   const state = launchable(world());
   state.runs = [copy(fx.run)];
   state.view = copy(fx.view);
   const page = await open(state);
   page.go("#campaigns/" + fx.run.id + "/live");
   await page.advance(0);
-  assert.equal(all(page, "#campaign-detail [data-part=now] [data-action=reconcile]").length, 0);
+  assert.equal(all(page, "#campaign-detail [data-part=now] [data-action]").length, 0);
   assert.equal(all(page, "#campaign-detail .rs-head [data-action=reconcile]").length, 1);
+  assert.equal(all(page, "#campaign-detail .rs-more [data-action=reconcile]").length, 1, "Reconcile is under More when nothing needs it");
+  assert.equal(all(page, "#campaign-detail .rs-more [data-action=export]").length, 1);
+  assert.equal(all(page, "#campaign-detail .rs-head .primary").length, 0, "a healthy campaign has no primary button");
   assert.equal(page.text(one(page, "#campaign-detail [data-part=attention]")), "");
   // No model call's outcome is unknown: nothing to settle is shown.
   assert.equal(one(page, "#campaign-detail [data-part=settlement]").hidden, true);
@@ -919,7 +930,7 @@ scenario("the controller's own recovery actions are offered when its record carr
 // What Reconcile settles (LP-PROD-W2), over a real campaign's documents
 // (fx.reconciled: a model call answered by another model, so its outcome is
 // unknown, published awaiting Reconcile and again once it settled it).
-scenario("the Live tab says what Reconcile books before the press, and what it booked after", async () => {
+scenario("the campaign page says what Reconcile books before the press, and what it booked after", async () => {
   const {awaiting, settled} = fx.reconciled;
   const state = launchable(world());
   const run = copy(awaiting.run);
@@ -942,7 +953,7 @@ scenario("the Live tab says what Reconcile books before the press, and what it b
   // A press refused with the settlement's own step: the page says that step.
   const step = "a model call of this campaign is still being admitted or in flight; settle once it has ended";
   state.script.push({match: r => r.path === "/api/v1/research/" + run.id + "/reconcile", answer: {status: 409, body: {error: "call_in_flight", next_step: step}}});
-  await page.press(one(page, "#campaign-detail [data-part=now] [data-action=reconcile]"));
+  await page.press(one(page, "#campaign-detail [data-part=head] [data-action=reconcile]"));
   assert.match(page.text("message"), /call_in_flight/);
   assert.ok(page.text("message").includes("Next: " + step + "."), page.text("message"));
   // The press, answered as the controller answers it: the settled campaign.
@@ -951,7 +962,7 @@ scenario("the Live tab says what Reconcile books before the press, and what it b
     state.view = copy(settled.view);
     return {body: settled.run};
   }});
-  await page.press(one(page, "#campaign-detail [data-part=now] [data-action=reconcile]"));
+  await page.press(one(page, "#campaign-detail [data-part=head] [data-action=reconcile]"));
   assert.ok(state.posted.some(entry => entry.path === "/api/v1/research/" + run.id + "/reconcile"));
   for (let i = 0; i < 3; i++) await refresh(page);
   // After: what it booked, why the outcome was unknown, and the caveat that
@@ -1279,9 +1290,10 @@ scenario("Tools: a read answered as text (v2 rule) or as base64 (historical) sho
   clean(page);
 });
 
-// ---- 10. The session link (LP-PROD-C D14): read once, kept nowhere. ----
+// ---- 10. The session link (LP-PROD-C D14): read once from the address; the tab keeps the token (owner,
+// 2026-10-21: a reload must not drop the session) in its own sessionStorage and nowhere else. ----
 const kept = storage => [...storage.map.values()].join("\n");
-scenario("a session link connects once and leaves its token nowhere", async () => {
+scenario("a session link connects once; this tab keeps the token and nothing else does", async () => {
   const LINK = "link_" + "A1b2-C3d4_".repeat(4);
   const state = launchable(world());
   const session = new Storage(), local = new Storage();
@@ -1293,11 +1305,12 @@ scenario("a session link connects once and leaves its token nowhere", async () =
   assert.deepEqual(page.replaced, ["http://127.0.0.1:8788/"], "this history entry replaced, no other");
   assert.ok(page.requests.length > 3 && page.requests.every(r => r.headers.Authorization === "Bearer " + LINK));
   assert.equal(page.$("token").value, "");
-  // Browsing on saves routes, never the token.
+  // Browsing on saves routes, never the token; the tab's own session holds it.
   page.go("#campaigns");
   await page.advance(0);
   assert.match(kept(local), /#campaigns/);
-  assert.ok(!kept(local).includes(LINK) && !kept(session).includes(LINK));
+  assert.ok(!kept(local).includes(LINK), "never in localStorage");
+  assert.ok(kept(session).includes(LINK), "kept in this tab's sessionStorage");
   // A link opened later in this same tab (the Control Center restarted with
   // a new token) is taken the same way, before the route is read.
   const OTHER = "other_" + "Z9y8-X7w6_".repeat(4);
@@ -1308,7 +1321,8 @@ scenario("a session link connects once and leaves its token nowhere", async () =
   assert.equal(page.text("connection-state"), "Connected");
   const after = page.requests.slice(before);
   assert.ok(after.length && after.every(r => r.headers.Authorization === "Bearer " + OTHER));
-  assert.ok(!kept(local).includes(OTHER) && !kept(session).includes(OTHER));
+  assert.ok(!kept(local).includes(OTHER), "never in localStorage");
+  assert.ok(kept(session).includes(OTHER) && !kept(session).includes(LINK), "the newer token replaces the older one");
   assert.ok(page.replaced.every(address => !address.includes(LINK) && !address.includes(OTHER)));
   clean(page);
 });
@@ -1322,6 +1336,131 @@ scenario("an unreadable session link is removed, kept nowhere, and said", async 
   assert.match(page.text("message"), /session link this page cannot read/);
   assert.equal(page.requests.length, 0, "nothing sent with it");
   assert.ok(!kept(local).includes("space"));
+  clean(page);
+});
+
+// A reload, and the way back in after the controller restarts (owner, 2026-10-21).
+scenario("a reload keeps the session: the tab's token connects again with no link and no paste", async () => {
+  const LINK = "link_" + "A1b2-C3d4_".repeat(4);
+  const state = launchable(world());
+  const session = new Storage(), local = new Storage();
+  const first = await openPage(ROOT, state.server, {sessionStorage: session, localStorage: local, hash: "#token=" + LINK});
+  first.state = state;
+  await first.advance(0);
+  assert.equal(first.text("connection-state"), "Connected");
+  // The same tab, reloaded: a new page over the same sessionStorage, no fragment.
+  const second = await openPage(ROOT, state.server, {sessionStorage: session, localStorage: local});
+  second.state = state;
+  await second.advance(0);
+  assert.equal(second.text("connection-state"), "Connected", "connected by the tab's kept session alone");
+  assert.equal(second.$("connect-panel").hidden, true);
+  assert.ok(second.requests.length > 3 && second.requests.every(r => r.headers.Authorization === "Bearer " + LINK));
+  assert.ok(!kept(local).includes(LINK), "never in localStorage");
+  assert.ok(second.replaced.every(address => !address.includes(LINK)));
+  clean(first); clean(second);
+});
+scenario("a session the controller refuses is forgotten, and the page says it ended", async () => {
+  const OLD = "old_" + "Q1w2-E3r4_".repeat(4);
+  const state = launchable(world());
+  state.script.push({match: r => r.path === "/api/v1/control-center/capabilities", answer: {status: 401, body: {error: "unauthorized"}}, keep: true});
+  const session = new Storage();
+  session.setItem("carbon.launchpad.session.v1", OLD);
+  const page = await openPage(ROOT, state.server, {sessionStorage: session});
+  page.state = state;
+  await page.advance(0);
+  assert.notEqual(page.text("connection-state"), "Connected");
+  assert.match(page.text("message"), /Your session ended: the Control Center was restarted and printed a new link/);
+  assert.ok(!kept(session).includes(OLD), "a refused token is forgotten");
+  assert.equal(page.$("connect-panel").hidden, false);
+  assert.equal(page.$("reconnect").hidden, true, "nothing to reconnect with");
+  clean(page);
+});
+scenario("a controller that does not answer keeps the session, and Reconnect is one click", async () => {
+  const KEPT = "kept_" + "Z9y8-X7w6_".repeat(4);
+  const state = launchable(world());
+  state.script.push({match: r => r.path === "/api/v1/control-center/capabilities", answer: {network: true}, keep: true});
+  const session = new Storage();
+  session.setItem("carbon.launchpad.session.v1", KEPT);
+  const page = await openPage(ROOT, state.server, {sessionStorage: session});
+  page.state = state;
+  await page.advance(0);
+  assert.notEqual(page.text("connection-state"), "Connected");
+  assert.match(page.text("message"), /did not answer\. Start it, then press Reconnect/);
+  assert.ok(kept(session).includes(KEPT), "an unanswered controller does not lose the session");
+  assert.equal(page.$("reconnect").hidden, false);
+  state.script.length = 0;  // the controller is back
+  await page.press(page.$("reconnect"));
+  await page.advance(0);
+  assert.equal(page.text("connection-state"), "Connected");
+  assert.equal(page.$("reconnect").hidden, true);
+  assert.ok(page.requests.slice(-3).every(r => r.headers.Authorization === "Bearer " + KEPT));
+  clean(page);
+});
+
+// One cause, one banner (owner smoke sweep S6/S11, 2026-10-21).
+scenario("one banner says the cause holding the page up, with its one fix, on every page", async () => {
+  const state = world();
+  const page = await open(state);
+  const banner = page.$("setup-banner");
+  assert.equal(banner.hidden, false, "something blocks a launch in this world");
+  const text = page.text("setup-banner");
+  assert.match(text, /Setup needs (one fix:|\d+ fixes\. First:)/);
+  assert.equal(all(page, "#setup-banner a, #setup-banner button").length, 1, "one fix button");
+  // The raw code is never in the banner's sentence.
+  assert.doesNotMatch(text, /[a-z]+_[a-z]+_[a-z]+/);
+  // It follows the miner to another page, and steps aside on Setup itself.
+  page.go("#challenges");
+  await page.advance(0);
+  assert.equal(page.$("setup-banner").hidden, false);
+  page.go("#setup");
+  await page.advance(0);
+  assert.equal(page.$("setup-banner").hidden, true);
+  // Overview never says "You are set up" while a launch is blocked.
+  page.go("#overview");
+  await page.advance(0);
+  assert.doesNotMatch(page.text("overview-lede"), /^You are set up/);
+  clean(page);
+});
+
+// A slow model must not look stuck (owner smoke sweep): the running step says how long it has been going.
+scenario("the running step says how long it has been working, and that a slow model is not stuck", async () => {
+  const state = launchable(world());
+  state.runs = [copy(fx.run)];
+  state.view = copy(fx.view);
+  assert.ok(state.view.current_operation, "the fixture campaign has a running step");
+  const page = await open(state);
+  page.go("#campaigns/" + fx.run.id + "/live");
+  await page.advance(0);
+  const node = () => one(page, "#campaign-detail .working-for");
+  assert.equal(page.text(node()), "", "nothing to say in the first seconds");
+  for (let i = 0; i < 70; i++) await refresh(page);
+  assert.match(page.text(node()), /working on this step for \d+m/);
+  assert.match(page.text(node()), /not stuck/);
+  assert.match(page.text(one(page, "#campaign-detail [data-part=now]")), /step \d+ of this campaign/);
+  clean(page);
+});
+
+// The wiring guide is long: its sections are folds, and a link to one opens it (owner smoke sweep S10).
+scenario("the wiring guide's sections fold, and a link to a section opens it", async () => {
+  const state = launchable(world());
+  const blocks = [
+    {type: "paragraph", text: [{text: "Three steps to a working miner."}]},
+    {type: "heading", level: 2, anchor: "step-one", text: [{text: "Step one"}]},
+    {type: "paragraph", text: [{text: "Do the first thing."}]},
+    {type: "heading", level: 2, anchor: "step-two", text: [{text: "Step two"}]},
+    {type: "paragraph", text: [{text: "Do the second thing."}]},
+  ];
+  state.script.push({match: r => r.path === "/api/v1/guide/remote-setup", answer: {body: {schema: "carbon.control-center.guide.v1", available: true, source: "docs", title: "Wiring guide", blocks}}, keep: true});
+  const page = await open(state);
+  page.go("#guide/step-two");
+  await page.advance(0);
+  await refresh(page);
+  const sections = all(page, "#guide-body details.guide-section");
+  assert.equal(sections.length, 2, "each main section is a fold");
+  assert.ok(page.text("guide-body").includes("Three steps to a working miner."), "the introduction reads straight through");
+  assert.ok(!sections[0].open, "the other section stays folded");
+  assert.ok(sections[1].open, "the linked section is open");
+  assert.ok(page.text(sections[1]).includes("Do the second thing."));
   clean(page);
 });
 
@@ -1343,6 +1482,10 @@ scenario("setup shows a stale compute check, why, and the installer's update tha
   page.go("#overview");
   await page.advance(0);
   assert.ok(page.text("getting-started-steps").includes("Next: " + compute.next_step + "."));
+  // And the banner, on any page: after an update, check the computer again.
+  assert.equal(page.$("setup-banner").hidden, false);
+  assert.match(page.text("setup-banner"), /no longer matches this install/);
+  assert.match(page.text("setup-banner"), /Re-check your computer/);
   clean(page);
 });
 
@@ -2407,7 +2550,7 @@ scenario("Library: a controller without it says so, and nothing is asked of it",
   clean(page);
 });
 
-scenario("Library: a session link opened on a Library address connects and keeps its token nowhere", async () => {
+scenario("Library: a session link opened on a Library address connects, and only this tab keeps the token", async () => {
   const LINK = "link_" + "L1b2-R3d4_".repeat(4);
   const state = graphiteWorld();
   const session = new Storage(), local = new Storage();
@@ -2421,7 +2564,7 @@ scenario("Library: a session link opened on a Library address connects and keeps
   await refresh(page);
   assert.match(page.text(one(page, "#library-body [data-part=plan]")), /Written by/);
   assert.match(kept(local), /#library\/plans\//);
-  assert.ok(!kept(local).includes(LINK) && !kept(session).includes(LINK));
+  assert.ok(!kept(local).includes(LINK) && kept(session).includes(LINK));
   assert.ok(page.requests.every(r => r.headers.Authorization === "Bearer " + LINK));
   for (const r of page.requests) assert.ok(!JSON.stringify(r.body || {}).includes(LINK) && !r.path.includes(LINK));
   clean(page);
