@@ -95,6 +95,8 @@ STATIC = {
 #: answer ("the validator holds no submission of this candidate"), so a
 #: mistyped API path came back with that step.
 ROUTE_NOT_FOUND = "route_not_found"
+#: The page's own "Build the GPU worker" action (S15a, `gpu_worker_build`).
+GPU_BUILD_ROUTE = "/api/v1/page/gpu_worker_build"
 
 
 class Rejected(Exception):
@@ -677,6 +679,7 @@ class Server(ThreadingHTTPServer):
         state_dir=None,
         legacy_database=None,
         setup_checks=None,
+        gpu_build=None,
     ):
         if len(token) < 32:
             raise ValueError("A generated local session token is required")
@@ -705,6 +708,13 @@ class Server(ThreadingHTTPServer):
                 checks=setup_checks,
                 attach=self.attach_profile,
             )
+        # Setup's "Build the GPU worker" action (S15a): held by this page's
+        # server only, so no MCP or agent tool door has a handle on it.
+        self.gpu_build = gpu_build
+        if gpu_build is None and state_dir is not None:
+            from scripts.dev.miner_launchpad.gpu_worker_build import GpuWorkerBuild
+
+            self.gpu_build = GpuWorkerBuild(state_dir)
         self.token = token
         self.assets = Path(__file__).parent
         self.request_slots = threading.BoundedSemaphore(16)
@@ -915,10 +925,16 @@ class Handler(BaseHTTPRequestHandler):
                 if self.path.endswith("/status"):
                     self.reply(200, status)
                 else:
-                    self.reply(
-                        200,
-                        {**setup.state(), "choices": setup.offered(), "status": status},
-                    )
+                    document = {
+                        **setup.state(),
+                        "choices": setup.offered(),
+                        "status": status,
+                    }
+                    if self.server.gpu_build is not None:
+                        # The page's own build action and how it stands
+                        # (S15a): served to this page, never to the MCP door.
+                        document["gpu_build"] = self.server.gpu_build.status()
+                    self.reply(200, document)
             elif self.path == "/api/v1/development":
                 sources = self.server.development_sources
                 self.reply(200, {"sources": sources.recent() if sources else []})
@@ -1027,6 +1043,14 @@ class Handler(BaseHTTPRequestHandler):
                 result = setup_operations.perform(
                     self.server.setup, action, value, door=setup_operations.HTTP
                 )
+            elif self.path == GPU_BUILD_ROUTE:
+                # Build the GPU worker on this machine, from this page only
+                # (S15a): the installer's own GPU build, on consent to its
+                # exact command, as a background job. Not a setup operation,
+                # so no MCP tool or agent door can start it.
+                if self.server.gpu_build is None:
+                    raise Rejected("setup_unavailable", 409)
+                result = self.server.gpu_build.start(value)
             elif self.path.startswith("/api/v1/onboarding/"):
                 action = self.path.removeprefix("/api/v1/onboarding/")
                 if action not in {"status", "prepare", "confirm"}:

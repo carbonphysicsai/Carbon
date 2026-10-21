@@ -783,7 +783,10 @@
   let setupPolls = 0;
   let setupPolling = false;
   function setupKey(value) {
-    return JSON.stringify([value?.registered_hotkey ?? null, value?.steps ?? null, value?.status?.done ?? null]);
+    // A GPU worker build starting, ending, or its manifest appearing redraws
+    // the Compute step; its progress alone does not (it is set in place).
+    const build = value?.gpu_build;
+    return JSON.stringify([value?.registered_hotkey ?? null, value?.steps ?? null, value?.status?.done ?? null, build?.state ?? null, build?.offered ?? null, value?.images?.gpu_image_manifest?.path ?? null]);
   }
   async function pollSetup() {
     if (!connected || setupPolling || ++setupPolls % 3) return;
@@ -791,6 +794,9 @@
     try {
       const fresh = await api("/api/v1/setup");
       const changed = setupKey(fresh) !== setupKey(setupState);
+      // A running GPU worker build: its progress, in place.
+      if (!changed && setupState && fresh.gpu_build) setupState.gpu_build = fresh.gpu_build;
+      if (fresh.gpu_build?.state === "running") setText($("setup-gpu-build-progress"), gpuBuildText(fresh.gpu_build));
       if (changed) {
         setupState = fresh; setupVersion++;
         // A profile written elsewhere changes what can launch.
@@ -877,6 +883,55 @@
     const timer = setInterval(tick, 1000);
     try { return await setupCall("send_worker", body, SEND_WORKER_MS); }
     finally { clearInterval(timer); sendingWorker = null; }
+  }
+  // Build the GPU worker (S15a): the installer's own GPU build, run on this
+  // machine from this page only, on consent to its exact command. It runs in
+  // the background; the page reads how it stands with setup, and shows text.
+  const GPU_BUILD_ROUTE = "/api/v1/page/gpu_worker_build";
+  let buildingGpu = false;
+  function gpuBuildText(build) {
+    const step = typeof build.step === "string" ? ", Docker step " + build.step : "";
+    const last = typeof build.last_line === "string" && build.last_line ? " Last output: " + build.last_line : "";
+    return "Building the GPU worker on this machine: " + clock(Number(build.elapsed_seconds) || 0) + " so far" + step + ". It can take a while; this page follows it, and you can leave it." + last;
+  }
+  function drawGpuBuild(parent, build, route) {
+    const box = el("div", undefined, "guide-panel"); box.id = "setup-gpu-build"; parent.append(box);
+    box.append(el("h3", "Build the GPU worker"));
+    if (build.state === "running") {
+      const line = el("p", gpuBuildText(build)); line.id = "setup-gpu-build-progress";
+      const bar = el("progress"); bar.setAttribute("aria-label", "Building the GPU worker");
+      box.append(line, bar);
+      return;
+    }
+    if (build.outcome) {
+      const code = typeof build.outcome.exit_code === "number" ? " (exit " + build.outcome.exit_code + ")" : "";
+      const last = typeof build.last_line === "string" && build.last_line ? " Last output: " + build.last_line : "";
+      box.append(el("p", "The last build did not finish: " + words(build.outcome.code) + code + ". Next: " + build.outcome.next_step + "." + last, "reason"));
+    }
+    researchNote(box, "Setup found no GPU worker. Carbon can build it on this machine with the installer's own GPU build" + (route === "this-machine-gpu" ? "" : ", which needs no GPU here") + ". Nothing is rented or sent anywhere. It needs " + build.disk_gib + " GiB free where Docker keeps its images, and can take a while.", "hint");
+    const agree = document.createElement("input");
+    agree.type = "checkbox"; agree.id = "setup-gpu-build-consent"; agree.checked = false;
+    const label = el("label", "Run " + build.command + " on this machine."); label.htmlFor = agree.id;
+    const row = el("div", undefined, "consent"); row.append(agree, label);
+    box.append(row);
+    const button = el("button", "Build the GPU worker", "primary");
+    button.type = "button"; button.id = "setup-gpu-build-submit"; button.disabled = true;
+    box.append(button);
+    agree.addEventListener("change", () => { button.disabled = !agree.checked || buildingGpu; });
+    button.addEventListener("click", async () => {
+      if (!agree.checked || buildingGpu) return;
+      buildingGpu = true; button.disabled = true; setText(button, "Starting…");
+      try {
+        await api(GPU_BUILD_ROUTE, {route, consent: {build: {command: build.command}}}, undefined, 60000);
+        $("setup-result").replaceChildren(setupLine("Building the GPU worker on this machine. This page follows it."));
+        buildingGpu = false;
+        await readSetup();
+      } catch (error) {
+        $("setup-result").replaceChildren(setupLine(setupErrorText("gpu_worker_build", undefined, error), "error"));
+        buildingGpu = false;
+        setText(button, "Build the GPU worker"); button.disabled = !agree.checked;
+      }
+    });
   }
   // Where the miner is on the path: the controller's own status, the same one
   // an agent loops on, so the page and the agent never disagree.
@@ -1370,8 +1425,14 @@
         copyRow(missing, null, images.image_manifest?.build || "scripts/install_miner.sh --no-start");
       }
       if (!gpuImageBox.hidden && !gpuImage.value.trim()) {
-        missing.append(el("p", "Build your GPU worker image once (no GPU needed here), then reload this page:", "reason"));
-        copyRow(missing, null, images.gpu_image_manifest?.build || "scripts/dev/accelerator_worker_image.sh");
+        // The button, where the build command was (S15a); a controller that
+        // offers no build keeps the command to copy.
+        const build = setupState.gpu_build;
+        if (build && (build.offered || build.state === "running")) drawGpuBuild(missing, build, computeChoice.value);
+        else {
+          missing.append(el("p", "Build your GPU worker image once (no GPU needed here), then reload this page:", "reason"));
+          copyRow(missing, null, images.gpu_image_manifest?.build || "scripts/dev/accelerator_worker_image.sh");
+        }
       }
     };
     for (const input of [image, analysis, gpuImage]) input.addEventListener("input", describeMissing);

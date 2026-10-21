@@ -115,6 +115,14 @@ REMOTE_GUIDE = "docs/development/MINER_REMOTE_SETUP.md"
 REMOTE_GUIDES = (
     ("runpod", "RunPod", "ssh-container", "RunPod pods"),
     ("lium", "Lium", "ssh-container", "Lium (Bittensor subnet 51)"),
+    # Lium's "Pytorch (Cuda + DinD)" template: Docker in the pod, with
+    # `docker run --gpus all` (Test Lead, RTX A6000, 2026-10-21; S15c).
+    (
+        "lium-dind",
+        "Lium · Pytorch (Cuda + DinD)",
+        "ssh-docker",
+        "Lium: the Pytorch (Cuda + DinD) template",
+    ),
     ("targon", "Targon", "ssh-docker", "Targon VMs (Bittensor subnet 4)"),
     ("vast", "Vast.ai", "ssh-container", "Vast.ai"),
     ("lambda", "Lambda", "ssh-docker", "Lambda"),
@@ -200,8 +208,11 @@ BUILD_STEPS = {
         "carbon.development_session.research_image --parent-manifest "
         "<worker manifest> --root <directory>"
     ),
+    # The Control Center's Compute step runs this same build from its
+    # "Build the GPU worker" button (S15a, `gpu_worker_build`).
     "gpu_image_manifest": (
-        "Build the GPU worker from this exact clean checkout: "
+        "Build the GPU worker: press Build the GPU worker in the Control "
+        "Center's Compute step, or run, from this exact clean checkout: "
         "./scripts/dev/accelerator_worker_image.sh"
     ),
 }
