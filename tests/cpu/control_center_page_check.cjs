@@ -2645,6 +2645,40 @@ scenario("a campaign card in a list gives the reason, not the code or the long n
   clean(page);
 });
 
+scenario("Setup: a miner with no wallet is pointed at the identity helper, in plain words, holding nothing secret", async () => {
+  const state = world();
+  state.setup = {...copy(fx.setups.none), registered_hotkey: null};
+  const page = await open(state);
+  page.go("#setup/register");
+  await page.advance(0);
+  const card = one(page, "#setup-identity-help");
+  const text = card.textContent;
+  assert.match(text, /No wallet yet\?/);
+  assert.equal(one(page, "#setup-identity-copy").closest(".copy-row").querySelector("code").textContent, "carbon-miner-identity");
+  assert.match(text, /hotkey address, which is public/);
+  const folds = [...card.querySelectorAll("details > summary")].map(node => node.textContent);
+  assert.deepEqual(folds, ["What's a hotkey?", "Is my key safe?", "Lost my phrase?", "What does joining cost?"]);
+  // The cost answer names who pays, that Carbon neither charges nor receives it, and where the amount is read: no figure.
+  const cost = [...card.querySelectorAll("details")].find(node => /joining cost/.test(node.textContent)).textContent;
+  assert.match(cost, /paid from your own coldkey/);
+  assert.match(cost, /Carbon neither charges nor receives it/);
+  assert.match(cost, /Recycle amount in Wallet & Identity/);
+  assert.doesNotMatch(cost, /\d/);
+  assert.equal(card.querySelector("a").getAttribute("href"), "#wallet");
+  // The page holds no field for a key, phrase or password, and asks the helper for nothing.
+  assert.equal(card.querySelectorAll("input, textarea").length, 0);
+  assert.ok(page.requests.every(request => !/identity/.test(request.path)), "no request to any helper");
+  clean(page);
+  // Once a hotkey is registered the card is gone: the miner has a wallet.
+  const done = world();
+  done.setup = copy(fx.setups.none);
+  const other = await open(done);
+  other.go("#setup/register");
+  await other.advance(0);
+  assert.equal(all(other, "#setup-identity-help").length, 0);
+  clean(other);
+});
+
 (async () => {
   const passed = [], failed = [];
   for (const [name, run] of scenarios) {

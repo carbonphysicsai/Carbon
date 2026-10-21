@@ -1097,6 +1097,29 @@
     return select;
   }
   // One wizard step's panel, with its done state when the controller has one.
+  // No wallet yet? A small program on the miner's own computer makes the keys; this page only points at it
+  // (it never asks for, receives or shows a key, a phrase or a password). Presentation only.
+  function identityHelperCard(parent) {
+    const box = el("div", undefined, "identity-help"); box.id = "setup-identity-help";
+    box.append(el("p", "No wallet yet?", "eyebrow"));
+    box.append(el("p", "A small helper on your own computer makes your keys. Run it in a terminal, open the link it prints, and follow its five steps. Carbon never sees your recovery phrase or your passwords.", "step-lede"));
+    copyRow(box, null, "carbon-miner-identity", "setup-identity-copy");
+    box.append(el("p", "At the end it shows your hotkey address, which is public. Copy it into the box below.", "hint"));
+    details(box, "What's a hotkey?", [
+      "Your wallet holds two keys. The coldkey holds your funds. The hotkey signs your mining work and names you on the subnet; it cannot move your funds. Its address is public, and it is what you paste below."
+    ]);
+    details(box, "Is my key safe?", [
+      "The helper runs only on your computer and saves each key encrypted under its own password, one for your money and one for mining. Nothing it makes is sent anywhere, and Carbon never sees your keys, your recovery phrase or your passwords. Anyone who has your recovery phrase can take your funds, so write it on paper and keep it private."
+    ]);
+    details(box, "Lost my phrase?", [
+      "The 12 words are the only way to get your funds back if you lose your money password or this computer, and Carbon cannot recover them for you. Your hotkey has no recovery phrase: keep a copy of the wallet folder the helper names at the end. Without a copy you would make a new hotkey and register it again."
+    ]);
+    const cost = details(box, "What does joining cost?", [
+      "Registering on the subnet is paid from your own coldkey, in your own wallet tool. Carbon neither charges nor receives it. The current amount is set by the network and changes, so read it before you sign: it is under Recycle amount in Wallet & Identity, and your wallet shows it at signing."
+    ]);
+    cost.append(link({label: "Open Wallet & Identity", href: "#wallet"}));
+    parent.append(box);
+  }
   function stepPanel(parent, id, doneText) {
     const panel = el("section", undefined, "setup-step"); panel.dataset.stepPanel = id;
     if (doneText) { const done = el("p", undefined, "step-done"); done.append(pill("Done", "pill-done"), el("span", doneText)); panel.append(done); }
@@ -1173,6 +1196,7 @@
     // 2. Register on the subnet: confirmed here, prepared under Wallet.
     const register = stepPanel(body, "register", j.registered ? "Registered: " + setupState.registered_hotkey : null);
     if (!j.registered) {
+      identityHelperCard(register);
       register.append(el("p", "Paste your hotkey address. Carbon reads the chain to confirm it is registered.", "step-lede"));
       const label = el("label", "Your hotkey address (ss58)"); label.htmlFor = "setup-register-address";
       const address = el("input"); address.id = "setup-register-address"; address.type = "text"; address.autocomplete = "off"; address.spellcheck = false; address.placeholder = "5...";
