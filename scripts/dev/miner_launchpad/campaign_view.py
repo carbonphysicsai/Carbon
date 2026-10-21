@@ -678,6 +678,33 @@ _HUNT_COUNTS = (
 )
 
 
+#: The stage stops that end a Graphite campaign early on one of its own
+#: settings, so the campaign reads COMPLETED with nothing built (M1 S19,
+#: 2026-10-21: "Build: stopped (context ceiling)" with 0 practice runs). The
+#: view names the stop and its next step instead of leaving COMPLETED to
+#: speak for it.
+EARLY_STOP_CODES = (
+    "context_ceiling",
+    "compaction_failed",
+    "miner_ceiling_reached",
+)
+
+
+def ended_early(stages):
+    """The first stage that stopped on one of `EARLY_STOP_CODES`, as
+    `{stage, code, next_step}`, or None."""
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    for row in stages:
+        if row.get("state") == "STOPPED" and row.get("code") in EARLY_STOP_CODES:
+            return {
+                "stage": row["stage"],
+                "code": row["code"],
+                "next_step": next_action(row["code"]),
+            }
+    return None
+
+
 def graphite_section(own):
     """A Graphite campaign's mode, current stage, frozen plan digest, the
     research share and what research spent, and the hunt's progress, copied
@@ -701,6 +728,23 @@ def graphite_section(own):
     def spend(vector):
         return {key: count(vector.get(key)) for key in _SPEND_KEYS}
 
+    rows = [
+        {
+            "stage": row["stage"],
+            "state": (row.get("state") if row.get("state") in _STAGE_STATES else None),
+            "code": (
+                row["code"]
+                if type(row.get("code")) is str and _CODE.fullmatch(row["code"])
+                else None
+            ),
+        }
+        for row in (value.get("stages") if type(value.get("stages")) is list else [])[
+            :16
+        ]
+        if type(row) is dict
+        and type(row.get("stage")) is str
+        and _GRAPHITE_STAGE.fullmatch(row["stage"])
+    ]
     return {
         "edition": _str(value.get("edition")),
         "mode": value.get("mode") if value.get("mode") in GRAPHITE_MODES else None,
@@ -709,25 +753,9 @@ def graphite_section(own):
         ),
         # Each stage the campaign runs, in order, with its state and the
         # closed code it ended on (`research_share_reached`, ...).
-        "stages": [
-            {
-                "stage": row["stage"],
-                "state": (
-                    row.get("state") if row.get("state") in _STAGE_STATES else None
-                ),
-                "code": (
-                    row["code"]
-                    if type(row.get("code")) is str and _CODE.fullmatch(row["code"])
-                    else None
-                ),
-            }
-            for row in (
-                value.get("stages") if type(value.get("stages")) is list else []
-            )[:16]
-            if type(row) is dict
-            and type(row.get("stage")) is str
-            and _GRAPHITE_STAGE.fullmatch(row["stage"])
-        ],
+        "stages": rows,
+        # A stop on the campaign's own settings, named with its next step.
+        "ended_early": ended_early(rows),
         "plan_digest": _str(value.get("plan_digest")),
         "research_share": (
             share if type(share) in (int, float) and finite(share) is not None else None

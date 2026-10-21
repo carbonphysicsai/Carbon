@@ -409,7 +409,12 @@
     const g = doc.graphite;
     const G = CC.graphite;
     head(box, "Graphite · " + G.modeLabel(g.mode) + " mode", "Carbon's agent");
-    para(box, "Now: " + G.now(g.stage, doc.campaign?.state), "status-line rs-graphite-stage");
+    // A stop on the campaign's own settings (a context ceiling, an output cap,
+    // a ceiling the miner set) is named with its next step, so a COMPLETED
+    // campaign that built nothing never reads as finished work (M1 S19).
+    const early = g.ended_early && typeof g.ended_early.code === "string" ? g.ended_early : null;
+    para(box, "Now: " + (early ? "stopped early at " + (STAGE_NOUNS[early.stage] || words(early.stage)).toLowerCase() + ": " + words(early.code) : G.now(g.stage, doc.campaign?.state)), "status-line rs-graphite-stage");
+    if (early && typeof early.next_step === "string") para(box, early.next_step, "reason rs-graphite-early");
     if (g.submission_policy === "retain_only_v1") para(box, "Retain only: this campaign does not commit or submit candidates to a validator.");
     const grid = el("dl", undefined, "review-grid rs-graphite");
     const row = (label, value) => { const dd = el("dd"); if (typeof value === "string") dd.textContent = value; else dd.append(...value); grid.append(el("dt", label), dd); return dd; };

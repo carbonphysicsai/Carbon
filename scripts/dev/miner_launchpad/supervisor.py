@@ -1310,6 +1310,14 @@ NEXT_ACTIONS = {
         "more of your provider_nanodollars ceiling per call, and a FULL "
         "launch's research share must hold one whole call."
     ),
+    "compaction_failed": (
+        "The agent stopped because it could not write a valid summary of its "
+        "history to stay inside your model's input window; no history was "
+        "silently dropped. Launch a new campaign with "
+        "model_settings.max_input_tokens set higher, up to your model's "
+        "published context less max_output_tokens (input_window lists both), "
+        "or with a model that follows the summary instruction."
+    ),
     "context_ceiling": (
         "The agent stopped because its next request could pass your model's "
         "input window as Carbon bounds it; no history was silently dropped. "
