@@ -15,27 +15,11 @@ RUN test "sha256:$(sha256sum /opt/carbon/accelerator-requirements.txt | cut -d' 
     && rm /tmp/uv \
     && chmod -R a-w /opt/carbon-worker \
     && chmod 444 /opt/carbon/accelerator-requirements.txt
-RUN WORKER_IMAGE="${WORKER_IMAGE}" ACCELERATOR_RECIPE_DIGEST="${ACCELERATOR_RECIPE_DIGEST}" ACCELERATOR_PROFILE_DIGEST="${ACCELERATOR_PROFILE_DIGEST}" ACCELERATOR_LOCK_DIGEST="${ACCELERATOR_LOCK_DIGEST}" /opt/carbon-worker/bin/python -I - <<'PY'
-import json
-import os
-import pathlib
-import re
-from carbon.reconstruction.accelerators import GPU_PROFILE
-
-for key in ("WORKER_IMAGE", "ACCELERATOR_RECIPE_DIGEST", "ACCELERATOR_PROFILE_DIGEST", "ACCELERATOR_LOCK_DIGEST"):
-    if not re.fullmatch(r"sha256:[a-f0-9]{64}", os.environ[key]):
-        raise SystemExit("Exact immutable image identities required")
-if os.environ["ACCELERATOR_PROFILE_DIGEST"] != GPU_PROFILE.digest or os.environ["ACCELERATOR_LOCK_DIGEST"] != GPU_PROFILE.environment_lock_digest:
-    raise SystemExit("Installed source and accelerator environment differ")
-path = pathlib.Path("/opt/carbon/worker-image-build.json")
-document = json.loads(path.read_text())
-document.update(base_image_digest=os.environ["WORKER_IMAGE"],
-                build_recipe_digest=os.environ["ACCELERATOR_RECIPE_DIGEST"],
-                lock_digest=os.environ["ACCELERATOR_LOCK_DIGEST"])
-path.chmod(0o600)
-path.write_text(json.dumps(document, sort_keys=True, separators=(",", ":")) + "\n")
-path.chmod(0o444)
-PY
+# The build identity is written by a program file, never a RUN heredoc:
+# Docker's legacy builder drops a heredoc's body silently (S20).
+COPY .devcontainer/accelerators/build_identity.py /tmp/carbon-build-identity.py
+RUN WORKER_IMAGE="${WORKER_IMAGE}" ACCELERATOR_RECIPE_DIGEST="${ACCELERATOR_RECIPE_DIGEST}" ACCELERATOR_PROFILE_DIGEST="${ACCELERATOR_PROFILE_DIGEST}" ACCELERATOR_LOCK_DIGEST="${ACCELERATOR_LOCK_DIGEST}" /opt/carbon-worker/bin/python -I /tmp/carbon-build-identity.py \
+    && rm /tmp/carbon-build-identity.py
 RUN chmod -R a-w /opt/carbon
 LABEL org.opencontainers.image.title="Carbon fixed NVIDIA DEVELOPMENT reconstruction worker" \
       org.opencontainers.image.description="Unqualified GPU worker; private host admission required" \
@@ -45,15 +29,6 @@ LABEL org.opencontainers.image.title="Carbon fixed NVIDIA DEVELOPMENT reconstruc
       org.opencontainers.image.carbon.accelerator.profile="${ACCELERATOR_PROFILE_DIGEST}" \
       org.opencontainers.image.carbon.accelerator.environment="${ACCELERATOR_LOCK_DIGEST}"
 USER 65532:65532
-RUN /opt/carbon-worker/bin/python -I - <<'PY'
-import hashlib
-import json
-import pathlib
-from carbon.reconstruction.accelerators import GPU_PROFILE
-
-build = json.loads(pathlib.Path("/opt/carbon/worker-image-build.json").read_bytes())
-lock = pathlib.Path("/opt/carbon/accelerator-requirements.txt").read_bytes()
-assert build["lock_digest"] == GPU_PROFILE.environment_lock_digest
-assert "sha256:" + hashlib.sha256(lock).hexdigest() == build["lock_digest"]
-PY
+# Checked as the worker's own user: one line, so no builder can drop it.
+RUN /opt/carbon-worker/bin/python -I -c "import hashlib, json, pathlib; from carbon.reconstruction.accelerators import GPU_PROFILE; build = json.loads(pathlib.Path('/opt/carbon/worker-image-build.json').read_bytes()); lock = pathlib.Path('/opt/carbon/accelerator-requirements.txt').read_bytes(); assert build['lock_digest'] == GPU_PROFILE.environment_lock_digest, 'GPU worker lock differs'; assert 'sha256:' + hashlib.sha256(lock).hexdigest() == build['lock_digest'], 'GPU worker lock file differs'"
 # The fixed C03 entrypoint waits for admission before numerical initialization.

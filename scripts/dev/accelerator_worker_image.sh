@@ -39,11 +39,25 @@ image="$(tr -d '[:space:]' < "${temporary}/iid")"
 container="$(docker create "${image}")"
 docker cp "${container}:/opt/carbon/worker-image-build.json" "${temporary}/build.json"
 mkdir -p "$(dirname -- "${output}")"
-python3 - "${image}" "${temporary}/build.json" "${output}" <<'PY'
+# The manifest is the image's own build identity plus its ID, written only
+# when that identity names this build's parent, recipe and GPU lock: a
+# builder that skipped the identity step (S20) writes no manifest.
+python3 - "${image}" "${temporary}/build.json" "${output}" \
+  "${parent}" "${recipe_digest}" "${lock_digest}" <<'PY'
 import json
 import pathlib
 import sys
 build = json.loads(pathlib.Path(sys.argv[2]).read_text())
+expected = {"base_image_digest": sys.argv[4], "build_recipe_digest": sys.argv[5],
+            "lock_digest": sys.argv[6]}
+differs = sorted(key for key, value in expected.items() if build.get(key) != value)
+if differs:
+    raise SystemExit(
+        "The GPU worker image's build identity differs from this build ("
+        + ", ".join(differs) + "): its identity step did not run. No manifest "
+        "was written. Build again with Docker BuildKit (docker buildx), or "
+        "report this."
+    )
 payload = {**build, "schema": "carbon.c03.worker-image.v1",
            "image_id": sys.argv[1], "config_digest": sys.argv[1]}
 pathlib.Path(sys.argv[3]).write_text(json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n")
