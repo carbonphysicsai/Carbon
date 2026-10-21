@@ -228,6 +228,10 @@ def test_battery_2_1_graphs_validate_against_v7_with_2_0s_uncapped_steps():
     old = construction_kit.construction_limits_document_for("2.0")
     assert new["challenge"]["version"] == "2.1"
     new["challenge"] = old["challenge"]
+    # 2.1 differs from 2.0 only by its v7 caps and intake bounds (no
+    # model-size caps; tests/cpu/test_launchpad_v7_version_caps.py).
+    for key in ("graph_caps", "graph_intake"):
+        new[key] = old[key]
     assert new == old
     assert construction_kit.construction_kit_for("2.1")["version"] == "2.1"
 

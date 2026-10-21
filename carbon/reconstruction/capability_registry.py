@@ -1545,6 +1545,118 @@ CONTRACTS = {
 }
 
 
+# -- no model-size caps on the allowlist-v7 versions ---------------------------
+# Owner, 2026-10-21 ("No cap. Only cap should be if it fits the training
+# resource limit"; VALIDATOR_NO_MODEL_SIZE_CAP_SPEC_20261021): a Challenge
+# version serving allowlist v7 (`challenge_kit.served_versions.V7`) has no pure
+# model-size maximum. The contracts above stay each Challenge's published
+# contract, byte for byte, for every other version. A v7 version gets its own
+# contract (`contract_for`): the same entries with each SIZE maximum removed
+# (high None, as an uncapped step surface already is), under its own version
+# and digest. Every other maximum stays: the STRUCTURAL ones below, which a
+# discretization implies, and training-procedure ranges (steps, batching,
+# rates), which are not model size. The worker resource envelope binds instead.
+#
+# Pure model-size maxima, per Challenge: removed on a v7 version.
+SIZE_MAXIMA = {
+    BATTERY_CHALLENGE: frozenset(
+        {
+            "width",  # hidden width <= 512
+            "depth",  # MLP hidden layers / FNO Fourier layers <= 6
+            "deeponet_depth",  # branch and trunk hidden layers <= 6
+            "basis_functions",  # DeepONet trunk basis <= 64
+            "trajectory_components",  # PCA heads per trajectory <= 32
+        }
+    ),
+    # Recorded for completeness: no Burgers version serves v7, so nothing here
+    # is ever removed.
+    BURGERS_CHALLENGE: frozenset(
+        {"width", "depth", "heads", "slices", "expansion", "latent_points"}
+    ),
+}
+#: Maxima kept on a v7 version because the discretization implies them, each
+#: with why. Not model size: a larger value has no meaning on that grid.
+STRUCTURAL_MAXIMA = {
+    BATTERY_CHALLENGE: {
+        # The 121-point output grid has 61 real-FFT modes.
+        "n_modes": "Fourier modes of the 121-point grid (61)",
+    },
+    BURGERS_CHALLENGE: {
+        # Haar levels on the 64-point TRAIN grid: log2(64) = 6.
+        "wavelet_levels": "log2 of the 64-point TRAIN grid",
+        # DeepONet sensors sample the 64-point grid.
+        "branch_points": "points of the 64-point TRAIN grid",
+        # Periodic unit domain: half the period is the farthest neighbour.
+        "neighborhood_radius": "half the periodic unit domain",
+    },
+}
+
+
+def _serves_v7(challenge, version):
+    from carbon.challenge_kit.served_versions import UnregisteredVersion, serves_v7
+
+    try:
+        return serves_v7(challenge, version)
+    except UnregisteredVersion:
+        return False
+
+
+def _uncapped(item, version):
+    size = SIZE_MAXIMA.get(item.token, frozenset())
+    entries = tuple(
+        (
+            Capability(
+                c.capability_id,
+                c.dimension,
+                c.summary,
+                c.status,
+                c.blocker,
+                c.trigger,
+                c.selector,
+                c.lab_kind,
+                Surface(
+                    c.surface.group,
+                    c.surface.kind,
+                    c.surface.low,
+                    None,
+                    c.surface.default,
+                ),
+                c.applies_to,
+                c.realizes,
+            )
+            if c.surface is not None
+            and c.surface.kind in ("uint", "float")
+            and c.capability_id.partition(".")[2] in size
+            else c
+        )
+        for c in item.capabilities
+    )
+    if entries == item.capabilities:
+        # Nothing to remove (a Challenge whose size bounds are finite menus,
+        # or that has none): its published contract, unchanged.
+        return item
+    return ChallengeContract(
+        token=item.token,
+        version=version,
+        identity=item.identity,
+        catalog_version=item.catalog_version,
+        capabilities=entries,
+        envelope=item.envelope,
+        lanes=item.lanes,
+    )
+
+
+def contract_for(challenge=BURGERS_CHALLENGE, version=None):
+    """The construction contract an exact Challenge version serves: the
+    published one (`contract`), except on a version serving allowlist v7,
+    whose pure model-size maxima (`SIZE_MAXIMA`) are removed. `version` None,
+    or a version not serving v7, is the published contract unchanged."""
+    item = contract(challenge)
+    if version is None or not _serves_v7(challenge, version):
+        return item
+    return _uncapped(item, version)
+
+
 class UnknownChallenge(KeyError):
     """A Challenge with no registered construction contract."""
 
@@ -1788,9 +1900,10 @@ def rebuildable_families(challenge=BURGERS_CHALLENGE):
     )
 
 
-def catalog_surfaces(challenge=BURGERS_CHALLENGE):
+def catalog_surfaces(challenge=BURGERS_CHALLENGE, version=None):
     """The research catalog's fields, in its historical tuple form:
-    name -> (group, type, minimum/choices, maximum, default, families|None)."""
+    name -> (group, type, minimum/choices, maximum, default, families|None).
+    With `version`, the fields that exact version serves (`contract_for`)."""
     return {
         c.capability_id.partition(".")[2]: (
             c.surface.group,
@@ -1800,7 +1913,7 @@ def catalog_surfaces(challenge=BURGERS_CHALLENGE):
             c.surface.default,
             c.applies_to,
         )
-        for c in contract(challenge).capabilities
+        for c in contract_for(challenge, version).capabilities
         if c.surface is not None
     }
 
