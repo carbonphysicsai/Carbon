@@ -38,6 +38,7 @@ Licence screening (OWNER: KNO and WNO left out) happens before `add`.
 from __future__ import annotations
 
 import argparse
+import functools
 import hashlib
 import io
 import json
@@ -58,16 +59,40 @@ from .listing import (  # noqa: F401  (the owner commands' API)
 
 BUNDLES = HERE / "bundles"
 RECEIPTS = HERE / "receipts"
+#: A receipt: the pair-identity run's clean pairs, and its run facts
+#: (`RUN_FACTS`). tested_on is the packet's version; an entry is offered on
+#: another version only when its TRAIN and interface digests are byte-equal
+#: (Validator ruling 1, 2026-10-21).
 RECEIPT_SCHEMA = "carbon.backbone-catalog-pair-identity.v1"
 FILES = ("bundle.json", "source.tar.gz", "LICENSE", "requirements.txt", "baseline.json")
 _CHALLENGE = re.compile(r"([a-z0-9][a-z0-9-]*)@([0-9]+\.[0-9]+)\Z")
 _IMAGE = re.compile(r"sha256:[0-9a-f]{64}\Z")
 #: The run facts every receipt binds (Validator, 2026-10-21): the Challenge
-#: (id@version, the packet's kit) its pairs were rebuilt on, and the worker
-#: image digest they ran on, both from the pair-identity run's records. The
-#: offered Challenges are not copied here: `verify` checks the manifest's own
-#: offers against `tested_on`.
-RUN_FACTS = ("tested_on", "image_digest")
+#: (id@version, the packet's kit) its pairs were rebuilt on, that version's
+#: TRAIN and interface digests (from the same kit), and the worker image
+#: digest they ran on, all from the pair-identity run's records. The offered
+#: Challenges are not copied here: `verify` checks the manifest's own offers
+#: against them.
+RUN_FACTS = (
+    "tested_on",
+    "tested_train_digest",
+    "tested_interface_digest",
+    "image_digest",
+)
+#: The kit fields each tested digest is compared with.
+TESTED_DIGESTS = {
+    "tested_train_digest": "train_digest",
+    "tested_interface_digest": "interface_digest",
+}
+
+
+@functools.cache
+def _served_kit_digests(challenge_id, version):
+    """The served kit's TRAIN and interface digests for a version."""
+    from carbon.challenge_kit import physical_material
+
+    kit = physical_material.bundle_material(challenge_id, version)["construction_kit"]
+    return {field: kit[field] for field in TESTED_DIGESTS.values()}
 
 
 def _digest(body):
@@ -95,7 +120,12 @@ def _source_member(source, suffix):
 
 
 def verify(item, *, wheelhouse=None):
-    """Raise `CatalogBroken` unless `item` is exactly what it claims."""
+    """Raise `CatalogBroken` unless `item` is exactly what it claims.
+
+    tested_on is the packet's version; an entry is offered on another version
+    only when its TRAIN and interface digests are byte-equal (Validator ruling
+    1, 2026-10-21): every offered version's served kit must carry the
+    receipt's tested digests, or the entry needs a re-run there."""
     from . import settings
 
     files = bundle_files(item)
@@ -175,6 +205,11 @@ def verify(item, *, wheelhouse=None):
         )
     if _IMAGE.fullmatch(str(receipt.get("image_digest", ""))) is None:
         raise CatalogBroken(f"{item['catalog_id']}: receipt binds no worker image")
+    for name in TESTED_DIGESTS:
+        if _IMAGE.fullmatch(str(receipt.get(name, ""))) is None:
+            raise CatalogBroken(
+                f"{item['catalog_id']}: receipt binds no {name.replace('_', ' ')}"
+            )
     from carbon.challenge_kit.served_versions import UnregisteredVersion, serves_catalog
 
     for challenge in item["challenges"]:
@@ -196,6 +231,14 @@ def verify(item, *, wheelhouse=None):
                 f"{item['catalog_id']}: {challenge['id']} {challenge['version']} "
                 "serves no backbone catalog"
             )
+        served_digests = _served_kit_digests(challenge["id"], challenge["version"])
+        for name, field in TESTED_DIGESTS.items():
+            if served_digests[field] != receipt[name]:
+                raise CatalogBroken(
+                    f"{item['catalog_id']}: {challenge['id']} {challenge['version']} "
+                    f"{field.replace('_', ' ')} differs from the tested "
+                    f"{tested[0]}'s: re-run it there"
+                )
     settings.resolve(item, {}, {})  # the defaults pass their own door
 
 
@@ -265,6 +308,7 @@ def add(packet, *, challenges, receipt, receipt_key, image_digest, catalog_id=No
                     "source_report_sha256": _digest(Path(receipt).read_bytes()),
                     "key": receipt_key,
                     "tested_on": tested_on,
+                    **{name: kit[field] for name, field in TESTED_DIGESTS.items()},
                     "image_digest": image_digest,
                     **{
                         k: record[k]
@@ -346,17 +390,34 @@ def bundle_directory(item, target, *, wheelhouse=None):
     return target
 
 
-def bind(catalog_id, *, tested_on, image_digest):
+def bind(
+    catalog_id,
+    *,
+    tested_on,
+    image_digest,
+    tested_train_digest=None,
+    tested_interface_digest=None,
+):
     """Backfill an existing receipt's run facts from the pair-identity run's
-    records (Validator, 2026-10-21). Refuses a malformed value or one that
-    differs from a fact the receipt already binds."""
+    records (Validator, 2026-10-21): the packet kit's Challenge and its TRAIN
+    and interface digests, and the worker image. Refuses a malformed value or
+    one that differs from a fact the receipt already binds."""
     if _CHALLENGE.fullmatch(str(tested_on)) is None:
         raise CatalogBroken("tested_on is a Challenge id@version")
     if _IMAGE.fullmatch(str(image_digest)) is None:
         raise CatalogBroken("image_digest is a sha256 digest")
+    facts = {"tested_on": tested_on, "image_digest": image_digest}
+    for name, value in (
+        ("tested_train_digest", tested_train_digest),
+        ("tested_interface_digest", tested_interface_digest),
+    ):
+        if value is None:
+            continue
+        if _IMAGE.fullmatch(str(value)) is None:
+            raise CatalogBroken(f"{name} is a sha256 digest")
+        facts[name] = value
     path = RECEIPTS / (catalog_id + ".json")
     receipt = _json(path)
-    facts = {"tested_on": tested_on, "image_digest": image_digest}
     for name, value in facts.items():
         if receipt.get(name) not in (None, value):
             raise CatalogBroken(f"{catalog_id}: receipt already binds another {name}")
@@ -383,6 +444,8 @@ def main(argv=None):
     tie.add_argument("catalog_id")
     tie.add_argument("--tested-on", required=True)
     tie.add_argument("--image-digest", required=True)
+    tie.add_argument("--tested-train-digest")
+    tie.add_argument("--tested-interface-digest")
     moved = commands.add_parser("install")
     moved.add_argument("rest", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
@@ -408,6 +471,8 @@ def main(argv=None):
                         args.catalog_id,
                         tested_on=args.tested_on,
                         image_digest=args.image_digest,
+                        tested_train_digest=args.tested_train_digest,
+                        tested_interface_digest=args.tested_interface_digest,
                     ),
                     indent=1,
                 )

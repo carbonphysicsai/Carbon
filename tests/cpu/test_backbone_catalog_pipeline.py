@@ -134,7 +134,13 @@ def test_an_entry_offered_off_its_tested_challenge_is_refused(catalog_id, challe
 
 
 @pytest.mark.parametrize(
-    "fact, match", [("tested_on", "tested Challenge"), ("image_digest", "worker image")]
+    "fact, match",
+    [
+        ("tested_on", "tested Challenge"),
+        ("image_digest", "worker image"),
+        ("tested_train_digest", "tested train digest"),
+        ("tested_interface_digest", "tested interface digest"),
+    ],
 )
 def test_a_receipt_missing_a_run_fact_is_refused(tmp_path, monkeypatch, fact, match):
     receipts = tmp_path / "receipts"
@@ -464,3 +470,51 @@ def test_no_entry_names_thuml_transolver_plus_until_its_noise_free_receipt():
         e["backbone"] for e in pipeline.entries()
     }
     assert "thuml.Transolver_plus" not in named
+
+
+# --- ruling 1: offered on another version only when TRAIN and interface match --
+
+
+@pytest.mark.parametrize("field", ["train_digest", "interface_digest"])
+def test_an_offered_version_whose_kit_differs_from_the_tested_one_is_refused(
+    monkeypatch, field
+):
+    # Motor entries are tested on 1.0 and offered on 1.2/1.3, whose TRAIN and
+    # interface are byte-equal today. A version whose kit differed would need
+    # a re-run there.
+    real = pipeline._served_kit_digests
+
+    def drifted(challenge_id, version):
+        digests = dict(real(challenge_id, version))
+        if version == "1.3":
+            digests[field] = "sha256:" + "f" * 64
+        return digests
+
+    monkeypatch.setattr(pipeline, "_served_kit_digests", drifted)
+    with pytest.raises(pipeline.CatalogBroken, match="re-run it there"):
+        pipeline.verify(pipeline.entry("neuralop.FNO"))
+
+
+def test_every_receipt_binds_its_packet_kits_train_and_interface():
+    for item in pipeline.entries():
+        receipt = json.loads(
+            (pipeline.RECEIPTS / (item["catalog_id"] + ".json")).read_bytes()
+        )
+        tested_id, tested_version = receipt["tested_on"].split("@")
+        kit = pipeline._served_kit_digests(tested_id, tested_version)
+        assert receipt["tested_train_digest"] == kit["train_digest"]
+        assert receipt["tested_interface_digest"] == kit["interface_digest"]
+
+
+def test_bind_refuses_a_malformed_tested_digest(tmp_path, monkeypatch):
+    receipts = tmp_path / "receipts"
+    shutil.copytree(pipeline.RECEIPTS, receipts)
+    monkeypatch.setattr(pipeline, "RECEIPTS", receipts)
+    bound = json.loads((receipts / "neuralop.FNO.json").read_bytes())
+    with pytest.raises(pipeline.CatalogBroken, match="tested_train_digest"):
+        pipeline.bind(
+            "neuralop.FNO",
+            tested_on=bound["tested_on"],
+            image_digest=bound["image_digest"],
+            tested_train_digest="not-a-digest",
+        )
