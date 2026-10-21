@@ -36,10 +36,12 @@ def test_the_catalog_names_launch_reserved_and_deferred_challenges():
         "chip-cold-plate",
         "electric-motor-magnetics",
         "photonic-coupler",
-        # F08 1.4 and F02 2.3, the direct-recipe-only versions.
-        "f08-ribbed-bracket",
-        "f02",
     }
+    # F08 1.4 and F02 2.3, the direct-recipe-only versions: launch portfolio,
+    # readiness record pending, so not `launch` yet (Gate6, 2026-10-21).
+    assert {
+        k for k, c in listed.items() if c["portfolio"] == "launch_pending_readiness"
+    } == {"f08-ribbed-bracket", "f02"}
     assert {k for k, c in listed.items() if c["status"] == "DEFERRED"} == {
         "power-magnetics",
         "airfoil",

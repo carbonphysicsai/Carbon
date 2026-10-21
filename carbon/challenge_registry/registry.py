@@ -33,6 +33,12 @@ from dataclasses import dataclass, field
 from carbon.reconstruction.capability_registry import is_development_variant
 
 CATALOG_SCHEMA = "carbon.challenge-catalog.v1"
+#: A launch-portfolio Challenge registered before its readiness record: it is
+#: listed and runs, but is not `launch` until a readiness record (pilot
+#: evidence) is committed for it (`test_challenge_readiness`). Gate6 on the
+#: composite, 2026-10-21: F08 1.4 and F02 2.3 had none, and a record is
+#: evidence, never boilerplate.
+LAUNCH_PENDING_READINESS = "launch_pending_readiness"
 #: The host fact a torch-cpu execution profile requires: the configured
 #: trusted worker image is the PyTorch CPU worker (installed with --pytorch).
 TORCH_CPU_WORKER = "torch_cpu_worker_image"
@@ -460,7 +466,7 @@ def _entries():
             "Ribbed Bracket (F08, DEVELOPMENT, backbone catalog and graph training "
             "adapter, allowlist v7)",
             IMPLEMENTED,
-            "launch",
+            LAUNCH_PENDING_READINESS,
             None,
             (
                 ExecutionProfile(
@@ -481,7 +487,7 @@ def _entries():
             "Burst Thermal (F02, DEVELOPMENT, backbone catalog and graph training "
             "adapter, allowlist v7)",
             IMPLEMENTED,
-            "launch",
+            LAUNCH_PENDING_READINESS,
             None,
             (
                 ExecutionProfile(

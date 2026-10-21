@@ -334,7 +334,12 @@ def _challenges(profile_state, host):
             item["plain"] = plain(refusal["code"])
         result.append(item)
     # The launch portfolio first; the historical DEVELOPMENT Challenge after it.
-    order = {"launch": 0, "historical_development": 1, "deferred": 2}
+    order = {
+        "launch": 0,
+        "launch_pending_readiness": 0,
+        "historical_development": 1,
+        "deferred": 2,
+    }
     result.sort(key=lambda c: (order.get(c["portfolio"], 3), not c["implemented"]))
     return result
 
