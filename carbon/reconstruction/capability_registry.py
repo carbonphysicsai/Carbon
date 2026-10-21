@@ -1590,6 +1590,15 @@ STRUCTURAL_MAXIMA = {
         "neighborhood_radius": "half the periodic unit domain",
     },
 }
+#: Maxima a v7 version sets to the TRAIN rows a recipe can select (Validator,
+#: 2026-10-21: KNN neighbours <= the selected TRAIN rows, structural). The
+#: contract's static bound is the envelope's `train_cases`, the most rows any
+#: recipe selects; a recipe's own rows (train_cases x train_fraction) are the
+#: tighter structural bound where its rebuild knows them. Replaces the fixed
+#: maximum (Battery: neighbours <= 64) on a v7 version only.
+ROW_MAXIMA = {
+    BATTERY_CHALLENGE: frozenset({"neighbours"}),
+}
 
 
 def _serves_v7(challenge, version):
@@ -1603,6 +1612,15 @@ def _serves_v7(challenge, version):
 
 def _uncapped(item, version):
     size = SIZE_MAXIMA.get(item.token, frozenset())
+    rows = ROW_MAXIMA.get(item.token, frozenset())
+    train_cases = dict(item.envelope).get("train_cases")
+    if rows and type(train_cases) is not int:
+        raise ValueError("a row maximum needs the envelope's train_cases")
+
+    def high(c):
+        name = c.capability_id.partition(".")[2]
+        return None if name in size else train_cases
+
     entries = tuple(
         (
             Capability(
@@ -1618,7 +1636,7 @@ def _uncapped(item, version):
                     c.surface.group,
                     c.surface.kind,
                     c.surface.low,
-                    None,
+                    high(c),
                     c.surface.default,
                 ),
                 c.applies_to,
@@ -1626,7 +1644,7 @@ def _uncapped(item, version):
             )
             if c.surface is not None
             and c.surface.kind in ("uint", "float")
-            and c.capability_id.partition(".")[2] in size
+            and c.capability_id.partition(".")[2] in size | rows
             else c
         )
         for c in item.capabilities

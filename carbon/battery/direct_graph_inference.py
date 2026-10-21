@@ -19,8 +19,7 @@ from carbon.development_session.construction_recipe import (
 )
 from carbon.development_session.profile import canonical, digest
 
-from . import challenge, construction_kit, direct_graph, direct_graph_worker
-from .public_model_retention import MAX_STATE_BYTES
+from . import challenge, direct_graph, direct_graph_worker
 
 PROVENANCE = "BATTERY_DIRECT_GRAPH_PUBLIC_INFERENCE"
 
@@ -44,6 +43,8 @@ for name in __STAGED_MODULES__:
     shutil.copyfile(work / (name + ".py"), destination)
 shutil.copyfile(work / "allowlist_v1.json", work / "carbon/level4/allowlist_v1.json")
 shutil.copyfile(work / "allowlist_v6.json", work / "carbon/level4/allowlist_v6.json")
+if (work / "allowlist_v7.json").exists():
+    shutil.copyfile(work / "allowlist_v7.json", work / "carbon/level4/allowlist_v7.json")
 lab = work / "carbon_battery_lab"
 lab.mkdir()
 (lab / "__init__.py").write_text("")
@@ -103,13 +104,11 @@ def staged_files(
     recipe: ConstructionRecipe, state: bytes, test_inputs: dict
 ) -> dict[str, bytes]:
     """Trusted host stage: exact identities, no TRAIN or construction source."""
-    if (
-        type(recipe) is not ConstructionRecipe
-        or type(state) is not bytes
-        or not 0 < len(state) <= MAX_STATE_BYTES
-    ):
+    if type(recipe) is not ConstructionRecipe or type(state) is not bytes:
         raise RecipeRefused("battery_direct_inference_state_invalid")
-    kit = construction_kit.construction_kit()
+    kit = direct_graph_worker.kit_for(recipe)
+    if not 0 < len(state) <= direct_graph_worker.state_bytes_for(kit["version"]):
+        raise RecipeRefused("battery_direct_inference_state_invalid")
     bind_recipe(
         recipe.to_dict(),
         challenge_id=kit["id"],
@@ -132,11 +131,8 @@ def staged_files(
             for name, module in direct_graph_worker.BATTERY_MODULES.items()
         }
     )
-    files["allowlist_v1.json"] = (root / "carbon/level4/allowlist_v1.json").read_bytes()
-    from carbon.level4.allowlist import served_bytes
-
-    # The served allowlist the staged direct_graph validates against.
-    files["allowlist_v6.json"] = served_bytes()
+    # The allowlists the staged direct_graph validates against.
+    files.update(direct_graph_worker.staged_allowlists(kit["version"]))
     files.update(
         {
             "state.npz": state,
@@ -150,7 +146,9 @@ def staged_files(
                     "settings_digest": digest(settings_raw),
                     "inputs_digest": digest(inputs_raw),
                     "kit": kit,
-                    "max_state_bytes": MAX_STATE_BYTES,
+                    "max_state_bytes": direct_graph_worker.state_bytes_for(
+                        kit["version"]
+                    ),
                     "train_cases": challenge.TRAIN_V1_CASES,
                 }
             ),
@@ -192,7 +190,11 @@ def infer_public(
         or build.state_path != expected
         or expected.is_symlink()
         or not expected.is_file()
-        or not 0 < expected.stat().st_size <= MAX_STATE_BYTES
+        or not 0
+        < expected.stat().st_size
+        <= direct_graph_worker.state_bytes_for(
+            direct_graph_worker.kit_for(recipe)["version"]
+        )
     ):
         raise ValueError("direct inference build custody differs")
     state = expected.read_bytes()

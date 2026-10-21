@@ -75,8 +75,9 @@ def test_size_and_structural_maxima_are_real_disjoint_bounded_fields():
     for challenge, names in cr.SIZE_MAXIMA.items():
         fields = cr.catalog_surfaces(challenge)
         structural = set(cr.STRUCTURAL_MAXIMA.get(challenge, {}))
-        assert names and not names & structural
-        for name in names | structural:
+        rows = cr.ROW_MAXIMA.get(challenge, frozenset())
+        assert names and not names & structural and not (names | structural) & rows
+        for name in names | structural | rows:
             group, kind, _low, high, _default, _ = fields[name]
             assert group == "model" and kind in ("uint", "float") and high is not None
 
@@ -93,14 +94,20 @@ def test_battery_2_1_has_no_model_size_maximum_and_keeps_the_structural_ones():
         "trajectory_components",
     }
     assert set(served) == set(published)
+    rows = cr.ROW_MAXIMA[cr.BATTERY_CHALLENGE]
+    assert rows == {"neighbours"}
+    train_cases = dict(cr.BATTERY_CONTRACT.envelope)["train_cases"]
     for name, row in served.items():
-        if name in size:
-            assert row[3] is None and published[name][3] is not None
+        if name in size | rows:
+            assert row[3] == (None if name in size else train_cases)
+            assert published[name][3] is not None
             assert row[:3] + row[4:] == published[name][:3] + published[name][4:]
         else:
             assert row == published[name], name
-    # Structural: the 121-point grid's 61 Fourier modes.
+    # Structural: the 121-point grid's 61 Fourier modes, and KNN neighbours at
+    # most the TRAIN rows a recipe can select (400), replacing <= 64.
     assert served["n_modes"][3] == 61
+    assert published["neighbours"][3] == 64 and served["neighbours"][3] == 400
     item = cr.contract_for(cr.BATTERY_CHALLENGE, "2.1")
     assert item.version == "2.1" and item.document()["challenge"]["version"] == "2.1"
     assert item.digest != BATTERY_CONTRACT_DIGEST
