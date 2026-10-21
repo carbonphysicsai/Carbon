@@ -126,6 +126,75 @@ def _setup_document(tmp_path):
     return document
 
 
+def _setup_build_documents(tmp_path):
+    """Setup with no GPU worker found, as the Control Center serves it with
+    its "Build the GPU worker" action (S15a): offered, and then running. The
+    action is the real one, over a fixture checkout, host and build."""
+    import os
+    import threading
+
+    from test_miner_launchpad_environment_setup import HOTKEY, Checks, Onboarding
+
+    from scripts.dev.miner_launchpad import setup_operations
+    from scripts.dev.miner_launchpad.environment_setup import EnvironmentSetup
+    from scripts.dev.miner_launchpad.gpu_worker_build import GpuWorkerBuild
+
+    class Probe:
+        def which(self, name):
+            return "/usr/bin/" + name
+
+        def docker_reachable(self):
+            return True
+
+        def docker_root(self):
+            return None
+
+    gate = threading.Event()
+
+    class Process:
+        def wait(self):
+            gate.wait(10)
+            return 1
+
+    def runner(command, *, cwd, log_fd, lock_fd):
+        os.write(log_fd, b"#7 [ 4/12] RUN pip install\n")
+        return Process()
+
+    state = tmp_path / "setup-build-state"
+    state.mkdir(mode=0o700)
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Checks())
+    setup.begin({"address": HOTKEY})
+    action = GpuWorkerBuild(
+        state, repo=tmp_path / "build-checkout", probe=Probe(), runner=runner
+    )
+
+    def served():
+        document = _plain(
+            {
+                **setup.state(),
+                "choices": setup.offered(),
+                "status": setup_operations.status(
+                    setup, door=setup_operations.HTTP, campaigns=0
+                ),
+                "gpu_build": action.status(),
+            }
+        )
+        document["images"]["gpu_image_manifest"]["path"] = None
+        return document
+
+    offered = served()
+    assert offered["gpu_build"]["offered"] is True
+    request = {
+        "route": "remote-machine",
+        "consent": {"build": {"command": action.command_text()}},
+    }
+    started = _plain(action.start(request))
+    running = served()
+    gate.set()
+    action.thread.join(10)
+    return {"offered": offered, "started": started, "running": running}
+
+
 #: The states whose recovery the Live tab must offer (control_center_page_check).
 RECOVERING = ("RECONCILIATION_REQUIRED", "INTERRUPTED", "PAUSE_REQUESTED")
 
@@ -356,6 +425,7 @@ def documents(tmp_path, journey, monkeypatch):
         "run": run,
         "recovering": recovering,
         "setup_send": _setup_document(tmp_path),
+        "setup_build": _setup_build_documents(tmp_path),
         "setups": _setups(tmp_path, monkeypatch),
     }
     # Graphite's documents, from these (GRAPHITE-MINER-S5).

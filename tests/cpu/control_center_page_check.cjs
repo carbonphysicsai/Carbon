@@ -1254,6 +1254,54 @@ scenario("a send that does not go through leaves its button ready again", async 
   clean(page);
 });
 
+// ---- 8b. A GPU route with no GPU worker offers the build (S15a). ----
+scenario("a GPU route with no GPU worker offers Build the GPU worker, on consent to its command, and follows it", async () => {
+  const docs = fx.setup_build;
+  const command = docs.offered.gpu_build.command;
+  const state = launchable(world({setup: copy(docs.offered)}));
+  state.script.push({match: r => r.path === "/api/v1/page/gpu_worker_build", answer: () => { state.setup = copy(docs.running); return {body: copy(docs.started)}; }});
+  const page = await open(state);
+  page.go("#setup/compute");
+  await page.advance(0);
+  await page.press(page.$("setup-where-own-server"));
+  // The button, where the build command to copy was; text only.
+  const box = one(page, "#setup-gpu-build");
+  assert.match(box.textContent, /Build the GPU worker/);
+  assert.ok(box.textContent.includes("Run " + command + " on this machine."));
+  assert.ok(![...all(page, "form[data-step=compute] code")].some(code => code.textContent.includes("accelerator_worker_image.sh")), "no command to copy");
+  const button = page.$("setup-gpu-build-submit");
+  assert.equal(button.textContent, "Build the GPU worker");
+  assert.equal(button.disabled, true, "nothing runs before consent");
+  await page.press(page.$("setup-gpu-build-consent"));
+  assert.equal(button.disabled, false);
+  await page.press(button);
+  const posted = lastPost(state, "/api/v1/page/gpu_worker_build");
+  assert.deepEqual(posted.body, {route: "remote-machine", consent: {build: {command}}});
+  assert.equal(page.text("setup-result"), "Building the GPU worker on this machine. This page follows it.");
+  // Re-read: running, with how long and Docker's step, and no button.
+  assert.match(page.text("setup-gpu-build-progress"), /^Building the GPU worker on this machine: \d+s so far, Docker step 4\/12\./);
+  assert.ok(one(page, "#setup-gpu-build progress"));
+  assert.equal(page.$("setup-gpu-build-submit"), null);
+  clean(page);
+});
+
+scenario("a refused GPU worker build says what failed and leaves its button ready", async () => {
+  const docs = fx.setup_build;
+  const state = launchable(world({setup: copy(docs.offered)}));
+  state.script.push({match: r => r.path === "/api/v1/page/gpu_worker_build", answer: {status: 409, body: {error: "nvidia_driver_not_found", field: "gpu", next_step: "install the NVIDIA driver so nvidia-smi is found on this machine"}}});
+  const page = await open(state);
+  page.go("#setup/compute");
+  await page.advance(0);
+  await page.press(page.$("setup-where-this-machine-gpu"));
+  await page.press(page.$("setup-gpu-build-consent"));
+  await page.press(page.$("setup-gpu-build-submit"));
+  assert.equal(lastPost(state, "/api/v1/page/gpu_worker_build").body.route, "this-machine-gpu");
+  assert.match(page.text("setup-result"), /^gpu: nvidia driver not found\. Next: install the NVIDIA driver/);
+  assert.equal(page.$("setup-gpu-build-submit").textContent, "Build the GPU worker");
+  assert.equal(page.$("setup-gpu-build-submit").disabled, false);
+  clean(page);
+});
+
 // ---- 9. The Tools tab reads a file under either research tools rule. ----
 scenario("Tools: a read answered as text (v2 rule) or as base64 (historical) shows the same file", async () => {
   const state = launchable(world());
