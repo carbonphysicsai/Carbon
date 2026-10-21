@@ -136,7 +136,41 @@ def direct_sources(spec):
 
 
 def profile_document(spec):
+    """The whole profile, for its digest. Read a field's value only through
+    `profile_value`, which refuses one that is still unset."""
     return json.loads(_profile(spec, research_key(spec).version))
+
+
+#: The profile's owner/Validator fields: none is registered for F08 or F02 yet,
+#: so each is HUMAN_INPUT and refused when read.
+OWNER_FIELDS = (
+    "physical_scope",
+    "governing_law",
+    "geometry_domain",
+    "operating_envelope",
+    "rights_profile",
+)
+#: What counts as unset (the same set as `agent_campaign.grant`).
+UNSET = (None, HUMAN_INPUT, "TODO", "")
+
+
+class ProfileValueMissing(ValueError):
+    """A profile field the owner or Validator has not set: refused, never read
+    as a value (AGENTS.md: no invented science)."""
+
+    code = "direct_profile_value_missing"
+
+    def __init__(self, name):
+        super().__init__(f"{self.code}: {name} is not set")
+        self.field = name
+
+
+def profile_value(spec, name):
+    """One profile field's value; refused while it is unset (HUMAN_INPUT)."""
+    value = profile_document(spec)[name]
+    if value in UNSET:
+        raise ProfileValueMissing(name)
+    return value
 
 
 @functools.lru_cache(maxsize=4)

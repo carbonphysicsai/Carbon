@@ -25,6 +25,7 @@ from carbon.development_session import bundle_construction_worker as bundle_work
 from carbon.development_session import construction_recipe, direct_submission
 from carbon.development_session import direct_graph_construction_worker as graph_worker
 from carbon.development_session.research_campaign import OperationRefused
+from carbon.direct_campaign import contracts as direct_contracts
 from carbon.direct_campaign import practice as direct_practice
 from carbon.direct_campaign import research as direct_research
 from carbon.direct_campaign.spec import F02, F08, HUMAN_INPUT
@@ -640,3 +641,23 @@ def test_the_public_material_serves_no_label(spec, version):
     assert not any(case_id in text for case_id in bank["practice_case_ids"])
     with pytest.raises(ValueError, match="allowlist"):
         material("private_bank", workspace)
+
+
+@pytest.mark.parametrize(("spec", "version"), VERSIONS, ids=IDS)
+@pytest.mark.parametrize("name", direct_contracts.OWNER_FIELDS)
+def test_an_unset_profile_field_is_refused_never_read_as_a_value(spec, version, name):
+    # The five owner/Validator fields are HUMAN_INPUT until set: reading one
+    # refuses (as agent_campaign.grant refuses an unset grant value).
+    from carbon.direct_campaign.spec import key_for, keyed
+
+    with keyed(spec, key_for(spec, version)):
+        assert direct_contracts.profile_document(spec)[name] == HUMAN_INPUT
+        with pytest.raises(direct_contracts.ProfileValueMissing) as refused:
+            direct_contracts.profile_value(spec, name)
+    assert refused.value.code == "direct_profile_value_missing"
+    assert refused.value.field == name
+
+
+@pytest.mark.parametrize("unset", [None, "HUMAN_INPUT", "TODO", ""])
+def test_every_unset_spelling_is_refused(unset):
+    assert unset in direct_contracts.UNSET
