@@ -1798,6 +1798,10 @@ class RunnerAdapter:
     #: answering `campaign_busy`: long enough to outlast a door's instant
     #: probe (`_probe_lock`), short enough that a real holder is reported.
     LOCK_WAIT_SECONDS = 1.0
+    #: How often a read door looks again at one campaign whose ledger says
+    #: some process is working (`_settle_phantom`); a test replaces the clock.
+    PHANTOM_READ_SECONDS = 30.0
+    phantom_clock = staticmethod(time.monotonic)
     #: Graphite's literature (S4 over S2 and S3): the miner's library at a
     #: root, the shared card pack, and the plan rule. A test replaces them.
     open_library = staticmethod(_open_library)
@@ -1868,6 +1872,10 @@ class RunnerAdapter:
         #: work as it would its own (D4).
         self.delegated = set()
         self.lock = threading.RLock()
+        #: What each read door last saw of a campaign in flight, and when
+        #: (`_settle_phantom`): {campaign: (when, (generation, state) or None)}.
+        self._phantom_seen = {}
+        self._phantom_guard = threading.Lock()
         #: Who runs this host's campaign threads (LP-PROD-C). INLINE: this
         #: process, as before supervision existed (fixtures and tests).
         #: SUPERVISOR/DETACHED: this process, while it holds the supervisor
@@ -2101,6 +2109,96 @@ class RunnerAdapter:
             control = CampaignControl(ledger)
             if control.status()["state"] in supervision.IN_FLIGHT:
                 self._settle_if_idle(ledger, control, root)
+
+    def read(self, identity):
+        """`get` for a door that only reads - the page's campaign list
+        (`recent`), `GET /api/v1/research/<id>`, and the observe and
+        campaign_view operations - after settling a phantom in-flight
+        campaign (`_settle_phantom`). Paths that write keep calling `get`,
+        which never settles anything."""
+        self._settle_phantom(identity)
+        return self.get(identity)
+
+    def _settle_phantom(self, identity):
+        """Settle a campaign whose ledger says some process is working when
+        no process is: a phantom RUNNING.
+
+        Found in the M1 rehearsal (2026-10-21): a Graphite run ended - most
+        likely on the Control Center's own thread - without settling its
+        ledger, so the campaign read RUNNING, with an operation RESERVED,
+        for 3.4 hours, nothing working on it. Recovery (`recover`) runs only
+        where a process takes the supervisor lock, which the Control Center
+        already held, so only the miner's Reconcile settled it.
+
+        A read door now settles it through recovery's own per-campaign step
+        (`_recover_one`, orphan None), with every rule it keeps: the real
+        cleanup check; RECONCILIATION_REQUIRED while an operation may be out
+        or cleanup is not verified; otherwise what was asked (READY when the
+        campaign waits for its miner, LP-PROD-FIX-01; PAUSED or STOPPED when
+        asked; else INTERRUPTED), told why in `last_refusal`. It never
+        settles a model call whose outcome is unknown: only Reconcile does
+        (LP-PROD-W2). Nothing is redispatched, queued, retried or woken: no
+        `_redispatch_stranded`, no `_auto_retry_practice`, no `orphaned`.
+
+        It never settles a campaign with a live holder:
+        - the campaign's ownership lock is taken without blocking, and a held
+          one leaves it exactly as it is (`_recover_one`); a run, an
+          operation, an attached agent and the page's tools each hold it;
+        - a campaign with work claimed for it (a RUNNING dispatch item) is
+          left alone: a live supervisor's thread settles it, and a dead
+          supervisor's claimed item is an orphan, which only a supervisor
+          taking the lock interrupts and may carry out again (`recover`);
+        - work queued for it is `waiting`, as `recover` computes it, so with
+          nothing outstanding the queued work settles it, not this;
+        - only a second sighting settles: the same (generation, state) in
+          flight, with nothing claimed, at two probes at least
+          `PHANTOM_READ_SECONDS` apart. A holder between steps - a resume
+          asked for and not yet queued, a thread started and not yet holding
+          the lock - moves the state or its generation well within that, so
+          it is never taken for a phantom.
+
+        Throttle: at most one probe per campaign per `PHANTOM_READ_SECONDS`
+        (30 s). The page polls every 1.5 s; one probe per 30 s takes no lock
+        on almost every poll, bounds the cleanup check (journals, Docker) to
+        one per campaign per 30 s, and still settles a phantom within about a
+        minute of the page seeing it, against hours before.
+
+        Roles: every role reads, so every role probes. The ownership lock
+        proves that one campaign's holder is gone whichever process it was
+        in, so this per-campaign settlement is as safe in a CLIENT (which
+        never runs `recover`) as in a supervisor. What is supervisor-level -
+        interrupting orphaned queue items, carrying a stranded launch out
+        again, retrying an interrupted practice, releasing handover pauses
+        (D4: a campaign paused for handover is PAUSED, not in flight, and is
+        never touched here) - stays with `recover` on taking the supervisor
+        lock. A failed probe changes nothing and never fails the read."""
+        now = self.phantom_clock()
+        with self._phantom_guard:
+            seen = self._phantom_seen.get(identity)
+            if seen is not None and now - seen[0] < self.PHANTOM_READ_SECONDS:
+                return
+            self._phantom_seen[identity] = (now, None)
+        with contextlib.suppress(Exception):
+            row, kind, root = self._bound(identity)
+            if not (root / "campaign.sqlite3").exists():
+                return
+            status = CampaignControl(self._ledger(row, kind, root)).status()
+            if status["state"] not in supervision.IN_FLIGHT:
+                return
+            with self.db() as db:
+                item = supervision.active(
+                    db, principal=self.principal, campaign=identity
+                )
+            if item is not None and item["state"] != supervision.QUEUED:
+                return
+            sighting = (status["generation"], status["state"])
+            with self._phantom_guard:
+                self._phantom_seen[identity] = (now, sighting)
+            if seen is None or seen[1] != sighting:
+                return
+            # A held lock leaves it as it is; the sighting stands, so the
+            # next probe tries again.
+            self._recover_one(dict(row), kind, None, waiting=item is not None)
 
     def interrupted_practice(self, identity):
         """The practice this campaign may send again, or None: its last
@@ -3550,12 +3648,14 @@ class RunnerAdapter:
 
         with contextlib.suppress(Exception):
             read_queued_verdict(self, admitted)
-        return self.get(admitted.campaign["id"])
+        return self.read(admitted.campaign["id"])
 
     def campaign_view_admitted(self, admitted, request):
-        # The research surface's one document (RSURF-D1).
+        # The research surface's one document (RSURF-D1), which the page
+        # polls: a phantom in-flight campaign is settled first.
         from scripts.dev.miner_launchpad.campaign_view import ledger_view
 
+        self._settle_phantom(admitted.campaign["id"])
         return ledger_view(self, admitted, request)
 
     def note_admitted(self, admitted, request):
@@ -5523,7 +5623,7 @@ class RunnerAdapter:
             # anything else may pass - a busy database, a bug - so it is the
             # milder `campaign_read_failed`, never advice to abandon it.
             try:
-                result.append(self.get(identity))
+                result.append(self.read(identity))
             except Exception as exc:  # noqa: BLE001 - never a trace or a path
                 code = (
                     "campaign_readback_unavailable"
