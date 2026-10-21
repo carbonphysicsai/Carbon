@@ -1,0 +1,13 @@
+{
+ "kind": "calculix",
+ "solvers": {
+  "ccx": {
+   "path": "/opt/calculix/bin/ccx",
+   "sha256": "cdd00603c70dae940e6c48ab64c4776daa429c360ca515f257cc173bcfa0c9cd"
+  },
+  "gmsh": {
+   "path": "/opt/gmsh/bin/gmsh",
+   "sha256": "aebfb5b25decf2260acbce3c3de592a7e1231ee2089b8432f13e2fa10e05a9e5"
+  }
+ }
+}
