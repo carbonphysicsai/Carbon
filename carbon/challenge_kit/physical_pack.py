@@ -568,19 +568,43 @@ def _pinned_repository_file(path_and_sha: tuple[str, str]) -> bytes:
     return raw
 
 
+#: F08's registered reference uncertainty (Validator-approved 2026-10-20),
+#: read by sha: from 1.4 the limit statement cites its dynamic U.
+_F08_U_RECORD = (
+    _F08_LADDER_DIR + "/reference-uncertainty/f08-reference-uncertainty.json",
+    "19bb06c321c5294a9f598bfc3ca3998d9a4ba1f45500117127cd8e20620d4359",
+)
+#: Versions served before the U record keep their bytes: their statement
+#: carries the pre-record 3.4e-5 (Validator, 2026-10-21: the registered U
+#: governs; the fix is prospective, so served material is not rewritten).
+_F08_PRE_U_VERSIONS = ("1.1", "1.2", "1.3")
+
+
 def _f08_limit_extras(version: str) -> dict:
     """1.1's limit statement: the exam straddles the dynamic limit, and the
-    TRAIN mesh reads slightly lower than the exam truth there."""
+    TRAIN mesh reads slightly lower than the exam truth there. From 1.4 the
+    reference term is the registered U (worst dynamic, 3.9e-5 mm/N)."""
     if version == "1.0":
         return {}
+    straddle = {
+        "limit": "dynamic_tip_mm_per_n_max",
+        "safe": 4,
+        "unsafe": 4,
+        "smallest_margin_mm_per_n": 0.00286,
+    }
+    if version in _F08_PRE_U_VERSIONS:
+        straddle["largest_reference_error_mm_per_n"] = 3.4e-5
+    else:
+        record = json.loads(_pinned_repository_file(_F08_U_RECORD))
+        straddle["reference_uncertainty_mm_per_n"] = record["U"][
+            "worst_dynamic_mm_per_n"
+        ]
+        straddle["reference_uncertainty_record"] = {
+            "path": _F08_U_RECORD[0],
+            "sha256": _F08_U_RECORD[1],
+        }
     return {
-        "exam_straddle": {
-            "limit": "dynamic_tip_mm_per_n_max",
-            "safe": 4,
-            "unsafe": 4,
-            "smallest_margin_mm_per_n": 0.00286,
-            "largest_reference_error_mm_per_n": 3.4e-5,
-        },
+        "exam_straddle": straddle,
         "train_mesh": dict(f08_train.TRAIN_MESH_STATEMENT),
     }
 
