@@ -598,6 +598,32 @@ def emulated_section(progress):
     }
 
 
+#: S3's view rows (`miner.driver.view`) for a FULL campaign whose Planner's
+#: replies were cut at the output cap: the plan stage keeps the loop's cause
+#: and the cap, and the build was not run (`driver.PLAN_OUTPUT_CAP`).
+PLAN_OUTPUT_CAP_ROWS = [
+    {"stage": "hunt", "state": "DONE", "code": None},
+    {
+        "stage": "plan",
+        "state": "STOPPED",
+        "code": "replies_truncated",
+        "cause": "turn_hit_output_cap",
+        "output_cap": 2048,
+    },
+    {"stage": "build", "state": "STOPPED", "code": "graphite_plan_output_cap"},
+]
+
+
+def plan_output_cap_stages(progress):
+    """The campaign view's `graphite.stages` for `PLAN_OUTPUT_CAP_ROWS`,
+    through S4's real projection and section."""
+    from scripts.dev.miner_launchpad import projection
+    from scripts.dev.miner_launchpad.campaign_view import graphite_section as real
+
+    rows = projection._stages(copy.deepcopy(PLAN_OUTPUT_CAP_ROWS))
+    return real({"graphite": {**progress, "stages": rows}})["stages"]
+
+
 def graphite_documents(base):
     """Graphite's documents, from the live page check's real ones (`base`)."""
     options = copy.deepcopy(base["options_setup_model"])
@@ -628,6 +654,8 @@ def graphite_documents(base):
         "operations": listing,
         "operations_without_library": _without_library(listing),
         "view": view,
+        # The stages of a FULL campaign whose plan was cut at the output cap.
+        "plan_output_cap_stages": plan_output_cap_stages(progress),
         "run": run,
         "library": {
             "cards": CARDS,

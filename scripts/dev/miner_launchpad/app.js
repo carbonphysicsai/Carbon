@@ -3673,6 +3673,11 @@
         : setup ? "Your setup's choice: " + setup.model_id + " (" + setup.provider_id + ")" : "Not chosen");
       const cap = outputCap();
       if (cap && !cap.problem) row("Max output", cap.value !== null ? cap.value.toLocaleString("en-US") + " tokens per reply, your cap" : "Not set: " + outputDefault(cap));
+      // Graphite on a model whose maximum output Carbon does not record runs
+      // at the conservative default cap, which can cut a Planner's replies
+      // before its plan is written (graphite_plan_output_cap). Said before
+      // launch; no maximum is guessed for the model.
+      if (agent?.launch_agent === GRAPHITE && cap && !cap.problem && cap.value === null && cap.fallback?.basis === "no_documented_maximum") row("Max output warning", "Carbon knows no output maximum for " + wizard.model + ", so each reply is capped at the conservative " + cap.fallback.max_output_tokens.toLocaleString("en-US") + " tokens, which can cut a Planner's plan short. Set max output to the model's own maximum.");
       row("Compute", compute ? compute.label + " · " + compute.lane + " lane · " + compute.availability : "Unavailable");
       row("Tools", entry ? Object.keys(entry.tools?.workflow || {}).join(", ") || "none listed" : "Choose a Challenge");
       // Stated before launch, not learnt at submit (LAUNCHPAD-PAGE-USABILITY-01).

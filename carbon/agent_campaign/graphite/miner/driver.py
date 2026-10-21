@@ -23,7 +23,14 @@ reconcile, `last_refusal` and the campaign's own submit.
   cannot pay for one research model call (the Planner's, and with a hunt the
   hunt's part too) is refused `research_share_too_small` before its manifest
   freezes (`check_research_share`), rather than run a research stage that
-  could send nothing.
+  could send nothing. A plan stage that ends at the research share, or at
+  any other stop but one, leaves the build to run without a plan, as the
+  research share's next step says. The one exception: a Planner whose
+  replies were cut at the output cap (`research_loop.OUTPUT_CAP_HIT`)
+  stopped because the launch's cap was too low, not because research had
+  run its course, so the build is not run on no plan; it is recorded
+  STOPPED `graphite_plan_output_cap` and the campaign completes
+  (`plan_cut_at_output_cap`).
 
 **Limits are money and time** (OWNER-GRAPHITE-MINER-01 item 6). Every stage
 runs under the miner's own ceilings and elapsed time; a model call one of
@@ -74,7 +81,7 @@ from carbon.development_session import research_campaign as campaigns
 from carbon.development_session.data import write_once
 from carbon.development_session.model_provider import DEFAULT_SETTINGS
 from carbon.development_session.profile import canonical, digest
-from carbon.development_session.research_loop import run_epoch
+from carbon.development_session.research_loop import OUTPUT_CAP_HIT, run_epoch
 
 from . import budget
 from . import edition as editions
@@ -95,6 +102,9 @@ LITERATURE_PACK_MISSING = "literature_pack_missing"
 CURATION_NOT_FOUND = "curation_not_found"
 TOO_MANY_PINS = "too_many_pins"
 RESEARCH_SHARE_TOO_SMALL = "research_share_too_small"
+#: The build a FULL campaign did not run because its Planner's replies were
+#: cut at the output cap (`plan_cut_at_output_cap`).
+PLAN_OUTPUT_CAP = "graphite_plan_output_cap"
 #: The most cards one learning outcome names (the library's own bound,
 #: `library.MAX_OUTCOME_CARDS`); a plan's first-cited cards are kept.
 LEARNING_CARDS = 64
@@ -1003,7 +1013,9 @@ async def _plan(run, ledger):
     it spends what is left of the research share after the hunt; when
     nothing is left, its first model call is refused and it stops typed
     `research_share_reached`, having sent nothing. At one of the miner's own
-    limits it stops typed `miner_ceiling_reached`."""
+    limits it stops typed `miner_ceiling_reached`. Replies cut at the output
+    cap stop it with the loop's cause and the cap kept (`_stopped`); in FULL
+    that one cause holds the build (`plan_cut_at_output_cap`)."""
     done = run.stages.finished(PLAN)
     if done is not None:
         return done
@@ -1245,6 +1257,55 @@ async def _build(run, plan_doc, plan_digest):
     return None
 
 
+def plan_cut_at_output_cap(block, planned):
+    """Whether a FULL campaign's plan stage `planned` (its stage record)
+    stopped because the Planner's replies hit the launch's output cap: the
+    research loop's typed cause `turn_hit_output_cap`
+    (`research_loop.OUTPUT_CAP_HIT`), kept in the record by `_stopped`.
+
+    Only that cause holds the build. A Planner stopped at the research share
+    (`research_share_reached`), at the miner's own ceilings or time
+    (`miner_ceiling_reached`), by its own stop or by any other typed stop
+    leaves the build to run on no plan, as before: the share and the
+    ceilings are the limits the miner set for research, and the research
+    share's next step says the build goes on. A cap-cut Planner wrote no
+    plan because each reply was cut before its tool call was complete - the
+    cap was too low for the model, not a limit research reached - so a
+    build on no plan would spend the rest of the budget on a run the miner
+    did not mean to launch."""
+    return (
+        block["mode"] == editions.FULL_MODE
+        and type(planned) is dict
+        and planned.get("status") == "STOPPED"
+        and planned.get("cause") == OUTPUT_CAP_HIT
+    )
+
+
+def _hold_build(run, planned):
+    """End a FULL campaign whose Planner was cut at the output cap
+    (`plan_cut_at_output_cap`) without its build: the build is recorded
+    STOPPED `graphite_plan_output_cap`, with the cap the Planner's replies
+    hit, noted in the ledger, and the campaign completes - no Constructor
+    call, no practice, no submit. The step is a new launch with a higher
+    max output tokens: the campaign's model settings are frozen at launch
+    and its plan stage is write-once, so a resume would only stop here
+    again. A build that already started (a campaign that began it before
+    this rule) is left to run as it was."""
+    if run.stages.finished(BUILD) is None:
+        body = {
+            "status": "STOPPED",
+            "code": PLAN_OUTPUT_CAP,
+            "ended": "NOT_RUN",
+            "plan_digest": None,
+        }
+        if type(planned.get("output_cap")) is dict:
+            body["output_cap"] = planned["output_cap"]
+        _note_stage_end(run, BUILD, body)
+        run.stages.finish(BUILD, body)
+    if not (run.ledger.root / "campaign-complete.json").exists():
+        campaigns._complete(run.prepared)
+
+
 def _block(manifest):
     plan = manifest.get("provider") if type(manifest) is dict else None
     block = plan.get("graphite") if type(plan) is dict else None
@@ -1283,6 +1344,7 @@ async def run(prepared, *, transport=None, arxiv_opener=None, clock=None):
     )
     prepared.ledger.checkpoint()
     plan_doc, plan_digest = launch["plan"], launch["plan_digest"]
+    planned = None
     if editions.plans_first(block):
         if block["hunt"] is not None:
             await _hunt(graphite, _research_ledger(graphite, HUNT))
@@ -1290,6 +1352,9 @@ async def run(prepared, *, transport=None, arxiv_opener=None, clock=None):
         plan_doc, plan_digest = planned.get("plan"), planned.get("plan_digest")
     if block["mode"] == editions.RESEARCH_MODE:
         campaigns._complete(prepared)
+        return None
+    if plan_cut_at_output_cap(block, planned) and not graphite.stages.started(BUILD):
+        _hold_build(graphite, planned)
         return None
     return await _build(graphite, plan_doc, plan_digest)
 
@@ -1343,13 +1408,19 @@ def view(root, *, operations=None):
                 if name == BUILD and retained
                 else "RUNNING" if stages.started(name) else "PENDING"
             )
-        rows.append(
-            {
-                "stage": name,
-                "state": state,
-                "code": None if done is None else done.get("code"),
-            }
-        )
+        row = {
+            "stage": name,
+            "state": state,
+            "code": None if done is None else done.get("code"),
+        }
+        if done is not None and done.get("cause") == OUTPUT_CAP_HIT:
+            # The cap the stage's replies were cut at, for the step a
+            # campaign view shows (set max output tokens higher).
+            kept = done.get("output_cap")
+            cap = kept.get("cap") if type(kept) is dict else None
+            row["cause"] = OUTPUT_CAP_HIT
+            row["output_cap"] = cap if type(cap) is int else None
+        rows.append(row)
         if current is None and done is None:
             current = name
     if retained:

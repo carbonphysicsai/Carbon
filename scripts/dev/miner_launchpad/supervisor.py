@@ -1327,6 +1327,16 @@ NEXT_ACTIONS = {
         "stopped there and the build went on. Launch again with a larger "
         "research_share to research longer."
     ),
+    # A FULL campaign whose Planner's replies were cut at the output cap
+    # (`driver.plan_cut_at_output_cap`): its build is not run on no plan.
+    "graphite_plan_output_cap": (
+        "The Planner's replies were cut at the output cap before it wrote a "
+        "plan, so the build was not run without one. Launch a new campaign "
+        "with max output tokens (model_settings.max_output_tokens, the "
+        "wizard's max output) set higher, up to your model's own maximum if "
+        "you know it. Resuming this campaign does not help: it keeps the cap "
+        "it was launched with."
+    ),
     "plan_not_found": (
         "No plan in your library has that digest. List your plans "
         "(carbon_plan_list) and send one of their digests, or omit plan to "
