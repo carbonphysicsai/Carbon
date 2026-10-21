@@ -24,6 +24,12 @@ EVALUATION_VERSIONS = {
     (f02.CHALLENGE, "2.0"): "f02-dual-development-bank-8-v1",
     (f02.CHALLENGE, "2.1"): "f02-dual-development-bank-8-v2",
     (battery.CHALLENGE, "2.0"): "battery-dual-development-bank-v2",
+    # Allowlist v7's catalog versions: each its predecessor's.
+    (motor.CHALLENGE, "1.3"): "motor-dual-development-bank-90-v3",
+    (cooling.CHALLENGE, "1.2"): "cooling-dual-development-bank-48-v3",
+    (f08.CHALLENGE, "1.3"): "f08-dual-near-limit-bank-8-v2",
+    (f02.CHALLENGE, "2.2"): "f02-dual-development-bank-8-v2",
+    (battery.CHALLENGE, "2.1"): "battery-dual-development-bank-v2",
 }
 
 
@@ -39,7 +45,15 @@ def test_each_registered_version_has_its_own_evaluation_version(key):
 
 #: Versions the Validator ruled are one measurement under one name (Motor 1.2
 #: is 1.1's bank, physics and roles with only the construction kit changed).
-SHARED = {(motor.CHALLENGE, "1.2"): (motor.CHALLENGE, "1.1")}
+SHARED = {
+    (motor.CHALLENGE, "1.2"): (motor.CHALLENGE, "1.1"),
+    # Allowlist v7's catalog versions differ only in the served allowlist.
+    (motor.CHALLENGE, "1.3"): (motor.CHALLENGE, "1.2"),
+    (cooling.CHALLENGE, "1.2"): (cooling.CHALLENGE, "1.1"),
+    (f08.CHALLENGE, "1.3"): (f08.CHALLENGE, "1.2"),
+    (f02.CHALLENGE, "2.2"): (f02.CHALLENGE, "2.1"),
+    (battery.CHALLENGE, "2.1"): (battery.CHALLENGE, "2.0"),
+}
 
 
 def test_evaluation_versions_repeat_only_where_ruled_shared():
@@ -59,10 +73,10 @@ def test_motor_1_2_is_1_1s_measurement():
 @pytest.mark.parametrize(
     "challenge, version",
     [
-        (motor.CHALLENGE, "1.3"),
+        (motor.CHALLENGE, "1.4"),
         (motor.CHALLENGE, None),
         (cooling.CHALLENGE, "2.0"),
-        (f08.CHALLENGE, "1.3"),
+        (f08.CHALLENGE, "1.4"),
         (f02.CHALLENGE, "1.0"),
         (battery.CHALLENGE, "1.0"),
         ("unregistered-challenge", "1.0"),
@@ -79,3 +93,12 @@ def test_a_version_variant_measures_with_its_adapters_own_files():
     assert variant.FILES == motor.FILES
     assert variant.measure is motor.measure
     assert physical.producer_digest(variant) == physical.producer_digest(motor)
+
+
+@pytest.mark.parametrize("key", sorted(SHARED))
+def test_a_shared_version_is_its_predecessors_measurement(key):
+    physical_adapters.register(battery)
+    one, same = physical_adapters.adapter(*key), physical_adapters.adapter(*SHARED[key])
+    assert one.CASE_ID == same.CASE_ID
+    assert one.measure is same.measure
+    assert physical.producer_digest(one) == physical.producer_digest(same)
