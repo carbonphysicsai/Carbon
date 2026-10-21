@@ -238,6 +238,22 @@ def _motor_catalog_v7():
     return describe_catalog("1.3")
 
 
+def _f08_direct():
+    from carbon.direct_campaign.spec import F08
+
+    from .direct import describe
+
+    return describe(F08, "1.4")
+
+
+def _f02_direct():
+    from carbon.direct_campaign.spec import F02
+
+    from .direct import describe
+
+    return describe(F02, "2.3")
+
+
 def _compile_burgers(strategy):
     from carbon.development_session.research_catalog import compile_recipe
 
@@ -425,6 +441,53 @@ def _entries():
                 ),
             ),
             _cold_plate_catalog,
+            None,
+        ),
+        # F08 (Ribbed Bracket) 1.4 and F02 (Burst Thermal) 2.3, direct-recipe
+        # only (`carbon.direct_campaign`): Carbon's tested backbones by catalog
+        # id, or a graph trained by Carbon's registered graph training adapter;
+        # no Level 0 strategy compiler. Each catalog is empty until an entry is
+        # tested, and until then the campaign refuses to start.
+        Entry(
+            "f08-ribbed-bracket",
+            "1.4",
+            "Ribbed Bracket (F08, DEVELOPMENT, backbone catalog and graph training "
+            "adapter, allowlist v7)",
+            IMPLEMENTED,
+            "launch",
+            None,
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "of a graph by Carbon's graph training adapter, in the isolated "
+                    "C-03 CPU worker; exact public TRAIN and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    carrier,
+                ),
+            ),
+            _f08_direct,
+            None,
+        ),
+        Entry(
+            "f02",
+            "2.3",
+            "Burst Thermal (F02, DEVELOPMENT, backbone catalog and graph training "
+            "adapter, allowlist v7)",
+            IMPLEMENTED,
+            "launch",
+            None,
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "of a graph by Carbon's graph training adapter, in the isolated "
+                    "C-03 CPU worker; exact public TRAIN and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    carrier,
+                ),
+            ),
+            _f02_direct,
             None,
         ),
         Entry(
