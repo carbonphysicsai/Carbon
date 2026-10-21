@@ -1,8 +1,9 @@
 """Allowlist v7 (Test Lead's assignment, owner-approved 2026-10-20; the
 Validator reviews it): v6 plus the B2 backbone ops neg, log, leaky_relu,
-any.dim and the antialiased bicubic resize, and two argument forms, strided
-slice_scatter and transposed convolution, admitted only where an allowlist
-entry names them (`forms`). rand_like stays refused, with its reason recorded.
+any.dim and the antialiased bicubic resize, and argument forms admitted only
+where an allowlist entry names them (`forms`): strided slice_scatter and
+transposed convolution, and CODANO's static outer-product index, integer
+fmod and complex sum. rand_like stays refused, with its reason recorded.
 Each lowering matches torch in values and gradients on edge cases, repeats
 bit for bit, and expands to a bounded number of nodes; v6 refuses all of it
 and keeps every op it allowed.
@@ -213,6 +214,9 @@ def test_v7_keeps_everything_v6_allowed():
     assert forms == {
         "aten.slice_scatter.default": ["strided"],
         "aten.convolution.default": ["transposed"],
+        "aten.index.Tensor": ["static_outer"],
+        "aten.fmod.Scalar": ["integer"],
+        "aten.sum.dim_IntList": ["complex"],
     }
 
 
@@ -483,3 +487,166 @@ BOUNDS = [
 def test_each_lowering_expands_to_a_bounded_node_count(module, example, bound):
     doc, _ = _rebuilt(module, example)
     assert len(_ops(doc)) <= bound
+
+
+# -- CODANO's forms ---------------------------------------------------------------
+
+
+class GridSample(torch.nn.Module):
+    """neuralop's grid interpolation: x[..., iy[:, None], ix] with indices
+    floor(arange * scale) + k, clamped, all static."""
+
+    def __init__(self, h, w, scale_h, scale_w, dy, dx):
+        super().__init__()
+        self.args = (h, w, scale_h, scale_w, dy, dx)
+
+    def forward(self, x):
+        h, w, scale_h, scale_w, dy, dx = self.args
+        iy = (torch.arange(h) * scale_h).floor().long() + dy
+        ix = (torch.arange(w) * scale_w).floor().long() + dx
+        iy = iy.clamp(0, x.shape[-2] - 1)
+        ix = ix.clamp(0, x.shape[-1] - 1)
+        return x[..., iy[:, None], ix] * 2.0
+
+
+class Roll(torch.nn.Module):
+    def __init__(self, n, shift, divisor):
+        super().__init__()
+        self.args = (n, shift, divisor)
+
+    def forward(self, x):
+        n, shift, divisor = self.args
+        index = torch.fmod(torch.arange(n) + shift, divisor)
+        return torch.index_select(x, -1, index) * 1.5
+
+
+class ComplexSum(torch.nn.Module):
+    def __init__(self, dim, keepdim):
+        super().__init__()
+        self.dim, self.keepdim = dim, keepdim
+
+    def forward(self, a, b):
+        z = torch.view_as_complex(torch.stack([a, b], dim=-1))
+        s = torch.sum(z * z, dim=self.dim, keepdim=self.keepdim)
+        return torch.view_as_real(s)
+
+
+def test_v6_refuses_codanos_forms():
+    x = torch.randn(2, 3, 6, 9)
+    assert _refusal(GridSample(5, 7, 1.0, 1.0, -1, 0), (x,), V6) in (
+        "aten_index_shape_or_dtype_not_supported",
+        "aten_index_not_static",
+    )
+    assert _refusal(Roll(9, 4, 9), (x,), V6) == "aten_arguments_not_supported"
+    a, b = torch.randn(3, 4), torch.randn(3, 4)
+    assert _refusal(ComplexSum(1, True), (a, b), V6) == "aten_arguments_not_supported"
+
+
+@pytest.mark.parametrize(
+    "h, w, scale_h, scale_w, dy, dx",
+    [
+        (6, 9, 1.0, 1.0, -1, 0),  # CODANO's offsets
+        (6, 9, 1.0, 1.0, 2, 1),
+        (4, 5, 1.5, 1.8, 0, -1),
+        (12, 3, 0.5, 2.9, 1, 2),
+    ],
+)
+def test_static_outer_index_matches_torch(h, w, scale_h, scale_w, dy, dx):
+    torch.manual_seed(12)
+    x = torch.randn(2, 3, 6, 9)
+    module = GridSample(h, w, scale_h, scale_w, dy, dx)
+    doc, rebuilt = _rebuilt(module, (x,))
+    assert "gather" not in _ops(doc) and "dynamic_slice" not in _ops(doc)
+    got = np.asarray(rebuilt(*_jax(x))[0])
+    np.testing.assert_array_equal(got, module(x).numpy())
+    grads, want = _grads(module, rebuilt, [x])
+    np.testing.assert_allclose(grads[0], want[0], rtol=1e-6, atol=1e-6)
+
+
+def test_an_index_that_is_not_an_outer_product_refuses():
+    class Diagonal(torch.nn.Module):
+        def forward(self, x):
+            i = torch.arange(4)
+            return x[..., i, i]
+
+    x = torch.randn(2, 4, 4)
+    assert _refusal(Diagonal(), (x,), V7) == "aten_index_shape_or_dtype_not_supported"
+
+
+def test_an_input_derived_outer_index_refuses():
+    class Dynamic(torch.nn.Module):
+        def forward(self, x, k):
+            iy = (torch.arange(3) + k).clamp(0, 3)
+            return x[..., iy[:, None], torch.arange(4)]
+
+    x = torch.randn(2, 4, 4)
+    k = torch.tensor(1)
+    assert _refusal(Dynamic(), (x, k), V7) in (
+        "aten_index_not_static",
+        "aten_arguments_not_supported",
+    )
+
+
+@pytest.mark.parametrize(
+    "n, shift, divisor", [(9, 4, 9), (10, 5, 10), (6, -3, 6), (7, 2, -7)]
+)
+def test_integer_fmod_roll_matches_torch(n, shift, divisor):
+    torch.manual_seed(13)
+    x = torch.randn(2, 3, n)
+    module = Roll(n, shift, divisor)
+    if (torch.fmod(torch.arange(n) + shift, divisor) < 0).any():
+        # A negative index_select index refuses, as torch refuses it.
+        with pytest.raises((graph.GraphRefused, IndexError, RuntimeError)):
+            module(x)
+            _rebuilt(module, (x,))
+        return
+    _, rebuilt = _rebuilt(module, (x,))
+    got = np.asarray(rebuilt(*_jax(x))[0])
+    np.testing.assert_array_equal(got, module(x).numpy())
+
+
+def test_integer_fmod_is_c_style_on_live_integers():
+    class Live(torch.nn.Module):
+        def forward(self, x, k):
+            return (torch.fmod(k, 3) + torch.fmod(k, -3)).to(x.dtype) + x
+
+    x = torch.zeros(8)
+    k = torch.tensor([-7, -6, -1, 0, 1, 5, 6, 7])
+    _, rebuilt = _rebuilt(Live(), (x, k))
+    got = np.asarray(rebuilt(*_jax(x), jax.numpy.asarray(k.numpy().astype("int32")))[0])
+    np.testing.assert_array_equal(got, Live()(x, k).numpy())
+
+
+def test_integer_fmod_by_zero_refuses():
+    class ByZero(torch.nn.Module):
+        def forward(self, x):
+            return torch.index_select(x, -1, torch.fmod(torch.arange(4), 0))
+
+    with pytest.raises((graph.GraphRefused, RuntimeError, ZeroDivisionError)):
+        _rebuilt(ByZero(), (torch.randn(2, 4),))
+
+
+@pytest.mark.parametrize("dim, keepdim", [([1], True), ([0], False), ([0, 1], False)])
+def test_complex_sum_matches_torch(dim, keepdim):
+    torch.manual_seed(14)
+    a, b = torch.randn(3, 4), torch.randn(3, 4)
+    module = ComplexSum(dim, keepdim)
+    _, rebuilt = _rebuilt(module, (a, b))
+    got = np.asarray(rebuilt(*_jax(a, b))[0])
+    np.testing.assert_allclose(got, module(a, b).numpy(), rtol=1e-6, atol=1e-6)
+    grads, want = _grads(module, rebuilt, [a, b])
+    for g, w in zip(grads, want):
+        np.testing.assert_allclose(g, w, rtol=1e-5, atol=1e-5)
+
+
+def test_floor_folds_into_a_static_index_only_under_v7():
+    class FloorIndex(torch.nn.Module):
+        def forward(self, x):
+            index = (torch.arange(5) * 1.5).floor().long()
+            return x[:, index]
+
+    x = torch.randn(2, 8)
+    assert _refusal(FloorIndex(), (x,), V6) == "aten_index_not_static"
+    _, rebuilt = _rebuilt(FloorIndex(), (x,))
+    got = np.asarray(rebuilt(*_jax(x))[0])
+    np.testing.assert_array_equal(got, FloorIndex()(x).numpy())

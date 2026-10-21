@@ -141,7 +141,7 @@ def load_served():
 #: Allowlist v7 (prospective, not yet served): frozen by its sha. A Challenge
 #: serves it only on a new version registered for it, never in place of v6.
 V7_PATH = Path(__file__).with_name("allowlist_v7.json")
-V7_SHA256 = "4aaeb1a1fa1d3ef72117bd82e895704e094916e9e93ce63f7e6544a50dcd816c"
+V7_SHA256 = "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c"
 
 
 def v7_bytes():

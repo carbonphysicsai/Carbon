@@ -179,8 +179,11 @@
   "aten.fmod.Scalar": {
    "category": "elementwise",
    "default": "allow",
+   "forms": [
+    "integer"
+   ],
    "lowering": "emitted",
-   "note": "Carbon's rem, C-style as torch.fmod (CODANO); aten.remainder stays refused."
+   "note": "Carbon's rem, C-style as torch.fmod (CODANO); aten.remainder stays refused. v7 form integer: int operands with a nonzero int divisor (CODANO's roll index), C-style; folded into static indices."
   },
   "aten.fmod.Tensor": {
    "category": "elementwise",
@@ -229,8 +232,11 @@
   "aten.index.Tensor": {
    "category": "shape",
    "default": "allow",
+   "forms": [
+    "static_outer"
+   ],
    "lowering": "emitted",
-   "note": "Static int64 index on one dimension only; lowered to slices of consecutive index runs and one concatenate (no gather primitive, so no scatter-add gradient); dynamic or multi-dimensional indices refuse."
+   "note": "Static int64 index on one dimension only; lowered to slices of consecutive index runs and one concatenate (no gather primitive, so no scatter-add gradient); dynamic or multi-dimensional indices refuse. v7 form static_outer: several static indices on adjacent dims that broadcast as an outer product (neuralop's grid interpolation, CODANO) lower as one static take per dim; floor joins the static-index folding."
   },
   "aten.index_select.default": {
    "category": "shape",
@@ -462,8 +468,11 @@
   "aten.sum.dim_IntList": {
    "category": "reduction",
    "default": "allow",
+   "forms": [
+    "complex"
+   ],
    "lowering": "emitted",
-   "note": "Static dimension-list reduction for float32/float64 tensors; unsupported arguments and dtypes are refused."
+   "note": "Static dimension-list reduction for float32/float64 tensors; unsupported arguments and dtypes are refused. v7 form complex: a complex sum in its own dtype (CODANO's spectral contraction)."
   },
   "aten.t.default": {
    "category": "linear_algebra",
@@ -1780,7 +1789,7 @@
   }
  },
  "changes_from_v0": "Adds named_function and the named_functions registry (custom derivative kernels rebuilt with Carbon's own rule); custom_jvp_call is refused unless lowering recognizes it as a registered kernel; aten.relu lowers to the named relu.",
- "changes_from_v6": "Adds aten.neg, aten.log, aten.leaky_relu, aten.any.dim and aten._upsample_bicubic2d_aa; admits the strided slice_scatter and transposed convolution argument forms (an aten entry's `forms`); records aten.rand_like as refused. Carbon ops, named functions and caps are unchanged.",
+ "changes_from_v6": "Adds aten.neg, aten.log, aten.leaky_relu, aten.any.dim and aten._upsample_bicubic2d_aa; admits argument forms named by an aten entry's `forms`: strided slice_scatter, transposed convolution, static_outer aten.index.Tensor (several static indices broadcasting as an outer product), integer aten.fmod.Scalar and complex aten.sum.dim_IntList, with floor and integer rem folded into static indices (CODANO); records aten.rand_like as refused. Carbon ops, named functions and caps are unchanged.",
  "framework_pins": {
   "jax": "0.10.2",
   "jaxlib": "0.10.2",
@@ -1967,6 +1976,6 @@
  "named_functions_scan": "Pinned JAX 0.10.2: every public function in jax.nn, jax.numpy and jax.scipy.special was traced; 32 contain a custom_jvp_call. A kernel is a function whose trace is one custom_jvp_call: 19 distinct kernels (softplus is logaddexp). The rest call a kernel (hard_sigmoid, hard_silu, hard_swish, mish, log_sigmoid) or hold several or an internal one (sinc, entr, expi, expn, kl_div, rel_entr, wofz) and lower through their kernels or are refused.",
  "rule": "Any op not listed is refused. Refused entries are listed to record the decision. Review entries are admitted for development only and flagged; each needs a decision before Level 4 v1. Roles: forward (inference graph), init (parameter construction from Carbon's key), loss.",
  "schema": "carbon.development.level4-allowlist.v5",
- "status": "DEVELOPMENT prospective v7: v6 plus the B2 backbone ops and two argument forms; v0-v6 bytes and historical graph interpretation remain unchanged.",
+ "status": "DEVELOPMENT prospective v7: v6 plus the B2 backbone ops and CODANO's argument forms; v0-v6 bytes and historical graph interpretation remain unchanged.",
  "version": "level4-allowlist-v7"
 }

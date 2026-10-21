@@ -929,9 +929,19 @@ def _sum_dim(b, node, env):
         # Torch treats a scalar as logical rank one for axis validation,
         # while its result remains a scalar even with keepdim=True.
         axes = [_norm(axis, rank or 1) for axis in requested_axes]
+    # v7 form `complex` (CODANO's spectral contraction): a complex sum in
+    # its own dtype.
+    complex_ok = (
+        "complex" in _forms(b, target)
+        and input_dtype == output_dtype
+        and input_dtype in ("complex64", "complex128")
+    )
     if (
-        input_dtype not in ("float32", "float64")
-        or output_dtype not in ("float32", "float64")
+        not complex_ok
+        and (
+            input_dtype not in ("float32", "float64")
+            or output_dtype not in ("float32", "float64")
+        )
         or any(not 0 <= axis < (rank or 1) for axis in axes)
         or len(set(axes)) != len(axes)
     ):
@@ -978,6 +988,11 @@ _SHAPE_ONLY = ("reshape", "broadcast_in_dim", "convert_element_type")
 _FOLDABLE = ("add", "sub", "mul", "max", "min", "lt", "gt")
 
 
+def _forms(b, target):
+    """The argument forms `b`'s allowlist admits for `target` (v7 on)."""
+    return frozenset((b.allowlist.aten.get(target) or {}).get("forms", ()))
+
+
 def _static_array(b, value):
     """The array `value` holds when it is a captured constant, or one computed
     from constants and iotas only through shape-only and exactly rounded
@@ -998,6 +1013,16 @@ def _static_array(b, value):
         axis = np.arange(out["shape"][dim], dtype=out["dtype"])
         kept = [-1 if i == dim else 1 for i in range(len(out["shape"]))]
         return np.broadcast_to(axis.reshape(kept), out["shape"]).copy()
+    if producer["op"] == "rem" and "integer" in _forms(b, "aten.fmod.Scalar"):
+        # C-style integer remainder (v7), exact: np.fmod truncates as lax.rem.
+        operands = [_static_array(b, v) for v in producer["in"]]
+        if any(o is None for o in operands) or out["dtype"] != "int32":
+            return None
+        return np.fmod(*operands).astype(out["dtype"])
+    if producer["op"] == "floor" and "static_outer" in _forms(b, "aten.index.Tensor"):
+        # Exact; v7 on (the form's indices are floor(arange * scale) - k).
+        source = _static_array(b, producer["in"][0])
+        return None if source is None else np.floor(source).astype(out["dtype"])
     if producer["op"] in _FOLDABLE or producer["op"] == "select_n":
         operands = [_static_array(b, v) for v in producer["in"]]
         if any(o is None for o in operands):
@@ -1194,10 +1219,73 @@ def _index_static(b, node, env):
     ):
         raise graph.GraphRefused("aten_arguments_not_supported", target)
     given = [(axis, index) for axis, index in enumerate(args[1]) if index is not None]
+    if len(given) > 1 and "static_outer" in _forms(b, target):
+        return _index_static_outer(b, node, env, given)
     if len(given) != 1 or not hasattr(given[0][1], "op"):
         raise graph.GraphRefused("aten_index_shape_or_dtype_not_supported", target)
     dim, index_node = given[0]
     return _take_static(b, node, env, args[0], dim, index_node, wrap=True)
+
+
+def _index_static_outer(b, node, env, given):
+    """`x[..., i0, i1, ...]` with several static int64 indices on adjacent
+    dims that broadcast as an outer product (v7 form `static_outer`: index k
+    varies only along broadcast axis k, as neuralop's grid interpolation
+    `x[..., iy[:, None], ix]`). Torch places the broadcast shape where the
+    indexed dims were; that is one static take per dim, in order, never a
+    gather primitive."""
+    import numpy as np
+
+    target = str(node.target)
+    x = env[node.args[0]]
+    dtype, shape = b.avals[x]
+    dims = [axis for axis, _ in given]
+    if (
+        any(not hasattr(i, "op") for _, i in given)
+        or dims != list(range(dims[0], dims[0] + len(dims)))
+        or dims[-1] >= len(shape)
+    ):
+        raise graph.GraphRefused("aten_index_shape_or_dtype_not_supported", target)
+    arrays = []
+    for dim, index_node in given:
+        value = env[index_node]
+        if (
+            b.avals[value][0] != "int32"
+            or str(getattr(index_node.meta.get("val"), "dtype", None)) != "torch.int64"
+        ):
+            raise graph.GraphRefused("aten_index_shape_or_dtype_not_supported", target)
+        static = _static_array(b, value)
+        if static is None:
+            raise graph.GraphRefused("aten_index_not_static", target)
+        arrays.append(np.asarray(static, dtype=np.int64))
+    try:
+        broadcast = list(np.broadcast_shapes(*(a.shape for a in arrays)))
+    except ValueError:
+        raise graph.GraphRefused(
+            "aten_index_shape_or_dtype_not_supported", target
+        ) from None
+    if len(broadcast) != len(arrays):
+        raise graph.GraphRefused("aten_index_shape_or_dtype_not_supported", target)
+    vectors = []
+    for k, array in enumerate(arrays):
+        full = np.broadcast_to(array, broadcast)
+        line = np.moveaxis(full, k, 0).reshape(broadcast[k], -1)
+        if not (line == line[:, :1]).all():  # varies along another axis
+            raise graph.GraphRefused("aten_index_shape_or_dtype_not_supported", target)
+        size = shape[dims[k]]
+        vector = [int(i) + size if int(i) < 0 else int(i) for i in line[:, 0]]
+        if any(not 0 <= i < size for i in vector):
+            raise graph.GraphRefused("aten_index_out_of_bounds", target)
+        vectors.append(vector)
+    expected = shape[: dims[0]] + broadcast + shape[dims[-1] + 1 :]
+    if _aval(node) != (dtype, expected):
+        raise graph.GraphRefused("aten_result_metadata_not_supported", target)
+    out = x
+    for k, vector in enumerate(vectors):
+        partial = list(b.avals[out][1])
+        partial[dims[k]] = len(vector)
+        out = _take_runs(b, target, out, dims[k], vector, partial)
+    return out
 
 
 def _index_select(b, node, env):
@@ -1253,6 +1341,13 @@ def _take_static(b, node, env, x_node, dim, index_node, *, wrap):
         index = [i + size if i < 0 else i for i in index]
     if any(not 0 <= i < size for i in index):
         raise graph.GraphRefused("aten_index_out_of_bounds", target)
+    return _take_runs(b, target, x, dim, index, expected)
+
+
+def _take_runs(b, target, x, dim, index, expected):
+    """`x` taken at the in-bounds static `index` on `dim`: one `slice` per run
+    of consecutive indices and one `concatenate`."""
+    dtype, shape = b.avals[x]
     runs = []  # [start, stop) of each run of consecutive indices
     for i in index:
         if runs and i == runs[-1][1]:
@@ -1262,7 +1357,16 @@ def _take_static(b, node, env, x_node, dim, index_node, *, wrap):
     bytes_per_result = math.prod(expected) * max(graph.itemsize(dtype), 4)
     if bytes_per_result > allowlist_module.CAPS["largest_intermediate_bytes"]:
         raise graph.GraphRefused("aten_index_registered_resource_bound", target)
-    if len(b.nodes) + len(runs) + 1 > allowlist_module.CAPS["nodes_executed"]:
+    if "static_outer" in _forms(b, "aten.index.Tensor"):
+        # v7 on: the slices and concatenates every take adds stay in the
+        # graph, so they alone are held to the node cap here; the static
+        # index arithmetic before them is pruned, and the whole graph is
+        # measured against the cap afterwards.
+        added = b.__dict__.get("take_nodes", 0) + len(runs) + 1
+        if added > allowlist_module.CAPS["nodes_executed"]:
+            raise graph.GraphRefused("aten_index_lowering_expansion_bound", target)
+        b.take_nodes = added
+    elif len(b.nodes) + len(runs) + 1 > allowlist_module.CAPS["nodes_executed"]:
         raise graph.GraphRefused("aten_index_lowering_expansion_bound", target)
     pieces = []
     for start, stop in runs:
@@ -1399,6 +1503,18 @@ def _emit(b, node, env):
         # C-style, the dividend's sign: Carbon's rem (lax.rem), never mapped
         # from aten.remainder (Python-style, the divisor's sign), which stays
         # refused. Gradients d/dx = 1, d/dy = -trunc(x / y), as torch's.
+        if (
+            target == "aten.fmod.Scalar"
+            and "integer" in forms
+            and dtype == "int32"
+            and b.avals[x][0] == "int32"
+            and type(args[1]) is int
+            and args[1] != 0
+        ):
+            # v7 form `integer` (CODANO's (arange + k) fmod n roll index): a
+            # nonzero integer divisor, so no division by zero; C-style as
+            # torch's integer fmod.
+            return b.binary("rem", args[0], args[1], env, node)
         if dtype not in _FLOATS or any(
             hasattr(a, "op") and b.avals[env[a]][0] not in _FLOATS for a in args[:2]
         ):
