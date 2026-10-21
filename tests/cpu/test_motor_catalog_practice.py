@@ -177,3 +177,18 @@ def test_the_cpu_parent_is_served_only_when_docker_finds_it(
         ("python-cpu-py311", "torch-cpu-py311") if eligible else ("torch-cpu-py311",)
     )
     assert seen == [torch_image().base_image_digest]
+
+
+def test_a_not_served_entry_is_corrected_with_the_installed_catalog_ids():
+    # A catalog practice refuses an uninstalled entry by listing the entries
+    # installed here; those are Carbon's public catalog ids, so the correction
+    # must accept them (it raised TypeError when only Level 0 backends were
+    # listable). A value outside Carbon's lists is still refused.
+    from carbon.backbone_catalog import listing
+    from carbon.development_session.research_tools import TaskContractMismatch
+
+    installed = tuple(e["catalog_id"] for e in listing.entries())[:3]
+    refusal = TaskContractMismatch("backend_not_served", "strategy_json", installed)
+    assert refusal.choices == installed
+    with pytest.raises(TypeError):
+        TaskContractMismatch("backend_not_served", "strategy_json", ("miner.Own",))

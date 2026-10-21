@@ -7,6 +7,8 @@ DEVELOPMENT authority; it does not turn a fixture into physical evidence.
 
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import functools
 import hashlib
 import json
@@ -57,6 +59,40 @@ IMPLEMENTATION_SOURCES = {
 }
 
 
+#: The Challenge key the research contracts are authored for: Cooling 1.0
+#: unless a catalog version's parts are being built (`keyed`). The 1.0 bytes
+#: are exactly as before; 1.2 gets its own refs (OWNER-BACKBONE-CATALOG-01,
+#: as Motor's `carbon.motor.contracts`).
+_KEY = contextvars.ContextVar("carbon_cold_plate_research_key", default=CHALLENGE)
+
+
+def research_key():
+    return _KEY.get()
+
+
+@contextlib.contextmanager
+def keyed(key):
+    token = _KEY.set(key)
+    try:
+        yield key
+    finally:
+        _KEY.reset(token)
+
+
+def key_for(version):
+    """Cooling's key at `version`: 1.0 is `CHALLENGE` itself; there is no
+    default version."""
+    from carbon.registry import ChallengeKey
+
+    if type(version) is not str:
+        raise ValueError("a cooling version is required")
+    return (
+        CHALLENGE
+        if version == CHALLENGE.version
+        else ChallengeKey(CHALLENGE.challenge_id, version)
+    )
+
+
 def canonical(value):
     return json.dumps(
         value, sort_keys=True, separators=(",", ":"), allow_nan=False
@@ -82,7 +118,10 @@ def implementation_digest():
 def profile_document():
     return {
         "schema": PROFILE,
-        "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
+        "challenge": {
+            "id": research_key().challenge_id,
+            "version": research_key().version,
+        },
         "identity": IDENTITY,
         "scope": "UNQUALIFIED_PUBLIC_DEVELOPMENT_PERIODIC_CELL",
         "interface": interface_document(),
@@ -110,7 +149,7 @@ def profile_document():
 def semantic(kind, label):
     return owner_ref(
         kind,
-        scope_binding=ChallengeScope(CHALLENGE),
+        scope_binding=ChallengeScope(research_key()),
         object_id=label,
         object_version="1.0",
         content_digest=digest(
@@ -152,7 +191,7 @@ def authored_contracts():
     common = {
         "schema_version": "1.0",
         "canonicalization_profile": CANONICALIZATION_PROFILE,
-        "challenge_key": CHALLENGE,
+        "challenge_key": research_key(),
         "object_version": "1.0",
     }
     units = {
@@ -297,13 +336,14 @@ class ColdPlateContracts:
     catalog: c.ParameterCatalog
     origin: object
     artifacts: tuple[object, ...]
+    key: object = CHALLENGE
 
     def compile(self, strategy):
         from carbon.development_session.contracts import strategy_limits
 
         return c.compile_strategy(
             strategy,
-            challenge_key=CHALLENGE,
+            challenge_key=self.key,
             candidate_assembly=self.assembly,
             candidate_assembly_ref=self.assembly.to_ref(),
             parameter_catalog=self.catalog,
@@ -315,8 +355,19 @@ class ColdPlateContracts:
         )
 
 
-@functools.lru_cache(maxsize=1)
-def cold_plate_contracts():
+def cold_plate_contracts(version=None):
+    """The research contracts for Cooling `version`; None is the research
+    key's version (1.0 unless `keyed`), so 1.0's callers are unchanged."""
+    return _cold_plate_contracts(version or research_key().version)
+
+
+@functools.lru_cache(maxsize=2)
+def _cold_plate_contracts(version):
+    with keyed(key_for(version)):
+        return _authored_cold_plate_contracts()
+
+
+def _authored_cold_plate_contracts():
     physical, candidate, training = authored_contracts()
     source = semantic("provenance", "prospective_cold_plate_profile")
     unqualified = FixtureAuthoringCapability().issue_origin(
@@ -400,7 +451,7 @@ def cold_plate_contracts():
     common = {
         "schema_version": "1.0",
         "canonicalization_profile": CONSTRUCTION_CANONICALIZATION_PROFILE,
-        "challenge_key": CHALLENGE,
+        "challenge_key": research_key(),
         "object_version": "1.0",
         "provenance": provenance,
         "unknown_or_invalid_policy": c.UnknownOrInvalidPolicy.REJECT,
@@ -503,4 +554,6 @@ def cold_plate_contracts():
         entries=tuple(entries),
         compatibility_rules=(),
     )
-    return ColdPlateContracts(assembly, catalog, origin, (loaded[2], *loaded[:2]))
+    return ColdPlateContracts(
+        assembly, catalog, origin, (loaded[2], *loaded[:2]), research_key()
+    )

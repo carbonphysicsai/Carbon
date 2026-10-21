@@ -1,8 +1,9 @@
 """Allowlist v7 on each Challenge's catalog version (Validator, 2026-10-20):
 Cooling 1.2, Battery 2.1, F08 1.3, F02 2.2 and Motor 1.3 (Motor 1.2 plus v7)
-serve v7 with step-2 serving (no fixed training-step caps). Only Motor 1.3,
-whose entries are tested, also serves the backbone catalog. Every earlier
-version keeps its bytes and its allowlist.
+serve v7 with step-2 serving (no fixed training-step caps). Motor 1.3, whose
+entries are tested, and Cooling 1.2 (owner priority via the Test Lead; its
+catalog is empty until a Cooling entry is tested) also serve the backbone
+catalog. Every earlier version keeps its bytes and its allowlist.
 
 Exam banks and pack labels are Data Collection's and grading versions the
 Test Engineer's; a stand-in Battery bank here checks only this lane's wiring.
@@ -57,12 +58,17 @@ def test_exactly_the_catalog_versions_serve_v7_and_nothing_else_moves():
         assert not sv.serves_v7(*key)
 
 
-def test_only_motor_1_3_also_serves_the_catalog():
-    assert {key for key in sv.V7 if sv.serves_catalog(*key)} == {(MOTOR, "1.3")}
-    limits = physical_public.construction_limits_document(MOTOR, "1.3")
-    assert limits["backbone_catalog"]["digest"] == served.digest(MOTOR, "1.3")
+def test_only_motor_1_3_and_cooling_1_2_also_serve_the_catalog():
+    assert {key for key in sv.V7 if sv.serves_catalog(*key)} == {
+        (MOTOR, "1.3"),
+        (COOLING, "1.2"),
+    }
+    for key in ((MOTOR, "1.3"), (COOLING, "1.2")):
+        limits = physical_public.construction_limits_document(*key)
+        assert limits["backbone_catalog"]["digest"] == served.digest(*key)
+    # Cooling 1.1 keeps its bytes: no catalog.
     assert "backbone_catalog" not in physical_public.construction_limits_document(
-        COOLING, "1.2"
+        COOLING, "1.1"
     )
     # 1.3 offers every 1.2 entry, plus the jNO entries (python-cpu-py311) and
     # the six cleaned DeepXDE/THUML coverage entries (torch-cpu-py311).

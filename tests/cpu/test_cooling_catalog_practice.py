@@ -1,0 +1,235 @@
+"""Cooling catalog practice (OWNER-BACKBONE-CATALOG-01): the recipe is expanded to
+its Carbon bundle and rebuilt by the receiver's own call with the receiver's
+build inputs; the 100 public PRACTICE rows are queried, mapped back to Cooling's
+outputs by the interface's target slices and scored with Cooling's scorer. The
+C-03 build is injected here; its custody is the bundle worker's own tests'. The
+catalog entry is a stand-in (`cooling_catalog_stand_in`): no Cooling entry is
+tested yet."""
+
+from __future__ import annotations
+
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
+from cooling_catalog_stand_in import STAND_IN, inject
+from test_lp_prod_research_tools import ledger
+
+from carbon.challenge_registry.cold_plate import catalog_recipe
+from carbon.cold_plate import catalog_practice, domain
+from carbon.cold_plate.challenge import PublicMaterial
+from carbon.cold_plate.practice import PROVENANCE, PracticeSet, score_practice
+from carbon.development_session import bundle_construction_worker as worker
+
+ROOT = "."
+
+
+def _native_rows():
+    """Each public PRACTICE reference laid out as the numeric interface does:
+    peak_c, the 30-segment profile_c, pressure_drop_pa."""
+    rows = []
+    for record in PracticeSet.load(ROOT).records:
+        outputs = record["outputs"]
+        rows.append(
+            [outputs["peak_c"], *outputs["profile_c"], outputs["pressure_drop_pa"]]
+        )
+    return rows
+
+
+@pytest.fixture
+def practice(tmp_path, monkeypatch):
+    inject(monkeypatch)
+    calls = []
+
+    def fake(ledger_, **kwargs):
+        calls.append(kwargs)
+        state = "sha256:" + "5" * 64
+        return SimpleNamespace(
+            build=SimpleNamespace(state_digest=state),
+            inference=SimpleNamespace(state_digest=state, predictions=_native_rows()),
+        )
+
+    monkeypatch.setattr(worker, "reconstruct_and_infer_public", fake)
+    meter = ledger(tmp_path / "ledger")
+    parent = SimpleNamespace(image_id="sha256:" + "7" * 64)
+    resolved = []
+    item = catalog_practice.CoolingCatalogPractice(
+        ledger=meter,
+        owner="alice",
+        parent=parent,
+        cache_root=tmp_path / "cache",
+        version="1.2",
+        root=ROOT,
+        resolver=lambda ref: resolved.append(ref) or SimpleNamespace(bundle_ref=ref),
+        parents=SimpleNamespace(for_bundle=lambda _ref: parent),
+    )
+    return item, calls, resolved, meter
+
+
+def test_a_catalog_recipe_runs_as_its_bundle_on_the_public_practice_inputs(practice):
+    item, calls, resolved, _ = practice
+    recipe = catalog_recipe(STAND_IN, version="1.2")
+    result = item("cooling-catalog-0001", recipe)
+    (call,) = calls
+    assert call["seed"] == 0 and call["recipe"].to_dict()["source"]["kind"] == "bundle"
+    assert (
+        call["inference_image"] is item.parent
+        and call["construction_parent"] is item.parent
+    )
+    assert (
+        resolved[0].bundle_digest
+        == call["recipe"].to_dict()["source"]["bundle_ref"]["bundle_digest"]
+    )
+    # The 100 public PRACTICE inputs, in the interface's input order, are both
+    # the probe and the query; 32 predicted columns per case.
+    records = PracticeSet.load(ROOT).records
+    expected = np.asarray(
+        [[record["inputs"][name] for name in domain.INPUTS] for record in records],
+        dtype="<f8",
+    )
+    assert np.array_equal(call["inputs"], expected)
+    assert call["example"] is call["inputs"]
+    assert call["expected_output_shape"] == (100, 2 + domain.PROFILE_SEGMENTS)
+    assert call["expected_output_dtype"] == "<f8"
+    assert result["provenance"] == PROVENANCE == "COLD_PLATE_PUBLIC_PRACTICE"
+    assert result["catalog_id"] == STAND_IN
+    assert result["recipe"] == recipe
+    assert result["official_eligible"] is False and result["final_exam"] is False
+    assert "safety" in result
+
+
+def test_the_columns_map_back_to_coolings_outputs_in_the_interfaces_order(practice):
+    # Predicting each reference exactly scores exactly as the references do
+    # through Cooling's own scorer: a column swap would not.
+    item, _, _, _ = practice
+    result = item("cooling-catalog-0002", catalog_recipe(STAND_IN, version="1.2"))
+    records = PracticeSet.load(ROOT).records
+    direct = {record["case_id"]: dict(record["outputs"]) for record in records}
+    _rows, summary = score_practice(
+        direct, PracticeSet.load(ROOT), PublicMaterial.load(ROOT)
+    )
+    assert result["summary"] == summary
+    assert summary["n_gate_failed"] == 0 and summary["score"] == pytest.approx(0.0)
+
+
+def test_a_catalog_practice_record_supports_a_freeze(practice):
+    from carbon.development_session.profile import canonical, digest
+    from carbon.development_session.research_campaign import trial_supports_selection
+    from carbon.development_session.research_tasks import PublicResearchExecutor
+
+    item, _, _, meter = practice
+    recipe = catalog_recipe(STAND_IN, version="1.2")
+    result = item("cooling-catalog-0003", recipe)
+    PublicResearchExecutor(
+        ledger=meter, owner="alice", image=None, public_material=None, practice=None
+    )
+    assert not trial_supports_selection(meter, "alice", recipe)
+    body = canonical(result)
+    with meter.db() as db:
+        db.execute(
+            "INSERT OR REPLACE INTO research_results VALUES(?,?,?,?)",
+            ("alice", "cooling-catalog-0003", body, digest(body)),
+        )
+    assert trial_supports_selection(meter, "alice", recipe)
+    assert not trial_supports_selection(meter, "other", recipe)
+
+
+def test_an_uninstalled_entry_is_not_served_here_before_anything_runs(
+    tmp_path, monkeypatch
+):
+    inject(monkeypatch)
+
+    def missing(ref):
+        raise FileNotFoundError("verified child missing")
+
+    item = catalog_practice.CoolingCatalogPractice(
+        ledger=ledger(tmp_path / "ledger"),
+        owner="alice",
+        parent=SimpleNamespace(image_id="sha256:" + "7" * 64),
+        cache_root=tmp_path / "cache",
+        version="1.2",
+        resolver=missing,
+        parents=SimpleNamespace(for_bundle=lambda _ref: None),
+    )
+    assert item.backend_refusal(catalog_recipe(STAND_IN, version="1.2")) == ()
+
+
+def test_a_level0_strategy_is_not_a_catalog_recipe(practice):
+    item, calls, _, _ = practice
+    strategy = {
+        "schema_version": "1.0",
+        "challenge_id": "chip-cold-plate",
+        "backbone": "kernel_ridge",
+        "parameters": {},
+    }
+    with pytest.raises(ValueError):
+        item("cooling-catalog-0004", strategy)
+    assert calls == []
+
+
+def test_with_an_empty_catalog_nothing_runs(tmp_path, monkeypatch):
+    # Cooling's catalog as shipped: no tested entry, so the unfilled template
+    # names none and is refused before anything is built.
+    calls = []
+    monkeypatch.setattr(
+        worker, "reconstruct_and_infer_public", lambda *a, **k: calls.append(k)
+    )
+    item = catalog_practice.CoolingCatalogPractice(
+        ledger=ledger(tmp_path / "ledger"),
+        owner="alice",
+        parent=SimpleNamespace(image_id="sha256:" + "7" * 64),
+        cache_root=tmp_path / "cache",
+        version="1.2",
+        resolver=lambda ref: SimpleNamespace(bundle_ref=ref),
+        parents=SimpleNamespace(for_bundle=lambda _ref: None),
+    )
+    template = catalog_recipe(version="1.2")
+    assert template["source"]["catalog_id"] is None
+    with pytest.raises(ValueError):
+        item("cooling-catalog-0005", template)
+    assert item.installed() == ()
+    assert calls == []
+
+
+def test_only_a_catalog_version_has_catalog_practice(tmp_path):
+    for version in ("1.0", "1.1", None):
+        with pytest.raises(ValueError, match="cooling catalog version"):
+            catalog_practice.CoolingCatalogPractice(
+                ledger=None,
+                owner="alice",
+                parent=None,
+                cache_root=tmp_path,
+                version=version,
+            )
+
+
+# --- two CPU parents: each entry builds on its own runtime's parent -----------
+
+
+@pytest.mark.parametrize("eligible", [True, False])
+def test_the_cpu_parent_is_served_only_when_docker_finds_it(
+    tmp_path, monkeypatch, eligible
+):
+    from test_direct_parents import torch_image
+
+    from carbon.reconstruction.worker import docker_runtime
+
+    seen = []
+
+    def doctor(*, image_id, image_identity):
+        seen.append(image_id)
+        return SimpleNamespace(eligible=eligible)
+
+    monkeypatch.setattr(docker_runtime, "doctor", doctor)
+    item = catalog_practice.CoolingCatalogPractice(
+        ledger=ledger(tmp_path / "ledger"),
+        owner="alice",
+        parent=torch_image(),
+        cache_root=tmp_path / "cache",
+        version="1.2",
+        resolver=lambda ref: SimpleNamespace(bundle_ref=ref),
+    )
+    assert item.parents().runtimes() == (
+        ("python-cpu-py311", "torch-cpu-py311") if eligible else ("torch-cpu-py311",)
+    )
+    assert seen == [torch_image().base_image_digest]

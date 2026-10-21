@@ -362,14 +362,75 @@ def _motor_catalog(version="1.2"):
     )
 
 
+def _cold_plate_catalog(version):
+    """A Cooling catalog version (OWNER-BACKBONE-CATALOG-01, as Motor's):
+    Carbon's tested backbones by catalog id on the direct recipe path. Each
+    hook runs under that version's research key, so Cooling's shared campaign
+    code serves exactly that version. Practice reuses Cooling's practice
+    provenance, so a practised catalog recipe supports a freeze."""
+    from carbon.challenge_kit import physical_material, physical_public
+    from carbon.cold_plate import campaign as cold_plate
+    from carbon.cold_plate import research_view as cold_plate_view
+    from carbon.cold_plate.contracts import key_for, keyed
+    from carbon.development_session import direct_submission
+
+    if version not in cold_plate.CATALOG_VERSIONS:
+        raise ValueError("cooling catalog version required")
+    key = key_for(version)
+
+    def bound(function):
+        @functools.wraps(function)
+        def call(*args, **kwargs):
+            with keyed(key):
+                return function(*args, **kwargs)
+
+        return call
+
+    def bound_async(function):
+        @functools.wraps(function)
+        async def call(*args, **kwargs):
+            with keyed(key):
+                return await function(*args, **kwargs)
+
+        return call
+
+    return ChallengeCampaign(
+        key=key,
+        prepare=bound_async(cold_plate.prepare_cold_plate),
+        evaluate=bound_async(cold_plate.evaluate_frozen),
+        observation=bound(cold_plate.agent_observation),
+        refusal_retains_candidate=True,
+        check_attached=bound(cold_plate.check_attached),
+        compose=bound(cold_plate.compose),
+        feedback_modes=cold_plate.FEEDBACK_MODES,
+        feedback_schema="carbon.cold-plate.permitted-feedback.v1",
+        research_view=cold_plate_view.research_view,
+        practice_provenance=cold_plate.PRACTICE_PROVENANCE,
+        backends=("torch_cpu",),
+        construction_kit=lambda: physical_public.construction_kit(
+            key.challenge_id, key.version
+        ),
+        construction_reconstruct=lambda *args, **kwargs: None,
+        construction_bundle_material=lambda: physical_material.bundle_material(
+            key.challenge_id, key.version
+        ),
+        intake_check=direct_submission.read_intake,
+        record_verdict=cold_plate.record_verdict,
+    )
+
+
 def _versioned_campaigns():
     """Campaigns registered for a Challenge version beyond its first, by
     (Challenge id, version)."""
-    from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
+    from carbon.reconstruction.capability_registry import (
+        COLD_PLATE_CHALLENGE,
+        MOTOR_CHALLENGE,
+    )
 
     return {
         (MOTOR_CHALLENGE, "1.2"): _motor_catalog,
         (MOTOR_CHALLENGE, "1.3"): functools.partial(_motor_catalog, "1.3"),
+        (COLD_PLATE_CHALLENGE, "1.2"): functools.partial(_cold_plate_catalog, "1.2"),
     }
 
 
