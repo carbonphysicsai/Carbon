@@ -4,6 +4,7 @@ synthetic graded mesh (with 12-digit-ASCII-like jitter)."""
 
 from __future__ import annotations
 
+import itertools
 import json
 import math
 import random
@@ -87,7 +88,10 @@ def _graded_case_dir(tmp_path, jitter=2e-13, nx_override=None):
     )
     record = {**registered, "mesh": {**registered["mesh"], "nx": nx_override or nx}}
     exact = (
-        sum(heat_flux(inputs, (a + b) / 2 * 1e3) * (b - a) for a, b in zip(xe, xe[1:]))
+        sum(
+            heat_flux(inputs, (a + b) / 2 * 1e3) * (b - a)
+            for a, b in itertools.pairwise(xe)
+        )
         * half
     )
     return d, record, exact

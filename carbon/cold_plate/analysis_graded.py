@@ -21,6 +21,7 @@ DEVELOPMENT only: no qualification, LIVE or reward authority.
 
 from __future__ import annotations
 
+import itertools
 import json
 import math
 import re
@@ -103,7 +104,7 @@ def centre_and_area(vertices):
 
 def _columns(xs, tol=COLUMN_TOLERANCE_M):
     xs = sorted(xs)
-    return 1 + sum(b - a > tol for a, b in zip(xs, xs[1:])) if xs else 0
+    return 1 + sum(b - a > tol for a, b in itertools.pairwise(xs)) if xs else 0
 
 
 def heat_in(case_dir, record):
