@@ -143,6 +143,11 @@ def correct(result, heat_in_uniform_w, heat_in_faces_w):
     if result.get("outcome") not in ("OK", "REFERENCE_INVALID"):
         return result
     counted = result["checks"]["energy_balance_rel"]
+    energy = {
+        "energy_balance_rel_uniform": counted,
+        "heat_in_uniform_w": heat_in_uniform_w,
+        "heat_in_faces_w": heat_in_faces_w,
+    }
     rel = (1 + counted) * heat_in_uniform_w / heat_in_faces_w - 1
     limit = analysis.REFERENCE_CHECKS["energy_balance_rel"]
     reasons = [r for r in result["reasons"] if not r.startswith("energy_balance_rel")]
@@ -154,10 +159,13 @@ def correct(result, heat_in_uniform_w, heat_in_faces_w):
         "outcome": "REFERENCE_INVALID" if reasons else "OK",
         "reasons": reasons,
         "checks": {**result["checks"], "energy_balance_rel": rel},
-        "energy_balance": {
-            "energy_balance_rel_uniform": counted,
-            "heat_in_uniform_w": heat_in_uniform_w,
-            "heat_in_faces_w": heat_in_faces_w,
+        "energy_balance": energy,
+        # Also in diagnostics, which the reference runner copies into each
+        # record, so every record states the analysis version that judged it.
+        "diagnostics": {
+            **(result.get("diagnostics") or {}),
+            "analysis_version": ANALYSIS_VERSION,
+            "energy_balance": energy,
         },
     }
 
