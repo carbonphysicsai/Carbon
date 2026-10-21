@@ -596,7 +596,7 @@ scenario("with no evaluation endpoint the submission says what works and what to
   assert.equal(note.dataset.evaluation, "NONE_PUBLISHED");
   assert.match(note.textContent, /Evaluation is unavailable for this Challenge today: no validator intake is configured in your runner profile, and none is published for it yet\./);
   assert.match(note.textContent, /What you can do now: practise, observe, freeze a candidate, and stop or pause this campaign\./);
-  assert.match(note.textContent, /Next: No evaluation endpoint is published/);
+  assert.match(note.textContent, /Next: Carbon has not published an evaluation endpoint for .* yet, so there is nothing for you to fix/);
   assert.equal(note.querySelector("a").getAttribute("href"), "#setup/review");
   // The submit is still sent: the controller decides, and its next step shows.
   state.script.push({match: r => r.path === "/api/v1/operations/submit", answer: {status: 409, body: {error: "evaluation_unavailable", next_step: "Your frozen candidate is kept, but it cannot be evaluated yet."}}});
