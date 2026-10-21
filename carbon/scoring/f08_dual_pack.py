@@ -77,12 +77,16 @@ VERSIONS = {
     # Allowlist v7's catalog version (Validator, 2026-10-20): the predecessor's
     # measurement under its evaluation version; only the served allowlist differs.
     "1.3": ("f08-dual-near-limit-bank-8-v2", "f08-near-limit-bank-8"),
+    # Catalog + graph version (Launchpad, allowlist v7): the predecessor's
+    # measurement under its evaluation version.
+    "1.4": ("f08-dual-near-limit-bank-8-v2", "f08-near-limit-bank-8"),
 }
 #: A sealed exam batch's evaluation version, per Challenge version (Validator,
 #: 2026-10-20): the same measurement as that version's, under its own name.
 SEALED_VERSIONS = {
     "1.2": "f08-dual-sealed-batch-8-v1",
     "1.3": "f08-dual-sealed-batch-8-v1",
+    "1.4": "f08-dual-sealed-batch-8-v1",
 }
 LEG_MINIMUM_RULES = {
     "baseline_legs": (
