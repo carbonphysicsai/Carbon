@@ -100,7 +100,10 @@ TASK_CORRECTIONS = {
         'action=public_material and the arguments {"name": '
         '"scaffold_recipe"}. It stages the published scaffold graph in '
         "your workspace and returns the recipe document to practise, as it is "
-        "or edited. The recipe's own refusal is listed."
+        "or edited. Where it lists catalog instead (one of Carbon's tested "
+        'backbones by catalog id), public_material with {"name": '
+        '"catalog"} returns the entries, their settings and a ready '
+        "recipe. The recipe's own refusal is listed."
     ),
     "json_string_required": (
         "This field carries JSON encoded as a string: send the object as a "

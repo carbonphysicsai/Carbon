@@ -27,6 +27,10 @@ STEP2 = frozenset(
         (BATTERY, "2.0"),
     }
 )
+#: The backbone-catalog versions (OWNER-BACKBONE-CATALOG-01; Validator: each
+#: Challenge's next version, never in place): step-2 serving plus Carbon's
+#: tested backbones by catalog id (`carbon.backbone_catalog`).
+CATALOG = frozenset({(MOTOR, "1.2")})
 #: Versions registered before step 2: served v5 and their step caps, unchanged.
 EXISTING = frozenset(
     {
@@ -46,14 +50,21 @@ class UnregisteredVersion(ValueError):
 
 def _known(challenge_id: str, version: str) -> tuple[str, str]:
     key = (challenge_id, version)
-    if key not in STEP2 and key not in EXISTING:
+    if key not in STEP2 and key not in EXISTING and key not in CATALOG:
         raise UnregisteredVersion(f"unregistered Challenge version {key!r}")
     return key
 
 
 def is_step2(challenge_id: str, version: str) -> bool:
-    """True for a step-2 version (v6, no step caps); False for an existing one."""
-    return _known(challenge_id, version) in STEP2
+    """True for a step-2 version (v6, no step caps), catalog versions included;
+    False for an existing one."""
+    key = _known(challenge_id, version)
+    return key in STEP2 or key in CATALOG
+
+
+def serves_catalog(challenge_id: str, version: str) -> bool:
+    """Whether a version serves Carbon's backbone catalog."""
+    return _known(challenge_id, version) in CATALOG
 
 
 def material_allowlist_bytes(challenge_id: str, version: str) -> bytes:

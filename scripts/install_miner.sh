@@ -164,7 +164,9 @@ analysis_kind=analysis
 if [[ "${PYTORCH}" == 1 ]]; then
   worker_kind=torch
   analysis_kind=torch-analysis
-  RELEASE_KINDS=(torch torch-analysis accelerator)
+  # c03 too: the Torch image is built FROM it, and the derived CPU parent a jNO (JAX) catalog entry
+  # builds on is that image, so a release install must hold it or answer jNO with backend_not_served.
+  RELEASE_KINDS=(torch torch-analysis c03 accelerator)
 fi
 
 step() { printf '\n== %s\n' "$*"; }
@@ -600,7 +602,10 @@ if [[ -n "${RELEASE}" ]]; then
   fetch_release_records "$(git rev-parse HEAD)"
   kinds=("${worker_kind}" "${analysis_kind}")
   rebuild="${self} --ref ${RELEASE}"
-  [[ "${PYTORCH}" == 0 ]] || rebuild+=" --pytorch"
+  if [[ "${PYTORCH}" == 1 ]]; then
+    rebuild+=" --pytorch"
+    kinds+=(c03)
+  fi
   if [[ "${gpu_build}" == 1 ]]; then
     kinds+=(accelerator)
     rebuild+=" --gpu"

@@ -7,6 +7,8 @@ DEVELOPMENT authority; it does not turn a fixture into physical evidence.
 
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import functools
 import hashlib
 import json
@@ -62,6 +64,35 @@ IMPLEMENTATION_SOURCES = {
 }
 
 
+#: The Challenge key the research contracts are authored for: Motor 1.0
+#: unless a catalog version's parts are being built (`keyed`). The 1.0 bytes
+#: are exactly as before; 1.2 gets its own refs (OWNER-BACKBONE-CATALOG-01).
+_KEY = contextvars.ContextVar("carbon_motor_research_key", default=CHALLENGE)
+
+
+def research_key():
+    return _KEY.get()
+
+
+@contextlib.contextmanager
+def keyed(key):
+    token = _KEY.set(key)
+    try:
+        yield key
+    finally:
+        _KEY.reset(token)
+
+
+def key_for(version):
+    from carbon.registry import ChallengeKey
+
+    return (
+        CHALLENGE
+        if version in (None, CHALLENGE.version)
+        else ChallengeKey(CHALLENGE.challenge_id, version)
+    )
+
+
 def canonical(value):
     return json.dumps(
         value, sort_keys=True, separators=(",", ":"), allow_nan=False
@@ -87,7 +118,10 @@ def implementation_digest():
 def profile_document():
     return {
         "schema": PROFILE,
-        "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
+        "challenge": {
+            "id": research_key().challenge_id,
+            "version": research_key().version,
+        },
         "identity": IDENTITY,
         "scope": "UNQUALIFIED_PUBLIC_DEVELOPMENT_2D_PERIODIC_MOTOR",
         "interface": interface_document(),
@@ -114,7 +148,7 @@ def profile_document():
 def semantic(kind, label):
     return owner_ref(
         kind,
-        scope_binding=ChallengeScope(CHALLENGE),
+        scope_binding=ChallengeScope(research_key()),
         object_id=label,
         object_version="1.0",
         content_digest=digest(
@@ -156,7 +190,7 @@ def authored_contracts():
     common = {
         "schema_version": "1.0",
         "canonicalization_profile": CANONICALIZATION_PROFILE,
-        "challenge_key": CHALLENGE,
+        "challenge_key": research_key(),
         "object_version": "1.0",
     }
     units = {
@@ -299,13 +333,14 @@ class MotorContracts:
     catalog: c.ParameterCatalog
     origin: object
     artifacts: tuple[object, ...]
+    key: object = CHALLENGE
 
     def compile(self, strategy):
         from carbon.development_session.contracts import strategy_limits
 
         return c.compile_strategy(
             strategy,
-            challenge_key=CHALLENGE,
+            challenge_key=self.key,
             candidate_assembly=self.assembly,
             candidate_assembly_ref=self.assembly.to_ref(),
             parameter_catalog=self.catalog,
@@ -317,8 +352,18 @@ class MotorContracts:
         )
 
 
-@functools.lru_cache(maxsize=1)
-def motor_contracts():
+def motor_contracts(version=None):
+    """The research contracts for Motor `version` (default: the research key's)."""
+    return _motor_contracts(version or research_key().version)
+
+
+@functools.lru_cache(maxsize=2)
+def _motor_contracts(version):
+    with keyed(key_for(version)):
+        return _authored_motor_contracts()
+
+
+def _authored_motor_contracts():
     physical, candidate, training = authored_contracts()
     source = semantic("provenance", "prospective_motor_profile")
     unqualified = FixtureAuthoringCapability().issue_origin(
@@ -398,7 +443,7 @@ def motor_contracts():
     common = {
         "schema_version": "1.0",
         "canonicalization_profile": CONSTRUCTION_CANONICALIZATION_PROFILE,
-        "challenge_key": CHALLENGE,
+        "challenge_key": research_key(),
         "object_version": "1.0",
         "provenance": provenance,
         "unknown_or_invalid_policy": c.UnknownOrInvalidPolicy.REJECT,
@@ -498,4 +543,6 @@ def motor_contracts():
         entries=tuple(entries),
         compatibility_rules=(),
     )
-    return MotorContracts(assembly, catalog, origin, (loaded[2], *loaded[:2]))
+    return MotorContracts(
+        assembly, catalog, origin, (loaded[2], *loaded[:2]), research_key()
+    )

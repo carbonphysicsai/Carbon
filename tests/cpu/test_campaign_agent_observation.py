@@ -55,12 +55,20 @@ def test_the_first_observation_builds(challenge_id, rule, monkeypatch):
     except AttributeError as missing:  # a richer prepared campaign than this stub
         pytest.skip(f"needs more of a prepared campaign: {missing}")
     assert observation["challenge"]
-    unsupported = [
-        c["id"]
-        for c in public_registry(challenge_id)["capabilities"]
-        if c["status"] != "rebuildable_development"
-    ]
-    assert observation["unsupported_capabilities"]["count"] == len(unsupported)
+    # The count is the campaign's own version's listed unsupported capabilities.
+    from carbon.challenge_registry import describe
+
+    key = campaign.key
+    listed = describe(key.challenge_id, key.version)["unsupported"]
+    assert observation["unsupported_capabilities"]["count"] == len(listed)
+    if key.version == "1.0" or key.challenge_id != "electric-motor-magnetics":
+        assert len(listed) == len(
+            [
+                c
+                for c in public_registry(key.challenge_id)["capabilities"]
+                if c["status"] != "rebuildable_development"
+            ]
+        )
     assert "unsupported" not in observation["challenge"]
     json.dumps(observation)
 

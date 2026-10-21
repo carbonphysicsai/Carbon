@@ -57,6 +57,11 @@ def by_id(document):
     return {entry["challenge_id"]: entry for entry in document["challenges"]}
 
 
+def by_key(document):
+    """Each listed (Challenge, version): Motor registers 1.0 and 1.2."""
+    return {(e["challenge_id"], e["version"]): e for e in document["challenges"]}
+
+
 def unavailable_is_explained(item):
     return (
         item["availability"] == "unavailable"
@@ -98,16 +103,15 @@ def test_challenges_are_the_registry_catalog_with_its_descriptions():
     from carbon.challenge_registry import catalog, describe
 
     document = capabilities.control_center(None)
-    registry = {c["challenge_id"]: c for c in catalog()["challenges"]}
-    assert set(by_id(document)) == set(registry)
-    for challenge_id, entry in by_id(document).items():
-        assert entry["status"] == registry[challenge_id]["status"]
-        assert entry["version"] == registry[challenge_id]["version"]
+    registry = {(c["challenge_id"], c["version"]): c for c in catalog()["challenges"]}
+    assert set(by_key(document)) == set(registry)
+    for (challenge_id, version), entry in by_key(document).items():
+        assert entry["status"] == registry[challenge_id, version]["status"]
         if entry["implemented"]:
             assert entry["description"] == describe(challenge_id, entry["version"])
-            assert (
-                entry["example_strategy"]
-                == entry["description"]["examples"][0]["strategy"]
+            example = entry["description"]["examples"][0]
+            assert entry["example_strategy"] == example.get(
+                "strategy", example.get("recipe")
             )
             assert entry["tools"]["workflow"] == entry["description"].get(
                 "workflow", {}
@@ -147,9 +151,9 @@ def test_the_catalog_follows_the_registry_when_it_changes(monkeypatch):
 def test_a_configured_profile_makes_implemented_challenges_launchable(host):
     document = capabilities.control_center(host)
     assert document["profile"] == {"configured": True, "profile_id": "journey-profile"}
-    entries = by_id(document)
-    launchable = {cid for cid, e in entries.items() if e["selectable"]}
-    implemented = {cid for cid, e in entries.items() if e["implemented"]}
+    entries = by_key(document)
+    launchable = {key for key, e in entries.items() if e["selectable"]}
+    implemented = {key for key, e in entries.items() if e["implemented"]}
     assert launchable == implemented and launchable
     for entry in entries.values():
         if not entry["implemented"]:
@@ -397,9 +401,20 @@ def test_each_challenge_reports_its_own_construction_path(host):
     assert "families_by_challenge" not in options
     paths = options["construction_paths"]
     campaigns = implemented_campaigns()
-    assert set(paths) == {entry.challenge_id for entry, _ in campaigns}
-    for entry, campaign in campaigns:
-        value = paths[entry.challenge_id]
+    # A Challenge's first version is keyed by its id; a later one "id@version".
+    slots, seen = {}, set()
+    for entry, _ in campaigns:
+        slots[
+            (
+                entry.challenge_id
+                if entry.challenge_id not in seen
+                else entry.challenge_id + "@" + entry.version
+            )
+        ] = entry
+        seen.add(entry.challenge_id)
+    assert set(paths) == set(slots)
+    for slot, (entry, campaign) in zip(slots, campaigns, strict=True):
+        value = paths[slot]
         assert value["schema"] == "carbon.launchpad.construction-paths.v1"
         assert value["challenge"] == {
             "id": entry.challenge_id,

@@ -539,7 +539,8 @@ def test_a_level_4_constructor_session_refuses_a_host_low_on_space(
 def test_the_bounded_lane_mounts_a_capped_tmpfs_and_only_input(tmp_path):
     assert mc.BOUNDED_LANE == "carbon.miner-research.bounded.v1"
     assert mc.SCRATCH_TMPFS_OPTIONS == (
-        "rw,nosuid,nodev,noexec,size=2147483648,nr_inodes=100000"
+        "rw,nosuid,nodev,noexec,size=2147483648,nr_inodes=100000,"
+        "uid=65532,gid=65532,mode=0700"
     )
     bounded = mc.create_arguments(launch(tmp_path, PROFILE))
     assert f"org.opencontainers.image.carbon.lane={mc.BOUNDED_LANE}" in bounded
@@ -900,3 +901,39 @@ def test_a_miners_failing_research_is_never_measured(tmp_path, monkeypatch):
         _through(tmp_path, monkeypatch, fake, profile=False)
     assert refused.value.result["observation"] == "NONZERO_EXIT"
     assert ["exec", "<statvfs>"] not in fake.commands
+
+
+def _tmpfs_creator_can_write(options, uid):
+    """Whether `uid` can create a file in a fresh tmpfs mounted with ``options``, by the
+    kernel's rule on the mount's root directory. Docker's tmpfs root is root-owned 0755
+    unless the options say otherwise (containment Run E), so a non-root worker needs
+    ``uid``/``gid``/``mode`` for itself."""
+    values = dict(part.split("=", 1) for part in options.split(",") if "=" in part)
+    owner, group = int(values.get("uid", 0)), int(values.get("gid", 0))
+    mode = int(values.get("mode", "0755"), 8)
+    if uid == 0:
+        return True
+    if uid == owner:
+        return bool(mode & 0o200)
+    if uid == group:
+        return bool(mode & 0o020)
+    return bool(mode & 0o002)
+
+
+def test_the_bounded_lanes_worker_can_create_its_scratch_home(tmp_path):
+    from carbon.reconstruction.worker.docker_runtime import WORKER_UID
+
+    assert WORKER_UID == 65532
+    assert _tmpfs_creator_can_write(mc.SCRATCH_TMPFS_OPTIONS, WORKER_UID)
+    # The options before the fix: root-owned 0755, so the worker could not write.
+    old = "rw,nosuid,nodev,noexec,size=2147483648,nr_inodes=100000"
+    assert not _tmpfs_creator_can_write(old, WORKER_UID)
+    # The caps are unchanged and the scratch is private to the worker.
+    assert "size=2147483648,nr_inodes=100000" in mc.SCRATCH_TMPFS_OPTIONS
+    assert mc.SCRATCH_TMPFS_OPTIONS.endswith("mode=0700")
+    assert not _tmpfs_creator_can_write(mc.SCRATCH_TMPFS_OPTIONS, 1000)
+    # The create arguments carry exactly these options, and the inspection reads them back.
+    bounded = mc.create_arguments(launch(tmp_path, PROFILE))
+    assert (
+        bounded[bounded.index("--tmpfs") + 1] == "/scratch:" + mc.SCRATCH_TMPFS_OPTIONS
+    )

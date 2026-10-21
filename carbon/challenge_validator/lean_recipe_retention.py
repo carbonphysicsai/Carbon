@@ -1411,8 +1411,19 @@ def retain_served_result(
     if evidence["inference_receipt"]["inputs_digest"] != _sha(inputs):
         raise RetentionUnavailable("practice_inputs_changed")
 
+    # A catalog submission keeps the miner's own recipe beside the bundle it
+    # ran as (Validator): its identity, re-expanded here to the exact bundle.
+    catalog = adapter.ledger.catalog_submission(adapter.contract_digest, submission_id)
+    if catalog is not None:
+        from carbon.backbone_catalog.served import check_reexpansion
+
+        try:
+            check_reexpansion(catalog, recipe.digest)
+        except ValueError:
+            raise RetentionUnavailable("catalog_reexpansion_differs") from None
     artifacts = {
         "recipe.json": recipe.canonical_bytes,
+        **({} if catalog is None else {"catalog-submission.json": catalog}),
         train_name: train,
         "fixture.npz": fixture,
         "inputs.npz": inputs,
@@ -1664,6 +1675,15 @@ def _regrade_origin(adapter, base, entries, entry_id):
     recipe = ConstructionRecipe.from_dict(json.loads(files["recipe.json"]))
     if recipe.digest != entry["recipe_digest"]:
         raise RetentionUnavailable("regrade_recipe_changed")
+    if "catalog-submission.json" in files:
+        # The retained bundle is rebuilt only while the miner's catalog recipe
+        # still expands to exactly it (Validator).
+        from carbon.backbone_catalog.served import check_reexpansion
+
+        try:
+            check_reexpansion(files["catalog-submission.json"], recipe.digest)
+        except ValueError:
+            raise RetentionUnavailable("regrade_catalog_reexpansion_differs") from None
     return entry, origin, owner, manifest, files, recipe
 
 

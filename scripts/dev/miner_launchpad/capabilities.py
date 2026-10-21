@@ -313,7 +313,12 @@ def _challenges(profile_state, host):
             item["description"] = description
             item["tools"] = _tools(description)
             examples = description.get("examples") or []
-            item["example_strategy"] = examples[0]["strategy"] if examples else None
+            # A Level 0 example is a strategy; a direct version's is a recipe.
+            item["example_strategy"] = (
+                examples[0].get("strategy", examples[0].get("recipe"))
+                if examples
+                else None
+            )
         if refusal is None and not profile_state["configured"]:
             refusal = {
                 "code": profile_state["reason"],

@@ -12,14 +12,15 @@ missed, and composes its research service as a launch does.
 from __future__ import annotations
 
 import importlib
+import inspect
 from types import SimpleNamespace
 
 import pytest
+from test_lp_prod_research_tools import ledger
 
 from carbon.challenge_registry.campaigns import implemented_campaigns
 from carbon.development_session import research_service
 from carbon.measurement import model as m
-from test_lp_prod_research_tools import ledger
 
 CAMPAIGNS = implemented_campaigns()
 
@@ -43,7 +44,14 @@ def test_the_registry_lists_battery_motor_and_cooling():
     "campaign", [c for _, c in CAMPAIGNS], ids=lambda c: c.key.challenge_id
 )
 def test_each_campaign_builds_its_parts_and_composes(campaign, tmp_path):
-    parts = _research(campaign).challenge_parts()
+    research = _research(campaign)
+    # Motor builds each registered version's parts (1.0, and 1.2 the catalog).
+    takes_version = "version" in inspect.signature(research.challenge_parts).parameters
+    parts = (
+        research.challenge_parts(campaign.key.version)
+        if takes_version
+        else research.challenge_parts()
+    )
     assert parts.key == campaign.key
     contract = parts.measurements
     assert type(contract) is m.MeasurementContract

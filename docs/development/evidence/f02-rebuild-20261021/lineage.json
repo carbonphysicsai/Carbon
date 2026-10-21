@@ -1,0 +1,1235 @@
+{
+ "cases_compared": 48,
+ "decision": "F02-SCIENCE-VALUES-01 A5",
+ "deck_identity": "case.sif and mesh files byte-identical to the earlier solved deck (check the bulk step's deck-verification.json)",
+ "earlier": "/home/claude-ops/carbon-rebuild/repo/docs/development/evidence/f02-cold-pack-20261020/rr04-judgement.json",
+ "later": "/home/claude-ops/carbon-solver-out/f02-rebuild-1/judgement.json",
+ "pass": false,
+ "rows": [
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c30-i40-s0.5-baseline",
+   "earlier": 47.1818439585,
+   "field": "peak_top_c",
+   "later": 47.1818439585,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c30-i40-s0.5-baseline",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": null,
+   "band": 0.0001,
+   "case": "c30-i40-s0.5-baseline",
+   "earlier": null,
+   "field": "energy.residual_rel",
+   "later": 4.2971938576670254e-05,
+   "pass": false
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c30-i40-s0.8-baseline",
+   "earlier": 51.7217942341,
+   "field": "peak_top_c",
+   "later": 51.7217942341,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c30-i40-s0.8-baseline",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": null,
+   "band": 0.0001,
+   "case": "c30-i40-s0.8-baseline",
+   "earlier": null,
+   "field": "energy.residual_rel",
+   "later": 4.2971799974035697e-05,
+   "pass": false
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c30-i55-s0.5-baseline",
+   "earlier": 60.92347782990004,
+   "field": "peak_top_c",
+   "later": 60.92347782990004,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c30-i55-s0.5-baseline",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": null,
+   "band": 0.0001,
+   "case": "c30-i55-s0.5-baseline",
+   "earlier": null,
+   "field": "energy.residual_rel",
+   "later": 0.0007192779490253542,
+   "pass": false
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c30-i55-s0.8-baseline",
+   "earlier": 65.22119032700004,
+   "field": "peak_top_c",
+   "later": 65.22119032700004,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c30-i55-s0.8-baseline",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": null,
+   "band": 0.0001,
+   "case": "c30-i55-s0.8-baseline",
+   "earlier": null,
+   "field": "energy.residual_rel",
+   "later": 0.0007192778289500742,
+   "pass": false
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c40-i40-s0.5-baseline",
+   "earlier": 62.48638689840004,
+   "field": "peak_top_c",
+   "later": 62.48638689840004,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c40-i40-s0.5-baseline",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": null,
+   "band": 0.0001,
+   "case": "c40-i40-s0.5-baseline",
+   "earlier": null,
+   "field": "energy.residual_rel",
+   "later": -0.00040615244557272944,
+   "pass": false
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c40-i40-s0.8-baseline",
+   "earlier": 67.23145387990002,
+   "field": "peak_top_c",
+   "later": 67.23145387990002,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c40-i40-s0.8-baseline",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": null,
+   "band": 0.0001,
+   "case": "c40-i40-s0.8-baseline",
+   "earlier": null,
+   "field": "energy.residual_rel",
+   "later": -0.00040615219884955424,
+   "pass": false
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c40-i55-s0.5-baseline",
+   "earlier": 62.486386900900015,
+   "field": "peak_top_c",
+   "later": 62.486386900900015,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c40-i55-s0.5-baseline",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": null,
+   "band": 0.0001,
+   "case": "c40-i55-s0.5-baseline",
+   "earlier": null,
+   "field": "energy.residual_rel",
+   "later": 7.663276795710771e-07,
+   "pass": false
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c40-i55-s0.8-baseline",
+   "earlier": 67.23145388390003,
+   "field": "peak_top_c",
+   "later": 67.23145388390003,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "c40-i55-s0.8-baseline",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": null,
+   "band": 0.0001,
+   "case": "c40-i55-s0.8-baseline",
+   "earlier": null,
+   "field": "energy.residual_rel",
+   "later": 7.665372487508649e-07,
+   "pass": false
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-long-high-dt0.5",
+   "earlier": 145.63179647780004,
+   "field": "peak_top_c",
+   "later": 145.63179647780004,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-long-high-dt0.5",
+   "earlier": 20.386856321665785,
+   "field": "first_95c_crossing_s",
+   "later": 20.386856321665785,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-long-high-dt0.5",
+   "earlier": 2.990271797803719e-05,
+   "field": "energy.residual_rel",
+   "later": 2.990271797803719e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-long-high-mesh2",
+   "earlier": 145.62041162810004,
+   "field": "peak_top_c",
+   "later": 145.62041162810004,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-long-high-mesh2",
+   "earlier": 20.389437690310814,
+   "field": "first_95c_crossing_s",
+   "later": 20.389437690310814,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-long-high-mesh2",
+   "earlier": 5.908459146477677e-05,
+   "field": "energy.residual_rel",
+   "later": 5.908459146477677e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-long-high-primary",
+   "earlier": 145.63181943170002,
+   "field": "peak_top_c",
+   "later": 145.63181943170002,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-long-high-primary",
+   "earlier": 20.386514453322427,
+   "field": "first_95c_crossing_s",
+   "later": 20.386514453322427,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-long-high-primary",
+   "earlier": 5.908291841042986e-05,
+   "field": "energy.residual_rel",
+   "later": 5.908291841042986e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-low-dt0.5",
+   "earlier": 90.78042006890001,
+   "field": "peak_top_c",
+   "later": 90.78042006890001,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-low-dt0.5",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-low-dt0.5",
+   "earlier": 3.348748037532695e-05,
+   "field": "energy.residual_rel",
+   "later": 3.348748037532695e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-low-mesh2",
+   "earlier": 90.77529135830002,
+   "field": "peak_top_c",
+   "later": 90.77529135830002,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-low-mesh2",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-low-mesh2",
+   "earlier": 6.529835200496935e-05,
+   "field": "energy.residual_rel",
+   "later": 6.529835200496935e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-low-primary",
+   "earlier": 90.78052055710003,
+   "field": "peak_top_c",
+   "later": 90.78052055710003,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-low-primary",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-low-primary",
+   "earlier": 6.52989308772939e-05,
+   "field": "energy.residual_rel",
+   "later": 6.52989308772939e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-middle-dt0.5",
+   "earlier": 119.38963243760003,
+   "field": "peak_top_c",
+   "later": 119.38963243760003,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-middle-dt0.5",
+   "earlier": 21.46351536065656,
+   "field": "first_95c_crossing_s",
+   "later": 21.46351536065656,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-middle-dt0.5",
+   "earlier": 3.60184742182603e-05,
+   "field": "energy.residual_rel",
+   "later": 3.60184742182603e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-middle-mesh2",
+   "earlier": 119.3810354487,
+   "field": "peak_top_c",
+   "later": 119.3810354487,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-middle-mesh2",
+   "earlier": 21.463713631442246,
+   "field": "first_95c_crossing_s",
+   "later": 21.463713631442246,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-middle-mesh2",
+   "earlier": 7.083790655735467e-05,
+   "field": "energy.residual_rel",
+   "later": 7.083790655735467e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-middle-primary",
+   "earlier": 119.38969691950001,
+   "field": "peak_top_c",
+   "later": 119.38969691950001,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-middle-primary",
+   "earlier": 21.463494917960414,
+   "field": "first_95c_crossing_s",
+   "later": 21.463494917960414,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-middle-primary",
+   "earlier": 7.083684381183103e-05,
+   "field": "energy.residual_rel",
+   "later": 7.083684381183103e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-84w-dt0.5",
+   "earlier": 93.73048025380001,
+   "field": "peak_top_c",
+   "later": 93.73048025380001,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-84w-dt0.5",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-near-84w-dt0.5",
+   "earlier": 3.412894573069239e-05,
+   "field": "energy.residual_rel",
+   "later": 3.412894573069239e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-84w-mesh2",
+   "earlier": 93.72511838550002,
+   "field": "peak_top_c",
+   "later": 93.72511838550002,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-84w-mesh2",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-near-84w-mesh2",
+   "earlier": 6.661191274237326e-05,
+   "field": "energy.residual_rel",
+   "later": 6.661191274237326e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-84w-primary",
+   "earlier": 93.73058745950004,
+   "field": "peak_top_c",
+   "later": 93.73058745950004,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-84w-primary",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-near-84w-primary",
+   "earlier": 6.661235385716763e-05,
+   "field": "energy.residual_rel",
+   "later": 6.661235385716763e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-85w-dt0.5",
+   "earlier": 94.46799530000004,
+   "field": "peak_top_c",
+   "later": 94.46799530000004,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-85w-dt0.5",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-near-85w-dt0.5",
+   "earlier": 3.428786479237323e-05,
+   "field": "energy.residual_rel",
+   "later": 3.428786479237323e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-85w-mesh2",
+   "earlier": 94.46257514230001,
+   "field": "peak_top_c",
+   "later": 94.46257514230001,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-85w-mesh2",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-near-85w-mesh2",
+   "earlier": 6.693729969886197e-05,
+   "field": "energy.residual_rel",
+   "later": 6.693729969886197e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-85w-primary",
+   "earlier": 94.4681041851,
+   "field": "peak_top_c",
+   "later": 94.4681041851,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-85w-primary",
+   "earlier": "NOT_REACHED",
+   "field": "first_95c_crossing_s",
+   "later": "NOT_REACHED",
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-near-85w-primary",
+   "earlier": 6.693770864138961e-05,
+   "field": "energy.residual_rel",
+   "later": 6.693770864138961e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-86w-dt0.5",
+   "earlier": 95.20551034620001,
+   "field": "peak_top_c",
+   "later": 95.20551034620001,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-86w-dt0.5",
+   "earlier": 24.896386659543385,
+   "field": "first_95c_crossing_s",
+   "later": 24.896386659543385,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-near-86w-dt0.5",
+   "earlier": 3.444617202228903e-05,
+   "field": "energy.residual_rel",
+   "later": 3.444617202228903e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-86w-mesh2",
+   "earlier": 95.2000318991,
+   "field": "peak_top_c",
+   "later": 95.2000318991,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-86w-mesh2",
+   "earlier": 24.8990766172036,
+   "field": "first_95c_crossing_s",
+   "later": 24.8990766172036,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-near-86w-mesh2",
+   "earlier": 6.726145165235461e-05,
+   "field": "energy.residual_rel",
+   "later": 6.726145165235461e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-86w-primary",
+   "earlier": 95.20562091070002,
+   "field": "peak_top_c",
+   "later": 95.20562091070002,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-86w-primary",
+   "earlier": 24.896338899495966,
+   "field": "first_95c_crossing_s",
+   "later": 24.896338899495966,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-near-86w-primary",
+   "earlier": 6.72618414121447e-05,
+   "field": "energy.residual_rel",
+   "later": 6.72618414121447e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-87w-dt0.5",
+   "earlier": 95.94302539240005,
+   "field": "peak_top_c",
+   "later": 95.94302539240005,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-87w-dt0.5",
+   "earlier": 24.557630458155117,
+   "field": "first_95c_crossing_s",
+   "later": 24.557630458155117,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-near-87w-dt0.5",
+   "earlier": 3.4603915864497876e-05,
+   "field": "energy.residual_rel",
+   "later": 3.4603915864497876e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-87w-mesh2",
+   "earlier": 95.93748865590004,
+   "field": "peak_top_c",
+   "later": 95.93748865590004,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-87w-mesh2",
+   "earlier": 24.559933197346197,
+   "field": "first_95c_crossing_s",
+   "later": 24.559933197346197,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-near-87w-mesh2",
+   "earlier": 6.758447447934155e-05,
+   "field": "energy.residual_rel",
+   "later": 6.758447447934155e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-87w-primary",
+   "earlier": 95.94313763640002,
+   "field": "peak_top_c",
+   "later": 95.94313763640002,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-near-87w-primary",
+   "earlier": 24.557584401325098,
+   "field": "first_95c_crossing_s",
+   "later": 24.557584401325098,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-near-87w-primary",
+   "earlier": 6.75848293651718e-05,
+   "field": "energy.residual_rel",
+   "later": 6.75848293651718e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-short-high-dt0.5",
+   "earlier": 135.031322842,
+   "field": "peak_top_c",
+   "later": 135.031322842,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-short-high-dt0.5",
+   "earlier": 20.38685632149536,
+   "field": "first_95c_crossing_s",
+   "later": 20.38685632149536,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-short-high-dt0.5",
+   "earlier": 4.221160841279925e-05,
+   "field": "energy.residual_rel",
+   "later": 4.221160841279925e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-short-high-mesh2",
+   "earlier": 135.02269676600002,
+   "field": "peak_top_c",
+   "later": 135.02269676600002,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-short-high-mesh2",
+   "earlier": 20.389437690520936,
+   "field": "first_95c_crossing_s",
+   "later": 20.389437690520936,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-short-high-mesh2",
+   "earlier": 8.316269560130725e-05,
+   "field": "energy.residual_rel",
+   "later": 8.316269560130725e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-short-high-primary",
+   "earlier": 135.0315240923,
+   "field": "peak_top_c",
+   "later": 135.0315240923,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "cool-rect-short-high-primary",
+   "earlier": 20.386514453837474,
+   "field": "first_95c_crossing_s",
+   "later": 20.386514453837474,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "cool-rect-short-high-primary",
+   "earlier": 8.316147213342144e-05,
+   "field": "energy.residual_rel",
+   "later": 8.316147213342144e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "steady-30C-2500-0.5",
+   "earlier": 46.529299786300044,
+   "field": "steady_top_c",
+   "later": 46.529299786300044,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "steady-30C-2500-0.8",
+   "earlier": 51.22304487180003,
+   "field": "steady_top_c",
+   "later": 51.22304487180003,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "steady-40C-1500-0.5",
+   "earlier": 62.48638690810003,
+   "field": "steady_top_c",
+   "later": 62.48638690810003,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "steady-40C-1500-0.8",
+   "earlier": 67.23145389000001,
+   "field": "steady_top_c",
+   "later": 67.23145389000001,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-ramp-high-dt0.5",
+   "earlier": 190.25405259360002,
+   "field": "peak_top_c",
+   "later": 190.25405259360002,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-ramp-high-dt0.5",
+   "earlier": 23.01209864470589,
+   "field": "first_95c_crossing_s",
+   "later": 23.01209864470589,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "warm-ramp-high-dt0.5",
+   "earlier": 6.323497655280166e-05,
+   "field": "energy.residual_rel",
+   "later": 6.323497655280166e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-ramp-high-mesh2",
+   "earlier": 189.9906806898,
+   "field": "peak_top_c",
+   "later": 189.9906806898,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-ramp-high-mesh2",
+   "earlier": 23.022167412088805,
+   "field": "first_95c_crossing_s",
+   "later": 23.022167412088805,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "warm-ramp-high-mesh2",
+   "earlier": 0.00012612634094159064,
+   "field": "energy.residual_rel",
+   "later": 0.00012612634094159064,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-ramp-high-primary",
+   "earlier": 190.25406230280004,
+   "field": "peak_top_c",
+   "later": 190.25406230280004,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-ramp-high-primary",
+   "earlier": 23.01208631658303,
+   "field": "first_95c_crossing_s",
+   "later": 23.01208631658303,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "warm-ramp-high-primary",
+   "earlier": 0.000126122735733314,
+   "field": "energy.residual_rel",
+   "later": 0.000126122735733314,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-ramp-low-dt0.5",
+   "earlier": 137.48862832360004,
+   "field": "peak_top_c",
+   "later": 137.48862832360004,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-ramp-low-dt0.5",
+   "earlier": 29.202977820842797,
+   "field": "first_95c_crossing_s",
+   "later": 29.202977820842797,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "warm-ramp-low-dt0.5",
+   "earlier": 4.23550773999835e-05,
+   "field": "energy.residual_rel",
+   "later": 4.23550773999835e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-ramp-low-mesh2",
+   "earlier": 137.34169748320005,
+   "field": "peak_top_c",
+   "later": 137.34169748320005,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-ramp-low-mesh2",
+   "earlier": 29.226842237524476,
+   "field": "first_95c_crossing_s",
+   "later": 29.226842237524476,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "warm-ramp-low-mesh2",
+   "earlier": 8.44074309946007e-05,
+   "field": "energy.residual_rel",
+   "later": 8.44074309946007e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-ramp-low-primary",
+   "earlier": 137.488619631,
+   "field": "peak_top_c",
+   "later": 137.488619631,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-ramp-low-primary",
+   "earlier": 29.202977969343394,
+   "field": "first_95c_crossing_s",
+   "later": 29.202977969343394,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "warm-ramp-low-primary",
+   "earlier": 8.440543381762149e-05,
+   "field": "energy.residual_rel",
+   "later": 8.440543381762149e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-two-long-dt0.5",
+   "earlier": 181.5383614022,
+   "field": "peak_top_c",
+   "later": 181.5383614022,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-two-long-dt0.5",
+   "earlier": 20.03159460373507,
+   "field": "first_95c_crossing_s",
+   "later": 20.03159460373507,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "warm-two-long-dt0.5",
+   "earlier": 5.26572196421122e-05,
+   "field": "energy.residual_rel",
+   "later": 5.26572196421122e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-two-long-mesh2",
+   "earlier": 181.34115958620004,
+   "field": "peak_top_c",
+   "later": 181.34115958620004,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-two-long-mesh2",
+   "earlier": 20.030877539079793,
+   "field": "first_95c_crossing_s",
+   "later": 20.030877539079793,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "warm-two-long-mesh2",
+   "earlier": 0.00010542898895610484,
+   "field": "energy.residual_rel",
+   "later": 0.00010542898895610484,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-two-long-primary",
+   "earlier": 181.5384270613,
+   "field": "peak_top_c",
+   "later": 181.5384270613,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-two-long-primary",
+   "earlier": 20.03064694322997,
+   "field": "first_95c_crossing_s",
+   "later": 20.03064694322997,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "warm-two-long-primary",
+   "earlier": 0.00010542677635926555,
+   "field": "energy.residual_rel",
+   "later": 0.00010542677635926555,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-two-short-dt0.5",
+   "earlier": 177.8540552018,
+   "field": "peak_top_c",
+   "later": 177.8540552018,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-two-short-dt0.5",
+   "earlier": 20.020096795100073,
+   "field": "first_95c_crossing_s",
+   "later": 20.020096795100073,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "warm-two-short-dt0.5",
+   "earlier": 4.773339582106928e-05,
+   "field": "energy.residual_rel",
+   "later": 4.773339582106928e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-two-short-mesh2",
+   "earlier": 177.60248024270004,
+   "field": "peak_top_c",
+   "later": 177.60248024270004,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-two-short-mesh2",
+   "earlier": 20.018617125800773,
+   "field": "first_95c_crossing_s",
+   "later": 20.018617125800773,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "warm-two-short-mesh2",
+   "earlier": 9.532978596325847e-05,
+   "field": "energy.residual_rel",
+   "later": 9.532978596325847e-05,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-two-short-primary",
+   "earlier": 177.8542421441,
+   "field": "peak_top_c",
+   "later": 177.8542421441,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.01,
+   "case": "warm-two-short-primary",
+   "earlier": 20.018597198139275,
+   "field": "first_95c_crossing_s",
+   "later": 20.018597198139275,
+   "pass": true
+  },
+  {
+   "abs_diff": 0.0,
+   "band": 0.0001,
+   "case": "warm-two-short-primary",
+   "earlier": 9.532871552285844e-05,
+   "field": "energy.residual_rel",
+   "later": 9.532871552285844e-05,
+   "pass": true
+  }
+ ],
+ "schema": "carbon.f02-readiness.lineage.v1"
+}

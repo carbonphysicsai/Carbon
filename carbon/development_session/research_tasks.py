@@ -795,7 +795,10 @@ class DirectDevelopmentTasksV3:
         source = recipe.to_dict()["source"]
         graph_adapter = getattr(self.discovery, "graph_adapter_for", None)
         if (
-            (
+            # A catalog recipe runs as the Carbon bundle it names, expanded at
+            # the door (`backbone_catalog.served.expand`); never here as itself.
+            source["kind"] not in ("graph", "bundle")
+            or (
                 source["kind"] == "graph"
                 and (
                     not callable(graph_adapter)
@@ -2113,6 +2116,9 @@ class WorkspaceRequestRefused(ValueError):
 #: Battery's published scaffold as a ready direct recipe
 #: (`carbon.battery.research.BatteryPublicMaterial`, Validator option A).
 SCAFFOLD_RECIPE = "scaffold_recipe"
+#: Motor 1.2's backbone catalog and construction kit
+#: (`carbon.motor.research.MotorCatalogMaterial`).
+CATALOG_MATERIALS = ("catalog", "construction_kit")
 #: The material names every bound material service serves.
 PUBLIC_MATERIALS = (
     "objective",
@@ -2131,7 +2137,14 @@ def every_public_material_name():
     from .julia_envelope import MATERIAL as ENVELOPE
     from .julia_research import MATERIAL
 
-    return (*PUBLIC_MATERIALS, MATERIAL, ADVECTION_MATERIAL, ENVELOPE, SCAFFOLD_RECIPE)
+    return (
+        *PUBLIC_MATERIALS,
+        MATERIAL,
+        ADVECTION_MATERIAL,
+        ENVELOPE,
+        SCAFFOLD_RECIPE,
+        *CATALOG_MATERIALS,
+    )
 
 
 def public_material_names(public_material):
