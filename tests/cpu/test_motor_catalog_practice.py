@@ -119,6 +119,7 @@ def _two_parent_practice(tmp_path, monkeypatch, parents):
         parent=torch_image(),
         cache_root=tmp_path / "cache",
         root=".",
+        version="1.3",  # the jNO entries are offered on Motor 1.3
         resolver=lambda ref: SimpleNamespace(bundle_ref=ref),
         parents=parents,
     )
@@ -134,12 +135,12 @@ def test_a_jno_entry_builds_on_the_cpu_parent_and_infers_on_torch(
 
     parents = DirectParents.from_torch(torch_image())
     item, calls = _two_parent_practice(tmp_path, monkeypatch, parents)
-    result = item("motor-catalog-0003", catalog_recipe("jno.fno1d"))
+    result = item("motor-catalog-0003", catalog_recipe("jno.fno1d", version="1.3"))
     (call,) = calls
     assert call["construction_parent"] == parents.for_runtime("python-cpu-py311")
     assert call["inference_image"] == torch_image()
     assert result["backend"]["parent"] == torch_image().base_image_digest
-    item("motor-catalog-0004", catalog_recipe("neuralop.FNO"))
+    item("motor-catalog-0004", catalog_recipe("neuralop.FNO", version="1.3"))
     assert calls[1]["construction_parent"] == torch_image()
 
 
@@ -150,9 +151,9 @@ def test_without_the_cpu_parent_a_jno_entry_is_not_served(tmp_path, monkeypatch)
 
     parents = DirectParents({"torch-cpu-py311": torch_image()})
     item, calls = _two_parent_practice(tmp_path, monkeypatch, parents)
-    installed = item.backend_refusal(catalog_recipe("jno.fno1d"))
+    installed = item.backend_refusal(catalog_recipe("jno.fno1d", version="1.3"))
     assert installed and not [i for i in installed if i.startswith("jno.")]
-    assert item.backend_refusal(catalog_recipe("neuralop.FNO")) is None
+    assert item.backend_refusal(catalog_recipe("neuralop.FNO", version="1.3")) is None
     assert calls == []
 
 
