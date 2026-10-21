@@ -5,6 +5,7 @@ here; its custody is the bundle worker's own tests'."""
 
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 
 import numpy as np
@@ -63,6 +64,46 @@ def test_a_catalog_recipe_runs_as_its_bundle_with_the_receivers_inputs(practice)
     assert result["catalog_id"] == "neuralop.FNO"
     assert result["recipe"] == catalog_recipe("neuralop.FNO")
     assert result["summary"]  # Motor's practice scorer ran on PRACTICE
+    # PRACTICE-SAFETY-01's safety block (Validator, 2026-10-21), read through
+    # the provider; the feedback schema is versioned for it.
+    assert result["schema"] == catalog_practice.FEEDBACK_SCHEMA
+    assert result["schema"].endswith(".v2")
+    assert result["safety"]["schema"] == "carbon.practice-safety-feedback.v1"
+
+
+def test_the_safety_block_is_level_0_practices_for_the_same_predictions(
+    practice, monkeypatch, tmp_path
+):
+    from test_practice_safety_feedback import _recipe, _runner, _Workspace
+
+    from carbon.development_session import research_workspace
+    from carbon.motor import research
+    from carbon.motor.practice import PracticeSet
+
+    item, _, _ = practice
+    result = item("motor-catalog-0002", catalog_recipe("neuralop.FNO"))
+    # The fixture predicts a flat 1 N m curve on every case; Level 0 practice
+    # (`MotorPractice`) on exactly those predictions.
+    records = PracticeSet.load(".").records
+    predictions = {r["case_id"]: {"torque_nm": [1.0] * 60} for r in records}
+    monkeypatch.setattr(research_workspace, "ResearchWorkspace", _Workspace)
+    level0 = research.MotorPractice(
+        ledger=SimpleNamespace(root=tmp_path / "level0"),
+        owner="o",
+        image=SimpleNamespace(image_id="sha256:" + "1" * 64),
+        root=".",
+        runner=_runner(predictions, research.digest),
+    )
+    level0.compile = lambda strategy: (None, _recipe({"id": "motor"}))
+    expected = level0("task-1", {"strategy": "fixture"})["safety"]
+    assert result["safety"] == expected
+    # A flat curve has no ripple, so every reference above the ripple limit is
+    # an M1 false-feasible: the block is not trivially clean.
+    m1 = expected["metrics"]["M1"]
+    assert expected["unmeasured"] == 0 and m1["reference_fail"] > 0
+    assert m1["false_feasible"] == m1["reference_fail"]
+    text = json.dumps(result["safety"])
+    assert not [r["case_id"] for r in records if r["case_id"] in text]
 
 
 def test_an_uninstalled_entry_is_not_served_here_before_anything_runs(tmp_path):

@@ -431,6 +431,14 @@ class MotorCatalogMaterial(MotorPublicMaterial):
         }
 
 
+def safety_feedback(predictions, practice):
+    """PRACTICE-SAFETY-01 feedback for `predictions` on the public PRACTICE
+    `practice`: exactly the block `MotorPractice` attaches. Motor's catalog
+    practice (`catalog_practice.MotorCatalogPractice`) reads it here, so the
+    safety code stays imported by this provider only (Validator, 2026-10-21)."""
+    return practice_safety.safety(predictions, practice)
+
+
 class MotorPractice:
     def __init__(
         self,

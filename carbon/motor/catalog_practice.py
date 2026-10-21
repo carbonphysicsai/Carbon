@@ -12,7 +12,10 @@ worker; a `python-cpu-py311` bundle (jNO) on the C-03 CPU worker that worker
 was built FROM. Inference stays on the PyTorch CPU worker, which carries the
 C-03 JAX stack the fixed inference program reads.
 The 30 PRACTICE rows of the development bank are scored with Motor's own
-practice scorer; nothing private is read.
+practice scorer; nothing private is read. The result carries PRACTICE-SAFETY-01's
+feedback-only safety block for the same predictions, exactly as Level 0
+practice attaches it, read through the provider (`research.safety_feedback`;
+Validator, 2026-10-21), so this module never imports the safety code.
 
 A catalog entry whose child image is not installed on this host is refused
 before anything runs or is charged (`backend_not_served`, listing the entries
@@ -28,7 +31,9 @@ from .challenge import CHALLENGE
 
 VERSION = "1.2"
 PROVENANCE = "MOTOR_PUBLIC_PRACTICE"
-FEEDBACK_SCHEMA = "carbon.motor.catalog-practice-feedback.v1"
+#: v2 adds the `safety` block (Validator, 2026-10-21); v1 had none.
+FEEDBACK_SCHEMA = "carbon.motor.catalog-practice-feedback.v2"
+FEEDBACK_SCHEMA_V1 = "carbon.motor.catalog-practice-feedback.v1"
 
 
 class MotorCatalogPractice:
@@ -157,6 +162,7 @@ class MotorCatalogPractice:
 
         from .challenge import PublicMaterial
         from .practice import PracticeSet, score_practice
+        from .research import safety_feedback
 
         material = self._material()
         recipe = ConstructionRecipe.from_dict(self._expanded(strategy, material))
@@ -224,6 +230,8 @@ class MotorCatalogPractice:
             "adaptively_seen": True,
             "final_exam": False,
             "official_eligible": False,
+            # PRACTICE-SAFETY-01: feedback only, on the same public cases.
+            "safety": safety_feedback(predictions, practice),
             "recipe": strategy,
         }
         ResearchWorkspace(self.ledger, self.owner).put(

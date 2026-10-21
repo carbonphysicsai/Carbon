@@ -428,6 +428,15 @@ class CoolingCatalogMaterial(ColdPlatePublicMaterial):
         }
 
 
+def safety_feedback(predictions, practice):
+    """PRACTICE-SAFETY-01 feedback for `predictions` on the public PRACTICE
+    `practice`: exactly the block `ColdPlatePractice` attaches. Cooling's
+    catalog practice (`catalog_practice.CoolingCatalogPractice`) reads it here,
+    so the safety code stays imported by this provider only (Validator,
+    2026-10-21)."""
+    return practice_safety.safety(predictions, practice)
+
+
 class ColdPlatePractice:
     def __init__(
         self,
