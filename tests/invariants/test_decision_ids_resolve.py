@@ -6,10 +6,10 @@ An id is a derived prefix followed by dash-separated upper-case segments
 ending in a number (`OWNER-L4-VALUES-01`, `VALIDATOR-05`). The prefixes are
 derived from `.agent/decisions` filenames, never hardcoded, so a new record
 family is covered as soon as its first record lands, and a look-alike such as
-a GPU model (`A100-SXM4-80`) is not. Both boundaries exclude `-`, so a prefix
-never matches inside a longer id (`GATE-DESIGN-01` in
-`FEASIBILITY-GATE-DESIGN-01`) or a ticket path's `_slug`; the left one also
-excludes `.`, so a file label (`R4.L4-G-CONSTRUCTOR-3.json`) is not an id.
+a GPU model (`A100-SXM4-80`) is not. Its boundaries are whitelists (space,
+quotes, brackets, punctuation, `/`), so a prefix never matches inside a
+longer id (`GATE-DESIGN-01` in `FEASIBILITY-GATE-DESIGN-01`), a ticket path's
+`_slug` or a file label (`R4.L4-G-CONSTRUCTOR-3.json`).
 
 Cited ids are scanned in tracked files under `carbon/`, `scripts/` and
 `docs/development/evidence/`. An id resolves when it is
@@ -42,8 +42,13 @@ HISTORY = ROOT / ".agent" / "DECISIONS.md"
 TICKETS = ROOT / ".agent" / "tickets"
 SCANNED = ("carbon", "scripts", "docs/development/evidence")
 _DATE = re.compile(r"\A\d{4}-\d{2}-\d{2}-")
+#: What may stand next to an id (the text's edge always may): a whitelist,
+#: not a blacklist, since `-`, `_` and `.` each once let a non-id through.
+_BEFORE = r"\s\"'`(\[{<,;:=/*|>"
+_AFTER = r"\s\"'`)\]}>,;:.!?/*|"
 
-#: Cited and unresolved on 2026-10-21 (derived over 2149f0f46). Shrink only.
+#: Cited and unresolved on 2026-10-21 (derived over the base 2a0f504a6, the
+#: tree this runs on). Shrink only.
 UNRECORDED = frozenset(
     {
         "BATTERY-IMPL-3",
@@ -68,6 +73,7 @@ UNRECORDED = frozenset(
         "LP-03",
         "OPT-07",
         "OPT-09",
+        "OWNER-BACKBONE-CATALOG-01",
         "OWNER-RUNPOD-SOLVER-READINESS-01",
         "PHYSICS-CALIBRATION-01",
         "PHYSICS-CONSISTENCY-GATES-01",
@@ -95,7 +101,7 @@ def _pattern():
         re.escape(p) for p in sorted(prefixes, key=len, reverse=True)
     )
     return prefixes, re.compile(
-        rf"(?<![A-Za-z0-9_.-])(?:{alternation})(?:-[A-Z0-9_]+)*-\d+(?![A-Za-z0-9_-])"
+        rf"(?<![^{_BEFORE}])(?:{alternation})(?:-[A-Z0-9_]+)*-\d+(?![^{_AFTER}])"
     )
 
 
