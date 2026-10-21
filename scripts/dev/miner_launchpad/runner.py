@@ -1359,13 +1359,14 @@ def hunt_estimate(cfg):
     }
 
 
-def graphite_default_selection(cfg):
+def graphite_default_selection(cfg, elapsed_seconds=None):
     """The selection a Graphite launch naming no model and no model settings
     runs with (setup's choice, or the pinned default), exactly as its
     campaign's builder chooses it: the model's own maximum output
     (OWNER-LAUNCHPAD-PROD-02), its published context less that output
     (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01) and the longest provider call
-    timeout (`TIMEOUT_DEFAULT_V2`). None when it does not validate."""
+    timeout (`TIMEOUT_DEFAULT_V2`, bounded by the launch's
+    `elapsed_seconds`). None when it does not validate."""
     from carbon.development_session.model_provider import (
         DEFAULT_SELECTION,
         INPUT_DEFAULT_V2,
@@ -1379,6 +1380,7 @@ def graphite_default_selection(cfg):
         "output_default": OUTPUT_DEFAULT_V2,
         "input_default": INPUT_DEFAULT_V2,
         "timeout_default": TIMEOUT_DEFAULT_V2,
+        "elapsed_seconds": elapsed_seconds,
     }
     try:
         if "model_selection" in cfg:
@@ -1391,6 +1393,37 @@ def graphite_default_selection(cfg):
         )
     except (ModelSelectionRefused, KeyError, TypeError, ValueError):
         return None
+
+
+def graphite_share_refusal(cfg, request, choice, graphite):
+    """Refuse at the launch door, `research_share_too_small`, a Graphite FULL
+    launch whose research share cannot pay for one research model call -
+    what its first preparation would refuse after the campaign was created
+    (Validator ruling 7). The one predicate both places read
+    (`driver.check_research_share`), with the inputs the plan will freeze:
+    the launch's Graphite fields (`graphite_launch`: its mode, share, hunt
+    and edition, whose role settings price each stage's call), the miner's
+    ceilings, and the selection the campaign's builder will resolve - the
+    launch's validated choice (`choice.selection`), or, when it names none,
+    the default a Graphite launch runs with (`graphite_default_selection`).
+    Nothing when `graphite` is None or no selection validates: preparation
+    then decides, as before."""
+    if graphite is None:
+        return
+    from carbon.agent_campaign.graphite.miner import driver
+    from carbon.development_session.product_campaign import miner_budget
+    from carbon.development_session.research_campaign import OperationRefused
+
+    budget = miner_budget(request.get("budget"))
+    selection = getattr(choice, "selection", None)
+    if selection is None:
+        selection = graphite_default_selection(cfg, budget.get("elapsed_seconds"))
+    if selection is None:
+        return
+    try:
+        driver.check_research_share(graphite, budget.get("ceilings"), selection)
+    except OperationRefused as refused:
+        raise Rejected(refused.code, 409) from None
 
 
 def graphite_input_window(cfg):
@@ -3035,8 +3068,9 @@ class RunnerAdapter:
             # body: a choice that cannot run never reaches the chain.
             self._current(cfg)
             challenge = self._challenge(request, cfg["runtime"])
-            self._launch_choice(cfg, request, challenge)
-            self._graphite_choice(request, challenge)
+            choice = self._launch_choice(cfg, request, challenge)
+            graphite = self._graphite_choice(request, challenge)
+            graphite_share_refusal(cfg, request, choice, graphite)
             return None
         # A lost response replays the campaign it created. It was admitted
         # when it was recorded; replaying it reads no chain and starts
@@ -3362,6 +3396,8 @@ class RunnerAdapter:
             raise Rejected("construction_selector_retired", 409)
         choice = self._launch_choice(cfg, request, challenge)
         graphite = self._graphite_choice(request, challenge)
+        # Before anything is recorded: the share its preparation would refuse.
+        graphite_share_refusal(cfg, request, choice, graphite)
         if graphite is not None:
             choice = replace(choice or LaunchChoice(), graphite=graphite)
         # New local campaigns choose no candidate, receiver resource policy,

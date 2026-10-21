@@ -44,8 +44,13 @@ BURGERS = {"challenge": "burgers-dynamics-v1", "challenge_version": "1.0"}
 ENGY_KEY = "sk-engy-PLANTED-SPECIMEN-7f3a9c"
 OPENAI_KEY = "sk-openai-PLANTED-SPECIMEN-2b81"
 LAUNCH_FIELDS = {"model_provider", "model", "feedback_mode"}
-#: Fixture ceilings only, never a production budget.
-GRAPHITE_BUDGET = {"ceilings": {"provider_attempts": 5, "provider_nanodollars": 10**9}}
+#: Fixture ceilings only, never a production budget: enough that a FULL
+#: launch's 10% research share pays for one call (an attempt and its
+#: reservation) on each model these tests name, as the launch door now
+#: checks (`research_share_too_small`).
+GRAPHITE_BUDGET = {
+    "ceilings": {"provider_attempts": 10, "provider_nanodollars": 10**10}
+}
 
 
 @pytest.fixture(autouse=True)

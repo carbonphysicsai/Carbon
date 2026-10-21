@@ -318,7 +318,11 @@ def join(host):
 
 #: Fixture ceilings only, never a production budget: a Graphite launch must
 #: cap both provider ceilings to be admitted (LA-F4).
-FIXTURE_BUDGET = {"ceilings": {"provider_attempts": 80, "provider_nanodollars": 10**9}}
+#: Fixture ceilings only, never a production budget. A FULL launch's 10%
+#: research share must pay for one research call on the pinned default
+#: (about 0.27 USD reserved at its 128,000-token output), so the launch door
+#: admits it (Validator ruling 7: `research_share_too_small` at the door).
+FIXTURE_BUDGET = {"ceilings": {"provider_attempts": 80, "provider_nanodollars": 10**10}}
 
 
 def launch_request(g, key=KEY, **fields):
@@ -685,6 +689,59 @@ def test_a_graphite_launch_without_both_ceilings_is_refused_before_it_is_queued(
     request["budget"] = FIXTURE_BUDGET
     assert perform(graphite, "launch", request)["id"]
     join(graphite.host)
+
+
+def test_a_full_share_too_small_for_one_call_is_refused_at_the_door(graphite):
+    """Validator ruling 7: a v2 FULL launch whose research share cannot pay
+    for one research call is refused at the launch door, by the plan's own
+    predicate (`driver.check_research_share`) on the same inputs - the
+    edition's role settings, the selection the campaign will resolve and the
+    ceilings - with the same code and next step, and nothing is recorded,
+    queued or read from the chain. An adequate share passes both."""
+    from carbon.agent_campaign.graphite.miner import budget as shares
+    from carbon.agent_campaign.graphite.miner import driver
+    from carbon.agent_campaign.graphite.miner import edition as editions
+    from scripts.dev.miner_launchpad import runner
+    from scripts.dev.miner_launchpad.operations import refusal
+    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
+
+    selection = runner.graphite_default_selection(graphite.host.configured())
+    planner, _ = editions.role_selection(editions.resolve(V2), "planner", selection)
+    per_call = shares.call_reservation(planner)["provider_nanodollars"]
+    # The default 10% share holds one call at ten calls' ceiling.
+    least = per_call * 10
+    request = launch_request(graphite, graphite_edition=V2)
+    request["budget"] = {
+        "ceilings": {"provider_attempts": 100, "provider_nanodollars": least - 1}
+    }
+    with pytest.raises(Rejected) as refused:
+        perform(graphite, "launch", request)
+    assert refused.value.code == driver.RESEARCH_SHARE_TOO_SMALL
+    assert graphite.chain.reads == 0 and graphite.host.recent() == []
+    assert graphite.launched == []
+    assert (
+        refusal(refused.value.code)["next_step"]
+        == NEXT_ACTIONS["research_share_too_small"]
+    )
+    # The same predicate the plan applies refuses the same inputs.
+    choice = runner.graphite_launch(request)
+    with pytest.raises(Exception) as planned:
+        driver.check_research_share(choice, request["budget"]["ceilings"], selection)
+    assert getattr(planned.value, "code", None) == driver.RESEARCH_SHARE_TOO_SMALL
+    # An adequate share passes the door and the plan's own check.
+    request["budget"] = {
+        "ceilings": {"provider_attempts": 100, "provider_nanodollars": least}
+    }
+    assert perform(graphite, "launch", request)["id"]
+    join(graphite.host)
+    (args,) = graphite.launched
+    assert args.graphite_edition == V2
+    assert (
+        driver.research_share_shortfall(
+            runner.graphite_launch(request), request["budget"]["ceilings"], selection
+        )
+        is None
+    )
 
 
 def test_the_launch_door_and_the_plan_read_one_ceilings_predicate():
