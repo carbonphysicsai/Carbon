@@ -65,7 +65,12 @@ def test_mesh_scripts_reproduce_the_pinned_three_rung_decks():
 def test_the_solver_identity_is_the_verified_builds():
     solvers = runner.pinned_solvers()
     assert solvers["kind"] == "calculix"
-    assert solvers["solvers"]["ccx"]["sha256"].startswith("21edfdcb")
+    # The 2026-10-21 rebuild (OWNER-F08-REBUILD-MMS-ACCEPT-01); RR-PACKS-07's
+    # lost build was ccx 21edfdcb, which the ladder bank's records keep.
+    assert solvers["solvers"]["ccx"]["sha256"].startswith("cdd00603")
+    assert runner.solvers_id() == (
+        "sha256:adcdd02bcb9a906046d8276f797f2c7f2c79bcc8745546cd35407a70bebd86a2"
+    )
     assert runner.solvers_id(solvers) == runner.solvers_id()
     other = json.loads(json.dumps(solvers))
     other["solvers"]["ccx"]["sha256"] = "0" * 64

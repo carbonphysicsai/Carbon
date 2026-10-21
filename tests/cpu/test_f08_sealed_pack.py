@@ -47,7 +47,13 @@ def test_the_bank_has_the_development_banks_shape():
         assert set(a) == set(b)
         assert set(a["observed"]) == set(b["observed"])
         assert set(a["damping"]) == set(b["damping"])
-        assert a["image"] == b["image"]  # the same verified solver build
+        # Sealed records carry the pinned rebuild; the ladder bank keeps
+        # RR-PACKS-07's lost build, whose 8 rows the rebuild reproduces
+        # bit for bit (f08-rebuild-20261021).
+        assert a["image"]["kind"] == b["image"]["kind"] == "calculix"
+        assert a["image"]["solvers"]["gmsh"] == b["image"]["solvers"]["gmsh"]
+        assert a["image"]["solvers"]["ccx"]["sha256"].startswith("cdd00603")
+        assert b["image"]["solvers"]["ccx"]["sha256"].startswith("21edfdcb")
     first = mine["reference_records"][0]
     assert first["wall_s"] == 964.2  # the reference rung's own
     assert mine["references"][0][1] == pytest.approx(
