@@ -398,7 +398,16 @@
     // Each stage the campaign runs, in order, with its state and the code it
     // ended on (a research stage stopped at its share says so).
     const stages = Array.isArray(g.stages) ? g.stages.filter(item => item && typeof item.stage === "string") : [];
-    if (stages.length) row("Stages", stages.map(item => (STAGE_NOUNS[item.stage] || words(item.stage)) + ": " + (STAGE_STATES[item.state] || "unknown") + (typeof item.code === "string" && item.code ? " (" + words(item.code) + ")" : "")).join(" · "));
+    // A stage whose replies were cut at the output cap names the cap.
+    const capped = item => typeof item.output_cap === "number" ? " at " + item.output_cap.toLocaleString("en-US") + " output tokens" : "";
+    if (stages.length) row("Stages", stages.map(item => (STAGE_NOUNS[item.stage] || words(item.stage)) + ": " + (STAGE_STATES[item.state] || "unknown") + (typeof item.code === "string" && item.code ? " (" + words(item.code) + capped(item) + ")" : "")).join(" · "));
+    // Its step, as the campaign view states it: a new launch with max
+    // output tokens set higher (a campaign keeps the cap it froze).
+    for (const item of stages) {
+      if (item.cause !== "turn_hit_output_cap" || typeof item.next_step !== "string") continue;
+      const cut = row((STAGE_NOUNS[item.stage] || words(item.stage)) + " cut short", item.next_step);
+      cut.className = "reason"; cut.dataset.code = item.cause;
+    }
     // Research spend against its share; build spend is the rest of the
     // campaign's model spend. The share narrows only the model ceilings the
     // miner set: with none, it does not bind, and that is said.
