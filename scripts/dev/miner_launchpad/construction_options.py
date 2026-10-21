@@ -130,7 +130,7 @@ def build(contract, served=()):
 def for_profile(cfg, read=None):
     """Registry-owned public providers; no door names a Challenge implementation."""
     from carbon.challenge_registry.campaigns import implemented_campaigns
-    from carbon.development_session.intake_targets import for_challenge
+    from carbon.development_session.intake_targets import for_challenge, for_version
     from scripts.dev.miner_launchpad.runner import intakes, receivers
 
     found = {}
@@ -153,9 +153,12 @@ def for_profile(cfg, read=None):
             continue
         served = []
         callback = read or composition.intake_check
-        paired = for_challenge(cfg, entry.challenge_id)
+        # The intake of exactly this version, when the profile names it per
+        # version (`version_intakes`).
+        own = for_version(cfg, entry.challenge_id, entry.version)
+        paired = for_challenge(own, entry.challenge_id)
         if paired is None:
-            url, pin = intakes(cfg).get(entry.challenge_id), receivers(cfg).get(
+            url, pin = intakes(own).get(entry.challenge_id), receivers(own).get(
                 entry.challenge_id
             )
             paired = (

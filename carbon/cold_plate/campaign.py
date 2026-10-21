@@ -447,9 +447,11 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
 
 def _direct_target(args):
     """The signed construction receiver this campaign submits to: the
-    profile's per-Challenge intake and receiver, else its direct target."""
-    from carbon.development_session.intake_targets import validate
+    profile's per-Challenge intake and receiver (for exactly this version,
+    when the profile names it per version), else its direct target."""
+    from carbon.development_session.intake_targets import args_for_version, validate
 
+    args = args_for_version(args, CHALLENGE.challenge_id, _key().version)
     url = (getattr(args, "intakes", None) or {}).get(CHALLENGE.challenge_id)
     hotkey = (getattr(args, "receivers", None) or {}).get(CHALLENGE.challenge_id)
     if url is not None and hotkey is not None:

@@ -934,6 +934,15 @@ def evaluation_config(prepared):
     return found or getattr(prepared.args, "battery_validator", None)
 
 
+def _own_version(args):
+    """The campaign's arguments reading only this version's intake, when the
+    profile names this Challenge's intakes per version (`version_intakes`);
+    the same arguments otherwise."""
+    from carbon.development_session.intake_targets import args_for_version
+
+    return args_for_version(args, CHALLENGE.challenge_id, CHALLENGE.version)
+
+
 def _intake(prepared):
     """The validator intake for this Challenge: the profile's per-Challenge
     `intakes` (C-MLP-04), or a legacy `battery_intake`."""
@@ -974,6 +983,10 @@ async def evaluate_candidate(prepared, epoch, record):
     from .deployment import EvaluationUnavailable, evaluate, validator
 
     require_submission(prepared)
+    own_version = _own_version(prepared.args)
+    if own_version is not prepared.args:
+        prepared = SimpleNamespace(**vars(prepared))
+        prepared.args = own_version
     config = evaluation_config(prepared)
     intake = _intake(prepared)
     _level_record_bound(prepared, record)
@@ -1416,6 +1429,7 @@ def commitment_due(args, root, epoch):
     intake's to refuse (`intake.RECEIVED_AGAIN`)."""
     from . import remote_submission as rs
 
+    args = _own_version(args)
     prepared = SimpleNamespace(args=args)
     if evaluation_config(prepared) is not None or _intake(prepared) is None:
         return False
@@ -1692,6 +1706,7 @@ def queued_verdict(
     from . import remote_submission as rs
 
     root = Path(root)
+    args = _own_version(args)
     prepared = SimpleNamespace(args=args)
     url = _intake(prepared)
     if evaluation_config(prepared) is not None or url is None:

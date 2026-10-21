@@ -50,8 +50,10 @@ Only launchable choices are offered.
   publisher, the hotkey at UID 0. A miner names no operator configuration;
   only an operator running Carbon's own deployment does.
 - The evaluation endpoint (LP-PROD-E) is the one Carbon publishes for each
-  Challenge in `published_endpoints.json`. Review writes it into the
-  profile, and says plainly when none is published yet: such a profile
+  Challenge version in `published_endpoints.json` (v2; a v1 list names a
+  Challenge only, see `published_endpoints`). Review writes it into the
+  profile for exactly that version (`version_intakes`), and says plainly
+  when none is published yet: such a profile
   practises and freezes, but cannot submit. Review also pins each intake's
   receiver hotkey (LAUNCHPAD-ACCEPT-03): the published one, or the one the
   miner names beside their own intake. Nothing is signed for an intake that
@@ -231,18 +233,32 @@ _ADDRESS = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
 SIGNER_STEP = "start `carbon-miner-signer` for your registered hotkey"
 
 #: The evaluation endpoints Carbon publishes (LP-PROD-E): for a network,
-#: subnet and Challenge, the validator intake a frozen candidate is
-#: submitted to and the hotkey that receives it. An operator adds the live
-#: entry by pull request (BATTERY_VALIDATOR_SERVICE_RUNBOOK); an empty list
-#: publishes none. The receiver hotkey is binding (LAUNCHPAD-ACCEPT-03):
-#: Review pins it in the profile's `receivers`, and the intake must report it
-#: before a submit, a resend or a status poll is signed (`RECEIVER_NOTE`).
+#: subnet, Challenge and Challenge version, the validator intake a frozen
+#: candidate is submitted to and the hotkey that receives it. An operator
+#: adds the live entry by pull request (BATTERY_VALIDATOR_SERVICE_RUNBOOK); an
+#: empty list publishes none. The receiver hotkey is binding
+#: (LAUNCHPAD-ACCEPT-03): Review pins it in the profile beside its intake, and
+#: the intake must report it before a submit, a resend or a status poll is
+#: signed (`RECEIVER_NOTE`).
 PUBLISHED_ENDPOINTS = Path(__file__).resolve().with_name("published_endpoints.json")
 PUBLISHED_SOURCE = "scripts/dev/miner_launchpad/published_endpoints.json"
-PUBLISHED_SCHEMA = "carbon.launchpad.published-endpoints.v1"
+#: v2 (Validator ruling, 2026-10-21): a receiver serves exactly one Challenge
+#: version, so each entry names its `version`.
+PUBLISHED_SCHEMA = "carbon.launchpad.published-endpoints.v2"
+#: v1 entries name a Challenge only; still read (`published_endpoints`).
+PUBLISHED_SCHEMA_V1 = "carbon.launchpad.published-endpoints.v1"
 PUBLISHED_KEYS = frozenset({"schema", "about", "entry_fields", "endpoints"})
-PUBLISHED_FIELDS = frozenset(
+PUBLISHED_FIELDS_V1 = frozenset(
     {"network", "netuid", "challenge", "intake_url", "receiver_hotkey"}
+)
+PUBLISHED_FIELDS = PUBLISHED_FIELDS_V1 | {"version"}
+#: What Review says when a v1 list names an endpoint for a Challenge with
+#: several intake versions: it cannot say which version it serves, so it is
+#: written for none of them.
+UNVERSIONED_ENDPOINT = (
+    "Carbon's list of evaluation endpoints names one for {challenge} without "
+    "its version, and {challenge} has several versions, so it was written for "
+    "none of them. There is nothing for you to fix."
 )
 #: What Review says for a Challenge with no evaluation endpoint. Carbon is the
 #: party that has not published it, and there is nothing for the miner to fix
@@ -1651,16 +1667,25 @@ def intake_challenges() -> list[dict]:
 
 def published_endpoints(path=None) -> dict:
     """The evaluation endpoints Carbon publishes for this network and subnet,
-    by Challenge id, and whether the published list could be read.
+    by Challenge id and version (`{"endpoints": {id: {version: entry}}}`),
+    and whether the published list could be read.
 
     The list is closed: a top level of `schema`, `about`, `entry_fields` and
-    `endpoints`, and entries of exactly `network`, `netuid`, `challenge`,
-    `intake_url` (https) and `receiver_hotkey` (an ss58 address). Distinct
-    validators may serve one Challenge; URL/receiver conflicts are refused.
-    Entries for another network or subnet are
-    not this deployment's and are skipped. A list that breaks any of this is
-    read as publishing nothing, with `problem` saying so: a malformed entry
-    never reaches a profile.
+    `endpoints`. A v2 list's entries are exactly `network`, `netuid`,
+    `challenge`, `version` (a registered version of that Challenge that
+    submits through an intake), `intake_url` (https) and `receiver_hotkey`
+    (an ss58 address). Distinct validators may serve one Challenge version;
+    URL/receiver conflicts, and so the same entry twice, are refused.
+    Entries for another network or subnet are not this deployment's and are
+    skipped. A list that breaks any of this is read as publishing nothing,
+    with `problem` saying so: a malformed entry never reaches a profile.
+
+    A v1 list (entries without `version`) is read as before, with one rule,
+    since a receiver serves exactly one version: its entry applies to the
+    Challenge's one intake version, where it has exactly one, and to none
+    where it has several. Those Challenges are listed in `unversioned`, and
+    Review and setup say so; their versions are unpublished, never covered
+    by an endpoint that does not name them.
     """
     from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK
     from carbon.development_session.intake_targets import validate
@@ -1673,14 +1698,19 @@ def published_endpoints(path=None) -> dict:
         document = json.loads(source.read_bytes())
         if (
             type(document) is not dict
-            or document.get("schema") != PUBLISHED_SCHEMA
+            or document.get("schema") not in (PUBLISHED_SCHEMA, PUBLISHED_SCHEMA_V1)
             or not set(document) <= PUBLISHED_KEYS
             or type(document.get("endpoints")) is not list
         ):
             raise ValueError("published endpoints malformed")
-        groups, found = {}, {}
+        versioned = document["schema"] == PUBLISHED_SCHEMA
+        fields = PUBLISHED_FIELDS if versioned else PUBLISHED_FIELDS_V1
+        versions = {}
+        for challenge in intake_challenges():
+            versions.setdefault(challenge["id"], []).append(challenge["version"])
+        groups, found, unversioned = {}, {}, []
         for entry in document["endpoints"]:
-            if type(entry) is not dict or set(entry) != PUBLISHED_FIELDS:
+            if type(entry) is not dict or set(entry) != fields:
                 raise ValueError("published endpoint malformed")
             if (
                 type(entry["network"]) is not str
@@ -1694,22 +1724,52 @@ def published_endpoints(path=None) -> dict:
                 or not _ADDRESS.fullmatch(entry["receiver_hotkey"])
             ):
                 raise ValueError("published endpoint malformed")
-            key = (entry["network"], entry["netuid"], entry["challenge"])
+            if versioned and (
+                type(entry["version"]) is not str
+                or entry["version"] not in versions.get(entry["challenge"], ())
+            ):
+                raise ValueError("published endpoint names no intake version")
+            key = (
+                entry["network"],
+                entry["netuid"],
+                entry["challenge"],
+                entry.get("version"),
+            )
             groups.setdefault(key, []).append(dict(entry))
-        for (network, netuid, challenge), entries in groups.items():
+        for (network, netuid, challenge, version), entries in groups.items():
             validate(
                 [
                     {k: entry[k] for k in ("intake_url", "receiver_hotkey")}
                     for entry in entries
                 ]
             )
-            if (network, netuid) == (CARBON_NETWORK, CARBON_NETUID):
-                found[challenge] = dict(entries[0])
-                if len(entries) > 1:
-                    found[challenge]["validators"] = entries
+            if (network, netuid) != (CARBON_NETWORK, CARBON_NETUID):
+                continue
+            if not versioned:
+                # v1: the Challenge's one intake version, or none of several.
+                own = versions.get(challenge, [])
+                if len(own) > 1:
+                    unversioned.append(challenge)
+                if len(own) != 1:
+                    continue
+                version = own[0]
+            published = dict(entries[0])
+            if len(entries) > 1:
+                published["validators"] = entries
+            found.setdefault(challenge, {})[version] = published
     except (OSError, ValueError):
-        return {"endpoints": {}, "problem": "published_endpoints_unreadable"}
-    return {"endpoints": found, "problem": None}
+        return {
+            "endpoints": {},
+            "problem": "published_endpoints_unreadable",
+            "unversioned": [],
+        }
+    return {"endpoints": found, "problem": None, "unversioned": unversioned}
+
+
+def published_entry(published, challenge) -> dict | None:
+    """The endpoint `published_endpoints` lists for exactly `challenge`'s
+    id and version (an `intake_challenges` item), or None."""
+    return published["endpoints"].get(challenge["id"], {}).get(challenge["version"])
 
 
 def checkout_revision(repo=REPO):
@@ -2196,12 +2256,23 @@ class EnvironmentSetup:
         kept = {}
         if type(written) is not dict:
             kept = (record.get("profile_set_aside") or {}).get("intakes") or {}
+        # Carbon's endpoints Review wrote, per Challenge version (v2).
+        by_version = (record.get("profile") or {}).get("version_intakes")
+        by_version = by_version if type(by_version) is dict else {}
+        unversioned = published.get("unversioned", [])
         challenges = []
         for challenge in intake_challenges():
-            entry = published["endpoints"].get(challenge["id"])
+            entry = published_entry(published, challenge)
             receiver = None
             if type(written) is dict:
                 mine = written.get(challenge["id"])
+                if type(mine) is not dict:
+                    versions = by_version.get(challenge["id"])
+                    mine = (
+                        versions.get(challenge["version"])
+                        if type(versions) is dict
+                        else None
+                    )
                 intake = mine.get("url") if type(mine) is dict else None
                 source = mine.get("source") if type(mine) is dict else None
                 receiver = mine.get("receiver") if type(mine) is dict else None
@@ -2240,6 +2311,10 @@ class EnvironmentSetup:
                         + challenge["title"]
                         + " since your profile was written: review again to "
                         "add it."
+                    )
+                elif challenge["id"] in unversioned:
+                    item["unversioned_endpoint"] = UNVERSIONED_ENDPOINT.format(
+                        challenge=challenge["id"]
                     )
             own = kept.get(challenge["id"])
             if type(own) is dict and type(own.get("url")) is str:
@@ -2815,16 +2890,20 @@ class EnvironmentSetup:
         campaign. A legacy `battery_intake` is read as the intake of the
         Challenge it was written for.
 
-        Every other Challenge submitted through an intake gets the
-        evaluation endpoint Carbon publishes for it (LP-PROD-E). A published
-        endpoint was reviewed into `published_endpoints.json` and is checked
-        by the intake client when a candidate is submitted, so Review reaches
-        no network for it. A Challenge with no endpoint is never passed over
-        silently: the profile is written and `warnings` says it cannot
-        submit there, and setup's Evaluation step keeps saying so.
+        Every version of every other Challenge submitted through an intake
+        gets the evaluation endpoint Carbon publishes for exactly that
+        version (LP-PROD-E; published-endpoints v2), written in the profile's
+        `version_intakes`, so no version's submit reads another's. A
+        published endpoint was reviewed into `published_endpoints.json` and
+        is checked by the intake client when a candidate is submitted, so
+        Review reaches no network for it. A Challenge version with no
+        endpoint is never passed over silently: the profile is written and
+        `warnings` says it cannot submit there, and setup's Evaluation step
+        keeps saying so.
 
-        Each intake's receiver hotkey is pinned in the profile's `receivers`
-        (LAUNCHPAD-ACCEPT-03): a published endpoint's `receiver_hotkey`, or,
+        Each intake's receiver hotkey is pinned in the profile beside it
+        (`receivers`, or the published entry's pair in `version_intakes`;
+        LAUNCHPAD-ACCEPT-03): a published endpoint's `receiver_hotkey`, or,
         for the miner's own intake, the `receiver_hotkey` named beside it
         (`receivers` maps several), which is required. The own intake's
         public facts must report that receiver, or Review refuses
@@ -3018,27 +3097,46 @@ class EnvironmentSetup:
                     "be read, so none was written: " + REINSTALL_STEP + ".",
                 }
             )
+        for challenge_id in published.get("unversioned", []):
+            if challenge_id not in intakes:
+                warnings.append(
+                    {
+                        "code": "published_endpoint_unversioned",
+                        "challenge": challenge_id,
+                        "message": UNVERSIONED_ENDPOINT.format(challenge=challenge_id),
+                    }
+                )
+        # Carbon's endpoints, each for exactly the Challenge version it is
+        # published for (published-endpoints v2): a Challenge with an own
+        # intake (named by id) takes none of them.
+        version_intakes, version_record = {}, {}
         for challenge in intake_challenges():
             if challenge["id"] in intakes:
                 continue
-            entry = published["endpoints"].get(challenge["id"])
+            entry = published_entry(published, challenge)
             if entry is None:
                 warnings.append(
                     {
                         "code": "no_evaluation_endpoint",
                         "challenge": challenge["id"],
+                        "version": challenge["version"],
                         "message": NO_ENDPOINT.format(title=challenge["title"]),
                     }
                 )
                 continue
-            intakes[challenge["id"]] = entry["intake_url"]
-            receivers[challenge["id"]] = entry["receiver_hotkey"]
-            if "validators" in entry:
-                target_lists[challenge["id"]] = [
-                    {k: target[k] for k in ("intake_url", "receiver_hotkey")}
-                    for target in entry["validators"]
-                ]
-            sources[challenge["id"]] = "published"
+            pairs = [
+                {k: target[k] for k in ("intake_url", "receiver_hotkey")}
+                for target in entry.get("validators", [entry])
+            ]
+            version_intakes.setdefault(challenge["id"], {})[
+                challenge["version"]
+            ] = pairs
+            version_record.setdefault(challenge["id"], {})[challenge["version"]] = {
+                "url": pairs[0]["intake_url"],
+                "source": "published",
+                "receiver": pairs[0]["receiver_hotkey"],
+                **({"targets": pairs} if len(pairs) > 1 else {}),
+            }
         with self.lock:
             record = self._record()
             if not direct_target_supplied:
@@ -3057,6 +3155,8 @@ class EnvironmentSetup:
                 cfg = {**cfg, "receivers": receivers}
             if target_lists:
                 cfg = {**cfg, "intake_targets": target_lists}
+            if version_intakes:
+                cfg = {**cfg, "version_intakes": version_intakes}
             if direct_target is not None:
                 cfg = {**cfg, "direct_intake_target": direct_target}
             # The miner's auto-retry choice (LAUNCHPAD-PRACTICE-RETRY-01):
@@ -3106,6 +3206,8 @@ class EnvironmentSetup:
                     }
                     for challenge_id, url in intakes.items()
                 },
+                # Carbon's endpoints, per Challenge version.
+                **({"version_intakes": version_record} if version_record else {}),
                 "warnings": warnings,
             }
             if preferences:

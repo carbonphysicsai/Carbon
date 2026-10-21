@@ -88,7 +88,11 @@ def _selected_standalone(request, challenge, agent, cfg, *, recorded_target=None
         raise _rejected(refused) from None
     if found is None or found["digest"] != STANDALONE_GRAPH_V3:
         raise Rejected("construction_variant_invalid", 409)
-    target = _intake_url(cfg, challenge["id"]) if cfg is not None else recorded_target
+    target = (
+        _intake_url(cfg, challenge["id"], challenge.get("version"))
+        if cfg is not None
+        else recorded_target
+    )
     return cl.with_target(found, target)
 
 
@@ -141,7 +145,11 @@ def launch_binding(request, challenge, agent, cfg=None, *, legacy=False):
             except cl.LevelRefused as refused:
                 raise _rejected(refused) from None
             if found is not None:
-                target = _intake_url(cfg, challenge["id"]) if cfg is not None else None
+                target = (
+                    _intake_url(cfg, challenge["id"], challenge.get("version"))
+                    if cfg is not None
+                    else None
+                )
                 return cl.with_target(found, target)
     if level is None and arm is None:
         return None
@@ -159,7 +167,11 @@ def launch_binding(request, challenge, agent, cfg=None, *, legacy=False):
 
     if not campaign_for(challenge).construction_levels:
         raise Rejected(cl.NOT_OFFERED, 409)
-    target = _intake_url(cfg, challenge["id"]) if cfg is not None else None
+    target = (
+        _intake_url(cfg, challenge["id"], challenge.get("version"))
+        if cfg is not None
+        else None
+    )
     return cl.with_target(found, target)
 
 
@@ -314,7 +326,7 @@ def replay_binding(request, challenge, agent, cfg, captured):
                 challenge["id"], request.get("construction_level"), request.get("arm")
             )
         target = (
-            _intake_url(cfg, challenge["id"])
+            _intake_url(cfg, challenge["id"], challenge.get("version"))
             if cfg is not None
             else frozen.get("target_intake")
         )
@@ -365,7 +377,11 @@ def campaign_binding(row, cfg=None):
         found = cl.resolve(challenge, level, recorded.get("arm"))
     except cl.LevelRefused as refused:
         raise _rejected(refused) from None
-    target = _intake_url(cfg, challenge) if cfg is not None else None
+    target = (
+        _intake_url(cfg, challenge, recorded.get("challenge_version"))
+        if cfg is not None
+        else None
+    )
     return cl.with_target(found, target)
 
 
@@ -426,16 +442,20 @@ def checked_freeze(found, strategy, level4_directory):
         raise _rejected(refused) from None
 
 
-def _intake_url(cfg, challenge_id):
+def _intake_url(cfg, challenge_id, version=None):
+    """The profile's intake for the Challenge at `version`: a Challenge whose
+    intakes are named per version (`version_intakes`) has only its own
+    version's, and none when no version is named."""
+    from carbon.development_session.intake_targets import for_version
     from scripts.dev.miner_launchpad.runner import intakes
 
-    return intakes(cfg).get(challenge_id)
+    return intakes(for_version(cfg, challenge_id, version)).get(challenge_id)
 
 
 def read_facts(cfg, challenge, read=None):
     """The target intake's public facts for `challenge`, through its
     campaign's own check (chain and Challenge), or None with no intake."""
-    url = _intake_url(cfg, challenge["id"])
+    url = _intake_url(cfg, challenge["id"], challenge.get("version"))
     if url is None:
         return None
     if read is None:

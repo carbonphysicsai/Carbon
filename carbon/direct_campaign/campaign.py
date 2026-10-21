@@ -435,9 +435,11 @@ async def prepare(spec, args, *, ledger=None, campaign):
 
 def direct_target(spec, args):
     """The signed construction receiver this campaign submits to: the
-    profile's per-Challenge intake and receiver, else its direct target."""
-    from carbon.development_session.intake_targets import validate
+    profile's per-Challenge intake and receiver (for exactly this version,
+    when the profile names it per version), else its direct target."""
+    from carbon.development_session.intake_targets import args_for_version, validate
 
+    args = args_for_version(args, spec.challenge_id, research_key(spec).version)
     url = (getattr(args, "intakes", None) or {}).get(spec.challenge_id)
     hotkey = (getattr(args, "receivers", None) or {}).get(spec.challenge_id)
     if url is not None and hotkey is not None:
