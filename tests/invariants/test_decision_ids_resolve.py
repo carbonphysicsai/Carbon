@@ -8,7 +8,8 @@ derived from `.agent/decisions` filenames, never hardcoded, so a new record
 family is covered as soon as its first record lands, and a look-alike such as
 a GPU model (`A100-SXM4-80`) is not. Both boundaries exclude `-`, so a prefix
 never matches inside a longer id (`GATE-DESIGN-01` in
-`FEASIBILITY-GATE-DESIGN-01`) or a ticket path's `_slug`.
+`FEASIBILITY-GATE-DESIGN-01`) or a ticket path's `_slug`; the left one also
+excludes `.`, so a file label (`R4.L4-G-CONSTRUCTOR-3.json`) is not an id.
 
 Cited ids are scanned in tracked files under `carbon/`, `scripts/` and
 `docs/development/evidence/`. An id resolves when it is
@@ -61,7 +62,6 @@ UNRECORDED = frozenset(
         "GRAPHITE-POD-LAUNCH-RETRY-01",
         "GRAPHITE-PROGRESS-01",
         "GRAPHITE-RESEARCH-SCORELAB-01",
-        "L4-G-CONSTRUCTOR-3",
         "LAUNCHPAD-BATTERY-L4-ENSEMBLE-01",
         "LAUNCHPAD-SMOKE-PRACTICE-01",
         "LP-02",
@@ -95,7 +95,7 @@ def _pattern():
         re.escape(p) for p in sorted(prefixes, key=len, reverse=True)
     )
     return prefixes, re.compile(
-        rf"(?<![A-Za-z0-9_-])(?:{alternation})(?:-[A-Z0-9_]+)*-\d+(?![A-Za-z0-9_-])"
+        rf"(?<![A-Za-z0-9_.-])(?:{alternation})(?:-[A-Z0-9_]+)*-\d+(?![A-Za-z0-9_-])"
     )
 
 
@@ -176,6 +176,7 @@ def test_the_unrecorded_list_only_shrinks(scan):
         ("FEASIBILITY-GATE-DESIGN-01", []),  # GATE only inside a longer id
         (".agent/tickets/CHALLENGE-MOTOR-01_development.md", []),
         ("an A100-SXM4-80 GPU", []),
+        ("reviews/R4.L4-G-CONSTRUCTOR-3.json", []),
         ("OWNER-L4-VALUES-01-draft", []),
     ],
 )
