@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from carbon.backbone_catalog import pipeline, served
+from carbon.backbone_catalog import listing, served
 from carbon.challenge_registry.motor import catalog_recipe
 from carbon.challenge_validator.ledger import AttemptLedger
 from carbon.development_session.construction_recipe import ConstructionRecipe
@@ -65,14 +65,14 @@ def test_a_regrade_refuses_when_reexpansion_gives_another_bundle(monkeypatch):
     with pytest.raises(ValueError, match="another bundle"):
         served.check_reexpansion(document, "sha256:" + "0" * 64)
     # The catalog moved under the retained submission: its defaults changed.
-    original = pipeline.entry
+    original = listing.entry
 
     def moved(catalog_id, *args):
         item = copy.deepcopy(original(catalog_id, *args))
         item["defaults"]["configuration"]["learning_rate"] = 0.004
         return item
 
-    monkeypatch.setattr(pipeline, "entry", moved)
+    monkeypatch.setattr(listing, "entry", moved)
     with pytest.raises(ValueError, match="re-expansion differs"):
         served.check_reexpansion(document, digest)
 

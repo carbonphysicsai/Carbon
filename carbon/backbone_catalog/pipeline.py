@@ -49,18 +49,21 @@ import sys
 import tarfile
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-MANIFEST = HERE / "manifest.json"
+from .listing import (  # noqa: F401  (the owner commands' API)
+    HERE,
+    MANIFEST,
+    CatalogBroken,
+    _json,
+    entries,
+    entry,
+    load,
+)
+
 BUNDLES = HERE / "bundles"
 RECEIPTS = HERE / "receipts"
-SCHEMA = "carbon.backbone-catalog-manifest.v1"
 RECEIPT_SCHEMA = "carbon.backbone-catalog-pair-identity.v1"
 FILES = ("bundle.json", "source.tar.gz", "LICENSE", "requirements.txt", "baseline.json")
 _CHALLENGE = re.compile(r"([a-z0-9][a-z0-9-]*)@([0-9]+\.[0-9]+)\Z")
-
-
-class CatalogBroken(ValueError):
-    """The catalog's own files disagree: Carbon's problem, never a miner's."""
 
 
 def _digest(body):
@@ -69,37 +72,6 @@ def _digest(body):
 
 def _canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
-
-
-def _json(path):
-    return json.loads(Path(path).read_bytes())
-
-
-def load():
-    """The manifest: {"schema", "entries": [...]}, ordered by catalog id."""
-    if not MANIFEST.exists():
-        return {"schema": SCHEMA, "entries": []}
-    manifest = _json(MANIFEST)
-    if type(manifest) is not dict or manifest.get("schema") != SCHEMA:
-        raise CatalogBroken("catalog manifest schema differs")
-    return manifest
-
-
-def entries(challenge_id=None, version=None):
-    """Every entry, or those offered on (challenge_id, version)."""
-    return [
-        e
-        for e in load()["entries"]
-        if challenge_id is None
-        or {"id": challenge_id, "version": version} in e["challenges"]
-    ]
-
-
-def entry(catalog_id, challenge_id=None, version=None):
-    for item in entries(challenge_id, version):
-        if item["catalog_id"] == catalog_id:
-            return item
-    return None
 
 
 def bundle_files(item):
