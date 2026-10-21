@@ -893,7 +893,14 @@ def _remote_machine(cfg, runtime):
 
 #: What a profile's `model_selection` (written by setup) may carry.
 MODEL_SELECTION_FIELDS = frozenset(
-    {"provider_id", "model_id", "endpoint", "declared_pricing", "published_pricing"}
+    {
+        "provider_id",
+        "model_id",
+        "endpoint",
+        "declared_pricing",
+        "published_pricing",
+        "published_limits",
+    }
 )
 
 

@@ -1046,6 +1046,22 @@ class LiveChecks:
         timeouts, None for anything unknown."""
         return reboot_recovery(unit)
 
+    def published_limits(self, provider_id, model_id) -> dict:
+        """The live-listed provider's published token limits for `model_id`
+        (free, no key), read beside its price: a field it does not publish
+        is null, never a guess."""
+        from carbon.development_session.model_provider import (
+            ProviderHTTPError,
+            published_limits,
+        )
+
+        try:
+            return published_limits(provider_id, model_id, opener=self.opener)
+        except (ProviderHTTPError, OSError, ValueError):
+            raise SetupRefused(
+                "provider_id", "provider_model_list_unavailable"
+            ) from None
+
     def published_pricing(self, provider_id, model_id) -> dict:
         """The live-priced provider's published price for `model_id` (free,
         no key). Refused by field when the provider does not price it."""
@@ -2250,6 +2266,7 @@ class EnvironmentSetup:
                         "endpoint",
                         "declared_pricing",
                         "published_pricing",
+                        "published_limits",
                         "check",
                     ),
                 ),
@@ -2454,6 +2471,11 @@ class EnvironmentSetup:
         spec = {k: value[k] for k in ("endpoint", "declared_pricing") if k in value}
         if ADAPTERS[provider].live_pricing:
             spec["published_pricing"] = self.checks.published_pricing(
+                provider, value["model_id"]
+            )
+            # The model's own published limits, read where its price is, so
+            # a launch's defaults are the provider's figures, not Carbon's.
+            spec["published_limits"] = self.checks.published_limits(
                 provider, value["model_id"]
             )
         return spec
@@ -2918,7 +2940,12 @@ class EnvironmentSetup:
                 "model_id": inference["model_id"],
                 **{
                     k: inference[k]
-                    for k in ("endpoint", "declared_pricing", "published_pricing")
+                    for k in (
+                        "endpoint",
+                        "declared_pricing",
+                        "published_pricing",
+                        "published_limits",
+                    )
                     if k in inference
                 },
             }

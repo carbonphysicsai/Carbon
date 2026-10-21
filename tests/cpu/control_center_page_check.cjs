@@ -457,6 +457,34 @@ scenario("the model step offers an output cap with the model's default and sends
   clean(page);
 });
 
+// Owner direction 2026-10-21 ("just enable them"): a model whose provider's
+// public list publishes its maximum output defaults to that figure, and the
+// page names the list and when setup read it; a model with no published
+// maximum says so and asks the miner to set it.
+scenario("the model step names a provider-published default, or asks for one", async () => {
+  const caps = fx.caps_published_limits;
+  const agent = carbonAgent(caps);
+  const choice = caps.model.setup_choice;
+  const shown = caps.model.output_cap.defaults[choice.provider_id][choice.model_id];
+  assert.equal(shown.basis, "provider_published_live");
+  assert.equal(shown.max_output_tokens, 65535);
+  const state = launchable(world({caps: copy(caps), options: copy(fx.options_setup_model)}), agent);
+  const page = await open(state);
+  await wizardTo(page, "model", agent);
+  assert.equal(page.$("wizard-max-output").placeholder, "Default: 65535");
+  const note = page.text("wizard-output-note");
+  assert.match(note, /65,535 tokens \(this model's maximum as its provider's model list published it, https:\/\/llm\.chutes\.ai\/v1\/models, read 2026-10-21T09:30:00Z\)/);
+  assert.doesNotMatch(note, /no published maximum/);
+  clean(page);
+  // Setup's model with nothing published: the conservative cap, said plainly.
+  const other = carbonAgent(fx.caps_setup_model);
+  const plain = await open(launchable(world({caps: copy(fx.caps_setup_model), options: copy(fx.options_setup_model)}), other));
+  await wizardTo(plain, "model", other);
+  assert.match(plain.text("wizard-output-note"), /2,048 tokens \(Carbon has no published maximum for this model, so the conservative cap\)/);
+  assert.match(plain.text("wizard-output-note"), /Carbon has no published maximum for this model: set the model's own maximum here if you know it\./);
+  clean(plain);
+});
+
 // M1 rehearsal 2026-10-21: the Model step offers the optional provider call
 // timeout beside the output cap, with the controller's bounds and default
 // (model_provider's TIMEOUT_DEFAULT_V2, 600 s), and sends

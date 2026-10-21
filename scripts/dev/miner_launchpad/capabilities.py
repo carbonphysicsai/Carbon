@@ -488,31 +488,67 @@ def _with_setup_model(row, setup):
     return {**row, "models": [*row["models"], model]}
 
 
-def _output_cap(providers):
+def _setup_limits(cfg):
+    """`{(provider_id, model_id): published_limits}` for setup's model where
+    setup read its provider's published limits (a live-listed provider), as
+    the profile carries them and `select` checks them; empty otherwise."""
+    from carbon.development_session.model_provider import (
+        ModelSelectionRefused,
+        checked_published_limits,
+    )
+
+    chosen = (cfg or {}).get("model_selection")
+    if type(chosen) is not dict or "published_limits" not in chosen:
+        return {}
+    setup = _setup_choice(cfg)
+    if setup is None:
+        return {}
+    try:
+        limits = checked_published_limits(
+            setup["provider_id"], chosen["published_limits"]
+        )
+    except ModelSelectionRefused:
+        return {}
+    return {(setup["provider_id"], setup["model_id"]): limits}
+
+
+def _output_cap(providers, limits=None):
     """The launch's optional output cap (`model_settings.max_output_tokens`,
     LAUNCHPAD-PAGE-USABILITY-01): its bounds, and for each offered model the
     default a launch with no cap gets - the model's own maximum as
-    `model_provider.output_maximum` records it, exactly what the runner's
-    `select(output_default=OUTPUT_DEFAULT_V2)` chooses. The page shows and
-    pre-checks these; the runner validates the launch and has the last word."""
+    `model_provider.output_maximum` records it (for setup's model on a
+    live-listed provider, from the limits setup read: `limits`), exactly what
+    the runner's `select(output_default=OUTPUT_DEFAULT_V2)` chooses. A
+    provider-published default names its list and when it was read
+    (`source`). The page shows and pre-checks these; the runner validates the
+    launch and has the last word."""
     from carbon.development_session.model_provider import (
         DEFAULT_SETTINGS,
+        OUTPUT_FROM_PUBLISHED_LIVE,
         OUTPUT_TOKEN_BOUNDS,
         ModelSelectionRefused,
         output_maximum,
     )
 
+    limits = limits or {}
     defaults = {}
     for row in providers:
         for model in row["models"]:
             try:
-                chosen = output_maximum(row["id"], model["id"])
+                chosen = output_maximum(
+                    row["id"],
+                    model["id"],
+                    published_limits=limits.get((row["id"], model["id"])),
+                )
             except ModelSelectionRefused:
                 continue
-            defaults.setdefault(row["id"], {})[model["id"]] = {
+            shown = {
                 "max_output_tokens": chosen["max_output_tokens"],
                 "basis": chosen["basis"],
             }
+            if chosen["basis"] == OUTPUT_FROM_PUBLISHED_LIVE:
+                shown["source"] = chosen["source"]
+            defaults.setdefault(row["id"], {})[model["id"]] = shown
     low, high = OUTPUT_TOKEN_BOUNDS
     return {
         "launch_field": "model_settings.max_output_tokens",
@@ -520,10 +556,13 @@ def _output_cap(providers):
         "defaults": defaults,
         "basis": (
             "Optional. Blank: the model's own maximum output where Carbon "
-            f"records one, otherwise {DEFAULT_SETTINGS.max_output_tokens:,} "
-            "tokens. A number caps each reply; "
-            "each call is reserved at the cap. Sent only with a provider and "
-            "model, and validated by the runner at launch."
+            "records one or its provider publishes one, otherwise "
+            f"{DEFAULT_SETTINGS.max_output_tokens:,} tokens: Carbon has no "
+            "published maximum for that model, and a cap above a model's real "
+            "maximum is refused by its provider, so set your own. A number "
+            "caps each reply; each call is reserved at the cap against your "
+            "own ceiling. Sent only with a provider and model, and validated "
+            "by the runner at launch."
         ),
     }
 
@@ -569,7 +608,7 @@ def _call_timeout():
 GRAPHITE_INPUT_WINDOW = "graphite_input_window_too_small"
 
 
-def _graphite_window(provider_id, model_id):
+def _graphite_window(provider_id, model_id, published_limits=None):
     """The input window a Graphite launch on this model gets when it sets no
     model settings (`driver.launch_window`: the window, how it was chosen,
     what each call reserves, the least FULL ceiling and whether the advisory
@@ -592,13 +631,14 @@ def _graphite_window(provider_id, model_id):
             output_default=OUTPUT_DEFAULT_V2,
             input_default=INPUT_DEFAULT_V2,
             timeout_default=TIMEOUT_DEFAULT_V2,
+            published_limits=published_limits,
         )
     except ModelSelectionRefused:
         return None
     return driver.launch_window(selection)
 
 
-def _input_window(providers):
+def _input_window(providers, limits=None):
     """The launch's optional input window (`model_settings.max_input_tokens`,
     LAUNCHPAD-FINDINGS-F8-F9, LA-F8): its bounds, the historical default,
     and for each offered model the context its provider publishes where
@@ -624,10 +664,11 @@ def _input_window(providers):
     graphite = {}
     for row in providers:
         for model in row["models"]:
-            recorded = published_context(row["id"], model["id"])
+            live = (limits or {}).get((row["id"], model["id"]))
+            recorded = published_context(row["id"], model["id"], live)
             if recorded is not None:
                 published.setdefault(row["id"], {})[model["id"]] = recorded
-            window = _graphite_window(row["id"], model["id"])
+            window = _graphite_window(row["id"], model["id"], live)
             if window is not None:
                 graphite.setdefault(row["id"], {})[model["id"]] = window
     low, high = INPUT_TOKEN_BOUNDS
@@ -702,15 +743,16 @@ def _model(options, refusal, cfg=None):
         *_registered_providers(options, refusal),
     ]
     providers = [_with_setup_model(row, setup) for row in rows]
+    limits = _setup_limits(cfg)
     return {
         "used_by": ["graphite"],
         "chosen_by": "miner",
         "providers": providers,
         "setup_choice": setup,
         "launch_field": ["model_provider", "model"],
-        "output_cap": _output_cap(providers),
+        "output_cap": _output_cap(providers, limits),
         "call_timeout": _call_timeout(),
-        "input_window": _input_window(providers),
+        "input_window": _input_window(providers, limits),
         "selection": (
             "The launch carries model_provider and model. The key file is the "
             "one your runner profile configures for that provider; a provider "

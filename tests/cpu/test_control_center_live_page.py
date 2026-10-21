@@ -59,6 +59,21 @@ ROOT = Path(__file__).resolve().parents[2]
 LAUNCHPAD = ROOT / "scripts/dev/miner_launchpad"
 CHECK = ROOT / "tests/cpu/control_center_page_check.cjs"
 SETUP_MODEL = {"provider_id": "chutes", "model_id": "deepseek-ai/DeepSeek-V3-0324"}
+#: Setup's choice of a Chutes model whose public list entry published its
+#: limits, as `model_provider.published_limits` records them (fixture values).
+PUBLISHED_LIMITS_MODEL = {
+    "provider_id": "chutes",
+    "model_id": "moonshotai/Kimi-K2.6",
+    "published_limits": {
+        "max_output_length": 65535,
+        "context_length": 262144,
+        "max_model_len": 262144,
+        "source": "provider_published_live",
+        "reference": "https://llm.chutes.ai/v1/models",
+        "observed": "2026-10-21T09:30:00Z",
+        "note": "fixture: read from the provider's public model list",
+    },
+}
 
 
 def _plain(value):
@@ -328,12 +343,16 @@ def documents(tmp_path, journey, monkeypatch):
     setup_model = capabilities._model(
         opened, capabilities.NO_PROFILE, {"model_selection": SETUP_MODEL}
     )
+    published_model = capabilities._model(
+        opened, capabilities.NO_PROFILE, {"model_selection": PUBLISHED_LIMITS_MODEL}
+    )
     preflight = journey.preflight()
     # After every other read of the journey host: this launches a campaign.
     reconciled = _reconciled(journey, monkeypatch)
     value = {
         "caps": caps,
         "caps_setup_model": {**caps, "model": setup_model},
+        "caps_published_limits": {**caps, "model": published_model},
         "options": options,
         "options_setup_model": {**options, "agents": opened["agents"]},
         "preflight": preflight,

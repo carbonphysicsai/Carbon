@@ -1771,10 +1771,11 @@
     if (timeout && timeout.value !== null) settings.timeout_seconds = timeout.value;
     return Object.keys(settings).length ? settings : null;
   }
-  const OUTPUT_BASIS = {model_documented_maximum: "this model's documented maximum", provider_documented_maximum: "the provider's documented maximum", no_documented_maximum: "Carbon records no maximum for this model, so the conservative cap"};
+  const OUTPUT_BASIS = {model_documented_maximum: "this model's documented maximum", provider_documented_maximum: "the provider's documented maximum", provider_published_live: "this model's maximum as its provider's model list published it", no_documented_maximum: "Carbon has no published maximum for this model, so the conservative cap"};
   function outputDefault(cap) {
     if (!cap?.fallback) return "the runner's default";
-    return cap.fallback.max_output_tokens.toLocaleString("en-US") + " tokens (" + (OUTPUT_BASIS[cap.fallback.basis] || "the runner's default") + ")";
+    const source = cap.fallback.basis === "provider_published_live" && typeof cap.fallback.source?.reference === "string" ? ", " + cap.fallback.source.reference + ", read " + cap.fallback.source.observed : "";
+    return cap.fallback.max_output_tokens.toLocaleString("en-US") + " tokens (" + (OUTPUT_BASIS[cap.fallback.basis] || "the runner's default") + source + ")";
   }
   // The provider and model the runner profile's setup chose, or null.
   function setupModel() {
@@ -3750,6 +3751,7 @@
     fill(input, wizard.maxOutput ?? "");
     input.setAttribute("aria-invalid", cap.problem ? "true" : "false");
     let note = "Default for " + wizard.model + ": " + outputDefault(cap) + ". Leave it blank to use that, or enter a whole number from " + cap.low.toLocaleString("en-US") + " to " + cap.high.toLocaleString("en-US") + " to cap each reply; each call is reserved at the cap. The Control Center checks it again at launch.";
+    if (cap.fallback?.basis === "no_documented_maximum") note += " Carbon has no published maximum for this model: set the model's own maximum here if you know it.";
     if (cap.problem) note = "Not valid: " + cap.problem + ". " + note;
     else if (cap.value !== null && cap.fallback && cap.fallback.basis !== "no_documented_maximum" && cap.value > cap.fallback.max_output_tokens) note = "Above " + outputDefault(cap) + ": the provider may refuse the call. " + note;
     setText($("wizard-output-note"), note);
