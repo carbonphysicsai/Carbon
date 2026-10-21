@@ -249,3 +249,20 @@ def test_motor_1_3_material_serves_its_own_catalog():
     assert MotorCatalogMaterial(".").VERSION == "1.2"
     with pytest.raises(ValueError, match="motor catalog version"):
         MotorCatalogMaterial(".", "1.0")
+
+
+def test_the_bundle_worker_trusts_each_served_allowlist_and_nothing_else():
+    # A v7 version's material carries v7: its bundle builds, inference and paired
+    # inference must accept exactly those bytes (bundle_allowlist_unregistered
+    # refused every Motor 1.3 / Cooling 1.2 build before).
+    from carbon.development_session.bundle_construction_worker import (
+        _trusted_allowlist,
+    )
+    from carbon.development_session.construction_recipe import RecipeRefused
+
+    for key in sv.V7:
+        raw = sv.material_allowlist_bytes(*key)
+        assert _trusted_allowlist(raw).digest == _digest(raw)
+    assert _trusted_allowlist(allowlist_module.served_bytes())
+    with pytest.raises(RecipeRefused, match="bundle_allowlist_unregistered"):
+        _trusted_allowlist(allowlist_module.v7_bytes() + b" ")
