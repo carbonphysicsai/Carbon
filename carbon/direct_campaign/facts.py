@@ -2,12 +2,14 @@
 Thermal) 2.3's direct campaigns.
 
 Owner approval of LAUNCHPAD_F08_F02_SCIENCE_FACTS_20261021 (relayed by Data
-Collection, 2026-10-21; the Validator records the approval and checks each value
-against its cited sources), approved copy
-sha256:34a4f31c8b9ad950593a3fa0cb9a533d3c57c2ad25c0e919acecff1eaffb1095. Each
-value is copied from that file's per-Challenge section unchanged; its status
-there is the comment above it. A value the file leaves `LEAVE_HUMAN_INPUT` is
-`HUMAN_INPUT` here, and so is a value listed in `STOPPED`.
+Collection, 2026-10-21), approved copy
+sha256:34a4f31c8b9ad950593a3fa0cb9a533d3c57c2ad25c0e919acecff1eaffb1095, as
+corrected to source after the Validator's check, corrected copy
+sha256:e9d56c4bce390ab4bc2d7150d7951f09e8e05ac22ce50cbe96c7cceb1105f559 (the
+Validator records the approval and checks each value against its cited
+sources). Each value is copied unchanged from the corrected file's
+per-Challenge section; its status there is the comment above it. A value the
+file leaves `LEAVE_HUMAN_INPUT` is `HUMAN_INPUT` here.
 
 Each value fills one `HUMAN_INPUT` field: a profile field (`contracts`), a
 served document's field (`research`, `challenge_registry.direct`), or a clause.
@@ -23,16 +25,17 @@ from __future__ import annotations
 
 from .spec import HUMAN_INPUT
 
-#: The approval these values copy, by record name and file digest.
+#: The approval these values copy: the owner-approved file and its correction
+#: to source, by record name and file digest.
 APPROVAL = {
     "record": "LAUNCHPAD_F08_F02_SCIENCE_FACTS_20261021",
-    "sha256": "34a4f31c8b9ad950593a3fa0cb9a533d3c57c2ad25c0e919acecff1eaffb1095",
+    "approved_sha256": (
+        "34a4f31c8b9ad950593a3fa0cb9a533d3c57c2ad25c0e919acecff1eaffb1095"
+    ),
+    "corrected_sha256": (
+        "e9d56c4bce390ab4bc2d7150d7951f09e8e05ac22ce50cbe96c7cceb1105f559"
+    ),
 }
-#: Approved values not filled, and why: each describes practice as reporting
-#: structural facts only, while this version's practice reports aggregate errors
-#: on the registered scale (Validator ruling 6, 2026-10-21; `practice.error_scale`).
-#: Filling them would serve a false statement, so they wait for new wording.
-STOPPED = ("practice_reporting", "catalog_usage_text")
 
 #: (challenge id, version) -> field -> the approved value, or HUMAN_INPUT.
 FACTS = {
@@ -57,7 +60,7 @@ FACTS = {
         "operating_envelope": "The valid geometry lattice above; all three damping ratios (0.005, 0.01, 0.02) per geometry; frequency searched over 80-600 Hz (adversarial peak search, not a random state); unit 1 N z-force on the tip pad; 48-mode basis with a 900 Hz mode-cutoff band.",
         # DRAFT_FROM_REGISTERED
         "physical_support": "The reference is valid only for the synthetic isotropic linear-elastic material, a fully clamped root, constant modal damping, C3D10 meshes (Gmsh 4.15.2; h = 1.7 mm exam truth, h = 3 mm TRAIN) and the 48-mode truncation checked by its 12/24/48 ladder; the claim is agreement with the reference simulator, not with reality (credibility NOT_DEMONSTRATED).",
-        # LEAVE_HUMAN_INPUT in the approved file.
+        # LEAVE_HUMAN_INPUT
         "physical_invariant": HUMAN_INPUT,
         # DRAFT_FROM_REGISTERED
         "sampling_law": "TRAIN v2 (287 rows): 255 of 256 geometries drawn uniformly on the valid lattice (seed 20261015, h = 3 mm; train-0016 failed) plus 32 near-limit lattice actions placed by a log-linear fit (16 safe / 16 unsafe at 0.15 mm/N). The exposed development bank (practice) is the RR-PACKS-07 ladder: 8 lattice neighbours of pilot-0000 placed around the 0.15 mm/N crossing, 4 safe and 4 unsafe, at h = 1.7 mm; not an independent population.",
@@ -73,16 +76,16 @@ FACTS = {
         "base_measure": "Counting measure on the 8 registered ladder rows.",
         # DRAFT_FROM_REGISTERED
         "probability_law": "A fixed, purposely placed set (PILOT_LATTICE_LADDER_AT_THE_LIMIT_NOT_INDEPENDENT), not a random draw; it carries no population-prevalence claim.",
-        # Not filled: see STOPPED.
-        "practice_reporting": HUMAN_INPUT,
+        # REGISTERED_FACT
+        "practice_reporting": "Practice reports aggregate public-practice errors on F08's registered scales: static 0.003 mm/N, each dynamic tip 0.015 mm/N, each peak frequency 10 Hz; aggregate the worst over quantity and case, with the mean recorded beside, labelled POINT_ESTIMATE_DIAGNOSTIC. No per-case values.",
         # REGISTERED_FACT
         "reference_fidelity": "F08 TRAIN is h = 3 mm; the exam truth is h = 1.7 mm; at the 0.15 mm/N limit, h3 reads about 0.07 % (about 1e-4 mm/N) lower (16 cases at both meshes: worst dynamic h3 - h1.7 = -0.000131 to -0.000090 mm/N). The practice bank's references are the h = 1.7 mm ladder solves.",
         # REGISTERED_FACT
         "known_limitation": "TRAIN at h = 3 mm (exam 1.7 mm); train-0016 failed (original 256 incomplete); the near-limit TRAIN stratum is placed, not random; the exam is a public, non-independent 8-case ladder; synthetic material and constant modal damping; accuracy_gate null, live_eligible false; not qualified; credibility NOT_DEMONSTRATED.",
         # DRAFT_FROM_REGISTERED
         "rights_profile": "Same rules as Motor and Cooling: the exam data and references are Carbon's own, solved with open solvers on synthetic, non-customer cases (public TRAIN and the exposed development bank are published for development use); miner recipes are private to Carbon. No customer or third-party data.",
-        # Not filled: see STOPPED.
-        "catalog_usage_text": HUMAN_INPUT,
+        # DRAFT_FROM_REGISTERED
+        "catalog_usage_text": "Catalog and graph recipes build from public TRAIN only; practice runs on the exposed 8-row ladder bank and reports aggregate errors on the registered scales, never per-case values.",
     },
     ("f02", "2.3"): {
         # DRAFT_FROM_REGISTERED
@@ -103,9 +106,9 @@ FACTS = {
         "time_semantics": "TRANSIENT event summarised to a scalar. Each row is one 120 s schedule: uniform 40 C at t = 0; 20 W total from t = 0; at t = 20 s total power steps to peak_w for on_time_s seconds, then back to 20 W until 120 s. peak_top_c is the largest die-top maximum over every solver step end in (0, 120] s (BDF2; 0.1 s steps, 0.02 s from 20 s to 10 s after the last event). No steady baseline enters peak_top_c, and the stack is not pre-equilibrated. In every registered case the peak occurs at the burst end.",
         # DRAFT_FROM_REGISTERED
         "operating_envelope": "The fixed cold context (coolant 30 C, h 2500 W/m^2K, initial 40 C, split 0.5, rectangular); inputs within the served ranges: TRAIN 70-150 W and 4-20 s (S1 70-100 W x 4-6 s, S2 80-150 W x 5-20 s); development bank 80-140 W and 5-20 s; sealed exam batches integer 70-100 W x 4.0-6.0 s in 0.1 s steps.",
-        # LEAVE_HUMAN_INPUT in the approved file.
+        # LEAVE_HUMAN_INPUT
         "physical_support": HUMAN_INPUT,
-        # LEAVE_HUMAN_INPUT in the approved file.
+        # LEAVE_HUMAN_INPUT
         "physical_invariant": HUMAN_INPUT,
         # DRAFT_FROM_REGISTERED
         "sampling_law": "TRAIN40-v2: 40 cold-context Elmer solves, S1 24 rows uniform on [70, 100] W x [4, 6] s (12 at or below 95 C, 12 above) and S2 16 rows uniform on [80, 150] W x [5, 20] s (all above), disjoint from the 8 bank actions. The exposed development bank (practice) is the 8 registered cold actions (80 W/5 s, 110/10, 140/5, 140/20, 84/85/86/87 W at 5 s): not an independent population.",
@@ -114,23 +117,23 @@ FACTS = {
         # REGISTERED_FACT
         "reference_quality": "Unqualified numerical DEVELOPMENT reference: RR-04 ACCEPTED_FOR_DEVELOPMENT_BANK under F02-SCIENCE-VALUES-01 bands (B1 peak 0.5 C, B5 energy residual 1 %); code verification accepted by the owner (MMS, band [1.7, 2.3]); reference uncertainty U(peak_top_c) = 0.012 C (single-refinement bound); closest bank margin 0.21 C (about 17 U).",
         # DRAFT_FROM_REGISTERED
-        "support_boundary": "Inputs exactly {peak_w, on_time_s}, finite and within the served ranges, in the fixed context; a row with another context is refused (TRAIN loader); malformed or negative parameters, events beyond the 120 s horizon and patches outside the die are refused by the case contract.",
+        "support_boundary": "Support is the served input box in the fixed cold context: peak_w 70-150 W and on_time_s 4-20 s (the union of the served TRAIN, bank and sealed ranges). Inputs are exactly {peak_w, on_time_s}; a TRAIN row with another context is refused by the loader. The reference runner itself does not check finiteness or the box.",
         # DRAFT_FROM_REGISTERED
         "membership_decision": "A practice row is a member iff it is one of the exposed development bank's 8 registered cold actions.",
         # DRAFT_FROM_REGISTERED
         "base_measure": "Counting measure on the 8 registered cold actions.",
         # DRAFT_FROM_REGISTERED
         "probability_law": "A fixed registered set (REGISTERED_EIGHT_ACTION_SET_NOT_INDEPENDENT), not a random draw; no population-prevalence claim.",
-        # Not filled: see STOPPED.
-        "practice_reporting": HUMAN_INPUT,
         # REGISTERED_FACT
-        "reference_fidelity": "Each reference is the primary rung (1 mm in-plane cells, 6/2/4 z-cells, base step plan) with mesh2 (cells halved) and dt0.5 (steps halved) solved per case; a case is accepted only if B1-B5 pass at both rungs and the rungs agree on the 95 C side. Measured on the 8 bank actions: mesh2 shifts -0.0052 to -0.0114 C, dt0.5 at most 0.0002 C, no label flips.",
+        "practice_reporting": "Practice reports aggregate public-practice errors on F02's registered scale: each case |p - primary rung| / train_peak_std_c (6.701245845436587 C, TRAIN40-v2), aggregate max(mean, near-limit mean, worst). No per-case values.",
+        # REGISTERED_FACT
+        "reference_fidelity": "Each reference is the primary rung (1 mm in-plane cells, 6/2/4 z-cells, base step plan) with mesh2 (cells halved) and dt0.5 (steps halved) solved per case; a case is accepted only if B1-B5 pass at both rungs and the rungs agree on the 95 C side. Measured on the 8 bank actions: mesh2 shifts -0.0052 to -0.0114 C, dt0.5 at most 0.000201 C, no label flips.",
         # REGISTERED_FACT
         "known_limitation": "Synthetic constant-property materials; one cold context only (a cold-context slice, not a coolant/h/initial-state trust volume); bank actions not independent; no temperature-dependent properties, contact resistance, phase change, fluid or radiation; peak taken at discrete solver steps; 95 C is a buyer limit; cross-tool credibility NOT_DEMONSTRATED; not qualified.",
         # DRAFT_FROM_REGISTERED
         "rights_profile": "Same rules as Motor and Cooling: the exam data and references are Carbon's own, solved with open solvers on synthetic, non-customer cases (public TRAIN and the exposed development bank are published for development use); miner recipes are private to Carbon. No customer or third-party data.",
-        # Not filled: see STOPPED.
-        "catalog_usage_text": HUMAN_INPUT,
+        # DRAFT_FROM_REGISTERED
+        "catalog_usage_text": "Catalog and graph recipes build from public TRAIN40-v2 only; practice runs on the exposed 8-action bank and reports aggregate errors on the registered scale, never per-case values.",
     },
 }
 
@@ -150,6 +153,7 @@ LABELS = {
         "membership_decision": "registered_ladder_row",
         "base_measure": "counting_measure_on_registered_bank",
         "probability_law": "fixed_placed_ladder_not_independent",
+        "practice_reporting": "aggregate_errors_on_registered_scales",
         "reference_fidelity": "h1_7_reference_h3_train",
         "known_limitation": "h3_train_placed_ladder_synthetic_unqualified",
         "rights_profile": "public_synthetic",
@@ -162,10 +166,11 @@ LABELS = {
         "time_semantics": "transient_burst_summarised_as_window_maximum",
         "time_semantics.time_coordinate": "time_maximum_over_registered_window",
         "operating_envelope": "cold_context_served_input_ranges",
-        "support_boundary": "cold_context_finite_inputs_within_horizon",
+        "support_boundary": "served_input_box_cold_context",
         "membership_decision": "registered_cold_action",
         "base_measure": "counting_measure_on_registered_bank",
         "probability_law": "fixed_registered_actions_not_independent",
+        "practice_reporting": "aggregate_errors_on_registered_scale",
         "reference_fidelity": "primary_rung_with_mesh2_dt_half_envelope",
         "known_limitation": "synthetic_single_context_unqualified",
         "rights_profile": "public_synthetic",

@@ -571,35 +571,26 @@ def test_the_agent_sees_the_controls_and_how_to_submit(spec, version):
 
 # --- the approved facts, and HUMAN_INPUT failing closed where it is read -----
 
-#: The approved copy of LAUNCHPAD_F08_F02_SCIENCE_FACTS_20261021.
+#: LAUNCHPAD_F08_F02_SCIENCE_FACTS_20261021: the owner-approved copy and its
+#: correction to source after the Validator's check (the values are its).
 APPROVED_SHA256 = "34a4f31c8b9ad950593a3fa0cb9a533d3c57c2ad25c0e919acecff1eaffb1095"
+CORRECTED_SHA256 = "e9d56c4bce390ab4bc2d7150d7951f09e8e05ac22ce50cbe96c7cceb1105f559"
 #: Each version's approved facts and clause labels, by canonical digest: a value
 #: or label that moves is a new approval, not an edit.
 FACTS_DIGESTS = {
     ("f08-ribbed-bracket", "1.4"): (
-        "sha256:2c4993cd21e67ce6f992fbdd5a472e0f79e2abc7a152171cfb6894b60eb05532",
-        "sha256:38767282f0d7b270df6007f3b33b2a5fa93e3a728349343c311bfffa5683cbf9",
+        "sha256:ad1b905f345b6b3110026917c73d764a6593ff2171485195553889a1d539b49d",
+        "sha256:f6912785a00f94471aacb1032d2f0eca9688ffedd1294f26466eeb98e8eaffc4",
     ),
     ("f02", "2.3"): (
-        "sha256:70710a4f1a08904f37659304c842fe6725a4eacb90f7a330881cf0d2a46948a6",
-        "sha256:cc5f5566fc859e7df26b3cb2b06786d98d4642f7d18fa500f394e8b17213290a",
+        "sha256:49b28395f2bd6e5673c4a18ce0858c00b7e4798fbe10c50074739f38aaf2470e",
+        "sha256:0be4b698fa522e2b56af3b99a2ce0eefc174548c71f2cdc06d24faa7249cbc90",
     ),
 }
-#: Left HUMAN_INPUT: the approved file's LEAVE_HUMAN_INPUT fields, and the two
-#: whose approved wording (structural facts only) contradicts this version's
-#: registered-scale practice (`facts.STOPPED`).
+#: Left HUMAN_INPUT: the approved file's LEAVE_HUMAN_INPUT fields.
 LEFT = {
-    "f08-ribbed-bracket": (
-        "physical_invariant",
-        "practice_reporting",
-        "catalog_usage_text",
-    ),
-    "f02": (
-        "physical_support",
-        "physical_invariant",
-        "practice_reporting",
-        "catalog_usage_text",
-    ),
+    "f08-ribbed-bracket": ("physical_invariant",),
+    "f02": ("physical_support", "physical_invariant"),
 }
 TASKS = {
     "f08-ribbed-bracket": (
@@ -626,7 +617,8 @@ def _fact(spec, version, name):
 def test_the_approved_facts_are_pinned_to_their_approval(spec, version):
     assert direct_facts.APPROVAL == {
         "record": "LAUNCHPAD_F08_F02_SCIENCE_FACTS_20261021",
-        "sha256": APPROVED_SHA256,
+        "approved_sha256": APPROVED_SHA256,
+        "corrected_sha256": CORRECTED_SHA256,
     }
     key = (spec.challenge_id, version)
     values, labels = direct_facts.FACTS[key], direct_facts.LABELS[key]
@@ -635,7 +627,6 @@ def test_the_approved_facts_are_pinned_to_their_approval(spec, version):
         FACTS_DIGESTS[key]
     )
     assert values["task"] == TASKS[spec.challenge_id]
-    assert direct_facts.STOPPED == ("practice_reporting", "catalog_usage_text")
     left = {name for name, value in values.items() if value == HUMAN_INPUT}
     assert left == set(LEFT[spec.challenge_id])
     # Every value is text, and every filled clause has its approved label.
@@ -683,10 +674,13 @@ def test_the_approved_facts_are_served_and_the_rest_is_human_input(spec, version
     assert HUMAN_INPUT not in (reference["reference"], reference["quality"])
     parts = _module(spec, "research").challenge_parts(version)
     assert parts.score_document["score"] == HUMAN_INPUT
-    # The catalog's usage text is held (`facts.STOPPED`).
+    # The catalog's usage text (ruling 6: aggregate errors on the registered
+    # scale, never per-case values).
     workspace = SimpleNamespace(put=lambda name, body: None)
     material = direct_research.DirectPublicMaterial(spec, version)
-    assert material("catalog", workspace)["document"]["use"] == HUMAN_INPUT
+    use = material("catalog", workspace)["document"]["use"]
+    assert use == _fact(spec, version, "catalog_usage_text")
+    assert "aggregate errors on the registered scale" in use
 
 
 def _authored(spec, version):
@@ -738,9 +732,11 @@ def test_each_filled_clause_carries_its_approved_label_and_text(spec, version):
             {"clause": labels["governing_job"], "profile": profile, "statement": text}
         )
     )
-    # Held (STOPPED) clauses keep their human_input_* labels.
     reporting = sampling.intended_estimand_or_reporting_ref
-    assert reporting.object_id == "human_input_practice_reporting"
+    assert reporting.object_id == labels["practice_reporting"]
+    assert reporting.object_id == (
+        "aggregate_errors_on_registered_scale" + ("s" if spec is F08 else "")
+    )
 
 
 @pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
@@ -953,9 +949,8 @@ def test_a_set_profile_field_reads_its_approved_value(spec, version, name):
     ],
 )
 def test_an_unset_fact_is_refused_never_read_as_a_value(spec, version, name):
-    # The approved file's LEAVE_HUMAN_INPUT fields (and the STOPPED ones) stay
-    # HUMAN_INPUT: reading one refuses (as agent_campaign.grant refuses an
-    # unset grant value).
+    # The approved file's LEAVE_HUMAN_INPUT fields stay HUMAN_INPUT: reading
+    # one refuses (as agent_campaign.grant refuses an unset grant value).
     from carbon.direct_campaign.spec import key_for, keyed
 
     with keyed(spec, key_for(spec, version)):
