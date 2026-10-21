@@ -29,3 +29,10 @@ Implementation: **not yet implemented.** Today the construction limits still car
 - **Longer rebuilds raise the rolling mean rebuild time Σt.** Under OWNER-CADENCE-AND-ROTATION-02, that lowers every miner's daily allowance a.
 - **Speed differs between hosts.** A recipe that finishes just under the limit on one validator may exceed it on a slower one, so miners should keep headroom. The registered wall times are unchanged by this record.
 - **New kit version:** removing the step caps changes the construction limits, so it's a new kit and evaluation version. It's prospective and lands with the step-2 recalibration.
+
+## The wall time is ratified (owner, 2026-10-21, directly in the Carbon Validator's session)
+
+- **The rebuild wall time is 30 minutes** (`MAX_TASK_WALL` 1800 s). It's no longer a "conservative proposal".
+  - Measured rebuilds take about 2–8 minutes, so this gives about 4× headroom.
+  - At 30 minutes, one validator manages about 33 max-length rebuilds a day (R = 67.2 CPU-h/day on the 4-vCPU class).
+- **It's the only training limit.** No shorter deadline may act as a second training cap (see `VALIDATOR_MINER_PATH_LIMITS_RULINGS_20261021.md`).
