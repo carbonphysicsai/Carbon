@@ -99,14 +99,14 @@
     PAUSE_REQUESTED: "A pause was asked for and the running step has not confirmed it. Wait for the step to end; if it stays here, Reconcile settles what it holds.",
     // Reconcile also settles each model call whose outcome is unknown
     // (LP-PROD-W2): booked at its full reservation, and never resent.
-    RECONCILIATION_REQUIRED: "Work may still be held after an interruption. Reconcile checks what is held and cleans it up, and books each model call whose outcome is unknown at its full reservation; it resends nothing. Then Resume or Stop.",
-    INTERRUPTED: "The controller stopped mid-step. Reconcile settles what was held, then Resume continues the campaign.",
+    RECONCILIATION_REQUIRED: "A step stopped part-way, so some work may still be held. Reconcile checks what is held and clears it, and books each model call whose outcome is unknown at its full reservation; it resends nothing. Then Resume or Stop.",
+    INTERRUPTED: "This campaign stopped mid-step; what the record shows is above when one was recorded. Reconcile settles anything still held; then Resume carries on from the saved record.",
   };
   // The same states, said as the controller's own recovery actions say them.
   const RECOVERY_OFFERED = {
     QUEUED: "Admitted, and nothing is carrying it out. Resume dispatches it again from its record; Stop ends it.",
     PAUSE_REQUESTED: "A pause was asked for and the running step has not confirmed it. Resume cancels the pause; if the step has ended and it stays here, Reconcile settles the pause; Stop ends the campaign.",
-    INTERRUPTED: "The controller stopped mid-step. Resume continues the campaign from its record; Reconcile checks again what it holds and settles it; Stop ends it.",
+    INTERRUPTED: "This campaign stopped mid-step; what the record shows is above when one was recorded. Resume carries on from the saved record.",
     RECONCILIATION_REQUIRED: RECOVERY.RECONCILIATION_REQUIRED,
   };
   const RECOVERY_ACTIONS = {resume: "Resume", stop: "Stop", reconcile: "Reconcile", retry_interrupted: "Retry practice"};
@@ -287,20 +287,40 @@
     meta.append(id, copyButton(doc.campaign.id, "campaign id"));
     title.append(meta);
     head.append(title);
+    // The one control bar. What the state needs comes first and is the one
+    // primary button (a paused campaign's Resume, an interrupted one's first
+    // recovery step); Stop and whatever else can be pressed now stay in reach beside
+    // it, and the rest (Resume while it runs, Reconcile when nothing needs it,
+    // Export) sit under More, so the same buttons are not drawn again anywhere
+    // else on the page.
     const actions = el("div", undefined, "rs-actions");
     // Compact (the Overview's card): Pause and Stop, and what recovery the
     // state needs, so recovery is never only behind another page.
     const needs = recovery(doc.campaign.state, run, doc)?.actions || [];
-    for (const control of doc.controls) {
-      if (compact && control.action !== "stop" && control.action !== "pause" && !needs.includes(control.action)) continue;
-      const b = button(control.label, control.action === "stop" ? "rs-stop" : needs.includes(control.action) ? "primary" : "", () => CC.researchAction(doc.campaign.id, control.action));
+    const lead = needs[0] || (doc.campaign.state === "PAUSED" ? "resume" : null);
+    const main = el("div", undefined, "rs-bar-main");
+    const more = el("details", undefined, "rs-more");
+    more.append(el("summary", "More"));
+    const controls = doc.controls.filter(control => !compact || control.action === "stop" || control.action === "pause" || needs.includes(control.action));
+    controls.sort((a, b) => (b.action === lead) - (a.action === lead));
+    for (const control of controls) {
+      const b = button(control.label, control.action === "stop" ? "rs-stop" : control.action === lead ? "primary" : "", () => CC.researchAction(doc.campaign.id, control.action));
       b.disabled = !control.available || !CC.state().connected || CC.state().busy;
       if (control.reason) b.title = control.reason;
       b.dataset.action = control.action;
-      actions.append(b);
+      // What can be pressed now is in the bar; what cannot (Resume while it runs,
+      // Reconcile when nothing needs it) waits under More with its reason.
+      const inBar = control.available && (control.action !== "reconcile" || needs.includes("reconcile"));
+      (compact || inBar ? main : more).append(b);
     }
-    if (compact) actions.append(anchor("Open campaign", CC.campaignHref(doc.campaign.id), "button primary"));
-    else actions.append(button("Export", "", () => CC.researchAction(doc.campaign.id, "export")));
+    if (compact) main.append(anchor("Open campaign", CC.campaignHref(doc.campaign.id), "button primary"));
+    else {
+      const exported = button("Export", "", () => CC.researchAction(doc.campaign.id, "export"));
+      exported.dataset.action = "export";
+      more.append(exported);
+    }
+    actions.append(main);
+    if (more.children.length > 1) actions.append(more);
     head.append(actions);
     parent.append(head);
     if (doc.fixture) para(parent, "Synthetic fixture data, for seeing the surface. Not a campaign, not evidence, never LIVE.", "rs-fixture");
@@ -389,7 +409,12 @@
     const g = doc.graphite;
     const G = CC.graphite;
     head(box, "Graphite · " + G.modeLabel(g.mode) + " mode", "Carbon's agent");
-    para(box, "Now: " + G.now(g.stage, doc.campaign?.state), "status-line rs-graphite-stage");
+    // A stop on the campaign's own settings (a context ceiling, an output cap,
+    // a ceiling the miner set) is named with its next step, so a COMPLETED
+    // campaign that built nothing never reads as finished work (M1 S19).
+    const early = g.ended_early && typeof g.ended_early.code === "string" ? g.ended_early : null;
+    para(box, "Now: " + (early ? "stopped early at " + (STAGE_NOUNS[early.stage] || words(early.stage)).toLowerCase() + ": " + words(early.code) : G.now(g.stage, doc.campaign?.state)), "status-line rs-graphite-stage");
+    if (early && typeof early.next_step === "string") para(box, early.next_step, "reason rs-graphite-early");
     if (g.submission_policy === "retain_only_v1") para(box, "Retain only: this campaign does not commit or submit candidates to a validator.");
     const grid = el("dl", undefined, "review-grid rs-graphite");
     const row = (label, value) => { const dd = el("dd"); if (typeof value === "string") dd.textContent = value; else dd.append(...value); grid.append(el("dt", label), dd); return dd; };
@@ -398,7 +423,16 @@
     // Each stage the campaign runs, in order, with its state and the code it
     // ended on (a research stage stopped at its share says so).
     const stages = Array.isArray(g.stages) ? g.stages.filter(item => item && typeof item.stage === "string") : [];
-    if (stages.length) row("Stages", stages.map(item => (STAGE_NOUNS[item.stage] || words(item.stage)) + ": " + (STAGE_STATES[item.state] || "unknown") + (typeof item.code === "string" && item.code ? " (" + words(item.code) + ")" : "")).join(" · "));
+    // A stage whose replies were cut at the output cap names the cap.
+    const capped = item => typeof item.output_cap === "number" ? " at " + item.output_cap.toLocaleString("en-US") + " output tokens" : "";
+    if (stages.length) row("Stages", stages.map(item => (STAGE_NOUNS[item.stage] || words(item.stage)) + ": " + (STAGE_STATES[item.state] || "unknown") + (typeof item.code === "string" && item.code ? " (" + words(item.code) + capped(item) + ")" : "")).join(" · "));
+    // Its step, as the campaign view states it: a new launch with max
+    // output tokens set higher (a campaign keeps the cap it froze).
+    for (const item of stages) {
+      if (item.cause !== "turn_hit_output_cap" || typeof item.next_step !== "string") continue;
+      const cut = row((STAGE_NOUNS[item.stage] || words(item.stage)) + " cut short", item.next_step);
+      cut.className = "reason"; cut.dataset.code = item.cause;
+    }
     // Research spend against its share; build spend is the rest of the
     // campaign's model spend. The share narrows only the model ceilings the
     // miner set: with none, it does not bind, and that is said.
@@ -487,7 +521,15 @@
     const tab = name => CC.campaignHref(doc.campaign.id, name);
     part(grid, "now", JSON.stringify([doc.current_operation, doc.campaign.state, doc.research_task, doc.hypothesis, doc.controls, s.connected, s.busy, recovery(doc.campaign.state, run, doc)]), now => {
       head(now, "Now", "Current work");
-      if (doc.current_operation) para(now, "Running: " + words(doc.current_operation.phase) + " · " + doc.current_operation.id, "status-line");
+      if (doc.current_operation) {
+        // A slow model must not look stuck: the step, which one it is, and how
+        // long this page has watched it run (the record carries no total).
+        const line = para(now, "Running: " + words(doc.current_operation.phase) + " · " + doc.current_operation.id, "status-line");
+        const steps = (doc.events?.operations || []).length;
+        if (steps) line.append(el("span", " · step " + steps + " of this campaign", "hint"));
+        const waiting = el("span", "", "working-for"); waiting.dataset.operation = doc.current_operation.id;
+        line.append(waiting);
+      }
       else para(now, "Nothing is running. State: " + words(doc.campaign.state).toLowerCase() + ".", "status-line");
       // The research task frozen at launch, exactly, as text (C-MLP-02-D6).
       if (doc.research_task) {
@@ -499,20 +541,9 @@
         quote.append(el("p", doc.hypothesis), el("cite", "Latest hypothesis · recorded text, shown as text"));
         now.append(quote);
       }
-      // What recovery the state needs is here, first among the controls
-      // (LP-PROD-F); why is said once, above the campaign's header.
-      // Reconcile is offered here only then.
-      const needs = recovery(doc.campaign.state, run, doc)?.actions || [];
-      const quick = el("div", undefined, "rs-quick");
-      for (const control of doc.controls.filter(c => c.action !== "reconcile" || needs.includes("reconcile"))) {
-        const b = button(control.label, needs.includes(control.action) && control.action !== "stop" ? "primary" : "", () => CC.researchAction(doc.campaign.id, control.action));
-        b.dataset.action = control.action;
-        b.disabled = !control.available || !s.connected || s.busy; if (control.reason) b.title = control.reason;
-        quick.append(b);
-      }
-      quick.append(button("Export", "", () => CC.researchAction(doc.campaign.id, "export")));
-      quick.append(anchor("Contract", tab("contract"), "button"));
-      now.append(quick);
+      // The controls are the header's, once: this card does not draw them
+      // again. It links to the Challenge's contract, which no other part does.
+      now.append(anchor("Challenge contract", tab("contract"), "inline-link"));
     });
     // Beside Reconcile: the model calls whose outcome is unknown, what it
     // books for them, and once it has, what it booked (LP-PROD-W2). Kept in
@@ -995,9 +1026,12 @@
       group.append(list); caps.append(group);
     }
     const exam = section(panel, "Exam gates and what is never disclosed", "Evaluation");
-    para(exam, "Gates: " + c.exam.gates.map(words).join(", ") + ". A gate failure is never compensated by score.");
-    para(exam, "Components: " + c.exam.components.join(", ") + ".");
-    const never = el("ul", undefined, "rs-list"); for (const item of c.never_disclosed) never.append(el("li", item)); exam.append(el("p", "Never disclosed:", "status-line"), never);
+    // A list, or a value Carbon has not set yet (HUMAN_INPUT) for a direct version.
+    const unset = "not yet set by Carbon";
+    const gates = Array.isArray(c.exam?.gates) ? c.exam.gates.map(words).join(", ") : unset;
+    para(exam, "Gates: " + gates + ". A gate failure is never compensated by score.");
+    para(exam, "Components: " + (Array.isArray(c.exam?.components) ? c.exam.components.join(", ") : unset) + ".");
+    const never = el("ul", undefined, "rs-list"); for (const item of Array.isArray(c.never_disclosed) ? c.never_disclosed : []) never.append(el("li", item)); exam.append(el("p", "Never disclosed:", "status-line"), never);
     const limits = section(panel, "Limits", "Yours, or none");
     const ld = el("dl", undefined, "review-grid");
     for (const [k, v] of Object.entries(c.limits || {})) ld.append(el("dt", words(k)), el("dd", typeof v === "string" ? v : JSON.stringify(v)));
@@ -1169,8 +1203,21 @@
     para(box, "Campaign " + run.id + " · " + words(run.state).toLowerCase() + ". Its controls work without the view.", "hint");
     box.append(row);
   }
+  // When this page first saw each operation running, for "working for ...".
+  const workingSince = new Map();
+  function updateWorking(container, doc) {
+    const node = container.querySelector(".working-for");
+    const id = doc?.current_operation?.id;
+    // Ticks with the campaign's own clock: when that is stopped (no elapsed time
+    // recorded), so is this.
+    if (!node || !id || typeof doc.tiles?.elapsed_seconds !== "number") return;
+    if (!workingSince.has(id)) workingSince.set(id, Date.now());
+    const seconds = Math.max(0, Math.round((Date.now() - workingSince.get(id)) / 1000));
+    CC.setText(node, seconds < 5 ? "" : " · working on this step for " + duration(seconds) + (seconds >= 90 ? ". A slow model can take several minutes a step; this is not stuck." : ""));
+  }
   function updateClock(container, doc) {
     if (!doc) return;
+    updateWorking(container, doc);
     const node = container.querySelector('[data-tile="elapsed"]');
     if (node && typeof doc.tiles.elapsed_seconds === "number") CC.setText(node, duration(doc.tiles.elapsed_seconds + Math.max(0, Math.round((Date.now() - viewState(doc.campaign.id).at) / 1000))));
   }

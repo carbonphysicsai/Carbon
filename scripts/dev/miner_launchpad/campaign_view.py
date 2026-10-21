@@ -95,6 +95,38 @@ NON_CLAIMS = (
 )
 
 
+#: A refusal's codes, most specific first: a research tool's registered
+#: correction, a Graphite toolbox refusal's reason code, then the generic
+#: reason (M1 S16, 2026-10-21: a toolbox refusal read "no reason recorded",
+#: and a correction read only "contract_incompatibility").
+REFUSAL_CODE_FIELDS = ("correction_code", "reason_code", "reason")
+_REFUSAL_CODE = re.compile(r"[a-z][a-z0-9_]{0,95}\Z")
+
+
+def refusal_code(item):
+    """The most specific closed code a refusal record carries, or None."""
+    for field in REFUSAL_CODE_FIELDS:
+        value = item.get(field) if type(item) is dict else None
+        if type(value) is str and _REFUSAL_CODE.fullmatch(value):
+            return value
+    return None
+
+
+def refusal_meaning(code):
+    """One plain sentence for a refusal code: its registered correction's
+    first sentence, else its registered next step's, else None."""
+    if code is None:
+        return None
+    from carbon.development_session.research_tools import TASK_CORRECTIONS
+    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
+
+    text = TASK_CORRECTIONS.get(code) or NEXT_ACTIONS.get(code)
+    if type(text) is not str or not text.strip():
+        return None
+    first = text.strip().split(". ")[0].rstrip(".")
+    return first[:240] + "."
+
+
 def clean_text(value, limit=NOTE_MAX):
     """Journal text as the view shows it: a string, unsafe characters
     removed, bounded; None when there is no text."""
@@ -634,6 +666,13 @@ GRAPHITE_MODES = ("RESEARCH", "BUILD", "FULL")
 _GRAPHITE_STAGE = re.compile(r"[a-z][a-z0-9_]{0,31}")
 _STAGE_STATES = ("PENDING", "RUNNING", "DONE", "STOPPED")
 _CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
+#: A stage's replies cut at the output cap (`research_loop.OUTPUT_CAP_HIT`),
+#: and what the miner does about it.
+OUTPUT_CAP_CAUSE = "turn_hit_output_cap"
+OUTPUT_CAP_STEP = (
+    "Set max output tokens higher (the model's maximum if you know it) and "
+    "launch again."
+)
 _SPEND_KEYS = ("provider_nanodollars", "provider_attempts")
 _HUNT_COUNTS = (
     "fetched",
@@ -644,6 +683,55 @@ _HUNT_COUNTS = (
     "reader_calls",
     "cost_nanodollars",
 )
+
+
+#: The stage stops that end a Graphite campaign early on one of its own
+#: settings, so the campaign reads COMPLETED with nothing built (M1 S19,
+#: 2026-10-21: "Build: stopped (context ceiling)" with 0 practice runs). The
+#: view names the stop and its next step instead of leaving COMPLETED to
+#: speak for it.
+EARLY_STOP_CODES = (
+    "context_ceiling",
+    "compaction_failed",
+    "graphite_plan_output_cap",
+    "miner_ceiling_reached",
+)
+
+
+def ended_early(stages):
+    """The first stage that stopped on one of `EARLY_STOP_CODES`, as
+    `{stage, code, next_step}`, or None."""
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    for row in stages:
+        if row.get("state") == "STOPPED" and row.get("code") in EARLY_STOP_CODES:
+            return {
+                "stage": row["stage"],
+                "code": row["code"],
+                "next_step": next_action(row["code"]),
+            }
+    return None
+
+
+def _output_cap_step(row):
+    """For a stage whose replies were cut at the output cap (the research
+    loop's cause `turn_hit_output_cap`): the cap they hit and the step - a
+    new launch with max output tokens set higher, since a campaign keeps the
+    model settings it froze. Nothing for any other stage."""
+    if row.get("cause") != OUTPUT_CAP_CAUSE:
+        return {}
+    cap = row.get("output_cap")
+    cap = cap if type(cap) is int and 0 < cap <= 10**7 else None
+    cut = (
+        "Replies were cut at " + format(cap, ",") + " output tokens."
+        if cap is not None
+        else "Replies were cut at the output cap."
+    )
+    return {
+        "cause": OUTPUT_CAP_CAUSE,
+        "output_cap": cap,
+        "next_step": cut + " " + OUTPUT_CAP_STEP,
+    }
 
 
 def graphite_section(own):
@@ -669,6 +757,24 @@ def graphite_section(own):
     def spend(vector):
         return {key: count(vector.get(key)) for key in _SPEND_KEYS}
 
+    rows = [
+        {
+            "stage": row["stage"],
+            "state": (row.get("state") if row.get("state") in _STAGE_STATES else None),
+            "code": (
+                row["code"]
+                if type(row.get("code")) is str and _CODE.fullmatch(row["code"])
+                else None
+            ),
+            **_output_cap_step(row),
+        }
+        for row in (value.get("stages") if type(value.get("stages")) is list else [])[
+            :16
+        ]
+        if type(row) is dict
+        and type(row.get("stage")) is str
+        and _GRAPHITE_STAGE.fullmatch(row["stage"])
+    ]
     return {
         "edition": _str(value.get("edition")),
         "mode": value.get("mode") if value.get("mode") in GRAPHITE_MODES else None,
@@ -677,25 +783,9 @@ def graphite_section(own):
         ),
         # Each stage the campaign runs, in order, with its state and the
         # closed code it ended on (`research_share_reached`, ...).
-        "stages": [
-            {
-                "stage": row["stage"],
-                "state": (
-                    row.get("state") if row.get("state") in _STAGE_STATES else None
-                ),
-                "code": (
-                    row["code"]
-                    if type(row.get("code")) is str and _CODE.fullmatch(row["code"])
-                    else None
-                ),
-            }
-            for row in (
-                value.get("stages") if type(value.get("stages")) is list else []
-            )[:16]
-            if type(row) is dict
-            and type(row.get("stage")) is str
-            and _GRAPHITE_STAGE.fullmatch(row["stage"])
-        ],
+        "stages": rows,
+        # A stop on the campaign's own settings, named with its next step.
+        "ended_early": ended_early(rows),
         "plan_digest": _str(value.get("plan_digest")),
         "research_share": (
             share if type(share) in (int, float) and finite(share) is not None else None
@@ -985,6 +1075,8 @@ def feed(own, notes):
             }
         )
     for item in own.get("refusals") or []:
+        code = refusal_code(item)
+        meaning = refusal_meaning(code)
         entries.append(
             {
                 "sequence": item.get("sequence"),
@@ -992,8 +1084,10 @@ def feed(own, notes):
                 "via": "controller",
                 "text": (clean_text(item.get("operation"), 64) or "A request")
                 + " refused: "
-                + (clean_text(item.get("reason"), 256) or "no reason recorded"),
+                + (code or "no reason recorded")
+                + (". " + meaning if meaning else ""),
                 "detail": clean_text(item.get("detail"), 512),
+                **({"code": code} if code else {}),
             }
         )
     for note in notes:

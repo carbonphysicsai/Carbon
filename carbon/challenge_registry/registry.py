@@ -33,6 +33,15 @@ from dataclasses import dataclass, field
 from carbon.reconstruction.capability_registry import is_development_variant
 
 CATALOG_SCHEMA = "carbon.challenge-catalog.v1"
+#: A launch-portfolio Challenge registered before its readiness record: it is
+#: listed and runs, but is not `launch` until a readiness record (pilot
+#: evidence) is committed for it (`test_challenge_readiness`). Gate6 on the
+#: composite, 2026-10-21: F08 1.4 and F02 2.3 had none, and a record is
+#: evidence, never boilerplate.
+LAUNCH_PENDING_READINESS = "launch_pending_readiness"
+#: The host fact a torch-cpu execution profile requires: the configured
+#: trusted worker image is the PyTorch CPU worker (installed with --pytorch).
+TORCH_CPU_WORKER = "torch_cpu_worker_image"
 DESCRIPTION_SCHEMA = "carbon.challenge-description.v1"
 
 IMPLEMENTED, RESERVED, DEFERRED, RETIRED = (
@@ -214,6 +223,12 @@ def _cold_plate():
     return describe()
 
 
+def _cold_plate_catalog():
+    from .cold_plate import describe_catalog
+
+    return describe_catalog("1.2")
+
+
 def _motor():
     from .motor import describe
 
@@ -224,6 +239,28 @@ def _motor_catalog():
     from .motor import describe_catalog
 
     return describe_catalog()
+
+
+def _motor_catalog_v7():
+    from .motor import describe_catalog
+
+    return describe_catalog("1.3")
+
+
+def _f08_direct():
+    from carbon.direct_campaign.spec import F08
+
+    from .direct import describe
+
+    return describe(F08, "1.4")
+
+
+def _f02_direct():
+    from carbon.direct_campaign.spec import F02
+
+    from .direct import describe
+
+    return describe(F02, "2.3")
 
 
 def _compile_burgers(strategy):
@@ -263,6 +300,9 @@ def _entries():
     )
 
     carrier = ("docker_cli", "trusted_worker_image", "jax", "optax")
+    #: A torch-cpu practice builds on the separate pinned PyTorch CPU worker
+    #: (`gpu_practice.direct_parent_backend`): installed with --pytorch.
+    torch_carrier = carrier + (TORCH_CPU_WORKER,)
     return (
         Entry(
             BURGERS_CHALLENGE,
@@ -363,10 +403,103 @@ def _entries():
                     "PyTorch practice of Carbon's tested catalog backbones in the "
                     "isolated C-03 CPU worker; exact public TRAIN and bundle bytes staged",
                     "torch-cpu/isolated-carrier",
-                    carrier,
+                    torch_carrier,
                 ),
             ),
             _motor_catalog,
+            None,
+        ),
+        # Motor 1.3: 1.2 plus allowlist v7, each Challenge's catalog version
+        # (Validator, 2026-10-20). 1.2 is unchanged.
+        Entry(
+            MOTOR_CHALLENGE,
+            "1.3",
+            "Electric-motor magnetics (DEVELOPMENT periodic cross-section, backbone "
+            "catalog, allowlist v7)",
+            IMPLEMENTED,
+            "launch",
+            "carbonphysicsai/Carbon#344",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch practice of Carbon's tested catalog backbones in the "
+                    "isolated C-03 CPU worker; exact public TRAIN and bundle bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+            ),
+            _motor_catalog_v7,
+            None,
+        ),
+        # Cooling 1.2, Cooling's catalog version (allowlist v7 and the backbone
+        # catalog, as Motor 1.2/1.3): Carbon's tested backbones by catalog id
+        # on the direct recipe path; the Level 0 strategy compiler stays 1.0's.
+        # Its catalog is empty until a Cooling entry is tested.
+        Entry(
+            COLD_PLATE_CHALLENGE,
+            "1.2",
+            "AI-chip liquid cold plate (DEVELOPMENT periodic cell, backbone catalog, "
+            "allowlist v7)",
+            IMPLEMENTED,
+            "launch",
+            "carbonphysicsai/Carbon#342",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch practice of Carbon's tested catalog backbones in the "
+                    "isolated C-03 CPU worker; exact public TRAIN and bundle bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+            ),
+            _cold_plate_catalog,
+            None,
+        ),
+        # F08 (Ribbed Bracket) 1.4 and F02 (Burst Thermal) 2.3, direct-recipe
+        # only (`carbon.direct_campaign`): Carbon's tested backbones by catalog
+        # id, or a graph trained by Carbon's registered graph training adapter;
+        # no Level 0 strategy compiler. Each catalog is empty until an entry is
+        # tested, and until then the campaign refuses to start.
+        Entry(
+            "f08-ribbed-bracket",
+            "1.4",
+            "Ribbed Bracket (F08, DEVELOPMENT, backbone catalog and graph training "
+            "adapter, allowlist v7)",
+            IMPLEMENTED,
+            LAUNCH_PENDING_READINESS,
+            None,
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "of a graph by Carbon's graph training adapter, in the isolated "
+                    "C-03 CPU worker; exact public TRAIN and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+            ),
+            _f08_direct,
+            None,
+        ),
+        Entry(
+            "f02",
+            "2.3",
+            "Burst Thermal (F02, DEVELOPMENT, backbone catalog and graph training "
+            "adapter, allowlist v7)",
+            IMPLEMENTED,
+            LAUNCH_PENDING_READINESS,
+            None,
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "of a graph by Carbon's graph training adapter, in the isolated "
+                    "C-03 CPU worker; exact public TRAIN and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+            ),
+            _f02_direct,
             None,
         ),
         Entry(

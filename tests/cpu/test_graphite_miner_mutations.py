@@ -859,7 +859,13 @@ def test_the_submit_refuses_an_unpractised_selection_the_engine_let_through(worl
 
 def test_the_published_edition_is_frozen_by_digest():
     assert editions.EDITION.digest == EDITION_V1_DIGEST
-    assert editions.MINER_EDITIONS == {editions.EDITION_ID: editions.EDITION}
+    # Later editions are added beside v1 under their own ids (the depth
+    # edition: test_graphite_depth_edition); v1 stays exactly itself.
+    assert editions.MINER_EDITIONS[editions.EDITION_ID] is editions.EDITION
+    assert set(editions.MINER_EDITIONS) == {
+        editions.EDITION_ID,
+        editions.DEPTH_EDITION_ID,
+    }
     assert editions.resolve(editions.EDITION_ID, EDITION_V1_DIGEST) is (
         editions.EDITION
     )

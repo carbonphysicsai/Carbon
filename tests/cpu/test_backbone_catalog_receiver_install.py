@@ -141,3 +141,39 @@ def test_the_cli_passes_the_receiver_record(receiver, capsys):
         == 0
     )
     assert '"host": "receiver"' in capsys.readouterr().out
+
+
+def test_an_opted_in_receiver_installs_each_runtime_over_its_own_parent(
+    receiver, monkeypatch
+):
+    from carbon.development_session.gpu_practice import DirectParents
+
+    parents = DirectParents.from_torch(receiver["parent"])
+    loaded = direct_receiver.load_config
+
+    def opted_in(path):
+        return {
+            **loaded(path),
+            "construction_runtimes": direct_receiver.CONSTRUCTION_RUNTIMES,
+        }
+
+    monkeypatch.setattr(direct_receiver, "load_config", opted_in)
+    monkeypatch.setattr(
+        direct_receiver, "construction_parents", lambda parent, _impl: parents
+    )
+    catalog_install.install(
+        ["jno.fno1d", "neuralop.FNO"], receiver_config=receiver["config"]
+    )
+    assert [
+        (parent, bundle.runtime_profile_id)
+        for _, parent, bundle in receiver["installed"]
+    ] == [
+        (parents.for_runtime("python-cpu-py311"), "python-cpu-py311"),
+        (receiver["parent"], "torch-cpu-py311"),
+    ]
+
+
+def test_a_receiver_that_did_not_opt_in_does_not_serve_jno(receiver):
+    with pytest.raises(ValueError, match="backend_not_served"):
+        catalog_install.install(["jno.fno1d"], receiver_config=receiver["config"])
+    assert receiver["installed"] == []

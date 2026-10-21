@@ -95,6 +95,8 @@ STATIC = {
 #: answer ("the validator holds no submission of this candidate"), so a
 #: mistyped API path came back with that step.
 ROUTE_NOT_FOUND = "route_not_found"
+#: The page's own "Build the GPU worker" action (S15a, `gpu_worker_build`).
+GPU_BUILD_ROUTE = "/api/v1/page/gpu_worker_build"
 
 
 class Rejected(Exception):
@@ -677,6 +679,7 @@ class Server(ThreadingHTTPServer):
         state_dir=None,
         legacy_database=None,
         setup_checks=None,
+        gpu_build=None,
     ):
         if len(token) < 32:
             raise ValueError("A generated local session token is required")
@@ -705,6 +708,13 @@ class Server(ThreadingHTTPServer):
                 checks=setup_checks,
                 attach=self.attach_profile,
             )
+        # Setup's "Build the GPU worker" action (S15a): held by this page's
+        # server only, so no MCP or agent tool door has a handle on it.
+        self.gpu_build = gpu_build
+        if gpu_build is None and state_dir is not None:
+            from scripts.dev.miner_launchpad.gpu_worker_build import GpuWorkerBuild
+
+            self.gpu_build = GpuWorkerBuild(state_dir)
         self.token = token
         self.assets = Path(__file__).parent
         self.request_slots = threading.BoundedSemaphore(16)
@@ -915,10 +925,16 @@ class Handler(BaseHTTPRequestHandler):
                 if self.path.endswith("/status"):
                     self.reply(200, status)
                 else:
-                    self.reply(
-                        200,
-                        {**setup.state(), "choices": setup.offered(), "status": status},
-                    )
+                    document = {
+                        **setup.state(),
+                        "choices": setup.offered(),
+                        "status": status,
+                    }
+                    if self.server.gpu_build is not None:
+                        # The page's own build action and how it stands
+                        # (S15a): served to this page, never to the MCP door.
+                        document["gpu_build"] = self.server.gpu_build.status()
+                    self.reply(200, document)
             elif self.path == "/api/v1/development":
                 sources = self.server.development_sources
                 self.reply(200, {"sources": sources.recent() if sources else []})
@@ -942,7 +958,10 @@ class Handler(BaseHTTPRequestHandler):
                 runner = self.server.research_runner
                 if runner is None:
                     raise Rejected("research_admission_unavailable", 409)
-                self.reply(200, runner.get(self.path.removeprefix("/api/v1/research/")))
+                # The campaign host's read settles a phantom in-flight
+                # campaign first (`RunnerAdapter.read`); a fixture has none.
+                read = getattr(runner, "read", runner.get)
+                self.reply(200, read(self.path.removeprefix("/api/v1/research/")))
             elif self.path.startswith("/api/v1/tools/"):
                 # The page's tool session for one campaign (RSURF-D15).
                 from scripts.dev.miner_launchpad.tool_door import route
@@ -1024,6 +1043,14 @@ class Handler(BaseHTTPRequestHandler):
                 result = setup_operations.perform(
                     self.server.setup, action, value, door=setup_operations.HTTP
                 )
+            elif self.path == GPU_BUILD_ROUTE:
+                # Build the GPU worker on this machine, from this page only
+                # (S15a): the installer's own GPU build, on consent to its
+                # exact command, as a background job. Not a setup operation,
+                # so no MCP tool or agent door can start it.
+                if self.server.gpu_build is None:
+                    raise Rejected("setup_unavailable", 409)
+                result = self.server.gpu_build.start(value)
             elif self.path.startswith("/api/v1/onboarding/"):
                 action = self.path.removeprefix("/api/v1/onboarding/")
                 if action not in {"status", "prepare", "confirm"}:
@@ -1180,6 +1207,33 @@ def owner_lock(directory: Path):
             release()
 
 
+#: Where `kill -USR1 <Control Center pid>` writes every thread's stack, beside
+#: the state it describes (M1 rehearsal, 2026-10-21: a stalled supervisor
+#: thread blocked every later launch, and no debugger could attach).
+THREAD_DUMP = "control-center-threads.log"
+
+
+def thread_dump_on_signal(state_dir: Path):
+    """On SIGUSR1, append every thread's Python stack to an owner-only
+    THREAD_DUMP in the state directory. Stacks name Carbon's own code and
+    files, never a request body or key. Returns the file, or None where the
+    signal does not exist (Windows)."""
+    import faulthandler
+    import signal
+
+    if not hasattr(signal, "SIGUSR1"):
+        return None
+    path = Path(state_dir) / THREAD_DUMP
+    fd = os.open(
+        path,
+        os.O_WRONLY | os.O_CREAT | os.O_APPEND | getattr(os, "O_NOFOLLOW", 0),
+        0o600,
+    )
+    handle = os.fdopen(fd, "a", encoding="utf-8")
+    faulthandler.register(signal.SIGUSR1, file=handle, all_threads=True)
+    return handle
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8788)
@@ -1212,6 +1266,7 @@ def main() -> None:
         database = args.state_dir / "runs.sqlite3"
         if database.is_symlink():
             raise RuntimeError("Database must not be a symlink")
+        thread_dump_on_signal(args.state_dir)
         controller = Controller(database)
         database.chmod(0o600)
         token = secrets.token_urlsafe(32)

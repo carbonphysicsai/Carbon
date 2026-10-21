@@ -19,5 +19,10 @@ def test_the_sealed_adapter_names_its_own_evaluation_version():
 
 
 def test_no_other_version_has_a_sealed_adapter():
-    for version in ("1.0", "1.1", "1.3", None):
+    for version in ("1.0", "1.1", "1.5", None):
         assert f08.sealed_adapter(version) is None
+
+
+def test_the_v7_catalog_version_serves_the_same_sealed_batches():
+    assert f08.sealed_adapter("1.3").EVALUATION_VERSION == "f08-dual-sealed-batch-8-v1"
+    assert f08.sealed_adapter("1.3").VERSION == "1.3"

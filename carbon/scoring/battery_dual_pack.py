@@ -27,7 +27,12 @@ CHALLENGE = "battery-fastcharge-ageing-development-v1"
 VERSION = "2.0"
 EVALUATION_VERSION = "battery-dual-development-bank-v2"
 CASE_ID = "battery-development-bank"
-VERSIONS = {"2.0": (EVALUATION_VERSION, CASE_ID)}
+VERSIONS = {
+    "2.0": (EVALUATION_VERSION, CASE_ID),
+    # Allowlist v7's catalog version (Validator, 2026-10-20): the predecessor's
+    # measurement under its evaluation version; only the served allowlist differs.
+    "2.1": (EVALUATION_VERSION, CASE_ID),
+}
 OUTPUT = {
     "quantity": "voltage_v,temperature_c,plating_margin_v,capacity_ah",
     "unit": "V,degC,V,Ah",

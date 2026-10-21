@@ -904,13 +904,15 @@ def battery_prepare(patch, *, miner_key=None):
         else:
             # The selection a new plan of Carbon's agent freezes, as
             # prepare_battery builds it: the model's own maximum output is
-            # its default output cap (OWNER-LAUNCHPAD-PROD-02).
+            # its default output cap (OWNER-LAUNCHPAD-PROD-02), and 600 s its
+            # default provider call timeout (TIMEOUT_DEFAULT_V2).
             selection = (
                 None
                 if args.product.agent == "none"
                 else research_campaign.supplied_selection(
                     args,
                     output_default=research_campaign.new_plan_output_default(args),
+                    timeout_default=research_campaign.new_plan_timeout_default(args),
                 )
             )
 

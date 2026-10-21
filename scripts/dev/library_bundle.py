@@ -91,11 +91,26 @@ def _checked_cpu_parent(profile, manifest):
         or not runtime["images"]
     ):
         raise ValueError("compatible installed CPU parent missing")
-    parent = load_image_identity(Path(paths["image_manifest"]))
+    primary = load_image_identity(Path(paths["image_manifest"]))
+    derived = direct_parent_backend(primary) == "torch_cpu"
+    if derived:
+        # A PyTorch CPU profile (OWNER-BACKBONE-CATALOG-01, two parents): the
+        # CPU parent is the C-03 worker its Torch image was built FROM, with
+        # every check below kept and Docker's own labels checked too.
+        from carbon.development_session.gpu_practice import derived_cpu_parent
+        from carbon.reconstruction.worker.docker_runtime import doctor
+
+        if primary.image_id != runtime["images"][0]:
+            raise ValueError("installed Torch CPU parent differs from profile")
+        parent = derived_cpu_parent(primary)
+        if not doctor(image_id=parent.image_id, image_identity=parent).eligible:
+            raise ValueError("installed CPU parent unavailable")
+    else:
+        parent = primary
     verify_direct_v13_worker(parent, runtime["implementation"], role="cpu")
     expected_lock = digest((REPOSITORY / "uv.lock").read_bytes())
     if (
-        parent.image_id != runtime["images"][0]
+        (not derived and parent.image_id != runtime["images"][0])
         or parent.lock_digest != expected_lock
         or manifest["base_environment_digest"] != expected_lock
         or parent.build_recipe_digest
@@ -181,7 +196,7 @@ def install_receiver_bundle(directory, receiver_config):
     from carbon.challenge_validator import direct_receiver
 
     cfg = direct_receiver.load_config(Path(receiver_config))
-    _implementation, parent, _network, cache = direct_receiver.installed_source(
+    implementation, parent, _network, cache = direct_receiver.installed_source(
         Path(cfg["runner_profile"]),
         **(
             {"construction_image_manifest": Path(cfg["construction_image_manifest"])}
@@ -191,6 +206,20 @@ def install_receiver_bundle(directory, receiver_config):
     )
     material = load_pinned_bundle_directory(directory)
     selected = bundle_ref(*material)
+    if "construction_runtimes" in cfg:
+        # The receiver's per-runtime parents: the bundle's pinned runtime alone
+        # picks the one it builds on, as the receiver's resolver will.
+        from carbon.development_session.gpu_practice import DirectParentRefused
+
+        try:
+            parent = direct_receiver.construction_parents(
+                parent, implementation
+            ).for_bundle(selected)
+        except DirectParentRefused as refused:
+            raise ValueError(
+                f"{refused.code}: the receiver has no construction parent for "
+                f"{selected.runtime_profile_id} bundles"
+            ) from None
     try:
         verify_bundle_parent_environment(material[0], parent)
     except ValueError as error:

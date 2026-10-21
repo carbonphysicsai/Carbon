@@ -70,6 +70,8 @@ for name in __STAGED_MODULES__:
     shutil.copyfile(work / (name + ".py"), destination)
 shutil.copyfile(work / "allowlist_v1.json", work / "carbon/level4/allowlist_v1.json")
 shutil.copyfile(work / "allowlist_v6.json", work / "carbon/level4/allowlist_v6.json")
+if (work / "allowlist_v7.json").exists():
+    shutil.copyfile(work / "allowlist_v7.json", work / "carbon/level4/allowlist_v7.json")
 lab = work / "carbon_battery_lab"
 lab.mkdir()
 (lab / "__init__.py").write_text("")
@@ -117,7 +119,7 @@ raw_manifest, files = staging.from_workspace(
 )
 model = direct_graph.build_validated_graph(
     recipe, raw_manifest, files,
-    max_bytes=intake.BOUNDS["submission_bytes"],
+    max_bytes=direct_graph.submission_bytes(recipe.to_dict()["challenge"]["version"]),
     train_cases=len(train.case_ids), resolved_settings=settings,
 )
 fit = model.fit(train, seed=control["seed"])
@@ -141,6 +143,47 @@ predicted = recipes.to_predictions(
 '''.replace("__STAGED_MODULES__", repr(STAGED_MODULES)).replace(
     "__BATTERY_MODULES__", repr(tuple(BATTERY_MODULES.items()))
 )
+
+
+#: The Battery versions this worker builds: 1.0, and the catalog version 2.1
+#: (allowlist v7; Validator, 2026-10-21). Each binds its own graph kit
+#: (`construction_kit.construction_kit_for`). Any other version is bound
+#: against 1.0's kit and refused there, as before.
+VERSIONS = ("1.0", "2.1")
+
+
+def kit_for(recipe: ConstructionRecipe) -> dict:
+    """The graph kit `recipe` must bind: its own version's, or 1.0's."""
+    version = recipe.to_dict()["challenge"]["version"]
+    if version in VERSIONS:
+        return construction_kit.construction_kit_for(version)
+    return construction_kit.construction_kit()
+
+
+def state_bytes_for(version: str) -> int:
+    """The state.npz ceiling of a Battery graph of `version`: the retention
+    bound (64 MiB) through v6; under v7 (owner, 2026-10-21: no model-size
+    cap) none of its own, so the worker's registered output envelope binds."""
+    from carbon.level4.allowlist import UNCAPPED_VERSIONS
+    from carbon.reconstruction.worker import model as worker_model
+
+    if direct_graph.graph_allowlist(version).version in UNCAPPED_VERSIONS:
+        return worker_model.OUTPUT_BYTES
+    return MAX_STATE_BYTES
+
+
+def staged_allowlists(version: str) -> dict[str, bytes]:
+    """The allowlist files the staged direct_graph reads: v1 and the served
+    v6 always (1.0's stage, unchanged), plus v7 for a v7 version."""
+    from carbon.level4 import allowlist
+
+    files = {
+        "allowlist_v1.json": allowlist.PATH.with_name("allowlist_v1.json").read_bytes(),
+        "allowlist_v6.json": allowlist.served_bytes(),
+    }
+    if direct_graph.GRAPH_ALLOWLISTS.get(version) == "allowlist_v7.json":
+        files["allowlist_v7.json"] = allowlist.v7_bytes()
+    return files
 
 
 def checked_test_inputs(test_inputs: dict) -> bytes:
@@ -188,11 +231,11 @@ def staged_files(
     test_inputs: dict,
 ) -> dict[str, bytes]:
     """Host-verified public bytes for one fixed-program reconstruction."""
-    from carbon.level4 import intake, staging
+    from carbon.level4 import staging
 
     if type(recipe) is not ConstructionRecipe or type(seed) is not int or seed < 0:
         raise RecipeRefused("battery_direct_request_invalid")
-    kit = construction_kit.construction_kit()
+    kit = kit_for(recipe)
     bind_recipe(
         recipe.to_dict(),
         challenge_id=kit["id"],
@@ -204,10 +247,9 @@ def staged_files(
     if recipe.to_dict()["source"]["kind"] != "graph":
         raise RecipeRefused("battery_direct_source_unsupported")
     settings = direct_graph.training_settings(recipe)
-    if (
-        type(source_envelope) is not bytes
-        or len(source_envelope) > intake.BOUNDS["submission_bytes"] * 2
-    ):
+    # The version's own intake bound (`intake.bounds_for` its graph allowlist).
+    bound = direct_graph.submission_bytes(recipe.to_dict()["challenge"]["version"])
+    if type(source_envelope) is not bytes or len(source_envelope) > bound * 2:
         raise RecipeRefused("battery_direct_envelope_invalid")
     try:
         envelope = json.loads(source_envelope)
@@ -216,16 +258,14 @@ def staged_files(
         raise RecipeRefused("battery_direct_envelope_invalid") from None
     if declared != recipe.to_dict()["source"]["submission_digest"]:
         raise RecipeRefused("construction_recipe_graph_digest_mismatch")
-    workspace = graph_workspace(
-        recipe, raw_manifest, files, max_bytes=intake.BOUNDS["submission_bytes"]
-    )
+    workspace = graph_workspace(recipe, raw_manifest, files, max_bytes=bound)
     # The host checks G0/G3/G4 before reserving the carrier. The isolated
     # worker repeats every check against the staged bytes.
     direct_graph.build_validated_graph(
         recipe,
         raw_manifest,
         files,
-        max_bytes=intake.BOUNDS["submission_bytes"],
+        max_bytes=bound,
         train_cases=challenge.TRAIN_V1_CASES,
         resolved_settings=settings,
     )
@@ -245,13 +285,8 @@ def staged_files(
             for name, module in BATTERY_MODULES.items()
         }
     )
-    files_out["allowlist_v1.json"] = (
-        Path(__file__).resolve().parents[2] / "carbon" / "level4" / "allowlist_v1.json"
-    ).read_bytes()
-    from carbon.level4.allowlist import served_bytes
-
-    # The served allowlist the staged direct_graph validates against.
-    files_out["allowlist_v6.json"] = served_bytes()
+    # The allowlists the staged direct_graph validates against.
+    files_out.update(staged_allowlists(kit["version"]))
     settings_raw = canonical(settings)
     test_inputs_raw = checked_test_inputs(test_inputs)
     files_out.update(
@@ -267,7 +302,7 @@ def staged_files(
                     "kit": kit,
                     "seed": seed,
                     "train_cases": challenge.TRAIN_V1_CASES,
-                    "max_state_bytes": MAX_STATE_BYTES,
+                    "max_state_bytes": state_bytes_for(kit["version"]),
                 }
             ),
             **workspace,
@@ -314,7 +349,8 @@ def reconstruct_public(
         root, recipe, source_envelope, seed=seed, test_inputs=test_inputs
     )
     source = recipe.to_dict()["source"]
-    kit = construction_kit.construction_kit()
+    kit = kit_for(recipe)
+    state_bytes = state_bytes_for(kit["version"])
 
     def read_outputs(snapshot: Path) -> tuple[bytes, bytes, dict, dict]:
         expected = {"state.npz", "predictions.json", "fit.json"}
@@ -331,7 +367,7 @@ def reconstruct_public(
                 raise ValueError("bounded direct reconstruction output required")
             return path.read_bytes()
 
-        state = bounded("state.npz", MAX_STATE_BYTES)
+        state = bounded("state.npz", state_bytes)
         predictions_raw = bounded("predictions.json", 16 * 1024 * 1024)
         fit = json.loads(bounded("fit.json", 65536))
         predictions = json.loads(predictions_raw)

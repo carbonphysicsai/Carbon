@@ -89,13 +89,17 @@ def registered(challenge_id: str, version: str) -> ServedRecipeContract:
         attachment = RemoteStageAttachment(
             "remote-stage-battery-v1.0", "SIGNED_RESEARCH"
         )
-    elif (challenge_id, version) == (battery_challenge.CHALLENGE.challenge_id, "2.0"):
-        # The step-2 version (STEP2_BATCH_VERSIONS_20261020).
+    elif challenge_id == battery_challenge.CHALLENGE.challenge_id and version in (
+        "2.0",
+        "2.1",
+    ):
+        # The step-2 version (STEP2_BATCH_VERSIONS_20261020) and the catalog
+        # version 2.1 (allowlist v7), each its own served material.
         from carbon.battery.construction_bundle_material import versioned_material
 
-        material = versioned_material("2.0")
+        material = versioned_material(version)
         attachment = RemoteStageAttachment(
-            "remote-stage-battery-v2.0", "SIGNED_RESEARCH"
+            "remote-stage-battery-v" + version, "SIGNED_RESEARCH"
         )
     elif physical_material.is_registered(challenge_id, version):
         material = physical_material.bundle_material(challenge_id, version)

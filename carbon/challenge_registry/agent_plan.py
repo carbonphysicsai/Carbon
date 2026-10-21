@@ -108,7 +108,7 @@ def graphite_plan(budget, selection, graphite):
     from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
     from carbon.development_session.research_campaign import FINAL_EPOCHS
     from carbon.development_session.research_tools import (
-        ARGUMENT_NORMALISATION_V2,
+        ARGUMENT_NORMALISATION_V3,
         TOOLS_RULE,
     )
 
@@ -136,10 +136,10 @@ def graphite_plan(budget, selection, graphite):
         "parallel_calls": PARALLEL_CALLS_V2,
         "miner_guidance": miner_guidance.RULE,
         "research_tools": TOOLS_RULE,
-        # RESEARCH-TOOL-USABILITY-01: new plans freeze v2; a plan that froze
-        # v1 (or no rule) keeps it.
+        # A new Graphite plan freezes v3 (workspace defaults, M1 rehearsal
+        # 2026-10-21); a plan that froze v2, v1 or no rule keeps it.
         "research_reply": RESEARCH_REPLY_RULE,
-        "argument_normalisation": ARGUMENT_NORMALISATION_V2,
+        "argument_normalisation": ARGUMENT_NORMALISATION_V3,
         "limits": {
             "plan": edition.limits_rule(
                 limits.get("planner_calls"), limits.get("trials_per_epoch")

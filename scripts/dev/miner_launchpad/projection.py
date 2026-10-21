@@ -650,6 +650,9 @@ _HUNT_FIELDS = ("fetched", "deduped", "triaged_out", "extracted", "failed_infra"
 _STAGE_NAME = re.compile(r"[a-z][a-z0-9_-]{0,31}")
 _STAGE_STATES = ("PENDING", "RUNNING", "DONE", "STOPPED", "RETAINED")
 _CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
+#: A stage's replies cut at the output cap (`research_loop.OUTPUT_CAP_HIT`),
+#: restated so the projection imports no research loop.
+OUTPUT_CAP_CAUSE = "turn_hit_output_cap"
 
 
 def _graphite_view(root, operations):
@@ -707,15 +710,17 @@ def _stages(value):
         if not _STAGE_NAME.fullmatch(row["stage"]):
             continue
         code = row.get("code")
-        rows.append(
-            {
-                "stage": row["stage"],
-                "state": (
-                    row.get("state") if row.get("state") in _STAGE_STATES else None
-                ),
-                "code": code if type(code) is str and _CODE.fullmatch(code) else None,
-            }
-        )
+        shown = {
+            "stage": row["stage"],
+            "state": (row.get("state") if row.get("state") in _STAGE_STATES else None),
+            "code": code if type(code) is str and _CODE.fullmatch(code) else None,
+        }
+        if row.get("cause") == OUTPUT_CAP_CAUSE:
+            # Replies cut at the output cap: the cap they hit (S3's view).
+            cap = row.get("output_cap")
+            shown["cause"] = OUTPUT_CAP_CAUSE
+            shown["output_cap"] = cap if type(cap) is int and 0 < cap <= 10**7 else None
+        rows.append(shown)
     return rows[:16]
 
 

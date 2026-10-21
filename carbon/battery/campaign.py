@@ -182,7 +182,7 @@ def graphite_plan(budget, selection, graphite):
     from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
     from carbon.development_session.research_campaign import FINAL_EPOCHS
     from carbon.development_session.research_tools import (
-        ARGUMENT_NORMALISATION_V2,
+        ARGUMENT_NORMALISATION_V3,
         TOOLS_RULE,
     )
 
@@ -220,7 +220,7 @@ def graphite_plan(budget, selection, graphite):
         # and arguments_json "null" as JSON null; a plan that froze v1 keeps
         # v1.
         "research_reply": RESEARCH_REPLY_RULE,
-        "argument_normalisation": ARGUMENT_NORMALISATION_V2,
+        "argument_normalisation": ARGUMENT_NORMALISATION_V3,
         "limits": {
             "plan": edition.limits_rule(
                 limits.get("planner_calls"), limits.get("trials_per_epoch")
@@ -499,8 +499,10 @@ async def prepare_battery(args, *, ledger=None, campaign):
         from carbon.development_session.agent import ResponsesTransport
         from carbon.development_session.model_provider import SelectionTransport
         from carbon.development_session.research_campaign import (
+            new_plan_elapsed_seconds,
             new_plan_input_default,
             new_plan_output_default,
+            new_plan_timeout_default,
             supplied_selection,
         )
 
@@ -516,6 +518,8 @@ async def prepare_battery(args, *, ledger=None, campaign):
             selection = supplied_selection(
                 args,
                 output_default=new_plan_output_default(args),
+                timeout_default=new_plan_timeout_default(args),
+                elapsed_seconds=new_plan_elapsed_seconds(args),
                 input_default=new_plan_input_default(args, agent),
             )
             if agent == "graphite":
@@ -934,6 +938,15 @@ def evaluation_config(prepared):
     return found or getattr(prepared.args, "battery_validator", None)
 
 
+def _own_version(args):
+    """The campaign's arguments reading only this version's intake, when the
+    profile names this Challenge's intakes per version (`version_intakes`);
+    the same arguments otherwise."""
+    from carbon.development_session.intake_targets import args_for_version
+
+    return args_for_version(args, CHALLENGE.challenge_id, CHALLENGE.version)
+
+
 def _intake(prepared):
     """The validator intake for this Challenge: the profile's per-Challenge
     `intakes` (C-MLP-04), or a legacy `battery_intake`."""
@@ -974,6 +987,10 @@ async def evaluate_candidate(prepared, epoch, record):
     from .deployment import EvaluationUnavailable, evaluate, validator
 
     require_submission(prepared)
+    own_version = _own_version(prepared.args)
+    if own_version is not prepared.args:
+        prepared = SimpleNamespace(**vars(prepared))
+        prepared.args = own_version
     config = evaluation_config(prepared)
     intake = _intake(prepared)
     _level_record_bound(prepared, record)
@@ -1416,6 +1433,7 @@ def commitment_due(args, root, epoch):
     intake's to refuse (`intake.RECEIVED_AGAIN`)."""
     from . import remote_submission as rs
 
+    args = _own_version(args)
     prepared = SimpleNamespace(args=args)
     if evaluation_config(prepared) is not None or _intake(prepared) is None:
         return False
@@ -1692,6 +1710,7 @@ def queued_verdict(
     from . import remote_submission as rs
 
     root = Path(root)
+    args = _own_version(args)
     prepared = SimpleNamespace(args=args)
     url = _intake(prepared)
     if evaluation_config(prepared) is not None or url is None:

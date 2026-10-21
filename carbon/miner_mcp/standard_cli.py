@@ -409,8 +409,19 @@ class DirectOwnerImageResolver:
     A miner cannot supply a host path or choose the construction parent.
     """
 
-    def __init__(self, cache_root, parent=None, *, material_cache_bytes=None):
+    def __init__(
+        self, cache_root, parent=None, *, material_cache_bytes=None, parents=None
+    ):
+        from carbon.development_session.gpu_practice import DirectParents
         from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+        # Two construction parents (OWNER-BACKBONE-CATALOG-01): each bundle's
+        # parent is chosen from its pinned runtime only.
+        if parents is not None and (
+            type(parents) is not DirectParents or parent is not None
+        ):
+            raise ValueError("either one parent or the per-runtime parents")
+        self.parents = parents
 
         if (
             not isinstance(cache_root, Path)
@@ -483,7 +494,10 @@ class DirectOwnerImageResolver:
             load_cached_library_worker_image,
         )
 
-        if self.parent is None:
+        parent = (
+            self.parent if self.parents is None else self.parents.for_bundle(bundle)
+        )
+        if parent is None:
             raise ValueError("trusted construction parent required")
         expected_backends = {
             "python-cpu-py311": None,
@@ -493,23 +507,25 @@ class DirectOwnerImageResolver:
         }
         if (
             bundle.runtime_profile_id not in expected_backends
-            or direct_parent_backend(self.parent)
+            or direct_parent_backend(parent)
             != expected_backends[bundle.runtime_profile_id]
         ):
             raise ValueError("installed parent backend differs from recipe bundle")
         if not self.cache_root.is_dir():
             raise FileNotFoundError("owner library cache is not installed")
-        receipt, context = library_image_cache_paths(
-            self.cache_root, bundle, self.parent
-        )
+        receipt, context = library_image_cache_paths(self.cache_root, bundle, parent)
         if not receipt.is_file() or receipt.is_symlink():
             raise FileNotFoundError("verified owner bundle receipt is missing")
         return load_cached_library_worker_image(
             receipt,
             expected_bundle=bundle,
-            expected_parent=self.parent,
+            expected_parent=parent,
             context_root=context.parent,
         )
+
+    def parent_for(self, bundle):
+        """The construction parent for `bundle` (its pinned runtime's)."""
+        return self.parent if self.parents is None else self.parents.for_bundle(bundle)
 
 
 def load_profile(path: Path, campaign: str, *, cleanup_only=False) -> OperatorProfile:

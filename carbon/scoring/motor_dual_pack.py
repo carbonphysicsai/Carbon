@@ -127,6 +127,9 @@ VERSIONS = {
     # Validator, 2026-10-20: 1.2 is 1.1's bank, physics and roles under the
     # backbone-catalog kit, so it is 1.1's measurement under 1.1's name.
     "1.2": ("motor-dual-development-bank-90-v3", CASE_ID),
+    # Allowlist v7's catalog version (Validator, 2026-10-20): the predecessor's
+    # measurement under its evaluation version; only the served allowlist differs.
+    "1.3": ("motor-dual-development-bank-90-v3", CASE_ID),
 }
 OUTPUT = {"quantity": "torque_nm", "unit": "N.m"}
 FILES = ("motor_dual_pack.py", "motor_dual_measurement.py")

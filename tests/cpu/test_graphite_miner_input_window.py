@@ -56,6 +56,7 @@ def new_plan(args, agent="graphite"):
         args,
         output_default=campaigns.new_plan_output_default(args),
         input_default=campaigns.new_plan_input_default(args, agent),
+        timeout_default=campaigns.new_plan_timeout_default(args),
     )
 
 

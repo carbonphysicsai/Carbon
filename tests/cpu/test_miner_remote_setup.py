@@ -346,6 +346,43 @@ def test_the_live_check_reaches_the_machine_and_starts_nothing(tmp_path):
     assert clients[0].reached == ("miner@gpu-box", 2222)
 
 
+def test_lium_dind_is_offered_and_probed_like_every_ssh_docker_row(tmp_path):
+    """S15c: Lium's "Pytorch (Cuda + DinD)" template is an ssh-docker setup
+    (Docker with --gpus all in the pod, Test Lead, RTX A6000). Its card
+    sets ssh-docker, and its machine is checked by the same Docker probe as
+    every other ssh-docker card; Lium's own card stays ssh-container."""
+    from carbon.compute.remote_transport import RemoteMachine
+
+    remote = {c["id"]: c for c in choices()["compute"]}[REMOTE]
+    cards = {card["id"]: card for card in remote["guides"]["cards"]}
+    assert cards["lium-dind"]["display_name"] == "Lium · Pytorch (Cuda + DinD)"
+    assert cards["lium-dind"]["transport"] == "ssh-docker"
+    assert cards["lium"]["transport"] == "ssh-container"
+    # The card's guide section and its commands: nothing to push.
+    assert cards["lium-dind"]["steps"]
+    commands = [c["command"] for c in cards["lium-dind"]["commands"]]
+    assert not any("push_worker_image" in c for c in commands)
+    probes = {}
+    for guide_id, card in cards.items():
+        if card["transport"] != "ssh-docker":
+            continue
+        checks, manifest, clients = live(tmp_path)
+        machine = RemoteMachine(
+            transport=card["transport"], destination="root@" + guide_id, port=40022
+        )
+        found = checks.remote(manifest, machine, campaign())
+        assert found["check"]["worker_image"] == "present"
+        assert found["remote_scope"] == remote_scope(
+            BATTERY_CHALLENGE, gpu_image(), "ssh-docker"
+        )
+        ((script,),) = [c.scripts for c in clients]
+        assert "docker info" in script and "docker run" not in script
+        probes[guide_id] = script.replace("root@" + guide_id, "<destination>")
+    assert {"lium-dind", "targon", "lambda", "own-server"} <= set(probes)
+    # One probe for every ssh-docker row, Lium DinD's included.
+    assert len(set(probes.values())) == 1
+
+
 @pytest.mark.parametrize(
     "status,field,code",
     [

@@ -84,6 +84,15 @@ def _receipt_snapshot(path: Path, expected: dict, label: str) -> bytes:
     return raw
 
 
+def _construction_parent(provider, bundle):
+    """The parent `provider` builds `bundle` on: its pinned runtime's when the
+    supervisor serves per-runtime parents, else its one parent."""
+    parents = getattr(provider, "construction_parents", None)
+    if parents is None:
+        return provider.construction_parent
+    return parents.for_bundle(bundle)
+
+
 def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, material):
     """Gather only the graph task's original, verified DEVELOPMENT bytes."""
     from carbon.development_session.bundle_construction_worker import _tensors
@@ -1222,6 +1231,8 @@ def retain_served_result(
             selected = LibraryBundleRef.from_dict(
                 recipe.to_dict()["source"]["bundle_ref"]
             )
+            # Each bundle's parent is its pinned runtime's (two CPU parents).
+            parent = _construction_parent(provider, selected)
             binding = json.loads(admitted_binding)
             receipt = evidence["prep_receipt"]
             if (
@@ -1231,19 +1242,17 @@ def retain_served_result(
                 or type(binding[1]) is not dict
                 or binding[1]
                 != {
-                    "parent_image_id": provider.construction_parent.image_id,
+                    "parent_image_id": parent.image_id,
                     "bundle_ref": selected.to_dict(),
                     "tree_digest": evidence["overlay_tree_digest"],
                     "archive_digest": evidence["overlay_archive_digest"],
                 }
                 or receipt.get("bundle_ref") != selected.to_dict()
-                or receipt.get("parent_image_id")
-                != provider.construction_parent.image_id
+                or receipt.get("parent_image_id") != parent.image_id
                 or receipt.get("tree_digest") != evidence["overlay_tree_digest"]
                 or receipt.get("archive_sha256") != evidence["overlay_archive_digest"]
-                or evidence.get("image_id") != provider.construction_parent.image_id
-                or evidence.get("parent_image_id")
-                != provider.construction_parent.image_id
+                or evidence.get("image_id") != parent.image_id
+                or evidence.get("parent_image_id") != parent.image_id
                 or evidence.get("inference_image_id")
                 != provider.inference_image.image_id
                 or any(
@@ -1260,7 +1269,7 @@ def retain_served_result(
             manifest, source, wheels, lock, license_text = load_pinned_bundle_directory(
                 directory
             )
-            verify_bundle_parent_environment(manifest, provider.construction_parent)
+            verify_bundle_parent_environment(manifest, parent)
             if bundle_ref(manifest, source, wheels, lock, license_text) != selected:
                 raise ValueError("staged bundle identity changed")
             manifest_raw = (directory / "bundle.json").read_bytes()
@@ -1275,7 +1284,7 @@ def retain_served_result(
             target = cache_root / "overlays"
             for identity in (
                 selected.bundle_digest,
-                provider.construction_parent.image_id,
+                parent.image_id,
                 evidence["overlay_archive_digest"],
                 evidence["overlay_tree_digest"],
             ):
@@ -1284,7 +1293,7 @@ def retain_served_result(
                 raise ValueError("cached overlay unavailable")
             _verified_overlay_tree(target, receipt)
             image_record = {
-                "parent_image_id": provider.construction_parent.image_id,
+                "parent_image_id": parent.image_id,
                 "bundle_digest": selected.bundle_digest,
                 "overlay_tree_digest": evidence["overlay_tree_digest"],
                 "overlay_archive_digest": evidence["overlay_archive_digest"],
@@ -1750,6 +1759,21 @@ def regrade_retained_entry(
     )
     material = discovery._material
     provider = adapter._provider(owner)
+    # The retained model was built on the parent its retention recorded; a
+    # regrade runs only while this receiver serves that bundle runtime on the
+    # same parent image (Validator, OWNER-BACKBONE-CATALOG-01).
+    from carbon.development_session.library_bundles import LibraryBundleRef
+
+    try:
+        retained_parent = json.loads(files["image.json"])["parent_image_id"]
+        current_parent = _construction_parent(
+            provider,
+            LibraryBundleRef.from_dict(recipe.to_dict()["source"]["bundle_ref"]),
+        ).image_id
+    except (KeyError, TypeError, ValueError, AttributeError):
+        raise RetentionUnavailable("regrade_construction_parent_unavailable") from None
+    if retained_parent != current_parent:
+        raise RetentionUnavailable("regrade_construction_parent_differs")
     try:
         bank_raw = snapshot.read_role(
             discovery.evaluation_pack_private_root,

@@ -37,6 +37,9 @@ RUNTIME_KEYS = frozenset({"implementation", "images", "authored_research"})
 #: recipes, PyTorch CPU practice, submit through the signed construction
 #: receiver. Built under its research key (`contracts.keyed`); 1.0 is unchanged.
 CATALOG_VERSION = "1.2"
+#: Every catalog version: 1.2 (v6) and 1.3, 1.2 plus allowlist v7 (Validator,
+#: 2026-10-20). Each serves exactly its own version, by its research key.
+CATALOG_VERSIONS = (CATALOG_VERSION, "1.3")
 
 
 def _key():
@@ -46,14 +49,14 @@ def _key():
 
 
 def _catalog():
-    return _key().version == CATALOG_VERSION
+    return _key().version in CATALOG_VERSIONS
 
 
 def _contract_digest():
     if _catalog():
         from carbon.reconstruction.served_recipe_contract import registered
 
-        return registered(CHALLENGE.challenge_id, CATALOG_VERSION).digest
+        return registered(CHALLENGE.challenge_id, _key().version).digest
     from carbon.reconstruction.capability_registry import contract_digest
 
     return contract_digest(CHALLENGE.challenge_id)
@@ -63,7 +66,7 @@ def _control():
     if _catalog():
         from carbon.challenge_registry.motor import catalog_recipe
 
-        return catalog_recipe(version=CATALOG_VERSION)
+        return catalog_recipe(version=_key().version)
     from .research import SCAFFOLD
 
     return SCAFFOLD
@@ -189,6 +192,7 @@ def compose(
             parent=image,
             cache_root=ledger.root.parent / ".direct-development" / "library-cache",
             root=REPOSITORY,
+            version=_key().version,
             runner=runner,
         )
     else:
@@ -237,8 +241,10 @@ async def prepare_motor(args, *, ledger=None, campaign):
     from carbon.development_session.research_campaign import (
         PreparedCampaign,
         campaign_implementation,
+        new_plan_elapsed_seconds,
         new_plan_input_default,
         new_plan_output_default,
+        new_plan_timeout_default,
         private_file,
         requester,
         supplied_selection,
@@ -282,6 +288,8 @@ async def prepare_motor(args, *, ledger=None, campaign):
             selection = supplied_selection(
                 args,
                 output_default=new_plan_output_default(args),
+                timeout_default=new_plan_timeout_default(args),
+                elapsed_seconds=new_plan_elapsed_seconds(args),
                 input_default=new_plan_input_default(args, agent),
             )
             if agent == "graphite":
@@ -427,9 +435,11 @@ async def prepare_motor(args, *, ledger=None, campaign):
 
 def _direct_target(args):
     """The signed construction receiver this campaign submits to: the
-    profile's per-Challenge intake and receiver, else its direct target."""
-    from carbon.development_session.intake_targets import validate
+    profile's per-Challenge intake and receiver (for exactly this version,
+    when the profile names it per version), else its direct target."""
+    from carbon.development_session.intake_targets import args_for_version, validate
 
+    args = args_for_version(args, CHALLENGE.challenge_id, _key().version)
     url = (getattr(args, "intakes", None) or {}).get(CHALLENGE.challenge_id)
     hotkey = (getattr(args, "receivers", None) or {}).get(CHALLENGE.challenge_id)
     if url is not None and hotkey is not None:
@@ -466,7 +476,7 @@ async def evaluate_frozen(prepared, epoch, strategy):
     if target is None:
         raise OperationRefused("construction_intake_unconfigured")
     recipe = ConstructionRecipe.from_dict(strategy)
-    contract = registered(CHALLENGE.challenge_id, CATALOG_VERSION)
+    contract = registered(CHALLENGE.challenge_id, _key().version)
     connection = prepared.sdk.connection
     try:
         result = await asyncio.to_thread(
@@ -497,7 +507,7 @@ async def evaluate_frozen(prepared, epoch, strategy):
         raise OperationRefused("construction_intake_unavailable") from None
     feedback = {
         "schema": "carbon.motor.permitted-feedback.v1",
-        "challenge": {"id": CHALLENGE.challenge_id, "version": CATALOG_VERSION},
+        "challenge": {"id": CHALLENGE.challenge_id, "version": _key().version},
         "recipe_digest": recipe.digest,
         "result": result,
         "exam_feedback": ladder,

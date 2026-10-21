@@ -134,6 +134,14 @@ _CODE = re.compile(r"[a-z][a-z0-9_]{0,63}|[A-Z][A-Z0-9_]{0,63}")
 #: Each step is fixed text; it names an MCP tool in parentheses where one
 #: helps, as the Control Center's own steps do.
 NEXT_ACTIONS = {
+    # A Graphite tool result withheld by the protected-material guard: the
+    # request itself was fine; the record names the classes that matched.
+    "protected_material_in_result": (
+        "Carbon withheld this tool result because it named material an agent "
+        "is never shown; the request itself was not wrong. Use another source "
+        "for what you needed; if the result was Carbon's own public document, "
+        "report the campaign and the marker classes its refusal record names."
+    ),
     "submission_policy_invalid": "Restore the campaign’s original frozen launch records; this policy cannot change on resume.",
     "submission_retained_by_policy": "This launch retains candidates without commitment or validator submission. Launch a separate campaign to submit.",
     "construction_checks_unavailable": (
@@ -1225,9 +1233,11 @@ NEXT_ACTIONS = {
         "they were."
     ),
     "graphite_edition_unknown": (
-        "This campaign names a Graphite edition this Carbon does not have, so "
-        "nothing was called. Update Carbon (re-run the installer), then "
-        "resume; or launch a new campaign."
+        "This launch or campaign names a Graphite edition this Carbon does not "
+        "have, so nothing was called. For a new launch, send graphite_edition "
+        "as one carbon_options lists (graphite.editions), or omit it for v1. "
+        "For a campaign, update Carbon (re-run the installer), then resume; "
+        "or launch a new campaign."
     ),
     "graphite_not_offered_for_challenge": (
         "Graphite runs only on a Challenge with a registered research "
@@ -1235,8 +1245,8 @@ NEXT_ACTIONS = {
         "Graphite is offered), or launch with agent=none."
     ),
     "graphite_fields_need_the_graphite_agent": (
-        "graphite_mode, research_share, plan, hunt and limits are Graphite's: "
-        "send agent=graphite, or leave them out."
+        "graphite_mode, graphite_edition, research_share, plan, hunt and "
+        "limits are Graphite's: send agent=graphite, or leave them out."
     ),
     "graphite_mode_invalid": "Send graphite_mode as RESEARCH, BUILD or FULL, or omit it for FULL.",
     "graphite_field_not_used_by_mode": (
@@ -1300,6 +1310,14 @@ NEXT_ACTIONS = {
         "more of your provider_nanodollars ceiling per call, and a FULL "
         "launch's research share must hold one whole call."
     ),
+    "compaction_failed": (
+        "The agent stopped because it could not write a valid summary of its "
+        "history to stay inside your model's input window; no history was "
+        "silently dropped. Launch a new campaign with "
+        "model_settings.max_input_tokens set higher, up to your model's "
+        "published context less max_output_tokens (input_window lists both), "
+        "or with a model that follows the summary instruction."
+    ),
     "context_ceiling": (
         "The agent stopped because its next request could pass your model's "
         "input window as Carbon bounds it; no history was silently dropped. "
@@ -1324,6 +1342,17 @@ NEXT_ACTIONS = {
         "The research stages used the share of your budget you set, so they "
         "stopped there and the build went on. Launch again with a larger "
         "research_share to research longer."
+    ),
+    # A FULL campaign, or a BUILD with no chosen plan, whose Planner's
+    # replies were cut at the output cap (`driver.plan_cut_at_output_cap`):
+    # its build is not run on no plan.
+    "graphite_plan_output_cap": (
+        "The Planner's replies were cut at the output cap before it wrote a "
+        "plan, so the build was not run without one. Launch a new campaign "
+        "with max output tokens (model_settings.max_output_tokens, the "
+        "wizard's max output) set higher, up to your model's own maximum if "
+        "you know it. Resuming this campaign does not help: it keeps the cap "
+        "it was launched with."
     ),
     "plan_not_found": (
         "No plan in your library has that digest. List your plans "

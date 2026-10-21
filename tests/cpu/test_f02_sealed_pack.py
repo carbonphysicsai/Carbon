@@ -153,3 +153,25 @@ def test_the_evidence_binds_the_document_and_records():
     assert np.array_equal(
         bank["inputs"], sealed.sealed_bank(document, records)["inputs"]
     )
+
+
+def test_the_v7_version_is_graded_from_the_same_sealed_batches():
+    """F02 2.2 (v7 catalog) is graded from 2.1's sealed batches (Validator:
+    one rule for catalog versions): the same bank, byte for byte."""
+    import numpy as np
+
+    doc, records = batch()
+    old = sealed.sealed_bank(doc, records, version="2.1")
+    for version in ("2.2", "2.3"):
+        new = sealed.sealed_bank(doc, records, version=version)
+        assert set(old) == set(new)
+        for key in old:
+            if isinstance(old[key], np.ndarray):
+                assert (
+                    np.array_equal(old[key], new[key])
+                    and old[key].dtype == new[key].dtype
+                )
+            else:
+                assert old[key] == new[key], key
+    with pytest.raises(sealed.SealedPackRefused):
+        sealed.sealed_bank(doc, records, version="9.9")

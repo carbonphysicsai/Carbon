@@ -93,6 +93,10 @@ PACK_VERSIONS = {
     # version; graded by 1.1's evaluation versions (Validator, 2026-10-20:
     # only the construction source changes).
     (motor.CHALLENGE.challenge_id, "1.2"): "motor-normal-construction-development-3",
+    # The v7 catalog versions (Launchpad 294c3f1e7; Validator): each is its
+    # predecessor's exam content under its own pack version; only the
+    # construction kit (and the version in identity-bearing roles) differs.
+    (motor.CHALLENGE.challenge_id, "1.3"): "motor-normal-construction-development-4",
     (
         cooling.CHALLENGE.challenge_id,
         "1.0",
@@ -101,13 +105,24 @@ PACK_VERSIONS = {
         cooling.CHALLENGE.challenge_id,
         "1.1",
     ): "cooling-normal-construction-development-2",
+    (
+        cooling.CHALLENGE.challenge_id,
+        "1.2",
+    ): "cooling-normal-construction-development-3",
     (battery_pack.CHALLENGE_ID, "1.0"): battery_pack.PACK_VERSION,
     (battery_pack.CHALLENGE_ID, "2.0"): "battery-normal-construction-development-3",
+    (battery_pack.CHALLENGE_ID, "2.1"): "battery-normal-construction-development-4",
     (f08_train.CHALLENGE_ID, "1.0"): "f08-normal-construction-development-1",
     (f08_train.CHALLENGE_ID, "1.1"): "f08-normal-construction-development-2",
     (f08_train.CHALLENGE_ID, "1.2"): "f08-normal-construction-development-3",
+    (f08_train.CHALLENGE_ID, "1.3"): "f08-normal-construction-development-4",
+    # F08 1.4 and F02 2.3 (catalog + graph, allowlist v7; Launchpad fda49512e;
+    # Validator): the predecessor's exam under their own pack versions.
+    (f08_train.CHALLENGE_ID, "1.4"): "f08-normal-construction-development-5",
     (f02_train.CHALLENGE_ID, "2.0"): "f02-normal-construction-development-2",
     (f02_train.CHALLENGE_ID, "2.1"): "f02-normal-construction-development-3",
+    (f02_train.CHALLENGE_ID, "2.2"): "f02-normal-construction-development-4",
+    (f02_train.CHALLENGE_ID, "2.3"): "f02-normal-construction-development-5",
 }
 #: F02's eight registered cold actions (the scoring producer's
 #: `_F02_ACTIONS`), judged B10 ACCEPTED_FOR_DEVELOPMENT_BANK by RR-PACKS-04's
@@ -196,6 +211,26 @@ _F08_EXAMS = {
         F08_LADDER_DECISION_COVERAGE,
         F08_LADDER_POPULATION,
         "f08-normal-construction-development-3",
+    ),
+    # 1.3 (v7 catalog): 1.2's ladder bank and TRAIN v2, unchanged.
+    "1.3": (
+        _F08_LADDER_OBSERVED,
+        _F08_LADDER_ENVIRONMENT,
+        "ladder",
+        "decision_near_limit",
+        F08_LADDER_DECISION_COVERAGE,
+        F08_LADDER_POPULATION,
+        "f08-normal-construction-development-4",
+    ),
+    # 1.4 (catalog + graph): 1.3's ladder bank and TRAIN v2, unchanged.
+    "1.4": (
+        _F08_LADDER_OBSERVED,
+        _F08_LADDER_ENVIRONMENT,
+        "ladder",
+        "decision_near_limit",
+        F08_LADDER_DECISION_COVERAGE,
+        F08_LADDER_POPULATION,
+        "f08-normal-construction-development-5",
     ),
 }
 _F08_BRIEF = (
@@ -533,19 +568,43 @@ def _pinned_repository_file(path_and_sha: tuple[str, str]) -> bytes:
     return raw
 
 
+#: F08's registered reference uncertainty (Validator-approved 2026-10-20),
+#: read by sha: from 1.4 the limit statement cites its dynamic U.
+_F08_U_RECORD = (
+    _F08_LADDER_DIR + "/reference-uncertainty/f08-reference-uncertainty.json",
+    "19bb06c321c5294a9f598bfc3ca3998d9a4ba1f45500117127cd8e20620d4359",
+)
+#: Versions served before the U record keep their bytes: their statement
+#: carries the pre-record 3.4e-5 (Validator, 2026-10-21: the registered U
+#: governs; the fix is prospective, so served material is not rewritten).
+_F08_PRE_U_VERSIONS = ("1.1", "1.2", "1.3")
+
+
 def _f08_limit_extras(version: str) -> dict:
     """1.1's limit statement: the exam straddles the dynamic limit, and the
-    TRAIN mesh reads slightly lower than the exam truth there."""
+    TRAIN mesh reads slightly lower than the exam truth there. From 1.4 the
+    reference term is the registered U (worst dynamic, 3.9e-5 mm/N)."""
     if version == "1.0":
         return {}
+    straddle = {
+        "limit": "dynamic_tip_mm_per_n_max",
+        "safe": 4,
+        "unsafe": 4,
+        "smallest_margin_mm_per_n": 0.00286,
+    }
+    if version in _F08_PRE_U_VERSIONS:
+        straddle["largest_reference_error_mm_per_n"] = 3.4e-5
+    else:
+        record = json.loads(_pinned_repository_file(_F08_U_RECORD))
+        straddle["reference_uncertainty_mm_per_n"] = record["U"][
+            "worst_dynamic_mm_per_n"
+        ]
+        straddle["reference_uncertainty_record"] = {
+            "path": _F08_U_RECORD[0],
+            "sha256": _F08_U_RECORD[1],
+        }
     return {
-        "exam_straddle": {
-            "limit": "dynamic_tip_mm_per_n_max",
-            "safe": 4,
-            "unsafe": 4,
-            "smallest_margin_mm_per_n": 0.00286,
-            "largest_reference_error_mm_per_n": 3.4e-5,
-        },
+        "exam_straddle": straddle,
         "train_mesh": dict(f08_train.TRAIN_MESH_STATEMENT),
     }
 

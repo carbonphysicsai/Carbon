@@ -38,6 +38,7 @@ from carbon.development_session.research_service import BURGERS_SCAFFOLD
 from carbon.development_session.research_tools import (
     ARGUMENT_NORMALISATION,
     ARGUMENT_NORMALISATION_V2,
+    ARGUMENT_NORMALISATION_V3,
     PREFIX,
     TOOLS,
     TOOLS_RULE,
@@ -768,7 +769,8 @@ def test_frozen_plans_and_tool_surfaces_replay_unchanged(tmp_path):
         from carbon.development_session.research_reply import RULE as REPLY_RULE
 
         assert new["research_reply"] == REPLY_RULE
-        assert new["argument_normalisation"] == ARGUMENT_NORMALISATION_V2
+        # A new Graphite plan freezes v3 (M1 rehearsal, 2026-10-21).
+        assert new["argument_normalisation"] == ARGUMENT_NORMALISATION_V3
         old = {k: v for k, v in new.items() if k != "research_reply"}
         old["argument_normalisation"] = ARGUMENT_NORMALISATION
         assert digest(canonical(old)) == GRAPHITE_PLAN_V1_DIGEST
@@ -788,7 +790,10 @@ def test_frozen_plans_and_tool_surfaces_replay_unchanged(tmp_path):
         assert tools_for_sdk(SimpleNamespace(ledger=meter)) is TOOLS_V2
     assert digest(canonical(TOOLS)) == HISTORICAL_TOOLS_DIGEST
     assert digest(canonical(TOOLS_V2)) == TOOLS_V2_DIGEST
+    # Every rule a campaign may have frozen stays registered; v3 joined from
+    # the M1 rehearsal (2026-10-21).
     assert research_tools.ARGUMENT_NORMALISATIONS == (
         ARGUMENT_NORMALISATION,
         ARGUMENT_NORMALISATION_V2,
+        ARGUMENT_NORMALISATION_V3,
     )
