@@ -73,10 +73,22 @@ JAX_LEVERS = Schema(
     frozenset({"learning_rate"}),
     LEVERS.train_use,
 )
-SCHEMAS = {s.schema_id: s for s in (COVERAGE, LEVERS, JAX_LEVERS)}
+#: The levers build resized to Cooling's 32 outputs (60 -> 32 in its
+#: Transolver curve; `codex-queue/inputs/cooling_catalog/
+#: build_cooling_packets.py`): the same vocabulary as the levers build, its
+#: own build bytes, each entry with its own Cooling pair-identity receipt.
+COOLING_LEVERS = Schema(
+    "carbon-candidate-levers-cooling-v1",
+    "carbon_candidate/build.py",
+    "sha256:c017c4e6c0f65bd9ae7548ce66cde43f9bde51875a8c4cbf4962744033e23c4a",
+    LEVERS.configuration,
+    LEVERS.train_use,
+)
+SCHEMAS = {s.schema_id: s for s in (COVERAGE, LEVERS, JAX_LEVERS, COOLING_LEVERS)}
 #: Each levers build's accepted mixed-precision values.
 PRECISIONS = {
     LEVERS.schema_id: ("bfloat16", "float16"),
+    COOLING_LEVERS.schema_id: ("bfloat16", "float16"),
     JAX_LEVERS.schema_id: ("bfloat16", "float16", "float32"),
 }
 #: The levers build's architecture settings, per backbone (its `ARCH`).

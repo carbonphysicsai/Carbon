@@ -51,6 +51,16 @@ CLEAN = {
     "thuml.Galerkin_Transformer",
     "thuml.Transolver",
 }
+#: The five Torch builds resized to Cooling's 32 outputs, each with its own
+#: Cooling pair-identity receipt (Test Lead, PAIR_IDENTITY_COOLING_CATALOG_
+#: 20261020), offered on Cooling 1.2 only.
+COOLING = {
+    "cooling.neuralop.FNO",
+    "cooling.neuralop.TFNO",
+    "cooling.neuralop.UQNO",
+    "cooling.physicsnemo.FullyConnected",
+    "cooling.transolver",
+}
 #: A coverage-build entry as the cleaned DeepXDE/THUML bundles declare it.
 COVERAGE_ITEM = {
     "catalog_id": "thuml.FNO",
@@ -64,7 +74,7 @@ COVERAGE_ITEM = {
 
 
 def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
-    assert set(pipeline.verify_all()) == TORCH | JNO | CLEAN
+    assert set(pipeline.verify_all()) == TORCH | JNO | CLEAN | COOLING
     # Motor 1.2 is unchanged: the five Torch entries. Motor 1.3 (1.2 plus
     # allowlist v7) adds the eleven jNO entries, built on the C-03 CPU parent,
     # and the six cleaned DeepXDE/THUML entries.
@@ -76,9 +86,13 @@ def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
     # versions.
     for item in pipeline.entries():
         assert item["challenges"] == (
-            [{**MOTOR, "version": "1.3"}]
-            if item["catalog_id"] in JNO | CLEAN
-            else [MOTOR, {**MOTOR, "version": "1.3"}]
+            [{"id": "chip-cold-plate", "version": "1.2"}]
+            if item["catalog_id"] in COOLING
+            else (
+                [{**MOTOR, "version": "1.3"}]
+                if item["catalog_id"] in JNO | CLEAN
+                else [MOTOR, {**MOTOR, "version": "1.3"}]
+            )
         )
     for version in ("1.0", "1.1"):
         assert pipeline.entries(MOTOR["id"], version) == []

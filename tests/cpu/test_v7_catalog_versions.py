@@ -90,7 +90,16 @@ def test_only_motor_1_3_cooling_1_2_and_the_graph_versions_serve_the_catalog():
         for name, e in on_1_3.items()
         if name not in on_1_2
     } == {"python-cpu-py311", "torch-cpu-py311"}
-    for challenge_id, version in sv.V7 - {(MOTOR, "1.3")}:
+    # Cooling 1.2 offers its own Cooling-tested entries; every other v7
+    # version offers none yet.
+    assert {e["catalog_id"] for e in pipeline.entries(COOLING, "1.2")} == {
+        "cooling.neuralop.FNO",
+        "cooling.neuralop.TFNO",
+        "cooling.neuralop.UQNO",
+        "cooling.physicsnemo.FullyConnected",
+        "cooling.transolver",
+    }
+    for challenge_id, version in sv.V7 - {(MOTOR, "1.3"), (COOLING, "1.2")}:
         assert pipeline.entries(challenge_id, version) == []
 
 

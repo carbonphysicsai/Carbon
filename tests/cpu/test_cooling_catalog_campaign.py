@@ -11,7 +11,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
-from cooling_catalog_stand_in import STAND_IN, inject
+from cooling_catalog_stand_in import STAND_IN, empty, inject
 
 from carbon.backbone_catalog import served
 from carbon.challenge_kit import physical_public
@@ -52,8 +52,10 @@ def test_cooling_1_2s_limits_bind_its_catalog_and_1_1_keeps_its_bytes():
     )
 
 
-def test_the_catalog_and_its_kit_are_public_material_on_1_2_only():
+def test_the_catalog_and_its_kit_are_public_material_on_1_2_only(monkeypatch):
     from carbon.development_session.research_tasks import public_material_names
+
+    empty(monkeypatch)
 
     assert "catalog" in public_material_names(CoolingCatalogMaterial(".", "1.2"))
     assert "catalog" not in public_material_names(ColdPlatePublicMaterial("."))
@@ -62,8 +64,7 @@ def test_the_catalog_and_its_kit_are_public_material_on_1_2_only():
     stored = {}
     workspace = SimpleNamespace(put=lambda name, body: stored.__setitem__(name, body))
     reply = CoolingCatalogMaterial(".", "1.2")("catalog", workspace)
-    # As shipped: nothing tested for Cooling yet, so no entry and an unfilled
-    # ready recipe.
+    # With no entry offered: no entry and an unfilled ready recipe.
     assert reply["document"]["entries"] == {}
     assert reply["document"]["ready_recipe"]["source"]["catalog_id"] is None
     kit = CoolingCatalogMaterial(".", "1.2")("construction_kit", workspace)
@@ -95,7 +96,10 @@ def test_a_named_entry_the_version_does_not_offer_is_refused():
             catalog_recipe(version=version)
 
 
-def test_an_empty_catalog_campaign_is_refused_before_anything_starts(tmp_path):
+def test_an_empty_catalog_campaign_is_refused_before_anything_starts(
+    tmp_path, monkeypatch
+):
+    empty(monkeypatch)
     campaign = campaign_for({"id": COOLING, "version": "1.2"})
     args = SimpleNamespace(
         root=tmp_path,
@@ -245,9 +249,10 @@ def test_1_2_keeps_neural_operators_unsupported_but_for_carbons_tested_ones():
 def test_the_description_lists_no_example_until_an_entry_is_offered(monkeypatch):
     from carbon.challenge_registry import describe
 
-    empty = describe(COOLING, "1.2")
-    assert empty["examples"] == [] and empty["models"]["rebuildable"] == []
-    assert "No backbone is tested" in empty["models"]["note"]
+    empty(monkeypatch)
+    nothing = describe(COOLING, "1.2")
+    assert nothing["examples"] == [] and nothing["models"]["rebuildable"] == []
+    assert "No backbone is tested" in nothing["models"]["note"]
     inject(monkeypatch)
     offered = describe(COOLING, "1.2")
     (example,) = offered["examples"]
@@ -276,3 +281,22 @@ def test_the_agent_sees_the_catalog_control_and_how_to_submit():
     assert old["instructions"].endswith(
         "Submission evaluation remains unavailable until its adapter is registered."
     )
+
+
+def test_cooling_1_2_offers_its_five_cooling_tested_entries():
+    # The real manifest: the five Torch builds resized to Cooling's 32 outputs,
+    # each with its own Cooling pair-identity receipt (Test Lead,
+    # PAIR_IDENTITY_COOLING_CATALOG_20261020), offered on Cooling 1.2 only.
+    from carbon.backbone_catalog import listing
+
+    offered = {e["catalog_id"]: e for e in listing.entries(COOLING, "1.2")}
+    assert set(offered) == {
+        "cooling.neuralop.FNO",
+        "cooling.neuralop.TFNO",
+        "cooling.neuralop.UQNO",
+        "cooling.physicsnemo.FullyConnected",
+        "cooling.transolver",
+    }
+    for item in offered.values():
+        assert item["challenges"] == [{"id": COOLING, "version": "1.2"}]
+        assert item["settings_schema"] == "carbon-candidate-levers-cooling-v1"

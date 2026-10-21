@@ -1,0 +1,13 @@
+{
+ "catalog_id": "cooling.transolver",
+ "differ": [],
+ "distinct_states": 1,
+ "files": 2,
+ "identical": 1,
+ "key": "cooling_transolver",
+ "pairs": 1,
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "source_report": "PAIR_IDENTITY_COOLING_CATALOG_20261020.json",
+ "source_report_sha256": "sha256:74c2afa464e79262a7b4ce634b8da1b051fc6d7cf888e8cb8d5935f5f7dff4df",
+ "unpaired": 0
+}

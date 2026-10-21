@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import pytest
-from cooling_catalog_stand_in import STAND_IN, inject
+from cooling_catalog_stand_in import STAND_IN, empty, inject
 
 from carbon.cold_plate import contracts, research
 from carbon.cold_plate.challenge import CHALLENGE
@@ -51,8 +51,9 @@ def test_the_catalog_version_is_keyed_1_2_throughout():
     )
 
 
-def test_an_empty_catalog_scaffolds_an_unfilled_template():
-    # As shipped, Cooling 1.2 offers no tested entry: the scaffold names none.
+def test_an_empty_catalog_scaffolds_an_unfilled_template(monkeypatch):
+    # With no entry offered, the scaffold names none.
+    empty(monkeypatch)
     parts = research.challenge_parts("1.2")
     assert parts.strategy_schema["entries"] == {}
     assert parts.scaffold_strategy["source"]["catalog_id"] is None

@@ -12,7 +12,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
-from cooling_catalog_stand_in import STAND_IN, inject
+from cooling_catalog_stand_in import STAND_IN, empty, inject
 from test_lp_prod_research_tools import ledger
 
 from carbon.challenge_registry.cold_plate import catalog_recipe
@@ -170,8 +170,9 @@ def test_a_level0_strategy_is_not_a_catalog_recipe(practice):
 
 
 def test_with_an_empty_catalog_nothing_runs(tmp_path, monkeypatch):
-    # Cooling's catalog as shipped: no tested entry, so the unfilled template
-    # names none and is refused before anything is built.
+    # No entry offered: the unfilled template names none and is refused
+    # before anything is built.
+    empty(monkeypatch)
     calls = []
     monkeypatch.setattr(
         worker, "reconstruct_and_infer_public", lambda *a, **k: calls.append(k)
