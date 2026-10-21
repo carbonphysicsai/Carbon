@@ -30,9 +30,12 @@ Implementation: **not yet implemented.** Today the construction limits still car
 - **Speed differs between hosts.** A recipe that finishes just under the limit on one validator may exceed it on a slower one, so miners should keep headroom. The registered wall times are unchanged by this record.
 - **New kit version:** removing the step caps changes the construction limits, so it's a new kit and evaluation version. It's prospective and lands with the step-2 recalibration.
 
-## The wall time is ratified (owner, 2026-10-21, directly in the Carbon Validator's session)
+## The wall time is measured (owner, 2026-10-21)
 
-- **The rebuild wall time is 30 minutes** (`MAX_TASK_WALL` 1800 s). It's no longer a "conservative proposal".
-  - Measured rebuilds take about 2–8 minutes, so this gives about 4× headroom.
-  - At 30 minutes, one validator manages about 33 max-length rebuilds a day (R = 67.2 CPU-h/day on the 4-vCPU class).
+- **The relay:** the owner gave this in the Test Lead's session.
+- **Confirmed directly in the Carbon Validator's session ("Measured: 2× slowest"),** superseding the fixed 30 minutes the owner had picked a few minutes earlier.
+- **The rule:** the rebuild wall time is **2× the build time of the slowest Carbon-tested catalog backbone**, measured on the registered validator host class.
+  - The Validator records the measurement: which backbone, host fingerprint, image digest and seconds.
+  - Until it's measured, the current 1800 s (`MAX_TASK_WALL`) stays as the interim value.
 - **It's the only training limit.** No shorter deadline may act as a second training cap (see `VALIDATOR_MINER_PATH_LIMITS_RULINGS_20261021.md`).
+- **Re-measure** when the slowest catalog entry changes, or when the host class or image changes.
