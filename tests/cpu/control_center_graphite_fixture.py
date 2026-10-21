@@ -571,6 +571,31 @@ def graphite_section(progress):
     return real({"graphite": progress})
 
 
+#: The stage stops that end a campaign early on its own settings
+#: (`campaign_view.EARLY_STOP_CODES`).
+EARLY_STOP_CODES = (
+    "context_ceiling",
+    "compaction_failed",
+    "graphite_plan_output_cap",
+    "miner_ceiling_reached",
+)
+
+
+def emulated_ended_early(stages):
+    """What S4's `campaign_view.ended_early` gives for `stages`: the first
+    stage stopped on an early-stop code, with the supervisor's next step."""
+    for row in stages:
+        if row.get("state") == "STOPPED" and row.get("code") in EARLY_STOP_CODES:
+            from scripts.dev.miner_launchpad.supervisor import next_action
+
+            return {
+                "stage": row["stage"],
+                "code": row["code"],
+                "next_step": next_action(row["code"]),
+            }
+    return None
+
+
 def emulated_section(progress):
     """What S4's `campaign_view.graphite_section` gives for `progress`."""
     return {
@@ -578,6 +603,7 @@ def emulated_section(progress):
         "mode": progress["mode"],
         "stage": progress["stage"],
         "stages": copy.deepcopy(progress["stages"]),
+        "ended_early": emulated_ended_early(progress["stages"]),
         "plan_digest": progress["plan_digest"],
         "research_share": progress["research_share"],
         "research_spent": dict(progress["research_spent"]),
