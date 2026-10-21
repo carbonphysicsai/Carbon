@@ -675,7 +675,8 @@ def _validate_semantics(value: _ExactRecord) -> None:
 
         ConstructionRecipe.from_dict(value.recipe)
     elif type(value) is DirectStageSourceRequestV1:
-        from carbon.level4 import intake, staging
+        from carbon.challenge_kit.served_versions import graph_intake_bounds
+        from carbon.level4 import staging
 
         document = value.name.startswith(
             staging.WORKSPACE_PREFIX
@@ -690,10 +691,14 @@ def _validate_semantics(value: _ExactRecord) -> None:
             )
         ):
             raise ValueError("graph source requires a registered flat workspace name")
+        # The staged Challenge version's own intake bounds (containment on v7).
+        bounds = graph_intake_bounds(
+            value.challenge_key.challenge_id, value.challenge_key.version
+        )
         maximum = (
-            intake.BOUNDS["manifest_bytes"]
+            bounds["manifest_bytes"]
             if value.name == staging.WORKSPACE_MANIFEST
-            else intake.BOUNDS["submission_bytes"]
+            else bounds["submission_bytes"]
         )
         if (
             not 0 < value.total_bytes <= maximum

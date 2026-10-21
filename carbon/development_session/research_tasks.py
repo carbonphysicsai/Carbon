@@ -732,12 +732,12 @@ class DirectDevelopmentTasksV3:
 
     def _source_envelope(self, identity: str, recipe: ConstructionRecipe) -> bytes:
         """Read charged immutable source bytes, never mutable workspace names."""
-        from carbon.level4 import intake
-
+        from .construction_recipe import recipe_graph_bounds
         from .direct_graph_construction_worker import _checked_envelope
 
         if recipe.to_dict()["source"]["kind"] != "graph":
             raise ValueError("direct task has no graph source")
+        bound = recipe_graph_bounds(recipe)["submission_bytes"]
         with self._db() as db:
             row = db.execute(
                 "SELECT body,digest FROM direct_task_sources WHERE id=?", (identity,)
@@ -745,11 +745,7 @@ class DirectDevelopmentTasksV3:
         if row is None or row[0] != b"" or type(row[1]) is not str:
             raise ValueError("retained direct graph source differs")
         path = self._source_path(identity)
-        if (
-            path.is_symlink()
-            or not path.is_file()
-            or path.stat().st_size > 2 * intake.BOUNDS["submission_bytes"]
-        ):
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > 2 * bound:
             raise ValueError("retained direct graph source differs")
         body = path.read_bytes()
         if digest(body) != row[1]:

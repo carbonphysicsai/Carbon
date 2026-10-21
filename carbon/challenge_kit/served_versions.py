@@ -142,3 +142,19 @@ def graph_allowlist_bytes(challenge_id: str, version: str) -> bytes:
 def step_caps(challenge_id: str, version: str) -> bool:
     """Whether a version's construction limits keep fixed training-step caps."""
     return not is_step2(challenge_id, version)
+
+
+def graph_intake_bounds(challenge_id: str, version: str) -> dict:
+    """The intake bounds a version's graph submissions are read under: those
+    of its graph allowlist (`intake.bounds_for`), containment only on a v7
+    version (owner, 2026-10-21: no model-size caps) and the owner's `BOUNDS`
+    on every other. A version this table does not register (the synthetic
+    Challenge, or an unknown one) gets the owner's `BOUNDS`, never v7's."""
+    from carbon.level4 import intake
+    from carbon.level4.allowlist import Allowlist
+
+    try:
+        raw = graph_allowlist_bytes(challenge_id, version)
+    except UnregisteredVersion:
+        return dict(intake.BOUNDS)
+    return intake.bounds_for(Allowlist(raw))

@@ -22,12 +22,10 @@ from carbon.level4 import graph
 
 from .bundle_graph_state import (
     GRAPH_SCHEMA,
-    MAX_BYTES,
-    MAX_GRAPH_BYTES,
-    MAX_PARAMETERS,
     _canonical,
     _checked_graph,
     _digest,
+    _limits,
     _preflight_npy,
     _source_header,
 )
@@ -85,11 +83,15 @@ def freeze(
     recipe: ConstructionRecipe, doc: dict, parameters: list, allowlist, mu, sd
 ) -> bytes:
     """Freeze a validated forward graph, its parameters and its decoder."""
+    # `bundle_graph_state`'s bounds for this allowlist: the fixed ones through
+    # v6; under v7 (no model-size caps) no state ceiling or array count of
+    # its own, and the graph document at the containment bound.
+    state_bytes, _, parameter_limit = _limits(allowlist)
     if (
         type(recipe) is not ConstructionRecipe
         or recipe.to_dict()["source"]["kind"] != "graph"
         or type(parameters) is not list
-        or len(parameters) > MAX_PARAMETERS
+        or (parameter_limit is not None and len(parameters) > parameter_limit)
     ):
         raise RecipeRefused("bundle_state_source_invalid")
     raw_graph = _checked_graph(doc, allowlist)
@@ -120,18 +122,21 @@ def freeze(
     out = io.BytesIO()
     np.savez(out, **arrays)
     body = out.getvalue()
-    if len(body) > MAX_BYTES:
+    if state_bytes is not None and len(body) > state_bytes:
         raise RecipeRefused("bundle_state_oversized")
     return body
 
 
 def load(raw: bytes, recipe: ConstructionRecipe, allowlist):
     """Recheck every inert byte; returns (graph, parameters, mean, deviation)."""
+    if type(allowlist) is not allowlist_module.Allowlist:
+        raise RecipeRefused("bundle_state_invalid")
+    state_bytes, graph_bytes, parameter_limit = _limits(allowlist)
     if (
         type(raw) is not bytes
-        or not 0 < len(raw) <= MAX_BYTES
+        or not 0 < len(raw)
+        or (state_bytes is not None and len(raw) > state_bytes)
         or type(recipe) is not ConstructionRecipe
-        or type(allowlist) is not allowlist_module.Allowlist
     ):
         raise RecipeRefused("bundle_state_invalid")
     try:
@@ -140,11 +145,14 @@ def load(raw: bytes, recipe: ConstructionRecipe, allowlist):
             names = [entry.filename for entry in members]
             if (
                 len(names) != len(set(names))
-                or len(names) > MAX_PARAMETERS + 4
+                or (parameter_limit is not None and len(names) > parameter_limit + 4)
                 or any(not name.endswith(".npy") for name in names)
                 or any(entry.compress_type != zipfile.ZIP_STORED for entry in members)
                 or any(entry.flag_bits & 1 for entry in members)
-                or sum(entry.file_size for entry in members) > MAX_BYTES
+                or (
+                    state_bytes is not None
+                    and sum(entry.file_size for entry in members) > state_bytes
+                )
             ):
                 raise RecipeRefused("bundle_state_archive_invalid")
             descriptors = {
@@ -152,7 +160,7 @@ def load(raw: bytes, recipe: ConstructionRecipe, allowlist):
             }
             for name, limit in (
                 ("__header__.npy", 65536),
-                ("graph.npy", MAX_GRAPH_BYTES),
+                ("graph.npy", graph_bytes),
             ):
                 shape, dtype = descriptors.get(name, (None, None))
                 if (
@@ -170,7 +178,11 @@ def load(raw: bytes, recipe: ConstructionRecipe, allowlist):
                 raise RecipeRefused("bundle_state_archive_invalid")
             header = json.loads(header_array.tobytes())
             count = header.get("parameter_count") if type(header) is dict else None
-            if type(count) is not int or not 0 <= count <= MAX_PARAMETERS:
+            if (
+                type(count) is not int
+                or count < 0
+                or (parameter_limit is not None and count > parameter_limit)
+            ):
                 raise RecipeRefused("bundle_state_header_invalid")
             expected = {"__header__", "graph", "decoder_mu", "decoder_sd"} | {
                 f"parameter{i:04d}" for i in range(count)
@@ -181,9 +193,9 @@ def load(raw: bytes, recipe: ConstructionRecipe, allowlist):
             ):
                 raise RecipeRefused("bundle_state_archive_invalid")
             graph_raw = graph_array.tobytes()
-            if not 0 < len(graph_raw) <= MAX_GRAPH_BYTES:
+            if not 0 < len(graph_raw) <= graph_bytes:
                 raise RecipeRefused("bundle_graph_oversized")
-            doc = graph.parse(graph_raw, max_bytes=MAX_GRAPH_BYTES)
+            doc = graph.parse(graph_raw, max_bytes=graph_bytes)
             _checked_graph(doc, allowlist)
             width = _width(doc)
             if header != _header(recipe, graph_raw, allowlist, count, width):
