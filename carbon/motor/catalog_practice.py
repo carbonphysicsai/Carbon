@@ -5,8 +5,12 @@ A catalog recipe names one of Carbon's tested backbones; it is expanded to the
 Carbon bundle it stands for (`backbone_catalog.served.expand`) and rebuilt by
 the receiver's own two-phase call, `bundle_construction_worker.
 reconstruct_and_infer_public`, with the receiver's inputs: the version's public
-construction material, its installed child image over the campaign's PyTorch
-CPU parent, and seed 0. So a practice predicts what the judge will rebuild.
+construction material, its installed child image over the parent of the
+bundle's pinned runtime, and seed 0. So a practice predicts what the judge
+will rebuild. A `torch-cpu-py311` bundle builds on the campaign's PyTorch CPU
+worker; a `python-cpu-py311` bundle (jNO) on the C-03 CPU worker that worker
+was built FROM. Inference stays on the PyTorch CPU worker, which carries the
+C-03 JAX stack the fixed inference program reads.
 The 30 PRACTICE rows of the development bank are scored with Motor's own
 practice scorer; nothing private is read.
 
@@ -41,25 +45,55 @@ class MotorCatalogPractice:
         version=VERSION,
         runner=None,
         resolver=None,
+        parents=None,
     ):
         self.ledger, self.owner = ledger, owner
         self.parent, self.cache_root = parent, Path(cache_root)
         self.root, self.version, self.runner = Path(root), version, runner
         self.resolver = resolver
+        self._parents = parents
         self.backends = ("torch_cpu",)
         self.gpu_image = None
 
     # -- what this host can build ---------------------------------------------
 
+    def parents(self):
+        """The construction parent of each bundle runtime served here.
+
+        The PyTorch CPU worker always; the C-03 CPU worker it was built FROM
+        only when Docker finds that exact image installed. Otherwise a
+        `python-cpu-py311` entry is `backend_not_served` on this host.
+        """
+        if self._parents is None:
+            from carbon.development_session.gpu_practice import (
+                DirectParentRefused,
+                DirectParents,
+                derived_cpu_parent,
+            )
+            from carbon.reconstruction.worker.docker_runtime import doctor
+
+            served = {"torch-cpu-py311": self.parent}
+            try:
+                cpu = derived_cpu_parent(self.parent)
+                if doctor(image_id=cpu.image_id, image_identity=cpu).eligible:
+                    served["python-cpu-py311"] = cpu
+            except (DirectParentRefused, OSError):
+                pass
+            self._parents = DirectParents(served)
+        return self._parents
+
     def _resolve(self, bundle_ref):
+        # The parent comes from the bundle's pinned runtime alone; a runtime
+        # with no parent here is refused before any image is looked up.
+        parent = self.parents().for_bundle(bundle_ref)
         if self.resolver is not None:
             return self.resolver(bundle_ref)
         from carbon.miner_mcp.standard_cli import DirectOwnerImageResolver
         from carbon.reconstruction.worker.docker_runtime import DockerCLI
 
         return DirectOwnerImageResolver(
-            self.cache_root, self.parent
-        ).provision_admitted(bundle_ref, parent=self.parent, cli=DockerCLI())
+            self.cache_root, parents=self.parents()
+        ).provision_admitted(bundle_ref, parent=parent, cli=DockerCLI())
 
     def installed(self):
         """The catalog ids whose child image is installed on this host."""
@@ -127,14 +161,16 @@ class MotorCatalogPractice:
         material = self._material()
         recipe = ConstructionRecipe.from_dict(self._expanded(strategy, material))
         kit = material["construction_kit"]
-        image = self._resolve(_bundle_ref(recipe.to_dict()["source"]["bundle_ref"]))
+        bundle = _bundle_ref(recipe.to_dict()["source"]["bundle_ref"])
+        image = self._resolve(bundle)
+        construction_parent = self.parents().for_bundle(bundle)
         result = reconstruct_and_infer_public(
             self.ledger,
             owner=self.owner,
             identity=identity,
             image=image,
             inference_image=self.parent,
-            construction_parent=self.parent,
+            construction_parent=construction_parent,
             recipe=recipe,
             challenge_binding=dict(kit),
             limits_document=material["construction_limits_document"],
@@ -175,7 +211,7 @@ class MotorCatalogPractice:
             "fit": {"state_digest": result.build.state_digest},
             "backend": {
                 "kind": "C03_DOCKER",
-                "parent": getattr(self.parent, "image_id", None),
+                "parent": getattr(construction_parent, "image_id", None),
             },
             "adaptively_seen": True,
             "final_exam": False,
