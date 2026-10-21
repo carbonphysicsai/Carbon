@@ -29,8 +29,10 @@ with the same batch):
    (`u_unregistered:<q>`): an unresolved band cannot be drawn without it.
    With `unresolved_max_fraction`, more UNRESOLVED cases than that fraction
    fail (`unresolved_over_fraction:<q>`; Validator, Motor U decision
-   2026-10-20). Each UNRESOLVED case's reference value is logged in the
-   host-only record.
+   2026-10-20). A Challenge whose pinned U record declares the fraction
+   (Motor: 1/3) refuses a spec that omits it or sets another value
+   (`spec_unresolved_max_fraction`), before any other check. Each
+   UNRESOLVED case's reference value is logged in the host-only record.
 3. spot-check: 3 cases drawn with the seed sha256(batch digest); for every
    limit quantity, |fine - reference| <= U and no label flips
    (`spot_check:<case>:<q>`). A label is a side only where the reference is
@@ -63,7 +65,7 @@ U_RECORDS = {
     # Motor: bounded full-range bands (VALIDATOR_MOTOR_U_DECISION_20261020).
     "electric-motor-magnetics": (
         "docs/development/evidence/motor-reference-uncertainty-20261020/motor-reference-uncertainty.json",
-        "04c68c4c0ddb612c2c5729548a6d6e42b849aaab87574dfdb146b10ba4a4b94a",
+        "cba00b15c17b644c713b594accc853b027150b950db9c20488ec5478b5cdabab",
     ),
 }
 SPOT_CASES = 3
@@ -87,16 +89,28 @@ def side(value, limit) -> str:
     return "feasible" if feasible else "infeasible"
 
 
-def registered_u(challenge: str, root: Path = REPOSITORY) -> dict:
-    """U per limit quantity from the Challenge's pinned record; refuses a
-    missing record or changed bytes (QA then fails closed upstream)."""
+def _record(challenge: str, root: Path = REPOSITORY) -> dict:
     if challenge not in U_RECORDS:
         raise ValueError(f"no registered reference uncertainty for {challenge}")
     path, pin = U_RECORDS[challenge]
     raw = (Path(root) / path).read_bytes()
     if hashlib.sha256(raw).hexdigest() != pin:
         raise ValueError(f"reference-uncertainty record for {challenge} differs")
-    return dict(json.loads(raw)["U"])
+    return json.loads(raw)
+
+
+def registered_u(challenge: str, root: Path = REPOSITORY) -> dict:
+    """U per limit quantity from the Challenge's pinned record; refuses a
+    missing record or changed bytes (QA then fails closed upstream)."""
+    return dict(_record(challenge, root)["U"])
+
+
+def registered_unresolved_max(challenge: str, root: Path = REPOSITORY):
+    """The unresolved-fraction stop a Challenge's pinned record declares, or
+    None (Motor: 1/3, VALIDATOR_MOTOR_U_DECISION_20261020)."""
+    if challenge not in U_RECORDS:
+        return None
+    return _record(challenge, root).get("unresolved_max_fraction")
 
 
 def spot_case_ids(batch) -> list[str]:
@@ -166,6 +180,10 @@ def judge(batch, spec, fine) -> dict:
     """The host-only QA record; `public()` gives what may be shown."""
     if spec.get("u") == "registered":
         spec = {**spec, "u": registered_u(spec["challenge"])}
+    # A stop the pinned record declares can't be dropped or changed by a
+    # spec (no silent default): omitting or altering it refuses the batch.
+    required = registered_unresolved_max(spec["challenge"])
+    refused = required is not None and spec.get("unresolved_max_fraction") != required
     record = {
         "schema": SCHEMA,
         "challenge": spec["challenge"],
@@ -177,7 +195,9 @@ def judge(batch, spec, fine) -> dict:
         "verdict": FAIL,
         "failure": None,
     }
-    if batch["image_digest"] not in spec["verified_image_digests"]:
+    if refused:
+        record["failure"] = "spec_unresolved_max_fraction"
+    elif batch["image_digest"] not in spec["verified_image_digests"]:
         record["failure"] = "image_not_verified"
     else:
         record["straddle"], failure = _straddle(batch, spec)

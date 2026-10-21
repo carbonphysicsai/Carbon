@@ -268,5 +268,6 @@
   "1:order ripple_fraction unc-07 p=0.0125",
   "1:non-monotone mean_torque_nm unc-08",
   "1:non-monotone mean_torque_nm unc-09"
- ]
+ ],
+ "unresolved_max_fraction": 0.3333333333333333
 }

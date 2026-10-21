@@ -211,3 +211,50 @@ def test_the_f08_record_regenerates_from_its_committed_script_and_ladder():
         (folder / "reference-uncertainty/f08-reference-uncertainty.json").read_text()
     )
     assert json.loads(out) == committed
+
+
+def _motor_batch():
+    values = [
+        (4.5, 0.10), (4.6, 0.12), (4.7, 0.20), (4.8, 0.15), (3.0, 0.50), (3.1, 0.60),
+        (3.2, 0.45), (3.3, 0.40), (4.9, 0.11), (3.4, 0.55), (5.0, 0.18), (2.9, 0.70),
+    ]  # fmt: skip
+    return {
+        "batch_digest": "m1",
+        "image_digest": IMAGE,
+        "cases": [
+            {
+                "case_id": f"m{i}",
+                "quantities": {"mean_torque_nm": t, "ripple_fraction": r},
+            }
+            for i, (t, r) in enumerate(values)
+        ],
+    }
+
+
+MOTOR_SPEC = {
+    "challenge": "electric-motor-magnetics",
+    "verified_image_digests": [IMAGE],
+    "limits": [
+        {"quantity": "mean_torque_nm", "threshold": 4.0, "feasible": ">="},
+        {"quantity": "ripple_fraction", "threshold": 0.30, "feasible": "<="},
+    ],
+    "u": "registered",
+}
+
+
+def test_a_motor_spec_cannot_drop_or_change_the_pinned_unresolved_stop():
+    """The 1/3 stop is in Motor's pinned U record (Validator): a spec that
+    omits it, or sets another value, is refused before any other check."""
+    assert qa.registered_unresolved_max("electric-motor-magnetics") == 1 / 3
+    batch = _motor_batch()
+    by = {c["case_id"]: c["quantities"] for c in batch["cases"]}
+    fine = {i: dict(by[i]) for i in qa.spot_case_ids(batch)}
+    omitted = qa.judge(batch, MOTOR_SPEC, fine)
+    assert omitted["verdict"] == "FAIL"
+    assert omitted["failure"] == "spec_unresolved_max_fraction"
+    changed = qa.judge(batch, {**MOTOR_SPEC, "unresolved_max_fraction": 0.5}, fine)
+    assert changed["failure"] == "spec_unresolved_max_fraction"
+    kept = qa.judge(batch, {**MOTOR_SPEC, "unresolved_max_fraction": 1 / 3}, fine)
+    assert kept["verdict"] == "PASS" and kept["failure"] is None
+    # A record without the field (F02, F08) imposes no such stop.
+    assert qa.registered_unresolved_max("f02") is None
