@@ -285,12 +285,12 @@ def authored_contracts(spec):
         boundary_conditions=p.BoundaryConditionContract(()),
         initial_conditions=p.InitialConditionContract(()),
         # The registered interface maps one row to its outputs, with no time
-        # coordinate or horizon; the physical time semantics are not registered.
+        # coordinate or horizon: STEADY (confirmed by the Validator, 2026-10-21).
         time_contract=p.TimeContract(
             TimeMode.STEADY,
             na(spec, "interface_has_no_time_coordinate"),
             na(spec, "interface_has_no_time_horizon"),
-            clause("semantic_clause", "human_input_time_semantics"),
+            clause("semantic_clause", "steady_one_row_per_case_validator_confirmed"),
             clause("unit", "second"),
         ),
         operating_envelope_ref=clause(

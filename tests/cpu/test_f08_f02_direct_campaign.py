@@ -578,7 +578,11 @@ def test_unregistered_values_are_human_input(spec, version):
     assert document["task"] == document["intended_use"] == HUMAN_INPUT
     assert document["exam"]["gates"] == document["exam"]["rule"] == HUMAN_INPUT
     assert document["exam"]["qualification"] is False
-    assert document["feedback"]["practice"] == HUMAN_INPUT
+    # Validator, 2026-10-21: practice reports aggregate errors on the
+    # registered scale.
+    assert document["feedback"]["practice"] == (
+        "aggregate public-practice errors on the registered scale"
+    )
     assert document["examples"] == [] and document["models"]["rebuildable"] == []
     with contracts.keyed(spec, contracts.key_for(spec, version)):
         objective = direct_research.objective(spec)
@@ -586,7 +590,9 @@ def test_unregistered_values_are_human_input(spec, version):
         reference = direct_research.reference_method(spec)
     for name in ("task", "intended_use", "sampling_law", "gates", "score"):
         assert objective[name] == HUMAN_INPUT
-    assert objective["practice_error_scale"] == HUMAN_INPUT
+    assert objective["practice_error_scale"] == direct_practice.error_scale(
+        spec, version
+    )
     for name in ("physical_scope", "governing_law", "geometry_domain"):
         assert profile[name] == HUMAN_INPUT
     assert reference["reference"] == reference["quality"] == HUMAN_INPUT
@@ -594,31 +600,130 @@ def test_unregistered_values_are_human_input(spec, version):
     assert parts.score_document["score"] == HUMAN_INPUT
 
 
-@pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
-def test_practice_reports_no_error_and_no_per_case_value(
-    spec, version, tmp_path, monkeypatch
-):
+def _graph_practice(spec, version, tmp_path, monkeypatch, rows=None):
     material = physical_material.bundle_material(spec.challenge_id, version)
     monkeypatch.setattr(
-        graph_worker, "reconstruct_and_infer_graph_public", _fake(material, [])
+        graph_worker,
+        "reconstruct_and_infer_graph_public",
+        _fake(material, [], rows=rows),
     )
     monkeypatch.setattr(
         construction_recipe, "graph_envelope_from_workspace", lambda *a: b"{}"
     )
     item, _ = _practice(spec, version, tmp_path)
     result = item("x-0003", graph_recipe(spec, GRAPH_DIGEST, version=version))
-    assert result["summary"]["aggregate_error"] is None
-    assert (
-        result["summary"]["error_scale"] == direct_practice.ERROR_SCALE == HUMAN_INPUT
-    )
-    assert result["summary"]["cases"] == len(material["practice_case_ids"])
+    return material, result
+
+
+@pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
+def test_practice_reports_aggregates_on_the_registered_scale_and_no_per_case_value(
+    spec, version, tmp_path, monkeypatch
+):
+    material, result = _graph_practice(spec, version, tmp_path, monkeypatch)
+    summary = result["summary"]
+    assert summary["status"] == "aggregate_on_registered_scale"
+    assert summary["error_scale"] == direct_practice.error_scale(spec, version)
+    assert summary["score"] == summary["aggregate_error"] > 0
+    assert list(summary["components"]) == list(direct_practice.COMPONENTS[spec.prefix])
+    assert summary["cases"] == summary["n_cases"] == summary["n_scored"]
+    assert summary["cases"] == len(material["practice_case_ids"])
+    # Only aggregates: one number per component, no list, no case id.
+    assert all(type(v) is float for v in summary["components"].values())
     text = json.dumps(result)
     for case_id in material["practice_case_ids"]:
         assert case_id not in text
-    # The research view shows aggregates only and declares no component.
+    # The research view shows aggregates only, lower is better.
     view = campaign_for(_challenge(spec, version)).research_view()
-    assert view.per_case.allowed is False
-    assert view.components == () and view.reference is None
+    assert view.per_case.allowed is False and view.reference is None
+    assert [k for k, _ in view.components] == list(summary["components"])
+    assert view.direction == "lower_is_better"
+    assert view.learning_curve["basis"] == HUMAN_INPUT
+
+
+def test_f02_practice_is_on_train_peak_std_c_with_the_registered_reduction(
+    tmp_path, monkeypatch
+):
+    from carbon.challenge_kit import f02_train, physical_pack
+
+    # The exact computed spread, recomputed from the pinned rows (6.701 recorded).
+    scale = f02_train.load_public_train("2.3")["train_peak_std_c"]
+    assert scale == 6.701245845436587 and round(scale, 3) == 6.701
+    bank = physical_pack.development_bank("f02", "2.3")
+    # 1 C high on the four ordinary actions, 2 C high on the four near-limit
+    # ones (float32 outputs), against each action's primary rung.
+    rows = [
+        [
+            float(
+                np.float32(
+                    record["rung_peaks_c"]["primary"]
+                    + (2.0 if "-near-" in case_id else 1.0)
+                )
+            )
+        ]
+        for case_id, record in zip(
+            bank["case_ids"], bank["reference_records"], strict=True
+        )
+    ]
+    _, result = _graph_practice(F02, "2.3", tmp_path, monkeypatch, rows=rows)
+    summary = result["summary"]
+    # By hand: mean 1.5 / 6.701245845436587, near-limit mean and worst
+    # 2 / 6.701245845436587; the aggregate is their maximum.
+    assert summary["components"] == pytest.approx(
+        {"mean": 0.22383897, "near_mean": 0.29845197, "worst": 0.29845197},
+        abs=1e-6,
+    )
+    assert summary["aggregate_error"] == pytest.approx(0.29845197, abs=1e-6)
+    assert summary["error_scale"]["scales"]["peak_top_c"]["value"] == scale
+
+
+def test_f08_practice_is_on_dev1_section_7_scales_with_its_aggregation(
+    tmp_path, monkeypatch
+):
+    material = physical_material.bundle_material("f08-ribbed-bracket", "1.4")
+    names = material["interface_document"]["output"]["names"]
+    # Static 0.0003 mm/N high (0.1 of 0.003), each dynamic tip 0.003 mm/N high
+    # (0.2 of 0.015), each peak frequency 5 Hz high (0.5 of 10 Hz), and one
+    # case's first peak frequency 20 Hz high (2.0 of 10 Hz).
+    offset = {
+        name: (
+            0.0003
+            if name.startswith("static")
+            else 0.003 if name.startswith("peak_tip") else 5.0
+        )
+        for name in names
+    }
+    rows = []
+    for i, reference in enumerate(material["practice_reference"].tolist()):
+        row = [r + offset[name] for r, name in zip(reference, names, strict=True)]
+        if i == 0:
+            row[names.index("peak_frequency_z005_hz")] = reference[2] + 20.0
+        rows.append([float(np.float32(v)) for v in row])
+    _, result = _graph_practice(F08, "1.4", tmp_path, monkeypatch, rows=rows)
+    summary = result["summary"]
+    # By hand: margin mean (8 x 0.1 + 24 x 0.2) / 32 = 0.175, worst 0.2;
+    # resonance mean (2.0 + 23 x 0.5) / 24 = 0.5625, worst 2.0; the aggregate
+    # is the worst over quantity and case, 2.0.
+    assert summary["components"] == pytest.approx(
+        {
+            "margin_mean": 0.175,
+            "margin_worst": 0.2,
+            "resonance_mean": 0.5625,
+            "resonance_worst": 2.0,
+        },
+        abs=1e-5,
+    )
+    assert summary["aggregate_error"] == pytest.approx(2.0, abs=1e-5)
+    scales = summary["error_scale"]["scales"]
+    assert {n: scales[n]["value"] for n in names} == {
+        "static_tip_mm_per_n": 0.003,
+        "peak_tip_z005_mm_per_n": 0.015,
+        "peak_frequency_z005_hz": 10.0,
+        "peak_tip_z010_mm_per_n": 0.015,
+        "peak_frequency_z010_hz": 10.0,
+        "peak_tip_z020_mm_per_n": 0.015,
+        "peak_frequency_z020_hz": 10.0,
+    }
+    assert summary["error_scale"]["reference"] == "POINT_ESTIMATE_DIAGNOSTIC"
 
 
 @pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)

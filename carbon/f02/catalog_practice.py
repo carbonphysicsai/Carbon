@@ -1,6 +1,6 @@
 """F02 (Burst Thermal)'s direct practice: catalog and graph recipes, built as the receiver
 builds them (`carbon.direct_campaign.practice`), scored under the Validator's
-practice ruling (structural facts only; the error scale is HUMAN_INPUT)."""
+practice rulings (aggregate errors on its registered scale)."""
 
 from __future__ import annotations
 
