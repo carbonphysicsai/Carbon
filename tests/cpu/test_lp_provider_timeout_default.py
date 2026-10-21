@@ -6,7 +6,7 @@ Engy requests that were still being answered; each left an unknown outcome
 and forced a Reconcile. So:
 - a new Graphite or autonomous plan that sets no timeout_seconds freezes
   `select`'s own upper bound, 600 s (`TIMEOUT_DEFAULT_V2`), in its recorded
-  selection, or its own elapsed limit where that is shorter (never under
+  selection, or half its own elapsed limit where that is shorter (never under
   10 s), so the default alone never stops its first call;
 - a timeout_seconds the miner sets binds;
 - a plan frozen before replays at the 120 s it recorded, and the pinned
@@ -250,7 +250,18 @@ def test_the_launch_surfaces_read_the_same_bounds_and_default():
 
 @pytest.mark.parametrize(
     ("elapsed", "timeout"),
-    ((None, 600), (3600, 600), (600, 600), (300, 300), (10, 10), (5, 10)),
+    (
+        (None, 600),
+        (3600, 600),
+        (1200, 600),
+        (1199, 599),
+        (600, 300),
+        (300, 150),
+        (21, 10),
+        (20, 10),
+        (5, 10),
+        (1, 10),
+    ),
 )
 def test_an_elapsed_limit_bounds_the_default(elapsed, timeout):
     budget = {} if elapsed is None else {"elapsed_seconds": elapsed}
@@ -291,23 +302,36 @@ def test_the_elapsed_limit_reads_only_under_the_new_rule():
     assert new_plan(granted, "autonomous").settings.timeout_seconds == 120
 
 
-def test_a_short_elapsed_limit_still_admits_the_first_call(tmp_path):
+def test_a_short_elapsed_limit_admits_calls_through_its_first_half(tmp_path):
     # The pinned model, which the fixture reply names.
     pinned = {"provider_id": "openai-responses", "model_id": mp.GPT5_MINI}
     selection = new_plan(launch(pinned, budget={"elapsed_seconds": 300}), "autonomous")
-    assert selection.settings.timeout_seconds == 300
+    assert selection.settings.timeout_seconds == 150
     ceilings = {**DEVELOPMENT_CEILINGS, "provider_nanodollars": 10**12}
     meter = ledger(tmp_path / "ledger", ceilings=ceilings, elapsed_seconds=300)
     sent = []
-    request_model(
-        meter,
-        owner="alice",
-        identity="model-1",
-        request=request(selection),
-        credential_file=None,
-        transport=lambda value: sent.append(value) or completed(),
-        provider=selection,
-        sleep=pytest.fail,
-    )
-    assert len(sent) == 1
-    assert meter.status(owner="alice")["used"]["provider_attempts"] == 1
+
+    def call(identity):
+        request_model(
+            meter,
+            owner="alice",
+            identity=identity,
+            request=request(selection),
+            credential_file=None,
+            transport=lambda value: sent.append(value) or completed(),
+            provider=selection,
+            sleep=pytest.fail,
+        )
+
+    # The first call starts the campaign's clock; a second about a second
+    # later still fits its 150 s timeout in the 299 s left.
+    call("model-1")
+    meter.clock = lambda: 1001
+    call("model-2")
+    assert len(sent) == 2
+    assert meter.status(owner="alice")["used"]["provider_attempts"] == 2
+    # Past the first half, less than the timeout remains: no new call.
+    meter.clock = lambda: 1000 + 151
+    with pytest.raises(ValueError, match="timeout cannot fit"):
+        call("model-3")
+    assert len(sent) == 2

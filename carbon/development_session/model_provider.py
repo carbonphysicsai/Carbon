@@ -518,10 +518,10 @@ INPUT_DEFAULTS = (None, INPUT_DEFAULT_V2)
 #: miner sets none (M1 rehearsal 2026-10-21: two ~150 KB Engy requests were
 #: cut at the historical 120 s while still being answered, each leaving an
 #: unknown outcome to reconcile). Its default is `TIMEOUT_SECONDS_BOUNDS`'
-#: upper limit, 600 s (`TIMEOUT_DEFAULT_V2_SECONDS`), or the plan's own
+#: upper limit, 600 s (`TIMEOUT_DEFAULT_V2_SECONDS`), or half the plan's own
 #: elapsed limit where that is shorter, never below the lower bound
-#: (`timeout_default_seconds`), so the default alone never stops a campaign's
-#: first call. A `timeout_seconds` the miner sets binds. A timeout is no
+#: (`timeout_default_seconds`), so a campaign with a short limit can still
+#: make calls through its first half. A `timeout_seconds` the miner sets binds. A timeout is no
 #: spend: nothing is reserved or metered by it. A call's hard deadline is
 #: still the timeout plus `DEADLINE_MARGIN_SECONDS`, and a new call is still
 #: admitted only while the timeout fits the campaign's remaining elapsed
@@ -537,15 +537,17 @@ TIMEOUT_DEFAULT_V2_SECONDS = TIMEOUT_SECONDS_BOUNDS[1]
 
 def timeout_default_seconds(elapsed_seconds=None):
     """The timeout `TIMEOUT_DEFAULT_V2` chooses for a plan whose miner sets
-    none: `TIMEOUT_DEFAULT_V2_SECONDS`, or the plan's elapsed limit
-    (`elapsed_seconds`, None for no limit) where that is shorter, never
-    below `TIMEOUT_SECONDS_BOUNDS`' lower limit."""
+    none: `TIMEOUT_DEFAULT_V2_SECONDS`, or half the plan's elapsed limit
+    (`elapsed_seconds // 2`; None for no limit) where that is shorter, never
+    below `TIMEOUT_SECONDS_BOUNDS`' lower limit. A new call is admitted only
+    while its timeout fits the time left, so half the limit lets a short
+    campaign call through its first half, not only once."""
     low = TIMEOUT_SECONDS_BOUNDS[0]
     if elapsed_seconds is None:
         return TIMEOUT_DEFAULT_V2_SECONDS
     if type(elapsed_seconds) is not int or elapsed_seconds < 1:
         raise ModelSelectionRefused("an elapsed limit is a whole number of seconds")
-    return max(low, min(TIMEOUT_DEFAULT_V2_SECONDS, elapsed_seconds))
+    return min(TIMEOUT_DEFAULT_V2_SECONDS, max(low, elapsed_seconds // 2))
 
 
 _MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}")

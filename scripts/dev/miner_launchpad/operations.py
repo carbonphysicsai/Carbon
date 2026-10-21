@@ -171,8 +171,8 @@ FIELDS = {
             "cap the agent's replies (each call is reserved at the cap); and "
             "timeout_seconds, which is "
             + _timeout_default()
-            + " seconds, or the budget's elapsed_seconds where that is "
-            "shorter: how long each call may wait for the provider's answer "
+            + " seconds, or half the budget's elapsed_seconds where that "
+            "is shorter: how long each call may wait for the provider's answer "
             "before it ends with its outcome unknown (it reserves no money; "
             "new calls stop when less than it remains of elapsed_seconds). "
             "max_output_tokens is an integer from "

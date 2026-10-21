@@ -1052,10 +1052,13 @@ def resolve_selection(args, record):
     chosen = selection_from_record(
         record, credential_file=None if path is None else str(path)
     )
+    # The v2 timeout default with an elapsed limit chose half that limit
+    # (`model_provider.timeout_default_seconds`): a limit of twice the
+    # recorded timeout chooses it again.
     timeout_rules = (
         (None, None),
         (TIMEOUT_DEFAULT_V2, None),
-        (TIMEOUT_DEFAULT_V2, chosen.settings.timeout_seconds),
+        (TIMEOUT_DEFAULT_V2, 2 * chosen.settings.timeout_seconds),
     )
     if getattr(args, "model_selection", None) is not None and all(
         supplied_selection(

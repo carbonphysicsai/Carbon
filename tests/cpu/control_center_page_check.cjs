@@ -476,7 +476,7 @@ scenario("the model step offers a provider call timeout with its default and sen
   assert.equal(input.placeholder, "Default: 600");
   assert.equal(input.min, String(timeout.bounds[0]));
   assert.equal(input.max, String(timeout.bounds[1]));
-  assert.match(page.text("wizard-timeout-note"), /^Default: 600 seconds, or your elapsed limit where that is shorter\./);
+  assert.match(page.text("wizard-timeout-note"), /^Default: 600 seconds, or half your elapsed limit where that is shorter\./);
   assert.match(page.text("wizard-timeout-note"), /New calls stop when less than the timeout remains of your elapsed limit/);
   // Outside the runner's bounds: the step does not pass, and says why.
   for (const bad of [String(timeout.bounds[0] - 1), String(timeout.bounds[1] + 1), "1.5"]) {
@@ -509,7 +509,7 @@ scenario("the model step offers a provider call timeout with its default and sen
   await page.type(page.$("budget-elapsed"), "300");
   page.window.CarbonControlCenter.goWizard("review");
   await page.advance(0);
-  assert.match(page.text("wizard-review"), /Call timeoutNot set: 300 seconds per provider call, the default \(your elapsed limit\)\. New calls stop/);
+  assert.match(page.text("wizard-review"), /Call timeoutNot set: 150 seconds per provider call, the default \(half your elapsed limit\)\. New calls stop/);
   clean(page);
 });
 

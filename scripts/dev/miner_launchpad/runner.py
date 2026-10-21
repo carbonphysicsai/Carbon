@@ -3219,8 +3219,8 @@ class RunnerAdapter:
             try:
                 # A launch makes a new plan: an unset output cap is the
                 # model's own maximum (OWNER-LAUNCHPAD-PROD-02) and an unset
-                # timeout the longest, or the launch's elapsed limit where
-                # that is shorter (`TIMEOUT_DEFAULT_V2`), as the campaign's
+                # timeout the longest, or half the launch's elapsed limit
+                # where that is shorter (`TIMEOUT_DEFAULT_V2`), as the campaign's
                 # own builder will choose them.
                 selection = (
                     setup_selection(
