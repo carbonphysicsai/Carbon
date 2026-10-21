@@ -24,7 +24,8 @@ from carbon_miner_identity.page import HELPER_JS, INDEX_HTML
 from carbon_miner_identity.server import Server
 
 ROOT = Path(__file__).resolve().parents[2]
-PASSWORD = "SENTINEL-pw-7Hq2-never-anywhere"
+PASSWORD = "SENTINEL-money-7Hq2-never-anywhere"
+HOT_PASSWORD = "SENTINEL-mining-9Zk4-never-anywhere"
 WORDS = [
     "zephyr0",
     "quokka1",
@@ -92,7 +93,14 @@ def flow(running, password=PASSWORD, name="mine"):
     answers = [made["words"][position - 1] for position in made["ask"]]
     assert running.call("POST", "/api/confirm", {"words": answers})[0] == 200
     status, data, _ = running.call(
-        "POST", "/api/save", {"password": password, "again": password}
+        "POST",
+        "/api/save",
+        {
+            "coldkey_password": password,
+            "coldkey_again": password,
+            "hotkey_password": HOT_PASSWORD,
+            "hotkey_again": HOT_PASSWORD,
+        },
     )
     return status, json.loads(data)
 
@@ -103,7 +111,7 @@ def test_the_steps_run_in_order_and_end_with_public_addresses_only():
     with pytest.raises(IdentityRefused):
         identity.confirm(["a", "b", "c"])
     with pytest.raises(IdentityRefused):
-        identity.save(PASSWORD, PASSWORD)
+        identity.save(PASSWORD, PASSWORD, HOT_PASSWORD, HOT_PASSWORD)
     made = identity.create("mine")
     assert (
         made["words"] == WORDS
@@ -111,12 +119,23 @@ def test_the_steps_run_in_order_and_end_with_public_addresses_only():
         and made["ask"] == sorted(made["ask"])
     )
     with pytest.raises(IdentityRefused):
-        identity.save(PASSWORD, PASSWORD)  # not before the words are given back
+        identity.save(
+            PASSWORD, PASSWORD, HOT_PASSWORD, HOT_PASSWORD
+        )  # not before the words are given back
     identity.confirm([WORDS[position - 1] for position in made["ask"]])
-    saved = identity.save(PASSWORD, PASSWORD)
-    assert set(saved) == {"wallet", "hotkey", "coldkey_address", "hotkey_address"}
-    assert PASSWORD not in json.dumps(saved) and not any(
-        word in json.dumps(saved) for word in WORDS
+    saved = identity.save(PASSWORD, PASSWORD, HOT_PASSWORD, HOT_PASSWORD)
+    assert set(saved) == {
+        "wallet",
+        "hotkey",
+        "coldkey_address",
+        "hotkey_address",
+        "folder",
+    }
+    assert saved["folder"] == "/wallets/mine", "the folder to back up is named"
+    assert (
+        PASSWORD not in json.dumps(saved)
+        and HOT_PASSWORD not in json.dumps(saved)
+        and not any(word in json.dumps(saved) for word in WORDS)
     )
     assert identity._phrase is None, "the phrase is dropped once saved"
 
@@ -139,21 +158,31 @@ def test_a_wallet_name_must_be_short_and_plain(name):
 
 
 @pytest.mark.parametrize(
-    "password, again",
+    "cold, cold_again, hot, hot_again",
     [
-        ("short", "short"),
-        (PASSWORD, PASSWORD + "x"),
-        ("x" * 300, "x" * 300),
-        (None, None),
+        ("short", "short", HOT_PASSWORD, HOT_PASSWORD),
+        (PASSWORD, PASSWORD + "x", HOT_PASSWORD, HOT_PASSWORD),
+        (PASSWORD, PASSWORD, "short", "short"),
+        (PASSWORD, PASSWORD, HOT_PASSWORD, HOT_PASSWORD + "x"),
+        ("x" * 300, "x" * 300, HOT_PASSWORD, HOT_PASSWORD),
+        (
+            PASSWORD,
+            PASSWORD,
+            PASSWORD,
+            PASSWORD,
+        ),  # the money password must not also be the mining one
+        (None, None, None, None),
     ],
 )
-def test_a_weak_or_mismatched_password_is_refused_and_nothing_is_saved(password, again):
+def test_a_weak_mismatched_or_shared_password_is_refused_and_nothing_is_saved(
+    cold, cold_again, hot, hot_again
+):
     backend = FakeBackend(PHRASE)
     identity = Identity(backend)
     made = identity.create("mine")
     identity.confirm([WORDS[position - 1] for position in made["ask"]])
     with pytest.raises(IdentityRefused):
-        identity.save(password, again)
+        identity.save(cold, cold_again, hot, hot_again)
     assert backend.saved == []
 
 
@@ -207,8 +236,8 @@ def test_the_page_is_self_contained_with_no_storage_no_copy_and_strict_headers(h
         "indexedDB",
     ):
         assert banned not in HELPER_JS + INDEX_HTML
-    assert "copy" not in INDEX_HTML.lower().replace(
-        "copy it into the control center", ""
+    assert not re.search(
+        r"<button[^>]*>[^<]*copy", INDEX_HTML, re.IGNORECASE
     )  # no copy button for the phrase
     assert (
         "location.search" not in HELPER_JS and "?token" not in HELPER_JS
@@ -284,12 +313,21 @@ def test_sentinels_appear_nowhere_but_the_one_response_that_shows_the_phrase(
         },
     }
     for place, text in haystacks.items():
-        assert PASSWORD not in text, "the password is in " + place
+        assert PASSWORD not in text and HOT_PASSWORD not in text, (
+            "a password is in " + place
+        )
         assert not any(word in text for word in WORDS), "a phrase word is in " + place
     # The password reaches the key tool and nothing else.
-    assert running.identity.backend.saved == [("mine", "default", len(PASSWORD))]
+    assert running.identity.backend.saved == [
+        ("mine", "default", len(PASSWORD), len(HOT_PASSWORD))
+    ]
     for _path, _status, data, headers in running.responses:
-        assert PASSWORD.encode() not in data and PASSWORD not in json.dumps(headers)
+        assert (
+            PASSWORD.encode() not in data
+            and HOT_PASSWORD.encode() not in data
+            and PASSWORD not in json.dumps(headers)
+            and HOT_PASSWORD not in json.dumps(headers)
+        )
 
 
 def test_a_failing_key_tool_says_nothing_it_was_told(monkeypatch):
@@ -309,11 +347,20 @@ def test_a_failing_key_tool_says_nothing_it_was_told(monkeypatch):
             {"words": [made["words"][p - 1] for p in made["ask"]]},
         )
         status, data, _ = running.call(
-            "POST", "/api/save", {"password": PASSWORD, "again": PASSWORD}
+            "POST",
+            "/api/save",
+            {
+                "coldkey_password": PASSWORD,
+                "coldkey_again": PASSWORD,
+                "hotkey_password": HOT_PASSWORD,
+                "hotkey_again": HOT_PASSWORD,
+            },
         )
         assert status == 500
-        assert PASSWORD.encode() not in data and not any(
-            word.encode() in data for word in WORDS
+        assert (
+            PASSWORD.encode() not in data
+            and HOT_PASSWORD.encode() not in data
+            and not any(word.encode() in data for word in WORDS)
         )
         assert running.identity.stage == "idle" and running.identity._phrase is None
     finally:
@@ -328,7 +375,7 @@ def test_the_sdk_writes_encrypted_owner_only_keys_and_prints_no_phrase(tmp_path,
     made = identity.create("realwallet")
     words = made["words"]
     identity.confirm([words[position - 1] for position in made["ask"]])
-    saved = identity.save(PASSWORD, PASSWORD)
+    saved = identity.save(PASSWORD, PASSWORD, HOT_PASSWORD, HOT_PASSWORD)
     assert saved["coldkey_address"].startswith("5") and saved[
         "hotkey_address"
     ].startswith("5")
@@ -338,7 +385,7 @@ def test_the_sdk_writes_encrypted_owner_only_keys_and_prints_no_phrase(tmp_path,
     )
     for path in files:
         text = path.read_bytes().decode("latin-1")
-        assert PASSWORD not in text
+        assert PASSWORD not in text and HOT_PASSWORD not in text
         assert not any(word in text for word in words if len(word) > 3), (
             "no phrase in the clear in " + path.name
         )
@@ -348,21 +395,34 @@ def test_the_sdk_writes_encrypted_owner_only_keys_and_prints_no_phrase(tmp_path,
             )
     # What the miner's own signer does: unlock the hotkey with the password, and it is the address shown.
     from bittensor.keyfiles import Keyfile
+    from bittensor_core import WrongPasswordError
 
     hotkey_file = Keyfile(str(tmp_path / "realwallet" / "hotkeys" / "default"))
     assert (
         hotkey_file.is_encrypted()
         and Keyfile(str(tmp_path / "realwallet" / "coldkey")).is_encrypted()
     )
+    coldkey_file = Keyfile(str(tmp_path / "realwallet" / "coldkey"))
     assert (
-        hotkey_file.get_keypair(password=PASSWORD).ss58_address
+        hotkey_file.get_keypair(password=HOT_PASSWORD).ss58_address
         == saved["hotkey_address"]
     )
+    assert (
+        coldkey_file.get_keypair(password=PASSWORD).ss58_address
+        == saved["coldkey_address"]
+    )
+    # Each key opens only with its own password: the mining password cannot open the money key, and the
+    # money password cannot open the mining key.
+    for opened, wrong in ((coldkey_file, HOT_PASSWORD), (hotkey_file, PASSWORD)):
+        with pytest.raises(WrongPasswordError):
+            opened.get_keypair(password=wrong)
+    assert saved["folder"] == str(tmp_path / "realwallet")
     captured = capfd.readouterr()
     assert not any(
         word in captured.out + captured.err for word in words
     ), "the SDK printed the phrase"
     assert PASSWORD not in captured.out + captured.err
+    assert HOT_PASSWORD not in captured.out + captured.err
     with pytest.raises(IdentityRefused, match="already exists"):
         Identity(backend).create("realwallet")
 

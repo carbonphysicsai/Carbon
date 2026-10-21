@@ -38,19 +38,24 @@ will not show them again. Do not photograph them or keep them in a file.</p>
 </section>
 
 <section id="s-password" hidden>
-<h2>4. Choose a password</h2>
-<p class="hint">It locks your key files on this computer. At least 10 characters. If you forget it, your recovery phrase is the way back.</p>
-<label for="pw">Password</label><input id="pw" type="password" autocomplete="new-password">
-<label for="pw2">Type it again</label><input id="pw2" type="password" autocomplete="new-password">
+<h2>4. Choose two passwords</h2>
+<p class="hint">Two keys, two passwords, and they must differ. At least 10 characters each.</p>
+<p><strong>Money password (coldkey).</strong> Guards your funds. You type it rarely, so make it long and keep it safe. If you forget it, your recovery phrase is the way back.</p>
+<label for="cpw">Money password</label><input id="cpw" type="password" autocomplete="new-password">
+<label for="cpw2">Type it again</label><input id="cpw2" type="password" autocomplete="new-password">
+<p><strong>Mining password (hotkey).</strong> Unlocks the key that signs your mining work. You type it each time you start your signer. It cannot move your funds.</p>
+<label for="hpw">Mining password</label><input id="hpw" type="password" autocomplete="new-password">
+<label for="hpw2">Type it again</label><input id="hpw2" type="password" autocomplete="new-password">
 <button id="save">Save my identity</button>
 </section>
 
 <section id="s-done" hidden>
 <h2>5. Done</h2>
-<p>Your identity is saved on this computer, locked with your password.</p>
+<p>Your identity is saved on this computer, each key locked with its own password.</p>
 <p>Your hotkey address (public, safe to share). Copy it into the Control Center's setup:</p>
 <p><code id="hot"></code></p>
 <p class="hint">Your coldkey address (public): <code id="cold"></code></p>
+<p class="warn"><strong>Back up this folder.</strong> Your hotkey has no recovery phrase: if this computer is lost, only a copy of the wallet folder brings it back (it stays locked by your mining password): <code id="folder"></code></p>
 <p><strong>Next:</strong> joining the subnet is paid from your own coldkey, in your own wallet tool; Carbon neither charges nor
 receives it. Then start your signer in a terminal: it asks for your password there.</p>
 <button id="close" class="quiet">Close this window</button>
@@ -103,10 +108,10 @@ HELPER_JS = r"""
     show("s-password");
   });
   $("save").addEventListener("click", async () => {
-    const saved = await call("/api/save", {password: $("pw").value, again: $("pw2").value});
-    $("pw").value = ""; $("pw2").value = "";
+    const saved = await call("/api/save", {coldkey_password: $("cpw").value, coldkey_again: $("cpw2").value, hotkey_password: $("hpw").value, hotkey_again: $("hpw2").value});
+    for (const id of ["cpw", "cpw2", "hpw", "hpw2"]) $(id).value = "";
     if (!saved) return;
-    $("hot").textContent = saved.hotkey_address; $("cold").textContent = saved.coldkey_address;
+    $("hot").textContent = saved.hotkey_address; $("cold").textContent = saved.coldkey_address; $("folder").textContent = saved.folder;
     show("s-done");
   });
   $("close").addEventListener("click", async () => { await call("/api/done"); document.body.replaceChildren("You can close this window now."); });

@@ -113,7 +113,13 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send(200, identity.confirm(body.get("words")))
                 if self.path == "/api/save":
                     return self._send(
-                        200, identity.save(body.get("password"), body.get("again"))
+                        200,
+                        identity.save(
+                            body.get("coldkey_password"),
+                            body.get("coldkey_again"),
+                            body.get("hotkey_password"),
+                            body.get("hotkey_again"),
+                        ),
                     )
                 if self.path == "/api/done":
                     identity.discard()
@@ -165,7 +171,10 @@ def main(argv=None):
         )
         return 1
     server = Server(Identity(SdkBackend(args.wallet_path), args.hotkey))
-    print("Open this link in your browser on this machine. It works once, here only:\n")
+    print(
+        "Open this link in your browser on this computer. It is for this computer "
+        "and this session only:\n"
+    )
     print("  " + server.link + "\n")
     print("Nothing is sent anywhere. Close this window when you are done.")
     try:
