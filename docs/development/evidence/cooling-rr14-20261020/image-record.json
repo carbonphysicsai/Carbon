@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.packs.rr14-image-record.v1",
+ "image_reference": "opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319",
+ "inspect_before": {
+  "id": "sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319",
+  "repo_digests": [
+   "opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319"
+  ]
+ },
+ "inspect_after": {
+  "id": "sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319",
+  "repo_digests": [
+   "opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319"
+  ]
+ },
+ "run_batch_rc": 0,
+ "records": 3,
+ "statuses": [
+  "REFERENCE_INVALID"
+ ],
+ "all_records_name_pinned_image": true,
+ "all_records_on_family": true,
+ "peak_used_disk_kib": 45594648,
+ "peak_used_memory_kib": 2982340,
+ "executed_image_verified": true
+}
