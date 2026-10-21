@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from fractions import Fraction
 
 from carbon.development_session import submission_policy
@@ -217,6 +217,82 @@ FINISH_TOOL = {
     },
 }
 
+#: The depth edition's three more required texts per hypothesis
+#: (GRAPHITE-DEPTH-REVIEW 2026-10-21, recommendation C), with the meaning each
+#: is given to the model. Bounded and checked as the other texts are
+#: (`plan.PLAN_SCHEMA_V2`).
+DEPTH_FIELDS = ("physics_rationale", "architecture_match", "ablation")
+#: The miner plan schemas (`plan.PLAN_SCHEMA`, `plan.PLAN_SCHEMA_V2`), named
+#: here so an edition can say which one it records without importing `plan`.
+MINER_PLAN_SCHEMAS = ("carbon.graphite.miner-plan.v1", "carbon.graphite.miner-plan.v2")
+DEPTH_FIELD_TEXT = {
+    "physics_rationale": (
+        "what in the data or the governing physics motivates this hypothesis"
+    ),
+    "architecture_match": (
+        "why this model family or construction suits that structure"
+    ),
+    "ablation": (
+        "the control it is compared against and the one factor that differs, "
+        "at equal budget"
+    ),
+}
+FINISH_TOOL_V2 = {
+    "type": "function",
+    "name": FINISH,
+    "strict": True,
+    "description": (
+        "Record this campaign's ranked research plan and finish the planning "
+        "stage. hypotheses are ranked, best first; each has the hypothesis, its "
+        "expected effect, its physics_rationale (what in the data or the "
+        "governing physics motivates it), its architecture_match (why this model "
+        "family or construction suits that structure), its ablation (the "
+        "control it is compared against and the one factor that differs, at "
+        "equal budget), a stopping rule, an optional recipe (recipe_json: a "
+        "recipe object as a JSON string, or null) and the cards it cites with "
+        "their origin. pins_considered names every card the miner pinned and "
+        "how you considered it. Carbon refuses a plan that cites a card it "
+        "cannot find or one the miner banned, that leaves out a pin, or whose "
+        "hypothesis leaves a field empty; correct it and record it again."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "hypotheses": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "hypothesis": {"type": "string"},
+                        "expected_effect": {"type": "string"},
+                        **{
+                            name: {"type": "string", "description": text}
+                            for name, text in DEPTH_FIELD_TEXT.items()
+                        },
+                        "stopping_rule": {"type": "string"},
+                        "recipe_json": {"type": ["string", "null"]},
+                        "cites": {"type": "array", "items": _CITE},
+                    },
+                    "required": [
+                        "hypothesis",
+                        "expected_effect",
+                        *DEPTH_FIELDS,
+                        "stopping_rule",
+                        "recipe_json",
+                        "cites",
+                    ],
+                    "additionalProperties": False,
+                },
+            },
+            "pins_considered": FINISH_TOOL["parameters"]["properties"][
+                "pins_considered"
+            ],
+        },
+        "required": ["hypotheses", "pins_considered"],
+        "additionalProperties": False,
+    },
+}
+
 # --- prompts -----------------------------------------------------------------
 
 _IDENTITY = """
@@ -290,6 +366,86 @@ Carbon rebuilds it itself, with its own seed, on public TRAIN data. Validate and
 compile before practice, read the practice diagnostics, and revise, deepen,
 abandon, select or stop. You may read the cards the plan cites with lit_card. A
 capability the Challenge does not support goes in a capability_request.
+
+Select only a recipe you practised to completion in this campaign, exactly as
+practised, with carbon_autoresearch_select_recipe; any other is refused with
+your practised recipes listed. Carbon then submits the selection to the
+Challenge's validator. Or end with carbon_autoresearch_stop for budget,
+plateau, no feasible action, unresolved failure or cancellation, with the
+evidence. You may stop without an improvement; never fabricate a winner.
+""")
+
+#: The depth edition's Planner prompt (GRAPHITE-DEPTH-REVIEW 2026-10-21,
+#: recommendation C): v1's, with a required first step that characterises
+#: the public TRAIN, and the three more texts each hypothesis states.
+PLANNER_PROMPT_V2 = _prompt("""
+Role: Planner. Write a ranked research plan for the Challenge in your initial
+observation. Its discovery document defines the task, the rebuildable model
+families and backends, the public material and the limits; treat it as the
+Challenge's definition.
+
+Required first step: Before writing hypotheses, characterise the public TRAIN
+with run_python: input and output dimensions, scale and units, smoothness and
+regime changes, symmetries or conservation the targets show. Base every
+hypothesis on what you found.
+
+Search the literature with lit_search and read cards with lit_card. Inspect
+public material, check designs with check_design (can it be submitted?), read
+the roadmap, and note decisions in the notebook. Each run_python experiment on
+public data spends one of the miner's research-trial slots. You do not
+practise or select a recipe. A capability the Challenge does not support goes
+in a capability_request, never into the plan as if it were supported.
+
+The plan ranks hypotheses, best first. Each states the hypothesis, its
+expected effect, its physics_rationale (what in the data or the governing
+physics motivates it), its architecture_match (why this model family or
+construction suits that structure), its ablation (the control it is compared
+against and the one factor that differs, at equal budget), a stopping rule, an
+optional recipe, and the cards it cites with their origin. Consider every card
+the miner pinned and say how in pins_considered; never cite a card the miner
+banned. Finish with graphite_record_plan. Carbon refuses a plan that cites a
+card it cannot find or one the miner banned, that leaves out a pin, or whose
+hypothesis leaves a field empty, and says why; correct it and record it again.
+Or end with carbon_autoresearch_stop for a supported reason.
+""")
+
+#: The depth edition's Constructor prompt: v1's, with the recipe forms the
+#: miner path serves on this base - the declarative recipe a Challenge
+#: compiles; `carbon.construction-recipe.v1` with a catalog source
+#: (`backbone_catalog.served`, Motor 1.2's direct path); a graph source where
+#: the Challenge serves graphs (Battery's direct path); source bundles closed
+#: to miners - and one-factor ablations before a selection.
+CONSTRUCTOR_PROMPT_V2 = _prompt("""
+Role: Constructor. Turn the plan in your initial observation into a recipe the
+Challenge can rebuild, and practise it. The plan is guidance data written by
+the Planner or edited by the miner: test its hypotheses in order of rank,
+follow their stopping rules, and drop a hypothesis practice refutes. The
+discovery document in your initial observation defines the Challenge,
+including the recipe form it takes (its execution and models sections).
+
+A recipe has one of the forms the Challenge serves:
+- declarative JSON (schema_version, challenge_id, backbone, parameters), on a
+  Challenge that compiles its own recipe catalogue;
+- a construction recipe (carbon.construction-recipe.v1) whose source is one of
+  Carbon's tested backbones by catalog id: source {"kind": "catalog",
+  "catalog_id", "catalog_digest"}, with the catalog_digest the discovery
+  document gives for this Challenge version, and settings in
+  procedure.configuration and procedure.train_use taken from that entry's own
+  settings list (a setting left unset keeps the tested baseline's);
+- where the Challenge serves graphs, a construction recipe whose source is
+  {"kind": "graph", "submission_digest"}, naming a graph you wrote in the
+  workspace.
+Miner source bundles stay closed: Carbon builds only its own tested bundles.
+Carbon rebuilds the recipe itself, with its own seed, on public TRAIN data.
+Validate and compile before practice, read the practice diagnostics, and
+revise, deepen, abandon, select or stop. You may read the cards the plan cites
+with lit_card. A capability the Challenge does not support goes in a
+capability_request.
+
+Compare each hypothesis against the current best recipe by changing one factor
+at a time at equal practice budget; select only a recipe whose advantage
+survives its ablation, and cite the practice runs that show it. Give that
+citation in the selection's reason.
 
 Select only a recipe you practised to completion in this campaign, exactly as
 practised, with carbon_autoresearch_select_recipe; any other is refused with
@@ -479,8 +635,75 @@ CONSTRUCTOR = MinerRole(
     workspace_actions=CONSTRUCTOR_ACTIONS,
     practice=True,
 )
+#: The depth edition's roles: v1's tools and actions, the v2 prompts.
+PLANNER_V2 = MinerRole(
+    name="planner",
+    prompts=(("loop", PLANNER_PROMPT_V2),),
+    tools=PLANNER.tools,
+    workspace_actions=PLANNER_ACTIONS,
+    practice=False,
+)
+CONSTRUCTOR_V2 = MinerRole(
+    name="constructor",
+    prompts=(("loop", CONSTRUCTOR_PROMPT_V2),),
+    tools=CONSTRUCTOR.tools,
+    workspace_actions=CONSTRUCTOR_ACTIONS,
+    practice=True,
+)
 
 EDITION_RECORD_SCHEMA = "carbon.graphite.miner-edition-record.v1"
+#: The record of an edition that also freezes per-role model settings
+#: (`role_settings`): v1's record and that one key.
+EDITION_RECORD_SCHEMA_V2 = "carbon.graphite.miner-edition-record.v2"
+ROLE_SETTINGS_RULE = "carbon.graphite.miner-role-settings.v1"
+#: Reasoning efforts in increasing order (`model_provider.EFFORTS` less None,
+#: which sends no reasoning parameter).
+EFFORT_ORDER = ("minimal", "low", "medium", "high")
+
+
+@dataclass(frozen=True)
+class RoleSettings:
+    """Floors one role's session raises the campaign's model selection to
+    (`role_selection`). Each is a floor, never a cap: a selection already at
+    or above it keeps its own value, so a miner's larger output cap or longer
+    timeout is never lowered. None leaves that setting as the selection has
+    it."""
+
+    reasoning_effort_at_least: str | None = None
+    max_output_tokens_at_least: int | None = None
+    timeout_seconds_at_least: int | None = None
+
+    def __post_init__(self):
+        effort = self.reasoning_effort_at_least
+        if effort is not None and effort not in EFFORT_ORDER:
+            raise ValueError("a reasoning-effort floor is a known effort")
+        for value in (self.max_output_tokens_at_least, self.timeout_seconds_at_least):
+            if value is not None and (type(value) is not int or value < 1):
+                raise ValueError("a settings floor is a positive integer")
+
+    def record(self):
+        return {
+            "rule": ROLE_SETTINGS_RULE,
+            "reasoning_effort_at_least": self.reasoning_effort_at_least,
+            "max_output_tokens_at_least": self.max_output_tokens_at_least,
+            "timeout_seconds_at_least": self.timeout_seconds_at_least,
+        }
+
+
+#: The depth edition's role settings (GRAPHITE-DEPTH-REVIEW 2026-10-21,
+#: recommendation A, as the Test Lead assigned it). The Planner reasons at
+#: "high" with a 32,768-token output cap where its model's recorded context
+#: holds the selection's window plus that cap (`role_selection`), and a
+#: 600-second timeout (`model_provider.select`'s maximum, the whole-context
+#: roles' value: a long high-effort reply must not time out into an unknown
+#: outcome). The Constructor reasons at "medium" at least and keeps the
+#: selection's caps and window. The Reader keeps the selection as it is.
+DEPTH_PLANNER_SETTINGS = RoleSettings(
+    reasoning_effort_at_least="high",
+    max_output_tokens_at_least=32768,
+    timeout_seconds_at_least=600,
+)
+DEPTH_CONSTRUCTOR_SETTINGS = RoleSettings(reasoning_effort_at_least="medium")
 
 
 @dataclass(frozen=True)
@@ -490,6 +713,14 @@ class MinerEdition:
     #: Model escalation the edition offers. v1 offers none: only a model the
     #: miner configured could ever be one, between epochs, and v1 has no seam.
     escalation: tuple = ()
+    #: The plan schema the Planner records (`MINER_PLAN_SCHEMAS`).
+    plan_schema: str = MINER_PLAN_SCHEMAS[0]
+    #: The Planner's finishing tool; None is v1's `FINISH_TOOL`.
+    finish_tool: dict | None = field(default=None, compare=False, hash=False)
+    #: `((role name, RoleSettings), ...)`: the floors a role's session raises
+    #: the campaign's model selection to. Empty in v1: every role runs on the
+    #: selection exactly as the campaign froze it.
+    role_settings: tuple = ()
 
     def __post_init__(self):
         names = [role.name for role in self.roles]
@@ -497,6 +728,33 @@ class MinerEdition:
             raise ValueError("the miner edition runs the Reader, Planner, Constructor")
         if self.escalation != ():
             raise ValueError("the miner edition offers no escalation")
+        if self.plan_schema not in MINER_PLAN_SCHEMAS:
+            raise ValueError("the edition's plan schema is a miner plan schema")
+        if self.finish_tool is not None and (
+            type(self.finish_tool) is not dict or self.finish_tool.get("name") != FINISH
+        ):
+            raise ValueError("the edition's finishing tool is graphite_record_plan")
+        if (
+            type(self.role_settings) is not tuple
+            or any(
+                type(item) is not tuple
+                or len(item) != 2
+                or item[0] not in names
+                or type(item[1]) is not RoleSettings
+                for item in self.role_settings
+            )
+            or len({item[0] for item in self.role_settings}) != len(self.role_settings)
+        ):
+            raise ValueError("role settings name each edition role at most once")
+
+    @property
+    def finish(self):
+        """The Planner's finishing tool."""
+        return FINISH_TOOL if self.finish_tool is None else self.finish_tool
+
+    def settings_for(self, name):
+        """The role's `RoleSettings`, or None: the selection as frozen."""
+        return dict(self.role_settings).get(name)
 
     def role(self, name):
         for role in self.roles:
@@ -507,26 +765,34 @@ class MinerEdition:
     def plan_record(self):
         """Everything this edition freezes, by digest: the policy, every
         role's prompts and tool manifest, the local tools' schemas and the
-        plan schema. A campaign's provider plan pins its digest."""
-        from .plan import PLAN_SCHEMA
-
-        return {
-            "schema": EDITION_RECORD_SCHEMA,
+        plan schema, and - where the edition has any - its role settings. A
+        campaign's provider plan pins its digest."""
+        record = {
+            "schema": (
+                EDITION_RECORD_SCHEMA_V2
+                if self.role_settings
+                else EDITION_RECORD_SCHEMA
+            ),
             "edition": self.edition_id,
             "agent_policy": AGENT_POLICY,
             "roles": [role.record() for role in self.roles],
             "local_tools": {
                 tool["name"]: digest(canonical(tool))
-                for tool in (*LITERATURE_TOOLS, FINISH_TOOL)
+                for tool in (*LITERATURE_TOOLS, self.finish)
             },
             "internal_only_roles": list(INTERNAL_ONLY_ROLES),
             "internal_only_tools": list(INTERNAL_ONLY_TOOLS),
             "escalation": list(self.escalation),
-            "plan_schema": PLAN_SCHEMA,
+            "plan_schema": self.plan_schema,
             # In FULL, the hunt may spend at most this part of the research
             # share, so the Planner always has the rest of it.
             "hunt_part_of_research_share": str(HUNT_PART_OF_SHARE),
         }
+        if self.role_settings:
+            record["role_settings"] = {
+                name: rule.record() for name, rule in self.role_settings
+            }
+        return record
 
     @property
     def digest(self):
@@ -535,9 +801,30 @@ class MinerEdition:
 
 EDITION = MinerEdition(edition_id=EDITION_ID, roles=(READER, PLANNER, CONSTRUCTOR))
 
+#: The depth edition (GRAPHITE-DEPTH-REVIEW 2026-10-21, recommendations A and
+#: C): v1's Reader, the v2 Planner and Constructor prompts, the v2 plan schema
+#: and finishing tool, and the Planner's and Constructor's role settings. Its
+#: research share is the launch's own (`DEFAULT_RESEARCH_SHARE` unless the
+#: miner sets one); the research budget figure is the owner's to set. A launch
+#: names it explicitly; `EDITION_ID` stays the default a new launch freezes.
+DEPTH_EDITION_ID = "carbon.graphite.miner-edition.v2"
+DEPTH_EDITION = MinerEdition(
+    edition_id=DEPTH_EDITION_ID,
+    roles=(READER, PLANNER_V2, CONSTRUCTOR_V2),
+    plan_schema=MINER_PLAN_SCHEMAS[1],
+    finish_tool=FINISH_TOOL_V2,
+    role_settings=(
+        ("planner", DEPTH_PLANNER_SETTINGS),
+        ("constructor", DEPTH_CONSTRUCTOR_SETTINGS),
+    ),
+)
+
 #: Every published miner edition. Published entries are never edited: a new
 #: behaviour is a new id.
-MINER_EDITIONS = {EDITION.edition_id: EDITION}
+MINER_EDITIONS = {
+    EDITION.edition_id: EDITION,
+    DEPTH_EDITION.edition_id: DEPTH_EDITION,
+}
 
 
 class EditionUnknown(LookupError):
@@ -553,6 +840,137 @@ def resolve(edition_id, frozen_digest=None):
     ):
         raise EditionUnknown(EditionUnknown.code)
     return edition
+
+
+# --- role settings -----------------------------------------------------------
+
+#: Why a role's output-cap floor was or was not applied (`role_selection`).
+CAP_RAISED = "raised"
+CAP_SELECTION_AT_LEAST = "selection_at_least"
+CAP_NO_DOCUMENTED_MAXIMUM = "no_documented_output_maximum"
+CAP_ABOVE_MODEL_MAXIMUM = "above_model_output_maximum"
+CAP_NO_RECORDED_CONTEXT = "no_recorded_context"
+CAP_DOES_NOT_FIT_CONTEXT = "does_not_fit_context"
+#: Why a role's effort floor was or was not applied.
+EFFORT_RAISED = "raised"
+EFFORT_SELECTION_AT_LEAST = "selection_at_least"
+EFFORT_NONE_SENT = "selection_sends_no_reasoning"
+
+
+def output_cap_fits_window(window, context, cap):
+    """Internal Graphite's `roles.output_cap_fits` rule at a given input
+    window: a request the loop admits (at most `window` less
+    `CONTEXT_RESERVE_TOKENS`) plus a reply of `cap` tokens stays inside the
+    model's `context`. `roles.output_cap_fits` is this rule at a
+    whole-context window; a test pins the two together. (The miner edition
+    never imports internal Graphite's role table.)"""
+    from carbon.development_session.research_agent import CONTEXT_RESERVE_TOKENS
+
+    return window - CONTEXT_RESERVE_TOKENS + cap <= context
+
+
+def _cap_basis(selection, cap):
+    """Whether a role's output-cap floor `cap` applies to `selection`, as a
+    closed basis. It applies only above the selection's own cap, within the
+    model's documented output maximum, and where the model's recorded
+    context holds the selection's window plus the cap; otherwise the
+    selection keeps its own cap, never an invalid request."""
+    from carbon.development_session import model_provider as mp
+
+    settings = selection.settings
+    if settings.max_output_tokens >= cap:
+        return CAP_SELECTION_AT_LEAST
+    try:
+        maximum = mp.output_maximum(selection.provider_id, selection.model_id)
+    except mp.ModelSelectionRefused:
+        maximum = None
+    if maximum is None or maximum["basis"] == mp.OUTPUT_CONSERVATIVE:
+        return CAP_NO_DOCUMENTED_MAXIMUM
+    if maximum["max_output_tokens"] < cap:
+        return CAP_ABOVE_MODEL_MAXIMUM
+    context = mp.published_context(selection.provider_id, selection.model_id)
+    if context is None:
+        return CAP_NO_RECORDED_CONTEXT
+    if not output_cap_fits_window(settings.max_input_tokens, context["tokens"], cap):
+        return CAP_DOES_NOT_FIT_CONTEXT
+    return CAP_RAISED
+
+
+def role_selection(edition, name, selection, *, credential_file=None):
+    """The model selection role `name`'s session runs on, and the record of
+    what its role settings did: `(selection, record)`.
+
+    An edition with no settings for the role returns `selection` itself and
+    None, so v1 runs every role on the campaign's frozen selection exactly.
+    Otherwise each floor (`RoleSettings`) is applied over the selection's
+    own settings and the selection is rebuilt through `model_provider.select`
+    (`selection_spec`), with the selection's own credential reference, or
+    `credential_file` where given (a campaign on the historical default
+    names its key file there). The window is never changed. The record names,
+    per setting, the selection's value, the floor, the applied value and the
+    closed basis; it is deterministic, so a resume rebuilds the same
+    selection."""
+    rule = edition.settings_for(name)
+    if rule is None:
+        return selection, None
+    from carbon.development_session import model_provider as mp
+
+    settings = selection.settings
+    chosen = settings.record()
+    record = {"rule": ROLE_SETTINGS_RULE, "role": name}
+    floor = rule.reasoning_effort_at_least
+    if floor is not None:
+        current = settings.reasoning_effort
+        if current is None:
+            applied, basis = None, EFFORT_NONE_SENT
+        elif current in EFFORT_ORDER and EFFORT_ORDER.index(
+            current
+        ) >= EFFORT_ORDER.index(floor):
+            applied, basis = current, EFFORT_SELECTION_AT_LEAST
+        else:
+            applied, basis = floor, EFFORT_RAISED
+        chosen["reasoning_effort"] = applied
+        record["reasoning_effort"] = {
+            "selection": current,
+            "at_least": floor,
+            "applied": applied,
+            "basis": basis,
+        }
+    cap = rule.max_output_tokens_at_least
+    if cap is not None:
+        basis = _cap_basis(selection, cap)
+        applied = cap if basis == CAP_RAISED else settings.max_output_tokens
+        chosen["max_output_tokens"] = applied
+        record["max_output_tokens"] = {
+            "selection": settings.max_output_tokens,
+            "at_least": cap,
+            "applied": applied,
+            "basis": basis,
+            "max_input_tokens": settings.max_input_tokens,
+        }
+    timeout = rule.timeout_seconds_at_least
+    if timeout is not None:
+        applied = max(settings.timeout_seconds, timeout)
+        chosen["timeout_seconds"] = applied
+        record["timeout_seconds"] = {
+            "selection": settings.timeout_seconds,
+            "at_least": timeout,
+            "applied": applied,
+        }
+    if chosen == settings.record():
+        return selection, record
+    reference = (
+        selection.credential.reference
+        if credential_file is None
+        else str(credential_file)
+    )
+    derived = mp.select(
+        credential={"kind": "file", "reference": reference},
+        **mp.selection_spec(selection, settings=chosen),
+    )
+    if derived.settings.record() != chosen:
+        raise ValueError("a role's settings did not rebuild exactly")
+    return derived, record
 
 
 # --- launch fields -----------------------------------------------------------
