@@ -140,3 +140,50 @@ def test_a_pytorch_worker_or_an_unnamed_parent_warns_of_nothing(
     assert RUNTIME.get("worker_parent") is None
     codes = [w["code"] for w in setup.review({"confirm": True})["warnings"]]
     assert "pytorch_worker_required" not in codes
+
+
+# --- M1 rehearsal, 2026-10-21: the profile setup writes must load -------------
+
+
+def test_the_profile_setup_writes_loads_and_holds_no_worker_parent(tmp_path, state):
+    """Round trip: setup checks a PyTorch worker and writes the profile; the
+    runner's own key check accepts that runtime. The worker's CPU parent stays
+    in the compute check, never in the runtime (840cf69b1 wrote it there, and
+    every Challenge read research_runtime_interface_unavailable)."""
+    import json
+
+    from scripts.dev.miner_launchpad import runner
+
+    setup = EnvironmentSetup(
+        state, onboarding=Onboarding(), checks=WorkerChecks("torch_cpu")
+    )
+    completed(tmp_path, setup)
+    setup.review({"confirm": True})
+    assert setup.state()["steps"]["compute"]["check"]["worker_parent"] == "torch_cpu"
+    cfg = runner.validated_profile(json.loads(setup.profile_path.read_bytes()))
+    assert "worker_parent" not in cfg["runtime"]
+    assert set(cfg["runtime"]) <= runner.SUPPORTED_RUNTIME_KEYS
+    assert runner.REQUIRED_RUNTIME_KEYS <= set(cfg["runtime"])
+
+
+@pytest.mark.parametrize(
+    "parent, loads", [("torch_cpu", True), ("cpu", True), ("gpu", False)]
+)
+def test_a_profile_written_with_worker_parent_still_loads(parent, loads):
+    """A profile written while setup put worker_parent in the runtime loads
+    with a known parent, and the runtime a campaign sees drops it; an unknown
+    one is refused as before."""
+    from scripts.dev.miner_launchpad.controller import Rejected
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    runtime = {**RUNTIME, "worker_parent": parent}
+    host = SimpleNamespace(
+        _configuration=lambda: {"enabled": True, "runtime": dict(runtime)}
+    )
+    if loads:
+        cfg = RunnerAdapter.configured(host)
+        assert cfg["runtime"] == RUNTIME
+    else:
+        with pytest.raises(Rejected) as refused:
+            RunnerAdapter.configured(host)
+        assert refused.value.code == "research_runtime_interface_unavailable"

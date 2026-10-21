@@ -305,12 +305,24 @@ RESEARCH_IMAGE_RECORDS = {
 # refused before launch rather than discovered after the miner has started
 # spending.
 REQUIRED_RUNTIME_KEYS = frozenset({"implementation", "images"})
-SUPPORTED_RUNTIME_KEYS = REQUIRED_RUNTIME_KEYS | {
-    "authored_research",
-    "scientific_tasks",
-    "gpu_research",
-    "remote_gpu",
-}
+#: Descriptive keys a profile may carry that are no composition: accepted
+#: only with a known value, and dropped from the runtime a campaign sees.
+#: `worker_parent` (the worker's pinned CPU parent) was written into the
+#: runtime by setup from 840cf69b1 until its fix (M1 rehearsal, 2026-10-21:
+#: every Challenge then read research_runtime_interface_unavailable); setup
+#: now keeps it in its compute check only, and a profile written meanwhile
+#: still loads.
+DESCRIPTIVE_RUNTIME_KEYS = {"worker_parent": frozenset({"cpu", "torch_cpu"})}
+SUPPORTED_RUNTIME_KEYS = (
+    REQUIRED_RUNTIME_KEYS
+    | {
+        "authored_research",
+        "scientific_tasks",
+        "gpu_research",
+        "remote_gpu",
+    }
+    | set(DESCRIPTIVE_RUNTIME_KEYS)
+)
 
 
 def _intake_url(value):
@@ -2412,6 +2424,16 @@ class RunnerAdapter:
             raise Rejected("research_runtime_interface_unavailable", 409)
         if not REQUIRED_RUNTIME_KEYS <= set(runtime):
             raise Rejected("research_runtime_interface_unavailable", 409)
+        for name, known in DESCRIPTIVE_RUNTIME_KEYS.items():
+            if name in runtime and runtime[name] not in known:
+                raise Rejected("research_runtime_interface_unavailable", 409)
+        if any(name in runtime for name in DESCRIPTIVE_RUNTIME_KEYS):
+            runtime = {
+                key: value
+                for key, value in runtime.items()
+                if key not in DESCRIPTIVE_RUNTIME_KEYS
+            }
+            cfg = {**cfg, "runtime": runtime}
         if "gpu_research" in runtime:
             from carbon.challenge_registry.campaigns import declared_gpu
 

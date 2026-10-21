@@ -2596,17 +2596,23 @@ class EnvironmentSetup:
             manifests[field] = found["digest"]
         gpu_image = paths.pop("gpu_image_manifest", None)
         with self.lock:
-            runtime = self.checks.compute(
-                Path(paths["image_manifest"]), Path(paths["analysis_image_manifest"])
+            runtime = dict(
+                self.checks.compute(
+                    Path(paths["image_manifest"]),
+                    Path(paths["analysis_image_manifest"]),
+                )
             )
+            # The worker's CPU parent describes the check; it is no part of
+            # the runtime a profile composes (runner.SUPPORTED_RUNTIME_KEYS).
+            worker_parent = runtime.pop("worker_parent", None)
             check = {
                 "revision": runtime["implementation"]["revision"],
                 "images": runtime["images"],
                 "balance": "not applicable: your own machine",
             }
-            if runtime.get("worker_parent") is not None:
-                check["worker_parent"] = runtime["worker_parent"]
-            if runtime.get("worker_parent") == "cpu":
+            if worker_parent is not None:
+                check["worker_parent"] = worker_parent
+            if worker_parent == "cpu":
                 needing = torch_challenges()
                 if needing:
                     check["pytorch_needed_for"] = needing
