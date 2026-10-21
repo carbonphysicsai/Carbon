@@ -302,17 +302,20 @@ def _motor():
     )
 
 
-def _motor_catalog():
-    """Motor 1.2 (OWNER-BACKBONE-CATALOG-01): Carbon's tested backbones by
-    catalog id on the direct recipe path. Each hook runs under the 1.2
-    research key, so Motor's shared campaign code serves exactly 1.2."""
+def _motor_catalog(version="1.2"):
+    """A Motor catalog version (OWNER-BACKBONE-CATALOG-01): Carbon's tested
+    backbones by catalog id on the direct recipe path; 1.3 is 1.2 plus
+    allowlist v7. Each hook runs under that version's research key, so Motor's
+    shared campaign code serves exactly that version."""
     from carbon.challenge_kit import physical_material, physical_public
     from carbon.development_session import direct_submission
     from carbon.motor import campaign as motor
     from carbon.motor import research_view as motor_view
     from carbon.motor.contracts import key_for, keyed
 
-    key = key_for(motor.CATALOG_VERSION)
+    if version not in motor.CATALOG_VERSIONS:
+        raise ValueError("motor catalog version required")
+    key = key_for(version)
 
     def bound(function):
         @functools.wraps(function)
@@ -364,7 +367,10 @@ def _versioned_campaigns():
     (Challenge id, version)."""
     from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
 
-    return {(MOTOR_CHALLENGE, "1.2"): _motor_catalog}
+    return {
+        (MOTOR_CHALLENGE, "1.2"): _motor_catalog,
+        (MOTOR_CHALLENGE, "1.3"): functools.partial(_motor_catalog, "1.3"),
+    }
 
 
 def _campaigns():

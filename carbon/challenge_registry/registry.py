@@ -226,6 +226,12 @@ def _motor_catalog():
     return describe_catalog()
 
 
+def _motor_catalog_v7():
+    from .motor import describe_catalog
+
+    return describe_catalog("1.3")
+
+
 def _compile_burgers(strategy):
     from carbon.development_session.research_catalog import compile_recipe
 
@@ -367,6 +373,28 @@ def _entries():
                 ),
             ),
             _motor_catalog,
+            None,
+        ),
+        # Motor 1.3: 1.2 plus allowlist v7, each Challenge's catalog version
+        # (Validator, 2026-10-20). 1.2 is unchanged.
+        Entry(
+            MOTOR_CHALLENGE,
+            "1.3",
+            "Electric-motor magnetics (DEVELOPMENT periodic cross-section, backbone "
+            "catalog, allowlist v7)",
+            IMPLEMENTED,
+            "launch",
+            "carbonphysicsai/Carbon#344",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch practice of Carbon's tested catalog backbones in the "
+                    "isolated C-03 CPU worker; exact public TRAIN and bundle bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    carrier,
+                ),
+            ),
+            _motor_catalog_v7,
             None,
         ),
         Entry(

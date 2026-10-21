@@ -14,6 +14,10 @@
     {
      "id": "electric-motor-magnetics",
      "version": "1.2"
+    },
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
     }
    ],
    "defaults": {
@@ -49,6 +53,10 @@
     {
      "id": "electric-motor-magnetics",
      "version": "1.2"
+    },
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
     }
    ],
    "defaults": {
@@ -85,6 +93,10 @@
     {
      "id": "electric-motor-magnetics",
      "version": "1.2"
+    },
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
     }
    ],
    "defaults": {
@@ -115,6 +127,10 @@
     {
      "id": "electric-motor-magnetics",
      "version": "1.2"
+    },
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
     }
    ],
    "defaults": {
@@ -145,6 +161,10 @@
     {
      "id": "electric-motor-magnetics",
      "version": "1.2"
+    },
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
     }
    ],
    "defaults": {

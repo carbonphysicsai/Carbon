@@ -48,13 +48,14 @@ def test_the_catalog_names_launch_reserved_and_deferred_challenges():
     assert listed[COLD_PLATE]["status"] == "IMPLEMENTED"
     assert listed[COLD_PLATE]["version"] == "1.0"
     assert {p["profile"] for p in listed[COLD_PLATE]["profiles"]} == {"cpu_research"}
-    # Motor registers two versions: 1.0 (Level 0) and 1.2 (the backbone catalog).
+    # Motor registers three versions: 1.0 (Level 0), 1.2 (the backbone catalog)
+    # and 1.3 (1.2 plus allowlist v7).
     motor = {
         c["version"]: c
         for c in challenges.catalog(NOTHING)["challenges"]
         if c["challenge_id"] == MOTOR
     }
-    assert set(motor) == {"1.0", "1.2"}
+    assert set(motor) == {"1.0", "1.2", "1.3"}
     for entry in motor.values():
         assert entry["status"] == "IMPLEMENTED"
         assert {p["profile"] for p in entry["profiles"]} == {"cpu_research"}

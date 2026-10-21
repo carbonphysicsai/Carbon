@@ -151,8 +151,9 @@ def bundle_material(root: Path | None = None) -> dict:
 
 #: Battery's served construction versions, as `carbon.challenge_kit.
 #: served_versions` registers them: 1.0 as above, unchanged; 2.0 the step-2
-#: version (STEP2_BATCH_VERSIONS_20261020).
-VERSIONS = ("1.0", "2.0")
+#: version (STEP2_BATCH_VERSIONS_20261020); 2.1 the catalog version, 2.0's
+#: serving with allowlist v7 (Validator, 2026-10-20).
+VERSIONS = ("1.0", "2.0", "2.1")
 LIMITS_SCHEMA_V2 = "carbon.battery.bundle-construction-limits.v2"
 PHYSICS_VERSION = "battery-physics-v2"
 
@@ -172,10 +173,12 @@ def construction_limits_document_for(version: str, rows: int | None = None) -> d
     if _version(version) == "1.0":
         return construction_limits_document()
     if type(rows) is not int or rows <= 0:
-        raise challenge.MaterialMismatch("Battery 2.0 limits need the bank's row count")
+        raise challenge.MaterialMismatch(
+            f"Battery {version} limits need the bank's row count"
+        )
     document = construction_limits_document()
     document["schema"] = LIMITS_SCHEMA_V2
-    document["challenge"] = {"id": challenge.CHALLENGE.challenge_id, "version": "2.0"}
+    document["challenge"] = {"id": challenge.CHALLENGE.challenge_id, "version": version}
     document["practice_cases"] = rows
     document["training_step_cap"] = None
     document["training_limit"] = "build_wall_seconds_max"
@@ -189,7 +192,8 @@ def versioned_material(version: str, root: Path | None = None) -> dict:
     (`physical_pack.development_bank`, the reference_present mask interface
     §3): the graded query is the bank's rows in its order, absent references
     stay NaN beside the authoritative mask, the physics role is the
-    {version, definition} envelope, and the allowlist is v6.
+    {version, definition} envelope, and the allowlist is v6. 2.1 is 2.0's
+    serving on its own bank label with allowlist v7.
     """
     from carbon.challenge_kit import physical_pack
     from carbon.challenge_kit.served_versions import material_allowlist_bytes
@@ -198,7 +202,7 @@ def versioned_material(version: str, root: Path | None = None) -> dict:
     if _version(version) == "1.0":
         return bundle_material(root)
     material = bundle_material(root)
-    bank = physical_pack.development_bank(challenge.CHALLENGE.challenge_id, "2.0")
+    bank = physical_pack.development_bank(challenge.CHALLENGE.challenge_id, version)
     inputs = np.array(bank["inputs"], dtype=np.float64)
     references = np.array(bank["references"], dtype=np.float64)
     present = tuple(bank["reference_present"])
@@ -216,16 +220,18 @@ def versioned_material(version: str, root: Path | None = None) -> dict:
             for p, row in zip(present, references, strict=True)
         )
     ):
-        raise challenge.MaterialMismatch("reference_invalid: Battery 2.0 bank rows")
-    limits = construction_limits_document_for("2.0", rows=n)
+        raise challenge.MaterialMismatch(
+            f"reference_invalid: Battery {version} bank rows"
+        )
+    limits = construction_limits_document_for(version, rows=n)
     physics = {"version": PHYSICS_VERSION, "definition": material["physics_contract"]}
-    allowed = material_allowlist_bytes(challenge.CHALLENGE.challenge_id, "2.0")
+    allowed = material_allowlist_bytes(challenge.CHALLENGE.challenge_id, version)
     material.update(
         {
-            "challenge_key": ChallengeKey(challenge.CHALLENGE.challenge_id, "2.0"),
+            "challenge_key": ChallengeKey(challenge.CHALLENGE.challenge_id, version),
             "construction_kit": {
                 **material["construction_kit"],
-                "version": "2.0",
+                "version": version,
                 "construction_limits_digest": digest(canonical(limits)),
             },
             "example": inputs.copy(),

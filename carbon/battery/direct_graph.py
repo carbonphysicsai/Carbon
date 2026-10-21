@@ -117,12 +117,20 @@ def training_settings(recipe: ConstructionRecipe) -> dict:
 
 #: Battery's graph allowlist per Challenge version, as
 #: `carbon.challenge_kit.served_versions.graph_allowlist_bytes` registers it:
-#: 1.0 keeps v1, step-2's 2.0 serves v6. Kept here, not imported, because this
-#: module runs inside the isolated worker with only its staged modules.
-GRAPH_ALLOWLISTS = {"1.0": "allowlist_v1.json", "2.0": "allowlist_v6.json"}
-#: Per version, the training surfaces with no upper bound: 2.0's step surfaces
-#: (`construction_kit.STEP_SURFACES`, held equal by a test).
-UNCAPPED_STEP_SURFACES = {"2.0": frozenset({"steps", "warmup_steps", "polish_steps"})}
+#: 1.0 keeps v1, step-2's 2.0 serves v6, the catalog version 2.1 serves v7.
+#: Kept here, not imported, because this module runs inside the isolated
+#: worker with only its staged modules.
+GRAPH_ALLOWLISTS = {
+    "1.0": "allowlist_v1.json",
+    "2.0": "allowlist_v6.json",
+    "2.1": "allowlist_v7.json",
+}
+#: Per version, the training surfaces with no upper bound: 2.0's and 2.1's
+#: step surfaces (`construction_kit.STEP_SURFACES`, held equal by a test).
+UNCAPPED_STEP_SURFACES = {
+    version: frozenset({"steps", "warmup_steps", "polish_steps"})
+    for version in ("2.0", "2.1")
+}
 
 
 def graph_allowlist(version: str):
@@ -134,6 +142,8 @@ def graph_allowlist(version: str):
         raise RecipeRefused("battery_graph_challenge_version_unregistered")
     if name == "allowlist_v6.json":
         return allowlist_module.load_served()
+    if name == "allowlist_v7.json":
+        return allowlist_module.Allowlist(allowlist_module.v7_bytes())
     return allowlist_module.load(allowlist_module.PATH.with_name(name))
 
 

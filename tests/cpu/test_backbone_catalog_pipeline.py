@@ -37,14 +37,31 @@ COVERAGE_ITEM = {
 
 def test_every_entry_verifies_and_motor_1_2_offers_the_eleven_torch_backbones():
     assert set(pipeline.verify_all()) == TORCH
-    assert {
-        e["catalog_id"] for e in pipeline.entries(MOTOR["id"], MOTOR["version"])
-    } == TORCH
-    # Never on a released or step-2 version (Validator): only Motor 1.2.
+    for version in ("1.2", "1.3"):
+        assert {
+            e["catalog_id"] for e in pipeline.entries(MOTOR["id"], version)
+        } == TORCH
+    # Never on a released or step-2 version (Validator): only Motor's catalog
+    # versions, 1.2 and 1.3 (1.2 plus allowlist v7).
     for item in pipeline.entries():
-        assert item["challenges"] == [MOTOR]
+        assert item["challenges"] == [MOTOR, {**MOTOR, "version": "1.3"}]
     for version in ("1.0", "1.1"):
         assert pipeline.entries(MOTOR["id"], version) == []
+
+
+@pytest.mark.parametrize(
+    "challenge",
+    [
+        {"id": "chip-cold-plate", "version": "1.2"},  # v7, no catalog yet
+        {"id": "electric-motor-magnetics", "version": "1.1"},  # step 2
+        {"id": "electric-motor-magnetics", "version": "1.4"},  # unregistered
+    ],
+)
+def test_an_entry_offered_where_no_catalog_is_served_is_refused(challenge):
+    item = copy.deepcopy(pipeline.entry("neuralop.FNO"))
+    item["challenges"].append(challenge)
+    with pytest.raises(pipeline.CatalogBroken, match="serves no backbone catalog"):
+        pipeline.verify(item)
 
 
 def test_the_licence_screen_left_kno_and_wno_out():
