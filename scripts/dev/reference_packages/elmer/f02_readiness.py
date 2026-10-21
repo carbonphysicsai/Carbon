@@ -72,8 +72,10 @@ COMMAND_CONTRACT = (
     "docker image named here or a native build from sources.lock.json accepted under "
     "F02-SCIENCE-VALUES-01 section A (A5 lineage via the verification role)"
 )
-#: The local rebuild of the locked Elmer package (F02-SCIENCE-VALUES-01 §A).
-IMAGE = "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add"
+#: The local rebuild of the locked Elmer package (F02-SCIENCE-VALUES-01 §A):
+#: the 2026-10-21 rebuild (MMS and A5 lineage against RR-04; Validator re-pin,
+#: docs/development/evidence/f02-rebuild-20261021/). RR-04's records keep 61be1cb7.
+IMAGE = "sha256:fe8a5b1abebf56bbd9cd1aae2ee08f1825b2991abc0bb14b5be3fae26e6512ec"
 AUDIT_SEED = 20261015
 MEMORY = {"mesh2": "2g"}  # per-case container memory limit; default below
 DEFAULT_MEMORY = "1g"
