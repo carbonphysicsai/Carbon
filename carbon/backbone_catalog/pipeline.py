@@ -19,13 +19,10 @@ line; `verify` re-checks every entry (each entry also runs in the tests):
 
     python -m carbon.backbone_catalog.pipeline verify [--wheelhouse DIR]
 
-and installs each entry's child image over the PyTorch CPU parent (owner-run).
-On a miner it reads the checked Launchpad setup; on a receiver host, which has
-no miner setup, it reads the receiver's operator record and installs over the
-parent and into the cache the receiver itself verifies at start:
-
-    python -m carbon.backbone_catalog.pipeline install [IDS...] [--wheelhouse DIR]
-        [--state-dir DIR | --receiver-config RECEIVER.json]
+Installing each entry's child image is the owner installer's
+(`python -m scripts.dev.catalog_install`, on a miner or a receiver host): this
+package imports nothing from `scripts/`, and miner paths read only
+`listing` (Validator, 2026-10-20).
 
 Checked per entry:
 - the bundle's digest is its manifest's canonical digest, and the source,
@@ -301,39 +298,6 @@ def bundle_directory(item, target, *, wheelhouse=None):
     return target
 
 
-def install(catalog_ids=None, *, wheelhouse=None, state_dir=None, receiver_config=None):
-    """Install each entry's child image over its PyTorch CPU parent, so
-    practice and the receiver can build it. Owner-run; never from MCP.
-
-    A miner installs from its checked Launchpad setup (`state_dir`,
-    `library_bundle.install_bundle`); a receiver host from its operator record
-    (`receiver_config`, `library_bundle.install_receiver_bundle`)."""
-    import tempfile
-
-    from scripts.dev import library_bundle
-
-    if state_dir is not None and receiver_config is not None:
-        raise CatalogBroken("install for a miner setup or a receiver, not both")
-    installed = []
-    for item in load()["entries"]:
-        if catalog_ids and item["catalog_id"] not in catalog_ids:
-            continue
-        verify(item)
-        with tempfile.TemporaryDirectory() as work:
-            directory = bundle_directory(
-                item, Path(work) / "bundle", wheelhouse=wheelhouse
-            )
-            if receiver_config is not None:
-                result = library_bundle.install_receiver_bundle(
-                    directory, receiver_config
-                )
-            else:
-                kwargs = {} if state_dir is None else {"state_dir": state_dir}
-                result = library_bundle.install_bundle(directory, **kwargs)
-            installed.append({"catalog_id": item["catalog_id"], **result})
-    return installed
-
-
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -346,31 +310,22 @@ def main(argv=None):
     grow.add_argument("--challenge", action="append", required=True)
     grow.add_argument("--receipt", type=Path, required=True)
     grow.add_argument("--receipt-key", required=True)
-    put = commands.add_parser("install")
-    put.add_argument("catalog_id", nargs="*")
-    put.add_argument("--wheelhouse", type=Path)
-    host = put.add_mutually_exclusive_group()
-    host.add_argument("--state-dir", type=Path)
-    host.add_argument("--receiver-config", type=Path)
+    moved = commands.add_parser("install")
+    moved.add_argument("rest", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
+    if args.command == "install":
+        # The installer moved out of this package (Validator, 2026-10-20).
+        print(
+            "refused: install moved; run python -m scripts.dev.catalog_install "
+            + " ".join(args.rest),
+            file=sys.stderr,
+        )
+        return 2
     try:
         if args.command == "verify":
             print(
                 json.dumps(
                     {"verified": verify_all(wheelhouse=args.wheelhouse)}, indent=1
-                )
-            )
-        elif args.command == "install":
-            print(
-                json.dumps(
-                    install(
-                        args.catalog_id,
-                        wheelhouse=args.wheelhouse,
-                        state_dir=args.state_dir,
-                        receiver_config=args.receiver_config,
-                    ),
-                    indent=1,
-                    default=str,
                 )
             )
         else:
