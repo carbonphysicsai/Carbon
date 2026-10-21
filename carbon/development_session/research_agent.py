@@ -195,6 +195,12 @@ UNRESOLVED_NEXT_STEPS = {
         "unknown. Reconcile the campaign: Carbon books the call at its full "
         "reservation, and the next resume sends it under a new identity."
     ),
+    "stream_usage_not_reported": (
+        "The provider streamed its reply but sent no final usage chunk, so the "
+        "call's token counts and charge are unknown, and Carbon guesses "
+        "neither. Reconcile the campaign: Carbon books the call at its full "
+        "reservation, and the next resume sends it under a new identity."
+    ),
     "usage_beyond_bounds": (
         "The provider reported more tokens than the request reserved, at a "
         "charge still within the call's reservation. Reconcile the campaign: "
@@ -593,6 +599,24 @@ def _provider_lease(ledger, *, exclusive=False):
         os.close(descriptor)
 
 
+def _time_left(ledger):
+    """Seconds left of the campaign's elapsed limit on the ledger's clock,
+    read after the call's reservation started the campaign; None when the
+    miner set no limit."""
+    from .research_ledger import NO_BUDGET, _elapsed
+
+    with ledger.db() as db:
+        campaign = db.execute(
+            "SELECT started,manifest FROM campaign WHERE id=1"
+        ).fetchone()
+    if campaign is None or campaign[0] is None:
+        return None
+    elapsed = _elapsed(json.loads(campaign[1]))
+    if elapsed is NO_BUDGET:
+        return None
+    return campaign[0] + elapsed - ledger.clock()
+
+
 def _request_once(
     ledger,
     *,
@@ -684,7 +708,15 @@ def _request_once(
                 if provider.is_historical_default
                 else SelectionTransport(provider)
             )
-        response = transport(request)
+        began = time.monotonic()
+        if isinstance(transport, SelectionTransport) and provider.streams:
+            # A streamed call has no whole-reply deadline: what is left of
+            # the miner's elapsed limit bounds it
+            # (`model_provider.TRANSPORT_STREAM_V1`).
+            response = transport(request, remaining_seconds=_time_left(ledger))
+        else:
+            response = transport(request)
+        reply_ms = round((time.monotonic() - began) * 1000)
     except Exception as error:  # noqa: BLE001
         # Never print provider errors: they may contain request/credential text.
         failure = classify(error, provider.errors)
@@ -722,6 +754,16 @@ def _request_once(
         usage = usage_cost(response.get("usage"), provider)
     except ValueError as error:
         reason, metered = _beyond_bounds(response, provider)
+        stream = response.get("provider_stream") if type(response) is dict else None
+        if (
+            reason == "usage_unavailable"
+            and type(stream) is dict
+            and stream.get("streamed") is True
+            and stream.get("usage_reported") is False
+        ):
+            # Streamed whole, but with no final usage chunk: why it is booked
+            # at its reservation, recorded beside it.
+            reason = "stream_usage_not_reported"
         _uncertain(directory, identity, reason, metered=metered)
         raise ProviderCallUnresolved(str(error), reason=reason) from None
     reported = response.get("model")
@@ -770,6 +812,9 @@ def _request_once(
             provider_id=provider.provider_id,
             charge=charge,
             provider_report=report,
+            # Milliseconds from dispatch to the whole reply: with its output
+            # tokens, the campaign's observed speed (never a recorded one).
+            reply_ms=reply_ms,
         )
         write_once(directory / "call.json", canonical({"identity": identity, **result}))
     ledger.finish(

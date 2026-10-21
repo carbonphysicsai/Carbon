@@ -905,6 +905,7 @@ def setup_selection(
     input_default=None,
     timeout_default=None,
     elapsed_seconds=None,
+    transport=None,
 ):
     """The profile's setup choice as a validated selection, with its key file.
 
@@ -921,6 +922,7 @@ def setup_selection(
         input_default=input_default,
         timeout_default=timeout_default,
         elapsed_seconds=elapsed_seconds,
+        transport=transport,
         **chosen,
     )
 
@@ -1357,13 +1359,15 @@ def graphite_default_selection(cfg):
     runs with (setup's choice, or the pinned default), exactly as its
     campaign's builder chooses it: the model's own maximum output
     (OWNER-LAUNCHPAD-PROD-02), its published context less that output
-    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01) and the longest provider call
-    timeout (`TIMEOUT_DEFAULT_V2`). None when it does not validate."""
+    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01), the longest provider call
+    timeout (`TIMEOUT_DEFAULT_V2`) and streamed calls where the adapter
+    streams (`TRANSPORT_STREAM_V1`). None when it does not validate."""
     from carbon.development_session.model_provider import (
         DEFAULT_SELECTION,
         INPUT_DEFAULT_V2,
         OUTPUT_DEFAULT_V2,
         TIMEOUT_DEFAULT_V2,
+        TRANSPORT_STREAM_V1,
         ModelSelectionRefused,
         select,
     )
@@ -1372,6 +1376,7 @@ def graphite_default_selection(cfg):
         "output_default": OUTPUT_DEFAULT_V2,
         "input_default": INPUT_DEFAULT_V2,
         "timeout_default": TIMEOUT_DEFAULT_V2,
+        "transport": TRANSPORT_STREAM_V1,
     }
     try:
         if "model_selection" in cfg:
@@ -3160,6 +3165,7 @@ class RunnerAdapter:
             INPUT_DEFAULT_V2,
             OUTPUT_DEFAULT_V2,
             TIMEOUT_DEFAULT_V2,
+            TRANSPORT_STREAM_V1,
             ModelSelectionRefused,
             check_budget,
             select,
@@ -3220,8 +3226,9 @@ class RunnerAdapter:
                 # A launch makes a new plan: an unset output cap is the
                 # model's own maximum (OWNER-LAUNCHPAD-PROD-02) and an unset
                 # timeout the longest, or half the launch's elapsed limit
-                # where that is shorter (`TIMEOUT_DEFAULT_V2`), as the campaign's
-                # own builder will choose them.
+                # where that is shorter (`TIMEOUT_DEFAULT_V2`), and its calls
+                # stream where the adapter streams (`TRANSPORT_STREAM_V1`), as
+                # the campaign's own builder will choose them.
                 selection = (
                     setup_selection(
                         cfg,
@@ -3230,6 +3237,7 @@ class RunnerAdapter:
                         input_default=input_default,
                         timeout_default=TIMEOUT_DEFAULT_V2,
                         elapsed_seconds=elapsed,
+                        transport=TRANSPORT_STREAM_V1,
                     )
                     if same_as_setup
                     else select(
@@ -3241,6 +3249,7 @@ class RunnerAdapter:
                         input_default=input_default,
                         timeout_default=TIMEOUT_DEFAULT_V2,
                         elapsed_seconds=elapsed,
+                        transport=TRANSPORT_STREAM_V1,
                     )
                 )
                 budget = miner_budget(request.get("budget"))

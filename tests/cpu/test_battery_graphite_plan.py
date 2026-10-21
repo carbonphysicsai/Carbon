@@ -69,7 +69,9 @@ def new_plan_selection(args, agent=None):
     miner set a cap), else as before it; and for `agent`'s plan under the
     new-plan input default where this tree has it
     (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01); and under the new-plan timeout
-    default where this tree has it (`model_provider.TIMEOUT_DEFAULT_V2`)."""
+    default where this tree has it (`model_provider.TIMEOUT_DEFAULT_V2`);
+    and under the new-plan transport rule where this tree has it
+    (`model_provider.TRANSPORT_STREAM_V1`)."""
     output_default = getattr(campaigns, "new_plan_output_default", None)
     if output_default is None:
         return campaigns.supplied_selection(args)
@@ -77,6 +79,9 @@ def new_plan_selection(args, agent=None):
     timeout_default = getattr(campaigns, "new_plan_timeout_default", None)
     if timeout_default is not None:
         chosen["timeout_default"] = timeout_default(args)
+    transport = getattr(campaigns, "new_plan_transport", None)
+    if transport is not None:
+        chosen["transport"] = transport(args)
     input_default = getattr(campaigns, "new_plan_input_default", None)
     if input_default is not None and agent is not None:
         chosen["input_default"] = input_default(args, agent)

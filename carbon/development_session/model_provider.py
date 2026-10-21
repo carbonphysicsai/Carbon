@@ -53,6 +53,7 @@ import json
 import re
 import socket
 import threading
+import time
 import urllib.error
 import urllib.request
 from collections.abc import Mapping
@@ -286,6 +287,13 @@ class ProviderAdapter:
     #: The provider's documented maximum for every model it serves, where it
     #: states one and no model's own is recorded.
     output_maximum: OutputMaximum | None = None
+    #: The adapter streams a reply (OpenAI Chat Completions `stream: true`
+    #: with `stream_options.include_usage`) under `TRANSPORT_STREAM_V1`. Set
+    #: for Chutes (S17 design, 2026-10-21) and for the generic OpenAI Chat
+    #: Completions adapter, whose protocol defines the stream; left unset
+    #: wherever Carbon has not verified a provider's stream (Engy's charge
+    #: report, Messages, Responses), which keeps the whole-reply deadline.
+    streaming: bool = False
 
     def summary_models(self):
         ids = (
@@ -454,6 +462,7 @@ ADAPTERS = {
             models_url=CHUTES_MODELS_URL,
             live_pricing=True,
             errors=CHUTES_ERRORS,
+            streaming=True,
         ),
         ProviderAdapter(
             adapter_id="anthropic",
@@ -476,6 +485,7 @@ ADAPTERS = {
             display_name="Any service implementing OpenAI Chat Completions",
             protocol=CHAT_COMPLETIONS,
             endpoint=None,
+            streaming=True,
         ),
     )
 }
@@ -535,6 +545,29 @@ TIMEOUT_DEFAULTS = (None, TIMEOUT_DEFAULT_V2)
 TIMEOUT_DEFAULT_V2_SECONDS = TIMEOUT_SECONDS_BOUNDS[1]
 
 
+#: How a new agent campaign plan's provider calls travel (S17, M1 rehearsal
+#: 2026-10-21: a Chutes reasoning reply with a 65,536-token cap ran past the
+#: 600 s call deadline while still being written). Under it, an adapter that
+#: streams (`ProviderAdapter.streaming`) sends `stream: true` with
+#: `stream_options.include_usage`, and `timeout_seconds` is the longest wait
+#: between chunks, not a whole-reply deadline: a reply that keeps sending is
+#: never cut on length. The first chunk may take `DEADLINE_MARGIN_SECONDS`
+#: longer (the connect and handshake that precede it). The only wall-clock
+#: bound left on a streamed call is the miner's own elapsed limit, which still
+#: admits a new call only while its timeout fits the time left, and ends a
+#: streamed call when the limit passes. The reply is assembled from its chunks
+#: into the very response the non-streaming path returns, so metering, tool
+#: calls, `incomplete_reply` and the journal read it unchanged; the final
+#: usage chunk meters it. A stream cut before its end, idle past the timeout
+#: or carrying a malformed chunk is an UNKNOWN outcome, kept at its full
+#: reservation and never resent (LP-PROD-A). An adapter that does not stream
+#: keeps the whole-reply deadline. A selection built without it (None, the
+#: historical rule) sends every call whole, so every plan frozen before
+#: replays byte for byte; a selection records its rule (`record`).
+TRANSPORT_STREAM_V1 = "carbon.model-selection.transport.stream.v1"
+TRANSPORTS = (None, TRANSPORT_STREAM_V1)
+
+
 def timeout_default_seconds(elapsed_seconds=None):
     """The timeout `TIMEOUT_DEFAULT_V2` chooses for a plan whose miner sets
     none: `TIMEOUT_DEFAULT_V2_SECONDS`, or half the plan's elapsed limit
@@ -577,6 +610,10 @@ class ModelSelection:
     #: freezes it beside the selection; `record()` never carries it, so a
     #: selection's record is the same under either input default.
     input_window: dict | None = field(default=None, compare=False)
+    #: How its calls travel (`TRANSPORTS`): None, every call whole, or
+    #: `TRANSPORT_STREAM_V1`. Recorded only when set, so a selection built
+    #: under the historical rule keeps its record exactly.
+    transport: str | None = None
 
     def __post_init__(self):
         # Each ticket admits one construction, so neither a direct call nor
@@ -607,12 +644,24 @@ class ModelSelection:
         )
 
     @property
+    def streams(self):
+        """Its calls stream (`TRANSPORT_STREAM_V1`, on an adapter that
+        streams); otherwise each call is read whole under its deadline."""
+        return (
+            self.transport == TRANSPORT_STREAM_V1
+            and self.adapter.streaming
+            and self.adapter.protocol == CHAT_COMPLETIONS
+        )
+
+    @property
     def is_historical_default(self):
         return self.record() == DEFAULT_SELECTION.record()
 
     def record(self):
-        """The selection as a campaign manifest records it; no key, no path."""
+        """The selection as a campaign manifest records it; no key, no path.
+        Its transport rule only where one was chosen (`TRANSPORTS`)."""
         return {
+            **({} if self.transport is None else {"transport": self.transport}),
             "schema": SELECTION_SCHEMA,
             "provider_id": self.provider_id,
             "protocol": self.adapter.protocol,
@@ -972,6 +1021,7 @@ def select(
     timeout_default=None,
     elapsed_seconds=None,
     adapters=None,
+    transport=None,
 ):
     """Validate a miner's choice into a `ModelSelection`.
 
@@ -999,7 +1049,10 @@ def select(
     `TIMEOUT_DEFAULT_V2`, and refused under any other rule. `adapters` is the registry
     `provider_id` must be in: `ADAPTERS` (every miner-facing caller) unless
     Carbon's own Graphite passes its own
-    (`graphite.model_providers.GRAPHITE_ADAPTERS`).
+    (`graphite.model_providers.GRAPHITE_ADAPTERS`). `transport` is how its
+    calls travel: None, every call whole (the historical rule), or
+    `TRANSPORT_STREAM_V1` for a new agent campaign plan, under which an
+    adapter that streams streams each reply (`ModelSelection.streams`).
     """
     registry = _registry(adapters)
     adapter = registry.get(provider_id)
@@ -1011,6 +1064,8 @@ def select(
         raise ModelSelectionRefused("unknown input default")
     if timeout_default not in TIMEOUT_DEFAULTS:
         raise ModelSelectionRefused("unknown timeout default")
+    if transport not in TRANSPORTS:
+        raise ModelSelectionRefused("unknown transport rule")
     if elapsed_seconds is not None and timeout_default != TIMEOUT_DEFAULT_V2:
         raise ModelSelectionRefused(
             "an elapsed limit bounds only the v2 timeout default"
@@ -1087,6 +1142,7 @@ def select(
             credential,
             _token=ticket,
             input_window=window,
+            transport=transport,
         )
     finally:
         _TICKETS.discard(ticket)
@@ -1136,6 +1192,7 @@ def selection_from_record(record, *, credential_file=None, adapters=None):
         declared_pricing=declared,
         published_pricing=published,
         adapters=adapters,
+        transport=record.get("transport"),
     )
     if selection.record() != record:
         raise ModelSelectionRefused("provider record does not re-validate exactly")
@@ -1552,13 +1609,16 @@ class _TrackedHTTPSHandler(_TrackedHandler, urllib.request.HTTPSHandler):
 _NOT_SENT = (ConnectionRefusedError, socket.gaierror)
 
 
-def _exchange(opener, outgoing, timeout, limit):
+def _exchange(opener, outgoing, timeout, limit, read=None):
     """Send the request and read the bounded reply; the network half of
-    `_post`, run in its worker thread. Rejections become `ProviderHTTPError`,
-    and a connection refused or a name unresolved before anything was sent
-    becomes `ProviderUnreachable`."""
+    `_post`, run in its worker thread. `read` reads a streamed reply
+    (`_read_stream`); without it the body is read whole. Rejections become
+    `ProviderHTTPError`, and a connection refused or a name unresolved before
+    anything was sent becomes `ProviderUnreachable`."""
     try:
         with opener.open(outgoing, timeout=timeout) as response:
+            if read is not None:
+                return read(response)
             return response.read(limit + 1)
     except urllib.error.HTTPError as rejected:
         code, usage = None, False
@@ -1588,14 +1648,259 @@ def _exchange(opener, outgoing, timeout, limit):
         raise
 
 
-def _post(selection, body, opener=None, deadline=None):
+class ProviderStreamCut(Exception):
+    """A streamed reply (`TRANSPORT_STREAM_V1`) that did not reach its end:
+    the connection closed before its final chunk, no chunk came within the
+    call timeout, the miner's elapsed limit passed, or a chunk was malformed
+    or reported an error. The request may have been processed, so this
+    classifies as UNKNOWN: the full reservation stays and nothing is resent.
+    Carries no provider text."""
+
+
+class _ChatStream:
+    """One Chat Completions reply assembled from its stream chunks into the
+    reply the non-streaming path reads: the message's text, its tool calls
+    (each by `index`, its `arguments` concatenated in order), the finish
+    reason and the final usage chunk. Bounded by `limit` bytes of assembled
+    reply, as the non-streaming body is; anything malformed is a
+    `ProviderStreamCut`, never a guess."""
+
+    #: Accounted per tool call for its record's own fields.
+    _CALL_BYTES = 64
+
+    def __init__(self, limit):
+        self.limit, self.size = limit, 0
+        self.model, self.text, self.calls = None, [], {}
+        self.finish, self.usage, self.done = None, None, False
+
+    def _grow(self, value, extra=0):
+        self.size += len(value.encode()) + extra
+        if self.size > self.limit:
+            raise ProviderStreamCut("streamed reply exceeds the response bound")
+
+    @staticmethod
+    def _bad(what):
+        raise ProviderStreamCut("malformed stream chunk: " + what)
+
+    def _once(self, entry, key, value):
+        # An id or name arrives whole in its call's first delta; a repeat is
+        # the same value, and a different one is not a reply Carbon can read.
+        if value is None or value == "":
+            return
+        if type(value) is not str:
+            self._bad(key)
+        if entry[key] is None:
+            self._grow(value)
+            entry[key] = value
+        elif entry[key] != value:
+            self._bad(key)
+
+    def _call(self, delta):
+        if type(delta) is not dict:
+            self._bad("tool call")
+        index = delta.get("index")
+        if type(index) is not int or index < 0:
+            self._bad("tool call index")
+        entry = self.calls.get(index)
+        if entry is None:
+            self._grow("", self._CALL_BYTES)
+            entry = self.calls[index] = {"id": None, "name": None, "arguments": []}
+        self._once(entry, "id", delta.get("id"))
+        if delta.get("type") not in (None, "function"):
+            self._bad("tool call type")
+        function = delta.get("function")
+        if function is None:
+            return
+        if type(function) is not dict:
+            self._bad("tool call function")
+        self._once(entry, "name", function.get("name"))
+        arguments = function.get("arguments")
+        if arguments is not None:
+            if type(arguments) is not str:
+                self._bad("tool call arguments")
+            self._grow(arguments)
+            entry["arguments"].append(arguments)
+
+    def event(self, data):
+        """One server-sent event's data: a chunk, or the `[DONE]` sentinel."""
+        if data == "[DONE]":
+            self.done = True
+            return
+        try:
+            chunk = json.loads(data, parse_constant=_refuse_constant)
+        except (ValueError, RecursionError):
+            raise ProviderStreamCut("malformed stream chunk: not JSON") from None
+        if type(chunk) is not dict:
+            self._bad("not an object")
+        if chunk.get("error") is not None:
+            # A provider error mid-stream: the request was being processed.
+            raise ProviderStreamCut("the provider reported an error mid-stream")
+        model = chunk.get("model")
+        if type(model) is str and self.model is None:
+            self._grow(model)
+            self.model = model
+        usage = chunk.get("usage")
+        if usage is not None:
+            if type(usage) is not dict:
+                self._bad("usage")
+            # The last usage a stream carries is its final count.
+            self.usage = usage
+        choices = chunk.get("choices")
+        choices = [] if choices is None else choices
+        if type(choices) is not list:
+            self._bad("choices")
+        for choice in choices:
+            if type(choice) is not dict or choice.get("index", 0) != 0:
+                self._bad("choice")
+            delta = choice.get("delta")
+            delta = {} if delta is None else delta
+            if type(delta) is not dict:
+                self._bad("delta")
+            text = delta.get("content")
+            if text is not None:
+                if type(text) is not str:
+                    self._bad("content")
+                self._grow(text)
+                self.text.append(text)
+            calls = delta.get("tool_calls")
+            if calls is not None:
+                if type(calls) is not list:
+                    self._bad("tool calls")
+                for call in calls:
+                    self._call(call)
+            finished = choice.get("finish_reason")
+            if finished is not None:
+                if type(finished) is not str:
+                    self._bad("finish reason")
+                self.finish = finished
+
+    def reply(self, ended):
+        """The assembled Chat Completions reply. `ended` is how the stream
+        stopped: `done` (its `[DONE]` sentinel) or `closed` (the connection
+        closed without it). A reply is whole only once it carries a finish
+        reason and, without the sentinel, its final usage chunk too; anything
+        short of that was cut before its end."""
+        if self.finish is None or (ended != "done" and self.usage is None):
+            raise ProviderStreamCut("the stream ended before its final chunk")
+        message = {
+            "role": "assistant",
+            "content": "".join(self.text) if self.text else None,
+        }
+        if self.calls:
+            message["tool_calls"] = [
+                {
+                    "id": entry["id"],
+                    "type": "function",
+                    "function": {
+                        "name": entry["name"],
+                        "arguments": "".join(entry["arguments"]),
+                    },
+                }
+                for _, entry in sorted(self.calls.items())
+            ]
+        reply = {
+            "model": self.model,
+            "choices": [{"index": 0, "message": message, "finish_reason": self.finish}],
+            "usage": self.usage,
+        }
+        if len(json.dumps(reply).encode()) > self.limit:
+            raise ProviderStreamCut("streamed reply exceeds the response bound")
+        return reply
+
+
+def _read_stream(response, limit, progress, clock=time.monotonic):
+    """Read a server-sent-event reply into `_ChatStream`, stamping
+    `progress["at"]` at every event so the caller can tell a reply still
+    arriving from one gone idle. A line, or an event, longer than `limit`
+    bytes is cut. A provider that answers with one whole JSON body instead
+    (`Content-Type: application/json`) is read whole, bounded as ever:
+    `{"whole": bytes}`. Otherwise `{"stream": reply}`."""
+    headers = getattr(response, "headers", None)
+    kind = headers.get("Content-Type") if headers is not None else None
+    if type(kind) is str and kind.split(";")[0].strip().lower() == "application/json":
+        return {"whole": response.read(limit + 1)}
+    stream, data, pending = _ChatStream(limit), [], 0
+    while True:
+        line = response.readline(limit + 1)
+        if len(line) > limit:
+            raise ProviderStreamCut("a stream line exceeds the response bound")
+        if not line:
+            # An event the connection closed inside is never dispatched.
+            return {"stream": stream.reply("closed")}
+        try:
+            text = line.decode("utf-8").rstrip("\r\n")
+        except UnicodeDecodeError:
+            raise ProviderStreamCut("malformed stream: not UTF-8") from None
+        if not text:
+            if data:
+                stream.event("\n".join(data))
+                data, pending = [], 0
+                progress["at"] = clock()
+                if stream.done:
+                    return {"stream": stream.reply("done")}
+            continue
+        if text.startswith(":"):
+            continue  # a comment: a keep-alive is not a chunk
+        name, _, value = text.partition(":")
+        if name == "data":
+            value = value.removeprefix(" ")
+            pending += len(value)
+            if pending > limit:
+                raise ProviderStreamCut("a stream event exceeds the response bound")
+            data.append(value)
+        # `event`, `id` and `retry` carry nothing a chat completion uses.
+
+
+def _await_stream(worker, call, progress, first, idle, remaining):
+    """Wait on a streamed call's worker while it makes progress: the first
+    event within `first` seconds, each later one within `idle` of the last,
+    and all within `remaining` seconds (the campaign's elapsed limit; None for
+    none). Past any of them the call's sockets are shut and
+    `ProviderStreamCut` is raised."""
+    began = time.monotonic()
+    hard = None if remaining is None else began + max(0.0, remaining)
+    while True:
+        last = progress.get("at")
+        due = began + first if last is None else last + idle
+        wake = due if hard is None else min(due, hard)
+        worker.join(max(0.0, wake - time.monotonic()))
+        if not worker.is_alive():
+            return
+        now = time.monotonic()
+        if hard is not None and now >= hard:
+            call.abort()
+            raise ProviderStreamCut("the campaign's elapsed limit passed mid-reply")
+        last = progress.get("at")
+        if now >= (began + first if last is None else last + idle):
+            call.abort()
+            raise ProviderStreamCut("no stream chunk within the call timeout")
+
+
+def _post(
+    selection,
+    body,
+    opener=None,
+    deadline=None,
+    *,
+    stream=False,
+    remaining=None,
+    idle=None,
+):
     """POST `body` to the selection's endpoint, reading the key here and
     nowhere else. Rejections become `ProviderHTTPError` with no text.
 
     The exchange runs in a daemon worker joined for at most `deadline` seconds
     (default `call_deadline_seconds`). Past it the call's sockets are shut and
     `ProviderDeadlineExceeded` is raised; whatever the worker later receives
-    is discarded, and a daemon thread never holds up process exit."""
+    is discarded, and a daemon thread never holds up process exit.
+
+    With `stream` (`TRANSPORT_STREAM_V1`) there is no whole-reply deadline:
+    the reply is read as it streams (`_read_stream`) and its worker waited on
+    while chunks arrive (`_await_stream`): the first within the timeout plus
+    `DEADLINE_MARGIN_SECONDS`, each later one within the timeout (`idle`
+    replaces both, for tests only), and all within `remaining` seconds, what
+    is left of the miner's elapsed limit. Returns `(reply, streamed)`: the
+    assembled reply, and whether it came as a stream."""
     adapter, settings = selection.adapter, selection.settings
     if deadline is None:
         deadline = call_deadline_seconds(settings)
@@ -1622,12 +1927,19 @@ def _post(selection, body, opener=None, deadline=None):
         _NoRedirect(), _TrackedHTTPHandler(call), _TrackedHTTPSHandler(call)
     )
     limit = settings.max_response_bytes
-    outcome = {}
+    outcome, progress = {}, {}
+
+    def read(response):
+        return _read_stream(response, limit, progress)
 
     def work(request):
         try:
             outcome["payload"] = _exchange(
-                opener, request, settings.timeout_seconds, limit
+                opener,
+                request,
+                settings.timeout_seconds,
+                limit,
+                read if stream else None,
             )
         except BaseException as error:  # noqa: BLE001 - re-raised by the caller
             outcome["error"] = error
@@ -1637,16 +1949,27 @@ def _post(selection, body, opener=None, deadline=None):
     )
     del outgoing
     worker.start()
-    worker.join(deadline)
-    if worker.is_alive():
-        call.abort()
-        raise ProviderDeadlineExceeded("provider call deadline passed")
+    if stream:
+        wait = settings.timeout_seconds if idle is None else idle
+        first = wait + (DEADLINE_MARGIN_SECONDS if idle is None else 0)
+        _await_stream(worker, call, progress, first, wait, remaining)
+    else:
+        worker.join(deadline)
+        if worker.is_alive():
+            call.abort()
+            raise ProviderDeadlineExceeded("provider call deadline passed")
     if "error" in outcome:
         raise outcome.pop("error")
     payload = outcome["payload"]
-    if len(payload) > limit:
+    if not stream:
+        if len(payload) > limit:
+            raise ValueError("provider response exceeds bound")
+        return json.loads(payload)
+    if "stream" in payload:
+        return payload["stream"], True
+    if len(payload["whole"]) > limit:
         raise ValueError("provider response exceeds bound")
-    return json.loads(payload)
+    return json.loads(payload["whole"]), False
 
 
 def _responses_body(request):
@@ -2090,21 +2413,31 @@ class SelectionTransport:
     as `ProviderHTTPError`, an untranslatable request as `NotDispatched`
     before anything is sent, a connection refused or a name unresolved before
     anything is sent as `ProviderUnreachable`, a call past its hard total
-    deadline (`call_deadline_seconds`) as `ProviderDeadlineExceeded`, and
-    anything else propagates unchanged; all but those first three classify
-    as UNKNOWN. `opener` replaces urllib's, and `deadline_seconds` the
-    deadline, for tests only.
+    deadline (`call_deadline_seconds`) as `ProviderDeadlineExceeded`, a
+    streamed reply that did not reach its end (`ModelSelection.streams`) as
+    `ProviderStreamCut`, and anything else propagates unchanged; all but
+    those first three classify as UNKNOWN. `remaining_seconds` is what is
+    left of the campaign's elapsed limit (None for none), which bounds a
+    streamed call. `opener` replaces urllib's, `deadline_seconds` the
+    deadline and `idle_seconds` a streamed call's wait for each chunk, for
+    tests only.
     """
 
     def __init__(
-        self, selection: ModelSelection, *, opener=None, deadline_seconds=None
+        self,
+        selection: ModelSelection,
+        *,
+        opener=None,
+        deadline_seconds=None,
+        idle_seconds=None,
     ):
         if type(selection) is not ModelSelection:
             raise ModelSelectionRefused("a validated ModelSelection is required")
         self.selection, self.opener = selection, opener
         self.deadline_seconds = deadline_seconds
+        self.idle_seconds = idle_seconds
 
-    def __call__(self, request: dict[str, object]):
+    def __call__(self, request: dict[str, object], *, remaining_seconds=None):
         from .profile import canonical
 
         protocol = self.selection.adapter.protocol
@@ -2114,6 +2447,27 @@ class SelectionTransport:
             body = messages_request(request, self.selection.adapter)
         else:
             body = _responses_body(request)
+        if self.selection.streams:
+            body["stream"] = True
+            body["stream_options"] = {"include_usage": True}
+            # Canonical bytes, as below.
+            reply, streamed = _post(
+                self.selection,
+                canonical(body),
+                self.opener,
+                stream=True,
+                remaining=remaining_seconds,
+                idle=self.idle_seconds,
+            )
+            response = chat_response(reply)
+            # How the reply came, kept beside it: a streamed reply with no
+            # usage chunk is booked at its reservation for that reason.
+            response["provider_stream"] = {
+                "rule": TRANSPORT_STREAM_V1,
+                "streamed": streamed,
+                "usage_reported": type(reply.get("usage")) is dict,
+            }
+            return response
         # Canonical bytes: sorted keys and no volatile fields, so the same
         # history always produces the same prefix for the provider's cache.
         response = _post(
@@ -2133,6 +2487,19 @@ class ProviderTransport(SelectionTransport):
     def __init__(self, credential_file: Path):
         super().__init__(_default(credential_file))
         self.credential_file = credential_file
+
+
+def record_streams(record):
+    """Whether a selection record's calls stream (`ModelSelection.streams`),
+    read from the record alone: its transport rule and its adapter's."""
+    if type(record) is not dict or record.get("transport") != TRANSPORT_STREAM_V1:
+        return False
+    adapter = ADAPTERS.get(record.get("provider_id"))
+    return (
+        adapter is not None
+        and adapter.streaming
+        and adapter.protocol == CHAT_COMPLETIONS
+    )
 
 
 def fetch_models(adapter_id="engy-anthropic", *, opener=None):
