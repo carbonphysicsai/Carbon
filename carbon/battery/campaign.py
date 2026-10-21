@@ -182,7 +182,7 @@ def graphite_plan(budget, selection, graphite):
     from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
     from carbon.development_session.research_campaign import FINAL_EPOCHS
     from carbon.development_session.research_tools import (
-        ARGUMENT_NORMALISATION_V2,
+        ARGUMENT_NORMALISATION_V3,
         TOOLS_RULE,
     )
 
@@ -220,7 +220,7 @@ def graphite_plan(budget, selection, graphite):
         # and arguments_json "null" as JSON null; a plan that froze v1 keeps
         # v1.
         "research_reply": RESEARCH_REPLY_RULE,
-        "argument_normalisation": ARGUMENT_NORMALISATION_V2,
+        "argument_normalisation": ARGUMENT_NORMALISATION_V3,
         "limits": {
             "plan": edition.limits_rule(
                 limits.get("planner_calls"), limits.get("trials_per_epoch")

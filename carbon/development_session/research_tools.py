@@ -193,6 +193,15 @@ TASK_CORRECTIONS = {
         "object (not a list or a number), no repeated keys, finite numbers, "
         "at most 16384 bytes."
     ),
+    # A catalog practice with no entry installed here (M1 rehearsal,
+    # 2026-10-21): the install is the miner's own step, outside any campaign.
+    "catalog_not_installed": (
+        "No backbone catalog entry is installed on this machine yet, so no "
+        "catalog recipe can practise here. The miner installs the catalog "
+        "once, outside the campaign: python -m scripts.dev.catalog_install "
+        "--state-dir <the Control Center state directory>. Nothing started "
+        "and no research-trial slot was charged."
+    ),
     "backend_not_served": (
         "This host's practice serves only the backends listed below, and the "
         "recipe names another. Choose a served backend in the recipe, or "
@@ -748,12 +757,78 @@ ARGUMENT_NORMALISATION = "carbon.autoresearch.argument-normalisation.v1"
 #: recipe). v1 stays registered, unchanged, so a campaign that froze it
 #: replays and continues as it was frozen.
 ARGUMENT_NORMALISATION_V2 = "carbon.autoresearch.argument-normalisation.v2"
-ARGUMENT_NORMALISATIONS = (ARGUMENT_NORMALISATION, ARGUMENT_NORMALISATION_V2)
+#: The rule new plans freeze from the M1 rehearsal (2026-10-21), where a
+#: Graphite planner's workspace calls were refused workspace_field_missing 29
+#: times: everything v2 reads, and also a workspace arguments_json object
+#: with fields the call already holds or that have one obvious value filled
+#: in - run_python/run_julia's hypothesis and expected_effect from the call's
+#: own (required) ones, and read_file's offset as 0 and count as this
+#: campaign's per-call read maximum. A field that was sent is never changed;
+#: an arguments_json that is not one JSON object without repeated keys is
+#: left as sent, for the request's own checks to refuse. v1 and v2 stay
+#: registered, unchanged, so a campaign that froze either replays as it was.
+ARGUMENT_NORMALISATION_V3 = "carbon.autoresearch.argument-normalisation.v3"
+ARGUMENT_NORMALISATIONS = (
+    ARGUMENT_NORMALISATION,
+    ARGUMENT_NORMALISATION_V2,
+    ARGUMENT_NORMALISATION_V3,
+)
 #: The practice fields whose string "null" each rule reads as JSON null.
 PRACTICE_NULL_FIELDS = {
     ARGUMENT_NORMALISATION: (),
     ARGUMENT_NORMALISATION_V2: ("action", "arguments_json"),
+    ARGUMENT_NORMALISATION_V3: ("action", "arguments_json"),
 }
+#: The workspace actions whose arguments v3 fills, and from what: a call
+#: field (the name itself) or a value (`read_max` stands for the per-call
+#: read_file maximum).
+WORKSPACE_DEFAULTS_V3 = {
+    "run_python": {"hypothesis": "call", "expected_effect": "call"},
+    "run_julia": {"hypothesis": "call", "expected_effect": "call"},
+    "read_file": {"offset": 0, "count": "read_max"},
+}
+
+
+def _unique_object(text):
+    """`text` as one JSON object with no repeated key, else None."""
+
+    def pairs(items):
+        keys = [key for key, _ in items]
+        if len(keys) != len(set(keys)):
+            raise ValueError("repeated key")
+        return dict(items)
+
+    try:
+        value = json.loads(text, object_pairs_hook=pairs)
+    except (TypeError, ValueError):
+        return None
+    return value if type(value) is dict else None
+
+
+def _workspace_defaults(args, read_max):
+    """v3's filled workspace arguments_json, or `args` unchanged."""
+    fill = WORKSPACE_DEFAULTS_V3.get(args.get("action"))
+    text = args.get("arguments_json")
+    if fill is None or type(text) is not str:
+        return args
+    arguments = _unique_object(text)
+    if arguments is None:
+        return args
+    added = {}
+    for name, source in fill.items():
+        if name in arguments:
+            continue
+        if source == "call":
+            if type(args.get(name)) is str:
+                added[name] = args[name]
+        elif source == "read_max":
+            if type(read_max) is int:
+                added[name] = read_max
+        else:
+            added[name] = source
+    if not added:
+        return args
+    return {**args, "arguments_json": json.dumps({**arguments, **added})}
 
 
 def frozen_argument_normalisation(manifest):
@@ -784,18 +859,24 @@ def practice_null_fields(rule):
     return PRACTICE_NULL_FIELDS.get(rule, ())
 
 
-def normalised_task_arguments(args, rule):
+def normalised_task_arguments(args, rule, read_max=None):
     """`args` of a start_research_task call as `rule` reads them: under
     either rule, kind=workspace with strategy_json the string "null" is read
     with strategy_json JSON null; under v2, kind=practice with action or
-    arguments_json the string "null" is read with that field JSON null.
+    arguments_json the string "null" is read with that field JSON null;
+    under v3, also a workspace arguments_json is filled as
+    `WORKSPACE_DEFAULTS_V3` says (`read_max` the per-call read maximum).
     Every other call, and every call under no rule, is returned as sent. A
     new dict; `args` is never changed, so what was sent is what is journalled
     and bound."""
     if rule not in ARGUMENT_NORMALISATIONS or type(args) is not dict:
         return args
-    if args.get("kind") == "workspace" and args.get("strategy_json") == "null":
-        return {**args, "strategy_json": None}
+    if args.get("kind") == "workspace":
+        if args.get("strategy_json") == "null":
+            args = {**args, "strategy_json": None}
+        if rule == ARGUMENT_NORMALISATION_V3:
+            args = _workspace_defaults(args, read_max)
+        return args
     if args.get("kind") == "practice":
         nulls = {f: None for f in practice_null_fields(rule) if args.get(f) == "null"}
         if nulls:
@@ -1006,8 +1087,12 @@ class ResearchMinerTools:
         # workspace call's strategy_json "null" is JSON null under it, and
         # under v2 a practice call's action and arguments_json "null" too
         # (RESEARCH-TOOL-USABILITY-01).
+        from .research_tasks import READ_FILE_MAX_BYTES
+
         args = normalised_task_arguments(
-            args, campaign_argument_normalisation(self.ledger)
+            args,
+            campaign_argument_normalisation(self.ledger),
+            read_max=READ_FILE_MAX_BYTES.get(campaign_tools_rule(self.ledger)),
         )
         for name in ("hypothesis", "expected_effect"):
             if type(args[name]) is not str or not 1 <= len(args[name]) <= 2048:
@@ -1032,6 +1117,14 @@ class ResearchMinerTools:
             )
             refused = served(strategy) if callable(served) else None
             if refused is not None:
+                # A catalog practice lists its installed entries: none at all
+                # is the miner's install step, not a recipe to change.
+                if (
+                    not refused
+                    and getattr(c.executor.practice, "construction_mode", None)
+                    == "direct"
+                ):
+                    raise TaskContractMismatch("catalog_not_installed", "strategy_json")
                 raise TaskContractMismatch(
                     "backend_not_served", "strategy_json", refused
                 )

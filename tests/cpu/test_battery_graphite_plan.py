@@ -44,6 +44,7 @@ from carbon.development_session.research_ledger import CampaignLedger
 from carbon.development_session.research_reply import RULE as RESEARCH_REPLY_RULE
 from carbon.development_session.research_tools import (
     ARGUMENT_NORMALISATION_V2,
+    ARGUMENT_NORMALISATION_V3,
     TOOLS_RULE,
 )
 
@@ -139,8 +140,9 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
     assert plan["research_tools"] == TOOLS_RULE
     assert plan["research_reply"] == RESEARCH_REPLY_RULE
     # LP-PROD-FIX-01: a new Graphite plan freezes the argument normalisation;
-    # RESEARCH-TOOL-USABILITY-01: from now on its v2.
-    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V2
+    # RESEARCH-TOOL-USABILITY-01: v2; since the M1 rehearsal (2026-10-21) v3,
+    # which also fills a workspace call's obvious fields.
+    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V3
     assert plan["compaction"] == editions.COMPACTION_V1
     assert plan["limits"] == {
         "plan": {
