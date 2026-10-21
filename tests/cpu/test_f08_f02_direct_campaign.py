@@ -40,9 +40,26 @@ def _challenge(spec, version):
 
 
 def _module(spec, name):
-    import importlib
+    # Static imports (code authority refuses an import name built at run time).
+    from carbon.f02 import campaign as f02_campaign
+    from carbon.f02 import catalog_practice as f02_catalog_practice
+    from carbon.f02 import contracts as f02_contracts
+    from carbon.f02 import research as f02_research
+    from carbon.f08 import campaign as f08_campaign
+    from carbon.f08 import catalog_practice as f08_catalog_practice
+    from carbon.f08 import contracts as f08_contracts
+    from carbon.f08 import research as f08_research
 
-    return importlib.import_module("carbon." + spec.prefix + "." + name)
+    return {
+        ("f08", "campaign"): f08_campaign,
+        ("f08", "catalog_practice"): f08_catalog_practice,
+        ("f08", "contracts"): f08_contracts,
+        ("f08", "research"): f08_research,
+        ("f02", "campaign"): f02_campaign,
+        ("f02", "catalog_practice"): f02_catalog_practice,
+        ("f02", "contracts"): f02_contracts,
+        ("f02", "research"): f02_research,
+    }[(spec.prefix, name)]
 
 
 # --- composition -------------------------------------------------------------
