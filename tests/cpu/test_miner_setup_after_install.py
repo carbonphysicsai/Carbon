@@ -584,13 +584,17 @@ def test_review_writes_the_published_endpoint_without_reaching_it(
 ):
     """`Checks` has no intake check: a published endpoint is written without
     one, and checked by the intake client at submit."""
-    # Every intake Challenge published, each at its own endpoint.
+    # Every intake Challenge published, each at its own endpoint. Endpoints are
+    # published per Challenge id (one entry each), while a Challenge may have
+    # several intake versions (Motor 1.2 and 1.3): publishing one per version
+    # would list the same Challenge twice, which the list refuses.
     every = intake_challenges()
-    urls = {c["id"]: URL if c is every[0] else f"{URL}/{c['id']}" for c in every}
+    ids = list(dict.fromkeys(c["id"] for c in every))
+    urls = {i: URL if i == ids[0] else f"{URL}/{i}" for i in ids}
     publish(
         tmp_path,
         monkeypatch,
-        [entry(c["id"], intake_url=urls[c["id"]]) for c in every],
+        [entry(i, intake_url=urls[i]) for i in ids],
     )
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Reinstalled())
     completed(tmp_path, setup)
