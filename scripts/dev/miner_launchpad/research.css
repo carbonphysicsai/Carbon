@@ -268,3 +268,5 @@ a.rs-change:hover { background: var(--muted); }
 .rs-more[open] > summary { background: var(--muted); }
 .rs-more[open] { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 @media (max-width: 600px) { .rs-more { width: 100%; } }
+
+.working-for { color: var(--muted-fg); }

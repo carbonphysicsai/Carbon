@@ -1341,6 +1341,73 @@ scenario("a controller that does not answer keeps the session, and Reconnect is 
   clean(page);
 });
 
+// One cause, one banner (owner smoke sweep S6/S11, 2026-10-21).
+scenario("one banner says the cause holding the page up, with its one fix, on every page", async () => {
+  const state = world();
+  const page = await open(state);
+  const banner = page.$("setup-banner");
+  assert.equal(banner.hidden, false, "something blocks a launch in this world");
+  const text = page.text("setup-banner");
+  assert.match(text, /Setup needs (one fix:|\d+ fixes\. First:)/);
+  assert.equal(all(page, "#setup-banner a, #setup-banner button").length, 1, "one fix button");
+  // The raw code is never in the banner's sentence.
+  assert.doesNotMatch(text, /[a-z]+_[a-z]+_[a-z]+/);
+  // It follows the miner to another page, and steps aside on Setup itself.
+  page.go("#challenges");
+  await page.advance(0);
+  assert.equal(page.$("setup-banner").hidden, false);
+  page.go("#setup");
+  await page.advance(0);
+  assert.equal(page.$("setup-banner").hidden, true);
+  // Overview never says "You are set up" while a launch is blocked.
+  page.go("#overview");
+  await page.advance(0);
+  assert.doesNotMatch(page.text("overview-lede"), /^You are set up/);
+  clean(page);
+});
+
+// A slow model must not look stuck (owner smoke sweep): the running step says how long it has been going.
+scenario("the running step says how long it has been working, and that a slow model is not stuck", async () => {
+  const state = launchable(world());
+  state.runs = [copy(fx.run)];
+  state.view = copy(fx.view);
+  assert.ok(state.view.current_operation, "the fixture campaign has a running step");
+  const page = await open(state);
+  page.go("#campaigns/" + fx.run.id + "/live");
+  await page.advance(0);
+  const node = () => one(page, "#campaign-detail .working-for");
+  assert.equal(page.text(node()), "", "nothing to say in the first seconds");
+  for (let i = 0; i < 70; i++) await refresh(page);
+  assert.match(page.text(node()), /working on this step for \d+m/);
+  assert.match(page.text(node()), /not stuck/);
+  assert.match(page.text(one(page, "#campaign-detail [data-part=now]")), /step \d+ of this campaign/);
+  clean(page);
+});
+
+// The wiring guide is long: its sections are folds, and a link to one opens it (owner smoke sweep S10).
+scenario("the wiring guide's sections fold, and a link to a section opens it", async () => {
+  const state = launchable(world());
+  const blocks = [
+    {type: "paragraph", text: [{text: "Three steps to a working miner."}]},
+    {type: "heading", level: 2, anchor: "step-one", text: [{text: "Step one"}]},
+    {type: "paragraph", text: [{text: "Do the first thing."}]},
+    {type: "heading", level: 2, anchor: "step-two", text: [{text: "Step two"}]},
+    {type: "paragraph", text: [{text: "Do the second thing."}]},
+  ];
+  state.script.push({match: r => r.path === "/api/v1/guide/remote-setup", answer: {body: {schema: "carbon.control-center.guide.v1", available: true, source: "docs", title: "Wiring guide", blocks}}, keep: true});
+  const page = await open(state);
+  page.go("#guide/step-two");
+  await page.advance(0);
+  await refresh(page);
+  const sections = all(page, "#guide-body details.guide-section");
+  assert.equal(sections.length, 2, "each main section is a fold");
+  assert.ok(page.text("guide-body").includes("Three steps to a working miner."), "the introduction reads straight through");
+  assert.ok(!sections[0].open, "the other section stays folded");
+  assert.ok(sections[1].open, "the linked section is open");
+  assert.ok(page.text(sections[1]).includes("Do the second thing."));
+  clean(page);
+});
+
 // ---- 11. Setup says what an install changed (LP-PROD-E). ----
 scenario("setup shows a stale compute check, why, and the installer's update that clears it", async () => {
   const doc = fx.setups.stale;
@@ -1359,6 +1426,10 @@ scenario("setup shows a stale compute check, why, and the installer's update tha
   page.go("#overview");
   await page.advance(0);
   assert.ok(page.text("getting-started-steps").includes("Next: " + compute.next_step + "."));
+  // And the banner, on any page: after an update, check the computer again.
+  assert.equal(page.$("setup-banner").hidden, false);
+  assert.match(page.text("setup-banner"), /no longer matches this install/);
+  assert.match(page.text("setup-banner"), /Re-check your computer/);
   clean(page);
 });
 

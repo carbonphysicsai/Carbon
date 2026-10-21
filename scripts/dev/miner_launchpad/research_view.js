@@ -507,7 +507,15 @@
     const tab = name => CC.campaignHref(doc.campaign.id, name);
     part(grid, "now", JSON.stringify([doc.current_operation, doc.campaign.state, doc.research_task, doc.hypothesis, doc.controls, s.connected, s.busy, recovery(doc.campaign.state, run, doc)]), now => {
       head(now, "Now", "Current work");
-      if (doc.current_operation) para(now, "Running: " + words(doc.current_operation.phase) + " · " + doc.current_operation.id, "status-line");
+      if (doc.current_operation) {
+        // A slow model must not look stuck: the step, which one it is, and how
+        // long this page has watched it run (the record carries no total).
+        const line = para(now, "Running: " + words(doc.current_operation.phase) + " · " + doc.current_operation.id, "status-line");
+        const steps = (doc.events?.operations || []).length;
+        if (steps) line.append(el("span", " · step " + steps + " of this campaign", "hint"));
+        const waiting = el("span", "", "working-for"); waiting.dataset.operation = doc.current_operation.id;
+        line.append(waiting);
+      }
       else para(now, "Nothing is running. State: " + words(doc.campaign.state).toLowerCase() + ".", "status-line");
       // The research task frozen at launch, exactly, as text (C-MLP-02-D6).
       if (doc.research_task) {
@@ -1181,8 +1189,21 @@
     para(box, "Campaign " + run.id + " · " + words(run.state).toLowerCase() + ". Its controls work without the view.", "hint");
     box.append(row);
   }
+  // When this page first saw each operation running, for "working for ...".
+  const workingSince = new Map();
+  function updateWorking(container, doc) {
+    const node = container.querySelector(".working-for");
+    const id = doc?.current_operation?.id;
+    // Ticks with the campaign's own clock: when that is stopped (no elapsed time
+    // recorded), so is this.
+    if (!node || !id || typeof doc.tiles?.elapsed_seconds !== "number") return;
+    if (!workingSince.has(id)) workingSince.set(id, Date.now());
+    const seconds = Math.max(0, Math.round((Date.now() - workingSince.get(id)) / 1000));
+    CC.setText(node, seconds < 5 ? "" : " · working on this step for " + duration(seconds) + (seconds >= 90 ? ". A slow model can take several minutes a step; this is not stuck." : ""));
+  }
   function updateClock(container, doc) {
     if (!doc) return;
+    updateWorking(container, doc);
     const node = container.querySelector('[data-tile="elapsed"]');
     if (node && typeof doc.tiles.elapsed_seconds === "number") CC.setText(node, duration(doc.tiles.elapsed_seconds + Math.max(0, Math.round((Date.now() - viewState(doc.campaign.id).at) / 1000))));
   }
