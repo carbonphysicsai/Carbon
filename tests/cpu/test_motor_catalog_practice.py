@@ -192,3 +192,60 @@ def test_a_not_served_entry_is_corrected_with_the_installed_catalog_ids():
     assert refusal.choices == installed
     with pytest.raises(TypeError):
         TaskContractMismatch("backend_not_served", "strategy_json", ("miner.Own",))
+
+
+@pytest.mark.parametrize("practice_module", ["motor", "cooling"])
+def test_the_practice_binding_is_the_one_the_bundle_worker_accepts(
+    tmp_path, monkeypatch, practice_module
+):
+    # The bundle worker refuses any binding but its exact five fields
+    # (`_checked_binding`); catalog practice passed the kit's own `id`/`version`
+    # keys, so every real catalog practice was refused
+    # `bundle_challenge_binding_invalid` while stubbed tests passed.
+    from carbon.development_session.bundle_construction_worker import _checked_binding
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+
+    seen = {}
+
+    def worker_stand_in(ledger_, **kwargs):
+        seen.update(kwargs)
+        _checked_binding(kwargs["recipe"], kwargs["challenge_binding"])
+        raise RuntimeError("stop after the binding check")
+
+    monkeypatch.setattr(worker, "reconstruct_and_infer_public", worker_stand_in)
+    if practice_module == "motor":
+        item = catalog_practice.MotorCatalogPractice(
+            ledger=ledger(tmp_path / "ledger"),
+            owner="alice",
+            parent=SimpleNamespace(image_id="sha256:" + "7" * 64),
+            cache_root=tmp_path / "cache",
+            resolver=lambda ref: SimpleNamespace(bundle_ref=ref),
+            parents=SimpleNamespace(for_bundle=lambda _ref: None),
+        )
+        recipe = catalog_recipe("neuralop.FNO")
+    else:
+        from carbon.challenge_registry.cold_plate import (
+            catalog_recipe as cooling_recipe,
+        )
+        from carbon.cold_plate import catalog_practice as cooling_practice
+
+        item = cooling_practice.CoolingCatalogPractice(
+            ledger=ledger(tmp_path / "ledger"),
+            owner="alice",
+            parent=SimpleNamespace(image_id="sha256:" + "7" * 64),
+            cache_root=tmp_path / "cache",
+            version="1.2",
+            resolver=lambda ref: SimpleNamespace(bundle_ref=ref),
+            parents=SimpleNamespace(for_bundle=lambda _ref: None),
+        )
+        recipe = cooling_recipe("cooling.neuralop.FNO", version="1.2")
+    with pytest.raises(RuntimeError, match="stop after the binding check"):
+        item("motor-catalog-binding", recipe)
+    assert set(seen["challenge_binding"]) == {
+        "challenge_id",
+        "challenge_version",
+        "train_digest",
+        "interface_digest",
+        "construction_limits_digest",
+    }
+    assert isinstance(seen["recipe"], ConstructionRecipe)

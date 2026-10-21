@@ -196,7 +196,15 @@ class CoolingCatalogPractice:
             inference_image=self.parent,
             construction_parent=construction_parent,
             recipe=recipe,
-            challenge_binding=dict(kit),
+            # The worker's trusted binding names the kit by challenge_id /
+            # challenge_version (`_checked_binding`), as the receiver's does.
+            challenge_binding={
+                "challenge_id": kit["id"],
+                "challenge_version": kit["version"],
+                "train_digest": kit["train_digest"],
+                "interface_digest": kit["interface_digest"],
+                "construction_limits_digest": kit["construction_limits_digest"],
+            },
             limits_document=material["construction_limits_document"],
             train=material["train"],
             example=inputs,
