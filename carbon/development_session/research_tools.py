@@ -340,6 +340,7 @@ RECIPE_REFUSAL_CODES = frozenset(
 
 @functools.cache
 def _correction_choices():
+    from carbon.backbone_catalog import listing as catalog_listing
     from carbon.challenge_registry.campaigns import implemented_backends
 
     from .gpu_code_cell import WRAPPED
@@ -353,8 +354,12 @@ def _correction_choices():
 
     return {
         # The reconstruction backends a recipe may name, as the capability
-        # registry registers them; a practice host serves some of them.
-        "backend_not_served": implemented_backends(),
+        # registry registers them; a practice host serves some of them. A
+        # catalog practice names the catalog ids installed here instead
+        # (OWNER-BACKBONE-CATALOG-01): Carbon's public manifest, never a
+        # value a requester sent.
+        "backend_not_served": implemented_backends()
+        | frozenset(e["catalog_id"] for e in catalog_listing.entries()),
         "public_material_unknown": frozenset(every_public_material_name()),
         # The per-call read_file maximum, under each research tools rule.
         "read_file_range": frozenset(str(n) for n in READ_FILE_MAX_BYTES.values()),
