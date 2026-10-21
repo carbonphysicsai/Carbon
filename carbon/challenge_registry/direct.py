@@ -3,8 +3,9 @@ F02 (Burst Thermal) 2.3.
 
 A description names the registered interface, construction kit, served backbone
 catalog and graph training adapter (each from its registered source), and a
-ready catalog recipe and graph recipe template. What the registration does
-not state - the task wording, the intended use, the exam, the per-case policy -
+ready catalog recipe and graph recipe template. The task wording, intended use
+and interface conventions are the owner-approved facts
+(`direct_campaign.facts`); what neither states - the exam, the per-case policy -
 is `HUMAN_INPUT`. Practice reports aggregate errors on the registered scale
 (Validator, 2026-10-21). Miner source bundles stay closed.
 """
@@ -100,6 +101,7 @@ def graph_recipe(spec, submission_digest=None, *, version, training=None):
 def describe(spec, version):
     """The direct version's description, from its registrations only."""
     from carbon.backbone_catalog import served
+    from carbon.direct_campaign import facts
     from carbon.direct_campaign.spec import key_for
     from carbon.reconstruction.served_recipe_contract import registered
 
@@ -112,15 +114,15 @@ def describe(spec, version):
     return {
         "identity": "carbon." + spec.challenge_id + "-direct." + version,
         "contract_digest": registered(key.challenge_id, key.version).digest,
-        "task": HUMAN_INPUT,
-        "intended_use": HUMAN_INPUT,
+        "task": facts.value(spec, key.version, "task"),
+        "intended_use": facts.value(spec, key.version, "intended_use"),
         "interface": {
             "inputs": list(interface["input"]["names"]),
             "input_units": list(interface["input"]["units"]),
             "outputs": outputs,
             "output_units": list(interface["output"]["units"]),
             "dtype": interface["train_dtype"],
-            "conventions": HUMAN_INPUT,
+            "conventions": facts.value(spec, key.version, "interface_conventions"),
         },
         "public_material": {
             "names": [

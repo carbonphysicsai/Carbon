@@ -12,8 +12,10 @@ Level-0 family, so these contracts are its shell, mirroring Motor's structure:
   construction limits bind: Carbon's graph training adapter (its block) and the
   backbone catalog (its digest);
 - every physical statement the interface does not register (governing law,
-  geometry domain, operating envelope, rights, support) is a `human_input_*`
-  clause whose profile entry is `HUMAN_INPUT`.
+  geometry domain, operating envelope, rights, support) is the owner-approved
+  fact (`facts`): a profile entry, and a clause under its approved label whose
+  content digest binds the fact's text. A fact still `HUMAN_INPUT` keeps its
+  `human_input_*` clause and is refused when read.
 
 No strategy compiles against them: practice and freeze take direct recipes
 only (`compile_refused`). Their fixture origin means unqualified DEVELOPMENT
@@ -44,6 +46,7 @@ from carbon.construction.compiler import SUPPORTED_COMPILER_IDENTITY
 from carbon.construction.refs import CONSTRUCTION_CANONICALIZATION_PROFILE
 from carbon.reconstruction import profile as worker_environment
 
+from . import facts
 from .spec import HUMAN_INPUT, key_for, keyed, research_key
 
 #: The registered interface units, as unit clause labels (a unit the map does
@@ -61,6 +64,7 @@ IMPLEMENTATION_VERSION = "1.0"
 IMPLEMENTATION_SOURCES = (
     "carbon/direct_campaign/campaign.py",
     "carbon/direct_campaign/contracts.py",
+    "carbon/direct_campaign/facts.py",
     "carbon/direct_campaign/practice.py",
     "carbon/direct_campaign/research.py",
     "carbon/direct_campaign/spec.py",
@@ -141,8 +145,8 @@ def profile_document(spec):
     return json.loads(_profile(spec, research_key(spec).version))
 
 
-#: The profile's owner/Validator fields: none is registered for F08 or F02 yet,
-#: so each is HUMAN_INPUT and refused when read.
+#: The profile's owner/Validator fields, each the owner-approved fact (`facts`);
+#: one still HUMAN_INPUT is refused when read.
 OWNER_FIELDS = (
     "physical_scope",
     "governing_law",
@@ -168,6 +172,15 @@ class ProfileValueMissing(ValueError):
 def profile_value(spec, name):
     """One profile field's value; refused while it is unset (HUMAN_INPUT)."""
     value = profile_document(spec)[name]
+    if value in UNSET:
+        raise ProfileValueMissing(name)
+    return value
+
+
+def fact_value(spec, name):
+    """One approved fact's value (`facts`), profile field or not; refused while
+    it is unset (HUMAN_INPUT), as `profile_value` refuses."""
+    value = facts.value(spec, research_key(spec).version, name)
     if value in UNSET:
         raise ProfileValueMissing(name)
     return value
@@ -201,12 +214,8 @@ def _profile_document(spec):
             "candidate_code": "none; direct recipes only",
         },
         "contract_digest": registered(key.challenge_id, key.version).digest,
-        # Not registered for this Challenge: each is the owner's/Validator's.
-        "physical_scope": HUMAN_INPUT,
-        "governing_law": HUMAN_INPUT,
-        "geometry_domain": HUMAN_INPUT,
-        "operating_envelope": HUMAN_INPUT,
-        "rights_profile": HUMAN_INPUT,
+        # The owner-approved facts (`facts`); HUMAN_INPUT while unset.
+        **{name: facts.value(spec, key.version, name) for name in OWNER_FIELDS},
     }
 
 
@@ -220,10 +229,32 @@ def semantic(spec, kind, label):
     )
 
 
+def fact(spec, kind, name, unset):
+    """The clause for approved fact `name` (a field, or `field.site` for a
+    site's own label): its approved label, whose content digest binds the
+    fact's text. While the fact is HUMAN_INPUT, or the site has no approved
+    label, it is the `unset` clause, as before."""
+    version = research_key(spec).version
+    text = facts.value(spec, version, name.split(".")[0])
+    label = facts.label(spec, version, name)
+    if text in UNSET or label is None:
+        return semantic(spec, kind, unset)
+    return owner_ref(
+        kind,
+        scope_binding=ChallengeScope(research_key(spec)),
+        object_id=label,
+        object_version="1.0",
+        content_digest=_clause_digest(spec, version, label, text),
+    )
+
+
 @functools.lru_cache(maxsize=1024)
-def _clause_digest(spec, version, label):
+def _clause_digest(spec, version, label, statement=None):
     profile = json.loads(_profile(spec, version))
-    return digest(canonical({"clause": label, "profile": profile}))
+    value = {"clause": label, "profile": profile}
+    if statement is not None:
+        value["statement"] = statement
+    return digest(canonical(value))
 
 
 def na(spec, label):
@@ -240,7 +271,9 @@ def _field(spec, name, unit):
         shape_contract=(),
         # The registered interface is float32 (`train_dtype` "<f4").
         precision_contract=(PrecisionLiteral.FLOAT32,),
-        geometry_binding=A.bound(clause("geometry_domain", "human_input_geometry")),
+        geometry_binding=A.bound(
+            fact(spec, "geometry_domain", "geometry_domain", "human_input_geometry")
+        ),
         presence=p.Presence(p.PresenceKind.REQUIRED),
         admissibility_refs=(),
         nonfinite_policy="REJECT",
@@ -249,6 +282,7 @@ def _field(spec, name, unit):
 
 def authored_contracts(spec):
     clause = functools.partial(semantic, spec)
+    stated = functools.partial(fact, spec)
     interface = interface_document(spec)
     limits = limits_document(spec)
     if interface["train_dtype"] != "<f4" or limits["train_dtype"] != "<f4":
@@ -276,25 +310,44 @@ def authored_contracts(spec):
         object_kind="physical_system_spec",
         object_id=spec.prefix + "_direct_physics",
         supersedes=na(spec, "first_" + spec.prefix + "_direct_physics"),
-        governing_job_ref=clause("semantic_clause", "human_input_governing_job"),
-        governing_law_refs=(clause("semantic_clause", "human_input_governing_law"),),
+        governing_job_ref=stated(
+            "semantic_clause", "governing_job", "human_input_governing_job"
+        ),
+        governing_law_refs=(
+            stated("semantic_clause", "governing_law", "human_input_governing_law"),
+        ),
         assumptions=(),
         causal_inputs=inputs,
         required_physical_quantities=outputs,
-        geometry_domain_ref=clause("geometry_domain", "human_input_geometry"),
+        geometry_domain_ref=stated(
+            "geometry_domain", "geometry_domain", "human_input_geometry"
+        ),
         boundary_conditions=p.BoundaryConditionContract(()),
         initial_conditions=p.InitialConditionContract(()),
         # The registered interface maps one row to its outputs, with no time
         # coordinate or horizon: STEADY (confirmed by the Validator, 2026-10-21).
+        # Its clauses carry the approved time semantics; F02's is a transient
+        # burst summarised as its window maximum, relabelled so STEADY is never
+        # read as steady-state physics (Validator, 2026-10-21).
         time_contract=p.TimeContract(
             TimeMode.STEADY,
-            na(spec, "interface_has_no_time_coordinate"),
+            A.not_applicable(
+                stated(
+                    "applicability_reason",
+                    "time_semantics.time_coordinate",
+                    "interface_has_no_time_coordinate",
+                )
+            ),
             na(spec, "interface_has_no_time_horizon"),
-            clause("semantic_clause", "steady_one_row_per_case_validator_confirmed"),
+            stated(
+                "semantic_clause",
+                "time_semantics",
+                "steady_one_row_per_case_validator_confirmed",
+            ),
             clause("unit", "second"),
         ),
-        operating_envelope_ref=clause(
-            "operating_envelope", "human_input_operating_envelope"
+        operating_envelope_ref=stated(
+            "operating_envelope", "operating_envelope", "human_input_operating_envelope"
         ),
         claim_scope_ref=clause("claim_scope", "public_development_only"),
         missing_input_policy="REJECT",
@@ -347,7 +400,9 @@ def authored_contracts(spec):
         candidate_output_ref=candidate.to_ref(),
         membership_contract=t.TrainingMembershipContract(
             clause("membership_rule", "pinned_public_train_role_only"),
-            clause("physical_support", "human_input_physical_support"),
+            stated(
+                "physical_support", "physical_support", "human_input_physical_support"
+            ),
             clause(
                 "representation_support",
                 "public_train_" + str(limits["train_cases"]) + "_cases",
@@ -355,7 +410,11 @@ def authored_contracts(spec):
             "REJECT",
         ),
         physical_invariant_refs=(
-            clause("semantic_clause", "human_input_physical_invariant"),
+            stated(
+                "semantic_clause",
+                "physical_invariant",
+                "human_input_physical_invariant",
+            ),
         ),
         representation_invariant_refs=(clause("semantic_clause", "float32_rows"),),
         permitted_source_materials=(),
@@ -363,7 +422,9 @@ def authored_contracts(spec):
             t.PermittedGeneratorKind.PERMITTED,
             (clause("generator", "pinned_public_train"),),
         ),
-        rights_profile_ref=clause("rights_profile", "human_input_rights_profile"),
+        rights_profile_ref=stated(
+            "rights_profile", "rights_profile", "human_input_rights_profile"
+        ),
         permitted_use_refs=(clause("permitted_use", "development_training_only"),),
         restrictions=(
             clause("restriction", "no_private_counted_or_confirmation_labels"),
