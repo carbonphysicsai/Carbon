@@ -2,9 +2,11 @@
 
 Mirrors Motor's research parts (objective, population and sampling,
 measurement contract, public material) for the shared research composition.
-Each part names only registered facts; what is not registered for F08 or F02
-(sampling law, gates, score, reference method, per-case disclosure) is
-`HUMAN_INPUT`, so it fails closed where it is read. The practice error scale
+Each part names only registered facts and the owner-approved ones (`facts`:
+task, intended use, sampling law, reference method and quality, and the
+population's support, membership, law, rights, fidelity and limitation
+clauses); what is neither (gates, score, per-case disclosure, practice labels)
+is `HUMAN_INPUT`, so it fails closed where it is read. The practice error scale
 and aggregation are each Challenge's registered ones
 (`practice.error_scale`; Validator, 2026-10-21).
 Construction sees only registered public TRAIN and the exposed DEVELOPMENT
@@ -30,6 +32,7 @@ from carbon.authoring.model import (
 from carbon.authoring.model import ApplicabilityBinding as A
 from carbon.authoring.primitives import CANONICALIZATION_PROFILE
 
+from . import facts
 from . import practice as direct_practice
 from .contracts import (
     authored_contracts,
@@ -38,6 +41,7 @@ from .contracts import (
     construction_kit,
     digest,
     direct_contracts,
+    fact,
     interface_document,
     limits_document,
     semantic,
@@ -85,12 +89,12 @@ def objective(spec):
         "schema": "carbon." + spec.prefix + ".research-objective.v1",
         "challenge": {"id": key.challenge_id, "version": key.version},
         "title": spec.title,
-        "task": HUMAN_INPUT,
-        "intended_use": HUMAN_INPUT,
+        "task": facts.value(spec, key.version, "task"),
+        "intended_use": facts.value(spec, key.version, "intended_use"),
         "inputs": interface["input"],
         "outputs": interface["output"],
         "scope": limits_document(spec)["scope"],
-        "sampling_law": HUMAN_INPUT,
+        "sampling_law": facts.value(spec, key.version, "sampling_law"),
         "gates": HUMAN_INPUT,
         "score": HUMAN_INPUT,
         "practice_feedback_schema": spec.practice_schema,
@@ -104,12 +108,13 @@ def objective(spec):
 
 
 def reference_method(spec):
+    version = research_key(spec).version
     limits = limits_document(spec)
     return {
-        "reference": HUMAN_INPUT,
+        "reference": facts.value(spec, version, "reference_method"),
         "train_provenance_sha256": limits["train_provenance_sha256"],
         "train_cases": limits["train_cases"],
-        "quality": HUMAN_INPUT,
+        "quality": facts.value(spec, version, "reference_quality"),
     }
 
 
@@ -144,6 +149,7 @@ def population_and_sampling(spec):
         "object_version": "1.0",
     }
     clause = functools.partial(semantic, spec)
+    stated = functools.partial(fact, spec)
     cases = bank(spec)["cases"]
     practice_population = pop.InstanceDistributionContract(
         **common,
@@ -160,17 +166,29 @@ def population_and_sampling(spec):
         proposal_population_binding=na(spec, "no_official_proposal"),
         support_contract=pop.SupportContract(
             clause("membership_rule", "exposed_development_bank_rows"),
-            clause("physical_support", "human_input_physical_support"),
+            stated(
+                "physical_support", "physical_support", "human_input_physical_support"
+            ),
             clause("representation_support", "float32_rows"),
-            clause("support_boundary", "human_input_support_boundary"),
-            clause("membership_decision", "human_input_membership_decision"),
+            stated(
+                "support_boundary", "support_boundary", "human_input_support_boundary"
+            ),
+            stated(
+                "membership_decision",
+                "membership_decision",
+                "human_input_membership_decision",
+            ),
             "REJECT",
         ),
         law_semantics=pop.LawSemantics(
             pop.LawKind.PROBABILITY_LAW,
             pop.ProbabilityLaw(
-                clause("base_measure", "human_input_base_measure"),
-                clause("probability_law", "human_input_probability_law"),
+                stated("base_measure", "base_measure", "human_input_base_measure"),
+                stated(
+                    "probability_law",
+                    "probability_law",
+                    "human_input_probability_law",
+                ),
                 clause("normalization_claim", "development_not_field_prevalence"),
             ),
         ),
@@ -181,7 +199,9 @@ def population_and_sampling(spec):
         stratification_binding=na(spec, "practice_is_not_stratified"),
         applicability_refs=(clause("applicability", "public_practice_only"),),
         exclusions=(),
-        rights_profile_ref=clause("rights_profile", "human_input_rights_profile"),
+        rights_profile_ref=stated(
+            "rights_profile", "rights_profile.research", "human_input_rights_profile"
+        ),
         permitted_use_refs=(clause("permitted_use", "adaptive_miner_research"),),
         restrictions=(clause("restriction", "not_final_evidence_or_qualification"),),
         # Validator ruling (2026-10-20): no per-case labels in practice, so the
@@ -214,8 +234,10 @@ def population_and_sampling(spec):
         query_population_binding=na(spec, "fixed_prediction_outputs"),
         observation_population_binding=na(spec, "fixed_exposed_bank"),
         evidence_campaign_binding=na(spec, "practice_not_confirmation"),
-        intended_estimand_or_reporting_ref=clause(
-            "intended_estimand_or_reporting", "human_input_practice_reporting"
+        intended_estimand_or_reporting_ref=stated(
+            "intended_estimand_or_reporting",
+            "practice_reporting",
+            "human_input_practice_reporting",
         ),
         finite_evidence_design=sample.FiniteEvidenceDesign(
             clause("sampling_unit", "one_bank_row"),
@@ -233,7 +255,11 @@ def population_and_sampling(spec):
         stratified_allocation_binding=na(spec, "practice_is_not_stratified"),
         query_observation_allocation_binding=na(spec, "fixed_prediction_contract"),
         reference_fidelity_allocation_binding=A.bound(
-            clause("reference_fidelity_allocation", "human_input_reference_fidelity")
+            stated(
+                "reference_fidelity_allocation",
+                "reference_fidelity",
+                "human_input_reference_fidelity",
+            )
         ),
         replication_dependence_policy_ref=clause(
             "replication_dependence_policy", "fixed_shared_public_cases"
@@ -305,16 +331,27 @@ def measurement_contract(spec):
     source = digest(Path(direct_practice.__file__).read_bytes())
     key = research_key(spec)
 
-    def definition(kind, label):
+    def definition(kind, label, statement=None):
+        value = {"source": source, "definition": label}
+        if statement is not None:
+            value["statement"] = statement
         return m.MeasurementDefinitionRef(
-            key,
-            kind,
-            label,
-            "1.0",
-            digest(canonical({"source": source, "definition": label})),
+            key, kind, label, "1.0", digest(canonical(value))
         )
 
     kind = m.MeasurementDefinitionKind
+    # The approved known limitation (`facts`), its text bound by the digest;
+    # its human_input_* label while unset.
+    text = facts.value(spec, key.version, "known_limitation")
+    limitation = (
+        definition(kind.KNOWN_LIMITATION, "human_input_known_limitation")
+        if text == HUMAN_INPUT
+        else definition(
+            kind.KNOWN_LIMITATION,
+            facts.label(spec, key.version, "known_limitation"),
+            text,
+        )
+    )
     return m.MeasurementContract(
         key,
         spec.prefix + "_development_practice",
@@ -342,7 +379,7 @@ def measurement_contract(spec):
                 m.StratumApplicabilityStatus.HUMAN_INPUT,
             ),
         ),
-        (definition(kind.KNOWN_LIMITATION, "human_input_known_limitation"),),
+        (limitation,),
         (
             definition(
                 kind.IMPLEMENTATION, "carbon_" + spec.prefix + "_direct_practice"
@@ -404,7 +441,7 @@ class DirectPublicMaterial:
                     self.key.challenge_id, self.key.version
                 ),
                 "ready_recipe": catalog_recipe(self.spec, version=self.key.version),
-                "use": HUMAN_INPUT,
+                "use": facts.value(self.spec, self.key.version, "catalog_usage_text"),
             }
         elif name == "construction_kit":
             value = construction_kit(self.spec)
