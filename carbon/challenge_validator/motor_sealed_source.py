@@ -28,10 +28,9 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 
 def motor_sealed_family():
     """Motor 1.1's registration, from `motor_sealed`."""
-    from carbon.motor.population import POPULATION_VERSION
+    from carbon.motor_exam.population import POPULATION_VERSION
 
     from . import motor_sealed as sealed
-    from .confirmation_sources import source_for
     from .motor_source import RUN_BATCH
 
     return ReferenceFamily(
@@ -49,7 +48,7 @@ def motor_sealed_family():
         image_env="CARBON_MOTOR_IMAGE",
         terminal=sealed.TERMINAL,
         error_type=sealed.MotorSealedError,
-        population=lambda: source_for(sealed.CHALLENGE_ID),
+        population=sealed.placed_source,
         rule=sealed.hidden_rule,
         contract_digest=sealed.contract_digest,
         load_deployment=sealed.load_deployment,
