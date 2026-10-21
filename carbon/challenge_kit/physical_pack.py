@@ -116,9 +116,13 @@ PACK_VERSIONS = {
     (f08_train.CHALLENGE_ID, "1.1"): "f08-normal-construction-development-2",
     (f08_train.CHALLENGE_ID, "1.2"): "f08-normal-construction-development-3",
     (f08_train.CHALLENGE_ID, "1.3"): "f08-normal-construction-development-4",
+    # F08 1.4 and F02 2.3 (catalog + graph, allowlist v7; Launchpad fda49512e;
+    # Validator): the predecessor's exam under their own pack versions.
+    (f08_train.CHALLENGE_ID, "1.4"): "f08-normal-construction-development-5",
     (f02_train.CHALLENGE_ID, "2.0"): "f02-normal-construction-development-2",
     (f02_train.CHALLENGE_ID, "2.1"): "f02-normal-construction-development-3",
     (f02_train.CHALLENGE_ID, "2.2"): "f02-normal-construction-development-4",
+    (f02_train.CHALLENGE_ID, "2.3"): "f02-normal-construction-development-5",
 }
 #: F02's eight registered cold actions (the scoring producer's
 #: `_F02_ACTIONS`), judged B10 ACCEPTED_FOR_DEVELOPMENT_BANK by RR-PACKS-04's
@@ -217,6 +221,16 @@ _F08_EXAMS = {
         F08_LADDER_DECISION_COVERAGE,
         F08_LADDER_POPULATION,
         "f08-normal-construction-development-4",
+    ),
+    # 1.4 (catalog + graph): 1.3's ladder bank and TRAIN v2, unchanged.
+    "1.4": (
+        _F08_LADDER_OBSERVED,
+        _F08_LADDER_ENVIRONMENT,
+        "ladder",
+        "decision_near_limit",
+        F08_LADDER_DECISION_COVERAGE,
+        F08_LADDER_POPULATION,
+        "f08-normal-construction-development-5",
     ),
 }
 _F08_BRIEF = (
