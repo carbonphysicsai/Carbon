@@ -1370,6 +1370,7 @@ def test_every_new_code_has_its_own_next_step():
         "miner_ceiling_reached",
         "research_share_too_small",
         "too_many_pins",
+        "graphite_plan_output_cap",
     )
     for code in (*DESIGN_CODES, *REFUSAL_FIELDS, *campaign_codes):
         assert next_action(code) != FALLBACK_ACTION, code
@@ -1522,6 +1523,73 @@ def test_graphite_progress_is_s3s_view_of_its_own_records(tmp_path, monkeypatch)
         "reader_calls": 2,
         "cost_nanodollars": 2000,
     }
+
+
+def test_a_plan_cut_at_the_output_cap_carries_the_cap_and_its_step(
+    tmp_path, monkeypatch
+):
+    """GRAPHITE-PLAN-OUTPUT-CAP: S3's view of a FULL campaign whose Planner's
+    replies were cut at the output cap (its plan stage keeps the loop's cause
+    and the cap; its build was not run) reaches the campaign view with the
+    cap and the step - a new launch with max output tokens set higher. No
+    other stage carries either."""
+    from carbon.development_session.research_loop import OUTPUT_CAP_HIT
+    from scripts.dev.miner_launchpad import campaign_view, projection
+    from scripts.dev.miner_launchpad.campaign_view import graphite_section
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    # Restated beside each view, so neither imports the research loop.
+    assert projection.OUTPUT_CAP_CAUSE == campaign_view.OUTPUT_CAP_CAUSE
+    assert campaign_view.OUTPUT_CAP_CAUSE == OUTPUT_CAP_HIT
+    stages = [
+        {"stage": "hunt", "state": "DONE", "code": None},
+        {
+            "stage": "plan",
+            "state": "STOPPED",
+            "code": "replies_truncated",
+            "cause": "turn_hit_output_cap",
+            "output_cap": 2048,
+        },
+        {"stage": "build", "state": "STOPPED", "code": "graphite_plan_output_cap"},
+    ]
+    monkeypatch.setattr(
+        projection,
+        "_graphite_view",
+        lambda root, operations: s3_view(stage="complete", stages=stages),
+    )
+    value = projection.graphite_progress(GRAPHITE_MANIFEST, ledger_status(), tmp_path)
+    assert value["stages"] == stages
+    shown = graphite_section({"graphite": value})["stages"]
+    assert shown[0] == stages[0] and shown[2] == stages[2]
+    assert shown[1] == {
+        **stages[1],
+        "next_step": (
+            "Replies were cut at 2,048 output tokens. Set max output tokens "
+            "higher (the model's maximum if you know it) and launch again."
+        ),
+    }
+    # The build's code carries the same step in the refusal catalog, and says
+    # a resume does not help.
+    step = next_action("graphite_plan_output_cap")
+    assert (
+        "max_output_tokens" in step and "Resuming this campaign does not help" in step
+    )
+    # A cap the view cannot read is not shown as a number; a cause that is not
+    # the output cap carries nothing.
+    odd = [
+        {**stages[1], "output_cap": "2048"},
+        {**stages[1], "cause": "something_else"},
+    ]
+    monkeypatch.setattr(
+        projection,
+        "_graphite_view",
+        lambda root, operations: s3_view(stages=odd),
+    )
+    value = projection.graphite_progress(GRAPHITE_MANIFEST, ledger_status(), tmp_path)
+    first, second = graphite_section({"graphite": value})["stages"]
+    assert first["output_cap"] is None
+    assert first["next_step"].startswith("Replies were cut at the output cap. ")
+    assert set(second) == {"stage", "state", "code"}
 
 
 def test_a_finished_research_campaign_shows_the_plan_its_planner_wrote(

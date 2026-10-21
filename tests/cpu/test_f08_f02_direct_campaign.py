@@ -3,8 +3,9 @@ Motor's and Cooling's catalog campaigns: composed under each version's own key,
 refused while the catalog is empty, a catalog or graph recipe practised through
 the receiver's own build (injected here; its custody is the workers' own
 tests'), frozen from that practice and submitted through the signed
-construction receiver (stand-ins). Every unregistered value is HUMAN_INPUT and
-fails closed where it is read."""
+construction receiver (stand-ins). The owner-approved science facts
+(LAUNCHPAD_F08_F02_SCIENCE_FACTS_20261021) are served as approved; every value
+still unset is HUMAN_INPUT and fails closed where it is read."""
 
 from __future__ import annotations
 
@@ -26,6 +27,7 @@ from carbon.development_session import construction_recipe, direct_submission
 from carbon.development_session import direct_graph_construction_worker as graph_worker
 from carbon.development_session.research_campaign import OperationRefused
 from carbon.direct_campaign import contracts as direct_contracts
+from carbon.direct_campaign import facts as direct_facts
 from carbon.direct_campaign import practice as direct_practice
 from carbon.direct_campaign import research as direct_research
 from carbon.direct_campaign.spec import F02, F08, HUMAN_INPUT
@@ -567,16 +569,86 @@ def test_the_agent_sees_the_controls_and_how_to_submit(spec, version):
     assert "signed construction receiver" in observation["instructions"]
 
 
-# --- HUMAN_INPUT fails closed where it is read -------------------------------
+# --- the approved facts, and HUMAN_INPUT failing closed where it is read -----
+
+#: LAUNCHPAD_F08_F02_SCIENCE_FACTS_20261021: the owner-approved copy and its
+#: correction to source after the Validator's check (the values are its).
+APPROVED_SHA256 = "34a4f31c8b9ad950593a3fa0cb9a533d3c57c2ad25c0e919acecff1eaffb1095"
+CORRECTED_SHA256 = "e9d56c4bce390ab4bc2d7150d7951f09e8e05ac22ce50cbe96c7cceb1105f559"
+#: Each version's approved facts and clause labels, by canonical digest: a value
+#: or label that moves is a new approval, not an edit.
+FACTS_DIGESTS = {
+    ("f08-ribbed-bracket", "1.4"): (
+        "sha256:ad1b905f345b6b3110026917c73d764a6593ff2171485195553889a1d539b49d",
+        "sha256:f6912785a00f94471aacb1032d2f0eca9688ffedd1294f26466eeb98e8eaffc4",
+    ),
+    ("f02", "2.3"): (
+        "sha256:49b28395f2bd6e5673c4a18ce0858c00b7e4798fbe10c50074739f38aaf2470e",
+        "sha256:0be4b698fa522e2b56af3b99a2ce0eefc174548c71f2cdc06d24faa7249cbc90",
+    ),
+}
+#: Left HUMAN_INPUT: the approved file's LEAVE_HUMAN_INPUT fields.
+LEFT = {
+    "f08-ribbed-bracket": ("physical_invariant",),
+    "f02": ("physical_support", "physical_invariant"),
+}
+TASKS = {
+    "f08-ribbed-bracket": (
+        "Predict the static tip compliance and, at each of three constant modal "
+        "damping ratios (0.005, 0.01, 0.02), the largest tip dynamic compliance "
+        "over 80-600 Hz and its frequency, for the registered clamped ribbed-plate "
+        "bracket with a cable relief under a unit tip-pad force."
+    ),
+    "f02": (
+        "Predict the maximum die-top temperature over a 120-second transient for "
+        "one rectangular power burst (total power during the burst and its "
+        "on-time, starting at 20 s on a 20 W base from a uniform 40 C start) in "
+        "the registered three-layer die/TIM/copper stack with underside "
+        "convective cooling."
+    ),
+}
+
+
+def _fact(spec, version, name):
+    return direct_facts.value(spec, version, name)
 
 
 @pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
-def test_unregistered_values_are_human_input(spec, version):
+def test_the_approved_facts_are_pinned_to_their_approval(spec, version):
+    assert direct_facts.APPROVAL == {
+        "record": "LAUNCHPAD_F08_F02_SCIENCE_FACTS_20261021",
+        "approved_sha256": APPROVED_SHA256,
+        "corrected_sha256": CORRECTED_SHA256,
+    }
+    key = (spec.challenge_id, version)
+    values, labels = direct_facts.FACTS[key], direct_facts.LABELS[key]
+    canonical, digest = direct_contracts.canonical, direct_contracts.digest
+    assert (digest(canonical(values)), digest(canonical(labels))) == (
+        FACTS_DIGESTS[key]
+    )
+    assert values["task"] == TASKS[spec.challenge_id]
+    left = {name for name, value in values.items() if value == HUMAN_INPUT}
+    assert left == set(LEFT[spec.challenge_id])
+    # Every value is text, and every filled clause has its approved label.
+    assert all(type(value) is str for value in values.values())
+    for name in set(labels):
+        assert values[name.split(".")[0]] != HUMAN_INPUT
+    for name in ("governing_job", "governing_law", "geometry_domain"):
+        assert name in labels
+
+
+@pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
+def test_the_approved_facts_are_served_and_the_rest_is_human_input(spec, version):
     from carbon.direct_campaign import contracts
 
     document = describe(spec.challenge_id, version)
-    assert document["task"] == document["intended_use"] == HUMAN_INPUT
+    assert document["task"] == TASKS[spec.challenge_id]
+    assert document["intended_use"] == _fact(spec, version, "intended_use")
+    assert document["interface"]["conventions"] == _fact(
+        spec, version, "interface_conventions"
+    )
     assert document["exam"]["gates"] == document["exam"]["rule"] == HUMAN_INPUT
+    assert document["exam"]["components"] == HUMAN_INPUT
     assert document["exam"]["qualification"] is False
     # Validator, 2026-10-21: practice reports aggregate errors on the
     # registered scale.
@@ -588,16 +660,122 @@ def test_unregistered_values_are_human_input(spec, version):
         objective = direct_research.objective(spec)
         profile = contracts.profile_document(spec)
         reference = direct_research.reference_method(spec)
-    for name in ("task", "intended_use", "sampling_law", "gates", "score"):
-        assert objective[name] == HUMAN_INPUT
+    assert objective["task"] == TASKS[spec.challenge_id]
+    for name in ("intended_use", "sampling_law"):
+        assert objective[name] == _fact(spec, version, name) != HUMAN_INPUT
+    assert objective["gates"] == objective["score"] == HUMAN_INPUT
     assert objective["practice_error_scale"] == direct_practice.error_scale(
         spec, version
     )
-    for name in ("physical_scope", "governing_law", "geometry_domain"):
-        assert profile[name] == HUMAN_INPUT
-    assert reference["reference"] == reference["quality"] == HUMAN_INPUT
+    for name in contracts.OWNER_FIELDS:
+        assert profile[name] == _fact(spec, version, name) != HUMAN_INPUT
+    assert reference["reference"] == _fact(spec, version, "reference_method")
+    assert reference["quality"] == _fact(spec, version, "reference_quality")
+    assert HUMAN_INPUT not in (reference["reference"], reference["quality"])
     parts = _module(spec, "research").challenge_parts(version)
     assert parts.score_document["score"] == HUMAN_INPUT
+    # The catalog's usage text (ruling 6: aggregate errors on the registered
+    # scale, never per-case values).
+    workspace = SimpleNamespace(put=lambda name, body: None)
+    material = direct_research.DirectPublicMaterial(spec, version)
+    use = material("catalog", workspace)["document"]["use"]
+    assert use == _fact(spec, version, "catalog_usage_text")
+    assert "aggregate errors on the registered scale" in use
+
+
+def _authored(spec, version):
+    """The version's authored contracts and research parts."""
+    from carbon.direct_campaign import contracts
+
+    with contracts.keyed(spec, contracts.key_for(spec, version)):
+        physical, _candidate, training = contracts.authored_contracts(spec)
+        population, sampling = direct_research.population_and_sampling(spec)
+        measurement = direct_research.measurement_contract(spec)
+    return physical, training, population, sampling, measurement
+
+
+@pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
+def test_each_filled_clause_carries_its_approved_label_and_text(spec, version):
+    from carbon.direct_campaign import contracts
+
+    physical, training, population, sampling, measurement = _authored(spec, version)
+    labels = direct_facts.LABELS[(spec.challenge_id, version)]
+    assert physical.governing_job_ref.object_id == labels["governing_job"]
+    assert [r.object_id for r in physical.governing_law_refs] == [
+        labels["governing_law"]
+    ]
+    assert physical.geometry_domain_ref.object_id == labels["geometry_domain"]
+    for field in physical.causal_inputs + physical.required_physical_quantities:
+        assert field.geometry_binding.value.object_id == labels["geometry_domain"]
+    assert physical.operating_envelope_ref.object_id == labels["operating_envelope"]
+    time = physical.time_contract
+    assert time.endpoint_inclusion_semantic_ref.object_id == labels["time_semantics"]
+    assert training.rights_profile_ref.object_id == "public_synthetic"
+    assert population.rights_profile_ref.object_id == "public_synthetic_cases"
+    support = population.support_contract
+    assert support.boundary_semantics_ref.object_id == labels["support_boundary"]
+    assert support.membership_decision_ref.object_id == labels["membership_decision"]
+    law = population.law_semantics.payload
+    assert law.base_measure_ref.object_id == labels["base_measure"]
+    assert law.law_ref.object_id == labels["probability_law"]
+    fidelity = sampling.reference_fidelity_allocation_binding.value
+    assert fidelity.object_id == labels["reference_fidelity"]
+    assert [r.object_id for r in measurement.known_limitation_refs] == [
+        labels["known_limitation"]
+    ]
+    # A filled clause's digest binds its approved text beside the profile.
+    with contracts.keyed(spec, contracts.key_for(spec, version)):
+        profile = contracts.profile_document(spec)
+    text = _fact(spec, version, "governing_job")
+    assert physical.governing_job_ref.content_digest == contracts.digest(
+        contracts.canonical(
+            {"clause": labels["governing_job"], "profile": profile, "statement": text}
+        )
+    )
+    reporting = sampling.intended_estimand_or_reporting_ref
+    assert reporting.object_id == labels["practice_reporting"]
+    assert reporting.object_id == (
+        "aggregate_errors_on_registered_scale" + ("s" if spec is F08 else "")
+    )
+
+
+@pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
+def test_the_leave_clauses_keep_their_human_input_labels(spec, version):
+    _, training, population, _, _ = _authored(spec, version)
+    invariants = [r.object_id for r in training.physical_invariant_refs]
+    assert invariants == ["human_input_physical_invariant"]
+    supports = (
+        training.membership_contract.physical_support_ref.object_id,
+        population.support_contract.physical_support_ref.object_id,
+    )
+    if spec is F02:
+        assert supports == ("human_input_physical_support",) * 2
+    else:
+        label = direct_facts.LABELS[(spec.challenge_id, version)]["physical_support"]
+        assert supports == (label, label)
+        assert label == "linear_clamped_synthetic_material_reference_support"
+
+
+@pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
+def test_time_stays_steady_with_the_approved_time_semantics(spec, version):
+    from carbon.authoring.model import TimeMode
+
+    physical, *_ = _authored(spec, version)
+    time = physical.time_contract
+    # Validator, 2026-10-21: STEADY is kept (the interface has no time
+    # coordinate); F02's clauses are relabelled so it reads as a transient
+    # burst summarised as its window maximum.
+    assert time.mode is TimeMode.STEADY
+    assert time.time_coordinate_binding.is_bound is False
+    reason = time.time_coordinate_binding.value.object_id
+    endpoints = time.endpoint_inclusion_semantic_ref.object_id
+    if spec is F02:
+        assert reason == "time_maximum_over_registered_window"
+        assert endpoints == "transient_burst_summarised_as_window_maximum"
+    else:
+        assert reason == "interface_has_no_time_coordinate"
+        assert endpoints == "static_and_frequency_domain_no_time_coordinate"
+    assert time.horizon_binding.value.object_id == "interface_has_no_time_horizon"
 
 
 def _graph_practice(spec, version, tmp_path, monkeypatch, rows=None):
@@ -750,17 +928,59 @@ def test_the_public_material_serves_no_label(spec, version):
 
 @pytest.mark.parametrize(("spec", "version"), VERSIONS, ids=IDS)
 @pytest.mark.parametrize("name", direct_contracts.OWNER_FIELDS)
-def test_an_unset_profile_field_is_refused_never_read_as_a_value(spec, version, name):
-    # The five owner/Validator fields are HUMAN_INPUT until set: reading one
-    # refuses (as agent_campaign.grant refuses an unset grant value).
+def test_a_set_profile_field_reads_its_approved_value(spec, version, name):
+    # The five owner/Validator fields carry the approved facts and read
+    # through `profile_value` (and `fact_value`).
     from carbon.direct_campaign.spec import key_for, keyed
 
     with keyed(spec, key_for(spec, version)):
-        assert direct_contracts.profile_document(spec)[name] == HUMAN_INPUT
+        value = direct_contracts.profile_value(spec, name)
+        assert value == direct_contracts.fact_value(spec, name)
+    assert value == _fact(spec, version, name) != HUMAN_INPUT
+    assert type(value) is str and value
+
+
+@pytest.mark.parametrize(
+    ("spec", "version", "name"),
+    [
+        (spec, version, name)
+        for spec, version in VERSIONS
+        for name in LEFT[spec.challenge_id]
+    ],
+)
+def test_an_unset_fact_is_refused_never_read_as_a_value(spec, version, name):
+    # The approved file's LEAVE_HUMAN_INPUT fields stay HUMAN_INPUT: reading
+    # one refuses (as agent_campaign.grant refuses an unset grant value).
+    from carbon.direct_campaign.spec import key_for, keyed
+
+    with keyed(spec, key_for(spec, version)):
+        assert name not in direct_contracts.profile_document(spec)
         with pytest.raises(direct_contracts.ProfileValueMissing) as refused:
-            direct_contracts.profile_value(spec, name)
+            direct_contracts.fact_value(spec, name)
     assert refused.value.code == "direct_profile_value_missing"
     assert refused.value.field == name
+
+
+@pytest.mark.parametrize(("spec", "version"), VERSIONS, ids=IDS)
+def test_an_unset_profile_field_is_still_refused(spec, version, monkeypatch):
+    # Were a profile fact unset again, `profile_value` refuses it.
+    from carbon.direct_campaign.spec import key_for, keyed
+
+    key = (spec.challenge_id, version)
+    unset = {**direct_facts.FACTS[key], "governing_law": HUMAN_INPUT}
+    monkeypatch.setitem(direct_facts.FACTS, key, unset)
+    direct_contracts._profile.cache_clear()
+    try:
+        with keyed(spec, key_for(spec, version)):
+            assert direct_contracts.profile_document(spec)["governing_law"] == (
+                HUMAN_INPUT
+            )
+            with pytest.raises(direct_contracts.ProfileValueMissing) as refused:
+                direct_contracts.profile_value(spec, "governing_law")
+    finally:
+        monkeypatch.undo()
+        direct_contracts._profile.cache_clear()
+    assert refused.value.code == "direct_profile_value_missing"
 
 
 @pytest.mark.parametrize("unset", [None, "HUMAN_INPUT", "TODO", ""])

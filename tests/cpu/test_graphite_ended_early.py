@@ -40,6 +40,7 @@ def test_every_early_stop_code_has_its_own_next_step():
     assert set(view.EARLY_STOP_CODES) == {
         "context_ceiling",
         "compaction_failed",
+        "graphite_plan_output_cap",
         "miner_ceiling_reached",
     }
     for code in view.EARLY_STOP_CODES:

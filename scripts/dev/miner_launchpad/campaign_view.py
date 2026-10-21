@@ -666,6 +666,13 @@ GRAPHITE_MODES = ("RESEARCH", "BUILD", "FULL")
 _GRAPHITE_STAGE = re.compile(r"[a-z][a-z0-9_]{0,31}")
 _STAGE_STATES = ("PENDING", "RUNNING", "DONE", "STOPPED")
 _CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
+#: A stage's replies cut at the output cap (`research_loop.OUTPUT_CAP_HIT`),
+#: and what the miner does about it.
+OUTPUT_CAP_CAUSE = "turn_hit_output_cap"
+OUTPUT_CAP_STEP = (
+    "Set max output tokens higher (the model's maximum if you know it) and "
+    "launch again."
+)
 _SPEND_KEYS = ("provider_nanodollars", "provider_attempts")
 _HUNT_COUNTS = (
     "fetched",
@@ -686,6 +693,7 @@ _HUNT_COUNTS = (
 EARLY_STOP_CODES = (
     "context_ceiling",
     "compaction_failed",
+    "graphite_plan_output_cap",
     "miner_ceiling_reached",
 )
 
@@ -703,6 +711,27 @@ def ended_early(stages):
                 "next_step": next_action(row["code"]),
             }
     return None
+
+
+def _output_cap_step(row):
+    """For a stage whose replies were cut at the output cap (the research
+    loop's cause `turn_hit_output_cap`): the cap they hit and the step - a
+    new launch with max output tokens set higher, since a campaign keeps the
+    model settings it froze. Nothing for any other stage."""
+    if row.get("cause") != OUTPUT_CAP_CAUSE:
+        return {}
+    cap = row.get("output_cap")
+    cap = cap if type(cap) is int and 0 < cap <= 10**7 else None
+    cut = (
+        "Replies were cut at " + format(cap, ",") + " output tokens."
+        if cap is not None
+        else "Replies were cut at the output cap."
+    )
+    return {
+        "cause": OUTPUT_CAP_CAUSE,
+        "output_cap": cap,
+        "next_step": cut + " " + OUTPUT_CAP_STEP,
+    }
 
 
 def graphite_section(own):
@@ -737,6 +766,7 @@ def graphite_section(own):
                 if type(row.get("code")) is str and _CODE.fullmatch(row["code"])
                 else None
             ),
+            **_output_cap_step(row),
         }
         for row in (value.get("stages") if type(value.get("stages")) is list else [])[
             :16

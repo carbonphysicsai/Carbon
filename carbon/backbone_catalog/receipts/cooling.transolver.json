@@ -10,6 +10,8 @@
  "schema": "carbon.backbone-catalog-pair-identity.v1",
  "source_report": "PAIR_IDENTITY_COOLING_CATALOG_20261020.json",
  "source_report_sha256": "sha256:74c2afa464e79262a7b4ce634b8da1b051fc6d7cf888e8cb8d5935f5f7dff4df",
+ "tested_interface_digest": "sha256:0da0804b5bad5e628ed866350cafa8d90633d2550f3bbc32b387d95eed49bbd7",
  "tested_on": "chip-cold-plate@1.0",
+ "tested_train_digest": "sha256:b8d7839dcbfc777aa8b506a18bb9fc9b216786cb0d3533df18e6fb76ca4ec3bf",
  "unpaired": 0
 }

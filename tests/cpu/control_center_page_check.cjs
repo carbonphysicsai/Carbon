@@ -2166,6 +2166,72 @@ scenario("Graphite: the campaign shows its stage, plan, research and build spend
   clean(page);
 });
 
+// GRAPHITE-PLAN-OUTPUT-CAP: a FULL campaign (or a BUILD with no chosen plan)
+// whose Planner's replies were cut at the output cap ends without a planless
+// build (graphite_plan_output_cap);
+// the plan stage names the cap and the step, as the campaign view states it.
+scenario("Graphite: a plan cut at the output cap names the cap and the step, and its build did not run", async () => {
+  const state = graphiteWorld();
+  const run = graphiteRun({state: "COMPLETED"});
+  state.runs = [run];
+  state.view = copy(G().view);
+  state.view.graphite.stages = copy(G().plan_output_cap_stages);
+  state.view.graphite.stage = "complete";
+  state.view.campaign.state = "COMPLETED";
+  const plan = state.view.graphite.stages.find(item => item.stage === "plan");
+  assert.equal(plan.cause, "turn_hit_output_cap");
+  assert.equal(plan.output_cap, 2048);
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/live");
+  await page.advance(0);
+  await refresh(page);
+  const box = one(page, "#campaign-detail [data-part=graphite]");
+  const text = page.text(box);
+  assert.ok(text.includes("StagesHunt: done · Plan: stopped (replies truncated at 2,048 output tokens) · Build: stopped (graphite plan output cap)"), text);
+  assert.ok(text.includes("Plan cut shortReplies were cut at 2,048 output tokens. Set max output tokens higher (the model's maximum if you know it) and launch again."), text);
+  const cut = [...all(page, "#campaign-detail [data-part=graphite] dd")].filter(dd => dd.dataset.code === "turn_hit_output_cap");
+  assert.equal(cut.length, 1);
+  assert.equal(cut[0].className, "reason");
+  // A plan stopped at the research share names no cap and no step.
+  state.view = copy(G().view);
+  for (let i = 0; i < 3; i++) await refresh(page);
+  assert.ok(!page.text(one(page, "#campaign-detail [data-part=graphite]")).includes("cut short"));
+  clean(page);
+});
+
+scenario("Graphite: Review warns when Carbon knows no output maximum for the model, and not once a cap is set", async () => {
+  const state = graphiteWorld();
+  const choice = state.caps.model.setup_choice;
+  const fallback = state.caps.model.output_cap.defaults[choice.provider_id][choice.model_id];
+  assert.equal(choice.provider_id, "chutes");
+  assert.deepEqual([fallback.basis, fallback.max_output_tokens], ["no_documented_maximum", 2048]);
+  const page = await open(state);
+  await wizardTo(page, "model", "graphite");
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  const warning = "Max output warningCarbon knows no output maximum for " + choice.model_id + ", so each reply is capped at the conservative 2,048 tokens, which can cut a Planner's plan short. Set max output to the model's own maximum.";
+  assert.ok(page.text("wizard-review").includes(warning), page.text("wizard-review"));
+  // The miner's own cap: the warning goes.
+  page.window.CarbonControlCenter.goWizard("model");
+  await page.advance(0);
+  await page.type(page.$("wizard-max-output"), "16384");
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  assert.match(page.text("wizard-review"), /Max output16,384 tokens per reply, your cap/);
+  assert.ok(!page.text("wizard-review").includes("Max output warning"), page.text("wizard-review"));
+  clean(page);
+  // A model whose maximum Carbon records: no warning.
+  const documented = graphiteWorld();
+  documented.caps.model.output_cap.defaults[choice.provider_id][choice.model_id] = {max_output_tokens: 32768, basis: "model_documented_maximum"};
+  const second = await open(documented);
+  await wizardTo(second, "model", "graphite");
+  second.window.CarbonControlCenter.goWizard("review");
+  await second.advance(0);
+  assert.match(second.text("wizard-review"), /Max outputNot set: 32,768 tokens \(this model's documented maximum\)/);
+  assert.ok(!second.text("wizard-review").includes("Max output warning"), second.text("wizard-review"));
+  clean(second);
+});
+
 scenario("Library: every card says where it came from and UNCHECKED; search ranks with reasons", async () => {
   const state = graphiteWorld();
   const page = await open(state);
