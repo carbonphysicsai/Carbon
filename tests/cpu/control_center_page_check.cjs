@@ -1513,7 +1513,7 @@ async function toAgentStep(page) {
   page.window.CarbonControlCenter.goWizard("agent");
   await page.advance(0);
 }
-const GRAPHITE_KEYS = ["graphite_mode", "research_share", "plan", "hunt", "limits", "submission_policy"];
+const GRAPHITE_KEYS = ["graphite_mode", "graphite_edition", "research_share", "plan", "hunt", "limits", "submission_policy"];
 const planHref = digest => "#library/plans/" + encodeURIComponent(digest);
 const usd = nano => "$" + String(Number((nano / 1e9).toPrecision(2)));
 
@@ -1650,6 +1650,46 @@ scenario("Graphite: each mode launches with exactly its own fields; the hunt is 
   await toAgentStep(page);
   assert.match(page.text("wizard-research-share-note"), /% of your model budget: \$[0-9.]+ of your .* model spend\. When that is used, research stops \(research share reached\)/);
   clean(page);
+});
+
+scenario("Graphite: the edition is chosen from the controller's list, v1 by default, and sent as graphite_edition", async () => {
+  const V1 = "carbon.graphite.miner-edition.v1";
+  const V2 = "carbon.graphite.miner-edition.v2";
+  const state = graphiteWorld();
+  const listed = state.options.graphite.editions;
+  assert.deepEqual(listed.map(item => [item.id, item.default]), [[V1, true], [V2, false]], "the options list both editions, v1 the default");
+  const page = await open(state);
+  await wizardTo(page, "agent", "graphite");
+  const box = one(page, "#wizard-graphite-editions");
+  assert.equal(box.hidden, false, "the edition choice shows once Graphite is chosen");
+  const inputs = [...all(page, "input[name=wizard-graphite-edition]")];
+  assert.deepEqual(inputs.map(input => input.value), [V1, V2], "one choice per listed edition, in the controller's order");
+  assert.deepEqual(inputs.map(input => input.checked), [true, false], "v1 is chosen by default");
+  assert.match(page.text(box), /carbon\.graphite\.miner-edition\.v1 · the default/);
+  assert.match(page.text(box), /The depth edition/);
+  let body = await launchNow(page, state);
+  assert.equal(body.graphite_edition, V1, "the default is sent as chosen");
+  await toAgentStep(page);
+  await page.press(byValue(page, "input[name=wizard-graphite-edition]", V2));
+  assert.equal(byValue(page, "input[name=wizard-graphite-edition]", V2).checked, true);
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  assert.match(page.text("wizard-review"), /Graphite edition.*carbon\.graphite\.miner-edition\.v2 · The depth edition/s);
+  body = await launchNow(page, state);
+  assert.equal(body.graphite_edition, V2, "a v2 pick is posted as graphite_edition");
+  assert.equal(body.graphite_mode, "FULL", "the mode is unchanged by the edition");
+  clean(page);
+  // A controller that lists no editions: none is offered or sent, and its
+  // own default runs.
+  const older = graphiteWorld();
+  delete older.options.graphite.editions;
+  delete older.caps.graphite.editions;
+  const olderPage = await open(older);
+  await wizardTo(olderPage, "agent", "graphite");
+  assert.equal(one(olderPage, "#wizard-graphite-editions").hidden, true);
+  body = await launchNow(olderPage, older);
+  assert.ok(!("graphite_edition" in body), "no edition is sent where none is listed");
+  clean(olderPage);
 });
 
 scenario("Graphite: retain before submit is visible, opt-in, and sent only when declared", async () => {
@@ -1820,7 +1860,7 @@ scenario("Graphite: a template carries its choices, as launch fields, and loads 
   await page.type(page.$("template-name"), "research forty");
   await page.press(page.$("template-save"));
   const saved = JSON.parse(page.window.localStorage.getItem("carbon.launchpad.launch-templates.v1"))["research forty"];
-  assert.deepEqual(saved, {agent: "graphite", graphite_mode: "RESEARCH", hunt: {max_records: 40}});
+  assert.deepEqual(saved, {agent: "graphite", graphite_mode: "RESEARCH", graphite_edition: "carbon.graphite.miner-edition.v1", hunt: {max_records: 40}});
   await toAgentStep(page);
   await page.press(one(page, "#wizard-graphite-mode-build"));
   page.window.CarbonControlCenter.goWizard("limits");

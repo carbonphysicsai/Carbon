@@ -1014,6 +1014,10 @@ class LaunchChoice:
             args.graphite = {key: self.graphite[key] for key in GRAPHITE_LAUNCH_KEYS}
             args.graphite.update(submission_policy.launch_fields(self.graphite))
             args.graphite_curation_digest = self.graphite["curation_digest"]
+            # The edition the launch named (or the default it resolved to).
+            # Like the other fields it is frozen into the provider plan at
+            # the first preparation; a resumed campaign keeps its frozen one.
+            args.graphite_edition = self.graphite.get("edition", GRAPHITE_EDITION)
 
 
 # ---- Graphite, the miner edition (OWNER-GRAPHITE-MINER-01, S4).
@@ -1027,11 +1031,28 @@ GRAPHITE = "graphite"
 RETIRED_AGENT = "autonomous"
 #: The agents whose campaign calls a model, and so takes a model selection.
 MODEL_AGENTS = (RETIRED_AGENT, GRAPHITE)
-#: The miner edition a new Graphite launch names. What it means - its role
-#: prompts and tool manifests by digest - is the edition registry's
-#: (`agent_campaign.graphite.miner.edition.MINER_EDITIONS`), which refuses an
-#: unknown one (`graphite_edition_unknown`) before any model call.
+#: The miner edition a new Graphite launch names when it names none
+#: (`graphite_edition`). What an edition means - its role prompts and tool
+#: manifests by digest - is the edition registry's
+#: (`agent_campaign.graphite.miner.edition.MINER_EDITIONS`); a launch naming
+#: an edition it does not hold is refused `graphite_edition_unknown` here,
+#: before anything is created or any model is called.
 GRAPHITE_EDITION = "carbon.graphite.miner-edition.v1"
+EDITION_UNKNOWN = "graphite_edition_unknown"
+#: Each published edition in a sentence, for the launch form and an agent.
+#: Plain descriptions of the registry's editions, never a claim that one
+#: does better: which suits a Challenge is the miner's to find out.
+GRAPHITE_EDITION_SUMMARIES = {
+    GRAPHITE_EDITION: (
+        "The original edition: the Reader, Planner and Constructor as first "
+        "published. The default."
+    ),
+    "carbon.graphite.miner-edition.v2": (
+        "The depth edition: the Planner plans deeper research per role, at a "
+        "higher reasoning effort and a larger output cap, so each planning "
+        "call can cost more of your model budget."
+    ),
+}
 GRAPHITE_MODES = ("RESEARCH", "BUILD", "FULL")
 DEFAULT_GRAPHITE_MODE = "FULL"
 #: The research share a FULL launch that names none is frozen with (the
@@ -1040,6 +1061,7 @@ DEFAULT_RESEARCH_SHARE = 0.10
 #: The launch fields only Graphite reads.
 GRAPHITE_FIELDS = (
     "graphite_mode",
+    "graphite_edition",
     "research_share",
     "plan",
     "hunt",
@@ -1050,7 +1072,8 @@ GRAPHITE_FIELDS = (
 #: versioned submission policy is copied only when explicitly chosen.
 #: S3's
 #: `edition.launch_fields` reads (`LAUNCH_FIELDS`), which refuses any other
-#: (`graphite_launch_invalid`). The edition is the campaign's to name.
+#: (`graphite_launch_invalid`). The edition travels beside them, as
+#: `args.graphite_edition` (`driver.freeze_launch` reads it there).
 GRAPHITE_LAUNCH_KEYS = ("mode", "research_share", "plan", "hunt", "limits")
 #: A hunt's shape: at most 8 queries of at most 6 terms, each starting with
 #: a letter or digit and holding only letters, digits and -, never an arXiv
@@ -1122,13 +1145,23 @@ def limits_value(value):
     return {key: value[key] for key in LIMIT_KEYS if key in value}
 
 
+def graphite_editions():
+    """The edition ids the registry publishes (`MINER_EDITIONS`), in its
+    order."""
+    from carbon.agent_campaign.graphite.miner.edition import MINER_EDITIONS
+
+    return tuple(MINER_EDITIONS)
+
+
 def graphite_launch(request):
     """The launch's Graphite choice, validated, with its defaults resolved, or
     None for any other agent.
 
     {mode, research_share, plan, hunt, limits} - the names S3's launch fields
-    take: `mode` FULL by default; `research_share` 0.10 for FULL and None
-    otherwise; `plan` (a plan digest) only for BUILD; `hunt` None unless
+    take - and `edition`: `edition` the `graphite_edition` named, v1
+    (`GRAPHITE_EDITION`) by default, one the registry publishes or refused
+    `graphite_edition_unknown`; `mode` FULL by default; `research_share`
+    0.10 for FULL and None otherwise; `plan` (a plan digest) only for BUILD; `hunt` None unless
     asked for, and only where a hunt runs (RESEARCH and FULL: S3 runs no hunt
     in BUILD); `limits` the caps set, possibly none. A Graphite field with
     another agent, or with a mode that does not read it, is refused by name:
@@ -1151,6 +1184,11 @@ def graphite_launch(request):
         mode = DEFAULT_GRAPHITE_MODE
     if type(mode) is not str or mode not in GRAPHITE_MODES:
         raise Rejected("graphite_mode_invalid")
+    edition = request.get("graphite_edition")
+    if edition is None:
+        edition = GRAPHITE_EDITION
+    if type(edition) is not str or edition not in graphite_editions():
+        raise Rejected(EDITION_UNKNOWN)
     share = request.get("research_share")
     if share is not None:
         if mode != "FULL":
@@ -1183,6 +1221,7 @@ def graphite_launch(request):
         "plan": plan,
         "hunt": hunt,
         "limits": limits_value({} if limits is None else limits),
+        "edition": edition,
     }
 
 
@@ -1310,14 +1349,24 @@ def graphite_input_window(cfg):
 
 def graphite_options(cfg):
     """What a Graphite launch may choose, for the launch form and an agent:
-    the modes, the research share, a hunt's shape and planning cost, the
-    optional limits, the input window and its advisory (LA-F8) and the
-    Challenges Graphite runs on."""
+    the editions (`graphite_edition`, v1 the default), the modes, the
+    research share, a hunt's shape and planning cost, the optional limits,
+    the input window and its advisory (LA-F8) and the Challenges Graphite
+    runs on."""
     from carbon.challenge_registry.campaigns import implemented_campaigns
 
     return {
         "agent": GRAPHITE,
+        # The default edition, as before editions were listed.
         "edition": GRAPHITE_EDITION,
+        "editions": [
+            {
+                "id": edition,
+                "summary": GRAPHITE_EDITION_SUMMARIES[edition],
+                "default": edition == GRAPHITE_EDITION,
+            }
+            for edition in graphite_editions()
+        ],
         "modes": [
             {
                 "id": mode,

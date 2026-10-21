@@ -39,7 +39,8 @@ python -m carbon.miner_mcp.standard_cli \
 - the four `carbon_onboarding_*` tools, reading Carbon's testnet;
 - one tool per miner operation - `carbon_launch` (with `agent` `graphite`,
   Graphite, Carbon's research agent, with its `graphite_mode` RESEARCH, BUILD
-  or FULL; or `none`; setup's names `carbon-graphite` and `own-agent` are
+  or FULL and its `graphite_edition`, v1 by default or the depth edition v2;
+  or `none`; setup's names `carbon-graphite` and `own-agent` are
   accepted as the same choices; a new `autonomous` launch is refused
   `autonomous_agent_replaced`, and one recorded before Graphite replaced it
   still replays), `carbon_observe`, `carbon_practice`,
