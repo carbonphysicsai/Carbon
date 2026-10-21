@@ -1,5 +1,12 @@
 {
- "accepted_development_pass": false,
+ "acceptance": {
+  "by": "owner, directly in the Carbon Validator's session; relayed to Data Collection 2026-10-21",
+  "file": ".agent/decisions/2026-10-21-OWNER-COOLING-VERIFICATION-ACCEPT-01.md",
+  "record": "OWNER-COOLING-VERIFICATION-ACCEPT-01",
+  "scope": "code verification of the discretisation only; not reference adequacy, physical validity or qualification",
+  "verdict_commit": "370e8c569656445af31cf8edd260cddb030f8b7e"
+ },
+ "accepted_development_pass": true,
  "coverage": {
   "manufactured_energy_rung": "scalarTransportFoam: verifies the shared finite-volume convection/diffusion operators and fvOptions source handling at second order; does NOT verify the production solver's (chtMultiRegionSimpleFoam, openfoam.py) enthalpy-form energy equation or its coupling",
   "open_option": "a manufactured case through chtMultiRegionSimpleFoam with frozen velocity would close this fully; not required for this verdict (Validator 2026-10-19)",
@@ -188,5 +195,5 @@
  ],
  "schema": "carbon.code-verification.result.v1",
  "source": "machine outputs cited by digest: rungs 1-3 from their committed READMEs' recorded runs; rung 4 re-analysed from RR-12c's fetched solved fields with RR-12c's own mms_energy.py (output byte-identical in values to RR-12c's report)",
- "state": "HUMAN_INPUT"
+ "state": "PASS"
 }
