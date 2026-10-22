@@ -22,11 +22,33 @@ class RetentionUnavailable(ValueError):
     """The named original-byte or custody dependency is unavailable."""
 
 
-#: Custody reads a state the worker already admitted under its version's
-#: ceiling (`bundle_graph_state.state_limit`: none for an uncapped version), so
-#: the bound here is the worker's registered output envelope, what any build
-#: could have written, never a model-size rule of its own.
-_STATE_CUSTODY_BYTES = 128 * 1024**2  # carbon.reconstruction.worker.model.OUTPUT_BYTES
+def _custody_limit(allowlist_bytes) -> int:
+    """The bound on a state's custody read: the worker output envelope of the
+    allowlist version the build ran under (`worker_resources_for`), what that
+    build could have written and never a model-size rule of its own. Today's
+    versions keep 128 MiB; only a version whose profile is applied
+    (OWNER-WORKER-RESOURCES-LARGE-MODELS-01) reads more. An allowlist that does
+    not parse gets today's envelope."""
+    from carbon.level4.allowlist import Allowlist
+    from carbon.reconstruction.worker.model import worker_resources_for
+
+    try:
+        version = Allowlist(allowlist_bytes).version
+    except (ValueError, KeyError, TypeError):
+        version = None
+    return worker_resources_for(version)["output_bytes"]
+
+
+def _served_custody_limit(challenge_id, version) -> int:
+    """`_custody_limit` for the allowlist a registered Challenge version serves;
+    an unregistered version gets today's envelope."""
+    from carbon.challenge_kit import served_versions
+
+    try:
+        raw = served_versions.material_allowlist_bytes(challenge_id, version)
+    except served_versions.UnregisteredVersion:
+        raw = None
+    return _custody_limit(raw)
 
 
 def _sha(raw: bytes) -> str:
@@ -195,7 +217,7 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
     inference = root / evidence["inference_operation"] / "snapshot"
     state = _snapshot(
         build / "state.npz",
-        limit=_STATE_CUSTODY_BYTES,
+        limit=_custody_limit(material["allowlist_bytes"]),
         digest=task.terminal_receipt.state_digest,
         label="state_snapshot",
     )
@@ -1355,7 +1377,10 @@ def retain_served_result(
     inference = root / evidence["inference_operation"] / "snapshot"
     state = _snapshot(
         build / "state.npz",
-        limit=_STATE_CUSTODY_BYTES,
+        limit=_served_custody_limit(
+            recipe.to_dict()["challenge"]["id"],
+            recipe.to_dict()["challenge"]["version"],
+        ),
         digest=task.terminal_receipt.state_digest,
         label="state_snapshot",
     )

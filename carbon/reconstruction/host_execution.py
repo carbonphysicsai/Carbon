@@ -127,11 +127,15 @@ class HostExecutionRecord:
         return cls(document["cpuset"], document["memory_bytes"])
 
 
-def resolve_cpuset(*, logical_cpus: object, root=None) -> str:
-    """The cpuset this host allocates to one worker.
+def resolve_cpuset(*, logical_cpus: object, root=None, count: int = CPU_COUNT) -> str:
+    """The cpuset this host allocates to one worker of ``count`` CPUs.
 
     An installed record wins; otherwise the default is derived from the host.
     Either way the answer comes from the host rather than from this file.
+
+    A worker given more than today's CPUs (a next version's larger resources)
+    needs exactly that many cores: the kernel check holds the quota to the
+    cpuset's size, so a record naming another count refuses here, not at launch.
     """
     if root is not None:
         record = HostExecutionRecord.load(root)
@@ -141,5 +145,7 @@ def resolve_cpuset(*, logical_cpus: object, root=None) -> str:
                 # A record naming cores this host does not have is a mistake
                 # worth failing on, not something to silently trim.
                 raise WorkerFailure(WorkerCode.POLICY)
+            if count != CPU_COUNT and len(cores) != count:
+                raise WorkerFailure(WorkerCode.POLICY)
             return record.cpuset
-    return derive_cpuset(logical_cpus)
+    return derive_cpuset(logical_cpus, count=count)
