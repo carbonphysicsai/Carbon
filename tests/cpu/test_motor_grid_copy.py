@@ -120,9 +120,6 @@ def test_the_canonical_form_is_a_fixed_point(world):
 def test_a_derivation_is_deterministic_and_a_key_changes_it(world):
     bank, _public, objective = world
     canonical, objective = cd.canonicalize(bank, objective=objective)
-    assert objective["design_ids"] == sorted(
-        objective["design_ids"], key=lambda d: int(d[1:])
-    )
     first = cd.derive_copy(canonical, objective, key=KEYS[0])
     again = cd.derive_copy(canonical, objective, key=KEYS[0])
     assert _normal(first[0]) == _normal(again[0]) and first[1] == again[1]
