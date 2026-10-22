@@ -251,6 +251,11 @@ NEXT_ACTIONS = {
         "(carbon_practice) with the recipe you want."
     ),
     "retry_interrupted_boolean_required": "Send retry_interrupted as true or false.",
+    "no_submitted_result": (
+        "No submit of this campaign reached a validator yet, so there is no "
+        "grade to read. If a submit was refused, its reason is the campaign's "
+        "last refusal (observe, or the Submission tab): fix that and submit."
+    ),
     "campaign_interrupted": (
         "The campaign stopped before it finished. Resume it; reconcile first "
         "if it asks for reconciliation."

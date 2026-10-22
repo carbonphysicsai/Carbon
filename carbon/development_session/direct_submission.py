@@ -289,6 +289,40 @@ def _body(facts, *, recipe, contract_digest, receiver, context, tool, fields, re
     return body
 
 
+def _attempt_path(root, epoch):
+    return Path(root) / f"construction-intake-epoch-{int(epoch)}.attempt"
+
+
+def _submit_attempt(root, epoch):
+    path = _attempt_path(root, epoch)
+    try:
+        value = int(path.read_text(encoding="ascii"))
+    except (OSError, ValueError):
+        return 0
+    return value if 0 <= value < 1000 else 0
+
+
+def _bump_submit_attempt(root, epoch):
+    path = _attempt_path(root, epoch)
+    if path.is_symlink():
+        return
+    path.write_text(str(_submit_attempt(root, epoch) + 1), encoding="ascii")
+
+
+def _submit_request(root, epoch, recipe):
+    """The submit's request id: this campaign's, this epoch's and this
+    recipe's, so two campaigns on one hotkey that freeze the same recipe never
+    share one (M1 E2E H16: the second read TRANSPORT_CONFLICT forever), and a
+    new one after the receiver reports a conflict. A retry of the same body
+    keeps the same id (exact replay)."""
+    import hashlib
+
+    campaign = hashlib.sha256(str(Path(root).resolve()).encode()).hexdigest()[:16]
+    request = f"construction-submit-{int(epoch)}-{recipe.digest[7:39]}-{campaign}"
+    attempt = _submit_attempt(root, epoch)
+    return request if attempt == 0 else f"{request}-r{attempt}"
+
+
 def _record_path(root, epoch):
     return Path(root) / f"construction-intake-epoch-{int(epoch)}.json"
 
@@ -487,7 +521,7 @@ def submit_and_wait(
                     "strategy_json": recipe.canonical_bytes.decode("utf-8"),
                     "contract_digest": contract_digest,
                 },
-                request=f"construction-submit-{epoch}-{recipe.digest[7:39]}",
+                request=_submit_request(root, epoch, recipe),
             )
             headers = BittensorMessageSigner(signer).sign(
                 body, receiver=receiver, nonce_ns=time.time_ns()
@@ -511,9 +545,11 @@ def submit_and_wait(
                 or type(answer) is not dict
                 or answer.get("kind") != "OUTCOME"
             ):
-                raise DirectIntakeRefusal(
-                    _refusal_code(answer, "construction_intake_unavailable")
-                )
+                code = _refusal_code(answer, "construction_intake_unavailable")
+                if code == "TRANSPORT_CONFLICT":
+                    # The next submit uses a new request id (H16).
+                    _bump_submit_attempt(root, epoch)
+                raise DirectIntakeRefusal(code)
             outcome, pinned = _outcome(
                 answer,
                 contract_digest=contract_digest,

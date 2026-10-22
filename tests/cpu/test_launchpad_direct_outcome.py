@@ -222,3 +222,22 @@ def test_a_v3_grade_shows_only_on_the_submit_it_is_about(tmp_path):
     (tmp_path / "permitted-final-feedback.json").unlink()
     shown = _project(tmp_path, _document({"best": other, "latest": mine}))
     assert shown["result"]["grade"]["latest"]["epoch"] == 2
+
+
+def test_two_campaigns_freezing_one_recipe_never_share_a_request_id(tmp_path):
+    # M1 E2E H16: the request id was epoch + recipe only, so a second campaign
+    # on the same hotkey read TRANSPORT_CONFLICT forever.
+    from types import SimpleNamespace
+
+    from carbon.development_session import direct_submission as ds
+
+    recipe = SimpleNamespace(digest="sha256:" + "8" * 64)
+    first, second = tmp_path / "a", tmp_path / "b"
+    first.mkdir()
+    second.mkdir()
+    a = ds._submit_request(first, 1, recipe)
+    assert a == ds._submit_request(first, 1, recipe)  # exact replay
+    assert a != ds._submit_request(second, 1, recipe)
+    assert len(a) <= 128
+    ds._bump_submit_attempt(first, 1)
+    assert ds._submit_request(first, 1, recipe) == a + "-r1"
