@@ -2799,6 +2799,139 @@ scenario("Library: a session link opened on a Library address connects, and only
   clean(page);
 });
 
+// Smoke items S23-S26 (2026-10-21).
+scenario("the launch notice ends when the miner leaves the campaign it opened (S23)", async () => {
+  const state = launchable(world());
+  const page = await open(state);
+  await wizardTo(page, "launch");
+  const id = "d".repeat(32);
+  state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id}}});
+  await page.press(page.$("research-launch"));
+  assert.match(page.text("message"), /Research launch recorded/);
+  page.go("#campaigns/" + id + "/result");
+  await page.advance(0);
+  assert.match(page.text("message"), /Research launch recorded/, "still on its own campaign");
+  page.go("#challenges");
+  await page.advance(0);
+  assert.doesNotMatch(page.text("message"), /Research launch recorded/);
+  assert.match(page.text("message"), /Connected\. Records persist on this machine\./);
+  clean(page);
+});
+
+scenario("the wallet page does not say connect while connected, and uses plain words (S25, S26)", async () => {
+  const state = world();
+  const page = await open(state);
+  page.go("#wallet");
+  await page.advance(0);
+  const panel = page.text("onboarding-panel");
+  assert.doesNotMatch(panel, /Connect this browser to read/);
+  assert.match(panel, /Joining cost/);
+  assert.doesNotMatch(panel, /Recycle|recycle|BURNED_REGISTRATION|COLDKEY|ss58/);
+  assert.match(panel, /Joining is paid from your coldkey/);
+  clean(page);
+});
+
+scenario("a campaign card in a list gives the reason, not the code or the long next action (S24)", async () => {
+  const state = world();
+  const run = manualRun();
+  Object.assign(run, {state: "INTERRUPTED", last_refusal: {kind: "interrupted", code: "research_share_too_small", next_action: "Cap max_output_tokens or max_input_tokens in model_settings.", at: 1800000100}});
+  state.runs = [run];
+  const page = await open(state);
+  page.go("#overview");
+  await page.advance(0);
+  const card = page.text(one(page, "#overview-active .campaign-card"));
+  assert.doesNotMatch(card, /max_output_tokens|max_input_tokens|Code:/);
+  assert.match(card, /Interrupted: research share too small/);
+  assert.match(card, /Open the campaign to see what to do\./);
+  clean(page);
+});
+
+scenario("Setup: a miner with no wallet is pointed at the identity helper, in plain words, holding nothing secret", async () => {
+  const state = world();
+  state.setup = {...copy(fx.setups.none), registered_hotkey: null};
+  const page = await open(state);
+  page.go("#setup/register");
+  await page.advance(0);
+  const card = one(page, "#setup-identity-help");
+  const text = card.textContent;
+  assert.match(text, /1\. Make your keys/);
+  assert.match(text, /No wallet yet\?/);
+  assert.equal(one(page, "#setup-identity-copy").closest(".copy-row").querySelector("code").textContent, "carbon-miner-identity");
+  assert.match(text, /Both are public/);
+  // Funding comes before joining, in plain words, with no balance or price claimed.
+  const fund = one(page, "#setup-fund").textContent;
+  assert.match(fund, /2\. Put some TAO in your wallet/);
+  assert.match(fund, /Buy TAO from an exchange/);
+  assert.doesNotMatch(fund, /\d{2,}|\$/);
+  const folds = [...card.querySelectorAll("details > summary")].map(node => node.textContent);
+  assert.deepEqual(folds, ["What are the two keys?", "Is my key safe?", "Lost my phrase?", "What does joining cost?"]);
+  // The cost answer names who pays, that Carbon neither charges nor receives it, and where the amount is read: no figure.
+  const cost = [...card.querySelectorAll("details")].find(node => /joining cost/.test(node.textContent)).textContent;
+  assert.match(cost, /paid from your own money key/);
+  assert.match(cost, /Carbon neither charges nor receives it/);
+  assert.match(cost, /Joining cost in Wallet & Identity/);
+  assert.doesNotMatch(cost, /\d/);
+  assert.equal(card.querySelector("a").getAttribute("href"), "#wallet");
+  // The page holds no field for a key, phrase or password, and asks the helper for nothing.
+  assert.equal(card.querySelectorAll("input, textarea").length, 0);
+  assert.ok(page.requests.every(request => !/identity/.test(request.path)), "no request to any helper");
+  clean(page);
+  // Once a hotkey is registered the card is gone: the miner has a wallet.
+  const done = world();
+  done.setup = copy(fx.setups.none);
+  const other = await open(done);
+  other.go("#setup/register");
+  await other.advance(0);
+  assert.equal(all(other, "#setup-identity-help").length, 0);
+  clean(other);
+});
+
+scenario("setup starts with keys, funding and joining, then the signer (Dana 1)", async () => {
+  const state = world();
+  state.setup = {...copy(fx.setups.none), registered_hotkey: null};
+  // Nothing done yet: the controller's own status says so.
+  for (const row of state.setup.status.steps) if (row.id === "register" || row.id === "signer") row.state = "open";
+  const page = await open(state);
+  page.go("#setup");
+  await page.advance(0);
+  const order = [...all(page, "#setup-progress button")].map(button => button.dataset.setupStep);
+  assert.deepEqual(order.slice(0, 2), ["register", "signer"]);
+  assert.equal(page.text("setup-heading"), "Get your keys and join", "heading: " + page.text("setup-heading"));
+  assert.match(page.text("setup-eyebrow"), /Step 1 of 6/);
+  // Until the miner has joined, the next step cannot be taken, and says why in plain words.
+  assert.equal(page.$("setup-next").disabled, true, "next disabled");
+  assert.match(page.text("setup-next-reason"), /Confirm you have joined first/);
+  // The three parts are in order: make keys, fund, join.
+  const body = page.text(one(page, "[data-step-panel=register]"));
+  assert.ok(body.indexOf("1. Make your keys") < body.indexOf("2. Put some TAO in your wallet") && body.indexOf("2. Put some TAO") < body.indexOf("3. Join"));
+  // The technical terms appear once, in brackets beside the plain ones, never as the label.
+  assert.doesNotMatch(body, /ss58|hotkey address|recycle/i);
+  assert.equal(one(page, "label[for=setup-register-address]").textContent, "Your mining-key address");
+  clean(page);
+});
+
+scenario("miners are offered only the latest version of each Challenge, and no reserved, retired or deferred one (owner U-f)", async () => {
+  const state = world();
+  const page = await open(state);
+  const offered = fx.caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status));
+  const latest = id => offered.filter(entry => entry.challenge_id === id).map(entry => entry.version).sort((a, b) => parseFloat(b) - parseFloat(a))[0];
+  assert.ok(offered.filter(entry => entry.challenge_id === "electric-motor-magnetics").length > 1, "the fixture has several Motor versions");
+  page.go("#launch");
+  await page.advance(0);
+  const inputs = [...all(page, "#wizard-challenges input")];
+  const pairs = inputs.map(input => input.value + "@" + input.dataset.version);
+  assert.equal(new Set(inputs.map(input => input.value)).size, inputs.length, "one entry per Challenge: " + pairs);
+  for (const input of inputs) assert.equal(input.dataset.version, latest(input.value) || "", "the latest version of " + input.value);
+  assert.ok(!pairs.some(pair => /photonic|power-magnetics|airfoil|burgers-dynamics/.test(pair)), "no reserved, deferred or retired entry: " + pairs);
+  page.go("#challenges");
+  await page.advance(0);
+  const text = page.text("challenge-catalog");
+  assert.doesNotMatch(text, /Reserved|Deferred|Retired/);
+  assert.doesNotMatch(text, /electric-motor-magnetics · version 1\.(0|2)/);
+  assert.match(text, /electric-motor-magnetics · version 1\.3/);
+  clean(page);
+});
+
 (async () => {
   const passed = [], failed = [];
   for (const [name, run] of scenarios) {

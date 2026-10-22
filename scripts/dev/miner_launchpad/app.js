@@ -463,7 +463,12 @@
     return {view: views.includes(parts[0]) ? parts[0] : "overview", id: parts[1] || "", tab: TABS.some(([name]) => name === tab) ? tab : "overview"};
   }
   function campaignHref(id, tab = "live") { return "#campaigns/" + encodeURIComponent(id) + "/" + tab; }
+  let launchNoticeFor = null;
   function show() {
+    if (launchNoticeFor !== null && !location.hash.startsWith(launchNoticeFor)) {
+      launchNoticeFor = null;
+      if (connected) message("Connected. Records persist on this machine.");
+    }
     const current = route();
     for (const view of document.querySelectorAll("main > .view")) view.hidden = view.id !== current.view;
     for (const link of document.querySelectorAll("#tool-nav a")) {
@@ -664,6 +669,8 @@
   async function onboardingRequirements() {
     try {
       const value = await api("/api/v1/onboarding/requirements");
+      const stale = $("onboarding-result");
+      if (stale.dataset.key === "disconnected") { stale.replaceChildren(); stale.dataset.key = ""; }
       // The network this controller registers on, always in view.
       $("network-pill").textContent = (String(value.network).includes("test") ? "Testnet" : words(value.network)) + " · netuid " + value.netuid;
       const facts = $("onboarding-facts");
@@ -672,9 +679,9 @@
       // claim from unknown, and neither is a figure to plan around.
       const rows = [
         ["Network", value.network + " · netuid " + value.netuid],
-        ["Mechanism", value.mechanism],
-        ["Recycle amount", value.cost && value.cost.value === "NOT_READ"
-          ? "Not read by Carbon — your wallet shows it at signing"
+        ["How joining works", value.mechanism === "BURNED_REGISTRATION" ? "A payment from your own wallet each time you join; Carbon does not receive it" : words(value.mechanism)],
+        ["Joining cost", value.cost && value.cost.value === "NOT_READ"
+          ? "Not read by Carbon: your wallet shows the exact amount before you sign"
           : String((value.cost || {}).value)],
         ["Carbon signs", "Never"]
       ];
@@ -751,10 +758,10 @@
   // researches comes before Inference, which only an agent calling setup's
   // model needs. Step ids are stable anchors: #setup/<id>.
   const SETUP_STEPS = [
-    ["signer", "Start your signer", "Your signer holds your hotkey on this machine. Carbon never sees your key."],
-    ["register", "Register on the subnet", "Your hotkey must be registered on the subnet. You sign that in your own wallet."],
+    ["register", "Get your keys and join", "Make your mining keys, put some TAO in your wallet, then join Carbon's network (the subnet). You sign in your own wallet."],
+    ["signer", "Start your signer", "Your signer holds your mining key on this machine and signs your work. Carbon never sees your key."],
     ["agent", "Who researches?", "Carbon's agent, or your own agent over MCP. This step also checks your signer."],
-    ["inference", "Inference", "Choose the model Carbon's agent calls, with your own key."],
+    ["inference", "AI model", "Choose the AI model Carbon's agent uses. You bring your own key from the model's provider."],
     ["compute", "Compute", "Choose where practice runs: this machine, or a GPU you run elsewhere."],
     ["review", "Review and launch", "Carbon writes your runner profile and loads it. Then you choose a Challenge."],
   ];
@@ -1040,7 +1047,7 @@
     const state = j.state[id];
     const steps = j.steps;
     if (id === "signer") return state === "done" ? "Your signer answered for " + shortKey(steps.signer?.hotkey || setupState?.registered_hotkey) + "." : "Start carbon-miner-signer in your own terminal, then check it here.";
-    if (id === "register") return state === "done" ? "Registered: " + shortKey(setupState.registered_hotkey) + "." : "Confirm your hotkey is registered on the subnet." + (state === "open" ? " Steps 1 and 2 can be done in either order." : "");
+    if (id === "register") return state === "done" ? "Registered: " + shortKey(setupState.registered_hotkey) + "." : "Confirm you have joined the network." + (state === "open" ? " Steps 1 and 2 can be done in either order." : "");
     if (state === "waiting" && id !== "review") return "Opens once your registration is confirmed.";
     if (state === "skipped") return "Skipped: your agent uses its own model.";
     if (id === "inference") return state === "done" ? "Checked: " + checkedText(id, steps) + "." : "Choose a provider and model, and check your key.";
@@ -1060,8 +1067,8 @@
   function reachable(id, j) { return id === "signer" || id === "register" || j.registered; }
   // Why Next cannot be taken from this step yet, or null.
   function nextProblem(id, j) {
-    if (id === "signer") return null;
-    if (id === "register") return j.registered ? null : "Confirm your registration first.";
+    if (id === "signer") return j.registered ? null : "Join the network first: the steps after this need it.";
+    if (id === "register") return j.registered ? null : "Confirm you have joined first.";
     if (id === "compute" && j.sendPending) return "Send your worker first.";
     if (["inference", "compute", "agent"].includes(id)) return j.done[id] || j.skipped[id] ? null : "Run this step's check first.";
     return null;
@@ -1077,7 +1084,7 @@
     const j = journey();
     const current = route();
     let wanted = current.view === "setup" && SETUP_IDS.includes(current.id) ? current.id : setupStepShown || j.current || "review";
-    if (!reachable(wanted, j)) wanted = j.state.signer === "next" ? "signer" : "register";
+    if (!reachable(wanted, j)) wanted = j.state.register === "next" ? "register" : "signer";
     return wanted;
   }
   // Show one step: its heading, progress, done state, Back and Next.
@@ -1154,6 +1161,34 @@
     return select;
   }
   // One wizard step's panel, with its done state when the controller has one.
+  // No wallet yet? A small program on the miner's own computer makes the keys; this page only points at it
+  // (it never asks for, receives or shows a key, a phrase or a password). Presentation only.
+  function identityHelperCard(parent) {
+    const box = el("div", undefined, "identity-help"); box.id = "setup-identity-help";
+    box.append(el("p", "1. Make your keys", "eyebrow"));
+    box.append(el("p", "No wallet yet? A small helper on your own computer makes your keys. Run it in a terminal, open the link it prints, and follow its five steps. Carbon never sees your recovery phrase or your passwords. Already have a wallet? Skip to step 3.", "step-lede"));
+    copyRow(box, null, "carbon-miner-identity", "setup-identity-copy");
+    box.append(el("p", "At the end it shows two wallet addresses. Both are public. Copy the mining-key address into step 3, and the money-key address into step 2.", "hint"));
+    details(box, "What are the two keys?", [
+      "Your wallet holds two keys. The money key (coldkey) holds your funds. The mining key (hotkey) signs your mining work and names you on the network; it cannot move your funds. Their addresses are public."
+    ]);
+    details(box, "Is my key safe?", [
+      "The helper runs only on your computer and saves each key encrypted under its own password, one for your money and one for mining. Nothing it makes is sent anywhere, and Carbon never sees your keys, your recovery phrase or your passwords. Anyone who has your recovery phrase can take your funds, so write it on paper and keep it private."
+    ]);
+    details(box, "Lost my phrase?", [
+      "The 12 words are the only way to get your funds back if you lose your money password or this computer, and Carbon cannot recover them for you. Your hotkey has no recovery phrase: keep a copy of the wallet folder the helper names at the end. Without a copy you would make a new hotkey and register it again."
+    ]);
+    const cost = details(box, "What does joining cost?", [
+      "Joining is paid from your own money key, in your own wallet tool. Carbon neither charges nor receives it. The current amount is set by the network and changes, so read it before you sign: it is under Joining cost in Wallet & Identity, and your wallet shows it at signing."
+    ]);
+    cost.append(link({label: "Open Wallet & Identity", href: "#wallet"}));
+    parent.append(box);
+    // 2. Fund it. Carbon does not read a balance or a price here; the miner's own wallet does.
+    const fund = el("div", undefined, "identity-fund"); fund.id = "setup-fund";
+    fund.append(el("p", "2. Put some TAO in your wallet", "eyebrow"));
+    fund.append(el("p", "Joining is paid in TAO from your money key. Buy TAO from an exchange and send it to your money-key address (the helper shows it). Wait until your wallet shows it before step 3.", "step-lede"));
+    parent.append(fund);
+  }
   function stepPanel(parent, id, doneText) {
     const panel = el("section", undefined, "setup-step"); panel.dataset.stepPanel = id;
     if (doneText) { const done = el("p", undefined, "step-done"); done.append(pill("Done", "pill-done"), el("span", doneText)); panel.append(done); }
@@ -1214,7 +1249,7 @@
     signer.append(el("p", "Start it in your own terminal and leave it open:", "step-lede"));
     copyRow(signer, null, offered.signer?.command || "carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>", "setup-signer-copy");
     researchNote(signer, "Use your own wallet and hotkey names. Carbon never asks for your key or its password.", "hint");
-    const signerLabel = el("label", "Your hotkey address (ss58)"); signerLabel.htmlFor = "setup-signer-address";
+    const signerLabel = el("label", "Your mining-key address"); signerLabel.htmlFor = "setup-signer-address";
     const signerAddress = el("input"); signerAddress.id = "setup-signer-address"; signerAddress.type = "text"; signerAddress.autocomplete = "off"; signerAddress.spellcheck = false; signerAddress.placeholder = "5...";
     signerAddress.value = signerHotkey || $("onboarding-address").value.trim();
     const signerCheck = el("button", j.done.signer ? "Check my signer again" : "Check my signer", j.done.signer ? "" : "primary"); signerCheck.type = "button"; signerCheck.id = "setup-signer-check";
@@ -1230,16 +1265,18 @@
     // 2. Register on the subnet: confirmed here, prepared under Wallet.
     const register = stepPanel(body, "register", j.registered ? "Registered: " + setupState.registered_hotkey : null);
     if (!j.registered) {
-      register.append(el("p", "Paste your hotkey address. Carbon reads the chain to confirm it is registered.", "step-lede"));
-      const label = el("label", "Your hotkey address (ss58)"); label.htmlFor = "setup-register-address";
+      identityHelperCard(register);
+      register.append(el("p", "3. Join", "eyebrow"));
+      register.append(el("p", "Sign the join in your own wallet, then paste your mining-key address here. Carbon reads the network to confirm you joined.", "step-lede"));
+      const label = el("label", "Your mining-key address"); label.htmlFor = "setup-register-address";
       const address = el("input"); address.id = "setup-register-address"; address.type = "text"; address.autocomplete = "off"; address.spellcheck = false; address.placeholder = "5...";
       address.value = steps.signer?.hotkey || $("onboarding-address").value.trim();
       const confirm = el("button", "Check my registration", "primary go"); confirm.type = "button"; confirm.id = "setup-register-confirm";
       confirm.addEventListener("click", () => confirmRegistration(address.value.trim()));
       const action = el("div", undefined, "step-action"); action.append(confirm);
       register.append(label, address, action);
-      researchNote(register, "Not registered yet? Wallet & Identity prepares the unsigned call; you sign it in your own wallet, paid from your coldkey.", "hint");
-      register.append(link({label: "Register under Wallet & Identity", href: "#wallet"}));
+      researchNote(register, "Not joined yet? Wallet & Identity prepares the join for you to sign in your own wallet, paid from your money key.", "hint");
+      register.append(link({label: "Join under Wallet & Identity", href: "#wallet"}));
       // What opens once registration is confirmed.
       register.append(el("p", "What happens next", "eyebrow"));
       const next = el("ol", undefined, "guide-steps");
@@ -1650,7 +1687,7 @@
       connectBox.hidden = !choice?.connect;
       if (!choice?.connect) return;
       const connect = choice.connect;
-      connectBox.append(el("h3", "Connect your agent"), el("p", "Skips Inference: " + choice.skips.inference + ". " + connect.note, "hint"));
+      connectBox.append(el("h3", "Connect your agent"), el("p", "Skips the AI model step: " + choice.skips.inference + ". " + connect.note, "hint"));
       copyRow(connectBox, "The one command, run from your Carbon checkout (" + connect.cwd + ")", connect.command, "setup-agent-command-copy");
       // One disclosure per client: its snippets, its source and what Carbon
       // has not verified.
@@ -1713,7 +1750,7 @@
     const reviewPanel = stepPanel(body, "review", written ? "Your profile is written." : null);
     const review = stepForm(reviewPanel, "review");
     const summary = el("dl", undefined, "review-grid"); review.append(summary);
-    for (const [name, label] of [["agent", "Who researches"], ["inference", "Inference"], ["compute", "Compute"]]) {
+    for (const [name, label] of [["agent", "Who researches"], ["inference", "AI model"], ["compute", "Compute"]]) {
       const state = steps[name] || {};
       summary.append(el("dt", label), el("dd", state.checked ? checkedText(name, steps) : j.skipped[name] ? "Skipped: your agent uses its own model" : "Not checked yet"));
     }
@@ -1797,7 +1834,7 @@
     caps = value;
     capsVersion++;
     // A remembered choice is checked against what exists now.
-    if (wizard.challenge && !challengeEntry(wizard.challenge)) wizard.challenge = null;
+    if (wizard.challenge && !offeredChallenges().some(entry => entry.challenge_id === wizard.challenge.id && entry.version === wizard.challenge.version)) wizard.challenge = null;
     // A choice no longer offered (the autonomous agent, once Graphite
     // replaces it) is no longer chosen.
     if (wizard.agentChoice && !offeredAgent(wizard.agentChoice)) { wizard.agentChoice = null; composition = {...composition, agent: null}; }
@@ -1810,6 +1847,20 @@
     if (!wizard.provider && setupModel && listed(setupModel.provider_id, setupModel.model_id)) {
       wizard.provider = setupModel.provider_id; wizard.model = setupModel.model_id;
     }
+  }
+  // What a miner is offered to start on (owner decision U-f): the latest version of each Challenge, and no
+  // reserved, retired or deferred entry. Older versions stay readable (campaigns on them keep their titles:
+  // challengeEntry looks at the whole registry), they are just not offered.
+  function versionParts(value) { return String(value ?? "").split(".").map(part => Number.parseInt(part, 10) || 0); }
+  function newerVersion(a, b) {
+    const left = versionParts(a), right = versionParts(b);
+    for (let i = 0; i < Math.max(left.length, right.length); i++) { const diff = (left[i] || 0) - (right[i] || 0); if (diff) return diff > 0; }
+    return false;
+  }
+  function offeredChallenges() {
+    if (!caps) return [];
+    const open = caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status));
+    return open.filter(entry => !open.some(other => other !== entry && other.challenge_id === entry.challenge_id && newerVersion(other.version, entry.version)));
   }
   function challengeEntry(selection) {
     if (!caps || !selection) return null;
@@ -2387,8 +2438,9 @@
     // (LAUNCHPAD-ACCEPT-04): queued, the validator's side, or yours to act on.
     if (refusal.intake_outcome) box.append(el("p", "Validator intake: " + INTAKE_OUTCOMES[refusal.intake_outcome], "hint"));
     // What stopped it, by its code, so it can be named to someone who can help.
-    if (refusal.kind === "interrupted") box.append(el("p", "Code: " + refusal.code, "hint"));
-    if (refusal.next_action && !practiceMessage(refusal.code)) box.append(el("p", (compact ? "" : "What to do: ") + refusal.next_action, compact ? "hint" : "refusal-next"));
+    if (refusal.kind === "interrupted" && !compact) box.append(el("p", "Code: " + refusal.code, "hint"));
+    // A card in a list says what stopped it; the code and the long next action are in the campaign.
+    if (refusal.next_action && !practiceMessage(refusal.code)) box.append(el("p", compact ? "Open the campaign to see what to do." : "What to do: " + refusal.next_action, compact ? "hint" : "refusal-next"));
     const fix = refusalFix(refusal.code);
     if (fix && !compact) box.append(link(fix, "button fix"));
     parent.append(box);
@@ -2443,7 +2495,7 @@
     return [{RESERVED: "Reserved", DEFERRED: "Deferred", RETIRED: "Retired"}[entry.status] || words(entry.status), "pill-wait"];
   }
   function renderChallengeCatalog(target) {
-    for (const entry of caps.challenges) {
+    for (const entry of offeredChallenges()) {
       const [tag, kind] = challengePill(entry);
       const box = card(target, entry.title, tag, kind);
       box.dataset.challenge = entry.challenge_id;
@@ -3565,7 +3617,7 @@
         }
         if (provider.availability !== "available") return provider.provider + " is unavailable: " + words(provider.reason) + ". Next: " + provider.next_action;
         if (!provider.models.some(model => model.id === wizard.model)) {
-          return provider.models.length ? "Choose a model." : provider.provider + " lists no models here. Choose it with your model under Set up, Inference: that model is then offered here.";
+          return provider.models.length ? "Choose a model." : provider.provider + " lists no models here. Choose it with your model under Set up, AI model: that model is then offered here.";
         }
         const cap = outputCap();
         if (cap?.problem) return "Fix the output cap: " + cap.problem + ", or leave it blank for " + outputDefault(cap) + ".";
@@ -3688,27 +3740,12 @@
       if (document.status === "PUBLIC_CONTRACT_UNAVAILABLE") researchNote(target, "The public construction contract is unavailable. Changed constructions stay closed.", "reason");
     });
   }
-  let wizardAllChallenges = false;
   function renderWizardChallenges() {
     renderConstructionOptions();
     const target = $("wizard-challenges");
     if (!caps) { rebuild(target, "none", node => node.append(el("p", "Connect to read the Challenge registry.", "hint"))); $("wizard-challenge-description").replaceChildren(); $("wizard-challenge-description").dataset.key = ""; return; }
-    // U14: the launchable newest version of each Challenge first; older
-    // versions and unavailable Challenges behind one "show all" control.
-    const newer = (a, b) => { const x = String(a || "").split(".").map(Number), y = String(b || "").split(".").map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
-    const newest = {};
-    for (const entry of caps.challenges) if (entry.selectable && (!newest[entry.challenge_id] || newer(entry.version, newest[entry.challenge_id].version))) newest[entry.challenge_id] = entry;
-    const chosen = challengeEntry(wizard.challenge);
-    const primary = caps.challenges.filter(entry => newest[entry.challenge_id] === entry || entry === chosen);
-    const listed = wizardAllChallenges || !primary.length ? caps.challenges : primary;
-    rebuild(target, JSON.stringify([capsVersion, caps.challenges.map(entry => [entry.challenge_id, entry.version, entry.selectable]), connected, listed.length]), node => {
-      if (caps.challenges.length > primary.length && primary.length) {
-        const toggle = el("button", wizardAllChallenges ? "Show only the newest launchable versions" : "Show every version and unavailable Challenge (" + (caps.challenges.length - primary.length) + " more)");
-        toggle.type = "button"; toggle.id = "wizard-all-challenges";
-        toggle.addEventListener("click", () => { wizardAllChallenges = !wizardAllChallenges; render(); });
-        node.append(toggle);
-      }
-      for (const entry of listed) {
+    rebuild(target, JSON.stringify([capsVersion, offeredChallenges().map(entry => [entry.challenge_id, entry.version, entry.selectable]), connected]), node => {
+      for (const entry of offeredChallenges()) {
         const label = el("label", undefined, "choice" + (entry.selectable ? "" : " unavailable"));
         const input = el("input"); input.type = "radio"; input.name = "wizard-challenge"; input.value = entry.challenge_id;
         input.dataset.version = entry.version || "";
@@ -3960,7 +3997,7 @@
         }
         // A provider whose adapter lists no models is chosen with its model
         // in setup; a launch never names a model this page has not listed.
-        if (!provider.models.length) researchNote(group, "No model is listed for this provider here. Choose it with your model under Set up, Inference, and that model is offered here.", "hint");
+        if (!provider.models.length) researchNote(group, "No model is listed for this provider here. Choose it with your model under Set up, AI model, and that model is offered here.", "hint");
         researchNote(group, "Credential: " + provider.credential.reference + " · " + (provider.credential.configured === null ? provider.credential.basis : provider.credential.configured ? "configured" : "not configured"), "hint");
         if (provider.availability !== "available") unavailableNote(group, provider);
         node.append(group);
@@ -4620,6 +4657,8 @@
       const run = await api("/api/v1/research", pendingResearch.body, pendingResearch.key);
       forgetLaunch();
       message("Research launch recorded. Runtime preflight and actual outcome appear in the campaign.");
+      // It belongs to the campaign it opens: leaving that campaign ends it (show()).
+      launchNoticeFor = run && run.id ? "#campaigns/" + encodeURIComponent(run.id) : location.hash;
       wizard.step = "challenge"; saveWizard();
       if (run && run.id) location.hash = campaignHref(run.id);
     } catch (error) {
