@@ -655,7 +655,7 @@ def frozen_revision_refusal(cfg, manifest):
     return None
 
 
-def evaluation_refusal(cfg, manifest):
+def evaluation_refusal(cfg, manifest, *, direct=False):
     """`evaluation_unavailable` when the campaign's Challenge is evaluated by
     a validator and the profile configures none for it - neither a deployment
     (`validators`) nor an intake (`intakes`, and their legacy names) - else
@@ -671,7 +671,11 @@ def evaluation_refusal(cfg, manifest):
     as the battery campaign reads an argument this mirror does not know. A
     Challenge whose campaign returns no validator feedback (`feedback_schema`
     None) needs no deployment here. A deployment that is configured but
-    unusable is still refused by the campaign, by its own code."""
+    unusable is still refused by the campaign, by its own code.
+
+    A direct campaign (`direct`) submits to the profile's per-Challenge
+    intake or, else, its `direct_intake_target`, as the Challenge's own
+    `_direct_target` reads them (M1 E2E H9b), so that target counts too."""
     from carbon.challenge_registry.campaigns import campaign_for_manifest
     from carbon.development_session.intake_targets import for_version
 
@@ -682,6 +686,8 @@ def evaluation_refusal(cfg, manifest):
     # The intake of exactly the frozen campaign's version (`version_intakes`).
     own_version = for_version(cfg, challenge, named.get("version"))
     if validators(cfg).get(challenge) or intakes(own_version).get(challenge):
+        return None
+    if direct and cfg.get("direct_intake_target") is not None:
         return None
     return "evaluation_unavailable"
 
@@ -4465,7 +4471,7 @@ class RunnerAdapter:
         # chain commitment to check.
         direct = levels.campaign_is_direct(admitted.campaign, admitted.profile)
         budget = self._frozen_budget(admitted)
-        self._require_evaluation(admitted)
+        self._require_evaluation(admitted, direct=direct)
         if not direct:
             self._require_level_served(admitted)
             self._require_commitment(admitted)
@@ -4743,7 +4749,7 @@ class RunnerAdapter:
         return self._operation_thread, (admitted, self._work(operation, params))
 
     @staticmethod
-    def _require_evaluation(admitted):
+    def _require_evaluation(admitted, *, direct=False):
         """`evaluation_unavailable` now, when the profile configures no
         validator deployment or intake for the campaign's Challenge
         (`evaluation_refusal`)."""
@@ -4752,7 +4758,7 @@ class RunnerAdapter:
         if "challenge" not in manifest:
             raise Rejected("challenge_retired", 409)
         try:
-            refusal = evaluation_refusal(admitted.profile, manifest)
+            refusal = evaluation_refusal(admitted.profile, manifest, direct=direct)
         except Exception as exc:  # noqa: BLE001 - its closed code, never its text
             raise Rejected(
                 exception_code(exc) or "evaluation_unavailable", 409

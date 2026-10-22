@@ -409,6 +409,23 @@ def test_the_runner_refuses_a_submit_whose_version_has_no_endpoint():
     assert runner.evaluation_refusal(cfg, manifest("1.3")) == "evaluation_unavailable"
 
 
+def test_a_direct_campaign_counts_the_profiles_direct_target():
+    # M1 E2E H9b: a direct campaign submits to `direct_intake_target` when the
+    # profile names no per-Challenge intake (motor `_direct_target`), so the
+    # pre-submit check must not refuse it; a non-direct campaign still is.
+    cfg = {
+        "paths": {},
+        "direct_intake_target": {"intake_url": URL_12, "receiver_hotkey": HOTKEY},
+    }
+    manifest = {"challenge": {"id": MOTOR, "version": "1.2"}}
+    assert runner.evaluation_refusal(cfg, manifest, direct=True) is None
+    assert runner.evaluation_refusal(cfg, manifest) == "evaluation_unavailable"
+    assert (
+        runner.evaluation_refusal({"paths": {}}, manifest, direct=True)
+        == "evaluation_unavailable"
+    )
+
+
 def test_battery_reads_its_own_versions_endpoint_only():
     challenge, version = battery.CHALLENGE.challenge_id, battery.CHALLENGE.version
     pair = {"intake_url": URL_12, "receiver_hotkey": HOTKEY}
