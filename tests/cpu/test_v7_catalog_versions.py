@@ -43,6 +43,9 @@ PREDECESSOR = {
 #: The graph versions (the Validator, 2026-10-20), each 1.3 / 2.2 plus the
 #: catalog binding and the graph adapter.
 GRAPH = {(F08, "1.4"): "1.3", (F02, "2.3"): "2.2", (COOLING, "1.3"): "1.2"}
+#: Battery 2.2 (the Validator, 2026-10-22): 2.1 plus the catalog binding only
+#: (tests/cpu/test_battery_catalog_version.py).
+CATALOG_ONLY = {(BATTERY, "2.2"): "2.1"}
 
 
 def _digest(raw):
@@ -51,8 +54,8 @@ def _digest(raw):
 
 def test_exactly_the_catalog_versions_serve_v7_and_nothing_else_moves():
     v7 = allowlist_module.v7_bytes()
-    assert sv.V7 == frozenset(PREDECESSOR) | frozenset(GRAPH)
-    for key, before in GRAPH.items():
+    assert sv.V7 == frozenset(PREDECESSOR) | frozenset(GRAPH) | frozenset(CATALOG_ONLY)
+    for key, before in (GRAPH | CATALOG_ONLY).items():
         assert sv.material_allowlist_bytes(*key) == v7
         assert sv.material_allowlist_bytes(key[0], before) == v7
     for key, before in PREDECESSOR.items():
@@ -72,7 +75,11 @@ def test_only_motor_1_3_cooling_1_2_and_the_graph_versions_serve_the_catalog():
         (MOTOR, "1.3"),
         (COOLING, "1.2"),
         *GRAPH,
+        *CATALOG_ONLY,
     }
+    assert cbm.versioned_material("2.2")["construction_limits_document"][
+        "backbone_catalog"
+    ]["digest"] == served.digest(BATTERY, "2.2")
     for key in ((MOTOR, "1.3"), (COOLING, "1.2")):
         limits = physical_public.construction_limits_document(*key)
         assert limits["backbone_catalog"]["digest"] == served.digest(*key)

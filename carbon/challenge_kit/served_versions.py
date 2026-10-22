@@ -16,7 +16,9 @@ and Cooling 1.2 also serve the backbone catalog.
 F08 1.4 and F02 2.3 (the Validator, 2026-10-20: graph joins them before they
 freeze; no 1.5 / 2.4) serve v7, the backbone catalog binding and Carbon's
 graph training adapter (`development_session.physical_graph_adapter`); F08
-1.3 and F02 2.2 keep their bytes.
+1.3 and F02 2.2 keep their bytes. Battery 2.2 (the Validator, 2026-10-22) is
+Battery 2.1 plus the catalog binding (`battery.catalog_version`); 2.1 keeps
+its bytes.
 """
 
 from __future__ import annotations
@@ -57,6 +59,10 @@ CATALOG = frozenset(
         # Carbon's graph training adapter) before they freeze.
         (F08, "1.4"),
         (F02, "2.3"),
+        # The Validator, 2026-10-22: Battery 2.2 is 2.1 plus the catalog
+        # binding, by its own adapter (`battery.catalog_version`); its catalog
+        # is empty until each entry has its pair-identity receipt.
+        (BATTERY, "2.2"),
     }
 )
 #: Each Challenge's catalog version, serving allowlist v7 (the Validator,
@@ -76,6 +82,7 @@ V7 = frozenset(
         # binding and the graph training adapter.
         (F08, "1.4"),
         (F02, "2.3"),
+        (BATTERY, "2.2"),
     }
 )
 #: Versions registered before step 2: served v5 and their step caps, unchanged.

@@ -1,5 +1,5 @@
-"""Discovery for the direct-recipe-only versions: F08 (Ribbed Bracket) 1.4 and
-F02 (Burst Thermal) 2.3.
+"""Discovery for the direct-recipe-only versions: F08 (Ribbed Bracket) 1.4,
+F02 (Burst Thermal) 2.3 and Battery 2.2 (catalog recipes only).
 
 A description names the registered interface, construction kit, served backbone
 catalog and graph training adapter (each from its registered source), and a
@@ -102,14 +102,19 @@ def describe(spec, version):
     """The direct version's description, from its registrations only."""
     from carbon.backbone_catalog import served
     from carbon.direct_campaign import facts
-    from carbon.direct_campaign.spec import key_for
+    from carbon.direct_campaign.contracts import train_facts
+    from carbon.direct_campaign.spec import key_for, keyed
     from carbon.reconstruction.served_recipe_contract import registered
 
     key = key_for(spec, version)
     public = spec.public()
     interface = public.interface_document(key.challenge_id, key.version)
     limits = public.construction_limits_document(key.challenge_id, key.version)
+    with keyed(spec, key):
+        train = train_facts(spec)
     catalog = served.document(key.challenge_id, key.version)
+    # Battery's catalog version binds no graph adapter (catalog recipes only).
+    adapter = limits.get("graph_training_adapter")
     outputs = {name: [] for name in interface["output"]["names"]}
     return {
         "identity": "carbon." + spec.challenge_id + "-direct." + version,
@@ -139,8 +144,8 @@ def describe(spec, version):
                 "arguments_json encoding one listed name"
             ),
             "train": {
-                "cases": limits["train_cases"],
-                "dtype": limits["train_dtype"],
+                "cases": train["train_cases"],
+                "dtype": train["train_dtype"],
                 "sha256": public.construction_kit(key.challenge_id, key.version)[
                     "train_digest"
                 ],
@@ -157,10 +162,14 @@ def describe(spec, version):
                 for catalog_id, entry in catalog["entries"].items()
             ],
             "catalog": catalog,
-            "graph_training_adapter": limits["graph_training_adapter"],
+            "graph_training_adapter": adapter,
             "note": (
-                "Choose a backbone by catalog_id, or stage a graph for Carbon's "
-                "graph training adapter."
+                (
+                    "Choose a backbone by catalog_id, or stage a graph for "
+                    "Carbon's graph training adapter."
+                    if adapter is not None
+                    else "Choose a backbone by catalog_id."
+                )
                 if catalog["entries"]
                 else "No backbone is tested for this version yet: each entry "
                 "needs its own pair-identity receipt, so the campaign refuses "
@@ -170,7 +179,11 @@ def describe(spec, version):
         "execution": {
             "worker_image": "the campaign's verified C-03 PyTorch CPU worker image",
             "gpu_lane": False,
-            "recipe": "carbon.construction-recipe.v1, source kind catalog or graph",
+            "recipe": (
+                "carbon.construction-recipe.v1, source kind catalog or graph"
+                if adapter is not None
+                else "carbon.construction-recipe.v1, source kind catalog"
+            ),
         },
         "workflow": {
             "practice": "Carbon rebuilds the recipe on public TRAIN as the receiver does",

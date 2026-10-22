@@ -66,9 +66,10 @@ def served_challenges() -> tuple:
 
     return (
         {"id": CHALLENGE.challenge_id, "version": "1.3"},
-        # Every served Battery construction version (1.0; step-2 2.0; the
-        # catalog version 2.1), each with its approved pack (Validator,
-        # 2026-10-20). Battery serves its own versioned material, not a
+        # Every served Battery construction version (1.0; step-2 2.0; 2.1,
+        # allowlist v7), each with its approved pack (Validator, 2026-10-20),
+        # and the catalog version 2.2 (2.1 plus the catalog; Validator,
+        # 2026-10-22). Battery serves its own versioned material, not a
         # physical kit, so it is listed here rather than in REGISTERED.
         *(
             {"id": battery_challenge.CHALLENGE.challenge_id, "version": version}
@@ -1162,7 +1163,7 @@ def serve(
     _private_directory(cache)
     selected_id = cfg.get("challenge", {}).get("id")
     material = (
-        # The configured Battery version exactly (1.0, or step-2's 2.0).
+        # The configured Battery version exactly (1.0, 2.0, 2.1 or 2.2).
         battery_versioned_material(cfg["challenge"]["version"])
         if selected_id == battery_challenge.CHALLENGE.challenge_id
         else (

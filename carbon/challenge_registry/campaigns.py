@@ -438,7 +438,8 @@ def _cold_plate_catalog(version):
 
 
 def _direct(campaign, view, contracts, version):
-    """A direct-recipe-only version (F08 1.4, F02 2.3; `carbon.direct_campaign`):
+    """A direct-recipe-only version (F08 1.4, F02 2.3, Battery 2.2;
+    `carbon.direct_campaign`):
     catalog or graph recipes on the direct recipe path, as the catalog versions
     above. Each hook runs under that version's research key. Practice carries
     the Challenge's own provenance (`versioned_practice_provenances`), so a
@@ -503,6 +504,14 @@ def _f02_direct(version):
     return _direct(campaign, research_view, contracts, version)
 
 
+def _battery_catalog_direct(version):
+    """Battery 2.2 (the Validator, 2026-10-22): 2.1 plus the catalog binding,
+    catalog recipes only. One module binds the key, hooks and view."""
+    from carbon.battery import catalog_campaign
+
+    return _direct(catalog_campaign, catalog_campaign, catalog_campaign, version)
+
+
 def _versioned_campaigns():
     """Campaigns registered for a Challenge version beyond its first, by
     (Challenge id, version)."""
@@ -526,6 +535,12 @@ def _direct_campaigns():
     return {
         ("f08-ribbed-bracket", "1.4"): functools.partial(_f08_direct, "1.4"),
         ("f02", "2.3"): functools.partial(_f02_direct, "2.3"),
+        # Battery has an id-level campaign (1.0); its catalog version 2.2 is
+        # registered by version and reuses Battery's practice provenance.
+        (
+            "battery-fastcharge-ageing-development-v1",
+            "2.2",
+        ): functools.partial(_battery_catalog_direct, "2.2"),
     }
 
 

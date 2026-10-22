@@ -584,7 +584,14 @@ def agent_observation(spec, prepared, epoch, feedback):
         },
         **extra,
         "scaffold_recipe": control(spec),
-        "graph_recipe_template": graph_recipe(spec, version=key.version),
+        # None where the limits bind no graph adapter (Battery's catalog
+        # version: catalog recipes only).
+        "graph_recipe_template": (
+            graph_recipe(spec, version=key.version)
+            if "graph_training_adapter"
+            in spec.public().construction_limits_document(key.challenge_id, key.version)
+            else None
+        ),
         "scaffold_basis": "An unexecuted template; it has no measured result.",
         "epoch": epoch,
         "prior_permitted_evaluation_feedback": feedback,

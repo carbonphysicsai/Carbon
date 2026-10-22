@@ -134,6 +134,34 @@ FACTS = {
         "rights_profile": "Same rules as Motor and Cooling: the exam data and references are Carbon's own, solved with open solvers on synthetic, non-customer cases (public TRAIN and the exposed development bank are published for development use); miner recipes are private to Carbon. No customer or third-party data.",
         # DRAFT_FROM_REGISTERED
         "catalog_usage_text": "Catalog and graph recipes build from public TRAIN40-v2 only; practice runs on the exposed 8-action bank and reports aggregate errors on the registered scale, never per-case values.",
+    },  # Battery 2.2 (the Validator, 2026-10-22: Battery 2.1 plus the catalog
+    # binding). No approval file covers it yet: every value is HUMAN_INPUT
+    # until one does (Battery's own registered descriptions live in
+    # `carbon.battery`; copying them here is that approval's to make).
+    ("battery-fastcharge-ageing-development-v1", "2.2"): {
+        "task": HUMAN_INPUT,
+        "intended_use": HUMAN_INPUT,
+        "interface_conventions": HUMAN_INPUT,
+        "physical_scope": HUMAN_INPUT,
+        "governing_law": HUMAN_INPUT,
+        "geometry_domain": HUMAN_INPUT,
+        "governing_job": HUMAN_INPUT,
+        "time_semantics": HUMAN_INPUT,
+        "operating_envelope": HUMAN_INPUT,
+        "physical_support": HUMAN_INPUT,
+        "physical_invariant": HUMAN_INPUT,
+        "sampling_law": HUMAN_INPUT,
+        "reference_method": HUMAN_INPUT,
+        "reference_quality": HUMAN_INPUT,
+        "support_boundary": HUMAN_INPUT,
+        "membership_decision": HUMAN_INPUT,
+        "base_measure": HUMAN_INPUT,
+        "probability_law": HUMAN_INPUT,
+        "practice_reporting": HUMAN_INPUT,
+        "reference_fidelity": HUMAN_INPUT,
+        "known_limitation": HUMAN_INPUT,
+        "rights_profile": HUMAN_INPUT,
+        "catalog_usage_text": HUMAN_INPUT,
     },
 }
 
@@ -176,6 +204,8 @@ LABELS = {
         "rights_profile": "public_synthetic",
         "rights_profile.research": "public_synthetic_cases",
     },
+    # Battery 2.2: none until its facts are approved.
+    ("battery-fastcharge-ageing-development-v1", "2.2"): {},
 }
 
 

@@ -151,9 +151,10 @@ def bundle_material(root: Path | None = None) -> dict:
 
 #: Battery's served construction versions, as `carbon.challenge_kit.
 #: served_versions` registers them: 1.0 as above, unchanged; 2.0 the step-2
-#: version (STEP2_BATCH_VERSIONS_20261020); 2.1 the catalog version, 2.0's
-#: serving with allowlist v7 (Validator, 2026-10-20).
-VERSIONS = ("1.0", "2.0", "2.1")
+#: version (STEP2_BATCH_VERSIONS_20261020); 2.1 2.0's serving with allowlist
+#: v7 (Validator, 2026-10-20); 2.2 2.1 plus the backbone catalog, served by its
+#: own adapter (`catalog_version`; Validator, 2026-10-22).
+VERSIONS = ("1.0", "2.0", "2.1", "2.2")
 LIMITS_SCHEMA_V2 = "carbon.battery.bundle-construction-limits.v2"
 PHYSICS_VERSION = "battery-physics-v2"
 
@@ -169,7 +170,14 @@ def _version(version: str) -> str:
 def construction_limits_document_for(version: str, rows: int | None = None) -> dict:
     """A version's limits: 1.0's bytes as above; 2.0 with no fixed training-step
     cap, the build wall time its only training limit (OWNER-REBUILD-TIME-
-    LIMIT-01), and its graded query's row count."""
+    LIMIT-01), and its graded query's row count. A catalog version's limits
+    are its served material's (`catalog_version`)."""
+    from . import catalog_version
+
+    if version in catalog_version.VERSIONS:
+        raise challenge.MaterialMismatch(
+            f"Battery {version} limits are its served material's"
+        )
     if _version(version) == "1.0":
         return construction_limits_document()
     if type(rows) is not int or rows <= 0:
@@ -193,12 +201,17 @@ def versioned_material(version: str, root: Path | None = None) -> dict:
     §3): the graded query is the bank's rows in its order, absent references
     stay NaN beside the authoritative mask, the physics role is the
     {version, definition} envelope, and the allowlist is v6. 2.1 is 2.0's
-    serving on its own bank label with allowlist v7.
+    serving on its own bank label with allowlist v7. 2.2 is 2.1's material
+    plus the backbone catalog binding, from its own adapter (`catalog_version`).
     """
     from carbon.challenge_kit import physical_pack
     from carbon.challenge_kit.served_versions import material_allowlist_bytes
     from carbon.registry import ChallengeKey
 
+    from . import catalog_version
+
+    if version in catalog_version.VERSIONS:
+        return catalog_version.material(version, root)
     if _version(version) == "1.0":
         return bundle_material(root)
     material = bundle_material(root)

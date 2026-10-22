@@ -13,8 +13,15 @@ version's registered public material (`physical_material.bundle_material`):
   `direct_graph_construction_worker.reconstruct_and_infer_graph_public`.
 
 The query is the version's exposed DEVELOPMENT bank inputs, seed 0. Outputs
-must be float32 (the interface's `<f4`), one finite row per case, of the
-interface's width; anything else is refused.
+must be of the interface's dtype (`OUTPUT_DTYPES`: F08's and F02's `<f4`,
+Battery's float64), one finite row per case, of the interface's width;
+anything else is refused.
+
+Battery's catalog version (2.2, `battery.catalog_version`) serves catalog
+recipes only. Its practice is Battery's own registered practice measurement
+(`practice.score_practice`: the exam's gates, TRAIN scales and frozen
+tolerances) on the bank's public PRACTICE rows, the same feedback Battery's
+practice gives; the bank's other rows are queried, never scored here.
 
 Practice feedback (Validator rulings, 2026-10-20 and 2026-10-21): aggregate
 errors on each Challenge's REGISTERED error scale, as Motor's and Cooling's
@@ -53,6 +60,8 @@ from pathlib import Path
 from .spec import key_for
 
 OUTPUT_DTYPE = "<f4"
+#: Each Challenge's registered output dtype, as its interface declares it.
+OUTPUT_DTYPES = {"f08": "<f4", "f02": "<f4", "battery_catalog": "float64"}
 F02_SCALE_RECORD = "OWNER-F02-TRAIN40-V2-01 train_peak_std_c"
 F08_SCALE_RECORD = (
     "docs/development/scorelab/four_challenge_design_fidelity_dev1.md section 7 (f08)"
@@ -74,6 +83,8 @@ F08_SCALES = {
 COMPONENTS = {
     "f02": ("mean", "near_mean", "worst"),
     "f08": ("margin_mean", "margin_worst", "resonance_mean", "resonance_worst"),
+    # Battery's exam components (`battery.exam.COMPONENTS`).
+    "battery_catalog": ("voltage", "temperature", "plating", "capacity"),
 }
 
 
@@ -110,6 +121,10 @@ def error_scale(spec, version):
             "reference": "POINT_ESTIMATE_DIAGNOSTIC",
             "direction": "lower_is_better",
         }
+    if spec.prefix == "battery_catalog":
+        from carbon.battery import catalog_version
+
+        return catalog_version.error_scale(version)
     raise ValueError(spec.prefix + "_practice_error_scale_unregistered")
 
 
@@ -153,6 +168,10 @@ def summary(spec, version, interface, rows, material):
     """What a practice reports under the Validator's rulings: the rows'
     structural facts and the aggregate errors on the registered scale. No
     per-case value, Ladder or new normalisation."""
+    if spec.prefix == "battery_catalog":
+        from carbon.battery import catalog_version
+
+        return catalog_version.practice_summary(version, rows, material)
     names = list(interface["output"]["names"])
     case_ids = list(material["practice_case_ids"])
     values = [[float(v) for v in row] for row in rows]
@@ -323,7 +342,8 @@ class DirectPractice:
 
         material = self._material()
         interface = material["interface_document"]
-        if output_dtype(interface) != OUTPUT_DTYPE:
+        dtype = OUTPUT_DTYPES[self.spec.prefix]
+        if output_dtype(interface) != dtype:
             raise ValueError(self.spec.prefix + "_practice_dtype_unregistered")
         recipe = self._bound(strategy, material)
         kit = material["construction_kit"]
@@ -336,7 +356,9 @@ class DirectPractice:
         }
         source = recipe.to_dict()["source"]
         if source["kind"] == "catalog":
-            result, backend, built = self._catalog(recipe, binding, material, identity)
+            result, backend, built = self._catalog(
+                recipe, binding, material, identity, dtype
+            )
         elif source["kind"] == "graph":
             result, backend, built = self._graph(recipe, binding, material, identity)
         else:
@@ -350,9 +372,12 @@ class DirectPractice:
         if (
             rows.shape != expected
             or not np.isfinite(rows).all()
-            or not np.array_equal(rows, rows.astype(np.float32).astype(np.float64))
+            or (
+                dtype == OUTPUT_DTYPE
+                and not np.array_equal(rows, rows.astype(np.float32).astype(np.float64))
+            )
         ):
-            # Not one finite float32 row of the interface's width per case.
+            # Not one finite row of the interface's dtype and width per case.
             raise ValueError(self.spec.prefix + "_practice_output_invalid")
         out = {
             "schema": self.spec.practice_schema,
@@ -390,7 +415,7 @@ class DirectPractice:
         )
         return out
 
-    def _catalog(self, catalog_recipe, binding, material, identity):
+    def _catalog(self, catalog_recipe, binding, material, identity, dtype):
         from carbon.development_session.bundle_construction_worker import (
             reconstruct_and_infer_public,
         )
@@ -441,7 +466,7 @@ class DirectPractice:
             inputs=material["practice_inputs"],
             expected_output_shape=material["expected_output_shape"],
             allowlist_bytes=material["allowlist_bytes"],
-            expected_output_dtype=OUTPUT_DTYPE,
+            expected_output_dtype=dtype,
             accelerator=accelerator,
             runner=self.runner,
         )
@@ -461,8 +486,11 @@ class DirectPractice:
             reconstruct_and_infer_graph_public,
         )
 
-        spec = adapter.spec_for(self.spec.challenge_id, self.version)
         limits = material["construction_limits_document"]
+        if "graph_training_adapter" not in limits:
+            # Battery's catalog version: graphs stay on its base version.
+            raise ValueError(self.spec.prefix + "_graph_unserved")
+        spec = adapter.spec_for(self.spec.challenge_id, self.version)
         if limits.get("graph_training_adapter") != adapter.adapter_block(
             spec.challenge_id, spec.version
         ):

@@ -92,9 +92,11 @@ def registered(challenge_id: str, version: str) -> ServedRecipeContract:
     elif challenge_id == battery_challenge.CHALLENGE.challenge_id and version in (
         "2.0",
         "2.1",
+        "2.2",
     ):
-        # The step-2 version (STEP2_BATCH_VERSIONS_20261020) and the catalog
-        # version 2.1 (allowlist v7), each its own served material.
+        # The step-2 version (STEP2_BATCH_VERSIONS_20261020), 2.1 (allowlist
+        # v7) and the catalog version 2.2 (2.1 plus the backbone catalog), each
+        # its own served material.
         from carbon.battery.construction_bundle_material import versioned_material
 
         material = versioned_material(version)

@@ -115,13 +115,14 @@ def test_challenges_are_the_registry_catalog_with_its_descriptions():
             examples = entry["description"]["examples"]
             if not examples:
                 # A catalog version with no tested entry yet (Cooling 1.2,
-                # Cooling 1.3 until its pair receipts, F08 1.4, F02 2.3) offers
-                # no example, and the page shows none.
+                # Cooling 1.3 until its pair receipts, F08 1.4, F02 2.3, Battery
+                # 2.2) offers no example, and the page shows none.
                 assert (challenge_id, version) in {
                     ("chip-cold-plate", "1.2"),
                     ("chip-cold-plate", "1.3"),
                     ("f08-ribbed-bracket", "1.4"),
                     ("f02", "2.3"),
+                    ("battery-fastcharge-ageing-development-v1", "2.2"),
                 }
                 assert entry["example_strategy"] is None
                 continue

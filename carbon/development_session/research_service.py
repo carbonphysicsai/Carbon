@@ -426,12 +426,12 @@ class DirectFixtureDiscovery:
         train_ids = material.get("train_case_ids")
         practice_ids = material.get("practice_case_ids")
         battery = key == battery_challenge.CHALLENGE
-        # Battery 2.0 (step 2) and 2.1 (its catalog version): the bank's rows
-        # with the reference_present mask; an absent reference stays NaN (mask
-        # interface §3).
+        # Battery 2.0 (step 2), 2.1 (allowlist v7) and 2.2 (2.1 plus the
+        # backbone catalog): the bank's rows with the reference_present mask;
+        # an absent reference stays NaN (mask interface §3).
         battery_v2 = (
             key.challenge_id == battery_challenge.CHALLENGE.challenge_id
-            and key.version in ("2.0", "2.1")
+            and key.version in ("2.0", "2.1", "2.2")
         )
         present = material.get("reference_present") if battery_v2 else None
         physical = physical_material.is_registered(key.challenge_id, key.version)
