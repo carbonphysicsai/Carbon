@@ -225,6 +225,46 @@ def _check_cancel(ledger, owner, identity):
         raise ValueError("research operation cancelled")
 
 
+#: A direct task's phase identity (`bundle_construction_worker.
+#: direct_child_identity`): one task digest, one phase.
+_DIRECT_PHASE = re.compile(r"(direct-[0-9a-f]{64}-)(?:prep|build|inference|timed)")
+
+
+def _one_trial_per_task(ledger, identity, extra_resources):
+    """`extra_resources` with the research trial charged once per direct task
+    (Launchpad round 6, R6-3). A practice's build and inference phases each
+    asked for one, so one practice counted as two attempted trials and the
+    page showed "started but not finished" trials that never existed. The
+    task's first phase to reach the ledger charges it; a later phase does not.
+    A phase already in the ledger keeps exactly what it reserved, so an
+    earlier campaign resumes and replays unchanged and its stored counts are
+    never rewritten."""
+    if (extra_resources or {}).get("research_trials") != 1:
+        return extra_resources
+    match = _DIRECT_PHASE.fullmatch(identity) if type(identity) is str else None
+    if match is None:
+        return extra_resources
+    without = {k: v for k, v in extra_resources.items() if k != "research_trials"}
+    with ledger.db() as db:
+        own = db.execute(
+            "SELECT reservation FROM operations WHERE id=?", (identity,)
+        ).fetchone()
+        siblings = (
+            []
+            if own is not None
+            else db.execute(
+                "SELECT reservation FROM operations WHERE id LIKE ? AND id != ?",
+                (match.group(1) + "%", identity),
+            ).fetchall()
+        )
+    if own is not None:
+        recorded = json.loads(own[0]).get("research_trials", 0)
+        return extra_resources if recorded else without
+    if any(json.loads(row[0]).get("research_trials", 0) for row in siblings):
+        return without
+    return extra_resources
+
+
 def _run(ledger, **kwargs):
     import threading
 
@@ -922,7 +962,7 @@ def _run_locked(
     resources = {
         "numerical_milliseconds": (seconds or 0) * 1000,
         "retained_bytes": reservation_bytes,
-        **extra_resources,
+        **_one_trial_per_task(ledger, identity, extra_resources),
     }
     admission = ledger.reserve(
         identity, owner=owner, phase=phase, request=request, resources=resources

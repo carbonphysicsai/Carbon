@@ -508,3 +508,68 @@ def test_the_mismatch_refusal_says_plainly_what_to_do():
         # Its own entry, not the generic fallback (E9 made the fallback name
         # the code, so a text comparison would no longer tell them apart).
         assert code in NEXT_ACTIONS, code
+
+
+# -- R6-3: one research trial per practice --------------------------------------
+
+
+def test_a_direct_practice_charges_one_trial_not_one_per_phase(tmp_path):
+    """Launchpad round 6, R6-3: a catalog/direct practice runs a build and an
+    inference phase, and each charged a research trial, so two practices
+    read attempted 4 / completed 2. The task's first phase charges it; a
+    later phase of the same task does not."""
+    from carbon.development_session.research_carrier import _one_trial_per_task
+
+    meter = ledger(tmp_path, ceilings=ROOMY)
+    task = "direct-" + "a" * 64 + "-"
+    charge = {"research_trials": 1}
+
+    def reserve(identity):
+        resources = _one_trial_per_task(meter, identity, charge)
+        meter.reserve(
+            identity,
+            owner="alice",
+            phase="research",
+            request={"identity": identity},
+            resources={"numerical_milliseconds": 1, **resources},
+        )
+        meter.finish(
+            identity,
+            owner="alice",
+            state="SUCCEEDED",
+            actual={"numerical_milliseconds": 1, **resources},
+            result={"status": "FIXTURE"},
+        )
+        return resources
+
+    assert reserve(task + "build") == charge
+    assert reserve(task + "inference") == {}
+    assert meter.status(owner="alice")["used"]["research_trials"] == 1
+    # Another task charges its own.
+    assert reserve("direct-" + "b" * 64 + "-build") == charge
+    assert meter.status(owner="alice")["used"]["research_trials"] == 2
+    # Anything that is not a direct task's phase is unchanged.
+    assert _one_trial_per_task(meter, "fixture-trial-x", charge) == charge
+    assert _one_trial_per_task(meter, task + "build", {}) == {}
+
+
+def test_an_earlier_record_keeps_what_it_reserved(tmp_path):
+    """Stored history is never rewritten: a phase already in the ledger,
+    reserved under the old rule with its own trial, keeps it on a replay or
+    resume, so the ledger's reservation check still matches."""
+    from carbon.development_session.research_carrier import _one_trial_per_task
+
+    meter = ledger(tmp_path, ceilings=ROOMY)
+    task = "direct-" + "c" * 64 + "-"
+    for phase in ("build", "inference"):
+        meter.reserve(
+            task + phase,
+            owner="alice",
+            phase="research",
+            request={"phase": phase},
+            resources={"research_trials": 1},
+        )
+    assert meter.status(owner="alice")["used"]["research_trials"] == 2
+    charge = {"research_trials": 1}
+    assert _one_trial_per_task(meter, task + "inference", charge) == charge
+    assert _one_trial_per_task(meter, task + "build", charge) == charge
