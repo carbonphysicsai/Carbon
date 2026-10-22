@@ -244,6 +244,49 @@ def loopback_authority(value) -> bool:
     )
 
 
+#: The session cookie: this browser, this loopback origin, script-unreadable.
+SESSION_COOKIE = "carbon_session"
+SESSION_COOKIE_DAYS = 30
+
+
+def session_cookie_header(token: str) -> str:
+    return (
+        f"{SESSION_COOKIE}={token}; HttpOnly; SameSite=Strict; Path=/; "
+        f"Max-Age={SESSION_COOKIE_DAYS * 86400}"
+    )
+
+
+def session_cookie(headers):
+    """The one session cookie a request carries, or None."""
+    found = []
+    for line in headers.get_all("Cookie") or []:
+        for part in line.split(";"):
+            name, sep, value = part.strip().partition("=")
+            if sep and name == SESSION_COOKIE:
+                found.append(value)
+    return found[0] if len(found) == 1 and found[0] else None
+
+
+def session_token(state_dir: Path) -> str:
+    """This install's session token, kept owner-only in its state directory
+    so a restart or reinstall keeps the same link and a browser's session
+    (U1); made once."""
+    path = Path(state_dir) / "session-token"
+    if path.is_symlink():
+        raise RuntimeError("Session token must not be a symlink")
+    if path.is_file():
+        value = path.read_text(encoding="ascii").strip()
+        if len(value) >= 32 and value.isascii() and value.isprintable():
+            path.chmod(0o600)
+            return value
+    value = secrets.token_urlsafe(32)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(descriptor, "w", encoding="ascii") as handle:
+        handle.write(value + "\n")
+    path.chmod(0o600)
+    return value
+
+
 def session_url(origin: str, token: str) -> str:
     """The page's address with the session token in its fragment.
 
@@ -824,7 +867,9 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *_):
         """Do not log headers, tokens, payloads or browser-supplied paths."""
 
-    def reply(self, status: int, value, content_type="application/json") -> None:
+    def reply(
+        self, status: int, value, content_type="application/json", headers=()
+    ) -> None:
         # Acceptance is read-only metadata, separate from operation outcomes
         # and every existing permission gate. Both doors use this projection.
         projected_reads = {
@@ -854,6 +899,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Frame-Options", "DENY")
+        for name, header in headers:
+            self.send_header(name, header)
         self.send_header(
             "Content-Security-Policy",
             # blob: images only: a run's raster images, which the page makes
@@ -878,6 +925,15 @@ class Handler(BaseHTTPRequestHandler):
         if authenticated:
             expected = "Bearer " + self.server.token
             headers = self.headers.get_all("Authorization")
+            if headers is None and session_cookie(self.headers) is not None:
+                # U1: this browser's session cookie (HttpOnly, SameSite
+                # Strict, this loopback origin only), set once from the
+                # printed link, so a new tab or a restart needs no paste.
+                if not hmac.compare_digest(
+                    session_cookie(self.headers).encode(), self.server.token.encode()
+                ):
+                    raise Rejected("authentication_required", 401)
+                return
             if (
                 headers is None
                 or len(headers) != 1
@@ -1062,6 +1118,17 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             self.check(authenticated=True)
+            if self.path == "/api/v1/session":
+                # U1: a tab that proved the token by bearer gets this
+                # browser's session cookie; a cookie alone cannot renew it.
+                if self.headers.get_all("Authorization") is None:
+                    raise Rejected("authentication_required", 401)
+                self.reply(
+                    200,
+                    {"session": "REMEMBERED", "days": SESSION_COOKIE_DAYS},
+                    headers=(("Set-Cookie", session_cookie_header(self.server.token)),),
+                )
+                return
             if self.headers.get("Transfer-Encoding") is not None:
                 raise Rejected("unsupported_transfer_encoding")
             lengths = self.headers.get_all("Content-Length")
@@ -1332,7 +1399,7 @@ def main() -> None:
         thread_dump_on_signal(args.state_dir)
         controller = Controller(database)
         database.chmod(0o600)
-        token = secrets.token_urlsafe(32)
+        token = session_token(args.state_dir)
         # Direct-script and package entry points resolve one canonical module.
         import sys
 
@@ -1416,7 +1483,9 @@ def main() -> None:
         print(
             "Set up your environment, then choose a Challenge and launch."
             if runner or refused
-            else "No agents, paid compute, training, registration, or submissions."
+            # A fresh install (U67): the next step, not a list of what is
+            # not configured yet.
+            else "Open the link above and follow Get started to set up."
         )
         try:
             server.serve_forever(poll_interval=0.2)

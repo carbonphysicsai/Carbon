@@ -3760,7 +3760,7 @@ class RunnerAdapter:
     #: The states a campaign is in while one of its operations runs, or while
     #: it is still being prepared or run (A2: a note right after launch).
     WAIT_WORKING = frozenset(
-        {"QUEUED", "RUNNING", "PRACTICING", "FREEZING", "SUBMITTING"}
+        {"QUEUED", "RUNNING", "RECONCILING", "PRACTICING", "FREEZING", "SUBMITTING"}
     )
     WAIT_POLL_SECONDS = 2.0
 
@@ -3774,7 +3774,11 @@ class RunnerAdapter:
         deadline = time.monotonic() + seconds
         while True:
             current = self.read(identity)
-            if current.get("state") not in self.WAIT_WORKING:
+            # H15: a campaign a supervisor is still running reads RECONCILING
+            # (or READY) with its operation in in_flight; wait for that too.
+            if current.get("state") not in self.WAIT_WORKING and not current.get(
+                "in_flight"
+            ):
                 return {**current, "waited": "FINISHED"}
             if time.monotonic() >= deadline:
                 return {**current, "waited": "STILL_RUNNING"}

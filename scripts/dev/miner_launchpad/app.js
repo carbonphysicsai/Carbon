@@ -24,6 +24,7 @@
   // localStorage, an address or a template, and forgotten the moment the
   // controller refuses it.
   const sessionKey = "carbon.launchpad.session.v1";
+  const rememberedKey = "carbon.launchpad.remembered.v1";
   function keptSession() {
     try { const value = sessionStorage.getItem(sessionKey); return value && /^[!-~]{1,512}$/.test(value) ? value : null; }
     catch (_) { return null; }
@@ -422,7 +423,9 @@
     signer_protocol: "something other than carbon-miner-signer answered on the signer socket"
   };
   async function api(path, body, key, timeout = 5000) {
-    const headers = {Authorization: "Bearer " + token};
+    // With no token in this tab, this browser's session cookie (U1) is sent
+    // by the browser itself: same origin only, never readable here.
+    const headers = token ? {Authorization: "Bearer " + token} : {};
     if (body !== undefined) headers["Content-Type"] = "application/json";
     if (key) headers["Idempotency-Key"] = key;
     const response = await fetch(path, {
@@ -1976,6 +1979,16 @@
   }
   // The same words wherever a refused session is met.
   const SESSION_ENDED = "Your session ended: the Control Center was restarted and printed a new link. Open that link, or paste its token.";
+  // U1: a browser this Control Center remembers connects with no token; one
+  // it does not shows the paste form quietly, as before.
+  async function connectRemembered() {
+    // Only a browser that was remembered asks; a first visit sends nothing
+    // before the miner connects (the flag is not a secret: the cookie is).
+    if (!stored(rememberedKey, null)) return;
+    try { await fetch("/api/v1/capabilities", {cache: "no-store", redirect: "error"}).then(r => { if (!r.ok) throw new Error(String(r.status)); }); }
+    catch (_) { return; }
+    connect("", false);
+  }
   async function connect(value, resumed = false) {
     connected = false;
     render();
@@ -1999,7 +2012,12 @@
       await renderExamEnvironment();
       renderComputeChoices(caps.compute.destinations || []);
       await onboardingRequirements();
-      keepSession(value);
+      if (value) {
+        keepSession(value);
+        // U1: remember this browser, so a new tab or a restart needs no
+        // paste. The cookie is HttpOnly and this loopback origin's only.
+        try { await api("/api/v1/session", {}); store(rememberedKey, {remembered: true}); } catch (_) { /* this tab still works */ }
+      }
       store(footerSeenKey, {seen: true});
       message("Connected. Records persist on this machine.");
       await refresh();
@@ -2775,6 +2793,9 @@
   function gradeLine(grade) {
     const latest = grade && grade.latest;
     if (!latest) return "Grade: not graded yet. It appears here once the validator grades this submission." + (grade?.best && typeof grade.best.total === "number" ? " Your best so far, " + grade.best.total.toFixed(4) + ", is from " + (grade.best.recipe_digest && grade.best.recipe_digest !== grade.submission ? "another submission" : "an earlier grade") + "." : "");
+    // Validator (Ladder v3): a non-improvement repeats the best total under
+    // this submit's digest, so it is never read as this submit's score.
+    if (latest.status === "NO_IMPROVEMENT") return "Grade: did not improve on your best" + (typeof latest.total === "number" ? " (" + latest.total.toFixed(4) + ")" : "") + ". Compares within this Challenge version only.";
     if (latest.status === "GATE_FAILED") return "Grade: not eligible (a mandatory gate failed). Compares within this Challenge version only." + (latest.recipe_digest ? "" : " It is your hotkey's latest grade on this exam, which may be from an earlier submission until the validator grades this one.");
     if (typeof latest.total !== "number") return "Grade: not scored.";
     const best = grade.best && typeof grade.best.total === "number" ? " · your best: " + grade.best.total.toFixed(4) : "";
@@ -4642,5 +4663,5 @@
   show();
   setInterval(refresh, 1500);
   if (linkToken !== null) connectFromLink(linkToken);
-  else { const resumed = keptSession(); if (resumed) connectFromLink(resumed, true); }
+  else { const resumed = keptSession(); if (resumed) connectFromLink(resumed, true); else connectRemembered(); }
 })();

@@ -553,3 +553,32 @@ def test_process_exit_releases_owner_lock(tmp_path):
         process.stdout.close()
     with launchpad.owner_lock(directory):
         pass
+
+
+def test_a_remembered_browser_connects_without_a_token(server):
+    # U1 (owner: no token paste per tab or restart): a tab that proved the
+    # token by bearer gets an HttpOnly, SameSite=Strict session cookie.
+    code, headers, _ = request(server, "/api/v1/session", "POST", {}, auth())
+    assert code == 200
+    cookie = headers["Set-Cookie"]
+    assert cookie.startswith("carbon_session=" + "x" * 40 + ";")
+    assert "HttpOnly" in cookie and "SameSite=Strict" in cookie
+    remembered = {"Cookie": "carbon_session=" + "x" * 40}
+    assert request(server, "/api/v1/runs", headers=remembered)[0] == 200
+    assert (
+        request(server, "/api/v1/runs", headers={"Cookie": "carbon_session=wrong"})[0]
+        == 401
+    )
+    # A cookie alone cannot renew itself, and still needs a loopback origin.
+    assert request(server, "/api/v1/session", "POST", {}, remembered)[0] == 401
+    foreign = {**remembered, "Origin": "http://127.0.0.1:9"}
+    assert request(server, "/api/v1/runs", headers=foreign)[0] == 403
+
+
+def test_the_session_token_survives_a_restart(tmp_path):
+    from scripts.dev.miner_launchpad import controller as module
+
+    first = module.session_token(tmp_path)
+    assert module.session_token(tmp_path) == first
+    assert len(first) >= 32
+    assert (tmp_path / "session-token").stat().st_mode & 0o777 == 0o600

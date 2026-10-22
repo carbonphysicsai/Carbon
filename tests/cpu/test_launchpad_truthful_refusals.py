@@ -986,3 +986,27 @@ def test_wait_returns_once_the_running_operation_has_finished(monkeypatch):
         with pytest.raises(Rejected) as refused:
             RunnerAdapter.wait_admitted(host, admitted, {"wait_seconds": bad})
         assert refused.value.code == "wait_seconds_invalid"
+
+
+def test_wait_keeps_waiting_while_an_operation_is_in_flight():
+    # M1 E2E H15: RECONCILING with a practice in flight returned at once.
+    from types import SimpleNamespace
+
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    reads = iter(
+        [
+            {"state": "RECONCILING", "in_flight": {"operation": "run"}},
+            {"state": "READY", "in_flight": {"operation": "practice"}},
+            {"state": "READY", "in_flight": None},
+        ]
+    )
+    host = SimpleNamespace(
+        WAIT_WORKING=RunnerAdapter.WAIT_WORKING,
+        WAIT_POLL_SECONDS=0,
+        read=lambda identity: next(reads),
+    )
+    done = RunnerAdapter.wait_admitted(
+        host, SimpleNamespace(campaign={"id": "c1"}), {"campaign": "c1"}
+    )
+    assert done == {"state": "READY", "in_flight": None, "waited": "FINISHED"}
