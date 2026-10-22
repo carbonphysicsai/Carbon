@@ -866,3 +866,38 @@ def test_same_recipe_on_the_same_pack_set_is_refused_with_its_earlier_result(
     )
     grade(again["submission_id"], exam=pack_b, block=1080)
     assert _count(cap, exam=pack_b) == 1
+
+
+def test_a_resubmit_before_grading_holds_one_slot_in_the_first_epoch(cap):
+    # Validator, Open 1 of ruling (a): the same recipe submitted again in a
+    # later epoch, before its first submission is reserved, is the same task.
+    # Its grading takes one row, in the epoch of the first signed receipt.
+    contract = "sha256:" + "c" * 64
+    task = "rtsk_" + "7" * 64
+    for sequence, block in ((1, 360), (2, 720)):
+        cap.ledger.record(
+            SimpleNamespace(
+                hotkey=HOTKEY,
+                receipt={"sequence": sequence, "digest": "d", "block": block},
+                contract_digest=contract,
+            ),
+            kind="OUTCOME",
+            submission_id=task,
+        )
+    block = exam_cap.submission_block(cap.ledger, contract, task)
+    assert block == 360
+    for _ in range(2):  # grading reached again for the same task
+        reservation = cap.reserve(
+            hotkey=HOTKEY,
+            challenge_id=MOTOR[0],
+            challenge_version=MOTOR[1],
+            exam_key=EXAM,
+            submission_id=task,
+            block=block,
+        )
+    cap.settle(reservation, "SCORED_DEVELOPMENT_CANDIDATE")
+    with cap.ledger._db() as db:
+        rows = db.execute(
+            "SELECT epoch, state FROM exam_graded WHERE submission_id=?", (task,)
+        ).fetchall()
+    assert rows == [(1, "COUNTED")]
