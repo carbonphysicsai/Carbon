@@ -761,6 +761,12 @@ if [[ "${service_mode}" == 1 ]]; then
   Stop it:     systemctl --user stop ${SERVICE_NAME%.service}
   Its state:   systemctl --user status ${SERVICE_NAME%.service}
   Its output:  tail -f ${STATE_DIR}/control-center.log
+  Install the backbone catalog (needed by today's catalog Challenges; after an
+  install with --pytorch):
+    cd ${repo_root} && ${python} -B -m scripts.dev.catalog_install --state-dir ${STATE_DIR}
+  On a remote machine (a VPS), open the page from your own computer through
+  an SSH tunnel, then browse to http://127.0.0.1:${PORT}:
+    ssh -N -L ${PORT}:127.0.0.1:${PORT} ${USER:-$(id -un)}@<this machine's address>
 EOF
   # MINER-SURVIVE-REBOOT-01: the unit is enabled, but the user manager that
   # starts it runs at boot only when this user lingers; otherwise it waits
