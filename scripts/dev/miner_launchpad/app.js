@@ -1061,6 +1061,14 @@
   // Carbon's published endpoint, the miner's own intake, or plainly none
   // yet, as setup's `steps.evaluation` says. An intake of the miner's own
   // that an update set aside is named again with one click.
+  // The launch options carry a `budget_note` (what each model call reserves and what the ceiling buys); it sits in
+  // the Graphite options' input window, so it is found by name, shallowly, and shown only if it is a string (G1).
+  function findBudgetNote(value, depth = 0) {
+    if (!value || typeof value !== "object" || depth > 6) return null;
+    if (typeof value.budget_note === "string" && value.budget_note) return value.budget_note;
+    for (const child of Object.values(value)) { const found = findBudgetNote(child, depth + 1); if (found) return found; }
+    return null;
+  }
   function evaluationSection(parent, evaluation, nameAgain) {
     const items = Array.isArray(evaluation?.challenges) ? evaluation.challenges : [];
     if (!items.length && !evaluation?.problem) return null;
@@ -1088,6 +1096,11 @@
       // A profile from before receivers were pinned (LAUNCHPAD-ACCEPT-03).
       if (item.receiver_hotkey_warning) row.append(el("p", plainWords(item.receiver_hotkey_warning), "reason"));
       if (item.note) row.append(el("p", plainWords(item.note), "hint"));
+      // G3: a construction receiver serves one Challenge version; say which, and say when it is another's.
+      const serves = item.direct_intake?.serves;
+      if (serves && typeof serves === "object") row.append(el("p", "Your recipe receiver rebuilds and grades this Challenge (v" + (serves.version ?? item.version) + ").", "hint"));
+      if (item.direct_intake_serves_other && typeof item.direct_intake_serves_other.note === "string") row.append(el("p", plainWords(item.direct_intake_serves_other.note), "hint"));
+      if (typeof item.direct_intake_serves_note === "string") row.append(el("p", plainWords(item.direct_intake_serves_note), "hint"));
       if (item.set_aside_intake) {
         row.append(el("p", "Your own intake, set aside by the update: " + item.set_aside_intake, "status-line"));
         const again = el("button", "Name it again"); again.type = "button"; again.dataset.nameAgain = item.id;
@@ -4328,6 +4341,11 @@
       // Stated before launch, not learnt at submit (LAUNCHPAD-PAGE-USABILITY-01).
       const evaluation = entry ? evaluationOf(entry.challenge_id, entry.version) : null;
       if (evaluation) row("Evaluation", EVALUABLE.includes(evaluation.status) ? "A validator is configured for this Challenge in your profile; whether it answers is seen at submit." : "Unavailable today: no validator intake is configured in your profile" + (evaluation.status === "NONE_PUBLISHED" ? " and none is published for this Challenge yet" : "") + ". You can launch, practise, observe, freeze, and stop or pause; a submit is refused and the frozen candidate kept until one is configured.");
+      // G3: the configured receiver serves another Challenge.
+      if (evaluation && evaluation.direct_intake_serves_other && typeof evaluation.direct_intake_serves_other.note === "string") row("Recipe receiver", plainWords(evaluation.direct_intake_serves_other.note));
+      // G1: what the spending limit buys, as the launch options say it.
+      const budgetNote = findBudgetNote(launchOptions);
+      if (budgetNote) row("What your spending limit buys", plainWords(budgetNote));
       const limits = [];
       limits.push("elapsed: " + ("elapsed_seconds" in budget ? budget.elapsed_seconds + " s" + longer(budget.elapsed_seconds) : "no limit"));
       limits.push("final reserve: " + (budget.final_reserve ? "on" : "off"));
