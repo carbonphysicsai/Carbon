@@ -60,6 +60,12 @@ HARD = {
     "oformer.Encoder1D_PointWiseDecoder1D",
     "neuralop.SFNO",
     "neuralop.LocalNO",
+    # PAIR_IDENTITY_HARD_V9_20261022: graph constants rebuilt in-graph (v7 caps).
+    "lno.LNO1d",
+    "neuralop.GINO",
+    "physicsnemo.MeshGraphNet",
+    # A variant: it uses upstream's instance-norm option (CATALOG_HARD_FIXES).
+    "thuml.LSM",
 }
 
 #: The five Torch builds resized to Cooling's 32 outputs, each with its own
