@@ -1930,7 +1930,8 @@ def _ledger_facts(root):
             "SELECT 1 FROM sqlite_master WHERE name='research_results' AND type='table'"
         ).fetchone():
             for task, body, pin in db.execute(
-                "SELECT task,body,digest FROM research_results WHERE owner=?", (owner,)
+                "SELECT task,body,digest FROM research_results WHERE owner=? ORDER BY rowid",
+                (owner,),
             ):
                 if digest(body) != pin:
                     raise ValueError("research result changed")

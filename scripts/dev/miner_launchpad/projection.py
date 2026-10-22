@@ -617,7 +617,7 @@ def project(row, root):
             "SELECT 1 FROM sqlite_master WHERE name='research_results' AND type='table'"
         ).fetchone():
             for task, body, pin in db.execute(
-                "SELECT task,body,digest FROM research_results WHERE owner=?",
+                "SELECT task,body,digest FROM research_results WHERE owner=? ORDER BY rowid",
                 (manifest["owner"],),
             ):
                 if digest(body) != pin:
