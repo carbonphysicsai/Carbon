@@ -161,3 +161,71 @@ def test_a_set_block_needs_its_primary_pack_and_must_name_it_first(tmp_path, del
     _write(path, config)
     with pytest.raises(ValueError, match="evaluation pack set selection"):
         direct_receiver.load_config(path)
+
+
+def test_each_batch_gets_its_own_adapter_and_the_primary_keeps_its_discovery(
+    tmp_path, delivered, monkeypatch
+):
+    from types import SimpleNamespace
+
+    store, commitment, digests = delivered
+    prepared = []
+
+    def fake_sealed(root, selection, challenge, *, bound=True):
+        digest = selection["sealed_delivery"]["manifest_digest"]
+        prepared.append((digest, bound, selection["root"]))
+        return (
+            "sha256:" + digest[-1] * 64,
+            "check-" + digest[-4:],
+            "snapshot-" + digest[-4:],
+        )
+
+    class Discovery:
+        def __init__(self, material, **kwargs):
+            self.material, self.kwargs = material, kwargs
+
+    class Adapter:
+        def __init__(self, discovery, providers, ledger, *, measure_query):
+            self.discovery, self.providers = discovery, providers
+            self.ledger, self.measure_query = ledger, measure_query
+
+    monkeypatch.setattr(direct_receiver, "_sealed_pack", fake_sealed)
+    monkeypatch.setattr(direct_receiver, "_delivered_sealed", lambda *_a: True)
+    monkeypatch.setattr(
+        "carbon.development_session.research_service.DirectFixtureDiscovery", Discovery
+    )
+    monkeypatch.setattr(
+        "carbon.challenge_validator.lean_recipe.LeanRecipeAdapter", Adapter
+    )
+    cfg = {
+        "measure_query": True,
+        "evaluation_pack_set": {
+            "store": str(store.root),
+            "set_key": commitment["set_key"],
+            "batches": digests,
+        },
+    }
+    primary, providers, ledger = object(), object(), object()
+    adapters = direct_receiver._set_batch_adapters(
+        cfg,
+        tmp_path,
+        SimpleNamespace(challenge_id=CHALLENGE, version=VERSION),
+        {"material": 1},
+        primary,
+        providers,
+        ledger,
+    )
+    assert list(adapters) == digests
+    assert adapters[digests[0]].discovery is primary
+    other = adapters[digests[1]].discovery
+    assert isinstance(other, Discovery) and other is not primary
+    assert other.kwargs["evaluation_pack_digest"] == "sha256:" + digests[1][-1] * 64
+    assert other.kwargs["evaluation_pack_sealed"] is True
+    assert all(
+        a.providers is providers and a.ledger is ledger for a in adapters.values()
+    )
+    assert all(a.measure_query is True for a in adapters.values())
+    # Only the non-primary batch is prepared, and never from the binding's digest.
+    assert prepared == [
+        (digests[1], False, str(store.pack_directory(digests[1], CHALLENGE, VERSION)))
+    ]

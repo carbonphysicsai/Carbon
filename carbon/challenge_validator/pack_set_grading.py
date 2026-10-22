@@ -73,3 +73,84 @@ def grade_entry_on_set(
         block=block,
         grade_batch=grade_batch,
     )
+
+
+def _set_exam_facts(batch_adapters, batches):
+    """The version's exam version and hard gates, from the batch packs (they must
+    agree), or a refusal."""
+    versions, gates = set(), set()
+    for digest in batches:
+        discovery = batch_adapters[digest].discovery
+        snapshot = discovery.evaluation_pack_snapshot
+        private_root = discovery.evaluation_pack_private_root
+        source = snapshot.read_source_registration(private_root)
+        versions.add(source["evaluation_version"])
+        score_pack = snapshot.read_json_role(
+            private_root, "private", "score_pack", max_bytes=65536
+        )
+        gates.add(tuple(score_pack["hard_gates"]))
+    if len(versions) != 1 or len(gates) != 1:
+        raise psr.SetResultRefused("set_batches_disagree")
+    return versions.pop(), list(gates.pop())
+
+
+def grade_set_entry(
+    batch_adapters,
+    *,
+    batches,
+    set_key,
+    entry_id,
+    artifact_directory,
+    entry_directory,
+    runner=None,
+):
+    """The operator step: grade one retained entry on its whole pack set and, when
+    a set result exists, record it once on the miner's Ladder under the set key.
+
+    The owner and the submission are the retained task's own (`_regrade_origin`);
+    the epoch slot is the submission's, taken once under the set key. Returns the
+    set result (with ``ladder_feedback_state``) or the typed UNAVAILABLE."""
+    from . import exam_cap
+
+    primary = batch_adapters[batches[0]]
+    base = retention._owner_directory(artifact_directory, "artifact_directory")
+    entries = retention._owner_directory(entry_directory, "entry_directory")
+    _entry, origin, owner, *_rest = retention._regrade_origin(
+        primary, base, entries, entry_id
+    )
+    cap = exam_cap.ExamCap(
+        primary.ledger, cadence=getattr(primary, "exam_cadence", None)
+    )
+    store = psr.SetResultStore(primary.ledger)
+    result = grade_entry_on_set(
+        cap,
+        store,
+        batch_adapters,
+        set_key=set_key,
+        batches=batches,
+        entry_id=entry_id,
+        artifact_directory=artifact_directory,
+        entry_directory=entry_directory,
+        hotkey=owner,
+        challenge_id=primary.challenge_id,
+        challenge_version=primary.challenge_version,
+        submission_id=origin,
+        block=exam_cap.submission_block(
+            primary.ledger, primary.contract_digest, origin
+        ),
+        runner=runner,
+    )
+    if "graded" not in result:
+        return result
+    version, gates = _set_exam_facts(batch_adapters, batches)
+    return {
+        **result,
+        "ladder_feedback_state": retention._record_ladder(
+            primary,
+            origin,
+            exam_key=set_key,
+            exam_version=version,
+            gates=gates,
+            graded=result["graded"],
+        ),
+    }

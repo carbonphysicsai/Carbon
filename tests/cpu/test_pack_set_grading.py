@@ -44,7 +44,10 @@ def _batch_adapters(fixture, tmp_path, scales):
         practice = fixture.material["practice_inputs"]
         bank_raw = _tensors(inputs=(practice * scale).astype(practice.dtype))
         snapshot = SimpleNamespace(
-            manifest_digest=digest, read_role=lambda *_a, _raw=bank_raw, **_k: _raw
+            manifest_digest=digest,
+            read_role=lambda *_a, _raw=bank_raw, **_k: _raw,
+            read_source_registration=lambda _root: {"evaluation_version": "ev-1"},
+            read_json_role=lambda *_a, **_k: {"hard_gates": list(GATES)},
         )
         adapter = copy.copy(fixture.adapter)
         adapter.discovery = SimpleNamespace(
@@ -54,6 +57,10 @@ def _batch_adapters(fixture, tmp_path, scales):
             evaluation_pack_private_root=Path(tmp_path),
         )
         adapter._provider = lambda _owner: fixture.provider
+        adapter.exam_cadence = {
+            "capacity_cpu_hours_per_day": 270.0,
+            "rebuild_cpu_hours_placeholder": {adapter.challenge_id: 1.0},
+        }
         adapters[digest] = adapter
     return adapters
 
@@ -179,5 +186,81 @@ def test_a_batch_without_an_adapter_gives_no_set_result(tmp_path, monkeypatch):
             "state": psr.UNAVAILABLE,
             "reason": "set_batch_adapter_missing",
         }
+    finally:
+        fixture.provider.close()
+
+
+def _ladder_spy(monkeypatch):
+    calls = []
+
+    def record(adapter, submission_id, *, exam_key, exam_version, gates, graded):
+        calls.append((submission_id, exam_key, exam_version, gates, graded))
+        return "RECORDED"
+
+    monkeypatch.setattr(retention, "_record_ladder", record)
+    return calls
+
+
+def test_the_operator_step_takes_owner_and_origin_from_the_task_and_records_once(
+    tmp_path, monkeypatch
+):
+    fixture = _retained(tmp_path, monkeypatch)
+    try:
+        adapters = _batch_adapters(fixture, tmp_path, (0.5, 0.25))
+        _stub_core(
+            monkeypatch, {BATCHES[0]: _row(0.8, 0.4), BATCHES[1]: _row(0.6, 0.2)}
+        )
+        monkeypatch.setattr(exam_cap, "submission_block", lambda *_a: 360)
+        ladder = _ladder_spy(monkeypatch)
+        key = common.pack_set_key(
+            common.pack_set_document(fixture.adapter.challenge_id, "1.0", BATCHES)
+        )
+        result = grading.grade_set_entry(
+            adapters,
+            batches=BATCHES,
+            set_key=key,
+            entry_id=fixture.first["entry_id"],
+            artifact_directory=fixture.artifacts,
+            entry_directory=fixture.entries,
+            runner=fixture.runner,
+        )
+        assert result["status"] == psr.SCORED
+        assert result["ladder_feedback_state"] == "RECORDED"
+        # The Ladder is recorded once, under the set key and the set's exam version.
+        ((origin, exam_key, version, gates, graded),) = ladder
+        assert origin == fixture.task_id and exam_key == key
+        assert version == "ev-1" and gates == list(GATES)
+        assert graded == result["graded"]
+        # One slot for the owner of the retained task, under the set key.
+        primary = adapters[BATCHES[0]]
+        cap = exam_cap.ExamCap(primary.ledger, cadence=primary.exam_cadence)
+        assert (
+            cap.count(hotkey="miner", challenge_id=primary.challenge_id, exam_key=key)
+            == 1
+        )
+    finally:
+        fixture.provider.close()
+
+
+def test_no_set_result_means_no_ladder_record(tmp_path, monkeypatch):
+    fixture = _retained(tmp_path, monkeypatch)
+    try:
+        adapters = _batch_adapters(fixture, tmp_path, (0.5, 0.25))
+        _stub_core(monkeypatch, {BATCHES[0]: _row(0.8, 0.4), BATCHES[1]: None})
+        monkeypatch.setattr(exam_cap, "submission_block", lambda *_a: 360)
+        ladder = _ladder_spy(monkeypatch)
+        key = common.pack_set_key(
+            common.pack_set_document(fixture.adapter.challenge_id, "1.0", BATCHES)
+        )
+        result = grading.grade_set_entry(
+            adapters,
+            batches=BATCHES,
+            set_key=key,
+            entry_id=fixture.first["entry_id"],
+            artifact_directory=fixture.artifacts,
+            entry_directory=fixture.entries,
+            runner=fixture.runner,
+        )
+        assert result["state"] == psr.UNAVAILABLE and not ladder
     finally:
         fixture.provider.close()

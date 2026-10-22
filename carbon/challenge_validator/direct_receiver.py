@@ -267,8 +267,10 @@ def _delivered_sealed(selection, challenge) -> bool:
     )
 
 
-def _sealed_pack(root, selection, challenge):
-    """Prepare once; a restart reloads its retained bytes, never the draft."""
+def _sealed_pack(root, selection, challenge, *, bound=True):
+    """Prepare once; a restart reloads its retained bytes, never the draft.
+    ``bound`` False prepares a pack that is not the receiver's bound (primary)
+    pack and never takes the retained binding's digest (a pack-set batch)."""
     from carbon.challenge_validator.evaluation_pack import load_pack, prepare_pack
 
     public_root = Path(selection["public_root"])
@@ -278,7 +280,7 @@ def _sealed_pack(root, selection, challenge):
     if binding_path.is_symlink():
         raise ValueError("receiver binding link refused")
     retained = private_json(binding_path) if binding_path.exists() else None
-    if retained is not None and "evaluation_pack_digest" in retained:
+    if bound and retained is not None and "evaluation_pack_digest" in retained:
         digest = retained["evaluation_pack_digest"]
     else:
         prepared = prepare_pack(
@@ -306,6 +308,53 @@ def _sealed_pack(root, selection, challenge):
         ),
         snapshot,
     )
+
+
+def _set_batch_adapters(cfg, root, challenge, material, discovery, providers, ledger):
+    """One trusted served adapter per batch of the configured pack set, each
+    bound to that batch's own pack (OWNER-FULL-EXAM-BANK-01). The receiver's
+    primary pack keeps its existing discovery; every other batch is prepared like
+    a pack of its own and re-checked as delivered. Keyed by the delivered
+    manifest digest (the set's batch id)."""
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.challenge_validator.sealed_pack_import import SealedPackStore
+    from carbon.development_session.research_service import DirectFixtureDiscovery
+
+    block = cfg["evaluation_pack_set"]
+    store = SealedPackStore(block["store"])
+    primary = block["batches"][0]
+    adapters = {}
+    for digest in block["batches"]:
+        if digest == primary:
+            batch_discovery = discovery
+        else:
+            directory = store.pack_directory(
+                digest, challenge.challenge_id, challenge.version
+            )
+            selection = {
+                "root": str(directory),
+                "manifest": "evaluation-pack.json",
+                "public_root": str(directory),
+                "private_root": str(directory),
+                "sealed_delivery": {"store": block["store"], "manifest_digest": digest},
+            }
+            pack_digest, pack_check, snapshot = _sealed_pack(
+                root, selection, challenge, bound=False
+            )
+            batch_discovery = DirectFixtureDiscovery(
+                material,
+                task_admission=True,
+                pack_check=pack_check,
+                evaluation_pack_digest=pack_digest,
+                evaluation_pack_snapshot=snapshot,
+                evaluation_pack_sealed=_delivered_sealed(selection, challenge),
+                evaluation_pack_public_root=Path(selection["public_root"]),
+                evaluation_pack_private_root=Path(selection["private_root"]),
+            )
+        adapters[digest] = LeanRecipeAdapter(
+            batch_discovery, providers, ledger, measure_query=cfg["measure_query"]
+        )
+    return adapters
 
 
 class ReceiverSnapshotWindow:
@@ -915,6 +964,7 @@ def serve(
     regrade=False,
     pool_store=None,
     exam_se=False,
+    grade_set=False,
 ):
     """Run the same signed intake/task loop with finite admission and owned stop."""
     from carbon.battery import challenge as battery_challenge
@@ -1146,6 +1196,26 @@ def serve(
             )
             if retention is not None:
                 task_id, artifact_directory, entry_directory = retention
+                if grade_set:
+                    # ``task_id`` is the retained bank entry to grade on the
+                    # whole configured pack set (OWNER-FULL-EXAM-BANK-01).
+                    from carbon.challenge_validator import pack_set_grading
+
+                    if "evaluation_pack_set" not in cfg:
+                        raise ReceiverUnavailable(
+                            "direct_receiver_pack_set_unconfigured"
+                        )
+                    block = cfg["evaluation_pack_set"]
+                    return pack_set_grading.grade_set_entry(
+                        _set_batch_adapters(
+                            cfg, root, challenge, material, discovery, providers, ledger
+                        ),
+                        batches=block["batches"],
+                        set_key=block["set_key"],
+                        entry_id=task_id,
+                        artifact_directory=artifact_directory,
+                        entry_directory=entry_directory,
+                    )
                 if regrade:
                     # ``task_id`` is the retained bank entry id to regrade.
                     return intake.regrade_result(
@@ -1236,11 +1306,22 @@ def main(argv=None):
         "--regrade-entry",
         help="regrade this retained bank entry on the receiver's selected pack",
     )
+    parser.add_argument(
+        "--grade-set-entry",
+        help="grade this retained bank entry on the receiver's whole configured "
+        "pack set and record the one set-level result (OWNER-FULL-EXAM-BANK-01)",
+    )
     parser.add_argument("--artifact-directory", type=Path)
     parser.add_argument("--entry-directory", type=Path)
     args = parser.parse_args(argv)
-    if args.retain_task is not None and args.regrade_entry is not None:
-        parser.error("retain a task or regrade an entry, not both")
+    if (
+        sum(
+            value is not None
+            for value in (args.retain_task, args.regrade_entry, args.grade_set_entry)
+        )
+        > 1
+    ):
+        parser.error("retain a task, regrade an entry, or grade a set entry, not more")
     if args.exam_se and args.regrade_entry is None:
         parser.error("--exam-se applies to --regrade-entry only")
     if args.pool_store is not None and (
@@ -1248,7 +1329,11 @@ def main(argv=None):
     ):
         parser.error("--pool-store applies to --retain-task or --regrade-entry")
     retention_args = (
-        args.retain_task if args.regrade_entry is None else args.regrade_entry,
+        (
+            args.grade_set_entry
+            if args.grade_set_entry is not None
+            else args.retain_task if args.regrade_entry is None else args.regrade_entry
+        ),
         args.artifact_directory,
         args.entry_directory,
     )
@@ -1281,6 +1366,7 @@ def main(argv=None):
             ready=lambda item: print(json.dumps(item), flush=True),
             retention=retention,
             regrade=args.regrade_entry is not None,
+            grade_set=args.grade_set_entry is not None,
             pool_store=args.pool_store,
             exam_se=args.exam_se,
         )
