@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import hashlib
 import json
 import os
@@ -472,6 +473,47 @@ class ReceiverSnapshotWindow:
             if self._state is None or self._state["conflict"] or self._unavailable:
                 return None
             return self._window.latest()
+
+
+#: How often a retain or regrade run reads a fresh finalized snapshot. The
+#: 60 s freshness window (`battery.intake.SNAPSHOT_MAX_AGE_S`) is part of the
+#: registration authority check and is not lengthened.
+RETENTION_REFRESH_S = 20.0
+
+
+@contextlib.contextmanager
+def retention_snapshots(window, context, reader, *, period=RETENTION_REFRESH_S):
+    """Keep fresh finalized snapshots flowing into ``window`` for a retain or
+    regrade run's whole life.
+
+    Serve mode gets fresh snapshots from the intake; a retain or regrade has no
+    intake, so a run longer than the window's freshness (60 s) would find no
+    snapshot at the provider's registration re-check and refuse with
+    ``direct_provider_registration_unavailable``. This reads a finalized
+    snapshot with the same chain reader and context as startup every
+    ``period`` seconds into the same ``ReceiverSnapshotWindow`` (which enforces
+    the durable high-water, so a lagged read never restores an earlier
+    registration), and stops with the run. A failed read keeps the previous
+    snapshots and is logged by exception type only (``battery.intake.refresher``):
+    once they age out the re-check refuses as infrastructure
+    (``Unavailable``), never as a candidate failure.
+    """
+    from carbon.battery.intake import refresher
+
+    stop = threading.Event()
+    thread = threading.Thread(
+        target=refresher,
+        args=(window, context),
+        kwargs={"reader": reader, "period": period, "stop": stop},
+        name="retention-snapshot-refresher",
+        daemon=True,
+    )
+    thread.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        thread.join(timeout=5)
 
 
 def installed_source(
@@ -1196,41 +1238,50 @@ def serve(
             )
             if retention is not None:
                 task_id, artifact_directory, entry_directory = retention
-                if grade_set:
-                    # ``task_id`` is the retained bank entry to grade on the
-                    # whole configured pack set (OWNER-FULL-EXAM-BANK-01).
-                    from carbon.challenge_validator import pack_set_grading
+                # No intake feeds snapshots in this mode: refresh them for the
+                # run's life so a run past the 60 s window keeps its authority.
+                with retention_snapshots(window, network.context, reader):
+                    if grade_set:
+                        # ``task_id`` is the retained bank entry to grade on the
+                        # whole configured pack set (OWNER-FULL-EXAM-BANK-01).
+                        from carbon.challenge_validator import pack_set_grading
 
-                    if "evaluation_pack_set" not in cfg:
-                        raise ReceiverUnavailable(
-                            "direct_receiver_pack_set_unconfigured"
+                        if "evaluation_pack_set" not in cfg:
+                            raise ReceiverUnavailable(
+                                "direct_receiver_pack_set_unconfigured"
+                            )
+                        block = cfg["evaluation_pack_set"]
+                        return pack_set_grading.grade_set_entry(
+                            _set_batch_adapters(
+                                cfg,
+                                root,
+                                challenge,
+                                material,
+                                discovery,
+                                providers,
+                                ledger,
+                            ),
+                            batches=block["batches"],
+                            set_key=block["set_key"],
+                            entry_id=task_id,
+                            artifact_directory=artifact_directory,
+                            entry_directory=entry_directory,
                         )
-                    block = cfg["evaluation_pack_set"]
-                    return pack_set_grading.grade_set_entry(
-                        _set_batch_adapters(
-                            cfg, root, challenge, material, discovery, providers, ledger
-                        ),
-                        batches=block["batches"],
-                        set_key=block["set_key"],
-                        entry_id=task_id,
-                        artifact_directory=artifact_directory,
-                        entry_directory=entry_directory,
-                    )
-                if regrade:
-                    # ``task_id`` is the retained bank entry id to regrade.
-                    return intake.regrade_result(
+                    if regrade:
+                        # ``task_id`` is the retained bank entry id to regrade.
+                        return intake.regrade_result(
+                            task_id,
+                            artifact_directory=artifact_directory,
+                            entry_directory=entry_directory,
+                            promotion=_open_pool_store(pool_store),
+                            exam_se=exam_se,
+                        )
+                    return intake.retain_result(
                         task_id,
                         artifact_directory=artifact_directory,
                         entry_directory=entry_directory,
-                        promotion=_open_pool_store(pool_store),
-                        exam_se=exam_se,
+                        pool_store=_open_pool_store(pool_store),
                     )
-                return intake.retain_result(
-                    task_id,
-                    artifact_directory=artifact_directory,
-                    entry_directory=entry_directory,
-                    pool_store=_open_pool_store(pool_store),
-                )
             timer.start()
             serve_loopback(
                 intake,
