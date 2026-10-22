@@ -3607,12 +3607,27 @@
       if (document.status === "PUBLIC_CONTRACT_UNAVAILABLE") researchNote(target, "The public construction contract is unavailable. Changed constructions stay closed.", "reason");
     });
   }
+  let wizardAllChallenges = false;
   function renderWizardChallenges() {
     renderConstructionOptions();
     const target = $("wizard-challenges");
     if (!caps) { rebuild(target, "none", node => node.append(el("p", "Connect to read the Challenge registry.", "hint"))); $("wizard-challenge-description").replaceChildren(); $("wizard-challenge-description").dataset.key = ""; return; }
-    rebuild(target, JSON.stringify([capsVersion, caps.challenges.map(entry => [entry.challenge_id, entry.version, entry.selectable]), connected]), node => {
-      for (const entry of caps.challenges) {
+    // U14: the launchable newest version of each Challenge first; older
+    // versions and unavailable Challenges behind one "show all" control.
+    const newer = (a, b) => { const x = String(a || "").split(".").map(Number), y = String(b || "").split(".").map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
+    const newest = {};
+    for (const entry of caps.challenges) if (entry.selectable && (!newest[entry.challenge_id] || newer(entry.version, newest[entry.challenge_id].version))) newest[entry.challenge_id] = entry;
+    const chosen = challengeEntry(wizard.challenge);
+    const primary = caps.challenges.filter(entry => newest[entry.challenge_id] === entry || entry === chosen);
+    const listed = wizardAllChallenges || !primary.length ? caps.challenges : primary;
+    rebuild(target, JSON.stringify([capsVersion, caps.challenges.map(entry => [entry.challenge_id, entry.version, entry.selectable]), connected, listed.length]), node => {
+      if (caps.challenges.length > primary.length && primary.length) {
+        const toggle = el("button", wizardAllChallenges ? "Show only the newest launchable versions" : "Show every version and unavailable Challenge (" + (caps.challenges.length - primary.length) + " more)");
+        toggle.type = "button"; toggle.id = "wizard-all-challenges";
+        toggle.addEventListener("click", () => { wizardAllChallenges = !wizardAllChallenges; render(); });
+        node.append(toggle);
+      }
+      for (const entry of listed) {
         const label = el("label", undefined, "choice" + (entry.selectable ? "" : " unavailable"));
         const input = el("input"); input.type = "radio"; input.name = "wizard-challenge"; input.value = entry.challenge_id;
         input.dataset.version = entry.version || "";
