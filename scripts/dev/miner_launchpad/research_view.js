@@ -1304,6 +1304,28 @@
     journey.hidden = !journey.children.length;
     part(panel, "outcomes", JSON.stringify(doc.outcomes), box => drawOutcomes(box, doc), "rs-outcomes-part", "div");
   }
+  // Submitted → Received → Rebuilt → Graded, each from what the record says
+  // and no further: a stage the record does not reach is "not yet", and an
+  // unreadable record says so rather than guessing (U48).
+  const REBUILT = ["RECONSTRUCTED", "SCORED", "SCREENED", "ELIGIBLE", "FINALIST", "PROMOTED"];
+  function timeline(box, o, doc) {
+    const r = o.result || {};
+    const state = typeof r.state === "string" ? r.state.toUpperCase() : null;
+    const submitted = (doc.journey?.submitted_epochs || []).includes(o.epoch) || o.status !== undefined;
+    const unreadable = o.status === "READBACK_UNAVAILABLE";
+    const received = !unreadable && (o.status === "VALIDATOR_OUTCOME" || o.status === "MULTI_VALIDATOR_OUTCOME" || o.status === "VERIFIED_SOURCE");
+    const rebuilt = received && (state === null ? o.status !== "VALIDATOR_OUTCOME" : REBUILT.includes(state));
+    const graded = received && (state === "SCORED" || typeof (r.screening || {}).score === "number" || o.status === "VERIFIED_SOURCE");
+    const list = el("ol", undefined, "outcome-timeline");
+    for (const [label, done] of [["Submitted", submitted], ["Received", received], ["Rebuilt", rebuilt], ["Graded", graded]]) {
+      const item = el("li", undefined, done ? "done" : "pending");
+      item.append(el("span", done ? "✓" : unreadable && label !== "Submitted" ? "?" : "·", "mark"), el("span", label));
+      list.append(item);
+    }
+    box.append(list);
+    if (unreadable) para(box, "Submitted. What the validator did next could not be read back from this machine.", "hint");
+    else if (received && !graded) para(box, "Your recipe was received and rebuilt from scratch" + (rebuilt ? "" : " (rebuild not yet confirmed)") + ". It is not graded here: no score is shown for this campaign's feedback mode.", "hint");
+  }
   function drawOutcomes(panel, doc) {
     const box = section(panel, "DEVELOPMENT outcomes", "Validator");
     if (!doc.outcomes.length) para(box, "No DEVELOPMENT outcome yet.", "empty-state");
@@ -1318,6 +1340,7 @@
       if (r.disposition) line.push(words(r.disposition).toLowerCase());
       if (typeof r.accepted_development_improvement === "boolean") line.push("accepted DEVELOPMENT improvement: " + r.accepted_development_improvement);
       para(box, line.join(" · "), "status-line");
+      timeline(box, o, doc);
       if (r.withheld) para(box, "Withheld: " + r.withheld, "hint");
       // U53: a direct campaign's grade, by the display rule, and the miner's
       // own signed re-read while none has arrived (Validator-approved).
