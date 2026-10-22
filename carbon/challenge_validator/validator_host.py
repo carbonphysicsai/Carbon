@@ -267,13 +267,7 @@ def fetch_exams(
 
 
 def _development_install(installed_state: Path) -> bool:
-    """Whether this install carries an explicit DEVELOPMENT candidate profile
-    (`install_validator.sh --development-candidate ...`)."""
-    from scripts.dev.miner_launchpad import installed
-
-    return (
-        installed.candidate_implementation(installed_state, repository=REPO) is not None
-    )
+    return receiver_setup.development_install(installed_state, repository=REPO)
 
 
 def setup(

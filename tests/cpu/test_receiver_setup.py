@@ -57,6 +57,9 @@ def installed_state(tmp_path):
 def faked(monkeypatch):
     from scripts.dev.miner_launchpad import runner
 
+    # A built pack (--pack) is a development install's (E4 condition 2).
+    monkeypatch.setattr(receiver_setup, "development_install", lambda *a, **k: True)
+
     monkeypatch.setattr(runner, "validated_profile", lambda profile: profile)
     monkeypatch.setattr(
         direct_receiver,
@@ -400,3 +403,22 @@ def test_a_receiver_without_an_exam_never_becomes_a_service(
     shown = receiver_setup.status(state, run=Run(), fetch=lambda url: {})
     assert shown["status"] == "RECEIVER_NOT_HEALTHY"
     assert shown["exam"] == "evaluation_pack_missing"
+
+
+def test_a_built_pack_needs_an_explicit_development_install(
+    tmp_path, installed_state, faked, monkeypatch
+):
+    # Validator, E4 condition 2: an operator-built pack never serves as an
+    # official exam; nothing is written.
+    monkeypatch.setattr(receiver_setup, "development_install", lambda *a, **k: False)
+    with pytest.raises(
+        receiver_setup.SetupRefused, match="built_packs_development_only"
+    ):
+        _prepare(tmp_path, installed_state, pack=_pack(tmp_path))
+    assert not (tmp_path / "receiver-state" / "environment").exists()
+
+
+def test_an_install_without_a_development_pin_is_not_a_development_install(
+    installed_state,
+):
+    assert receiver_setup.development_install(installed_state) is False

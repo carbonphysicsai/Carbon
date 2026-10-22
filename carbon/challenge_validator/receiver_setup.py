@@ -214,6 +214,17 @@ def _stored_pack_set(store: Path, set_key: str, challenge: dict):
     return block, first_digest, first_directory
 
 
+def development_install(installed_state: Path, *, repository: Path = REPO) -> bool:
+    """Whether this install carries an explicit DEVELOPMENT candidate profile
+    (`install_validator.sh --development-candidate ...`)."""
+    from scripts.dev.miner_launchpad import installed
+
+    return (
+        installed.candidate_implementation(installed_state, repository=repository)
+        is not None
+    )
+
+
 def prepare(
     *,
     installed_state: Path,
@@ -257,6 +268,16 @@ def prepare(
             "images_not_installed",
             "run scripts/install_validator.sh (or install_miner.sh) first; no "
             "installed worker and analysis images are recorded.",
+        )
+    if pack is not None and not development_install(
+        installed_state, repository=repository
+    ):
+        # An operator-built pack never serves as an official exam (Validator,
+        # E4 condition 2); a delivered pack comes from --pack-store.
+        raise SetupRefused(
+            "built_packs_development_only",
+            "--pack is for development installs only (an explicit DEVELOPMENT "
+            "candidate profile); take the delivered exam with --pack-store.",
         )
     chosen = (
         (pack is not None)
