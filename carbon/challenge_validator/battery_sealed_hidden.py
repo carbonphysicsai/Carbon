@@ -3,10 +3,10 @@
 The family's values (Validator, 2026-10-22), as F02's and F08's:
 - producer id `battery-sealed-exam`: a producer-only id, never a registry
   Challenge; the batches serve whichever Battery version the owner launches;
-- population: fresh uniform draws over the hull of the 2.0 material's 420-grid
-  region (`carbon.battery_sealed.population`), disjoint from every published
-  Battery case;
-- 8 cases per batch, served kind `screening`;
+- population: 4 fresh scenarios from the 420 grid's scenario hull, crossed with
+  EV4's 35 frozen candidates (`carbon.battery_sealed.population`), disjoint from
+  EV4's scenarios and every published Battery case;
+- 140 cases per batch (4 scenarios x EV4's 35 candidates), served kind `screening`;
 - rotation: one active version, at most 90 days (648,000 blocks);
 - the rule cites the pack and the sealed evaluation version and never
   restates scoring;
@@ -16,7 +16,7 @@ The family's values (Validator, 2026-10-22), as F02's and F08's:
   reimplemented;
 - a sealed batch is graded as a private evaluation pack in the development
   pack's format (`carbon.challenge_kit.battery_sealed_pack`) by
-  `battery-dual-sealed-batch-8-v1`. There is no second scoring path.
+  `battery-dual-sealed-grid-4x35-v1` (A and D over the batch's own 4 scenarios). There is no second scoring path.
 
 DEVELOPMENT only: no qualification, weight, reward or LIVE authority.
 """
@@ -36,7 +36,7 @@ RULE_SCHEMA = "carbon.battery.sealed-pool-rule.v1"
 DOCUMENT_SCHEMA = "carbon.battery.sealed-batch.v1"
 DEPLOYMENT_SCHEMA = "carbon.battery.sealed-deployment.v1"
 STORE_SCHEMA = "carbon.battery.sealed-store.v1"
-AUTHORITY = "VALIDATOR_BATTERY_SEALED_RULINGS_20261022"
+AUTHORITY = "OWNER-BATTERY-EXAM-GRID-01"
 #: The pinned truth image's digest (`carbon.battery.truth.TRUTH_IMAGE`; a test
 #: pins the two equal). Its PyBaMM overlay is pinned by the lock whose sha256
 #: every record carries (`overlay_lock_sha256`).
@@ -44,11 +44,11 @@ SOLVER_IMAGE = "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b3
 RUNNER = Path("scripts/dev/battery/battery_exam_runner.py")
 TERMINAL = ("OK", "REFERENCE_SOLVER_FAILED", "REFERENCE_TIMEOUT")
 KINDS = ("screening",)
-BATCH_CASES = 8
+BATCH_CASES = 140  # 4 scenarios x EV4's 35 candidates (OWNER-BATTERY-EXAM-GRID-01)
 ROTATION_EVERY_BLOCKS = 648_000  # the 90-day maximum
 ACTIVE_BATCHES = 1
 PACK_VERSION = "battery-sealed-development-1"
-EVALUATION_VERSION = "battery-dual-sealed-batch-8-v1"
+EVALUATION_VERSION = "battery-dual-sealed-grid-4x35-v1"
 LABELS = ("FEASIBLE", "INFEASIBLE", "UNRESOLVED")
 VOLTAGE_POINTS = 121
 CAPACITY_POINTS = 4
@@ -95,7 +95,8 @@ def hidden_rule(repository=REPOSITORY):
         },
         "population": {
             "version": POPULATION_VERSION,
-            "law": "420-grid hull, fresh uniform draws",
+            "law": "placed grid: 4 fresh scenarios x EV4 35 candidates",
+            "grid": {"scenarios": 4, "candidates": 35},
         },
         "solver_image": SOLVER_IMAGE,
         "plating": {"reference": "battery-plating-ref-v2", "mesh": MESH},
@@ -119,7 +120,7 @@ def _finite(value):
 def check_document(document):
     """A sealed batch document's shape and admissibility: `{case_id: inputs}`."""
     from carbon.battery_sealed.domain import INPUTS
-    from carbon.battery_sealed.population import admitted
+    from carbon.battery_sealed.population import admitted, scenarios_of
 
     if (
         type(document) is not dict
@@ -147,6 +148,7 @@ def check_document(document):
         ):
             raise ValueError("case")
         cases[case["case_id"]] = case["inputs"]
+    scenarios_of(list(cases.values()))  # a full 4 x 35 grid on EV4's candidates
     return cases
 
 

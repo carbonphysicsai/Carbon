@@ -21,7 +21,7 @@ authority. The output is private; it is never written to a public surface.
 
 from __future__ import annotations
 
-COHORT = "decision_sealed"
+COHORT = "decision_sealed_grid"
 POPULATION = "SEALED_EXAM_BATCH_BATTERY_GRID_HULL"
 EVIDENCE_SCHEMA = "carbon.battery.sealed-batch-evidence.v1"
 
@@ -46,6 +46,7 @@ def sealed_bank(document, records) -> dict:
 
     from carbon.battery import domain
     from carbon.challenge_kit.battery_pack import _flat
+    from carbon.battery_sealed.population import candidates, scenarios_of
     from carbon.challenge_validator import battery_sealed_hidden as hidden
 
     try:
@@ -77,6 +78,16 @@ def sealed_bank(document, records) -> dict:
         references.append(_flat(record["outputs"]))
     if sides != {"FEASIBLE", "INFEASIBLE"}:
         raise SealedPackRefused("battery_sealed_no_straddle")
+    # each record names its grid cell, which the dual adapter's D groups by
+    scenario_of = {s: f"scenario-{i}" for i, s in enumerate(scenarios_of(list(cases.values())))}
+    candidate_of = {(c["c1"], c["c2"]): c["id"] for c in candidates()}
+    for case_id in case_ids:
+        x = cases[case_id]
+        by_case[case_id] = {
+            **by_case[case_id],
+            "scenario_id": scenario_of[(x["t_amb_c"], x["soc0"])],
+            "candidate_id": candidate_of[(x["c1"], x["c2"])],
+        }
     x = np.asarray(rows, dtype=np.float64)
     y = np.asarray(references, dtype=np.float64)
     if (
