@@ -192,3 +192,21 @@ def test_archived_level_arm_key_replays_only_exactly_after_restart(
         ]
         == "construction_selector_retired"
     )
+
+
+def test_the_level_check_still_refuses_a_direct_campaign_if_reached(monkeypatch):
+    # Submit skips the Level-0 level check for a direct campaign (H9); the
+    # check itself still refuses one, so no path signs a level for it.
+    from types import SimpleNamespace
+
+    import pytest
+
+    from scripts.dev.miner_launchpad import levels
+    from scripts.dev.miner_launchpad.controller import Rejected
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    monkeypatch.setattr(levels, "campaign_is_direct", lambda row, cfg: True)
+    admitted = SimpleNamespace(campaign={"root": "/nonexistent"}, profile={})
+    with pytest.raises(Rejected) as refused:
+        RunnerAdapter._require_level_served(None, admitted)
+    assert refused.value.code == "construction_submission_unserved"
