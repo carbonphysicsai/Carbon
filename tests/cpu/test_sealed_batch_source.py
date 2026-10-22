@@ -52,9 +52,7 @@ def _resolve(snapshot, root):
         version=VERSION,
         selected_pack=snapshot,
         private_root=root,
-        development_adapter=dev.adapter(VERSION)
-        if hasattr(dev, "adapter")
-        else None,
+        development_adapter=dev.adapter(VERSION) if hasattr(dev, "adapter") else None,
     )
 
 

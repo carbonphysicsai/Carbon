@@ -135,7 +135,11 @@ def resolve(*, challenge, version, selected_pack, private_root, development_adap
     if pinned is None:
         return None
     development = physical_pack.development_bank(challenge, version)
-    if "sha256:" + hashlib.sha256(kit.private_roles(development)["case_bank"]).hexdigest() == pinned:
+    if (
+        "sha256:"
+        + hashlib.sha256(kit.private_roles(development)["case_bank"]).hexdigest()
+        == pinned
+    ):
         return None
     carried = read_batch(private_root)
     if carried is None:
@@ -144,7 +148,9 @@ def resolve(*, challenge, version, selected_pack, private_root, development_adap
         bank = _build(challenge, kit, carried[0], carried[1], version)
     except ValueError as exc:  # SealedPackRefused is a ValueError
         raise SealedBankRefused("sealed_bank_malformed") from exc
-    rebuilt = "sha256:" + hashlib.sha256(kit.private_roles(bank)["case_bank"]).hexdigest()
+    rebuilt = (
+        "sha256:" + hashlib.sha256(kit.private_roles(bank)["case_bank"]).hexdigest()
+    )
     if rebuilt != pinned:
         raise SealedBankRefused("sealed_bank_mismatch")
     adapter = _adapter(challenge, bank, version, development_adapter)
