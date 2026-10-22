@@ -67,7 +67,7 @@ DEFAULT_BASE_PORT = receiver_setup.DEFAULT_PORT
 PUBLISHED = "scripts/dev/miner_launchpad/published_endpoints.json"
 EXAM_SOURCE_SCHEMA = "carbon.validator-host.exam-source.v2"
 EXAM_PRODUCER = Path(__file__).with_name("exam_producer.json")
-EXAM_PRODUCER_SCHEMA = "carbon.validator.exam-producer.v1"
+EXAM_PRODUCER_SCHEMA = "carbon.validator.exam-producer.v2"
 EXAMS_DIRECTORY = "exams"
 
 
@@ -126,8 +126,17 @@ def read_host(installed_state: Path):
     return value
 
 
-def pinned_producer_key(path: Path | None = None) -> str:
-    """The release-pinned producer public key, or a typed refusal."""
+def installed_network() -> str:
+    """The network this install's receivers bind, as ``NETWORK-NETUID``."""
+    from carbon.development_session.chain_onboarding import carbon_testnet_context
+
+    context = carbon_testnet_context()
+    return f"{context.network}-{context.netuid}"
+
+
+def pinned_producer_key(path: Path | None = None, *, network: str | None = None) -> str:
+    """The release-pinned producer public key for the installed network, or a
+    typed refusal: a key pinned for another network is never trusted."""
     import re
 
     try:
@@ -135,8 +144,12 @@ def pinned_producer_key(path: Path | None = None) -> str:
         key = value["producer_public_key"]
         if (
             type(value) is not dict
-            or set(value) != {"schema", "about", "producer_public_key"}
+            or set(value)
+            != {"schema", "about", "decision", "network", "producer_public_key"}
             or value["schema"] != EXAM_PRODUCER_SCHEMA
+            or type(value["network"]) is not str
+            or type(value["decision"]) is not str
+            or not value["decision"]
         ):
             raise ValueError("malformed")
     except (OSError, ValueError, KeyError, TypeError):
@@ -154,6 +167,13 @@ def pinned_producer_key(path: Path | None = None) -> str:
         raise SetupRefused(
             "exam_producer_registry_invalid",
             "this Carbon release's exam producer key is malformed; reinstall.",
+        )
+    installed = installed_network() if network is None else network
+    if value["network"] != installed:
+        raise SetupRefused(
+            "exam_producer_wrong_network",
+            f"this release's exam producer key is for {value['network']}, not "
+            f"this install's {installed}; no exam can be verified here.",
         )
     return key
 

@@ -1,5 +1,7 @@
 {
-  "about": "The producer public key that signs Carbon's sealed exams, pinned in the release a validator installs (Validator, E4 condition 1). A validator accepts exam packages signed by this key only; an exam-source file never supplies it. null: no key is registered yet (owner decision O-KEY), so fetching exams refuses (exam_producer_unregistered). Changed only by review.",
+  "about": "The producer public key that signs Carbon's sealed exams on one network, pinned in the release a validator installs (Validator, E4 condition 1). A validator accepts exam packages signed by this key only, and only on this network: an install on any other network refuses it (exam_producer_wrong_network), so a mainnet install never trusts the testnet key. An exam-source file never supplies a key. Set by the decision named here; changed only by a reviewed commit.",
+  "decision": "OWNER-TESTNET-EXAM-KEYS-01",
+  "network": "testnet-567",
   "producer_public_key": "375e792210bf352ae3b331b9f5055414a05480fb9ab0b8a891585c435060ec17",
-  "schema": "carbon.validator.exam-producer.v1"
+  "schema": "carbon.validator.exam-producer.v2"
 }

@@ -457,3 +457,29 @@ def test_the_release_pins_the_testnet_exam_producer_key():
     key = validator_host.pinned_producer_key()
     assert key == "375e792210bf352ae3b331b9f5055414a05480fb9ab0b8a891585c435060ec17"
     assert key_id(key) == "carbon-producer-8d358757cf077562"
+    registry = json.loads(validator_host.EXAM_PRODUCER.read_bytes())
+    assert registry["network"] == "testnet-567"
+    assert registry["decision"] == "OWNER-TESTNET-EXAM-KEYS-01"
+    assert validator_host.installed_network() == "testnet-567"
+
+
+@pytest.mark.parametrize("network", ["finney-64", "testnet-1", "mainnet-567"])
+def test_a_key_pinned_for_another_network_is_never_trusted(network):
+    # A mainnet (or any other) install never trusts the testnet exam key.
+    with pytest.raises(
+        receiver_setup.SetupRefused, match="exam_producer_wrong_network"
+    ):
+        validator_host.pinned_producer_key(network=network)
+
+
+def test_a_record_without_its_network_or_decision_is_refused(tmp_path):
+    registry = json.loads(validator_host.EXAM_PRODUCER.read_bytes())
+    for dropped in ("network", "decision"):
+        record = tmp_path / f"no-{dropped}.json"
+        record.write_text(
+            json.dumps({k: v for k, v in registry.items() if k != dropped})
+        )
+        with pytest.raises(
+            receiver_setup.SetupRefused, match="exam_producer_registry_invalid"
+        ):
+            validator_host.pinned_producer_key(record)
