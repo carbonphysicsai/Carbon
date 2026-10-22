@@ -304,21 +304,129 @@ def test_a_version_taking_no_source_kind_says_so(monkeypatch):
 # ---- G5c. dry_validate and compile_strategy name strategy_json.
 
 
-def test_a_graph_recipe_s_dataset_is_named_as_a_forbidden_strategy_form():
+GRAPH_VERSIONS = [("f08-ribbed-bracket", "1.4"), ("f02", "2.3")]
+
+
+def _graph_recipe(challenge_id, version):
     from carbon.challenge_registry.direct import graph_recipe
     from carbon.direct_campaign.spec import SPECS
 
-    recipe = graph_recipe(SPECS["f02"], "sha256:" + "a" * 64, version="2.3")
-    assert forbidden_strategy_forms(recipe) == ("dataset",)
-    key = _direct_key("f02", "2.3")
-    for constructor in (research.DryValidateRequest,):
-        with pytest.raises(TaskContractMismatch) as raised:
-            research_tools._strategy_request(constructor, key, recipe)
-        assert raised.value.args == (
-            "strategy_control_field_forbidden",
-            "strategy_json",
+    return graph_recipe(SPECS[challenge_id], "sha256:" + "a" * 64, version=version)
+
+
+@pytest.mark.parametrize(("challenge_id", "version"), GRAPH_VERSIONS)
+def test_a_graph_recipe_naming_its_registered_train_use_builds(challenge_id, version):
+    """Validator, 2026-10-22: procedure.train_use.dataset holding exactly the
+    served version's registered TRAIN use id passes the wire's key ban."""
+    from carbon.development_session import physical_graph_adapter
+
+    recipe = _graph_recipe(challenge_id, version)
+    registered = physical_graph_adapter.adapter_block(challenge_id, version)
+    assert recipe["procedure"]["train_use"]["dataset"] == (
+        registered["train_use_dataset"]
+    )
+    key = _direct_key(challenge_id, version)
+    request = research.DryValidateRequest(key, recipe)
+    assert request.strategy == recipe
+    # The research tools build it too, and the wire decodes it back.
+    built = research_tools._strategy_request(research.DryValidateRequest, key, recipe)
+    from carbon.research.canonical import load_canonical
+
+    assert (
+        load_canonical(research.canonical_bytes(built), research.DryValidateRequest)
+        == built
+    )
+    # The same exemption on every keyed strategy request.
+    from carbon.research import model
+
+    assert model._registered_train_use(key, recipe) == registered["train_use_dataset"]
+    assert model._KEYED_STRATEGY_REQUESTS == {
+        constructor.__name__
+        for constructor in (
+            research.DryValidateRequest,
+            research.CompileStrategyRequest,
+            research.InspectResourcesRequest,
+            research.ForecastResourcesRequest,
         )
-        assert raised.value.choices == ("dataset",)
+    }
+
+
+def _refused_form(key, strategy):
+    with pytest.raises(TaskContractMismatch) as raised:
+        research_tools._strategy_request(research.DryValidateRequest, key, strategy)
+    assert raised.value.args == ("strategy_control_field_forbidden", "strategy_json")
+    return raised.value.choices
+
+
+@pytest.mark.parametrize(("challenge_id", "version"), GRAPH_VERSIONS)
+def test_a_wrong_train_use_id_is_refused(challenge_id, version):
+    key = _direct_key(challenge_id, version)
+    recipe = _graph_recipe(challenge_id, version)
+    for wrong in ("another-train", recipe["procedure"]["train_use"]["dataset"] + "x"):
+        recipe["procedure"]["train_use"]["dataset"] = wrong
+        assert _refused_form(key, recipe) == ("dataset",)
+    # Another version's registered id is another value: refused here.
+    other = next(v for v in GRAPH_VERSIONS if v != (challenge_id, version))
+    recipe["procedure"]["train_use"]["dataset"] = _graph_recipe(*other)["procedure"][
+        "train_use"
+    ]["dataset"]
+    assert _refused_form(key, recipe) == ("dataset",)
+    # A non-text value is never the id.
+    recipe["procedure"]["train_use"]["dataset"] = ["x"]
+    assert _refused_form(key, recipe) == ("dataset",)
+
+
+@pytest.mark.parametrize(("challenge_id", "version"), GRAPH_VERSIONS)
+def test_dataset_anywhere_else_is_still_refused(challenge_id, version):
+    key = _direct_key(challenge_id, version)
+    registered = _graph_recipe(challenge_id, version)["procedure"]["train_use"][
+        "dataset"
+    ]
+
+    def placed(edit):
+        recipe = _graph_recipe(challenge_id, version)
+        edit(recipe)
+        return recipe
+
+    elsewhere = [
+        # The right id at another path.
+        lambda r: r["procedure"]["configuration"].update(dataset=registered),
+        lambda r: r.update(dataset=registered),
+        lambda r: r["procedure"]["configuration"].update(
+            training={"dataset": registered}
+        ),
+        # Another spelling of the key at the admitted path.
+        lambda r: r["procedure"]["train_use"].update(Dataset=registered),
+        lambda r: r["procedure"]["train_use"].update(data_set=registered),
+        # The admitted dict itself reached by a second path.
+        lambda r: r["procedure"]["configuration"].update(
+            copy=r["procedure"]["train_use"]
+        ),
+    ]
+    for edit in elsewhere:
+        assert "dataset" in _refused_form(key, placed(edit))
+    # Every other forbidden form stays refused, at the admitted path too.
+    for name in ("seed", "path", "reference", "url"):
+        recipe = placed(
+            lambda r, name=name: r["procedure"]["train_use"].update({name: "x"})
+        )
+        assert _refused_form(key, recipe) == (name,)
+
+
+def test_the_exemption_needs_a_recipe_a_registered_version_and_a_keyed_request():
+    recipe = _graph_recipe("f02", "2.3")
+    # Not a construction recipe: the ban stands.
+    assert _refused_form(_direct_key("f02", "2.3"), {**recipe, "schema": "x"}) == (
+        "dataset",
+    )
+    # A version with no registered graph adapter: the ban stands.
+    assert _refused_form(_direct_key("f02", "2.2"), recipe) == ("dataset",)
+    assert _refused_form(research.ChallengeKey("motor", "1.2"), recipe) == ("dataset",)
+    # A record with no Challenge key (a legacy practice spec): the ban stands.
+    from carbon.research.model import ForbiddenControlField
+
+    with pytest.raises(ForbiddenControlField):
+        research.PracticeTaskSpec(recipe, None)
     # A strategy with no refused key builds as before.
     assert forbidden_strategy_forms({"backbone": "fno"}) == ()
 

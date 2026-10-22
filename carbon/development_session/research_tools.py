@@ -182,14 +182,13 @@ TASK_CORRECTIONS = {
         "characters, stated before the result is known."
     ),
     "strategy_control_field_forbidden": (
-        "strategy_json holds a key the research request refuses anywhere in a "
-        "strategy (a data, path, seed, reference, scoring, key or context "
-        "control); the forms it matched are listed below. A graph recipe's "
-        "procedure.train_use.dataset is one, so dry_validate, "
-        "compile_strategy, inspect_resources and forecast_resources cannot "
-        "carry a graph recipe: practise it instead (start_research_task "
-        "kind=practice), which checks the version's recipe rule before "
-        "anything starts or is charged."
+        "strategy_json holds a key the research request refuses in a strategy "
+        "(a data, path, seed, reference, scoring, key or context control); the "
+        "forms it matched are listed below. The one exception: a construction "
+        "recipe's procedure.train_use.dataset holding exactly this version's "
+        "registered TRAIN use id (the graph adapter's train_use_dataset, as "
+        "the scaffold_recipe graph template carries it). Any other value, or "
+        "dataset anywhere else, is refused."
     ),
     "tool_value_invalid": (
         "This argument's value is outside what the tool's schema allows; the "
@@ -1040,11 +1039,13 @@ def _strategy_request(constructor, *args):
     try:
         return constructor(*args)
     except ForbiddenControlField:
-        strategy = next(a for a in args if type(a) is dict)
+        from carbon.research.model import _registered_train_use
+
+        key, strategy = args[0], next(a for a in args if type(a) is dict)
         raise TaskContractMismatch(
             "strategy_control_field_forbidden",
             "strategy_json",
-            forbidden_strategy_forms(strategy),
+            forbidden_strategy_forms(strategy, _registered_train_use(key, strategy)),
         ) from None
 
 
@@ -1056,22 +1057,36 @@ def strategy_forbidden_forms():
     return model._FORBIDDEN_SCIENTIFIC_CONTROL_FORMS | model._CONTEXT_SELECTION_FORMS
 
 
-def forbidden_strategy_forms(strategy):
+def forbidden_strategy_forms(strategy, train_use=None):
     """The refused forms (`strategy_forbidden_forms`) some key of `strategy`,
-    at any depth, matches as the wire compares them, sorted."""
+    at any depth, matches as the wire compares them, sorted. `train_use`, the
+    request's registered TRAIN use id, leaves out the one `dataset` the wire
+    admits: at exactly procedure.train_use of a construction recipe, holding
+    exactly that id (`carbon.research.model`)."""
     forms = strategy_forbidden_forms()
-    found, stack = set(), [strategy]
+    admitted = ("procedure", "train_use")
+    found, stack = set(), [(strategy, ())]
     while stack:
-        current = stack.pop()
+        current, path = stack.pop()
         if type(current) is dict:
             for key, child in current.items():
-                if type(key) is str:
-                    form = re.sub(r"[-_ ]+", "", key).casefold()
-                    if form in forms:
-                        found.add(form)
-                stack.append(child)
+                if type(key) is not str:
+                    continue
+                form = re.sub(r"[-_ ]+", "", key).casefold()
+                if form in forms and not (
+                    key == "dataset"
+                    and path == admitted
+                    and train_use is not None
+                    and child == train_use
+                    and type(child) is str
+                    and type(strategy) is dict
+                    and strategy.get("schema") == "carbon.construction-recipe.v1"
+                ):
+                    found.add(form)
+                below = path + (key,) if path is not None else None
+                stack.append((child, below))
         elif type(current) is list:
-            stack.extend(current)
+            stack.extend((child, None) for child in current)
     return tuple(sorted(found))
 
 
