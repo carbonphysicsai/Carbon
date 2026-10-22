@@ -48,9 +48,18 @@ def _spec(key):
     return CHALLENGES[key]
 
 
+def _population(key):
+    """The Challenge's exam population module: a static dispatch (no dynamic import)."""
+    if key == "f02":
+        from carbon.f02 import population
+    else:
+        raise SystemExit(f"u_coverage: no population for {key!r} yet")
+    return population
+
+
 def plan(key, out):
     spec = _spec(key)
-    module = importlib.import_module(spec["population"])
+    module = _population(key)
     cases, tries = module.draw(random.Random(SEED), CASES)
     document = {
         "batch": f"{key}-u-coverage",
