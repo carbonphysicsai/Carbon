@@ -463,3 +463,148 @@ def test_a_stored_v1_document_that_showed_a_and_d_is_not_served(store):
     fresh = _record(store, _scored(0.61, 0.31, 0.91))
     assert fresh["status"] == "IMPROVED" and "A" not in fresh and "D" not in fresh
     assert set(store.served("5Miner", MOTOR, EXAM)["best"]) == gf.FIELDS
+
+
+# --- v3: the document names the submission it is about --------------------------------
+
+RECIPE_A = "sha256:" + "a" * 64
+RECIPE_B = "sha256:" + "b" * 64
+
+
+def _record_about(store, graded, recipe, epoch, **kw):
+    return store.record(
+        kw.pop("hotkey", "5Miner"),
+        MOTOR,
+        kw.pop("exam", EXAM),
+        graded,
+        exam_version="motor-exam-1",
+        gates=GATES,
+        rebuild_noise=None,
+        recipe_digest=recipe,
+        epoch=epoch,
+    )
+
+
+def test_a_v3_document_names_its_recipe_and_epoch_and_v2_is_unchanged(store):
+    v3 = _record_about(store, _scored(0.60, 0.30, 0.90), RECIPE_A, 7)
+    assert v3["schema"] == gf.SCHEMA_V3
+    assert set(v3) == gf.FIELDS_V3
+    assert (v3["recipe_digest"], v3["epoch"], v3["total"]) == (RECIPE_A, 7, 0.6)
+    served = store.served("5Miner", MOTOR, EXAM)
+    assert served["best"] == served["latest"] == v3
+    # A caller that names neither gets the unchanged v2 document.
+    v2 = _record(store, _scored(0.90, 0.5, 0.9), exam="sha256:" + "f" * 64)
+    assert v2["schema"] == gf.SCHEMA and set(v2) == gf.FIELDS
+
+
+def test_a_newer_ungraded_submit_does_not_wear_the_earlier_grade(store):
+    """The page shows a grade only on the submit whose recipe digest matches."""
+    first = _record_about(store, _scored(0.60, 0.30, 0.90), RECIPE_A, 7)
+    second = _record_about(
+        store,
+        {"status": "FAILED_INFRA"},
+        RECIPE_B,
+        8,
+    )
+    assert second["status"] == "NOT_SCORED" and second["total"] is None
+    assert (second["recipe_digest"], second["epoch"]) == (RECIPE_B, 8)
+    served = store.served("5Miner", MOTOR, EXAM)
+    # The latest is about the newer submit and shows no grade; the best is still
+    # the first submit's, under its own recipe.
+    assert served["latest"] == second
+    assert served["best"] == first and served["best"]["recipe_digest"] == RECIPE_A
+
+
+def test_a_non_improvement_repeats_the_best_total_under_the_new_submit(store):
+    _record_about(store, _scored(0.60, 0.30, 0.90), RECIPE_A, 7)
+    again = _record_about(store, _scored(0.61, 0.31, 0.91), RECIPE_B, 8)
+    assert again["status"] == "NO_IMPROVEMENT" and again["total"] == 0.6
+    assert (again["recipe_digest"], again["epoch"]) == (RECIPE_B, 8)
+
+
+def test_a_v2_best_is_stepped_by_a_v3_grade_and_back(store):
+    _record(store, _scored(0.60, 0.30, 0.90))
+    better = _record_about(store, _scored(0.70, 0.35, 0.95), RECIPE_A, 9)
+    assert better["status"] == "IMPROVED" and better["schema"] == gf.SCHEMA_V3
+    later = _record(store, _scored(0.71, 0.36, 0.96))
+    assert later["status"] == "NO_IMPROVEMENT" and later["schema"] == gf.SCHEMA
+    assert later["total"] == 0.7
+
+
+@pytest.mark.parametrize(
+    "recipe,epoch",
+    [
+        (RECIPE_A, None),
+        (None, 3),
+        ("not-a-digest", 3),
+        (RECIPE_A, -1),
+        (RECIPE_A, True),
+        (RECIPE_A, "3"),
+    ],
+)
+def test_the_about_pair_is_both_or_neither_and_well_formed(store, recipe, epoch):
+    with pytest.raises(gf.LadderFeedbackRefused):
+        _record_about(store, _scored(0.6, 0.3, 0.9), recipe, epoch)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"extra": 1},
+        {"epoch": -1},
+        {"epoch": "3"},
+        {"recipe_digest": 5},
+        {"schema": gf.SCHEMA},
+    ],
+)
+def test_a_v3_document_with_anything_off_the_allow_list_is_refused(store, change):
+    doc = _record_about(store, _scored(0.6, 0.3, 0.9), RECIPE_A, 3)
+    with pytest.raises(LadderStoreRefused):
+        checked({**doc, **change})
+    with pytest.raises(LadderStoreRefused):
+        checked({**doc, **change}, latest=True)
+    # A v2 document may not carry the v3 fields either.
+    v2 = {k: v for k, v in doc.items() if k not in ("recipe_digest", "epoch")}
+    with pytest.raises(LadderStoreRefused):
+        checked({**v2, "schema": gf.SCHEMA_V3})
+
+
+def _hook_about(store, recipe_digest, block):
+    from carbon.challenge_validator import exam_cap
+    from carbon.challenge_validator import lean_recipe_retention as retention
+
+    adapter = SimpleNamespace(
+        ledger=store.ledger,
+        contract_digest="sha256:" + "c" * 64,
+        owner=lambda submission_id: "5Miner",
+        discovery=SimpleNamespace(info=SimpleNamespace(challenge_key=MOTOR)),
+    )
+    original = exam_cap.submission_block
+    exam_cap.submission_block = lambda *_args: block
+    try:
+        return retention._record_ladder(
+            adapter,
+            "submission-1",
+            exam_key=EXAM,
+            exam_version="motor-exam-1",
+            gates=GATES,
+            graded=_scored(0.63, 0.33, 0.93),
+            recipe_digest=recipe_digest,
+        )
+    finally:
+        exam_cap.submission_block = original
+
+
+def test_the_retention_hook_names_the_submission_and_its_epoch(store):
+    from carbon.challenge_validator import exam_cap
+
+    assert _hook_about(store, RECIPE_A, 2 * exam_cap.EPOCH_BLOCKS + 5) == "RECORDED"
+    best = store.served("5Miner", MOTOR, EXAM)["best"]
+    assert best["schema"] == gf.SCHEMA_V3
+    assert (best["recipe_digest"], best["epoch"]) == (RECIPE_A, 2)
+
+
+def test_without_a_receipt_block_the_hook_records_the_unchanged_v2(store):
+    assert _hook_about(store, RECIPE_A, None) == "RECORDED"
+    best = store.served("5Miner", MOTOR, EXAM)["best"]
+    assert best["schema"] == gf.SCHEMA and set(best) == gf.FIELDS

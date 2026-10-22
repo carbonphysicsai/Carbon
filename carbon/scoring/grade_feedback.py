@@ -36,12 +36,20 @@ miner belong to the serving lane.
 from __future__ import annotations
 
 import math
+import re
 from decimal import ROUND_FLOOR, Decimal
 
 SCHEMA = "carbon.private-exam.ladder-feedback.v2"
 SCHEMA_V1 = "carbon.private-exam.ladder-feedback.v1"
+#: v3 names the submission a document is about (its recipe digest) and the epoch it
+#: was graded in, in the owning hotkey's own feedback only, so a page shows a grade
+#: only on the submit it belongs to. v2 is unchanged and still emitted when a
+#: caller names neither.
+SCHEMA_V3 = "carbon.private-exam.ladder-feedback.v3"
 ETA = 0.02
 FIELDS = frozenset({"schema", "exam_version", "status", "total", "gate_names"})
+FIELDS_V3 = FIELDS | {"recipe_digest", "epoch"}
+_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 STATUSES = ("IMPROVED", "NO_IMPROVEMENT", "GATE_FAILED", "NOT_SCORED")
 #: Scoring statuses that carry a total (development now; official later).
 _SCORED = frozenset({"SCORED_DEVELOPMENT_CANDIDATE"})
@@ -73,7 +81,19 @@ def _floor(value, grid):
     return float(q.to_integral_value(rounding=ROUND_FLOOR) * Decimal(repr(float(grid))))
 
 
-def _document(exam_version, status, values, gate_names):
+def shape(document):
+    """``SCHEMA`` or ``SCHEMA_V3`` when ``document`` has exactly that version's
+    fields, else None."""
+    if type(document) is not dict:
+        return None
+    if set(document) == FIELDS and document.get("schema") == SCHEMA:
+        return SCHEMA
+    if set(document) == FIELDS_V3 and document.get("schema") == SCHEMA_V3:
+        return SCHEMA_V3
+    return None
+
+
+def _document(exam_version, status, values, gate_names, about=None):
     document = {
         "schema": SCHEMA,
         "exam_version": exam_version,
@@ -81,7 +101,11 @@ def _document(exam_version, status, values, gate_names):
         "total": values.get("total"),
         "gate_names": list(gate_names),
     }
-    if set(document) != FIELDS or status not in STATUSES:
+    expected = FIELDS
+    if about is not None:
+        document.update(schema=SCHEMA_V3, **about)
+        expected = FIELDS_V3
+    if set(document) != expected or status not in STATUSES:
         raise LadderFeedbackRefused("document_fields")
     return document
 
@@ -96,7 +120,16 @@ def next_best(best, document):
     return best
 
 
-def ladder_feedback(graded, *, best, exam_version, gate_registry, rebuild_noise):
+def ladder_feedback(
+    graded,
+    *,
+    best,
+    exam_version,
+    gate_registry,
+    rebuild_noise,
+    recipe_digest=None,
+    epoch=None,
+):
     """The miner's feedback document for one graded result.
 
     ``graded`` is the ScoreEngine's row for the miner's model (``status``,
@@ -106,18 +139,30 @@ def ladder_feedback(graded, *, best, exam_version, gate_registry, rebuild_noise)
     ``rebuild_noise`` its registered value, or None when none is registered.
     It has no default, so a caller that forgets it fails instead of silently
     showing values finer than the registered noise allows.
+
+    With ``recipe_digest`` and ``epoch`` (both or neither) the document is v3 and
+    names the submission it is about; without them it is v2, unchanged. A
+    ``best`` of either version is accepted: the best carries a total, never a
+    submission's identity.
     """
+    if (recipe_digest is None) != (epoch is None):
+        raise LadderFeedbackRefused("about")
+    about = None
+    if recipe_digest is not None:
+        if (
+            type(recipe_digest) is not str
+            or _DIGEST.fullmatch(recipe_digest) is None
+            or type(epoch) is not int
+            or epoch < 0
+        ):
+            raise LadderFeedbackRefused("about")
+        about = {"recipe_digest": recipe_digest, "epoch": epoch}
     if type(exam_version) is not str or not exam_version:
         raise LadderFeedbackRefused("exam_version")
     registry = frozenset(gate_registry)
     if not registry or not all(type(name) is str and name for name in registry):
         raise LadderFeedbackRefused("gate_registry")
-    if best is not None and (
-        type(best) is not dict
-        or set(best) != FIELDS
-        or best["schema"] != SCHEMA
-        or best["status"] != "IMPROVED"
-    ):
+    if best is not None and (shape(best) is None or best["status"] != "IMPROVED"):
         raise LadderFeedbackRefused("best")
     grid = step(rebuild_noise)
     # A new exam version starts a fresh ladder.
@@ -135,12 +180,12 @@ def ladder_feedback(graded, *, best, exam_version, gate_registry, rebuild_noise)
         failed = sorted(name for name, verdict in gates.items() if verdict == "FAIL")
         if not failed:
             raise LadderFeedbackRefused("gate_failed_without_gate")
-        return _document(exam_version, "GATE_FAILED", shown, failed)
+        return _document(exam_version, "GATE_FAILED", shown, failed, about)
     if status not in _SCORED:
         # A result that does not count reveals no grade.
-        return _document(exam_version, "NOT_SCORED", none, ())
+        return _document(exam_version, "NOT_SCORED", none, (), about)
     total = graded.get("score")
     rounded = {"total": _floor(total, grid)}
     if shown["total"] is not None and not total >= shown["total"] + grid:
-        return _document(exam_version, "NO_IMPROVEMENT", shown, ())
-    return _document(exam_version, "IMPROVED", rounded, ())
+        return _document(exam_version, "NO_IMPROVEMENT", shown, (), about)
+    return _document(exam_version, "IMPROVED", rounded, (), about)

@@ -890,6 +890,7 @@ def _retain_selected_pack_evaluation(
                     exam_version=source["evaluation_version"],
                     gates=registered["score_pack"]["hard_gates"],
                     graded=scoring["models"][0],
+                    recipe_digest=registered["entry"]["recipe_digest"],
                 )
             }
         ),
@@ -1096,7 +1097,30 @@ def _timing_step(adapter):
     return grade_feedback.step(None if noise is None else noise["value"])
 
 
-def _record_ladder(adapter, submission_id, *, exam_key, exam_version, gates, graded):
+def _epoch_of_submission(adapter, submission_id, recipe_digest):
+    """The epoch the submission's signed receipt arrived in, for a v3 Ladder
+    document; None (a v2 document) when no recipe digest is named or the receipt's
+    block is unavailable."""
+    if recipe_digest is None:
+        return None
+    from carbon.challenge_validator import exam_cap
+
+    block = exam_cap.submission_block(
+        adapter.ledger, adapter.contract_digest, submission_id
+    )
+    return None if block is None else exam_cap.epoch_of(block)
+
+
+def _record_ladder(
+    adapter,
+    submission_id,
+    *,
+    exam_key,
+    exam_version,
+    gates,
+    graded,
+    recipe_digest=None,
+):
     """Apply the bound result to the miner's private-exam Ladder
     (`ladder_store`), stepped by the Challenge's registered rebuild noise from
     the one source the KOTH comparator also reads (`koth_registry`). Its own
@@ -1109,6 +1133,10 @@ def _record_ladder(adapter, submission_id, *, exam_key, exam_version, gates, gra
         hotkey = adapter.owner(submission_id)
         if hotkey is None:
             return "UNAVAILABLE: ladder_owner_unknown"
+        epoch = _epoch_of_submission(adapter, submission_id, recipe_digest)
+        about = (
+            {} if epoch is None else {"recipe_digest": recipe_digest, "epoch": epoch}
+        )
         LadderStore(adapter.ledger).record(
             hotkey,
             adapter.discovery.info.challenge_key,
@@ -1116,6 +1144,7 @@ def _record_ladder(adapter, submission_id, *, exam_key, exam_version, gates, gra
             graded,
             exam_version=exam_version,
             gates=gates,
+            **about,
             rebuild_noise=koth_registry.rebuild_noise(
                 adapter.discovery.info.challenge_key.challenge_id
             ),
