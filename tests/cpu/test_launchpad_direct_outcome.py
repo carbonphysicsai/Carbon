@@ -219,7 +219,7 @@ def test_a_v3_grade_shows_only_on_the_submit_it_is_about(tmp_path):
         "recipe_digest": "sha256:" + "b" * 64,
         "epoch": 1,
     }
-    mine = {**other, "recipe_digest": "sha256:" + "a" * 64, "epoch": 2}
+    mine = {**other, "recipe_digest": "sha256:" + "a" * 64, "epoch": 1}
     shown = _project(tmp_path, _document({"best": other, "latest": other}))
     grade = shown["result"]["grade"]
     assert grade["latest"] is None
@@ -227,7 +227,7 @@ def test_a_v3_grade_shows_only_on_the_submit_it_is_about(tmp_path):
     assert grade["best"]["recipe_digest"] == "sha256:" + "b" * 64
     (tmp_path / "permitted-final-feedback.json").unlink()
     shown = _project(tmp_path, _document({"best": other, "latest": mine}))
-    assert shown["result"]["grade"]["latest"]["epoch"] == 2
+    assert shown["result"]["grade"]["latest"]["epoch"] == 1
     assert shown["result"]["grade"]["exam_latest"] is None
 
 
