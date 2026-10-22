@@ -144,7 +144,11 @@ def test_direct_practice_uses_exact_owner_graph_and_retains_state(
         ).encode()
     )
     assert len(seen["test_inputs"]["cases"]) >= len(practice.practice.case_ids)
-    assert result["schema"] == "carbon.battery.direct-practice-feedback.v1"
+    assert result["schema"] == "carbon.battery.direct-practice-feedback.v2"
+    # The dual measurement reaches the attack engine through the quiz and panel
+    # stack, so no miner surface may import it: practice says it is unavailable.
+    assert result["practice_dual"]["available"] is False
+    assert result["practice_dual"]["reason"] == "practice_dual_not_public_for_battery"
     assert result["provenance"] == "BATTERY_PUBLIC_PRACTICE"
     assert result["worker"]["inference_operation"] == "operation-inference-test"
     assert result["recipe"] == strategy and result["official_eligible"] is False

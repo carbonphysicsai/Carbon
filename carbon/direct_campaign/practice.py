@@ -365,6 +365,12 @@ class DirectPractice:
             "official_eligible": False,
             "scientific_qualification": False,
             "recipe": strategy,
+            # C13: the same dual measurement the exam grades (gates first, then
+            # A, D and the total in 0..1, 1 best) on the public development
+            # bank, which is exactly the query above. Feedback only: public,
+            # not the exam, and labelled practice. The model is queried once,
+            # so the paired repeat is the same rows.
+            "practice_dual": _dual_feedback(self.spec, self.version, rows),
         }
         if source["kind"] == "catalog":
             plain = json.loads(canonical(strategy))["source"]
@@ -452,6 +458,23 @@ class DirectPractice:
         )
         backend = {"kind": "C03_DOCKER", "adapter": spec.adapter_id}
         return result, backend, recipe
+
+
+def _dual_feedback(spec, version, rows):
+    """The shared practice dual block for the rows of the exposed bank."""
+    from carbon.scoring import practice_dual
+
+    # A static dispatch: the code-authority inventory forbids a computed import.
+    if spec.prefix == "f08":
+        from carbon.scoring import f08_dual_pack as module
+    elif spec.prefix == "f02":
+        from carbon.scoring import f02_dual_pack as module
+    else:
+        raise ValueError(spec.prefix + "_practice_dual_unregistered")
+    adapter = practice_dual.versioned(module, version)
+    if adapter is None:
+        return practice_dual.unavailable(module, "practice_version_not_registered")
+    return practice_dual.from_rows(adapter, rows)
 
 
 def _expand(recipe):

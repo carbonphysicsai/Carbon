@@ -99,7 +99,16 @@ def test_a_catalog_recipe_runs_as_its_bundle_on_the_public_practice_inputs(pract
     # PRACTICE-SAFETY-01's safety block (Validator, 2026-10-21), read through
     # the provider; the feedback schema is versioned for it.
     assert result["schema"] == catalog_practice.FEEDBACK_SCHEMA
-    assert result["schema"].endswith(".v2")
+    assert result["schema"].endswith(".v3")
+    # C13: Cooling's development bank is the counted decision-study evidence the
+    # miner-side read boundary denies, so practice names the block unavailable.
+    assert result["practice_dual"] == {
+        "schema": "carbon.practice.dual-feedback.v1",
+        "scope": "PUBLIC_PRACTICE_FEEDBACK",
+        "challenge": {"id": "chip-cold-plate", "version": "1.2"},
+        "available": False,
+        "reason": "practice_dual_not_public_for_cooling",
+    }
     assert result["safety"]["schema"] == "carbon.practice-safety-feedback.v1"
 
 
