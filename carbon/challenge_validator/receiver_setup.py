@@ -114,6 +114,31 @@ def _stored_pack(store: Path, digest: str, challenge: dict) -> Path:
         ) from None
 
 
+def _stored_pack_set(store: Path, set_key: str, challenge: dict):
+    """A delivered pack set, every batch re-verified now: the config block, the
+    first batch's digest and its directory (the receiver's primary pack)."""
+    from carbon.challenge_validator.answer_key import AnswerKeyRefused
+    from carbon.challenge_validator.sealed_pack_import import SealedPackStore
+
+    try:
+        batches = SealedPackStore(store).pack_set(
+            set_key, challenge["id"], challenge["version"]
+        )
+    except AnswerKeyRefused as refused:
+        raise SetupRefused(
+            refused.code,
+            "run the answer-key sync for this Challenge first; the pack set or "
+            "one of its batches is missing, altered, or another Challenge's.",
+        ) from None
+    first_digest, first_directory = batches[0]
+    block = {
+        "store": str(store),
+        "set_key": set_key,
+        "batches": [digest for digest, _directory in batches],
+    }
+    return block, first_digest, first_directory
+
+
 def prepare(
     *,
     installed_state: Path,
@@ -122,6 +147,7 @@ def prepare(
     pack: Path | None = None,
     pack_store: Path | None = None,
     pack_digest: str | None = None,
+    pack_set_key: str | None = None,
     port: int = DEFAULT_PORT,
     lifetime_seconds: int = DEFAULT_LIFETIME_SECONDS,
     repository: Path = REPO,
@@ -153,14 +179,28 @@ def prepare(
             "run scripts/install_validator.sh (or install_miner.sh) first; no "
             "installed worker and analysis images are recorded.",
         )
-    if (pack_store is None) != (pack_digest is None) or (
-        pack is not None and pack_store is not None
+    chosen = (
+        (pack is not None)
+        + (pack_store is not None and pack_digest is not None)
+        + (pack_store is not None and pack_set_key is not None)
+    )
+    if (
+        chosen > 1
+        or (pack_store is None) != (pack_digest is None and pack_set_key is None)
+        or (pack_digest is not None and pack_set_key is not None)
     ):
         raise SetupRefused(
             "evaluation_pack_invalid",
-            "give either --pack, or --pack-store with --pack-digest.",
+            "give either --pack, or --pack-store with --pack-digest (one "
+            "pack), or --pack-store with --pack-set-key (a Challenge "
+            "version's whole pack set).",
         )
-    if pack_store is not None:
+    pack_set = None
+    if pack_set_key is not None:
+        pack_set, pack_digest, pack = _stored_pack_set(
+            pack_store, pack_set_key, challenge
+        )
+    elif pack_store is not None:
         pack = _stored_pack(pack_store, pack_digest, challenge)
     selection = _pack_selection(pack)
     if selection is not None and pack_store is not None:
@@ -262,6 +302,8 @@ def prepare(
     }
     if selection is not None:
         config["evaluation_pack"] = selection
+    if pack_set is not None:
+        config["evaluation_pack_set"] = pack_set
     write_private(config_path, canonical(config))
     load_config(config_path)
     return {
@@ -269,6 +311,7 @@ def prepare(
         "source_head": implementation["revision"],
         "challenge": challenge,
         "evaluation_pack": selection is not None,
+        "evaluation_pack_set": pack_set is not None,
         "network_block": block,
         "profile_sha256": _sha(profile_path.read_bytes()),
         "config_sha256": _sha(config_path.read_bytes()),
@@ -368,6 +411,7 @@ def main(argv=None) -> int:
     prep.add_argument("--pack", type=Path)
     prep.add_argument("--pack-store", type=Path)
     prep.add_argument("--pack-digest")
+    prep.add_argument("--pack-set-key")
     prep.add_argument("--port", type=int, default=DEFAULT_PORT)
     prep.add_argument("--lifetime-seconds", type=int, default=DEFAULT_LIFETIME_SECONDS)
     run = sub.add_parser("start")
@@ -384,6 +428,7 @@ def main(argv=None) -> int:
             pack=args.pack,
             pack_store=args.pack_store,
             pack_digest=args.pack_digest,
+            pack_set_key=args.pack_set_key,
             port=args.port,
             lifetime_seconds=args.lifetime_seconds,
         )

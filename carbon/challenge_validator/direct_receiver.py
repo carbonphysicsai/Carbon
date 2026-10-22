@@ -41,6 +41,7 @@ _OPTIONAL_FIELDS = {
     "construction_image_manifest",
     "inference_image_manifest",
     "evaluation_pack",
+    "evaluation_pack_set",
     "challenge",
     "construction_runtimes",
 }
@@ -168,6 +169,26 @@ def load_config(path: Path) -> dict:
             or any(part in {"", ".", ".."} for part in manifest.split("/"))
         ):
             raise ValueError("relative evaluation pack manifest required")
+    if "evaluation_pack_set" in value:
+        block = value["evaluation_pack_set"]
+        digests = block.get("batches") if type(block) is dict else None
+        if (
+            "evaluation_pack" not in value
+            or type(block) is not dict
+            or set(block) != {"store", "set_key", "batches"}
+            or type(block["store"]) is not str
+            or not Path(block["store"]).is_absolute()
+            or type(block["set_key"]) is not str
+            or type(digests) is not list
+            or not digests
+            or digests != sorted(set(digests))
+            or any(type(d) is not str for d in digests)
+            or value["evaluation_pack"]
+            .get("sealed_delivery", {})
+            .get("manifest_digest")
+            != digests[0]
+        ):
+            raise ValueError("exact evaluation pack set selection required")
     return value
 
 
