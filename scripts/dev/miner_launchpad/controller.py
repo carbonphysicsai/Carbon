@@ -283,6 +283,57 @@ def session_cookie(headers):
     return found[0] if len(found) == 1 and found[0] else None
 
 
+#: Lines earlier releases printed to stdout, which a service writes to
+#: control-center.log: the token and the link that carries it.
+LOGGED_TOKEN_LINES = (
+    "Local session token (paste",
+    "Open (this link holds your session token",
+)
+TOKEN_WIPE_MARKER = "session-token.log-wipe-v1"
+
+
+def wipe_logged_token(state_dir: Path) -> bool:
+    """Once per install (OWNER_TOKEN_LOG_WIPE_20261022, "wipe"): remove the
+    session token and its link from this state directory's Control Center
+    logs, in place, and retire the token so a fresh one is made. True when
+    this call wiped; False when it already had."""
+    state_dir = Path(state_dir)
+    marker = state_dir / TOKEN_WIPE_MARKER
+    if marker.is_symlink():
+        raise RuntimeError("Token wipe marker must not be a symlink")
+    if marker.exists():
+        return False
+    path = state_dir / "session-token"
+    if path.is_symlink():
+        raise RuntimeError("Session token must not be a symlink")
+    old = path.read_text(encoding="ascii").strip() if path.is_file() else ""
+    for log in sorted(state_dir.glob("control-center.log*")):
+        if log.is_symlink() or not log.is_file():
+            continue
+        lines = log.read_bytes().splitlines(keepends=True)
+        kept = []
+        for line in lines:
+            text = line.decode("utf-8", "replace")
+            if any(mark in text for mark in LOGGED_TOKEN_LINES) or (
+                old and old in text
+            ):
+                kept.append(b"[session token removed from this log]\n")
+            else:
+                kept.append(line)
+        if kept != lines:
+            # In place, never a rename: a running service keeps appending
+            # to the same file.
+            with open(log, "r+b") as handle:
+                handle.write(b"".join(kept))
+                handle.truncate()
+    if path.is_file():
+        path.unlink()
+    descriptor = os.open(marker, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "w", encoding="ascii") as handle:
+        handle.write("wiped\n")
+    return True
+
+
 def session_token(state_dir: Path) -> str:
     """This install's session token, kept owner-only in its state directory
     so a restart or reinstall keeps the same link and a browser's session
@@ -1452,6 +1503,8 @@ def main() -> None:
         thread_dump_on_signal(args.state_dir)
         controller = Controller(database)
         database.chmod(0o600)
+        had_token = (Path(args.state_dir) / "session-token").is_file()
+        rotated = wipe_logged_token(args.state_dir) and had_token
         token = session_token(args.state_dir)
         # Direct-script and package entry points resolve one canonical module.
         import sys
@@ -1532,6 +1585,12 @@ def main() -> None:
         # The token is shown only on a terminal, never written to a log: as a
         # service, stdout is control-center.log, so that line names the
         # owner-only token file instead (Validator, R6 review).
+        if rotated:
+            print(
+                "Your session token was replaced once, and earlier copies were "
+                "removed from this install's logs: paste the new one into the "
+                "page."
+            )
         if sys.stdout.isatty():
             if session_link_supported():
                 link = session_url(server.origin, token)
