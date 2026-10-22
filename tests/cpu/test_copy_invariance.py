@@ -1,0 +1,112 @@
+"""Two validators' exam copies score byte-identically (traceable copies, c';
+Validator ruling, E9).
+
+A copy differs from another only in row order and opaque ids. This builds, for
+each Challenge's dual producer, the same model's answers on one bank in its own
+order and in a shuffled order, and requires the measurement documents to be
+byte-identical. The answers are tied to each case's content (not its position or
+id), as a real model's are."""
+
+from __future__ import annotations
+
+import hashlib
+import importlib
+import json
+import random
+
+import numpy as np
+import pytest
+
+from carbon.challenge_kit import physical_pack
+from carbon.scoring import physical_dual_pack as physical
+
+CHALLENGES = ("motor", "cooling", "f08", "f02", "battery")
+
+
+def _adapter(name):
+    return importlib.import_module(f"carbon.scoring.{name}_dual_pack")
+
+
+def _content_noise(inputs, width, scale=0.002):
+    """Deterministic per-case noise from the case's inputs only."""
+    seed = hashlib.sha256(
+        json.dumps(sorted(inputs.items()), sort_keys=True).encode()
+    ).digest()
+    rng = np.random.default_rng(int.from_bytes(seed[:8], "big"))
+    return 1.0 + scale * rng.standard_normal(width)
+
+
+PER_ROW = (
+    "case_ids",
+    "cohorts",
+    "inputs",
+    "references",
+    "reference_records",
+    "reference_present",
+)
+#: What enters the dual benchmark input: the graded numbers, gates and outcome.
+#: Diagnostic fields name cases (opaque per copy) and are not compared.
+GRADED = ("A", "D", "gates", "decision_outcome")
+
+
+def _permuted(bank, order):
+    """The same bank with its rows listed in ``order`` (a copy's file order)."""
+    return {
+        key: ([value[i] for i in order] if key in PER_ROW else value)
+        for key, value in bank.items()
+    }
+
+
+def _graded(name, order=None):
+    adapter = _adapter(name)
+    bank = physical_pack.development_bank(adapter.CHALLENGE, adapter.VERSION)
+    if order is not None:
+        bank = _permuted(bank, order)
+    public = physical_pack.public_roles(adapter.CHALLENGE, adapter.VERSION)
+    names = physical.input_names(adapter)
+    rows = physical.bank_rows(bank, names)
+    refs = np.asarray(bank["references"], dtype=float)
+    # Unmeasured rows (the probes) take one valid row, chosen by id and not by
+    # position, so the stand-in model answers the same whatever the copy's order.
+    valid = [i for i in range(len(refs)) if not np.isnan(refs[i]).any()]
+    fill = refs[min(valid, key=lambda i: rows[i]["case_id"])]
+    outputs = []
+    for row, ref in zip(rows, refs, strict=True):
+        base = fill if np.isnan(ref).any() else ref
+        # Battery's exam gates are tight (millivolts), so its noise is smaller.
+        scale = 1e-6 if name == "battery" else 0.002
+        outputs.append(
+            (base * _content_noise(row["inputs"], len(base), scale)).tolist()
+        )
+    definition = {
+        **adapter.definition(bank=bank, train_raw=public["train"]),
+        "challenge": {"id": adapter.CHALLENGE, "version": adapter.VERSION},
+        "scope": "PUBLIC_PRACTICE_FEEDBACK",
+    }
+    measured = adapter.measure(
+        bank_rows=rows,
+        outputs=outputs,
+        repeats=[outputs, outputs],
+        definition=definition,
+        limits=json.loads(public["important_limit_definition"]),
+        objective=json.loads(public["design_objective"]),
+        train_raw=public["train"],
+        names=names,
+    )
+    return json.dumps(
+        {key: measured.get(key) for key in GRADED}, sort_keys=True, allow_nan=False
+    ).encode(), len(rows)
+
+
+@pytest.mark.parametrize("name", CHALLENGES)
+def test_a_shuffled_copy_scores_byte_identically(name):
+    original, n = _graded(name)
+    graded = json.loads(original)
+    # A real comparison: scored numbers and passing gates, not two refusals.
+    assert 0 < graded["A"] <= 1 and 0 <= graded["D"] <= 1, graded
+    for seed in (1, 2, 3):
+        order = list(range(n))
+        random.Random(seed).shuffle(order)
+        assert order != list(range(n))
+        shuffled, _ = _graded(name, order)
+        assert shuffled == original, f"{name} depends on row order (seed {seed})"

@@ -188,8 +188,10 @@ def _schedules(bank_rows):
 
 
 def _ids(bank_rows):
-    ids = [row["case_id"] for row in bank_rows]
-    _require(ids == sorted(ids) and len(ids) == 8, "f02_bank_order")
+    # The policy is over the sorted action ids whatever order a copy of the bank
+    # lists its rows in (traceable copies: a copy reorders rows, never ids).
+    ids = sorted(row["case_id"] for row in bank_rows)
+    _require(len(ids) == 8 and len(set(ids)) == 8, "f02_bank_order")
     return ids
 
 
@@ -469,6 +471,12 @@ def measure(
 
     validate_definition(definition)
     kind = definition["bank_kind"]
+    # Score in the canonical (sorted action id) order, so a copy that lists its
+    # rows in another order scores byte-identically.
+    order = sorted(range(len(bank_rows)), key=lambda i: bank_rows[i]["case_id"])
+    bank_rows = [bank_rows[i] for i in order]
+    outputs = [outputs[i] for i in order]
+    repeats = [[run[i] for i in order] for run in repeats]
     _require(policy(bank_rows, kind) == definition["policy"], "f02_policy_binding")
     _require(all(len(row) == 1 for row in outputs), "f02_output_width")
     values = [row[0] for row in outputs]
