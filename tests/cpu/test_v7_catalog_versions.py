@@ -99,7 +99,23 @@ def test_only_motor_1_3_cooling_1_2_and_the_graph_versions_serve_the_catalog():
         "cooling.physicsnemo.FullyConnected",
         "cooling.transolver",
     }
-    for challenge_id, version in sv.V7 - {(MOTOR, "1.3"), (COOLING, "1.2")}:
+    # F08 1.4 and F02 2.3 offer their float32 builds (pair-identity PX14).
+    assert {e["catalog_id"] for e in pipeline.entries("f08-ribbed-bracket", "1.4")} == {
+        "f08.neuralop.FNO",
+        "f08.neuralop.TFNO",
+        "f08.neuralop.UQNO",
+        "f08.physicsnemo.FullyConnected",
+        "f08.transolver",
+    }
+    assert {e["catalog_id"] for e in pipeline.entries("f02", "2.3")} == {
+        "f02.physicsnemo.FullyConnected"
+    }
+    for challenge_id, version in sv.V7 - {
+        (MOTOR, "1.3"),
+        (COOLING, "1.2"),
+        ("f08-ribbed-bracket", "1.4"),
+        ("f02", "2.3"),
+    }:
         assert pipeline.entries(challenge_id, version) == []
 
 

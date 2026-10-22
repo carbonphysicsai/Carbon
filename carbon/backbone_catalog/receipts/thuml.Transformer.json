@@ -1,0 +1,17 @@
+{
+ "catalog_id": "thuml.Transformer",
+ "differ": [],
+ "distinct_states": 1,
+ "files": 2,
+ "identical": 1,
+ "image_digest": "sha256:b146127d9b7800e3f09bf94d3fac07eb0d79519c620ec29bece769471311d5de",
+ "key": "thuml_transformer",
+ "pairs": 1,
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "source_report": "PAIR_IDENTITY_HARD_V7_20261021.json",
+ "source_report_sha256": "sha256:4329ce381594938a75bdf17f5a7932bfeee1a7eb33a512e2e505e9dc5d4be6f8",
+ "tested_interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+ "tested_on": "electric-motor-magnetics@1.3",
+ "tested_train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
+ "unpaired": 0
+}

@@ -84,11 +84,35 @@ COOLING_LEVERS = Schema(
     LEVERS.configuration,
     LEVERS.train_use,
 )
-SCHEMAS = {s.schema_id: s for s in (COVERAGE, LEVERS, JAX_LEVERS, COOLING_LEVERS)}
+#: The levers build resized to F08 1.4's 7 outputs and F02 2.3's 1 output,
+#: each returning float32 as its interface declares (`<f4`;
+#: `codex-queue/inputs/physical_catalog_14/build_physical_packets.py`): the
+#: Cooling levers vocabulary, their own build bytes, each entry with its own
+#: pair-identity receipt (PAIR_IDENTITY_PX14_20261022).
+F08_LEVERS = Schema(
+    "carbon-candidate-levers-f08-v1",
+    "carbon_candidate/build.py",
+    "sha256:a130ac2817701d855ec9400b66d5f4be570f6617395848d3a4ff8a87b2db2171",
+    LEVERS.configuration,
+    LEVERS.train_use,
+)
+F02_LEVERS = Schema(
+    "carbon-candidate-levers-f02-v1",
+    "carbon_candidate/build.py",
+    "sha256:45b1f8ca422fa95f893703a2b7955c288a39728390ad5eb49ee9a64ec89bc30a",
+    LEVERS.configuration,
+    LEVERS.train_use,
+)
+SCHEMAS = {
+    s.schema_id: s
+    for s in (COVERAGE, LEVERS, JAX_LEVERS, COOLING_LEVERS, F08_LEVERS, F02_LEVERS)
+}
 #: Each levers build's accepted mixed-precision values.
 PRECISIONS = {
     LEVERS.schema_id: ("bfloat16", "float16"),
     COOLING_LEVERS.schema_id: ("bfloat16", "float16"),
+    F08_LEVERS.schema_id: ("bfloat16", "float16"),
+    F02_LEVERS.schema_id: ("bfloat16", "float16"),
     JAX_LEVERS.schema_id: ("bfloat16", "float16", "float32"),
 }
 #: The levers build's architecture settings, per backbone (its `ARCH`).
