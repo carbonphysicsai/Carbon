@@ -16,6 +16,9 @@
   const $ = id => document.getElementById(id);
   const TABS = [["live", "Live"], ["conversation", "Conversation"], ["experiments", "Experiments"], ["reasoning", "Agent reasoning"], ["tools", "Tools"], ["contract", "Contract"], ["artifacts", "Artifacts"], ["submission", "Submission"], ["logs", "Logs"], ["settings", "Settings"]];
   const TERMINAL = ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE", "EXPIRED"];
+  // A Challenge's registry title carries internal labels in brackets ("Name (DEVELOPMENT ...)"):
+  // people read the name; the full title stays on hover (U10).
+  function plainTitle(title) { return typeof title === "string" ? title.replace(/\s*\(.*$/, "").trim() || title : title; }
   const POLL_MS = 3000;
   const NOTE_MAX = 2000;
   // Per-campaign view state: the last document, when it was read, and the
@@ -278,7 +281,7 @@
     const title = el("div", undefined, "rs-title");
     const challenge = doc.campaign.challenge;
     title.append(el("p", "Campaign · " + doc.labels.mode + " · " + doc.labels.network + " " + doc.labels.netuid, "eyebrow section-label"));
-    title.append(el(compact ? "h3" : "h2", challenge ? (challenge.title || challenge.id) + " · v" + challenge.version : "Older practice campaign"));
+    title.append(el(compact ? "h3" : "h2", challenge ? plainTitle(challenge.title || challenge.id) + " · v" + challenge.version : "Older practice campaign"));
     const meta = el("div", undefined, "rs-meta");
     meta.append(CC.pill(words(doc.campaign.state), stateKind(doc.campaign.state)));
     if (doc.fixture) meta.append(CC.pill("Synthetic fixture", "pill-need"));
@@ -1201,7 +1204,7 @@
     para(top, "Read from the Challenge's registered construction contract. Only what is rebuildable can be submitted; everything else is research only or excluded, with the blocker that keeps it there.", "lede");
     const facts = el("dl", undefined, "review-grid");
     const fact = (k, v) => facts.append(el("dt", k), el("dd", v));
-    fact("Challenge", (c.challenge.title || c.challenge.id) + " · version " + c.challenge.version);
+    fact("Challenge", plainTitle(c.challenge.title || c.challenge.id) + " · version " + c.challenge.version);
     fact("Contract digest", c.contract_digest || "unavailable");
     fact("Exam rule", [c.exam.rule.status, c.exam.rule.authority].filter(Boolean).map(words).join(" · ") || "unavailable");
     fact("Feedback mode", (c.feedback_mode?.frozen || "FULL") + " · " + (c.feedback_mode?.basis || ""));
@@ -1535,7 +1538,7 @@
     const j = CC.journey ? CC.journey() : null;
     const skipsInference = Boolean(j?.skipped?.inference) || Boolean(agent && !agent.uses_model);
     const cards = [
-      {id: "challenge", title: "Challenge", value: entry ? entry.title + " · v" + entry.version : "Not chosen", note: entry ? (entry.selectable ? "Ready to launch" : "Set up first") : "Choose what to mine", go: () => CC.goWizard("challenge")},
+      {id: "challenge", title: "Challenge", value: entry ? plainTitle(entry.title) + " · v" + entry.version : "Not chosen", note: entry ? (entry.selectable ? "Ready to launch" : "Set up first") : "Choose what to mine", go: () => CC.goWizard("challenge")},
       {id: "agent", title: "Agent", value: steps.agent?.checked ? choiceName("agent", steps.agent.choice) : agent ? agent.label : "Not chosen", note: agent ? (agent.launch_agent === "graphite" ? "Graphite · " + CC.graphite.summary() : agent.uses_model ? "Carbon's agent calls your model" : "Calls no model") : j?.skipped?.inference ? "Your own agent, with its own model" : "Who researches and submits", href: "#setup/agent"},
     ];
     if (!skipsInference) cards.push({id: "inference", title: "Inference", value: steps.inference?.checked ? choiceName("inference", steps.inference.provider_id) + " · " + steps.inference.model_id : "Not checked", note: "Only Carbon's own agent calls a model, with your key", href: "#setup/inference"});

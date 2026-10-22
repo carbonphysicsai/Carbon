@@ -67,6 +67,9 @@
   const STEPS = [["challenge", "Challenge"], ["agent", "Agent"], ["model", "Model"], ["compute", "Compute"], ["limits", "Tools & limits"], ["review", "Review"], ["launch", "Launch"]];
   const TABS = [["overview", "Overview"], ["experiments", "Experiments"], ["metrics", "Metrics"], ["journal", "Research Journal"], ["artifacts", "Artifacts"], ["submission", "Submission"], ["logs", "Logs"], ["settings", "Settings"]];
   const TERMINAL = ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE", "EXPIRED"];
+  // A Challenge's registry title carries internal labels in brackets ("Name (DEVELOPMENT ...)"):
+  // people read the name; the full title stays on hover (U10).
+  function plainTitle(title) { return typeof title === "string" ? title.replace(/\s*\(.*$/, "").trim() || title : title; }
   // The keyed operations, as a person names them.
   const OPERATION_NAMES = {practice: "practice", freeze_candidate: "freeze", submit: "submit"};
   // The prelaunch review's evaluation statuses under which a submit can be
@@ -1062,7 +1065,7 @@
       const row = el("div", undefined, "evaluation-row"); row.dataset.challenge = item.id;
       const head = el("p");
       const [tag, kind] = item.intake ? [item.source === "published" ? "Carbon's endpoint" : "Your intake", "pill-done"] : ["None yet", "pill-need"];
-      head.append(el("strong", (item.title || item.id) + " · v" + item.version), " ", pill(tag, kind));
+      head.append(el("strong", plainTitle(item.title || item.id) + " · v" + item.version), " ", pill(tag, kind));
       row.append(head);
       if (item.intake) row.append(el("p", "A frozen candidate is submitted to " + item.intake + ".", "status-line"));
       if (item.receiver_hotkey) {
@@ -1575,7 +1578,7 @@
       computeButton.textContent = choice?.needs_remote ? "Check my setup over my SSH" : "Check on this machine";
       const forChallenges = choice?.for_challenges || [];
       const previous = gpuChallenge.value;
-      gpuChallenge.replaceChildren(...forChallenges.map(item => { const option = el("option", item.title + " · v" + item.version); option.value = JSON.stringify({id: item.id, version: item.version}); return option; }));
+      gpuChallenge.replaceChildren(...forChallenges.map(item => { const option = el("option", plainTitle(item.title) + " · v" + item.version); option.value = JSON.stringify({id: item.id, version: item.version}); return option; }));
       if ([...gpuChallenge.options].some(option => option.value === previous)) gpuChallenge.value = previous;
       // Only what is built can be chosen; the endpoint transport says why not.
       const previousTransport = transport.value;
@@ -1815,7 +1818,7 @@
     // read and checked by that Challenge; nothing is signed.
     const reviewMore = advanced(review, "Advanced: a validator's intake");
     const intakeChallenges = offered.intake_challenges || [];
-    const intakeChallenge = setupSelect(reviewMore, "intake_challenge", "Validator intake for", intakeChallenges.map(item => [item.id, item.title + " · v" + item.version]));
+    const intakeChallenge = setupSelect(reviewMore, "intake_challenge", "Validator intake for", intakeChallenges.map(item => [item.id + "@" + item.version, plainTitle(item.title) + " · v" + item.version]));
     const intake = setupField(reviewMore, "intake_url", "Validator intake URL (optional; https, or loopback)");
     // Pinned in the profile: nothing is signed for an intake that reports
     // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
@@ -1834,7 +1837,7 @@
     }
     evaluationSection(evaluationBox, steps.evaluation, (challengeId, url, hotkey) => {
       // Review writes only the intakes it is given: this one, again.
-      intakeChallenge.value = challengeId; intake.value = url; receiver.value = hotkey;
+      intakeChallenge.value = [...intakeChallenge.options].map(option => option.value).find(value => value.split("@")[0] === challengeId) || challengeId; intake.value = url; receiver.value = hotkey;
       reviewMore.parentNode.open = true;
       $("setup-result").replaceChildren(setupLine("Your intake is named again below. Write your profile to keep it."));
     });
@@ -1854,7 +1857,8 @@
       // so with the setting off (the default) the request is as before.
       if (retryAgain.checked !== retryWas) request.practice_auto_retry = retryAgain.checked;
       if (intake.value.trim() && intakeChallenge.value) {
-        request.intakes = {[intakeChallenge.value]: intake.value.trim()};
+        const intakeId = intakeChallenge.value.split("@")[0];
+        request.intakes = {[intakeId]: intake.value.trim()};
         if (receiver.value.trim()) request.receiver_hotkey = receiver.value.trim();
       }
       if (directIntake.value.trim() || directReceiver.value.trim()) {
@@ -2498,7 +2502,7 @@
       // U57: the Challenge's name even where this version is not listed here
       // ("<id> · v<version>" read for a Challenge name).
       const entry = challengeEntry({id: run.challenge.id, version: run.challenge.version}) || (caps?.challenges || []).find(item => item.challenge_id === run.challenge.id);
-      return (entry ? entry.title : run.challenge.id) + " · v" + run.challenge.version;
+      return (entry ? plainTitle(entry.title) : run.challenge.id) + " · v" + run.challenge.version;
     }
     return run.selects ? "Older practice campaign" : "Challenge being recorded";
   }
@@ -2547,7 +2551,7 @@
   function renderChallengeCatalog(target) {
     for (const entry of offeredChallenges()) {
       const [tag, kind] = challengePill(entry);
-      const box = card(target, entry.title, tag, kind);
+      const box = card(target, plainTitle(entry.title), tag, kind);
       box.dataset.challenge = entry.challenge_id;
       if (comingSoon(entry)) {
         box.append(el("p", typeof entry.practise.plain === "string" ? entry.practise.plain : "Coming soon.", "status-line"));
@@ -3822,13 +3826,13 @@
     rebuild(target, JSON.stringify([capsVersion, offeredChallenges().map(entry => [entry.challenge_id, entry.version, entry.selectable]), connected]), node => {
       for (const entry of offeredChallenges()) {
         const label = el("label", undefined, "choice" + (entry.selectable ? "" : " unavailable"));
-        const input = el("input"); input.type = "radio"; input.name = "wizard-challenge"; input.value = entry.challenge_id;
-        input.dataset.version = entry.version || "";
+        const input = el("input"); input.type = "radio"; input.name = "wizard-challenge"; input.value = entry.challenge_id + "@" + (entry.version || "");
+        input.dataset.version = entry.version || ""; input.dataset.challenge = entry.challenge_id;
         // Unimplemented Challenges are shown, never offered as working choices.
         input.disabled = !entry.implemented || comingSoon(entry);
         input.addEventListener("change", () => selectChallenge(entry));
         const text = el("span");
-        text.append(el("strong", entry.title), el("span", " " + challengeStatus(entry) + (entry.version ? " · v" + entry.version : "") + " · " + acceptanceText(entry), "small-tag"));
+        text.append(el("strong", plainTitle(entry.title)), el("span", " " + challengeStatus(entry) + (entry.version ? " · v" + entry.version : "") + " · " + acceptanceText(entry), "small-tag"));
         if (comingSoon(entry)) text.append(el("span", " " + (typeof entry.practise.plain === "string" ? entry.practise.plain : "Coming soon."), "hint"));
         if (!entry.selectable) text.append(el("span", "Unavailable: " + why(entry) + " · Next: " + entry.next_action, "reason"));
         label.append(input, text); node.append(label);
@@ -3836,13 +3840,13 @@
     });
     // The choice is patched in place: choosing never redraws the list.
     for (const input of target.querySelectorAll("input[name=wizard-challenge]")) {
-      input.checked = Boolean(wizard.challenge && wizard.challenge.id === input.value && (wizard.challenge.version || "") === input.dataset.version);
+      input.checked = Boolean(wizard.challenge && wizard.challenge.id === input.dataset.challenge && (wizard.challenge.version || "") === input.dataset.version);
     }
     const description = $("wizard-challenge-description");
     const entry = challengeEntry(wizard.challenge);
     if (description.dataset.key !== (entry ? entry.challenge_id + "@" + entry.version : "")) {
       description.replaceChildren();
-      if (entry?.implemented) { description.append(el("h3", entry.title)); renderDescription(description, entry); }
+      if (entry?.implemented) { description.append(el("h3", plainTitle(entry.title))); renderDescription(description, entry); }
       description.dataset.key = entry ? entry.challenge_id + "@" + entry.version : "";
     }
   }

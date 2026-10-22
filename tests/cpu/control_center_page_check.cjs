@@ -86,7 +86,7 @@ async function wizardTo(page, step, agent = "manual") {
   page.go("#launch");
   await page.advance(0);
   const challenge = selectable();
-  await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id));
+  await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id + "@" + challenge.version));
   await page.press(page.$("wizard-next"));
   await page.press(byValue(page, "#research-selects input", agent));
   const order = ["agent", "model", "compute", "limits", "review", "launch"];
@@ -126,7 +126,7 @@ scenario("normal challenge selection shows only its construction serving paths",
   page.go("#launch");
   await page.advance(0);
   assert.equal(one(page, "#wizard-construction-options").hidden, true);
-  await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id));
+  await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id + "@" + challenge.version));
   assert.equal(one(page, "#wizard-construction-options").hidden, false);
   assert.match(page.text("wizard-construction-options"), /Construction serving paths/);
   assert.match(page.text("wizard-construction-options"), /Official submission · not served yet/);
@@ -137,7 +137,7 @@ scenario("normal challenge selection shows only its construction serving paths",
   const second = await open(unknown);
   second.go("#launch");
   await second.advance(0);
-  await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id));
+  await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id + "@" + challenge.version));
   assert.equal(one(second, "#wizard-construction-options").hidden, false);
   assert.match(second.text("wizard-construction-options"), /Construction path status unavailable/);
   assert.doesNotMatch(second.text("wizard-construction-options"), /Official submission · not served yet/,
@@ -206,7 +206,7 @@ scenario("v2 construction paths render without family admission claims", async (
   const second = await open(unrelated);
   second.go("#launch");
   await second.advance(0);
-  await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id));
+  await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id + "@" + challenge.version));
   assert.match(second.text("wizard-construction-options"), /Construction path status unavailable/);
   assert.doesNotMatch(second.text("wizard-construction-options"), /Public reconstruction · available/,
     "another Challenge's path document cannot be shown for this choice");
@@ -1730,7 +1730,7 @@ scenario("Review shows each Challenge's evaluation and names a set-aside intake 
   assert.ok(row.textContent.includes(item.note));
   assert.ok(row.textContent.includes("set aside by the update: " + item.set_aside_intake));
   await page.press([...row.querySelectorAll("button")].find(b => b.textContent === "Name it again"));
-  assert.equal(page.$("setup-review-intake_challenge").value, item.id);
+  assert.equal(page.$("setup-review-intake_challenge").value, item.id + "@" + item.version);
   assert.equal(page.$("setup-review-intake_url").value, item.set_aside_intake);
   // With the receiver its Review pinned (LAUNCHPAD-ACCEPT-03).
   assert.ok(item.set_aside_receiver, "the set-aside intake's pinned receiver");
@@ -1995,7 +1995,7 @@ scenario("Graphite: offered in place of the autonomous agent, which is said to b
   const fourth = await open(nowhere);
   fourth.go("#launch");
   await fourth.advance(0);
-  await fourth.press(byValue(fourth, "#wizard-challenges input", selectable().challenge_id));
+  await fourth.press(byValue(fourth, "#wizard-challenges input", selectable().challenge_id + "@" + selectable().version));
   await fourth.press(fourth.$("wizard-next"));
   assert.equal(byValue(fourth, "#research-selects input", "graphite").disabled, true);
   assert.match(fourth.text("research-selects"), /Not offered for .*graphite not offered for challenge/);
