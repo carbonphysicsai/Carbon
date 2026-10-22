@@ -226,16 +226,11 @@ while [ "$i" -le "$N" ]; do
     done
     [ -n "$drawn" ] || { echo "STOP: no seed placed a batch in 6 tries (see seeds.jsonl)" >&2; exit 1; }
     fp=$(field "$drawn" fingerprint)
-<<<<<<< HEAD
     run_solve "$fp"
     run_solve "$fp"
-=======
-    producer solve --challenge "$CID" --fingerprint "$fp" --workers "$parallel" --timeout-s 7200 >> "$priv/logs/solve-${fp#sha256:}.log" 2>&1
-    producer solve --challenge "$CID" --fingerprint "$fp" --workers "$parallel" --timeout-s 7200 >> "$priv/logs/solve-${fp#sha256:}.log" 2>&1
     if [ -e "$out/.slot_memory_insufficient" ] || [ -e "$out/.slot_oom_137" ]; then
       echo "STOP: slot_memory_insufficient / OOM rc 137 in slot $SLOT (infrastructure, typed); to the Validator" >&2; exit 1
     fi
->>>>>>> dc/sealed-exam-runner
     if [ -n "$SLOT" ] && grep -q '"status": "REFERENCE_TIMEOUT"' "$priv/producer/work/$CID/${fp#sha256:}/records.jsonl" 2>/dev/null; then
       echo "STOP: a REFERENCE_TIMEOUT while slotted (slot $SLOT): the isolation did not hold; to the Validator" >&2; exit 1
     fi
