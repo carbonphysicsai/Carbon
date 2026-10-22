@@ -85,14 +85,19 @@ TIMEOUT_SECONDS_BOUNDS = (10, 600)
 #: maximum on its output cap, input window or call timeout
 #: (OWNER-MINER-LIMITS-EXAM-ONLY-01, limits row #8): the provider's own
 #: published limits are the defaults, and the provider refuses past its own
-#: maximum. The upper bound is the unsigned 64-bit one, a type check; the
+#: maximum. The upper bounds are representation bounds, not limits; the
 #: minimums stay. A frozen miner selection's values lie inside these, so it
 #: re-validates unchanged. Carbon's own Graphite (its own adapter registry,
 #: grant-bound) keeps the bounds above.
-UNBOUNDED = 2**63 - 1
-MINER_OUTPUT_TOKEN_BOUNDS = (OUTPUT_TOKEN_BOUNDS[0], UNBOUNDED)
-MINER_INPUT_TOKEN_BOUNDS = (INPUT_TOKEN_BOUNDS[0], UNBOUNDED)
-MINER_TIMEOUT_SECONDS_BOUNDS = (TIMEOUT_SECONDS_BOUNDS[0], UNBOUNDED)
+#: Representation bounds only (Validator, 2026-10-22): a token count must
+#: round-trip a JSON number in the page (2**53 - 1, JavaScript's largest safe
+#: integer), and a timeout must fit a socket timeout (2**31 - 1 seconds;
+#: urllib raises OverflowError beyond ~9.2e9 s).
+TOKENS_REPRESENTABLE = 2**53 - 1
+SECONDS_REPRESENTABLE = 2**31 - 1
+MINER_OUTPUT_TOKEN_BOUNDS = (OUTPUT_TOKEN_BOUNDS[0], TOKENS_REPRESENTABLE)
+MINER_INPUT_TOKEN_BOUNDS = (INPUT_TOKEN_BOUNDS[0], TOKENS_REPRESENTABLE)
+MINER_TIMEOUT_SECONDS_BOUNDS = (TIMEOUT_SECONDS_BOUNDS[0], SECONDS_REPRESENTABLE)
 
 
 def selection_bounds(adapters=None):

@@ -83,10 +83,10 @@ def test_the_rule_and_its_value_are_selects_own_bound():
         )
     # A miner's timeout has no maximum but the 64-bit one (limits row #8):
     # with streamed calls it counts only idle time.
-    for bad in (9, 2**63, 120.0, "600", True):
-        with pytest.raises(
-            mp.ModelSelectionRefused, match=r"\[10, 9223372036854775807\]"
-        ):
+    # The upper bound is a socket timeout's (2**31 - 1 s), a representation
+    # bound; urllib overflows beyond it.
+    for bad in (9, 2**31, 120.0, "600", True):
+        with pytest.raises(mp.ModelSelectionRefused, match=r"\[10, 2147483647\]"):
             mp.select(
                 credential={"kind": "file", "reference": "unset"},
                 settings={"timeout_seconds": bad},
@@ -339,3 +339,19 @@ def test_a_short_elapsed_limit_admits_calls_through_its_first_half(tmp_path):
     with pytest.raises(ValueError, match="timeout cannot fit"):
         call("model-3")
     assert len(sent) == 2
+
+
+def test_the_largest_miner_timeout_fits_a_socket_timeout():
+    import socket
+
+    high = mp.MINER_TIMEOUT_SECONDS_BOUNDS[1]
+    assert high == 2**31 - 1
+    chosen = mp.select(
+        credential={"kind": "file", "reference": "unset"},
+        settings={"timeout_seconds": high},
+        timeout_default=mp.TIMEOUT_DEFAULT_V2,
+        **ENGY,
+    )
+    assert chosen.settings.timeout_seconds == high
+    with socket.socket() as sock:
+        sock.settimeout(high)

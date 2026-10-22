@@ -223,16 +223,17 @@ def test_the_input_bounds_are_selects_own():
     # Carbon's own Graphite keeps the historical bounds; a miner's selection
     # has no maximum but the 64-bit one (limits row #8).
     assert mp.INPUT_TOKEN_BOUNDS == (16384, 1048576)
-    assert mp.MINER_INPUT_TOKEN_BOUNDS == (16384, 2**63 - 1)
+    # Representation bound only: a JSON number the page round-trips.
+    assert mp.MINER_INPUT_TOKEN_BOUNDS == (16384, 2**53 - 1)
     credential = {"kind": "file", "reference": "/nonexistent/fixture.key"}
-    for bad in (16383, 2**63):
+    for bad in (16383, 2**53):
         with pytest.raises(mp.ModelSelectionRefused):
             mp.select(
                 provider_id="engy-chat",
                 credential=credential,
                 settings={"max_input_tokens": bad},
             )
-    for good in (16384, 1048577):
+    for good in (16384, 1048577, 2**53 - 1):
         chosen = mp.select(
             provider_id="engy-chat",
             credential=credential,

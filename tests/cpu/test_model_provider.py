@@ -453,7 +453,7 @@ def test_a_new_selection_round_trips_through_its_record_without_the_key():
         ({"model_id": ""}, "model id"),
         ({"endpoint": "https://elsewhere.invalid/v1"}, "fixed"),
         ({"settings": {"temperature": 1}}, "unknown model setting"),
-        ({"settings": {"max_output_tokens": 2**63}}, "max_output_tokens"),
+        ({"settings": {"max_output_tokens": 2**53}}, "max_output_tokens"),
         ({"credential": {"kind": "inline", "reference": "sk-x"}}, "key file path"),
         (
             {
