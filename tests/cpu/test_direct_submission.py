@@ -1039,3 +1039,54 @@ def test_pending_observation_keeps_validated_id_after_journal_replacement(
     assert queued.value.code == "construction_task_queued"
     assert queued.value.task_id == "task-1"
     assert [call["tool"] for call in calls] == [client.STATUS_TOOL]
+
+
+def test_same_recipe_refusal_returns_the_earlier_result_and_records_no_epoch(
+    tmp_path, monkeypatch
+):
+    # Validator ruling (a): the receiver refuses a recipe it already graded for
+    # this hotkey on its exam set, with the earlier result. The epoch gets no
+    # admission record (its exam stays unused) and the refusal keeps its code.
+    class Signer:
+        def __init__(self, signer):
+            pass
+
+        def sign(self, body, *, receiver, nonce_ns):
+            return {"signed": "fixture"}
+
+    monkeypatch.setattr(client, "BittensorMessageSigner", Signer)
+    earlier = _answer("RECONSTRUCTED", task_id="task-epoch-1")
+    refused = {**earlier, "kind": "REFUSED", "code": "same_recipe_already_submitted"}
+    sent = []
+
+    def send(*arguments):
+        sent.append(arguments)
+        return 400, refused
+
+    def submit(answer_send):
+        return client.submit_and_wait(
+            _URL,
+            "external-signer",
+            root=tmp_path,
+            epoch=2,
+            recipe=_recipe(),
+            contract_digest=_CONTRACT,
+            receiver=_RECEIVER,
+            context=_CONTEXT,
+            read=lambda url: _facts(),
+            send=answer_send,
+        )
+
+    with pytest.raises(client.DirectSameRecipeSubmitted) as caught:
+        submit(send)
+    assert caught.value.code == "same_recipe_already_submitted"
+    assert isinstance(caught.value, client.DirectIntakeRefusal)
+    assert caught.value.earlier == earlier["outcome"]
+    assert len(sent) == 1
+    assert not (tmp_path / "construction-intake-epoch-2.json").exists()
+    # A refusal whose earlier result is not a valid outcome is never trusted.
+    malformed = {**refused, "outcome": {**refused["outcome"], "task_id": ""}}
+    with pytest.raises(
+        client.DirectIntakeRefusal, match="construction_intake_answer_unrecognised"
+    ):
+        submit(lambda *_: (400, malformed))

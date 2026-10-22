@@ -175,6 +175,19 @@ class Unavailable(RuntimeError):
         self.retry = dict(retry or {})
 
 
+class SameRecipeAlreadySubmitted(RuntimeError):
+    """This hotkey's recipe was already graded on the active pack set
+    (Validator ruling (a)): refused before any slot or grading, with the
+    earlier submission's own outcome. Never a score; a rotated pack set makes
+    the same recipe a new submission (a re-exam)."""
+
+    code = "same_recipe_already_submitted"
+
+    def __init__(self, outcome):
+        super().__init__(self.code)
+        self.outcome = outcome
+
+
 class ReservedRole(PermissionError):
     """A seed role that is reserved or already sealed outside the pool."""
 

@@ -20,7 +20,12 @@ from carbon.development_session.construction_recipe import (
 from carbon.development_session.construction_recipe import bind_recipe
 from carbon.reconstruction.served_recipe_contract import registered
 
-from .interface import ChallengeAdapter, Unavailable, digest
+from .interface import (
+    ChallengeAdapter,
+    SameRecipeAlreadySubmitted,
+    Unavailable,
+    digest,
+)
 
 OUTCOME_SCHEMA = "carbon.lean-recipe-development-outcome.v1"
 _SOURCE_PATHS = (
@@ -231,12 +236,6 @@ class LeanRecipeAdapter(ChallengeAdapter):
 
         recipe = self.validate_strategy(submission.strategy)
         provider = self._provider(submission.hotkey)
-        source = recipe.to_dict()["source"]
-        if source["kind"] == "graph":
-            try:
-                graph_envelope_from_workspace(provider.ledger, provider.owner, recipe)
-            except RecipeRefused as refused:
-                raise Unavailable(refused.code) from None
         # The durable task provider owns source inspection and admitted
         # environment preparation. A missing preinstalled image is not a
         # separate construction-admission rule at the signed door.
@@ -246,6 +245,14 @@ class LeanRecipeAdapter(ChallengeAdapter):
             evaluation_pack_digest=provider.evaluation_pack_digest,
         )
         task_id = provider._task_id(request)
+        if self._already_graded(submission.hotkey, task_id.value, provider):
+            raise SameRecipeAlreadySubmitted(self.outcome(task_id.value))
+        source = recipe.to_dict()["source"]
+        if source["kind"] == "graph":
+            try:
+                graph_envelope_from_workspace(provider.ledger, provider.owner, recipe)
+            except RecipeRefused as refused:
+                raise Unavailable(refused.code) from None
         from carbon.research import canonical_bytes
 
         self.ledger.record_recipe_task_intent(
@@ -277,6 +284,23 @@ class LeanRecipeAdapter(ChallengeAdapter):
         if task.task_id != task_id:
             raise RuntimeError("direct task identity changed after owner intent")
         return self._project(task, provider)
+
+    def _already_graded(self, hotkey, submission_id, provider):
+        """Validator ruling (a): this hotkey's recipe already graded on this
+        pack set. The task identity binds hotkey, contract, recipe and pack,
+        so its exam-cap row is the earlier grading; a rotated pack set is a
+        new task. Without a pack nothing is graded, so nothing is refused."""
+        if provider.evaluation_pack_digest is None:
+            return False
+        from carbon.challenge_validator.exam_cap import ExamCap
+
+        return ExamCap(self.ledger).holds_slot(
+            hotkey=hotkey,
+            challenge_id=self.challenge_id,
+            challenge_version=self.challenge_version,
+            exam_key=provider.evaluation_pack_digest,
+            submission_id=submission_id,
+        )
 
     def _project(self, task, provider):
         from carbon.research import DirectTaskStateV3

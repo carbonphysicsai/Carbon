@@ -31,6 +31,13 @@ Refusals, all before grading, so none consumes exam wear and none writes an atte
 ``exam_daily_allowance_reached``, ``epoch_limit_reached``, ``exam_key_expired``,
 ``exam_cap_unregistered`` (a Challenge not registered) and ``exam_cadence_unregistered``.
 
+**Same recipe, same pack set.** A submission is hotkey + contract + recipe + evaluation
+pack (the receiver's task identity), so a resubmit of a graded recipe on the same pack set
+is the same submission. The receiver refuses it at its door (``holds_slot``;
+``same_recipe_already_submitted``, with the earlier result), before any reservation, so
+the epoch's slot stays free for a different recipe. On a rotated pack set it is a new
+submission (a re-exam).
+
 The state lives in the receiver's own attempt ledger file (owner-only SQLite). Nothing here
 touches a score, a bank entry or what a miner can see; a refusal is a typed code only.
 """
@@ -439,6 +446,21 @@ class ExamCap:
                 if row is None or row != (state, status):
                     raise ValueError("exam cap reservation is not open")
         return state
+
+    def holds_slot(
+        self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id
+    ) -> bool:
+        """Whether this submission is graded (or grading) on this exam key: a
+        GRADED row holding its slot. The receiver refuses its resubmit
+        (``same_recipe_already_submitted``) before anything is reserved."""
+        with self.ledger._db() as db:
+            row = db.execute(
+                "SELECT 1 FROM exam_graded WHERE hotkey=? AND challenge_id=? AND "
+                "challenge_version=? AND exam_key=? AND submission_id=? AND "
+                "kind='GRADED' AND state IN ('RESERVED','COUNTED')",
+                (hotkey, challenge_id, challenge_version, exam_key, submission_id),
+            ).fetchone()
+        return row is not None
 
     def count(
         self, *, hotkey, challenge_id, challenge_version=None, exam_key=None
