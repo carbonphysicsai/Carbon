@@ -386,11 +386,32 @@ REQUEST_HOLD_V1 = "carbon.autoresearch.request-hold.v1"
 REQUEST_HOLDS = (REQUEST_HOLD_V1,)
 
 
-def request_hold(selection, request_bytes, anchor=None):
+def request_extends(previous, request):
+    """Whether `request` extends `previous` exactly: every field but the
+    input equal, and its input beginning with `previous`'s whole input, by
+    digest. A rewritten history (a compaction, an edited item) does not."""
+    if type(previous) is not dict or type(request) is not dict:
+        return False
+    old, new = previous.get("input"), request.get("input")
+    if type(old) is not list or type(new) is not list or len(new) < len(old):
+        return False
+    if {k: v for k, v in previous.items() if k != "input"} != {
+        k: v for k, v in request.items() if k != "input"
+    }:
+        return False
+    return digest(canonical(new[: len(old)])) == digest(canonical(old))
+
+
+def request_hold(selection, request_bytes, anchor=None, extends=False):
     """What one request of `request_bytes` canonical bytes holds on a priced
     `selection` under `REQUEST_HOLD_V1`, never above its whole reservation
     (`ModelSelection.reservation_nano`); see `REQUEST_HOLD_V1` for what it
-    does not bound."""
+    does not bound. Only a request that `extends` the anchored one exactly
+    (`request_extends`) holds less: a first call has no anchor, and the
+    provider bills tool and framing tokens its bytes do not show, so it -
+    and a rewritten history - holds the whole reservation (Validator)."""
+    if anchor is None or not extends:
+        return selection.reservation_nano
     settings, pricing = selection.settings, selection.pricing
     tokens = min(input_token_bound(request_bytes, anchor), settings.max_input_tokens)
     return min(
@@ -414,6 +435,7 @@ def request_model(
     accept_incomplete=False,
     jitter=None,
     hold=None,
+    anchored=None,
 ):
     """One model call, with bounded automatic retries of failures that
     incurred no charge, each under a new identity and reservation.
@@ -450,7 +472,7 @@ def request_model(
                     provider=provider,
                     anchor=anchor,
                     accept_incomplete=accept_incomplete,
-                    **({} if hold is None else {"hold": hold}),
+                    **({} if hold is None else {"hold": hold, "anchored": anchored}),
                 )
         except _Passed as passed:
             attempt += 1
@@ -662,6 +684,7 @@ def _request_once(
     anchor=None,
     accept_incomplete=False,
     hold=None,
+    anchored=None,
 ):
     settings = provider.settings
     priced = provider.reservation_nano is not None
@@ -723,7 +746,9 @@ def _request_once(
     held = (
         provider.reservation_nano
         if hold is None or not priced
-        else request_hold(provider, len(payload), anchor)
+        else request_hold(
+            provider, len(payload), anchor, request_extends(anchored, request)
+        )
     )
     reservation = {
         "provider_attempts": 1,

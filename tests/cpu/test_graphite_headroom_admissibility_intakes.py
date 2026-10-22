@@ -183,10 +183,11 @@ def provider_holds(meter):
 
 
 def test_under_the_hold_rule_a_call_holds_its_own_requests_cost(tmp_path):
-    """G1 (1): each call holds its own request's input bound plus the whole
-    output cap - provider-added tokens aside, which are detected - not the
-    whole input window's. Without the rule every call holds the full
-    reservation, as before."""
+    """G1 (1): a call whose request extends the anchored one exactly holds
+    its own request's input bound plus the whole output cap - provider-added
+    tokens aside, which are detected - not the whole input window's. The
+    first call has no anchor and holds the full reservation (Validator).
+    Without the rule every call holds the full reservation, as before."""
     from carbon.development_session.model_provider import DEFAULT_SELECTION
     from carbon.development_session.research_agent import (
         REQUEST_HOLD_V1,
@@ -198,11 +199,16 @@ def test_under_the_hold_rule_a_call_holds_its_own_requests_cost(tmp_path):
     transport, requests = scripted([[call("a", INFO)], [select("s")]])
     role(held, transport, limits=LIMITS_V2, request_hold=REQUEST_HOLD_V1)
     holds = provider_holds(held)
-    assert len(holds) == 2 and all(0 < h < full for h in holds)
-    first = len(canonical(requests[0]))
-    assert holds[0] == request_hold(DEFAULT_SELECTION, first)
+    assert len(holds) == 2 and holds[0] == full and 0 < holds[1] < full
+    turn = json.loads(
+        (held.root / "epoch-1" / "epoch-1-provider-000-turn.json").read_bytes()
+    )
+    anchor = (turn["input_tokens"], len(canonical(requests[0])))
+    assert holds[1] == request_hold(
+        DEFAULT_SELECTION, len(canonical(requests[1])), anchor, True
+    )
     settings, pricing = DEFAULT_SELECTION.settings, DEFAULT_SELECTION.pricing
-    assert holds[0] >= settings.max_output_tokens * pricing.output_nano
+    assert holds[1] >= settings.max_output_tokens * pricing.output_nano
     plan = json.loads((held.root / "epoch-1" / "plan.json").read_bytes())
     assert plan["request_hold"] == REQUEST_HOLD_V1
     status = requests[1]["input"][-1]["content"]
@@ -218,12 +224,30 @@ def test_a_request_hold_never_exceeds_the_full_reservation():
     from carbon.development_session.research_agent import request_hold
 
     full = DEFAULT_SELECTION.reservation_nano
-    assert request_hold(DEFAULT_SELECTION, 10**9) == full
-    assert request_hold(DEFAULT_SELECTION, 1000) < full
-    # Anchored: the reported tokens plus the bytes appended since.
-    assert request_hold(DEFAULT_SELECTION, 5000, (100, 4000)) == request_hold(
-        DEFAULT_SELECTION, 1100
-    )
+    # No anchor, or a request that does not extend it: the whole reservation.
+    assert request_hold(DEFAULT_SELECTION, 1000) == full
+    assert request_hold(DEFAULT_SELECTION, 5000, (100, 4000), False) == full
+    # Anchored and extending: the reported tokens plus the bytes appended.
+    small = request_hold(DEFAULT_SELECTION, 5000, (100, 4000), True)
+    assert small < full
+    assert small == request_hold(DEFAULT_SELECTION, 3900, (200, 3000), True)
+    assert request_hold(DEFAULT_SELECTION, 10**9, (10**8, 1), True) == full
+
+
+def test_a_rewritten_history_extends_nothing_and_holds_in_full():
+    """Validator condition 2: the anchor counts only for a request that
+    extends the anchored one exactly, by digest of its input prefix."""
+    from carbon.development_session.research_agent import request_extends
+
+    base = {"model": "m", "instructions": "i", "input": [{"a": 1}, {"b": 2}]}
+    assert request_extends(base, {**base, "input": [{"a": 1}, {"b": 2}, {"c": 3}]})
+    assert request_extends(base, base)
+    # An earlier item rewritten (a compaction or an edit), or one dropped.
+    assert not request_extends(base, {**base, "input": [{"a": 9}, {"b": 2}, {"c": 3}]})
+    assert not request_extends(base, {**base, "input": [{"b": 2}, {"c": 3}]})
+    # Any other field changed.
+    assert not request_extends(base, {**base, "instructions": "j"})
+    assert not request_extends(None, base) and not request_extends(base, None)
 
 
 def test_the_request_hold_rule_is_closed(tmp_path):

@@ -63,6 +63,7 @@ from .research_agent import (
     incomplete_reply,
     input_token_bound,
     provider_turns,
+    request_extends,
     request_model,
 )
 from .research_agent import request_hold as request_hold_of
@@ -2174,6 +2175,9 @@ async def run_epoch(
     # The last turn's provider-reported input tokens and its request's bytes;
     # None until a turn reports them.
     anchor = None
+    # The request `anchor` measured, so a request-hold call knows whether its
+    # request extends it exactly (`research_agent.request_extends`).
+    anchored_request = None
     # The miner's messages read so far, chained from this frozen plan.
     guidance_chain = digest(canonical(plan)) if miner_guidance is not None else None
     # The finish status ends the session only as the finish tool's own result.
@@ -2225,7 +2229,11 @@ async def run_epoch(
         `CeilingReached(MINER_CEILING_REACHED)`, before anything of it is
         reserved; otherwise every exception is the provider layer's own."""
         if request_hold is not None:
-            arguments = {**arguments, "hold": request_hold}
+            arguments = {
+                **arguments,
+                "hold": request_hold,
+                "anchored": anchored_request,
+            }
         try:
             return request_model(calls_ledger, **arguments)
         except ValueError as error:
@@ -2412,7 +2420,8 @@ async def run_epoch(
         initial observation, the labelled summary and the last turns, and the
         record names what left the context. Returns an outcome that ends the
         session, or None."""
-        nonlocal history, anchor, extra_calls, compactions, deferred, live_turns
+        nonlocal history, anchor, anchored_request, extra_calls, compactions
+        nonlocal deferred, live_turns
         record_path = root / (compaction_identity(epoch, index, 0, stage) + ".json")
         threshold = int(ceiling * compaction["trigger_fraction"])
         kept_count = compaction["keep_last_turns"]
@@ -2643,6 +2652,8 @@ async def run_epoch(
             ),
         )
         history, anchor = compacted, new_anchor
+        # A rewritten history extends no earlier request: held in full.
+        anchored_request = None
         live_turns = [
             (turn, 2 + start - keep_from) for turn, start in live_turns[-kept_count:]
         ]
@@ -2738,6 +2749,7 @@ async def run_epoch(
                                 len(canonical(request_for(history)))
                                 + STATUS_BYTES_BOUND,
                                 anchor,
+                                request_extends(anchored_request, request_for(history)),
                             )
                         }
                     ),
@@ -2787,6 +2799,7 @@ async def run_epoch(
         write_once(root / (call_id + "-turn.json"), canonical(turn))
         if type(turn["input_tokens"]) is int and turn["input_tokens"] >= 0:
             anchor = (turn["input_tokens"], request_bytes)
+            anchored_request = request
             base_tokens = min(
                 turn["input_tokens"],
                 turn["input_tokens"] if base_tokens is None else base_tokens,
