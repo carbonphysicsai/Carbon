@@ -50,11 +50,20 @@ def _set_evaluation_key(evidence):
         or not batches
         or any(
             type(b) is not dict
-            or set(b) != {"evaluation_pack_digest", "evaluation_key", "binding_sha256"}
-            or not all(is_digest(v) for v in b.values())
+            or set(b)
+            != {
+                "evaluation_pack_digest",
+                "evaluation_key",
+                "binding_sha256",
+                "case_count",
+            }
+            or not all(is_digest(v) for k, v in b.items() if k != "case_count")
+            or type(b["case_count"]) is not int
+            or b["case_count"] < 1
             for b in batches
         )
         or len({b["evaluation_pack_digest"] for b in batches}) != len(batches)
+        or len({b["case_count"] for b in batches}) != 1
         or type(compatibility) is not dict
         or set(compatibility)
         != {"score_pack_digest", "scoring_version", "execution_profile_digest"}
@@ -73,6 +82,19 @@ def _set_evaluation_key(evidence):
             "evaluation_pack_digests": [b["evaluation_pack_digest"] for b in batches],
         }
     )
+
+
+def _case_count(evidence):
+    """How many cases one batch's evaluation covered: its reference coverage."""
+    coverage = evidence.get("reference_coverage")
+    if type(coverage) is not dict or not all(
+        type(v) is int and v >= 0 for v in coverage.values()
+    ):
+        raise StateError("set_batch_evidence_invalid")
+    count = sum(coverage.values())
+    if count < 1:
+        raise StateError("set_batch_evidence_invalid")
+    return count
 
 
 def build_set_evidence(set_key, bodies):
@@ -107,10 +129,13 @@ def build_set_evidence(set_key, bodies):
     )
     packs = [e["evaluation_pack_digest"] for e in evidences]
     versions = {e["score_compatibility"]["scoring_version"] for e in evidences}
+    counts = [_case_count(e) for e in evidences]
     if (
         any(e[k] != first[k] for e in evidences for k in common)
         or len(set(packs)) != len(packs)
         or len(versions) != 1
+        # Equal weight per batch is meaningful only for equal-sized batches.
+        or len(set(counts)) != 1
     ):
         raise StateError("set_batches_disagree")
     statuses = [e["model_p"]["score_status"] for e in evidences]
@@ -140,8 +165,9 @@ def build_set_evidence(set_key, bodies):
                 "evaluation_pack_digest": e["evaluation_pack_digest"],
                 "evaluation_key": body["evaluation_key"],
                 "binding_sha256": digest(e),
+                "case_count": count,
             }
-            for e, body in zip(evidences, bodies, strict=True)
+            for e, body, count in zip(evidences, bodies, counts, strict=True)
         ],
         "entry_id": first["entry_id"],
         "state_digest": first["state_digest"],

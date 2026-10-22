@@ -376,3 +376,27 @@ def test_two_stored_evaluations_of_one_batch_pack_are_ambiguous(store):
     promotion = bp.BankPromotion(store, registered_source_receipt_sha256=PIN)
     with pytest.raises(StateError, match="set_batch_evaluation_missing"):
         promotion.retain_set("rtsk_a", SET_KEY, PACKS)
+
+
+def test_a_set_of_unequal_sized_batches_is_refused():
+    small = per_batch(PACKS[0])
+    big = per_batch(
+        PACKS[1],
+        reference_coverage={"RESOLVED": 40, "UNRESOLVED": 0, "FAILED_INFRA": 0},
+    )
+    with pytest.raises(bp.StateError, match="set_batches_disagree"):
+        bp.build_set_evidence(SET_KEY, [small, big])
+
+
+def test_the_set_evidence_carries_each_batchs_case_count():
+    evidence = bp.build_set_evidence(SET_KEY, two())
+    assert [b["case_count"] for b in evidence["batches"]] == [30, 30]
+    forged = {
+        **evidence,
+        "batches": [
+            {**evidence["batches"][0], "case_count": 31},
+            evidence["batches"][1],
+        ],
+    }
+    with pytest.raises(bp.StateError):
+        bp.private_evaluation_key(forged)
