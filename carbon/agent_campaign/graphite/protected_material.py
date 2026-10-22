@@ -95,6 +95,12 @@ def _checkout_denied(text, lowered):
     return text not in PUBLIC_PRACTICE_PATHS and boundaries._denied(lowered)
 
 
+def _path_like(token):
+    """Whether one whitespace-free token could name a checkout file: a '/',
+    '\' or '.' in it (Validator, 2026-10-21)."""
+    return any(c in token for c in ("/", "\\", "."))
+
+
 def _protected_text(text):
     lowered = text.lower()
     return _checkout_denied(text, lowered) or any(
@@ -105,6 +111,32 @@ def _protected_text(text):
 def protected(value):
     """True when any string in `value` names protected material."""
     return any(_protected_text(text) for text in _strings(value))
+
+
+def protected_result(value):
+    """`protected`, for a miner tool's result (M1 rehearsal, 2026-10-21).
+
+    Graphite's markers read every string, exactly as `protected` does. The
+    checkout deny rule names paths, so here it reads each path-like token of
+    a string (whitespace-free, with a '/', '\' or '.'; Validator): Carbon's
+    own prose ("... not confirmation" in Motor's public objective and
+    roadmap) no longer withholds a result, while a bare file name such as
+    ev5_confirmation_evidence.json, a relative or Windows path, and a path
+    inside a sentence still do. A token that is exactly one of
+    `PUBLIC_PRACTICE_PATHS` is public. Requests, briefs and literature keep
+    `protected` unchanged."""
+    for text in _strings(value):
+        lowered = text.lower()
+        if any(marker in lowered for marker in PROTECTED_MARKERS):
+            return True
+        for token in text.split():
+            if (
+                token not in PUBLIC_PRACTICE_PATHS
+                and _path_like(token)
+                and boundaries._denied(token.lower())
+            ):
+                return True
+    return False
 
 
 #: Each marker's class: a category name that is never a marker itself and

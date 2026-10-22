@@ -123,6 +123,12 @@ OPTIONAL_PROFILE_FIELDS = {
     # for it. Review pins it; a profile written before has none, and its
     # intake is not checked (setup and the prelaunch review warn).
     "receivers",
+    # Per Challenge version (published-endpoints v2): {challenge_id: {version:
+    # [receiver-paired targets]}}, Carbon's published endpoint for exactly that
+    # version, written by Review. A Challenge named here is named nowhere by
+    # id, so each version's submit reads only its own version's endpoint
+    # (`intake_targets.for_version`).
+    "version_intakes",
     # Legacy names from C-MLP-03, still read exactly as before: the intake and
     # the validator deployment of the one Challenge they were written for.
     "battery_intake",
@@ -203,6 +209,7 @@ def campaign_args(cfg, **fields):
         intakes=intakes(cfg),
         intake_targets=cfg.get("intake_targets", {}),
         receivers=receivers(cfg),
+        version_intakes=cfg.get("version_intakes", {}),
         validators=validators(cfg),
         remote_machine=cfg.get("remote_machine"),
         direct_intake_target=cfg.get("direct_intake_target"),
@@ -221,6 +228,38 @@ def _registered_challenge_ids(values, field):
             campaign_for_id(challenge_id)
         except (ResolutionError, TypeError):
             raise ValueError(f"{field} names an unregistered Challenge") from None
+
+
+def _version_intakes(cfg):
+    """`version_intakes`, closed: each (Challenge id, version) registered with
+    a campaign that submits through an intake, each list receiver-paired, and
+    no Challenge named per version also named by id (`intakes`, `receivers`,
+    `intake_targets` or the legacy `battery_intake`), so no version's submit
+    can read an endpoint written for another."""
+    from carbon.challenge_registry import ResolutionError
+    from carbon.challenge_registry.campaigns import campaign_for
+    from carbon.development_session.intake_targets import versioned
+
+    table = versioned(cfg)
+    by_id = {
+        *(cfg.get("intakes") or {}),
+        *(cfg.get("receivers") or {}),
+        *(cfg.get("intake_targets") or {}),
+        *((_legacy_challenge(),) if LEGACY_INTAKE in cfg else ()),
+    }
+    for challenge_id, versions in table.items():
+        if challenge_id in by_id:
+            raise ValueError("a Challenge's intake is named by id or per version")
+        for version in versions:
+            try:
+                campaign = campaign_for({"id": challenge_id, "version": version})
+            except (ResolutionError, TypeError, LookupError, ValueError):
+                raise ValueError(
+                    "version_intakes names an unregistered Challenge version"
+                ) from None
+            if campaign.intake_check is None:
+                raise ValueError("version_intakes names a Challenge with no intake")
+    return table
 
 
 def feedback_modes(challenge=None):
@@ -266,12 +305,24 @@ RESEARCH_IMAGE_RECORDS = {
 # refused before launch rather than discovered after the miner has started
 # spending.
 REQUIRED_RUNTIME_KEYS = frozenset({"implementation", "images"})
-SUPPORTED_RUNTIME_KEYS = REQUIRED_RUNTIME_KEYS | {
-    "authored_research",
-    "scientific_tasks",
-    "gpu_research",
-    "remote_gpu",
-}
+#: Descriptive keys a profile may carry that are no composition: accepted
+#: only with a known value, and dropped from the runtime a campaign sees.
+#: `worker_parent` (the worker's pinned CPU parent) was written into the
+#: runtime by setup from 840cf69b1 until its fix (M1 rehearsal, 2026-10-21:
+#: every Challenge then read research_runtime_interface_unavailable); setup
+#: now keeps it in its compute check only, and a profile written meanwhile
+#: still loads.
+DESCRIPTIVE_RUNTIME_KEYS = {"worker_parent": frozenset({"cpu", "torch_cpu"})}
+SUPPORTED_RUNTIME_KEYS = (
+    REQUIRED_RUNTIME_KEYS
+    | {
+        "authored_research",
+        "scientific_tasks",
+        "gpu_research",
+        "remote_gpu",
+    }
+    | set(DESCRIPTIVE_RUNTIME_KEYS)
+)
 
 
 def _intake_url(value):
@@ -622,11 +673,15 @@ def evaluation_refusal(cfg, manifest):
     None) needs no deployment here. A deployment that is configured but
     unusable is still refused by the campaign, by its own code."""
     from carbon.challenge_registry.campaigns import campaign_for_manifest
+    from carbon.development_session.intake_targets import for_version
 
-    challenge = (manifest.get("challenge") or {}).get("id")
+    named = manifest.get("challenge") or {}
+    challenge = named.get("id")
     if campaign_for_manifest(manifest).feedback_schema is None:
         return None
-    if validators(cfg).get(challenge) or intakes(cfg).get(challenge):
+    # The intake of exactly the frozen campaign's version (`version_intakes`).
+    own_version = for_version(cfg, challenge, named.get("version"))
+    if validators(cfg).get(challenge) or intakes(own_version).get(challenge):
         return None
     return "evaluation_unavailable"
 
@@ -742,6 +797,8 @@ def validated_profile(cfg):
         _registered_challenge_ids(cfg["intake_targets"], "intake_targets")
         for targets in cfg["intake_targets"].values():
             validate(targets)
+    if "version_intakes" in cfg:
+        _version_intakes(cfg)
     if "direct_intake_target" in cfg:
         from carbon.development_session.intake_targets import validate
 
@@ -836,11 +893,26 @@ def _remote_machine(cfg, runtime):
 
 #: What a profile's `model_selection` (written by setup) may carry.
 MODEL_SELECTION_FIELDS = frozenset(
-    {"provider_id", "model_id", "endpoint", "declared_pricing", "published_pricing"}
+    {
+        "provider_id",
+        "model_id",
+        "endpoint",
+        "declared_pricing",
+        "published_pricing",
+        "published_limits",
+    }
 )
 
 
-def setup_selection(cfg, *, settings=None, output_default=None, input_default=None):
+def setup_selection(
+    cfg,
+    *,
+    settings=None,
+    output_default=None,
+    input_default=None,
+    timeout_default=None,
+    elapsed_seconds=None,
+):
     """The profile's setup choice as a validated selection, with its key file.
 
     Raises `ModelSelectionRefused` when it does not validate.
@@ -854,6 +926,8 @@ def setup_selection(cfg, *, settings=None, output_default=None, input_default=No
         settings=settings,
         output_default=output_default,
         input_default=input_default,
+        timeout_default=timeout_default,
+        elapsed_seconds=elapsed_seconds,
         **chosen,
     )
 
@@ -1014,6 +1088,10 @@ class LaunchChoice:
             args.graphite = {key: self.graphite[key] for key in GRAPHITE_LAUNCH_KEYS}
             args.graphite.update(submission_policy.launch_fields(self.graphite))
             args.graphite_curation_digest = self.graphite["curation_digest"]
+            # The edition the launch named (or the default it resolved to).
+            # Like the other fields it is frozen into the provider plan at
+            # the first preparation; a resumed campaign keeps its frozen one.
+            args.graphite_edition = self.graphite.get("edition", GRAPHITE_EDITION)
 
 
 # ---- Graphite, the miner edition (OWNER-GRAPHITE-MINER-01, S4).
@@ -1027,11 +1105,28 @@ GRAPHITE = "graphite"
 RETIRED_AGENT = "autonomous"
 #: The agents whose campaign calls a model, and so takes a model selection.
 MODEL_AGENTS = (RETIRED_AGENT, GRAPHITE)
-#: The miner edition a new Graphite launch names. What it means - its role
-#: prompts and tool manifests by digest - is the edition registry's
-#: (`agent_campaign.graphite.miner.edition.MINER_EDITIONS`), which refuses an
-#: unknown one (`graphite_edition_unknown`) before any model call.
+#: The miner edition a new Graphite launch names when it names none
+#: (`graphite_edition`). What an edition means - its role prompts and tool
+#: manifests by digest - is the edition registry's
+#: (`agent_campaign.graphite.miner.edition.MINER_EDITIONS`); a launch naming
+#: an edition it does not hold is refused `graphite_edition_unknown` here,
+#: before anything is created or any model is called.
 GRAPHITE_EDITION = "carbon.graphite.miner-edition.v1"
+EDITION_UNKNOWN = "graphite_edition_unknown"
+#: Each published edition in a sentence, for the launch form and an agent.
+#: Plain descriptions of the registry's editions, never a claim that one
+#: does better: which suits a Challenge is the miner's to find out.
+GRAPHITE_EDITION_SUMMARIES = {
+    GRAPHITE_EDITION: (
+        "The original edition: the Reader, Planner and Constructor as first "
+        "published. The default."
+    ),
+    "carbon.graphite.miner-edition.v2": (
+        "The depth edition: the Planner plans deeper research per role, at a "
+        "higher reasoning effort and a larger output cap, so each planning "
+        "call can cost more of your model budget."
+    ),
+}
 GRAPHITE_MODES = ("RESEARCH", "BUILD", "FULL")
 DEFAULT_GRAPHITE_MODE = "FULL"
 #: The research share a FULL launch that names none is frozen with (the
@@ -1040,6 +1135,7 @@ DEFAULT_RESEARCH_SHARE = 0.10
 #: The launch fields only Graphite reads.
 GRAPHITE_FIELDS = (
     "graphite_mode",
+    "graphite_edition",
     "research_share",
     "plan",
     "hunt",
@@ -1050,7 +1146,8 @@ GRAPHITE_FIELDS = (
 #: versioned submission policy is copied only when explicitly chosen.
 #: S3's
 #: `edition.launch_fields` reads (`LAUNCH_FIELDS`), which refuses any other
-#: (`graphite_launch_invalid`). The edition is the campaign's to name.
+#: (`graphite_launch_invalid`). The edition travels beside them, as
+#: `args.graphite_edition` (`driver.freeze_launch` reads it there).
 GRAPHITE_LAUNCH_KEYS = ("mode", "research_share", "plan", "hunt", "limits")
 #: A hunt's shape: at most 8 queries of at most 6 terms, each starting with
 #: a letter or digit and holding only letters, digits and -, never an arXiv
@@ -1122,13 +1219,23 @@ def limits_value(value):
     return {key: value[key] for key in LIMIT_KEYS if key in value}
 
 
+def graphite_editions():
+    """The edition ids the registry publishes (`MINER_EDITIONS`), in its
+    order."""
+    from carbon.agent_campaign.graphite.miner.edition import MINER_EDITIONS
+
+    return tuple(MINER_EDITIONS)
+
+
 def graphite_launch(request):
     """The launch's Graphite choice, validated, with its defaults resolved, or
     None for any other agent.
 
     {mode, research_share, plan, hunt, limits} - the names S3's launch fields
-    take: `mode` FULL by default; `research_share` 0.10 for FULL and None
-    otherwise; `plan` (a plan digest) only for BUILD; `hunt` None unless
+    take - and `edition`: `edition` the `graphite_edition` named, v1
+    (`GRAPHITE_EDITION`) by default, one the registry publishes or refused
+    `graphite_edition_unknown`; `mode` FULL by default; `research_share`
+    0.10 for FULL and None otherwise; `plan` (a plan digest) only for BUILD; `hunt` None unless
     asked for, and only where a hunt runs (RESEARCH and FULL: S3 runs no hunt
     in BUILD); `limits` the caps set, possibly none. A Graphite field with
     another agent, or with a mode that does not read it, is refused by name:
@@ -1151,6 +1258,11 @@ def graphite_launch(request):
         mode = DEFAULT_GRAPHITE_MODE
     if type(mode) is not str or mode not in GRAPHITE_MODES:
         raise Rejected("graphite_mode_invalid")
+    edition = request.get("graphite_edition")
+    if edition is None:
+        edition = GRAPHITE_EDITION
+    if type(edition) is not str or edition not in graphite_editions():
+        raise Rejected(EDITION_UNKNOWN)
     share = request.get("research_share")
     if share is not None:
         if mode != "FULL":
@@ -1183,6 +1295,7 @@ def graphite_launch(request):
         "plan": plan,
         "hunt": hunt,
         "limits": limits_value({} if limits is None else limits),
+        "edition": edition,
     }
 
 
@@ -1246,34 +1359,71 @@ def hunt_estimate(cfg):
     }
 
 
-def graphite_default_selection(cfg):
+def graphite_default_selection(cfg, elapsed_seconds=None):
     """The selection a Graphite launch naming no model and no model settings
     runs with (setup's choice, or the pinned default), exactly as its
     campaign's builder chooses it: the model's own maximum output
-    (OWNER-LAUNCHPAD-PROD-02) and its published context less that output
-    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01). None when it does not validate."""
+    (OWNER-LAUNCHPAD-PROD-02), its published context less that output
+    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01) and the longest provider call
+    timeout (`TIMEOUT_DEFAULT_V2`, bounded by the launch's
+    `elapsed_seconds`). None when it does not validate."""
     from carbon.development_session.model_provider import (
         DEFAULT_SELECTION,
         INPUT_DEFAULT_V2,
         OUTPUT_DEFAULT_V2,
+        TIMEOUT_DEFAULT_V2,
         ModelSelectionRefused,
         select,
     )
 
+    defaults = {
+        "output_default": OUTPUT_DEFAULT_V2,
+        "input_default": INPUT_DEFAULT_V2,
+        "timeout_default": TIMEOUT_DEFAULT_V2,
+        "elapsed_seconds": elapsed_seconds,
+    }
     try:
         if "model_selection" in cfg:
-            return setup_selection(
-                cfg, output_default=OUTPUT_DEFAULT_V2, input_default=INPUT_DEFAULT_V2
-            )
+            return setup_selection(cfg, **defaults)
         return select(
             provider_id=DEFAULT_SELECTION.provider_id,
             model_id=DEFAULT_SELECTION.model_id,
             credential={"kind": "file", "reference": "unset"},
-            output_default=OUTPUT_DEFAULT_V2,
-            input_default=INPUT_DEFAULT_V2,
+            **defaults,
         )
     except (ModelSelectionRefused, KeyError, TypeError, ValueError):
         return None
+
+
+def graphite_share_refusal(cfg, request, choice, graphite):
+    """Refuse at the launch door, `research_share_too_small`, a Graphite FULL
+    launch whose research share cannot pay for one research model call -
+    what its first preparation would refuse after the campaign was created
+    (Validator ruling 7). The one predicate both places read
+    (`driver.check_research_share`), with the inputs the plan will freeze:
+    the launch's Graphite fields (`graphite_launch`: its mode, share, hunt
+    and edition, whose role settings price each stage's call), the miner's
+    ceilings, and the selection the campaign's builder will resolve - the
+    launch's validated choice (`choice.selection`), or, when it names none,
+    the default a Graphite launch runs with (`graphite_default_selection`).
+    Nothing when `graphite` is None or no selection validates: preparation
+    then decides, as before."""
+    if graphite is None:
+        return
+    from carbon.agent_campaign.graphite.miner import driver
+    from carbon.development_session.product_campaign import miner_budget
+    from carbon.development_session.research_campaign import OperationRefused
+
+    budget = miner_budget(request.get("budget"))
+    selection = getattr(choice, "selection", None)
+    if selection is None:
+        selection = graphite_default_selection(cfg, budget.get("elapsed_seconds"))
+    if selection is None:
+        return
+    try:
+        driver.check_research_share(graphite, budget.get("ceilings"), selection)
+    except OperationRefused as refused:
+        raise Rejected(refused.code, 409) from None
 
 
 def graphite_input_window(cfg):
@@ -1310,14 +1460,24 @@ def graphite_input_window(cfg):
 
 def graphite_options(cfg):
     """What a Graphite launch may choose, for the launch form and an agent:
-    the modes, the research share, a hunt's shape and planning cost, the
-    optional limits, the input window and its advisory (LA-F8) and the
-    Challenges Graphite runs on."""
+    the editions (`graphite_edition`, v1 the default), the modes, the
+    research share, a hunt's shape and planning cost, the optional limits,
+    the input window and its advisory (LA-F8) and the Challenges Graphite
+    runs on."""
     from carbon.challenge_registry.campaigns import implemented_campaigns
 
     return {
         "agent": GRAPHITE,
+        # The default edition, as before editions were listed.
         "edition": GRAPHITE_EDITION,
+        "editions": [
+            {
+                "id": edition,
+                "summary": GRAPHITE_EDITION_SUMMARIES[edition],
+                "default": edition == GRAPHITE_EDITION,
+            }
+            for edition in graphite_editions()
+        ],
         "modes": [
             {
                 "id": mode,
@@ -1704,6 +1864,10 @@ class RunnerAdapter:
     #: answering `campaign_busy`: long enough to outlast a door's instant
     #: probe (`_probe_lock`), short enough that a real holder is reported.
     LOCK_WAIT_SECONDS = 1.0
+    #: How often a read door looks again at one campaign whose ledger says
+    #: some process is working (`_settle_phantom`); a test replaces the clock.
+    PHANTOM_READ_SECONDS = 30.0
+    phantom_clock = staticmethod(time.monotonic)
     #: Graphite's literature (S4 over S2 and S3): the miner's library at a
     #: root, the shared card pack, and the plan rule. A test replaces them.
     open_library = staticmethod(_open_library)
@@ -1774,6 +1938,10 @@ class RunnerAdapter:
         #: work as it would its own (D4).
         self.delegated = set()
         self.lock = threading.RLock()
+        #: What each read door last saw of a campaign in flight, and when
+        #: (`_settle_phantom`): {campaign: (when, (generation, state) or None)}.
+        self._phantom_seen = {}
+        self._phantom_guard = threading.Lock()
         #: Who runs this host's campaign threads (LP-PROD-C). INLINE: this
         #: process, as before supervision existed (fixtures and tests).
         #: SUPERVISOR/DETACHED: this process, while it holds the supervisor
@@ -2008,6 +2176,96 @@ class RunnerAdapter:
             if control.status()["state"] in supervision.IN_FLIGHT:
                 self._settle_if_idle(ledger, control, root)
 
+    def read(self, identity):
+        """`get` for a door that only reads - the page's campaign list
+        (`recent`), `GET /api/v1/research/<id>`, and the observe and
+        campaign_view operations - after settling a phantom in-flight
+        campaign (`_settle_phantom`). Paths that write keep calling `get`,
+        which never settles anything."""
+        self._settle_phantom(identity)
+        return self.get(identity)
+
+    def _settle_phantom(self, identity):
+        """Settle a campaign whose ledger says some process is working when
+        no process is: a phantom RUNNING.
+
+        Found in the M1 rehearsal (2026-10-21): a Graphite run ended - most
+        likely on the Control Center's own thread - without settling its
+        ledger, so the campaign read RUNNING, with an operation RESERVED,
+        for 3.4 hours, nothing working on it. Recovery (`recover`) runs only
+        where a process takes the supervisor lock, which the Control Center
+        already held, so only the miner's Reconcile settled it.
+
+        A read door now settles it through recovery's own per-campaign step
+        (`_recover_one`, orphan None), with every rule it keeps: the real
+        cleanup check; RECONCILIATION_REQUIRED while an operation may be out
+        or cleanup is not verified; otherwise what was asked (READY when the
+        campaign waits for its miner, LP-PROD-FIX-01; PAUSED or STOPPED when
+        asked; else INTERRUPTED), told why in `last_refusal`. It never
+        settles a model call whose outcome is unknown: only Reconcile does
+        (LP-PROD-W2). Nothing is redispatched, queued, retried or woken: no
+        `_redispatch_stranded`, no `_auto_retry_practice`, no `orphaned`.
+
+        It never settles a campaign with a live holder:
+        - the campaign's ownership lock is taken without blocking, and a held
+          one leaves it exactly as it is (`_recover_one`); a run, an
+          operation, an attached agent and the page's tools each hold it;
+        - a campaign with work claimed for it (a RUNNING dispatch item) is
+          left alone: a live supervisor's thread settles it, and a dead
+          supervisor's claimed item is an orphan, which only a supervisor
+          taking the lock interrupts and may carry out again (`recover`);
+        - work queued for it is `waiting`, as `recover` computes it, so with
+          nothing outstanding the queued work settles it, not this;
+        - only a second sighting settles: the same (generation, state) in
+          flight, with nothing claimed, at two probes at least
+          `PHANTOM_READ_SECONDS` apart. A holder between steps - a resume
+          asked for and not yet queued, a thread started and not yet holding
+          the lock - moves the state or its generation well within that, so
+          it is never taken for a phantom.
+
+        Throttle: at most one probe per campaign per `PHANTOM_READ_SECONDS`
+        (30 s). The page polls every 1.5 s; one probe per 30 s takes no lock
+        on almost every poll, bounds the cleanup check (journals, Docker) to
+        one per campaign per 30 s, and still settles a phantom within about a
+        minute of the page seeing it, against hours before.
+
+        Roles: every role reads, so every role probes. The ownership lock
+        proves that one campaign's holder is gone whichever process it was
+        in, so this per-campaign settlement is as safe in a CLIENT (which
+        never runs `recover`) as in a supervisor. What is supervisor-level -
+        interrupting orphaned queue items, carrying a stranded launch out
+        again, retrying an interrupted practice, releasing handover pauses
+        (D4: a campaign paused for handover is PAUSED, not in flight, and is
+        never touched here) - stays with `recover` on taking the supervisor
+        lock. A failed probe changes nothing and never fails the read."""
+        now = self.phantom_clock()
+        with self._phantom_guard:
+            seen = self._phantom_seen.get(identity)
+            if seen is not None and now - seen[0] < self.PHANTOM_READ_SECONDS:
+                return
+            self._phantom_seen[identity] = (now, None)
+        with contextlib.suppress(Exception):
+            row, kind, root = self._bound(identity)
+            if not (root / "campaign.sqlite3").exists():
+                return
+            status = CampaignControl(self._ledger(row, kind, root)).status()
+            if status["state"] not in supervision.IN_FLIGHT:
+                return
+            with self.db() as db:
+                item = supervision.active(
+                    db, principal=self.principal, campaign=identity
+                )
+            if item is not None and item["state"] != supervision.QUEUED:
+                return
+            sighting = (status["generation"], status["state"])
+            with self._phantom_guard:
+                self._phantom_seen[identity] = (now, sighting)
+            if seen is None or seen[1] != sighting:
+                return
+            # A held lock leaves it as it is; the sighting stands, so the
+            # next probe tries again.
+            self._recover_one(dict(row), kind, None, waiting=item is not None)
+
     def interrupted_practice(self, identity):
         """The practice this campaign may send again, or None: its last
         refusal is `operation_interrupted` for a practice - never a practice
@@ -2206,6 +2464,16 @@ class RunnerAdapter:
             raise Rejected("research_runtime_interface_unavailable", 409)
         if not REQUIRED_RUNTIME_KEYS <= set(runtime):
             raise Rejected("research_runtime_interface_unavailable", 409)
+        for name, known in DESCRIPTIVE_RUNTIME_KEYS.items():
+            if name in runtime and runtime[name] not in known:
+                raise Rejected("research_runtime_interface_unavailable", 409)
+        if any(name in runtime for name in DESCRIPTIVE_RUNTIME_KEYS):
+            runtime = {
+                key: value
+                for key, value in runtime.items()
+                if key not in DESCRIPTIVE_RUNTIME_KEYS
+            }
+            cfg = {**cfg, "runtime": runtime}
         if "gpu_research" in runtime:
             from carbon.challenge_registry.campaigns import declared_gpu
 
@@ -2800,8 +3068,9 @@ class RunnerAdapter:
             # body: a choice that cannot run never reaches the chain.
             self._current(cfg)
             challenge = self._challenge(request, cfg["runtime"])
-            self._launch_choice(cfg, request, challenge)
-            self._graphite_choice(request, challenge)
+            choice = self._launch_choice(cfg, request, challenge)
+            graphite = self._graphite_choice(request, challenge)
+            graphite_share_refusal(cfg, request, choice, graphite)
             return None
         # A lost response replays the campaign it created. It was admitted
         # when it was recorded; replaying it reads no chain and starts
@@ -2931,6 +3200,7 @@ class RunnerAdapter:
             ADAPTERS,
             INPUT_DEFAULT_V2,
             OUTPUT_DEFAULT_V2,
+            TIMEOUT_DEFAULT_V2,
             ModelSelectionRefused,
             check_budget,
             select,
@@ -2982,15 +3252,25 @@ class RunnerAdapter:
             if refusal is not None:
                 raise Rejected(refusal, 409)
             try:
+                # The launch's elapsed limit bounds the timeout default; a
+                # budget that does not validate is refused below, as before.
+                elapsed = miner_budget(request.get("budget")).get("elapsed_seconds")
+            except ValueError:
+                elapsed = None
+            try:
                 # A launch makes a new plan: an unset output cap is the
-                # model's own maximum (OWNER-LAUNCHPAD-PROD-02), as the
-                # campaign's own builder will choose it.
+                # model's own maximum (OWNER-LAUNCHPAD-PROD-02) and an unset
+                # timeout the longest, or half the launch's elapsed limit
+                # where that is shorter (`TIMEOUT_DEFAULT_V2`), as the campaign's
+                # own builder will choose them.
                 selection = (
                     setup_selection(
                         cfg,
                         settings=settings,
                         output_default=OUTPUT_DEFAULT_V2,
                         input_default=input_default,
+                        timeout_default=TIMEOUT_DEFAULT_V2,
+                        elapsed_seconds=elapsed,
                     )
                     if same_as_setup
                     else select(
@@ -3000,6 +3280,8 @@ class RunnerAdapter:
                         settings=settings,
                         output_default=OUTPUT_DEFAULT_V2,
                         input_default=input_default,
+                        timeout_default=TIMEOUT_DEFAULT_V2,
+                        elapsed_seconds=elapsed,
                     )
                 )
                 budget = miner_budget(request.get("budget"))
@@ -3114,6 +3396,8 @@ class RunnerAdapter:
             raise Rejected("construction_selector_retired", 409)
         choice = self._launch_choice(cfg, request, challenge)
         graphite = self._graphite_choice(request, challenge)
+        # Before anything is recorded: the share its preparation would refuse.
+        graphite_share_refusal(cfg, request, choice, graphite)
         if graphite is not None:
             choice = replace(choice or LaunchChoice(), graphite=graphite)
         # New local campaigns choose no candidate, receiver resource policy,
@@ -3456,12 +3740,14 @@ class RunnerAdapter:
 
         with contextlib.suppress(Exception):
             read_queued_verdict(self, admitted)
-        return self.get(admitted.campaign["id"])
+        return self.read(admitted.campaign["id"])
 
     def campaign_view_admitted(self, admitted, request):
-        # The research surface's one document (RSURF-D1).
+        # The research surface's one document (RSURF-D1), which the page
+        # polls: a phantom in-flight campaign is settled first.
         from scripts.dev.miner_launchpad.campaign_view import ledger_view
 
+        self._settle_phantom(admitted.campaign["id"])
         return ledger_view(self, admitted, request)
 
     def note_admitted(self, admitted, request):
@@ -5429,7 +5715,7 @@ class RunnerAdapter:
             # anything else may pass - a busy database, a bug - so it is the
             # milder `campaign_read_failed`, never advice to abandon it.
             try:
-                result.append(self.get(identity))
+                result.append(self.read(identity))
             except Exception as exc:  # noqa: BLE001 - never a trace or a path
                 code = (
                     "campaign_readback_unavailable"

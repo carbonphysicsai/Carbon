@@ -215,6 +215,17 @@ PUBLISHED = {
     "observed": "2026-10-02T00:00:00Z",
     "note": "fixture: read from the provider's public model list",
 }
+#: Chutes' published limits as `model_provider.published_limits` records
+#: them (fixture): this model's list entry publishes none of them.
+PUBLISHED_LIMITS = {
+    "max_output_length": None,
+    "context_length": None,
+    "max_model_len": None,
+    "source": "provider_published_live",
+    "reference": "https://llm.chutes.ai/v1/models",
+    "observed": "2026-10-02T00:00:00Z",
+    "note": "fixture: read from the provider's public model list",
+}
 RUNTIME = {
     "implementation": {
         "revision": REVISION,
@@ -254,6 +265,10 @@ class Checks:
     def published_pricing(self, provider_id, model_id):
         self.calls.append(("published_pricing", provider_id, model_id))
         return dict(PUBLISHED)
+
+    def published_limits(self, provider_id, model_id):
+        self.calls.append(("published_limits", provider_id, model_id))
+        return dict(PUBLISHED_LIMITS)
 
     def inference(self, provider_id, model_id, credential_file, spec=None):
         self.calls.append(("inference", provider_id, credential_file))

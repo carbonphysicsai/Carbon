@@ -7,13 +7,15 @@ it, in practice and in the validator's rebuild. Nothing here lowers a graph,
 runs miner source or downloads weights: every entry is an architecture
 trained from scratch on the Challenge's public TRAIN.
 
-- `entries`: the table (ids, pinned libraries, bounded settings). Pure data;
-  imports neither torch nor any library.
-- `torch_backbones`: each entry's module, behind a Challenge-shaped adapter.
-- `torch_loop`: Carbon's deterministic training loop and float64 predictions.
+- `listing`: the manifest of tested entries, read-only (miner surfaces).
+- `served`: what a Challenge version serves, and a catalog recipe's expansion
+  to the Carbon bundle it names.
+- `settings`: each entry's settings, checked by its pinned build's own
+  vocabulary; no size cap of Carbon's own.
+- `entries`: the catalog's refusal codes.
+- `pipeline`: the owner's add, verify and install commands.
 
-The modules import nothing else from Carbon, so the worker can stage them as
-they are. An entry is listed for a Challenge version only once its rebuild,
+An entry is listed for a Challenge version only once its rebuild,
 pair-identity and tuning batches have passed; listing describes, it does
 not qualify.
 """

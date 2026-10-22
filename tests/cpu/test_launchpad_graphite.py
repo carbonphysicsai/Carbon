@@ -318,7 +318,11 @@ def join(host):
 
 #: Fixture ceilings only, never a production budget: a Graphite launch must
 #: cap both provider ceilings to be admitted (LA-F4).
-FIXTURE_BUDGET = {"ceilings": {"provider_attempts": 80, "provider_nanodollars": 10**9}}
+#: Fixture ceilings only, never a production budget. A FULL launch's 10%
+#: research share must pay for one research call on the pinned default
+#: (about 0.27 USD reserved at its 128,000-token output), so the launch door
+#: admits it (Validator ruling 7: `research_share_too_small` at the door).
+FIXTURE_BUDGET = {"ceilings": {"provider_attempts": 80, "provider_nanodollars": 10**10}}
 
 
 def launch_request(g, key=KEY, **fields):
@@ -588,6 +592,13 @@ def test_a_recorded_graphite_launch_without_its_admission_is_refused(graphite):
     "fields,code",
     [
         ({"graphite_mode": "EVERYTHING"}, "graphite_mode_invalid"),
+        # An edition the registry does not publish, refused before anything
+        # is created and so before any model call.
+        (
+            {"graphite_edition": "carbon.graphite.miner-edition.v9"},
+            "graphite_edition_unknown",
+        ),
+        ({"graphite_edition": 2}, "graphite_edition_unknown"),
         (
             {"graphite_mode": "BUILD", "research_share": 0.2},
             "graphite_field_not_used_by_mode",
@@ -678,6 +689,59 @@ def test_a_graphite_launch_without_both_ceilings_is_refused_before_it_is_queued(
     request["budget"] = FIXTURE_BUDGET
     assert perform(graphite, "launch", request)["id"]
     join(graphite.host)
+
+
+def test_a_full_share_too_small_for_one_call_is_refused_at_the_door(graphite):
+    """Validator ruling 7: a v2 FULL launch whose research share cannot pay
+    for one research call is refused at the launch door, by the plan's own
+    predicate (`driver.check_research_share`) on the same inputs - the
+    edition's role settings, the selection the campaign will resolve and the
+    ceilings - with the same code and next step, and nothing is recorded,
+    queued or read from the chain. An adequate share passes both."""
+    from carbon.agent_campaign.graphite.miner import budget as shares
+    from carbon.agent_campaign.graphite.miner import driver
+    from carbon.agent_campaign.graphite.miner import edition as editions
+    from scripts.dev.miner_launchpad import runner
+    from scripts.dev.miner_launchpad.operations import refusal
+    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
+
+    selection = runner.graphite_default_selection(graphite.host.configured())
+    planner, _ = editions.role_selection(editions.resolve(V2), "planner", selection)
+    per_call = shares.call_reservation(planner)["provider_nanodollars"]
+    # The default 10% share holds one call at ten calls' ceiling.
+    least = per_call * 10
+    request = launch_request(graphite, graphite_edition=V2)
+    request["budget"] = {
+        "ceilings": {"provider_attempts": 100, "provider_nanodollars": least - 1}
+    }
+    with pytest.raises(Rejected) as refused:
+        perform(graphite, "launch", request)
+    assert refused.value.code == driver.RESEARCH_SHARE_TOO_SMALL
+    assert graphite.chain.reads == 0 and graphite.host.recent() == []
+    assert graphite.launched == []
+    assert (
+        refusal(refused.value.code)["next_step"]
+        == NEXT_ACTIONS["research_share_too_small"]
+    )
+    # The same predicate the plan applies refuses the same inputs.
+    choice = runner.graphite_launch(request)
+    with pytest.raises(Exception) as planned:
+        driver.check_research_share(choice, request["budget"]["ceilings"], selection)
+    assert getattr(planned.value, "code", None) == driver.RESEARCH_SHARE_TOO_SMALL
+    # An adequate share passes the door and the plan's own check.
+    request["budget"] = {
+        "ceilings": {"provider_attempts": 100, "provider_nanodollars": least}
+    }
+    assert perform(graphite, "launch", request)["id"]
+    join(graphite.host)
+    (args,) = graphite.launched
+    assert args.graphite_edition == V2
+    assert (
+        driver.research_share_shortfall(
+            runner.graphite_launch(request), request["budget"]["ceilings"], selection
+        )
+        is None
+    )
 
 
 def test_the_launch_door_and_the_plan_read_one_ceilings_predicate():
@@ -822,11 +886,13 @@ def test_as_many_pins_as_a_plan_holds_are_admitted(graphite):
 
 
 @pytest.mark.parametrize(
-    "field", ["graphite_mode", "research_share", "plan", "hunt", "limits"]
+    "field",
+    ["graphite_mode", "graphite_edition", "research_share", "plan", "hunt", "limits"],
 )
 def test_graphite_fields_need_the_graphite_agent(graphite, field):
     value = {
         "graphite_mode": "FULL",
+        "graphite_edition": "carbon.graphite.miner-edition.v2",
         "research_share": 0.1,
         "plan": "sha256:" + "b" * 64,
         "hunt": {},
@@ -844,7 +910,9 @@ def test_defaults_resolve_as_the_design_states():
 
     assert graphite_launch({"agent": "none"}) is None
     full = graphite_launch({"agent": "graphite"})
-    assert tuple(full) == GRAPHITE_LAUNCH_KEYS
+    assert tuple(full) == (*GRAPHITE_LAUNCH_KEYS, "edition")
+    # No edition named: v1, the edition every launch ran before v2.
+    assert full["edition"] == "carbon.graphite.miner-edition.v1"
     assert (full["mode"], full["research_share"], full["hunt"], full["limits"]) == (
         "FULL",
         0.10,
@@ -860,10 +928,133 @@ def test_defaults_resolve_as_the_design_states():
     assert build["plan"] is None and build["research_share"] is None
     # A field sent as null means what leaving it out means.
     nulls = dict.fromkeys(
-        ("graphite_mode", "research_share", "plan", "hunt", "limits"), None
+        (
+            "graphite_mode",
+            "graphite_edition",
+            "research_share",
+            "plan",
+            "hunt",
+            "limits",
+        ),
+        None,
     )
     assert graphite_launch({"agent": "graphite", **nulls}) == full
     assert graphite_launch({"agent": "none", **nulls}) is None
+
+
+# --- the edition: v1 by default, v2 when named ---------------------------------
+
+V1 = "carbon.graphite.miner-edition.v1"
+V2 = "carbon.graphite.miner-edition.v2"
+
+
+def test_the_door_offers_exactly_the_registrys_editions_v1_the_default():
+    edition = pytest.importorskip("carbon.agent_campaign.graphite.miner.edition")
+    from scripts.dev.miner_launchpad import operations, runner
+
+    published = tuple(edition.MINER_EDITIONS)
+    assert runner.graphite_editions() == published == (V1, V2)
+    assert runner.GRAPHITE_EDITION == edition.EDITION_ID == V1
+    assert tuple(runner.GRAPHITE_EDITION_SUMMARIES) == published
+    # Both doors' schemas state the same closed values, and the refusal
+    # names the field.
+    assert operations.CHOICES["graphite_edition"] == published
+    assert operations.REFUSAL_FIELDS["graphite_edition_unknown"] == "graphite_edition"
+    assert "graphite_edition" in operations.NULLABLE_GRAPHITE_FIELDS
+    assert "graphite_edition" in operations.OPERATIONS["launch"].optional
+    assert "graphite_edition" in runner.GRAPHITE_FIELDS
+
+
+def test_the_options_list_each_edition_with_v1_the_only_default():
+    from scripts.dev.miner_launchpad import runner
+
+    options = runner.graphite_options({})
+    # The single default edition, as the options said before they listed them.
+    assert options["edition"] == V1
+    assert [item["id"] for item in options["editions"]] == [V1, V2]
+    assert [item["default"] for item in options["editions"]] == [True, False]
+    for item in options["editions"]:
+        assert set(item) == {"id", "summary", "default"}
+        assert type(item["summary"]) is str and item["summary"]
+
+
+@pytest.mark.parametrize("named", [None, V1, V2])
+def test_the_edition_named_reaches_the_campaign_args_and_the_driver(named):
+    """A launch's edition (v1 when none is named) is carried to
+    `args.graphite_edition`, never into `args.graphite`, and S3's own
+    `launch_fields` - what `driver.freeze_launch` calls with it - freezes it."""
+    edition = pytest.importorskip("carbon.agent_campaign.graphite.miner.edition")
+    from scripts.dev.miner_launchpad.runner import LaunchChoice, graphite_launch
+
+    request = {"agent": "graphite"}
+    if named is not None:
+        request["graphite_edition"] = named
+    choice = graphite_launch(request)
+    assert choice["edition"] == (named or V1)
+    args = SimpleNamespace()
+    LaunchChoice(graphite={**choice, "curation_digest": "sha256:" + "c" * 64}).apply(
+        args
+    )
+    assert args.graphite_edition == (named or V1)
+    assert "edition" not in args.graphite
+    accepted = edition.launch_fields(
+        args.graphite,
+        curation_digest=args.graphite_curation_digest,
+        edition=getattr(args, "graphite_edition", None) or edition.EDITION_ID,
+    )
+    assert accepted["edition"] == (named or V1)
+
+
+def test_a_choice_recorded_before_editions_applies_as_v1():
+    """A Graphite choice without an edition (what a launch admitted before
+    the field existed carried) still applies, as v1."""
+    from scripts.dev.miner_launchpad.runner import LaunchChoice, graphite_launch
+
+    choice = graphite_launch({"agent": "graphite"})
+    choice.pop("edition")
+    args = SimpleNamespace()
+    LaunchChoice(graphite={**choice, "curation_digest": "sha256:" + "c" * 64}).apply(
+        args
+    )
+    assert args.graphite_edition == V1
+
+
+@pytest.mark.parametrize("value", ["carbon.graphite.miner-edition.v9", "v2", 2, [V2]])
+def test_an_unknown_edition_is_refused_by_the_launch_rule(value):
+    from scripts.dev.miner_launchpad.runner import graphite_launch
+
+    with pytest.raises(Rejected) as refused:
+        graphite_launch({"agent": "graphite", "graphite_edition": value})
+    assert refused.value.code == "graphite_edition_unknown"
+
+
+def test_a_v2_launch_freezes_v2_and_its_record_replays_as_v2(graphite):
+    launched = perform(
+        graphite, "launch", launch_request(graphite, graphite_edition=V2)
+    )
+    join(graphite.host)
+    (args,) = graphite.launched
+    assert args.graphite_edition == V2
+    assert "edition" not in args.graphite
+    # Carried out where it was not received, the record keeps its edition.
+    row, _kind, _root = graphite.host._bound(launched["id"])
+    _product, choice = graphite.host._recorded_launch(
+        dict(row), graphite.host.configured()
+    )
+    assert choice.graphite["edition"] == V2
+    # The same launch replays; the same key naming another edition conflicts.
+    again = perform(graphite, "launch", launch_request(graphite, graphite_edition=V2))
+    assert again["id"] == launched["id"] and len(graphite.launched) == 1
+    with pytest.raises(Rejected) as refused:
+        perform(graphite, "launch", launch_request(graphite, graphite_edition=V1))
+    assert refused.value.code == "research_launch_replay_conflict"
+
+
+def test_a_launch_naming_no_edition_runs_v1(graphite):
+    perform(graphite, "launch", launch_request(graphite))
+    join(graphite.host)
+    (args,) = graphite.launched
+    assert args.graphite_edition == V1
 
 
 #: S3's `edition.LAUNCH_FIELDS` on claude/gm-driver: the only names its
@@ -1179,6 +1370,7 @@ def test_every_new_code_has_its_own_next_step():
         "miner_ceiling_reached",
         "research_share_too_small",
         "too_many_pins",
+        "graphite_plan_output_cap",
     )
     for code in (*DESIGN_CODES, *REFUSAL_FIELDS, *campaign_codes):
         assert next_action(code) != FALLBACK_ACTION, code
@@ -1331,6 +1523,73 @@ def test_graphite_progress_is_s3s_view_of_its_own_records(tmp_path, monkeypatch)
         "reader_calls": 2,
         "cost_nanodollars": 2000,
     }
+
+
+def test_a_plan_cut_at_the_output_cap_carries_the_cap_and_its_step(
+    tmp_path, monkeypatch
+):
+    """GRAPHITE-PLAN-OUTPUT-CAP: S3's view of a FULL campaign whose Planner's
+    replies were cut at the output cap (its plan stage keeps the loop's cause
+    and the cap; its build was not run) reaches the campaign view with the
+    cap and the step - a new launch with max output tokens set higher. No
+    other stage carries either."""
+    from carbon.development_session.research_loop import OUTPUT_CAP_HIT
+    from scripts.dev.miner_launchpad import campaign_view, projection
+    from scripts.dev.miner_launchpad.campaign_view import graphite_section
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    # Restated beside each view, so neither imports the research loop.
+    assert projection.OUTPUT_CAP_CAUSE == campaign_view.OUTPUT_CAP_CAUSE
+    assert campaign_view.OUTPUT_CAP_CAUSE == OUTPUT_CAP_HIT
+    stages = [
+        {"stage": "hunt", "state": "DONE", "code": None},
+        {
+            "stage": "plan",
+            "state": "STOPPED",
+            "code": "replies_truncated",
+            "cause": "turn_hit_output_cap",
+            "output_cap": 2048,
+        },
+        {"stage": "build", "state": "STOPPED", "code": "graphite_plan_output_cap"},
+    ]
+    monkeypatch.setattr(
+        projection,
+        "_graphite_view",
+        lambda root, operations: s3_view(stage="complete", stages=stages),
+    )
+    value = projection.graphite_progress(GRAPHITE_MANIFEST, ledger_status(), tmp_path)
+    assert value["stages"] == stages
+    shown = graphite_section({"graphite": value})["stages"]
+    assert shown[0] == stages[0] and shown[2] == stages[2]
+    assert shown[1] == {
+        **stages[1],
+        "next_step": (
+            "Replies were cut at 2,048 output tokens. Set max output tokens "
+            "higher (the model's maximum if you know it) and launch again."
+        ),
+    }
+    # The build's code carries the same step in the refusal catalog, and says
+    # a resume does not help.
+    step = next_action("graphite_plan_output_cap")
+    assert (
+        "max_output_tokens" in step and "Resuming this campaign does not help" in step
+    )
+    # A cap the view cannot read is not shown as a number; a cause that is not
+    # the output cap carries nothing.
+    odd = [
+        {**stages[1], "output_cap": "2048"},
+        {**stages[1], "cause": "something_else"},
+    ]
+    monkeypatch.setattr(
+        projection,
+        "_graphite_view",
+        lambda root, operations: s3_view(stages=odd),
+    )
+    value = projection.graphite_progress(GRAPHITE_MANIFEST, ledger_status(), tmp_path)
+    first, second = graphite_section({"graphite": value})["stages"]
+    assert first["output_cap"] is None
+    assert first["next_step"].startswith("Replies were cut at the output cap. ")
+    assert set(second) == {"stage", "state", "code"}
 
 
 def test_a_finished_research_campaign_shows_the_plan_its_planner_wrote(

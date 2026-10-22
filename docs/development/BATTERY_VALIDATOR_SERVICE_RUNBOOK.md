@@ -359,9 +359,10 @@ updates. They are applied at the server bring-up, by the steps below.
    intake has not reloaded since a renewal).
 5. **Publish** through a pull request that adds the endpoint to
    `scripts/dev/miner_launchpad/published_endpoints.json` (the Launchpad's
-   published-endpoints file), in that file's own schema: the battery
-   Challenge `battery-fastcharge-ageing-development-v1` and the URL
-   `https://<dns name>:<port>`. A miner's Launchpad setup then checks the
+   published-endpoints file), in that file's own schema (v2): the battery
+   Challenge `battery-fastcharge-ageing-development-v1`, the exact Challenge
+   version the intake serves, the URL `https://<dns name>:<port>` and the
+   receiver hotkey. A miner's Launchpad setup then checks the
    intake serves its chain and Challenge before it is used.
 
 The commitment reader (OD-7(a)) is still missing; keep

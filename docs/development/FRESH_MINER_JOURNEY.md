@@ -43,8 +43,9 @@ with the fields in [Record](#record).
   the profile), or it runs elsewhere behind an intake.
   - **Carbon's evaluation endpoint.** When an operator has exposed an intake
     (OWNER-INTAKE-EXPOSURE-01), Carbon publishes it in
-    `scripts/dev/miner_launchpad/published_endpoints.json`, and setup's Review
-    writes it into your profile. You type nothing. The receiver hotkey listed
+    `scripts/dev/miner_launchpad/published_endpoints.json` for each
+    Challenge version, and setup's Review writes it into your profile for
+    exactly that version. You type nothing. The receiver hotkey listed
     beside it is binding (LAUNCHPAD-ACCEPT-03): Review pins it in your
     profile, and before your signer signs a submission, a resend or a status
     request, Carbon checks that the intake reports that receiver. An intake

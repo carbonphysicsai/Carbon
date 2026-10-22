@@ -195,6 +195,10 @@ def test_the_v6_classification_change_is_registered(code, expected):
     assert build_refusal.CODES[code] == expected
 
 
+def test_a_batch_that_differs_from_the_registered_batch_is_the_candidates():
+    assert build_refusal.CODES["interface_batch"] == build_refusal.REFUSED
+
+
 @pytest.mark.parametrize(
     ("code", "at", "refusal_code", "outcome"),
     [

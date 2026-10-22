@@ -77,6 +77,9 @@ UNKNOWN_SPEND = (
 OUTPUT_TOKEN_BOUNDS = (256, 131072)
 #: The input windows (`max_input_tokens`) a selection may carry, inclusive.
 INPUT_TOKEN_BOUNDS = (16384, 1048576)
+#: The provider call timeouts (`timeout_seconds`) a selection may carry,
+#: inclusive.
+TIMEOUT_SECONDS_BOUNDS = (10, 600)
 
 
 @dataclass(frozen=True)
@@ -511,6 +514,42 @@ OUTPUT_DEFAULTS = (None, OUTPUT_DEFAULT_V2)
 INPUT_DEFAULT_V2 = "carbon.model-selection.input-default.v2"
 INPUT_DEFAULTS = (None, INPUT_DEFAULT_V2)
 
+#: How a new agent campaign plan's provider call timeout is chosen when the
+#: miner sets none (M1 rehearsal 2026-10-21: two ~150 KB Engy requests were
+#: cut at the historical 120 s while still being answered, each leaving an
+#: unknown outcome to reconcile). Its default is `TIMEOUT_SECONDS_BOUNDS`'
+#: upper limit, 600 s (`TIMEOUT_DEFAULT_V2_SECONDS`), or half the plan's own
+#: elapsed limit where that is shorter, never below the lower bound
+#: (`timeout_default_seconds`), so a campaign with a short limit can still
+#: make calls through its first half. A `timeout_seconds` the miner sets binds. A timeout is no
+#: spend: nothing is reserved or metered by it. A call's hard deadline is
+#: still the timeout plus `DEADLINE_MARGIN_SECONDS`, and a new call is still
+#: admitted only while the timeout fits the campaign's remaining elapsed
+#: limit, so new calls stop once less than the timeout remains. A selection built
+#: without it (None, the historical rule) keeps `DEFAULT_SETTINGS`' 120 s, so
+#: what an earlier plan recorded, and every caller that is not a new plan, is
+#: unchanged. A plan records its timeout, so it replays the same under either
+#: rule.
+TIMEOUT_DEFAULT_V2 = "carbon.model-selection.timeout-default.v2"
+TIMEOUT_DEFAULTS = (None, TIMEOUT_DEFAULT_V2)
+TIMEOUT_DEFAULT_V2_SECONDS = TIMEOUT_SECONDS_BOUNDS[1]
+
+
+def timeout_default_seconds(elapsed_seconds=None):
+    """The timeout `TIMEOUT_DEFAULT_V2` chooses for a plan whose miner sets
+    none: `TIMEOUT_DEFAULT_V2_SECONDS`, or half the plan's elapsed limit
+    (`elapsed_seconds // 2`; None for no limit) where that is shorter, never
+    below `TIMEOUT_SECONDS_BOUNDS`' lower limit. A new call is admitted only
+    while its timeout fits the time left, so half the limit lets a short
+    campaign call through its first half, not only once."""
+    low = TIMEOUT_SECONDS_BOUNDS[0]
+    if elapsed_seconds is None:
+        return TIMEOUT_DEFAULT_V2_SECONDS
+    if type(elapsed_seconds) is not int or elapsed_seconds < 1:
+        raise ModelSelectionRefused("an elapsed limit is a whole number of seconds")
+    return min(TIMEOUT_DEFAULT_V2_SECONDS, max(low, elapsed_seconds // 2))
+
+
 _MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}")
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 EFFORTS = (None, "minimal", "low", "medium", "high")
@@ -538,6 +577,10 @@ class ModelSelection:
     #: freezes it beside the selection; `record()` never carries it, so a
     #: selection's record is the same under either input default.
     input_window: dict | None = field(default=None, compare=False)
+    #: The model limits the provider's public list published when setup read
+    #: it (`published_limits`), for a live-listed provider; None otherwise.
+    #: `record()` carries it, so a plan freezes what it was read as.
+    published_limits: dict | None = field(default=None, compare=False)
 
     def __post_init__(self):
         # Each ticket admits one construction, so neither a direct call nor
@@ -604,6 +647,11 @@ class ModelSelection:
                 "between the miner and their chosen provider under the miner's own "
                 "account; Carbon sends public synthetic and the miner's own "
                 "permitted research material only"
+            ),
+            **(
+                {}
+                if self.published_limits is None
+                else {"published_limits": dict(self.published_limits)}
             ),
         }
 
@@ -755,6 +803,108 @@ def published_pricing(adapter_id, model_id, *, opener=None, now=None):
     }
 
 
+#: Where a default came from when the provider's public model list published
+#: it live (`published_limits`), read when setup checked the model.
+PUBLISHED_LIVE = "provider_published_live"
+#: The model-list fields `published_limits` reads, each a token count.
+LIMIT_FIELDS = ("max_output_length", "context_length", "max_model_len")
+_LIMITS_NOTE = (
+    "Read from the provider's public model list when this selection was made: "
+    "max_output_length is the most one reply may carry, context_length and "
+    "max_model_len the request and reply together. A field the list did not "
+    "carry as a positive whole number is null, not published."
+)
+
+
+def _published_count(value):
+    """A model-list token count, or None when it is not published as a
+    positive whole number (the list is untrusted input)."""
+    if type(value) is not int or not 1 <= value <= 10**9:
+        return None
+    return value
+
+
+def published_limits(adapter_id, model_id, *, opener=None, now=None):
+    """The token limits `adapter_id`'s public model list publishes for
+    `model_id` now, as a record: each of `LIMIT_FIELDS` (None where not
+    published), the list and the time it was read. Read where a published
+    price is (setup's check), never inside a campaign's call path; `select`
+    takes it as `published_limits` and a plan freezes it. A model the list
+    does not carry: ValueError."""
+    import datetime
+
+    adapter = ADAPTERS[adapter_id]
+    if not adapter.live_pricing:
+        raise ValueError("this provider publishes no live model list")
+    items = _model_list(adapter, opener)
+    item = next((i for i in items if type(i) is dict and i.get("id") == model_id), None)
+    if item is None:
+        raise ValueError("model not in the published list")
+    observed = (now or datetime.datetime.now(datetime.UTC)).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
+    return {
+        **{name: _published_count(item.get(name)) for name in LIMIT_FIELDS},
+        "source": PUBLISHED_LIVE,
+        "reference": adapter.models_url,
+        "observed": observed,
+        "note": _LIMITS_NOTE,
+    }
+
+
+def _published_limits(adapter, value):
+    """A `published_limits` record, checked exactly: only a live-listed
+    adapter takes one, naming that adapter's own public list."""
+    if not adapter.live_pricing:
+        raise ModelSelectionRefused("this adapter's model list is not read live")
+    fields = {*LIMIT_FIELDS, "source", "reference", "observed", "note"}
+    if type(value) is not dict or set(value) != fields:
+        raise ModelSelectionRefused("published limits record malformed")
+    if (
+        value["source"] != PUBLISHED_LIVE
+        or value["reference"] != adapter.models_url
+        or type(value["observed"]) is not str
+        or not _OBSERVED_AT.fullmatch(value["observed"])
+        or type(value["note"]) is not str
+        or not 1 <= len(value["note"]) <= 512
+        or any(
+            value[name] is not None and _published_count(value[name]) is None
+            for name in LIMIT_FIELDS
+        )
+    ):
+        raise ModelSelectionRefused("published limits record malformed")
+    return dict(value)
+
+
+def checked_published_limits(provider_id, value):
+    """`value` as a `published_limits` record `provider_id` takes
+    (`select`'s own check), or ModelSelectionRefused."""
+    adapter = ADAPTERS.get(provider_id)
+    if adapter is None:
+        raise ModelSelectionRefused("unknown provider adapter")
+    return _published_limits(adapter, value)
+
+
+def _live_output(limits):
+    """The published maximum output (`max_output_length`), or None."""
+    return None if limits is None else limits["max_output_length"]
+
+
+def _live_context(limits):
+    """The published context and the field it came from, or (None, None).
+    Where both `context_length` and `max_model_len` are published and differ,
+    the smaller: a request and its reply must fit what the server enforces,
+    and a larger figure would be refused as a context error."""
+    if limits is None:
+        return None, None
+    published = [
+        (limits[name], name)
+        for name in ("max_model_len", "context_length")
+        if limits[name] is not None
+    ]
+    return min(published) if published else (None, None)
+
+
 def _endpoint(adapter, endpoint):
     if adapter.endpoint is not None:
         if endpoint not in (None, adapter.endpoint):
@@ -787,6 +937,7 @@ def _credential(value):
 #: Where a new plan's default output cap came from (`output_maximum`).
 OUTPUT_FROM_MODEL = "model_documented_maximum"
 OUTPUT_FROM_PROVIDER = "provider_documented_maximum"
+OUTPUT_FROM_PUBLISHED_LIVE = PUBLISHED_LIVE
 OUTPUT_CONSERVATIVE = "no_documented_maximum"
 
 
@@ -804,14 +955,17 @@ def _registry(adapters):
     return adapters
 
 
-def output_maximum(provider_id, model_id, *, adapters=None):
+def output_maximum(provider_id, model_id, *, adapters=None, published_limits=None):
     """The selected model's own maximum output, as Carbon records it:
     `{"max_output_tokens", "basis", "source"}`.
 
     1. The model's own documented maximum (`ProviderAdapter.output_maxima`).
     2. Otherwise the provider's documented maximum for the models it serves
        (`ProviderAdapter.output_maximum`).
-    3. Otherwise Carbon knows none, and never guesses one. A cap above a
+    3. Otherwise the model's `max_output_length` as the provider's public list
+       published it when setup read it (`published_limits`, already checked
+       by `select`), recorded with the list and the time it was read.
+    4. Otherwise Carbon knows none, and never guesses one. A cap above a
        model's real maximum is refused by its provider as an invalid request,
        which replays and stops the campaign, so the conservative historical
        cap (`DEFAULT_SETTINGS`, 2,048 tokens) is reserved until the miner sets
@@ -826,6 +980,27 @@ def output_maximum(provider_id, model_id, *, adapters=None):
     basis = OUTPUT_FROM_MODEL
     if documented is None:
         documented, basis = adapter.output_maximum, OUTPUT_FROM_PROVIDER
+    live = _live_output(published_limits)
+    if documented is None and live is not None:
+        low, high = OUTPUT_TOKEN_BOUNDS
+        tokens = min(max(live, low), high)
+        return {
+            "max_output_tokens": tokens,
+            "basis": OUTPUT_FROM_PUBLISHED_LIVE,
+            "source": {
+                "max_output_length": live,
+                "reference": published_limits["reference"],
+                "observed": published_limits["observed"],
+                "bound": (
+                    None
+                    if tokens == live
+                    else {
+                        "applied": tokens,
+                        "source": "model_provider.OUTPUT_TOKEN_BOUNDS",
+                    }
+                ),
+            },
+        }
     if documented is None:
         return {
             "max_output_tokens": DEFAULT_SETTINGS.max_output_tokens,
@@ -849,14 +1024,24 @@ PUBLISHED_CONTEXT_TOKENS = {
 }
 
 
-def published_context(provider_id, model_id):
+def published_context(provider_id, model_id, published_limits=None):
     """The model's published context window as Carbon records it
     (`PUBLISHED_CONTEXT_TOKENS`): `{"tokens", "reference", "observed"}`, or
     None when Carbon records none. A provider fact, never a choice: it bounds
     what a miner may usefully set as `max_input_tokens`, and sets nothing."""
     tokens = PUBLISHED_CONTEXT_TOKENS.get(provider_id, {}).get(model_id)
     if tokens is None:
-        return None
+        # A live-listed provider's own published context, as setup read it.
+        live, name = _live_context(published_limits)
+        if live is None:
+            return None
+        return {
+            "tokens": live,
+            "reference": published_limits["reference"],
+            "observed": published_limits["observed"],
+            "basis": PUBLISHED_LIVE,
+            "field": name,
+        }
     return {
         "tokens": tokens,
         "reference": ENGY_MODELS_URL,
@@ -872,7 +1057,7 @@ INPUT_NO_ROOM = "published_context_leaves_no_window"
 INPUT_FROM_MINER = "miner_set"
 
 
-def input_window(provider_id, model_id, max_output_tokens):
+def input_window(provider_id, model_id, max_output_tokens, published_limits=None):
     """The input window a new Graphite miner-edition plan opens with when the
     miner sets none (`INPUT_DEFAULT_V2`), as a record:
     `{rule, max_input_tokens, basis, published_context, max_output_tokens,
@@ -888,7 +1073,7 @@ def input_window(provider_id, model_id, max_output_tokens):
     3. A context that leaves less than `INPUT_TOKEN_BOUNDS`' lower limit
        after the output cap also keeps the historical window, and says so.
     """
-    published = published_context(provider_id, model_id)
+    published = published_context(provider_id, model_id, published_limits)
     record = {
         "rule": INPUT_DEFAULT_V2,
         "published_context": published,
@@ -930,6 +1115,9 @@ def select(
     published_pricing=None,
     output_default=None,
     input_default=None,
+    timeout_default=None,
+    elapsed_seconds=None,
+    published_limits=None,
     adapters=None,
 ):
     """Validate a miner's choice into a `ModelSelection`.
@@ -949,7 +1137,16 @@ def select(
     miner-edition plan, the model's published context less the output cap
     (`input_window`); a max_input_tokens in `settings` binds either way, and
     the selection keeps the record of how its window was chosen
-    (`ModelSelection.input_window`). `adapters` is the registry
+    (`ModelSelection.input_window`). `timeout_default` is how an unset
+    timeout_seconds is chosen: None, the historical 120, or
+    `TIMEOUT_DEFAULT_V2` for a new agent campaign plan, 600
+    (`TIMEOUT_DEFAULT_V2_SECONDS`) or the plan's `elapsed_seconds` limit
+    where that is shorter (`timeout_default_seconds`); a timeout_seconds in
+    `settings` binds either way. `elapsed_seconds` is read only under
+    `TIMEOUT_DEFAULT_V2`, and refused under any other rule.
+    `published_limits` is a live-listed provider's own published model limits
+    as `published_limits()` read them; under the new-plan defaults they
+    supply the output cap and context where Carbon documents none. `adapters` is the registry
     `provider_id` must be in: `ADAPTERS` (every miner-facing caller) unless
     Carbon's own Graphite passes its own
     (`graphite.model_providers.GRAPHITE_ADAPTERS`).
@@ -962,6 +1159,17 @@ def select(
         raise ModelSelectionRefused("unknown output default")
     if input_default not in INPUT_DEFAULTS:
         raise ModelSelectionRefused("unknown input default")
+    if timeout_default not in TIMEOUT_DEFAULTS:
+        raise ModelSelectionRefused("unknown timeout default")
+    if elapsed_seconds is not None and timeout_default != TIMEOUT_DEFAULT_V2:
+        raise ModelSelectionRefused(
+            "an elapsed limit bounds only the v2 timeout default"
+        )
+    limits = (
+        None
+        if published_limits is None
+        else _published_limits(adapter, published_limits)
+    )
     if model_id is None:
         model_id = adapter.default_model
     if type(model_id) is not str or not _MODEL_ID.fullmatch(model_id):
@@ -971,8 +1179,10 @@ def select(
     chosen = dict(DEFAULT_SETTINGS.record())
     if output_default == OUTPUT_DEFAULT_V2:
         chosen["max_output_tokens"] = output_maximum(
-            provider_id, model_id, adapters=registry
+            provider_id, model_id, adapters=registry, published_limits=limits
         )["max_output_tokens"]
+    if timeout_default == TIMEOUT_DEFAULT_V2:
+        chosen["timeout_seconds"] = timeout_default_seconds(elapsed_seconds)
     if settings is not None:
         if type(settings) is not dict or not set(settings) <= set(chosen):
             raise ModelSelectionRefused("unknown model setting")
@@ -987,14 +1197,14 @@ def select(
         if "max_input_tokens" in (settings or {}):
             window = {
                 "rule": INPUT_DEFAULT_V2,
-                "published_context": published_context(provider_id, model_id),
+                "published_context": published_context(provider_id, model_id, limits),
                 "max_output_tokens": max_output_tokens,
                 "bound": None,
                 "max_input_tokens": chosen["max_input_tokens"],
                 "basis": INPUT_FROM_MINER,
             }
         else:
-            window = input_window(provider_id, model_id, max_output_tokens)
+            window = input_window(provider_id, model_id, max_output_tokens, limits)
             chosen["max_input_tokens"] = window["max_input_tokens"]
     resolved = Settings(
         max_input_tokens=_int(
@@ -1002,7 +1212,9 @@ def select(
         ),
         max_output_tokens=max_output_tokens,
         reasoning_effort=chosen["reasoning_effort"],
-        timeout_seconds=_int(chosen["timeout_seconds"], 10, 600, "timeout_seconds"),
+        timeout_seconds=_int(
+            chosen["timeout_seconds"], *TIMEOUT_SECONDS_BOUNDS, "timeout_seconds"
+        ),
     )
     listed = adapter.priced_models.get(model_id)
     if listed is not None and declared_pricing is not None:
@@ -1030,6 +1242,7 @@ def select(
             credential,
             _token=ticket,
             input_window=window,
+            published_limits=limits,
         )
     finally:
         _TICKETS.discard(ticket)
@@ -1078,6 +1291,7 @@ def selection_from_record(record, *, credential_file=None, adapters=None):
         settings=record.get("settings"),
         declared_pricing=declared,
         published_pricing=published,
+        published_limits=record.get("published_limits"),
         adapters=adapters,
     )
     if selection.record() != record:
@@ -1112,6 +1326,8 @@ def selection_spec(selection, *, settings=None):
         and selection.adapter.live_pricing
     ):
         spec["published_pricing"] = pricing.record()
+    if selection.published_limits is not None:
+        spec["published_limits"] = dict(selection.published_limits)
     return spec
 
 

@@ -1,0 +1,23 @@
+{
+ "verdict": "INCOMPLETE",
+ "levels": {
+  "r2": {
+   "status": "REFERENCE_INVALID",
+   "peak_c": 87.09255193109198,
+   "cells": 92000,
+   "wall_s": 689.6
+  },
+  "r2s2": {
+   "status": "REFERENCE_INVALID",
+   "peak_c": 87.12949519558879,
+   "cells": 252672,
+   "wall_s": 2165.3
+  },
+  "r4": {
+   "status": "REFERENCE_INVALID",
+   "peak_c": 87.12029301493487,
+   "cells": 736000,
+   "wall_s": 10306.2
+  }
+ }
+}

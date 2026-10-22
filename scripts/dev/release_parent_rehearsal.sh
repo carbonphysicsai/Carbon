@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Never write bytecode into the checkout: a development candidate refuses
+# an ignored runtime source such as carbon/**/__pycache__ (M1, 2026-10-21).
+export PYTHONDONTWRITEBYTECODE=1
 
 # Rehearse the release's C-03 parent chain against a throwaway registry
 # (IMAGE-RELEASE-01). CI runs it on every change to the release path, so a

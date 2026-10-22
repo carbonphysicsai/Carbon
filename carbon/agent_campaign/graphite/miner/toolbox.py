@@ -52,6 +52,22 @@ def protected(value):
     return check(value)
 
 
+def protected_result(value):
+    """The result check (`protected_material.protected_result`): Graphite's
+    markers in every string, the checkout deny rule on path-like tokens."""
+    from ..protected_material import protected_result as check
+
+    return check(value)
+
+
+def marker_classes(value):
+    """The class names of the protected material `value` names, never a
+    marker or the text (`protected_material.marker_classes`)."""
+    from ..protected_material import marker_classes as classes
+
+    return classes(value)
+
+
 def refusal(status, code, **extra):
     return {
         "status": status,
@@ -62,14 +78,15 @@ def refusal(status, code, **extra):
     }
 
 
-def stage_tools(role, schemas, *, guidance=True):
+def stage_tools(role, schemas, *, guidance=True, finish_tool=None):
     """The function schemas a stage offers, in the role's manifest order.
 
     `schemas` are the research SDK's schemas for this campaign
     (`research_tools.tools_for_sdk`, under the campaign's frozen tools rule).
     The research task tool's `kind` and `action` choices are narrowed to what
     the role may start. The reply tool is offered only when the campaign froze
-    a miner-guidance rule (`guidance`)."""
+    a miner-guidance rule (`guidance`). `finish_tool` is the edition's
+    Planner finishing tool (`MinerEdition.finish`); None is v1's."""
     from carbon.development_session.miner_guidance import REPLY_TOOL
     from carbon.development_session.research_agent_policy import STOP_TOOL
     from carbon.development_session.research_loop import SELECTION_TOOL
@@ -78,7 +95,7 @@ def stage_tools(role, schemas, *, guidance=True):
         editions.SELECT: SELECTION_TOOL,
         editions.STOP: STOP_TOOL,
         editions.REPLY: REPLY_TOOL,
-        editions.FINISH: editions.FINISH_TOOL,
+        editions.FINISH: editions.FINISH_TOOL if finish_tool is None else finish_tool,
         **{tool["name"]: tool for tool in editions.LITERATURE_TOOLS},
     }
     research = {tool["name"]: tool for tool in schemas}
@@ -191,12 +208,19 @@ class MinerToolbox:
             result = await self.sdk.call(name, arguments, identity)
             if type(result) is not dict:
                 result = refusal("UNAVAILABLE", "malformed_tool_result")
-        if protected(result):
+        if protected_result(result):
+            # The classes of what matched, never a marker or the text
+            # (`protected_material.marker_classes`), so a withheld result
+            # says why it was withheld.
             return self._refuse(
                 identity,
                 name,
                 arguments,
-                refusal(REFUSED_RESULT, "protected_material_in_result"),
+                refusal(
+                    REFUSED_RESULT,
+                    "protected_material_in_result",
+                    marker_classes=marker_classes(result),
+                ),
             )
         return result
 

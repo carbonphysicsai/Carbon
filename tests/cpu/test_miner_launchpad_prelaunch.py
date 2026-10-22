@@ -427,6 +427,7 @@ def test_review_states_where_a_frozen_candidate_is_evaluated(tmp_path, monkeypat
         )
     assert written["challenges"][0] == {
         "challenge_id": challenge["id"],
+        "version": challenge["version"],
         "title": challenge["title"],
         "status": "INTAKE_CONFIGURED",
         "source": "PUBLISHED",

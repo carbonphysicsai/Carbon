@@ -56,7 +56,7 @@ def bank(monkeypatch):
 
 
 def test_battery_1_0_material_is_unchanged():
-    assert cbm.VERSIONS == ("1.0", "2.0")
+    assert cbm.VERSIONS == ("1.0", "2.0", "2.1")
     old, new = cbm.bundle_material(), cbm.versioned_material("1.0")
     assert new["construction_kit"] == old["construction_kit"]
     assert new["allowlist_bytes"] == old["allowlist_bytes"] == allowlist_v5_bytes()

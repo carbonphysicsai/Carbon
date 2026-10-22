@@ -42,6 +42,7 @@ fi
 if [[ "$#" -eq 0 ]]; then
   set -- \
     tests/service/test_c03_worker_service.py \
+    tests/service/test_c03_worker_resources_service.py \
     tests/service/test_direct_bundle_cold_overlay_service.py \
     tests/service/test_c04_reference_service.py \
     tests/service/test_c05_measurement_service.py \

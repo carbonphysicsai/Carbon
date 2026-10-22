@@ -1,0 +1,23 @@
+{
+ "schema": "carbon.code-verification.criteria.v1",
+ "kind": "openfoam-cooling-closed-form",
+ "family": "cooling",
+ "image_digest": "sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319",
+ "decision": "OWNER-COOLING-VERIFICATION-01 (2026-10-19)",
+ "order_band": [
+  1.7,
+  2.3
+ ],
+ "order_on": "finest mesh pair (refinement ratio 2)",
+ "round_off": {
+  "rule": "at or below each case's own configured linear-solver relative tolerance (its fvSolution `tolerance`), cited per case",
+  "applies_to": [
+   "energy balance",
+   "solid conduction drop",
+   "interface temperature gap / temperature scale",
+   "dT_b/dx relative error"
+  ],
+  "decision": "Validator ruling 2026-10-19 under OWNER-COOLING-VERIFICATION-01"
+ },
+ "status": "APPROVED_CRITERIA"
+}

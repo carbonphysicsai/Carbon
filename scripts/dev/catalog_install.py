@@ -8,6 +8,12 @@ cache the receiver itself verifies at start:
     python -m scripts.dev.catalog_install [IDS...] [--wheelhouse DIR]
         [--state-dir DIR | --receiver-config RECEIVER.json]
 
+An entry with pinned wheels takes them from `--wheelhouse`, by default the
+host's own wheelhouse (`~/.carbon/catalog-wheelhouse`, built by
+`python -m scripts.dev.catalog_wheelhouse`) when it exists. Without one, an
+install of every entry skips those entries, each with a line on stderr naming
+that command; one named by id is refused.
+
 This lives under `scripts/dev`, beside the owner installers it calls, and not
 in `carbon.backbone_catalog`: miner paths read the catalog, and nothing they
 import may reach these installers or the receiver (Validator, 2026-10-20;
@@ -27,7 +33,14 @@ if str(REPOSITORY) not in sys.path:
     sys.path.insert(0, str(REPOSITORY))
 
 from carbon.backbone_catalog import pipeline
-from scripts.dev import library_bundle
+from scripts.dev import catalog_wheelhouse, library_bundle
+
+#: What a skipped wheel entry tells the owner to run first.
+WHEELHOUSE_STEP = "python -m scripts.dev.catalog_wheelhouse"
+
+
+def _declares_wheels(item):
+    return bool(json.loads(pipeline.bundle_files(item)["bundle.json"])["wheels"])
 
 
 def install(catalog_ids=None, *, wheelhouse=None, state_dir=None, receiver_config=None):
@@ -41,11 +54,20 @@ def install(catalog_ids=None, *, wheelhouse=None, state_dir=None, receiver_confi
         raise pipeline.CatalogBroken(
             "install for a miner setup or a receiver, not both"
         )
+    if wheelhouse is None and catalog_wheelhouse.DEFAULT_DIRECTORY.is_dir():
+        wheelhouse = catalog_wheelhouse.DEFAULT_DIRECTORY
     installed = []
     for item in pipeline.load()["entries"]:
         if catalog_ids and item["catalog_id"] not in catalog_ids:
             continue
         pipeline.verify(item)
+        if wheelhouse is None and not catalog_ids and _declares_wheels(item):
+            print(
+                f"skipped {item['catalog_id']}: its pinned wheels need a "
+                f"wheelhouse; build it with {WHEELHOUSE_STEP}, then install again",
+                file=sys.stderr,
+            )
+            continue
         with tempfile.TemporaryDirectory() as work:
             directory = pipeline.bundle_directory(
                 item, Path(work) / "bundle", wheelhouse=wheelhouse

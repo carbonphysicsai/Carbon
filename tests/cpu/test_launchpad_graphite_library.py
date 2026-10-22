@@ -657,11 +657,20 @@ def test_the_mcp_launch_schema_states_graphites_fields():
 
     launch = {t.name: t for t in make_operation_tools(object())}["carbon_launch"]
     properties = launch.parameters["properties"]
-    assert {"graphite_mode", "research_share", "plan", "hunt", "limits"} <= set(
-        properties
-    )
+    assert {
+        "graphite_mode",
+        "graphite_edition",
+        "research_share",
+        "plan",
+        "hunt",
+        "limits",
+    } <= set(properties)
     modes = json.dumps(properties["graphite_mode"])
     assert all('"' + m + '"' in modes for m in ("RESEARCH", "BUILD", "FULL"))
+    editions = json.dumps(properties["graphite_edition"])
+    assert all(
+        '"carbon.graphite.miner-edition.' + v + '"' in editions for v in ("v1", "v2")
+    )
     agent = json.dumps(properties["agent"])
     for value in ("graphite", "carbon-graphite", "none", "own-agent"):
         assert '"' + value + '"' in agent

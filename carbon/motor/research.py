@@ -393,6 +393,14 @@ class MotorCatalogMaterial(MotorPublicMaterial):
     VERSION = "1.2"
     NAMES = (*MotorPublicMaterial.NAMES, "catalog", "construction_kit")
 
+    def __init__(self, root=".", version=VERSION):
+        from .campaign import CATALOG_VERSIONS
+
+        if version not in CATALOG_VERSIONS:
+            raise ValueError("motor catalog version required")
+        super().__init__(root)
+        self.VERSION = version
+
     def __call__(self, name, workspace):
         if name not in ("catalog", "construction_kit"):
             return super().__call__(name, workspace)
@@ -421,6 +429,14 @@ class MotorCatalogMaterial(MotorPublicMaterial):
             "file": "motor-" + name + ".json",
             "digest": digest(body),
         }
+
+
+def safety_feedback(predictions, practice):
+    """PRACTICE-SAFETY-01 feedback for `predictions` on the public PRACTICE
+    `practice`: exactly the block `MotorPractice` attaches. Motor's catalog
+    practice (`catalog_practice.MotorCatalogPractice`) reads it here, so the
+    safety code stays imported by this provider only (Validator, 2026-10-21)."""
+    return practice_safety.safety(predictions, practice)
 
 
 class MotorPractice:
@@ -639,6 +655,8 @@ def make_motor_research_service(
 ):
     from carbon.development_session.research_service import compose_research_service
 
+    from .campaign import CATALOG_VERSIONS
+
     composition = compose_research_service(
         challenge_parts(version),
         root=root,
@@ -646,8 +664,10 @@ def make_motor_research_service(
         owner=owner,
         image=image,
         public_material=(
-            (MotorCatalogMaterial if version == "1.2" else MotorPublicMaterial)(
-                practice.root
+            (
+                MotorCatalogMaterial(practice.root, version)
+                if version in CATALOG_VERSIONS
+                else MotorPublicMaterial(practice.root)
             )
             if material is None
             else material

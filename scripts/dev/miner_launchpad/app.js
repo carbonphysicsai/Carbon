@@ -18,6 +18,18 @@
     return match ? match[1] : "";
   }
   const linkToken = takeSessionLink();
+  // ---- The session this tab keeps (owner, 2026-10-21): a reload must not drop
+  // it, and getting back in must not need a terminal. The token is held in
+  // this tab's sessionStorage only: gone when the tab closes, never in
+  // localStorage, an address or a template, and forgotten the moment the
+  // controller refuses it.
+  const sessionKey = "carbon.launchpad.session.v1";
+  function keptSession() {
+    try { const value = sessionStorage.getItem(sessionKey); return value && /^[!-~]{1,512}$/.test(value) ? value : null; }
+    catch (_) { return null; }
+  }
+  function keepSession(value) { try { sessionStorage.setItem(sessionKey, value); } catch (_) { /* this tab asks again after a reload */ } }
+  function forgetSession() { try { sessionStorage.removeItem(sessionKey); } catch (_) { /* nothing kept */ } }
   let selected = "";
   let runs = [];
   let pending = null;
@@ -95,6 +107,19 @@
     if ($("message").className !== kind) $("message").className = kind;
   };
   function words(value) { return String(value ?? "").replaceAll("_", " "); }
+  // A portfolio value as a miner reads it. A launch-portfolio Challenge with
+  // no readiness record yet never reads as launch (Validator, 2026-10-21).
+  const PORTFOLIO_LABELS = {launch_pending_readiness: "Planned for launch · readiness not yet confirmed"};
+  function portfolioLabel(value) { return PORTFOLIO_LABELS[value] || words(value); }
+  // A blocker as a person reads it: the controller's own plain sentence when it
+  // has one, else the code said in words and capitalised. The code itself stays
+  // behind Details, never in the sentence.
+  function why(item) {
+    const sentence = item?.plain?.sentence;
+    if (typeof sentence === "string" && sentence) return sentence.replace(/\.$/, "");
+    const text = words(item?.reason || "not available");
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
   function el(tag, text, className) {
     const node = document.createElement(tag);
     if (text !== undefined && text !== null) node.textContent = text;
@@ -362,6 +387,30 @@
       }
     }
   }
+  // The wiring guide is long: its introduction reads straight through, and each
+  // main section is a fold, so a researcher opens only the part they need.
+  // Every block is still there, and a link to a section opens it.
+  function renderGuideBlocks(parent, blocks) {
+    let section = null;
+    let group = [];
+    const flush = () => {
+      if (!group.length) return;
+      const target = section || parent;
+      renderBlocks(target, group);
+      group = [];
+    };
+    for (const block of blocks || []) {
+      if (block.type === "heading" && block.level <= 2) {
+        flush();
+        section = el("details", undefined, "guide-section");
+        const summary = el("summary"); const heading = el("h2"); heading.dataset.anchor = "guide/" + block.anchor;
+        renderSpans(heading, block.text); summary.append(heading); section.append(summary); parent.append(section);
+        continue;
+      }
+      group.push(block);
+    }
+    flush();
+  }
   // Carbon holds no key: the miner's own `carbon-miner-signer` signs. Each
   // way reaching it can fail is its own code and its own correction.
   const SIGNER_HELP = {
@@ -453,6 +502,7 @@
     renderOnboarding();
     renderDevelopment();
     renderOverview();
+    renderSetupBanner();
     renderCatalogs();
     renderCampaigns();
     renderWizard();
@@ -460,6 +510,8 @@
     $("settings-recheck").disabled = !connected || busy;
     // Connected: the token form steps aside; interrupted or new, it returns.
     $("connect-panel").hidden = connected;
+    // One click back in, from the session this tab kept.
+    $("reconnect").hidden = connected || !keptSession();
     // The research surface (research_view.js) redraws with the page.
     for (const hook of renderHooks) hook();
   }
@@ -479,11 +531,16 @@
     if (body.dataset.built !== "1") {
       body.replaceChildren();
       if (!guideDoc.available) body.append(el("p", "This checkout has no guide at " + guideDoc.source + ".", "reason"));
-      else { $("guide-heading").textContent = guideDoc.title; renderBlocks(body, guideDoc.blocks); }
+      else { $("guide-heading").textContent = guideDoc.title; renderGuideBlocks(body, guideDoc.blocks); }
       body.dataset.built = "1";
     }
     // Scroll once per anchor, not on every refresh.
-    if (anchor && anchor !== guideAnchor) document.querySelector('[data-anchor="guide/' + CSS.escape(anchor) + '"]')?.scrollIntoView();
+    if (anchor && anchor !== guideAnchor) {
+      const target = document.querySelector('[data-anchor="guide/' + CSS.escape(anchor) + '"]');
+      // A link to a section, or to a heading inside one, opens the fold it is in.
+      for (let fold = target?.closest("details"); fold; fold = fold.parentElement?.closest("details")) fold.open = true;
+      target?.scrollIntoView();
+    }
     guideAnchor = anchor || null;
   }
   function renderDevelopment() {
@@ -726,7 +783,10 @@
   let setupPolls = 0;
   let setupPolling = false;
   function setupKey(value) {
-    return JSON.stringify([value?.registered_hotkey ?? null, value?.steps ?? null, value?.status?.done ?? null]);
+    // A GPU worker build starting, ending, or its manifest appearing redraws
+    // the Compute step; its progress alone does not (it is set in place).
+    const build = value?.gpu_build;
+    return JSON.stringify([value?.registered_hotkey ?? null, value?.steps ?? null, value?.status?.done ?? null, build?.state ?? null, build?.offered ?? null, value?.images?.gpu_image_manifest?.path ?? null]);
   }
   async function pollSetup() {
     if (!connected || setupPolling || ++setupPolls % 3) return;
@@ -734,6 +794,9 @@
     try {
       const fresh = await api("/api/v1/setup");
       const changed = setupKey(fresh) !== setupKey(setupState);
+      // A running GPU worker build: its progress, in place.
+      if (!changed && setupState && fresh.gpu_build) setupState.gpu_build = fresh.gpu_build;
+      if (fresh.gpu_build?.state === "running") setText($("setup-gpu-build-progress"), gpuBuildText(fresh.gpu_build));
       if (changed) {
         setupState = fresh; setupVersion++;
         // A profile written elsewhere changes what can launch.
@@ -747,6 +810,21 @@
       if (changed) render();
     } catch (_) { /* the next poll tries again */ }
     finally { setupPolling = false; }
+  }
+  // A refused key, said as a person would say it: who refused, what to check,
+  // and that the key field empties after every check (a key is never kept in
+  // the page), so it is pasted again to retry.
+  const KEY_REFUSALS = {
+    provider_refused_completion: "refused this key. Check the account's balance, or copy the key again.",
+    provider_refused_model_list: "would not list its models for this key. Copy the key again.",
+  };
+  function setupErrorText(step, body, error) {
+    if (step === "inference" && Object.hasOwn(KEY_REFUSALS, error.code || "")) {
+      const id = typeof body?.provider_id === "string" ? body.provider_id : "";
+      const name = (setupState?.choices?.inference || []).find(c => c.id === id)?.display_name || (id ? words(id) : "The provider");
+      return name + " " + KEY_REFUSALS[error.code] + " The key field clears after each check, so paste it again to retry.";
+    }
+    return (error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : "");
   }
   async function setupCall(step, body, timeout = 60000) {
     try {
@@ -763,18 +841,22 @@
       // Carbon rents no compute (OWNER-MINER-COMPUTE-LINK-ONLY-01): when the
       // compute check deleted Carbon's copy of a rented-GPU key, it says so.
       const removed = step === "compute" ? result.steps?.compute?.check?.retired_compute_key : null;
+      // A JAX CPU worker cannot practise a Challenge version built on the
+      // PyTorch CPU worker: said here, at the compute check, not first at launch.
+      const check = step === "compute" ? result.steps?.compute?.check : null;
+      const needing = Array.isArray(check?.pytorch_needed_for) ? check.pytorch_needed_for.filter(item => typeof item?.title === "string") : [];
+      const pytorch = needing.length ? [setupLine("This install's worker is the JAX CPU one. " + needing.map(item => item.title + " " + item.version).join(", ") + " practise" + (needing.length === 1 ? "s" : "") + " on the PyTorch CPU worker; to mine " + (needing.length === 1 ? "it" : "them") + ", " + String(check.pytorch_step || "reinstall with --pytorch") + ", then check compute again.", "error")] : [];
       // Review writes the profile and says what it could not do: a Challenge
       // with no evaluation endpoint, an unreadable published list (LP-PROD-E).
       const warnings = step === "review" && Array.isArray(result.warnings) ? result.warnings.filter(item => typeof item?.message === "string") : [];
-      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")), ...warnings.map(item => setupLine(item.message, "error")));
+      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")), ...pytorch, ...warnings.map(item => setupLine(item.message, "error")));
       // The written profile changes what can launch: read it again now.
       if (step === "review") { try { await readCapabilities(); } catch (_) { /* re-read on request */ } }
       await readSetup();
       if (step === "review") refresh();
       return true;
     } catch (error) {
-      const text = (error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : "");
-      $("setup-result").replaceChildren(setupLine(text, "error"));
+      $("setup-result").replaceChildren(setupLine(setupErrorText(step, body, error), "error"));
       return false;
     }
   }
@@ -801,6 +883,55 @@
     const timer = setInterval(tick, 1000);
     try { return await setupCall("send_worker", body, SEND_WORKER_MS); }
     finally { clearInterval(timer); sendingWorker = null; }
+  }
+  // Build the GPU worker (S15a): the installer's own GPU build, run on this
+  // machine from this page only, on consent to its exact command. It runs in
+  // the background; the page reads how it stands with setup, and shows text.
+  const GPU_BUILD_ROUTE = "/api/v1/page/gpu_worker_build";
+  let buildingGpu = false;
+  function gpuBuildText(build) {
+    const step = typeof build.step === "string" ? ", Docker step " + build.step : "";
+    const last = typeof build.last_line === "string" && build.last_line ? " Last output: " + build.last_line : "";
+    return "Building the GPU worker on this machine: " + clock(Number(build.elapsed_seconds) || 0) + " so far" + step + ". It can take a while; this page follows it, and you can leave it." + last;
+  }
+  function drawGpuBuild(parent, build, route) {
+    const box = el("div", undefined, "guide-panel"); box.id = "setup-gpu-build"; parent.append(box);
+    box.append(el("h3", "Build the GPU worker"));
+    if (build.state === "running") {
+      const line = el("p", gpuBuildText(build)); line.id = "setup-gpu-build-progress";
+      const bar = el("progress"); bar.setAttribute("aria-label", "Building the GPU worker");
+      box.append(line, bar);
+      return;
+    }
+    if (build.outcome) {
+      const code = typeof build.outcome.exit_code === "number" ? " (exit " + build.outcome.exit_code + ")" : "";
+      const last = typeof build.last_line === "string" && build.last_line ? " Last output: " + build.last_line : "";
+      box.append(el("p", "The last build did not finish: " + words(build.outcome.code) + code + ". Next: " + build.outcome.next_step + "." + last, "reason"));
+    }
+    researchNote(box, "Setup found no GPU worker. Carbon can build it on this machine with the installer's own GPU build" + (route === "this-machine-gpu" ? "" : ", which needs no GPU here") + ". Nothing is rented or sent anywhere. It needs " + build.disk_gib + " GiB free where Docker keeps its images, and can take a while.", "hint");
+    const agree = document.createElement("input");
+    agree.type = "checkbox"; agree.id = "setup-gpu-build-consent"; agree.checked = false;
+    const label = el("label", "Run " + build.command + " on this machine."); label.htmlFor = agree.id;
+    const row = el("div", undefined, "consent"); row.append(agree, label);
+    box.append(row);
+    const button = el("button", "Build the GPU worker", "primary");
+    button.type = "button"; button.id = "setup-gpu-build-submit"; button.disabled = true;
+    box.append(button);
+    agree.addEventListener("change", () => { button.disabled = !agree.checked || buildingGpu; });
+    button.addEventListener("click", async () => {
+      if (!agree.checked || buildingGpu) return;
+      buildingGpu = true; button.disabled = true; setText(button, "Starting…");
+      try {
+        await api(GPU_BUILD_ROUTE, {route, consent: {build: {command: build.command}}}, undefined, 60000);
+        $("setup-result").replaceChildren(setupLine("Building the GPU worker on this machine. This page follows it."));
+        buildingGpu = false;
+        await readSetup();
+      } catch (error) {
+        $("setup-result").replaceChildren(setupLine(setupErrorText("gpu_worker_build", undefined, error), "error"));
+        buildingGpu = false;
+        setText(button, "Build the GPU worker"); button.disabled = !agree.checked;
+      }
+    });
   }
   // Where the miner is on the path: the controller's own status, the same one
   // an agent loops on, so the page and the agent never disagree.
@@ -1122,7 +1253,13 @@
     }
     const inference = stepForm(inferencePanel, "inference");
     const provider = setupSelect(inference, "provider_id", "Provider", offered.inference.map(c => [c.id, c.display_name + " · " + acceptanceText(c)]));
-    const model = setupField(inference, "model_id", "Model id");
+    const model = setupField(inference, "model_id", "Model (type to search the provider's models)");
+    // A searchable list of the models this provider offers, not a blind id. Any
+    // other id the provider serves can still be typed.
+    const modelOptions = document.createElement("datalist"); modelOptions.id = "setup-model-options";
+    model.setAttribute("list", modelOptions.id);
+    model.autocomplete = "off";
+    inference.append(modelOptions);
     // A generic adapter has no endpoint of its own: the miner names it here,
     // with an optional declared price (nanodollars per token). Without one the
     // spend is stated as unknown and no money ceiling can be set.
@@ -1142,6 +1279,13 @@
       inferenceCost.replaceChildren();
       if (choice) researchNote(inferenceCost, "Billed by " + choice.display_name + " to your account. Carbon bills nothing.", "hint");
       const listed = (choice?.models || []).map(m => m.model_id);
+      modelOptions.replaceChildren(...(choice?.models || []).map(m => {
+        const option = document.createElement("option"); option.value = m.model_id;
+        const price = m.pricing && Number.isFinite(m.pricing.input) && Number.isFinite(m.pricing.output_including_reasoning)
+          ? " · " + usd(m.pricing.input * 1e6) + " in / " + usd(m.pricing.output_including_reasoning * 1e6) + " out per million tokens" : "";
+        option.label = m.model_id + (m.default ? " · the default" : "") + price;
+        return option;
+      }));
       const about = details(inferenceCost, "About this provider", []);
       const aboutBody = about.querySelector(".detail-body");
       costNote(aboutBody, choice);
@@ -1281,8 +1425,14 @@
         copyRow(missing, null, images.image_manifest?.build || "scripts/install_miner.sh --no-start");
       }
       if (!gpuImageBox.hidden && !gpuImage.value.trim()) {
-        missing.append(el("p", "Build your GPU worker image once (no GPU needed here), then reload this page:", "reason"));
-        copyRow(missing, null, images.gpu_image_manifest?.build || "scripts/dev/accelerator_worker_image.sh");
+        // The button, where the build command was (S15a); a controller that
+        // offers no build keeps the command to copy.
+        const build = setupState.gpu_build;
+        if (build && (build.offered || build.state === "running")) drawGpuBuild(missing, build, computeChoice.value);
+        else {
+          missing.append(el("p", "Build your GPU worker image once (no GPU needed here), then reload this page:", "reason"));
+          copyRow(missing, null, images.gpu_image_manifest?.build || "scripts/dev/accelerator_worker_image.sh");
+        }
       }
     };
     for (const input of [image, analysis, gpuImage]) input.addEventListener("input", describeMissing);
@@ -1548,7 +1698,7 @@
     // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
     const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver hotkey (its public ss58 address; required with an intake URL)");
     intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
-    const directMore = advanced(review, "Advanced: DEVELOPMENT construction receiver");
+    const directMore = advanced(review, "Advanced: where your recipe is checked");
     researchNote(directMore, "For the 1.3 construction-recipe session only. This receiver rebuilds a model but does not return a scored verdict or reward.", "hint");
     const directIntake = setupField(directMore, "direct_intake_url", "Construction intake URL (https, or loopback)");
     const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Construction receiver hotkey (public ss58 address)");
@@ -1652,10 +1802,45 @@
     }
     return {low, high, fallback, value, problem, basis: cap.basis};
   }
-  const OUTPUT_BASIS = {model_documented_maximum: "this model's documented maximum", provider_documented_maximum: "the provider's documented maximum", no_documented_maximum: "Carbon records no maximum for this model, so the conservative cap"};
+  // The launch's optional provider call timeout, model_settings.timeout_seconds
+  // (M1 rehearsal 2026-10-21): offered, like the output cap, only when the
+  // launch names its provider and model. The bounds and the default are the
+  // controller's (model_provider's own); this check only mirrors the runner's.
+  function callTimeout() {
+    const timeout = caps?.model?.call_timeout;
+    if (!timeout || !Array.isArray(timeout.bounds) || timeout.bounds.length !== 2 || !Number.isSafeInteger(timeout.default) || !launchModel()) return null;
+    const [low, high] = timeout.bounds;
+    const text = String(wizard.timeoutSeconds ?? "").trim();
+    let value = null, problem = null;
+    if (text) {
+      value = /^\d+$/.test(text) ? Number(text) : NaN;
+      if (!Number.isSafeInteger(value) || value < low || value > high) {
+        problem = "the provider call timeout must be a whole number of seconds from " + low.toLocaleString("en-US") + " to " + high.toLocaleString("en-US");
+        value = null;
+      }
+    }
+    // The default the runner chooses: the controller's, or the launch's
+    // elapsed limit's half where that is shorter, never under the lower
+    // bound.
+    const elapsed = composition.budget?.elapsed_seconds;
+    const bounded = timeout.bounded_by === "budget.elapsed_seconds" && Number.isSafeInteger(elapsed) && elapsed >= 1;
+    const fallback = bounded ? Math.min(timeout.default, Math.max(low, Math.floor(elapsed / 2))) : timeout.default;
+    return {low, high, fallback, standard: timeout.default, bounded, value, problem};
+  }
+  // The model settings a launch sends: only what the miner set.
+  function modelSettings() {
+    const settings = {};
+    const cap = outputCap();
+    if (cap && cap.value !== null) settings.max_output_tokens = cap.value;
+    const timeout = callTimeout();
+    if (timeout && timeout.value !== null) settings.timeout_seconds = timeout.value;
+    return Object.keys(settings).length ? settings : null;
+  }
+  const OUTPUT_BASIS = {model_documented_maximum: "this model's documented maximum", provider_documented_maximum: "the provider's documented maximum", provider_published_live: "this model's maximum as its provider's model list published it", no_documented_maximum: "Carbon has no published maximum for this model, so the conservative cap"};
   function outputDefault(cap) {
     if (!cap?.fallback) return "the runner's default";
-    return cap.fallback.max_output_tokens.toLocaleString("en-US") + " tokens (" + (OUTPUT_BASIS[cap.fallback.basis] || "the runner's default") + ")";
+    const source = cap.fallback.basis === "provider_published_live" && typeof cap.fallback.source?.reference === "string" ? ", " + cap.fallback.source.reference + ", read " + cap.fallback.source.observed : "";
+    return cap.fallback.max_output_tokens.toLocaleString("en-US") + " tokens (" + (OUTPUT_BASIS[cap.fallback.basis] || "the runner's default") + source + ")";
   }
   // The provider and model the runner profile's setup chose, or null.
   function setupModel() {
@@ -1693,9 +1878,17 @@
       setText($("connection-state"), "Connected");
     } catch (error) {
       connected = false;
-      quietly(render);
-      setText($("connection-state"), "Connection interrupted");
-      message("Controller connection interrupted. Runs may still be active. Reconnect before issuing another command.", true);
+      if (error.status === 401 || error.status === 403) {
+        // The controller no longer knows this token: it was restarted.
+        token = ""; forgetSession();
+        quietly(render);
+        setText($("connection-state"), "Disconnected");
+        message(SESSION_ENDED, true);
+      } else {
+        quietly(render);
+        setText($("connection-state"), "Connection interrupted");
+        message("Lost contact with the controller. Your campaigns may still be running. This page keeps trying; press Reconnect to try now.", true);
+      }
     } finally { polling = false; }
   }
   // A returning miner lands on their active campaign; otherwise where they were.
@@ -1708,6 +1901,11 @@
     const last = stored(routeKey, null);
     if (last && typeof last.hash === "string" && last.hash.startsWith("#")) location.hash = last.hash;
   }
+  $("reconnect").addEventListener("click", () => {
+    const resumed = keptSession();
+    if (!resumed || busy || polling) return;
+    token = ""; connect(resumed, true);
+  });
   $("connect-form").addEventListener("submit", event => {
     event.preventDefault();
     if (busy || polling) return;
@@ -1715,15 +1913,17 @@
   });
   // The session link connects as a pasted token does. One read while a
   // refresh or an operation is under way waits for it, rather than being lost.
-  function connectFromLink(value) {
+  function connectFromLink(value, resumed = false) {
     if (!value) {
       message("This address held a session link this page cannot read. Open the link the Control Center printed again, or paste its local session token.", true);
       return;
     }
-    if (busy || polling) { setTimeout(() => connectFromLink(value), 250); return; }
-    connect(value);
+    if (busy || polling) { setTimeout(() => connectFromLink(value, resumed), 250); return; }
+    connect(value, resumed);
   }
-  async function connect(value) {
+  // The same words wherever a refused session is met.
+  const SESSION_ENDED = "Your session ended: the Control Center was restarted and printed a new link. Open that link, or paste its token.";
+  async function connect(value, resumed = false) {
     connected = false;
     render();
     token = value;
@@ -1738,7 +1938,7 @@
       for (const item of catalog.unavailable) {
         const box = document.createElement("div"); box.className = "integration";
         const title = document.createElement("strong"); title.textContent = item.id;
-        const reason = document.createElement("p"); reason.textContent = item.reason.replaceAll("_", " ");
+        const reason = document.createElement("p"); reason.textContent = why(item);
         box.append(title, reason); $("integrations").append(box);
       }
       // Order matters: renderExamEnvironment clears the panel before filling
@@ -1746,6 +1946,8 @@
       await renderExamEnvironment();
       renderComputeChoices(caps.compute.destinations || []);
       await onboardingRequirements();
+      keepSession(value);
+      store(footerSeenKey, {seen: true});
       message("Connected. Records persist on this machine.");
       await refresh();
       if (storageError) message("Browser retry storage is unavailable. Launch is disabled to preserve duplicate protection.", true);
@@ -1753,8 +1955,13 @@
       token = "";
       connected = false;
       $("connection-state").textContent = "Disconnected";
+      // A refused token is forgotten; a controller that did not answer leaves
+      // it, so Reconnect is one click once the controller is running again.
+      if (error.status === 401 || error.status === 403) forgetSession();
       render();
-      message("Could not connect: " + error.message, true);
+      if (resumed && (error.status === 401 || error.status === 403)) message(SESSION_ENDED, true);
+      else if (resumed) message("The Control Center did not answer. Start it, then press Reconnect.", true);
+      else message("Could not connect: " + error.message, true);
     }
   }
   $("settings-recheck").addEventListener("click", async () => {
@@ -1902,7 +2109,10 @@
     const j = journey();
     const key = JSON.stringify([j.state, j.profile, research.runs.length, setupState?.registered_hotkey ?? null, setupVersion]);
     goTo(j.current ? "Next: " + stepTitle(j.current, j) : "New campaign", j.current ? stepHref(j.current, j) : "#launch");
-    setText($("overview-lede"), j.current ? "Step " + (SETUP_IDS.indexOf(j.current) + 1) + " of 6 is next. Each step is checked before it counts." : "You are set up. Choose a Challenge and launch.");
+    // Never "You are set up" above a page of failures: the steps may all be done
+    // while something the controller reads still blocks a launch.
+    const blocked = Boolean(caps) && prerequisites().some(item => item.ok === false);
+    setText($("overview-lede"), j.current ? "Step " + (SETUP_IDS.indexOf(j.current) + 1) + " of 6 is next. Each step is checked before it counts." : blocked ? "Your steps are done, but one thing still stops a launch. It is at the top of this page." : "You are set up. Choose a Challenge and launch.");
     rebuild(list, key, target => drawGettingStarted(target, j));
     setText($("getting-started-progress"), Object.values(j.state).filter(state => state === "done").length + " of 6 done");
   }
@@ -1979,6 +2189,35 @@
       if (group.plain.next) group.entry.append(link(group.plain.next, "button fix"));
       details(group.entry, "Details", group.lines);
     }
+  }
+  // One banner for the cause that is holding up the rest, on every page: the
+  // same missing thing used to turn into a red message on each of them.
+  function renderSetupBanner() {
+    const box = $("setup-banner");
+    const items = connected && caps ? prerequisites().filter(item => item.ok === false) : [];
+    // After an update the installed images are new, so the compute check no
+    // longer matches: say so, with the one place that re-checks it.
+    const stale = connected && setupState?.steps ? staleCompute(setupState.steps) : null;
+    if ((!items.length && !stale) || route().view === "setup") { box.hidden = true; box.dataset.key = ""; return; }
+    const groups = new Map();
+    if (stale) groups.set("stale", {plain: {sentence: stale.title + ". This happens after an update: check your computer again.", next: {label: "Re-check your computer", href: "#setup/compute"}}, areas: []});
+    for (const item of items) {
+      const source = item.item || {};
+      const plain = source.plain || {sentence: why(source) + ".", next: null};
+      const key = plain.sentence + "|" + (plain.next?.href || "");
+      if (!groups.has(key)) groups.set(key, {plain, areas: []});
+      groups.get(key).areas.push(item.area);
+    }
+    // The cause holding up the most comes first; others are said, not listed.
+    const ordered = [...groups.values()].sort((a, b) => (b === groups.get("stale")) - (a === groups.get("stale")) || b.areas.length - a.areas.length);
+    const lead = ordered[0];
+    const key = JSON.stringify([lead.plain, lead.areas, ordered.length]);
+    box.hidden = false;
+    rebuild(box, key, node => {
+      node.append(el("strong", ordered.length > 1 ? "Setup needs " + ordered.length + " fixes. First:" : "Setup needs one fix:"), el("span", " " + lead.plain.sentence));
+      if (lead.areas.length > 1) node.append(el("span", " It is holding up: " + lead.areas.join(", ") + ".", "hint"));
+      node.append(lead.plain.next ? link(lead.plain.next, "button fix") : link({label: "Open Setup", href: "#setup"}, "button fix"));
+    });
   }
   function renderChecklist(list, items) {
     list.replaceChildren();
@@ -2072,6 +2311,8 @@
     // A submit through a validator intake that was not a verdict
     // (LAUNCHPAD-ACCEPT-04): queued, the validator's side, or yours to act on.
     if (refusal.intake_outcome) box.append(el("p", "Validator intake: " + INTAKE_OUTCOMES[refusal.intake_outcome], "hint"));
+    // What stopped it, by its code, so it can be named to someone who can help.
+    if (refusal.kind === "interrupted") box.append(el("p", "Code: " + refusal.code, "hint"));
     if (refusal.next_action && !practiceMessage(refusal.code)) box.append(el("p", (compact ? "" : "What to do: ") + refusal.next_action, compact ? "hint" : "refusal-next"));
     const fix = refusalFix(refusal.code);
     if (fix && !compact) box.append(link(fix, "button fix"));
@@ -2143,7 +2384,7 @@
         renderDescription(description.querySelector(".detail-body"), entry);
       }
       details(box, "Details", [
-        entry.challenge_id + (entry.version ? " · version " + entry.version : "") + " · " + words(entry.portfolio) + (entry.tracking ? " · " + entry.tracking : ""),
+        entry.challenge_id + (entry.version ? " · version " + entry.version : "") + " · " + portfolioLabel(entry.portfolio) + (entry.tracking ? " · " + entry.tracking : ""),
         "Status: " + challengeStatus(entry),
         entry.implemented ? "This host: " + (entry.usable_here ? "shows every requirement of " + entry.profile : "has not shown " + entry.missing_here.map(words).join(", ") + " (the launch still reads your profile's runtime)") : null,
         entry.reason ? "Code: " + entry.reason : null,
@@ -2167,8 +2408,12 @@
     row("Never disclosed", (material.never_disclosed || []).join("; "));
     row("Tools", Object.entries(entry.tools?.workflow || {}).map(([name, detail]) => name + ": " + detail).join(" · "));
     row("Rebuildable models", (entry.tools?.rebuildable_models || []).join(", "));
-    row("Practice metrics", [d.feedback?.practice, d.exam?.components ? "components: " + d.exam.components.join(", ") : ""].filter(Boolean).join(" · "));
-    row("Exam gates", (d.exam?.gates || []).join(", "));
+    // A registered list, or a value Carbon has not set yet (HUMAN_INPUT): a
+    // direct version's exam components and gates are the owner's to set.
+    const listed = value => Array.isArray(value) ? value.join(", ") : value === "HUMAN_INPUT" ? "not yet set by Carbon" : "";
+    const components = listed(d.exam?.components);
+    row("Practice metrics", [d.feedback?.practice, components ? "components: " + components : ""].filter(Boolean).join(" · "));
+    row("Exam gates", listed(d.exam?.gates));
     row("Submission", [d.prediction_contract?.produced_by, d.workflow?.freeze, d.workflow?.submit].filter(Boolean).join(" · "));
     row("Reconstruction", d.exclusion_scope?.submission);
     row("Exam version", "version " + entry.version + (d.contract_digest ? " · contract " + d.contract_digest : "") + (d.exam?.rule?.status ? " · " + words(d.exam.rule.status) : ""));
@@ -2533,7 +2778,7 @@
         ? "available for a compatible bounded recipe"
         : path.reason === "public_reconstruction_registered_host_readiness_unverified"
           ? "registered capability; host serving unverified"
-          : "unserved";
+          : "not served yet";
       researchNote(target, labels[path.id] + " · " + availability + (path.reason ? " · " + words(path.reason) : ""), path.availability === "available" ? "hint" : "reason");
     }
     if (document.qualification !== true) researchNote(target, "Scientific qualification: untested.", "hint");
@@ -2799,7 +3044,7 @@
   ];
   const GRAPHITE_MODE_LABEL = Object.fromEntries(GRAPHITE_MODES.map(([mode, label]) => [mode, label]));
   // The launch fields Graphite's choices travel in (S4's launch operation).
-  const GRAPHITE_FIELDS = ["graphite_mode", "research_share", "plan", "hunt", "limits", "submission_policy"];
+  const GRAPHITE_FIELDS = ["graphite_mode", "graphite_edition", "research_share", "plan", "hunt", "limits", "submission_policy"];
   // Optional per-epoch counts: blank leaves only the campaign's own limits.
   const GRAPHITE_LIMITS = [["calls_per_epoch", "Model calls per epoch"], ["trials_per_epoch", "Practice trials per epoch"], ["planner_calls", "Planner model calls"]];
   // A hunt's closed query grammar (the design's): at most 8 queries of at
@@ -2856,6 +3101,14 @@
     const value = launchOptions?.graphite ?? caps?.graphite;
     return value && typeof value === "object" && !Array.isArray(value) ? value : {};
   }
+  // The miner editions the controller publishes (options.graphite.editions:
+  // {id, summary, default}), or none from a controller that lists none:
+  // then no edition is offered or sent, and its own default runs.
+  function graphiteEditions() {
+    const listed = graphiteOffer().editions;
+    return Array.isArray(listed) ? listed.filter(item => item && typeof item.id === "string" && item.id && typeof item.summary === "string") : [];
+  }
+  function graphiteEdition(id) { return graphiteEditions().find(item => item.id === id) || null; }
   const bound = (value, fallback) => Number.isSafeInteger(value) && value >= 1 ? value : fallback;
   // The hunt's bounds: the controller's when stated, the design's otherwise.
   function huntBounds() {
@@ -2884,11 +3137,14 @@
     const offered = graphiteOffer();
     const modes = Array.isArray(offered.modes) ? offered.modes : [];
     const mode = modes.find(item => item && item.default === true)?.id;
+    const editions = graphiteEditions();
+    const edition = (editions.find(item => item.default === true) || editions[0])?.id || "";
     const share = offered.research_share?.default;
     const hunt = offered.hunt || {};
     const records = hunt.default_records ?? hunt.max_records_default;
     return {
       mode: GRAPHITE_MODE_LABEL[mode] ? mode : "FULL",
+      edition,
       share: percentText(typeof share === "number" && share >= 0 && share <= 1 ? share : 0.10),
       plan: "", hunt: false,
       retain: false,
@@ -2919,6 +3175,7 @@
   // Why the mode, share or hunt cannot launch, or null.
   function graphiteChoiceProblem(g = graphiteChoices()) {
     if (!GRAPHITE_MODE_LABEL[g.mode]) return "choose a mode";
+    if (graphiteEditions().length && !graphiteEdition(g.edition)) return "choose an edition";
     if (typeof g.retain !== "boolean") return "choose whether to retain the candidate before submit";
     if (g.mode === "FULL" && Number.isNaN(shareOf(g.share))) return "the research share is a percentage from 0 to 100, at most two decimal places";
     if (huntApplies(g) && g.hunt) {
@@ -2943,6 +3200,7 @@
   // The launch fields for these choices: each only where its mode uses it.
   function graphiteFields(g = graphiteChoices()) {
     const fields = {graphite_mode: g.mode};
+    if (graphiteEditions().length && g.edition) fields.graphite_edition = g.edition;
     if (g.retain && g.mode !== "RESEARCH") fields.submission_policy = "retain_only_v1";
     if (g.mode === "FULL") fields.research_share = shareOf(g.share);
     if (g.mode === "BUILD" && g.plan) fields.plan = g.plan;
@@ -2977,6 +3235,7 @@
     const hunt = value.hunt && typeof value.hunt === "object" ? value.hunt : null;
     return {
       mode: GRAPHITE_MODE_LABEL[value.graphite_mode] ? value.graphite_mode : defaults.mode,
+      edition: typeof value.graphite_edition === "string" ? value.graphite_edition : defaults.edition,
       share: typeof value.research_share === "number" ? percentText(value.research_share) : defaults.share,
       plan: typeof value.plan === "string" ? value.plan : "",
       hunt: Boolean(hunt),
@@ -3164,6 +3423,8 @@
         }
         const cap = outputCap();
         if (cap?.problem) return "Fix the output cap: " + cap.problem + ", or leave it blank for " + outputDefault(cap) + ".";
+        const timeout = callTimeout();
+        if (timeout?.problem) return "Fix the provider call timeout: " + timeout.problem + ", or leave it blank for the default.";
       }
     }
     if (step === "compute") {
@@ -3290,7 +3551,7 @@
         input.addEventListener("change", () => selectChallenge(entry));
         const text = el("span");
         text.append(el("strong", entry.title), el("span", " " + challengeStatus(entry) + (entry.version ? " · v" + entry.version : "") + " · " + acceptanceText(entry), "small-tag"));
-        if (!entry.selectable) text.append(el("span", "Unavailable: " + words(entry.reason) + " · Next: " + entry.next_action, "reason"));
+        if (!entry.selectable) text.append(el("span", "Unavailable: " + why(entry) + " · Next: " + entry.next_action, "reason"));
         label.append(input, text); node.append(label);
       }
     });
@@ -3322,7 +3583,7 @@
         input.addEventListener("change", () => { wizard.agentChoice = choice.id; composition = {...composition, agent: choice.launch_agent}; saveWizard(); render(); });
         const text = el("span");
         text.append(el("strong", choice.label), el("span", " " + choice.summary + " · " + acceptanceText(choice), "hint"));
-        if (choice.availability !== "available") text.append(el("span", "Unavailable: " + words(choice.reason) + " · Next: " + choice.next_action, "reason"));
+        if (choice.availability !== "available") text.append(el("span", "Unavailable: " + why(choice) + " · Next: " + choice.next_action, "reason"));
         else if (!here) text.append(el("span", "Not offered for " + entry.title + ": graphite not offered for challenge · Next: choose a Challenge with a registered Graphite campaign.", "reason"));
         label.append(input, text); node.append(label);
       }
@@ -3332,7 +3593,15 @@
     rebuild(notes, JSON.stringify([capsVersion, Boolean(caps), wizard.agentChoice]), node => {
       if (!caps) return;
       if (wizard.agentChoice === "external_mcp" && external) researchNote(node, "After launch, connect your client with: " + external.command + ". It sees this campaign and calls the same practice, freeze and submit operations.", "code");
-      for (const item of caps.agents.unavailable) researchNote(node, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
+      // Agents this machine cannot use yet: one fold, each with its reason and
+      // next step, instead of a line per agent under the choices.
+      const unavailable = caps.agents.unavailable || [];
+      if (unavailable.length) {
+        const fold = el("details", undefined, "inline-more");
+        fold.append(el("summary", unavailable.length + (unavailable.length === 1 ? " other agent is" : " other agents are") + " not available here"));
+        for (const item of unavailable) researchNote(fold, words(item.id) + ": " + why(item) + " · Next: " + item.next_action, "reason");
+        node.append(fold);
+      }
     });
   }
   // Graphite's choices, under the Agent step once Graphite is chosen: built
@@ -3371,10 +3640,20 @@
       const choice = el("label", undefined, "choice");
       const input = el("input"); input.type = "radio"; input.name = "wizard-graphite-mode"; input.value = mode; input.id = "wizard-graphite-mode-" + mode.toLowerCase();
       input.addEventListener("change", () => setGraphite({mode}));
-      const span = el("span"); span.append(el("strong", label + (mode === "FULL" ? " · the default" : "")), el("span", text, "hint"));
+      // One line each; the rest of what a mode does is one click away.
+      const [first, ...rest] = text.split(/(?<=\.)\s+/);
+      const span = el("span"); span.append(el("strong", label + (mode === "FULL" ? " · the default" : "")), el("span", first, "hint"));
       choice.append(input, span); modes.append(choice);
+      if (rest.length) {
+        const more = el("details", undefined, "inline-more");
+        more.append(el("summary", "More about " + label), el("p", rest.join(" "), "hint"));
+        modes.append(more);
+      }
     }
     box.append(modes);
+    // The edition: its choices are the controller's (patched in place).
+    const editions = el("fieldset", undefined, "selects"); editions.id = "wizard-graphite-editions";
+    box.append(editions);
     const retain = el("div", undefined, "graphite-field"); retain.id = "wizard-graphite-retain";
     const retainLabel = el("label", undefined, "check");
     const retainCheck = el("input"); retainCheck.type = "checkbox"; retainCheck.id = "wizard-retain-before-submit";
@@ -3433,9 +3712,25 @@
     const text = String(value ?? "");
     if (input && document.activeElement !== input && input.value !== text) input.value = text;
   }
+  function drawGraphiteEditions(box) {
+    const editions = graphiteEditions();
+    if (!editions.length) return;
+    box.append(el("legend", "Edition"));
+    for (const [index, item] of editions.entries()) {
+      const choice = el("label", undefined, "choice");
+      const input = el("input"); input.type = "radio"; input.name = "wizard-graphite-edition"; input.value = item.id; input.id = "wizard-graphite-edition-" + index;
+      input.addEventListener("change", () => setGraphite({edition: item.id}));
+      const span = el("span"); span.append(el("strong", item.id + (item.default === true ? " · the default" : "")), el("span", item.summary, "hint"));
+      choice.append(input, span); box.append(choice);
+    }
+  }
   function patchGraphiteOptions() {
     const g = graphiteChoices();
     for (const input of document.querySelectorAll("input[name=wizard-graphite-mode]")) input.checked = input.value === g.mode;
+    const editions = $("wizard-graphite-editions");
+    rebuild(editions, JSON.stringify(graphiteEditions().map(item => [item.id, item.summary, item.default === true])), drawGraphiteEditions);
+    editions.hidden = !graphiteEditions().length;
+    for (const input of document.querySelectorAll("input[name=wizard-graphite-edition]")) input.checked = input.value === g.edition;
     $("wizard-graphite-retain").hidden = g.mode === "RESEARCH";
     $("wizard-retain-before-submit").checked = g.retain;
     $("wizard-graphite-share").hidden = g.mode !== "FULL";
@@ -3504,9 +3799,10 @@
         if (provider.availability !== "available") unavailableNote(group, provider);
         node.append(group);
       }
-      for (const item of caps.model.unavailable) researchNote(node, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
+      for (const item of caps.model.unavailable) researchNote(node, words(item.id) + ": " + why(item) + " · Next: " + item.next_action, "reason");
     });
     for (const input of target.querySelectorAll("input[name=wizard-model]")) input.checked = input.value === wizard.provider + "/" + wizard.model;
+    renderWizardTimeout();
     // The optional output cap, patched in place so typing is never redrawn.
     const cap = outputCap();
     const box = $("wizard-output");
@@ -3520,11 +3816,31 @@
     fill(input, wizard.maxOutput ?? "");
     input.setAttribute("aria-invalid", cap.problem ? "true" : "false");
     let note = "Default for " + wizard.model + ": " + outputDefault(cap) + ". Leave it blank to use that, or enter a whole number from " + cap.low.toLocaleString("en-US") + " to " + cap.high.toLocaleString("en-US") + " to cap each reply; each call is reserved at the cap. The Control Center checks it again at launch.";
+    if (cap.fallback?.basis === "no_documented_maximum") note += " Carbon has no published maximum for this model: set the model's own maximum here if you know it.";
     if (cap.problem) note = "Not valid: " + cap.problem + ". " + note;
     else if (cap.value !== null && cap.fallback && cap.fallback.basis !== "no_documented_maximum" && cap.value > cap.fallback.max_output_tokens) note = "Above " + outputDefault(cap) + ": the provider may refuse the call. " + note;
     setText($("wizard-output-note"), note);
     const kind = cap.problem ? "reason" : "hint";
     if ($("wizard-output-note").className !== kind) $("wizard-output-note").className = kind;
+  }
+  // The optional provider call timeout, patched in place like the cap.
+  function renderWizardTimeout() {
+    const timeout = callTimeout();
+    const box = $("wizard-timeout");
+    if (box.hidden !== !timeout) box.hidden = !timeout;
+    if (!timeout) return;
+    const input = $("wizard-timeout-seconds");
+    if (input.min !== String(timeout.low)) input.min = String(timeout.low);
+    if (input.max !== String(timeout.high)) input.max = String(timeout.high);
+    const placeholder = "Default: " + timeout.standard;
+    if (input.placeholder !== placeholder) input.placeholder = placeholder;
+    fill(input, wizard.timeoutSeconds ?? "");
+    input.setAttribute("aria-invalid", timeout.problem ? "true" : "false");
+    let note = "Default: " + timeout.standard + " seconds, or half your elapsed limit where that is shorter. How long each model call may wait for the provider's answer; a call still unanswered then ends with its outcome unknown and is reconciled, never resent. New calls stop when less than the timeout remains of your elapsed limit; it reserves no money. Leave it blank for the default, or enter a whole number of seconds from " + timeout.low.toLocaleString("en-US") + " to " + timeout.high.toLocaleString("en-US") + ". The Control Center checks it again at launch.";
+    if (timeout.problem) note = "Not valid: " + timeout.problem + ". " + note;
+    setText($("wizard-timeout-note"), note);
+    const kind = timeout.problem ? "reason" : "hint";
+    if ($("wizard-timeout-note").className !== kind) $("wizard-timeout-note").className = kind;
   }
   function renderWizardCompute() {
     rebuild($("wizard-compute"), JSON.stringify([capsVersion, Boolean(caps)]), target => {
@@ -3536,7 +3852,7 @@
         researchNote(box, "Lane: " + choice.lane + " · " + Object.entries(choice.lanes).map(([lane, state]) => lane + " " + state.availability + (state.reason ? " (" + words(state.reason) + ")" : "")).join(" · "));
         if (choice.availability !== "available") unavailableNote(box, choice);
       }
-      for (const item of caps.compute.unavailable) researchNote(target, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
+      for (const item of caps.compute.unavailable) researchNote(target, words(item.id) + ": " + why(item) + " · Next: " + item.next_action, "reason");
     });
   }
   function renderWizardTools() {
@@ -3547,12 +3863,15 @@
     target.replaceChildren();
     target.dataset.key = key;
     if (!entry) { researchNote(target, "Choose a Challenge first: its tools come from its description.", "hint"); return; }
-    target.append(el("h3", "Tools for " + entry.title));
+    // What the Challenge gives the agent to work with: one line, the list one
+    // click away (the two fields people set are the limits below).
     const grid = el("dl", undefined, "review-grid");
     for (const [name, detail] of Object.entries(entry.tools?.workflow || {})) grid.append(el("dt", name), el("dd", detail));
     if (entry.tools?.public_material?.length) grid.append(el("dt", "public material"), el("dd", entry.tools.public_material.join(", ")));
     if (entry.tools?.rebuildable_models?.length) grid.append(el("dt", "rebuildable models"), el("dd", entry.tools.rebuildable_models.join(", ")));
-    target.append(grid);
+    const fold = el("details", undefined, "inline-more tools-fold");
+    fold.append(el("summary", "Tools for " + entry.title + " (" + grid.children.length / 2 + ")"), grid);
+    target.append(fold);
     // The Challenge's own feedback modes; FULL is every Challenge's default.
     const modes = entry.setup_offers?.feedback_modes || [];
     if (modes.length > 1) {
@@ -3621,6 +3940,7 @@
       if (agent?.launch_agent === GRAPHITE) {
         const g = graphiteChoices();
         row("Graphite", graphiteSummary(g));
+        if (graphiteEditions().length) { const edition = graphiteEdition(g.edition); row("Graphite edition", edition ? edition.id + " · " + edition.summary : "Not chosen"); }
         if (huntApplies(g) && g.hunt && !graphiteChoiceProblem(g)) row("Hunt cost", huntEstimate(g));
         const limits = graphiteLimitsProblem(g) ? {} : graphiteFields(g).limits || {};
         row("Graphite's limits", GRAPHITE_LIMITS.map(([key, label]) => label + ": " + (key in limits ? limits[key] : "no limit")).join(" · ") + ". Unset, only your campaign's own limits bind.");
@@ -3630,6 +3950,13 @@
         : setup ? "Your setup's choice: " + setup.model_id + " (" + setup.provider_id + ")" : "Not chosen");
       const cap = outputCap();
       if (cap && !cap.problem) row("Max output", cap.value !== null ? cap.value.toLocaleString("en-US") + " tokens per reply, your cap" : "Not set: " + outputDefault(cap));
+      // Graphite on a model whose maximum output Carbon does not record runs
+      // at the conservative default cap, which can cut a Planner's replies
+      // before its plan is written (graphite_plan_output_cap). Said before
+      // launch; no maximum is guessed for the model.
+      if (agent?.launch_agent === GRAPHITE && cap && !cap.problem && cap.value === null && cap.fallback?.basis === "no_documented_maximum") row("Max output warning", "Carbon knows no output maximum for " + wizard.model + ", so each reply is capped at the conservative " + cap.fallback.max_output_tokens.toLocaleString("en-US") + " tokens, which can cut a Planner's plan short. Set max output to the model's own maximum.");
+      const timeout = callTimeout();
+      if (timeout && !timeout.problem) row("Call timeout", timeout.value !== null ? timeout.value.toLocaleString("en-US") + " seconds per provider call, your timeout" : "Not set: " + timeout.fallback.toLocaleString("en-US") + " seconds per provider call, the default" + (timeout.bounded && timeout.fallback < timeout.standard ? " (half your elapsed limit)" : "") + ". New calls stop when less than the timeout remains of your elapsed limit");
       row("Compute", compute ? compute.label + " · " + compute.lane + " lane · " + compute.availability : "Unavailable");
       row("Tools", entry ? Object.keys(entry.tools?.workflow || {}).join(", ") || "none listed" : "Choose a Challenge");
       // Stated before launch, not learnt at submit (LAUNCHPAD-PAGE-USABILITY-01).
@@ -3771,6 +4098,7 @@
   $("path-advanced").addEventListener("click", () => { launchPath = "advanced"; writeAdvanced(); saveWizard(); render(); });
   $("budget-elapsed").addEventListener("input", readAdvanced);
   $("wizard-max-output").addEventListener("input", () => { wizard.maxOutput = $("wizard-max-output").value; saveWizard(); render(); });
+  $("wizard-timeout-seconds").addEventListener("input", () => { wizard.timeoutSeconds = $("wizard-timeout-seconds").value; saveWizard(); render(); });
   $("budget-final-reserve").addEventListener("change", readAdvanced);
   $("template-save").addEventListener("click", () => {
     const name = $("template-name").value.trim();
@@ -4103,9 +4431,10 @@
     if (provider) {
       pendingResearch.body.model_provider = provider.id;
       pendingResearch.body.model = wizard.model;
-      // The output cap only when the miner set one: blank is the default.
-      const cap = outputCap();
-      if (cap && cap.value !== null) pendingResearch.body.model_settings = {max_output_tokens: cap.value};
+      // The output cap and call timeout only when the miner set them: blank
+      // is the default.
+      const settings = modelSettings();
+      if (settings) pendingResearch.body.model_settings = settings;
     }
     // Graphite's mode, research share, plan, hunt and limits: each where its
     // mode uses it, and only as the launch operation declares it.
@@ -4166,8 +4495,14 @@
     budgetLine,
     onRender(hook) { renderHooks.push(hook); },
   };
+  // The private-tool notice is shown once, on the first connect, then no longer
+  // on every page; the Help card and the keys note still carry it.
+  const footerSeenKey = "carbon.launchpad.footer-seen.v1";
+  const pageFooter = document.querySelector("main > footer");
+  if (pageFooter && stored(footerSeenKey, {}).seen === true) pageFooter.hidden = true;
   buildNavigation();
   show();
   setInterval(refresh, 1500);
   if (linkToken !== null) connectFromLink(linkToken);
+  else { const resumed = keptSession(); if (resumed) connectFromLink(resumed, true); }
 })();

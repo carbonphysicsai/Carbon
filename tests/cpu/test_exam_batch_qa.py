@@ -6,6 +6,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 _SPEC = importlib.util.spec_from_file_location(
     "exam_batch_qa", ROOT / "scripts/dev/challenge_pools/exam_batch_qa.py"
@@ -258,3 +260,147 @@ def test_a_motor_spec_cannot_drop_or_change_the_pinned_unresolved_stop():
     assert kept["verdict"] == "PASS" and kept["failure"] is None
     # A record without the field (F02, F08) imposes no such stop.
     assert qa.registered_unresolved_max("f02") is None
+
+
+COOLING_SPEC = {
+    "challenge": "chip-cold-plate",
+    "verified_image_digests": [IMAGE],
+    "limits": [
+        {"quantity": "die_peak_c", "threshold": 100.0, "feasible": "<="},
+        {"quantity": "hydraulic_w", "threshold": 0.25, "feasible": "<="},
+    ],
+    "u": "registered",
+    "unresolved_max_cases": 1,
+    "refine_unresolved": {"mesh_family": "graded-hotspot-v1", "resolution": 4.0},
+}
+
+
+def _cooling_batch(overrides=None):
+    die = [
+        95.0,
+        96.0,
+        97.0,
+        98.0,
+        99.0,
+        94.0,
+        93.0,
+        92.0,
+        103.0,
+        104.0,
+        105.0,
+        106.0,
+        107.0,
+        108.0,
+        102.0,
+        101.0,
+    ]
+    hyd = [
+        0.20,
+        0.21,
+        0.22,
+        0.23,
+        0.30,
+        0.31,
+        0.32,
+        0.33,
+        0.19,
+        0.18,
+        0.17,
+        0.16,
+        0.35,
+        0.36,
+        0.37,
+        0.38,
+    ]
+    cases = [
+        {"case_id": f"g{i:02d}", "quantities": {"die_peak_c": d, "hydraulic_w": h}}
+        for i, (d, h) in enumerate(zip(die, hyd, strict=True))
+    ]  # fmt: skip
+    for case_id, q, value in overrides or ():
+        next(c for c in cases if c["case_id"] == case_id)["quantities"][q] = value
+    return {"batch_digest": "cool-1", "image_digest": IMAGE, "cases": cases}
+
+
+def _fine_same(batch, extra=None):
+    by = {c["case_id"]: dict(c["quantities"]) for c in batch["cases"]}
+    fine = {i: by[i] for i in qa.spot_case_ids(batch)}
+    fine.update(extra or {})
+    return fine
+
+
+def test_cooling_u_is_registered_with_a_relative_hydraulic_term():
+    assert qa.registered_u("chip-cold-plate") == {
+        "die_peak_c": 0.037,
+        "hydraulic_w": {"relative": 0.03},
+    }
+    assert qa.u_at({"relative": 0.03}, 0.25) == pytest.approx(0.0075)
+    assert qa.registered_rules("chip-cold-plate") == {
+        "unresolved_max_cases": 1,
+        "refine_unresolved": {"mesh_family": "graded-hotspot-v1", "resolution": 4.0},
+    }
+
+
+def test_a_clean_cooling_grid_passes():
+    batch = _cooling_batch()
+    record = qa.judge(batch, COOLING_SPEC, _fine_same(batch))
+    assert record["verdict"] == "PASS", record["failure"]
+
+
+def test_hydraulic_within_three_percent_of_its_own_value_is_unresolved():
+    # 0.244 is 0.006 below 0.25: within 3% of 0.244 (0.00732).
+    batch = _cooling_batch([("g00", "hydraulic_w", 0.244)])
+    within = qa.unresolved_cases(
+        batch, {**COOLING_SPEC, "u": qa.registered_u("chip-cold-plate")}
+    )
+    assert within["hydraulic_w"] == {"g00": 0.244} and within["die_peak_c"] == {}
+
+
+def test_two_cells_within_u_stop_the_family():
+    batch = _cooling_batch(
+        [("g00", "die_peak_c", 99.98), ("g01", "hydraulic_w", 0.249)]
+    )
+    record = qa.judge(batch, COOLING_SPEC, _fine_same(batch))
+    assert record["failure"] == "unresolved_over_count"
+
+
+def test_one_cell_within_u_is_re_solved_finer():
+    spot = qa.spot_case_ids(_cooling_batch())
+    cell = next(f"g{i:02d}" for i in range(16) if f"g{i:02d}" not in spot)
+    batch = _cooling_batch([(cell, "die_peak_c", 99.98)])
+    assert qa.spot_case_ids(batch) == spot  # the digest, not the values, seeds it
+    hydraulic = next(c for c in batch["cases"] if c["case_id"] == cell)["quantities"][
+        "hydraulic_w"
+    ]
+
+    def judged(die):
+        extra = {cell: {"die_peak_c": die, "hydraulic_w": hydraulic}}
+        return qa.judge(batch, COOLING_SPEC, _fine_same(batch, extra))
+
+    resolved = judged(99.95)
+    assert resolved["verdict"] == "PASS", resolved["failure"]
+    assert resolved["straddle"]["die_peak_c"]["refined_cases"] == {cell: 99.95}
+    # Still within U one level finer: the batch is redrawn.
+    assert judged(100.01)["failure"] == "unresolved_after_refine:die_peak_c"
+    missing = qa.judge(batch, COOLING_SPEC, _fine_same(batch))
+    assert missing["failure"] == "refine_missing:die_peak_c"
+
+
+def test_a_cooling_spec_cannot_drop_or_change_its_pinned_rules():
+    batch = _cooling_batch()
+    for rule in ("unresolved_max_cases", "refine_unresolved"):
+        spec = {k: v for k, v in COOLING_SPEC.items() if k != rule}
+        assert qa.judge(batch, spec, _fine_same(batch))["failure"] == f"spec_{rule}"
+    changed = {**COOLING_SPEC, "unresolved_max_cases": 2}
+    assert (
+        qa.judge(batch, changed, _fine_same(batch))["failure"]
+        == "spec_unresolved_max_cases"
+    )
+
+
+def test_a_hydraulic_spot_step_above_three_percent_fails():
+    batch = _cooling_batch()
+    spot = qa.spot_case_ids(batch)[0]
+    by = {c["case_id"]: c["quantities"] for c in batch["cases"]}
+    step = {spot: {**by[spot], "hydraulic_w": by[spot]["hydraulic_w"] * 1.04}}
+    record = qa.judge(batch, COOLING_SPEC, _fine_same(batch, step))
+    assert record["failure"] == f"spot_check:{spot}:hydraulic_w"

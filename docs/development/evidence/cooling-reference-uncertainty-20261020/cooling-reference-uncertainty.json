@@ -1,0 +1,52 @@
+{
+ "U": {
+  "die_peak_c": 0.037,
+  "hydraulic_w": {
+   "relative": 0.03
+  }
+ },
+ "authority": [
+  "VALIDATOR_COOLING_RR14_DECISION_20261020 (\u00a71-3)",
+  "VALIDATOR_MAINNET_RECAL_DECISIONS_20261020 \u00a72",
+  "owner-approved Cooling draw, 2026-10-20"
+ ],
+ "decision": {
+  "die_peak_c": "U_mesh 0.0369 C (RR-14 full range over r = 2, 2\u221a2, 4; oscillatory, not a PASS of the order rule) + U_roundoff 1e-6 C (RR-12d floor, 8x the observed 1.2e-7 K), rounded up: 0.037 C",
+  "grid_rule": "a sealed batch is one 4 x 4 grid, so a cell is never redrawn alone: 1 cell within U is re-solved at r = 4 and, if still within U, the batch is redrawn; more than 1 within U stops the family (the r = 4\u221a2 level returns to the owner, priced)",
+  "hydraulic_w": "relative 3% of each case's own value: RR-14's 1.4% band plus its geometric tail (2.4%), rounded up; 0.0075 W at the 0.25 W limit",
+  "stop": "a spot-check label flip, or a hydraulic step above 3%, stops the family; a near-limit hydraulic probe returns to the Validator"
+ },
+ "limits": {
+  "die_peak_c": "<= 100.0",
+  "hydraulic_w": "<= 0.25"
+ },
+ "reference": {
+  "analysis_version": "carbon.cold-plate.graded-heat-in.v1",
+  "mesh_family": "graded-hotspot-v1",
+  "resolution": 2.8284271247461903
+ },
+ "refine_unresolved": {
+  "mesh_family": "graded-hotspot-v1",
+  "resolution": 4.0
+ },
+ "schema": "carbon.cold-plate.reference-uncertainty.v1",
+ "scope": "DEVELOPMENT reference uncertainty; not a qualification",
+ "sources": {
+  "rr12d_evidence_archive_sha256": "f77c02c1c00fee77bc2bf47df8df6d15c88b9c2f9d859c090898f1827b614aa8",
+  "rr12d_verdict": {
+   "floor_k": 1.15e-07,
+   "largest_floor_relative": 2.2916378838999663e-07,
+   "verdict": "FAIL (miscast rule)"
+  },
+  "rr14_evidence_archive_sha256": "d5f296c8588a4fe9d10db9baafef36e51913166d447809a83d8e0a5f96b00edf",
+  "rr14_reanalysis": {
+   "file": "docs\\development\\evidence\\cooling-rr14-20261020\\reanalysis.json",
+   "sha256": "30140afa1d935d99c4a4bfaf75069287903b5920eab97ca657648422bb581628"
+  },
+  "rr14_records": {
+   "file": "docs\\development\\evidence\\cooling-rr14-20261020\\records.jsonl",
+   "sha256": "4d61554cda0748e6d82bbe56d76862475f8dafe027bb8fec7148bb6bda10b757"
+  }
+ },
+ "unresolved_max_cases": 1
+}

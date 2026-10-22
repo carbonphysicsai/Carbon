@@ -1,9 +1,14 @@
-"""Launchpad campaign adapter for cold-plate Level-0 construction.
+"""Launchpad campaign adapter for cold-plate construction.
 
-The campaign exposes public construction and practice.  Official evaluation
-remains fail closed until the separate Challenge-neutral validator ticket
-registers a cooling adapter; a refused submit therefore retains its frozen
-candidate instead of manufacturing a score.
+Cooling 1.0 (Level 0) exposes public construction and practice. Its official
+evaluation remains fail closed until the separate Challenge-neutral validator
+ticket registers a cooling adapter; a refused submit therefore retains its
+frozen candidate instead of manufacturing a score.
+
+Cooling 1.2, the backbone-catalog version (OWNER-BACKBONE-CATALOG-01, as Motor
+1.2/1.3): direct catalog recipes, PyTorch CPU practice through the receiver's
+own build, submit through the signed construction receiver. The same code
+serves it under its research key (`contracts.keyed`); 1.0 is unchanged.
 """
 
 from __future__ import annotations
@@ -33,15 +38,60 @@ FEEDBACK_MODES = ("FULL",)
 PRACTICE_PROVENANCE = "COLD_PLATE_PUBLIC_PRACTICE"
 BACKENDS = ("numpy",)
 RUNTIME_KEYS = frozenset({"implementation", "images", "authored_research"})
+#: The backbone-catalog versions. Each serves exactly its own version, by its
+#: research key.
+CATALOG_VERSIONS = ("1.2",)
+
+
+def _key():
+    from .contracts import research_key
+
+    return research_key()
+
+
+def _catalog():
+    return _key().version in CATALOG_VERSIONS
+
+
+def _contract_digest():
+    if _catalog():
+        from carbon.reconstruction.served_recipe_contract import registered
+
+        return registered(CHALLENGE.challenge_id, _key().version).digest
+    from carbon.reconstruction.capability_registry import contract_digest
+
+    return contract_digest(CHALLENGE.challenge_id)
+
+
+def _control():
+    if _catalog():
+        from carbon.challenge_registry.cold_plate import catalog_recipe
+
+        return catalog_recipe(version=_key().version)
+    from .research import SCAFFOLD
+
+    return SCAFFOLD
+
+
+def _refuse_empty_catalog():
+    """A catalog campaign with nothing to practise is refused before anything
+    is frozen, connected or charged: no Cooling entry is tested yet (each
+    needs its own Cooling pair-identity receipt)."""
+    from carbon.backbone_catalog import listing
+
+    if not listing.entries(CHALLENGE.challenge_id, _key().version):
+        raise ValueError(
+            "cooling " + _key().version + " serves no tested backbone yet "
+            "(cooling_catalog_empty)"
+        )
 
 
 def manifest_document(
     product, *, owner, implementation, images, selection=None, graphite=None
 ):
     from carbon.development_session.research_ledger import VERSION
-    from carbon.reconstruction.capability_registry import contract_digest
 
-    from .research import SCAFFOLD, objective
+    from .research import objective
 
     return {
         "schema": VERSION,
@@ -51,9 +101,9 @@ def manifest_document(
         "owner": owner,
         "implementation": implementation,
         "objective": objective(),
-        "contract_digest": contract_digest(CHALLENGE.challenge_id),
+        "contract_digest": _contract_digest(),
         "sampling": {"practice": "100 fixed public PRACTICE cases"},
-        "control": SCAFFOLD,
+        "control": _control(),
         "selection": SELECTION,
         "replica_policy": REPLICAS,
         "provider": provider_plan(
@@ -65,6 +115,7 @@ def manifest_document(
         "images": images,
         "new_network_transactions": 0,
         "feedback_mode": "FULL",
+        **({"construction_mode": "direct"} if _catalog() else {}),
         **product.manifest_fields(),
     }
 
@@ -97,8 +148,6 @@ def research_runtime(declared, *, implementation, images, julia_image):
 def check_attached(
     manifest, *, implementation, images, julia_image=None, gpu_image=None
 ):
-    from carbon.reconstruction.capability_registry import contract_digest
-
     from .research import objective
 
     if gpu_image is not None:
@@ -107,8 +156,8 @@ def check_attached(
         "implementation": implementation,
         "images": images,
         "objective": objective(),
-        "contract_digest": contract_digest(CHALLENGE.challenge_id),
-        "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
+        "contract_digest": _contract_digest(),
+        "challenge": {"id": _key().challenge_id, "version": _key().version},
     }
     for field, value in expected.items():
         if manifest.get(field) != value:
@@ -145,14 +194,30 @@ def compose(
 
     if gpu_image is not None or remote is not None:
         raise ValueError("cold-plate Level 0 offers CPU practice only")
-    practice = ColdPlatePractice(
-        ledger=ledger,
-        owner=owner,
-        image=image,
-        root=REPOSITORY,
-        runner=runner,
-        backend=backend,
-    )
+    if _catalog():
+        from .catalog_practice import CoolingCatalogPractice
+
+        # The campaign's PyTorch CPU worker is the parent of every catalog
+        # bundle's child; children are installed by `backbone_catalog.pipeline
+        # install` into the owner's library cache beside the campaigns.
+        practice = CoolingCatalogPractice(
+            ledger=ledger,
+            owner=owner,
+            parent=image,
+            cache_root=ledger.root.parent / ".direct-development" / "library-cache",
+            root=REPOSITORY,
+            version=_key().version,
+            runner=runner,
+        )
+    else:
+        practice = ColdPlatePractice(
+            ledger=ledger,
+            owner=owner,
+            image=image,
+            root=REPOSITORY,
+            runner=runner,
+            backend=backend,
+        )
     composition = make_cold_plate_research_service(
         root=ledger.root / "research-tasks",
         ledger=ledger,
@@ -162,11 +227,12 @@ def compose(
         demand=demand,
         cleanup_only=cleanup_only,
         julia_image=julia_image,
+        version=_key().version,
     )
     base = connection.service.gateway
     gateway = AuthenticatedGateway(
         base.context,
-        CHALLENGE,
+        _key(),
         base.receiver,
         base.adapter,
         base.verifier,
@@ -189,8 +255,10 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
     from carbon.development_session.research_campaign import (
         PreparedCampaign,
         campaign_implementation,
+        new_plan_elapsed_seconds,
         new_plan_input_default,
         new_plan_output_default,
+        new_plan_timeout_default,
         private_file,
         requester,
         supplied_selection,
@@ -220,6 +288,8 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
     ledger = ledger if ledger is not None else CampaignLedger(root)
     if ledger.root != root or ledger.admission is not None:
         raise ValueError("a cold-plate campaign never consumes a development grant")
+    if _catalog():
+        _refuse_empty_catalog()
 
     agent = frozen["agent"] if frozen is not None else product.agent
     selection = None
@@ -234,6 +304,8 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
             selection = supplied_selection(
                 args,
                 output_default=new_plan_output_default(args),
+                timeout_default=new_plan_timeout_default(args),
+                elapsed_seconds=new_plan_elapsed_seconds(args),
                 input_default=new_plan_input_default(args, agent),
             )
             if agent == "graphite":
@@ -243,8 +315,8 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
                     args,
                     root,
                     challenge={
-                        "id": CHALLENGE.challenge_id,
-                        "version": CHALLENGE.version,
+                        "id": _key().challenge_id,
+                        "version": _key().version,
                     },
                 )
             plan = provider_plan(
@@ -267,6 +339,13 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
     implementation = campaign_implementation(args, root)
     image = load_image_identity(args.image_manifest)
     verify_current_worker(image, implementation)
+    if _catalog():
+        from carbon.development_session.gpu_practice import direct_parent_backend
+
+        if direct_parent_backend(image) != "torch_cpu":
+            raise ValueError(
+                "cooling catalog practice needs the PyTorch CPU worker image"
+            )
     if not doctor(image_id=image.image_id, image_identity=image).eligible:
         raise ValueError("accepted numerical host unavailable")
     analysis = load_analysis_image(args.analysis_image_manifest)
@@ -365,25 +444,112 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
         grant=None,
         agent_policy=getattr(args, "agent_policy", None),
         campaign=campaign,
-        challenge=CHALLENGE,
+        challenge=_key(),
         selection=selection,
     )
 
 
+def _direct_target(args):
+    """The signed construction receiver this campaign submits to: the
+    profile's per-Challenge intake and receiver (for exactly this version,
+    when the profile names it per version), else its direct target."""
+    from carbon.development_session.intake_targets import args_for_version, validate
+
+    args = args_for_version(args, CHALLENGE.challenge_id, _key().version)
+    url = (getattr(args, "intakes", None) or {}).get(CHALLENGE.challenge_id)
+    hotkey = (getattr(args, "receivers", None) or {}).get(CHALLENGE.challenge_id)
+    if url is not None and hotkey is not None:
+        return validate([{"intake_url": url, "receiver_hotkey": hotkey}])[0]
+    target = getattr(args, "direct_intake_target", None)
+    return None if target is None else validate([target])[0]
+
+
 async def evaluate_frozen(prepared, epoch, strategy):
-    """The scoring adapter is deliberately absent from this engineering slice."""
+    """1.0: the scoring adapter is deliberately absent (fail closed). The
+    catalog version submits the frozen recipe to the signed construction
+    receiver, which rebuilds and judges it, and stores its feedback."""
+    import asyncio
+
     from carbon.development_session.research_campaign import OperationRefused
 
-    raise OperationRefused("cooling_validator_not_served")
+    if not _catalog():
+        raise OperationRefused("cooling_validator_not_served")
+    from carbon.development_session.construction_recipe import ConstructionRecipe
+    from carbon.development_session.direct_submission import (
+        DirectConstructionPending,
+        DirectIntakeRefusal,
+        read_exam_feedback,
+        submit_and_wait,
+    )
+    from carbon.reconstruction.served_recipe_contract import registered
+
+    ledger, owner = prepared.ledger, prepared.owner
+    folder = ledger.root / ("epoch-" + str(epoch))
+    record = json.loads((folder / "selected-recipe.json").read_bytes())
+    if record["strategy"] != strategy:
+        raise ValueError("submitted strategy differs from the frozen candidate")
+    target = _direct_target(prepared.args)
+    if target is None:
+        raise OperationRefused("construction_intake_unconfigured")
+    recipe = ConstructionRecipe.from_dict(strategy)
+    contract = registered(CHALLENGE.challenge_id, _key().version)
+    connection = prepared.sdk.connection
+    try:
+        result = await asyncio.to_thread(
+            submit_and_wait,
+            target["intake_url"],
+            connection.miner_key,
+            root=ledger.root,
+            epoch=epoch,
+            recipe=recipe,
+            contract_digest=contract.digest,
+            receiver=target["receiver_hotkey"],
+            context=connection.chain_context,
+        )
+        ladder = await asyncio.to_thread(
+            read_exam_feedback,
+            target["intake_url"],
+            connection.miner_key,
+            recipe=recipe,
+            contract_digest=contract.digest,
+            receiver=target["receiver_hotkey"],
+            context=connection.chain_context,
+        )
+    except DirectConstructionPending:
+        raise OperationRefused("evaluation_queued") from None
+    except DirectIntakeRefusal as refused:
+        raise OperationRefused(refused.code) from None
+    except OSError:
+        raise OperationRefused("construction_intake_unavailable") from None
+    feedback = {
+        "schema": "carbon.cold-plate.permitted-feedback.v1",
+        "challenge": {"id": CHALLENGE.challenge_id, "version": _key().version},
+        "recipe_digest": recipe.digest,
+        "result": result,
+        "exam_feedback": ladder,
+    }
+    record_verdict(ledger, owner, epoch, feedback)
+    return feedback
+
+
+def record_verdict(ledger, owner, epoch, feedback):
+    """Store an epoch's permitted feedback once, as Motor and Battery do."""
+    from carbon.development_session.data import write_once
+    from carbon.development_session.profile import canonical
+    from carbon.development_session.research_report import report
+
+    write_once(
+        ledger.root / ("epoch-" + str(epoch)) / "permitted-final-feedback.json",
+        canonical(feedback),
+    )
+    report(ledger, owner=owner)
 
 
 def agent_observation(prepared, epoch, feedback):
     from carbon.challenge_registry import describe
     from carbon.development_session.research_tools import frozen_tools_rule
 
-    from .research import SCAFFOLD
-
-    document = describe(CHALLENGE.challenge_id, CHALLENGE.version)
+    document = describe(_key().challenge_id, _key().version)
     unsupported = document.pop("unsupported")
     rule = frozen_tools_rule(prepared.manifest)
     extra = {}
@@ -407,7 +573,7 @@ def agent_observation(prepared, epoch, feedback):
             "read_with": "public_material capabilities or roadmap",
         },
         **extra,
-        "scaffold_recipe": SCAFFOLD,
+        "scaffold_recipe": _control(),
         "scaffold_basis": "An unexecuted template; it has no measured result.",
         "epoch": epoch,
         "prior_permitted_evaluation_feedback": feedback,
@@ -420,6 +586,12 @@ def agent_observation(prepared, epoch, feedback):
         or None,
         "instructions": (
             "Use public practice and freeze only a recipe Carbon can rebuild. "
-            "Submission evaluation remains unavailable until its adapter is registered."
+            + (
+                "Submit the frozen recipe to the signed construction receiver, "
+                "which rebuilds and judges it."
+                if _catalog()
+                else "Submission evaluation remains unavailable until its "
+                "adapter is registered."
+            )
         ),
     }

@@ -20,9 +20,24 @@ def _canonical(value: object) -> bytes:
     ).encode("utf-8")
 
 
-def main() -> int:
+def _output_bytes(argv: list[str]) -> int | None:
+    """The output envelope: `OUTPUT_BYTES`, or the launch's own, which only the
+    host's exec command line can pass (a next version's larger envelope). The
+    host bounds the stream it reads independently."""
+    if not argv:
+        return OUTPUT_BYTES
+    if len(argv) != 1 or not argv[0].isascii() or not argv[0].isdigit():
+        return None
+    value = int(argv[0])
+    return value if 0 < value <= 1 << 40 else None
+
+
+def main(argv: list[str] | None = None) -> int:
     """Write one closed, length-prefixed snapshot to stdout."""
 
+    output_bytes = _output_bytes(sys.argv[1:] if argv is None else argv)
+    if output_bytes is None:
+        return 20
     if _ROOT.is_symlink() or not _ROOT.is_dir():
         return 20
     members: list[Path] = []
@@ -55,7 +70,7 @@ def main() -> int:
             if not stat.S_ISREG(status.st_mode) or status.st_size < 0:
                 return 20
             total += status.st_size
-            if total > OUTPUT_BYTES:
+            if total > output_bytes:
                 return 20
             output.write(_canonical({"path": relative, "size": status.st_size}) + b"\n")
             remaining = status.st_size

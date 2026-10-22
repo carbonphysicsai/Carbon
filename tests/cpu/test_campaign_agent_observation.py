@@ -61,7 +61,16 @@ def test_the_first_observation_builds(challenge_id, rule, monkeypatch):
     key = campaign.key
     listed = describe(key.challenge_id, key.version)["unsupported"]
     assert observation["unsupported_capabilities"]["count"] == len(listed)
-    if key.version == "1.0" or key.challenge_id != "electric-motor-magnetics":
+    # F08 1.4 / F02 2.3 are direct campaigns with no capability-registry
+    # contract yet (LAUNCHPAD_F08_F02_CAMPAIGNS_HUMAN_INPUT_20261021): their
+    # description's own list is the check above; every other Challenge's list
+    # still matches its registry.
+    if key.challenge_id in ("f08-ribbed-bracket", "f02"):
+        from carbon.reconstruction.capability_registry import UnknownChallenge
+
+        with pytest.raises(UnknownChallenge):
+            public_registry(key.challenge_id)
+    elif key.version == "1.0" or key.challenge_id != "electric-motor-magnetics":
         assert len(listed) == len(
             [
                 c

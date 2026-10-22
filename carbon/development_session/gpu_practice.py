@@ -85,3 +85,99 @@ def direct_bundle_accelerators(construction_parent, inference_image):
         MINER_GPU if build_backend is not None else None,
         MINER_GPU if infer_backend == "jax" else None,
     )
+
+
+#: The pinned base of the C-03 CPU worker (`scripts/dev/c03_worker_image.sh`).
+C03_BASE_IMAGE_DIGEST = (
+    "sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517"
+)
+#: The construction runtimes a direct bundle may name, each with the parent
+#: backend that builds it (OWNER-BACKBONE-CATALOG-01, Validator 2026-10-20).
+DIRECT_RUNTIMES = {"torch-cpu-py311": "torch_cpu", "python-cpu-py311": None}
+
+
+class DirectParentRefused(ValueError):
+    """A bundle runtime with no parent here: REFUSED when no such runtime is
+    registered, GAP `backend_not_served` when its parent is not installed."""
+
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
+def derived_cpu_parent(torch_identity):
+    """The C-03 CPU worker the pinned PyTorch CPU worker was built FROM.
+
+    `scripts/dev/torch_worker_image.sh` builds the Torch image on the CPU
+    worker and `.devcontainer/torch/cpu_image_identity.record` keeps the
+    parent's build record, overwriting only its base (the parent's id), recipe
+    and lock. The parent is those three restored: never a separate profile
+    field. Docker `doctor` then checks every label against the real image, so
+    a wrong derivation fails closed.
+    """
+    import hashlib
+    from pathlib import Path
+
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+    if direct_parent_backend(torch_identity) != "torch_cpu":
+        raise DirectParentRefused("backend_not_served")
+    root = Path(__file__).resolve().parents[2]
+
+    def digest(path):
+        return "sha256:" + hashlib.sha256((root / path).read_bytes()).hexdigest()
+
+    return WorkerImageIdentity(
+        image_id=torch_identity.base_image_digest,
+        config_digest=torch_identity.base_image_digest,
+        source_tree_digest=torch_identity.source_tree_digest,
+        wheel_digest=torch_identity.wheel_digest,
+        lock_digest=digest("uv.lock"),
+        base_image_digest=C03_BASE_IMAGE_DIGEST,
+        build_recipe_digest=digest(".devcontainer/Dockerfile.reconstruction-worker"),
+        entrypoint_digest=torch_identity.entrypoint_digest,
+    )
+
+
+class DirectParents:
+    """The construction parent for each bundle runtime, chosen only from the
+    bundle's pinned runtime (never from a recipe field or miner input)."""
+
+    def __init__(self, parents):
+        if type(parents) is not dict or set(parents) - set(DIRECT_RUNTIMES):
+            raise ValueError("direct parents name registered runtimes only")
+        for runtime, image in parents.items():
+            if direct_parent_backend(image) != DIRECT_RUNTIMES[runtime]:
+                raise ValueError("direct parent differs from its runtime")
+        self._parents = dict(parents)
+
+    @classmethod
+    def from_torch(cls, torch_identity):
+        """Both CPU parents from the pinned PyTorch CPU worker."""
+        return cls(
+            {
+                "torch-cpu-py311": torch_identity,
+                "python-cpu-py311": derived_cpu_parent(torch_identity),
+            }
+        )
+
+    def runtimes(self):
+        return tuple(sorted(self._parents))
+
+    def for_runtime(self, runtime):
+        if runtime not in DIRECT_RUNTIMES:
+            raise DirectParentRefused("construction_runtime_unknown")
+        if runtime not in self._parents:
+            raise DirectParentRefused("backend_not_served")
+        return self._parents[runtime]
+
+    def for_bundle(self, bundle_ref):
+        return self.for_runtime(getattr(bundle_ref, "runtime_profile_id", None))
+
+    def identities(self):
+        """Each runtime's parent, as the receiver's binding records it."""
+        from dataclasses import asdict
+
+        return {
+            runtime: asdict(image) for runtime, image in sorted(self._parents.items())
+        }

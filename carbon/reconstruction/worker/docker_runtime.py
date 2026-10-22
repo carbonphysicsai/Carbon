@@ -24,6 +24,7 @@ from carbon.reconstruction.worker.model import (
     PIDS_LIMIT,
     SCRATCH_BYTES,
     SCRATCH_INODES,
+    SHM_BYTES,
     WORKER_GID,
     WORKER_UID,
     DevelopmentWorkerProfile,
@@ -35,7 +36,10 @@ from carbon.reconstruction.worker.model import (
     tagged_sha256,
 )
 
-_SHM_BYTES = 8 * 1024**2
+# Today's profile's shm and scratch tmpfs. A launch is created and checked at
+# its own profile's (`DevelopmentWorkerProfile.effective_*`): a next version's
+# larger resources (OWNER-WORKER-RESOURCES-LARGE-MODELS-01) differ.
+_SHM_BYTES = SHM_BYTES
 _SCRATCH_TMPFS_BYTES = SCRATCH_BYTES - _SHM_BYTES
 
 # Only fixed battery practice opts in. The prefix is never copied to a public
@@ -428,8 +432,12 @@ def doctor(
     image_id: str | None = None,
     image_identity: WorkerImageIdentity | None = None,
     cli: DockerCLI | None = None,
+    worker_profile: DevelopmentWorkerProfile | None = None,
 ) -> DockerDoctor:
-    """Read-only eligibility check; never changes daemon or host configuration."""
+    """Read-only eligibility check; never changes daemon or host configuration.
+
+    Capacity and the cpuset are sized for ``worker_profile`` when given (a next
+    version's larger resources), else for today's C-03 profile."""
     from carbon.reconstruction.host_execution import resolve_cpuset
     from carbon.reconstruction.worker.accelerator_runtime import HOST_ROOT
 
@@ -453,13 +461,17 @@ def doctor(
         return DockerDoctor(False, "worker.doctor.runtime_unknown", {}, None)
     ncpu = info.get("NCPU")
     memory = info.get("MemTotal")
+    cpu_count = CPU_COUNT if worker_profile is None else worker_profile.effective_cpu_count
+    memory_bytes = (
+        MEMORY_BYTES if worker_profile is None else worker_profile.effective_memory_bytes
+    )
     cgroup_version = str(info.get("CgroupVersion", ""))
     security = info.get("SecurityOptions")
     if (
         type(ncpu) is not int
-        or ncpu < CPU_COUNT
+        or ncpu < cpu_count
         or type(memory) is not int
-        or memory < MEMORY_BYTES + 1024**3
+        or memory < memory_bytes + 1024**3
         or cgroup_version != "2"
         or type(security) is not list
     ):
@@ -536,7 +548,7 @@ def doctor(
         # record when one exists, rather than named here. A literal in this file
         # is the defect this replaces, and writing a different literal would
         # only respell it.
-        resolve_cpuset(logical_cpus=ncpu, root=HOST_ROOT),
+        resolve_cpuset(logical_cpus=ncpu, root=HOST_ROOT, count=cpu_count),
     )
 
 
@@ -636,7 +648,7 @@ def create_arguments(
         "--memory-swap",
         str(worker_profile.effective_memory_bytes),
         "--cpus",
-        str(CPU_COUNT),
+        str(worker_profile.effective_cpu_count),
         "--cpuset-cpus",
         cpuset,
         "--ulimit",
@@ -656,11 +668,12 @@ def create_arguments(
         "--stop-timeout",
         str(GRACEFUL_CANCELLATION_SECONDS),
         "--shm-size",
-        str(_SHM_BYTES),
+        str(worker_profile.effective_shm_bytes),
         "--tmpfs",
         (
             "/scratch:rw,nosuid,nodev,noexec,size="
-            f"{_SCRATCH_TMPFS_BYTES},nr_inodes={SCRATCH_INODES},mode=700,"
+            f"{worker_profile.effective_scratch_tmpfs_bytes},"
+            f"nr_inodes={SCRATCH_INODES},mode=700,"
             f"uid={WORKER_UID},gid={WORKER_GID}"
         ),
         "--mount",
@@ -678,11 +691,11 @@ def create_arguments(
         "--env",
         "XLA_PYTHON_CLIENT_PREALLOCATE=false",
         "--env",
-        "OMP_NUM_THREADS=2",
+        f"OMP_NUM_THREADS={worker_profile.effective_cpu_count}",
         "--env",
-        "OPENBLAS_NUM_THREADS=2",
+        f"OPENBLAS_NUM_THREADS={worker_profile.effective_cpu_count}",
         "--env",
-        "MKL_NUM_THREADS=2",
+        f"MKL_NUM_THREADS={worker_profile.effective_cpu_count}",
         image_id,
     ]
     if worker_profile.accelerator_profile_id is not None:
@@ -789,7 +802,7 @@ def inspect_effective_controls(
         "nosuid",
         "nodev",
         "noexec",
-        f"size={_SCRATCH_TMPFS_BYTES}",
+        f"size={worker_profile.effective_scratch_tmpfs_bytes}",
         f"nr_inodes={SCRATCH_INODES}",
         "mode=700",
         f"uid={WORKER_UID}",
@@ -818,9 +831,9 @@ def inspect_effective_controls(
         or host.get("PidsLimit") != PIDS_LIMIT
         or host.get("Memory") != worker_profile.effective_memory_bytes
         or host.get("MemorySwap") != worker_profile.effective_memory_bytes
-        or host.get("NanoCpus") != CPU_COUNT * 1_000_000_000
+        or host.get("NanoCpus") != worker_profile.effective_cpu_count * 1_000_000_000
         or host.get("CpusetCpus") != cpuset
-        or host.get("ShmSize") != _SHM_BYTES
+        or host.get("ShmSize") != worker_profile.effective_shm_bytes
         or host.get("CapAdd")
         or sorted(host.get("CapDrop") or []) != ["ALL"]
         or host.get("Devices")
@@ -899,10 +912,14 @@ def inspect_effective_controls(
                     ),
                     (
                         "CPU_QUOTA",
-                        lambda: host.get("NanoCpus") != CPU_COUNT * 1_000_000_000,
+                        lambda: host.get("NanoCpus")
+                        != worker_profile.effective_cpu_count * 1_000_000_000,
                     ),
                     ("CPUSET", lambda: host.get("CpusetCpus") != cpuset),
-                    ("SHM", lambda: host.get("ShmSize") != _SHM_BYTES),
+                    (
+                        "SHM",
+                        lambda: host.get("ShmSize") != worker_profile.effective_shm_bytes,
+                    ),
                     ("CAP_ADD", lambda: bool(host.get("CapAdd"))),
                     ("CAP_DROP", lambda: sorted(host.get("CapDrop") or []) != ["ALL"]),
                     ("DEVICES", lambda: bool(host.get("Devices"))),
@@ -1189,22 +1206,25 @@ def inspect_effective_controls(
             timeout=10,
         ).stdout.splitlines()[-1]
     )
+    scratch_limit = worker_profile.effective_scratch_tmpfs_bytes
+    shm_limit = worker_profile.effective_shm_bytes
+    storage_limit = worker_profile.effective_storage_bytes
     if (
-        scratch_size > _SCRATCH_TMPFS_BYTES
+        scratch_size > scratch_limit
         or scratch_inodes > SCRATCH_INODES
-        or shm_size > _SHM_BYTES
-        or scratch_size + shm_size > SCRATCH_BYTES
+        or shm_size > shm_limit
+        or scratch_size + shm_size > storage_limit
     ):
         predicate = "UNCLASSIFIED"
         if diagnose_policy:
             predicate = _first_failed(
                 (
-                    ("SCRATCH_BYTES", lambda: scratch_size > _SCRATCH_TMPFS_BYTES),
+                    ("SCRATCH_BYTES", lambda: scratch_size > scratch_limit),
                     ("SCRATCH_INODES", lambda: scratch_inodes > SCRATCH_INODES),
-                    ("SHM_BYTES", lambda: shm_size > _SHM_BYTES),
+                    ("SHM_BYTES", lambda: shm_size > shm_limit),
                     (
                         "SCRATCH_PLUS_SHM",
-                        lambda: scratch_size + shm_size > SCRATCH_BYTES,
+                        lambda: scratch_size + shm_size > storage_limit,
                     ),
                 )
             )

@@ -4,10 +4,14 @@
  "distinct_states": 22,
  "files": 44,
  "identical": 22,
+ "image_digest": "sha256:331b43999a54b1cfcf36334bca49292a6e1bdc4e2bf87e731e6a8ca20aa3884d",
  "key": "tfno",
  "pairs": 22,
  "schema": "carbon.backbone-catalog-pair-identity.v1",
  "source_report": "PAIR_IDENTITY_TUNED_BACKBONES_20261020.json",
  "source_report_sha256": "sha256:03487f8d645aff04f72f374c0247fb1361fe4fa52c1da22ed4ed5425f7a7a82f",
+ "tested_interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+ "tested_on": "electric-motor-magnetics@1.0",
+ "tested_train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
  "unpaired": 0
 }

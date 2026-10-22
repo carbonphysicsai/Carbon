@@ -230,6 +230,16 @@ def bind_recipe(
     return recipe
 
 
+def recipe_graph_bounds(recipe: ConstructionRecipe) -> dict:
+    """The intake bounds of the recipe's exact Challenge version's graph
+    allowlist (`served_versions.graph_intake_bounds`). Host side only: the
+    isolated workers do not stage `carbon.challenge_kit`."""
+    from carbon.challenge_kit.served_versions import graph_intake_bounds
+
+    challenge = recipe.to_dict()["challenge"]
+    return graph_intake_bounds(challenge["id"], challenge["version"])
+
+
 def graph_workspace(
     recipe: ConstructionRecipe,
     raw_manifest: bytes,
@@ -284,7 +294,7 @@ def graph_envelope_from_workspace(
     upload format is accepted: the already-served ResearchWorkspace supplies
     the manifest and its digest-named documents, which the worker rechecks.
     """
-    from carbon.level4 import intake, staging
+    from carbon.level4 import staging
 
     from .research_workspace import ResearchWorkspace, WorkspaceFileMissing
 
@@ -293,15 +303,14 @@ def graph_envelope_from_workspace(
         or recipe.to_dict()["source"]["kind"] != "graph"
     ):
         raise RecipeRefused("construction_recipe_source_invalid")
+    bounds = recipe_graph_bounds(recipe)
     workspace = ResearchWorkspace(ledger, owner)
     try:
         raw_manifest = workspace.get(staging.WORKSPACE_MANIFEST)
     except WorkspaceFileMissing:
         raise RecipeRefused("construction_recipe_graph_workspace_missing") from None
     try:
-        manifest = parse_strategy(
-            raw_manifest, max_bytes=intake.BOUNDS["manifest_bytes"]
-        )
+        manifest = parse_strategy(raw_manifest, max_bytes=bounds["manifest_bytes"])
     except MalformedStrategy:
         raise RecipeRefused("construction_recipe_graph_manifest_invalid") from None
     names = manifest.get("documents") if type(manifest) is dict else None
@@ -322,7 +331,5 @@ def graph_envelope_from_workspace(
             )
         except WorkspaceFileMissing:
             raise RecipeRefused("construction_recipe_graph_workspace_missing") from None
-    graph_workspace(
-        recipe, raw_manifest, files, max_bytes=intake.BOUNDS["submission_bytes"]
-    )
+    graph_workspace(recipe, raw_manifest, files, max_bytes=bounds["submission_bytes"])
     return _canonical(staging.envelope(raw_manifest, files))

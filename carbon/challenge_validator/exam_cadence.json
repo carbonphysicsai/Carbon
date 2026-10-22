@@ -1,5 +1,5 @@
 {
-  "capacity_cpu_hours_per_day": 67.2,
+  "capacity_cpu_hours_per_day": 134.4,
   "rebuild_cpu_hours_placeholder": {
     "battery-fastcharge-ageing-development-v1": 2.0,
     "chip-cold-plate": 1.0,
@@ -8,5 +8,5 @@
     "f08-ribbed-bracket": 0.5
   },
   "schema": "carbon.exam.cadence-registry.v1",
-  "source": "OWNER-CADENCE-AND-ROTATION-02, proposal rev 2; capacity from the registered validator host class (OWNER-VALIDATOR-HOST-CLASS-01): 4 vCPU x 24 h x 0.7"
+  "source": "OWNER-CADENCE-AND-ROTATION-02, proposal rev 2; capacity from the registered validator host class (OWNER-VALIDATOR-HOST-CLASS-01): 8 vCPU x 24 h x 0.7 (Hetzner ccx33, VALIDATOR-HOST-CLASS-CCX33-01)"
 }

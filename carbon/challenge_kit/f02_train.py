@@ -26,7 +26,11 @@ CHALLENGE_VERSION = "2.0"
 #: 2.1 (step-2 batch, STEP2_BATCH_VERSIONS_20261020) serves 2.0's TRAIN40-v2
 #: bytes unchanged; only the version binding differs. Every loader names its
 #: version; there is no default.
-CHALLENGE_VERSIONS = ("2.0", "2.1")
+#: 2.2 (the catalog version, serving allowlist v7; Validator 2026-10-20)
+#: serves the same TRAIN40-v2 bytes; only the version binding differs.
+#: 2.3 (the Validator, 2026-10-20: the catalog binding plus Carbon's graph
+#: training adapter) serves the same TRAIN40-v2 bytes.
+CHALLENGE_VERSIONS = ("2.0", "2.1", "2.2", "2.3")
 CONTEXT = {
     "coolant_c": 30.0,
     "h_w_m2_k": 2500.0,
