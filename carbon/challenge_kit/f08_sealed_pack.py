@@ -119,6 +119,8 @@ def sealed_bank(document, records, *, version="1.2") -> dict:
                 "status": "OK",
                 "case_id": case_id,
                 "design_id": case_id,
+                # a one-condition grid (C2/C3, VALIDATOR_EXAM_ARCHITECTURE_COMMON_20261022): the cases are the designs
+                "condition_id": "condition-0",
                 "reference_rung_h_mm": record["reference_rung_h_mm"],
                 "wall_s": wall_s,
                 "image": {
