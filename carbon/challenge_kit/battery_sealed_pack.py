@@ -61,8 +61,21 @@ def sealed_bank(document, records) -> dict:
         by_case[case_id] = record
     if set(by_case) != set(cases):
         raise SealedPackRefused("battery_sealed_case_unresolved")
+    # Bank rows are the grid cells, scenario-major over EV4's candidate order (the
+    # grading producer orders the batch's scenarios by first appearance).
+    scenario_of = {s: f"scenario-{i}" for i, s in enumerate(scenarios_of(list(cases.values())))}
+    candidate_of = {(c["c1"], c["c2"]): c["id"] for c in candidates()}
+    candidate_order = {c["id"]: i for i, c in enumerate(candidates())}
+
+    def cell_key(case_id):
+        x = cases[case_id]
+        return (
+            scenario_of[(x["t_amb_c"], x["soc0"])],
+            candidate_order[candidate_of[(x["c1"], x["c2"])]],
+        )
+
     case_ids, rows, references, sides = [], [], [], set()
-    for case_id in sorted(cases):
+    for case_id in sorted(cases, key=cell_key):
         inputs, record = cases[case_id], by_case[case_id]
         try:
             hidden.check_reference(record, inputs)
@@ -79,8 +92,6 @@ def sealed_bank(document, records) -> dict:
     if sides != {"FEASIBLE", "INFEASIBLE"}:
         raise SealedPackRefused("battery_sealed_no_straddle")
     # each record names its grid cell, which the dual adapter's D groups by
-    scenario_of = {s: f"scenario-{i}" for i, s in enumerate(scenarios_of(list(cases.values())))}
-    candidate_of = {(c["c1"], c["c2"]): c["id"] for c in candidates()}
     for case_id in case_ids:
         x = cases[case_id]
         by_case[case_id] = {

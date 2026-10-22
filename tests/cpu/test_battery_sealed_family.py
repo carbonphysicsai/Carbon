@@ -186,6 +186,9 @@ def test_the_pack_is_the_whole_straddling_grid_with_cell_ids(grid):
     assert len(ids) == 140
     assert {s for s, _ in ids} == {f"scenario-{i}" for i in range(4)}
     assert {k for _, k in ids} == {c["id"] for c in population.candidates()}
+    # rows are scenario-major over EV4 candidate order (the grader orders scenarios by appearance)
+    order = [(r["scenario_id"], r["candidate_id"]) for r in bank["reference_records"]]
+    assert order == [(f"scenario-{s}", c["id"]) for s in range(4) for c in population.candidates()]
     assert set(pack.private_roles(bank)) == {"case_bank", "reference_rows", "solver_evidence"}
     assert {r["wall_s"] for r in bank["reference_records"]} == {300.0}  # standard + mesh 160
     with pytest.raises(pack.SealedPackRefused) as refused:
