@@ -69,6 +69,18 @@
   const TERMINAL = ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE", "EXPIRED"];
   // A Challenge's registry title carries internal labels in brackets ("Name (DEVELOPMENT ...)"):
   // people read the name; the full title stays on hover (U10).
+  // Words that came from the controller, in plain terms (Dana #4): the technical name stays in the Help fold.
+  function plainWords(text) {
+    return typeof text === "string" ? text.replace(/\bhotkeys\b/g, "mining keys").replace(/\bhotkey\b/g, "mining key").replace(/\bcoldkey\b/g, "money key").replace(/\bss58\b/g, "wallet").replace(/\bnetuid\b/g, "network number").replace(/\bsubnet\b/g, "Carbon network") : text;
+  }
+  // The technical names, kept for those who meet them elsewhere (Dana #4).
+  function termsFold(parent) {
+    const fold = el("details", undefined, "terms-fold");
+    fold.append(el("summary", "What do these words mean?"));
+    fold.append(el("p", "Mining key = the key that signs your work (its technical name is mining key). Money key = the key that pays the joining fee (money key). Wallet address = the public text that names a key (wallet address). Carbon network = the group of miners you join (Carbon network). The joining fee is called a recycle fee.", "hint"));
+    parent.append(fold);
+    return fold;
+  }
   function plainTitle(title) { return typeof title === "string" ? title.replace(/\s*\(.*$/, "").trim() || title : title; }
   // The keyed operations, as a person names them.
   const OPERATION_NAMES = {practice: "practice", freeze_candidate: "freeze", submit: "submit"};
@@ -423,9 +435,9 @@
   const SIGNER_HELP = {
     signer_not_running: "your signer is not running. Start `carbon-miner-signer --wallet NAME --hotkey HOTKEY` in a terminal and leave it open",
     signer_refused: "your signer declined the request; its terminal shows why",
-    signer_wrong_hotkey: "the signer running holds a different hotkey than this profile's registered miner",
+    signer_wrong_hotkey: "the signer running holds a different mining key than this profile's registered miner",
     signer_timeout: "your signer did not answer in time. Check its terminal",
-    signer_invalid_signature: "your signer returned a signature that does not verify for this hotkey",
+    signer_invalid_signature: "your signer returned a signature that does not verify for this mining key",
     signer_protocol: "something other than carbon-miner-signer answered on the signer socket"
   };
   async function api(path, body, key, timeout = 5000) {
@@ -678,13 +690,13 @@
       const stale = $("onboarding-result");
       if (stale.dataset.key === "disconnected") { stale.replaceChildren(); stale.dataset.key = ""; }
       // The network this controller registers on, always in view.
-      $("network-pill").textContent = (String(value.network).includes("test") ? "Testnet" : words(value.network)) + " · netuid " + value.netuid;
+      $("network-pill").textContent = (String(value.network).includes("test") ? "Testnet" : words(value.network)) + " · network " + value.netuid;
       const facts = $("onboarding-facts");
       facts.replaceChildren();
       // The cost is shown as Carbon actually knows it. NOT_READ is a different
       // claim from unknown, and neither is a figure to plan around.
       const rows = [
-        ["Network", value.network + " · netuid " + value.netuid],
+        ["Network", value.network + " · network " + value.netuid],
         ["How joining works", value.mechanism === "BURNED_REGISTRATION" ? "A payment from your own wallet each time you join; Carbon does not receive it" : words(value.mechanism)],
         ["Joining cost", value.cost && value.cost.value === "NOT_READ"
           ? "Not read by Carbon: your wallet shows the exact amount before you sign"
@@ -723,7 +735,7 @@
     if (busy || !connected) return;
     const address = $("onboarding-address").value.trim();
     if (!address) {
-      showOnboarding([onboardingLine("Enter the hotkey address you want to register.", "error")]);
+      showOnboarding([onboardingLine("Enter the mining key address you want to register.", "error")]);
       return;
     }
     try {
@@ -733,7 +745,7 @@
         lines.push(onboardingLine(
           value.registered
             ? "Registered. UID " + value.uid + " at block " + (value.observed_block ?? "unknown") + "."
-            : "Not registered on netuid " + value.netuid + " yet."
+            : "Not registered on network " + value.netuid + " yet."
         ));
         lines.push(onboardingLine("Research environment: " + value.research_environment));
         if (action === "confirm" && value.registered && value.confirmed) {
@@ -744,7 +756,7 @@
         }
       } else {
         lines.push(onboardingLine("Prepared an UNSIGNED " + value.extrinsic + ". Carbon has not signed and will not submit it."));
-        lines.push(onboardingLine("Execute it in " + value.execute_in + ". The recycle amount comes from your coldkey."));
+        lines.push(onboardingLine("Execute it in " + value.execute_in + ". The recycle amount comes from your money key."));
       }
       showOnboarding(lines);
     } catch (error) {
@@ -764,7 +776,7 @@
   // researches comes before Inference, which only an agent calling setup's
   // model needs. Step ids are stable anchors: #setup/<id>.
   const SETUP_STEPS = [
-    ["register", "Get your keys and join", "Make your mining keys, put some TAO in your wallet, then join Carbon's network (the subnet). You sign in your own wallet."],
+    ["register", "Get your keys and join", "Make your mining keys, put some TAO in your wallet, then join Carbon's network (the Carbon network). You sign in your own wallet."],
     ["signer", "Start your signer", "Your signer holds your mining key on this machine and signs your work. Carbon never sees your key."],
     ["agent", "Who researches?", "Carbon's agent, or your own agent over MCP. This step also checks your signer."],
     ["inference", "AI model", "Choose the AI model Carbon's agent uses. You bring your own key from the model's provider."],
@@ -842,7 +854,7 @@
     }
     // U13: one plain sentence, never the raw "intakes: challenge has no intake".
     if (error.code === "challenge_has_no_intake") return error.nextStep || "This Challenge takes no validator intake: put its construction receiver under 'Where your recipe is checked' instead.";
-    return (error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : "");
+    return plainWords((error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : ""));
   }
   async function setupCall(step, body, timeout = 60000) {
     // The button that asked shows it is working (U5); the page redraws when the answer lands.
@@ -873,7 +885,7 @@
       // Many Challenges without a Carbon receiver are one calm line, not a red notice each (U8).
       const noReceiver = allWarnings.filter(item => /has not published an evaluation endpoint/.test(item.message));
       const warnings = allWarnings.filter(item => !noReceiver.includes(item));
-      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")), ...pytorch, ...(noReceiver.length ? [setupLine(noReceiver.length + " Challenge" + (noReceiver.length === 1 ? " has" : "s have") + " no Carbon receiver yet. Practice and freezing work without one.")] : []), ...warnings.map(item => setupLine(item.message, "error")));
+      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")), ...pytorch, ...(noReceiver.length ? [setupLine(noReceiver.length + " Challenge" + (noReceiver.length === 1 ? " has" : "s have") + " no Carbon receiver yet. Practice and freezing work without one.")] : []), ...warnings.map(item => setupLine(plainWords(item.message), "error")));
       // The written profile changes what can launch: read it again now.
       if (step === "review") { try { await readCapabilities(); } catch (_) { /* re-read on request */ } }
       await readSetup();
@@ -1069,13 +1081,13 @@
       row.append(head);
       if (item.intake) row.append(el("p", "A frozen candidate is submitted to " + item.intake + ".", "status-line"));
       if (item.receiver_hotkey) {
-        row.append(el("p", "Receiver hotkey: " + item.receiver_hotkey, "hint"));
+        row.append(el("p", "Receiver mining key: " + item.receiver_hotkey, "hint"));
         const note = item.receiver_hotkey_note;
-        if (typeof note === "string" && note) row.append(el("p", note[0].toUpperCase() + note.slice(1), "hint"));
+        if (typeof note === "string" && note) row.append(el("p", plainWords(note[0].toUpperCase() + note.slice(1)), "hint"));
       }
       // A profile from before receivers were pinned (LAUNCHPAD-ACCEPT-03).
-      if (item.receiver_hotkey_warning) row.append(el("p", item.receiver_hotkey_warning, "reason"));
-      if (item.note) row.append(el("p", item.note, "hint"));
+      if (item.receiver_hotkey_warning) row.append(el("p", plainWords(item.receiver_hotkey_warning), "reason"));
+      if (item.note) row.append(el("p", plainWords(item.note), "hint"));
       if (item.set_aside_intake) {
         row.append(el("p", "Your own intake, set aside by the update: " + item.set_aside_intake, "status-line"));
         const again = el("button", "Name it again"); again.type = "button"; again.dataset.nameAgain = item.id;
@@ -1217,13 +1229,13 @@
     copyRow(box, null, "carbon-miner-identity", "setup-identity-copy");
     box.append(el("p", "At the end it shows two wallet addresses. Both are public. Copy the mining-key address into step 3, and the money-key address into step 2.", "hint"));
     details(box, "What are the two keys?", [
-      "Your wallet holds two keys. The money key (coldkey) holds your funds. The mining key (hotkey) signs your mining work and names you on the network; it cannot move your funds. Their addresses are public."
+      "Your wallet holds two keys. The money key (money key) holds your funds. The mining key (mining key) signs your mining work and names you on the network; it cannot move your funds. Their addresses are public."
     ]);
     details(box, "Is my key safe?", [
       "The helper runs only on your computer and saves each key encrypted under its own password, one for your money and one for mining. Nothing it makes is sent anywhere, and Carbon never sees your keys, your recovery phrase or your passwords. Anyone who has your recovery phrase can take your funds, so write it on paper and keep it private."
     ]);
     details(box, "Lost my phrase?", [
-      "The 12 words are the only way to get your funds back if you lose your money password or this computer, and Carbon cannot recover them for you. Your hotkey has no recovery phrase: keep a copy of the wallet folder the helper names at the end. Without a copy you would make a new hotkey and register it again."
+      "The 12 words are the only way to get your funds back if you lose your money password or this computer, and Carbon cannot recover them for you. Your mining key has no recovery phrase: keep a copy of the wallet folder the helper names at the end. Without a copy you would make a new mining key and register it again."
     ]);
     const cost = details(box, "What does joining cost?", [
       "Joining is paid from your own money key, in your own wallet tool. Carbon neither charges nor receives it. The current amount is set by the network and changes, so read it before you sign: it is under Joining cost in Wallet & Identity, and your wallet shows it at signing."
@@ -1261,14 +1273,14 @@
   async function confirmRegistration(address) {
     if (busy || !connected) return;
     const result = $("setup-result");
-    if (!address) { result.replaceChildren(setupLine("Enter the hotkey address you registered.", "error")); return; }
+    if (!address) { result.replaceChildren(setupLine("Enter the mining key address you registered.", "error")); return; }
     try {
       const value = await api("/api/v1/onboarding/confirm", {address});
       if (value.registered && value.confirmed) {
         if (await setupCall("begin", {address})) location.hash = "#setup/agent";
         return;
       }
-      const line = el("p", "Not registered on netuid " + value.netuid + " yet. Prepare the unsigned registration under Wallet & Identity, sign it in your own wallet, then check again.", "reason");
+      const line = el("p", "Not registered on network " + value.netuid + " yet. Prepare the unsigned registration under Wallet & Identity, sign it in your own wallet, then check again.", "reason");
       result.replaceChildren(line, link({label: "Wallet & Identity", href: "#wallet"}));
     } catch (error) {
       result.replaceChildren(setupLine(error.message, "error"));
@@ -1292,22 +1304,23 @@
     // its socket, and the signer says which hotkey it holds. Nothing is
     // signed, and Carbon never sees the key.
     const signerHotkey = steps.signer?.hotkey || setupState.registered_hotkey || "";
-    const signer = stepPanel(body, "signer", j.done.signer ? "Your signer answered for " + (signerHotkey || "your registered hotkey") + "." : null);
+    const signer = stepPanel(body, "signer", j.done.signer ? "Your signer answered for " + (signerHotkey || "your registered mining key") + "." : null);
     signer.append(el("p", "Start it in your own terminal and leave it open:", "step-lede"));
+    termsFold(signer);
     copyRow(signer, null, offered.signer?.command || "carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>", "setup-signer-copy");
-    researchNote(signer, "Use your own wallet and hotkey names. Carbon never asks for your key or its password.", "hint");
+    researchNote(signer, "Use your own wallet and mining key names. Carbon never asks for your key or its password.", "hint");
     const signerLabel = el("label", "Your mining-key address"); signerLabel.htmlFor = "setup-signer-address";
     const signerAddress = el("input"); signerAddress.id = "setup-signer-address"; signerAddress.type = "text"; signerAddress.autocomplete = "off"; signerAddress.spellcheck = false; signerAddress.placeholder = "5...";
     signerAddress.value = signerHotkey || $("onboarding-address").value.trim();
     const signerCheck = el("button", j.done.signer ? "Check my signer again" : "Check my signer", j.done.signer ? "" : "primary"); signerCheck.type = "button"; signerCheck.id = "setup-signer-check";
     signerCheck.addEventListener("click", () => {
       const address = signerAddress.value.trim();
-      if (!address) { $("setup-result").replaceChildren(setupLine("Enter your hotkey address: its public ss58 address, never a key or phrase.", "error")); return; }
+      if (!address) { $("setup-result").replaceChildren(setupLine("Enter your mining key address: its public wallet address, never a key or phrase.", "error")); return; }
       setupCall("signer", {address});
     });
     const signerAction = el("div", undefined, "step-action"); signerAction.append(signerCheck);
     signer.append(signerLabel, signerAddress, signerAction);
-    researchNote(signer, "This asks your signer which hotkey it holds. Nothing is signed. You can also register first: steps 1 and 2 go in either order.", "hint");
+    researchNote(signer, "This asks your signer which mining key it holds. Nothing is signed. You can also register first: steps 1 and 2 go in either order.", "hint");
 
     // 2. Register on the subnet: confirmed here, prepared under Wallet.
     const register = stepPanel(body, "register", j.registered ? "Registered: " + setupState.registered_hotkey : null);
@@ -1749,7 +1762,7 @@
       }
       connectBox.append(el("p", "Then your agent loops on carbon_setup_status until launch; the carbon_setup_workflow_v1 prompt says how. You can finish here too: both doors share one setup.", "hint"));
     };
-    researchNote(agent, "Carbon never asks for your hotkey or its password. Start carbon-miner-signer for your registered hotkey in your own terminal; this step asks it which hotkey it holds.", "hint");
+    researchNote(agent, "Carbon never asks for your mining key or its password. Start carbon-miner-signer for your registered mining key in your own terminal; this step asks it which mining key it holds.", "hint");
     // Hermes (C-MLP-03 slice 5): nothing is written to the miner's Hermes
     // without their consent to the exact files, unticked by default.
     const hermesBox = el("div"); agent.append(hermesBox);
@@ -1822,18 +1835,18 @@
     const intake = setupField(reviewMore, "intake_url", "Validator intake URL (optional; https, or loopback)");
     // Pinned in the profile: nothing is signed for an intake that reports
     // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
-    const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver hotkey (its public ss58 address; required with an intake URL)");
+    const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver mining key (its public wallet address; required with an intake URL)");
     intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
     const directMore = advanced(review, "Where your recipe is checked: your construction receiver");
     researchNote(directMore, "Every new campaign submits its frozen recipe here when its Challenge has no validator intake of its own: the receiver rebuilds it from scratch and grades it. Its operator gives you both values.", "hint");
     const directIntake = setupField(directMore, "direct_intake_url", "Receiver URL (https, or loopback)");
-    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Receiver hotkey (its public ss58 address)");
+    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Receiver mining key (its public wallet address)");
     // U12: what Review last wrote comes back filled in, and is said plainly,
     // so writing the profile again never clears it by accident.
     const savedDirect = (steps.evaluation?.challenges || []).map(item => item.direct_intake).find(item => item && item.intake_url);
     if (savedDirect) {
       directIntake.value = savedDirect.intake_url; directReceiver.value = savedDirect.receiver_hotkey || "";
-      researchNote(directMore, "Saved: receiver " + savedDirect.intake_url + (savedDirect.receiver_hotkey ? " · hotkey " + savedDirect.receiver_hotkey.slice(0, 8) + "…" : "") + ". Edit the fields and write your profile to change it.", "hint");
+      researchNote(directMore, "Saved: receiver " + savedDirect.intake_url + (savedDirect.receiver_hotkey ? " · mining key " + savedDirect.receiver_hotkey.slice(0, 8) + "…" : "") + ". Edit the fields and write your profile to change it.", "hint");
     }
     evaluationSection(evaluationBox, steps.evaluation, (challengeId, url, hotkey) => {
       // Review writes only the intakes it is given: this one, again.
@@ -2309,7 +2322,7 @@
     items.push(caps.profile.configured
       ? {ok: true, text: "Your runner profile is loaded.", detail: ["Profile: " + caps.profile.profile_id]}
       : {ok: false, area: "Runner profile", item: caps.profile});
-    items.push({ok: null, text: "Your subnet registration is read at launch, before anything is recorded.", fix: {label: "Check it", href: "#wallet"}});
+    items.push({ok: null, text: "Your registration is read at launch, before anything is recorded.", fix: {label: "Check it", href: "#wallet"}});
     const selectable = caps.challenges.filter(entry => entry.selectable);
     items.push(selectable.length
       ? {ok: true, text: "You can launch: " + selectable.map(entry => entry.title).join(", ") + "."}
@@ -4203,7 +4216,7 @@
     const task = connected && guidance ? guidance.text : "";
     if ($("research-guidance").value !== task) $("research-guidance").value = task;
     setText($("research-runtime"), connected && guidance ? "Configured runtime: " + research.preflight.runtime_revision + " · Task identity (frozen on launch): " + guidance.digest : "");
-    setText($("research-preflight"), connected ? research.preflight.status.replaceAll("_", " ") + (research.preflight.reason ? " · " + research.preflight.reason : "") + (research.preflight.available ? " · Admission: your subnet registration, read at launch · Budget: yours to set, or none" : "") : "Reconnect to reconcile research state. Controls are disabled.");
+    setText($("research-preflight"), connected ? research.preflight.status.replaceAll("_", " ") + (research.preflight.reason ? " · " + research.preflight.reason : "") + (research.preflight.available ? " · Admission: your registration, read at launch · Budget: yours to set, or none" : "") : "Reconnect to reconcile research state. Controls are disabled.");
     const review = connected && research.preflight.review;
     rebuild($("research-review"), JSON.stringify(review || null), reviewPanel => { if (review) drawReview(reviewPanel, review); });
   }
@@ -4245,8 +4258,8 @@
       const compute = computeChoice();
       const budget = composition.budget || {};
       const setup = setupModel();
-      row("Identity", caps.profile.configured ? "Runner profile " + caps.profile.profile_id + " · registered hotkey read from it at launch" : "No runner profile");
-      row("Network", research.preflight.review?.admission?.gate ? words(research.preflight.review.admission.gate).toLowerCase() + " · see Wallet & Identity for the network and netuid" : "Subnet registration, read at launch · see Wallet & Identity");
+      row("Identity", caps.profile.configured ? "Runner profile " + caps.profile.profile_id + " · registered mining key read from it at launch" : "No runner profile");
+      row("Network", research.preflight.review?.admission?.gate ? words(research.preflight.review.admission.gate).toLowerCase() + " · see Wallet & Identity for the network and netuid" : "Registration, read at launch · see Wallet & Identity");
       row("Challenge", entry ? entry.title + " · " + entry.challenge_id + " · version " + entry.version + (entry.description?.contract_digest ? " · contract " + entry.description.contract_digest : "") : "Not chosen");
       row("Agent", agent ? agent.label + " (launch agent: " + agent.launch_agent + ")" : "Not chosen");
       if (agent?.launch_agent === GRAPHITE) {
@@ -4282,7 +4295,7 @@
       row("Unset limits", "An unset limit means no limit. Carbon sets none for you.");
       for (const [name, label] of STEPS.slice(0, 5)) { const problem = stepProblem(name); if (problem) problems.push({ok: false, text: label + ": " + problem}); }
       if (!research.preflight.available) problems.push({ok: false, text: "Research launch: " + words(research.preflight.reason || research.preflight.status)});
-      problems.push({ok: null, text: "Subnet registration is read at launch, before anything is recorded.", href: "#wallet"});
+      problems.push({ok: null, text: "Registration is read at launch, before anything is recorded.", href: "#wallet"});
     }
     rebuild($("wizard-review"), JSON.stringify(rows), grid => { for (const [label, value] of rows) grid.append(el("dt", label), el("dd", value)); });
     rebuild($("wizard-missing"), JSON.stringify(problems), list => renderChecklist(list, problems));

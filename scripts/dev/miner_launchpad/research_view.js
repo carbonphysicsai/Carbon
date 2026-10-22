@@ -281,7 +281,7 @@
     const title = el("div", undefined, "rs-title");
     const challenge = doc.campaign.challenge;
     const eyebrow = el("p", "Campaign · " + (doc.labels.mode === "DEVELOPMENT" ? "Practice" : words(doc.labels.mode)) + " · " + (String(doc.labels.network).toLowerCase() === "testnet" ? "Test network" : words(doc.labels.network)), "eyebrow section-label");
-    eyebrow.title = "Network " + doc.labels.network + ", subnet " + doc.labels.netuid;
+    eyebrow.title = "Network " + doc.labels.network + ", Carbon network " + doc.labels.netuid;
     title.append(eyebrow);
     title.append(el(compact ? "h3" : "h2", challenge ? plainTitle(challenge.title || challenge.id) + " · v" + challenge.version : "Older practice campaign"));
     const meta = el("div", undefined, "rs-meta");

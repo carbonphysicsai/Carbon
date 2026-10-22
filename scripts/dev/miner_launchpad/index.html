@@ -35,7 +35,7 @@
       <div id="overview-active" class="cards"><p class="hint">Connect to see your campaigns.</p></div>
       <h2 class="section-title">Before you launch</h2>
       <ul id="overview-prerequisites" class="checklist"><li class="hint">Connect to read what this controller can do.</li></ul>
-      <p class="notice">This is your space and your compute. Carbon does not cap what you spend and does not approve your access: subnet registration is the only admission, read at launch. DEVELOPMENT only: no official qualification, reward or chain write.</p>
+      <p class="notice">This is your space and your compute. Carbon does not cap what you spend and does not approve your access: registration is the only admission, read at launch. DEVELOPMENT only: no official qualification, reward or chain write.</p>
     </section>
 
     <section id="campaigns" class="view" data-nav="My Campaigns" aria-labelledby="campaigns-heading" hidden>
@@ -101,12 +101,12 @@
     </section>
 
     <section id="wallet" class="view" data-nav="Wallet &amp; Identity" aria-labelledby="wallet-heading" hidden>
-      <div class="view-head"><div><p class="eyebrow section-label">Wallet &amp; identity</p><h1 id="wallet-heading">Wallet &amp; Identity</h1><p class="lede">Register your hotkey on the subnet. You sign in your own wallet.</p></div></div>
-      <section id="onboarding-panel" class="panel setup"><div class="panel-heading"><h2>Register on the subnet</h2><span class="small-tag">00 / Join</span></div>
+      <div class="view-head"><div><p class="eyebrow section-label">Wallet &amp; identity</p><h1 id="wallet-heading">Wallet &amp; Identity</h1><p class="lede">Register your mining key with Carbon. You sign in your own wallet.</p></div></div>
+      <section id="onboarding-panel" class="panel setup"><div class="panel-heading"><h2>Join Carbon mining</h2><span class="small-tag">00 / Join</span></div>
         <p class="hint">Registration is how you reach Carbon's research environment. You execute it in your own wallet &mdash; Carbon never asks for, holds or transmits a private key, seed phrase or mnemonic, and nothing here signs on your behalf.</p>
-        <p id="onboarding-coldkey" class="notice"><strong>Joining is paid from your coldkey, the wallet that holds your funds, not from your hotkey.</strong> Putting the money in the hotkey is the most common way a first registration fails: the hotkey is the key you register, and the payment is taken from the coldkey that owns it.</p>
+        <p id="onboarding-coldkey" class="notice"><strong>Joining is paid from your money key, the wallet that holds your funds, not from your mining key.</strong> Putting the money in the mining key is the most common way a first registration fails: the mining key is the key you register, and the payment is taken from the money key that owns it.</p>
         <dl id="onboarding-facts" class="integration-grid"></dl>
-        <label for="onboarding-address">Your hotkey address</label>
+        <label for="onboarding-address">Your mining key address</label>
         <div class="inline"><input id="onboarding-address" type="text" autocomplete="off" spellcheck="false" minlength="46" maxlength="50" placeholder="5..." disabled><button id="onboarding-status" type="button" disabled>Check status</button></div>
         <p class="hint">Paste an address only. This field rejects anything phrase-shaped before it is read, and no request body records what you typed.</p>
         <div id="onboarding-result" class="events" aria-live="polite"></div>
@@ -121,7 +121,7 @@
       <div id="setup-body" class="panel wizard-panel"><p class="hint">Connect this browser to begin.</p></div>
       <div id="setup-nav" class="setup-nav"><button id="setup-back" type="button">Back</button><span id="setup-next-reason" class="hint" aria-live="polite"></span><button id="setup-next" type="button" class="primary go">Next</button></div>
       <div id="setup-result" class="events" aria-live="polite"></div>
-      <details class="keys-note"><summary>Keys stay on this machine</summary><p class="notice"><strong>Keys stay on this machine.</strong> An API key you enter here is written once to an owner-only file beside this controller, never shown again, and sent only to its own provider. Your hotkey stays in your own carbon-miner-signer; Carbon never asks for it or its password. Each live check runs with your key at your cost, and says so before it runs.</p></details>
+      <details class="keys-note"><summary>Keys stay on this machine</summary><p class="notice"><strong>Keys stay on this machine.</strong> An API key you enter here is written once to an owner-only file beside this controller, never shown again, and sent only to its own provider. Your mining key stays in your own carbon-miner-signer; Carbon never asks for it or its password. Each live check runs with your key at your cost, and says so before it runs.</p></details>
     </section>
 
     <section id="guide" class="view" aria-labelledby="guide-heading" hidden>

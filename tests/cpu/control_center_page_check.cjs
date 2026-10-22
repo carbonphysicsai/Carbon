@@ -1766,8 +1766,8 @@ scenario("Review's answer names what it could not do; Carbon's endpoint shows it
   await other.advance(0);
   const text = other.text("setup-evaluation");
   assert.match(text, /Carbon's endpoint/);
-  assert.ok(text.includes(published.intake) && text.includes("Receiver hotkey: " + published.receiver_hotkey));
-  assert.ok(text.includes("Binding" + published.receiver_hotkey_note.slice("binding".length)));
+  assert.ok(text.includes(published.intake) && text.includes("Receiver mining key: " + published.receiver_hotkey));
+  assert.ok(text.includes("Binding" + published.receiver_hotkey_note.slice("binding".length).replace(/hotkeys/g, "mining keys").replace(/hotkey/g, "mining key").replace(/subnet/g, "Carbon network").replace(/ss58/g, "wallet")));
   clean(page);
   clean(other);
 });
