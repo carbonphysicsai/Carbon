@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import hashlib
 import json
 import os
@@ -41,6 +42,7 @@ _OPTIONAL_FIELDS = {
     "construction_image_manifest",
     "inference_image_manifest",
     "evaluation_pack",
+    "evaluation_pack_set",
     "challenge",
     "construction_runtimes",
 }
@@ -136,13 +138,21 @@ def load_config(path: Path) -> dict:
         raise ValueError("exact construction runtimes required")
     if "evaluation_pack" in value:
         selected = value["evaluation_pack"]
-        if type(selected) is not dict or set(selected) != {
-            "root",
-            "manifest",
-            "public_root",
-            "private_root",
-        }:
+        base = {"root", "manifest", "public_root", "private_root"}
+        if type(selected) is not dict or set(selected) not in (
+            base,
+            base | {"sealed_delivery"},
+        ):
             raise ValueError("exact evaluation pack selection required")
+        delivery = selected.get("sealed_delivery")
+        if delivery is not None and (
+            type(delivery) is not dict
+            or set(delivery) != {"store", "manifest_digest"}
+            or type(delivery["store"]) is not str
+            or not Path(delivery["store"]).is_absolute()
+            or type(delivery["manifest_digest"]) is not str
+        ):
+            raise ValueError("exact sealed delivery selection required")
         for name in ("root", "public_root", "private_root"):
             path = selected[name]
             if (
@@ -160,6 +170,26 @@ def load_config(path: Path) -> dict:
             or any(part in {"", ".", ".."} for part in manifest.split("/"))
         ):
             raise ValueError("relative evaluation pack manifest required")
+    if "evaluation_pack_set" in value:
+        block = value["evaluation_pack_set"]
+        digests = block.get("batches") if type(block) is dict else None
+        if (
+            "evaluation_pack" not in value
+            or type(block) is not dict
+            or set(block) != {"store", "set_key", "batches"}
+            or type(block["store"]) is not str
+            or not Path(block["store"]).is_absolute()
+            or type(block["set_key"]) is not str
+            or type(digests) is not list
+            or not digests
+            or digests != sorted(set(digests))
+            or any(type(d) is not str for d in digests)
+            or value["evaluation_pack"]
+            .get("sealed_delivery", {})
+            .get("manifest_digest")
+            != digests[0]
+        ):
+            raise ValueError("exact evaluation pack set selection required")
     return value
 
 
@@ -210,8 +240,38 @@ def _pack_check(root, relative_path, digest, public_root, private_root, challeng
     return checked
 
 
-def _sealed_pack(root, selection, challenge):
-    """Prepare once; a restart reloads its retained bytes, never the draft."""
+def _delivered_sealed(selection, challenge) -> bool:
+    """Whether the selected pack arrived through the answer-key route
+    (`SealedPackStore.delivered`): the selection names its store and digest,
+    the pack root is exactly that store's directory for the digest, and the
+    store's own delivery record and verification hold now. An operator-typed
+    `--pack` directory never qualifies."""
+    delivery = selection.get("sealed_delivery")
+    if delivery is None:
+        return False
+    from carbon.challenge_validator.answer_key import AnswerKeyRefused
+    from carbon.challenge_validator.sealed_pack_import import SealedPackStore
+
+    store = SealedPackStore(delivery["store"])
+    try:
+        directory = store.pack_directory(
+            delivery["manifest_digest"], challenge.challenge_id, challenge.version
+        )
+    except AnswerKeyRefused:
+        return False
+    return {
+        selection["root"],
+        selection["public_root"],
+        selection["private_root"],
+    } == {str(directory)} and store.delivered(
+        delivery["manifest_digest"], challenge.challenge_id, challenge.version
+    )
+
+
+def _sealed_pack(root, selection, challenge, *, bound=True):
+    """Prepare once; a restart reloads its retained bytes, never the draft.
+    ``bound`` False prepares a pack that is not the receiver's bound (primary)
+    pack and never takes the retained binding's digest (a pack-set batch)."""
     from carbon.challenge_validator.evaluation_pack import load_pack, prepare_pack
 
     public_root = Path(selection["public_root"])
@@ -221,7 +281,7 @@ def _sealed_pack(root, selection, challenge):
     if binding_path.is_symlink():
         raise ValueError("receiver binding link refused")
     retained = private_json(binding_path) if binding_path.exists() else None
-    if retained is not None and "evaluation_pack_digest" in retained:
+    if bound and retained is not None and "evaluation_pack_digest" in retained:
         digest = retained["evaluation_pack_digest"]
     else:
         prepared = prepare_pack(
@@ -249,6 +309,53 @@ def _sealed_pack(root, selection, challenge):
         ),
         snapshot,
     )
+
+
+def _set_batch_adapters(cfg, root, challenge, material, discovery, providers, ledger):
+    """One trusted served adapter per batch of the configured pack set, each
+    bound to that batch's own pack (OWNER-FULL-EXAM-BANK-01). The receiver's
+    primary pack keeps its existing discovery; every other batch is prepared like
+    a pack of its own and re-checked as delivered. Keyed by the delivered
+    manifest digest (the set's batch id)."""
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.challenge_validator.sealed_pack_import import SealedPackStore
+    from carbon.development_session.research_service import DirectFixtureDiscovery
+
+    block = cfg["evaluation_pack_set"]
+    store = SealedPackStore(block["store"])
+    primary = block["batches"][0]
+    adapters = {}
+    for digest in block["batches"]:
+        if digest == primary:
+            batch_discovery = discovery
+        else:
+            directory = store.pack_directory(
+                digest, challenge.challenge_id, challenge.version
+            )
+            selection = {
+                "root": str(directory),
+                "manifest": "evaluation-pack.json",
+                "public_root": str(directory),
+                "private_root": str(directory),
+                "sealed_delivery": {"store": block["store"], "manifest_digest": digest},
+            }
+            pack_digest, pack_check, snapshot = _sealed_pack(
+                root, selection, challenge, bound=False
+            )
+            batch_discovery = DirectFixtureDiscovery(
+                material,
+                task_admission=True,
+                pack_check=pack_check,
+                evaluation_pack_digest=pack_digest,
+                evaluation_pack_snapshot=snapshot,
+                evaluation_pack_sealed=_delivered_sealed(selection, challenge),
+                evaluation_pack_public_root=Path(selection["public_root"]),
+                evaluation_pack_private_root=Path(selection["private_root"]),
+            )
+        adapters[digest] = LeanRecipeAdapter(
+            batch_discovery, providers, ledger, measure_query=cfg["measure_query"]
+        )
+    return adapters
 
 
 class ReceiverSnapshotWindow:
@@ -366,6 +473,47 @@ class ReceiverSnapshotWindow:
             if self._state is None or self._state["conflict"] or self._unavailable:
                 return None
             return self._window.latest()
+
+
+#: How often a retain or regrade run reads a fresh finalized snapshot. The
+#: 60 s freshness window (`battery.intake.SNAPSHOT_MAX_AGE_S`) is part of the
+#: registration authority check and is not lengthened.
+RETENTION_REFRESH_S = 20.0
+
+
+@contextlib.contextmanager
+def retention_snapshots(window, context, reader, *, period=RETENTION_REFRESH_S):
+    """Keep fresh finalized snapshots flowing into ``window`` for a retain or
+    regrade run's whole life.
+
+    Serve mode gets fresh snapshots from the intake; a retain or regrade has no
+    intake, so a run longer than the window's freshness (60 s) would find no
+    snapshot at the provider's registration re-check and refuse with
+    ``direct_provider_registration_unavailable``. This reads a finalized
+    snapshot with the same chain reader and context as startup every
+    ``period`` seconds into the same ``ReceiverSnapshotWindow`` (which enforces
+    the durable high-water, so a lagged read never restores an earlier
+    registration), and stops with the run. A failed read keeps the previous
+    snapshots and is logged by exception type only (``battery.intake.refresher``):
+    once they age out the re-check refuses as infrastructure
+    (``Unavailable``), never as a candidate failure.
+    """
+    from carbon.battery.intake import refresher
+
+    stop = threading.Event()
+    thread = threading.Thread(
+        target=refresher,
+        args=(window, context),
+        kwargs={"reader": reader, "period": period, "stop": stop},
+        name="retention-snapshot-refresher",
+        daemon=True,
+    )
+    thread.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        thread.join(timeout=5)
 
 
 def installed_source(
@@ -858,6 +1006,7 @@ def serve(
     regrade=False,
     pool_store=None,
     exam_se=False,
+    grade_set=False,
 ):
     """Run the same signed intake/task loop with finite admission and owned stop."""
     from carbon.battery import challenge as battery_challenge
@@ -999,6 +1148,10 @@ def serve(
             pack_check=pack_check,
             evaluation_pack_digest=pack_digest,
             evaluation_pack_snapshot=pack_snapshot,
+            evaluation_pack_sealed=(
+                pack_snapshot is not None
+                and _delivered_sealed(cfg["evaluation_pack"], challenge)
+            ),
             evaluation_pack_public_root=(
                 Path(cfg["evaluation_pack"]["public_root"])
                 if pack_snapshot is not None
@@ -1085,21 +1238,50 @@ def serve(
             )
             if retention is not None:
                 task_id, artifact_directory, entry_directory = retention
-                if regrade:
-                    # ``task_id`` is the retained bank entry id to regrade.
-                    return intake.regrade_result(
+                # No intake feeds snapshots in this mode: refresh them for the
+                # run's life so a run past the 60 s window keeps its authority.
+                with retention_snapshots(window, network.context, reader):
+                    if grade_set:
+                        # ``task_id`` is the retained bank entry to grade on the
+                        # whole configured pack set (OWNER-FULL-EXAM-BANK-01).
+                        from carbon.challenge_validator import pack_set_grading
+
+                        if "evaluation_pack_set" not in cfg:
+                            raise ReceiverUnavailable(
+                                "direct_receiver_pack_set_unconfigured"
+                            )
+                        block = cfg["evaluation_pack_set"]
+                        return pack_set_grading.grade_set_entry(
+                            _set_batch_adapters(
+                                cfg,
+                                root,
+                                challenge,
+                                material,
+                                discovery,
+                                providers,
+                                ledger,
+                            ),
+                            batches=block["batches"],
+                            set_key=block["set_key"],
+                            entry_id=task_id,
+                            artifact_directory=artifact_directory,
+                            entry_directory=entry_directory,
+                        )
+                    if regrade:
+                        # ``task_id`` is the retained bank entry id to regrade.
+                        return intake.regrade_result(
+                            task_id,
+                            artifact_directory=artifact_directory,
+                            entry_directory=entry_directory,
+                            promotion=_open_pool_store(pool_store),
+                            exam_se=exam_se,
+                        )
+                    return intake.retain_result(
                         task_id,
                         artifact_directory=artifact_directory,
                         entry_directory=entry_directory,
-                        promotion=_open_pool_store(pool_store),
-                        exam_se=exam_se,
+                        pool_store=_open_pool_store(pool_store),
                     )
-                return intake.retain_result(
-                    task_id,
-                    artifact_directory=artifact_directory,
-                    entry_directory=entry_directory,
-                    pool_store=_open_pool_store(pool_store),
-                )
             timer.start()
             serve_loopback(
                 intake,
@@ -1175,11 +1357,22 @@ def main(argv=None):
         "--regrade-entry",
         help="regrade this retained bank entry on the receiver's selected pack",
     )
+    parser.add_argument(
+        "--grade-set-entry",
+        help="grade this retained bank entry on the receiver's whole configured "
+        "pack set and record the one set-level result (OWNER-FULL-EXAM-BANK-01)",
+    )
     parser.add_argument("--artifact-directory", type=Path)
     parser.add_argument("--entry-directory", type=Path)
     args = parser.parse_args(argv)
-    if args.retain_task is not None and args.regrade_entry is not None:
-        parser.error("retain a task or regrade an entry, not both")
+    if (
+        sum(
+            value is not None
+            for value in (args.retain_task, args.regrade_entry, args.grade_set_entry)
+        )
+        > 1
+    ):
+        parser.error("retain a task, regrade an entry, or grade a set entry, not more")
     if args.exam_se and args.regrade_entry is None:
         parser.error("--exam-se applies to --regrade-entry only")
     if args.pool_store is not None and (
@@ -1187,7 +1380,11 @@ def main(argv=None):
     ):
         parser.error("--pool-store applies to --retain-task or --regrade-entry")
     retention_args = (
-        args.retain_task if args.regrade_entry is None else args.regrade_entry,
+        (
+            args.grade_set_entry
+            if args.grade_set_entry is not None
+            else args.retain_task if args.regrade_entry is None else args.regrade_entry
+        ),
         args.artifact_directory,
         args.entry_directory,
     )
@@ -1220,6 +1417,7 @@ def main(argv=None):
             ready=lambda item: print(json.dumps(item), flush=True),
             retention=retention,
             regrade=args.regrade_entry is not None,
+            grade_set=args.grade_set_entry is not None,
             pool_store=args.pool_store,
             exam_se=args.exam_se,
         )

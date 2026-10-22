@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import hashlib
 import json
 import os
@@ -1573,6 +1574,18 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
             "cancel_observed_task",
             lambda *_args, **_kwargs: pytest.fail("retention cancelled a queued task"),
         )
+        # A retain or regrade has no intake to feed snapshots, so it runs under
+        # the snapshot refresher for the run's life (Follow-up 2, RECV3).
+        refreshed = []
+        original = receiver.retention_snapshots
+
+        @contextlib.contextmanager
+        def spy(window, context, spied_reader, **kwargs):
+            refreshed.append((context, spied_reader))
+            with original(window, context, spied_reader, **kwargs):
+                yield
+
+        one_shot.setattr(receiver, "retention_snapshots", spy)
         with pytest.raises(RetentionUnavailable, match="task_not_succeeded"):
             receiver.serve(
                 tmp_path / "config.json",
@@ -1580,6 +1593,7 @@ def test_real_loopback_bootstrap_stages_and_admits_same_owner_without_model_disp
                 verifier=Verifier(),
                 retention=(retained["task"], artifacts, entries),
             )
+        assert len(refreshed) == 1 and refreshed[0][1] is reader
         with pytest.raises(RetentionUnavailable, match="owned_task_unavailable"):
             receiver.serve(
                 tmp_path / "config.json",
