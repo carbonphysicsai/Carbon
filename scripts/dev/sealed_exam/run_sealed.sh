@@ -44,15 +44,44 @@ fi
 command -v docker git python3 sha256sum nproc awk flock >/dev/null
 mkdir -p "$out" "$base" "$HOME/.carbon-sealed"
 
-# --- guard (C10): one sealed run per custody host at a time, and a quiet host --------------------------
-exec 9> "$HOME/.carbon-sealed/.sealed-run.lock"
+# --- guard (C10): an unslotted host keeps one sealed run at a time and the load guard; a slotted host
+# (C10 amended: ~/.carbon-sealed/slots.conf) takes one flock per slot, requires the slot's cores idle and
+# its memory cap available, and gives every container of the job the slot's cpuset and memory ----------
+SLOTS_FILE=${SLOTS_FILE:-$HOME/.carbon-sealed/slots.conf}
+SLOT=${SLOT:-}
+SLOT_CPUSET=""; SLOT_MEM_MIB=""; SLOT_CORES=""
+if [ -f "$SLOTS_FILE" ]; then
+  [ -n "$SLOT" ] || { echo "STOP: this host is slotted; set SLOT=<name> (see $SLOTS_FILE)" >&2; exit 2; }
+  slot_line=$(python3 "$HERE/slot_support.py" resolve "$SLOTS_FILE" "$SLOT") || exit 2
+  read -r SLOT_CPUSET SLOT_MEM_MIB SLOT_CORES <<< "$slot_line"
+elif [ -n "$SLOT" ]; then
+  echo "STOP: SLOT=$SLOT given but this host has no slots file ($SLOTS_FILE)" >&2; exit 2
+fi
+if [ -n "$SLOT" ]; then
+  exec 9> "$HOME/.carbon-sealed/.slot-$SLOT.lock"
+else
+  exec 9> "$HOME/.carbon-sealed/.sealed-run.lock"
+fi
 if [ "${DRY:-0}" != 1 ]; then
-  flock -n 9 || { echo "STOP: another sealed run holds the host lock; run alone" >&2; exit 1; }
-  load1=$(awk '{printf "%d", $1}' /proc/loadavg)
-  if [ "$load1" -gt $(( $(nproc) / 4 )) ] && [ "${ALLOW_BUSY:-0}" != 1 ]; then
-    echo "STOP: host load $load1 is above nproc/4 ($(( $(nproc) / 4 ))); run alone (ALLOW_BUSY=1 overrides)" >&2; exit 1
+  flock -n 9 || { echo "STOP: another sealed run holds the ${SLOT:+slot $SLOT }host lock; run alone" >&2; exit 1; }
+  if [ -n "$SLOT" ]; then
+    python3 "$HERE/slot_support.py" guard "$SLOT_CPUSET" "$SLOT_MEM_MIB" > /dev/null \
+      || { echo "STOP: slot $SLOT is not free (see above)" >&2; exit 1; }
+    echo "{\"slot\": \"$SLOT\", \"cpuset\": \"$SLOT_CPUSET\", \"cap_mib\": $SLOT_MEM_MIB, \"cores\": $SLOT_CORES}" > "$out/load.json"
+    # every container of this job gets the slot's cpuset and memory (no per-script cpusets)
+    REAL_DOCKER=$(command -v docker)
+    mkdir -p "$out/.shim"
+    printf '#!/bin/sh\nexec python3 "%s/slot_support.py" shim "%s" "$@"\n' "$HERE" "$REAL_DOCKER" > "$out/.shim/docker"
+    chmod 755 "$out/.shim/docker"
+    export SLOT_CPUSET SLOT_MEM_MIB
+    PATH="$out/.shim:$PATH"
+  else
+    load1=$(awk '{printf "%d", $1}' /proc/loadavg)
+    if [ "$load1" -gt $(( $(nproc) / 4 )) ] && [ "${ALLOW_BUSY:-0}" != 1 ]; then
+      echo "STOP: host load $load1 is above nproc/4 ($(( $(nproc) / 4 ))); run alone (ALLOW_BUSY=1 overrides)" >&2; exit 1
+    fi
+    echo "{\"load1\": $load1, \"cpus\": $(nproc)}" > "$out/load.json"
   fi
-  echo "{\"load1\": $load1, \"cpus\": $(nproc)}" > "$out/load.json"
 fi
 
 # --- env ------------------------------------------------------------------------------------------------
@@ -133,11 +162,15 @@ probe_rc=0
     --parallel "$PROBE_PARALLEL" --timeout-s 7200 --keep none ) > "$out/probe.log" 2>&1 || probe_rc=$?
 kill "$sampler" 2>/dev/null || true
 PY - "$out" "$probe_rc" "$(awk 'BEGIN{m=0} {if($2>m)m=$2} END{print m}' "$out/probe.resources.log")" \
-    "$(awk '/^MemAvailable:/{printf "%d", $2/1024}' /proc/meminfo)" "$(nproc)" \
+    "$(awk '/^MemAvailable:/{printf "%d", $2/1024}' /proc/meminfo)" "${SLOT_CORES:-$(nproc)}" \
     "$PROBE_KEY" "$PROBE_EXPECT" "$PROBE_BOUND" "$PROBE_MEM_DIV" <<'PYEOF'
 import json, math, sys
+import os
 out, rc = sys.argv[1], int(sys.argv[2])
 peak, avail, cpus = map(float, sys.argv[3:6])
+cap = float(os.environ.get("SLOT_MEM_MIB") or 0)
+if cap:
+    avail = min(avail, cap)  # a slot job may use its cap, not the whole host
 key, expect, bound, div = sys.argv[6], float(sys.argv[7]), float(sys.argv[8]), float(sys.argv[9])
 record = json.loads(open(out + "/probe/records.jsonl").readline())
 status = record["status"]
@@ -146,11 +179,11 @@ delta = None if value is None else abs(value - expect)
 per_case = peak / div if peak > 0 else 0
 limits = {"memory": math.floor(0.7 * avail / per_case) if per_case > 0 else None, "cpus": math.floor(cpus / 2)}
 parallel = max(1, min(v for v in limits.values() if v is not None))
-stop = status != "OK" or delta is None or delta > bound
+stop = status != "OK" or delta is None or delta > bound or bool(cap and peak > cap)  # peak above the slot cap: it does not fit
 json.dump({"schema": "carbon.sealed-probe.v1", "status": status, "runner_rc": rc, "reasons": record.get("reasons", []),
            "key": key, "value": value, "expect": expect, "abs_delta": delta, "bound": bound,
            "wall_s": record.get("wall_s"), "peak_memory_mib": peak, "available_memory_mib": avail,
-           "cpus": cpus, "limits": limits, "parallel": parallel, "stop": stop},
+           "cpus": cpus, "slot_cap_mib": cap or None, "limits": limits, "parallel": parallel, "stop": stop},
           open(out + "/probe.json", "w"), indent=1)
 print(json.dumps({"probe": status, "abs_delta": delta, "parallel": parallel}))
 sys.exit(1 if stop else 0)
@@ -177,6 +210,9 @@ while [ "$i" -le "$N" ]; do
     fp=$(field "$drawn" fingerprint)
     producer solve --challenge "$CID" --fingerprint "$fp" --workers "$parallel" --timeout-s 7200 >> "$priv/logs/solve-${fp#sha256:}.log" 2>&1
     producer solve --challenge "$CID" --fingerprint "$fp" --workers "$parallel" --timeout-s 7200 >> "$priv/logs/solve-${fp#sha256:}.log" 2>&1
+    if [ -n "$SLOT" ] && grep -q '"status": "REFERENCE_TIMEOUT"' "$priv/producer/work/$CID/${fp#sha256:}/records.jsonl" 2>/dev/null; then
+      echo "STOP: a REFERENCE_TIMEOUT while slotted (slot $SLOT): the isolation did not hold; to the Validator" >&2; exit 1
+    fi
     sealed=$(producer seal --challenge "$CID" --fingerprint "$fp" || true)
     echo "$sealed" >> "$out/seal.jsonl"
     pack_rc=0
@@ -196,7 +232,7 @@ while [ "$i" -le "$N" ]; do
         >> "$out/qa-public.jsonl" || qa_rc=$?
     fi
     wall=$(( $(date +%s) - t0 ))
-    echo "{\"role_index\": $i, \"attempt\": \"$role\", \"wall_s\": $wall, \"pack_rc\": $pack_rc, \"qa_rc\": $qa_rc}" >> "$out/walls.jsonl"
+    echo "{\"role_index\": $i, \"attempt\": \"$role\", \"wall_s\": $wall, \"pack_rc\": $pack_rc, \"qa_rc\": $qa_rc, \"slot\": \"$SLOT\", \"cpuset\": \"$SLOT_CPUSET\", \"cap_mib\": \"$SLOT_MEM_MIB\"}" >> "$out/walls.jsonl"
     if [ "$wall" -gt "$BATCH_WALL_LIMIT_S" ]; then echo "STOP: a batch ran past $BATCH_WALL_LIMIT_S s; re-price before continuing" >&2; exit 1; fi
     if [ "$qa_rc" -ne 0 ] && [ "$qa_rc" -ne 10 ] && [ "$qa_rc" -ne -1 ]; then
       echo "STOP: exam QA rc $qa_rc (12 stop, else an error; see qa-public.jsonl); to the Validator" >&2; exit 1
