@@ -9,8 +9,8 @@ CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/canonical.sh pyth
 ```
 
 The current prospective public snapshot is
-`docs/development/evidence/role-output-cap-audit/audit-v7.json`. Its source
-basis is `14f4318ccd279fb26550dbe83e0feeb1163baec4`: 35 public grant files, each
+`docs/development/evidence/role-output-cap-audit/audit-v8.json`. Its source
+basis is `dd993c524729834233568357423b39725837805e`: 35 public grant files, each
 hashed, and 11 hashed selection/role/price/grant/budget source files. It uses
 the real session selector and the phase-3/phase-4 budget calculators. It lists
 every role/model's uncached maximum input and output reservation. Reasoning
@@ -113,6 +113,12 @@ output, input or timeout; Carbon's own Graphite, whose grants this audit
 binds, keeps the historical bounds. Only the `model_provider.py` pin moves: all
 35 grant rows, every profile and the other ten pins equal v6, and v6 bytes are
 untouched (it joins the stale-pin control).
+
+## Prospective source refresh (v8)
+
+Limits row #8 representation bounds for a miner's selection (`dd993c524`) moved only the `model_provider.py` pin: all 35 grant
+rows, every profile and the other ten pins equal v7; v7 bytes are untouched
+and join the stale-pin control.
 
 ## What changed at the larger cap
 
