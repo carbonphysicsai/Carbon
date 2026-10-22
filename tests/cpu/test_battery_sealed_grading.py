@@ -35,7 +35,7 @@ DECISION_REFERENCES = (
 #: Battery's development producer digest after the one accepted move that hashed
 #: the sealed bank loader and copy modules (Validator, 2026-10-22).
 DEV_PRODUCER_DIGEST = (
-    "sha256:615a11005e080d439b26685cf4e4a43652f7e36d92f6d80f3ac6db045265e540"
+    "sha256:d0f4804a0b4c9294cfeec7674900aad6472ba6ad9c8a20c9f277cb9abb420e35"
 )
 
 
@@ -311,11 +311,11 @@ def test_the_development_producer_is_untouched_and_a_dev_bank_refuses_here():
 
 
 def test_dispatch_is_by_the_banks_declared_population():
-    for version in ("2.0", "2.1"):
+    for version in ("2.0", "2.1", "2.2"):
         chosen = sealed.adapter_for_bank(_bank(), version)
         assert chosen.EVALUATION_VERSION == "battery-dual-sealed-grid-4x35-v1"
         assert chosen.VERSION == version and chosen.CASE_ID == sealed.CASE_ID
-    assert sealed.adapter("1.0") is None and sealed.adapter("2.2") is None
+    assert sealed.adapter("1.0") is None and sealed.adapter("2.3") is None
     development = physical_pack.development_bank(dev.CHALLENGE, "2.0")
     chosen = sealed.adapter_for_bank(development, "2.0")
     assert chosen.EVALUATION_VERSION == dev.VERSIONS["2.0"][0]
@@ -410,3 +410,20 @@ def test_the_receiver_pack_directory_scores_half_a_plus_half_d(tmp_path):
             physical_pack.development_bank(dev.CHALLENGE, "2.0"),
             version="2.1",
         )
+
+
+def test_the_sealed_exam_is_graded_under_every_served_battery_version():
+    from carbon.challenge_kit import physical_pack
+
+    assert set(sealed.VERSIONS) == {"2.0", "2.1", "2.2"}
+    assert len({value for value in sealed.VERSIONS.values()}) == 1
+    assert sealed.adapter("2.2") is not None and sealed.adapter("2.3") is None
+    # 2.2 is 2.1 plus the catalog: the same exam, so its train and interface roles
+    # must equal 2.1's wherever 2.2 is served.
+    try:
+        newer = physical_pack.public_roles(sealed.CHALLENGE, "2.2")
+    except ValueError:
+        pytest.skip("Battery 2.2 is not served at this base")
+    older = physical_pack.public_roles(sealed.CHALLENGE, "2.1")
+    assert newer["train"] == older["train"]
+    assert newer["interface"] == older["interface"]

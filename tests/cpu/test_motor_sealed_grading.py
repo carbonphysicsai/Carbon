@@ -31,7 +31,7 @@ MOTOR = "electric-motor-magnetics"
 #: Motor's development producer digest after the one accepted move that hashed
 #: the sealed bank loader and copy modules (Validator, 2026-10-22).
 DEV_PRODUCER_DIGEST = (
-    "sha256:c5b9da153b43af951bf2c03a02660194cc7d0eb870c3f3a998e2fa1fd9cc9a2c"
+    "sha256:5fe2c492b3e56334fd8cefe183d41f1cb7d9198ca057213079c3df42c75a2b9c"
 )
 DESIGNS, CONDITIONS = 5, 6
 

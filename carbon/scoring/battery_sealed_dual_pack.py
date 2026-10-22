@@ -51,8 +51,9 @@ CHALLENGE = _battery.CHALLENGE
 VERSION = "2.0"
 EVALUATION_VERSION = "battery-dual-sealed-grid-4x35-v1"
 CASE_ID = "battery-sealed-grid-4x35"
-#: 2.0 and the v7 catalog version 2.1 grade the same sealed batches.
-VERSIONS = {version: (EVALUATION_VERSION, CASE_ID) for version in ("2.0", "2.1")}
+#: 2.0, the v7 catalog version 2.1 and the launch version 2.2 grade the same sealed batches.
+#: 2.2 is the launch version (2.1 + catalog): the same exam, so the same evaluation.
+VERSIONS = {version: (EVALUATION_VERSION, CASE_ID) for version in ("2.0", "2.1", "2.2")}
 OUTPUT = _battery.OUTPUT
 FILES = (*_battery.FILES, "sealed_grid_common.py", "battery_sealed_dual_pack.py")
 MINIMUM_LEGS = _battery.MINIMUM_LEGS
@@ -222,7 +223,9 @@ def _shared_fields(record):
         ]
         bdm._require(
             walls
-            and all(type(w) in (int, float) and math.isfinite(w) and w >= 0 for w in walls),
+            and all(
+                type(w) in (int, float) and math.isfinite(w) and w >= 0 for w in walls
+            ),
             "battery_sealed_walls",
         )
         out["wall_s"] = float(math.fsum(walls))
@@ -339,7 +342,9 @@ def decision_value_sealed(contract, scenarios, grid_predictions, grid_refs, labe
     outcomes = []
     for entry in scenarios:
         scenario = quiz.q3_scenario(entry["id"], entry["conditions"][0])
-        judged = q3_judge_sealed(contract, scenario, grid_predictions, grid_refs, labels)
+        judged = q3_judge_sealed(
+            contract, scenario, grid_predictions, grid_refs, labels
+        )
         if judged is not None:
             outcomes.append(judged)
     measures = quiz.q3_measures(outcomes, contract)
@@ -360,7 +365,11 @@ def validate_definition(definition):
         and definition.get("schema") == DEFINITION_SCHEMA
         and definition.get("method") == METHOD
         and definition.get("registry")
-        == {"path": bdm.REGISTRY[0], "sha256": bdm.REGISTRY[1], "candidate": bdm.CANDIDATE}
+        == {
+            "path": bdm.REGISTRY[0],
+            "sha256": bdm.REGISTRY[1],
+            "candidate": bdm.CANDIDATE,
+        }
         and definition.get("g_feas") == bdm.registry_gate()
         and definition.get("paired_repeat") == {"procedure": "per_case", "floor": 0}
         and type(definition.get("unresolved_mask")) is dict
@@ -485,7 +494,8 @@ def measure(
         probe_rows = [i for i, row in enumerate(bank_rows) if row["cohort"] == PROBE]
         bdm._require(probe_rows, "battery_probe_rows")
         probe_predictions = cm.output_predictions(
-            [outputs[i] for i in probe_rows], [bank_rows[i]["case_id"] for i in probe_rows]
+            [outputs[i] for i in probe_rows],
+            [bank_rows[i]["case_id"] for i in probe_rows],
         )
     except ValueError as exc:
         raise Refused("battery_prediction_tensor") from exc
@@ -494,9 +504,7 @@ def measure(
     # candidate (the ids the record names).
     from carbon.battery.value import contract as ev
 
-    keyed = {
-        (s, c): ev.case_id(contract, {"id": s}, {"id": c}, 0) for (s, c) in cells
-    }
+    keyed = {(s, c): ev.case_id(contract, {"id": s}, {"id": c}, 0) for (s, c) in cells}
     grid_predictions, grid_refs, keyed_labels = {}, {}, {}
     for cell, i in cells.items():
         bank_id = bank_rows[i]["case_id"]
