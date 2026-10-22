@@ -185,9 +185,35 @@ def development_candidate_implementation(
     head = git("rev-parse", "HEAD")
     if head != revision or git("status", "--porcelain", "--untracked-files=all"):
         raise ValueError("development candidate requires the exact clean revision")
-    ignored = git(
-        "ls-files", "--others", "--ignored", "--exclude-standard", "--directory"
-    ).splitlines()
+
+    def ignored_paths():
+        return git(
+            "ls-files", "--others", "--ignored", "--exclude-standard", "--directory"
+        ).splitlines()
+
+    # Validator ruling H3b: a child started with `python -I` ignores
+    # PYTHONDONTWRITEBYTECODE, so bytecode caches appear between launches.
+    # Remove only a git-ignored `__pycache__` that is a real directory inside
+    # the root holding nothing but regular .pyc files; anything else (a
+    # symlink, another file, a .pyc outside `__pycache__`) still refuses below.
+    removed_caches = 0
+    for path in ignored_paths():
+        if Path(path).name != "__pycache__":
+            continue
+        cache = repo / path
+        if cache.is_symlink() or not cache.is_dir() or cache.resolve() != cache:
+            continue
+        entries = list(os.scandir(cache))
+        if not entries or not all(
+            entry.is_file(follow_symlinks=False) and entry.name.endswith(".pyc")
+            for entry in entries
+        ):
+            continue
+        for entry in entries:
+            os.unlink(entry.path)
+        cache.rmdir()
+        removed_caches += 1
+    ignored = ignored_paths()
     isolated = {
         ".venv/",
         ".venv-jax-macos/",
@@ -223,6 +249,7 @@ def development_candidate_implementation(
         "tree": tree,
         "source_tree_digest": archive_digest,
         "source_authority": "DEVELOPMENT_CANDIDATE",
+        **({"removed_bytecode_caches": removed_caches} if removed_caches else {}),
     }
 
 
