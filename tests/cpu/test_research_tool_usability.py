@@ -780,8 +780,16 @@ def test_frozen_plans_and_tool_surfaces_replay_unchanged(tmp_path):
         old = {
             k: v
             for k, v in new.items()
-            # request_hold (G1, request-hold.v1) is new-plan only as well.
-            if k not in ("research_reply", "reply_continuation", "request_hold")
+            # G1-G3 rules (budget headroom, request hold, selection
+            # admissibility) are new-plan only as well.
+            if k
+            not in (
+                "research_reply",
+                "reply_continuation",
+                "budget_headroom",
+                "request_hold",
+                "selection_admissibility",
+            )
         }
         old["argument_normalisation"] = ARGUMENT_NORMALISATION
         assert digest(canonical(old)) == GRAPHITE_PLAN_V1_DIGEST
