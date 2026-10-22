@@ -329,6 +329,22 @@ def _sources():
     )
 
     battery = BatterySource()
+    # Battery's sealed exam keys at the draw law's own 4 decimals (Validator,
+    # section 8): B15's probe inputs are unrounded, so a draw equal to one at 4 places
+    # must be skipped, which a 6-place key would miss.
+    battery_sealed = PopulationSource(
+        "battery-sealed-exam",
+        "battery_sealed",
+        (
+            "ev4-*",
+            "pdd-*",
+            "battery-*",
+            "plating-*",
+            "exam-design-*",
+            "reference-solvers-2026-10-15",
+        ),
+    )
+    battery_sealed.places = 4
     return {
         battery.challenge_id: battery,
         COLD_PLATE_CHALLENGE: PopulationSource(
@@ -351,6 +367,7 @@ def _sources():
             "f08",
             ("f08-*", "reference-solvers-2026-10-15"),
         ),
+        "battery-sealed-exam": battery_sealed,
     }
 
 

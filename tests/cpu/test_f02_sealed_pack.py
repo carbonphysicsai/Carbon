@@ -61,7 +61,10 @@ def test_the_bank_has_the_development_banks_shape():
     mine = sealed.sealed_bank(document, records)
     theirs = physical_pack.development_bank("f02", "2.1")
     assert set(mine) == set(theirs)
-    assert mine["cohorts"] == theirs["cohorts"] == ("decision_cold_eight",) * 8
+    assert theirs["cohorts"] == ("decision_cold_eight",) * 8
+    assert (
+        mine["cohorts"] == ("decision_sealed_grid",) * 8
+    )  # the one sealed-grid cohort (C3)
     assert mine["inputs"].dtype == theirs["inputs"].dtype
     assert mine["inputs"].shape == theirs["inputs"].shape
     assert mine["references"].shape == theirs["references"].shape
@@ -69,7 +72,8 @@ def test_the_bank_has_the_development_banks_shape():
     for a, b in zip(
         mine["reference_records"], theirs["reference_records"], strict=True
     ):
-        assert set(a) == set(b)
+        assert set(a) - {"condition_id"} == set(b)  # the one additive key (C3)
+        assert a["condition_id"] == "condition-0"
         assert set(a["observed"]) == set(b["observed"])
         assert set(a["rung_peaks_c"]) == set(b["rung_peaks_c"])
         assert a["context"] == b["context"]

@@ -27,7 +27,8 @@ from pathlib import Path
 
 import numpy as np
 
-COHORT = "decision_cold_eight"
+#: The one cohort a sealed grid's cells carry (C3); the development bank's `decision_cold_eight` is not used.
+COHORT = "decision_sealed_grid"
 POPULATION = "SEALED_EXAM_BATCH_NEAR_LIMIT_S1"
 DECISION_COVERAGE = "RANKING_AND_FEASIBILITY_STRADDLE"
 EVIDENCE_SCHEMA = "carbon.f02.sealed-batch-evidence.v1"
@@ -139,6 +140,8 @@ def sealed_bank(document, records, *, version="2.1") -> dict:
                 "status": "OK",
                 "case_id": case_id,
                 "design_id": case_id,
+                # a one-condition grid (C2/C3, VALIDATOR_EXAM_ARCHITECTURE_COMMON_20261022): the cases are the designs
+                "condition_id": "condition-0",
                 "action": {
                     "peak_w": inputs["peak_w"],
                     "on_time_s": inputs["on_time_s"],

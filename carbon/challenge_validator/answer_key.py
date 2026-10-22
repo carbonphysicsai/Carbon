@@ -159,6 +159,31 @@ class ProducerKey:
     def sign(self, manifest):
         return self._key.sign(DOMAIN + _canonical(manifest)).hex()
 
+    def sign_in(self, domain, manifest):
+        """A signature in another signing domain (for example the distribution
+        host's delivery records), so it can never be read as a package signature."""
+        if (
+            type(domain) is not bytes
+            or domain == DOMAIN
+            or not domain.endswith(b"\x00")
+        ):
+            raise AnswerKeyRefused("answer_key_domain_invalid")
+        return self._key.sign(domain + _canonical(manifest)).hex()
+
+
+def verify_in(domain, manifest, signature, public_key):
+    """Whether ``signature`` is ``public_key``'s over ``manifest`` in ``domain``."""
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+    try:
+        Ed25519PublicKey.from_public_bytes(bytes.fromhex(public_key)).verify(
+            bytes.fromhex(signature), domain + _canonical(manifest)
+        )
+    except (InvalidSignature, ValueError, TypeError):
+        return False
+    return True
+
 
 # --- packages -------------------------------------------------------------------------
 

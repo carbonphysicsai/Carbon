@@ -34,6 +34,18 @@ GATES = (
     "complete48_common_mask",
     "selected_design_verified_feasible",
 )
+#: A sealed exam batch (Validator, 2026-10-20, cooling-dual-sealed-batch-16-v1):
+#: one 4 x 4 grid in one cohort, so no boundary reduction (A is the minimum
+#: over all 16 and the worst geometry), its own grid gate key, and its
+#: reference evidence pinned by sha256.
+SEALED_COHORT = "decision_sealed_grid"
+SEALED_COHORT_COUNTS = {SEALED_COHORT: 16}
+_SEALED_REDUCTIONS = ("all16", "worst_geometry")
+SEALED_GATES = (
+    "native_cold_plate",
+    "complete_grid_common_mask",
+    "selected_design_verified_feasible",
+)
 
 
 class CoolingMeasurementRefused(ValueError):
@@ -53,14 +65,36 @@ def _number(value):
     return type(value) in (int, float) and math.isfinite(value)
 
 
+def sealed(definition):
+    """Whether ``definition`` grades a sealed exam batch (development banks'
+    definitions carry no ``bank_kind``, as before)."""
+    return type(definition) is dict and definition.get("bank_kind") == "sealed_batch"
+
+
+def gates_for(definition):
+    return SEALED_GATES if sealed(definition) else GATES
+
+
 def validate_definition(definition):
     """The registered A/D definition document, checked for every field used."""
+    is_sealed = sealed(definition)
     _require(
         type(definition) is dict
+        and definition.get("bank_kind", "development")
+        in ("development", "sealed_batch")
+        and (
+            not is_sealed
+            or (
+                type(definition.get("reference_evidence_sha256")) is str
+                and len(definition["reference_evidence_sha256"]) == 71
+                and definition["reference_evidence_sha256"].startswith("sha256:")
+            )
+        )
         and definition.get("schema") == DEFINITION_SCHEMA
         and definition.get("method") == METHOD
         and definition.get("components") == list(exam.COMPONENTS)
-        and definition.get("reductions") == list(_REDUCTIONS)
+        and definition.get("reductions")
+        == list(_SEALED_REDUCTIONS if is_sealed else _REDUCTIONS)
         and definition.get("A_reducer") == "minimum"
         and all(
             _number(definition.get(k)) and definition[k] > 0
@@ -68,7 +102,8 @@ def validate_definition(definition):
         )
         and type(definition.get("verification_condition_budget")) is int
         and definition["verification_condition_budget"] >= 1
-        and definition.get("cohort_counts") == COHORT_COUNTS
+        and definition.get("cohort_counts")
+        == (SEALED_COHORT_COUNTS if is_sealed else COHORT_COUNTS)
         and definition.get("target_slices")
         == {"peak_c": [0, 1], "profile_c": [1, 31], "pressure_drop_pa": [31, 32]},
         "cooling_definition",
@@ -109,11 +144,13 @@ def measure(*, bank, outputs, repeats, definition, contract, train):
         and all(type(r) is list and len(r) == n for r in repeats),
         "cooling_prediction_roster",
     )
-    counts = {c: 0 for c in COHORT_COUNTS}
+    is_sealed = sealed(definition)
+    expected = SEALED_COHORT_COUNTS if is_sealed else COHORT_COUNTS
+    counts = {c: 0 for c in expected}
     for row in bank:
         _require(row.get("cohort") in counts, "cooling_bank_cohort")
         counts[row["cohort"]] += 1
-    _require(counts == COHORT_COUNTS, "cooling_bank_cohorts")
+    _require(counts == expected, "cooling_bank_cohorts")
     designs = sorted({row["design_id"] for row in bank})
     conditions = sorted({row["condition_id"] for row in bank})
     keys = [(row["design_id"], row["condition_id"]) for row in bank]
@@ -132,7 +169,10 @@ def measure(*, bank, outputs, repeats, definition, contract, train):
             "case_id": row["case_id"],
             "status": row["record"].get("status"),
             "inputs": row["inputs"],
-            "outputs": row["record"]["outputs"],
+            # Cooling's native outputs only: a sealed batch's runner records
+            # also carry diagnostics (mean_c, outlet_c), which the decision
+            # code refuses as inexact; a development record has no others.
+            "outputs": {k: row["record"]["outputs"][k] for k in exam.SHAPES},
         }
         for row in bank
     ]
@@ -188,16 +228,18 @@ def measure(*, bank, outputs, repeats, definition, contract, train):
         for error in errors.values()
         for value in error.values()
     ):
+        everything = "_all16" if is_sealed else "_all48"
         for component in exam.COMPONENTS:
-            components[component + "_all48"] = fmean(
+            components[component + everything] = fmean(
                 error[component] for error in errors.values()
             )
             components[component + "_worst_geometry"] = max(
                 fmean(errors[(d, c)][component] for c in conditions) for d in designs
             )
-            components[component + "_boundary"] = fmean(
-                errors[(d, c)][component] for d in designs for c in boundary
-            )
+            if not is_sealed:
+                components[component + "_boundary"] = fmean(
+                    errors[(d, c)][component] for d in designs for c in boundary
+                )
     a = (
         min(_benefit(e, definition["A_scale"]) for e in components.values())
         if components
@@ -248,11 +290,9 @@ def measure(*, bank, outputs, repeats, definition, contract, train):
     regret = max(0.0, reference_objectives[picked] - best) if verified else None
     d_benefit = _benefit(regret, definition["D_scale_W"]) if verified else 0.0
     return {
-        "gates": {
-            "native_cold_plate": native_pass,
-            "complete48_common_mask": True,
-            "selected_design_verified_feasible": verified,
-        },
+        "gates": dict(
+            zip(gates_for(definition), (native_pass, True, verified), strict=True)
+        ),
         "gate_failed_cases": gate_failed,
         "components": components,
         "A": a,
