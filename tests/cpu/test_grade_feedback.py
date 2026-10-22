@@ -49,12 +49,17 @@ def test_the_document_is_exactly_the_allow_list_and_rounds_down_to_the_step():
         "exam_version": "exam-1",
         "status": "IMPROVED",
         "total": 0.62,
-        "A": 0.28,
-        "D": 0.96,
         "gate_names": [],
     }
     text = json.dumps(doc)
-    for private in ("per_case", "d03", "artifact_digest", "components", "0.2811"):
+    for private in (
+        "per_case",
+        "d03",
+        "artifact_digest",
+        "components",
+        "0.2811",
+        "0.9667",
+    ):
         assert private not in text
     # Exact on the grid boundary (no float jitter): 0.6 / 0.02 is 30, not 29.
     assert _feedback(_scored(0.6, 0.6, 0.6))["total"] == 0.6
@@ -104,7 +109,8 @@ def test_a_gate_failure_shows_registry_gate_names_only():
     doc = _feedback(failed, best=best)
     assert doc["status"] == "GATE_FAILED"
     assert doc["gate_names"] == ["native_motor_valid"]
-    assert (doc["total"], doc["A"], doc["D"]) == (0.6, 0.3, 0.9)
+    assert doc["total"] == 0.6
+    assert "A" not in doc and "D" not in doc
     with pytest.raises(ladder.LadderFeedbackRefused, match="gate_registry"):
         _feedback({**failed, "gates": {"case_17_peak": "FAIL"}})
 
@@ -126,7 +132,7 @@ def test_unscored_outcomes_reveal_no_grade_and_keep_the_ladder():
             {"status": status, "score": 0.97, "legs": {"A": 0.99, "D": 0.95}}, best=best
         )
         assert doc["status"] == "NOT_SCORED" and doc["gate_names"] == []
-        assert (doc["total"], doc["A"], doc["D"]) == (None, None, None)
+        assert doc["total"] is None
         # The ladder is kept: the best document is unchanged.
         assert ladder.next_best(best, doc) is best
     after = _feedback(_scored(0.615, 0.3, 0.9), best=best)

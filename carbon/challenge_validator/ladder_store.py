@@ -60,6 +60,13 @@ def _text(value, code):
     return value
 
 
+def _is_v1(raw):
+    try:
+        return json.loads(raw).get("schema") == gf.SCHEMA_V1
+    except (ValueError, AttributeError, TypeError):
+        return False
+
+
 def checked(document, *, latest=False):
     """``document`` when it is exactly as the builder emits it (its
     allow-listed fields and schema, and status IMPROVED for a best document
@@ -129,6 +136,10 @@ class LadderStore:
         if row is None:
             return None, None
         best, latest = row
+        if _is_v1(latest):
+            # A v1 document (it showed A and D) is not served; the next grade
+            # starts this miner's ladder afresh under v2.
+            return None, None
         return (
             None if best is None else checked(json.loads(best)),
             checked(json.loads(latest), latest=True),
