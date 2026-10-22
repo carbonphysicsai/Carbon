@@ -741,7 +741,7 @@ def test_a_chosen_output_cap_reaches_the_campaign_and_its_record(tmp_path, monke
         (
             {
                 "model_provider": "engy-anthropic",
-                "model_settings": {"max_output_tokens": 131073},
+                "model_settings": {"max_output_tokens": 2**53},
             },
             "model_selection_refused",
         ),

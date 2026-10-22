@@ -372,9 +372,23 @@ def make_operation_tools(host, *, guard=None):
             fn_metadata=ExactMetadata(arg_model=model, output_model=OperationResult),
             is_async=True,
             context_kwarg="ctx",
+            annotations=_annotations(op.name),
         )
 
     return [tool_for(op) for op in OPERATIONS.values()]
+
+
+def _annotations(name):
+    """Whether a tool only reads (H18): clients that gate untrusted tools
+    run the read-only ones without asking; every other tool stays gated."""
+    from mcp_types import ToolAnnotations
+
+    from scripts.dev.miner_launchpad.operations import READ_ONLY_OPERATIONS
+
+    read_only = name in READ_ONLY_OPERATIONS
+    return ToolAnnotations(
+        readOnlyHint=read_only, destructiveHint=False if read_only else None
+    )
 
 
 class AttachmentBusy(RuntimeError):

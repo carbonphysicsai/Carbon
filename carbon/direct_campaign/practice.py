@@ -246,7 +246,11 @@ class DirectPractice:
                     served["python-cpu-py311"] = cpu
             except (DirectParentRefused, OSError):
                 pass
-            self._parents = DirectParents(served)
+            from carbon.development_session.gpu_practice import with_gpu_parent
+
+            # The host's declared PyTorch GPU worker builds the entries' GPU
+            # builds (one shared GPU path); unchanged without one.
+            self._parents = with_gpu_parent(DirectParents(served), self.gpu_image)
         return self._parents
 
     def _resolve(self, bundle_ref):
@@ -391,11 +395,36 @@ class DirectPractice:
             reconstruct_and_infer_public,
         )
         from carbon.development_session.construction_recipe import ConstructionRecipe
+        from carbon.development_session.gpu_practice import device_build, gpu_overlay
 
-        recipe = ConstructionRecipe.from_dict(_expand(catalog_recipe))
-        bundle = _bundle_ref(recipe.to_dict()["source"]["bundle_ref"])
-        image = self._resolve(bundle)
-        construction_parent = self.parents().for_bundle(bundle)
+        expanded, _bundle, image, construction_parent, accelerator, gpu_note = (
+            device_build(
+                self,
+                lambda runtime: _expand(catalog_recipe, runtime),
+                _bundle_ref,
+                lambda bundle, parent, built: gpu_overlay(
+                    self,
+                    identity,
+                    bundle,
+                    parent,
+                    built,
+                    {
+                        "id": binding["challenge_id"],
+                        "version": binding["challenge_version"],
+                        **{
+                            k: binding[k]
+                            for k in (
+                                "train_digest",
+                                "interface_digest",
+                                "construction_limits_digest",
+                            )
+                        },
+                    },
+                    material["construction_limits_document"],
+                ),
+            )
+        )
+        recipe = ConstructionRecipe.from_dict(expanded)
         result = reconstruct_and_infer_public(
             self.ledger,
             owner=self.owner,
@@ -413,11 +442,13 @@ class DirectPractice:
             expected_output_shape=material["expected_output_shape"],
             allowlist_bytes=material["allowlist_bytes"],
             expected_output_dtype=OUTPUT_DTYPE,
+            accelerator=accelerator,
             runner=self.runner,
         )
         backend = {
-            "kind": "C03_DOCKER",
+            "kind": "C03_DOCKER_GPU" if accelerator else "C03_DOCKER",
             "parent": getattr(construction_parent, "image_id", None),
+            **({"gpu_note": gpu_note} if gpu_note else {}),
         }
         return result, backend, recipe
 
@@ -477,10 +508,10 @@ def _dual_feedback(spec, version, rows):
     return practice_dual.from_rows(adapter, rows)
 
 
-def _expand(recipe):
+def _expand(recipe, runtime=None):
     from carbon.backbone_catalog.served import expand
 
-    return expand(recipe.to_dict())
+    return expand(recipe.to_dict(), runtime)
 
 
 def _bundle_ref(value):

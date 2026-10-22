@@ -372,8 +372,27 @@
     if (typeof t.practice_runs.attempted === "number") runs.append(el("span", "completed, of " + t.practice_runs.attempted + " attempted", "hint"));
     runs.append(el("span", t.trials && typeof t.trials.ceiling === "number" ? "Trials used " + t.trials.used + " of your " + t.trials.ceiling : "Trials used " + (t.trials ? t.trials.used : 0) + " · no cap set", "hint"));
     tile("Practice runs", String(t.practice_runs.completed), runs);
+    if (t.model_speed) speedTile(tile, t.model_speed);
     tile("Compute", t.compute.backend ? words(t.compute.backend).toLowerCase() : (t.compute.lane || "unavailable"), el("span", typeof t.compute.numerical_seconds === "number" ? t.compute.numerical_seconds + " s of worker time" : "Worker time appears once a trial runs.", "hint"));
     parent.append(grid);
+  }
+  // The model's speed as this campaign observed it (S17): none is recorded
+  // or guessed, so it appears after the first completed model call. A plan
+  // whose calls stream is never cut while tokens arrive; a plan read whole is
+  // warned when a full reply at its output cap would outlast its timeout.
+  function speedTile(tile, s) {
+    const note = el("div");
+    const n = value => value.toLocaleString("en-US");
+    if (s.streams) note.append(el("span", "Streams: long replies are not cut while tokens arrive.", "hint"));
+    if (typeof s.output_tokens_per_second !== "number") {
+      note.append(el("span", "Appears after the first completed model call.", "hint"));
+      tile("Model speed", "Not observed yet", note, "model-speed");
+      return;
+    }
+    note.append(el("span", "Observed over " + n(s.calls_observed) + " completed call" + (s.calls_observed === 1 ? "" : "s") + ".", "hint"));
+    if (s.warning) note.append(el("span", "At this speed a full reply of " + n(s.max_output_tokens) + " tokens takes about " + n(s.full_reply_seconds) + " s, longer than your " + n(s.timeout_seconds) + " s call timeout: long replies may be cut. A lower max output or a longer timeout (up to 600 s) helps.", "reason"));
+    else if (!s.streams && typeof s.full_reply_seconds === "number" && typeof s.timeout_seconds === "number") note.append(el("span", "A full reply of " + n(s.max_output_tokens) + " tokens takes about " + n(s.full_reply_seconds) + " s at this speed, within your " + n(s.timeout_seconds) + " s call timeout.", "hint"));
+    tile("Model speed", n(s.output_tokens_per_second) + " tokens/s", note, "model-speed");
   }
   function stages(parent, doc) {
     const list = el("ol", undefined, "rs-stages");
@@ -909,6 +928,18 @@
     if (breakdown.unrecognized_gate_names) para(box, breakdown.unrecognized_gate_names + " unrecognized gate name(s) were withheld.", "hint");
     para(box, "Counts use your local public PRACTICE summaries. One trial may fail more than one gate; this does not change a gate or the exam.", "hint");
   }
+  // The practice dual-feedback block (C13), one rendering for all five
+  // Challenges: gates first ("not eligible" on a fail), then the graded
+  // total 0..1 (higher better) with A and D as detail.
+  function dualText(dual) {
+    if (!dual) return null;
+    if (!dual.available) return /(^|_)d(_|$)|design_value|decision/i.test(dual.reason || "") ? "D unavailable on practice" : "Graded total unavailable" + (dual.reason ? ": " + words(dual.reason) : "");
+    if (!dual.eligible) return "Not eligible: " + (Object.entries(dual.gates || {}).filter(([, ok]) => ok === false).map(([name]) => words(name)).join(", ") || "a mandatory gate failed");
+    if (typeof dual.total !== "number") return "Not scored";
+    const detail = [typeof dual.accuracy === "number" ? "A " + dual.accuracy.toFixed(3) : null, typeof dual.design_value === "number" ? "D " + dual.design_value.toFixed(3) : null].filter(Boolean).join(", ");
+    const untested = Object.entries(dual.gates || {}).filter(([, ok]) => ok === "NOT_TESTED_ON_PRACTICE").map(([name]) => words(name));
+    return dual.total.toFixed(4) + (detail ? " (" + detail + ")" : "") + (untested.length ? " · not tested on practice: " + untested.join(", ") : "");
+  }
   function drawExperiments(box, doc, run) {
     // The existing projection has no mode column. Join its stable trial IDs
     // to the public campaign record so smoke never becomes a score row.
@@ -922,20 +953,27 @@
     const wrap = el("div", undefined, "table-wrap");
     const table = el("table", undefined, "metrics-table");
     const headRow = el("tr");
-    for (const name of ["Run", "Model", "Gates", "Score", ...keys.map(k => labels[k] || k), "Final loss", "Compute budget", "Framework", "Ran on"]) headRow.append(el("th", name));
+    const dual = rows.some(r => r.dual);
+    for (const name of ["Run", "Model", "Gates", ...(dual ? ["Graded total (0 to 1, higher is better)"] : []), "Score", ...keys.map(k => labels[k] || k), "Final loss", "Compute budget", "Framework", "Ran on"]) headRow.append(el("th", name));
     table.append(headRow);
     const fallback = (doc.toolbox?.runtimes || []).find(r => r.default)?.id;
     for (const r of rows) {
       const row = el("tr");
       row.append(el("td", String(r.index)), el("td", r.backbone || "–"), el("td", r.eligible === true ? "passed" : r.eligible === false ? "failed" : "–"), el("td", fmt(r.score)));
+      if (dual) row.children[3].before(el("td", dualText(r.dual) || "–"));
       for (const k of keys) row.append(el("td", fmt(r.components[k])));
       // What the run actually ran on: its recipe's framework (or the
       // Challenge's default) and the worker record's backend and image.
-      row.append(el("td", fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null), r.image].filter(Boolean).join(" · ") || "–"));
+      row.append(el("td", fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend === "C03_DOCKER_GPU" ? "GPU · measured on GPU, not official" : (r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null)), r.image].filter(Boolean).join(" · ") || "–"));
       table.append(row);
     }
     wrap.append(table); box.append(wrap);
     para(box, "Descriptive practice on public cases. Not an accepted improvement, a rank or an official score.", "hint");
+    // Shared GPU path (Validator condition 4; owner): a GPU practice is
+    // labelled as such, and the miner is told CPU and GPU results can differ.
+    if (rows.some(r => r.backend === "C03_DOCKER_GPU")) para(box, "Runs marked GPU were measured on your GPU, not official. CPU and GPU results can differ; the validator rebuilds your frozen recipe on its own pinned environment.", "hint");
+    const queried = rows.map(r => r.dual?.n_cases).find(n => Number.isInteger(n));
+    if (dual) para(box, "Graded total: the exam's own gates and 0.5·A + 0.5·D, computed on the public practice bank" + (Number.isInteger(queried) ? " (practice queries your model on " + queried + " public cases, on your own machine)" : "") + "; it compares within this Challenge version only and is not the exam grade.", "hint");
     const byId = Object.fromEntries(doc.charts.map(c => [c.id, c]));
     for (const id of ["trend_score", "trend_components", "components"]) if (byId[id]) chart(box, byId[id]);
   }
@@ -1087,7 +1125,41 @@
       if (typeof r.accepted_development_improvement === "boolean") line.push("accepted DEVELOPMENT improvement: " + r.accepted_development_improvement);
       para(box, line.join(" · "), "status-line");
       if (r.withheld) para(box, "Withheld: " + r.withheld, "hint");
+      // U53: a direct campaign's grade, by the display rule, and the miner's
+      // own signed re-read while none has arrived (Validator-approved).
+      if (r.grade !== undefined) {
+        const latest = r.grade && r.grade.latest;
+        const other = r.grade && r.grade.exam_latest;
+        const stage = r.state === "ADMITTED" ? "received, waiting to be rebuilt" : r.state === "RECONSTRUCTED" ? "rebuilt, not graded yet" : "not graded yet";
+        // M1 E2E R5-1: the mining key's latest grade on the exam is never this submit's.
+        const otherWords = !other ? "" : " Your mining key's latest grade on this exam is " + (other.status === "GATE_FAILED" ? "not eligible" : typeof other.total === "number" && other.status !== "NOT_SCORED" ? other.total.toFixed(4) : "not scored") + ", from " + (other.recipe_digest ? "another submission" : "a submission the validator did not name") + "; it is not this one's.";
+        para(box, !latest ? "Grade: " + stage + "." + otherWords : latest.status === "NO_IMPROVEMENT" ? "Grade: did not improve on your best" + (typeof latest.total === "number" ? " (" + latest.total.toFixed(4) + ")" : "") + "." : latest.status === "GATE_FAILED" ? "Grade: not eligible (a mandatory gate failed)." : typeof latest.total === "number" ? "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better)" + (r.grade.best && typeof r.grade.best.total === "number" ? " · your best: " + r.grade.best.total.toFixed(4) : "") + ". Compares within this Challenge version only." : "Grade: not scored.", "status-line");
+        const check = el("button", latest ? "Check for a newer result" : "Check for result"); check.type = "button";
+        const said = el("p", "", "hint");
+        check.disabled = !CC.state().connected;
+        check.addEventListener("click", async () => {
+          check.disabled = true; said.textContent = "Reading your grade from the validator…";
+          try { await CC.api("/api/v1/operations/check_result", {campaign: doc.campaign.id}, undefined, 30000); said.textContent = "Read. The grade above updates on the next refresh."; }
+          catch (error) { said.textContent = "Not read: " + (error.message || "the validator could not be reached") + "."; }
+          finally { check.disabled = !CC.state().connected; }
+        });
+        box.append(check, said);
+      }
       if (r.feedback_mode && r.feedback_mode !== "FULL") para(box, "Shown through the frozen feedback mode " + r.feedback_mode + ".", "hint");
+    }
+    // U53b: a submitted epoch whose grade was never read (or read back as
+    // unavailable) still offers the miner's own read, so the loop can start.
+    if (doc.outcomes.length && !doc.outcomes.some(o => o.result && o.result.grade !== undefined)) {
+      const check = el("button", "Check for result"); check.type = "button";
+      const said = el("p", "Reads your grade for your latest submit from the validator, signed by your signer.", "hint");
+      check.disabled = !CC.state().connected;
+      check.addEventListener("click", async () => {
+        check.disabled = true; said.textContent = "Reading your grade from the validator…";
+        try { await CC.api("/api/v1/operations/check_result", {campaign: doc.campaign.id}, undefined, 30000); said.textContent = "Read. The grade appears above on the next refresh."; }
+        catch (error) { said.textContent = "Not read: " + (error.message || "the validator could not be reached") + "."; }
+        finally { check.disabled = !CC.state().connected; }
+      });
+      box.append(check, said);
     }
     para(box, "DEVELOPMENT only: no qualification, reward, rank or chain write.", "hint");
   }

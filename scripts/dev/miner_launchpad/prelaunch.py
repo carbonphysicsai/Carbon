@@ -42,6 +42,7 @@ def evaluation(cfg):
     from scripts.dev.miner_launchpad.environment_setup import (
         NO_ENDPOINT,
         RECEIVER_NOT_PINNED,
+        direct_serves_other,
         intake_challenges,
         published_endpoints,
         published_entry,
@@ -59,6 +60,14 @@ def evaluation(cfg):
         entry = published_entry(published, challenge)
         entries = entry.get("validators", [entry]) if entry is not None else []
         url = configured.get(challenge["id"])
+        serves = cfg.get("direct_intake_serves")
+        serves = serves if type(serves) is dict else None
+        direct_other = (
+            type(cfg.get("direct_intake_target")) is dict
+            and serves is not None
+            and (serves.get("id"), serves.get("version"))
+            != (challenge["id"], challenge["version"])
+        )
         item = {
             "challenge_id": challenge["id"],
             "version": challenge["version"],
@@ -87,6 +96,20 @@ def evaluation(cfg):
                     warning="intake_receiver_not_pinned",
                     next_step=RECEIVER_NOT_PINNED.format(title=challenge["title"]),
                 )
+        elif type(cfg.get("direct_intake_target")) is dict and not direct_other:
+            # M1 E2E U19: a direct campaign of a Challenge with no intake
+            # submits to the profile's direct target (`_direct_target`, and
+            # the submit check since H9b), so it is configured, not refused -
+            # only for the Challenge it serves, where Review read it (G3).
+            direct = cfg["direct_intake_target"]
+            item.update(
+                status="INTAKE_CONFIGURED",
+                source="YOURS",
+                direct=True,
+                intake=direct.get("intake_url"),
+                receiver_pinned=type(direct.get("receiver_hotkey")) is str,
+                **({"serves": serves} if serves is not None else {}),
+            )
         elif challenge["id"] in local:
             item.update(status="VALIDATOR_ON_THIS_MACHINE", source="YOURS")
         elif entry is not None:
@@ -105,6 +128,15 @@ def evaluation(cfg):
                 source=None,
                 next_step=NO_ENDPOINT.format(title=challenge["title"]),
             )
+        if direct_other and type(url) is not str:
+            # The direct receiver serves another Challenge version (G3).
+            item["direct_intake_serves_other"] = {
+                "intake_url": cfg["direct_intake_target"].get("intake_url"),
+                "serves": serves,
+                "note": direct_serves_other(
+                    cfg["direct_intake_target"], serves, challenge
+                ),
+            }
         challenges.append(item)
     ready = [item["status"] in ENDPOINT_STATES[:2] for item in challenges]
     if not ready:

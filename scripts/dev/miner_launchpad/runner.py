@@ -117,6 +117,10 @@ OPTIONAL_PROFILE_FIELDS = {
     # from the registered product Challenge's Battery intake and never rewrites
     # a frozen Battery campaign's Challenge or contract identity.
     "direct_intake_target",
+    # {id, version}: the one Challenge version that direct target serves, as
+    # Review read it from the receiver's public facts (Launchpad Test Runner
+    # G3), so setup and the prelaunch review show it only beside that one.
+    "direct_intake_serves",
     "validators",
     # Per Challenge (LAUNCHPAD-ACCEPT-03): {challenge_id: ss58}, the receiver
     # hotkey that Challenge's intake must report before anything is signed
@@ -655,7 +659,7 @@ def frozen_revision_refusal(cfg, manifest):
     return None
 
 
-def evaluation_refusal(cfg, manifest):
+def evaluation_refusal(cfg, manifest, *, direct=False):
     """`evaluation_unavailable` when the campaign's Challenge is evaluated by
     a validator and the profile configures none for it - neither a deployment
     (`validators`) nor an intake (`intakes`, and their legacy names) - else
@@ -671,7 +675,11 @@ def evaluation_refusal(cfg, manifest):
     as the battery campaign reads an argument this mirror does not know. A
     Challenge whose campaign returns no validator feedback (`feedback_schema`
     None) needs no deployment here. A deployment that is configured but
-    unusable is still refused by the campaign, by its own code."""
+    unusable is still refused by the campaign, by its own code.
+
+    A direct campaign (`direct`) submits to the profile's per-Challenge
+    intake or, else, its `direct_intake_target`, as the Challenge's own
+    `_direct_target` reads them (M1 E2E H9b), so that target counts too."""
     from carbon.challenge_registry.campaigns import campaign_for_manifest
     from carbon.development_session.intake_targets import for_version
 
@@ -682,6 +690,8 @@ def evaluation_refusal(cfg, manifest):
     # The intake of exactly the frozen campaign's version (`version_intakes`).
     own_version = for_version(cfg, challenge, named.get("version"))
     if validators(cfg).get(challenge) or intakes(own_version).get(challenge):
+        return None
+    if direct and cfg.get("direct_intake_target") is not None:
         return None
     return "evaluation_unavailable"
 
@@ -806,6 +816,17 @@ def validated_profile(cfg):
             validate([cfg["direct_intake_target"]])
         except ValueError:
             raise ValueError("direct_intake_target must be receiver-paired") from None
+    if "direct_intake_serves" in cfg:
+        serves = cfg["direct_intake_serves"]
+        if (
+            "direct_intake_target" not in cfg
+            or type(serves) is not dict
+            or set(serves) != {"id", "version"}
+            or not all(type(v) is str and 0 < len(v) <= 128 for v in serves.values())
+        ):
+            raise ValueError(
+                "direct_intake_serves names the direct target's Challenge id and version"
+            )
     if "validators" in cfg:
         _registered_challenge_ids(cfg["validators"], "validators")
         if any(
@@ -912,6 +933,7 @@ def setup_selection(
     input_default=None,
     timeout_default=None,
     elapsed_seconds=None,
+    transport=None,
 ):
     """The profile's setup choice as a validated selection, with its key file.
 
@@ -928,6 +950,7 @@ def setup_selection(
         input_default=input_default,
         timeout_default=timeout_default,
         elapsed_seconds=elapsed_seconds,
+        transport=transport,
         **chosen,
     )
 
@@ -1364,14 +1387,16 @@ def graphite_default_selection(cfg, elapsed_seconds=None):
     runs with (setup's choice, or the pinned default), exactly as its
     campaign's builder chooses it: the model's own maximum output
     (OWNER-LAUNCHPAD-PROD-02), its published context less that output
-    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01) and the longest provider call
+    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01), the longest provider call
     timeout (`TIMEOUT_DEFAULT_V2`, bounded by the launch's
-    `elapsed_seconds`). None when it does not validate."""
+    `elapsed_seconds`) and streamed calls where the adapter streams
+    (`TRANSPORT_STREAM_V1`). None when it does not validate."""
     from carbon.development_session.model_provider import (
         DEFAULT_SELECTION,
         INPUT_DEFAULT_V2,
         OUTPUT_DEFAULT_V2,
         TIMEOUT_DEFAULT_V2,
+        TRANSPORT_STREAM_V1,
         ModelSelectionRefused,
         select,
     )
@@ -1381,6 +1406,7 @@ def graphite_default_selection(cfg, elapsed_seconds=None):
         "input_default": INPUT_DEFAULT_V2,
         "timeout_default": TIMEOUT_DEFAULT_V2,
         "elapsed_seconds": elapsed_seconds,
+        "transport": TRANSPORT_STREAM_V1,
     }
     try:
         if "model_selection" in cfg:
@@ -3201,6 +3227,7 @@ class RunnerAdapter:
             INPUT_DEFAULT_V2,
             OUTPUT_DEFAULT_V2,
             TIMEOUT_DEFAULT_V2,
+            TRANSPORT_STREAM_V1,
             ModelSelectionRefused,
             check_budget,
             select,
@@ -3261,8 +3288,9 @@ class RunnerAdapter:
                 # A launch makes a new plan: an unset output cap is the
                 # model's own maximum (OWNER-LAUNCHPAD-PROD-02) and an unset
                 # timeout the longest, or half the launch's elapsed limit
-                # where that is shorter (`TIMEOUT_DEFAULT_V2`), as the campaign's
-                # own builder will choose them.
+                # where that is shorter (`TIMEOUT_DEFAULT_V2`), and its calls
+                # stream where the adapter streams (`TRANSPORT_STREAM_V1`), as
+                # the campaign's own builder will choose them.
                 selection = (
                     setup_selection(
                         cfg,
@@ -3271,6 +3299,7 @@ class RunnerAdapter:
                         input_default=input_default,
                         timeout_default=TIMEOUT_DEFAULT_V2,
                         elapsed_seconds=elapsed,
+                        transport=TRANSPORT_STREAM_V1,
                     )
                     if same_as_setup
                     else select(
@@ -3282,6 +3311,7 @@ class RunnerAdapter:
                         input_default=input_default,
                         timeout_default=TIMEOUT_DEFAULT_V2,
                         elapsed_seconds=elapsed,
+                        transport=TRANSPORT_STREAM_V1,
                     )
                 )
                 budget = miner_budget(request.get("budget"))
@@ -3741,6 +3771,74 @@ class RunnerAdapter:
         with contextlib.suppress(Exception):
             read_queued_verdict(self, admitted)
         return self.read(admitted.campaign["id"])
+
+    #: The states a campaign is in while one of its operations runs, or while
+    #: it is still being prepared or run (A2: a note right after launch).
+    WAIT_WORKING = frozenset(
+        {"QUEUED", "RUNNING", "RECONCILING", "PRACTICING", "FREEZING", "SUBMITTING"}
+    )
+    WAIT_POLL_SECONDS = 2.0
+
+    def wait_admitted(self, admitted, request):
+        # M1 E2E A1: an external agent spent its turns polling observe; this
+        # blocks, bounded, until the running operation has finished.
+        seconds = request.get("wait_seconds", 300)
+        if type(seconds) is not int or not 1 <= seconds <= 600:
+            raise Rejected("wait_seconds_invalid", 409)
+        identity = admitted.campaign["id"]
+        deadline = time.monotonic() + seconds
+        while True:
+            current = self.read(identity)
+            # H15: a campaign a supervisor is still running reads RECONCILING
+            # (or READY) with its operation in in_flight; wait for that too.
+            if current.get("state") not in self.WAIT_WORKING and not current.get(
+                "in_flight"
+            ):
+                return {**current, "waited": "FINISHED"}
+            if time.monotonic() >= deadline:
+                return {**current, "waited": "STILL_RUNNING"}
+            time.sleep(self.WAIT_POLL_SECONDS)
+
+    def check_result_admitted(self, admitted, request):
+        # M1 E2E U53 (Validator: a miner-pressed, normally signed read): the
+        # latest submitted epoch's Ladder, read again and stored beside it.
+        from carbon.chain.external_signer import SignerFailure
+        from carbon.development_session.direct_submission import (
+            DirectIntakeRefusal,
+            refresh_exam_feedback,
+        )
+
+        identity = admitted.campaign["id"]
+        root = Path(admitted.campaign["root"])
+        epochs = sorted(
+            int(folder.name.split("-", 1)[1])
+            for folder in root.glob("epoch-*")
+            if folder.name.split("-", 1)[1].isdigit()
+            and (folder / "permitted-final-feedback.json").is_file()
+            and (root / f"construction-intake-epoch-{folder.name[6:]}.json").is_file()
+        )
+        if not epochs:
+            raise Rejected("no_submitted_result", 409)
+        with self.lock:
+            thread = self.threads.get(identity)
+            if thread is not None and thread.is_alive():
+                raise Rejected("campaign_busy", 409)
+        try:
+            signer = (self.verdict_signer or signer_ready)(self.configured())
+            # Every submitted epoch, each through its own admission record
+            # (U55: the grade read for the latest epoch only showed on that
+            # one, although the submit graded was the first).
+            for epoch in epochs:
+                refresh_exam_feedback(root, epoch, signer)
+        except DirectIntakeRefusal as refused:
+            raise Rejected(refused.code, 409) from None
+        except SignerFailure as failure:
+            raise Rejected(
+                exception_code(failure) or "signer_unavailable", 409
+            ) from None
+        except OSError:
+            raise Rejected("construction_intake_unavailable", 409) from None
+        return self.read(identity)
 
     def campaign_view_admitted(self, admitted, request):
         # The research surface's one document (RSURF-D1), which the page
@@ -4449,12 +4547,17 @@ class RunnerAdapter:
         self._require_current_revision(admitted)
         self._require_submission_policy(admitted)
         self._require_frozen(admitted)
-        if levels.campaign_is_direct(admitted.campaign, admitted.profile):
-            raise Rejected("construction_submission_unserved", 409)
+        # A direct campaign (catalog, graph or bundle recipe) submits through
+        # its own `evaluate`, to the signed construction receiver the profile
+        # names, exactly as Graphite's direct submit does (M1 E2E H9: an own
+        # agent could freeze but never submit). It has no Level-0 level or
+        # chain commitment to check.
+        direct = levels.campaign_is_direct(admitted.campaign, admitted.profile)
         budget = self._frozen_budget(admitted)
-        self._require_evaluation(admitted)
-        self._require_level_served(admitted)
-        self._require_commitment(admitted)
+        self._require_evaluation(admitted, direct=direct)
+        if not direct:
+            self._require_level_served(admitted)
+            self._require_commitment(admitted)
         return self._with_budget(
             self._background(admitted, "submit", {}, "SUBMITTING", request), budget
         )
@@ -4729,7 +4832,7 @@ class RunnerAdapter:
         return self._operation_thread, (admitted, self._work(operation, params))
 
     @staticmethod
-    def _require_evaluation(admitted):
+    def _require_evaluation(admitted, *, direct=False):
         """`evaluation_unavailable` now, when the profile configures no
         validator deployment or intake for the campaign's Challenge
         (`evaluation_refusal`)."""
@@ -4738,7 +4841,7 @@ class RunnerAdapter:
         if "challenge" not in manifest:
             raise Rejected("challenge_retired", 409)
         try:
-            refusal = evaluation_refusal(admitted.profile, manifest)
+            refusal = evaluation_refusal(admitted.profile, manifest, direct=direct)
         except Exception as exc:  # noqa: BLE001 - its closed code, never its text
             raise Rejected(
                 exception_code(exc) or "evaluation_unavailable", 409
@@ -4986,7 +5089,9 @@ class RunnerAdapter:
             self._state(identity, "INTERRUPTED")
             self._refused(
                 identity,
-                exception_code(exc) or "operation_interrupted",
+                exception_code(exc)
+                or supervision.provider_interruption_code(exc)
+                or "operation_interrupted",
                 operation,
                 kind="interrupted",
             )
@@ -5286,7 +5391,9 @@ class RunnerAdapter:
                     self._state(run_id, "INTERRUPTED")
                     self._refused(
                         run_id,
-                        exception_code(exc) or "campaign_interrupted",
+                        exception_code(exc)
+                        or supervision.provider_interruption_code(exc)
+                        or "campaign_interrupted",
                         "run",
                         kind="interrupted",
                     )

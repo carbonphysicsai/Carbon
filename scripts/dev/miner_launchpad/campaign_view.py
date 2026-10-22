@@ -284,6 +284,60 @@ def contract_section(challenge, feedback_mode, offered_modes=(), level=None):
 # ---- Sections built from the own-research projection.
 
 
+#: The practice dual-feedback block (C13, `scoring.practice_dual.SCHEMA`).
+DUAL_FEEDBACK_SCHEMA = "carbon.practice.dual-feedback.v1"
+NOT_TESTED_ON_PRACTICE = "NOT_TESTED_ON_PRACTICE"
+
+
+def dual_feedback(experiment):
+    """A practice run's dual-feedback block, allow-listed, wherever the run's
+    record carries it (beside its summary or inside it); None when absent.
+    One reader for all five Challenges (owner rule; Validator C13)."""
+    # The producer attaches it to the practice evaluator's outcome as
+    # `practice_dual` (`scoring.practice_dual.attach`); a run's record may
+    # carry that outcome, or the block beside or inside its summary.
+    places = [experiment]
+    for key in ("outcome", "summary"):
+        if type(experiment.get(key)) is dict:
+            places.append(experiment[key])
+    found = next(
+        (
+            value
+            for place in places
+            for value in place.values()
+            if type(value) is dict and value.get("schema") == DUAL_FEEDBACK_SCHEMA
+        ),
+        None,
+    )
+    if found is None:
+        return None
+    if found.get("available") is not True:
+        return {"available": False, "reason": _str(found.get("reason"), 128)}
+    gates = found.get("gates") if type(found.get("gates")) is dict else {}
+    return {
+        "available": True,
+        "gates": {
+            str(name)[:128]: ok
+            for name, ok in list(gates.items())[:32]
+            # A boolean verdict, or the one gate practice cannot test
+            # (paired_repeat on F08, F02, Battery: Test Engineer).
+            if type(ok) is bool or ok == NOT_TESTED_ON_PRACTICE
+        },
+        "eligible": found.get("eligible") is True,
+        "total": finite(found.get("total")),
+        "accuracy": finite(found.get("accuracy")),
+        "design_value": finite(found.get("design_value")),
+        "note": _str(found.get("note"), 256),
+        # How many public bank cases practice queried the model on, on the
+        # miner's own machine (Validator C13: the page states it).
+        "n_cases": (
+            found["n_cases"]
+            if type(found.get("n_cases")) is int and found["n_cases"] >= 0
+            else None
+        ),
+    }
+
+
 def experiment_rows(own, view):
     keys = [k for k, _ in view.components] if view is not None else None
     rows = []
@@ -322,6 +376,9 @@ def experiment_rows(own, view):
                     else None
                 ),
                 "score": finite(score),
+                # The graded dual measurement on the public bank (C13), the
+                # same block for every Challenge: gates first, then the total.
+                "dual": dual_feedback(experiment),
                 "important_score": finite(summary.get("important_score")),
                 "components": {
                     str(k): finite(components.get(k))
@@ -977,6 +1034,30 @@ def reconciliation(own):
     }
 
 
+def model_speed(own):
+    """The model's observed speed (`projection.model_speed`), closed shapes
+    only; None before the campaign's ledger exists."""
+    value = own.get("model_speed")
+    if type(value) is not dict:
+        return None
+
+    def count(key):
+        item = value.get(key)
+        return item if type(item) is int and item >= 0 else None
+
+    rate = value.get("output_tokens_per_second")
+    rate = rate if type(rate) in (int, float) and rate > 0 else None
+    return {
+        "calls_observed": count("calls_observed") or 0,
+        "output_tokens_per_second": rate,
+        "streams": value.get("streams") is True,
+        "max_output_tokens": count("max_output_tokens"),
+        "timeout_seconds": count("timeout_seconds"),
+        "full_reply_seconds": count("full_reply_seconds") if rate else None,
+        "warning": value.get("warning") is True and rate is not None,
+    }
+
+
 def tiles(own, rows, now):
     usage = own.get("usage") if type(own.get("usage")) is dict else None
     started = own.get("started_unix")
@@ -1001,6 +1082,9 @@ def tiles(own, rows, now):
         },
         "spend": None,
         "trials": None,
+        # Observed after the first completed model call, never recorded or
+        # guessed (S17).
+        "model_speed": model_speed(own),
         "compute": {
             "lane": _str(own.get("compute"), 64),
             "backend": rows[-1]["backend"] if rows else None,
@@ -1153,6 +1237,21 @@ def events(own):
     return {"operations": ops[-EVENTS_MAX:], "total": len(ops)}
 
 
+#: What a direct campaign's outcome shows its miner: the projection's own
+#: allow-listed fields for that shape (`projection._validator_outcome`).
+DIRECT_OUTCOME_FIELDS = (
+    "submission_id",
+    "evidence",
+    "rule",
+    "recipe_digest",
+    "contract_digest",
+    "reconstruction",
+    "failure",
+    "grade",
+    "practice_dual",
+)
+
+
 def outcomes(own, view, mode):
     """DEVELOPMENT outcomes, through the campaign's frozen feedback mode."""
     fields = view.feedback_fields(mode) if view is not None else None
@@ -1200,6 +1299,15 @@ def outcomes(own, view, mode):
                     shown["screening"] = {
                         k: screening[k] for k in screening_fields if k in screening
                     }
+                shown["feedback_mode"] = mode
+            elif "grade" in result:
+                # A direct campaign's outcome (Motor, Cooling, the direct
+                # versions): the miner's own permitted feedback, already
+                # allow-listed by the projection, shown with its grade and
+                # practice block (M1 E2E U53: it read "withheld").
+                for key in DIRECT_OUTCOME_FIELDS:
+                    if key in result:
+                        shown[key] = result[key]
                 shown["feedback_mode"] = mode
             else:
                 shown["feedback_mode"] = mode
@@ -1806,7 +1914,9 @@ def ledger_view(host, admitted, request):
         predictions=lambda task: verified_predictions(root, view, facts, task),
         practice_case=request.get("practice_case"),
         experiment=request.get("experiment"),
-        toolbox=campaign_toolbox(host, challenge, own),
+        toolbox=campaign_toolbox(
+            host, challenge, own, direct=_construction_mode(root) == "direct"
+        ),
         carbon_agent=_carbon_agent(root, facts),
     )
 
@@ -1835,9 +1945,18 @@ def _carbon_agent(root, facts):
     }
 
 
-def campaign_toolbox(host, challenge, own):
+def _construction_mode(root):
+    try:
+        manifest = json.loads((Path(root) / "campaign-manifest.json").read_bytes())
+    except (OSError, ValueError):
+        return None
+    return manifest.get("construction_mode") if type(manifest) is dict else None
+
+
+def campaign_toolbox(host, challenge, own, *, direct=False):
     """The toolbox for this campaign's Challenge, with its pinned images and
-    where it runs (RSURF-D19)."""
+    where it runs (RSURF-D19). A direct campaign practises construction
+    recipes only, so its examples are recipes (M1 E2E H11)."""
     from scripts.dev.miner_launchpad import toolbox
 
     try:
@@ -1849,6 +1968,7 @@ def campaign_toolbox(host, challenge, own):
             challenge,
             lanes=toolbox.host_lanes(host),
             compute=toolbox.campaign_compute(own.get("compute"), machine),
+            direct=direct,
         )
     except Exception:  # noqa: BLE001 - an unreadable toolbox is shown as such
         return {"status": "UNAVAILABLE"}

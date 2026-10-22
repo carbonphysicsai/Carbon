@@ -1,0 +1,2987 @@
+{
+  "amount_changes": "HUMAN_INPUT",
+  "basis": "CURRENT_REGISTERED_SELECTIONS_AND_PUBLIC_GRANT_FILES",
+  "grant_count": 35,
+  "grants": [
+    {
+      "cleanup_allowance_usd": "0.00",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-ADMISSION-CONTROLLER-BATTERY.json",
+      "grant_id": "GRAPHITE-GRANT-ADMISSION-CONTROLLER-BATTERY",
+      "monetary_ceiling_usd": "0.00",
+      "permitted_runs": 0,
+      "sha256": "5be0698b4b73e77a22cd45d17a3346433ff4882069a3e820184e23a810dcb250",
+      "status": "NO_INFERENCE",
+      "worst_case_run_cost_usd": "0.00"
+    },
+    {
+      "cleanup_allowance_usd": "0.00",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-ADMISSION-CONTROLLER-COOLING.json",
+      "grant_id": "GRAPHITE-GRANT-ADMISSION-CONTROLLER-COOLING",
+      "monetary_ceiling_usd": "0.00",
+      "permitted_runs": 0,
+      "sha256": "a91eff259c57e578efc8359f80d0d801f3ad8018a046d9ce783292fc0b72e7c8",
+      "status": "NO_INFERENCE",
+      "worst_case_run_cost_usd": "0.00"
+    },
+    {
+      "cleanup_allowance_usd": "0.00",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-ADMISSION-CONTROLLER-MOTOR.json",
+      "grant_id": "GRAPHITE-GRANT-ADMISSION-CONTROLLER-MOTOR",
+      "monetary_ceiling_usd": "0.00",
+      "permitted_runs": 0,
+      "sha256": "0d8ae29203a3d6ee4f09dfcff3b6a03fb467372282030427a931911eb504794c",
+      "status": "NO_INFERENCE",
+      "worst_case_run_cost_usd": "0.00"
+    },
+    {
+      "cleanup_allowance_usd": "0.06",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-HUNT-A1-ATTACKER.json",
+      "grant_id": "GRAPHITE-GRANT-HUNT-A1-ATTACKER",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "13.47",
+      "permitted_runs": 1,
+      "replaced_by": null,
+      "roles": {
+        "attacker": [
+          {
+            "calls_at_full_reservation": 240,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04755456",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 246,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04637984",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 307,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03723264",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 62,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18440192",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "11.45"
+          }
+        ]
+      },
+      "sha256": "2bc314b59026eb5d93fc8e5b51c50096fcb79d0d8f95ed40dcd6f2d2754ae80d",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "13.41"
+    },
+    {
+      "cleanup_allowance_usd": "0.06",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-HUNT-A2-ATTACKER.json",
+      "grant_id": "GRAPHITE-GRANT-HUNT-A2-ATTACKER",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "13.47",
+      "permitted_runs": 1,
+      "replaced_by": null,
+      "roles": {
+        "attacker": [
+          {
+            "calls_at_full_reservation": 240,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04755456",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 246,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04637984",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 307,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03723264",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 62,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18440192",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "11.45"
+          }
+        ]
+      },
+      "sha256": "7c2dae40d44759f1a36364e88f890c86d2fc0e94173ea2634b23080143ccce00",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "13.41"
+    },
+    {
+      "cleanup_allowance_usd": "0.06",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER.json",
+      "grant_id": "GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "13.47",
+      "permitted_runs": 1,
+      "replaced_by": null,
+      "roles": {
+        "attacker": [
+          {
+            "calls_at_full_reservation": 240,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04755456",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 246,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04637984",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 307,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03723264",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 62,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18440192",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "11.45"
+          }
+        ]
+      },
+      "sha256": "b3e1170069a97bb050cc901007359470a22f547ab7d1db286a235dfcbf977f3c",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "13.41"
+    },
+    {
+      "cleanup_allowance_usd": "0.03",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-HUNT-H1-CONSTRUCTOR.json",
+      "grant_id": "GRAPHITE-GRANT-HUNT-H1-CONSTRUCTOR",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "14.94",
+      "permitted_runs": 1,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 232,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 240,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 302,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 60,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "10.99"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 3507,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 3048,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 1124,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 230,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 74,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "10.99"
+          }
+        ]
+      },
+      "sha256": "8468c1a9ba9c340a6f05322c5bd92d59a27fb51286996f1b2a88c2fb38521547",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "14.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.03",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-HUNT-H2-CONSTRUCTOR.json",
+      "grant_id": "GRAPHITE-GRANT-HUNT-H2-CONSTRUCTOR",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "14.94",
+      "permitted_runs": 1,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 232,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 240,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 302,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 60,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "10.99"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 3507,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 3048,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 1124,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 230,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 74,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "10.99"
+          }
+        ]
+      },
+      "sha256": "0e1c590c6c498b4df308d367eabf8fe0be5d0bc5a9f5e472c4a225f6ef552de7",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "14.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.03",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-HUNT-H3-CONSTRUCTOR.json",
+      "grant_id": "GRAPHITE-GRANT-HUNT-H3-CONSTRUCTOR",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "14.94",
+      "permitted_runs": 1,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 232,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 240,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 302,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 60,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "10.99"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 3507,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 3048,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 1124,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 230,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 74,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "10.99"
+          }
+        ]
+      },
+      "sha256": "0096fff928ac4a467a722e715c4c84447eb5997036db855ea67f385163423299",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "14.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.03",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR.json",
+      "grant_id": "GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "14.94",
+      "permitted_runs": 1,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 232,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 240,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 302,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 60,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "10.99"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 3507,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 3048,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 1124,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 230,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 74,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "10.99"
+          }
+        ]
+      },
+      "sha256": "0c01c26c2e8dfef5cfc5d83ad297dee55e73c5b3af06a6db9a4265da7dd450cc",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "14.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.03",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2.json",
+      "grant_id": "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "14.94",
+      "permitted_runs": 1,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 232,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 240,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 302,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 60,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "10.99"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 3507,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 3048,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 1124,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 230,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 74,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "10.99"
+          }
+        ]
+      },
+      "sha256": "d0b1ac378dc94783ee19c02bb8252f6194ee0ff5834d80405ce5ce60ed5898c6",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "14.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.03",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3.json",
+      "grant_id": "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "14.94",
+      "permitted_runs": 1,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 232,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 240,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 302,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 60,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "10.99"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 3507,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 3048,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 1124,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 230,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 74,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "10.99"
+          }
+        ]
+      },
+      "sha256": "454b32a0111d4ff13305ae48be4a4de8c4e9cf2b8cfa672e4f9280ed74b36a6d",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "14.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.03",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4.json",
+      "grant_id": "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "14.94",
+      "permitted_runs": 1,
+      "replaced_by": "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5",
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 232,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 240,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 302,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 60,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "10.99"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 3507,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 3048,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 1124,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 230,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 74,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "10.99"
+          }
+        ]
+      },
+      "sha256": "3599bd191f04a8e84db2980bdab7e41803ef6679a93433781116967826b32874",
+      "status": "REPLACED",
+      "worst_case_run_cost_usd": "14.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.03",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5.json",
+      "grant_id": "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "14.94",
+      "permitted_runs": 1,
+      "replaced_by": "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6",
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 232,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 240,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 302,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 60,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "10.99"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 3507,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 3048,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 1124,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 230,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 74,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "10.99"
+          }
+        ]
+      },
+      "sha256": "1f7e1637e638f7a7f2005aed036dd3522f2f64c86de4357e305775fd3aba4e75",
+      "status": "REPLACED",
+      "worst_case_run_cost_usd": "14.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.03",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6.json",
+      "grant_id": "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "14.94",
+      "permitted_runs": 1,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 232,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 240,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 302,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 60,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "10.99"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 3507,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 3048,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 1124,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 230,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 74,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "10.99"
+          }
+        ]
+      },
+      "sha256": "84176b929658fa24c9ac08e98a09c430a318d3ecd38009cdf909ec4083438a07",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "14.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.10",
+      "closed_settings": {
+        "max_input_tokens": 16384,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "timeout_seconds": 120
+      },
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-LITERATURE-COOLING-MOTOR.json",
+      "grant_id": "GRAPHITE-GRANT-LITERATURE-COOLING-MOTOR",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "4.00",
+      "permitted_runs": 3,
+      "roles": {
+        "literature_triage": [
+          {
+            "all_full_calls_fit": true,
+            "all_full_calls_usd": "2.48832",
+            "calls_at_full_reservation": 3002,
+            "maximum_call_count": 3000,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00082944",
+            "token_allowance_usd": "2.49"
+          },
+          {
+            "all_full_calls_fit": false,
+            "all_full_calls_usd": "3.19488",
+            "calls_at_full_reservation": 2338,
+            "maximum_call_count": 3000,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00106496",
+            "token_allowance_usd": "2.49"
+          },
+          {
+            "all_full_calls_fit": false,
+            "all_full_calls_usd": "8.01792",
+            "calls_at_full_reservation": 931,
+            "maximum_call_count": 3000,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00267264",
+            "token_allowance_usd": "2.49"
+          },
+          {
+            "all_full_calls_fit": false,
+            "all_full_calls_usd": "38.03136",
+            "calls_at_full_reservation": 196,
+            "maximum_call_count": 3000,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.01267712",
+            "token_allowance_usd": "2.49"
+          },
+          {
+            "all_full_calls_fit": false,
+            "all_full_calls_usd": "125.7984",
+            "calls_at_full_reservation": 59,
+            "maximum_call_count": 3000,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.0419328",
+            "token_allowance_usd": "2.49"
+          }
+        ]
+      },
+      "sha256": "9d9099ee5855025fc31202cfa42584e742f35dfba1d6f53b2e3e8411c8adebf0",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "2.49"
+    },
+    {
+      "cleanup_allowance_usd": "0.03",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1.json",
+      "grant_id": "GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "14.94",
+      "permitted_runs": 1,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 232,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 240,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 302,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 60,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "10.99"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 3507,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 3048,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 1124,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 230,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 74,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "10.99"
+          }
+        ]
+      },
+      "sha256": "58bb76daf7810cf8d2f7b414c2d08353ecb7092f4cee3f42b991ed317032c4bc",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "14.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.00",
+      "closed_settings": {
+        "max_input_tokens": 16384,
+        "max_output_tokens": 1024,
+        "reasoning_effort": "low",
+        "timeout_seconds": 120
+      },
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE2.json",
+      "grant_id": "GRAPHITE-GRANT-PHASE2",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "9.00",
+      "permitted_runs": 40,
+      "roles": {
+        "literature_triage": [
+          {
+            "all_full_calls_fit": true,
+            "all_full_calls_usd": "2.48832",
+            "calls_at_full_reservation": 3002,
+            "maximum_call_count": 3000,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00082944",
+            "token_allowance_usd": "2.49"
+          },
+          {
+            "all_full_calls_fit": false,
+            "all_full_calls_usd": "3.19488",
+            "calls_at_full_reservation": 2338,
+            "maximum_call_count": 3000,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00106496",
+            "token_allowance_usd": "2.49"
+          },
+          {
+            "all_full_calls_fit": false,
+            "all_full_calls_usd": "8.01792",
+            "calls_at_full_reservation": 931,
+            "maximum_call_count": 3000,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00267264",
+            "token_allowance_usd": "2.49"
+          },
+          {
+            "all_full_calls_fit": false,
+            "all_full_calls_usd": "38.03136",
+            "calls_at_full_reservation": 196,
+            "maximum_call_count": 3000,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.01267712",
+            "token_allowance_usd": "2.49"
+          },
+          {
+            "all_full_calls_fit": false,
+            "all_full_calls_usd": "125.7984",
+            "calls_at_full_reservation": 59,
+            "maximum_call_count": 3000,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.0419328",
+            "token_allowance_usd": "2.49"
+          }
+        ]
+      },
+      "sha256": "568a00d4e5991439135dfe31028dbd21f8c2c441a8f73e93fd240e19999ac20c",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "2.49"
+    },
+    {
+      "cleanup_allowance_usd": "0.25",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3-COOLING-CPU.json",
+      "grant_id": "GRAPHITE-GRANT-PHASE3-COOLING-CPU",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "6.10",
+      "permitted_runs": 3,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 41,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 42,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 53,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 10,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 0,
+            "model": "kimi-k3",
+            "reservation_fits": false,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "1.95"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 622,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 540,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 199,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 40,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 13,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "1.95"
+          }
+        ]
+      },
+      "sha256": "58a619409165436cb6fd942701c30ca23b7b7a7c55b1e2645c79a66add07746f",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "1.95"
+    },
+    {
+      "cleanup_allowance_usd": "0.25",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3-R2.json",
+      "grant_id": "GRAPHITE-GRANT-PHASE3-R2",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "10.07",
+      "permitted_runs": 2,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 41,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 42,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 53,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 10,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 0,
+            "model": "kimi-k3",
+            "reservation_fits": false,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "1.95"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 622,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 540,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 199,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 40,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 13,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "1.95"
+          }
+        ]
+      },
+      "sha256": "41cc58b4ffca266acec4e1dbfc728f72d69441e41457f4865cb1e44ba908b891",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "4.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.25",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3-R3.json",
+      "grant_id": "GRAPHITE-GRANT-PHASE3-R3",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "15.00",
+      "permitted_runs": 3,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 41,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 42,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 53,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 10,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 0,
+            "model": "kimi-k3",
+            "reservation_fits": false,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "1.95"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 622,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 540,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 199,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 40,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 13,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "1.95"
+          }
+        ]
+      },
+      "sha256": "ff8cceaf634dc41f85764d2bf76b967733e0d4f2e7db23cc659c164e5b785a50",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "4.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.25",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3-R4.json",
+      "grant_id": "GRAPHITE-GRANT-PHASE3-R4",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "45.00",
+      "permitted_runs": 3,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 232,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 240,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 302,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 60,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "10.99"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 3507,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 3048,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 1124,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 230,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 74,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "10.99"
+          }
+        ]
+      },
+      "sha256": "bd40b517a41efddf3034d9ea75ca2140c5903f610d2c1f18e5383297d5dd7cef",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "14.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.25",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json",
+      "grant_id": "GRAPHITE-GRANT-PHASE3",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "15.00",
+      "permitted_runs": 3,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 41,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 42,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 53,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 10,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 0,
+            "model": "kimi-k3",
+            "reservation_fits": false,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "1.95"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 622,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 540,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 199,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 40,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "1.95"
+          },
+          {
+            "calls_at_full_reservation": 13,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "1.95"
+          }
+        ]
+      },
+      "sha256": "88d5df715dff985803e27fa2910626558c52d6aade46d55053d84d088a6024f3",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "4.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.25",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4-COOLING.json",
+      "grant_id": "GRAPHITE-GRANT-PHASE4-COOLING",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "10.50",
+      "permitted_runs": 3,
+      "replaced_by": null,
+      "roles": {
+        "attacker": [
+          {
+            "calls_at_full_reservation": 40,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04755456",
+            "token_allowance_usd": "1.93"
+          },
+          {
+            "calls_at_full_reservation": 41,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04637984",
+            "token_allowance_usd": "1.93"
+          },
+          {
+            "calls_at_full_reservation": 51,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03723264",
+            "token_allowance_usd": "1.93"
+          },
+          {
+            "calls_at_full_reservation": 10,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18440192",
+            "token_allowance_usd": "1.93"
+          },
+          {
+            "calls_at_full_reservation": 0,
+            "model": "kimi-k3",
+            "reservation_fits": false,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "1.93"
+          }
+        ]
+      },
+      "sha256": "24613dcbc786adf7934d20093f0c272d91a4db86921485ade66fa75b601d05fa",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "3.41"
+    },
+    {
+      "cleanup_allowance_usd": "0.25",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json",
+      "grant_id": "GRAPHITE-GRANT-PHASE4",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "10.50",
+      "permitted_runs": 3,
+      "replaced_by": null,
+      "roles": {
+        "attacker": [
+          {
+            "calls_at_full_reservation": 40,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04755456",
+            "token_allowance_usd": "1.93"
+          },
+          {
+            "calls_at_full_reservation": 41,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04637984",
+            "token_allowance_usd": "1.93"
+          },
+          {
+            "calls_at_full_reservation": 51,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03723264",
+            "token_allowance_usd": "1.93"
+          },
+          {
+            "calls_at_full_reservation": 10,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18440192",
+            "token_allowance_usd": "1.93"
+          },
+          {
+            "calls_at_full_reservation": 0,
+            "model": "kimi-k3",
+            "reservation_fits": false,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "1.93"
+          }
+        ]
+      },
+      "sha256": "10e7b7ec6f683e9ee88bebc7a14735c44be38e780680b6c10961aea4d8df047e",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "3.41"
+    },
+    {
+      "cleanup_allowance_usd": "0.00",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-PLANNER-01.json",
+      "grant_id": "GRAPHITE-GRANT-PLANNER-01",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "5.00",
+      "permitted_runs": 2,
+      "sha256": "aa331152ac0bc8ef60dbf5bca7a260ded21b1857a2fb502fb90c1bdbc6c0c56c",
+      "status": "WORKLOAD_UNMAPPED",
+      "worst_case_run_cost_usd": "2.50"
+    },
+    {
+      "cleanup_allowance_usd": "0.00",
+      "closed_settings": {
+        "max_input_tokens": 196608,
+        "max_output_tokens": 32768,
+        "reasoning_effort": "medium",
+        "timeout_seconds": 600
+      },
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-PLANNER-02.json",
+      "grant_id": "GRAPHITE-GRANT-PLANNER-02",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "3.00",
+      "permitted_runs": 2,
+      "roles": {
+        "level_planner": [
+          {
+            "all_full_calls_fit": true,
+            "all_full_calls_usd": "0.09437184",
+            "calls_at_full_reservation": 127,
+            "maximum_call_count": 8,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.01179648",
+            "token_allowance_usd": "1.50"
+          },
+          {
+            "all_full_calls_fit": true,
+            "all_full_calls_usd": "0.15466496",
+            "calls_at_full_reservation": 77,
+            "maximum_call_count": 8,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.01933312",
+            "token_allowance_usd": "1.50"
+          },
+          {
+            "all_full_calls_fit": true,
+            "all_full_calls_usd": "0.33030144",
+            "calls_at_full_reservation": 36,
+            "maximum_call_count": 8,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.04128768",
+            "token_allowance_usd": "1.50"
+          },
+          {
+            "all_full_calls_fit": true,
+            "all_full_calls_usd": "1.46276352",
+            "calls_at_full_reservation": 8,
+            "maximum_call_count": 8,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18284544",
+            "token_allowance_usd": "1.50"
+          },
+          {
+            "all_full_calls_fit": false,
+            "all_full_calls_usd": "5.6229888",
+            "calls_at_full_reservation": 2,
+            "maximum_call_count": 8,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.7028736",
+            "token_allowance_usd": "1.50"
+          }
+        ]
+      },
+      "sha256": "c7ea6bdfd18047f487f213af116b57d410e7c0e0de3ddb1b9f3d9bff0c91b9ea",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "1.50"
+    },
+    {
+      "cleanup_allowance_usd": "0.25",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-RATE-STUDY-TOKENS.json",
+      "grant_id": "GRAPHITE-GRANT-RATE-STUDY-TOKENS",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "30.00",
+      "permitted_runs": 6,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 103,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "4.91"
+          },
+          {
+            "calls_at_full_reservation": 107,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "4.91"
+          },
+          {
+            "calls_at_full_reservation": 135,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "4.91"
+          },
+          {
+            "calls_at_full_reservation": 27,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "4.91"
+          },
+          {
+            "calls_at_full_reservation": 2,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "4.91"
+          }
+        ]
+      },
+      "sha256": "04e756e98f7a504751e963ed495d57c970625a776a2f66d040df6e9f5b22d7fe",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "4.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.00",
+      "closed_settings": {
+        "max_input_tokens": 196608,
+        "max_output_tokens": 32768,
+        "reasoning_effort": "medium",
+        "timeout_seconds": 600
+      },
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-RESEARCH-SCORELAB-1.json",
+      "grant_id": "GRAPHITE-GRANT-RESEARCH-SCORELAB-1",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "2.00",
+      "permitted_runs": 1,
+      "roles": {
+        "score_lab": [
+          {
+            "all_full_calls_fit": true,
+            "all_full_calls_usd": "0.09437184",
+            "calls_at_full_reservation": 127,
+            "maximum_call_count": 8,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.01179648",
+            "token_allowance_usd": "1.50"
+          },
+          {
+            "all_full_calls_fit": true,
+            "all_full_calls_usd": "0.15466496",
+            "calls_at_full_reservation": 77,
+            "maximum_call_count": 8,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.01933312",
+            "token_allowance_usd": "1.50"
+          },
+          {
+            "all_full_calls_fit": true,
+            "all_full_calls_usd": "0.33030144",
+            "calls_at_full_reservation": 36,
+            "maximum_call_count": 8,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.04128768",
+            "token_allowance_usd": "1.50"
+          },
+          {
+            "all_full_calls_fit": true,
+            "all_full_calls_usd": "1.46276352",
+            "calls_at_full_reservation": 8,
+            "maximum_call_count": 8,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18284544",
+            "token_allowance_usd": "1.50"
+          },
+          {
+            "all_full_calls_fit": false,
+            "all_full_calls_usd": "5.6229888",
+            "calls_at_full_reservation": 2,
+            "maximum_call_count": 8,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.7028736",
+            "token_allowance_usd": "1.50"
+          }
+        ]
+      },
+      "sha256": "03ad536d8001c3551870e86d3fd8e1084be24f8507c19ca302499e387454726a",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "1.50"
+    },
+    {
+      "cleanup_allowance_usd": "0.13",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-A-ATTACKER.json",
+      "grant_id": "GRAPHITE-GRANT-STAGE-A-ATTACKER",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "53.77",
+      "permitted_runs": 4,
+      "replaced_by": null,
+      "roles": {
+        "attacker": [
+          {
+            "calls_at_full_reservation": 240,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04755456",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 246,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04637984",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 307,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03723264",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 62,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18440192",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "11.45"
+          }
+        ]
+      },
+      "sha256": "0135d31e46a7b7f3665c960e655c547b474c61e1e199fe030b5dc9c99f342614",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "13.41"
+    },
+    {
+      "cleanup_allowance_usd": "0.12",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR.json",
+      "grant_id": "GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "74.67",
+      "permitted_runs": 5,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 232,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 240,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 302,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 60,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "10.99"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 3507,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 3048,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 1124,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 230,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 74,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "10.99"
+          }
+        ]
+      },
+      "sha256": "cafdcc4ffa4192b864b251986d5b7273a9fdb796f40c8a37df5583e6bce1a5e7",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "14.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.13",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-B-ATTACKER.json",
+      "grant_id": "GRAPHITE-GRANT-STAGE-B-ATTACKER",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "53.77",
+      "permitted_runs": 4,
+      "replaced_by": null,
+      "roles": {
+        "attacker": [
+          {
+            "calls_at_full_reservation": 240,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04755456",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 246,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04637984",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 307,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03723264",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 62,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18440192",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "11.45"
+          }
+        ]
+      },
+      "sha256": "c52eb0b7649649157bad922c8ebd4b5ba7e76600d6cfc7ab12e0475df0eeba87",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "13.41"
+    },
+    {
+      "cleanup_allowance_usd": "0.12",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR.json",
+      "grant_id": "GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "89.58",
+      "permitted_runs": 6,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 232,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 240,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 302,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 60,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "10.99"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 3507,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 3048,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 1124,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 230,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 74,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "10.99"
+          }
+        ]
+      },
+      "sha256": "0415ef4a7191afcfc8f10884efeb7a2532b71076d4d8e9b512afd1b2cf266472",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "14.91"
+    },
+    {
+      "cleanup_allowance_usd": "0.13",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-C-ATTACKER.json",
+      "grant_id": "GRAPHITE-GRANT-STAGE-C-ATTACKER",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "26.95",
+      "permitted_runs": 2,
+      "replaced_by": null,
+      "roles": {
+        "attacker": [
+          {
+            "calls_at_full_reservation": 240,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04755456",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 246,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04637984",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 307,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03723264",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 62,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18440192",
+            "token_allowance_usd": "11.45"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "11.45"
+          }
+        ]
+      },
+      "sha256": "0454b48c8fadb95b8233111dbb7c25a8d835384b9040485736a5082ede4ebc83",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "13.41"
+    },
+    {
+      "cleanup_allowance_usd": "0.12",
+      "file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR.json",
+      "grant_id": "GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR",
+      "model_provider": "engy",
+      "monetary_ceiling_usd": "44.85",
+      "permitted_runs": 3,
+      "replaced_by": null,
+      "roles": {
+        "constructor": [
+          {
+            "calls_at_full_reservation": 232,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.04737024",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 240,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.04572448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 302,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.03631104",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 60,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.18132992",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 4,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "2.3642112",
+            "token_allowance_usd": "10.99"
+          }
+        ],
+        "planner": [
+          {
+            "calls_at_full_reservation": 3507,
+            "model": "deepseek-v4-flash-0731",
+            "reservation_fits": true,
+            "reservation_usd": "0.00313344",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 3048,
+            "model": "qwen3.8-27b",
+            "reservation_fits": true,
+            "reservation_usd": "0.00360448",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 1124,
+            "model": "glm-5.3-flash",
+            "reservation_fits": true,
+            "reservation_usd": "0.00976896",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 230,
+            "model": "glm-5.2",
+            "reservation_fits": true,
+            "reservation_usd": "0.04763648",
+            "token_allowance_usd": "10.99"
+          },
+          {
+            "calls_at_full_reservation": 74,
+            "model": "kimi-k3",
+            "reservation_fits": true,
+            "reservation_usd": "0.1477632",
+            "token_allowance_usd": "10.99"
+          }
+        ]
+      },
+      "sha256": "ec22d86bc2e38044403b04632027fd0df8ee30deef0baff8e25485badf45b634",
+      "status": "MAPPED",
+      "worst_case_run_cost_usd": "14.91"
+    }
+  ],
+  "profiles": [
+    {
+      "models": [
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "deepseek-v4-flash-0731",
+          "pricing": {
+            "cached_input": 9,
+            "input": 45,
+            "note": "Headline rate; context 1.05M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 90,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 3133440,
+          "reservation_usd": "0.00313344"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "qwen3.8-27b",
+          "pricing": {
+            "cached_input": 15,
+            "input": 45,
+            "note": "Headline rate; context 1.00M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 320,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 3604480,
+          "reservation_usd": "0.00360448"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "glm-5.3-flash",
+          "pricing": {
+            "cached_input": 27,
+            "input": 135,
+            "note": "Headline rate; context 262K. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 450,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 9768960,
+          "reservation_usd": "0.00976896"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "glm-5.2",
+          "pricing": {
+            "cached_input": 180,
+            "input": 680,
+            "note": "Headline rate; context 262K. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 1500,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 47636480,
+          "reservation_usd": "0.04763648"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "kimi-k3",
+          "pricing": {
+            "cached_input": 195,
+            "input": 1950,
+            "note": "Headline rate; context 1.05M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 9750,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 147763200,
+          "reservation_usd": "0.1477632"
+        }
+      ],
+      "provider": "engy",
+      "role": "planner",
+      "status": "PRICED"
+    },
+    {
+      "models": [
+        {
+          "max_input_tokens": 1048576,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "deepseek-v4-flash-0731",
+          "pricing": {
+            "cached_input": 9,
+            "input": 45,
+            "note": "Headline rate; context 1.05M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 90,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 47370240,
+          "reservation_usd": "0.04737024"
+        },
+        {
+          "max_input_tokens": 1001536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "qwen3.8-27b",
+          "pricing": {
+            "cached_input": 15,
+            "input": 45,
+            "note": "Headline rate; context 1.00M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 320,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 45724480,
+          "reservation_usd": "0.04572448"
+        },
+        {
+          "max_input_tokens": 262144,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "glm-5.3-flash",
+          "pricing": {
+            "cached_input": 27,
+            "input": 135,
+            "note": "Headline rate; context 262K. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 450,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 36311040,
+          "reservation_usd": "0.03631104"
+        },
+        {
+          "max_input_tokens": 262144,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "glm-5.2",
+          "pricing": {
+            "cached_input": 180,
+            "input": 680,
+            "note": "Headline rate; context 262K. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 1500,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 181329920,
+          "reservation_usd": "0.18132992"
+        },
+        {
+          "max_input_tokens": 1048576,
+          "max_output_tokens_including_reasoning": 32768,
+          "model": "kimi-k3",
+          "pricing": {
+            "cached_input": 195,
+            "input": 1950,
+            "note": "Headline rate; context 1.05M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 9750,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 2364211200,
+          "reservation_usd": "2.3642112"
+        }
+      ],
+      "provider": "engy",
+      "role": "constructor",
+      "status": "PRICED"
+    },
+    {
+      "models": [
+        {
+          "max_input_tokens": 1048576,
+          "max_output_tokens_including_reasoning": 4096,
+          "model": "deepseek-v4-flash-0731",
+          "pricing": {
+            "cached_input": 9,
+            "input": 45,
+            "note": "Headline rate; context 1.05M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 90,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 47554560,
+          "reservation_usd": "0.04755456"
+        },
+        {
+          "max_input_tokens": 1001536,
+          "max_output_tokens_including_reasoning": 4096,
+          "model": "qwen3.8-27b",
+          "pricing": {
+            "cached_input": 15,
+            "input": 45,
+            "note": "Headline rate; context 1.00M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 320,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 46379840,
+          "reservation_usd": "0.04637984"
+        },
+        {
+          "max_input_tokens": 262144,
+          "max_output_tokens_including_reasoning": 4096,
+          "model": "glm-5.3-flash",
+          "pricing": {
+            "cached_input": 27,
+            "input": 135,
+            "note": "Headline rate; context 262K. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 450,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 37232640,
+          "reservation_usd": "0.03723264"
+        },
+        {
+          "max_input_tokens": 262144,
+          "max_output_tokens_including_reasoning": 4096,
+          "model": "glm-5.2",
+          "pricing": {
+            "cached_input": 180,
+            "input": 680,
+            "note": "Headline rate; context 262K. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 1500,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 184401920,
+          "reservation_usd": "0.18440192"
+        },
+        {
+          "max_input_tokens": 1048576,
+          "max_output_tokens_including_reasoning": 32768,
+          "model": "kimi-k3",
+          "pricing": {
+            "cached_input": 195,
+            "input": 1950,
+            "note": "Headline rate; context 1.05M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 9750,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 2364211200,
+          "reservation_usd": "2.3642112"
+        }
+      ],
+      "provider": "engy",
+      "role": "attacker",
+      "status": "PRICED"
+    },
+    {
+      "models": [
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "deepseek-v4-flash-0731",
+          "pricing": {
+            "cached_input": 9,
+            "input": 45,
+            "note": "Headline rate; context 1.05M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 90,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 3133440,
+          "reservation_usd": "0.00313344"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "qwen3.8-27b",
+          "pricing": {
+            "cached_input": 15,
+            "input": 45,
+            "note": "Headline rate; context 1.00M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 320,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 3604480,
+          "reservation_usd": "0.00360448"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "glm-5.3-flash",
+          "pricing": {
+            "cached_input": 27,
+            "input": 135,
+            "note": "Headline rate; context 262K. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 450,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 9768960,
+          "reservation_usd": "0.00976896"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "glm-5.2",
+          "pricing": {
+            "cached_input": 180,
+            "input": 680,
+            "note": "Headline rate; context 262K. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 1500,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 47636480,
+          "reservation_usd": "0.04763648"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "kimi-k3",
+          "pricing": {
+            "cached_input": 195,
+            "input": 1950,
+            "note": "Headline rate; context 1.05M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 9750,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 147763200,
+          "reservation_usd": "0.1477632"
+        }
+      ],
+      "provider": "engy",
+      "role": "optimizer_researcher",
+      "status": "PRICED"
+    },
+    {
+      "models": [
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "deepseek-v4-flash-0731",
+          "pricing": {
+            "cached_input": 9,
+            "input": 45,
+            "note": "Headline rate; context 1.05M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 90,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 3133440,
+          "reservation_usd": "0.00313344"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "qwen3.8-27b",
+          "pricing": {
+            "cached_input": 15,
+            "input": 45,
+            "note": "Headline rate; context 1.00M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 320,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 3604480,
+          "reservation_usd": "0.00360448"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "glm-5.3-flash",
+          "pricing": {
+            "cached_input": 27,
+            "input": 135,
+            "note": "Headline rate; context 262K. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 450,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 9768960,
+          "reservation_usd": "0.00976896"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "glm-5.2",
+          "pricing": {
+            "cached_input": 180,
+            "input": 680,
+            "note": "Headline rate; context 262K. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 1500,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 47636480,
+          "reservation_usd": "0.04763648"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "kimi-k3",
+          "pricing": {
+            "cached_input": 195,
+            "input": 1950,
+            "note": "Headline rate; context 1.05M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 9750,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 147763200,
+          "reservation_usd": "0.1477632"
+        }
+      ],
+      "provider": "engy",
+      "role": "reader",
+      "status": "PRICED"
+    },
+    {
+      "models": [
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "deepseek-v4-flash-0731",
+          "pricing": {
+            "cached_input": 9,
+            "input": 45,
+            "note": "Headline rate; context 1.05M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 90,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 3133440,
+          "reservation_usd": "0.00313344"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "qwen3.8-27b",
+          "pricing": {
+            "cached_input": 15,
+            "input": 45,
+            "note": "Headline rate; context 1.00M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 320,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 3604480,
+          "reservation_usd": "0.00360448"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "glm-5.3-flash",
+          "pricing": {
+            "cached_input": 27,
+            "input": 135,
+            "note": "Headline rate; context 262K. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 450,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 9768960,
+          "reservation_usd": "0.00976896"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "glm-5.2",
+          "pricing": {
+            "cached_input": 180,
+            "input": 680,
+            "note": "Headline rate; context 262K. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 1500,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 47636480,
+          "reservation_usd": "0.04763648"
+        },
+        {
+          "max_input_tokens": 65536,
+          "max_output_tokens_including_reasoning": 2048,
+          "model": "kimi-k3",
+          "pricing": {
+            "cached_input": 195,
+            "input": 1950,
+            "note": "Headline rate; context 1.05M. An estimate for the reservation only: each call is settled from x_engy.charged_micro.",
+            "observed": "2026-09-26",
+            "output_including_reasoning": 9750,
+            "reference": "Engy published list, observed 2026-09-26",
+            "source": "declared_list",
+            "unit": "nanodollars per token"
+          },
+          "reservation_nano": 147763200,
+          "reservation_usd": "0.1477632"
+        }
+      ],
+      "provider": "engy",
+      "role": "writer",
+      "status": "PRICED"
+    },
+    {
+      "models": [],
+      "provider": "spur",
+      "role": "planner",
+      "status": "RATE_UNRECORDED"
+    },
+    {
+      "models": [],
+      "provider": "spur",
+      "role": "constructor",
+      "status": "RATE_UNRECORDED"
+    },
+    {
+      "models": [],
+      "provider": "spur",
+      "role": "attacker",
+      "status": "RATE_UNRECORDED"
+    },
+    {
+      "models": [],
+      "provider": "spur",
+      "role": "optimizer_researcher",
+      "status": "RATE_UNRECORDED"
+    },
+    {
+      "models": [],
+      "provider": "spur",
+      "role": "reader",
+      "status": "RATE_UNRECORDED"
+    },
+    {
+      "models": [],
+      "provider": "spur",
+      "role": "writer",
+      "status": "RATE_UNRECORDED"
+    }
+  ],
+  "schema": "carbon.graphite.role-grant-cap-audit.v1",
+  "scope": "DEVELOPMENT_READ_ONLY_NO_SPEND_AUTHORITY",
+  "snapshot_version": 6,
+  "source_revision": "356df4481cb7fbf2a6fec62b26d585e0b1e06ffb",
+  "source_sha256": {
+    "carbon/agent_campaign/graphite/experiment.py": "12700f1c9ac3ee96423b4183f07dff86dbba81d8dac78156efc94bdb1feb9c4b",
+    "carbon/agent_campaign/graphite/grant_binding.py": "1eb891e618ff4ecbba06dd16ff9b0171de38a310a06648960ee8da5cbdc485cb",
+    "carbon/agent_campaign/graphite/level_planner.py": "46fa91d8dfc9eeca9e294378c3e08723bb887148ef2b1643fa9c331b6c336b12",
+    "carbon/agent_campaign/graphite/model_providers.py": "7ca0d82ea950919461a582daf2cda1527759cdeac4dd73277aec5db19eea7d73",
+    "carbon/agent_campaign/graphite/phase3.py": "9cfe85ee35c495e5c3b8d6951123f2fbb094ef2033c1a7f8326510de79c16fcb",
+    "carbon/agent_campaign/graphite/phase4.py": "a7846e1057f836ab7969e0ada0162e74e867dd138c9297a0c9f895fe7b234766",
+    "carbon/agent_campaign/graphite/provider.py": "8cfec4b4bbf16f1d812433d9e8987b5eac261c1c0dfad3ffc77e66ab447625ed",
+    "carbon/agent_campaign/graphite/roles.py": "8a72e3d9d8d292ffcabd3812b8cf1bd6607ff4f03ddb6aa3f9443713bd3078ee",
+    "carbon/agent_campaign/graphite/score_lab_research.py": "0e055610810e3a27eb93faac6fea5c475a836f58c11f3987bb06086a8e3576e2",
+    "carbon/agent_campaign/graphite/triage.py": "00d950e2daba6e3dc3a38bf562603d5ba78ecfa4c7876e745bbe2ed844a474cf",
+    "carbon/development_session/model_provider.py": "bbe2f1573ecd01eb555f183df6d9f2c58f8398d9d6b24bb3f5acf682b6abc06c"
+  },
+  "supersedes": {
+    "grant_count": 35,
+    "path": "docs/development/evidence/role-output-cap-audit/audit-v5.json",
+    "sha256": "bdee338a3bf7a3479688dfb1491278501b0e119669ba58bcdff52236d99cc1c1"
+  }
+}

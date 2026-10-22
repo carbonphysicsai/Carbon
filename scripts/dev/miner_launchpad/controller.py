@@ -200,6 +200,93 @@ def attach_runner(profile, *, legacy_database=None, role=None):
     return runner, None
 
 
+def stale_campaigns(profile):
+    """The campaigns of a runner profile that was not attached because Carbon
+    was updated (`attach_runner`), read-only: the same rows the attached host
+    lists, from the same database; [] when there is none or it cannot be read
+    (M1 E2E U54: every campaign seemed gone after a reinstall). No operation
+    is admitted through this; it only reads."""
+    if profile is None:
+        return []
+    from scripts.dev.miner_launchpad import supervisor as supervision
+    from scripts.dev.miner_launchpad.runner import (
+        RunnerAdapter,
+        private_json,
+        runner_database,
+        validated_profile,
+    )
+
+    try:
+        cfg = validated_profile(private_json(Path(profile)))
+        database = runner_database(cfg)
+        if not database.is_file():
+            return []
+        host = RunnerAdapter(database, configuration=profile, role=supervision.CLIENT)
+        rows = host.recent()
+    except Exception:  # noqa: BLE001 - a listing only; never a trace or path
+        return []
+    return [{**row, "read_only": "carbon_updated_rerun_installer"} for row in rows]
+
+
+def loopback_authority(value) -> bool:
+    """Whether a Host header names this machine's loopback by literal
+    address or `localhost`, on any port: the page itself or the miner's own
+    SSH forward to it. Any other name is refused (DNS rebinding)."""
+    if type(value) is not str:
+        return False
+    host, separator, port = value.rpartition(":")
+    return (
+        separator == ":"
+        and host in ("127.0.0.1", "localhost", "[::1]")
+        and port.isdigit()
+        and not port.startswith("0")
+        and 0 < int(port) <= 65535
+    )
+
+
+#: The session cookie: this browser, this loopback origin, script-unreadable.
+SESSION_COOKIE = "carbon_session"
+SESSION_COOKIE_DAYS = 30
+
+
+def session_cookie_header(token: str) -> str:
+    return (
+        f"{SESSION_COOKIE}={token}; HttpOnly; SameSite=Strict; Path=/; "
+        f"Max-Age={SESSION_COOKIE_DAYS * 86400}"
+    )
+
+
+def session_cookie(headers):
+    """The one session cookie a request carries, or None."""
+    found = []
+    for line in headers.get_all("Cookie") or []:
+        for part in line.split(";"):
+            name, sep, value = part.strip().partition("=")
+            if sep and name == SESSION_COOKIE:
+                found.append(value)
+    return found[0] if len(found) == 1 and found[0] else None
+
+
+def session_token(state_dir: Path) -> str:
+    """This install's session token, kept owner-only in its state directory
+    so a restart or reinstall keeps the same link and a browser's session
+    (U1); made once."""
+    path = Path(state_dir) / "session-token"
+    if path.is_symlink():
+        raise RuntimeError("Session token must not be a symlink")
+    if path.is_file():
+        value = path.read_text(encoding="ascii").strip()
+        if len(value) >= 32 and value.isascii() and value.isprintable():
+            path.chmod(0o600)
+            return value
+    value = secrets.token_urlsafe(32)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(descriptor, "w", encoding="ascii") as handle:
+        handle.write(value + "\n")
+    path.chmod(0o600)
+    return value
+
+
 def session_url(origin: str, token: str) -> str:
     """The page's address with the session token in its fragment.
 
@@ -696,6 +783,8 @@ class Server(ThreadingHTTPServer):
         # Why the runner profile was not attached, when it no longer
         # describes this install (`attach_runner`, LP-PROD-W2).
         self.profile_refusal = None
+        #: The set-aside profile whose campaigns list read-only (U54).
+        self.research_profile_path = None
         self.legacy_database = legacy_database
         self.attach_lock = threading.Lock()
         self.setup = None
@@ -745,6 +834,8 @@ class Server(ThreadingHTTPServer):
             )
             self.profile_refusal = refused
             if runner is None:
+                # Its campaigns still list read-only (U54).
+                self.research_profile_path = Path(profile) if refused else None
                 return False
             self.research_runner = runner
             self.research_profile = Path(profile)
@@ -776,7 +867,9 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *_):
         """Do not log headers, tokens, payloads or browser-supplied paths."""
 
-    def reply(self, status: int, value, content_type="application/json") -> None:
+    def reply(
+        self, status: int, value, content_type="application/json", headers=()
+    ) -> None:
         # Acceptance is read-only metadata, separate from operation outcomes
         # and every existing permission gate. Both doors use this projection.
         projected_reads = {
@@ -806,6 +899,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Frame-Options", "DENY")
+        for name, header in headers:
+            self.send_header(name, header)
         self.send_header(
             "Content-Security-Policy",
             # blob: images only: a run's raster images, which the page makes
@@ -817,14 +912,28 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def check(self, authenticated=False) -> None:
-        if self.headers.get_all("Host") != [self.server.authority]:
+        hosts = self.headers.get_all("Host")
+        if hosts is None or len(hosts) != 1 or not loopback_authority(hosts[0]):
             raise Rejected("invalid_host", 403)
+        # The page's origin is the loopback authority it was opened at: this
+        # port, or the miner's own SSH forward to it on another loopback port
+        # (M1 E2E U65: a VPS miner's `ssh -L 18790:127.0.0.1:18788` was
+        # refused). Never a name that could rebind to another address.
         origins = self.headers.get_all("Origin")
-        if origins is not None and origins != [self.server.origin]:
+        if origins is not None and origins != ["http://" + hosts[0]]:
             raise Rejected("cross_origin_denied", 403)
         if authenticated:
             expected = "Bearer " + self.server.token
             headers = self.headers.get_all("Authorization")
+            if headers is None and session_cookie(self.headers) is not None:
+                # U1: this browser's session cookie (HttpOnly, SameSite
+                # Strict, this loopback origin only), set once from the
+                # printed link, so a new tab or a restart needs no paste.
+                if not hmac.compare_digest(
+                    session_cookie(self.headers).encode(), self.server.token.encode()
+                ):
+                    raise Rejected("authentication_required", 401)
+                return
             if (
                 headers is None
                 or len(headers) != 1
@@ -951,7 +1060,17 @@ class Handler(BaseHTTPRequestHandler):
                             else self.server.profile_refusal
                             or {"available": False, "status": "ADMISSION_DISABLED"}
                         ),
-                        "runs": runner.recent() if runner else [],
+                        # U54: with a profile set aside after an update, the
+                        # campaigns still list, read-only, so a miner never
+                        # thinks their work is gone; nothing can be operated
+                        # until setup is re-checked.
+                        "runs": (
+                            runner.recent()
+                            if runner
+                            else stale_campaigns(
+                                getattr(self.server, "research_profile_path", None)
+                            )
+                        ),
                     },
                 )
             elif self.path.startswith("/api/v1/research/"):
@@ -999,6 +1118,17 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             self.check(authenticated=True)
+            if self.path == "/api/v1/session":
+                # U1: a tab that proved the token by bearer gets this
+                # browser's session cookie; a cookie alone cannot renew it.
+                if self.headers.get_all("Authorization") is None:
+                    raise Rejected("authentication_required", 401)
+                self.reply(
+                    200,
+                    {"session": "REMEMBERED", "days": SESSION_COOKIE_DAYS},
+                    headers=(("Set-Cookie", session_cookie_header(self.server.token)),),
+                )
+                return
             if self.headers.get("Transfer-Encoding") is not None:
                 raise Rejected("unsupported_transfer_encoding")
             lengths = self.headers.get_all("Content-Length")
@@ -1269,7 +1399,7 @@ def main() -> None:
         thread_dump_on_signal(args.state_dir)
         controller = Controller(database)
         database.chmod(0o600)
-        token = secrets.token_urlsafe(32)
+        token = session_token(args.state_dir)
         # Direct-script and package entry points resolve one canonical module.
         import sys
 
@@ -1314,6 +1444,8 @@ def main() -> None:
         )
         if runner is not None:
             server.research_profile = args.research_profile
+        elif refused is not None and args.research_profile is not None:
+            server.research_profile_path = Path(args.research_profile)
         server.profile_refusal = refused
         controller.recover()
         done = threading.Event()
@@ -1351,7 +1483,9 @@ def main() -> None:
         print(
             "Set up your environment, then choose a Challenge and launch."
             if runner or refused
-            else "No agents, paid compute, training, registration, or submissions."
+            # A fresh install (U67): the next step, not a list of what is
+            # not configured yet.
+            else "Open the link above and follow Get started to set up."
         )
         try:
             server.serve_forever(poll_interval=0.2)

@@ -684,6 +684,26 @@ def test_main_uses_process_stop_and_closed_failure_without_private_text(
     }
 
 
+def test_main_names_a_receiver_state_a_running_serve_holds(
+    tmp_path, monkeypatch, capsys
+):
+    # Validator RECV3 follow-up: retain/regrade while the serve unit holds
+    # owner.lock says so, not the generic unavailable.
+    from scripts.dev.miner_launchpad.controller import LockHeld
+
+    (tmp_path / "config.json").write_text("{}")
+
+    def held(*args, **kwargs):
+        raise LockHeld("Another launcher owns this state directory")
+
+    monkeypatch.setattr(receiver, "serve", held)
+    monkeypatch.setattr(receiver.signal, "signal", lambda *_: None)
+    assert receiver.main(["--config", str(tmp_path / "config.json")]) == 1
+    out = json.loads(capsys.readouterr().out)
+    assert out["unavailable"] == "receiver_state_locked"
+    assert "serve unit" in out["next"]
+
+
 def test_main_one_shot_retention_uses_operator_paths_and_reports_only_bank_status(
     tmp_path, monkeypatch, capsys
 ):

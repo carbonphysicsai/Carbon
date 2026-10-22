@@ -503,7 +503,7 @@ def test_submit_and_commit_refuse_over_budget_before_signing(
 
 def test_submit_shows_the_status_when_within(declared, tmp_path, monkeypatch):
     host, admitted = _host(tmp_path, monkeypatch)
-    host._require_evaluation = lambda admitted: None
+    host._require_evaluation = lambda admitted, **_: None
     host._require_commitment = lambda admitted: None
     declared({"unit": "F1", "value": 1000}, {"F1": 500})
     value = host.submit_admitted(admitted, {})

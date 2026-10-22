@@ -35,16 +35,21 @@ from carbon.development_session.model_provider import (
 )
 from carbon.development_session.product_campaign import AGENTS, ProductLaunch
 from carbon.development_session.profile import canonical, digest
-from carbon.development_session.research_agent import RESERVATION_NANO
+from carbon.development_session.research_agent import REQUEST_HOLD_V1, RESERVATION_NANO
 from carbon.development_session.research_agent_policy import (
     AUTONOMOUS,
     PARALLEL_CALLS_V2,
 )
 from carbon.development_session.research_ledger import CampaignLedger
+from carbon.development_session.research_loop import (
+    BUDGET_HEADROOM_V1,
+    REPLY_CONTINUATION_V1,
+    SELECTION_ADMISSIBLE_V1,
+)
 from carbon.development_session.research_reply import RULE as RESEARCH_REPLY_RULE
 from carbon.development_session.research_tools import (
     ARGUMENT_NORMALISATION_V2,
-    ARGUMENT_NORMALISATION_V3,
+    ARGUMENT_NORMALISATION_V4,
     TOOLS_RULE,
 )
 
@@ -69,7 +74,9 @@ def new_plan_selection(args, agent=None):
     miner set a cap), else as before it; and for `agent`'s plan under the
     new-plan input default where this tree has it
     (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01); and under the new-plan timeout
-    default where this tree has it (`model_provider.TIMEOUT_DEFAULT_V2`)."""
+    default where this tree has it (`model_provider.TIMEOUT_DEFAULT_V2`);
+    and under the new-plan transport rule where this tree has it
+    (`model_provider.TRANSPORT_STREAM_V1`)."""
     output_default = getattr(campaigns, "new_plan_output_default", None)
     if output_default is None:
         return campaigns.supplied_selection(args)
@@ -77,6 +84,9 @@ def new_plan_selection(args, agent=None):
     timeout_default = getattr(campaigns, "new_plan_timeout_default", None)
     if timeout_default is not None:
         chosen["timeout_default"] = timeout_default(args)
+    transport = getattr(campaigns, "new_plan_transport", None)
+    if transport is not None:
+        chosen["transport"] = transport(args)
     input_default = getattr(campaigns, "new_plan_input_default", None)
     if input_default is not None and agent is not None:
         chosen["input_default"] = input_default(args, agent)
@@ -128,6 +138,10 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
         "argument_normalisation",
         "limits",
         "compaction",
+        "reply_continuation",
+        "budget_headroom",
+        "selection_admissibility",
+        "request_hold",
         "graphite",
     }
     assert plan["agent"] == "graphite" and plan["policy"] == editions.AGENT_POLICY
@@ -143,8 +157,15 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
     # LP-PROD-FIX-01: a new Graphite plan freezes the argument normalisation;
     # RESEARCH-TOOL-USABILITY-01: v2; since the M1 rehearsal (2026-10-21) v3,
     # which also fills a workspace call's obvious fields.
-    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V3
+    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V4
     assert plan["compaction"] == editions.COMPACTION_V1
+    # Graphite context and reply spec, part 2: a cut reply is continued.
+    assert plan["reply_continuation"] == REPLY_CONTINUATION_V1
+    # Launchpad Test Runner G1/G2: the booked-average headroom status and
+    # admissibility before ranking at selection.
+    assert plan["budget_headroom"] == BUDGET_HEADROOM_V1
+    assert plan["selection_admissibility"] == SELECTION_ADMISSIBLE_V1
+    assert plan["request_hold"] == REQUEST_HOLD_V1
     assert plan["limits"] == {
         "plan": {
             "schema": editions.LIMITS_SCHEMA,

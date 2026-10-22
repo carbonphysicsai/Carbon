@@ -96,6 +96,19 @@ async function wizardTo(page, step, agent = "manual") {
   }
 }
 function lastPost(state, url) { return [...state.posted].reverse().find(entry => entry.path === url); }
+// From the model step to Launch. Graphite needs both provider ceilings
+// (U17: the page says so on the limits step and holds Next until both are
+// set), so they are set there when the page asks for them.
+async function throughLaunch(page) {
+  for (const next of ["compute", "limits", "review", "launch"]) {
+    if (next === "review" && /model-call ceiling/.test(page.text("wizard-next-reason"))) {
+      await page.press(page.$("path-advanced"));
+      await page.type(page.$("ceiling-provider_attempts"), "200");
+      await page.type(page.$("ceiling-provider_nanodollars"), "5");
+    }
+    await page.press(page.$("wizard-next"));
+  }
+}
 
 const scenarios = [];
 const scenario = (name, run) => scenarios.push([name, run]);
@@ -421,7 +434,7 @@ scenario("a provider listing no models offers and preselects setup's model", asy
   assert.ok(radio.checked, "setup's model is preselected");
   assert.match(radio.parentNode.textContent, /your setup choice/);
   assert.equal(page.$("wizard-next").disabled, false, page.text("wizard-next-reason"));
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "c".repeat(32)}}});
   await page.press(page.$("research-launch"));
   const sent = lastPost(state, "/api/v1/research").body;
@@ -451,11 +464,11 @@ scenario("the model step offers an output cap with the model's default and sends
   for (const bad of [String(cap.bounds[0] - 1), String(cap.bounds[1] + 1), "1.5"]) {
     await page.type(input, bad);
     assert.equal(page.$("wizard-next").disabled, true, bad);
-    assert.match(page.text("wizard-next-reason"), /Fix the output cap: max output tokens must be a whole number from 256 to 131,072/);
+    assert.match(page.text("wizard-next-reason"), /Fix the output cap: max output tokens must be a whole number from 256 up/);
   }
   await page.type(input, "4096");
   assert.equal(page.$("wizard-next").disabled, false, page.text("wizard-next-reason"));
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   assert.match(page.text("wizard-review"), /Max output4,096 tokens per reply, your cap/);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "d".repeat(32)}}});
   await page.press(page.$("research-launch"));
@@ -466,7 +479,7 @@ scenario("the model step offers an output cap with the model's default and sends
   // Blank is the model's default: no model_settings is sent.
   await wizardTo(page, "model", agent);
   await page.type(page.$("wizard-max-output"), "");
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "e".repeat(32)}}});
   await page.press(page.$("research-launch"));
   assert.equal("model_settings" in lastPost(state, "/api/v1/research").body, false);
@@ -512,7 +525,8 @@ scenario("the model step offers a provider call timeout with its default and sen
   await wizardTo(page, "model", agent);
   const choice = fx.caps_setup_model.model.setup_choice;
   const timeout = fx.caps_setup_model.model.call_timeout;
-  assert.deepEqual(timeout.bounds, [10, 600]);
+  // No Carbon maximum for a miner's timeout (limits row #8).
+  assert.deepEqual(timeout.bounds, [10, 2 ** 31 - 1]);
   assert.equal(timeout.default, 600);
   assert.equal(page.$("wizard-timeout").hidden, false, "the timeout is offered with a model chosen");
   assert.match(page.text("wizard-timeout"), /Provider call timeout \(seconds\)/);
@@ -526,12 +540,12 @@ scenario("the model step offers a provider call timeout with its default and sen
   for (const bad of [String(timeout.bounds[0] - 1), String(timeout.bounds[1] + 1), "1.5"]) {
     await page.type(input, bad);
     assert.equal(page.$("wizard-next").disabled, true, bad);
-    assert.match(page.text("wizard-next-reason"), /Fix the provider call timeout: the provider call timeout must be a whole number of seconds from 10 to 600, or leave it blank for the default\./);
+    assert.match(page.text("wizard-next-reason"), /Fix the provider call timeout: the provider call timeout must be a whole number of seconds from 10 up, or leave it blank for the default\./);
     assert.match(page.text("wizard-timeout-note"), /^Not valid: /);
   }
   await page.type(input, "300");
   assert.equal(page.$("wizard-next").disabled, false, page.text("wizard-next-reason"));
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   assert.match(page.text("wizard-review"), /Call timeout300 seconds per provider call, your timeout/);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "f".repeat(32)}}});
   await page.press(page.$("research-launch"));
@@ -541,7 +555,7 @@ scenario("the model step offers a provider call timeout with its default and sen
   // Blank is the default: the review says so and nothing is sent.
   await wizardTo(page, "model", agent);
   await page.type(page.$("wizard-timeout-seconds"), "");
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   assert.match(page.text("wizard-review"), /Call timeoutNot set: 600 seconds per provider call, the default\. New calls stop when less than the timeout remains of your elapsed limit/);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "0".repeat(32)}}});
   await page.press(page.$("research-launch"));
@@ -1051,6 +1065,48 @@ scenario("Tools: a submit retried after a timeout reuses its key and follows the
   Object.assign(run, {state: "READY", journey: {submitted_epochs: [1], final_exams_remaining: 1, frozen_awaiting_submission: false}});
   await refresh(page);
   assert.match(line.textContent, /Submitted for the DEVELOPMENT comparison/);
+  clean(page);
+});
+
+// ---- S22: a catalog version's Recipe box starts from its example and picks a backbone. ----
+scenario("Tools: a catalog version's recipe box is prefilled and its backbone picker fills a recipe", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const catalog = fx.catalog_toolbox;
+  state.view.toolbox = {...state.view.toolbox, examples: copy(catalog.examples), catalog: copy(catalog.catalog)};
+  state.tools = {open: true, idle_close_seconds: 600, holds: "", tasks: [], tools: []};
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/tools");
+  await page.advance(0);
+  const box = [...all(page, "#campaign-detail textarea")].find(node => node.getAttribute("aria-label") === "Recipe JSON");
+  assert.ok(box, "the recipe box is drawn");
+  const example = catalog.examples[0];
+  assert.equal(example.schema, "carbon.construction-recipe.v1");
+  assert.deepEqual(JSON.parse(box.value), example, "prefilled with the version's registered example");
+  const panel = box.closest("details");
+  assert.match(page.text(panel), /Prefilled with the Challenge's registered example/);
+  assert.doesNotMatch(page.text(panel), /registers no example recipe/);
+  const picker = one(page, "#campaign-detail select[data-picker=backbone]");
+  assert.equal(picker.options.length, catalog.catalog.length, "one choice per catalog entry");
+  assert.ok(catalog.catalog.length > 1, "the version offers several backbones");
+  assert.equal(picker.value, example.source.catalog_id, "the picker starts on the example's entry");
+  const other = catalog.catalog.find(item => item.catalog_id !== example.source.catalog_id);
+  await page.change(picker, other.catalog_id);
+  assert.deepEqual(JSON.parse(box.value), other.recipe, "picking a backbone fills its catalog recipe");
+  assert.equal(JSON.parse(box.value).source.catalog_id, other.catalog_id);
+  // A practice refused before it started says its correction, not only the
+  // generic reason every such refusal carries.
+  const payload = {status: "REJECTED_BEFORE_DISPATCH", reason: "contract_incompatibility", detail: "Request does not satisfy the disclosed argument/recipe contract.",
+    correction_code: "backend_not_served", field: "strategy", correction: "This host's practice serves only the backends listed below. Allowed here: neuralop.TFNO."};
+  state.script.push({match: r => /^\/api\/v1\/tools\/[^/]+\/start$/.test(r.path), answer: {body: {ok: true, task: null, result: {content: [{type: "text", text: JSON.stringify({payload})}]}}}});
+  await page.press([...all(page, "#campaign-detail button")].find(b => b.textContent === "Practice this recipe"));
+  const sent = lastPost(state, "/api/v1/tools/" + encodeURIComponent(run.id) + "/start");
+  assert.deepEqual(sent.body.arguments.strategy, other.recipe, "the picked recipe is what practice sends");
+  const said = [...all(page, "#campaign-detail p.reason")].map(node => node.textContent).join("\n");
+  assert.match(said, /Refused before it started: backend not served \(strategy\): This host's practice serves only/);
+  assert.match(said, /Allowed here: neuralop\.TFNO\./);
   clean(page);
 });
 
@@ -1793,6 +1849,15 @@ function graphiteRun(extra = {}) {
 }
 const posts = (state, url) => state.posted.filter(entry => entry.path === url);
 async function launchNow(page, state, id = "g".repeat(32)) {
+  // U17: a Graphite launch needs both provider ceilings; set them where the
+  // page asks, unless the scenario already did.
+  page.window.CarbonControlCenter.goWizard("limits");
+  await page.advance(0);
+  if (/model-call ceiling/.test(page.text("wizard-next-reason"))) {
+    await page.press(page.$("path-advanced"));
+    await page.type(page.$("ceiling-provider_attempts"), "200");
+    await page.type(page.$("ceiling-provider_nanodollars"), "5");
+  }
   page.window.CarbonControlCenter.goWizard("launch");
   await page.advance(0);
   assert.equal(page.$("research-launch").disabled, false, "launch is ready: " + page.text("wizard-launch-reason"));
@@ -1936,6 +2001,9 @@ scenario("Graphite: each mode launches with exactly its own fields; the hunt is 
   await page.press(page.$("path-advanced"));
   const ceiling = page.$("ceiling-provider_nanodollars");
   assert.ok(ceiling, "the model-spend ceiling is offered");
+  // Only the spend ceiling, so the note names the share in dollars alone
+  // (launchNow set both for the launches above, U17).
+  await page.type(page.$("ceiling-provider_attempts"), "");
   await page.type(ceiling, "2");
   ceiling.blur();
   await toAgentStep(page);
@@ -2114,6 +2182,9 @@ scenario("Graphite: per-epoch limits are optional; blank sends none, set sends w
   const page = await open(state);
   await wizardTo(page, "limits", "graphite");
   await page.press(page.$("path-advanced"));
+  // U17: Graphite's two provider ceilings, which every Graphite launch needs.
+  await page.type(page.$("ceiling-provider_attempts"), "200");
+  await page.type(page.$("ceiling-provider_nanodollars"), "5");
   assert.equal(one(page, "#graphite-limits").hidden, false);
   for (const key of ["calls_per_epoch", "trials_per_epoch", "planner_calls"]) assert.equal(page.$("graphite-limit-" + key).value, "", key);
   assert.match(page.text("graphite-limits"), /only your campaign's own limits bind/);
@@ -2725,6 +2796,139 @@ scenario("Library: a session link opened on a Library address connects, and only
   assert.ok(!kept(local).includes(LINK) && kept(session).includes(LINK));
   assert.ok(page.requests.every(r => r.headers.Authorization === "Bearer " + LINK));
   for (const r of page.requests) assert.ok(!JSON.stringify(r.body || {}).includes(LINK) && !r.path.includes(LINK));
+  clean(page);
+});
+
+// Smoke items S23-S26 (2026-10-21).
+scenario("the launch notice ends when the miner leaves the campaign it opened (S23)", async () => {
+  const state = launchable(world());
+  const page = await open(state);
+  await wizardTo(page, "launch");
+  const id = "d".repeat(32);
+  state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id}}});
+  await page.press(page.$("research-launch"));
+  assert.match(page.text("message"), /Research launch recorded/);
+  page.go("#campaigns/" + id + "/result");
+  await page.advance(0);
+  assert.match(page.text("message"), /Research launch recorded/, "still on its own campaign");
+  page.go("#challenges");
+  await page.advance(0);
+  assert.doesNotMatch(page.text("message"), /Research launch recorded/);
+  assert.match(page.text("message"), /Connected\. Records persist on this machine\./);
+  clean(page);
+});
+
+scenario("the wallet page does not say connect while connected, and uses plain words (S25, S26)", async () => {
+  const state = world();
+  const page = await open(state);
+  page.go("#wallet");
+  await page.advance(0);
+  const panel = page.text("onboarding-panel");
+  assert.doesNotMatch(panel, /Connect this browser to read/);
+  assert.match(panel, /Joining cost/);
+  assert.doesNotMatch(panel, /Recycle|recycle|BURNED_REGISTRATION|COLDKEY|ss58/);
+  assert.match(panel, /Joining is paid from your coldkey/);
+  clean(page);
+});
+
+scenario("a campaign card in a list gives the reason, not the code or the long next action (S24)", async () => {
+  const state = world();
+  const run = manualRun();
+  Object.assign(run, {state: "INTERRUPTED", last_refusal: {kind: "interrupted", code: "research_share_too_small", next_action: "Cap max_output_tokens or max_input_tokens in model_settings.", at: 1800000100}});
+  state.runs = [run];
+  const page = await open(state);
+  page.go("#overview");
+  await page.advance(0);
+  const card = page.text(one(page, "#overview-active .campaign-card"));
+  assert.doesNotMatch(card, /max_output_tokens|max_input_tokens|Code:/);
+  assert.match(card, /Interrupted: research share too small/);
+  assert.match(card, /Open the campaign to see what to do\./);
+  clean(page);
+});
+
+scenario("Setup: a miner with no wallet is pointed at the identity helper, in plain words, holding nothing secret", async () => {
+  const state = world();
+  state.setup = {...copy(fx.setups.none), registered_hotkey: null};
+  const page = await open(state);
+  page.go("#setup/register");
+  await page.advance(0);
+  const card = one(page, "#setup-identity-help");
+  const text = card.textContent;
+  assert.match(text, /1\. Make your keys/);
+  assert.match(text, /No wallet yet\?/);
+  assert.equal(one(page, "#setup-identity-copy").closest(".copy-row").querySelector("code").textContent, "carbon-miner-identity");
+  assert.match(text, /Both are public/);
+  // Funding comes before joining, in plain words, with no balance or price claimed.
+  const fund = one(page, "#setup-fund").textContent;
+  assert.match(fund, /2\. Put some TAO in your wallet/);
+  assert.match(fund, /Buy TAO from an exchange/);
+  assert.doesNotMatch(fund, /\d{2,}|\$/);
+  const folds = [...card.querySelectorAll("details > summary")].map(node => node.textContent);
+  assert.deepEqual(folds, ["What are the two keys?", "Is my key safe?", "Lost my phrase?", "What does joining cost?"]);
+  // The cost answer names who pays, that Carbon neither charges nor receives it, and where the amount is read: no figure.
+  const cost = [...card.querySelectorAll("details")].find(node => /joining cost/.test(node.textContent)).textContent;
+  assert.match(cost, /paid from your own money key/);
+  assert.match(cost, /Carbon neither charges nor receives it/);
+  assert.match(cost, /Joining cost in Wallet & Identity/);
+  assert.doesNotMatch(cost, /\d/);
+  assert.equal(card.querySelector("a").getAttribute("href"), "#wallet");
+  // The page holds no field for a key, phrase or password, and asks the helper for nothing.
+  assert.equal(card.querySelectorAll("input, textarea").length, 0);
+  assert.ok(page.requests.every(request => !/identity/.test(request.path)), "no request to any helper");
+  clean(page);
+  // Once a hotkey is registered the card is gone: the miner has a wallet.
+  const done = world();
+  done.setup = copy(fx.setups.none);
+  const other = await open(done);
+  other.go("#setup/register");
+  await other.advance(0);
+  assert.equal(all(other, "#setup-identity-help").length, 0);
+  clean(other);
+});
+
+scenario("setup starts with keys, funding and joining, then the signer (Dana 1)", async () => {
+  const state = world();
+  state.setup = {...copy(fx.setups.none), registered_hotkey: null};
+  // Nothing done yet: the controller's own status says so.
+  for (const row of state.setup.status.steps) if (row.id === "register" || row.id === "signer") row.state = "open";
+  const page = await open(state);
+  page.go("#setup");
+  await page.advance(0);
+  const order = [...all(page, "#setup-progress button")].map(button => button.dataset.setupStep);
+  assert.deepEqual(order.slice(0, 2), ["register", "signer"]);
+  assert.equal(page.text("setup-heading"), "Get your keys and join", "heading: " + page.text("setup-heading"));
+  assert.match(page.text("setup-eyebrow"), /Step 1 of 6/);
+  // Until the miner has joined, the next step cannot be taken, and says why in plain words.
+  assert.equal(page.$("setup-next").disabled, true, "next disabled");
+  assert.match(page.text("setup-next-reason"), /Confirm you have joined first/);
+  // The three parts are in order: make keys, fund, join.
+  const body = page.text(one(page, "[data-step-panel=register]"));
+  assert.ok(body.indexOf("1. Make your keys") < body.indexOf("2. Put some TAO in your wallet") && body.indexOf("2. Put some TAO") < body.indexOf("3. Join"));
+  // The technical terms appear once, in brackets beside the plain ones, never as the label.
+  assert.doesNotMatch(body, /ss58|hotkey address|recycle/i);
+  assert.equal(one(page, "label[for=setup-register-address]").textContent, "Your mining-key address");
+  clean(page);
+});
+
+scenario("miners are offered only the latest version of each Challenge, and no reserved, retired or deferred one (owner U-f)", async () => {
+  const state = world();
+  const page = await open(state);
+  const offered = fx.caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status));
+  const latest = id => offered.filter(entry => entry.challenge_id === id).map(entry => entry.version).sort((a, b) => parseFloat(b) - parseFloat(a))[0];
+  assert.ok(offered.filter(entry => entry.challenge_id === "electric-motor-magnetics").length > 1, "the fixture has several Motor versions");
+  page.go("#launch");
+  await page.advance(0);
+  const inputs = [...all(page, "#wizard-challenges input")];
+  const pairs = inputs.map(input => input.value + "@" + input.dataset.version);
+  assert.equal(new Set(inputs.map(input => input.value)).size, inputs.length, "one entry per Challenge: " + pairs);
+  for (const input of inputs) assert.equal(input.dataset.version, latest(input.value) || "", "the latest version of " + input.value);
+  assert.ok(!pairs.some(pair => /photonic|power-magnetics|airfoil|burgers-dynamics/.test(pair)), "no reserved, deferred or retired entry: " + pairs);
+  page.go("#challenges");
+  await page.advance(0);
+  const text = page.text("challenge-catalog");
+  assert.doesNotMatch(text, /Reserved|Deferred|Retired/);
+  assert.doesNotMatch(text, /electric-motor-magnetics · version 1\.(0|2)/);
+  assert.match(text, /electric-motor-magnetics · version 1\.3/);
   clean(page);
 });
 

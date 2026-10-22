@@ -24,6 +24,7 @@
   // localStorage, an address or a template, and forgotten the moment the
   // controller refuses it.
   const sessionKey = "carbon.launchpad.session.v1";
+  const rememberedKey = "carbon.launchpad.remembered.v1";
   function keptSession() {
     try { const value = sessionStorage.getItem(sessionKey); return value && /^[!-~]{1,512}$/.test(value) ? value : null; }
     catch (_) { return null; }
@@ -422,7 +423,9 @@
     signer_protocol: "something other than carbon-miner-signer answered on the signer socket"
   };
   async function api(path, body, key, timeout = 5000) {
-    const headers = {Authorization: "Bearer " + token};
+    // With no token in this tab, this browser's session cookie (U1) is sent
+    // by the browser itself: same origin only, never readable here.
+    const headers = token ? {Authorization: "Bearer " + token} : {};
     if (body !== undefined) headers["Content-Type"] = "application/json";
     if (key) headers["Idempotency-Key"] = key;
     const response = await fetch(path, {
@@ -460,7 +463,12 @@
     return {view: views.includes(parts[0]) ? parts[0] : "overview", id: parts[1] || "", tab: TABS.some(([name]) => name === tab) ? tab : "overview"};
   }
   function campaignHref(id, tab = "live") { return "#campaigns/" + encodeURIComponent(id) + "/" + tab; }
+  let launchNoticeFor = null;
   function show() {
+    if (launchNoticeFor !== null && !location.hash.startsWith(launchNoticeFor)) {
+      launchNoticeFor = null;
+      if (connected) message("Connected. Records persist on this machine.");
+    }
     const current = route();
     for (const view of document.querySelectorAll("main > .view")) view.hidden = view.id !== current.view;
     for (const link of document.querySelectorAll("#tool-nav a")) {
@@ -661,6 +669,8 @@
   async function onboardingRequirements() {
     try {
       const value = await api("/api/v1/onboarding/requirements");
+      const stale = $("onboarding-result");
+      if (stale.dataset.key === "disconnected") { stale.replaceChildren(); stale.dataset.key = ""; }
       // The network this controller registers on, always in view.
       $("network-pill").textContent = (String(value.network).includes("test") ? "Testnet" : words(value.network)) + " · netuid " + value.netuid;
       const facts = $("onboarding-facts");
@@ -669,9 +679,9 @@
       // claim from unknown, and neither is a figure to plan around.
       const rows = [
         ["Network", value.network + " · netuid " + value.netuid],
-        ["Mechanism", value.mechanism],
-        ["Recycle amount", value.cost && value.cost.value === "NOT_READ"
-          ? "Not read by Carbon — your wallet shows it at signing"
+        ["How joining works", value.mechanism === "BURNED_REGISTRATION" ? "A payment from your own wallet each time you join; Carbon does not receive it" : words(value.mechanism)],
+        ["Joining cost", value.cost && value.cost.value === "NOT_READ"
+          ? "Not read by Carbon: your wallet shows the exact amount before you sign"
           : String((value.cost || {}).value)],
         ["Carbon signs", "Never"]
       ];
@@ -748,10 +758,10 @@
   // researches comes before Inference, which only an agent calling setup's
   // model needs. Step ids are stable anchors: #setup/<id>.
   const SETUP_STEPS = [
-    ["signer", "Start your signer", "Your signer holds your hotkey on this machine. Carbon never sees your key."],
-    ["register", "Register on the subnet", "Your hotkey must be registered on the subnet. You sign that in your own wallet."],
+    ["register", "Get your keys and join", "Make your mining keys, put some TAO in your wallet, then join Carbon's network (the subnet). You sign in your own wallet."],
+    ["signer", "Start your signer", "Your signer holds your mining key on this machine and signs your work. Carbon never sees your key."],
     ["agent", "Who researches?", "Carbon's agent, or your own agent over MCP. This step also checks your signer."],
-    ["inference", "Inference", "Choose the model Carbon's agent calls, with your own key."],
+    ["inference", "AI model", "Choose the AI model Carbon's agent uses. You bring your own key from the model's provider."],
     ["compute", "Compute", "Choose where practice runs: this machine, or a GPU you run elsewhere."],
     ["review", "Review and launch", "Carbon writes your runner profile and loads it. Then you choose a Challenge."],
   ];
@@ -824,6 +834,8 @@
       const name = (setupState?.choices?.inference || []).find(c => c.id === id)?.display_name || (id ? words(id) : "The provider");
       return name + " " + KEY_REFUSALS[error.code] + " The key field clears after each check, so paste it again to retry.";
     }
+    // U13: one plain sentence, never the raw "intakes: challenge has no intake".
+    if (error.code === "challenge_has_no_intake") return error.nextStep || "This Challenge takes no validator intake: put its construction receiver under 'Where your recipe is checked' instead.";
     return (error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : "");
   }
   async function setupCall(step, body, timeout = 60000) {
@@ -1035,7 +1047,7 @@
     const state = j.state[id];
     const steps = j.steps;
     if (id === "signer") return state === "done" ? "Your signer answered for " + shortKey(steps.signer?.hotkey || setupState?.registered_hotkey) + "." : "Start carbon-miner-signer in your own terminal, then check it here.";
-    if (id === "register") return state === "done" ? "Registered: " + shortKey(setupState.registered_hotkey) + "." : "Confirm your hotkey is registered on the subnet." + (state === "open" ? " Steps 1 and 2 can be done in either order." : "");
+    if (id === "register") return state === "done" ? "Registered: " + shortKey(setupState.registered_hotkey) + "." : "Confirm you have joined the network." + (state === "open" ? " Steps 1 and 2 can be done in either order." : "");
     if (state === "waiting" && id !== "review") return "Opens once your registration is confirmed.";
     if (state === "skipped") return "Skipped: your agent uses its own model.";
     if (id === "inference") return state === "done" ? "Checked: " + checkedText(id, steps) + "." : "Choose a provider and model, and check your key.";
@@ -1055,8 +1067,8 @@
   function reachable(id, j) { return id === "signer" || id === "register" || j.registered; }
   // Why Next cannot be taken from this step yet, or null.
   function nextProblem(id, j) {
-    if (id === "signer") return null;
-    if (id === "register") return j.registered ? null : "Confirm your registration first.";
+    if (id === "signer") return j.registered ? null : "Join the network first: the steps after this need it.";
+    if (id === "register") return j.registered ? null : "Confirm you have joined first.";
     if (id === "compute" && j.sendPending) return "Send your worker first.";
     if (["inference", "compute", "agent"].includes(id)) return j.done[id] || j.skipped[id] ? null : "Run this step's check first.";
     return null;
@@ -1072,7 +1084,7 @@
     const j = journey();
     const current = route();
     let wanted = current.view === "setup" && SETUP_IDS.includes(current.id) ? current.id : setupStepShown || j.current || "review";
-    if (!reachable(wanted, j)) wanted = j.state.signer === "next" ? "signer" : "register";
+    if (!reachable(wanted, j)) wanted = j.state.register === "next" ? "register" : "signer";
     return wanted;
   }
   // Show one step: its heading, progress, done state, Back and Next.
@@ -1149,6 +1161,34 @@
     return select;
   }
   // One wizard step's panel, with its done state when the controller has one.
+  // No wallet yet? A small program on the miner's own computer makes the keys; this page only points at it
+  // (it never asks for, receives or shows a key, a phrase or a password). Presentation only.
+  function identityHelperCard(parent) {
+    const box = el("div", undefined, "identity-help"); box.id = "setup-identity-help";
+    box.append(el("p", "1. Make your keys", "eyebrow"));
+    box.append(el("p", "No wallet yet? A small helper on your own computer makes your keys. Run it in a terminal, open the link it prints, and follow its five steps. Carbon never sees your recovery phrase or your passwords. Already have a wallet? Skip to step 3.", "step-lede"));
+    copyRow(box, null, "carbon-miner-identity", "setup-identity-copy");
+    box.append(el("p", "At the end it shows two wallet addresses. Both are public. Copy the mining-key address into step 3, and the money-key address into step 2.", "hint"));
+    details(box, "What are the two keys?", [
+      "Your wallet holds two keys. The money key (coldkey) holds your funds. The mining key (hotkey) signs your mining work and names you on the network; it cannot move your funds. Their addresses are public."
+    ]);
+    details(box, "Is my key safe?", [
+      "The helper runs only on your computer and saves each key encrypted under its own password, one for your money and one for mining. Nothing it makes is sent anywhere, and Carbon never sees your keys, your recovery phrase or your passwords. Anyone who has your recovery phrase can take your funds, so write it on paper and keep it private."
+    ]);
+    details(box, "Lost my phrase?", [
+      "The 12 words are the only way to get your funds back if you lose your money password or this computer, and Carbon cannot recover them for you. Your hotkey has no recovery phrase: keep a copy of the wallet folder the helper names at the end. Without a copy you would make a new hotkey and register it again."
+    ]);
+    const cost = details(box, "What does joining cost?", [
+      "Joining is paid from your own money key, in your own wallet tool. Carbon neither charges nor receives it. The current amount is set by the network and changes, so read it before you sign: it is under Joining cost in Wallet & Identity, and your wallet shows it at signing."
+    ]);
+    cost.append(link({label: "Open Wallet & Identity", href: "#wallet"}));
+    parent.append(box);
+    // 2. Fund it. Carbon does not read a balance or a price here; the miner's own wallet does.
+    const fund = el("div", undefined, "identity-fund"); fund.id = "setup-fund";
+    fund.append(el("p", "2. Put some TAO in your wallet", "eyebrow"));
+    fund.append(el("p", "Joining is paid in TAO from your money key. Buy TAO from an exchange and send it to your money-key address (the helper shows it). Wait until your wallet shows it before step 3.", "step-lede"));
+    parent.append(fund);
+  }
   function stepPanel(parent, id, doneText) {
     const panel = el("section", undefined, "setup-step"); panel.dataset.stepPanel = id;
     if (doneText) { const done = el("p", undefined, "step-done"); done.append(pill("Done", "pill-done"), el("span", doneText)); panel.append(done); }
@@ -1209,7 +1249,7 @@
     signer.append(el("p", "Start it in your own terminal and leave it open:", "step-lede"));
     copyRow(signer, null, offered.signer?.command || "carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>", "setup-signer-copy");
     researchNote(signer, "Use your own wallet and hotkey names. Carbon never asks for your key or its password.", "hint");
-    const signerLabel = el("label", "Your hotkey address (ss58)"); signerLabel.htmlFor = "setup-signer-address";
+    const signerLabel = el("label", "Your mining-key address"); signerLabel.htmlFor = "setup-signer-address";
     const signerAddress = el("input"); signerAddress.id = "setup-signer-address"; signerAddress.type = "text"; signerAddress.autocomplete = "off"; signerAddress.spellcheck = false; signerAddress.placeholder = "5...";
     signerAddress.value = signerHotkey || $("onboarding-address").value.trim();
     const signerCheck = el("button", j.done.signer ? "Check my signer again" : "Check my signer", j.done.signer ? "" : "primary"); signerCheck.type = "button"; signerCheck.id = "setup-signer-check";
@@ -1225,16 +1265,18 @@
     // 2. Register on the subnet: confirmed here, prepared under Wallet.
     const register = stepPanel(body, "register", j.registered ? "Registered: " + setupState.registered_hotkey : null);
     if (!j.registered) {
-      register.append(el("p", "Paste your hotkey address. Carbon reads the chain to confirm it is registered.", "step-lede"));
-      const label = el("label", "Your hotkey address (ss58)"); label.htmlFor = "setup-register-address";
+      identityHelperCard(register);
+      register.append(el("p", "3. Join", "eyebrow"));
+      register.append(el("p", "Sign the join in your own wallet, then paste your mining-key address here. Carbon reads the network to confirm you joined.", "step-lede"));
+      const label = el("label", "Your mining-key address"); label.htmlFor = "setup-register-address";
       const address = el("input"); address.id = "setup-register-address"; address.type = "text"; address.autocomplete = "off"; address.spellcheck = false; address.placeholder = "5...";
       address.value = steps.signer?.hotkey || $("onboarding-address").value.trim();
       const confirm = el("button", "Check my registration", "primary go"); confirm.type = "button"; confirm.id = "setup-register-confirm";
       confirm.addEventListener("click", () => confirmRegistration(address.value.trim()));
       const action = el("div", undefined, "step-action"); action.append(confirm);
       register.append(label, address, action);
-      researchNote(register, "Not registered yet? Wallet & Identity prepares the unsigned call; you sign it in your own wallet, paid from your coldkey.", "hint");
-      register.append(link({label: "Register under Wallet & Identity", href: "#wallet"}));
+      researchNote(register, "Not joined yet? Wallet & Identity prepares the join for you to sign in your own wallet, paid from your money key.", "hint");
+      register.append(link({label: "Join under Wallet & Identity", href: "#wallet"}));
       // What opens once registration is confirmed.
       register.append(el("p", "What happens next", "eyebrow"));
       const next = el("ol", undefined, "guide-steps");
@@ -1383,6 +1425,42 @@
     const destination = setupField(remoteBox, "destination", "SSH destination (user@host, or your ssh-config alias)");
     const sshPort = setupField(remoteBox, "port", "SSH port (optional; leave empty for your ssh config's)", "number");
     researchNote(remoteBox, "Make `ssh <destination>` work from this machine without a prompt first: your key in your agent, the host key in your known hosts. Carbon passes no key and installs nothing.", "hint");
+    // U59: a guided link for a rented GPU. From the provider's host, port,
+    // user and key path it writes out the ssh-config entry and the one-time
+    // host-key step for the miner to run in their own terminal, and fills in
+    // the destination. Nothing is written or run by Carbon: the miner's own
+    // SSH still decides how the machine is reached.
+    const gpuLink = el("details", undefined, "gpu-link"); gpuLink.id = "setup-link-gpu";
+    gpuLink.append(el("summary", "Link a rented GPU (host, port, user and key from your provider)"));
+    const linkForm = el("div"); linkForm.dataset.step = "compute"; gpuLink.append(linkForm);
+    const linkHost = setupField(linkForm, "link_host", "Host (IP or name your provider shows)");
+    const linkPort = setupField(linkForm, "link_port", "Port", "number");
+    const linkUser = setupField(linkForm, "link_user", "User (often root)");
+    const linkKey = setupField(linkForm, "link_key", "Private key file on this machine (e.g. ~/.ssh/id_ed25519)");
+    const linkOut = el("pre", "", "rs-code"); linkOut.hidden = true;
+    const linkSteps = el("ol", undefined, "checklist"); linkSteps.hidden = true;
+    const linkMake = el("button", "Write my link steps"); linkMake.type = "button";
+    linkMake.addEventListener("click", () => {
+      const host = linkHost.value.trim(), port = linkPort.value.trim(), user = linkUser.value.trim() || "root", key = linkKey.value.trim();
+      const safe = value => /^[A-Za-z0-9._@:~\/+-]+$/.test(value);
+      if (!host || !safe(host) || (port && !/^[0-9]{1,5}$/.test(port)) || !safe(user) || (key && !safe(key))) {
+        linkOut.hidden = false; linkSteps.hidden = true;
+        linkOut.textContent = "Check the fields: a host, a numeric port, a user and a key path with no spaces.";
+        return;
+      }
+      const alias = "carbon-gpu";
+      linkOut.hidden = false;
+      linkOut.textContent = "Host " + alias + "\n  HostName " + host + (port ? "\n  Port " + port : "") + "\n  User " + user + (key ? "\n  IdentityFile " + key + "\n  IdentitiesOnly yes" : "") + "\n";
+      linkSteps.hidden = false;
+      linkSteps.replaceChildren(
+        el("li", "Add the entry above to ~/.ssh/config on this machine (create the file if it is missing)."),
+        el("li", "In your own terminal, run once and answer yes to the host key: ssh " + alias + " nvidia-smi -L"),
+        el("li", "It should list your GPU. Then press Check my setup over my SSH below."),
+      );
+      destination.value = alias; sshPort.value = "";
+    });
+    linkForm.append(linkMake, linkOut, linkSteps);
+    remoteBox.append(gpuLink);
     const missing = el("div"); compute.append(missing);
     // Everything setup fills in for you, or a miner changes on purpose.
     const more = advanced(compute, "Advanced: images and transport");
@@ -1609,7 +1687,7 @@
       connectBox.hidden = !choice?.connect;
       if (!choice?.connect) return;
       const connect = choice.connect;
-      connectBox.append(el("h3", "Connect your agent"), el("p", "Skips Inference: " + choice.skips.inference + ". " + connect.note, "hint"));
+      connectBox.append(el("h3", "Connect your agent"), el("p", "Skips the AI model step: " + choice.skips.inference + ". " + connect.note, "hint"));
       copyRow(connectBox, "The one command, run from your Carbon checkout (" + connect.cwd + ")", connect.command, "setup-agent-command-copy");
       // One disclosure per client: its snippets, its source and what Carbon
       // has not verified.
@@ -1672,7 +1750,7 @@
     const reviewPanel = stepPanel(body, "review", written ? "Your profile is written." : null);
     const review = stepForm(reviewPanel, "review");
     const summary = el("dl", undefined, "review-grid"); review.append(summary);
-    for (const [name, label] of [["agent", "Who researches"], ["inference", "Inference"], ["compute", "Compute"]]) {
+    for (const [name, label] of [["agent", "Who researches"], ["inference", "AI model"], ["compute", "Compute"]]) {
       const state = steps[name] || {};
       summary.append(el("dt", label), el("dd", state.checked ? checkedText(name, steps) : j.skipped[name] ? "Skipped: your agent uses its own model" : "Not checked yet"));
     }
@@ -1698,10 +1776,17 @@
     // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
     const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver hotkey (its public ss58 address; required with an intake URL)");
     intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
-    const directMore = advanced(review, "Advanced: where your recipe is checked");
-    researchNote(directMore, "For the 1.3 construction-recipe session only. This receiver rebuilds a model but does not return a scored verdict or reward.", "hint");
-    const directIntake = setupField(directMore, "direct_intake_url", "Construction intake URL (https, or loopback)");
-    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Construction receiver hotkey (public ss58 address)");
+    const directMore = advanced(review, "Where your recipe is checked: your construction receiver");
+    researchNote(directMore, "Every new campaign submits its frozen recipe here when its Challenge has no validator intake of its own: the receiver rebuilds it from scratch and grades it. Its operator gives you both values.", "hint");
+    const directIntake = setupField(directMore, "direct_intake_url", "Receiver URL (https, or loopback)");
+    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Receiver hotkey (its public ss58 address)");
+    // U12: what Review last wrote comes back filled in, and is said plainly,
+    // so writing the profile again never clears it by accident.
+    const savedDirect = (steps.evaluation?.challenges || []).map(item => item.direct_intake).find(item => item && item.intake_url);
+    if (savedDirect) {
+      directIntake.value = savedDirect.intake_url; directReceiver.value = savedDirect.receiver_hotkey || "";
+      researchNote(directMore, "Saved: receiver " + savedDirect.intake_url + (savedDirect.receiver_hotkey ? " · hotkey " + savedDirect.receiver_hotkey.slice(0, 8) + "…" : "") + ". Edit the fields and write your profile to change it.", "hint");
+    }
     evaluationSection(evaluationBox, steps.evaluation, (challengeId, url, hotkey) => {
       // Review writes only the intakes it is given: this one, again.
       intakeChallenge.value = challengeId; intake.value = url; receiver.value = hotkey;
@@ -1749,7 +1834,7 @@
     caps = value;
     capsVersion++;
     // A remembered choice is checked against what exists now.
-    if (wizard.challenge && !challengeEntry(wizard.challenge)) wizard.challenge = null;
+    if (wizard.challenge && !offeredChallenges().some(entry => entry.challenge_id === wizard.challenge.id && entry.version === wizard.challenge.version)) wizard.challenge = null;
     // A choice no longer offered (the autonomous agent, once Graphite
     // replaces it) is no longer chosen.
     if (wizard.agentChoice && !offeredAgent(wizard.agentChoice)) { wizard.agentChoice = null; composition = {...composition, agent: null}; }
@@ -1762,6 +1847,20 @@
     if (!wizard.provider && setupModel && listed(setupModel.provider_id, setupModel.model_id)) {
       wizard.provider = setupModel.provider_id; wizard.model = setupModel.model_id;
     }
+  }
+  // What a miner is offered to start on (owner decision U-f): the latest version of each Challenge, and no
+  // reserved, retired or deferred entry. Older versions stay readable (campaigns on them keep their titles:
+  // challengeEntry looks at the whole registry), they are just not offered.
+  function versionParts(value) { return String(value ?? "").split(".").map(part => Number.parseInt(part, 10) || 0); }
+  function newerVersion(a, b) {
+    const left = versionParts(a), right = versionParts(b);
+    for (let i = 0; i < Math.max(left.length, right.length); i++) { const diff = (left[i] || 0) - (right[i] || 0); if (diff) return diff > 0; }
+    return false;
+  }
+  function offeredChallenges() {
+    if (!caps) return [];
+    const open = caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status));
+    return open.filter(entry => !open.some(other => other !== entry && other.challenge_id === entry.challenge_id && newerVersion(other.version, entry.version)));
   }
   function challengeEntry(selection) {
     if (!caps || !selection) return null;
@@ -1796,7 +1895,10 @@
     if (text) {
       value = /^\d+$/.test(text) ? Number(text) : NaN;
       if (!Number.isSafeInteger(value) || value < low || value > high) {
-        problem = "max output tokens must be a whole number from " + low.toLocaleString("en-US") + " to " + high.toLocaleString("en-US");
+        // No Carbon maximum for a miner's selection (limits row #8): a bound
+        // at or above 2**31 - 1 is a representation bound, not a limit.
+        problem = "max output tokens must be a whole number from " + low.toLocaleString("en-US")
+          + (high < 2147483647 ? " to " + high.toLocaleString("en-US") : " up");
         value = null;
       }
     }
@@ -1815,7 +1917,8 @@
     if (text) {
       value = /^\d+$/.test(text) ? Number(text) : NaN;
       if (!Number.isSafeInteger(value) || value < low || value > high) {
-        problem = "the provider call timeout must be a whole number of seconds from " + low.toLocaleString("en-US") + " to " + high.toLocaleString("en-US");
+        problem = "the provider call timeout must be a whole number of seconds from " + low.toLocaleString("en-US")
+          + (high < 2147483647 ? " to " + high.toLocaleString("en-US") : " up");
         value = null;
       }
     }
@@ -1825,7 +1928,11 @@
     const elapsed = composition.budget?.elapsed_seconds;
     const bounded = timeout.bounded_by === "budget.elapsed_seconds" && Number.isSafeInteger(elapsed) && elapsed >= 1;
     const fallback = bounded ? Math.min(timeout.default, Math.max(low, Math.floor(elapsed / 2))) : timeout.default;
-    return {low, high, fallback, standard: timeout.default, bounded, value, problem};
+    // How its calls travel (S17): an adapter a new plan streams waits only
+    // between chunks; any other reads a reply whole within the timeout.
+    const streams = Array.isArray(timeout.streaming_providers) && timeout.streaming_providers.includes(launchModel().provider.id);
+    const transport = streams ? timeout.streaming_note : timeout.speed_note;
+    return {low, high, fallback, standard: timeout.default, bounded, value, problem, streams, transport: typeof transport === "string" ? transport : ""};
   }
   // The model settings a launch sends: only what the miner set.
   function modelSettings() {
@@ -1923,6 +2030,16 @@
   }
   // The same words wherever a refused session is met.
   const SESSION_ENDED = "Your session ended: the Control Center was restarted and printed a new link. Open that link, or paste its token.";
+  // U1: a browser this Control Center remembers connects with no token; one
+  // it does not shows the paste form quietly, as before.
+  async function connectRemembered() {
+    // Only a browser that was remembered asks; a first visit sends nothing
+    // before the miner connects (the flag is not a secret: the cookie is).
+    if (!stored(rememberedKey, null)) return;
+    try { await fetch("/api/v1/capabilities", {cache: "no-store", redirect: "error"}).then(r => { if (!r.ok) throw new Error(String(r.status)); }); }
+    catch (_) { return; }
+    connect("", false);
+  }
   async function connect(value, resumed = false) {
     connected = false;
     render();
@@ -1946,7 +2063,12 @@
       await renderExamEnvironment();
       renderComputeChoices(caps.compute.destinations || []);
       await onboardingRequirements();
-      keepSession(value);
+      if (value) {
+        keepSession(value);
+        // U1: remember this browser, so a new tab or a restart needs no
+        // paste. The cookie is HttpOnly and this loopback origin's only.
+        try { await api("/api/v1/session", {}); store(rememberedKey, {remembered: true}); } catch (_) { /* this tab still works */ }
+      }
       store(footerSeenKey, {seen: true});
       message("Connected. Records persist on this machine.");
       await refresh();
@@ -2141,6 +2263,10 @@
     items.push(selectable.length
       ? {ok: true, text: "You can launch: " + selectable.map(entry => entry.title).join(", ") + "."}
       : {ok: false, area: "Challenges", item: caps.challenges.find(entry => entry.implemented) || caps.challenges[0]});
+    // U30: a catalog version cannot practise until its backbone catalog is
+    // installed here, so setup is not done while none is.
+    const uninstalled = selectable.filter(entry => entry.catalog_install && entry.catalog_install.installed === 0);
+    if (uninstalled.length) items.push({ok: false, area: "Backbone catalog", item: {title: "Backbone catalog", reason: "catalog_not_installed", plain: {sentence: "The backbone catalog isn't installed on this machine, so a catalog campaign can't practise yet.", next: null}, next_action: "Install it on this machine: python -B -m scripts.dev.catalog_install --state-dir <your state directory> (in your Carbon checkout). Not installed for: " + uninstalled.map(entry => entry.title + " " + entry.version).join(", ")}});
     const agents = agentChoices().filter(choice => choice.availability === "available");
     items.push(agents.length
       ? {ok: true, text: "Agents ready: " + agents.map(choice => choice.label).join(", ") + "."}
@@ -2312,8 +2438,9 @@
     // (LAUNCHPAD-ACCEPT-04): queued, the validator's side, or yours to act on.
     if (refusal.intake_outcome) box.append(el("p", "Validator intake: " + INTAKE_OUTCOMES[refusal.intake_outcome], "hint"));
     // What stopped it, by its code, so it can be named to someone who can help.
-    if (refusal.kind === "interrupted") box.append(el("p", "Code: " + refusal.code, "hint"));
-    if (refusal.next_action && !practiceMessage(refusal.code)) box.append(el("p", (compact ? "" : "What to do: ") + refusal.next_action, compact ? "hint" : "refusal-next"));
+    if (refusal.kind === "interrupted" && !compact) box.append(el("p", "Code: " + refusal.code, "hint"));
+    // A card in a list says what stopped it; the code and the long next action are in the campaign.
+    if (refusal.next_action && !practiceMessage(refusal.code)) box.append(el("p", compact ? "Open the campaign to see what to do." : "What to do: " + refusal.next_action, compact ? "hint" : "refusal-next"));
     const fix = refusalFix(refusal.code);
     if (fix && !compact) box.append(link(fix, "button fix"));
     parent.append(box);
@@ -2321,7 +2448,9 @@
   }
   function challengeLabel(run) {
     if (run.challenge) {
-      const entry = challengeEntry({id: run.challenge.id, version: run.challenge.version});
+      // U57: the Challenge's name even where this version is not listed here
+      // ("<id> · v<version>" read for a Challenge name).
+      const entry = challengeEntry({id: run.challenge.id, version: run.challenge.version}) || (caps?.challenges || []).find(item => item.challenge_id === run.challenge.id);
       return (entry ? entry.title : run.challenge.id) + " · v" + run.challenge.version;
     }
     return run.selects ? "Recorded without a Challenge (historical DEVELOPMENT campaign)" : "Challenge not yet recorded";
@@ -2366,7 +2495,7 @@
     return [{RESERVED: "Reserved", DEFERRED: "Deferred", RETIRED: "Retired"}[entry.status] || words(entry.status), "pill-wait"];
   }
   function renderChallengeCatalog(target) {
-    for (const entry of caps.challenges) {
+    for (const entry of offeredChallenges()) {
       const [tag, kind] = challengePill(entry);
       const box = card(target, entry.title, tag, kind);
       box.dataset.challenge = entry.challenge_id;
@@ -2378,6 +2507,9 @@
       } else {
         box.append(el("p", entry.plain?.sentence || "Unavailable: " + words(entry.reason) + ".", "status-line"));
         if (entry.plain?.next) box.append(link(entry.plain.next, "button fix"));
+      }
+      for (const limitation of entry.known_limitations || []) {
+        box.append(el("p", "Known limitation: " + limitation, "status-line"));
       }
       if (entry.implemented) {
         const description = details(box, "Description", []);
@@ -2614,9 +2746,23 @@
     tabSettings(panels.settings, run);
   }
   function missing(parent, text) { researchNote(parent, "Not yet available: " + text, "empty-state"); }
+  // U31: an agent spending model calls without a practice run is said
+  // plainly, with its refusals, so the miner need not read the raw journal.
+  // A hint only: nothing is stopped or limited by it.
+  function agentHealth(run) {
+    const calls = Number(run.usage?.reported?.provider_attempts || 0) + Number(run.usage?.uncertain?.provider_attempts || 0);
+    if (!(calls >= 10) || (run.completed_experiments ?? 0) > 0) return null;
+    const refusals = run.refusals || [];
+    const counts = {};
+    for (const item of refusals) { const code = item.correction_code || item.reason || item.status; if (code) counts[code] = (counts[code] || 0) + 1; }
+    const most = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    return calls + " model calls and no completed practice run yet" + (refusals.length ? ", " + refusals.length + " refused request" + (refusals.length === 1 ? "" : "s") + (most ? " (most: " + words(most[0]) + ")" : "") : "") + ". The agent may be stuck: read its reasoning under Journal, send it a hint under Messages, or pause the campaign.";
+  }
   function tabOverview(panel, run) {
     researchNote(panel, (run.agent || "Awaiting runtime") + " / " + (run.reasoning || "unavailable") + " / " + (run.compute || "unavailable") + " · Attempts: " + (run.attempted_experiments ?? 0) + " · Completed practice: " + (run.completed_experiments ?? 0));
     if (run.execution_label) researchNote(panel, run.execution_label, "hint");
+    const health = agentHealth(run);
+    if (health) researchNote(panel, health, "reason agent-health");
     if (run.deadline_unix) researchNote(panel, "Deadline from your elapsed limit: " + new Date(run.deadline_unix * 1000).toLocaleString());
     else researchNote(panel, "No deadline: you set no elapsed limit.", "hint");
     if (run.research_guidance) {
@@ -2688,7 +2834,40 @@
     if (!freezes.length && !recipes.length) missing(panel, "the controller does not expose trained weights or files; recipes and frozen candidates appear here once recorded.");
     researchNote(panel, "Export gives the full public record of this campaign as JSON.", "hint");
   }
-  function renderValidatorOutcome(panel, result) {
+  // C13: the evaluator's graded total on the public practice bank, gates
+  // first; the same reading the practice view gives every Challenge.
+  function practiceDualLine(dual) {
+    if (!dual.available) return "Practice graded total: unavailable" + (dual.reason ? " (" + words(dual.reason) + ")" : "") + ".";
+    if (!dual.eligible) return "Practice graded total: not eligible (" + (Object.entries(dual.gates || {}).filter(([, ok]) => ok === false).map(([name]) => words(name)).join(", ") || "a mandatory gate failed") + ").";
+    if (typeof dual.total !== "number") return "Practice graded total: not scored.";
+    return "Practice graded total: " + dual.total.toFixed(4) + " (0 to 1, higher is better" + (typeof dual.accuracy === "number" ? "; A " + dual.accuracy.toFixed(3) : "") + (typeof dual.design_value === "number" ? ", D " + dual.design_value.toFixed(3) : "") + "), on the public practice bank" + (Number.isInteger(dual.n_cases) ? " (" + dual.n_cases + " cases)" : "") + "; compares within this Challenge version only." + (Object.values(dual.gates || {}).includes("NOT_TESTED_ON_PRACTICE") ? " Not tested on practice: " + Object.entries(dual.gates).filter(([, ok]) => ok === "NOT_TESTED_ON_PRACTICE").map(([name]) => words(name)).join(", ") + "." : "");
+  }
+  // M1 E2E R5-1: `latest` is this submission's grade only when the receiver
+  // names this submission; the mining key's latest grade on the exam
+  // (`exam_latest`) is shown apart, never as this submit's, and "not graded
+  // yet" says how far this submission got (its own state).
+  function examLatestLine(grade) {
+    const other = grade && grade.exam_latest;
+    if (!other) return "";
+    const said = other.status === "GATE_FAILED" ? "not eligible (a mandatory gate failed)" : other.status === "NOT_SCORED" || typeof other.total !== "number" ? "not scored" : other.total.toFixed(4);
+    return " Your mining key's latest grade on this exam is " + said + ", from " + (other.recipe_digest ? "another submission" : "a submission the validator did not name") + "; it is not this one's.";
+  }
+  function gradeLine(grade, state) {
+    const latest = grade && grade.latest;
+    const best = grade?.best && typeof grade.best.total === "number" ? grade.best.total.toFixed(4) : null;
+    if (!latest) {
+      const stage = state === "ADMITTED" ? "received, waiting to be rebuilt" : state === "RECONSTRUCTED" ? "rebuilt, not graded yet" : "not graded yet";
+      return "Grade: " + stage + ". It appears here once the validator grades this submission." + examLatestLine(grade) + (best ? " Your best so far is " + best + "." : "");
+    }
+    // Validator (Ladder v3): a non-improvement repeats the best total under
+    // this submit's digest, so it is never read as this submit's score.
+    if (latest.status === "NO_IMPROVEMENT") return "Grade: did not improve on your best" + (typeof latest.total === "number" ? " (" + latest.total.toFixed(4) + ")" : "") + ". Compares within this Challenge version only.";
+    if (latest.status === "GATE_FAILED") return "Grade: not eligible (a mandatory gate failed). Compares within this Challenge version only.";
+    if (typeof latest.total !== "number") return "Grade: not scored.";
+    const detail = [typeof latest.A === "number" ? "A " + latest.A.toFixed(3) : null, typeof latest.D === "number" ? "D " + latest.D.toFixed(3) : null].filter(Boolean).join(", ");
+    return "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better" + (detail ? "; " + detail : "") + ")" + (best ? " · your best: " + best : "") + ". Compares within this Challenge version only.";
+  }
+  function renderValidatorOutcome(panel, result, campaign) {
     const o = result.result;
     const s = o.screening;
     const cases = s && s.cases && typeof s.cases === "object" ? Object.entries(s.cases).map(([k, v]) => words(k) + " " + v).join(", ") : "unavailable";
@@ -2701,9 +2880,28 @@
       o.sealed === true ? "Sealed: under this exam rule its results are computed on hidden cases and shown to no miner until Carbon releases those cases." : s ? "Screening on pool version " + (s.pool_version ?? "?") + ": " + (s.eligible === true ? "eligible" : s.eligible === false ? "not eligible" : "eligibility unavailable") + " · gates failed: " + ((s.gates_failed || []).join(", ") || "none") + " · cases: " + cases : "Screening: not shown in this feedback mode.",
       s && typeof s.score === "number" ? "Score: " + s.score + (typeof s.important_score === "number" ? " · important region: " + s.important_score : "") : o.sealed === true ? "Score: sealed." : "Score: not shown in this feedback mode.",
       o.sealed === true ? "Nomination and finals: sealed." : "Nominated for a final: " + (o.nominated === true ? "yes" : o.nominated === false ? "no" : "unavailable") + ((o.finals || []).length ? " · finals: " + o.finals.map(f => f.state + (f.promoted ? " (promoted)" : "")).join(", ") : ""),
+      // A direct campaign's private-exam grade (Validator display rule): one
+      // graded total 0..1, higher better, A and D as detail; a gate failure
+      // is not eligible; none yet until the receiver grades it.
+      ...(o.grade !== undefined ? [gradeLine(o.grade, o.state)] : []),
+      ...(o.practice_dual ? [practiceDualLine(o.practice_dual)] : []),
       (o.evidence || "DEVELOPMENT") + ": no qualification, no reward, no chain write.",
     ];
     for (const line of lines) researchNote(panel, line, "development-result");
+    // U53: the submit often answers before the validator grades it; the
+    // miner asks again (a signed read, Validator-approved), never unasked.
+    if (o.grade !== undefined && campaign) {
+      const check = document.createElement("button"); check.type = "button";
+      check.textContent = "Check for result";
+      check.addEventListener("click", async () => {
+        if (busy || !connected) return;
+        busy = true; render();
+        try { await api("/api/v1/operations/check_result", {campaign}, undefined, 30000); message("Read your latest grade from the validator."); }
+        catch (error) { message("Not read: " + (error.message || "the validator could not be reached") + ".", true); }
+        finally { busy = false; await refresh(); render(); }
+      });
+      panel.append(check);
+    }
   }
   function tabSubmission(panel, run) {
     if (run.selects === "miner") renderJourneySubmission(panel, run);
@@ -2712,12 +2910,12 @@
       if (result.status === "MULTI_VALIDATOR_OUTCOME") {
         for (const validator of result.validators || []) {
           researchNote(panel, "Validator: " + validator.receiver_hotkey + " · " + validator.intake_url, "development-result");
-          if (validator.result) renderValidatorOutcome(panel, {epoch: result.epoch, result: validator.result});
+          if (validator.result) renderValidatorOutcome(panel, {epoch: result.epoch, result: validator.result}, run.id);
           else researchNote(panel, words(validator.state) + ": " + (validator.next_step || words(validator.code)), "development-result");
         }
         continue;
       }
-      if (result.status === "VALIDATOR_OUTCOME" && result.result) { renderValidatorOutcome(panel, result); continue; }
+      if (result.status === "VALIDATOR_OUTCOME" && result.result) { renderValidatorOutcome(panel, result, run.id); continue; }
       const verified = result.status === "VERIFIED_SOURCE" && result.result;
       researchNote(panel, "DEVELOPMENT evaluation: " + (verified ? (result.result.disposition || "disposition unavailable") + " · Accepted DEVELOPMENT improvement: " + (typeof result.result.accepted_development_improvement === "boolean" ? String(result.result.accepted_development_improvement) : "unavailable") : "Readback unavailable; no disposition inferred."), "development-result");
     }
@@ -3419,7 +3617,7 @@
         }
         if (provider.availability !== "available") return provider.provider + " is unavailable: " + words(provider.reason) + ". Next: " + provider.next_action;
         if (!provider.models.some(model => model.id === wizard.model)) {
-          return provider.models.length ? "Choose a model." : provider.provider + " lists no models here. Choose it with your model under Set up, Inference: that model is then offered here.";
+          return provider.models.length ? "Choose a model." : provider.provider + " lists no models here. Choose it with your model under Set up, AI model: that model is then offered here.";
         }
         const cap = outputCap();
         if (cap?.problem) return "Fix the output cap: " + cap.problem + ", or leave it blank for " + outputDefault(cap) + ".";
@@ -3435,8 +3633,13 @@
       const problem = budgetProblem(composition.budget);
       if (problem) return "Fix your limits: " + problem + ".";
       if (offeredAgent(wizard.agentChoice)?.launch_agent === GRAPHITE) {
+        // U17: the controller refuses a Graphite launch without both finite
+        // provider ceilings (graphite_ceilings_required); say so here, before
+        // Launch, instead of calling every limit optional.
         const limits = graphiteLimitsProblem();
         if (limits) return "Fix Graphite's per-epoch limits: " + limits + ".";
+        const ceilings = composition.budget?.ceilings || {};
+        if (!Number.isSafeInteger(ceilings.provider_attempts) || !Number.isSafeInteger(ceilings.provider_nanodollars)) return "Graphite needs two of your limits: a model-call ceiling and a model-spend ceiling. Set both under Advanced limits, Ceilings per resource; every other limit stays optional.";
       }
     }
     if (step === "review") {
@@ -3541,8 +3744,8 @@
     renderConstructionOptions();
     const target = $("wizard-challenges");
     if (!caps) { rebuild(target, "none", node => node.append(el("p", "Connect to read the Challenge registry.", "hint"))); $("wizard-challenge-description").replaceChildren(); $("wizard-challenge-description").dataset.key = ""; return; }
-    rebuild(target, JSON.stringify([capsVersion, caps.challenges.map(entry => [entry.challenge_id, entry.version, entry.selectable]), connected]), node => {
-      for (const entry of caps.challenges) {
+    rebuild(target, JSON.stringify([capsVersion, offeredChallenges().map(entry => [entry.challenge_id, entry.version, entry.selectable]), connected]), node => {
+      for (const entry of offeredChallenges()) {
         const label = el("label", undefined, "choice" + (entry.selectable ? "" : " unavailable"));
         const input = el("input"); input.type = "radio"; input.name = "wizard-challenge"; input.value = entry.challenge_id;
         input.dataset.version = entry.version || "";
@@ -3794,7 +3997,7 @@
         }
         // A provider whose adapter lists no models is chosen with its model
         // in setup; a launch never names a model this page has not listed.
-        if (!provider.models.length) researchNote(group, "No model is listed for this provider here. Choose it with your model under Set up, Inference, and that model is offered here.", "hint");
+        if (!provider.models.length) researchNote(group, "No model is listed for this provider here. Choose it with your model under Set up, AI model, and that model is offered here.", "hint");
         researchNote(group, "Credential: " + provider.credential.reference + " · " + (provider.credential.configured === null ? provider.credential.basis : provider.credential.configured ? "configured" : "not configured"), "hint");
         if (provider.availability !== "available") unavailableNote(group, provider);
         node.append(group);
@@ -3837,6 +4040,7 @@
     fill(input, wizard.timeoutSeconds ?? "");
     input.setAttribute("aria-invalid", timeout.problem ? "true" : "false");
     let note = "Default: " + timeout.standard + " seconds, or half your elapsed limit where that is shorter. How long each model call may wait for the provider's answer; a call still unanswered then ends with its outcome unknown and is reconciled, never resent. New calls stop when less than the timeout remains of your elapsed limit; it reserves no money. Leave it blank for the default, or enter a whole number of seconds from " + timeout.low.toLocaleString("en-US") + " to " + timeout.high.toLocaleString("en-US") + ". The Control Center checks it again at launch.";
+    if (timeout.transport) note += " " + timeout.transport;
     if (timeout.problem) note = "Not valid: " + timeout.problem + ". " + note;
     setText($("wizard-timeout-note"), note);
     const kind = timeout.problem ? "reason" : "hint";
@@ -3956,7 +4160,7 @@
       // launch; no maximum is guessed for the model.
       if (agent?.launch_agent === GRAPHITE && cap && !cap.problem && cap.value === null && cap.fallback?.basis === "no_documented_maximum") row("Max output warning", "Carbon knows no output maximum for " + wizard.model + ", so each reply is capped at the conservative " + cap.fallback.max_output_tokens.toLocaleString("en-US") + " tokens, which can cut a Planner's plan short. Set max output to the model's own maximum.");
       const timeout = callTimeout();
-      if (timeout && !timeout.problem) row("Call timeout", timeout.value !== null ? timeout.value.toLocaleString("en-US") + " seconds per provider call, your timeout" : "Not set: " + timeout.fallback.toLocaleString("en-US") + " seconds per provider call, the default" + (timeout.bounded && timeout.fallback < timeout.standard ? " (half your elapsed limit)" : "") + ". New calls stop when less than the timeout remains of your elapsed limit");
+      if (timeout && !timeout.problem) row("Call timeout", timeout.value !== null ? timeout.value.toLocaleString("en-US") + " seconds per provider call, your timeout" : "Not set: " + timeout.fallback.toLocaleString("en-US") + " seconds per provider call, the default" + (timeout.bounded && timeout.fallback < timeout.standard ? " (half your elapsed limit)" : "") + ". New calls stop when less than the timeout remains of your elapsed limit" + (timeout.streams ? ". Streams: long replies are not cut while tokens arrive" : ""));
       row("Compute", compute ? compute.label + " · " + compute.lane + " lane · " + compute.availability : "Unavailable");
       row("Tools", entry ? Object.keys(entry.tools?.workflow || {}).join(", ") || "none listed" : "Choose a Challenge");
       // Stated before launch, not learnt at submit (LAUNCHPAD-PAGE-USABILITY-01).
@@ -4301,6 +4505,11 @@
       const outcome = await keyedOperation(name, body);
       if (outcome.ok) {
         if (name === "practice") practiceIssues.delete(body.campaign);
+        // U62: a form the miner just used is not held against the refresh:
+        // the pressed button lets go of focus and a freeze's typed reason is
+        // done, so the form redraws (Submit enables once the freeze lands).
+        if (document.activeElement?.tagName === "BUTTON") document.activeElement.blur();
+        if (name === "freeze_candidate") for (const node of document.querySelectorAll(".journey-submit [data-edited]")) delete node.dataset.edited;
         watch(name, body.campaign, outcome.value, {...outcome, mode: body.mode}); message(started + (outcome.replaced ? " " + REPLACED : ""));
       }
       // A refusal with the controller's next step, not just its code
@@ -4448,6 +4657,8 @@
       const run = await api("/api/v1/research", pendingResearch.body, pendingResearch.key);
       forgetLaunch();
       message("Research launch recorded. Runtime preflight and actual outcome appear in the campaign.");
+      // It belongs to the campaign it opens: leaving that campaign ends it (show()).
+      launchNoticeFor = run && run.id ? "#campaigns/" + encodeURIComponent(run.id) : location.hash;
       wizard.step = "challenge"; saveWizard();
       if (run && run.id) location.hash = campaignHref(run.id);
     } catch (error) {
@@ -4504,5 +4715,5 @@
   show();
   setInterval(refresh, 1500);
   if (linkToken !== null) connectFromLink(linkToken);
-  else { const resumed = keptSession(); if (resumed) connectFromLink(resumed, true); }
+  else { const resumed = keptSession(); if (resumed) connectFromLink(resumed, true); else connectRemembered(); }
 })();

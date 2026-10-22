@@ -51,7 +51,11 @@ def test_only_the_torch_cpu_profiles_require_the_pytorch_worker():
     for key, entry in implemented.items():
         for profile in entry["profiles"]:
             required = TORCH_CPU_WORKER in profile["requirements"]
-            assert required == (profile["backend"] == "torch-cpu/isolated-carrier")
+            # The shared GPU profile (S3) builds on the PyTorch CPU worker too.
+            assert required == (
+                profile["backend"]
+                in ("torch-cpu/isolated-carrier", "torch-cuda/isolated-carrier")
+            )
         torch = any(p["backend"].startswith("torch-cpu") for p in entry["profiles"])
         assert torch == (key in TORCH), key
     assert {(c["id"], c["version"]) for c in torch_challenges()} == TORCH

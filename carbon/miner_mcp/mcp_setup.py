@@ -259,6 +259,8 @@ def make_status_tool(
             acceptance_choices=payload["acceptance_choices"],
         )
 
+    from mcp_types import ToolAnnotations
+
     return Tool(
         fn=invoke,
         name=STATUS,
@@ -270,6 +272,8 @@ def make_status_tool(
         parameters=model.model_json_schema(),
         fn_metadata=exact(arg_model=model, output_model=StatusResult),
         is_async=True,
+        # Reading setup changes nothing (H18).
+        annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False),
     )
 
 

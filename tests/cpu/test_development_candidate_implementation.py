@@ -120,18 +120,68 @@ def test_candidate_rejects_ignored_runtime_bytes(tmp_path, path):
         _checked(repo, revision, tree, source_digest)
 
 
-def test_a_stray_pycache_refusal_names_the_path_and_the_fix(tmp_path):
-    # `python` without -B writes carbon/**/__pycache__ into the checkout; the
-    # refusal stays closed but says what to remove and why it appeared.
+def _candidate_ignoring_pycache(tmp_path):
+    repo, *_ = _candidate(tmp_path)
+    with (repo / ".gitignore").open("a") as ignore:
+        ignore.write("__pycache__\n")
+    _git(repo, "add", ".gitignore")
+    _git(repo, "commit", "-qm", "ignore bytecode caches")
+    archive = subprocess.check_output(
+        ["git", "archive", "--format=tar", "HEAD"], cwd=repo, timeout=10
+    )
+    return (
+        repo,
+        _git(repo, "rev-parse", "HEAD"),
+        _git(repo, "rev-parse", "HEAD^{tree}"),
+        "sha256:" + hashlib.sha256(archive).hexdigest(),
+    )
+
+
+def test_a_stale_pycache_of_only_pyc_files_is_removed_and_counted(tmp_path):
+    # Validator ruling H3b: children started with `python -I` write caches
+    # between launches; a cache of regular .pyc files is removed first.
     repo, revision, tree, source_digest = _candidate(tmp_path)
-    cache = repo / "carbon" / "__pycache__" / "module.cpython-311.pyc"
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    cache.write_bytes(b"stale bytecode")
+    for name in ("carbon/__pycache__/module.cpython-311.pyc", "x/__pycache__/a.pyc"):
+        cache = repo / name
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_bytes(b"stale bytecode")
+    checked = _checked(repo, revision, tree, source_digest)
+    # The identity is the same as for a clean checkout (H13): the runner
+    # profile and the operator's pin both carry exactly these fields.
+    assert set(checked) == {
+        "revision",
+        "tree",
+        "source_tree_digest",
+        "source_authority",
+    }
+    assert checked == _checked(repo, revision, tree, source_digest)
+    assert not (repo / "carbon" / "__pycache__").exists()
+    assert not (repo / "x" / "__pycache__").exists()
+
+
+def test_a_pycache_holding_another_file_refuses_and_is_kept(tmp_path):
+    repo, revision, tree, source_digest = _candidate_ignoring_pycache(tmp_path)
+    cache = repo / "carbon" / "__pycache__"
+    cache.mkdir()
+    (cache / "module.cpython-311.pyc").write_bytes(b"stale bytecode")
+    (cache / "notes.txt").write_text("not bytecode\n")
     with pytest.raises(ValueError) as refused:
         _checked(repo, revision, tree, source_digest)
     message = str(refused.value)
     assert message.startswith("development candidate has ignored runtime source: ")
     assert "carbon/__pycache__/" in message and "-B" in message
+    assert (cache / "module.cpython-311.pyc").exists()
+
+
+def test_a_symlinked_pycache_refuses_without_following_it(tmp_path):
+    repo, revision, tree, source_digest = _candidate_ignoring_pycache(tmp_path)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "victim.pyc").write_bytes(b"outside the root")
+    (repo / "carbon" / "__pycache__").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(ValueError, match="ignored runtime source"):
+        _checked(repo, revision, tree, source_digest)
+    assert (outside / "victim.pyc").exists()
 
 
 def test_candidate_allows_only_isolated_environment_and_cache(tmp_path):

@@ -178,6 +178,10 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR):
         expected_bundle=selected,
         cli=DockerCLI(),
     )
+    # The exact material too, where admission inspects it (F4, M1 2026-10-22:
+    # an installed image without staged material resolves nothing, and every
+    # catalog practice and receiver task was refused as not installed).
+    stage_pinned_bundle_material(directory, cache_root)
     return {
         "status": "INSTALLED_VERIFIED",
         "bundle_ref": image.bundle_ref,
@@ -239,6 +243,10 @@ def install_receiver_bundle(directory, receiver_config):
         expected_bundle=selected,
         cli=DockerCLI(),
     )
+    # The exact material too, where admission inspects it (F4, M1 2026-10-22:
+    # an installed image without staged material resolves nothing, and every
+    # catalog practice and receiver task was refused as not installed).
+    stage_pinned_bundle_material(directory, cache_root)
     return {
         "status": "INSTALLED_VERIFIED",
         "host": "receiver",

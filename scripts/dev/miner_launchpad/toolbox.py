@@ -73,15 +73,88 @@ _lanes_cache = {}
 def _sources(challenge_id, version):
     from carbon.challenge_registry import registry
     from carbon.development_session.exam_environment import exam_environment
-    from carbon.reconstruction.capability_registry import public_registry
+    from carbon.reconstruction.capability_registry import (
+        UnknownChallenge,
+        public_registry,
+    )
 
+    try:
+        capabilities = public_registry(challenge_id)["capabilities"]
+    except UnknownChallenge:
+        # A direct Challenge (F08, F02) has no construction capability
+        # contract; its toolbox still holds its tools, catalog and recipe
+        # examples (M1 E2E R5-9: it read challenge_has_no_toolbox).
+        capabilities = []
     return json.dumps(
         {
             "described": registry.describe(challenge_id, version),
-            "capabilities": public_registry(challenge_id)["capabilities"],
+            "capabilities": capabilities,
             "exam": exam_environment(),
         }
     )
+
+
+def _catalog_recipe(challenge_id, version, catalog_id):
+    """The registered ready catalog recipe for one entry: the Challenge's own
+    helper (Motor's, Cooling's, or the direct versions')."""
+    from carbon.challenge_registry import cold_plate, direct, motor
+    from carbon.direct_campaign.spec import SPECS
+    from carbon.reconstruction.capability_registry import (
+        COLD_PLATE_CHALLENGE,
+        MOTOR_CHALLENGE,
+    )
+
+    if challenge_id == MOTOR_CHALLENGE:
+        return motor.catalog_recipe(catalog_id, version=version)
+    if challenge_id == COLD_PLATE_CHALLENGE:
+        return cold_plate.catalog_recipe(catalog_id, version=version)
+    return direct.catalog_recipe(SPECS[challenge_id], catalog_id, version=version)
+
+
+#: What a catalog entry's card says when it is not the backbone's plain
+#: default build (carbon/backbone_catalog/LICENCES.md, "Variants"; Validator:
+#: any card or listing text for such an entry must say so).
+ENTRY_VARIANTS = {
+    "thuml.LSM": (
+        "Upstream's instance-norm variant (task: dynamic), not the plain "
+        "default build."
+    ),
+}
+
+
+@functools.lru_cache(maxsize=16)
+def _catalog_recipes(challenge_id, version):
+    from carbon.backbone_catalog import listing
+    from carbon.challenge_kit.served_versions import UnregisteredVersion, serves_catalog
+
+    try:
+        if type(version) is not str or not serves_catalog(challenge_id, version):
+            return "[]"
+    except UnregisteredVersion:
+        return "[]"
+    return json.dumps(
+        [
+            {
+                "catalog_id": item["catalog_id"],
+                "backbone": item["backbone"],
+                "recipe": _catalog_recipe(challenge_id, version, item["catalog_id"]),
+                **(
+                    {"variant": ENTRY_VARIANTS[item["catalog_id"]]}
+                    if item["catalog_id"] in ENTRY_VARIANTS
+                    else {}
+                ),
+            }
+            for item in listing.entries(challenge_id, version)
+        ]
+    )
+
+
+def catalog_recipes(challenge_id, version):
+    """The backbone picker for a catalog version (S22): each entry of the
+    version's catalog (`backbone_catalog.listing.entries`) with its ready
+    catalog recipe at the tested baseline (empty settings keep the
+    baseline's). [] for a version that serves no catalog."""
+    return json.loads(_catalog_recipes(challenge_id, version))
 
 
 def _tools():
@@ -137,7 +210,17 @@ def for_request(host, request, lanes=None):
     ):
         raise Rejected("challenge_required")
     ref = challenge_ref(challenge_id)
-    if ref["version"] is None or version not in (None, ref["version"]):
+    if version is not None and version != ref["version"]:
+        # H6: any registered version of the Challenge, as launch takes it
+        # (a toolbox for Motor 1.3 or Cooling 1.2 read challenge_unknown).
+        from carbon.challenge_registry import describe
+
+        try:
+            describe(challenge_id, version)
+        except Exception:  # noqa: BLE001 - an unknown version is unknown
+            raise Rejected("challenge_unknown", 404) from None
+        ref = {**ref, "version": version}
+    if ref["version"] is None:
         raise Rejected("challenge_unknown", 404)
     try:
         return build(ref, lanes=host_lanes(host) if lanes is None else lanes)
@@ -225,10 +308,12 @@ def where(compute, lanes, exam_backend):
     }
 
 
-def build(challenge, *, lanes=None, compute=None):
+def build(challenge, *, lanes=None, compute=None, direct=False):
     """The toolbox for one Challenge on this host. `lanes` is
     `host_lanes(host)`, or None when no host is known. `compute` is
-    `campaign_compute(...)` for a campaign's toolbox, or None."""
+    `campaign_compute(...)` for a campaign's toolbox, or None. `direct` is a
+    direct campaign's toolbox: it practises construction recipes only, so a
+    Level 0 strategy example is not offered (M1 E2E H11)."""
     if type(challenge) is not dict or type(challenge.get("id")) is not str:
         return None
     sources = json.loads(_sources(challenge["id"], challenge.get("version")))
@@ -455,12 +540,18 @@ def build(challenge, *, lanes=None, compute=None):
                 },
                 "limits": limits,
                 # The Challenge's registered example recipes, for the page's
-                # recipe editor (RSURF-D15).
+                # recipe editor (RSURF-D15): a Level 0 version's strategies,
+                # a catalog version's construction recipes (S22).
                 "examples": [
-                    e["strategy"]
+                    e.get("strategy", e.get("recipe"))
                     for e in described.get("examples") or []
-                    if type(e) is dict and type(e.get("strategy")) is dict
+                    if type(e) is dict
+                    and type(e.get("strategy", e.get("recipe"))) is dict
+                    and not (direct and "recipe" not in e)
                 ][:4],
+                # The editor's backbone picker: each catalog entry and its
+                # ready recipe; [] where the version serves no catalog.
+                "catalog": catalog_recipes(challenge["id"], challenge.get("version")),
                 "lanes": {
                     name: _availability(lanes.get(name))
                     for name in ("julia", "gpu", "remote_gpu")

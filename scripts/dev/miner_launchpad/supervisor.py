@@ -251,9 +251,79 @@ NEXT_ACTIONS = {
         "(carbon_practice) with the recipe you want."
     ),
     "retry_interrupted_boolean_required": "Send retry_interrupted as true or false.",
+    # M1 E2E H19: an agent sent a Strategy 1.0 and read only "Read the code".
+    "construction_recipe_malformed": (
+        "That is not a construction recipe. A recipe is a JSON object with "
+        'exactly these keys: schema ("carbon.construction-recipe.v1"), '
+        "challenge, source, procedure and output; a Strategy 1.0 "
+        "({schema_version, backbone, parameters}) is not one. Easiest: call "
+        "toolbox {challenge, challenge_version}; its catalog list holds a "
+        "ready recipe for every backbone. Copy one and change only "
+        "procedure.configuration."
+    ),
+    "construction_recipe_source_invalid": (
+        "The recipe's source is not one this version takes. Copy a catalog "
+        "recipe from toolbox {challenge, challenge_version} (source "
+        "{kind: catalog, catalog_id, catalog_digest}) and keep its source as "
+        "it is."
+    ),
+    "construction_recipe_procedure_invalid": (
+        "The recipe's procedure is not valid: keep entrypoint, train_use and "
+        "initial_state as the toolbox's catalog recipe has them, and change "
+        "only configuration, with the settings the entry lists."
+    ),
+    "construction_recipe_binding_mismatch": (
+        "The recipe names another Challenge, version or kit: copy challenge "
+        "and output from the toolbox's catalog recipe for this campaign's "
+        "exact version."
+    ),
+    "no_submitted_result": (
+        "No submit of this campaign reached a validator yet, so there is no "
+        "grade to read. If a submit was refused, its reason is the campaign's "
+        "last refusal (observe, or the Submission tab): fix that and submit."
+    ),
     "campaign_interrupted": (
         "The campaign stopped before it finished. Resume it; reconcile first "
         "if it asks for reconciliation."
+    ),
+    # M1 E2E U24: the model provider, not the campaign, failed the call.
+    "model_provider_unknown": (
+        "Your model provider did not answer the agent's call in time, or its "
+        "answer could not be read. Reconcile, then Resume; if it repeats, "
+        "lower the max output per reply or choose a faster model."
+    ),
+    "model_provider_transient_server": (
+        "Your model provider failed the agent's call with a server error. "
+        "Reconcile, then Resume; if it repeats, try again later or choose "
+        "another model."
+    ),
+    "model_provider_server_unavailable": (
+        "Your model provider was unavailable. Resume later; nothing was "
+        "charged for that call."
+    ),
+    "model_provider_unreachable": (
+        "Your model provider could not be reached from this machine (no "
+        "connection or no such host). Check the network, then Resume."
+    ),
+    "model_provider_rate_limited": (
+        "Your model provider rate-limited the agent. Wait, then Resume."
+    ),
+    "model_provider_quota_exhausted": (
+        "Your model provider says your account's quota or credit is used up. "
+        "Add credit with the provider, then Resume."
+    ),
+    "model_provider_auth_credential": (
+        "Your model provider refused the key. Set a working key under Set "
+        "up, Inference, then Resume."
+    ),
+    "model_provider_context_limit": (
+        "Your model provider refused the agent's request as longer than the "
+        "model accepts. Choose a model with a longer context, or launch a new "
+        "campaign."
+    ),
+    "model_provider_invalid_request": (
+        "Your model provider rejected the agent's request as invalid. Choose "
+        "another model, or launch a new campaign."
     ),
     "paused_when_supervisor_closed": (
         "The Control Center (or the supervisor running this campaign) closed, "
@@ -431,6 +501,12 @@ NEXT_ACTIONS = {
     ),
     # LAUNCHPAD-PAGE-USABILITY-01: says what still works and what to do,
     # since a miner usually cannot add an intake until one is published.
+    "construction_submission_unserved": (
+        "This campaign's level does not submit through a level intake. A "
+        "direct campaign (a catalog, graph or bundle recipe) submits to its "
+        "construction receiver: freeze a practised recipe and submit again; "
+        "if this persists, update Carbon and review your setup."
+    ),
     "evaluation_unavailable": (
         "Your frozen candidate is kept, but it cannot be evaluated yet: no "
         "validator deployment or intake is configured for this Challenge in "
@@ -451,6 +527,16 @@ NEXT_ACTIONS = {
         "tell which is not running; otherwise check the address and your "
         "connection. Then submit again."
     ),
+    # M1 E2E R5-2: a direct campaign's construction receiver did not answer.
+    # The profile does name it, so this is never "no intake configured".
+    "construction_intake_unavailable": (
+        "Your construction receiver is configured but could not be reached, "
+        "or did not answer. The frozen candidate is kept. If the receiver did "
+        "get your submission, submitting again returns that submission's "
+        "result; it is never graded twice. For a receiver on this machine's "
+        "loopback (a tunnel), start the tunnel; otherwise the receiver may be "
+        "down, so ask its operator or wait. Then submit again."
+    ),
     # Every other closed code a submission through a validator intake can
     # end with (`carbon.battery.campaign.intake_code`: the intake's and its
     # transport's codes, `intake_client.REFUSALS`, and the trip's own). None
@@ -470,6 +556,28 @@ NEXT_ACTIONS = {
         "the frozen candidate is kept. Review the evaluation endpoint under "
         "Set up your environment (carbon_setup_review): check the intake "
         "address and its receiver hotkey, then submit again."
+    ),
+    # Launchpad Test Runner G3: a construction receiver serves exactly one
+    # Challenge version, and the intake this submit reached serves another.
+    "construction_intake_challenge_mismatch": (
+        "The intake this campaign submits to serves another Challenge: each "
+        "validator intake serves exactly one Challenge version, so nothing was "
+        "signed or sent, and the frozen candidate is kept. Open Set up your "
+        "environment and read Review's evaluation list (carbon_setup_review): "
+        "it shows which Challenge each intake serves. Add an intake that serves "
+        "this Challenge and version, or wait until Carbon publishes one, then "
+        "submit again."
+    ),
+    "construction_intake_chain_mismatch": (
+        "The intake this campaign submits to serves another chain or subnet, "
+        "so nothing was signed or sent; the frozen candidate is kept. Check "
+        "the intake address under Set up your environment, then submit again."
+    ),
+    "construction_contract_not_served": (
+        "The intake serves this Challenge but not this campaign's construction "
+        "contract, so nothing was signed or sent; the frozen candidate is "
+        "kept. The intake may run another Carbon version: check it, or use an "
+        "intake that serves this version, then submit again."
     ),
     "intake_signer_changed": (
         "This epoch's candidate was submitted under another hotkey than the "
@@ -1072,8 +1180,9 @@ NEXT_ACTIONS = {
         "it and the server generates one."
     ),
     "research_launch_replay_conflict": (
-        "This key already launched a different request. Send that request "
-        "unchanged to replay it, or use a new key."
+        "This key already launched a different request. If your setup changed "
+        "since (a profile rewrite changes what a launch carries), launch with a "
+        "new key; otherwise send that request unchanged to replay it."
     ),
     "operation_replay_conflict": (
         "This key already names a different request. Send that request "
@@ -1120,7 +1229,8 @@ NEXT_ACTIONS = {
         "Use the id your launch returned for one of your own campaigns."
     ),
     "campaign_journal_not_ready": (
-        "The campaign is still being prepared. Try again once observe shows it running."
+        "The campaign is still being prepared. Call wait on it (it returns once "
+        "preparation is done), then try again."
     ),
     "strategy_json_invalid": "Send the recipe as a JSON object.",
     "strategy_object_required": "Send the recipe as a JSON object.",
@@ -1275,7 +1385,11 @@ NEXT_ACTIONS = {
         "provider_attempts (model calls) and provider_nanodollars (model "
         "spend) as whole numbers. Launch again with budget.ceilings setting "
         "both; nothing was called. A campaign launched without them cannot "
-        "run, so resuming it does not help."
+        "run, so resuming it does not help. Each call holds up to its most "
+        "possible cost until it is booked, and starts only while that much "
+        "spend is left: set provider_nanodollars to more than one call's hold "
+        "(Graphite's options show per_call_reservation_nanodollars and what "
+        "the ceiling buys)."
     ),
     "hunt_query_invalid": (
         "Send hunt as {queries?, max_records?}: up to 8 queries of 1 to 6 "
@@ -1518,6 +1632,17 @@ FALLBACK_ACTION = (
 def next_action(code):
     """The next step for `code`: its `NEXT_ACTIONS` entry, or the fallback."""
     return NEXT_ACTIONS.get(code, FALLBACK_ACTION)
+
+
+def provider_interruption_code(exc):
+    """`model_provider_<outcome>` for a model-provider call that ended a run
+    (`research_agent.ProviderCallFailed`, its typed outcome), else None; never
+    the message (M1 E2E U24: the page said only campaign_interrupted)."""
+    outcome = getattr(getattr(exc, "outcome", None), "value", None)
+    if type(outcome) is not str or type(exc).__name__ != "ProviderCallFailed":
+        return None
+    code = "model_provider_" + outcome
+    return code if code in NEXT_ACTIONS else None
 
 
 def exception_code(exc):

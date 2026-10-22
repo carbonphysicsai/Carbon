@@ -150,6 +150,25 @@ def test_operator_candidate_pin_is_private_exact_and_cleared_by_install(
             {**profile, "accepted_revision": "d" * 40},
             repository=tmp_path,
         )
+    # M1 E2E H13b: setup rewrote the profile (an intake, a setting) after the
+    # caller read it; the candidate identity is unchanged, so it is accepted.
+    assert (
+        installed.profile_candidate(
+            profile_path, {**profile, "intakes": {"x": "y"}}, repository=tmp_path
+        )
+        == expected
+    )
+    with pytest.raises(ValueError, match="profile differs"):
+        installed.profile_candidate(
+            profile_path,
+            {**profile, "runtime": {"implementation": {**expected, "tree": "e" * 40}}},
+            repository=tmp_path,
+        )
+    # After the check a caller reads intakes from the file as it is now,
+    # not from its own copy (Validator, H13b receipt).
+    rewritten = {**profile, "intakes": {"x": "https://receiver.example"}}
+    write_private(profile_path, canonical(rewritten))
+    assert installed.current_profile(profile_path)["intakes"] == rewritten["intakes"]
     installed.write(state, image_manifest=worker, analysis_image_manifest=analysis)
     assert not pin.exists()
     assert installed.candidate_implementation(state, repository=tmp_path) is None

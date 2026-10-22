@@ -32,7 +32,9 @@ REPLICAS = {
 FEEDBACK_MODES = ("FULL",)
 PRACTICE_PROVENANCE = "MOTOR_PUBLIC_PRACTICE"
 BACKENDS = ("numpy",)
-RUNTIME_KEYS = frozenset({"implementation", "images", "authored_research"})
+RUNTIME_KEYS = frozenset(
+    {"implementation", "images", "authored_research", "gpu_research"}
+)
 #: The backbone-catalog version (OWNER-BACKBONE-CATALOG-01): direct catalog
 #: recipes, PyTorch CPU practice, submit through the signed construction
 #: receiver. Built under its research key (`contracts.keyed`); 1.0 is unchanged.
@@ -117,7 +119,7 @@ def host_julia_image(root, declared, analysis):
     return available_julia_image(root, analysis)
 
 
-def research_runtime(declared, *, implementation, images, julia_image):
+def research_runtime(declared, *, implementation, images, julia_image, gpu_image=None):
     extra = set(declared) - RUNTIME_KEYS
     if extra:
         raise ValueError(
@@ -128,6 +130,10 @@ def research_runtime(declared, *, implementation, images, julia_image):
         from carbon.development_session.julia_analysis import authored_julia_scope
 
         runtime["authored_research"] = [authored_julia_scope(julia_image)]
+    # One shared GPU path (catalog_gpu): declared, never per Challenge.
+    from carbon.development_session.catalog_gpu import with_gpu
+
+    runtime = with_gpu(runtime, declared, _key().challenge_id, gpu_image)
     return runtime
 
 
@@ -136,8 +142,6 @@ def check_attached(
 ):
     from .research import objective
 
-    if gpu_image is not None:
-        raise ValueError("motor Level 0 has no GPU practice lane")
     expected = {
         "implementation": implementation,
         "images": images,
@@ -154,6 +158,7 @@ def check_attached(
         implementation=implementation,
         images=images,
         julia_image=julia_image,
+        gpu_image=gpu_image,
     ):
         raise ValueError("campaign runtime differs from the motor runtime")
 
@@ -178,7 +183,7 @@ def compose(
 
     from .research import MotorPractice, make_motor_research_service
 
-    if gpu_image is not None or remote is not None:
+    if remote is not None:
         raise ValueError("motor Level 0 offers CPU practice only")
     if _catalog():
         from .catalog_practice import MotorCatalogPractice
@@ -204,6 +209,11 @@ def compose(
             runner=runner,
             backend=backend,
         )
+    if gpu_image is not None:
+        # The catalog practice's GPU builds (shared GPU path, S3).
+        if not _catalog():
+            raise ValueError("motor Level 0 offers CPU practice only")
+        practice.gpu_image = gpu_image
     composition = make_motor_research_service(
         root=ledger.root / "research-tasks",
         ledger=ledger,
@@ -245,6 +255,7 @@ async def prepare_motor(args, *, ledger=None, campaign):
         new_plan_input_default,
         new_plan_output_default,
         new_plan_timeout_default,
+        new_plan_transport,
         private_file,
         requester,
         supplied_selection,
@@ -289,6 +300,7 @@ async def prepare_motor(args, *, ledger=None, campaign):
                 args,
                 output_default=new_plan_output_default(args),
                 timeout_default=new_plan_timeout_default(args),
+                transport=new_plan_transport(args),
                 elapsed_seconds=new_plan_elapsed_seconds(args),
                 input_default=new_plan_input_default(args, agent),
             )
@@ -338,11 +350,15 @@ async def prepare_motor(args, *, ledger=None, campaign):
         raise ValueError("analysis/trusted image parent differs")
     declared = frozen["runtime"] if frozen is not None else product.runtime
     julia_image = host_julia_image(root, declared, analysis)
+    from carbon.development_session.catalog_gpu import registered_gpu_image
+
+    gpu_image = registered_gpu_image(root, declared, _key().challenge_id)
     runtime = research_runtime(
         declared,
         implementation=implementation,
         images=[image.image_id, analysis.image_id],
         julia_image=julia_image,
+        gpu_image=gpu_image,
     )
     if declared != runtime:
         raise ValueError("configured runtime differs from the motor runtime")
@@ -387,6 +403,7 @@ async def prepare_motor(args, *, ledger=None, campaign):
             implementation=implementation,
             images=runtime["images"],
             julia_image=julia_image,
+            gpu_image=gpu_image,
         )
     ledger.freeze(manifest)
     composition = None
@@ -398,6 +415,7 @@ async def prepare_motor(args, *, ledger=None, campaign):
             analysis=analysis,
             connection=connection,
             julia_image=julia_image,
+            gpu_image=gpu_image,
         )
         sdk = ResearchMinerTools(
             connection=connection,

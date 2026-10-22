@@ -944,3 +944,116 @@ def minimal_profile(tmp_path):
     path.write_bytes(canonical(cfg))
     path.chmod(0o600)
     return path
+
+
+def test_a_model_provider_failure_names_the_provider_and_what_to_do():
+    # M1 E2E U24: a provider timeout read only "campaign interrupted".
+    from carbon.development_session.model_provider import ProviderOutcome
+    from carbon.development_session.research_agent import ProviderCallFailed
+    from scripts.dev.miner_launchpad import supervisor
+
+    for outcome in ProviderOutcome:
+        code = supervisor.provider_interruption_code(
+            ProviderCallFailed("private", outcome=outcome)
+        )
+        assert code == "model_provider_" + outcome.value
+        assert "model provider" in supervisor.NEXT_ACTIONS[code]
+    assert supervisor.provider_interruption_code(ValueError("x")) is None
+
+
+def test_wait_returns_once_the_running_operation_has_finished(monkeypatch):
+    # M1 E2E A1: an external agent spent its turns polling observe.
+    from types import SimpleNamespace
+
+    import pytest
+
+    from scripts.dev.miner_launchpad.controller import Rejected
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    states = iter(["PRACTICING", "PRACTICING", "READY"])
+    host = SimpleNamespace(
+        WAIT_WORKING=RunnerAdapter.WAIT_WORKING,
+        WAIT_POLL_SECONDS=0,
+        read=lambda identity: {"id": identity, "state": next(states)},
+    )
+    admitted = SimpleNamespace(campaign={"id": "c1"})
+    done = RunnerAdapter.wait_admitted(host, admitted, {"campaign": "c1"})
+    assert done == {"id": "c1", "state": "READY", "waited": "FINISHED"}
+    host.read = lambda identity: {"id": identity, "state": "SUBMITTING"}
+    late = RunnerAdapter.wait_admitted(host, admitted, {"wait_seconds": 1})
+    assert late["waited"] == "STILL_RUNNING"
+    for bad in (0, 601, "5", True):
+        with pytest.raises(Rejected) as refused:
+            RunnerAdapter.wait_admitted(host, admitted, {"wait_seconds": bad})
+        assert refused.value.code == "wait_seconds_invalid"
+
+
+def test_wait_keeps_waiting_while_an_operation_is_in_flight():
+    # M1 E2E H15: RECONCILING with a practice in flight returned at once.
+    from types import SimpleNamespace
+
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    reads = iter(
+        [
+            {"state": "RECONCILING", "in_flight": {"operation": "run"}},
+            {"state": "READY", "in_flight": {"operation": "practice"}},
+            {"state": "READY", "in_flight": None},
+        ]
+    )
+    host = SimpleNamespace(
+        WAIT_WORKING=RunnerAdapter.WAIT_WORKING,
+        WAIT_POLL_SECONDS=0,
+        read=lambda identity: next(reads),
+    )
+    done = RunnerAdapter.wait_admitted(
+        host, SimpleNamespace(campaign={"id": "c1"}), {"campaign": "c1"}
+    )
+    assert done == {"state": "READY", "in_flight": None, "waited": "FINISHED"}
+
+
+def test_a_malformed_recipe_names_the_shape_and_where_a_ready_one_is():
+    # M1 E2E H19: the agent read only "Read the code" and could not correct.
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    text = next_action("construction_recipe_malformed")
+    assert "carbon.construction-recipe.v1" in text and "toolbox" in text
+    for code in (
+        "construction_recipe_source_invalid",
+        "construction_recipe_procedure_invalid",
+        "construction_recipe_binding_mismatch",
+    ):
+        assert "toolbox" in next_action(code), code
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        "model_provider_auth_credential",
+        "model_provider_context_limit",
+        "model_provider_invalid_request",
+        "model_provider_quota_exhausted",
+        "model_provider_rate_limited",
+        "model_provider_server_unavailable",
+        "model_provider_transient_server",
+        "model_provider_unknown",
+        "model_provider_unreachable",
+        "no_submitted_result",
+    ],
+)
+def test_every_new_refusal_has_its_own_next_step(code):
+    from scripts.dev.miner_launchpad.supervisor import FALLBACK_ACTION, next_action
+
+    assert next_action(code) != FALLBACK_ACTION
+
+
+def test_check_result_with_nothing_submitted_is_refused_plainly(tmp_path):
+    from types import SimpleNamespace
+
+    from scripts.dev.miner_launchpad.controller import Rejected
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    admitted = SimpleNamespace(campaign={"id": "c1", "root": str(tmp_path)})
+    with pytest.raises(Rejected) as refused:
+        RunnerAdapter.check_result_admitted(SimpleNamespace(), admitted, {})
+    assert refused.value.code == "no_submitted_result"

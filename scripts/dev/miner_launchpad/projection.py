@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from pathlib import Path
 
@@ -117,6 +118,61 @@ def pointer_exists(directory):
     return (directory / "final/comparison-ref.json").is_file()
 
 
+#: A direct freeze's selected-recipe schemas (`research_campaign`).
+DIRECT_SELECTED_SCHEMAS = frozenset(
+    {"carbon.direct-selected-recipe.v1", "carbon.direct-selected-recipe.v2"}
+)
+
+
+def _epoch_outcome(epoch, outcome_path):
+    """One epoch's own-research outcome as observe shows it, or
+    READBACK_UNAVAILABLE for a file that is not one."""
+    try:
+        if outcome_path.is_symlink() or outcome_path.stat().st_size > 4 * 1024**2:
+            raise ValueError("bounded own-research outcome required")
+        outcome = json.loads(outcome_path.read_bytes())
+        if (
+            type(outcome) is dict
+            and outcome.get("schema") in DIRECT_SELECTED_SCHEMAS
+            and outcome.get("selected_by") == "miner"
+        ):
+            # Written before H20 by a direct freeze: its record's
+            # schema replaced the outcome's; the epoch is still its
+            # own and is checked below.
+            outcome = {
+                **outcome,
+                "schema": "carbon.autoresearch.epoch-outcome.v1",
+            }
+        if (
+            outcome.get("schema") != "carbon.autoresearch.epoch-outcome.v1"
+            or outcome.get("epoch") != epoch
+            or outcome.get("status")
+            not in {"SELECTED", "STOPPED", "RECONCILIATION_REQUIRED"}
+        ):
+            raise ValueError("research outcome association differs")
+        return {
+            "epoch": epoch,
+            "status": outcome["status"],
+            **_text_fields(outcome, {"reason", "stop_evidence"}),
+            "used_feedback": (
+                outcome.get("used_feedback")
+                if type(outcome.get("used_feedback")) is bool
+                else None
+            ),
+            "selected_by": (
+                "miner" if outcome.get("selected_by") == "miner" else "agent"
+            ),
+            "evidence_basis": "AGENT_OR_CONTROLLER_REPORTED_NOT_INDEPENDENT_SCIENCE",
+            "final_evidence": False,
+        }
+    except (OSError, ValueError, TypeError, AttributeError):
+        return {
+            "epoch": epoch,
+            "status": "READBACK_UNAVAILABLE",
+            "final_evidence": False,
+        }
+
+
 def _validator_outcome(epoch, path):
     """The validator's outcome for one submitted epoch, from the campaign's
     permitted feedback (the same allow-listed view the agent receives), or
@@ -131,10 +187,19 @@ def _validator_outcome(epoch, path):
         if path.is_symlink() or path.stat().st_size > 65536:
             return unavailable
         document = json.loads(path.read_bytes())
-        outcome = document["outcome"]
+        # A direct campaign's permitted feedback (Motor, Cooling, the
+        # direct versions) carries its outcome as `result` beside the Ladder
+        # (`exam_feedback`) and no epoch field: its file names the epoch
+        # (M1 E2E U53: every direct submit read "readback unavailable").
+        direct = (
+            type(document) is dict
+            and "outcome" not in document
+            and {"result", "exam_feedback"} <= set(document)
+        )
+        outcome = document["result"] if direct else document["outcome"]
         if (
             document.get("schema") not in feedback_schemas()
-            or document.get("epoch") != epoch
+            or (not direct and document.get("epoch") != epoch)
             or type(outcome) is not dict
             or type(outcome.get("state")) is not str
         ):
@@ -176,6 +241,23 @@ def _validator_outcome(epoch, path):
             "qualification": False,
             "reward": False,
         }
+        if direct:
+            result["grade"] = _grade(
+                _latest_ladder(path, document),
+                (
+                    document.get("recipe_digest")
+                    if type(document.get("recipe_digest")) is str
+                    else None
+                ),
+                epoch,
+            )
+        if type(outcome.get("practice_dual")) is dict:
+            # C13: the evaluator's practice dual block, allow-listed.
+            from scripts.dev.miner_launchpad.campaign_view import dual_feedback
+
+            result["practice_dual"] = dual_feedback(
+                {"practice_dual": outcome["practice_dual"]}
+            )
     except (OSError, ValueError, TypeError, KeyError):
         return unavailable
     return {
@@ -183,6 +265,90 @@ def _validator_outcome(epoch, path):
         "mode": "DEVELOPMENT_EVALUATION",
         "status": "VALIDATOR_OUTCOME",
         "result": result,
+    }
+
+
+def _latest_ladder(path, document):
+    """The epoch's Ladder as the miner last read it ("Check for result",
+    `direct_submission.refresh_exam_feedback`) when that read is of this
+    recipe, else the one stored at submit."""
+    from carbon.development_session.direct_submission import (
+        EXAM_FEEDBACK_FILE,
+        EXAM_FEEDBACK_SCHEMA,
+    )
+
+    fresh = path.parent / EXAM_FEEDBACK_FILE
+    try:
+        if not fresh.is_symlink() and 0 < fresh.stat().st_size <= 65536:
+            read = json.loads(fresh.read_bytes())
+            if (
+                type(read) is dict
+                and read.get("schema") == EXAM_FEEDBACK_SCHEMA
+                and read.get("recipe_digest") == document.get("recipe_digest")
+            ):
+                return read.get("exam_feedback")
+    except (OSError, ValueError):
+        pass
+    return document["exam_feedback"]
+
+
+def _grade(ladder, submission=None, epoch=None):
+    """The miner's own Ladder for the exam, as the display rule shows it
+    (Validator VALUE_SCORE_GAP): one graded total 0..1 per document, its
+    A and D as detail, a gate failure as not eligible; None when the
+    receiver had no graded result yet."""
+
+    def one(document):
+        if type(document) is not dict or document.get("status") not in (
+            "IMPROVED",
+            "NO_IMPROVEMENT",
+            "GATE_FAILED",
+            "NOT_SCORED",
+        ):
+            return None
+        shown = {"status": document["status"]}
+        for name in ("total", "A", "D"):
+            value = document.get(name)
+            if (
+                type(value) in (int, float)
+                and not isinstance(value, bool)
+                and math.isfinite(value)
+            ):
+                shown[name] = float(value)
+        if type(document.get("exam_version")) is str:
+            shown["exam_version"] = document["exam_version"][:64]
+        # Ladder v3 names the submission each document is about (U63).
+        if type(document.get("recipe_digest")) is str:
+            shown["recipe_digest"] = document["recipe_digest"][:71]
+        if type(document.get("epoch")) is int and not isinstance(
+            document["epoch"], bool
+        ):
+            shown["epoch"] = document["epoch"]
+        return shown
+
+    if type(ladder) is not dict:
+        return None
+    latest, best = one(ladder.get("latest")), one(ladder.get("best"))
+    # `latest` is this submission's grade only when the document names this
+    # submission (Ladder v3, U63). A v2 document names none, and a v3 one may
+    # name another: either is the mining key's latest grade on the exam
+    # (`exam_latest`), never this submit's. M1 E2E R5-1: three submits read
+    # "Graded 0.54" although the receiver graded only one of them.
+    own = (
+        latest
+        if latest is not None
+        and submission is not None
+        and latest.get("recipe_digest") == submission
+        # v3 also names the epoch: a document about this recipe's earlier
+        # submit (another epoch) is not this one's (Validator, R5-1 note).
+        and (epoch is None or latest.get("epoch") in (None, epoch))
+        else None
+    )
+    return {
+        "latest": own,
+        "exam_latest": None if own is not None else latest,
+        "best": best,
+        "submission": submission,
     }
 
 
@@ -389,6 +555,9 @@ def project(row, root):
         "held_within_reserved": held,
         "cost_basis": "Integer nanodollars; published-rate estimates from provider token usage, not an invoice guarantee",
     }
+    # The model's speed as this campaign observed it (S17), never a recorded
+    # or guessed one.
+    value["model_speed"] = model_speed(status["operations"], manifest.get("provider"))
     from carbon.development_session.research_campaign import unknown_outcome_calls
 
     # Model calls whose outcome was unknown: what the miner's Reconcile
@@ -471,6 +640,10 @@ def project(row, root):
                                     "diagnostics",
                                     "inline_curve",
                                     "inline_curve_indices",
+                                    # The graded dual measurement on the
+                                    # public bank (C13), read allow-listed
+                                    # by campaign_view.dual_feedback.
+                                    "practice_dual",
                                 )
                                 if k in result
                             },
@@ -518,47 +691,7 @@ def project(row, root):
         directory = root / ("epoch-" + str(epoch))
         outcome_path = directory / "outcome.json"
         if outcome_path.exists():
-            try:
-                if (
-                    outcome_path.is_symlink()
-                    or outcome_path.stat().st_size > 4 * 1024**2
-                ):
-                    raise ValueError("bounded own-research outcome required")
-                outcome = json.loads(outcome_path.read_bytes())
-                if (
-                    outcome.get("schema") != "carbon.autoresearch.epoch-outcome.v1"
-                    or outcome.get("epoch") != epoch
-                    or outcome.get("status")
-                    not in {"SELECTED", "STOPPED", "RECONCILIATION_REQUIRED"}
-                ):
-                    raise ValueError("research outcome association differs")
-                value["epoch_outcomes"].append(
-                    {
-                        "epoch": epoch,
-                        "status": outcome["status"],
-                        **_text_fields(outcome, {"reason", "stop_evidence"}),
-                        "used_feedback": (
-                            outcome.get("used_feedback")
-                            if type(outcome.get("used_feedback")) is bool
-                            else None
-                        ),
-                        "selected_by": (
-                            "miner"
-                            if outcome.get("selected_by") == "miner"
-                            else "agent"
-                        ),
-                        "evidence_basis": "AGENT_OR_CONTROLLER_REPORTED_NOT_INDEPENDENT_SCIENCE",
-                        "final_evidence": False,
-                    }
-                )
-            except (OSError, ValueError, TypeError, AttributeError):
-                value["epoch_outcomes"].append(
-                    {
-                        "epoch": epoch,
-                        "status": "READBACK_UNAVAILABLE",
-                        "final_evidence": False,
-                    }
-                )
+            value["epoch_outcomes"].append(_epoch_outcome(epoch, outcome_path))
         selected = directory / "selected-recipe.json"
         if selected.is_file():
             selection = json.loads(selected.read_bytes())
@@ -566,14 +699,14 @@ def project(row, root):
                 {
                     "epoch": epoch,
                     **{
-                        k: selection[k]
-                        for k in (
-                            "strategy",
-                            "strategy_hash",
-                            "construction_plan_digest",
-                            "reason",
-                            "used_feedback",
-                        )
+                        k: selection[k] for k in ("strategy", "reason", "used_feedback")
+                    },
+                    # A Level-0 strategy's compile identities; a direct
+                    # campaign's construction recipe has neither (M1 E2E H10:
+                    # every observe after its freeze raised KeyError).
+                    **{
+                        k: selection.get(k)
+                        for k in ("strategy_hash", "construction_plan_digest")
                     },
                     "final_evidence": False,
                 }
@@ -653,6 +786,46 @@ _CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
 #: A stage's replies cut at the output cap (`research_loop.OUTPUT_CAP_HIT`),
 #: restated so the projection imports no research loop.
 OUTPUT_CAP_CAUSE = "turn_hit_output_cap"
+
+
+def model_speed(operations, provider):
+    """The campaign's observed model speed (S17): output tokens per second
+    over its completed calls, each timed from dispatch to its whole reply
+    (`reply_ms`), and whether a full reply at the plan's output cap fits its
+    call timeout at that speed. Carbon records no provider's speed and
+    guesses none: before a completed call there is no speed and no warning.
+    A plan whose calls stream (`model_provider.record_streams`) is never
+    warned: a streamed reply is not cut while tokens arrive."""
+    from carbon.development_session.model_provider import record_streams
+
+    tokens = took = calls = 0
+    for op in operations:
+        result = op.get("result") if type(op.get("result")) is dict else {}
+        usage = result.get("usage")
+        produced = usage.get("output_tokens") if type(usage) is dict else None
+        reply_ms = result.get("reply_ms")
+        timed = type(reply_ms) is int and reply_ms > 0
+        if timed and type(produced) is int and produced >= 0:
+            tokens, took, calls = tokens + produced, took + reply_ms, calls + 1
+    settings = provider.get("settings") if type(provider) is dict else None
+    settings = settings if type(settings) is dict else {}
+    cap, timeout = settings.get("max_output_tokens"), settings.get("timeout_seconds")
+    cap = cap if type(cap) is int and cap > 0 else None
+    timeout = timeout if type(timeout) is int and timeout > 0 else None
+    rate = tokens * 1000 / took if tokens else None
+    full = None if rate is None or cap is None else cap / rate
+    streams = record_streams(provider)
+    return {
+        "calls_observed": calls,
+        "output_tokens_per_second": None if rate is None else round(rate, 1),
+        "streams": streams,
+        "max_output_tokens": cap,
+        "timeout_seconds": timeout,
+        "full_reply_seconds": None if full is None else round(full),
+        "warning": (
+            not streams and full is not None and timeout is not None and full > timeout
+        ),
+    }
 
 
 def _graphite_view(root, operations):

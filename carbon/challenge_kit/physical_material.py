@@ -62,6 +62,24 @@ def is_registered(challenge_id: str, version: str) -> bool:
     return (challenge_id, version) in REGISTERED
 
 
+def _public(challenge_id: str):
+    # F08 (v1: 255 rows, v2: 287) and F02 (40 rows) keep their own public module and float32
+    # TRAIN; the rest shares one.
+    if challenge_id == f08_train.CHALLENGE_ID:
+        return f08_public
+    if challenge_id == f02_train.CHALLENGE_ID:
+        return f02_public
+    return physical_public
+
+
+def construction_kit(challenge_id: str, version: str) -> dict:
+    """The registered five-field construction kit, from the same public module
+    `bundle_material` reads it from, without building the practice bank."""
+    if not is_registered(challenge_id, version):
+        raise ValueError("unregistered public physical Challenge")
+    return _public(challenge_id).construction_kit(challenge_id, version)
+
+
 def bundle_material(
     challenge_id: str = motor.CHALLENGE.challenge_id,
     version: str = motor.CHALLENGE.version,
@@ -72,11 +90,9 @@ def bundle_material(
 
     if not is_registered(challenge_id, version):
         raise ValueError("unregistered public physical Challenge")
-    # F08 (v1: 255 rows, v2: 287) and F02 (40 rows) keep their own public module and float32
-    # TRAIN; the rest shares one.
     f08 = challenge_id == f08_train.CHALLENGE_ID
     f02 = challenge_id == f02_train.CHALLENGE_ID
-    public = f08_public if f08 else f02_public if f02 else physical_public
+    public = _public(challenge_id)
     if f08:
         source = f08_train.load_public_train(version)
     elif f02:

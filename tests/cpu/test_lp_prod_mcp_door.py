@@ -1328,3 +1328,20 @@ def test_the_compute_schema_says_challenge_is_for_the_gpu_choice():
     assert "challenge_is_for_the_gpu_choice" in FIELDS["challenge"][1]
     assert "GPU choice" in FIELDS["challenge"][1]
     assert NEXT_STEPS["challenge_is_for_the_gpu_choice"]
+
+
+def test_read_only_tools_say_so_and_the_rest_stay_gated():
+    # M1 E2E H18: Hermes gates every tool without readOnlyHint=True.
+    from carbon.miner_mcp.mcp_challenges import make_challenge_tools
+    from carbon.miner_mcp.mcp_operations import PREFIX, make_operation_tools
+    from scripts.dev.miner_launchpad.operations import READ_ONLY_OPERATIONS
+
+    for tool in make_operation_tools(object()):
+        name = tool.name.removeprefix(PREFIX)
+        assert tool.annotations is not None, name
+        assert tool.annotations.read_only_hint is (name in READ_ONLY_OPERATIONS), name
+    for read in ("observe", "wait", "toolbox", "campaign_view", "messages"):
+        assert read in READ_ONLY_OPERATIONS
+    for write in ("launch", "practice", "freeze_candidate", "submit", "halt", "note"):
+        assert write not in READ_ONLY_OPERATIONS
+    assert all(t.annotations.read_only_hint for t in make_challenge_tools())

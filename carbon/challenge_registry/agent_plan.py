@@ -105,10 +105,16 @@ def graphite_plan(budget, selection, graphite):
         DEFAULT_SELECTION,
         check_budget,
     )
+    from carbon.development_session.research_agent import REQUEST_HOLD_V1
     from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
     from carbon.development_session.research_campaign import FINAL_EPOCHS
+    from carbon.development_session.research_loop import (
+        BUDGET_HEADROOM_V1,
+        REPLY_CONTINUATION_V1,
+        SELECTION_ADMISSIBLE_V1,
+    )
     from carbon.development_session.research_tools import (
-        ARGUMENT_NORMALISATION_V3,
+        ARGUMENT_NORMALISATION_V4,
         TOOLS_RULE,
     )
 
@@ -139,7 +145,7 @@ def graphite_plan(budget, selection, graphite):
         # A new Graphite plan freezes v3 (workspace defaults, M1 rehearsal
         # 2026-10-21); a plan that froze v2, v1 or no rule keeps it.
         "research_reply": RESEARCH_REPLY_RULE,
-        "argument_normalisation": ARGUMENT_NORMALISATION_V3,
+        "argument_normalisation": ARGUMENT_NORMALISATION_V4,
         "limits": {
             "plan": edition.limits_rule(
                 limits.get("planner_calls"), limits.get("trials_per_epoch")
@@ -149,6 +155,19 @@ def graphite_plan(budget, selection, graphite):
             ),
         },
         "compaction": edition.compaction_rule(),
+        # A reply cut at its output limit is continued, then asked for its
+        # tool call only, before it can stop a stage (Graphite context and
+        # reply spec, part 2). A plan frozen earlier names no rule and
+        # replays unchanged.
+        "reply_continuation": REPLY_CONTINUATION_V1,
+        # The turn status counts the spend left at the calls' booked average,
+        # not only at each call's whole hold, and Graphite never selects a
+        # practice that failed a gate (Launchpad Test Runner G1, G2). A plan
+        # frozen earlier names neither rule and replays unchanged.
+        "budget_headroom": BUDGET_HEADROOM_V1,
+        "selection_admissibility": SELECTION_ADMISSIBLE_V1,
+        # Each call holds its own request's cost, not the whole window's (G1).
+        "request_hold": REQUEST_HOLD_V1,
         "graphite": block,
     }
     if not selection.is_historical_default:

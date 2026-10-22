@@ -107,6 +107,8 @@ def make_challenge_tools(*, guard=None, host_facts=None):
             ) from None
         return ChallengeResult(operation="describe", payload=payload)
 
+    from mcp_types import ToolAnnotations
+
     def tool(fn, name, model, description):
         return Tool(
             fn=fn,
@@ -115,6 +117,8 @@ def make_challenge_tools(*, guard=None, host_facts=None):
             parameters=model.model_json_schema(),
             fn_metadata=ExactMetadata(arg_model=model, output_model=ChallengeResult),
             is_async=True,
+            # Reading the registry changes nothing (H18).
+            annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False),
         )
 
     return [
