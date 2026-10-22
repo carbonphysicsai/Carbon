@@ -86,14 +86,30 @@ def produce_dual_benchmark_input(
         else None
     )
     if adapter is not None:
+        from carbon.scoring import sealed_batch_source
+
         try:
             from carbon.challenge_kit import physical_pack
             from carbon.scoring import physical_dual_pack
 
-            bank = physical_pack.development_bank(
-                adapter.CHALLENGE, entry.get("challenge_version")
+            # A sealed pack is graded on its carried sealed batch, never on the
+            # exposed development bank (E4).
+            sealed = sealed_batch_source.resolve(
+                challenge=adapter.CHALLENGE,
+                version=entry.get("challenge_version"),
+                selected_pack=selected_pack,
+                private_root=private_root,
+                development_adapter=adapter,
             )
+            if sealed is None:
+                bank = physical_pack.development_bank(
+                    adapter.CHALLENGE, entry.get("challenge_version")
+                )
+            else:
+                bank, adapter = sealed
             names = physical_dual_pack.input_names(adapter)
+        except sealed_batch_source.SealedBankRefused as exc:
+            raise PrivateEvaluationSourceRefused(exc.code) from exc
         except (ImportError, ValueError) as exc:
             raise PrivateEvaluationSourceRefused(
                 "dual_native_role_unavailable:development_bank"
