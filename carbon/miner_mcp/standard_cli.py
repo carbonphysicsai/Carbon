@@ -257,6 +257,11 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
             else None
         )
         development_candidate = implementation is not None
+        if development_candidate:
+            # Intakes, receivers and settings from the file as it is now,
+            # never the copy read before a setup rewrite (H13b receipt).
+            cfg = installed.current_profile(configuration)
+            paths = {name: Path(value) for name, value in cfg["paths"].items()}
         if implementation is None:
             implementation = accepted_implementation(cfg["accepted_revision"])
         parent = load_image_identity(paths["image_manifest"])
@@ -630,6 +635,11 @@ def _runtime(profile):
     with _check("carbon_updated_rerun_installer"):
         implementation = installed.profile_candidate(profile.path, cfg)
         development_candidate = implementation is not None
+        if development_candidate:
+            # Intakes, receivers and settings from the file as it is now,
+            # never the copy read before a setup rewrite (H13b receipt).
+            cfg = installed.current_profile(profile.path)
+            paths = {name: Path(value) for name, value in cfg["paths"].items()}
         if implementation is None:
             implementation = accepted_implementation(cfg["accepted_revision"])
         image = load_image_identity(paths["image_manifest"])

@@ -125,6 +125,16 @@ def _candidate_identity(profile):
     )
 
 
+def current_profile(profile_path) -> dict:
+    """The runner profile as the file holds it now, validated: what a caller
+    reads intakes, receivers and settings from after `profile_candidate`
+    accepted its copy (Validator, H13b receipt: never the caller's copy)."""
+    from carbon.development_session.private_records import private_json
+    from scripts.dev.miner_launchpad.runner import validated_profile
+
+    return validated_profile(private_json(Path(profile_path)))
+
+
 def profile_candidate(profile_path, profile=None, *, repository=None) -> dict | None:
     """Resolve a candidate only from the exact owner-private installed profile.
 

@@ -164,6 +164,11 @@ def test_operator_candidate_pin_is_private_exact_and_cleared_by_install(
             {**profile, "runtime": {"implementation": {**expected, "tree": "e" * 40}}},
             repository=tmp_path,
         )
+    # After the check a caller reads intakes from the file as it is now,
+    # not from its own copy (Validator, H13b receipt).
+    rewritten = {**profile, "intakes": {"x": "https://receiver.example"}}
+    write_private(profile_path, canonical(rewritten))
+    assert installed.current_profile(profile_path)["intakes"] == rewritten["intakes"]
     installed.write(state, image_manifest=worker, analysis_image_manifest=analysis)
     assert not pin.exists()
     assert installed.candidate_implementation(state, repository=tmp_path) is None
