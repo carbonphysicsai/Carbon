@@ -426,6 +426,18 @@ def test_a_direct_campaign_counts_the_profiles_direct_target():
     )
 
 
+def test_setup_status_shows_the_direct_target_where_no_intake_is():
+    # M1 E2E H12: a Challenge without an intake submits a direct campaign to
+    # the profile's direct target, so the evaluation step names it there.
+    target = {"intake_url": URL_12, "receiver_hotkey": HOTKEY}
+    record = {"profile": {"intakes": {}}, "direct_intake_target": target}
+    host = SimpleNamespace(_own_intakes=lambda record: {})
+    items = environment.EnvironmentSetup._evaluation(host, record)["challenges"]
+    assert items and all(item["intake"] is None for item in items)
+    assert all(item["direct_intake"] == target for item in items)
+    assert not any("note" in item for item in items)
+
+
 def test_battery_reads_its_own_versions_endpoint_only():
     challenge, version = battery.CHALLENGE.challenge_id, battery.CHALLENGE.version
     pair = {"intake_url": URL_12, "receiver_hotkey": HOTKEY}

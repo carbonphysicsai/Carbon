@@ -2365,7 +2365,15 @@ class EnvironmentSetup:
                 item["receiver_hotkey_warning"] = RECEIVER_NOT_PINNED.format(
                     title=challenge["title"]
                 )
-            if intake is None:
+            direct = record.get("direct_intake_target")
+            if intake is None and type(direct) is dict:
+                # A direct campaign submits to the profile's direct target
+                # when its Challenge has no intake (`_direct_target`; M1 E2E
+                # H12, as the submit check counts it since H9b).
+                item["direct_intake"] = {
+                    k: direct.get(k) for k in ("intake_url", "receiver_hotkey")
+                }
+            elif intake is None:
                 item["note"] = NO_ENDPOINT.format(title=challenge["title"])
                 if entry is not None:
                     item["note"] = (
