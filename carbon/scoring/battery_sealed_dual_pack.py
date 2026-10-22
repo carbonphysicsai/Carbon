@@ -45,6 +45,7 @@ from pathlib import Path
 from carbon.scoring import battery_dual_measurement as bdm
 from carbon.scoring import battery_dual_pack as _battery
 from carbon.scoring import physical_dual_pack as physical
+from carbon.scoring import sealed_grid_common as grid_common
 
 CHALLENGE = _battery.CHALLENGE
 VERSION = "2.0"
@@ -53,13 +54,13 @@ CASE_ID = "battery-sealed-grid-4x35"
 #: 2.0 and the v7 catalog version 2.1 grade the same sealed batches.
 VERSIONS = {version: (EVALUATION_VERSION, CASE_ID) for version in ("2.0", "2.1")}
 OUTPUT = _battery.OUTPUT
-FILES = (*_battery.FILES, "battery_sealed_dual_pack.py")
+FILES = (*_battery.FILES, "sealed_grid_common.py", "battery_sealed_dual_pack.py")
 MINIMUM_LEGS = _battery.MINIMUM_LEGS
 MANIFEST_NAME = physical.MANIFEST_NAME
 #: The grid cells' cohort, as Motor's and Cooling's sealed grids name theirs
 #: (Validator, 2026-10-22). The shared bank-row builder reads a ``design_id``
 #: from a ``decision_*`` row, so `prepared` gives each cell one (its scenario).
-COHORT = "decision_sealed_grid"
+COHORT = grid_common.GRID_COHORT
 PROBE = "probe"
 SCENARIOS, CANDIDATES = 4, 35
 CELLS = SCENARIOS * CANDIDATES
@@ -151,52 +152,45 @@ def _cell_of(row):
 
 
 def _grid(bank_rows, contract):
-    """The batch's own scenarios and cell index, or a refusal: every grid row
-    is a distinct (scenario, candidate) cell of exactly SCENARIOS x CANDIDATES,
+    """The batch's own scenarios and cell index, or a refusal: the grid rows are
+    a complete SCENARIOS x CANDIDATES grid (`sealed_grid_common.grid_layout`),
     the candidates are EV4's frozen set, each scenario's rows share one
     (t_amb, soc0), and every cell has its reference."""
     from carbon.battery.value import contract as ev
 
     candidates = [c["id"] for c in ev.candidates(contract)]
-    rows = [(i, r) for i, r in enumerate(bank_rows) if r["cohort"] == COHORT]
     bdm._require(
-        len(rows) == CELLS
-        and all(r["cohort"] in (COHORT, PROBE) for r in bank_rows)
+        all(r["cohort"] in (COHORT, PROBE) for r in bank_rows)
         and len(candidates) == CANDIDATES,
         "battery_sealed_grid",
     )
-    cells, conditions, order = {}, {}, []
-    for i, row in rows:
-        scenario, candidate = _cell_of(row)
+    layout = grid_common.grid_layout(
+        bank_rows,
+        design_of=lambda row: _cell_of(row)[1],
+        condition_of=lambda row: _cell_of(row)[0],
+        shape=(CANDIDATES, SCENARIOS),
+        refuse=lambda code: bdm._require(False, "battery_sealed_grid"),
+    )
+    bdm._require(set(layout.designs) == set(candidates), "battery_sealed_grid")
+    conditions = {}
+    for index in layout.indices:
+        row = bank_rows[index]
         bdm._require(
-            candidate in candidates
-            and (scenario, candidate) not in cells
-            and row.get("reference_present") is True
+            row.get("reference_present") is True
             and row["record"].get("status") == "OK",
             "battery_sealed_grid",
         )
         point = (row["inputs"]["t_amb_c"], row["inputs"]["soc0"])
         bdm._require(
-            conditions.setdefault(scenario, point) == point, "battery_sealed_grid"
+            conditions.setdefault(_cell_of(row)[0], point) == point,
+            "battery_sealed_grid",
         )
-        if scenario not in order:
-            order.append(scenario)
-        cells[(scenario, candidate)] = i
-    bdm._require(
-        len(order) == SCENARIOS
-        and len(cells) == CELLS
-        and all(
-            (scenario, candidate) in cells
-            for scenario in order
-            for candidate in candidates
-        ),
-        "battery_sealed_grid",
-    )
     scenarios = [
         {"id": s, "conditions": [[float(conditions[s][0]), float(conditions[s][1])]]}
-        for s in order
+        for s in layout.conditions
     ]
-    return scenarios, [i for i, _row in rows], cells
+    cells = {(s, c): index for (c, s), index in layout.cells.items()}
+    return scenarios, list(layout.indices), cells
 
 
 def prepared(bank):

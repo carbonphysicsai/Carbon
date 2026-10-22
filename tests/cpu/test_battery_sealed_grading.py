@@ -280,7 +280,11 @@ def test_the_development_producer_is_untouched_and_a_dev_bank_refuses_here():
     assert dev.producer_digest() == DEV_PRODUCER_DIGEST
     assert dev.FILES == ("battery_dual_pack.py", "battery_dual_measurement.py")
     assert sealed.producer_digest() != dev.producer_digest()
-    assert sealed.FILES == (*dev.FILES, "battery_sealed_dual_pack.py")
+    assert sealed.FILES == (
+        *dev.FILES,
+        "sealed_grid_common.py",
+        "battery_sealed_dual_pack.py",
+    )
     development = physical_pack.development_bank(dev.CHALLENGE, "2.0")
     rows = physical.bank_rows(development, sealed.input_names())
     with pytest.raises(bdm.BatteryMeasurementRefused) as refused:
