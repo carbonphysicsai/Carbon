@@ -330,8 +330,10 @@ def test_normal_cpu_source_only_task_cold_prepares_builds_and_retains(tmp_path):
             controls_raw = json.loads((operation / "resources.json").read_bytes())
             controls = controls_raw["controls"]
             if phase != "timed":
+                # The retained digest binds the whole settled record's bytes
+                # (`_private_controls_digest` returns sha256 of resources.json).
                 assert (
-                    controls_raw["controls_digest"]
+                    digest((operation / "resources.json").read_bytes())
                     == evidence[phase + "_controls_digest"]
                 )
             assert controls_raw["controls_digest"] == digest(canonical(controls))

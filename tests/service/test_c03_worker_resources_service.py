@@ -302,7 +302,10 @@ def _run_profile(real_docker, profile, tmp_path, expected):
             assert _python(cli, name, DATALOADER).returncode == 0
         else:
             assert _python(cli, name, DATALOADER, accepted=(0, 77)).returncode == 77
-            block = min(expected["shm"] // 2, 256 * MIB)
+            # The write-inside specimen above is removed first and the block is a
+            # quarter of shm, so the semaphores the workers need have room.
+            _python(cli, name, "import os;os.unlink('/dev/shm/inside')")
+            block = min(expected["shm"] // 4, 256 * MIB)
             assert _python(cli, name, SHM_WORKLOAD, str(block)).returncode == 0
     finally:
         remove_exact_container(cli=cli, container_name=name, launch_digest=launch)

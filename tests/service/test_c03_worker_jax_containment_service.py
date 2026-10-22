@@ -45,7 +45,11 @@ SLACK = 1.05
 
 INNER = r"""
 import errno, json, os, sys, tempfile, time
-res = {"tmp": tempfile.gettempdir()}
+res = {}
+try:
+    res["tmp"] = tempfile.gettempdir()
+except Exception as e:  # a temp variable pointed at an unusable root
+    res["tmp"] = "ERR " + type(e).__name__
 def usage():
     for line in open("/sys/fs/cgroup/cpu.stat"):
         if line.startswith("usage_usec"):
