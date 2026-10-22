@@ -1122,8 +1122,9 @@ NEXT_ACTIONS = {
         "it and the server generates one."
     ),
     "research_launch_replay_conflict": (
-        "This key already launched a different request. Send that request "
-        "unchanged to replay it, or use a new key."
+        "This key already launched a different request. If your setup changed "
+        "since (a profile rewrite changes what a launch carries), launch with a "
+        "new key; otherwise send that request unchanged to replay it."
     ),
     "operation_replay_conflict": (
         "This key already names a different request. Send that request "
