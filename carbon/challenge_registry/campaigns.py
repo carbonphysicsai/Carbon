@@ -302,6 +302,20 @@ def _motor():
     )
 
 
+def _catalog_gpu(key):
+    """The one shared GPU practice hooks of a catalog campaign (S3,
+    `development_session.catalog_gpu`): the same for every Challenge."""
+    from carbon.development_session import catalog_gpu
+
+    return {
+        "gpu_image": lambda root, runtime: catalog_gpu.registered_gpu_image(
+            root, runtime, key.challenge_id
+        ),
+        "gpu_scope": lambda image: catalog_gpu.gpu_scope(key.challenge_id, image),
+        "declared_gpu": catalog_gpu.declared_scope,
+    }
+
+
 def _motor_catalog(version="1.2"):
     """A Motor catalog version (OWNER-BACKBONE-CATALOG-01): Carbon's tested
     backbones by catalog id on the direct recipe path; 1.3 is 1.2 plus
@@ -354,6 +368,7 @@ def _motor_catalog(version="1.2"):
             key.challenge_id, key.version
         ),
         construction_reconstruct=lambda *args, **kwargs: None,
+        **_catalog_gpu(key),
         construction_bundle_material=lambda: physical_material.bundle_material(
             key.challenge_id, key.version
         ),
@@ -411,6 +426,7 @@ def _cold_plate_catalog(version):
             key.challenge_id, key.version
         ),
         construction_reconstruct=lambda *args, **kwargs: None,
+        **_catalog_gpu(key),
         construction_bundle_material=lambda: physical_material.bundle_material(
             key.challenge_id, key.version
         ),
@@ -464,6 +480,7 @@ def _direct(campaign, view, contracts, version):
             key.challenge_id, key.version
         ),
         construction_reconstruct=lambda *args, **kwargs: None,
+        **_catalog_gpu(key),
         construction_bundle_material=lambda: physical_material.bundle_material(
             key.challenge_id, key.version
         ),
@@ -643,6 +660,17 @@ def runtime_challenge(runtime):
 
 def declared_gpu(runtime):
     """The declared GPU scope, checked by the Challenge it names."""
+    from carbon.development_session import catalog_gpu
+
+    scopes = runtime.get(catalog_gpu.RUNTIME_KEY) if type(runtime) is dict else None
+    if (
+        type(scopes) is list
+        and scopes
+        and type(scopes[0]) is dict
+        and scopes[0].get("schema") == catalog_gpu.SCOPE_SCHEMA
+    ):
+        # A catalog campaign's shared scope, whatever its Challenge or version.
+        return catalog_gpu.declared_scope(runtime)
     campaign = campaign_for_id(runtime_challenge(runtime))
     if campaign.declared_gpu is None:
         raise ValueError("this Challenge offers no GPU practice")

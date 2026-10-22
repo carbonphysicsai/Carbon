@@ -56,6 +56,10 @@ MINER_SURFACES = (
     "carbon/agent_campaign/graphite/method_cards.py",
     "scripts/dev/miner_launchpad",
     "carbon/miner_mcp",
+    # The shared GPU practice path (Validator condition 3): its scope and
+    # device choice run on the miner's machine.
+    "carbon/development_session/catalog_gpu.py",
+    "carbon/development_session/gpu_practice.py",
 )
 #: The shared card pack the miner edition ships.
 SHARED_PACK = "carbon/agent_campaign/graphite/miner/packs"
@@ -436,6 +440,9 @@ def _plant(tmp_path):
         "carbon/agent_campaign/attack/knowledge.py": "class AttackStore:\n    pass\n",
         "carbon/agent_campaign/graphite/__init__.py": "",
         "carbon/agent_campaign/graphite/method_cards.py": "",
+        "carbon/development_session/__init__.py": "",
+        "carbon/development_session/catalog_gpu.py": "",
+        "carbon/development_session/gpu_practice.py": "",
         "carbon/agent_campaign/graphite/miner/__init__.py": "",
         "carbon/agent_campaign/graphite/miner/edition.py": (
             "def priors(root):\n"
@@ -484,7 +491,10 @@ def test_a_planted_import_of_the_store_from_a_miner_path_fails_the_check(tmp_pat
     for surface in MINER_SURFACES:
         if (root / surface).exists():
             alone = reach(closure(root, (surface,)), root)
-            if surface.endswith("method_cards.py"):
+            # Planted empty: a surface with nothing to reach.
+            if surface.endswith(
+                ("method_cards.py", "catalog_gpu.py", "gpu_practice.py")
+            ):
                 assert not alone
             else:
                 assert alone, surface

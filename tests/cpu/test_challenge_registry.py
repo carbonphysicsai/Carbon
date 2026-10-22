@@ -60,7 +60,12 @@ def test_the_catalog_names_launch_reserved_and_deferred_challenges():
     assert set(cooling) == {"1.0", "1.2"}
     for entry in cooling.values():
         assert entry["status"] == "IMPLEMENTED"
-        assert {p["profile"] for p in entry["profiles"]} == {"cpu_research"}
+        # A catalog version adds the one shared GPU practice profile.
+        assert {p["profile"] for p in entry["profiles"]} == (
+            {"cpu_research"}
+            if entry["version"] == "1.0"
+            else {"cpu_research", "gpu_research"}
+        )
     # Motor registers three versions: 1.0 (Level 0), 1.2 (the backbone catalog)
     # and 1.3 (1.2 plus allowlist v7).
     motor = {
@@ -71,7 +76,12 @@ def test_the_catalog_names_launch_reserved_and_deferred_challenges():
     assert set(motor) == {"1.0", "1.2", "1.3"}
     for entry in motor.values():
         assert entry["status"] == "IMPLEMENTED"
-        assert {p["profile"] for p in entry["profiles"]} == {"cpu_research"}
+        # A catalog version adds the one shared GPU practice profile.
+        assert {p["profile"] for p in entry["profiles"]} == (
+            {"cpu_research"}
+            if entry["version"] == "1.0"
+            else {"cpu_research", "gpu_research"}
+        )
     reserved = "photonic-coupler"
     # A reserved Challenge has a name and an issue, and nothing to run.
     assert listed[reserved]["status"] == "RESERVED"

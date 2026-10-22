@@ -303,6 +303,17 @@ def _entries():
     #: A torch-cpu practice builds on the separate pinned PyTorch CPU worker
     #: (`gpu_practice.direct_parent_backend`): installed with --pytorch.
     torch_carrier = carrier + (TORCH_CPU_WORKER,)
+    # One shared GPU practice profile for every catalog version (shared GPU
+    # path, S3, `development_session.catalog_gpu`): its tested backbones'
+    # GPU builds on the miner's own GPU, speed only, never official.
+    catalog_gpu = ExecutionProfile(
+        GPU_RESEARCH,
+        "Practice of Carbon's tested catalog backbones' GPU builds on the "
+        "miner's own GPU, in the isolated C-03 worker, for speed only; "
+        "measured on GPU, not official, and CPU and GPU results can differ",
+        "torch-cuda/isolated-carrier",
+        torch_carrier + ("gpu_worker_image", "host_device_record"),
+    )
     return (
         Entry(
             BURGERS_CHALLENGE,
@@ -405,6 +416,7 @@ def _entries():
                     "torch-cpu/isolated-carrier",
                     torch_carrier,
                 ),
+                catalog_gpu,
             ),
             _motor_catalog,
             None,
@@ -427,6 +439,7 @@ def _entries():
                     "torch-cpu/isolated-carrier",
                     torch_carrier,
                 ),
+                catalog_gpu,
             ),
             _motor_catalog_v7,
             None,
@@ -451,6 +464,7 @@ def _entries():
                     "torch-cpu/isolated-carrier",
                     torch_carrier,
                 ),
+                catalog_gpu,
             ),
             _cold_plate_catalog,
             None,
@@ -477,6 +491,7 @@ def _entries():
                     "torch-cpu/isolated-carrier",
                     torch_carrier,
                 ),
+                catalog_gpu,
             ),
             _f08_direct,
             None,
@@ -498,6 +513,7 @@ def _entries():
                     "torch-cpu/isolated-carrier",
                     torch_carrier,
                 ),
+                catalog_gpu,
             ),
             _f02_direct,
             None,

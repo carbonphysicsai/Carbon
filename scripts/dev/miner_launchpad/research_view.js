@@ -964,11 +964,14 @@
       for (const k of keys) row.append(el("td", fmt(r.components[k])));
       // What the run actually ran on: its recipe's framework (or the
       // Challenge's default) and the worker record's backend and image.
-      row.append(el("td", fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null), r.image].filter(Boolean).join(" · ") || "–"));
+      row.append(el("td", fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend === "C03_DOCKER_GPU" ? "GPU · measured on GPU, not official" : (r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null)), r.image].filter(Boolean).join(" · ") || "–"));
       table.append(row);
     }
     wrap.append(table); box.append(wrap);
     para(box, "Descriptive practice on public cases. Not an accepted improvement, a rank or an official score.", "hint");
+    // Shared GPU path (Validator condition 4; owner): a GPU practice is
+    // labelled as such, and the miner is told CPU and GPU results can differ.
+    if (rows.some(r => r.backend === "C03_DOCKER_GPU")) para(box, "Runs marked GPU were measured on your GPU, not official. CPU and GPU results can differ; the validator rebuilds your frozen recipe on its own pinned environment.", "hint");
     const queried = rows.map(r => r.dual?.n_cases).find(n => Number.isInteger(n));
     if (dual) para(box, "Graded total: the exam's own gates and 0.5·A + 0.5·D, computed on the public practice bank" + (Number.isInteger(queried) ? " (practice queries your model on " + queried + " public cases, on your own machine)" : "") + "; it compares within this Challenge version only and is not the exam grade.", "hint");
     const byId = Object.fromEntries(doc.charts.map(c => [c.id, c]));
@@ -1126,7 +1129,7 @@
       // own signed re-read while none has arrived (Validator-approved).
       if (r.grade !== undefined) {
         const latest = r.grade && r.grade.latest;
-        para(box, !latest ? "Grade: not graded yet." : latest.status === "GATE_FAILED" ? "Grade: not eligible (a mandatory gate failed)." : typeof latest.total === "number" ? "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better)" + (r.grade.best && typeof r.grade.best.total === "number" ? " · your best: " + r.grade.best.total.toFixed(4) : "") + ". Compares within this Challenge version only." + (latest.recipe_digest ? "" : " It is your hotkey's latest grade on this exam, which may be from an earlier submission until the validator grades this one.") : "Grade: not scored.", "status-line");
+        para(box, !latest ? "Grade: not graded yet." : latest.status === "NO_IMPROVEMENT" ? "Grade: did not improve on your best" + (typeof latest.total === "number" ? " (" + latest.total.toFixed(4) + ")" : "") + "." : latest.status === "GATE_FAILED" ? "Grade: not eligible (a mandatory gate failed)." : typeof latest.total === "number" ? "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better)" + (r.grade.best && typeof r.grade.best.total === "number" ? " · your best: " + r.grade.best.total.toFixed(4) : "") + ". Compares within this Challenge version only." + (latest.recipe_digest ? "" : " It is your hotkey's latest grade on this exam, which may be from an earlier submission until the validator grades this one.") : "Grade: not scored.", "status-line");
         const check = el("button", latest ? "Check for a newer result" : "Check for result"); check.type = "button";
         const said = el("p", "", "hint");
         check.disabled = !CC.state().connected;
