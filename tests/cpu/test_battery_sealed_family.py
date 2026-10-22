@@ -206,3 +206,19 @@ def test_the_runner_builds_records_without_merging_failure_kinds():
     assert runner.TERMINAL == hidden.TERMINAL
     with pytest.raises(SystemExit):
         runner.check_plan({"batch": "b", "cases": [{"case_id": "x/y", "inputs": _inputs(0)}]})
+
+
+def test_a_b15_probe_equal_at_four_places_is_an_overlap_key():
+    plan = json.loads(
+        (
+            REPOSITORY
+            / "docs/development/evidence/battery-b15-public-probes-20261020/plan.json"
+        ).read_bytes()
+    )
+    published, key = population._published()
+    from carbon.battery.domain import INPUTS
+
+    probe = plan["pairs"][0]["base"]
+    assert any(float(probe[n]) != round(float(probe[n]), 4) for n in INPUTS)
+    rounded = {n: round(float(probe[n]), 4) for n in INPUTS}
+    assert key(rounded) in published
