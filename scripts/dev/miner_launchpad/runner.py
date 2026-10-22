@@ -117,6 +117,10 @@ OPTIONAL_PROFILE_FIELDS = {
     # from the registered product Challenge's Battery intake and never rewrites
     # a frozen Battery campaign's Challenge or contract identity.
     "direct_intake_target",
+    # {id, version}: the one Challenge version that direct target serves, as
+    # Review read it from the receiver's public facts (Launchpad Test Runner
+    # G3), so setup and the prelaunch review show it only beside that one.
+    "direct_intake_serves",
     "validators",
     # Per Challenge (LAUNCHPAD-ACCEPT-03): {challenge_id: ss58}, the receiver
     # hotkey that Challenge's intake must report before anything is signed
@@ -812,6 +816,17 @@ def validated_profile(cfg):
             validate([cfg["direct_intake_target"]])
         except ValueError:
             raise ValueError("direct_intake_target must be receiver-paired") from None
+    if "direct_intake_serves" in cfg:
+        serves = cfg["direct_intake_serves"]
+        if (
+            "direct_intake_target" not in cfg
+            or type(serves) is not dict
+            or set(serves) != {"id", "version"}
+            or not all(type(v) is str and 0 < len(v) <= 128 for v in serves.values())
+        ):
+            raise ValueError(
+                "direct_intake_serves names the direct target's Challenge id and version"
+            )
     if "validators" in cfg:
         _registered_challenge_ids(cfg["validators"], "validators")
         if any(

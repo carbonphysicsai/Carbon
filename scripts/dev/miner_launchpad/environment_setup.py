@@ -379,6 +379,39 @@ KEPT_INTAKE_NOTE = (
     "aside. Review writes only the intakes you name, and otherwise Carbon's "
     "published endpoint if there is one: name yours again at Review to keep it."
 )
+#: What setup and the prelaunch review say beside a Challenge the direct
+#: construction receiver does not serve (Launchpad Test Runner G3): a
+#: receiver serves exactly one Challenge version, so it is not this one's.
+DIRECT_SERVES_OTHER = (
+    "Your construction receiver ({url}) serves {served} only, so a {title} "
+    "candidate cannot be submitted to it: that intake would refuse it "
+    "construction_intake_challenge_mismatch. Add an intake that serves "
+    "{title} {version}, or wait until Carbon publishes one."
+)
+
+
+def direct_serves_other(direct, serves, challenge) -> str:
+    """`DIRECT_SERVES_OTHER` for `challenge` (an `intake_challenges` item),
+    naming the Challenge version the direct receiver serves by its title
+    where it is a registered intake Challenge."""
+    titles = {(c["id"], c["version"]): c["title"] for c in intake_challenges()}
+    key = (serves.get("id"), serves.get("version"))
+    served = titles.get(key, str(key[0])) + " " + str(key[1])
+    return DIRECT_SERVES_OTHER.format(
+        url=direct.get("intake_url"),
+        served=served,
+        title=challenge["title"],
+        version=challenge["version"],
+    )
+
+
+#: Beside a direct receiver whose Challenge setup could not read.
+DIRECT_SERVES_UNREAD = (
+    "Carbon could not read which Challenge your construction receiver serves "
+    "(it was not reachable at Review), so it is listed for every Challenge "
+    "without an intake. A receiver serves exactly one Challenge version: "
+    "review again while it is running to see which."
+)
 
 #: What the installer installed here (LP-PROD-E): the checkout's revision and
 #: each image manifest it recorded, with the manifest's digest and image ID.
@@ -1525,7 +1558,55 @@ class LiveChecks:
                     else INTAKE_UNREACHABLE_STEP
                 ),
             ) from None
+        served = facts.get("challenge") if type(facts) is dict else None
+        key = getattr(campaign, "key", None)
+        if (
+            type(served) is dict
+            and key is not None
+            and (served.get("id"), served.get("version"))
+            != (key.challenge_id, key.version)
+        ):
+            # A construction receiver serves exactly one Challenge version
+            # and says which (G3): another's is refused here, at Review, not
+            # first at submit as construction_intake_challenge_mismatch.
+            raise SetupRefused(
+                "intakes",
+                "intake_serves_another_chain_or_challenge",
+                next_step=(
+                    "This intake serves "
+                    + str(served.get("id"))
+                    + " "
+                    + str(served.get("version"))
+                    + ", not "
+                    + key.challenge_id
+                    + " "
+                    + key.version
+                    + ": each intake serves exactly one Challenge version. "
+                    "Name it for the Challenge it serves, and give this "
+                    "Challenge an intake of its own or leave it empty."
+                ),
+            )
         return {"receiver": facts["receiver"], "snapshot": facts["snapshot"]["id"]}
+
+    @staticmethod
+    def direct_intake(url: str) -> dict:
+        """Which Challenge version a construction receiver serves, read from
+        its public facts (`direct_submission.read_intake`): `{"receiver",
+        "challenge": {"id", "version"}}`. A receiver serves exactly one, so
+        setup can say which Challenge a direct target is for (Launchpad Test
+        Runner G3). Sends nothing signed and costs nothing; any failure is a
+        ValueError or OSError, and setup then says it could not read it."""
+        from carbon.development_session.direct_submission import read_intake
+
+        facts = read_intake(url)
+        challenge = facts.get("challenge")
+        if (
+            type(challenge) is not dict
+            or set(challenge) != {"id", "version"}
+            or not all(type(v) is str and 0 < len(v) <= 128 for v in challenge.values())
+        ):
+            raise ValueError("construction receiver names no Challenge")
+        return {"receiver": facts.get("receiver"), "challenge": dict(challenge)}
 
     def agent(self, hotkey: str, socket_path: Path | None = None) -> dict:
         from carbon.chain.external_signer import SignerFailure, connect_signer
@@ -2366,13 +2447,26 @@ class EnvironmentSetup:
                     title=challenge["title"]
                 )
             direct = record.get("direct_intake_target")
-            if intake is None and type(direct) is dict:
+            serves = record.get("direct_intake_serves")
+            serves = serves if type(serves) is dict else None
+            other = (
+                type(direct) is dict
+                and serves is not None
+                and (serves.get("id"), serves.get("version"))
+                != (challenge["id"], challenge["version"])
+            )
+            if intake is None and type(direct) is dict and not other:
                 # A direct campaign submits to the profile's direct target
                 # when its Challenge has no intake (`_direct_target`; M1 E2E
-                # H12, as the submit check counts it since H9b).
+                # H12, as the submit check counts it since H9b). Shown only
+                # beside the Challenge it serves, when Review read it (G3).
                 item["direct_intake"] = {
                     k: direct.get(k) for k in ("intake_url", "receiver_hotkey")
                 }
+                if serves is None:
+                    item["direct_intake_serves_note"] = DIRECT_SERVES_UNREAD
+                else:
+                    item["direct_intake"]["serves"] = serves
             elif intake is None:
                 item["note"] = NO_ENDPOINT.format(title=challenge["title"])
                 if entry is not None:
@@ -2386,6 +2480,13 @@ class EnvironmentSetup:
                     item["unversioned_endpoint"] = UNVERSIONED_ENDPOINT.format(
                         challenge=challenge["id"]
                     )
+                if other:
+                    # The direct receiver is another Challenge's (G3).
+                    item["direct_intake_serves_other"] = {
+                        "intake_url": direct.get("intake_url"),
+                        "serves": serves,
+                        "note": direct_serves_other(direct, serves, challenge),
+                    }
             own = kept.get(challenge["id"])
             if type(own) is dict and type(own.get("url")) is str:
                 item["set_aside_intake"] = own["url"]
@@ -3112,6 +3213,12 @@ class EnvironmentSetup:
                 raise SetupRefused(
                     "direct_intake_target", "intake_url_invalid"
                 ) from None
+        # Which Challenge the direct target serves (G3): read now, from its
+        # public facts, so setup and the prelaunch review show it beside the
+        # one Challenge it is for. Unreadable: None, and setup says so.
+        direct_serves = (
+            self._direct_serves(direct_target) if direct_target is not None else None
+        )
         for challenge_id, targets in target_lists.items():
             if (
                 challenge_id in intakes
@@ -3262,6 +3369,8 @@ class EnvironmentSetup:
                         raise SetupRefused(
                             "direct_intake_target", "intake_url_invalid"
                         ) from None
+                    # Kept with the target it was read for.
+                    direct_serves = record.get("direct_intake_serves")
             cfg = self.profile()
             if intakes:
                 cfg = {**cfg, "intakes": intakes}
@@ -3273,6 +3382,8 @@ class EnvironmentSetup:
                 cfg = {**cfg, "version_intakes": version_intakes}
             if direct_target is not None:
                 cfg = {**cfg, "direct_intake_target": direct_target}
+                if type(direct_serves) is dict:
+                    cfg = {**cfg, "direct_intake_serves": direct_serves}
             # The miner's auto-retry choice (LAUNCHPAD-PRACTICE-RETRY-01):
             # this Review's when it names one, else the one kept from before,
             # so an update's Review keeps it. Written into the profile only
@@ -3330,6 +3441,10 @@ class EnvironmentSetup:
                 record.pop("direct_intake_target", None)
             else:
                 record["direct_intake_target"] = direct_target
+            if direct_target is not None and type(direct_serves) is dict:
+                record["direct_intake_serves"] = direct_serves
+            else:
+                record.pop("direct_intake_serves", None)
             # A profile an update set aside is replaced by this one.
             record.pop("profile_set_aside", None)
             self._save(record)
@@ -3345,6 +3460,18 @@ class EnvironmentSetup:
         if check.get("worker_parent") != "cpu":
             return []
         return torch_challenges()
+
+    def _direct_serves(self, target) -> dict | None:
+        """The Challenge version `target`, a direct construction receiver,
+        serves (`LiveChecks.direct_intake`), or None when it cannot be read
+        or these checks read none."""
+        read = getattr(self.checks, "direct_intake", None)
+        if not callable(read):
+            return None
+        try:
+            return read(target["intake_url"])["challenge"]
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
 
     def _own_intakes(self, record) -> dict:
         """The intakes the miner named in their last Review, which an update

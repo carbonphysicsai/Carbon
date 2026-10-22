@@ -181,7 +181,11 @@ def graphite_plan(budget, selection, graphite):
     )
     from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
     from carbon.development_session.research_campaign import FINAL_EPOCHS
-    from carbon.development_session.research_loop import REPLY_CONTINUATION_V1
+    from carbon.development_session.research_loop import (
+        BUDGET_HEADROOM_V1,
+        REPLY_CONTINUATION_V1,
+        SELECTION_ADMISSIBLE_V1,
+    )
     from carbon.development_session.research_tools import (
         ARGUMENT_NORMALISATION_V4,
         TOOLS_RULE,
@@ -236,6 +240,11 @@ def graphite_plan(budget, selection, graphite):
         # reply spec, part 2). A plan frozen earlier names no rule and
         # replays unchanged.
         "reply_continuation": REPLY_CONTINUATION_V1,
+        # The same G1/G2 rules as every Challenge's Graphite plan
+        # (`agent_plan.graphite_plan`); a plan frozen earlier names
+        # neither and replays unchanged.
+        "budget_headroom": BUDGET_HEADROOM_V1,
+        "selection_admissibility": SELECTION_ADMISSIBLE_V1,
         "graphite": block,
     }
     if not selection.is_historical_default:

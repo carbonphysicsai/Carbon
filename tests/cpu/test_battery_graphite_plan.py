@@ -41,7 +41,11 @@ from carbon.development_session.research_agent_policy import (
     PARALLEL_CALLS_V2,
 )
 from carbon.development_session.research_ledger import CampaignLedger
-from carbon.development_session.research_loop import REPLY_CONTINUATION_V1
+from carbon.development_session.research_loop import (
+    BUDGET_HEADROOM_V1,
+    REPLY_CONTINUATION_V1,
+    SELECTION_ADMISSIBLE_V1,
+)
 from carbon.development_session.research_reply import RULE as RESEARCH_REPLY_RULE
 from carbon.development_session.research_tools import (
     ARGUMENT_NORMALISATION_V2,
@@ -135,6 +139,8 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
         "limits",
         "compaction",
         "reply_continuation",
+        "budget_headroom",
+        "selection_admissibility",
         "graphite",
     }
     assert plan["agent"] == "graphite" and plan["policy"] == editions.AGENT_POLICY
@@ -154,6 +160,10 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
     assert plan["compaction"] == editions.COMPACTION_V1
     # Graphite context and reply spec, part 2: a cut reply is continued.
     assert plan["reply_continuation"] == REPLY_CONTINUATION_V1
+    # Launchpad Test Runner G1/G2: the booked-average headroom status and
+    # admissibility before ranking at selection.
+    assert plan["budget_headroom"] == BUDGET_HEADROOM_V1
+    assert plan["selection_admissibility"] == SELECTION_ADMISSIBLE_V1
     assert plan["limits"] == {
         "plan": {
             "schema": editions.LIMITS_SCHEMA,

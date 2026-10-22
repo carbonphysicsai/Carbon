@@ -107,7 +107,11 @@ def graphite_plan(budget, selection, graphite):
     )
     from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
     from carbon.development_session.research_campaign import FINAL_EPOCHS
-    from carbon.development_session.research_loop import REPLY_CONTINUATION_V1
+    from carbon.development_session.research_loop import (
+        BUDGET_HEADROOM_V1,
+        REPLY_CONTINUATION_V1,
+        SELECTION_ADMISSIBLE_V1,
+    )
     from carbon.development_session.research_tools import (
         ARGUMENT_NORMALISATION_V4,
         TOOLS_RULE,
@@ -155,6 +159,12 @@ def graphite_plan(budget, selection, graphite):
         # reply spec, part 2). A plan frozen earlier names no rule and
         # replays unchanged.
         "reply_continuation": REPLY_CONTINUATION_V1,
+        # The turn status counts the spend left at the calls' booked average,
+        # not only at each call's whole hold, and Graphite never selects a
+        # practice that failed a gate (Launchpad Test Runner G1, G2). A plan
+        # frozen earlier names neither rule and replays unchanged.
+        "budget_headroom": BUDGET_HEADROOM_V1,
+        "selection_admissibility": SELECTION_ADMISSIBLE_V1,
         "graphite": block,
     }
     if not selection.is_historical_default:

@@ -204,6 +204,9 @@ NUMERICAL_ACTIONS = ("run_python", "run_julia")
 #: - `selection_not_practiced`: under `PARALLEL_CALLS_V2`, Carbon's own agent
 #:   selected a recipe with no completed practice; the reply lists the
 #:   recipes that have one;
+#: - `selection_not_admissible`: under `SELECTION_ADMISSIBLE_V1`, the
+#:   selected recipe's practice reports a failed gate; the reply lists the
+#:   practiced recipes that report none;
 #: - `call_truncated`: the provider ended the reply before this call was
 #:   complete (`cut_calls`), so it did not run;
 #: - `finish_invalid`: a caller's finish tool refused the call without a
@@ -214,6 +217,7 @@ ARGUMENTS_INVALID = "arguments_invalid"
 SELECTION_INVALID = "selection_invalid"
 CANDIDATE_INVALID = "candidate_invalid"
 SELECTION_NOT_PRACTICED = "selection_not_practiced"
+SELECTION_NOT_ADMISSIBLE = "selection_not_admissible"
 CALL_TRUNCATED = "call_truncated"
 FINISH_INVALID = "finish_invalid"
 COMPACTION_NOT_REQUESTED = "compaction_not_requested"
@@ -222,6 +226,7 @@ REFUSAL_CODES = (
     SELECTION_INVALID,
     CANDIDATE_INVALID,
     SELECTION_NOT_PRACTICED,
+    SELECTION_NOT_ADMISSIBLE,
     CALL_TRUNCATED,
     FINISH_INVALID,
     COMPACTION_NOT_REQUESTED,
@@ -256,6 +261,46 @@ OUTPUT_CAP_HIT = "turn_hit_output_cap"
 REPLY_CONTINUATION_SCHEMA = "carbon.autoresearch.reply-continuation.v1"
 REPLY_CONTINUATION_V1 = {"schema": REPLY_CONTINUATION_SCHEMA, "max_truncated_turns": 3}
 _REPLY_CONTINUATION_FIELDS = frozenset({"schema", "max_truncated_turns"})
+#: A caller's budget-headroom rule (`budget_headroom`, opt-in; frozen by new
+#: Graphite plans only, so every earlier plan's status bytes are unchanged).
+#: Each model call holds its whole reservation - the most it could cost -
+#: only until it is booked, and the ledger starts a call while that much is
+#: left, so the spend line's sure count (spend left // reservation) says "one
+#: call" on a budget that still pays many (Launchpad Test Runner, Cooling 1.2
+#: BUILD: 8 calls booked USD 0.084, the status was sure of one call with USD
+#: 0.42 left, and the agent stopped after one practice). Under this rule the
+#: spend line also says what the calls so far booked and how many more fit
+#: at that average before a call's hold no longer does, and the finish notice
+#: counts those, not the worst case. The reservation, the ledger's admission
+#: and the sure count are unchanged.
+BUDGET_HEADROOM_V1 = "carbon.autoresearch.budget-headroom.v1"
+BUDGET_HEADROOMS = (BUDGET_HEADROOM_V1,)
+#: A caller's selection-admissibility rule (`selection_admissibility`,
+#: opt-in; frozen by new Graphite plans only, so every earlier plan replays
+#: unchanged). Admissibility before ranking: Carbon's own agent never freezes
+#: a recipe whose practice reports a failed gate, however it scored - the
+#: select is refused `selection_not_admissible` while the agent can still
+#: practise another or stop (`research_campaign.trial_admissible`), and the
+#: Graphite driver checks it again before it submits. Launchpad Test Runner,
+#: Cooling 1.2 BUILD: Graphite froze and submitted cooling.transolver with
+#: 58 of 100 practice cases GATE_FAILED as its best available.
+SELECTION_ADMISSIBLE_V1 = "carbon.autoresearch.selection-admissible.v1"
+SELECTION_ADMISSIBILITIES = (SELECTION_ADMISSIBLE_V1,)
+
+
+def money_headroom(money_left, reservation, calls_booked, booked_nanodollars):
+    """How many more model calls the spend left admits, `(sure, likely)`:
+    `sure` if every call cost its whole reservation; `likely` at the average
+    the calls so far booked, or None before any call booked a charge. A call
+    starts only while a whole reservation is left, so the last reservation's
+    worth of a ceiling admits one more call, whatever it then costs."""
+    sure = money_left // reservation
+    if money_left < reservation:
+        return sure, 0
+    if calls_booked <= 0 or booked_nanodollars <= 0:
+        return sure, None
+    average = -(-booked_nanodollars // calls_booked)
+    return sure, max(sure, 1 + (money_left - reservation) // average)
 
 
 def check_reply_continuation(rule):
@@ -681,21 +726,46 @@ def practiced_recipes(ledger, owner):
     return recipes
 
 
-def practice_check(ledger, owner):
+def practice_check(ledger, owner, admissibility=None):
     """The v2 selection rule for Carbon's own agent (LP-PROD-A): a recipe with
     no completed practice is refused here, by the same predicate the trusted
     controller applies before it submits one
     (`research_campaign.trial_supports_selection`), so the agent learns it
     while it can still practise or choose another, instead of after the epoch
-    is spent."""
+    is spent. Under `admissibility` (`SELECTION_ADMISSIBLE_V1`) a practised
+    recipe whose practice reports a failed gate is refused too
+    (`research_campaign.trial_admissible`)."""
+    if admissibility is not None and admissibility not in SELECTION_ADMISSIBILITIES:
+        raise ValueError("a selection-admissibility rule is a registered rule id")
 
     def check(strategy):
-        from .research_campaign import trial_supports_selection
+        from .research_campaign import trial_admissible, trial_supports_selection
 
-        if _has_practice_results(ledger) and trial_supports_selection(
+        supported = _has_practice_results(ledger) and trial_supports_selection(
             ledger, owner, strategy
-        ):
+        )
+        if supported and admissibility is None:
             return None
+        if supported:
+            if trial_admissible(ledger, owner, strategy):
+                return None
+            passing = [
+                recipe
+                for recipe in practiced_recipes(ledger, owner)
+                if trial_admissible(ledger, owner, recipe)
+            ]
+            return rejected_call(
+                SELECTION_NOT_ADMISSIBLE,
+                "strategy_json",
+                "this recipe's practice failed a mandatory gate, so it cannot be "
+                "selected however it scored: a gate failure is never made up "
+                "by accuracy",
+                "select one of admissible_recipes as it is listed, practise "
+                "another recipe that passes every gate, or stop without "
+                "selecting",
+                admissible_recipes=passing[-LISTED_PRACTICED_RECIPES:],
+                admissible_recipe_count=len(passing),
+            )
         recipes = practiced_recipes(ledger, owner)
         return rejected_call(
             SELECTION_NOT_PRACTICED,
@@ -855,14 +925,19 @@ def budget_status(
     offered,
     finish=None,
     omit_unmetered_trials=False,
+    headroom=None,
 ):
     """The budget a session under `LIMITS_V2` sees before each turn: the
     optional per-session caps where set, and what the campaign ledger's own
     ceilings still hold - provider calls, provider spend and research trials.
     The notice to finish comes when the calls it can still be sure of - the
     session's own, the campaign's provider calls, and the spend left over each
-    call's reservation - reach `FINISH_NOTICE_CALLS`. Journalled once, before
-    the request, so a replay sends the same request (`turn_status`)."""
+    call's reservation - reach `FINISH_NOTICE_CALLS`. Under `headroom`
+    (`BUDGET_HEADROOM_V1`) the spend counts at the calls' booked average
+    instead (`money_headroom`), and its line says both. Journalled once,
+    before the request, so a replay sends the same request (`turn_status`)."""
+    if headroom is not None and headroom not in BUDGET_HEADROOMS:
+        raise ValueError("a budget-headroom rule is a registered rule id")
     path = root / (turn + "-status.json")
     if path.exists():
         return json.loads(path.read_bytes())["message"]
@@ -886,15 +961,29 @@ def budget_status(
         sure.append(attempts_left)
     money = budget.get("provider_nanodollars")
     reservation = provider.reservation_nano
-    money_left = None
+    money_left = likely = None
     if type(money) is int and type(reservation) is int and reservation > 0:
         money_left = max(0, money - used["provider_nanodollars"])
-        parts.append(
+        line = (
             f"{_usd(money_left)} of {_usd(money)} provider spend left in the "
             f"campaign budget; each model call holds up to {_usd(reservation)} "
             "until it is booked"
         )
-        sure.append(money_left // reservation)
+        if headroom is None:
+            sure.append(money_left // reservation)
+        else:
+            booked, spent = used["provider_attempts"], used["provider_nanodollars"]
+            certain, likely = money_headroom(money_left, reservation, booked, spent)
+            line += ", and a call starts only while that much is left"
+            if likely is not None:
+                line += (
+                    f"; the {booked} {'call' if booked == 1 else 'calls'} so "
+                    f"far booked {_usd(spent)}, so at that average about "
+                    f"{likely} more {'call fits' if likely == 1 else 'calls fit'}"
+                    f" (at least {certain} if every call cost its whole hold)"
+                )
+            sure.append(certain if likely is None else likely)
+        parts.append(line)
     trials_budget = budget.get("research_trials")
     if PREFIX + "start_research_task" in offered:
         if trial_limit is not None:
@@ -923,28 +1012,33 @@ def budget_status(
     if guaranteed is not None and guaranteed <= FINISH_NOTICE_CALLS:
         how = _finish_how(offered, finish)
         text += (
-            f" Notice: the budget is sure of only {guaranteed} more model "
+            f" Notice: the budget "
+            f"{'is sure of only' if headroom is None else 'fits only about'} "
+            f"{guaranteed} more model "
             f"{'call' if guaranteed == 1 else 'calls'}, counting this turn. "
             f"{how[0].upper() + how[1:]} now; when they run out the {unit} stops."
         )
     message = {"role": "user", "content": text}
-    write_once(
-        path,
-        canonical(
-            {
-                "schema": "carbon.autoresearch.turn-status.v2",
-                "turn": turn,
-                "model_calls_left": calls_left,
-                "model_calls": call_limit,
-                "campaign_provider_calls_left": attempts_left,
-                "campaign_provider_nanodollars_left": money_left,
-                "trial_slots_left": slots_left,
-                "trial_slots": trial_limit,
-                "model_calls_guaranteed": guaranteed,
-                "message": message,
-            }
-        ),
-    )
+    record = {
+        "schema": "carbon.autoresearch.turn-status.v2",
+        "turn": turn,
+        "model_calls_left": calls_left,
+        "model_calls": call_limit,
+        "campaign_provider_calls_left": attempts_left,
+        "campaign_provider_nanodollars_left": money_left,
+        "trial_slots_left": slots_left,
+        "trial_slots": trial_limit,
+        "model_calls_guaranteed": guaranteed,
+        "message": message,
+    }
+    if headroom is not None:
+        # v3: the rule, and the calls the spend fits at the booked average.
+        record.update(
+            schema="carbon.autoresearch.turn-status.v3",
+            budget_headroom=headroom,
+            model_calls_likely_by_spend=likely,
+        )
+    write_once(path, canonical(record))
     return message
 
 
@@ -1694,8 +1788,21 @@ async def run_epoch(
     continue_reminder=None,
     tool_observer=None,
     reply_continuation=None,
+    budget_headroom=None,
+    selection_admissibility=None,
 ):
     """Run once or resume completed provider/tool observations without resends.
+
+    `budget_headroom` (default None, every earlier plan and journal
+    unchanged) is a caller's `BUDGET_HEADROOM_V1` rule: the `LIMITS_V2`
+    budget status counts the spend left at the calls' booked average as well
+    as at each call's whole reservation (`budget_status`). The plan records
+    the rule.
+
+    `selection_admissibility` (default None, every earlier plan unchanged)
+    is a caller's `SELECTION_ADMISSIBLE_V1` rule: the practice check also
+    refuses a recipe whose practice reports a failed gate
+    (`practice_check`). The plan records the rule.
 
     `reply_continuation` (default None, every earlier plan and journal
     unchanged) is a caller's `REPLY_CONTINUATION_SCHEMA` rule: a reply cut at
@@ -1873,6 +1980,13 @@ async def run_epoch(
         check_limits(limits)
     if compaction is not None:
         check_compaction(compaction)
+    if budget_headroom is not None and budget_headroom not in BUDGET_HEADROOMS:
+        raise ValueError("a budget-headroom rule is a registered rule id")
+    if (
+        selection_admissibility is not None
+        and selection_admissibility not in SELECTION_ADMISSIBILITIES
+    ):
+        raise ValueError("a selection-admissibility rule is a registered rule id")
     if reply_continuation is not None:
         reply_continuation = check_reply_continuation(reply_continuation)
     truncated_limit = (
@@ -1947,7 +2061,11 @@ async def run_epoch(
     # A v2 selection by Carbon's own agent, or by a Graphite miner role, needs
     # a completed practice; a role's caller owns what its selection means.
     select_check = (
-        practice_check(ledger, owner)
+        (
+            practice_check(ledger, owner)
+            if selection_admissibility is None
+            else practice_check(ledger, owner, selection_admissibility)
+        )
         if (every_call and instructions is None) or miner
         else None
     )
@@ -1986,6 +2104,10 @@ async def run_epoch(
         plan["continue_reminder"] = continue_reminder
     if reply_continuation is not None:
         plan["reply_continuation"] = reply_continuation
+    if budget_headroom is not None:
+        plan["budget_headroom"] = budget_headroom
+    if selection_admissibility is not None:
+        plan["selection_admissibility"] = selection_admissibility
     if "research_guidance" in initial_observation:
         plan["effective_input_digest"] = effective_digest(policy, initial_observation)
     write_once(root / "plan.json", canonical(plan))
@@ -2577,6 +2699,7 @@ async def run_epoch(
                     offered=offered,
                     finish=finish_name,
                     omit_unmetered_trials=omit_unmetered_trials,
+                    headroom=budget_headroom,
                 )
             )
         request = request_for(history)

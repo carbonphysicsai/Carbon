@@ -444,6 +444,71 @@ def trial_supports_selection(ledger, owner, strategy):
     return False
 
 
+#: The shared practice dual-feedback block (Validator C13), wherever a
+#: practice result carries it: its own `eligible` is the gate verdict on the
+#: public bank for a Challenge whose summary reports none.
+PRACTICE_DUAL_SCHEMA = "carbon.practice.dual-feedback.v1"
+
+
+def practice_gates_failed(result):
+    """Whether a retained practice result reports a failed gate: its summary's
+    `eligible` is False (a GATE_FAILED case, or none scored), or its
+    dual-feedback block (`PRACTICE_DUAL_SCHEMA`, beside or inside the summary
+    or outcome) is available and not eligible. One reader for every
+    Challenge. A result that reports no gate verdict at all is not a failure
+    by this reader; the official exam still judges every gate."""
+    if type(result) is not dict:
+        return False
+    places = [result] + [
+        result[key] for key in ("outcome", "summary") if type(result.get(key)) is dict
+    ]
+    summary = result.get("summary")
+    if type(summary) is dict and summary.get("eligible") is False:
+        return True
+    return any(
+        type(value) is dict
+        and value.get("schema") == PRACTICE_DUAL_SCHEMA
+        and value.get("available") is True
+        and value.get("eligible") is not True
+        for place in places
+        for value in place.values()
+    )
+
+
+def trial_admissible(ledger, owner, strategy):
+    """Whether `strategy` may be selected under admissibility before ranking
+    (`research_loop.SELECTION_ADMISSIBLE_V1`): a practice supports selecting
+    it (`trial_supports_selection`) and no practice of exactly it reports a
+    failed gate (`practice_gates_failed`). A score cannot buy back a gate."""
+    return trial_supports_selection(ledger, owner, strategy) and not (
+        practice_failed_gates(ledger, owner, strategy)
+    )
+
+
+def practice_failed_gates(ledger, owner, strategy):
+    """Whether any retained practice of exactly `strategy` reports a failed
+    gate (`practice_gates_failed`); False where nothing was practised."""
+    with ledger.db() as db:
+        if (
+            db.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' "
+                "AND name='research_results'"
+            ).fetchone()
+            is None
+        ):
+            return False
+        rows = db.execute(
+            "SELECT body,digest FROM research_results WHERE owner=?", (owner,)
+        ).fetchall()
+    for body, fingerprint in rows:
+        if digest(body) != fingerprint:
+            raise ValueError("retained practice result changed")
+        result = json.loads(body)
+        if result.get("recipe") == strategy and practice_gates_failed(result):
+            return True
+    return False
+
+
 async def final_epoch(
     args,
     ledger,

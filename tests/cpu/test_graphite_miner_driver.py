@@ -519,6 +519,8 @@ class Engine:
         limits=None,
         compaction=None,
         reply_continuation=None,
+        budget_headroom=None,
+        selection_admissibility=None,
     ):
         self.calls.append(
             {
@@ -537,6 +539,8 @@ class Engine:
                 "limits": limits,
                 "compaction": compaction,
                 "reply_continuation": reply_continuation,
+                "budget_headroom": budget_headroom,
+                "selection_admissibility": selection_admissibility,
                 "max_provider_calls": max_provider_calls,
             }
         )
@@ -619,9 +623,16 @@ class Engine:
 # --- the campaign, prepared ---------------------------------------------------
 
 
-def practise(ledger, owner, strategy, task):
-    """A completed practice result, as the research service retains one."""
-    body = canonical({"provenance": "BATTERY_PUBLIC_PRACTICE", "recipe": strategy})
+def practise(ledger, owner, strategy, task, summary=None):
+    """A completed practice result, as the research service retains one;
+    with `summary`, the practice summary it reports (its gate verdict)."""
+    body = canonical(
+        {
+            "provenance": "BATTERY_PUBLIC_PRACTICE",
+            "recipe": strategy,
+            **({} if summary is None else {"summary": summary}),
+        }
+    )
     with sqlite3.connect(ledger.root / "campaign.sqlite3") as db:
         db.execute(
             "CREATE TABLE IF NOT EXISTS research_results(owner TEXT NOT NULL,task TEXT NOT NULL,body BLOB NOT NULL,digest TEXT NOT NULL,PRIMARY KEY(owner,task))"
@@ -1153,6 +1164,39 @@ def test_an_unpractised_selection_is_never_submitted(world):
     assert w.run(Transport()) is None
     assert w.campaign.evaluated == []
     assert w.stage("build")["ended"] == "NOT_SUBMITTED"
+
+
+GATE_FAILED = {"eligible": False, "n_cases": 100, "n_gate_failed": 58}
+
+
+def test_a_gate_failed_practice_is_never_submitted(world, monkeypatch):
+    """Launchpad Test Runner G2: admissibility before ranking. A selection
+    whose practice failed a gate reaches no submit, whatever froze it - the
+    controller checks it again under the plan's frozen rule - and the build
+    ends NOT_ADMISSIBLE, noted. A plan frozen before the rule submits it as
+    it always did (byte-for-byte replay)."""
+    module = sys.modules[__name__]
+    plain = module.practise
+    monkeypatch.setattr(
+        module,
+        "practise",
+        lambda ledger, owner, strategy, task: plain(
+            ledger, owner, strategy, task, summary=GATE_FAILED
+        ),
+    )
+    w = world(mode="BUILD")
+    w.engine.scripts = {
+        ("plan", 1): [STOP_TURN],
+        (None, 1): [[practice(RECIPE)], [select(RECIPE)]],
+    }
+    assert w.run(Transport()) is None
+    assert w.prepared.manifest["provider"]["selection_admissibility"] == (
+        research_loop.SELECTION_ADMISSIBLE_V1
+    )
+    assert w.campaign.evaluated == []
+    assert w.stage("build")["ended"] == "NOT_ADMISSIBLE"
+    notes = CampaignLedger(w.root).status(owner="alice")["notes"]
+    assert notes[-1]["body"]["code"] == "selection_not_admissible"
 
 
 # --- FULL -----------------------------------------------------------------------
@@ -1910,6 +1954,8 @@ def test_every_stage_runs_under_the_frozen_engine_rules(world):
         assert call["miner_guidance"] == plan["miner_guidance"]
         assert call["compaction"] == editions.COMPACTION_V1
         assert call["reply_continuation"] == plan.get("reply_continuation")
+        assert call["budget_headroom"] == plan["budget_headroom"]
+        assert call["selection_admissibility"] == plan["selection_admissibility"]
         assert call["max_provider_calls"] is None
     assert planner["instructions"] == editions.PLANNER_PROMPT
     assert planner["finish"]["tool"] == editions.FINISH_TOOL

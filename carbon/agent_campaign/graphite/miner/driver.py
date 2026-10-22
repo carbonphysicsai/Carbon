@@ -85,7 +85,11 @@ from carbon.development_session import research_campaign as campaigns
 from carbon.development_session.data import write_once
 from carbon.development_session.model_provider import DEFAULT_SETTINGS
 from carbon.development_session.profile import canonical, digest
-from carbon.development_session.research_loop import OUTPUT_CAP_HIT, run_epoch
+from carbon.development_session.research_loop import (
+    OUTPUT_CAP_HIT,
+    SELECTION_NOT_ADMISSIBLE,
+    run_epoch,
+)
 
 from . import budget
 from . import edition as editions
@@ -380,8 +384,34 @@ def launch_window(selection, research_share=editions.DEFAULT_RESEARCH_SHARE):
         "per_call_reservation_nanodollars": per_call,
         "research_share": research_share,
         "full_launch_minimum_provider_nanodollars": minimum,
+        "budget_note": budget_note(per_call),
         "advised": window <= INPUT_WINDOW_ADVISED_AT_OR_BELOW,
     }
+
+
+def budget_note(per_call):
+    """What a provider_nanodollars ceiling buys on a model whose call holds
+    `per_call` (None: unpriced), said before the launch spends (Launchpad
+    Test Runner G1): the hold is the most one call could cost, a call starts
+    only while that much is left, and it is booked at what it cost. So the
+    least ceiling that runs Graphite at all is one hold, and every dollar
+    above it pays further calls at their booked cost - a run that plans,
+    practises and selects needs several. Carbon sets no ceiling; the miner
+    chooses it."""
+    if per_call is None:
+        return (
+            "This model has no listed price, so no call holds any spend: your "
+            "provider_attempts ceiling bounds the calls."
+        )
+    hold = format(per_call / 1e9, ".4f")
+    return (
+        "Each model call holds up to USD " + hold + " of your provider_nanodollars "
+        "ceiling until it is booked at what it actually cost, and a call starts "
+        "only while that much is left. So a ceiling of USD " + hold + " pays one "
+        "call; each dollar above it pays further calls at their booked cost, "
+        "and a run that plans, practises and selects needs several. Graphite "
+        "reads the calls' booked average in its budget status."
+    )
 
 
 def frozen_launch(root, block):
@@ -756,6 +786,12 @@ class _Run:
             bans=self.curation["bans"],
         )
 
+    @property
+    def admissibility(self):
+        """The plan's selection-admissibility rule, or None for a plan frozen
+        before it (replayed unchanged)."""
+        return self.provider_plan.get("selection_admissibility")
+
     def engine(self, stage, role=None):
         """The research loop keywords every miner-edition stage shares, on
         `role`'s selection (`provider_kw`)."""
@@ -771,6 +807,8 @@ class _Run:
             "compaction": self.provider_plan["compaction"],
             # None for a plan frozen before the rule: replayed unchanged.
             "reply_continuation": self.provider_plan.get("reply_continuation"),
+            "budget_headroom": self.provider_plan.get("budget_headroom"),
+            "selection_admissibility": self.admissibility,
             **self.provider_kw(role),
         }
 
@@ -1224,6 +1262,24 @@ async def _build(run, plan_doc, plan_digest):
             ended = "NOT_SELECTED"
             if type(result.get("code")) is str:
                 stopped = _stopped(result)
+            break
+        if run.admissibility is not None and campaigns.practice_failed_gates(
+            ledger, owner, result["strategy"]
+        ):
+            # The loop refuses such a select; this is the controller's own
+            # check before it is retained or sent: a gate failure is never
+            # submitted, whatever froze it (admissibility before ranking).
+            ledger.note(
+                owner=owner,
+                kind="decision",
+                body={
+                    "epoch": epoch,
+                    "stop": "selected recipe's practice failed a gate; "
+                    "nothing submitted",
+                    "code": SELECTION_NOT_ADMISSIBLE,
+                },
+            )
+            ended = "NOT_ADMISSIBLE"
             break
         if retain_only:
             ledger.note(

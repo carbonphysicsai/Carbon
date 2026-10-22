@@ -547,6 +547,28 @@ NEXT_ACTIONS = {
         "Set up your environment (carbon_setup_review): check the intake "
         "address and its receiver hotkey, then submit again."
     ),
+    # Launchpad Test Runner G3: a construction receiver serves exactly one
+    # Challenge version, and the intake this submit reached serves another.
+    "construction_intake_challenge_mismatch": (
+        "The intake this campaign submits to serves another Challenge: each "
+        "validator intake serves exactly one Challenge version, so nothing was "
+        "signed or sent, and the frozen candidate is kept. Open Set up your "
+        "environment and read Review's evaluation list (carbon_setup_review): "
+        "it shows which Challenge each intake serves. Add an intake that serves "
+        "this Challenge and version, or wait until Carbon publishes one, then "
+        "submit again."
+    ),
+    "construction_intake_chain_mismatch": (
+        "The intake this campaign submits to serves another chain or subnet, "
+        "so nothing was signed or sent; the frozen candidate is kept. Check "
+        "the intake address under Set up your environment, then submit again."
+    ),
+    "construction_contract_not_served": (
+        "The intake serves this Challenge but not this campaign's construction "
+        "contract, so nothing was signed or sent; the frozen candidate is "
+        "kept. The intake may run another Carbon version: check it, or use an "
+        "intake that serves this version, then submit again."
+    ),
     "intake_signer_changed": (
         "This epoch's candidate was submitted under another hotkey than the "
         "signer now running, and nothing was sent. Start carbon-miner-signer "
@@ -1353,7 +1375,11 @@ NEXT_ACTIONS = {
         "provider_attempts (model calls) and provider_nanodollars (model "
         "spend) as whole numbers. Launch again with budget.ceilings setting "
         "both; nothing was called. A campaign launched without them cannot "
-        "run, so resuming it does not help."
+        "run, so resuming it does not help. Each call holds up to its most "
+        "possible cost until it is booked, and starts only while that much "
+        "spend is left: set provider_nanodollars to more than one call's hold "
+        "(Graphite's options show per_call_reservation_nanodollars and what "
+        "the ceiling buys)."
     ),
     "hunt_query_invalid": (
         "Send hunt as {queries?, max_records?}: up to 8 queries of 1 to 6 "
