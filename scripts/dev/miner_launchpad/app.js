@@ -3240,13 +3240,21 @@
   // prelaunch review's evaluation_endpoints (LP-PROD-E): configuration only,
   // stated before a submit rather than learnt from its refusal. Said plainly,
   // with what still works and the next step (LAUNCHPAD-PAGE-USABILITY-01).
-  function evaluationOf(id) {
+  // Each Challenge version has its own endpoint entry (a receiver serves one
+  // version): a version, when known, must match, so a v1.3 campaign never
+  // reads the v1.2 entry (U46).
+  function evaluationOf(id, version) {
     const items = research.preflight?.review?.evaluation_endpoints?.challenges;
     if (!Array.isArray(items) || typeof id !== "string") return null;
-    return items.find(item => item && item.challenge_id === id) || null;
+    const same = items.filter(item => item && item.challenge_id === id);
+    if (typeof version === "string") return same.find(item => item.version === version) || null;
+    return same[0] || null;
   }
-  function evaluationFor(run) { return evaluationOf(run?.challenge?.id); }
+  function evaluationFor(run) { return evaluationOf(run?.challenge?.id, run?.challenge?.version); }
   function evaluationNote(parent, run) {
+    // A submit that was already accepted settles it: the note describes a
+    // refusal that did not happen (U46).
+    if ((run?.journey?.submitted_epochs || []).length) return;
     const item = evaluationFor(run);
     if (!item || EVALUABLE.includes(item.status)) return;
     const note = el("div", undefined, "evaluation-unavailable"); note.dataset.evaluation = item.status;
@@ -4219,7 +4227,7 @@
       row("Compute", compute ? compute.label + " · " + compute.lane + " lane · " + compute.availability : "Unavailable");
       row("Tools", entry ? Object.keys(entry.tools?.workflow || {}).join(", ") || "none listed" : "Choose a Challenge");
       // Stated before launch, not learnt at submit (LAUNCHPAD-PAGE-USABILITY-01).
-      const evaluation = entry ? evaluationOf(entry.challenge_id) : null;
+      const evaluation = entry ? evaluationOf(entry.challenge_id, entry.version) : null;
       if (evaluation) row("Evaluation", EVALUABLE.includes(evaluation.status) ? "A validator is configured for this Challenge in your profile; whether it answers is seen at submit." : "Unavailable today: no validator intake is configured in your profile" + (evaluation.status === "NONE_PUBLISHED" ? " and none is published for this Challenge yet" : "") + ". You can launch, practise, observe, freeze, and stop or pause; a submit is refused and the frozen candidate kept until one is configured.");
       const limits = [];
       limits.push("elapsed: " + ("elapsed_seconds" in budget ? budget.elapsed_seconds + " s" + longer(budget.elapsed_seconds) : "no limit"));
