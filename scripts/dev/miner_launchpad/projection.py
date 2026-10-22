@@ -328,16 +328,24 @@ def _grade(ladder, submission=None):
     if type(ladder) is not dict:
         return None
     latest, best = one(ladder.get("latest")), one(ladder.get("best"))
-    # A v3 document about another submission is not this one's grade: this
-    # submit is not graded yet (U63). A v2 document names none and is shown
-    # with the page's "may be an earlier submission" label.
-    if (
-        submission is not None
-        and latest is not None
-        and latest.get("recipe_digest") not in (None, submission)
-    ):
-        latest = None
-    return {"latest": latest, "best": best, "submission": submission}
+    # `latest` is this submission's grade only when the document names this
+    # submission (Ladder v3, U63). A v2 document names none, and a v3 one may
+    # name another: either is the mining key's latest grade on the exam
+    # (`exam_latest`), never this submit's. M1 E2E R5-1: three submits read
+    # "Graded 0.54" although the receiver graded only one of them.
+    own = (
+        latest
+        if latest is not None
+        and submission is not None
+        and latest.get("recipe_digest") == submission
+        else None
+    )
+    return {
+        "latest": own,
+        "exam_latest": None if own is not None else latest,
+        "best": best,
+        "submission": submission,
+    }
 
 
 def _multi_validator_outcome(epoch, path):

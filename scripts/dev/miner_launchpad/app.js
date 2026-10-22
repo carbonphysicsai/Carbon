@@ -2790,17 +2790,30 @@
     if (typeof dual.total !== "number") return "Practice graded total: not scored.";
     return "Practice graded total: " + dual.total.toFixed(4) + " (0 to 1, higher is better" + (typeof dual.accuracy === "number" ? "; A " + dual.accuracy.toFixed(3) : "") + (typeof dual.design_value === "number" ? ", D " + dual.design_value.toFixed(3) : "") + "), on the public practice bank" + (Number.isInteger(dual.n_cases) ? " (" + dual.n_cases + " cases)" : "") + "; compares within this Challenge version only." + (Object.values(dual.gates || {}).includes("NOT_TESTED_ON_PRACTICE") ? " Not tested on practice: " + Object.entries(dual.gates).filter(([, ok]) => ok === "NOT_TESTED_ON_PRACTICE").map(([name]) => words(name)).join(", ") + "." : "");
   }
-  function gradeLine(grade) {
+  // M1 E2E R5-1: `latest` is this submission's grade only when the receiver
+  // names this submission; the mining key's latest grade on the exam
+  // (`exam_latest`) is shown apart, never as this submit's, and "not graded
+  // yet" says how far this submission got (its own state).
+  function examLatestLine(grade) {
+    const other = grade && grade.exam_latest;
+    if (!other) return "";
+    const said = other.status === "GATE_FAILED" ? "not eligible (a mandatory gate failed)" : other.status === "NOT_SCORED" || typeof other.total !== "number" ? "not scored" : other.total.toFixed(4);
+    return " Your mining key's latest grade on this exam is " + said + ", from " + (other.recipe_digest ? "another submission" : "a submission the validator did not name") + "; it is not this one's.";
+  }
+  function gradeLine(grade, state) {
     const latest = grade && grade.latest;
-    if (!latest) return "Grade: not graded yet. It appears here once the validator grades this submission." + (grade?.best && typeof grade.best.total === "number" ? " Your best so far, " + grade.best.total.toFixed(4) + ", is from " + (grade.best.recipe_digest && grade.best.recipe_digest !== grade.submission ? "another submission" : "an earlier grade") + "." : "");
+    const best = grade?.best && typeof grade.best.total === "number" ? grade.best.total.toFixed(4) : null;
+    if (!latest) {
+      const stage = state === "ADMITTED" ? "received, waiting to be rebuilt" : state === "RECONSTRUCTED" ? "rebuilt, not graded yet" : "not graded yet";
+      return "Grade: " + stage + ". It appears here once the validator grades this submission." + examLatestLine(grade) + (best ? " Your best so far is " + best + "." : "");
+    }
     // Validator (Ladder v3): a non-improvement repeats the best total under
     // this submit's digest, so it is never read as this submit's score.
     if (latest.status === "NO_IMPROVEMENT") return "Grade: did not improve on your best" + (typeof latest.total === "number" ? " (" + latest.total.toFixed(4) + ")" : "") + ". Compares within this Challenge version only.";
-    if (latest.status === "GATE_FAILED") return "Grade: not eligible (a mandatory gate failed). Compares within this Challenge version only." + (latest.recipe_digest ? "" : " It is your hotkey's latest grade on this exam, which may be from an earlier submission until the validator grades this one.");
+    if (latest.status === "GATE_FAILED") return "Grade: not eligible (a mandatory gate failed). Compares within this Challenge version only.";
     if (typeof latest.total !== "number") return "Grade: not scored.";
-    const best = grade.best && typeof grade.best.total === "number" ? " · your best: " + grade.best.total.toFixed(4) : "";
     const detail = [typeof latest.A === "number" ? "A " + latest.A.toFixed(3) : null, typeof latest.D === "number" ? "D " + latest.D.toFixed(3) : null].filter(Boolean).join(", ");
-    return "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better" + (detail ? "; " + detail : "") + ")" + best + ". Compares within this Challenge version only." + (latest.recipe_digest ? "" : " It is your hotkey's latest grade on this exam, which may be from an earlier submission until the validator grades this one.");
+    return "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better" + (detail ? "; " + detail : "") + ")" + (best ? " · your best: " + best : "") + ". Compares within this Challenge version only.";
   }
   function renderValidatorOutcome(panel, result, campaign) {
     const o = result.result;
@@ -2818,7 +2831,7 @@
       // A direct campaign's private-exam grade (Validator display rule): one
       // graded total 0..1, higher better, A and D as detail; a gate failure
       // is not eligible; none yet until the receiver grades it.
-      ...(o.grade !== undefined ? [gradeLine(o.grade)] : []),
+      ...(o.grade !== undefined ? [gradeLine(o.grade, o.state)] : []),
       ...(o.practice_dual ? [practiceDualLine(o.practice_dual)] : []),
       (o.evidence || "DEVELOPMENT") + ": no qualification, no reward, no chain write.",
     ];

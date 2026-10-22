@@ -39,3 +39,34 @@ def test_a_direct_challenge_without_a_capability_contract_has_a_toolbox():
             "carbon.construction-recipe.v1"
         }
         assert all(e["challenge"]["id"] == challenge_id for e in built["examples"])
+
+
+def test_an_unnamed_grade_is_never_any_submission_s_own(tmp_path):
+    # R5-1: three submissions read "Graded 0.54"; the receiver graded one. A
+    # Ladder document that names no submission is the mining key's latest
+    # grade on the exam, shown apart and never ticked as this submit's.
+    from pathlib import Path
+
+    from scripts.dev.miner_launchpad import projection
+
+    unnamed = {
+        "schema": "carbon.private-exam.ladder-feedback.v1",
+        "exam_version": "motor-1.3-dev",
+        "status": "IMPROVED",
+        "total": 0.5488,
+        "A": 0.298,
+        "D": 0.8,
+        "gate_names": [],
+    }
+    for digest in ("a", "b", "c"):
+        grade = projection._grade(
+            {"best": unnamed, "latest": unnamed}, "sha256:" + digest * 64
+        )
+        assert grade["latest"] is None
+        assert grade["exam_latest"]["total"] == 0.5488
+    page = Path("scripts/dev/miner_launchpad")
+    for name in ("app.js", "research_view.js"):
+        text = (page / name).read_text(encoding="utf-8")
+        assert "it is not this one's" in text
+        assert "rebuilt, not graded yet" in text
+        assert "may be from an earlier submission" not in text
