@@ -12,7 +12,8 @@ from __future__ import annotations
 
 from carbon.challenge_validator import sealed_exam_common as common
 
-LIMIT_C = 95.0
+from .domain import LIMIT_C
+
 QUANTITY = "peak_top_c"
 CONDITION_ID = "condition-0"
 
