@@ -769,6 +769,8 @@ class _Run:
             "miner_guidance": self.guidance,
             "limits": self.provider_plan["limits"][stage],
             "compaction": self.provider_plan["compaction"],
+            # None for a plan frozen before the rule: replayed unchanged.
+            "reply_continuation": self.provider_plan.get("reply_continuation"),
             **self.provider_kw(role),
         }
 

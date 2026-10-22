@@ -518,6 +518,7 @@ class Engine:
         finish=None,
         limits=None,
         compaction=None,
+        reply_continuation=None,
     ):
         self.calls.append(
             {
@@ -535,6 +536,7 @@ class Engine:
                 "finish": finish,
                 "limits": limits,
                 "compaction": compaction,
+                "reply_continuation": reply_continuation,
                 "max_provider_calls": max_provider_calls,
             }
         )
@@ -1907,6 +1909,7 @@ def test_every_stage_runs_under_the_frozen_engine_rules(world):
         assert call["parallel_calls"] == PARALLEL_CALLS_V2
         assert call["miner_guidance"] == plan["miner_guidance"]
         assert call["compaction"] == editions.COMPACTION_V1
+        assert call["reply_continuation"] == plan.get("reply_continuation")
         assert call["max_provider_calls"] is None
     assert planner["instructions"] == editions.PLANNER_PROMPT
     assert planner["finish"]["tool"] == editions.FINISH_TOOL

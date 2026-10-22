@@ -107,6 +107,7 @@ def graphite_plan(budget, selection, graphite):
     )
     from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
     from carbon.development_session.research_campaign import FINAL_EPOCHS
+    from carbon.development_session.research_loop import REPLY_CONTINUATION_V1
     from carbon.development_session.research_tools import (
         ARGUMENT_NORMALISATION_V3,
         TOOLS_RULE,
@@ -149,6 +150,11 @@ def graphite_plan(budget, selection, graphite):
             ),
         },
         "compaction": edition.compaction_rule(),
+        # A reply cut at its output limit is continued, then asked for its
+        # tool call only, before it can stop a stage (Graphite context and
+        # reply spec, part 2). A plan frozen earlier names no rule and
+        # replays unchanged.
+        "reply_continuation": REPLY_CONTINUATION_V1,
         "graphite": block,
     }
     if not selection.is_historical_default:

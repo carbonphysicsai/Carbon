@@ -41,6 +41,7 @@ from carbon.development_session.research_agent_policy import (
     PARALLEL_CALLS_V2,
 )
 from carbon.development_session.research_ledger import CampaignLedger
+from carbon.development_session.research_loop import REPLY_CONTINUATION_V1
 from carbon.development_session.research_reply import RULE as RESEARCH_REPLY_RULE
 from carbon.development_session.research_tools import (
     ARGUMENT_NORMALISATION_V2,
@@ -133,6 +134,7 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
         "argument_normalisation",
         "limits",
         "compaction",
+        "reply_continuation",
         "graphite",
     }
     assert plan["agent"] == "graphite" and plan["policy"] == editions.AGENT_POLICY
@@ -150,6 +152,8 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
     # which also fills a workspace call's obvious fields.
     assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V3
     assert plan["compaction"] == editions.COMPACTION_V1
+    # Graphite context and reply spec, part 2: a cut reply is continued.
+    assert plan["reply_continuation"] == REPLY_CONTINUATION_V1
     assert plan["limits"] == {
         "plan": {
             "schema": editions.LIMITS_SCHEMA,

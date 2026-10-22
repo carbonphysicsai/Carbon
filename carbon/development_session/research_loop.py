@@ -243,6 +243,35 @@ MAX_TRUNCATED_TURNS = 2
 #: (`agent_decision: false`) and carries the cap and the tokens each turn
 #: used (`output_cap`). The outcome's `code` is unchanged.
 OUTPUT_CAP_HIT = "turn_hit_output_cap"
+#: A caller's reply-continuation rule (`reply_continuation`, opt-in; frozen
+#: by new Graphite plans only, so every earlier plan replays unchanged): a
+#: reply cut off at its output limit is never the end of the session by
+#: itself. The first such reply in a row is answered "continue from where
+#: you stopped, without repeating"; the next one "answer concisely: only the
+#: tool call"; only `max_truncated_turns` in a row stop the session, with
+#: the same typed `REPLIES_TRUNCATED` outcome (Graphite context and reply
+#: spec, 2026-10-21, part 2). Each note is journalled beside its turn
+#: (`<turn>-truncated.json`, with the rule and the attempt), so the page
+#: reads each one as "reply continued", and a replay sends the same request.
+REPLY_CONTINUATION_SCHEMA = "carbon.autoresearch.reply-continuation.v1"
+REPLY_CONTINUATION_V1 = {"schema": REPLY_CONTINUATION_SCHEMA, "max_truncated_turns": 3}
+_REPLY_CONTINUATION_FIELDS = frozenset({"schema", "max_truncated_turns"})
+
+
+def check_reply_continuation(rule):
+    """A reply-continuation rule exactly as `REPLY_CONTINUATION_SCHEMA`
+    defines it, in canonical form; anything else is a ValueError."""
+    if (
+        type(rule) is not dict
+        or set(rule) != _REPLY_CONTINUATION_FIELDS
+        or rule["schema"] != REPLY_CONTINUATION_SCHEMA
+        or type(rule["max_truncated_turns"]) is not int
+        or not 2 <= rule["max_truncated_turns"] <= 8
+    ):
+        raise ValueError("a reply-continuation rule is the registered v1 record")
+    return json.loads(canonical(rule))
+
+
 #: At most this many practiced recipes are listed in a
 #: `selection_not_practiced` reply, newest last; the reply also gives the
 #: count.
@@ -1095,15 +1124,27 @@ def truncated_call(incomplete):
     )
 
 
-def truncation_note(root, turn, response, incomplete, *, cut, ran):
+def truncation_note(
+    root, turn, response, incomplete, *, cut, ran, continuation=None, attempt=1
+):
     """The user note after a reply the provider ended early (LP-PROD-A): how
     it ended, which unfinished calls did not run, and to continue - more
     concisely after the output limit. Journalled once, before the next
     request, so a replay sends the same request; a later wording never
-    rewrites it."""
+    rewrites it.
+
+    Under a reply-continuation rule (`continuation`, `REPLY_CONTINUATION_V1`)
+    a reply cut at the output limit is asked, on the first cut in a row
+    (`attempt` 1), to continue without repeating itself, and on each later
+    one to send only its tool call; the journal records the rule and the
+    attempt. Without one, the note is exactly the historical note."""
     path = root / (turn + "-truncated.json")
     if path.exists():
         return json.loads(path.read_bytes())["message"]
+    if continuation is not None:
+        return _continuation_note(
+            path, turn, response, incomplete, cut, ran, continuation, attempt
+        )
     text = f"Carbon: your last reply {_ended(incomplete)}."
     if cut:
         several = len(cut) > 1
@@ -1136,6 +1177,53 @@ def truncation_note(root, turn, response, incomplete, *, cut, ran):
                 "response_digest": digest(canonical(response)),
                 **incomplete,
                 "cut_calls": cut,
+                "message": message,
+            }
+        ),
+    )
+    return message
+
+
+def _continuation_note(path, turn, response, incomplete, cut, ran, rule, attempt):
+    """`truncation_note` under a reply-continuation rule."""
+    text = f"Carbon: your last reply {_ended(incomplete)}."
+    if cut:
+        several = len(cut) > 1
+        text += (
+            f" Its unfinished tool call{'s' if several else ''} did not run "
+            f"({CALL_TRUNCATED}); send {'them' if several else 'it'} again."
+        )
+    if ran:
+        text += " The tool calls it finished ran; their results are above."
+    if incomplete["reason"] != "max_output_tokens":
+        text += " Continue from where you stopped."
+    elif attempt <= 1:
+        text += (
+            " Continue from exactly where you stopped. Do not repeat what you "
+            "already wrote, and keep your reasoning short."
+        )
+    else:
+        text += (
+            " Answer concisely now: reply with only the tool call you need, "
+            "with no reasoning or commentary before it."
+        )
+    if not ran and rule["max_truncated_turns"] - attempt <= 1:
+        text += (
+            " If your next reply also ends before any tool call in it is "
+            "complete, Carbon stops this run."
+        )
+    message = {"role": "user", "content": text}
+    write_once(
+        path,
+        canonical(
+            {
+                "schema": "carbon.autoresearch.turn-truncated.v1",
+                "turn": turn,
+                "response_digest": digest(canonical(response)),
+                **incomplete,
+                "cut_calls": cut,
+                "rule": rule,
+                "attempt": attempt,
                 "message": message,
             }
         ),
@@ -1605,8 +1693,15 @@ async def run_epoch(
     omit_unmetered_trials=False,
     continue_reminder=None,
     tool_observer=None,
+    reply_continuation=None,
 ):
     """Run once or resume completed provider/tool observations without resends.
+
+    `reply_continuation` (default None, every earlier plan and journal
+    unchanged) is a caller's `REPLY_CONTINUATION_SCHEMA` rule: a reply cut at
+    its output limit is asked to continue, then to send only its tool call,
+    and only `max_truncated_turns` such replies in a row stop the session
+    (`REPLIES_TRUNCATED`). The plan records the rule.
 
     `continue_reminder` (default None, every earlier plan and journal
     unchanged) is a caller's `CONTINUE_REMINDER_SCHEMA` rule, for a role's
@@ -1778,6 +1873,13 @@ async def run_epoch(
         check_limits(limits)
     if compaction is not None:
         check_compaction(compaction)
+    if reply_continuation is not None:
+        reply_continuation = check_reply_continuation(reply_continuation)
+    truncated_limit = (
+        MAX_TRUNCATED_TURNS
+        if reply_continuation is None
+        else reply_continuation["max_truncated_turns"]
+    )
     finish_tool = finish_validate = finish_status = finish_name = None
     if finish is not None:
         finish_tool, finish_validate, finish_status = check_finish(finish)
@@ -1882,6 +1984,8 @@ async def run_epoch(
         plan["finish"] = {"tool": finish_tool["name"], "status": finish_status}
     if continue_reminder is not None:
         plan["continue_reminder"] = continue_reminder
+    if reply_continuation is not None:
+        plan["reply_continuation"] = reply_continuation
     if "research_guidance" in initial_observation:
         plan["effective_input_digest"] = effective_digest(policy, initial_observation)
     write_once(root / "plan.json", canonical(plan))
@@ -2615,7 +2719,7 @@ async def run_epoch(
         if incomplete is not None and all(p in cut for p in range(len(running))):
             truncated.append(call_id)
             truncated_incomplete.append(incomplete)
-            if len(truncated) >= MAX_TRUNCATED_TURNS:
+            if len(truncated) >= truncated_limit:
                 outcome = {
                     "status": "STOPPED",
                     "code": REPLIES_TRUNCATED,
@@ -2657,7 +2761,16 @@ async def run_epoch(
             # Ended early before any call: not a choice to stop, and no
             # reminder is spent. The note asks the model to continue.
             history.append(
-                truncation_note(root, call_id, response, incomplete, cut=[], ran=False)
+                truncation_note(
+                    root,
+                    call_id,
+                    response,
+                    incomplete,
+                    cut=[],
+                    ran=False,
+                    continuation=reply_continuation,
+                    attempt=len(truncated),
+                )
             )
             continue
         if not calls:
@@ -2800,6 +2913,8 @@ async def run_epoch(
                     incomplete,
                     cut=[calls[p]["call_id"] for p in cut if p < len(running)],
                     ran=any(p not in cut for p in range(len(running))),
+                    continuation=reply_continuation,
+                    attempt=max(len(truncated), 1),
                 )
             )
         if every_call or continue_reminder is not None:
