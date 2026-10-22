@@ -928,6 +928,17 @@
     if (breakdown.unrecognized_gate_names) para(box, breakdown.unrecognized_gate_names + " unrecognized gate name(s) were withheld.", "hint");
     para(box, "Counts use your local public PRACTICE summaries. One trial may fail more than one gate; this does not change a gate or the exam.", "hint");
   }
+  // The practice dual-feedback block (C13), one rendering for all five
+  // Challenges: gates first ("not eligible" on a fail), then the graded
+  // total 0..1 (higher better) with A and D as detail.
+  function dualText(dual) {
+    if (!dual) return null;
+    if (!dual.available) return "Graded total unavailable" + (dual.reason ? ": " + words(dual.reason) : "");
+    if (!dual.eligible) return "Not eligible: " + (Object.entries(dual.gates || {}).filter(([, ok]) => !ok).map(([name]) => words(name)).join(", ") || "a mandatory gate failed");
+    if (typeof dual.total !== "number") return "Not scored";
+    const detail = [typeof dual.accuracy === "number" ? "A " + dual.accuracy.toFixed(3) : null, typeof dual.design_value === "number" ? "D " + dual.design_value.toFixed(3) : null].filter(Boolean).join(", ");
+    return dual.total.toFixed(4) + (detail ? " (" + detail + ")" : "");
+  }
   function drawExperiments(box, doc, run) {
     // The existing projection has no mode column. Join its stable trial IDs
     // to the public campaign record so smoke never becomes a score row.
@@ -941,12 +952,14 @@
     const wrap = el("div", undefined, "table-wrap");
     const table = el("table", undefined, "metrics-table");
     const headRow = el("tr");
-    for (const name of ["Run", "Model", "Gates", "Score", ...keys.map(k => labels[k] || k), "Final loss", "Compute budget", "Framework", "Ran on"]) headRow.append(el("th", name));
+    const dual = rows.some(r => r.dual);
+    for (const name of ["Run", "Model", "Gates", ...(dual ? ["Graded total (0 to 1, higher is better)"] : []), "Score", ...keys.map(k => labels[k] || k), "Final loss", "Compute budget", "Framework", "Ran on"]) headRow.append(el("th", name));
     table.append(headRow);
     const fallback = (doc.toolbox?.runtimes || []).find(r => r.default)?.id;
     for (const r of rows) {
       const row = el("tr");
       row.append(el("td", String(r.index)), el("td", r.backbone || "–"), el("td", r.eligible === true ? "passed" : r.eligible === false ? "failed" : "–"), el("td", fmt(r.score)));
+      if (dual) row.children[3].before(el("td", dualText(r.dual) || "–"));
       for (const k of keys) row.append(el("td", fmt(r.components[k])));
       // What the run actually ran on: its recipe's framework (or the
       // Challenge's default) and the worker record's backend and image.
@@ -955,6 +968,7 @@
     }
     wrap.append(table); box.append(wrap);
     para(box, "Descriptive practice on public cases. Not an accepted improvement, a rank or an official score.", "hint");
+    if (dual) para(box, "Graded total: the exam's own gates and 0.5·A + 0.5·D, computed on the public practice bank; it compares within this Challenge version only and is not the exam grade.", "hint");
     const byId = Object.fromEntries(doc.charts.map(c => [c.id, c]));
     for (const id of ["trend_score", "trend_components", "components"]) if (byId[id]) chart(box, byId[id]);
   }

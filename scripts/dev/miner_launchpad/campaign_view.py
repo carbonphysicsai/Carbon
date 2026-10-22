@@ -284,6 +284,45 @@ def contract_section(challenge, feedback_mode, offered_modes=(), level=None):
 # ---- Sections built from the own-research projection.
 
 
+#: The practice dual-feedback block (C13, `scoring.practice_dual.SCHEMA`).
+DUAL_FEEDBACK_SCHEMA = "carbon.practice.dual-feedback.v1"
+
+
+def dual_feedback(experiment):
+    """A practice run's dual-feedback block, allow-listed, wherever the run's
+    record carries it (beside its summary or inside it); None when absent.
+    One reader for all five Challenges (owner rule; Validator C13)."""
+    summary = (
+        experiment.get("summary") if type(experiment.get("summary")) is dict else {}
+    )
+    found = next(
+        (
+            value
+            for value in (*experiment.values(), *summary.values())
+            if type(value) is dict and value.get("schema") == DUAL_FEEDBACK_SCHEMA
+        ),
+        None,
+    )
+    if found is None:
+        return None
+    if found.get("available") is not True:
+        return {"available": False, "reason": _str(found.get("reason"), 128)}
+    gates = found.get("gates") if type(found.get("gates")) is dict else {}
+    return {
+        "available": True,
+        "gates": {
+            str(name)[:128]: ok
+            for name, ok in list(gates.items())[:32]
+            if type(ok) is bool
+        },
+        "eligible": found.get("eligible") is True,
+        "total": finite(found.get("total")),
+        "accuracy": finite(found.get("accuracy")),
+        "design_value": finite(found.get("design_value")),
+        "note": _str(found.get("note"), 256),
+    }
+
+
 def experiment_rows(own, view):
     keys = [k for k, _ in view.components] if view is not None else None
     rows = []
@@ -322,6 +361,9 @@ def experiment_rows(own, view):
                     else None
                 ),
                 "score": finite(score),
+                # The graded dual measurement on the public bank (C13), the
+                # same block for every Challenge: gates first, then the total.
+                "dual": dual_feedback(experiment),
                 "important_score": finite(summary.get("important_score")),
                 "components": {
                     str(k): finite(components.get(k))
