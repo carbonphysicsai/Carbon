@@ -15,6 +15,7 @@ from carbon.challenge_validator import lean_recipe_retention as retention
 from carbon.challenge_validator import pack_set_grading as grading
 from carbon.challenge_validator import pack_set_result as psr
 from carbon.challenge_validator import sealed_exam_common as common
+from carbon.challenge_validator.interface import digest
 from carbon.challenge_validator.ledger import AttemptLedger
 from carbon.development_session.bundle_construction_worker import _tensors
 
@@ -38,6 +39,21 @@ def _row(a, d, ok=True):
     }
 
 
+PIN = "sha256:" + "d" * 64
+
+
+def _role(role, digest):
+    if role == "score_pack":
+        return {
+            "hard_gates": list(GATES),
+            "pack_digest": digest,
+            "legs": {"A": {"minimum": 0.2}, "D": {"minimum": 0.4}},
+            "value_weight": 0.5,
+            "combination": "weighted_arithmetic_mean",
+        }
+    return {}  # the accuracy definition of a pack with no leg-minimum source
+
+
 def _batch_adapters(fixture, tmp_path, scales):
     adapters = {}
     for digest, scale in zip(BATCHES, scales, strict=True):
@@ -47,7 +63,7 @@ def _batch_adapters(fixture, tmp_path, scales):
             manifest_digest=digest,
             read_role=lambda *_a, _raw=bank_raw, **_k: _raw,
             read_source_registration=lambda _root: {"evaluation_version": "ev-1"},
-            read_json_role=lambda *_a, **_k: {"hard_gates": list(GATES)},
+            read_json_role=lambda *_a, _d=digest, **_k: _role(_a[2], _d),
         )
         adapter = copy.copy(fixture.adapter)
         adapter.discovery = SimpleNamespace(
@@ -55,6 +71,8 @@ def _batch_adapters(fixture, tmp_path, scales):
             evaluation_pack_snapshot=snapshot,
             evaluation_pack_digest=digest,
             evaluation_pack_private_root=Path(tmp_path),
+            evaluation_pack_public_root=Path(tmp_path),
+            evaluation_pack_sealed=True,
         )
         adapter._provider = lambda _owner: fixture.provider
         adapter.exam_cadence = {
@@ -83,6 +101,7 @@ def _stub_core(monkeypatch, rows):
             **result,
             "private_evaluation_state": "BOUND_DEVELOPMENT_ONLY",
             "graded_row": row,
+            "registered_source_receipt_sha256": PIN,
         }
 
     monkeypatch.setattr(retention, "_retain_selected_pack_evaluation", grade)
@@ -262,5 +281,99 @@ def test_no_set_result_means_no_ladder_record(tmp_path, monkeypatch):
             runner=fixture.runner,
         )
         assert result["state"] == psr.UNAVAILABLE and not ladder
+    finally:
+        fixture.provider.close()
+
+
+class _Promotion:
+    """A stand-in for the BankPromotion: records what the grade asks of it."""
+
+    def __init__(self):
+        self.store = object()
+        self.calls = []
+
+    def retain_set(self, submission_id, set_key, pack_digests):
+        self.calls.append(("retain_set", submission_id, set_key, list(pack_digests)))
+        return {"evaluation_key": "sha256:" + "c" * 64}
+
+    def consider_private(self, submission_id, key, comparator, *, sealed):
+        self.calls.append(("consider_private", submission_id, key, comparator, sealed))
+        return {"outcome": "FIRST_INCUMBENT"}
+
+
+def test_with_a_promotion_the_set_evaluation_is_filed_and_meets_the_incumbent(
+    tmp_path, monkeypatch
+):
+    fixture = _retained(tmp_path, monkeypatch)
+    try:
+        adapters = _batch_adapters(fixture, tmp_path, (0.5, 0.25))
+        _stub_core(
+            monkeypatch, {BATCHES[0]: _row(0.8, 0.4), BATCHES[1]: _row(0.6, 0.2)}
+        )
+        monkeypatch.setattr(exam_cap, "submission_block", lambda *_a: 360)
+        admitted = []
+        monkeypatch.setattr(
+            retention, "_pool_admit", lambda *args: admitted.append(args[:3])
+        )
+        _ladder_spy(monkeypatch)
+        promotion = _Promotion()
+        key = common.pack_set_key(
+            common.pack_set_document(fixture.adapter.challenge_id, "1.0", BATCHES)
+        )
+        result = grading.grade_set_entry(
+            adapters,
+            batches=BATCHES,
+            set_key=key,
+            entry_id=fixture.first["entry_id"],
+            artifact_directory=fixture.artifacts,
+            entry_directory=fixture.entries,
+            runner=fixture.runner,
+            promotion=promotion,
+        )
+        assert result["koth_comparison"] == {"outcome": "FIRST_INCUMBENT"}
+        # The model entered the pool once, under the retained task's own id.
+        assert [a[2] for a in admitted] == [fixture.task_id]
+        retain, consider = promotion.calls
+        assert retain == ("retain_set", fixture.task_id, key, BATCHES)
+        _, submission, evaluation_key, comparator, sealed = consider
+        assert submission == fixture.task_id and sealed is True
+        assert evaluation_key == "sha256:" + "c" * 64
+        # The baseline is graded on the same set: the mean of the batch baselines.
+        assert comparator["baseline_total"] == pytest.approx(0.3)
+        assert comparator["score_pack_digest"] == digest(sorted(BATCHES))
+    finally:
+        fixture.provider.close()
+
+
+def test_a_pool_refusal_never_unbinds_the_set_result(tmp_path, monkeypatch):
+    fixture = _retained(tmp_path, monkeypatch)
+    try:
+        adapters = _batch_adapters(fixture, tmp_path, (0.5, 0.25))
+        _stub_core(
+            monkeypatch, {BATCHES[0]: _row(0.8, 0.4), BATCHES[1]: _row(0.6, 0.2)}
+        )
+        monkeypatch.setattr(exam_cap, "submission_block", lambda *_a: 360)
+        monkeypatch.setattr(retention, "_pool_admit", lambda *_a: None)
+        _ladder_spy(monkeypatch)
+
+        class Refusing(_Promotion):
+            def retain_set(self, *args):
+                raise psr.SetResultRefused("set_batch_evaluation_missing")
+
+        key = common.pack_set_key(
+            common.pack_set_document(fixture.adapter.challenge_id, "1.0", BATCHES)
+        )
+        result = grading.grade_set_entry(
+            adapters,
+            batches=BATCHES,
+            set_key=key,
+            entry_id=fixture.first["entry_id"],
+            artifact_directory=fixture.artifacts,
+            entry_directory=fixture.entries,
+            runner=fixture.runner,
+            promotion=Refusing(),
+        )
+        assert result["status"] == psr.SCORED
+        assert result["koth_comparison"] == {"error": "set_batch_evaluation_missing"}
     finally:
         fixture.provider.close()

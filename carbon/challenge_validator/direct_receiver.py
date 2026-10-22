@@ -1266,6 +1266,7 @@ def serve(
                             entry_id=task_id,
                             artifact_directory=artifact_directory,
                             entry_directory=entry_directory,
+                            promotion=_open_pool_store(pool_store),
                         )
                     if regrade:
                         # ``task_id`` is the retained bank entry id to regrade.
@@ -1376,9 +1377,14 @@ def main(argv=None):
     if args.exam_se and args.regrade_entry is None:
         parser.error("--exam-se applies to --regrade-entry only")
     if args.pool_store is not None and (
-        args.regrade_entry is None and args.retain_task is None
+        args.regrade_entry is None
+        and args.retain_task is None
+        and args.grade_set_entry is None
     ):
-        parser.error("--pool-store applies to --retain-task or --regrade-entry")
+        parser.error(
+            "--pool-store applies to --retain-task, --regrade-entry or "
+            "--grade-set-entry"
+        )
     retention_args = (
         (
             args.grade_set_entry

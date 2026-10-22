@@ -1739,6 +1739,92 @@ class PoolStore:
             raise StateError("private_evaluation_owner_changed")
         return body
 
+    def record_set_evaluation(
+        self,
+        submission_id,
+        *,
+        registered_source_receipt_sha256,
+        set_key,
+        batch_pack_digests,
+    ):
+        """File a submission's evaluation over a whole pack set
+        (OWNER-FULL-EXAM-BANK-01). Derived from the N per-batch private
+        evaluations already stored for the submission (one per batch pack,
+        re-validated here), never from caller-supplied values; a missing,
+        ambiguous or unmeasured batch refuses. The set evaluation is stored as an
+        ordinary private evaluation under the set's key, so the pair lookup and
+        the comparison are unchanged."""
+        from carbon.challenge_validator.bank_promotion import (
+            PAIRED_BINDING,
+            build_set_evidence,
+            private_evaluation_key,
+        )
+
+        with self.transaction() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='private_evaluation.v1' "
+                "AND state='BOUND_DEVELOPMENT_ONLY'"
+            ).fetchall()
+            bodies = []
+            for pack_digest in batch_pack_digests:
+                matches = []
+                for (raw,) in rows:
+                    try:
+                        found = json.loads(raw)
+                        evidence = found["evidence"]
+                    except (ValueError, KeyError, TypeError):
+                        continue
+                    if (
+                        found.get("submission_id") == submission_id
+                        and evidence.get("schema") == PAIRED_BINDING
+                        and evidence.get("evaluation_pack_digest") == pack_digest
+                    ):
+                        matches.append(found["evaluation_key"])
+                if len(matches) != 1:
+                    raise StateError("set_batch_evaluation_missing")
+                bodies.append(
+                    self._private_evaluation(
+                        db,
+                        submission_id,
+                        matches[0],
+                        registered_source_receipt_sha256,
+                    )
+                )
+            evidence = build_set_evidence(set_key, bodies)
+            key = private_evaluation_key(evidence)
+            recipe_digest = bodies[0]["recipe_digest"]
+            op = self._bank_operation("private_evaluation.v1", submission_id, key)
+            owner = self._private_model(db, submission_id, evidence, recipe_digest)
+            body = {
+                "schema": "carbon.challenge-validator.private-evaluation-cache.v1",
+                "submission_id": submission_id,
+                "owner": owner,
+                "recipe_digest": recipe_digest,
+                "evaluation_key": key,
+                "evidence": evidence,
+            }
+            row = db.execute(
+                "SELECT kind,state,body FROM operations WHERE op_id=?", (op,)
+            ).fetchone()
+            if row is not None:
+                if row != (
+                    "private_evaluation.v1",
+                    "BOUND_DEVELOPMENT_ONLY",
+                    canonical(body),
+                ):
+                    raise StateError("private_evaluation_changed")
+            else:
+                db.execute(
+                    "INSERT INTO operations VALUES(?,?,?,?)",
+                    (
+                        op,
+                        "private_evaluation.v1",
+                        "BOUND_DEVELOPMENT_ONLY",
+                        canonical(body),
+                    ),
+                )
+        return body
+
     def private_evaluation_body(
         self, submission_id, key, *, registered_source_receipt_sha256
     ):

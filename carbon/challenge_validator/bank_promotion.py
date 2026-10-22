@@ -17,6 +17,150 @@ from carbon.battery.pool_store import PoolStore, StateError, canonical
 
 from .interface import digest, is_digest
 
+#: A Challenge version's evaluation over its whole pack set
+#: (OWNER-FULL-EXAM-BANK-01): derived from the N stored per-batch bindings only.
+SET_BINDING = "carbon.scoring.private-evaluation-set-binding.v1"
+
+
+def _set_evaluation_key(evidence):
+    """The lookup key of a set binding: the Challenge version, the exam version,
+    the pack-set key, the batch packs and the combined score compatibility. The
+    per-batch binding digests bind the evidence but stay out of the key."""
+    batches = evidence.get("batches")
+    compatibility = evidence.get("score_compatibility")
+    if (
+        evidence.get("scope") != "PRIVATE_OPERATOR_DEVELOPMENT"
+        or evidence.get("status") != "BOUND_DEVELOPMENT_ONLY"
+        or evidence.get("official_score") is not False
+        or evidence.get("official_eligible") is not False
+        or any(
+            type(evidence.get(k)) is not str or not evidence[k]
+            for k in ("challenge", "challenge_version", "evaluation_version")
+        )
+        or any(
+            not is_digest(evidence.get(k))
+            for k in (
+                "evaluation_set_key",
+                "entry_id",
+                "state_digest",
+                "source_receipt_sha256",
+            )
+        )
+        or type(batches) is not list
+        or not batches
+        or any(
+            type(b) is not dict
+            or set(b) != {"evaluation_pack_digest", "evaluation_key", "binding_sha256"}
+            or not all(is_digest(v) for v in b.values())
+            for b in batches
+        )
+        or len({b["evaluation_pack_digest"] for b in batches}) != len(batches)
+        or type(compatibility) is not dict
+        or set(compatibility)
+        != {"score_pack_digest", "scoring_version", "execution_profile_digest"}
+        or not is_digest(compatibility["score_pack_digest"])
+        or not is_digest(compatibility["execution_profile_digest"])
+    ):
+        raise StateError("private_evaluation_invalid")
+    return digest(
+        {
+            "challenge": evidence["challenge"],
+            "challenge_version": evidence["challenge_version"],
+            "evaluation_version": evidence["evaluation_version"],
+            "binding_schema": SET_BINDING,
+            "score_compatibility": compatibility,
+            "evaluation_set_key": evidence["evaluation_set_key"],
+            "evaluation_pack_digests": [b["evaluation_pack_digest"] for b in batches],
+        }
+    )
+
+
+def build_set_evidence(set_key, bodies):
+    """The set binding from the stored per-batch private evaluations of one
+    submission (their cache bodies, in the set's order). Derived, never typed:
+    every batch must be a bound paired v4 evaluation of the same model on the
+    same exam version, and none may be unmeasured (a partial set is refused,
+    never a partial mean). A gate failure on any batch makes the set fail the
+    gate; otherwise the set total is the equal-weight mean of the batch totals,
+    which is the equal-weight mean of A and D (`sealed_exam_common.aggregate`).
+    ``entry_id`` is the first batch's, so the baseline's own entry stays a
+    leg-minimum source and never contends."""
+    if not is_digest(set_key) or type(bodies) not in (list, tuple) or not bodies:
+        raise StateError("set_evidence_invalid")
+    evidences = []
+    for body in bodies:
+        evidence = body.get("evidence") if type(body) is dict else None
+        if (
+            type(evidence) is not dict
+            or evidence.get("schema") != PAIRED_BINDING
+            or private_evaluation_key(evidence) != body.get("evaluation_key")
+        ):
+            raise StateError("set_batch_evidence_invalid")
+        evidences.append(evidence)
+    first = evidences[0]
+    common = (
+        "challenge",
+        "challenge_version",
+        "evaluation_version",
+        "state_digest",
+        "source_receipt_sha256",
+    )
+    packs = [e["evaluation_pack_digest"] for e in evidences]
+    versions = {e["score_compatibility"]["scoring_version"] for e in evidences}
+    if (
+        any(e[k] != first[k] for e in evidences for k in common)
+        or len(set(packs)) != len(packs)
+        or len(versions) != 1
+    ):
+        raise StateError("set_batches_disagree")
+    statuses = [e["model_p"]["score_status"] for e in evidences]
+    if all(s == SCORED for s in statuses):
+        totals = [e["model_p"]["total_score"] for e in evidences]
+        if not all(type(t) in (int, float) and math.isfinite(t) for t in totals):
+            raise StateError("private_evaluation_invalid")
+        status, total = SCORED, math.fsum(totals) / len(totals)
+    elif any(s in GATE_FAILED for s in statuses) and all(
+        s == SCORED or s in GATE_FAILED for s in statuses
+    ):
+        status, total = "MANDATORY_GATE_FAILED", None
+    else:
+        raise StateError("set_batch_not_measured")
+    return {
+        "schema": SET_BINDING,
+        "scope": "PRIVATE_OPERATOR_DEVELOPMENT",
+        "status": "BOUND_DEVELOPMENT_ONLY",
+        "official_score": False,
+        "official_eligible": False,
+        "challenge": first["challenge"],
+        "challenge_version": first["challenge_version"],
+        "evaluation_version": first["evaluation_version"],
+        "evaluation_set_key": set_key,
+        "batches": [
+            {
+                "evaluation_pack_digest": e["evaluation_pack_digest"],
+                "evaluation_key": body["evaluation_key"],
+                "binding_sha256": digest(e),
+            }
+            for e, body in zip(evidences, bodies, strict=True)
+        ],
+        "entry_id": first["entry_id"],
+        "state_digest": first["state_digest"],
+        "source_receipt_sha256": first["source_receipt_sha256"],
+        "score_compatibility": {
+            "score_pack_digest": digest(
+                sorted(e["score_compatibility"]["score_pack_digest"] for e in evidences)
+            ),
+            "scoring_version": versions.pop(),
+            "execution_profile_digest": digest(
+                sorted(
+                    e["score_compatibility"]["execution_profile_digest"]
+                    for e in evidences
+                )
+            ),
+        },
+        "model_p": {"score_status": status, "total_score": total},
+    }
+
 
 def private_evaluation_key(evidence):
     """Shared evaluated source plus explicit score/execution compatibility.
@@ -25,6 +169,8 @@ def private_evaluation_key(evidence):
     lookup identity, not an acceptance capability. Candidate gates and model
     identity deliberately remain outside it.
     """
+    if type(evidence) is dict and evidence.get("schema") == SET_BINDING:
+        return _set_evaluation_key(evidence)
     if (
         type(evidence) is not dict
         or type(evidence.get("schema")) is not str
@@ -306,6 +452,16 @@ class BankPromotion:
             **original_evidence,
         )
 
+    def retain_set(self, submission_id, set_key, batch_pack_digests):
+        """File the submission's set evaluation, derived from its stored
+        per-batch evaluations (`PoolStore.record_set_evaluation`)."""
+        return self.store.record_set_evaluation(
+            submission_id,
+            registered_source_receipt_sha256=self.registered_source_receipt_sha256,
+            set_key=set_key,
+            batch_pack_digests=list(batch_pack_digests),
+        )
+
     def private_pair(self, submission_id, evaluation_key):
         """Reuse an incumbent's compatible private evidence, never rank it."""
         return self.store.private_evaluation_pair(
@@ -437,12 +593,16 @@ def _comparator(comparator, evidence):
         != evidence["score_compatibility"]["score_pack_digest"]
     ):
         raise StateError("comparator_not_for_this_evaluation")
-    return noise, frozenset(comparator["minimum_source_entry_ids"]), comparator["baseline_total"]
+    return (
+        noise,
+        frozenset(comparator["minimum_source_entry_ids"]),
+        comparator["baseline_total"],
+    )
 
 
 def _scored(body):
     evidence = body["evidence"]
-    if evidence.get("schema") != PAIRED_BINDING:
+    if evidence.get("schema") not in (PAIRED_BINDING, SET_BINDING):
         raise StateError("comparator_requires_paired_dual")
     model = evidence.get("model_p")
     status = model.get("score_status") if type(model) is dict else None
@@ -494,6 +654,7 @@ def compare_private_pair(pair, comparator):
             NO_WINNER if incumbent is None else INCUMBENT_KEEPS,
             "leg_minimum_source_not_a_contender",
         )
+
     def beats_baseline():
         # Carbon's baseline is the unpaid starting king: the first crown, or a
         # crown after a dethrone, must beat it by the margin

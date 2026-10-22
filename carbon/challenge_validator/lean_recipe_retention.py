@@ -911,7 +911,16 @@ def _retain_selected_pack_evaluation(
         "private_evaluation_path": binding_path,
         # A regrade's graded row (operator-only): the set-level grade of a pack set
         # reads it for each batch.
-        **({"graded_row": scoring["models"][0]} if regrade is not None else {}),
+        **(
+            {
+                "graded_row": scoring["models"][0],
+                # The pin this evaluation registered in owner custody (the set
+                # grade files its KOTH evaluation under the same one).
+                "registered_source_receipt_sha256": source_pin,
+            }
+            if regrade is not None
+            else {}
+        ),
         # A regrade is not a graded submission of the miner: it never feeds the Ladder.
         **(
             {}
