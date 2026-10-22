@@ -77,6 +77,6 @@ def test_the_stage_reads_the_export_and_the_registered_u():
 def test_the_runner_runs_the_stage_before_qa_and_f02_selects_it():
     text = RUNNER.read_text()
     assert "decision_stage.py" in text
-    assert text.index("decision_stage.py") < text.index('qa_run "$fp" >>')
+    assert text.index("decision_stage.py") < text.rindex('qa_run "$fp" >>')
     config = (REPOSITORY / "scripts/dev/sealed_exam/configs/f02.env").read_text()
     assert "DECISION_KEY=f02" in config

@@ -101,7 +101,7 @@ def test_the_development_banks_checks_hold():
     doc, records = batch()
     side = copy.deepcopy(records)
     worst = side[0]["outputs"]["worst_dynamic_mm_per_n"]
-    side[0]["rung_worst_dynamic_mm_per_n"]["h3"] = LIMIT_MM_PER_N + 0.01
+    side[0]["rung_worst_dynamic_mm_per_n"]["h2.25"] = LIMIT_MM_PER_N + 0.01
     assert worst <= LIMIT_MM_PER_N
     assert _refusal(doc, side) == "f08_sealed_rungs_disagree"
     one_side = copy.deepcopy(records)
@@ -120,6 +120,35 @@ def test_the_development_banks_checks_hold():
 def test_only_f08_1_2_is_packed():
     with pytest.raises(sealed.SealedPackRefused):
         sealed.sealed_bank(*batch(), version="1.1")
+
+
+def test_pack_rule_v2_ignores_h3_and_v1_keeps_it():
+    """VALIDATOR_F08_SEALED_STOP_20261022: label agreement is h = 2.25 and
+    h = 1.7 only; h = 3 stays evidence; v1 packs keep their meaning."""
+    doc, records = batch()
+    h3_only = copy.deepcopy(records)
+    h3_only[0]["rung_worst_dynamic_mm_per_n"]["h3"] = LIMIT_MM_PER_N + 0.01
+    assert sealed.PACK_RULE == sealed.PACK_RULE_V2 == "f08-sealed-pack-rule-v2"
+    bank = sealed.sealed_bank(doc, h3_only)  # packs under v2
+    kept = {r["case_id"]: r for r in h3_only}
+    assert bank["solver_evidence"] is not None
+    assert all(
+        kept[r["case_id"]]["rung_worst_dynamic_mm_per_n"]["h3"] is not None
+        for r in bank["reference_records"]
+    )
+    with pytest.raises(sealed.SealedPackRefused) as refused:
+        sealed.sealed_bank(doc, h3_only, rule=sealed.PACK_RULE_V1)
+    assert refused.value.code == "f08_sealed_rungs_disagree"
+    # h = 2.25 against h = 1.7 disagreeing refuses under both
+    middle = copy.deepcopy(records)
+    middle[1]["rung_worst_dynamic_mm_per_n"]["h2.25"] = LIMIT_MM_PER_N - 0.01
+    for rule in (sealed.PACK_RULE_V1, sealed.PACK_RULE_V2):
+        with pytest.raises(sealed.SealedPackRefused) as refused:
+            sealed.sealed_bank(doc, middle, rule=rule)
+        assert refused.value.code == "f08_sealed_rungs_disagree"
+    with pytest.raises(sealed.SealedPackRefused) as refused:
+        sealed.sealed_bank(doc, records, rule="f08-sealed-pack-rule-v9")
+    assert refused.value.code == "f08_sealed_pack_rule"
 
 
 def test_the_v7_version_is_graded_from_the_same_sealed_batches():

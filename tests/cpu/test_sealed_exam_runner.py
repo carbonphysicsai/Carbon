@@ -127,3 +127,17 @@ def test_the_battery_config_carries_batterys_own_values_and_hooks():
         assert call in runner
     # a slot must cover the mesh-320 spot solves
     assert "below the $MIN_QA_MIB MiB" in text
+
+
+def test_the_f08_config_carries_f08s_own_values_and_hooks():
+    from carbon.challenge_validator import f08_hidden as hidden
+
+    config = _config("f08")
+    assert config["CID"] == hidden.CHALLENGE_ID == "f08-ribbed-bracket"
+    assert config["DEPLOYMENT_SCHEMA"] == hidden.DEPLOYMENT_SCHEMA
+    assert config["DECISION_KEY"] == "f08" and config["PROBE_MODE"] == "hook"
+    text = (CONFIGS / "f08.env").read_text()
+    for hook in ("prepare()", "sizing()", "run_solve()", "u_coverage_run()"):
+        assert hook in text
+    runner = RUNNER.read_text()
+    assert "u_coverage_run" in runner and 'MODE" = repack' in runner
