@@ -324,3 +324,20 @@ def test_the_miner_lane_mounts_and_checks_its_profiles_scratch(tmp_path):
         tmpfs = arguments[arguments.index("--tmpfs") + 1]
         assert tmpfs == f"/scratch:{mc.scratch_tmpfs_options(size)}"
         assert _flag(arguments, "--memory") == str(document["memory_bytes"])
+
+
+def test_battery_graph_intake_follows_the_versions_allowlist():
+    from carbon.battery import direct_graph
+    from carbon.level4 import intake
+
+    # Registered versions on v1 and v6 keep the owner's bounds; 2.1 serves v7.
+    for version in ("1.0", "2.0"):
+        assert (
+            direct_graph.submission_bytes(version) == intake.BOUNDS["submission_bytes"]
+        )
+    assert (
+        direct_graph.submission_bytes("2.1")
+        == intake.CONTAINMENT_BOUNDS["submission_bytes"]
+    )
+    with pytest.raises(Exception):
+        direct_graph.submission_bytes("9.9")

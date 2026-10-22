@@ -1165,9 +1165,13 @@ class Experiment:
         return None
 
     def level4_envelope_limit(self):
-        from carbon.level4 import intake
+        from carbon.level4 import allowlist, intake
 
-        return LEVEL4_ENVELOPE_LIMIT_FACTOR * intake.BOUNDS["submission_bytes"]
+        # Graphite lowers against the base allowlist (`allowlist.load()`).
+        return (
+            LEVEL4_ENVELOPE_LIMIT_FACTOR
+            * intake.bounds_for(allowlist.load())["submission_bytes"]
+        )
 
     def level4_interface(self, strategy):
         """What a lowering for `strategy` must target: its interface digest,
