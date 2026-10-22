@@ -342,6 +342,20 @@ def test_a_level_0_versions_toolbox_has_no_picker():
     )
 
 
+def test_a_direct_campaigns_toolbox_offers_only_recipe_examples():
+    # M1 E2E H11: every new launch is direct and practises construction
+    # recipes only; a Level 0 strategy example would be refused as
+    # construction_recipe_malformed, so a direct campaign is not offered one.
+    from scripts.dev.miner_launchpad import toolbox
+
+    assert toolbox.build({"id": MOTOR, "version": "1.0"})["examples"]
+    assert toolbox.build({"id": MOTOR, "version": "1.0"}, direct=True)["examples"] == []
+    catalog = toolbox.build({"id": MOTOR, "version": "1.3"}, direct=True)
+    assert catalog["examples"] == [
+        e["recipe"] for e in registry.describe(MOTOR, "1.3")["examples"]
+    ]
+
+
 @pytest.mark.parametrize(
     ("challenge_id", "version"),
     [

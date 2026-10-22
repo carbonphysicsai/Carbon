@@ -272,10 +272,12 @@ def where(compute, lanes, exam_backend):
     }
 
 
-def build(challenge, *, lanes=None, compute=None):
+def build(challenge, *, lanes=None, compute=None, direct=False):
     """The toolbox for one Challenge on this host. `lanes` is
     `host_lanes(host)`, or None when no host is known. `compute` is
-    `campaign_compute(...)` for a campaign's toolbox, or None."""
+    `campaign_compute(...)` for a campaign's toolbox, or None. `direct` is a
+    direct campaign's toolbox: it practises construction recipes only, so a
+    Level 0 strategy example is not offered (M1 E2E H11)."""
     if type(challenge) is not dict or type(challenge.get("id")) is not str:
         return None
     sources = json.loads(_sources(challenge["id"], challenge.get("version")))
@@ -509,6 +511,7 @@ def build(challenge, *, lanes=None, compute=None):
                     for e in described.get("examples") or []
                     if type(e) is dict
                     and type(e.get("strategy", e.get("recipe"))) is dict
+                    and not (direct and "recipe" not in e)
                 ][:4],
                 # The editor's backbone picker: each catalog entry and its
                 # ready recipe; [] where the version serves no catalog.

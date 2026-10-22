@@ -1833,7 +1833,9 @@ def ledger_view(host, admitted, request):
         predictions=lambda task: verified_predictions(root, view, facts, task),
         practice_case=request.get("practice_case"),
         experiment=request.get("experiment"),
-        toolbox=campaign_toolbox(host, challenge, own),
+        toolbox=campaign_toolbox(
+            host, challenge, own, direct=_construction_mode(root) == "direct"
+        ),
         carbon_agent=_carbon_agent(root, facts),
     )
 
@@ -1862,9 +1864,18 @@ def _carbon_agent(root, facts):
     }
 
 
-def campaign_toolbox(host, challenge, own):
+def _construction_mode(root):
+    try:
+        manifest = json.loads((Path(root) / "campaign-manifest.json").read_bytes())
+    except (OSError, ValueError):
+        return None
+    return manifest.get("construction_mode") if type(manifest) is dict else None
+
+
+def campaign_toolbox(host, challenge, own, *, direct=False):
     """The toolbox for this campaign's Challenge, with its pinned images and
-    where it runs (RSURF-D19)."""
+    where it runs (RSURF-D19). A direct campaign practises construction
+    recipes only, so its examples are recipes (M1 E2E H11)."""
     from scripts.dev.miner_launchpad import toolbox
 
     try:
@@ -1876,6 +1887,7 @@ def campaign_toolbox(host, challenge, own):
             challenge,
             lanes=toolbox.host_lanes(host),
             compute=toolbox.campaign_compute(own.get("compute"), machine),
+            direct=direct,
         )
     except Exception:  # noqa: BLE001 - an unreadable toolbox is shown as such
         return {"status": "UNAVAILABLE"}
