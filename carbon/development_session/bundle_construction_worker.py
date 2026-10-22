@@ -807,11 +807,18 @@ def verify_direct_resource_policy(
         or limits_document.get("scope") != expected_scope
     ):
         raise RecipeRefused("construction_resource_policy_binding_invalid")
-    from carbon.reconstruction.worker.model import LARGE_MODEL_ALLOWLIST_VERSIONS
+    from carbon.reconstruction.worker.model import (
+        LARGE_MODEL_ALLOWLIST_VERSIONS,
+    )
+    from carbon.reconstruction.worker.model import (
+        worker_resources_version as resources_for,
+    )
 
     def expected(resources_version):
-        profile = _worker_profile(
-            None, LIBRARY_BUILD_PROVENANCE, resources_version
+        profile = (
+            _worker_profile(None, LIBRARY_BUILD_PROVENANCE)
+            if resources_version is None
+            else _worker_profile(None, LIBRARY_BUILD_PROVENANCE, resources_version)
         ).body
         return {
             "schema": resource_schema,
@@ -830,7 +837,14 @@ def verify_direct_resource_policy(
         }
 
     candidates = (
-        (None, *sorted(LARGE_MODEL_ALLOWLIST_VERSIONS))
+        (
+            None,
+            *(
+                version
+                for version in sorted(LARGE_MODEL_ALLOWLIST_VERSIONS)
+                if resources_for(version) is not None
+            ),
+        )
         if worker_resources_version is _ANY_SERVED
         else (worker_resources_version,)
     )

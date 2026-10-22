@@ -2720,9 +2720,8 @@ def dry_run_graph(strategy):
     from carbon.battery import level4, level4_lowering
     from carbon.level4 import allowlist, intake, staging, submission
 
-    loaded = allowlist.load()
     manifest, files = level4_lowering.lower_recipe(
-        strategy, loaded, max_bytes=intake.bounds_for(loaded)["document_bytes"]
+        strategy, allowlist.load(), max_bytes=intake.BOUNDS["document_bytes"]
     )
     envelope = staging.envelope(submission.canonical(manifest), files)
     graph = json.loads(json.dumps(strategy))

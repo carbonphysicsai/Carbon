@@ -1363,7 +1363,12 @@ def _run_locked(
         _check_cancel(ledger, owner, identity)
     snapshot = operation / "snapshot"
     with _fixed_practice_stage(operation, provenance, "DECODE"):
-        decode_output_stream(output, snapshot, output_bytes=output_bytes)
+        # Today's envelope is the decoder's default, so today's call is unchanged.
+        decode_output_stream(
+            output,
+            snapshot,
+            **({} if output_bytes == OUTPUT_BYTES else {"output_bytes": output_bytes}),
+        )
     with _fixed_practice_stage(operation, provenance, "VALIDATE"):
         if output_validator is not None:
             output_validator(snapshot)
