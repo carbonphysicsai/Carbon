@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from pathlib import Path
 
@@ -131,10 +132,19 @@ def _validator_outcome(epoch, path):
         if path.is_symlink() or path.stat().st_size > 65536:
             return unavailable
         document = json.loads(path.read_bytes())
-        outcome = document["outcome"]
+        # A direct campaign's permitted feedback (Motor, Cooling, the
+        # direct versions) carries its outcome as `result` beside the Ladder
+        # (`exam_feedback`) and no epoch field: its file names the epoch
+        # (M1 E2E U53: every direct submit read "readback unavailable").
+        direct = (
+            type(document) is dict
+            and "outcome" not in document
+            and {"result", "exam_feedback"} <= set(document)
+        )
+        outcome = document["result"] if direct else document["outcome"]
         if (
             document.get("schema") not in feedback_schemas()
-            or document.get("epoch") != epoch
+            or (not direct and document.get("epoch") != epoch)
             or type(outcome) is not dict
             or type(outcome.get("state")) is not str
         ):
@@ -176,6 +186,8 @@ def _validator_outcome(epoch, path):
             "qualification": False,
             "reward": False,
         }
+        if direct:
+            result["grade"] = _grade(document["exam_feedback"])
     except (OSError, ValueError, TypeError, KeyError):
         return unavailable
     return {
@@ -184,6 +196,38 @@ def _validator_outcome(epoch, path):
         "status": "VALIDATOR_OUTCOME",
         "result": result,
     }
+
+
+def _grade(ladder):
+    """The miner's own Ladder for the exam, as the display rule shows it
+    (Validator VALUE_SCORE_GAP): one graded total 0..1 per document, its
+    A and D as detail, a gate failure as not eligible; None when the
+    receiver had no graded result yet."""
+
+    def one(document):
+        if type(document) is not dict or document.get("status") not in (
+            "IMPROVED",
+            "NO_IMPROVEMENT",
+            "GATE_FAILED",
+            "NOT_SCORED",
+        ):
+            return None
+        shown = {"status": document["status"]}
+        for name in ("total", "A", "D"):
+            value = document.get(name)
+            if (
+                type(value) in (int, float)
+                and not isinstance(value, bool)
+                and math.isfinite(value)
+            ):
+                shown[name] = float(value)
+        if type(document.get("exam_version")) is str:
+            shown["exam_version"] = document["exam_version"][:64]
+        return shown
+
+    if type(ladder) is not dict:
+        return None
+    return {"latest": one(ladder.get("latest")), "best": one(ladder.get("best"))}
 
 
 def _multi_validator_outcome(epoch, path):

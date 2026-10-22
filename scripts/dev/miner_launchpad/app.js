@@ -2699,6 +2699,15 @@
     if (!freezes.length && !recipes.length) missing(panel, "the controller does not expose trained weights or files; recipes and frozen candidates appear here once recorded.");
     researchNote(panel, "Export gives the full public record of this campaign as JSON.", "hint");
   }
+  function gradeLine(grade) {
+    const latest = grade && grade.latest;
+    if (!latest) return "Grade: not graded yet. It appears here once the validator grades this submission.";
+    if (latest.status === "GATE_FAILED") return "Grade: not eligible (a mandatory gate failed). Compares within this Challenge version only.";
+    if (typeof latest.total !== "number") return "Grade: not scored.";
+    const best = grade.best && typeof grade.best.total === "number" ? " · your best: " + grade.best.total.toFixed(4) : "";
+    const detail = [typeof latest.A === "number" ? "A " + latest.A.toFixed(3) : null, typeof latest.D === "number" ? "D " + latest.D.toFixed(3) : null].filter(Boolean).join(", ");
+    return "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better" + (detail ? "; " + detail : "") + ")" + best + ". Compares within this Challenge version only.";
+  }
   function renderValidatorOutcome(panel, result) {
     const o = result.result;
     const s = o.screening;
@@ -2712,6 +2721,10 @@
       o.sealed === true ? "Sealed: under this exam rule its results are computed on hidden cases and shown to no miner until Carbon releases those cases." : s ? "Screening on pool version " + (s.pool_version ?? "?") + ": " + (s.eligible === true ? "eligible" : s.eligible === false ? "not eligible" : "eligibility unavailable") + " · gates failed: " + ((s.gates_failed || []).join(", ") || "none") + " · cases: " + cases : "Screening: not shown in this feedback mode.",
       s && typeof s.score === "number" ? "Score: " + s.score + (typeof s.important_score === "number" ? " · important region: " + s.important_score : "") : o.sealed === true ? "Score: sealed." : "Score: not shown in this feedback mode.",
       o.sealed === true ? "Nomination and finals: sealed." : "Nominated for a final: " + (o.nominated === true ? "yes" : o.nominated === false ? "no" : "unavailable") + ((o.finals || []).length ? " · finals: " + o.finals.map(f => f.state + (f.promoted ? " (promoted)" : "")).join(", ") : ""),
+      // A direct campaign's private-exam grade (Validator display rule): one
+      // graded total 0..1, higher better, A and D as detail; a gate failure
+      // is not eligible; none yet until the receiver grades it.
+      ...(o.grade !== undefined ? [gradeLine(o.grade)] : []),
       (o.evidence || "DEVELOPMENT") + ": no qualification, no reward, no chain write.",
     ];
     for (const line of lines) researchNote(panel, line, "development-result");
