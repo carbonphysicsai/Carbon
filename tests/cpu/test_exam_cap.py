@@ -57,7 +57,7 @@ def make_cap(tmp_path, clock, **options):
 
 @pytest.fixture
 def cap(tmp_path, clock):
-    """The committed registry: 270 CPU-h a day, so the daily allowance is large."""
+    """The committed registry: 134.4 CPU-h a day (the registered 8-vCPU host class)."""
     return make_cap(tmp_path, clock)
 
 
@@ -101,11 +101,15 @@ def _count(cap, hotkey=HOTKEY, exam=EXAM):
 
 def test_the_committed_registry_is_the_approved_proposals_table():
     registered = exam_cap.registered_cadence()
-    assert registered["capacity_cpu_hours_per_day"] == 270
+    # R = nproc x 24 h x 0.7 for the registered validator host class (4 vCPU).
+    assert registered["capacity_cpu_hours_per_day"] == pytest.approx(8 * 24 * 0.7)
     assert registered["rebuild_cpu_hours_placeholder"] == PLACEHOLDERS
     assert set(PLACEHOLDERS) == set(exam_cap.registered_challenges())
     document = json.loads(exam_cap.REGISTRY.read_bytes())
-    assert document["source"] == "OWNER-CADENCE-AND-ROTATION-02, proposal rev 2"
+    assert document["source"].startswith(
+        "OWNER-CADENCE-AND-ROTATION-02, proposal rev 2"
+    )
+    assert "OWNER-VALIDATOR-HOST-CLASS-01" in document["source"]
 
 
 @pytest.mark.parametrize(
@@ -144,7 +148,8 @@ def test_without_a_registry_grading_refuses_not_defaults(tmp_path, clock, monkey
 # --- the cadence ------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("miners, expected", [(5, 11), (25, 2), (100, 1)])
+# floor(134.4 / (miners x 4.7)), at least 1, for the registered 8-vCPU host class.
+@pytest.mark.parametrize("miners, expected", [(2, 14), (5, 5), (25, 1), (100, 1)])
 def test_the_allowance_follows_the_approved_tables_miner_counts(cap, miners, expected):
     for n in range(miners - 1):  # the others are active in the rolling day
         _grade(cap, n, hotkey=f"hotkey-{n}", block=360 * 30 + n)
@@ -213,8 +218,9 @@ def test_rebuild_cpu_seconds_must_be_a_finite_non_negative_number(tight):
 
 def test_there_is_no_per_version_cap_any_more(cap):
     for n in range(40):
-        _grade(cap, n)  # far more than the old C = 20 under one exam key
-    _grade(cap, 40)
+        # One a day, far more than the old C = 20 under one exam key.
+        _grade(cap, n, block=360 * 20 * n)
+    _grade(cap, 40, block=360 * 20 * 40)
 
 
 # --- counting, as before ------------------------------------------------------------

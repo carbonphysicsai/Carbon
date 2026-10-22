@@ -22,11 +22,33 @@ class RetentionUnavailable(ValueError):
     """The named original-byte or custody dependency is unavailable."""
 
 
-#: Custody reads a state the worker already admitted under its version's
-#: ceiling (`bundle_graph_state.state_limit`: none for an uncapped version), so
-#: the bound here is the worker's registered output envelope, what any build
-#: could have written, never a model-size rule of its own.
-_STATE_CUSTODY_BYTES = 128 * 1024**2  # carbon.reconstruction.worker.model.OUTPUT_BYTES
+def _custody_limit(allowlist_bytes) -> int:
+    """The bound on a state's custody read: the worker output envelope of the
+    allowlist version the build ran under (`worker_resources_for`), what that
+    build could have written and never a model-size rule of its own. Today's
+    versions keep 128 MiB; only a version whose profile is applied
+    (OWNER-WORKER-RESOURCES-LARGE-MODELS-01) reads more. An allowlist that does
+    not parse gets today's envelope."""
+    from carbon.level4.allowlist import Allowlist
+    from carbon.reconstruction.worker.model import worker_resources_for
+
+    try:
+        version = Allowlist(allowlist_bytes).version
+    except (ValueError, KeyError, TypeError):
+        version = None
+    return worker_resources_for(version)["output_bytes"]
+
+
+def _served_custody_limit(challenge_id, version) -> int:
+    """`_custody_limit` for the allowlist a registered Challenge version serves;
+    an unregistered version gets today's envelope."""
+    from carbon.challenge_kit import served_versions
+
+    try:
+        raw = served_versions.material_allowlist_bytes(challenge_id, version)
+    except served_versions.UnregisteredVersion:
+        raw = None
+    return _custody_limit(raw)
 
 
 def _sha(raw: bytes) -> str:
@@ -195,7 +217,7 @@ def _collect_graph_artifacts(provider, submission_id, task, evidence, recipe, ma
     inference = root / evidence["inference_operation"] / "snapshot"
     state = _snapshot(
         build / "state.npz",
-        limit=_STATE_CUSTODY_BYTES,
+        limit=_custody_limit(material["allowlist_bytes"]),
         digest=task.terminal_receipt.state_digest,
         label="state_snapshot",
     )
@@ -887,6 +909,9 @@ def _retain_selected_pack_evaluation(
         **result,
         "private_evaluation_state": "BOUND_DEVELOPMENT_ONLY",
         "private_evaluation_path": binding_path,
+        # A regrade's graded row (operator-only): the set-level grade of a pack set
+        # reads it for each batch.
+        **({"graded_row": scoring["models"][0]} if regrade is not None else {}),
         # A regrade is not a graded submission of the miner: it never feeds the Ladder.
         **(
             {}
@@ -1076,6 +1101,9 @@ def _contend(adapter, pool_store, submission_id, artifacts, bind_inputs, pin):
             koth_registry.comparator(
                 adapter.challenge_id, bind_inputs["score_pack"], accuracy
             ),
+            # Delivery provenance, never the pack's shape: only a pack that
+            # arrived through the answer-key route into the sealed store.
+            sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
         )
     # A pool refusal, whatever its type, never unbinds the evaluation.
     except Exception as exc:  # noqa: BLE001
@@ -1355,7 +1383,10 @@ def retain_served_result(
     inference = root / evidence["inference_operation"] / "snapshot"
     state = _snapshot(
         build / "state.npz",
-        limit=_STATE_CUSTODY_BYTES,
+        limit=_served_custody_limit(
+            recipe.to_dict()["challenge"]["id"],
+            recipe.to_dict()["challenge"]["version"],
+        ),
         digest=task.terminal_receipt.state_digest,
         label="state_snapshot",
     )
@@ -1715,8 +1746,8 @@ def regrade_retained_entry(
     slot is a REGRADE (never counted, no epoch limit), and provenance is recorded beside
     the result. With ``promotion`` (a BankPromotion or a PoolStore), the evaluation is also recorded under
     the origin task's submission id on the new evaluation key, which is where the incumbent
-    comparison looks it up. Only bundle recipes are supported; a graph recipe is typed
-    unavailable.
+    comparison looks it up. Bundle and graph recipes are supported; any other source
+    kind is typed unavailable.
     """
     import io
     from types import SimpleNamespace
@@ -1744,7 +1775,8 @@ def regrade_retained_entry(
     entry, origin, owner, manifest, files, recipe = _regrade_origin(
         adapter, base, entries, entry_id
     )
-    if recipe.to_dict()["source"]["kind"] != "bundle":
+    kind = recipe.to_dict()["source"]["kind"]
+    if kind not in ("bundle", "graph"):
         raise RetentionUnavailable("regrade_source_kind_unavailable")
     if (entry["challenge"], entry["challenge_version"]) != (
         adapter.challenge_id,
@@ -1761,15 +1793,20 @@ def regrade_retained_entry(
     provider = adapter._provider(owner)
     # The retained model was built on the parent its retention recorded; a
     # regrade runs only while this receiver serves that bundle runtime on the
-    # same parent image (Validator, OWNER-BACKBONE-CATALOG-01).
+    # same parent image (Validator, OWNER-BACKBONE-CATALOG-01). A graph runs on
+    # the receiver's inference image itself, which must be the retained one.
     from carbon.development_session.library_bundles import LibraryBundleRef
 
     try:
-        retained_parent = json.loads(files["image.json"])["parent_image_id"]
-        current_parent = _construction_parent(
-            provider,
-            LibraryBundleRef.from_dict(recipe.to_dict()["source"]["bundle_ref"]),
-        ).image_id
+        if kind == "graph":
+            retained_parent = json.loads(files["image.json"])["image_id"]
+            current_parent = provider.inference_image.image_id
+        else:
+            retained_parent = json.loads(files["image.json"])["parent_image_id"]
+            current_parent = _construction_parent(
+                provider,
+                LibraryBundleRef.from_dict(recipe.to_dict()["source"]["bundle_ref"]),
+            ).image_id
     except (KeyError, TypeError, ValueError, AttributeError):
         raise RetentionUnavailable("regrade_construction_parent_unavailable") from None
     if retained_parent != current_parent:
@@ -1824,6 +1861,11 @@ def regrade_retained_entry(
             else None
         )
         operations = json.loads(_private_measurement_bytes(operations_path, 65536))
+        worker_evidence = (
+            _private_measurement_bytes(task_root / "worker-evidence.json", 16 * 1024**2)
+            if kind == "graph"
+            else None
+        )
     else:
         kit = material["construction_kit"]
         limits = material["construction_limits_document"]
@@ -1843,14 +1885,23 @@ def regrade_retained_entry(
             )
             verify_direct_resource_policy(binding, limits)
 
+            graph_query = (
+                _graph_regrade_query(discovery, material) if kind == "graph" else {}
+            )
+
+            def infer_identity(label):
+                return (
+                    "regrade-"
+                    + label
+                    + "-"
+                    + hashlib.sha256(regrade_id.encode()).hexdigest()
+                )
+
             def infer(label, measure):
                 return _infer_state(
                     provider.ledger,
                     owner=owner,
-                    identity="regrade-"
-                    + label
-                    + "-"
-                    + hashlib.sha256(regrade_id.encode()).hexdigest(),
+                    identity=infer_identity(label),
                     inference_image=provider.inference_image,
                     recipe=recipe,
                     binding=binding,
@@ -1864,6 +1915,7 @@ def regrade_retained_entry(
                     seconds=policy["inference_wall_seconds_max"],
                     accelerator=getattr(provider, "inference_accelerator", None),
                     runner=runner,
+                    **graph_query,
                 )
 
             graded = infer("graded", False)
@@ -1892,12 +1944,31 @@ def regrade_retained_entry(
                 timed_result.worker_operation if timed_result is not None else None
             ),
         }
+        worker_evidence = (
+            _graph_regrade_worker_evidence(
+                files["worker-evidence.json"],
+                provider=provider,
+                owner=owner,
+                identity=infer_identity("graded"),
+                runner=runner,
+                graded=graded,
+                receipt_raw=receipt_raw,
+                predictions=predictions,
+                timed_result=timed_result,
+                timed_raw=timed_raw,
+                timed_identity=infer_identity("timed"),
+            )
+            if kind == "graph"
+            else None
+        )
     operation = operations["inference_operation"]
 
     artifacts = dict(files)
     artifacts["inputs.npz"] = bank_raw
     artifacts["predictions.json"] = predictions
     artifacts["inference-receipt.json"] = receipt_raw
+    if worker_evidence is not None:
+        artifacts["worker-evidence.json"] = worker_evidence
     if timed:
         artifacts["timed-query-receipt.json"] = timed_raw
         artifacts["timed-query-predictions.json"] = timed_predictions
@@ -1987,6 +2058,79 @@ def regrade_retained_entry(
         _Regrade(owner, recipe, origin, entry_id, promotion, exam_se),
     )
     return {**regraded, "regrade_of": entry_id, "regrade_task_id": regrade_id}
+
+
+def _graph_regrade_query(discovery, material):
+    """The extra `_infer_state` arguments of a graph's source-free inference, the
+    same as `reconstruct_and_infer_graph_public` builds them for the version's
+    registered graph adapter (a test pins the two together)."""
+    from pathlib import Path as _Path
+
+    from carbon.development_session import direct_graph_construction_worker as worker
+
+    adapter_id = discovery.graph_adapter_for(discovery.info.challenge_key)
+    if adapter_id is None:
+        raise RetentionUnavailable("regrade_graph_adapter_unavailable")
+    query = {
+        "input_name": "inputs/forcing",
+        "provenance": worker.INFERENCE_PROVENANCE,
+    }
+    if adapter_id != worker.SYNTHETIC_ADAPTER_ID:
+        root = _Path(worker.__file__).resolve().parents[2]
+        name = "carbon.development_session.physical_graph_state"
+        query["input_name"] = "inputs/features"
+        query["program"] = worker.PHYSICAL_INFER_PROGRAM
+        query["staged_files"] = {
+            name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
+        }
+    return query
+
+
+def _graph_regrade_worker_evidence(
+    origin_raw,
+    *,
+    provider,
+    owner,
+    identity,
+    runner,
+    graded,
+    receipt_raw,
+    predictions,
+    timed_result,
+    timed_raw,
+    timed_identity,
+):
+    """The regrade's own graph worker evidence: the origin's, with the inference
+    this regrade ran (operation, receipt, predictions and, for a real runner, its
+    effective controls). The build, state and submission are the origin's."""
+    import base64
+
+    from carbon.development_session import direct_graph_construction_worker as worker
+    from carbon.development_session.bundle_construction_worker import (
+        _private_controls_digest,
+    )
+
+    evidence = json.loads(origin_raw)
+    evidence.update(
+        inference_operation=graded.worker_operation,
+        inference_receipt=json.loads(receipt_raw),
+        predictions_digest=graded.predictions_digest,
+        predictions_raw_base64=base64.b64encode(predictions).decode("ascii"),
+    )
+    if runner is None:
+        evidence["inference_controls_digest"] = _private_controls_digest(
+            provider.ledger,
+            owner=owner,
+            identity=identity,
+            operation=graded.worker_operation,
+            provenance=worker.INFERENCE_PROVENANCE,
+        )
+    if "timed_receipt" in evidence:
+        evidence.update(
+            timed_operation=timed_result.worker_operation,
+            timed_receipt=json.loads(timed_raw),
+        )
+    return _json(evidence)
 
 
 def register_served_pack_source(

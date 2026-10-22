@@ -36,8 +36,10 @@ from pathlib import Path
 from .challenge import CHALLENGE, PUBLIC_OUTPUTS
 from .practice import PROVENANCE
 
-#: v2 adds the `safety` block (Validator, 2026-10-21); v1 had none.
-FEEDBACK_SCHEMA = "carbon.cold-plate.catalog-practice-feedback.v2"
+#: v3 adds the shared `practice_dual` block (C13), which for Cooling says it is
+#: unavailable on practice (below); v2 added `safety`.
+FEEDBACK_SCHEMA = "carbon.cold-plate.catalog-practice-feedback.v3"
+FEEDBACK_SCHEMA_V2 = "carbon.cold-plate.catalog-practice-feedback.v2"
 FEEDBACK_SCHEMA_V1 = "carbon.cold-plate.catalog-practice-feedback.v1"
 
 
@@ -256,6 +258,18 @@ class CoolingCatalogPractice:
             # PRACTICE-SAFETY-01: feedback only, on the same public cases.
             "safety": safety_feedback(predictions, practice),
             "recipe": strategy,
+            # C13: the exam's dual measurement needs Cooling's development bank,
+            # whose rows are the counted decision-study evidence the miner-side
+            # read boundary denies (and its decision rules live in that study's
+            # module). Until the bank has a public mirror and a public decision
+            # module (the Validator's ruling), practice says so, never silently.
+            "practice_dual": {
+                "schema": "carbon.practice.dual-feedback.v1",
+                "scope": "PUBLIC_PRACTICE_FEEDBACK",
+                "challenge": {"id": kit["id"], "version": kit["version"]},
+                "available": False,
+                "reason": "practice_dual_not_public_for_cooling",
+            },
         }
         ResearchWorkspace(self.ledger, self.owner).put(
             "trial-"

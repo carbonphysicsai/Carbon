@@ -12,10 +12,12 @@ inputs}}]}. Each case is solved as the 1.1/1.2 exam ladder's references were
 `f08_deck.convergence` (V1-V9 under F08-SCIENCE-VALUES-01, unchanged). The
 reference rung is h = 1.7 mm.
 
-The solver identity is RR-PACKS-07's verified build: the ccx and gmsh binaries'
-SHA-256 in `rr07-pod-environment.json` (pinned here by its own SHA-256), whose
-f08_verify (MMS and rod) passed in that run. The runner refuses a host whose
-binaries differ, so a rebuilt solver needs its own verification first.
+The solver identity is the verified build: the ccx and gmsh binaries' SHA-256 in
+the pinned environment record (pinned here by its own SHA-256). Since
+2026-10-21 that is the AX42 rebuild (`f08-rebuild-20261021/`: f08_verify MMS and
+rod PASS, the 8 ladder rows bit-identical to RR-PACKS-07's lost build). The
+runner refuses a host whose binaries differ, so a rebuilt solver needs its own
+verification first.
 
 A rebuilt build is verified against the pinned evidence with
 CARBON_F08_CANDIDATE_ENVIRONMENT=<its {kind, solvers} record> (and
@@ -65,9 +67,12 @@ RUNGS = (3.0, 2.25, 1.7)
 REFERENCE_RUNG = 1.7
 MODES = 48
 MEMORY_BYTES = 9 * 2**30  # RR-PACKS-07's f08 case limit
+#: The pinned build's {kind, solvers}: the 2026-10-21 AX42 rebuild (its ladder
+#: rows bit-identical to RR-PACKS-07's, whose build rr07-pod-environment.json
+#: records and which is lost; Validator re-pin, OWNER-F08-REBUILD-MMS-ACCEPT-01).
 ENVIRONMENT = (
-    "docs/development/evidence/f08-near-limit-public-20261020/rr07-pod-environment.json",
-    "5c16f95d2c5db972d50757e493f0218ce5a7c50adb52764d4e4449d053cac463",
+    "docs/development/evidence/f08-rebuild-20261021/candidate-environment.json",
+    "2839eb3f1d847b220a808de9599e7e0f0940064a29934df5ac0c7327a516a304",
 )
 REGISTRATION = (
     "docs/development/challenge_pipeline/structures-readiness/registration.json"
@@ -89,8 +94,8 @@ def _canonical(value):
 
 
 def pinned_solvers():
-    """RR-PACKS-07's verified native solvers ({kind, solvers}), from the
-    SHA-256-pinned environment record."""
+    """The verified native solvers ({kind, solvers}), from the SHA-256-pinned
+    environment record."""
     raw = (ROOT / ENVIRONMENT[0]).read_bytes()
     if hashlib.sha256(raw).hexdigest() != ENVIRONMENT[1]:
         raise SystemExit("the pinned F08 environment record differs")

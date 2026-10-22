@@ -11,8 +11,11 @@ Motor 1.0's hidden pool (VALIDATOR-21, `motor_hidden`) is unchanged: its
 validator answer-key path keeps 1.0. This module only adds 1.1 beside it;
 `motor_source.motor_source_for` picks by the deployment file's schema.
 
-Values: the population, solver image, terminal statuses, kinds and batch size
-are Motor's own (`motor_hidden`), unchanged; three active batches; rotation
+Values: the solver image, terminal statuses, kinds, admission and batch size
+are Motor's own (`motor_hidden`), unchanged. The population is placed
+(`carbon.motor_exam.population`, OWNER-MOTOR-EXAM-DRAW-01): candidates from
+the registered uniform law, placed so about a third lands on each side of both
+limits. Three active batches; rotation
 at the cadence record's 90-day maximum (OWNER-CADENCE-AND-ROTATION-02). The
 rule cites the pack and evaluation versions and never restates scoring.
 
@@ -72,7 +75,7 @@ def contract_digest():
 
 def hidden_rule(repository=REPOSITORY):
     """The family's rule document; its digest is every commitment's."""
-    from carbon.motor.population import POPULATION_VERSION
+    from carbon.motor_exam.population import POPULATION_VERSION, WINDOW
 
     return {
         "schema": RULE_SCHEMA,
@@ -84,10 +87,19 @@ def hidden_rule(repository=REPOSITORY):
             "pack_version": PACK_VERSION,
             "evaluation_version": EVALUATION_VERSION,
         },
+        # OWNER-MOTOR-EXAM-DRAW-01: candidates from the registered uniform
+        # law, placed by a TRAIN-fitted predictor (placement only, never a
+        # label) so about a third lands on each side of both limits.
         "population": {
             "version": POPULATION_VERSION,
-            "law": "uniform",
-            "q_equals_p": True,
+            "law": "placed",
+            "candidates": "carbon.motor.development-population.v1 (uniform, buildable)",
+            "placement": {
+                "predictor": "kernel ridge fitted on public TRAIN motor-pools-v1",
+                "predicted_feasible_per_limit": list(WINDOW),
+                "limits": {"mean_torque_nm": ">= 4.0", "ripple_fraction": "<= 0.30"},
+            },
+            "authority": "OWNER-MOTOR-EXAM-DRAW-01",
         },
         "solver_image": SOLVER_IMAGE,
         "references": {"terminal": list(TERMINAL), "scored": ["OK"]},
@@ -120,6 +132,13 @@ def check_document(document):
         challenge={"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
     )
     return motor_hidden.check_document(as_hidden)
+
+
+def placed_source():
+    """The placed population's draw source (OWNER-MOTOR-EXAM-DRAW-01)."""
+    from .confirmation_sources import PopulationSource
+
+    return PopulationSource(CHALLENGE_ID, "motor_exam", ("motor-*",))
 
 
 check_reference = motor_hidden.check_reference

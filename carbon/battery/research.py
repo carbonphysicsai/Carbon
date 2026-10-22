@@ -924,7 +924,8 @@ class BatteryPractice:
         }
         _rows, summary = score_practice(asked, self.practice, self.material, self.root)
         result = {
-            "schema": "carbon.battery.direct-practice-feedback.v1",
+            # v2 (C13) adds the shared `practice_dual` block; v1 had none.
+            "schema": "carbon.battery.direct-practice-feedback.v2",
             "provenance": "BATTERY_PUBLIC_PRACTICE",
             "challenge": recipe.to_dict()["challenge"],
             "recipe_digest": recipe.digest,
@@ -966,6 +967,18 @@ class BatteryPractice:
             "scientific_qualification": False,
             "recipe": strategy,
             "seed_source": "carbon_retained_randomness",
+            # C13: Battery's dual measurement imports the quiz and panel stack,
+            # which reaches the attack engine; no miner surface may import it
+            # (tests/invariants/test_attack_store_unreachable). Until a public
+            # measure exists (the Validator's ruling), practice says so, never
+            # silently.
+            "practice_dual": {
+                "schema": "carbon.practice.dual-feedback.v1",
+                "scope": "PUBLIC_PRACTICE_FEEDBACK",
+                "challenge": recipe.to_dict()["challenge"],
+                "available": False,
+                "reason": "practice_dual_not_public_for_battery",
+            },
         }
         workspace = ResearchWorkspace(self.ledger, self.owner)
         state_name = (

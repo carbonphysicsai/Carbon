@@ -42,10 +42,12 @@ DOCUMENT_SCHEMA = "carbon.f08.hidden-batch.v1"
 DEPLOYMENT_SCHEMA = "carbon.f08.hidden-deployment.v1"
 STORE_SCHEMA = "carbon.f08.hidden-store.v1"
 AUTHORITY = "OWNER-F02-F08-EXAM-DRAW-01"
-#: RR-PACKS-07's verified native solver build: SHA-256 of the canonical
-#: {kind, solvers} of rr07-pod-environment.json (f08_exam_runner.solvers_id;
-#: a test pins the two equal).
-SOLVER_IMAGE = "sha256:6098f39d40d642ab7aaa3fc300a44ff866e330db52b8d8b1bd9ee9709b0098c3"
+#: The verified native solver build: SHA-256 of the canonical {kind, solvers}
+#: of the pinned environment record (f08_exam_runner.solvers_id; a test pins
+#: the two equal). Since 2026-10-21 the AX42 rebuild (f08_verify PASS, the 8
+#: ladder rows bit-identical to RR-PACKS-07's; Validator re-pin,
+#: OWNER-F08-REBUILD-MMS-ACCEPT-01); RR-PACKS-07's build (6098f39d) is lost.
+SOLVER_IMAGE = "sha256:adcdd02bcb9a906046d8276f797f2c7f2c79bcc8745546cd35407a70bebd86a2"
 RUNNER = Path("scripts/dev/reference_packages/calculix/f08_exam_runner.py")
 TERMINAL = ("OK", "REFERENCE_INVALID", "REFERENCE_SOLVER_FAILED", "REFERENCE_TIMEOUT")
 KINDS = ("screening",)

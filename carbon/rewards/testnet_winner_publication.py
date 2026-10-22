@@ -545,6 +545,15 @@ def check_weight_source(target):
     return target
 
 
+def _open_lean_pool(path):
+    """The existing pool store of a direct-receiver Challenge; never created."""
+    from carbon.battery.pool_store import PoolStore
+
+    if path.is_symlink() or not path.is_file():
+        _refuse("LEAN_POOL_UNAVAILABLE")
+    return PoolStore(path)
+
+
 def _issuer(args, config, journal):
     """The issuer `run` and `preview` share: the same policy, standing
     authorization, ledger and weight sources."""
@@ -554,7 +563,7 @@ def _issuer(args, config, journal):
     from carbon.transport.store import ReceiptJournal
 
     from .winner_decay import load_policy
-    from .winner_eligibility import battery_promotion
+    from .winner_eligibility import battery_promotion, lean_promotion
 
     policy = load_policy(args.policy_version)
     if config.context is None or (config.context.network, config.netuid) != (
@@ -578,6 +587,14 @@ def _issuer(args, config, journal):
         sources[target.identities()["challenge"]["id"]] = lambda: battery_promotion(
             target
         )
+    for entry in args.lean_pool or ():
+        # CHALLENGE_ID=POOL_STORE_PATH: a direct-receiver Challenge's pool
+        # store, opened read only through the same loader the receiver uses.
+        challenge_id, _, path = entry.partition("=")
+        if not challenge_id or not path or challenge_id in sources:
+            _refuse("LEAN_POOL_ARGUMENT_INVALID")
+        store = _open_lean_pool(Path(path))
+        sources[challenge_id] = lambda store=store: lean_promotion(store)
     return TestnetWinnerIntentIssuer(
         ReceiptJournal(Path(journal), config.context),
         auth,
@@ -673,6 +690,12 @@ def main(argv=None):
     for name in ("config", "standing", "journal", "ledger"):
         parser.add_argument("--" + name, required=True)
     parser.add_argument("--battery-deployment")
+    parser.add_argument(
+        "--lean-pool",
+        action="append",
+        metavar="CHALLENGE_ID=PATH",
+        help="a direct-receiver Challenge's pool store (repeatable)",
+    )
     parser.add_argument(
         "--policy-version",
         help="a registered policy version (the current one if omitted)",

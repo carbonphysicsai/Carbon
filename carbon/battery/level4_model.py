@@ -398,7 +398,7 @@ class GraphModel(recipes.MLP):
             allowlist=allowlist,
             challenge=CHALLENGE,
             interface=interface.digest(),
-            max_bytes=intake.BOUNDS["document_bytes"],
+            max_bytes=intake.bounds_for(allowlist)["document_bytes"],
         )
         verdict = validate.validate_submission(
             parsed,

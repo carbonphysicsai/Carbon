@@ -39,7 +39,8 @@ class Spec:
 
     @property
     def practice_schema(self):
-        return "carbon." + self.prefix + ".direct-practice-feedback.v1"
+        # v2 (C13): adds the shared practice_dual block; v1 had none.
+        return "carbon." + self.prefix + ".direct-practice-feedback.v2"
 
     def public(self):
         return importlib.import_module(self.public_module)

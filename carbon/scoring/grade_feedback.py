@@ -4,7 +4,8 @@ OWNER-GRADE-FEEDBACK-LADDER-01 (build spec LADDER_AND_CAP_BUILD_SPEC_20261020
 section A). From one graded private-exam result per miner, Challenge and exam
 version, the miner sees only a closed document:
 
-- ``total``, ``A`` and ``D``, rounded down to the step;
+- ``total``, rounded down to the step (v2, OWNER-FULL-EXAM-BANK-01: the total
+  alone; v1 also showed A and D);
 - ``status``: IMPROVED, NO_IMPROVEMENT, GATE_FAILED or NOT_SCORED;
 - ``gate_names``, drawn only from the closed gate registry (the Challenge's
   registered hard gates);
@@ -37,11 +38,10 @@ from __future__ import annotations
 import math
 from decimal import ROUND_FLOOR, Decimal
 
-SCHEMA = "carbon.private-exam.ladder-feedback.v1"
+SCHEMA = "carbon.private-exam.ladder-feedback.v2"
+SCHEMA_V1 = "carbon.private-exam.ladder-feedback.v1"
 ETA = 0.02
-FIELDS = frozenset(
-    {"schema", "exam_version", "status", "total", "A", "D", "gate_names"}
-)
+FIELDS = frozenset({"schema", "exam_version", "status", "total", "gate_names"})
 STATUSES = ("IMPROVED", "NO_IMPROVEMENT", "GATE_FAILED", "NOT_SCORED")
 #: Scoring statuses that carry a total (development now; official later).
 _SCORED = frozenset({"SCORED_DEVELOPMENT_CANDIDATE"})
@@ -79,8 +79,6 @@ def _document(exam_version, status, values, gate_names):
         "exam_version": exam_version,
         "status": status,
         "total": values.get("total"),
-        "A": values.get("A"),
-        "D": values.get("D"),
         "gate_names": list(gate_names),
     }
     if set(document) != FIELDS or status not in STATUSES:
@@ -125,8 +123,8 @@ def ladder_feedback(graded, *, best, exam_version, gate_registry, rebuild_noise)
     # A new exam version starts a fresh ladder.
     if best is not None and best["exam_version"] != exam_version:
         best = None
-    none = {"total": None, "A": None, "D": None}
-    shown = {k: best[k] for k in ("total", "A", "D")} if best is not None else none
+    none = {"total": None}
+    shown = {"total": best["total"]} if best is not None else none
     if type(graded) is not dict or type(graded.get("status")) is not str:
         raise LadderFeedbackRefused("graded")
     status = graded["status"]
@@ -141,14 +139,8 @@ def ladder_feedback(graded, *, best, exam_version, gate_registry, rebuild_noise)
     if status not in _SCORED:
         # A result that does not count reveals no grade.
         return _document(exam_version, "NOT_SCORED", none, ())
-    total, legs = graded.get("score"), graded.get("legs")
-    if type(legs) is not dict:
-        raise LadderFeedbackRefused("graded")
-    rounded = {
-        "total": _floor(total, grid),
-        "A": _floor(legs.get("A"), grid),
-        "D": _floor(legs.get("D"), grid),
-    }
+    total = graded.get("score")
+    rounded = {"total": _floor(total, grid)}
     if shown["total"] is not None and not total >= shown["total"] + grid:
         return _document(exam_version, "NO_IMPROVEMENT", shown, ())
     return _document(exam_version, "IMPROVED", rounded, ())

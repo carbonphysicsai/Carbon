@@ -1,0 +1,184 @@
+{
+ "bands": {
+  "mms_balance_rel": 1e-05,
+  "mms_h1_order": [
+   1.5,
+   2.5
+  ],
+  "mms_l2_order": [
+   2.5,
+   3.5
+  ],
+  "rod_freq_rel": 0.002,
+  "rod_peak_rel": 0.01,
+  "rod_phase_deg": 5.0
+ },
+ "bands_decision": "F08-SCIENCE-VALUES-01",
+ "family": "f08",
+ "image_id": "native:calculix carbon-f08-solvers:candidate sha256:22a7902fcd32a3bc454e7617e775b1be39e77e4826f6fc1ddd43ad534378539d",
+ "mesh_image": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+ "mms": {
+  "observed_order": {
+   "h1_rel": 2.0558504034862812,
+   "l2_rel": 3.1330559906720943
+  },
+  "rungs": [
+   {
+    "balance_rel": 2.888560089074081e-08,
+    "deck_sha256": "eb1a53a0070df4b735251b6157a91e2411d7826543696424334189c143cd3002",
+    "elements": 1140,
+    "h1_rel": 0.006106531202465882,
+    "h_effective_mm": 0.09572639770585561,
+    "h_target_mm": 0.25,
+    "l2_rel": 0.0005653081510441241,
+    "nodes": 2091,
+    "run": {
+     "cgroup_cpu_s": 1.17019,
+     "cgroup_memory_peak_mib": 489.36328125,
+     "wall_s": 0.12
+    }
+   },
+   {
+    "balance_rel": 1.1441030508662652e-08,
+    "deck_sha256": "34d697ee4a2f4773d38cba228b5ba3da8f117861f282e83c1996e235838c64e9",
+    "elements": 2783,
+    "h1_rel": 0.003213650604902191,
+    "h_effective_mm": 0.07109334215207452,
+    "h_target_mm": 0.125,
+    "l2_rel": 0.00021593197230760687,
+    "nodes": 4702,
+    "run": {
+     "cgroup_cpu_s": 1.865571,
+     "cgroup_memory_peak_mib": 570.44140625,
+     "wall_s": 0.34
+    }
+   },
+   {
+    "balance_rel": 7.543304536886208e-09,
+    "deck_sha256": "b02dc891607dfc0d450544d68a4dc8cd4ca8eed1f59530e1502bb8823b299750",
+    "elements": 19393,
+    "h1_rel": 0.0008495997577272382,
+    "h_effective_mm": 0.0372207397934102,
+    "h_target_mm": 0.0625,
+    "l2_rel": 2.843089830360422e-05,
+    "nodes": 29375,
+    "run": {
+     "cgroup_cpu_s": 12.188884,
+     "cgroup_memory_peak_mib": 1076.859375,
+     "wall_s": 8.87
+    }
+   }
+  ],
+  "verdict": "PASS"
+ },
+ "rod": {
+  "ccx_axial_hz": [
+   2545.875,
+   7637.627,
+   12729.38
+  ],
+  "damping": {
+   "zeta_0.005": {
+    "ccx_native_crest_rel": 0.00024914948522865386,
+    "ccx_native_max": {
+     "hz": 2545.875387833,
+     "mm_per_n": 0.001447457664035427
+    },
+    "ccx_vs_exact_max_rel_near_crest": 0.0024241628456048584,
+    "exact_peak": {
+     "grid_mm_per_n": 0.0014472834451245333,
+     "hz": 2545.780473293594,
+     "mm_per_n": 0.0014474997479626255,
+     "phase_deg": -89.42960126446066,
+     "sampling_loss_rel": 0.00014943203851790462
+    },
+    "projection_location_ok": true,
+    "projection_peak": {
+     "grid_mm_per_n": 0.0014472863413034817,
+     "hz": 2545.7837519838804,
+     "mm_per_n": 0.0014474954730541456,
+     "phase_deg": -89.4563620803929,
+     "sampling_loss_rel": 0.0001444783452224917
+    },
+    "projection_peak_rel": 2.953305163581452e-06,
+    "projection_phase_deg": 0.026760815932249216
+   },
+   "zeta_0.01": {
+    "ccx_native_crest_rel": 0.0004984895440401682,
+    "ccx_native_max": {
+     "hz": 2545.875387833,
+     "mm_per_n": 0.0007237480275128224
+    },
+    "ccx_vs_exact_max_rel_near_crest": 0.004945613345289496,
+    "exact_peak": {
+     "grid_mm_per_n": 0.0007236953638908397,
+     "hz": 2545.4941553286876,
+     "mm_per_n": 0.0007238312687360579,
+     "phase_deg": -88.85573074436434,
+     "sampling_loss_rel": 0.00018775763232162617
+    },
+    "projection_location_ok": true,
+    "projection_peak": {
+     "grid_mm_per_n": 0.0007236878943974065,
+     "hz": 2545.5073109461837,
+     "mm_per_n": 0.000723823719739624,
+     "phase_deg": -88.91275043019918,
+     "sampling_loss_rel": 0.0001876497529900602
+    },
+    "projection_peak_rel": 1.0429221228738946e-05,
+    "projection_phase_deg": 0.0570196858348595
+   },
+   "zeta_0.02": {
+    "ccx_native_crest_rel": 0.0009969703469750722,
+    "ccx_native_max": {
+     "hz": 2545.875387833,
+     "mm_per_n": 0.0003619118505664617
+    },
+    "ccx_vs_exact_max_rel_near_crest": 0.009866319338330948,
+    "exact_peak": {
+     "grid_mm_per_n": 0.00036206988693156353,
+     "hz": 2544.348710398791,
+     "mm_per_n": 0.0003620783573817039,
+     "phase_deg": -87.71015360248654,
+     "sampling_loss_rel": 2.3393969751724497e-05
+    },
+    "projection_location_ok": true,
+    "projection_peak": {
+     "grid_mm_per_n": 0.0003620526267586697,
+     "hz": 2544.3998665939052,
+     "mm_per_n": 0.00036206376991191675,
+     "phase_deg": -87.82416317000383,
+     "sampling_loss_rel": 3.077676965506974e-05
+    },
+    "projection_peak_rel": 4.028815721714987e-05,
+    "projection_phase_deg": 0.11400956751728586
+   }
+  },
+  "deck_sha256": "b7ec969179870974902ae0e8363e1be7cf5b85b46a9a3752cd31cdd203dfb539",
+  "exact_hz": [
+   2545.8753860865777,
+   7637.626158259733,
+   12729.376930432887
+  ],
+  "freq_rel": [
+   1.5165179717807612e-07,
+   1.1020967121800335e-07,
+   2.4114040529100827e-07
+  ],
+  "mesh": {
+   "elements": 973,
+   "nodes": 2258
+  },
+  "run": {
+   "cgroup_cpu_s": 14.270353,
+   "cgroup_memory_peak_mib": 1076.859375,
+   "wall_s": 0.24
+  },
+  "static_rel": 1.599999999840878e-07,
+  "verdict": "PASS"
+ },
+ "schema": "carbon.f08-code-verification.v1",
+ "scope": "DEVELOPMENT code verification; not task adequacy, Tier 2 or qualification. NAFEMS P18.FV4/FV73 and R0016.5H decks are not available offline; the rod is a closed-form substitute.",
+ "script": "scripts/dev/reference_packages/calculix/f08_verify.py",
+ "units": "mm, N, t, s; MPa; Hz"
+}

@@ -73,7 +73,7 @@ def _noise(value):
 
 def test_a_registered_rebuild_noise_above_eta_widens_the_step(store, tmp_path):
     coarse = _record(store, _scored(0.63, 0.33, 0.93), noise=_noise(0.05))
-    assert (coarse["total"], coarse["A"], coarse["D"]) == (0.6, 0.3, 0.9)
+    assert coarse["total"] == 0.6 and "A" not in coarse
     # 0.64 clears eta (0.60 + 0.02) but not the registered 0.05 step.
     assert (
         _record(store, _scored(0.64, 0.34, 0.94), noise=_noise(0.05))["status"]
@@ -89,7 +89,7 @@ def test_a_registered_rebuild_noise_above_eta_widens_the_step(store, tmp_path):
     os.chmod(root, 0o700)
     eta = LadderStore(AttemptLedger(root / "attempts.sqlite3"))
     fine = _record(eta, _scored(0.63, 0.33, 0.93))
-    assert (fine["total"], fine["A"], fine["D"]) == (0.62, 0.32, 0.92)
+    assert fine["total"] == 0.62 and "D" not in fine
     assert _record(eta, _scored(0.64, 0.34, 0.94))["status"] == "IMPROVED"
 
 
@@ -146,9 +146,7 @@ def test_a_gate_failure_after_an_improvement_is_served_as_the_latest(store):
     assert served["latest"] == failed
     assert served["latest"]["status"] == "GATE_FAILED"
     assert served["latest"]["gate_names"] == [GATES[0]]
-    assert [served["latest"][k] for k in ("total", "A", "D")] == [
-        best[k] for k in ("total", "A", "D")
-    ]
+    assert [served["latest"][k] for k in ("total",)] == [best[k] for k in ("total",)]
 
 
 def test_a_first_result_that_does_not_count_leaves_no_best(store):
@@ -441,3 +439,27 @@ def test_an_invalid_registry_records_nothing(store, monkeypatch):
     monkeypatch.setattr(koth_registry, "rebuild_noise", invalid)
     assert _hook(store).startswith("UNAVAILABLE")
     assert store.served("5Miner", MOTOR, EXAM) == {"best": None, "latest": None}
+
+
+def test_a_stored_v1_document_that_showed_a_and_d_is_not_served(store):
+    """OWNER-FULL-EXAM-BANK-01: the miner sees the total alone. A v1 document is
+    dropped, never served, and the miner's next grade starts the v2 ladder."""
+    import json
+
+    _record(store, _scored(0.60, 0.30, 0.90))
+    v1 = {
+        "schema": gf.SCHEMA_V1,
+        "exam_version": "motor-exam-1",
+        "status": "IMPROVED",
+        "total": 0.6,
+        "A": 0.3,
+        "D": 0.9,
+        "gate_names": [],
+    }
+    raw = json.dumps(v1, sort_keys=True)
+    with store.ledger._db() as db:
+        db.execute("UPDATE ladder_feedback SET best=?, latest=?", (raw, raw))
+    assert store.served("5Miner", MOTOR, EXAM) == {"best": None, "latest": None}
+    fresh = _record(store, _scored(0.61, 0.31, 0.91))
+    assert fresh["status"] == "IMPROVED" and "A" not in fresh and "D" not in fresh
+    assert set(store.served("5Miner", MOTOR, EXAM)["best"]) == gf.FIELDS

@@ -46,7 +46,7 @@ from .scoring import COVERAGE_RULE, cover
 
 ADAPTER_SCHEMA = "carbon.cold-plate.validator-adapter.v1"
 BATCH_SCHEMA = "carbon.cold-plate.validator-public-batch.v1"
-OUTCOME_SCHEMA = "carbon.cold-plate.validator-outcome.v1"
+OUTCOME_SCHEMA = "carbon.cold-plate.validator-outcome.v2"
 SCORE_RECORD_SCHEMA = "carbon.cold-plate.operator-score-record.v1"
 STORE_SCHEMA = "carbon.cold-plate.validator-store.v1"
 PUBLIC_BATCH_KIND = "public_practice"
@@ -142,7 +142,14 @@ class CoolingAdapter(ChallengeAdapter):
     contract_digest = contract(CHALLENGE.challenge_id).digest
     max_strategy_bytes = MAX_STRATEGY_BYTES
     disclosure_fields = frozenset(
-        {"score", "eligible", "n_cases", "n_scored", "n_gate_failed"}
+        {
+            "score",
+            "eligible",
+            "n_cases",
+            "n_scored",
+            "n_gate_failed",
+            "practice_dual",
+        }
     )
 
     def __init__(self, root, *, repository="."):
@@ -269,7 +276,24 @@ class CoolingAdapter(ChallengeAdapter):
             )
         except ValueError:
             raise self._candidate_fault("non_finite_score")
-        outcome = self._outcome(submission_id, "SCORED", summary=summary)
+        outcome = {
+            **self._outcome(submission_id, "SCORED", summary=summary),
+            # C13: the exam's dual measurement needs Cooling's development bank,
+            # which is the counted decision-study evidence this adapter's read
+            # boundary denies (and pins study modules to read it). Until the bank
+            # has a public mirror and the decision rules a public module (the
+            # Validator's ruling), the block says so, never silently.
+            "practice_dual": {
+                "schema": "carbon.practice.dual-feedback.v1",
+                "scope": "PUBLIC_PRACTICE_FEEDBACK",
+                "challenge": {
+                    "id": self.challenge_id,
+                    "version": self.challenge_version,
+                },
+                "available": False,
+                "reason": "practice_dual_not_public_for_cooling",
+            },
+        }
         score_record = {
             "schema": SCORE_RECORD_SCHEMA,
             "submission_id": submission_id,

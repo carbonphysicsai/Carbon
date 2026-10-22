@@ -48,6 +48,13 @@ FIRST = "FIRST_INCUMBENT"
 BANK = "BANK_IMPROVEMENT"
 
 
+#: The incumbent reasons a lean (direct-receiver) pool store may carry, as
+#: `bank_promotion` names them. Only the sealed-exam crown is payable, and only
+#: on a testnet policy.
+DEVELOPMENT_REASON = "bank_comparison_development"
+SEALED_TESTNET_REASON = "bank_comparison_sealed_testnet"
+
+
 class WinnerIdentityFailure(RewardFailure):
     """The snapshot and ledger cannot establish a promotion's miner identity."""
 
@@ -116,6 +123,47 @@ def battery_promotion(target):
     raise RewardFailure("PROMOTION_FINAL_NOT_FOUND")
 
 
+def lean_promotion(store):
+    """The current incumbent's promotion in a lean (direct-receiver) pool
+    store, or None. Read only; the miner and the incumbent it beat come from
+    the store's own incumbent events.
+
+    The development reason is never payable (`PROMOTION_DEVELOPMENT_ONLY`).
+    A sealed-exam crown carries its reason into the promotion, and `decide`
+    pays it only under a testnet policy.
+    """
+    incumbent = store.incumbent()
+    if incumbent is None:
+        return None
+    reason = incumbent.get("reason")
+    if reason == DEVELOPMENT_REASON:
+        raise RewardFailure("PROMOTION_DEVELOPMENT_ONLY")
+    if reason != SEALED_TESTNET_REASON:
+        raise RewardFailure("PROMOTION_REASON_UNKNOWN")
+    model_id = incumbent["model_id"]
+    events = [
+        e["body"]
+        for e in store.events("incumbent")
+        if e["body"].get("model_id") == model_id
+    ]
+    if not events:
+        raise RewardFailure("PROMOTION_UNRECORDED")
+    previous = events[-1].get("previous")
+    row = store.submission(model_id)
+    promotion = {
+        "model_id": model_id,
+        "hotkey": row["hotkey"],
+        "previous": previous,
+        "previous_hotkey": (
+            None if previous is None else store.submission(previous)["hotkey"]
+        ),
+        "recipe_digest": row["binding"].get("recipe_digest"),
+        "contract_digest": row["binding"].get("contract_digest"),
+        "incumbent_reason": reason,
+    }
+    return {**promotion, "kind": FIRST if previous is None else BANK}
+
+
 def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
     """The ledger record for a newly observed `promotion`: its eligibility,
     the reason, and the clock it pays from. `coldkeys` maps hotkeys to
@@ -138,6 +186,13 @@ def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
 
     def record(eligible, reason, clock_ms=now_ms):
         return {**base, "eligible": eligible, "reason": reason, "clock_ms": clock_ms}
+
+    if promotion.get("incumbent_reason") == SEALED_TESTNET_REASON and (
+        policy.network != "testnet"
+    ):
+        # A sealed-exam crown is paid on testnet only until qualification
+        # (invariant 5): any other network's policy refuses it.
+        return record(False, "sealed_crown_testnet_only")
 
     def same_miner(previous_hotkey):
         if promotion["hotkey"] == previous_hotkey:

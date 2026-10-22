@@ -330,7 +330,10 @@ class DirectFixtureDiscovery:
         evaluation_pack_snapshot=None,
         evaluation_pack_public_root=None,
         evaluation_pack_private_root=None,
+        evaluation_pack_sealed=False,
     ):
+        if type(evaluation_pack_sealed) is not bool:
+            raise TypeError("exact sealed delivery selection required")
         if type(task_admission) is not bool:
             raise TypeError("exact direct task admission selection required")
         if evaluation_pack_digest is not None:
@@ -363,6 +366,11 @@ class DirectFixtureDiscovery:
         self.evaluation_pack_snapshot = evaluation_pack_snapshot
         self.evaluation_pack_public_root = evaluation_pack_public_root
         self.evaluation_pack_private_root = evaluation_pack_private_root
+        # True only for a pack delivered through the answer-key route
+        # (`SealedPackStore.delivered`), decided by the receiver.
+        self.evaluation_pack_sealed = (
+            evaluation_pack_sealed and evaluation_pack_snapshot is not None
+        )
         self.info, self.manifest = self._snapshot()
 
     def _snapshot(self):

@@ -22,13 +22,14 @@ def check_objectives(model, loss):
     from carbon.level4 import allowlist, graph, intake, submission
 
     manifest = json.loads(model.raw_manifest)
+    loaded = allowlist.load()
     _, parsed = submission.verify(
         model.raw_manifest,
         model.files,
-        allowlist=allowlist.load(),
+        allowlist=loaded,
         challenge=CHALLENGE,
         interface=manifest["interface"],
-        max_bytes=intake.BOUNDS["document_bytes"],
+        max_bytes=intake.bounds_for(loaded)["document_bytes"],
     )
     if "loss" in parsed:
         raise graph.GraphRefused(CONFLICT, "+".join(CONFLICT_FIELDS))
