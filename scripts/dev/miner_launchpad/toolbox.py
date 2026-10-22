@@ -200,7 +200,17 @@ def for_request(host, request, lanes=None):
     ):
         raise Rejected("challenge_required")
     ref = challenge_ref(challenge_id)
-    if ref["version"] is None or version not in (None, ref["version"]):
+    if version is not None and version != ref["version"]:
+        # H6: any registered version of the Challenge, as launch takes it
+        # (a toolbox for Motor 1.3 or Cooling 1.2 read challenge_unknown).
+        from carbon.challenge_registry import describe
+
+        try:
+            describe(challenge_id, version)
+        except Exception:  # noqa: BLE001 - an unknown version is unknown
+            raise Rejected("challenge_unknown", 404) from None
+        ref = {**ref, "version": version}
+    if ref["version"] is None:
         raise Rejected("challenge_unknown", 404)
     try:
         return build(ref, lanes=host_lanes(host) if lanes is None else lanes)

@@ -405,3 +405,22 @@ def test_a_catalog_variant_says_so_in_its_listing():
             assert item["variant"] == toolbox.ENTRY_VARIANTS[item["catalog_id"]]
         else:
             assert "variant" not in item
+
+
+def test_the_toolbox_serves_the_version_asked_for():
+    # M1 E2E H6: carbon_toolbox with challenge_version read challenge_unknown.
+    import pytest
+
+    from scripts.dev.miner_launchpad import toolbox
+    from scripts.dev.miner_launchpad.controller import Rejected
+
+    host = None
+    document = toolbox.for_request(
+        host, {"challenge": MOTOR, "challenge_version": "1.3"}, lanes={}
+    )
+    assert document["catalog"] == toolbox.catalog_recipes(MOTOR, "1.3")
+    with pytest.raises(Rejected) as refused:
+        toolbox.for_request(
+            host, {"challenge": MOTOR, "challenge_version": "9.9"}, lanes={}
+        )
+    assert refused.value.code == "challenge_unknown"

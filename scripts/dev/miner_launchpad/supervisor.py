@@ -1165,7 +1165,8 @@ NEXT_ACTIONS = {
         "Use the id your launch returned for one of your own campaigns."
     ),
     "campaign_journal_not_ready": (
-        "The campaign is still being prepared. Try again once observe shows it running."
+        "The campaign is still being prepared. Call wait on it (it returns once "
+        "preparation is done), then try again."
     ),
     "strategy_json_invalid": "Send the recipe as a JSON object.",
     "strategy_object_required": "Send the recipe as a JSON object.",

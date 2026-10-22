@@ -3757,6 +3757,29 @@ class RunnerAdapter:
             read_queued_verdict(self, admitted)
         return self.read(admitted.campaign["id"])
 
+    #: The states a campaign is in while one of its operations runs, or while
+    #: it is still being prepared or run (A2: a note right after launch).
+    WAIT_WORKING = frozenset(
+        {"QUEUED", "RUNNING", "PRACTICING", "FREEZING", "SUBMITTING"}
+    )
+    WAIT_POLL_SECONDS = 2.0
+
+    def wait_admitted(self, admitted, request):
+        # M1 E2E A1: an external agent spent its turns polling observe; this
+        # blocks, bounded, until the running operation has finished.
+        seconds = request.get("wait_seconds", 300)
+        if type(seconds) is not int or not 1 <= seconds <= 600:
+            raise Rejected("wait_seconds_invalid", 409)
+        identity = admitted.campaign["id"]
+        deadline = time.monotonic() + seconds
+        while True:
+            current = self.read(identity)
+            if current.get("state") not in self.WAIT_WORKING:
+                return {**current, "waited": "FINISHED"}
+            if time.monotonic() >= deadline:
+                return {**current, "waited": "STILL_RUNNING"}
+            time.sleep(self.WAIT_POLL_SECONDS)
+
     def check_result_admitted(self, admitted, request):
         # M1 E2E U53 (Validator: a miner-pressed, normally signed read): the
         # latest submitted epoch's Ladder, read again and stored beside it.

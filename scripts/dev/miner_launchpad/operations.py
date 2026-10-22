@@ -224,6 +224,10 @@ FIELDS = {
         "integer",
         "Return only messages after this sequence: the last next_cursor. 0 or omitted: from the start.",
     ),
+    "wait_seconds": (
+        "integer",
+        "Wait at most this many seconds, 1 to 600; omit it for 300.",
+    ),
     "limit": ("integer", "At most this many messages, 1 to 100. Omitted: 50."),
     "task": (
         "string",
@@ -704,6 +708,18 @@ OPERATIONS = {
             "signed status read.",
             frozenset({"campaign"}),
             frozenset(),
+            ("request", "profile", "campaign"),
+            admits_work=False,
+        ),
+        Operation(
+            "wait",
+            "Wait until the campaign's running operation (a practice, freeze "
+            "or submit) has finished, then answer as observe does, so an agent "
+            "need not poll observe. Returns at once when nothing is running; "
+            "after wait_seconds (at most 600) it answers with the campaign as "
+            "it is, still running. Reads only.",
+            frozenset({"campaign"}),
+            frozenset({"wait_seconds"}),
             ("request", "profile", "campaign"),
             admits_work=False,
         ),

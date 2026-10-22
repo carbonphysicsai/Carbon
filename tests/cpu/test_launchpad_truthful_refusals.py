@@ -959,3 +959,30 @@ def test_a_model_provider_failure_names_the_provider_and_what_to_do():
         assert code == "model_provider_" + outcome.value
         assert "model provider" in supervisor.NEXT_ACTIONS[code]
     assert supervisor.provider_interruption_code(ValueError("x")) is None
+
+
+def test_wait_returns_once_the_running_operation_has_finished(monkeypatch):
+    # M1 E2E A1: an external agent spent its turns polling observe.
+    from types import SimpleNamespace
+
+    import pytest
+
+    from scripts.dev.miner_launchpad.controller import Rejected
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    states = iter(["PRACTICING", "PRACTICING", "READY"])
+    host = SimpleNamespace(
+        WAIT_WORKING=RunnerAdapter.WAIT_WORKING,
+        WAIT_POLL_SECONDS=0,
+        read=lambda identity: {"id": identity, "state": next(states)},
+    )
+    admitted = SimpleNamespace(campaign={"id": "c1"})
+    done = RunnerAdapter.wait_admitted(host, admitted, {"campaign": "c1"})
+    assert done == {"id": "c1", "state": "READY", "waited": "FINISHED"}
+    host.read = lambda identity: {"id": identity, "state": "SUBMITTING"}
+    late = RunnerAdapter.wait_admitted(host, admitted, {"wait_seconds": 1})
+    assert late["waited"] == "STILL_RUNNING"
+    for bad in (0, 601, "5", True):
+        with pytest.raises(Rejected) as refused:
+            RunnerAdapter.wait_admitted(host, admitted, {"wait_seconds": bad})
+        assert refused.value.code == "wait_seconds_invalid"

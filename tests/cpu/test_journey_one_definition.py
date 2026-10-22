@@ -324,6 +324,7 @@ def test_every_operation_in_the_table_is_a_step_or_read_by_the_journey():
         | {
             "observe",
             "check_result",
+            "wait",
             "campaign_view",
             "toolbox",
             "ladder",
