@@ -2387,6 +2387,9 @@
         box.append(el("p", entry.plain?.sentence || "Unavailable: " + words(entry.reason) + ".", "status-line"));
         if (entry.plain?.next) box.append(link(entry.plain.next, "button fix"));
       }
+      for (const limitation of entry.known_limitations || []) {
+        box.append(el("p", "Known limitation: " + limitation, "status-line"));
+      }
       if (entry.implemented) {
         const description = details(box, "Description", []);
         renderDescription(description.querySelector(".detail-body"), entry);
