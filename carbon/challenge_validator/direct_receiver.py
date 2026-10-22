@@ -325,19 +325,22 @@ def _set_batch_adapters(cfg, root, challenge, material, discovery, providers, le
     store = SealedPackStore(block["store"])
     primary = block["batches"][0]
     adapters = {}
-    for digest in block["batches"]:
-        if digest == primary:
+    for batch_digest in block["batches"]:
+        if batch_digest == primary:
             batch_discovery = discovery
         else:
             directory = store.pack_directory(
-                digest, challenge.challenge_id, challenge.version
+                batch_digest, challenge.challenge_id, challenge.version
             )
             selection = {
                 "root": str(directory),
                 "manifest": "evaluation-pack.json",
                 "public_root": str(directory),
                 "private_root": str(directory),
-                "sealed_delivery": {"store": block["store"], "manifest_digest": digest},
+                "sealed_delivery": {
+                    "store": block["store"],
+                    "manifest_digest": batch_digest,
+                },
             }
             pack_digest, pack_check, snapshot = _sealed_pack(
                 root, selection, challenge, bound=False
@@ -352,7 +355,7 @@ def _set_batch_adapters(cfg, root, challenge, material, discovery, providers, le
                 evaluation_pack_public_root=Path(selection["public_root"]),
                 evaluation_pack_private_root=Path(selection["private_root"]),
             )
-        adapters[digest] = LeanRecipeAdapter(
+        adapters[batch_digest] = LeanRecipeAdapter(
             batch_discovery,
             providers,
             ledger,
