@@ -178,6 +178,7 @@ class MotorCatalogPractice:
         # measurement (C13) is computable on the same rows.
         practice_inputs = material["practice_inputs"]
         adapter = practice_dual.versioned(motor_dual_pack, self.version)
+        from carbon.development_session.catalog_gpu import backend_record
         from carbon.development_session.gpu_practice import device_build, gpu_overlay
 
         expanded, _bundle, image, construction_parent, accelerator, gpu_note = (
@@ -252,11 +253,9 @@ class MotorCatalogPractice:
             "bundle_recipe_digest": recipe.digest,
             "summary": summary,
             "fit": {"state_digest": result.build.state_digest},
-            "backend": {
-                "kind": "C03_DOCKER_GPU" if accelerator else "C03_DOCKER",
-                "parent": getattr(construction_parent, "image_id", None),
-                **({"gpu_note": gpu_note} if gpu_note else {}),
-            },
+            "backend": backend_record(
+                accelerator, construction_parent, gpu_note, self.runner
+            ),
             "adaptively_seen": True,
             "final_exam": False,
             "official_eligible": False,

@@ -33,7 +33,7 @@ FEEDBACK_MODES = ("FULL",)
 PRACTICE_PROVENANCE = "MOTOR_PUBLIC_PRACTICE"
 BACKENDS = ("numpy",)
 RUNTIME_KEYS = frozenset(
-    {"implementation", "images", "authored_research", "gpu_research"}
+    {"implementation", "images", "authored_research", "gpu_research", "remote_gpu"}
 )
 #: The backbone-catalog version (OWNER-BACKBONE-CATALOG-01): direct catalog
 #: recipes, PyTorch CPU practice, submit through the signed construction
@@ -183,7 +183,7 @@ def compose(
 
     from .research import MotorPractice, make_motor_research_service
 
-    if remote is not None:
+    if remote is not None and (not _catalog() or gpu_image is None):
         raise ValueError("motor Level 0 offers CPU practice only")
     if _catalog():
         from .catalog_practice import MotorCatalogPractice
@@ -214,6 +214,11 @@ def compose(
         if not _catalog():
             raise ValueError("motor Level 0 offers CPU practice only")
         practice.gpu_image = gpu_image
+    if remote is not None:
+        from carbon.development_session.catalog_gpu import RemotePractice
+
+        # The GPU phases on the miner's own remote GPU (shared path, S4).
+        practice.runner = RemotePractice(remote, runner)
     composition = make_motor_research_service(
         root=ledger.root / "research-tasks",
         ledger=ledger,

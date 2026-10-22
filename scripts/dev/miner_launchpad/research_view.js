@@ -964,14 +964,14 @@
       for (const k of keys) row.append(el("td", fmt(r.components[k])));
       // What the run actually ran on: its recipe's framework (or the
       // Challenge's default) and the worker record's backend and image.
-      row.append(el("td", fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend === "C03_DOCKER_GPU" ? "GPU · measured on GPU, not official" : (r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null)), r.image].filter(Boolean).join(" · ") || "–"));
+      row.append(el("td", fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend === "C03_DOCKER_GPU" ? "GPU · measured on GPU, not official" : r.backend === "REMOTE_GPU" ? (r.ran_on || "GPU (your remote setup)") + " · measured on GPU, not official" : (r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null)), r.image].filter(Boolean).join(" · ") || "–"));
       table.append(row);
     }
     wrap.append(table); box.append(wrap);
     para(box, "Descriptive practice on public cases. Not an accepted improvement, a rank or an official score.", "hint");
     // Shared GPU path (Validator condition 4; owner): a GPU practice is
     // labelled as such, and the miner is told CPU and GPU results can differ.
-    if (rows.some(r => r.backend === "C03_DOCKER_GPU")) para(box, "Runs marked GPU were measured on your GPU, not official. CPU and GPU results can differ; the validator rebuilds your frozen recipe on its own pinned environment.", "hint");
+    if (rows.some(r => r.backend === "C03_DOCKER_GPU" || r.backend === "REMOTE_GPU")) para(box, "Runs marked GPU were measured on your GPU, not official. CPU and GPU results can differ; the validator rebuilds your frozen recipe on its own pinned environment.", "hint");
     const queried = rows.map(r => r.dual?.n_cases).find(n => Number.isInteger(n));
     if (dual) para(box, "Graded total: the exam's own gates and 0.5·A + 0.5·D, computed on the public practice bank" + (Number.isInteger(queried) ? " (practice queries your model on " + queried + " public cases, on your own machine)" : "") + "; it compares within this Challenge version only and is not the exam grade.", "hint");
     const byId = Object.fromEntries(doc.charts.map(c => [c.id, c]));

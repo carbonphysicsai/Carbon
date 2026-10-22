@@ -23,7 +23,9 @@ hardens it, because the job may run agent-written code (RSURF-D20):
   through an SSH forward to the container's address on that network. The
   container can still reach services the machine itself exposes on every
   interface.
-- a read-only root, its scratch one tmpfs owned by the worker user;
+- a read-only root, its scratch one tmpfs owned by the worker user, and an
+  empty `/input` tmpfs beside it, where a catalog bundle job lays out its
+  inputs as the local carrier mounts them (`remote_runner.CARRIER_LAYOUT`);
 - every capability dropped and `no-new-privileges`;
 - exactly one GPU, the first the host's driver lists, by UUID.
 
@@ -552,6 +554,7 @@ trap 'rm -f "$carbon_env"' EXIT
 docker network create --internal {name} >/dev/null 2>&1 || exit {JOB_NETWORK_UNAVAILABLE}
 if ! docker run -d --rm --name {name} --network {name} --read-only \\
     --tmpfs /scratch:rw,nosuid,nodev,exec,uid={WORKER_USER},gid={WORKER_USER},mode=0700 \\
+    --tmpfs /input:rw,nosuid,nodev,exec,uid={WORKER_USER},gid={WORKER_USER},mode=0700 \\
     --cap-drop ALL --security-opt no-new-privileges \\
     --gpus "driver=nvidia,device=$carbon_gpu" \\
     --env-file "$carbon_env" --entrypoint {shlex.quote(entry)} {image} {" ".join(map(shlex.quote, args))} >/dev/null; then
