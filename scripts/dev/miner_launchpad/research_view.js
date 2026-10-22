@@ -934,10 +934,11 @@
   function dualText(dual) {
     if (!dual) return null;
     if (!dual.available) return /(^|_)d(_|$)|design_value|decision/i.test(dual.reason || "") ? "D unavailable on practice" : "Graded total unavailable" + (dual.reason ? ": " + words(dual.reason) : "");
-    if (!dual.eligible) return "Not eligible: " + (Object.entries(dual.gates || {}).filter(([, ok]) => !ok).map(([name]) => words(name)).join(", ") || "a mandatory gate failed");
+    if (!dual.eligible) return "Not eligible: " + (Object.entries(dual.gates || {}).filter(([, ok]) => ok === false).map(([name]) => words(name)).join(", ") || "a mandatory gate failed");
     if (typeof dual.total !== "number") return "Not scored";
     const detail = [typeof dual.accuracy === "number" ? "A " + dual.accuracy.toFixed(3) : null, typeof dual.design_value === "number" ? "D " + dual.design_value.toFixed(3) : null].filter(Boolean).join(", ");
-    return dual.total.toFixed(4) + (detail ? " (" + detail + ")" : "");
+    const untested = Object.entries(dual.gates || {}).filter(([, ok]) => ok === "NOT_TESTED_ON_PRACTICE").map(([name]) => words(name));
+    return dual.total.toFixed(4) + (detail ? " (" + detail + ")" : "") + (untested.length ? " · not tested on practice: " + untested.join(", ") : "");
   }
   function drawExperiments(box, doc, run) {
     // The existing projection has no mode column. Join its stable trial IDs

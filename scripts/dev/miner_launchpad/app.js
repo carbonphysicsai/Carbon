@@ -2730,9 +2730,9 @@
   // first; the same reading the practice view gives every Challenge.
   function practiceDualLine(dual) {
     if (!dual.available) return "Practice graded total: unavailable" + (dual.reason ? " (" + words(dual.reason) + ")" : "") + ".";
-    if (!dual.eligible) return "Practice graded total: not eligible (" + (Object.entries(dual.gates || {}).filter(([, ok]) => !ok).map(([name]) => words(name)).join(", ") || "a mandatory gate failed") + ").";
+    if (!dual.eligible) return "Practice graded total: not eligible (" + (Object.entries(dual.gates || {}).filter(([, ok]) => ok === false).map(([name]) => words(name)).join(", ") || "a mandatory gate failed") + ").";
     if (typeof dual.total !== "number") return "Practice graded total: not scored.";
-    return "Practice graded total: " + dual.total.toFixed(4) + " (0 to 1, higher is better" + (typeof dual.accuracy === "number" ? "; A " + dual.accuracy.toFixed(3) : "") + (typeof dual.design_value === "number" ? ", D " + dual.design_value.toFixed(3) : "") + "), on the public practice bank" + (Number.isInteger(dual.n_cases) ? " (" + dual.n_cases + " cases)" : "") + "; compares within this Challenge version only.";
+    return "Practice graded total: " + dual.total.toFixed(4) + " (0 to 1, higher is better" + (typeof dual.accuracy === "number" ? "; A " + dual.accuracy.toFixed(3) : "") + (typeof dual.design_value === "number" ? ", D " + dual.design_value.toFixed(3) : "") + "), on the public practice bank" + (Number.isInteger(dual.n_cases) ? " (" + dual.n_cases + " cases)" : "") + "; compares within this Challenge version only." + (Object.values(dual.gates || {}).includes("NOT_TESTED_ON_PRACTICE") ? " Not tested on practice: " + Object.entries(dual.gates).filter(([, ok]) => ok === "NOT_TESTED_ON_PRACTICE").map(([name]) => words(name)).join(", ") + "." : "");
   }
   function gradeLine(grade) {
     const latest = grade && grade.latest;

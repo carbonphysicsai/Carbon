@@ -107,3 +107,18 @@ def test_a_validator_outcomes_practice_dual_reaches_the_submission_view(tmp_path
 def test_the_query_size_is_carried():
     assert dual_feedback({"x": _block()})["n_cases"] == 48
     assert dual_feedback({"x": _block(n_cases="48")})["n_cases"] is None
+
+
+def test_a_gate_practice_cannot_test_is_kept_as_not_tested():
+    # Test Engineer 309f80fcc: paired_repeat is NOT_TESTED_ON_PRACTICE on
+    # F08, F02, Battery; never a pass or a fail; other non-booleans dropped.
+    gates = {
+        "native_shape": True,
+        "paired_repeat": "NOT_TESTED_ON_PRACTICE",
+        "x": "yes",
+    }
+    shown = dual_feedback({"x": _block(gates=gates)})
+    assert shown["gates"] == {
+        "native_shape": True,
+        "paired_repeat": "NOT_TESTED_ON_PRACTICE",
+    }

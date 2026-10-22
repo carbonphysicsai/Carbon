@@ -286,6 +286,7 @@ def contract_section(challenge, feedback_mode, offered_modes=(), level=None):
 
 #: The practice dual-feedback block (C13, `scoring.practice_dual.SCHEMA`).
 DUAL_FEEDBACK_SCHEMA = "carbon.practice.dual-feedback.v1"
+NOT_TESTED_ON_PRACTICE = "NOT_TESTED_ON_PRACTICE"
 
 
 def dual_feedback(experiment):
@@ -318,7 +319,9 @@ def dual_feedback(experiment):
         "gates": {
             str(name)[:128]: ok
             for name, ok in list(gates.items())[:32]
-            if type(ok) is bool
+            # A boolean verdict, or the one gate practice cannot test
+            # (paired_repeat on F08, F02, Battery: Test Engineer).
+            if type(ok) is bool or ok == NOT_TESTED_ON_PRACTICE
         },
         "eligible": found.get("eligible") is True,
         "total": finite(found.get("total")),
