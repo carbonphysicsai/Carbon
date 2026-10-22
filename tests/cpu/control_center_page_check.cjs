@@ -451,7 +451,7 @@ scenario("the model step offers an output cap with the model's default and sends
   for (const bad of [String(cap.bounds[0] - 1), String(cap.bounds[1] + 1), "1.5"]) {
     await page.type(input, bad);
     assert.equal(page.$("wizard-next").disabled, true, bad);
-    assert.match(page.text("wizard-next-reason"), /Fix the output cap: max output tokens must be a whole number from 256 to 131,072/);
+    assert.match(page.text("wizard-next-reason"), /Fix the output cap: max output tokens must be a whole number from 256 up/);
   }
   await page.type(input, "4096");
   assert.equal(page.$("wizard-next").disabled, false, page.text("wizard-next-reason"));
@@ -512,7 +512,8 @@ scenario("the model step offers a provider call timeout with its default and sen
   await wizardTo(page, "model", agent);
   const choice = fx.caps_setup_model.model.setup_choice;
   const timeout = fx.caps_setup_model.model.call_timeout;
-  assert.deepEqual(timeout.bounds, [10, 600]);
+  // No Carbon maximum for a miner's timeout (limits row #8).
+  assert.deepEqual(timeout.bounds, [10, 2 ** 63 - 1]);
   assert.equal(timeout.default, 600);
   assert.equal(page.$("wizard-timeout").hidden, false, "the timeout is offered with a model chosen");
   assert.match(page.text("wizard-timeout"), /Provider call timeout \(seconds\)/);
@@ -526,7 +527,7 @@ scenario("the model step offers a provider call timeout with its default and sen
   for (const bad of [String(timeout.bounds[0] - 1), String(timeout.bounds[1] + 1), "1.5"]) {
     await page.type(input, bad);
     assert.equal(page.$("wizard-next").disabled, true, bad);
-    assert.match(page.text("wizard-next-reason"), /Fix the provider call timeout: the provider call timeout must be a whole number of seconds from 10 to 600, or leave it blank for the default\./);
+    assert.match(page.text("wizard-next-reason"), /Fix the provider call timeout: the provider call timeout must be a whole number of seconds from 10 up, or leave it blank for the default\./);
     assert.match(page.text("wizard-timeout-note"), /^Not valid: /);
   }
   await page.type(input, "300");

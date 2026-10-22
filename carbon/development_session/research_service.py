@@ -224,6 +224,56 @@ class ConstructionRecipeValidation:
         )
 
 
+#: The one issue compile_strategy answers a catalog version's binding recipe
+#: with: it has no Level-0 compile (M1 E2E 2026-10-22, F2).
+CATALOG_RECIPE_NOT_COMPILED = "catalog_recipe_not_compiled"
+CATALOG_RECIPE_NOT_COMPILED_TEXT = (
+    "This Challenge version takes construction recipes "
+    "(carbon.construction-recipe.v1), not Level-0 strategies, and has no "
+    "strategy compile. This recipe binds the version: practise it with "
+    "start_research_task kind=practice (strategy_json is the recipe)."
+)
+
+
+class ConstructionRecipeCompilation:
+    """compile_strategy for a catalog version (F2): the recipe rule's issues
+    (`construction_recipe_issues`), or, for a recipe that binds, one issue
+    saying there is no Level-0 compile and to practise it. The Level-0
+    compile refused every recipe the version takes and taught the legacy
+    Strategy 1.0 shape instead. Nothing is built."""
+
+    __slots__ = ("key",)
+
+    def __init__(self, key):
+        self.key = key
+
+    def compile_strategy(self, request):
+        if type(request) is not research.CompileStrategyRequest:
+            raise TypeError("exact CompileStrategyRequest required")
+        if request.challenge_key != self.key:
+            raise ValueError("research compile binding differs")
+        issues = construction_recipe_issues(request.strategy, self.key) or (
+            RecipeIssue(
+                CATALOG_RECIPE_NOT_COMPILED, "", CATALOG_RECIPE_NOT_COMPILED_TEXT
+            ),
+        )
+        return research.CompileStrategyResult(
+            False,
+            tuple(
+                research.CompileIssue(
+                    item.code,
+                    tuple(part for part in item.path.split("/") if part),
+                    item.message,
+                )
+                for item in issues
+            ),
+            None,
+            None,
+            None,
+            None,
+        )
+
+
 class ChallengeContractValidation:
     """dry_validate as the named Challenge's submission path answers it
     (RESEARCH-TOOL-USABILITY-01): the issues `submission_issues` names, with
@@ -961,7 +1011,11 @@ def compose_research_service(
                     else research.A2ValidationProvider()
                 )
             ),
-            compiler,
+            (
+                ConstructionRecipeCompilation(key)
+                if takes_construction_recipes(key)
+                else compiler
+            ),
             prior,
             inspection,
             forecast,
