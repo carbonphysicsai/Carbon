@@ -52,7 +52,7 @@ usage() {
   cat <<'EOF'
 usage: scripts/install_validator.sh [--check-only] [--gpu]
                                     [--setup [--hotkey SS58] [--challenges LIST]
-                                     [--packs DIR] [--domain NAME]]
+                                     [--exam-source FILE | --packs DIR] [--domain NAME]]
                                     [--receiver ID VERSION --hotkey SS58
                                      [--pack DIR] [--start-receiver]]
                                     [install_miner.sh options]
@@ -67,8 +67,12 @@ usage: scripts/install_validator.sh [--check-only] [--gpu]
   --challenges LIST
                 with --setup: current (each Challenge's newest version, the
                 default), all, or ID@VERSION,ID@VERSION,...
-  --packs DIR   with --setup: a directory of evaluation packs, one per
-                ID-VERSION subdirectory
+  --exam-source FILE
+                with --setup: where Carbon's signed exams come from (its
+                distribution URL, receiver hotkey and producer public key);
+                each receiver gets this hotkey's own verified copy
+  --packs DIR   with --setup, development only: a directory of built
+                evaluation packs, one per ID-VERSION subdirectory
   --domain NAME with --setup: the public DNS name of this host; writes the
                 HTTPS proxy (Caddy) configuration and the endpoint entries
   --status      report every receiver: service, intake, exam, last graded
@@ -99,6 +103,7 @@ status=0
 hotkey=""
 challenges="current"
 packs=""
+exam_source=""
 domain=""
 pass=()
 while [[ $# -gt 0 ]]; do
@@ -116,6 +121,7 @@ while [[ $# -gt 0 ]]; do
     --hotkey) hotkey="${2:?--hotkey needs an ss58 address}"; shift ;;
     --challenges) challenges="${2:?--challenges needs a list}"; shift ;;
     --packs) packs="${2:?--packs needs a directory}"; shift ;;
+    --exam-source) exam_source="${2:?--exam-source needs a file}"; shift ;;
     --domain) domain="${2:?--domain needs a DNS name}"; shift ;;
     --pytorch|--no-start) ;;
     *) usage >&2; exit 2 ;;
@@ -134,8 +140,8 @@ if [[ "${setup}" == 1 && -n "${receiver_id}" ]]; then
   printf 'Carbon validator install stopped: use --setup (every Challenge) or --receiver ID VERSION (one), not both.\n' >&2
   exit 2
 fi
-if [[ "${setup}" == 0 && ( -n "${packs}" || -n "${domain}" || "${challenges}" != current ) ]]; then
-  printf 'Carbon validator install stopped: --challenges, --packs and --domain go with --setup.\n' >&2
+if [[ "${setup}" == 0 && ( -n "${packs}" || -n "${exam_source}" || -n "${domain}" || "${challenges}" != current ) ]]; then
+  printf 'Carbon validator install stopped: --challenges, --exam-source, --packs and --domain go with --setup.\n' >&2
   exit 2
 fi
 if [[ ( "${setup}" == 1 || -n "${receiver_id}" ) && -z "${hotkey}" && "${check_only}" == 0 ]]; then
@@ -413,6 +419,7 @@ elif [[ "${setup}" == 1 ]]; then
   host_args=(setup --installed-state "$(realpath -- "${STATE_DIR}")"
              --hotkey "${hotkey}" --challenges "${challenges}")
   [[ -z "${packs}" ]] || host_args+=(--packs "$(realpath -- "${packs}")")
+  [[ -z "${exam_source}" ]] || host_args+=(--exam-source "$(realpath -- "${exam_source}")")
   [[ -z "${domain}" ]] || host_args+=(--domain "${domain}")
   .venv/bin/python -B -m carbon.challenge_validator.validator_host "${host_args[@]}" \
     || { printf 'Carbon validator install stopped: the validator setup was refused (see above).\n' >&2; exit 4; }

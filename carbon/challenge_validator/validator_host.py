@@ -1,14 +1,14 @@
 """One validator host: a receiver service per Challenge, its proxy, its status.
 
     scripts/install_validator.sh --setup --hotkey SS58 [--challenges current|all|ID@VERSION,...]
-                                 [--packs DIR] [--domain NAME]
+                                 (--exam-source FILE | --packs DIR) [--domain NAME]
     scripts/install_validator.sh --status
 
 `install_validator.sh` installs the host and its images, then calls this:
 
     .venv/bin/python -B -m carbon.challenge_validator.validator_host setup \\
-        --installed-state STATE --hotkey SS58 [--challenges ...] [--packs DIR] \\
-        [--domain NAME] [--base-port N]
+        --installed-state STATE --hotkey SS58 [--challenges ...] \\
+        (--exam-source FILE | --packs DIR) [--domain NAME] [--base-port N]
     .venv/bin/python -B -m carbon.challenge_validator.validator_host status \\
         --installed-state STATE
 
@@ -16,11 +16,23 @@
 receiver state and loopback port, under STATE/validator/receivers), installs
 each as a persistent `systemd --user` service, and records the host's layout
 (STATE/validator/host.json, owner-only). Running it again keeps what is there
-and adds what is new; the hotkey never changes under a prepared host. With
-`--packs DIR`, each receiver selects the evaluation pack at DIR/ID-VERSION; a
-Challenge with no pack there is refused (`evaluation_pack_missing`) before
-anything is prepared, since a receiver that cannot grade would spend miners'
-epoch slots. With `--domain`, it writes a Caddy reverse-proxy configuration
+and adds what is new; the hotkey never changes under a prepared host.
+
+The exams (E4): with `--exam-source FILE` (Carbon's distribution URL, its
+receiver hotkey and Carbon's producer public key, all public), `setup` fetches
+this hotkey's own traceable copy of each Challenge's sealed pack over the
+per-hotkey route (`copy_route.PackFetcher`, signed by the validator's own
+signer), verifies and imports it (`copy_delivery.sync_copies`) into the
+owner-only store STATE/validator/exams, and prepares the receiver with the
+canonical pack by its digest (`--pack-store`/`--pack-digest`), re-verified at
+use. `--packs DIR` instead selects an operator-built pack at DIR/ID-VERSION
+(development only). Either way a Challenge with no exam is refused
+(`evaluation_pack_missing`) before anything is prepared, since a receiver that
+cannot grade would spend miners' epoch slots; one with several delivered packs
+for its version is refused (`evaluation_pack_ambiguous`): the per-hotkey route
+delivers no pack set yet. Nothing here prints or logs the store's contents.
+
+With `--domain`, it writes a Caddy reverse-proxy configuration
 (TLS from Caddy's automatic certificates) that serves each receiver at
 https://DOMAIN/ID/VERSION, and the matching endpoint entries for Carbon's
 published-endpoints list, so miners' Launchpad finds them.
@@ -47,6 +59,8 @@ DEFAULT_BASE_PORT = receiver_setup.DEFAULT_PORT
 #: The published-endpoints list a miner's Launchpad reads (an entry is added
 #: there by pull request).
 PUBLISHED = "scripts/dev/miner_launchpad/published_endpoints.json"
+EXAM_SOURCE_SCHEMA = "carbon.validator-host.exam-source.v1"
+EXAMS_DIRECTORY = "exams"
 
 
 def _host_dir(installed_state: Path) -> Path:
@@ -104,20 +118,136 @@ def read_host(installed_state: Path):
     return value
 
 
+def read_exam_source(path: Path) -> dict:
+    """Where the signed exams come from: public facts only (no key)."""
+    import re
+
+    from carbon.development_session.intake_targets import ADDRESS, intake_url
+
+    try:
+        value = json.loads(Path(path).read_bytes())
+    except (OSError, ValueError):
+        value = None
+    if (
+        type(value) is not dict
+        or value.get("schema") != EXAM_SOURCE_SCHEMA
+        or not {"schema", "url", "receiver", "producer_public_key"}
+        <= set(value)
+        <= {"schema", "url", "receiver", "producer_public_key", "signer_socket", "ca"}
+        or not intake_url(value["url"])
+        or type(value["receiver"]) is not str
+        or not ADDRESS.fullmatch(value["receiver"])
+        or type(value["producer_public_key"]) is not str
+        or not re.fullmatch(r"[0-9a-f]{64}", value["producer_public_key"])
+        or any(
+            name in value and type(value[name]) is not str
+            for name in ("signer_socket", "ca")
+        )
+    ):
+        raise SetupRefused(
+            "exam_source_invalid",
+            f"{path} must name Carbon's exam distribution: schema "
+            f"{EXAM_SOURCE_SCHEMA}, url, receiver (its hotkey), producer_public_key "
+            "(64 hex), optionally signer_socket and ca.",
+        )
+    return value
+
+
+def _fetcher(source: dict, hotkey: str):
+    from carbon.chain.external_signer import connect_signer
+
+    from .copy_route import PackFetcher
+
+    socket = source.get("signer_socket")
+    signer = connect_signer(
+        hotkey, socket_path=None if socket is None else Path(socket)
+    )
+    return PackFetcher(source["url"], signer, source["receiver"], ca=source.get("ca"))
+
+
+def fetch_exams(
+    installed_state: Path,
+    hotkey: str,
+    challenges: list[dict],
+    source: dict,
+    *,
+    fetcher=None,
+    sync=None,
+) -> dict:
+    """This hotkey's own copy of each Challenge's sealed pack, verified and
+    imported; returns ``{(id, version): canonical manifest digest}`` for each
+    Challenge version with exactly one delivered pack."""
+    from .answer_key import AnswerKeyRefused
+    from .sealed_pack_import import SealedPackStore
+
+    if sync is None:
+        from .copy_delivery import sync_copies as sync
+    store_root = _host_dir(installed_state) / EXAMS_DIRECTORY
+    store_root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    store = SealedPackStore(store_root)
+    fetcher = fetcher or _fetcher(source, hotkey)
+    found, ambiguous = {}, []
+    for challenge_id in dict.fromkeys(c["id"] for c in challenges):
+        try:
+            listed = sync(
+                store,
+                fetcher,
+                source["producer_public_key"],
+                challenge_id,
+                hotkey=hotkey,
+            )["packages"]
+        except AnswerKeyRefused as refused:
+            raise SetupRefused(
+                refused.code,
+                "the signed exams could not be fetched or verified; nothing was "
+                "imported. Check the exam source and your validator permit, then "
+                "run --setup again.",
+            ) from None
+        for challenge in (c for c in challenges if c["id"] == challenge_id):
+            held = [
+                row["fingerprint"]
+                for row in listed
+                if row["state"] in ("IMPORTED", "HELD")
+                and store.delivered(
+                    row["fingerprint"], challenge["id"], challenge["version"]
+                )
+            ]
+            if len(held) == 1:
+                found[(challenge["id"], challenge["version"])] = held[0]
+            elif len(held) > 1:
+                ambiguous.append(_slug(challenge))
+    if ambiguous:
+        raise SetupRefused(
+            "evaluation_pack_ambiguous",
+            "several delivered exams for " + ", ".join(ambiguous) + "; the "
+            "per-hotkey route delivers no pack set yet, so none is chosen.",
+        )
+    return {"store": store_root, "packs": found}
+
+
 def setup(
     *,
     installed_state: Path,
     hotkey: str,
     challenges: list[dict],
     packs: Path | None = None,
+    exam_source: dict | None = None,
     domain: str | None = None,
     base_port: int = DEFAULT_BASE_PORT,
     prepare=None,
     service=None,
+    fetch=None,
 ) -> dict:
     """Prepare and start one receiver service per Challenge; return the layout."""
     prepare = prepare or receiver_setup.prepare
     service = service or receiver_setup.service
+    fetch = fetch or fetch_exams
+    if packs is not None and exam_source is not None:
+        raise SetupRefused(
+            "exam_choice_conflict",
+            "give --exam-source (Carbon's signed exams) or --packs (built "
+            "packs), not both.",
+        )
     root = _host_dir(installed_state)
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
     host = read_host(installed_state) or {
@@ -131,16 +261,31 @@ def setup(
             "this host's receivers belong to another hotkey; use that hotkey, "
             "or a new CARBON_STATE_DIR for a new one.",
         )
+    held = {
+        (e["challenge"]["id"], e["challenge"]["version"]) for e in host["receivers"]
+    }
+    new = [c for c in challenges if (c["id"], c["version"]) not in held]
+    fetched = (
+        fetch(installed_state, hotkey, new, exam_source)
+        if exam_source is not None and new
+        else None
+    )
+
+    def exam(challenge):
+        """The prepare arguments selecting this Challenge's exam, or None."""
+        if fetched is not None:
+            digest = fetched["packs"].get((challenge["id"], challenge["version"]))
+            return (
+                None
+                if digest is None
+                else {"pack_store": fetched["store"], "pack_digest": digest}
+            )
+        if packs is not None and (packs / _slug(challenge)).is_dir():
+            return {"pack": packs / _slug(challenge)}
+        return None
+
     # Every new receiver needs its exam before anything is prepared (E4 (c)).
-    missing = [
-        _slug(c)
-        for c in challenges
-        if not any(
-            (e["challenge"]["id"], e["challenge"]["version"]) == (c["id"], c["version"])
-            for e in host["receivers"]
-        )
-        and (packs is None or not (packs / _slug(c)).is_dir())
-    ]
+    missing = [_slug(c) for c in new if exam(c) is None]
     if missing:
         raise SetupRefused(
             "evaluation_pack_missing",
@@ -170,8 +315,8 @@ def setup(
                 receiver_state=Path(entry["receiver_state"]),
                 challenge=challenge,
                 hotkey=hotkey,
-                pack=packs / _slug(challenge),
                 port=port,
+                **exam(challenge),
             )
             host["receivers"].append(entry)
             by_challenge[key] = entry
@@ -306,6 +451,7 @@ def main(argv=None) -> int:
     up.add_argument("--hotkey", required=True)
     up.add_argument("--challenges", default="current")
     up.add_argument("--packs", type=Path)
+    up.add_argument("--exam-source", type=Path)
     up.add_argument("--domain")
     up.add_argument("--base-port", type=int, default=DEFAULT_BASE_PORT)
     proxy = sub.add_parser("proxy")
@@ -327,6 +473,11 @@ def main(argv=None) -> int:
                 hotkey=args.hotkey,
                 challenges=select(args.challenges),
                 packs=args.packs,
+                exam_source=(
+                    None
+                    if args.exam_source is None
+                    else read_exam_source(args.exam_source)
+                ),
                 domain=args.domain,
                 base_port=args.base_port,
             )

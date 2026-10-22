@@ -205,3 +205,179 @@ def test_status_is_healthy_only_when_every_receiver_is(state):
 def test_status_before_setup_says_what_to_run(state):
     with pytest.raises(receiver_setup.SetupRefused, match="validator_host_not_set_up"):
         validator_host.status(state)
+
+
+# --- E4: this hotkey's own signed copy of each exam ----------------------------------
+
+SOURCE = {
+    "schema": validator_host.EXAM_SOURCE_SCHEMA,
+    "url": "https://exams.example.org",
+    "receiver": OTHER,
+    "producer_public_key": "a" * 64,
+}
+
+
+def test_the_exam_source_is_public_facts_only(tmp_path):
+    good = tmp_path / "source.json"
+    good.write_text(json.dumps(SOURCE))
+    assert validator_host.read_exam_source(good) == SOURCE
+    for changed in (
+        {"url": "http://exams.example.org"},
+        {"producer_public_key": "A" * 64},
+        {"receiver": "carbon"},
+        {"private_key": "x"},
+        {"schema": "other"},
+    ):
+        bad = tmp_path / "bad.json"
+        bad.write_text(json.dumps({**SOURCE, **changed}))
+        with pytest.raises(receiver_setup.SetupRefused, match="exam_source_invalid"):
+            validator_host.read_exam_source(bad)
+
+
+def _copy_route(producer, hotkey):
+    """A distribution host's per-hotkey route serving one Cooling copy."""
+    from test_copy_delivery import _issue
+
+    from carbon.challenge_validator import copy_route
+
+    package, (challenge, version, manifest, _files) = _issue(
+        producer, "cooling", hotkey
+    )
+
+    class Fetcher:
+        def __init__(self):
+            self.asked = []
+
+        def ask(self, challenge_id, fingerprint=None):
+            self.asked.append((challenge_id, fingerprint))
+            if fingerprint is None:
+                return {"packages": [copy_route.listing_entry(package)]}
+            return {"package": package}
+
+    return Fetcher(), {"id": challenge, "version": version}, manifest
+
+
+def test_setup_fetches_verifies_and_selects_this_hotkeys_own_copy(state, tmp_path):
+    # E4 end to end, in process: the per-hotkey route, the real import, and the
+    # receiver prepared with the canonical pack by its digest from the store.
+    from test_copy_package import HOTKEYS
+
+    from carbon.challenge_validator import answer_key as ak
+    from carbon.challenge_validator import sealed_pack_import as spi
+
+    producer = ak.ProducerKey.create(str(tmp_path / "producer.key"))
+    hotkey = HOTKEYS[0]
+    fetcher, challenge, _manifest = _copy_route(producer, hotkey)
+    source = {**SOURCE, "producer_public_key": producer.public_key}
+    receivers = Receivers()
+    validator_host.setup(
+        installed_state=state,
+        hotkey=hotkey,
+        challenges=[challenge],
+        exam_source=source,
+        prepare=receivers.prepare,
+        service=receivers.service,
+        fetch=lambda *args: validator_host.fetch_exams(*args, fetcher=fetcher),
+    )
+    (prepared,) = receivers.prepared
+    store = state / "validator" / validator_host.EXAMS_DIRECTORY
+    assert prepared["pack_store"] == store and "pack" not in prepared
+    digest = prepared["pack_digest"]
+    assert spi.SealedPackStore(store).delivered(
+        digest, challenge["id"], challenge["version"]
+    )
+    assert stat.S_IMODE(store.stat().st_mode) == 0o700
+    # Running setup again fetches nothing for a receiver it already has.
+    fetcher.asked.clear()
+    validator_host.setup(
+        installed_state=state,
+        hotkey=hotkey,
+        challenges=[challenge],
+        exam_source=source,
+        prepare=receivers.prepare,
+        service=receivers.service,
+        fetch=lambda *args: validator_host.fetch_exams(*args, fetcher=fetcher),
+    )
+    assert fetcher.asked == [] and len(receivers.prepared) == 1
+
+
+def test_another_hotkeys_copy_is_refused_and_nothing_is_prepared(state, tmp_path):
+    from test_copy_package import HOTKEYS
+
+    from carbon.challenge_validator import answer_key as ak
+
+    producer = ak.ProducerKey.create(str(tmp_path / "producer.key"))
+    fetcher, challenge, _manifest = _copy_route(producer, HOTKEYS[1])
+    receivers = Receivers()
+    with pytest.raises(receiver_setup.SetupRefused):
+        validator_host.setup(
+            installed_state=state,
+            hotkey=HOTKEYS[0],
+            challenges=[challenge],
+            exam_source={**SOURCE, "producer_public_key": producer.public_key},
+            prepare=receivers.prepare,
+            service=receivers.service,
+            fetch=lambda *args: validator_host.fetch_exams(*args, fetcher=fetcher),
+        )
+    assert receivers.prepared == [] and receivers.started == []
+
+
+def test_no_delivered_exam_or_several_are_refused_before_anything_is_prepared(
+    state, monkeypatch
+):
+    from carbon.challenge_validator import sealed_pack_import as spi
+
+    monkeypatch.setattr(spi.SealedPackStore, "delivered", lambda *args: True)
+    challenge = {"id": "f02", "version": "2.3"}
+    for rows, code in (
+        ([], "evaluation_pack_missing"),
+        (
+            [{"fingerprint": "sha256:" + "1" * 64, "state": "WITHDRAWN"}],
+            "evaluation_pack_missing",
+        ),
+        (
+            [
+                {"fingerprint": "sha256:" + "1" * 64, "state": "IMPORTED"},
+                {"fingerprint": "sha256:" + "2" * 64, "state": "HELD"},
+            ],
+            "evaluation_pack_ambiguous",
+        ),
+    ):
+        receivers = Receivers()
+        with pytest.raises(receiver_setup.SetupRefused, match=code):
+            validator_host.setup(
+                installed_state=state,
+                hotkey=HOTKEY,
+                challenges=[challenge],
+                exam_source=SOURCE,
+                prepare=receivers.prepare,
+                service=receivers.service,
+                fetch=lambda *args, rows=rows: validator_host.fetch_exams(
+                    *args, fetcher=object(), sync=lambda *a, **k: {"packages": rows}
+                ),
+            )
+        assert receivers.prepared == []
+
+
+def test_an_unfetchable_exam_is_a_typed_refusal(state):
+    from carbon.challenge_validator.answer_key import AnswerKeyRefused
+
+    def refused(*args, **kwargs):
+        raise AnswerKeyRefused("answer_key_no_validator_permit")
+
+    with pytest.raises(
+        receiver_setup.SetupRefused, match="answer_key_no_validator_permit"
+    ):
+        validator_host.fetch_exams(
+            state,
+            HOTKEY,
+            [{"id": "f02", "version": "2.3"}],
+            SOURCE,
+            fetcher=object(),
+            sync=refused,
+        )
+
+
+def test_signed_exams_and_built_packs_are_not_combined(state, tmp_path):
+    with pytest.raises(receiver_setup.SetupRefused, match="exam_choice_conflict"):
+        _setup(state, Receivers(), exam_source=SOURCE)
