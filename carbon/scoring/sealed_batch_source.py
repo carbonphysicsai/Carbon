@@ -198,8 +198,12 @@ def resolve(
         return None
     try:
         development = physical_pack.development_bank(challenge, version)
-    except ValueError:
-        development = None  # a version with no development bank has no such pack
+    except ValueError as exc:
+        # Only "this version has no development bank" means no such pack; any other
+        # failure of the development bank is not a reason to treat the pack as sealed.
+        if "unknown public physical Challenge version" not in str(exc):
+            raise
+        development = None
     if (
         development is not None
         and "sha256:"
@@ -210,12 +214,22 @@ def resolve(
     if copy_hotkey is not None:
         from carbon.scoring import copy_package
 
+        # A store-rebuilt canonical pack keeps the delivered copy beside it
+        # (`.copies/<canonical digest>/`, local); a pack that is itself the copy
+        # carries it in place.
+        copies = Path(private_root).parent / ".copies" / Path(private_root).name
+        beside = copies.is_dir() and not copies.is_symlink()
         try:
-            received, bank = copy_package.receive(
-                challenge, version, private_root, hotkey=copy_hotkey
+            copy_bank, bank = copy_package.receive(
+                challenge,
+                version,
+                private_root,
+                hotkey=copy_hotkey,
+                copies_root=copies if beside else None,
             )
         except copy_package.CopyPackageRefused as exc:
             raise SealedBankRefused(exc.code) from exc
+        received = bank if beside else copy_bank
     else:
         carried = read_batch(private_root)
         if carried is None:

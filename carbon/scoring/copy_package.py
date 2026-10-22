@@ -158,13 +158,16 @@ def read_header(private_root):
     return header
 
 
-def receive(challenge, version, private_root, *, hotkey):
+def receive(challenge, version, private_root, *, hotkey, copies_root=None):
     """The copy's rebuilt bank and its canonical form, verified.
 
     Refuses a package without a header (``copy_header_missing``), a header for
     another Challenge, version or validator, a batch that is not the header's copy
     (``copy_digest_mismatch``), or one whose content is not the canonical exam it
     names (``canonical_digest_mismatch``). Returns ``(copy bank, canonical bank)``."""
+    # The delivered copy lives beside the pack (``copies_root``) when the pack in
+    # ``private_root`` is the canonical one the store rebuilt from it.
+    private_root = private_root if copies_root is None else copies_root
     header = read_header(private_root)
     if header is None:
         raise CopyPackageRefused("copy_header_missing")
