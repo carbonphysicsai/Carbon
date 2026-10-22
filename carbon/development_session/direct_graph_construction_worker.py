@@ -727,6 +727,17 @@ def reconstruct_and_infer_graph_public(
         if runner is None
         else (None, None)
     )
+    timed_controls = (
+        _private_controls_digest(
+            ledger,
+            owner=owner,
+            identity=direct_child_identity(identity, "timed"),
+            operation=timed.worker_operation,
+            provenance=INFERENCE_PROVENANCE,
+        )
+        if timed is not None and runner is None
+        else None
+    )
     return DirectReconstructionResult(
         build,
         inference,
@@ -736,4 +747,5 @@ def reconstruct_and_infer_graph_public(
         controls[1],
         elapsed,
         timed=timed,
+        timed_controls_digest=timed_controls,
     )

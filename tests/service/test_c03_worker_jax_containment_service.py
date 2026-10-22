@@ -189,8 +189,9 @@ def test_jax_writes_only_under_scratch_and_the_root_stays_read_only(
         for env in ({}, ROOT_CACHES):
             result = _probe(cli, name, env)
             assert len(result["devices"]) == 1, result["devices"]
-            if not env:  # the launch's own environment sets the temp directory
-                assert result["tmp"].startswith("/scratch"), result["tmp"]
+            # A usable temp directory is under /scratch; one pointed at an unusable
+            # root is an error, never a path outside the tmpfs.
+            assert result["tmp"].startswith(("/scratch", "ERR ")), result["tmp"]
             for directory, outcome in result["writes"].items():
                 assert outcome in ("EROFS", "EACCES"), (directory, outcome)
             assert result["writes"]["/root"] in ("EROFS", "EACCES")

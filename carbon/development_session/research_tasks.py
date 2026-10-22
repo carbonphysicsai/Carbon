@@ -1851,6 +1851,21 @@ class DirectDevelopmentTasksV3:
                 result.inference_controls_digest,
             ):
                 raise ValueError("direct worker controls changed")
+            if result.timed is not None:
+                from .bundle_construction_worker import direct_child_identity
+
+                timed_controls = _private_controls_digest(
+                    self.ledger,
+                    owner=self.owner,
+                    identity=direct_child_identity(task_id.value, "timed"),
+                    operation=result.timed.worker_operation,
+                    provenance=inference_provenance,
+                )
+                if (
+                    result.timed_controls_digest is None
+                    or timed_controls != result.timed_controls_digest
+                ):
+                    raise ValueError("direct timed controls changed")
             if overlay_run:
                 if overlay_prep is None or overlay_prep.controls_digest is None:
                     raise ValueError("direct overlay preparation evidence unavailable")
@@ -1915,6 +1930,8 @@ class DirectDevelopmentTasksV3:
             if result.timed is not None:
                 private["timed_operation"] = result.timed.worker_operation
                 private["timed_receipt"] = result.timed.receipt
+                if result.timed_controls_digest is not None:
+                    private["timed_controls_digest"] = result.timed_controls_digest
             if source_kind == "bundle" and result.prediction_comparison is not None:
                 private["prediction_comparison"] = result.prediction_comparison
             if source_kind == "graph":
