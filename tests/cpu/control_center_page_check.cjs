@@ -1002,7 +1002,7 @@ scenario("a controller that publishes no recovery list gets Reconcile from the s
     clean(page);
   }
 });
-scenario("a healthy campaign's control bar keeps Reconcile and Export under More", async () => {
+scenario("a healthy campaign's control bar keeps Export under More and draws no control that cannot apply", async () => {
   const state = launchable(world());
   state.runs = [copy(fx.run)];
   state.view = copy(fx.view);
@@ -1010,8 +1010,7 @@ scenario("a healthy campaign's control bar keeps Reconcile and Export under More
   page.go("#campaigns/" + fx.run.id + "/live");
   await page.advance(0);
   assert.equal(all(page, "#campaign-detail [data-part=now] [data-action]").length, 0);
-  assert.equal(all(page, "#campaign-detail .rs-head [data-action=reconcile]").length, 1);
-  assert.equal(all(page, "#campaign-detail .rs-more [data-action=reconcile]").length, 1, "Reconcile is under More when nothing needs it");
+  assert.equal(all(page, "#campaign-detail .rs-head [data-action=reconcile]").length, 0, "Reconcile is not drawn when the controller says it cannot apply");
   assert.equal(all(page, "#campaign-detail .rs-more [data-action=export]").length, 1);
   assert.equal(all(page, "#campaign-detail .rs-head .primary").length, 0, "a healthy campaign has no primary button");
   assert.equal(page.text(one(page, "#campaign-detail [data-part=attention]")), "");

@@ -2037,7 +2037,9 @@
     if (landed) return;
     landed = true;
     if (location.hash) return;
-    const active = research.runs.find(run => !TERMINAL.includes(run.state));
+    // Only a campaign that is really going: an old interrupted or stuck one is not where a
+    // person wants to land (U2); they get the Overview and its next step.
+    const active = research.runs.find(run => !TERMINAL.includes(run.state) && !["INTERRUPTED", "RECONCILIATION_REQUIRED"].includes(run.state));
     if (active) { location.hash = campaignHref(active.id); return; }
     const last = stored(routeKey, null);
     if (last && typeof last.hash === "string" && last.hash.startsWith("#")) location.hash = last.hash;
@@ -2487,7 +2489,7 @@
       const entry = challengeEntry({id: run.challenge.id, version: run.challenge.version}) || (caps?.challenges || []).find(item => item.challenge_id === run.challenge.id);
       return (entry ? entry.title : run.challenge.id) + " · v" + run.challenge.version;
     }
-    return run.selects ? "Recorded without a Challenge (historical DEVELOPMENT campaign)" : "Challenge not yet recorded";
+    return run.selects ? "Older practice campaign" : "Challenge being recorded";
   }
   function campaignCard(parent, run) {
     const box = el("a", undefined, "integration card campaign-card");

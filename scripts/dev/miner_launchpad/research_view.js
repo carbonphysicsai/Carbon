@@ -278,11 +278,11 @@
     const title = el("div", undefined, "rs-title");
     const challenge = doc.campaign.challenge;
     title.append(el("p", "Campaign · " + doc.labels.mode + " · " + doc.labels.network + " " + doc.labels.netuid, "eyebrow section-label"));
-    title.append(el(compact ? "h3" : "h2", challenge ? (challenge.title || challenge.id) + " · v" + challenge.version : "Campaign without a Challenge"));
+    title.append(el(compact ? "h3" : "h2", challenge ? (challenge.title || challenge.id) + " · v" + challenge.version : "Older practice campaign"));
     const meta = el("div", undefined, "rs-meta");
     meta.append(CC.pill(words(doc.campaign.state), stateKind(doc.campaign.state)));
     if (doc.fixture) meta.append(CC.pill("Synthetic fixture", "pill-need"));
-    meta.append(el("span", "Started " + when(doc.tiles.started_unix), "rs-started"));
+    if (typeof doc.tiles.started_unix === "number") meta.append(el("span", "Started " + when(doc.tiles.started_unix), "rs-started"));
     const id = el("code", doc.campaign.id, "rs-id");
     meta.append(id, copyButton(doc.campaign.id, "campaign id"));
     title.append(meta);
