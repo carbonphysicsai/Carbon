@@ -40,7 +40,7 @@ BACKENDS = ("numpy",)
 RUNTIME_KEYS = frozenset({"implementation", "images", "authored_research"})
 #: The backbone-catalog versions. Each serves exactly its own version, by its
 #: research key.
-CATALOG_VERSIONS = ("1.2",)
+CATALOG_VERSIONS = ("1.2", "1.3")
 
 
 def _key():

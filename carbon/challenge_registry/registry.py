@@ -229,6 +229,12 @@ def _cold_plate_catalog():
     return describe_catalog("1.2")
 
 
+def _cold_plate_catalog_encoded():
+    from .cold_plate import describe_catalog
+
+    return describe_catalog("1.3")
+
+
 def _motor():
     from .motor import describe
 
@@ -453,6 +459,30 @@ def _entries():
                 ),
             ),
             _cold_plate_catalog,
+            None,
+        ),
+        # Cooling 1.3: 1.2 with the law-safe output encoding (Validator
+        # ruling G1, 2026-10-22), so a catalog recipe can pass the mandatory
+        # peak_bounds_profile law; its catalog is empty until an entry is
+        # pair-tested on 1.3.
+        Entry(
+            COLD_PLATE_CHALLENGE,
+            "1.3",
+            "AI-chip liquid cold plate (DEVELOPMENT periodic cell, backbone catalog, "
+            "allowlist v7, law-safe output encoding)",
+            IMPLEMENTED,
+            "launch",
+            "carbonphysicsai/Carbon#342",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch practice of Carbon's tested catalog backbones in the "
+                    "isolated C-03 CPU worker; exact public TRAIN and bundle bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+            ),
+            _cold_plate_catalog_encoded,
             None,
         ),
         # F08 (Ribbed Bracket) 1.4 and F02 (Burst Thermal) 2.3, direct-recipe
