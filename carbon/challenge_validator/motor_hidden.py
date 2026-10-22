@@ -312,6 +312,9 @@ class MotorHiddenAdapter(FamilyHiddenImport, MotorAdapter):
             raise TypeError("an admitted submission is required")
         block = self._block(submission)
         submission_id = self._submission_id(submission)
+        if self.GRADING_RETIRED:
+            # OWNER-FULL-EXAM-BANK-01: no new graded score from a windowed batch.
+            return self._retired(submission_id)
         existing = self.store.submission(submission_id)
         if existing is not None:
             return existing["outcome"]
