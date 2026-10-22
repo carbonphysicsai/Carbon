@@ -1,0 +1,7 @@
+{
+  "schema": "carbon.challenge-validator.exam-producer.v1",
+  "scope": "TESTNET_DEVELOPMENT",
+  "decision": "OWNER-TESTNET-EXAM-KEYS-01",
+  "public_key": "375e792210bf352ae3b331b9f5055414a05480fb9ab0b8a891585c435060ec17",
+  "key_id": "carbon-producer-8d358757cf077562"
+}
