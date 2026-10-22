@@ -75,6 +75,9 @@ def _sealed_bank():
             record["plating_margin_m160_v"] = (
                 entry_m160[1] if entry_m160 is not None else margin
             )
+            # The family names each cell's grid position on its record.
+            _prefix, scenario_id, candidate_id, _index = case_id.split(":")
+            record["scenario_id"], record["candidate_id"] = scenario_id, candidate_id
             case_ids.append(case_id)
             inputs.append([float(record["inputs"][k]) for k in domain.INPUTS])
             references.append(battery_pack._flat(record["outputs"]))
@@ -96,7 +99,7 @@ def _sealed_bank():
 
 @functools.cache
 def _bank():
-    return sealed.with_probe_rows(_sealed_bank())
+    return sealed.prepared(_sealed_bank())
 
 
 def _rows():
@@ -248,12 +251,12 @@ def test_a_grid_that_is_not_4_by_35_refuses():
         _measure(_truth(), rows=rows[:139] + rows[140:])
     assert refused.value.code == "battery_sealed_grid"
     duplicate = copy.deepcopy(rows)
-    duplicate[1]["case_id"] = duplicate[0]["case_id"]
+    duplicate[1]["record"]["scenario_id"] = duplicate[0]["record"]["scenario_id"]
+    duplicate[1]["record"]["candidate_id"] = duplicate[0]["record"]["candidate_id"]
     with pytest.raises(bdm.BatteryMeasurementRefused):
         _measure(_truth(), rows=duplicate)
     foreign = copy.deepcopy(rows)
-    first = foreign[0]["case_id"].split(":")
-    foreign[0]["case_id"] = ":".join([first[0], first[1], "c1=9,c2=9", first[3]])
+    foreign[0]["record"]["candidate_id"] = "c1=9,c2=9"
     with pytest.raises(bdm.BatteryMeasurementRefused):
         _measure(_truth(), rows=foreign)
     moved = copy.deepcopy(rows)

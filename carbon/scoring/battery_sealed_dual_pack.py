@@ -56,9 +56,10 @@ OUTPUT = _battery.OUTPUT
 FILES = (*_battery.FILES, "battery_sealed_dual_pack.py")
 MINIMUM_LEGS = _battery.MINIMUM_LEGS
 MANIFEST_NAME = physical.MANIFEST_NAME
-#: The grid cells' cohort. Not ``decision_*``: the shared bank-row builder
-#: reads a design id from such a cohort, and a Battery cell has none.
-COHORT = "sealed_grid"
+#: The grid cells' cohort, as Motor's and Cooling's sealed grids name theirs
+#: (Validator, 2026-10-22). The shared bank-row builder reads a ``design_id``
+#: from a ``decision_*`` row, so `prepared` gives each cell one (its scenario).
+COHORT = "decision_sealed_grid"
 PROBE = "probe"
 SCENARIOS, CANDIDATES = 4, 35
 CELLS = SCENARIOS * CANDIDATES
@@ -136,14 +137,17 @@ def with_probe_rows(bank):
     }
 
 
-def _parse_case_id(contract, case_id):
-    """``(scenario id, candidate id)`` of a grid cell id
-    ``<prefix>:<scenario>:<candidate>:0`` (`contract.case_id`)."""
-    parts = case_id.split(":") if type(case_id) is str else []
-    prefix = contract.get("case_prefix", "ev1")
-    if len(parts) != 4 or parts[0] != prefix or parts[3] != "0":
-        raise Refused("battery_sealed_grid")
-    return parts[1], parts[2]
+def _cell_of(row):
+    """``(scenario id, candidate id)`` a grid row's record names (the family
+    writes ``scenario_id`` and ``candidate_id`` on every cell)."""
+    record = row.get("record")
+    scenario = record.get("scenario_id") if type(record) is dict else None
+    candidate = record.get("candidate_id") if type(record) is dict else None
+    bdm._require(
+        type(scenario) is str and scenario and type(candidate) is str and candidate,
+        "battery_sealed_grid",
+    )
+    return scenario, candidate
 
 
 def _grid(bank_rows, contract):
@@ -163,12 +167,11 @@ def _grid(bank_rows, contract):
     )
     cells, conditions, order = {}, {}, []
     for i, row in rows:
-        scenario, candidate = _parse_case_id(contract, row["case_id"])
+        scenario, candidate = _cell_of(row)
         bdm._require(
             candidate in candidates
             and (scenario, candidate) not in cells
             and row.get("reference_present") is True
-            and type(row.get("record")) is dict
             and row["record"].get("status") == "OK",
             "battery_sealed_grid",
         )
@@ -193,7 +196,25 @@ def _grid(bank_rows, contract):
         {"id": s, "conditions": [[float(conditions[s][0]), float(conditions[s][1])]]}
         for s in order
     ]
-    return scenarios, [i for i, _row in rows]
+    return scenarios, [i for i, _row in rows], cells
+
+
+def prepared(bank):
+    """The sealed bank as the shared pack machinery takes it: each cell's record
+    carries a ``design_id`` (its scenario id; the shared bank-row builder reads
+    one from every ``decision_*`` row and would otherwise parse the case id), and
+    the public probe pairs are appended. Idempotent; the cells, their order and
+    their references are unchanged."""
+    cohorts = bank["cohorts"]
+    records = [
+        (
+            {**record, "design_id": record.get("design_id") or record.get("scenario_id")}
+            if cohort == COHORT and type(record) is dict
+            else record
+        )
+        for cohort, record in zip(cohorts, bank["reference_records"], strict=True)
+    ]
+    return with_probe_rows({**bank, "reference_records": records})
 
 
 def is_sealed_bank(bank) -> bool:
@@ -357,8 +378,8 @@ def definition(*, bank, train_raw):
     )
     contract = _contract()
     names = input_names()
-    rows = physical.bank_rows(bank, names)
-    scenarios, grid = _grid(rows, contract)
+    rows = physical.bank_rows(prepared(bank), names)
+    scenarios, grid, _cells = _grid(rows, contract)
     records = [rows[i]["record"] for i in grid]
     labels = _labels(contract, records)
     unresolved = [
@@ -409,7 +430,7 @@ def measure(
     del limits, objective, train_raw, names
     validate_definition(definition)
     contract = _contract()
-    scenarios, grid = _grid(bank_rows, contract)
+    scenarios, grid, cells = _grid(bank_rows, contract)
     bdm._require(
         definition["decision_scenarios"] == scenarios, "battery_sealed_scenarios"
     )
@@ -446,7 +467,7 @@ def measure(
         contract=contract,
     )
     try:
-        grid_predictions = cm.output_predictions(
+        by_bank_id = cm.output_predictions(
             [outputs[i] for i in grid], [bank_rows[i]["case_id"] for i in grid]
         )
         probe_rows = [i for i, row in enumerate(bank_rows) if row["cohort"] == PROBE]
@@ -456,9 +477,26 @@ def measure(
         )
     except ValueError as exc:
         raise Refused("battery_prediction_tensor") from exc
-    grid_refs = {bank_rows[i]["case_id"]: bank_rows[i]["record"] for i in grid}
+    # The decision composition names a cell by EV4's contract.case_id; the
+    # family's own case ids are opaque, so re-key by the cell's scenario and
+    # candidate (the ids the record names).
+    from carbon.battery.value import contract as ev
+
+    keyed = {
+        (s, c): ev.case_id(contract, {"id": s}, {"id": c}, 0) for (s, c) in cells
+    }
+    grid_predictions, grid_refs, keyed_labels = {}, {}, {}
+    for cell, i in cells.items():
+        bank_id = bank_rows[i]["case_id"]
+        grid_predictions[keyed[cell]] = by_bank_id[bank_id]
+        grid_refs[keyed[cell]] = bank_rows[i]["record"]
+        keyed_labels[keyed[cell]] = labels[bank_id]
     d, decision = decision_value_sealed(
-        contract, definition["decision_scenarios"], grid_predictions, grid_refs, labels
+        contract,
+        definition["decision_scenarios"],
+        grid_predictions,
+        grid_refs,
+        keyed_labels,
     )
     # A scenario with no feasible reference cannot define D; the family's QA
     # refuses such a batch, so it is a reference limitation, never a verdict.
@@ -547,7 +585,7 @@ def write_sealed_pack(
         raise ValueError("no sealed Battery adapter for this Challenge version")
     if not is_sealed_bank(bank):
         raise Refused("battery_bank_population")
-    bank = with_probe_rows(bank)
+    bank = prepared(bank)
     public = physical_pack.public_roles(CHALLENGE, version)
     # Battery's physics role is the served material's own, carried in the
     # public roles (`physical_pack.physics_contract` binds none for it).
@@ -624,6 +662,7 @@ __all__ = [
     "definition",
     "is_sealed_bank",
     "measure",
+    "prepared",
     "producer_digest",
     "with_probe_rows",
     "write_sealed_pack",
