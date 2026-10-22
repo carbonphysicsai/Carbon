@@ -166,7 +166,7 @@ def graphite_plan(budget, selection, graphite):
         # frozen earlier names neither rule and replays unchanged.
         "budget_headroom": BUDGET_HEADROOM_V1,
         "selection_admissibility": SELECTION_ADMISSIBLE_V1,
-        # Each call holds its own request's most possible cost (G1).
+        # Each call holds its own request's cost, not the whole window's (G1).
         "request_hold": REQUEST_HOLD_V1,
         "graphite": block,
     }

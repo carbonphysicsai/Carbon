@@ -184,7 +184,7 @@ def provider_holds(meter):
 
 def test_under_the_hold_rule_a_call_holds_its_own_requests_cost(tmp_path):
     """G1 (1): each call holds its own request's input bound plus the whole
-    output cap - still a true bound, so the ceiling stays hard - not the
+    output cap - provider-added tokens aside, which are detected - not the
     whole input window's. Without the rule every call holds the full
     reservation, as before."""
     from carbon.development_session.model_provider import DEFAULT_SELECTION
@@ -206,7 +206,8 @@ def test_under_the_hold_rule_a_call_holds_its_own_requests_cost(tmp_path):
     plan = json.loads((held.root / "epoch-1" / "plan.json").read_bytes())
     assert plan["request_hold"] == REQUEST_HOLD_V1
     status = requests[1]["input"][-1]["content"]
-    assert "holds at most its own request's input and its whole output cap" in (status)
+    assert "holds its own request's input and its whole output cap" in status
+    assert "overshoot is detected and recorded" in status
     plain = ledger(tmp_path / "plain", ceilings=ROOMY)
     role(plain, scripted([[call("a", INFO)], [select("s")]])[0], limits=LIMITS_V2)
     assert provider_holds(plain) == [full, full]

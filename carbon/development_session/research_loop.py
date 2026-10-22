@@ -943,7 +943,7 @@ def budget_status(
     instead (`money_headroom`), and its line says both. Journalled once,
     before the request, so a replay sends the same request (`turn_status`).
     `hold_nano`, under `research_agent.REQUEST_HOLD_V1`, is what the next
-    call will hold (its own request's most possible cost); the spend counts
+    call will hold (`research_agent.request_hold`); the spend counts
     against it, and the line says each call holds at most its request's."""
     if headroom is not None and headroom not in BUDGET_HEADROOMS:
         raise ValueError("a budget-headroom rule is a registered rule id")
@@ -979,9 +979,11 @@ def budget_status(
             "until it is booked"
             if hold_nano is None
             else f"{_usd(money_left)} of {_usd(money)} provider spend left in "
-            "the campaign budget; each model call holds at most its own "
-            "request's input and its whole output cap until it is booked, "
-            f"about {_usd(reservation)} for the next one"
+            "the campaign budget; each model call holds its own request's "
+            "input and its whole output cap until it is booked, about "
+            f"{_usd(reservation)} for the next one (tokens the provider adds "
+            "outside the request can bring a charge slightly above its hold; "
+            "any such overshoot is detected and recorded)"
         )
         if headroom is None:
             sure.append(money_left // reservation)
@@ -1821,7 +1823,7 @@ async def run_epoch(
 
     `request_hold` (default None, every earlier plan unchanged) is a
     caller's `research_agent.REQUEST_HOLD_V1` rule: each model call holds
-    its own request's most possible cost, not the whole input window's
+    its own request's cost, not the whole input window's
     (`research_agent.request_hold`), and the budget status counts the spend
     left against the next request's hold. The plan records the rule.
 

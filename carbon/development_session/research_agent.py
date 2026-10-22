@@ -371,21 +371,26 @@ def input_token_bound(request_bytes, anchor):
 
 #: A caller's request-hold rule (`hold`, opt-in; frozen by new Graphite plans
 #: only, so every earlier plan reserves exactly as before). Each call holds
-#: its request's own most possible cost: the input tokens this request can
-#: have at most (`input_token_bound`, never above the input window) at the
-#: input price, plus the whole output cap at the output price. Still a true
-#: bound, so the miner's money ceiling stays hard; only the input part
+#: its own request's cost: the input tokens the request's bytes bound
+#: (`input_token_bound`, never above the input window) at the input price,
+#: plus the whole output cap at the output price; only the input part
 #: shrinks (Launchpad Test Runner G1: a USD 2 cap stopped at USD 0.27 of
 #: work because every call held USD 0.2163). The output part is the miner's
-#: max_output_tokens; it is never assumed smaller.
+#: max_output_tokens; it is never assumed smaller. A call's hold bounds its
+#: cost except for tokens the provider adds that are not in the request (for
+#: example a tool-use system prompt), and the same for a history rewritten
+#: without shrinking. Any overshoot is detected (`charge_exceeds_reservation`)
+#: and recorded (owner, 2026-10-22: a small overcharge is better than coming
+#: up 70% short).
 REQUEST_HOLD_V1 = "carbon.autoresearch.request-hold.v1"
 REQUEST_HOLDS = (REQUEST_HOLD_V1,)
 
 
 def request_hold(selection, request_bytes, anchor=None):
-    """The most one request of `request_bytes` canonical bytes can cost on a
-    priced `selection` under `REQUEST_HOLD_V1`, never above its whole
-    reservation (`ModelSelection.reservation_nano`)."""
+    """What one request of `request_bytes` canonical bytes holds on a priced
+    `selection` under `REQUEST_HOLD_V1`, never above its whole reservation
+    (`ModelSelection.reservation_nano`); see `REQUEST_HOLD_V1` for what it
+    does not bound."""
     settings, pricing = selection.settings, selection.pricing
     tokens = min(input_token_bound(request_bytes, anchor), settings.max_input_tokens)
     return min(
