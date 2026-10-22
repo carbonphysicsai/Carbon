@@ -475,12 +475,17 @@
     const example = listed || chosen?.recipe;
     const recipe = input("textarea", example ? JSON.stringify(example, null, 2) : "{}", "Recipe JSON"); recipe.className = "rs-code"; recipe.rows = 10;
     if (chosen) {
-      const picker = select(catalog.map(item => [item.catalog_id, item.catalog_id === item.backbone ? item.catalog_id : item.catalog_id + " · " + item.backbone]), chosen.catalog_id, "Backbone");
+      const picker = select(catalog.map(item => [item.catalog_id, (item.catalog_id === item.backbone ? item.catalog_id : item.catalog_id + " · " + item.backbone) + (item.variant ? " (variant)" : "")]), chosen.catalog_id, "Backbone");
       picker.dataset.picker = "backbone";
       field(box, "Backbone (Carbon's tested catalog)", picker, "Fills in the chosen backbone's catalog recipe at its tested baseline settings.");
+      // An entry that is not the backbone's plain default says what it is.
+      const variant = el("p", "", "hint"); variant.dataset.variant = "backbone"; box.append(variant);
+      const sayVariant = () => { const item = catalog.find(entry => entry.catalog_id === picker.value); variant.textContent = item?.variant ? "Variant: " + item.variant : ""; };
+      sayVariant();
       picker.addEventListener("change", () => {
         const item = catalog.find(entry => entry.catalog_id === picker.value);
         if (item) recipe.value = JSON.stringify(item.recipe, null, 2);
+        sayVariant();
       });
     }
     field(box, "Recipe (JSON)", recipe, example ? "Prefilled with the Challenge's registered example." : "This Challenge registers no example recipe.");

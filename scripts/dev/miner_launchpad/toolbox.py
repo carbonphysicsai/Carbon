@@ -101,6 +101,17 @@ def _catalog_recipe(challenge_id, version, catalog_id):
     return direct.catalog_recipe(SPECS[challenge_id], catalog_id, version=version)
 
 
+#: What a catalog entry's card says when it is not the backbone's plain
+#: default build (carbon/backbone_catalog/LICENCES.md, "Variants"; Validator:
+#: any card or listing text for such an entry must say so).
+ENTRY_VARIANTS = {
+    "thuml.LSM": (
+        "Upstream's instance-norm variant (task: dynamic), not the plain "
+        "default build."
+    ),
+}
+
+
 @functools.lru_cache(maxsize=16)
 def _catalog_recipes(challenge_id, version):
     from carbon.backbone_catalog import listing
@@ -117,6 +128,11 @@ def _catalog_recipes(challenge_id, version):
                 "catalog_id": item["catalog_id"],
                 "backbone": item["backbone"],
                 "recipe": _catalog_recipe(challenge_id, version, item["catalog_id"]),
+                **(
+                    {"variant": ENTRY_VARIANTS[item["catalog_id"]]}
+                    if item["catalog_id"] in ENTRY_VARIANTS
+                    else {}
+                ),
             }
             for item in listing.entries(challenge_id, version)
         ]

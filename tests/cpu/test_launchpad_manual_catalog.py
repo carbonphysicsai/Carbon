@@ -392,3 +392,16 @@ def test_capabilities_expose_the_example_and_the_picker():
     assert motor["catalog_recipes"] == toolbox.catalog_recipes(MOTOR, "1.3")
     assert len(motor["catalog_recipes"]) == len(listing.entries(MOTOR, "1.3"))
     assert items[(MOTOR, "1.0")]["catalog_recipes"] == []
+
+
+def test_a_catalog_variant_says_so_in_its_listing():
+    # Validator: thuml.LSM is upstream's instance-norm variant (LICENCES.md,
+    # "Variants"); any listing of it must say so.
+    from scripts.dev.miner_launchpad import toolbox
+
+    assert "instance-norm variant" in toolbox.ENTRY_VARIANTS["thuml.LSM"]
+    for item in toolbox.catalog_recipes(MOTOR, "1.3"):
+        if item["catalog_id"] in toolbox.ENTRY_VARIANTS:
+            assert item["variant"] == toolbox.ENTRY_VARIANTS[item["catalog_id"]]
+        else:
+            assert "variant" not in item
