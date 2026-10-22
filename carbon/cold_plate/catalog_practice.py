@@ -93,7 +93,11 @@ class CoolingCatalogPractice:
                     served["python-cpu-py311"] = cpu
             except (DirectParentRefused, OSError):
                 pass
-            self._parents = DirectParents(served)
+            from carbon.development_session.gpu_practice import with_gpu_parent
+
+            # The host's declared PyTorch GPU worker builds the entries' GPU
+            # builds (one shared GPU path); unchanged without one.
+            self._parents = with_gpu_parent(DirectParents(served), self.gpu_image)
         return self._parents
 
     def _resolve(self, bundle_ref):
@@ -143,7 +147,7 @@ class CoolingCatalogPractice:
 
         return physical_material.bundle_material(CHALLENGE.challenge_id, self.version)
 
-    def _expanded(self, strategy, material=None):
+    def _expanded(self, strategy, material=None, runtime=None):
         from carbon.backbone_catalog.served import expand
         from carbon.development_session.construction_recipe import bind_recipe
 
@@ -158,7 +162,7 @@ class CoolingCatalogPractice:
         )
         if recipe.to_dict()["source"]["kind"] != "catalog":
             raise ValueError("cooling_catalog_recipe_required")
-        return expand(recipe.to_dict())
+        return expand(recipe.to_dict(), runtime)
 
     def __call__(self, identity, strategy):
         import numpy as np
@@ -176,7 +180,16 @@ class CoolingCatalogPractice:
         from .research import safety_feedback
 
         material = self._material()
-        recipe = ConstructionRecipe.from_dict(self._expanded(strategy, material))
+        from carbon.development_session.gpu_practice import device_build
+
+        expanded, _bundle, image, construction_parent, accelerator, gpu_note = (
+            device_build(
+                self,
+                lambda runtime: self._expanded(strategy, material, runtime),
+                _bundle_ref,
+            )
+        )
+        recipe = ConstructionRecipe.from_dict(expanded)
         kit = material["construction_kit"]
         interface = material["interface_document"]
         slices = interface["target_slices"]
@@ -191,9 +204,6 @@ class CoolingCatalogPractice:
             ],
             dtype=interface["dtype"],
         )
-        bundle = _bundle_ref(recipe.to_dict()["source"]["bundle_ref"])
-        image = self._resolve(bundle)
-        construction_parent = self.parents().for_bundle(bundle)
         result = reconstruct_and_infer_public(
             self.ledger,
             owner=self.owner,
@@ -219,6 +229,7 @@ class CoolingCatalogPractice:
             expected_output_shape=(len(practice.records), width),
             allowlist_bytes=material["allowlist_bytes"],
             expected_output_dtype=output_dtype(interface),
+            accelerator=accelerator,
             runner=self.runner,
         )
         if result.build.state_digest != result.inference.state_digest:
@@ -245,8 +256,9 @@ class CoolingCatalogPractice:
             "summary": summary,
             "fit": {"state_digest": result.build.state_digest},
             "backend": {
-                "kind": "C03_DOCKER",
+                "kind": "C03_DOCKER_GPU" if accelerator else "C03_DOCKER",
                 "parent": getattr(construction_parent, "image_id", None),
+                **({"gpu_note": gpu_note} if gpu_note else {}),
             },
             "adaptively_seen": True,
             "final_exam": False,

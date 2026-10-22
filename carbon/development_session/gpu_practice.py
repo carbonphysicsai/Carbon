@@ -93,7 +93,39 @@ C03_BASE_IMAGE_DIGEST = (
 )
 #: The construction runtimes a direct bundle may name, each with the parent
 #: backend that builds it (OWNER-BACKBONE-CATALOG-01, Validator 2026-10-20).
-DIRECT_RUNTIMES = {"torch-cpu-py311": "torch_cpu", "python-cpu-py311": None}
+#: The PyTorch CUDA runtime is a catalog entry's GPU build (one shared GPU
+#: practice path for every Challenge, Lead/owner 2026-10-22): its parent is
+#: the pinned PyTorch GPU worker. A runtime listed here is only admissible;
+#: a host serves it only when it holds that parent (`DirectParents`).
+DIRECT_RUNTIMES = {
+    "torch-cpu-py311": "torch_cpu",
+    "python-cpu-py311": None,
+    "torch-cu130-py311": "pytorch",
+    "jax-cuda13-py311": "jax",
+}
+#: The GPU build a catalog entry may carry (`bundle_refs`), by the GPU
+#: backend of the host's declared GPU worker: a PyTorch entry's CUDA build on
+#: the PyTorch GPU worker, a JAX entry's on the JAX one (Graphite Test: pick
+#: by framework, never assume torch). An entry with no build for the host's
+#: GPU runtime practises on CPU.
+GPU_RUNTIMES = {"pytorch": "torch-cu130-py311", "jax": "jax-cuda13-py311"}
+
+
+def gpu_runtime(gpu_image):
+    """The catalog GPU build runtime a host's declared GPU worker builds (by
+    its backend), or None: the one device choice every Challenge's catalog
+    practice makes."""
+    return GPU_RUNTIMES.get(gpu_image_backend(gpu_image))
+
+
+def with_gpu_parent(parents, gpu_image):
+    """`parents` plus the GPU worker as the parent of its GPU build runtime;
+    `parents` unchanged when the host declares no GPU worker."""
+    runtime = gpu_runtime(gpu_image)
+    if runtime is None:
+        return parents
+    served = {name: parents.for_runtime(name) for name in parents.runtimes()}
+    return DirectParents({**served, runtime: gpu_image})
 
 
 class DirectParentRefused(ValueError):
@@ -181,3 +213,37 @@ class DirectParents:
         return {
             runtime: asdict(image) for runtime, image in sorted(self._parents.items())
         }
+
+
+def device_build(practice, expand_for, bundle_of):
+    """The build one catalog practice runs, chosen by device, the same for
+    every Challenge: the entry's GPU build on the host's declared PyTorch
+    GPU worker when that build is installed as a verified overlay, else its
+    CPU build. Returns (expanded, bundle, image, construction_parent,
+    accelerator, gpu_note); gpu_note says why a GPU host ran the CPU build
+    (`catalog_gpu_build_missing`, `gpu_build_not_installed`,
+    `gpu_overlay_not_installed`), None otherwise. Never a score input."""
+    from carbon.backbone_catalog.served import GpuBuildMissing
+
+    from .library_environment_cache import VerifiedLibraryOverlay
+    from .research_carrier import MINER_GPU
+
+    runtime = gpu_runtime(getattr(practice, "gpu_image", None))
+    note = None
+    if runtime is not None:
+        try:
+            expanded = expand_for(runtime)
+            bundle = bundle_of(expanded["source"]["bundle_ref"])
+            image = practice._resolve(bundle)
+            parent = practice.parents().for_bundle(bundle)
+            if type(image) is VerifiedLibraryOverlay:
+                return expanded, bundle, image, parent, MINER_GPU, None
+            note = "gpu_overlay_not_installed"
+        except GpuBuildMissing as missing:
+            note = missing.code
+        except (FileNotFoundError, ValueError, OSError):
+            note = "gpu_build_not_installed"
+    expanded = expand_for(None)
+    bundle = bundle_of(expanded["source"]["bundle_ref"])
+    image = practice._resolve(bundle)
+    return expanded, bundle, image, practice.parents().for_bundle(bundle), None, note
