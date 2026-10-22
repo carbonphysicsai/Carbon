@@ -36,7 +36,9 @@ pack (the receiver's task identity), so a resubmit of a graded recipe on the sam
 is the same submission. The receiver refuses it at its door (``holds_slot``;
 ``same_recipe_already_submitted``, with the earlier result), before any reservation, so
 the epoch's slot stays free for a different recipe. On a rotated pack set it is a new
-submission (a re-exam).
+submission (a re-exam). A grading given back as FAILED_INFRA is never the
+miner's result: the same recipe then runs again as a fresh task
+(``released_on_infra``).
 
 The state lives in the receiver's own attempt ledger file (owner-only SQLite). Nothing here
 touches a score, a bank entry or what a miner can see; a refusal is a typed code only.
@@ -458,6 +460,21 @@ class ExamCap:
                 "SELECT 1 FROM exam_graded WHERE hotkey=? AND challenge_id=? AND "
                 "challenge_version=? AND exam_key=? AND submission_id=? AND "
                 "kind='GRADED' AND state IN ('RESERVED','COUNTED')",
+                (hotkey, challenge_id, challenge_version, exam_key, submission_id),
+            ).fetchone()
+        return row is not None
+
+    def released_on_infra(
+        self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id
+    ) -> bool:
+        """Whether this submission's grading was given back as FAILED_INFRA (our
+        failure or a crash): the receiver then runs the recipe again as a fresh
+        task, in the miner's next slot (invariant 7)."""
+        with self.ledger._db() as db:
+            row = db.execute(
+                "SELECT 1 FROM exam_graded WHERE hotkey=? AND challenge_id=? AND "
+                "challenge_version=? AND exam_key=? AND submission_id=? AND "
+                "kind='GRADED' AND state='RELEASED' AND status='FAILED_INFRA'",
                 (hotkey, challenge_id, challenge_version, exam_key, submission_id),
             ).fetchone()
         return row is not None

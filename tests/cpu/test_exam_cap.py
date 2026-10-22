@@ -768,9 +768,7 @@ def test_same_recipe_on_the_same_pack_set_is_refused_with_its_earlier_result(
         evaluation_pack_digest=pack_a,
         _task_id=task_id,
         start_research_task=start,
-        get_research_result=lambda request: SimpleNamespace(
-            task=tasks[request.task_id.value]
-        ),
+        get_research_result=lambda request: _found(tasks, request),
         public_result=lambda _task: {
             "official_eligible": False,
             "predictions_digest": "sha256:" + "f" * 64,
@@ -901,3 +899,196 @@ def test_a_resubmit_before_grading_holds_one_slot_in_the_first_epoch(cap):
             "SELECT epoch, state FROM exam_graded WHERE submission_id=?", (task,)
         ).fetchall()
     assert rows == [(1, "COUNTED")]
+
+
+def _found(tasks, request):
+    """The provider's read: a task it holds, or TASK_NOT_FOUND."""
+    from carbon.research.errors import ResearchServiceErrorCode
+    from carbon.research.lifecycle import ResearchTaskProviderError
+
+    if request.task_id.value not in tasks:
+        raise ResearchTaskProviderError(ResearchServiceErrorCode.TASK_NOT_FOUND)
+    return SimpleNamespace(task=tasks[request.task_id.value])
+
+
+def _rerun_adapter(cap, monkeypatch, pack="sha256:" + "a" * 64):
+    """A LeanRecipeAdapter over a recording provider; its owner() is the real
+    one (intent ledger + retained request), with the recipe class stubbed."""
+    import hashlib
+
+    import carbon.development_session.construction_recipe as construction
+    import carbon.research
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.registry.model import ChallengeKey
+    from carbon.research import DirectTaskStateV3, ResearchTaskId
+
+    monkeypatch.setattr(
+        carbon.research,
+        "DirectStartTaskRequestV3",
+        lambda *fields: SimpleNamespace(idempotency_key=fields[1], recipe=fields[2]),
+    )
+    monkeypatch.setattr(
+        carbon.research,
+        "canonical_bytes",
+        lambda request: request.idempotency_key.encode(),
+    )
+
+    def recipe_of(strategy):
+        return SimpleNamespace(
+            digest=strategy["recipe"],
+            to_dict=lambda: {
+                "source": {"kind": "bundle"},
+                "recipe": strategy["recipe"],
+            },
+        )
+
+    monkeypatch.setattr(
+        construction,
+        "ConstructionRecipe",
+        SimpleNamespace(from_dict=lambda value: recipe_of(value)),
+    )
+    tasks, requests, started = {}, {}, []
+
+    def task_id(request):
+        key = request.idempotency_key.encode()
+        return ResearchTaskId("rtsk_" + hashlib.sha256(key).hexdigest())
+
+    def start(request, *, measure_query):
+        identity = task_id(request)
+        started.append(identity.value)
+        requests[identity.value] = request
+        task = tasks.setdefault(
+            identity.value,
+            SimpleNamespace(task_id=identity, state=DirectTaskStateV3.QUEUED),
+        )
+        return SimpleNamespace(task=task)
+
+    provider = SimpleNamespace(
+        owner=HOTKEY,
+        evaluation_pack_digest=pack,
+        _task_id=task_id,
+        _requests=requests,
+        _measured_tasks=frozenset(),
+        start_research_task=start,
+        get_research_result=lambda request: _found(tasks, request),
+        public_result=lambda _task: None,
+    )
+    adapter = object.__new__(LeanRecipeAdapter)
+    adapter.discovery = SimpleNamespace(
+        info=SimpleNamespace(
+            challenge_key=ChallengeKey(*MOTOR),
+            public_train_digest="sha256:" + "1" * 64,
+            practice_inputs_digest="sha256:" + "2" * 64,
+            interface_digest="sha256:" + "3" * 64,
+            construction_limits_digest="sha256:" + "4" * 64,
+        ),
+        _material={
+            "construction_limits_document": {"reconstruction_resource_policy": {}}
+        },
+    )
+    adapter.ledger = cap.ledger
+    adapter.challenge_id, adapter.challenge_version = MOTOR
+    adapter.contract_digest = "sha256:" + "c" * 64
+    adapter._measure_query = False
+    adapter._evidence_label = "DEVELOPMENT_PUBLIC_SYNTHETIC"
+    adapter._identities = {
+        "challenge_info_digest": "sha256:" + "5" * 64,
+        "manifest_digest": "sha256:" + "6" * 64,
+        "construction_kit_digest": "sha256:" + "7" * 64,
+    }
+    adapter.validate_strategy = recipe_of
+    adapter._provider = lambda _hotkey: provider
+
+    def submit(recipe):
+        from carbon.challenge_validator.interface import Admitted
+
+        return adapter.evaluate(
+            Admitted(
+                hotkey=HOTKEY,
+                receipt={"sequence": 1, "digest": "0" * 64},
+                challenge_id=MOTOR[0],
+                challenge_version=MOTOR[1],
+                strategy={"recipe": recipe},
+                contract_digest=adapter.contract_digest,
+            )
+        )
+
+    return SimpleNamespace(
+        adapter=adapter, tasks=tasks, started=started, submit=submit, pack=pack
+    )
+
+
+def _reserve_task(cap, submission_id, *, exam, block):
+    return cap.reserve(
+        hotkey=HOTKEY,
+        challenge_id=MOTOR[0],
+        challenge_version=MOTOR[1],
+        exam_key=exam,
+        submission_id=submission_id,
+        block=block,
+    )
+
+
+def test_a_grading_released_on_infra_runs_the_same_recipe_again_as_a_fresh_task(
+    cap, monkeypatch
+):
+    # Validator, Open 2 of ruling (a), invariant 7: our failure is never the
+    # miner's result. A recipe whose grading was given back as FAILED_INFRA is
+    # a fresh task on the next submit, graded in the miner's next slot; it is
+    # never refused as same_recipe_already_submitted.
+    from carbon.challenge_validator.interface import SameRecipeAlreadySubmitted
+
+    host = _rerun_adapter(cap, monkeypatch)
+    recipe = "sha256:" + "8" * 64
+    first = host.submit(recipe)["submission_id"]
+    assert host.submit(recipe)["submission_id"] == first  # still running: same task
+    cap.settle(_reserve_task(cap, first, exam=host.pack, block=360), "FAILED_INFRA")
+    second = host.submit(recipe)["submission_id"]
+    assert second != first and host.started[-1] == second
+    assert host.adapter.owner(second) == HOTKEY  # the real owner resolves a re-run
+    assert host.adapter.owner(first) == HOTKEY
+    # The re-run is graded in the miner's next slot, and then it is refused.
+    cap.settle(
+        _reserve_task(cap, second, exam=host.pack, block=720),
+        "SCORED_DEVELOPMENT_CANDIDATE",
+    )
+    with pytest.raises(SameRecipeAlreadySubmitted) as refused:
+        host.submit(recipe)
+    assert refused.value.outcome["submission_id"] == second
+    assert _count(cap, exam=host.pack) == 1
+
+
+def test_a_task_that_ended_on_infra_is_run_again_and_a_candidate_failure_is_not(
+    cap, monkeypatch
+):
+    from carbon.research import DirectTaskStateV3
+
+    host = _rerun_adapter(cap, monkeypatch)
+    infra, own = "sha256:" + "8" * 64, "sha256:" + "9" * 64
+    lost = host.submit(infra)["submission_id"]
+    host.tasks[lost].state = DirectTaskStateV3.FAILED_INFRA
+    host.tasks[lost].terminal_receipt = SimpleNamespace(refusal_code=None)
+    again = host.submit(infra)["submission_id"]
+    assert again != lost
+    refused = host.submit(own)["submission_id"]
+    host.tasks[refused].state = DirectTaskStateV3.REFUSED
+    host.tasks[refused].terminal_receipt = SimpleNamespace(
+        refusal_code="candidate_build_failed"
+    )
+    # The candidate's own failure is its result: the same task answers again.
+    assert host.submit(own)["submission_id"] == refused
+
+
+def test_infra_re_runs_are_bounded(cap, monkeypatch):
+    from carbon.challenge_validator import lean_recipe
+    from carbon.challenge_validator.interface import Unavailable
+    from carbon.research import DirectTaskStateV3
+
+    monkeypatch.setattr(lean_recipe, "MAX_INFRA_RERUNS", 2)
+    host = _rerun_adapter(cap, monkeypatch)
+    recipe = "sha256:" + "8" * 64
+    for _ in range(3):
+        task = host.submit(recipe)["submission_id"]
+        host.tasks[task].state = DirectTaskStateV3.FAILED_INFRA
+    with pytest.raises(Unavailable, match="direct_infra_rerun_limit_reached"):
+        host.submit(recipe)
