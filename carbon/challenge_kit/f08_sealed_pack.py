@@ -27,6 +27,20 @@ from pathlib import Path
 import numpy as np
 
 COHORT = "decision_near_limit"
+#: The pack rule's version, recorded in the pack summary and beside the pack
+#: (Validator, VALIDATOR_F08_SEALED_STOP_20261022). v1 required all three rungs
+#: to agree on the 0.15 mm/N side; h = 3 is biased about 1e-4 below the reference
+#: rung, so a draw near the limit could be refused although U and the QA
+#: spot-check, defined on h = 2.25 and h = 1.7, are met. v2 requires agreement of
+#: those two only; h = 3 stays in the records as evidence. Packs made under v1
+#: keep their meaning.
+PACK_RULE_V1 = "f08-sealed-pack-rule-v1"
+PACK_RULE_V2 = "f08-sealed-pack-rule-v2"
+PACK_RULE = PACK_RULE_V2
+AGREEING_RUNGS = {
+    PACK_RULE_V1: ("h3", "h2.25", "h1.7"),
+    PACK_RULE_V2: ("h2.25", "h1.7"),
+}
 POPULATION = "SEALED_EXAM_BATCH_NEAR_LIMIT_N1R"
 DECISION_COVERAGE = "RANKING_AND_FEASIBILITY_STRADDLE"
 EVIDENCE_SCHEMA = "carbon.f08.sealed-batch-evidence.v1"
@@ -56,7 +70,7 @@ def _canonical(value) -> bytes:
     return canonical(value)
 
 
-def _accepted(case_id, inputs, record, limit):
+def _accepted(case_id, inputs, record, limit, rule=PACK_RULE):
     from carbon.challenge_validator import f08_hidden as hidden
 
     try:
@@ -66,7 +80,7 @@ def _accepted(case_id, inputs, record, limit):
     if record["status"] != "OK" or record.get("case_id") != case_id:
         raise SealedPackRefused("f08_sealed_case_unresolved")
     rungs = record["rung_worst_dynamic_mm_per_n"]
-    if len({v <= limit for v in rungs.values()}) != 1:
+    if len({rungs[name] <= limit for name in AGREEING_RUNGS[rule]}) != 1:
         raise SealedPackRefused("f08_sealed_rungs_disagree")
     wall_s = (record.get("rungs") or {}).get("h1.7", {}).get("wall_s")
     if type(wall_s) not in (int, float) or not wall_s > 0:
@@ -74,7 +88,7 @@ def _accepted(case_id, inputs, record, limit):
     return float(wall_s)
 
 
-def sealed_bank(document, records, *, version="1.2") -> dict:
+def sealed_bank(document, records, *, version="1.2", rule=PACK_RULE) -> dict:
     """The sealed batch as a bank in ``physical_pack.development_bank``'s format."""
     from carbon.challenge_kit import f08_public, physical_pack
     from carbon.challenge_validator import f08_hidden as hidden
@@ -82,6 +96,8 @@ def sealed_bank(document, records, *, version="1.2") -> dict:
 
     if version != hidden.CHALLENGE_VERSION:
         raise SealedPackRefused("f08_sealed_version")
+    if rule not in AGREEING_RUNGS:
+        raise SealedPackRefused("f08_sealed_pack_rule")
     try:
         cases = hidden.check_document(document)
     except ValueError:
@@ -103,7 +119,7 @@ def sealed_bank(document, records, *, version="1.2") -> dict:
     case_ids, rows, references, out_records, sides = [], [], [], [], set()
     for case_id in sorted(cases):
         inputs, record = cases[case_id], by_case[case_id]
-        wall_s = _accepted(case_id, inputs, record, LIMIT_MM_PER_N)
+        wall_s = _accepted(case_id, inputs, record, LIMIT_MM_PER_N, rule)
         outputs, damping = record["outputs"], record["damping"]
         sides.add(outputs["worst_dynamic_mm_per_n"] <= LIMIT_MM_PER_N)
         target = [0.0] * width
