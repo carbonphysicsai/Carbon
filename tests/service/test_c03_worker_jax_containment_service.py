@@ -151,7 +151,8 @@ def _launch(real_docker, version, tmp_path, monkeypatch):
 
 
 def _wait_ready(cli, name, seconds=30):
-    """The entrypoint creates /scratch/tmp a moment after start; probing earlier
+    """The entrypoint creates /scratch/tmp and then /scratch/control-ready a moment
+    after start; probing earlier
     sees an empty /scratch and no usable temp directory."""
     import time
 
@@ -164,8 +165,8 @@ def _wait_ready(cli, name, seconds=30):
                 "65532:65532",
                 name,
                 "test",
-                "-d",
-                "/scratch/tmp",
+                "-e",
+                "/scratch/control-ready",
             ],
             timeout=20,
             accepted=(0, 1),
@@ -173,7 +174,7 @@ def _wait_ready(cli, name, seconds=30):
         if done.returncode == 0:
             return
         time.sleep(0.5)
-    pytest.fail("the worker never became ready (/scratch/tmp)")
+    pytest.fail("the worker never became ready (/scratch/control-ready)")
 
 
 def _probe(cli, name, env):
@@ -216,9 +217,9 @@ def test_jax_writes_only_under_scratch_and_the_root_stays_read_only(
         for env in ({}, ROOT_CACHES):
             result = _probe(cli, name, env)
             assert len(result["devices"]) == 1, result["devices"]
-            # The launch's own environment puts temp files under /scratch; a variable
-            # pointed at an unusable root is an error, never a path outside the tmpfs.
-            if env:
+            # Only a variable pointed at an unusable root may leave an error; the
+            # launch's own environment always has its temp files under /scratch.
+            if env is ROOT_CACHES:
                 assert result["tmp"].startswith(("/scratch", "ERR ")), result["tmp"]
             else:
                 assert result["tmp"].startswith("/scratch"), result["tmp"]
@@ -246,6 +247,7 @@ def test_jax_cpu_use_stays_within_the_cpuset_under_hostile_thread_variables(
         for env in ({}, HOSTILE_THREADS):
             result = _probe(cli, name, env)
             assert len(result["devices"]) == 1, result["devices"]
+            assert result["tmp"].startswith("/scratch"), result["tmp"]
             assert result["cores_used"] <= cpus * SLACK, (
                 env,
                 result["cores_used"],
