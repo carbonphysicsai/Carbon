@@ -1002,3 +1002,21 @@ def test_a_signer_refusal_names_the_signer_and_how_to_start_it(tmp_path):
     assert absent.value.field == "signer"
     assert absent.value.code == "signer_not_running"
     assert "carbon-miner-signer" in absent.value.next_step
+
+
+def test_an_intake_for_a_challenge_without_one_is_refused_in_plain_words(
+    tmp_path, state
+):
+    # M1 E2E U13: the page showed the raw "intakes: challenge has no intake".
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Checks())
+    completed(tmp_path, setup)
+    with pytest.raises(SetupRefused) as refused:
+        setup.review(
+            {
+                "confirm": True,
+                "intakes": {"electric-motor-magnetics": "http://127.0.0.1:9080"},
+                "receiver_hotkey": HOTKEY,
+            }
+        )
+    assert refused.value.code == "challenge_has_no_intake"
+    assert "Where your recipe is checked" in refused.value.next_step

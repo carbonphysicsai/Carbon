@@ -824,6 +824,8 @@
       const name = (setupState?.choices?.inference || []).find(c => c.id === id)?.display_name || (id ? words(id) : "The provider");
       return name + " " + KEY_REFUSALS[error.code] + " The key field clears after each check, so paste it again to retry.";
     }
+    // U13: one plain sentence, never the raw "intakes: challenge has no intake".
+    if (error.code === "challenge_has_no_intake") return error.nextStep || "This Challenge takes no validator intake: put its construction receiver under 'Where your recipe is checked' instead.";
     return (error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : "");
   }
   async function setupCall(step, body, timeout = 60000) {
@@ -1698,10 +1700,17 @@
     // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
     const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver hotkey (its public ss58 address; required with an intake URL)");
     intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
-    const directMore = advanced(review, "Advanced: where your recipe is checked");
-    researchNote(directMore, "For the 1.3 construction-recipe session only. This receiver rebuilds a model but does not return a scored verdict or reward.", "hint");
-    const directIntake = setupField(directMore, "direct_intake_url", "Construction intake URL (https, or loopback)");
-    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Construction receiver hotkey (public ss58 address)");
+    const directMore = advanced(review, "Where your recipe is checked: your construction receiver");
+    researchNote(directMore, "Every new campaign submits its frozen recipe here when its Challenge has no validator intake of its own: the receiver rebuilds it from scratch and grades it. Its operator gives you both values.", "hint");
+    const directIntake = setupField(directMore, "direct_intake_url", "Receiver URL (https, or loopback)");
+    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Receiver hotkey (its public ss58 address)");
+    // U12: what Review last wrote comes back filled in, and is said plainly,
+    // so writing the profile again never clears it by accident.
+    const savedDirect = (steps.evaluation?.challenges || []).map(item => item.direct_intake).find(item => item && item.intake_url);
+    if (savedDirect) {
+      directIntake.value = savedDirect.intake_url; directReceiver.value = savedDirect.receiver_hotkey || "";
+      researchNote(directMore, "Saved: receiver " + savedDirect.intake_url + (savedDirect.receiver_hotkey ? " · hotkey " + savedDirect.receiver_hotkey.slice(0, 8) + "…" : "") + ". Edit the fields and write your profile to change it.", "hint");
+    }
     evaluationSection(evaluationBox, steps.evaluation, (challengeId, url, hotkey) => {
       // Review writes only the intakes it is given: this one, again.
       intakeChallenge.value = challengeId; intake.value = url; receiver.value = hotkey;

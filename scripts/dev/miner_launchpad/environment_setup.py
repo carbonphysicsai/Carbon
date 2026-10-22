@@ -3130,7 +3130,17 @@ class EnvironmentSetup:
             except (ResolutionError, TypeError):
                 raise SetupRefused("intakes", "challenge_not_implemented") from None
             if campaigns[challenge_id].intake_check is None:
-                raise SetupRefused("intakes", "challenge_has_no_intake")
+                # M1 E2E U13: said plainly, with where its receiver goes.
+                raise SetupRefused(
+                    "intakes",
+                    "challenge_has_no_intake",
+                    next_step=(
+                        "This Challenge takes no validator intake. Put its "
+                        "construction receiver under 'Where your recipe is "
+                        "checked' instead, and leave the validator intake "
+                        "empty."
+                    ),
+                )
         paired_value = value
         if target_lists:
             if type(value.get("receivers", {})) is not dict:
