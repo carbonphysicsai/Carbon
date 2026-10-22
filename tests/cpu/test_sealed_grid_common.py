@@ -106,3 +106,25 @@ def test_the_decision_objective_is_the_grids_own_ids_and_the_registered_contract
         "decision_contract": contract,
     }
     assert objective["decision_contract"] is contract
+
+
+def test_a_bank_is_the_grid_population_only_when_every_cohort_and_cell_is():
+    records = [{"design_id": r["design_id"], "condition_id": r["condition_id"]} for r in _rows()]
+    cohorts = (grid.GRID_COHORT,) * 30
+
+    def is_grid(cohorts, records, shape=(5, 6)):
+        return grid.is_grid_bank(
+            cohorts,
+            records,
+            shape=shape,
+            design_of=lambda r: r.get("design_id"),
+            condition_of=lambda r: r.get("condition_id"),
+        )
+
+    assert is_grid(cohorts, records)
+    assert not is_grid(cohorts[:-1] + ("practice",), records)
+    assert not is_grid(cohorts[:-1], records[:-1])
+    assert not is_grid(cohorts, records, shape=(6, 5))
+    assert not is_grid(cohorts, [dict(records[0])] + records[:-1])
+    assert not is_grid((), ())
+    assert not is_grid(cohorts, ["not a record"] * 30)
