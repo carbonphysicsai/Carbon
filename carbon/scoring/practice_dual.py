@@ -126,6 +126,27 @@ def motor_predict(model):
     return predict
 
 
+def cooling_predict(model):
+    """``predict`` for a rebuilt Cooling model (``model.predict(inputs)`` returning
+    ``peak_c``, ``profile_c`` and ``pressure_drop_pa``), as the receiver's flat
+    rows: peak, the profile, then the pressure drop."""
+
+    def predict(inputs):
+        rows = []
+        for row in inputs:
+            out = model.predict(row)
+            rows.append(
+                [
+                    float(out["peak_c"]),
+                    *[float(v) for v in out["profile_c"]],
+                    float(out["pressure_drop_pa"]),
+                ]
+            )
+        return rows
+
+    return predict
+
+
 def attach(outcome, adapter, predict):
     """``outcome`` plus the shared ``practice_dual`` block: the one call every
     practice evaluator makes (its outcome schema is bumped and its disclosure

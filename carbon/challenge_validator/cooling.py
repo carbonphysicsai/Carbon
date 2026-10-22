@@ -38,6 +38,7 @@ from carbon.cold_plate.contracts import implementation_digest as model_digest
 from carbon.cold_plate.openfoam import IMAGE
 from carbon.development_session.research_catalog import RecipeRejected
 from carbon.reconstruction.capability_registry import contract
+from carbon.scoring import cooling_dual_pack, practice_dual
 
 from .candidate_fault import load_policy as load_candidate_fault_policy
 from .interface import Admitted, CandidateFault, ChallengeAdapter, Unavailable, digest
@@ -46,7 +47,7 @@ from .scoring import COVERAGE_RULE, cover
 
 ADAPTER_SCHEMA = "carbon.cold-plate.validator-adapter.v1"
 BATCH_SCHEMA = "carbon.cold-plate.validator-public-batch.v1"
-OUTCOME_SCHEMA = "carbon.cold-plate.validator-outcome.v1"
+OUTCOME_SCHEMA = "carbon.cold-plate.validator-outcome.v2"
 SCORE_RECORD_SCHEMA = "carbon.cold-plate.operator-score-record.v1"
 STORE_SCHEMA = "carbon.cold-plate.validator-store.v1"
 PUBLIC_BATCH_KIND = "public_practice"
@@ -89,6 +90,8 @@ def implementation_digest():
         "compiler": Path(compiler.__file__),
         "exam": Path(exam.__file__),
         "learned_baseline": Path(learned_baseline.__file__),
+        "practice_dual": Path(practice_dual.__file__),
+        "cooling_dual_pack": Path(cooling_dual_pack.__file__),
         "public_practice_store": Path(public_practice_store.__file__),
         "recipes": Path(recipes.__file__),
     }
@@ -142,7 +145,14 @@ class CoolingAdapter(ChallengeAdapter):
     contract_digest = contract(CHALLENGE.challenge_id).digest
     max_strategy_bytes = MAX_STRATEGY_BYTES
     disclosure_fields = frozenset(
-        {"score", "eligible", "n_cases", "n_scored", "n_gate_failed"}
+        {
+            "score",
+            "eligible",
+            "n_cases",
+            "n_scored",
+            "n_gate_failed",
+            "practice_dual",
+        }
     )
 
     def __init__(self, root, *, repository="."):
@@ -269,7 +279,11 @@ class CoolingAdapter(ChallengeAdapter):
             )
         except ValueError:
             raise self._candidate_fault("non_finite_score")
-        outcome = self._outcome(submission_id, "SCORED", summary=summary)
+        outcome = practice_dual.attach(
+            self._outcome(submission_id, "SCORED", summary=summary),
+            cooling_dual_pack,
+            practice_dual.cooling_predict(model),
+        )
         score_record = {
             "schema": SCORE_RECORD_SCHEMA,
             "submission_id": submission_id,

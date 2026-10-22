@@ -198,7 +198,13 @@ def test_valid_submission_scores_and_operator_record_replays_after_restart(
         "n_cases",
         "n_scored",
         "n_gate_failed",
+        "practice_dual",
     }
+    assert outcome["schema"] == "carbon.cold-plate.validator-outcome.v2"
+    dual = outcome["practice_dual"]
+    assert dual["schema"] == "carbon.practice.dual-feedback.v1"
+    assert dual["available"] is True and dual["eligible"] is True
+    assert 0 < dual["total"] <= 1
     assert not ({"cases", "predictions", "references", "recipe"} & set(outcome))
 
     operator = Operator(adapters, ledger)
