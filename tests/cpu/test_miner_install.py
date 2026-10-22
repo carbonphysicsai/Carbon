@@ -1932,6 +1932,13 @@ def test_the_session_token_reaches_the_log_while_the_control_center_runs(tmp_pat
                 pytest.fail("no session token in the log while the Control Center ran")
             time.sleep(0.05)
         assert process.poll() is None
+        # The token itself is never logged: the log names the owner-only
+        # file it is kept in (Validator, R6 review).
+        token_file = tmp_path / "state" / "session-token"
+        token = token_file.read_text(encoding="ascii").strip()
+        assert token and token.encode() not in log.read_bytes()
+        assert str(token_file.resolve()).encode() in log.read_bytes()
+        assert token_file.stat().st_mode & 0o777 == 0o600
     finally:
         process.terminate()
         process.wait(timeout=10)

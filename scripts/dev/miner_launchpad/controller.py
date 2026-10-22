@@ -1529,10 +1529,22 @@ def main() -> None:
         # a click; the server still binds loopback and checks Host, Origin and
         # the bearer token on every request (LP-PROD-C D14). Printed only once
         # the page declares it reads the fragment (`session_link_supported`).
-        if session_link_supported():
-            link = session_url(server.origin, token)
-            print(f"Open (this link holds your session token; do not share): {link}")
-        print(f"Local session token (paste into page; do not share): {token}")
+        # The token is shown only on a terminal, never written to a log: as a
+        # service, stdout is control-center.log, so that line names the
+        # owner-only token file instead (Validator, R6 review).
+        if sys.stdout.isatty():
+            if session_link_supported():
+                link = session_url(server.origin, token)
+                print(
+                    f"Open (this link holds your session token; do not share): {link}"
+                )
+            print(f"Local session token (paste into page; do not share): {token}")
+        else:
+            where = (Path(args.state_dir) / "session-token").resolve()
+            print(
+                f"Local session token: kept owner-only in {where}; "
+                f"show it with: cat {where}"
+            )
         print(
             "Set up your environment, then choose a Challenge and launch."
             if runner or refused
