@@ -1122,7 +1122,7 @@
       for (const k of keys) row.append(el("td", fmt(r.components[k])));
       // What the run actually ran on: its recipe's framework (or the
       // Challenge's default) and the worker record's backend and image.
-      row.append(el("td", fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend === "C03_DOCKER_GPU" ? "GPU · measured on GPU, not official" : r.backend === "REMOTE_GPU" ? (r.ran_on || "GPU (your remote setup)") + " · measured on GPU, not official" : (r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null)), r.image].filter(Boolean).join(" · ") || "–"));
+      row.append(el("td", r.fit.final_loss === null || r.fit.final_loss === undefined ? "–" : fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend === "C03_DOCKER_GPU" ? "GPU · measured on GPU, not official" : r.backend === "REMOTE_GPU" ? (r.ran_on || "GPU (your remote setup)") + " · measured on GPU, not official" : (r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null)), r.image].filter(Boolean).join(" · ") || "–"));
       // R9-3: a GPU host that ran the CPU build says so, in words, under where it ran.
       if (typeof r.fallback === "string" && r.fallback) row.lastChild.append(el("br"), el("span", r.fallback, "run-fallback"));
       table.append(row);
