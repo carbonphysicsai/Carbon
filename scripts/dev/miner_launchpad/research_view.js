@@ -27,6 +27,9 @@
 
   // ---- Small helpers, all text. ----
   function words(value) { return String(value ?? "").replaceAll("_", " "); }
+  // Where a run ran, in the words the person uses (a backend record kind is not a sentence).
+  const RAN_ON_WORDS = {ISOLATED_CARRIER: "CPU (isolated sandbox)", ISOLATED_CARRIER_GPU: "GPU (this machine)", REMOTE_GPU: "GPU (your remote setup)"};
+  function backendWords(kind) { return RAN_ON_WORDS[kind] || words(kind).toLowerCase(); }
   function para(parent, text, className) { const p = el("p", text, className); parent.append(p); return p; }
   function button(label, className, onClick) {
     const b = el("button", label, className); b.type = "button";
@@ -411,7 +414,7 @@
     runs.append(el("span", t.trials && typeof t.trials.ceiling === "number" ? "Trials used " + t.trials.used + " of your " + t.trials.ceiling : "Trials used " + (t.trials ? t.trials.used : 0) + " · no cap set", "hint"));
     tile("Practice runs", String(t.practice_runs.completed), runs);
     if (t.model_speed) speedTile(tile, t.model_speed);
-    tile("Compute", t.compute.backend ? words(t.compute.backend).toLowerCase() : (t.compute.lane || "unavailable"), el("span", typeof t.compute.numerical_seconds === "number" ? t.compute.numerical_seconds + " s of worker time" : "Worker time appears once a trial runs.", "hint"));
+    tile("Compute", t.compute.backend ? backendWords(t.compute.backend) : (t.compute.lane || "unavailable"), el("span", typeof t.compute.numerical_seconds === "number" ? t.compute.numerical_seconds + " s of worker time" : "Worker time appears once a trial runs.", "hint"));
     parent.append(grid);
   }
   // The model's speed as this campaign observed it (S17): none is recorded
@@ -1160,7 +1163,7 @@
       for (const k of keys) row.append(el("td", fmt(r.components[k])));
       // What the run actually ran on: its recipe's framework (or the
       // Challenge's default) and the worker record's backend and image.
-      row.append(el("td", r.fit.final_loss === null || r.fit.final_loss === undefined ? "–" : fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend === "C03_DOCKER_GPU" ? "GPU · measured on GPU, not official" : r.backend === "REMOTE_GPU" ? (r.ran_on || "GPU (your remote setup)") + " · measured on GPU, not official" : (r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null)), r.image].filter(Boolean).join(" · ") || "–"));
+      row.append(el("td", r.fit.final_loss === null || r.fit.final_loss === undefined ? "–" : fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend === "C03_DOCKER_GPU" ? "GPU · measured on GPU, not official" : r.backend === "REMOTE_GPU" ? (r.ran_on || "GPU (your remote setup)") + " · measured on GPU, not official" : (r.ran_on || (r.backend ? backendWords(r.backend) : null)), r.image].filter(Boolean).join(" · ") || "–"));
       // R9-3: a GPU host that ran the CPU build says so, in words, under where it ran.
       if (typeof r.fallback === "string" && r.fallback) row.lastChild.append(el("br"), el("span", r.fallback, "run-fallback"));
       table.append(row);
@@ -1190,8 +1193,8 @@
       feed(box, doc);
     });
     const outcomes = part(panel, "outcomes", JSON.stringify(doc.journal.epoch_outcomes), box => {
-      head(box, "Epoch outcomes", "Agent or miner reported");
-      for (const o of doc.journal.epoch_outcomes) para(box, "Epoch " + o.epoch + ": " + words(o.status) + " · selected by " + (o.selected_by === "miner" ? "you" : "the agent") + (o.reason ? " · " + o.reason : "") + ". Reported, not independent science.");
+      head(box, "Round results", "Agent or miner reported");
+      for (const o of doc.journal.epoch_outcomes) para(box, "Round " + o.epoch + ": " + words(o.status) + " · selected by " + (o.selected_by === "miner" ? "you" : "the agent") + (o.reason ? " · " + o.reason : "") + ". Reported, not independent science.");
     });
     outcomes.hidden = !doc.journal.epoch_outcomes.length;
   }
@@ -1303,7 +1306,7 @@
     card.append(el("p", d.kind, "freeze-kind"), el("p", d.title, "freeze-title"));
     if (d.settings.length) { const chips = el("p", undefined, "freeze-chips"); for (const s of d.settings) chips.append(el("span", s, "chip")); card.append(chips); }
     const why = [];
-    why.push("Frozen at epoch " + c.epoch);
+    why.push("Frozen in round " + c.epoch);
     if (c.reason) why.push(c.reason);
     why.push(c.used_feedback ? "chosen with feedback" : "chosen without exam feedback");
     card.append(el("p", why.join(" · "), "hint"));
@@ -1370,7 +1373,7 @@
     for (const o of doc.outcomes) {
       const r = o.result || {};
       const s = r.screening || {};
-      const line = [typeof o.epoch === "number" ? "Epoch " + o.epoch : "Outcome", words(o.status).toLowerCase()];
+      const line = [typeof o.epoch === "number" ? "Round " + o.epoch : "Outcome", words(o.status).toLowerCase()];
       if (r.state) line.push(words(r.state).toLowerCase());
       if (typeof s.eligible === "boolean") line.push(s.eligible ? "eligible" : "not eligible");
       if (Array.isArray(s.gates_failed)) line.push("gates failed: " + (s.gates_failed.join(", ") || "none"));

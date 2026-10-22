@@ -2323,9 +2323,12 @@
       rebuild(list, "disconnected", target => target.append(el("li", "Connect this browser to see your next step.", "hint")));
       goTo("Get started", "#setup");
       setText($("getting-started-progress"), "");
+      $("launchpad-strip").hidden = true;
       return;
     }
     const j = journey();
+    // The launch strip repeats the same steps while setup is unfinished: show it only once setup is done.
+    $("launchpad-strip").hidden = Boolean(j.current);
     const key = JSON.stringify([j.state, j.profile, research.runs.length, setupState?.registered_hotkey ?? null, setupVersion]);
     goTo(j.current ? "Next: " + stepTitle(j.current, j) : "New campaign", j.current ? stepHref(j.current, j) : "#launch");
     // Never "You are set up" above a page of failures: the steps may all be done
@@ -2953,8 +2956,8 @@
     for (const item of decisions) researchNote(panel, "Decision " + (item.sequence ?? "") + ": " + JSON.stringify(item));
     for (const item of run.capability_requests || []) researchNote(panel, "Capability request (grants nothing): " + JSON.stringify(item));
     for (const item of run.refusals || []) researchNote(panel, "Refused request (nothing ran): " + JSON.stringify(item));
-    for (const outcome of run.epoch_outcomes || []) researchNote(panel, (outcome.selected_by === "miner" ? "Your" : "Agent") + " epoch " + outcome.epoch + ": " + outcome.status + " · " + (outcome.reason || "No reason reported") + " · " + (outcome.selected_by === "miner" ? "Your" : "Agent-reported") + " decision, not independent science.");
-    if (!hypotheses.length && !decisions.length && !(run.epoch_outcomes || []).length) missing(panel, "the journal fills as hypotheses, decisions and epoch outcomes are recorded.");
+    for (const outcome of run.epoch_outcomes || []) researchNote(panel, (outcome.selected_by === "miner" ? "Your" : "Agent") + " round " + outcome.epoch + ": " + outcome.status + " · " + (outcome.reason || "No reason reported") + " · " + (outcome.selected_by === "miner" ? "Your" : "Agent-reported") + " decision, not independent science.");
+    if (!hypotheses.length && !decisions.length && !(run.epoch_outcomes || []).length) missing(panel, "the journal fills as hypotheses, decisions and round results are recorded.");
   }
   function tabArtifacts(panel, run) {
     const freezes = run.candidate_freezes || [];
@@ -3002,7 +3005,7 @@
     const s = o.screening;
     const cases = s && s.cases && typeof s.cases === "object" ? Object.entries(s.cases).map(([k, v]) => words(k) + " " + v).join(", ") : "unavailable";
     const lines = [
-      "Validator outcome, epoch " + result.epoch + ": " + o.state + (o.waiting ? " · waiting: " + o.waiting : ""),
+      "Validator outcome, round " + result.epoch + ": " + o.state + (o.waiting ? " · waiting: " + o.waiting : ""),
       "Submission: " + (o.submission_id || "unavailable") + (o.rule ? " · exam rule: " + o.rule : "") + (o.reconstruction?.backend ? " · rebuilt on " + o.reconstruction.backend : ""),
       ...(o.failure?.code ? ["Reason: " + words(o.failure.code) + ((o.failure.issues || []).length ? " (" + o.failure.issues.map(i => i.code + (i.path?.length ? " at " + i.path.join("/") : "")).join("; ") + ")" : "")] : []),
       // Sealed by the exam rule (LAUNCHPAD-ACCEPT-04): nothing computed on
@@ -3308,7 +3311,7 @@
     box.append(el("h4", "Freeze and submit"));
     const {journey, frozen, exhausted, ready} = journeyState(run);
     const practiced = practicedRecipes(run);
-    researchNote(box, "Final exams remaining: " + (journey.final_exams_remaining ?? "unavailable") + " · Submitted epochs: " + ((journey.submitted_epochs || []).join(", ") || "none") + (frozen ? " · A frozen candidate is waiting for submission." : ""));
+    researchNote(box, "Final exams remaining: " + (journey.final_exams_remaining ?? "unavailable") + " · Submitted rounds: " + ((journey.submitted_epochs || []).join(", ") || "none") + (frozen ? " · A frozen candidate is waiting for submission." : ""));
     const choose = document.createElement("select");
     practiced.forEach((text, index) => { const option = document.createElement("option"); option.value = text; option.textContent = "Run " + (index + 1) + ": " + recipeWords(text); choose.append(option); });
     journeyField(box, run.id, "candidate", "Practiced recipe to freeze", choose, practiced[0] || "");
@@ -3908,7 +3911,12 @@
         const text = el("span");
         text.append(el("strong", plainTitle(entry.title)), el("span", " " + challengePill(entry)[0] + (entry.version ? " · v" + entry.version : "") + testedSuffix(entry), "small-tag"));
         if (comingSoon(entry)) text.append(el("span", " " + (typeof entry.practise.plain === "string" ? entry.practise.plain : "Coming soon."), "hint"));
-        if (!entry.selectable) text.append(el("span", "Unavailable: " + why(entry) + " · Next: " + entry.next_action, "reason"));
+        // One short line; the reason and the next step sit in a fold so the list stays scannable.
+        if (!entry.selectable) {
+          const more = el("details", undefined, "wizard-why");
+          more.append(el("summary", "Not available yet. Why?"), el("p", "Unavailable: " + why(entry) + " · Next: " + entry.next_action, "reason"));
+          text.append(more);
+        }
         label.append(input, text); node.append(label);
       }
     });
@@ -4740,7 +4748,7 @@
       return {kind: "done", text: "Submitted for the DEVELOPMENT comparison. The independent result appears below."};
     }
     if (entry.name === "freeze_candidate" && run.journey?.frozen_awaiting_submission === true) {
-      return {kind: "done", text: "Candidate frozen for this epoch. Submit it under Submission."};
+      return {kind: "done", text: "Candidate frozen for this round. Submit it under Submission."};
     }
     if (entry.name === "practice" && (run.experiments || []).length > entry.experiments) {
       const experiment = run.experiments[entry.experiments];
