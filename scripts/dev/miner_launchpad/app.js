@@ -1825,7 +1825,11 @@
     const elapsed = composition.budget?.elapsed_seconds;
     const bounded = timeout.bounded_by === "budget.elapsed_seconds" && Number.isSafeInteger(elapsed) && elapsed >= 1;
     const fallback = bounded ? Math.min(timeout.default, Math.max(low, Math.floor(elapsed / 2))) : timeout.default;
-    return {low, high, fallback, standard: timeout.default, bounded, value, problem};
+    // How its calls travel (S17): an adapter a new plan streams waits only
+    // between chunks; any other reads a reply whole within the timeout.
+    const streams = Array.isArray(timeout.streaming_providers) && timeout.streaming_providers.includes(launchModel().provider.id);
+    const transport = streams ? timeout.streaming_note : timeout.speed_note;
+    return {low, high, fallback, standard: timeout.default, bounded, value, problem, streams, transport: typeof transport === "string" ? transport : ""};
   }
   // The model settings a launch sends: only what the miner set.
   function modelSettings() {
@@ -3837,6 +3841,7 @@
     fill(input, wizard.timeoutSeconds ?? "");
     input.setAttribute("aria-invalid", timeout.problem ? "true" : "false");
     let note = "Default: " + timeout.standard + " seconds, or half your elapsed limit where that is shorter. How long each model call may wait for the provider's answer; a call still unanswered then ends with its outcome unknown and is reconciled, never resent. New calls stop when less than the timeout remains of your elapsed limit; it reserves no money. Leave it blank for the default, or enter a whole number of seconds from " + timeout.low.toLocaleString("en-US") + " to " + timeout.high.toLocaleString("en-US") + ". The Control Center checks it again at launch.";
+    if (timeout.transport) note += " " + timeout.transport;
     if (timeout.problem) note = "Not valid: " + timeout.problem + ". " + note;
     setText($("wizard-timeout-note"), note);
     const kind = timeout.problem ? "reason" : "hint";
@@ -3956,7 +3961,7 @@
       // launch; no maximum is guessed for the model.
       if (agent?.launch_agent === GRAPHITE && cap && !cap.problem && cap.value === null && cap.fallback?.basis === "no_documented_maximum") row("Max output warning", "Carbon knows no output maximum for " + wizard.model + ", so each reply is capped at the conservative " + cap.fallback.max_output_tokens.toLocaleString("en-US") + " tokens, which can cut a Planner's plan short. Set max output to the model's own maximum.");
       const timeout = callTimeout();
-      if (timeout && !timeout.problem) row("Call timeout", timeout.value !== null ? timeout.value.toLocaleString("en-US") + " seconds per provider call, your timeout" : "Not set: " + timeout.fallback.toLocaleString("en-US") + " seconds per provider call, the default" + (timeout.bounded && timeout.fallback < timeout.standard ? " (half your elapsed limit)" : "") + ". New calls stop when less than the timeout remains of your elapsed limit");
+      if (timeout && !timeout.problem) row("Call timeout", timeout.value !== null ? timeout.value.toLocaleString("en-US") + " seconds per provider call, your timeout" : "Not set: " + timeout.fallback.toLocaleString("en-US") + " seconds per provider call, the default" + (timeout.bounded && timeout.fallback < timeout.standard ? " (half your elapsed limit)" : "") + ". New calls stop when less than the timeout remains of your elapsed limit" + (timeout.streams ? ". Streams: long replies are not cut while tokens arrive" : ""));
       row("Compute", compute ? compute.label + " · " + compute.lane + " lane · " + compute.availability : "Unavailable");
       row("Tools", entry ? Object.keys(entry.tools?.workflow || {}).join(", ") || "none listed" : "Choose a Challenge");
       // Stated before launch, not learnt at submit (LAUNCHPAD-PAGE-USABILITY-01).

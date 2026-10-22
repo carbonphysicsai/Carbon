@@ -259,6 +259,7 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
         new_plan_input_default,
         new_plan_output_default,
         new_plan_timeout_default,
+        new_plan_transport,
         private_file,
         requester,
         supplied_selection,
@@ -305,6 +306,7 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
                 args,
                 output_default=new_plan_output_default(args),
                 timeout_default=new_plan_timeout_default(args),
+                transport=new_plan_transport(args),
                 elapsed_seconds=new_plan_elapsed_seconds(args),
                 input_default=new_plan_input_default(args, agent),
             )

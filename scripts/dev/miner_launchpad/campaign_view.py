@@ -977,6 +977,30 @@ def reconciliation(own):
     }
 
 
+def model_speed(own):
+    """The model's observed speed (`projection.model_speed`), closed shapes
+    only; None before the campaign's ledger exists."""
+    value = own.get("model_speed")
+    if type(value) is not dict:
+        return None
+
+    def count(key):
+        item = value.get(key)
+        return item if type(item) is int and item >= 0 else None
+
+    rate = value.get("output_tokens_per_second")
+    rate = rate if type(rate) in (int, float) and rate > 0 else None
+    return {
+        "calls_observed": count("calls_observed") or 0,
+        "output_tokens_per_second": rate,
+        "streams": value.get("streams") is True,
+        "max_output_tokens": count("max_output_tokens"),
+        "timeout_seconds": count("timeout_seconds"),
+        "full_reply_seconds": count("full_reply_seconds") if rate else None,
+        "warning": value.get("warning") is True and rate is not None,
+    }
+
+
 def tiles(own, rows, now):
     usage = own.get("usage") if type(own.get("usage")) is dict else None
     started = own.get("started_unix")
@@ -1001,6 +1025,9 @@ def tiles(own, rows, now):
         },
         "spend": None,
         "trials": None,
+        # Observed after the first completed model call, never recorded or
+        # guessed (S17).
+        "model_speed": model_speed(own),
         "compute": {
             "lane": _str(own.get("compute"), 64),
             "backend": rows[-1]["backend"] if rows else None,

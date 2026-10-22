@@ -580,12 +580,19 @@ def _call_timeout():
     TIMEOUT_DEFAULT_V2)`): `default`, or half the launch's `elapsed_seconds`
     where that is shorter, never below the lower bound (`bounded_by`). The page
     shows and pre-checks these; the runner validates the launch and has the
-    last word."""
+    last word. `streaming_providers` are the adapters whose calls a new plan
+    streams (`TRANSPORT_STREAM_V1`, S17), where the timeout is the longest
+    wait between chunks; every other adapter's call is read whole within it.
+    No provider speed is recorded, so the page names the trade and invents
+    none (`speed_note`)."""
     from carbon.development_session.model_provider import (
+        ADAPTERS,
+        CHAT_COMPLETIONS,
         DEADLINE_MARGIN_SECONDS,
         TIMEOUT_DEFAULT_V2,
         TIMEOUT_DEFAULT_V2_SECONDS,
         TIMEOUT_SECONDS_BOUNDS,
+        TRANSPORT_STREAM_V1,
     )
 
     low, high = TIMEOUT_SECONDS_BOUNDS
@@ -605,6 +612,25 @@ def _call_timeout():
             "when less than the timeout remains of your elapsed limit. It "
             "reserves no money. Sent only with a provider and model, and "
             "validated by the runner at launch."
+        ),
+        "transport_rule": TRANSPORT_STREAM_V1,
+        "streaming_providers": sorted(
+            adapter.adapter_id
+            for adapter in ADAPTERS.values()
+            if adapter.streaming and adapter.protocol == CHAT_COMPLETIONS
+        ),
+        "streaming_note": (
+            "Streams: long replies are not cut while tokens arrive. The timeout "
+            "is the longest wait between chunks of a reply, not a limit on the "
+            "whole reply; your elapsed limit still ends a call."
+        ),
+        "speed_note": (
+            "This provider's calls are read whole, so a reply must finish within "
+            "the timeout. Carbon records no model speed: a full reply takes your "
+            "max output tokens divided by your model's speed. The campaign view "
+            "shows the speed it observes after the first completed call, and "
+            "warns if a full reply would outlast the timeout; a lower max output "
+            f"or a longer timeout (up to {high}) helps."
         ),
     }
 

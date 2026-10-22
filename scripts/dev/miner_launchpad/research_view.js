@@ -372,8 +372,27 @@
     if (typeof t.practice_runs.attempted === "number") runs.append(el("span", "completed, of " + t.practice_runs.attempted + " attempted", "hint"));
     runs.append(el("span", t.trials && typeof t.trials.ceiling === "number" ? "Trials used " + t.trials.used + " of your " + t.trials.ceiling : "Trials used " + (t.trials ? t.trials.used : 0) + " · no cap set", "hint"));
     tile("Practice runs", String(t.practice_runs.completed), runs);
+    if (t.model_speed) speedTile(tile, t.model_speed);
     tile("Compute", t.compute.backend ? words(t.compute.backend).toLowerCase() : (t.compute.lane || "unavailable"), el("span", typeof t.compute.numerical_seconds === "number" ? t.compute.numerical_seconds + " s of worker time" : "Worker time appears once a trial runs.", "hint"));
     parent.append(grid);
+  }
+  // The model's speed as this campaign observed it (S17): none is recorded
+  // or guessed, so it appears after the first completed model call. A plan
+  // whose calls stream is never cut while tokens arrive; a plan read whole is
+  // warned when a full reply at its output cap would outlast its timeout.
+  function speedTile(tile, s) {
+    const note = el("div");
+    const n = value => value.toLocaleString("en-US");
+    if (s.streams) note.append(el("span", "Streams: long replies are not cut while tokens arrive.", "hint"));
+    if (typeof s.output_tokens_per_second !== "number") {
+      note.append(el("span", "Appears after the first completed model call.", "hint"));
+      tile("Model speed", "Not observed yet", note, "model-speed");
+      return;
+    }
+    note.append(el("span", "Observed over " + n(s.calls_observed) + " completed call" + (s.calls_observed === 1 ? "" : "s") + ".", "hint"));
+    if (s.warning) note.append(el("span", "At this speed a full reply of " + n(s.max_output_tokens) + " tokens takes about " + n(s.full_reply_seconds) + " s, longer than your " + n(s.timeout_seconds) + " s call timeout: long replies may be cut. A lower max output or a longer timeout (up to 600 s) helps.", "reason"));
+    else if (!s.streams && typeof s.full_reply_seconds === "number" && typeof s.timeout_seconds === "number") note.append(el("span", "A full reply of " + n(s.max_output_tokens) + " tokens takes about " + n(s.full_reply_seconds) + " s at this speed, within your " + n(s.timeout_seconds) + " s call timeout.", "hint"));
+    tile("Model speed", n(s.output_tokens_per_second) + " tokens/s", note, "model-speed");
   }
   function stages(parent, doc) {
     const list = el("ol", undefined, "rs-stages");

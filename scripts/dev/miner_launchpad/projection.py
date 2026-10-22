@@ -389,6 +389,9 @@ def project(row, root):
         "held_within_reserved": held,
         "cost_basis": "Integer nanodollars; published-rate estimates from provider token usage, not an invoice guarantee",
     }
+    # The model's speed as this campaign observed it (S17), never a recorded
+    # or guessed one.
+    value["model_speed"] = model_speed(status["operations"], manifest.get("provider"))
     from carbon.development_session.research_campaign import unknown_outcome_calls
 
     # Model calls whose outcome was unknown: what the miner's Reconcile
@@ -653,6 +656,46 @@ _CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
 #: A stage's replies cut at the output cap (`research_loop.OUTPUT_CAP_HIT`),
 #: restated so the projection imports no research loop.
 OUTPUT_CAP_CAUSE = "turn_hit_output_cap"
+
+
+def model_speed(operations, provider):
+    """The campaign's observed model speed (S17): output tokens per second
+    over its completed calls, each timed from dispatch to its whole reply
+    (`reply_ms`), and whether a full reply at the plan's output cap fits its
+    call timeout at that speed. Carbon records no provider's speed and
+    guesses none: before a completed call there is no speed and no warning.
+    A plan whose calls stream (`model_provider.record_streams`) is never
+    warned: a streamed reply is not cut while tokens arrive."""
+    from carbon.development_session.model_provider import record_streams
+
+    tokens = took = calls = 0
+    for op in operations:
+        result = op.get("result") if type(op.get("result")) is dict else {}
+        usage = result.get("usage")
+        produced = usage.get("output_tokens") if type(usage) is dict else None
+        reply_ms = result.get("reply_ms")
+        timed = type(reply_ms) is int and reply_ms > 0
+        if timed and type(produced) is int and produced >= 0:
+            tokens, took, calls = tokens + produced, took + reply_ms, calls + 1
+    settings = provider.get("settings") if type(provider) is dict else None
+    settings = settings if type(settings) is dict else {}
+    cap, timeout = settings.get("max_output_tokens"), settings.get("timeout_seconds")
+    cap = cap if type(cap) is int and cap > 0 else None
+    timeout = timeout if type(timeout) is int and timeout > 0 else None
+    rate = tokens * 1000 / took if tokens else None
+    full = None if rate is None or cap is None else cap / rate
+    streams = record_streams(provider)
+    return {
+        "calls_observed": calls,
+        "output_tokens_per_second": None if rate is None else round(rate, 1),
+        "streams": streams,
+        "max_output_tokens": cap,
+        "timeout_seconds": timeout,
+        "full_reply_seconds": None if full is None else round(full),
+        "warning": (
+            not streams and full is not None and timeout is not None and full > timeout
+        ),
+    }
 
 
 def _graphite_view(root, operations):

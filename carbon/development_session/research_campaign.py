@@ -38,6 +38,8 @@ from .model_provider import (
     OUTPUT_DEFAULT_V2,
     OUTPUT_DEFAULTS,
     TIMEOUT_DEFAULT_V2,
+    TRANSPORT_STREAM_V1,
+    TRANSPORTS,
     SelectionTransport,
     check_budget,
     select,
@@ -965,14 +967,16 @@ def supplied_selection(
     input_default=None,
     timeout_default=None,
     elapsed_seconds=None,
+    transport=None,
 ):
     """The miner's `args.model_selection` ({provider_id, model_id, settings?,
     endpoint?, declared_pricing?, credential?}), or the pinned default when
     none is given. A file credential is the `--api-key-file` supplied at run
     time; its path is never recorded. `output_default`, `input_default` and
     `timeout_default` are how an unset output cap, input window and provider
-    call timeout are chosen, and `elapsed_seconds` the plan's elapsed limit
-    that bounds the v2 timeout default (`model_provider.select`)."""
+    call timeout are chosen, `elapsed_seconds` the plan's elapsed limit
+    that bounds the v2 timeout default, and `transport` how its calls travel
+    (`model_provider.select`)."""
     supplied = getattr(args, "model_selection", None)
     path = getattr(args, "api_key_file", None)
     spec = (
@@ -991,6 +995,7 @@ def supplied_selection(
             "input_default": input_default,
             "timeout_default": timeout_default,
             "elapsed_seconds": elapsed_seconds,
+            "transport": transport,
         }
     )
 
@@ -1027,6 +1032,15 @@ def new_plan_timeout_default(args):
     return TIMEOUT_DEFAULT_V2 if getattr(args, "product", None) is not None else None
 
 
+def new_plan_transport(args):
+    """How a new campaign's provider calls travel. A product campaign's agent
+    may write a long reply on the miner's own budget, so an adapter that
+    streams streams it, and only a wait between chunks longer than the call
+    timeout ends it (`TRANSPORT_STREAM_V1`, S17). A campaign admitted by a
+    development grant keeps every call whole, as its grant was sized for."""
+    return TRANSPORT_STREAM_V1 if getattr(args, "product", None) is not None else None
+
+
 def new_plan_elapsed_seconds(args):
     """The elapsed limit a new product plan freezes (its launch budget's
     `elapsed_seconds`), which bounds its v2 timeout default so the default
@@ -1047,7 +1061,8 @@ def resolve_selection(args, record):
     the frozen one under either default: the plan recorded the values its
     own rules chose, and resolving it again under today's rules must not
     refuse an earlier plan. Under the v2 timeout default that includes the
-    timeout the plan's own elapsed limit chose, which it recorded."""
+    timeout the plan's own elapsed limit chose, which it recorded; the
+    transport rule is the one the plan recorded, under either rule."""
     path = getattr(args, "api_key_file", None)
     chosen = selection_from_record(
         record, credential_file=None if path is None else str(path)
@@ -1067,11 +1082,13 @@ def resolve_selection(args, record):
             input_default=input_rule,
             timeout_default=timeout_rule,
             elapsed_seconds=elapsed,
+            transport=transport_rule,
         ).record()
         != chosen.record()
         for output_rule in OUTPUT_DEFAULTS
         for input_rule in INPUT_DEFAULTS
         for timeout_rule, elapsed in timeout_rules
+        for transport_rule in TRANSPORTS
     ):
         raise ValueError("model selection differs from the frozen campaign's")
     return chosen
@@ -1081,8 +1098,9 @@ def campaign_selection(args):
     """The campaign's model selection (`model_provider`). A frozen campaign's
     is the one its manifest records - every campaign frozen before selection
     existed resolves to the pinned default - otherwise the miner's, with a new
-    plan's output and timeout defaults (`new_plan_output_default`,
-    `new_plan_timeout_default`)."""
+    plan's output and timeout defaults and transport rule
+    (`new_plan_output_default`, `new_plan_timeout_default`,
+    `new_plan_transport`)."""
     manifest_path = args.root / "campaign-manifest.json"
     if manifest_path.exists():
         frozen = json.loads(manifest_path.read_bytes())
@@ -1092,6 +1110,7 @@ def campaign_selection(args):
         output_default=new_plan_output_default(args),
         timeout_default=new_plan_timeout_default(args),
         elapsed_seconds=new_plan_elapsed_seconds(args),
+        transport=new_plan_transport(args),
     )
 
 
