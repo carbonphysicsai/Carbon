@@ -38,7 +38,6 @@ from carbon.cold_plate.contracts import implementation_digest as model_digest
 from carbon.cold_plate.openfoam import IMAGE
 from carbon.development_session.research_catalog import RecipeRejected
 from carbon.reconstruction.capability_registry import contract
-from carbon.scoring import cooling_dual_pack, practice_dual
 
 from .candidate_fault import load_policy as load_candidate_fault_policy
 from .interface import Admitted, CandidateFault, ChallengeAdapter, Unavailable, digest
@@ -90,8 +89,6 @@ def implementation_digest():
         "compiler": Path(compiler.__file__),
         "exam": Path(exam.__file__),
         "learned_baseline": Path(learned_baseline.__file__),
-        "practice_dual": Path(practice_dual.__file__),
-        "cooling_dual_pack": Path(cooling_dual_pack.__file__),
         "public_practice_store": Path(public_practice_store.__file__),
         "recipes": Path(recipes.__file__),
     }
@@ -279,11 +276,24 @@ class CoolingAdapter(ChallengeAdapter):
             )
         except ValueError:
             raise self._candidate_fault("non_finite_score")
-        outcome = practice_dual.attach(
-            self._outcome(submission_id, "SCORED", summary=summary),
-            cooling_dual_pack,
-            practice_dual.cooling_predict(model),
-        )
+        outcome = {
+            **self._outcome(submission_id, "SCORED", summary=summary),
+            # C13: the exam's dual measurement needs Cooling's development bank,
+            # which is the counted decision-study evidence this adapter's read
+            # boundary denies (and pins study modules to read it). Until the bank
+            # has a public mirror and the decision rules a public module (the
+            # Validator's ruling), the block says so, never silently.
+            "practice_dual": {
+                "schema": "carbon.practice.dual-feedback.v1",
+                "scope": "PUBLIC_PRACTICE_FEEDBACK",
+                "challenge": {
+                    "id": self.challenge_id,
+                    "version": self.challenge_version,
+                },
+                "available": False,
+                "reason": "practice_dual_not_public_for_cooling",
+            },
+        }
         score_record = {
             "schema": SCORE_RECORD_SCHEMA,
             "submission_id": submission_id,

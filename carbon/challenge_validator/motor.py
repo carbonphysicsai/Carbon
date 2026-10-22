@@ -24,13 +24,13 @@ from carbon.motor.challenge import (
 from carbon.motor.compile import NEURAL_FAMILIES, compile_recipe, rebuild
 from carbon.motor.contracts import implementation_digest as model_digest
 from carbon.reconstruction.capability_registry import contract
-from carbon.scoring import motor_dual_pack, practice_dual
 
 from .candidate_fault import load_policy as load_candidate_fault_policy
 from .interface import Admitted, CandidateFault, ChallengeAdapter, Unavailable, digest
 from .public_practice_store import PublicPracticeStore
 from .scoring import COVERAGE_RULE, cover
 
+_SCORING = Path(__file__).resolve().parents[1] / "scoring"
 ADAPTER_SCHEMA = "carbon.motor.validator-adapter.v1"
 BATCH_SCHEMA = "carbon.motor.validator-public-batch.v1"
 OUTCOME_SCHEMA = "carbon.motor.validator-outcome.v2"
@@ -75,8 +75,9 @@ def implementation_digest():
         "compiler": Path(compiler.__file__),
         "exam": Path(exam.__file__),
         "learned_baseline": Path(learned_baseline.__file__),
-        "practice_dual": Path(practice_dual.__file__),
-        "motor_dual_pack": Path(motor_dual_pack.__file__),
+        # Not imported here: the dual measurement is a validator-side read.
+        "practice_dual": _SCORING / "practice_dual.py",
+        "motor_dual_pack": _SCORING / "motor_dual_pack.py",
         "public_practice_store": Path(public_practice_store.__file__),
         "recipes": Path(recipes.__file__),
         "scoring": Path(scoring.__file__),
@@ -278,6 +279,8 @@ class MotorAdapter(ChallengeAdapter):
             raise CandidateFault(
                 "non_finite_score", self.candidate_fault_policy
             ) from fault
+        from carbon.scoring import motor_dual_pack, practice_dual
+
         dual = practice_dual.feedback(
             motor_dual_pack, practice_dual.motor_predict(model)
         )

@@ -462,11 +462,15 @@ class DirectPractice:
 
 def _dual_feedback(spec, version, rows):
     """The shared practice dual block for the rows of the exposed bank."""
-    import importlib
-
     from carbon.scoring import practice_dual
 
-    module = importlib.import_module(f"carbon.scoring.{spec.prefix}_dual_pack")
+    # A static dispatch: the code-authority inventory forbids a computed import.
+    if spec.prefix == "f08":
+        from carbon.scoring import f08_dual_pack as module
+    elif spec.prefix == "f02":
+        from carbon.scoring import f02_dual_pack as module
+    else:
+        raise ValueError(spec.prefix + "_practice_dual_unregistered")
     adapter = practice_dual.versioned(module, version)
     if adapter is None:
         return practice_dual.unavailable(module, "practice_version_not_registered")

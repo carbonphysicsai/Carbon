@@ -6,7 +6,6 @@ stand-in "perfect" model returns the bank's own reference rows."""
 
 from __future__ import annotations
 
-import importlib
 
 import numpy as np
 import pytest
@@ -18,7 +17,20 @@ PHYSICAL = ("motor", "cooling", "f08", "f02")
 
 
 def _adapter(name):
-    return importlib.import_module(f"carbon.scoring.{name}_dual_pack")
+    # A static dispatch: the code-authority inventory forbids a computed import.
+    if name == "motor":
+        from carbon.scoring import motor_dual_pack as module
+    elif name == "cooling":
+        from carbon.scoring import cooling_dual_pack as module
+    elif name == "f08":
+        from carbon.scoring import f08_dual_pack as module
+    elif name == "f02":
+        from carbon.scoring import f02_dual_pack as module
+    elif name == "battery":
+        from carbon.scoring import battery_dual_pack as module
+    else:
+        raise ValueError(name)
+    return module
 
 
 def _references(adapter, name):
