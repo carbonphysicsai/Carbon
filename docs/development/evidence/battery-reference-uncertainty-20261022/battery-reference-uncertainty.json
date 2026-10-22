@@ -1,0 +1,71 @@
+{
+ "U": {
+  "plating_margin_m160_v": 0.00023
+ },
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "date": "2026-10-22",
+ "decision": "VALIDATOR-BATTERY-PLATING-U-01",
+ "method": "MOTOR_REF_UNCERTAINTY_METHOD_20261019, Roache form on mesh 80/160/320 (r = 2): e160 = |m160 - m320| * r^p / (r^p - 1); U = the largest e160 over the panel, rounded up at two significant figures, never below it",
+ "observed_order_note": "Convergence is about first order (p 0.99-1.04), not second; every case is monotone, so the estimate is read from the asymptotic range. U is 28-39 percent of the panel's own mesh-160 margins (0.59-0.83 mV), so placement must treat |m160| <= U as unresolved.",
+ "panel": {
+  "ev4:D-0000:c1=0.75,c2=0.6:0": {
+   "margin_v": {
+    "160": 0.0008340978233198823,
+    "320": 0.0007447461046641058,
+    "80": 0.0010177193325875962
+   },
+   "monotone": true,
+   "p": 1.0391676802335639,
+   "roache_error_160_v": 0.0001740419420551913,
+   "sha256": "3310a8302410bd68721add5f30469194e0888a9254fe9919a015db8aed337c23",
+   "source": "battery-m320-probe-2.json"
+  },
+  "ev4:D-0067:c1=0.75,c2=1:0": {
+   "margin_v": {
+    "160": -0.0006114929912717634,
+    "320": -0.0007217671190619382,
+    "80": -0.00039193416271989965
+   },
+   "monotone": true,
+   "p": 0.9935131974756137,
+   "roache_error_160_v": 0.00022154664054931436,
+   "sha256": "3fe55c4531630054cd5285a461ded97be0ae9b3726c54c969df9fd29fd71765f",
+   "source": "battery-u-panel-1/case-0.json"
+  },
+  "ev4:D-0091:c1=1.5,c2=0.8:0": {
+   "margin_v": {
+    "160": -0.0005884504990619833,
+    "320": -0.0006830601020169904,
+    "80": -0.0004001367455647236
+   },
+   "monotone": true,
+   "p": 0.9930798401691154,
+   "roache_error_160_v": 0.00019013340760513288,
+   "sha256": "2ac5d9df0068b818835de1e127dd6782fe9c3ded8dcae44851dc359f0e575b32",
+   "source": "battery-u-panel-1/case-2.json"
+  },
+  "ev4:D-0121:c1=1.75,c2=1:0": {
+   "margin_v": {
+    "160": -0.00073293313544828,
+    "320": -0.0008501543318121926,
+    "80": -0.0004911047192970796
+   },
+   "monotone": true,
+   "p": 1.044750312320144,
+   "roache_error_160_v": 0.00022749417172154715,
+   "sha256": "cc31dd940e1879d4cc466bfa49eafc845a74207572a1eebd975459bb3c46e568",
+   "source": "battery-u-panel-1/case-1.json"
+  }
+ },
+ "panel_summary": {
+  "largest_roache_error_160_v": 0.00022749417172154715,
+  "p_range": [
+   0.9930798401691154,
+   1.044750312320144
+  ],
+  "u_panel_sha256": "2c88e5f40412989276e53f1bf908ad760fa84fa87520066f7e68fbeae863b537"
+ },
+ "quantity_note": "plating_margin_m160_v: the plating margin at mesh 160 (plating v2 reference), volts; the sealed exam's spot-check and within-U band",
+ "schema": "carbon.reference-uncertainty.v1",
+ "scope": "DEVELOPMENT reference quality for the sealed Battery exam QA (VALIDATOR_BATTERY_SEALED_RULINGS_20261022 sections 6, 8, 9). Public ev4 cases only. Not scientific qualification."
+}
