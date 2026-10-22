@@ -54,7 +54,7 @@
     const h = Math.floor(seconds / 3600), m = Math.floor(seconds % 3600 / 60), s = Math.floor(seconds % 60);
     return (h ? h + "h " : "") + (h || m ? m + "m " : "") + s + "s";
   }
-  function when(unix) { return typeof unix === "number" ? new Date(unix * 1000).toLocaleString() : "unavailable"; }
+  function when(unix) { return typeof unix === "number" ? new Date(unix * 1000).toLocaleString(undefined, {timeZoneName: "short"}) : "unavailable"; }
   function fmt(value) { return Charts.fmt(value); }
   function copyButton(text, label) {
     const b = button("Copy", "rs-copy");
@@ -304,6 +304,10 @@
     const controls = doc.controls.filter(control => !compact || control.action === "stop" || control.action === "pause" || needs.includes(control.action));
     controls.sort((a, b) => (b.action === lead) - (a.action === lead));
     for (const control of controls) {
+      // Only what applies to this state: a control that cannot be pressed (Resume while it runs,
+      // anything on a finished campaign) is not drawn, unless the state's recovery needs it,
+      // where its reason is the message.
+      if (!control.available && !needs.includes(control.action)) continue;
       const b = button(control.label, control.action === "stop" ? "rs-stop" : control.action === lead ? "primary" : "", () => CC.researchAction(doc.campaign.id, control.action));
       b.disabled = !control.available || !CC.state().connected || CC.state().busy;
       if (control.reason) b.title = control.reason;

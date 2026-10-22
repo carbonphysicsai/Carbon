@@ -615,7 +615,7 @@
     setText($("run-steps"), run.steps + " / " + run.spec.max_steps);
     $("progress").max = run.spec.max_steps;
     $("progress").value = run.steps;
-    setText($("deadline"), "Fixed deadline: " + new Date(run.deadline * 1000).toLocaleString());
+    setText($("deadline"), "Fixed deadline: " + new Date(run.deadline * 1000).toLocaleString(undefined, {timeZoneName: "short"}));
     $("pause").disabled = !connected || busy || !["QUEUED", "RUNNING"].includes(run.state);
     $("resume").disabled = !connected || busy || !["PAUSED", "INTERRUPTED"].includes(run.state);
     $("stop").disabled = !connected || busy || !["QUEUED", "RUNNING", "PAUSED", "INTERRUPTED"].includes(run.state);
@@ -625,7 +625,7 @@
       for (const event of shown) {
         const item = document.createElement("li");
         const at = document.createElement("time");
-        at.textContent = new Date(event.at * 1000).toLocaleTimeString();
+        at.textContent = new Date(event.at * 1000).toLocaleTimeString(undefined, {timeZoneName: "short"});
         const kind = document.createElement("span");
         kind.textContent = event.kind.replaceAll("_", " ");
         item.append(at, kind);
@@ -2442,8 +2442,8 @@
     return null;
   }
   function when(at) {
-    if (typeof at === "number" && Number.isFinite(at)) return new Date((at > 1e12 ? at : at * 1000)).toLocaleString();
-    if (typeof at === "string" && !Number.isNaN(Date.parse(at))) return new Date(at).toLocaleString();
+    if (typeof at === "number" && Number.isFinite(at)) return new Date((at > 1e12 ? at : at * 1000)).toLocaleString(undefined, {timeZoneName: "short"});
+    if (typeof at === "string" && !Number.isNaN(Date.parse(at))) return new Date(at).toLocaleString(undefined, {timeZoneName: "short"});
     return null;
   }
   // Where a refusal's correction is taken, when this page has the place.
@@ -2802,7 +2802,7 @@
     if (run.execution_label) researchNote(panel, run.execution_label, "hint");
     const health = agentHealth(run);
     if (health) researchNote(panel, health, "reason agent-health");
-    if (run.deadline_unix) researchNote(panel, "Deadline from your elapsed limit: " + new Date(run.deadline_unix * 1000).toLocaleString());
+    if (run.deadline_unix) researchNote(panel, "Deadline from your elapsed limit: " + new Date(run.deadline_unix * 1000).toLocaleString(undefined, {timeZoneName: "short"}));
     else researchNote(panel, "No deadline: you set no elapsed limit.", "hint");
     if (run.research_guidance) {
       const task = document.createElement("p"); task.className = "frozen-guidance";
@@ -4616,7 +4616,7 @@
     if (entry.settled) return entry.settled;
     // A start time, not a running clock: the line changes only when the
     // operation's state does, so it never redraws its form.
-    const elapsed = "started " + new Date(entry.since).toLocaleTimeString();
+    const elapsed = "started " + new Date(entry.since).toLocaleTimeString(undefined, {timeZoneName: "short"});
     if (WORKING[run.state]) {
       const doing = {practice: entry.mode === "smoke" ? "Smoke practice running" : "Practice trial running", freeze_candidate: "Freezing your candidate", submit: "Submitting your frozen candidate: your registration is read, then it is sent for the DEVELOPMENT comparison"}[entry.name];
       return {kind: "working", text: doing + " · " + elapsed + "." + (entry.replaced ? " " + REPLACED : "")};
