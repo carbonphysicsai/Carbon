@@ -232,10 +232,10 @@ def test_the_straddle_counts_a_third_a_side_over_all_140():
 
 def test_every_scenario_needs_a_feasible_and_an_infeasible_candidate():
     assert dc.decision(_cases(lambda s, k: k % 2 == 0), U) is None
-    assert dc.decision(_cases(lambda s, k: s == 2 or k % 2 == 0), U) == "decision_scenario_no_feasible"
-    assert dc.decision(_cases(lambda s, k: s != 1 and k % 2 == 0), U) == "decision_scenario_no_infeasible"
+    assert dc.decision(_cases(lambda s, k: s == 2 or k % 2 == 0), U) == "decision_condition_no_feasible"
+    assert dc.decision(_cases(lambda s, k: s != 1 and k % 2 == 0), U) == "decision_condition_no_infeasible"
     only_unresolved = _cases(lambda s, k: k % 2 == 0, unresolved=lambda s, k: s == 3 and k % 2 == 1)
-    assert dc.decision(only_unresolved, U) == "decision_scenario_no_feasible"
+    assert dc.decision(only_unresolved, U) == "decision_condition_no_feasible"
 
 
 def test_the_runner_builds_records_without_merging_failure_kinds():
