@@ -559,7 +559,8 @@ def _entries():
             _f02_direct,
             None,
         ),
-        # Battery 2.2 (the Validator, 2026-10-22): Battery 2.1 plus the
+        # Battery 2.2, Battery's launch version (OWNER-BATTERY-LAUNCH-VERSION-01;
+        # the Validator, 2026-10-22): Battery 2.1 plus the
         # backbone catalog, by its own adapter (`battery.catalog_version`);
         # catalog recipes only (`carbon.direct_campaign`). Its exam, TRAIN,
         # gates and pack set are 2.1's. Its catalog is empty until each entry

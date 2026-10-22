@@ -16,7 +16,8 @@ and Cooling 1.2 also serve the backbone catalog.
 F08 1.4 and F02 2.3 (the Validator, 2026-10-20: graph joins them before they
 freeze; no 1.5 / 2.4) serve v7, the backbone catalog binding and Carbon's
 graph training adapter (`development_session.physical_graph_adapter`); F08
-1.3 and F02 2.2 keep their bytes. Battery 2.2 (the Validator, 2026-10-22) is
+1.3 and F02 2.2 keep their bytes. Battery 2.2, Battery's launch version
+(OWNER-BATTERY-LAUNCH-VERSION-01; the Validator, 2026-10-22), is
 Battery 2.1 plus the catalog binding (`battery.catalog_version`); 2.1 keeps
 its bytes.
 """

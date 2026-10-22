@@ -1,7 +1,8 @@
 """Battery's backbone-catalog versions: a base Battery version plus the catalog
 binding (the Validator's ruling, 2026-10-22).
 
-Battery 2.2 is Battery 2.1 plus Carbon's tested backbones by catalog id. Its
+Battery 2.2, Battery's launch version (OWNER-BATTERY-LAUNCH-VERSION-01), is
+Battery 2.1 plus Carbon's tested backbones by catalog id. Its
 exam, public TRAIN, gates, development bank and pack set are 2.1's, unchanged;
 only its construction limits differ, by its own version and the exact catalog
 it serves (`backbone_catalog.served`), so a catalog recipe binds that catalog.
