@@ -177,6 +177,14 @@ def query_inputs(adapter, like):
     )
 
 
+def bank_cases(adapter):
+    """The public development bank as ``[(case_id, cohort, inputs)]`` in the bank's
+    order, ``inputs`` a dict keyed by the interface's input names: the cases a
+    practice must query the model on for the dual measurement."""
+    _bank, _public, _names, rows = _rows(adapter)
+    return [(row["case_id"], row["cohort"], dict(row["inputs"])) for row in rows]
+
+
 def from_rows(adapter, rows):
     """The dual block for ``rows``: the model's flat outputs on exactly the
     bank's inputs (`query_inputs`), in the bank's order. The model is queried

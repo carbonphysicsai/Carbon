@@ -883,7 +883,29 @@ class BatteryPractice:
         envelope = graph_envelope_from_workspace(self.ledger, self.owner, recipe)
         seed = self._seed(identity)
         decision = practice_safety.decision_set(self.root)
-        cases = self.practice.inputs_document(extra=decision.cases())["cases"]
+        # C13: the exam's dual measurement needs the public development bank's
+        # decision and probe rows (the practice rows are queried already), so
+        # the one inference below also covers them. Public, run on this host.
+        from carbon.scoring import battery_dual_pack, practice_dual
+
+        # The direct graph route serves the 1.0 construction kit, whose public
+        # practice rows are the first rows of the 2.0 development bank (the bank
+        # that adds the decision grid and the probe pairs). The block names the
+        # measurement version it ran (`practice_dual.challenge.version`).
+        dual_version = {"1.0": "2.0"}.get(kit["version"], kit["version"])
+        dual_adapter = practice_dual.versioned(battery_dual_pack, dual_version)
+        bank_cases = (
+            [] if dual_adapter is None else practice_dual.bank_cases(dual_adapter)
+        )
+        practice_ids = set(self.practice.case_ids)
+        bank_extra = [
+            {"case_id": case_id, "inputs": inputs}
+            for case_id, cohort, inputs in bank_cases
+            if case_id not in practice_ids
+        ]
+        cases = self.practice.inputs_document(extra=[*decision.cases(), *bank_extra])[
+            "cases"
+        ]
         worker = direct_graph_worker.reconstruct_public(
             self.ledger,
             owner=self.owner,
@@ -924,7 +946,8 @@ class BatteryPractice:
         }
         _rows, summary = score_practice(asked, self.practice, self.material, self.root)
         result = {
-            "schema": "carbon.battery.direct-practice-feedback.v1",
+            # v2 (C13) adds the shared `practice_dual` block; v1 had none.
+            "schema": "carbon.battery.direct-practice-feedback.v2",
             "provenance": "BATTERY_PUBLIC_PRACTICE",
             "challenge": recipe.to_dict()["challenge"],
             "recipe_digest": recipe.digest,
@@ -966,6 +989,9 @@ class BatteryPractice:
             "scientific_qualification": False,
             "recipe": strategy,
             "seed_source": "carbon_retained_randomness",
+            "practice_dual": _battery_dual_feedback(
+                dual_adapter, bank_cases, inference.predictions
+            ),
         }
         workspace = ResearchWorkspace(self.ledger, self.owner)
         state_name = (
@@ -996,6 +1022,32 @@ class BatteryPractice:
             canonical(result),
         )
         return result
+
+
+def _battery_dual_feedback(adapter, bank_cases, predictions):
+    """The shared practice dual block for the model's predictions on the public
+    development bank, or an explicit "unavailable" (never a silent omission)."""
+    from carbon.scoring import battery_dual_pack, practice_dual
+
+    if adapter is None:
+        return practice_dual.unavailable(
+            battery_dual_pack, "practice_version_not_registered"
+        )
+    rows = []
+    for case_id, _cohort, _inputs in bank_cases:
+        prediction = predictions.get(case_id)
+        try:
+            rows.append(
+                [
+                    *prediction["voltage_v"],
+                    *prediction["temperature_c"],
+                    prediction["plating_margin_v"],
+                    *prediction["capacity_ah"],
+                ]
+            )
+        except (KeyError, TypeError):
+            return practice_dual.unavailable(adapter, "practice_prediction_missing")
+    return practice_dual.from_rows(adapter, rows)
 
 
 def _installed_device():

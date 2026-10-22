@@ -1529,7 +1529,12 @@ def prepare_custody_v4(artifact_root: Path, role_manifest_path: Path) -> dict:
             )
         worker = feedback.get("worker")
         if (
-            feedback.get("schema") != "carbon.battery.direct-practice-feedback.v1"
+            feedback.get("schema")
+            not in (
+                "carbon.battery.direct-practice-feedback.v1",
+                # v2 (C13) adds the shared practice_dual block; v1 keeps its meaning.
+                "carbon.battery.direct-practice-feedback.v2",
+            )
             or feedback.get("provenance") != "BATTERY_PUBLIC_PRACTICE"
             or feedback.get("official_eligible") is not False
             or feedback.get("scientific_qualification") is not False
