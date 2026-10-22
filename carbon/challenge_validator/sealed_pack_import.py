@@ -42,7 +42,6 @@ from pathlib import Path, PurePosixPath
 from .answer_key import AnswerKeyRefused
 from .evaluation_pack import UNAVAILABLE, EvaluationPackUnavailable, parse_pack
 
-
 SEALED_COMMITMENT_SCHEMA = "carbon.challenge-validator.sealed-pack-commitment.v1"
 SEALED_KIND = "sealed_pack"
 DEPLOYMENT_SCHEMA = "carbon.challenge-validator.sealed-pack-deployment.v1"
@@ -58,6 +57,21 @@ _COMMITMENT_FIELDS = {
     "window",
 }
 _PAYLOAD_FIELDS = {"manifest", "files"}
+#: The signed pack-set manifest of a Challenge version (OWNER-FULL-EXAM-BANK-01):
+#: the active batch packs by manifest digest; its key is the evaluation key.
+SET_COMMITMENT_SCHEMA = "carbon.challenge-validator.sealed-pack-set-commitment.v1"
+SET_KIND = "sealed_pack_set"
+SETS_DIRECTORY = ".sets"
+_SET_COMMITMENT_FIELDS = {
+    "schema",
+    "kind",
+    "challenge_id",
+    "challenge_version",
+    "fingerprint",
+    "set_key",
+    "batches",
+    "window",
+}
 #: Transport bounds only (the package body is bounded by `MAX_PACKAGE`).
 MAX_FILES = 256
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
@@ -77,6 +91,64 @@ def commitment_for(challenge_id, challenge_version, manifest_bytes, files, windo
         "files": len(files),
         "window": window,
     }
+
+
+def set_commitment_for(challenge_id, challenge_version, batch_digests, window):
+    """The commitment a producer signs for a pack set: the Challenge version and
+    the active batch packs. The set key (the evaluation key) is its fingerprint."""
+    from . import sealed_exam_common as common
+
+    document = common.pack_set_document(challenge_id, challenge_version, batch_digests)
+    key = common.pack_set_key(document)
+    return {
+        "schema": SET_COMMITMENT_SCHEMA,
+        "kind": SET_KIND,
+        "challenge_id": challenge_id,
+        "challenge_version": challenge_version,
+        "fingerprint": key,
+        "set_key": key,
+        "batches": document["batches"],
+        "window": window,
+    }
+
+
+def set_payload_for(commitment):
+    """The signed payload of a set: its body (digests only, no exam content)."""
+    return {"batches": list(commitment["batches"])}
+
+
+def verify_set(commitment, payload):
+    """Verify a pack-set commitment against its payload; returns the set body.
+    The payload must be exactly the committed batches, in the set's one order,
+    and the committed key must be the body's digest. Writes nothing."""
+    from . import sealed_exam_common as common
+
+    if (
+        type(commitment) is not dict
+        or set(commitment) != _SET_COMMITMENT_FIELDS
+        or commitment["schema"] != SET_COMMITMENT_SCHEMA
+        or commitment["kind"] != SET_KIND
+        or commitment["fingerprint"] != commitment["set_key"]
+    ):
+        raise AnswerKeyRefused("answer_key_malformed")
+    try:
+        document = common.pack_set_document(
+            commitment["challenge_id"],
+            commitment["challenge_version"],
+            commitment["batches"],
+        )
+        key = common.pack_set_key(document)
+    except common.PackSetRefused:
+        raise AnswerKeyRefused("answer_key_pack_set") from None
+    if (
+        type(payload) is not dict
+        or set(payload) != {"batches"}
+        or payload["batches"] != document["batches"]
+        or commitment["batches"] != document["batches"]
+        or key != commitment["set_key"]
+    ):
+        raise AnswerKeyRefused("answer_key_pack_set")
+    return document
 
 
 def payload_for(manifest_bytes, files):
@@ -182,7 +254,10 @@ class SealedPackStore:
 
     def _directory(self, manifest_digest):
         # Operator-typed through --pack-digest: exactly 64 lowercase hex.
-        if type(manifest_digest) is not str or _DIGEST.fullmatch(manifest_digest) is None:
+        if (
+            type(manifest_digest) is not str
+            or _DIGEST.fullmatch(manifest_digest) is None
+        ):
             raise AnswerKeyRefused("answer_key_malformed")
         return self.root / manifest_digest.removeprefix("sha256:")
 
@@ -239,13 +314,68 @@ class SealedPackStore:
             shutil.rmtree(staging, ignore_errors=True)
         return commitment["manifest_digest"]
 
+    def _set_path(self, set_key):
+        if type(set_key) is not str or _DIGEST.fullmatch(set_key) is None:
+            raise AnswerKeyRefused("answer_key_malformed")
+        return self.root / SETS_DIRECTORY / (set_key.removeprefix("sha256:") + ".json")
+
+    def holds_set(self, commitment):
+        try:
+            return self._set_path(commitment["set_key"]).is_file()
+        except (AnswerKeyRefused, KeyError, TypeError):
+            return False
+
+    def import_pack_set(self, commitment, payload):
+        """Record a verified pack-set commitment, create-only. The batch packs
+        need not be here yet (a sync may deliver them in any order); they are
+        verified, one by one, when the set is used (`pack_set`)."""
+        verify_set(commitment, payload)
+        self._owner_only_root()
+        record = self.root / SETS_DIRECTORY
+        record.mkdir(mode=0o700, exist_ok=True)
+        path = self._set_path(commitment["set_key"])
+        if not path.exists():
+            path.write_bytes(
+                json.dumps(commitment, sort_keys=True, separators=(",", ":")).encode()
+            )
+            path.chmod(0o600)
+        return commitment["set_key"]
+
+    def pack_set(self, set_key, challenge_id, challenge_version):
+        """The verified batch directories of a Challenge version's pack set, in
+        the set's order: ``[(manifest_digest, directory)]``. Every batch must be
+        in this store, re-verified now and delivered through the answer-key
+        route; otherwise `AnswerKeyRefused` (an unset or partial set grades
+        nothing)."""
+        try:
+            commitment = json.loads(self._set_path(set_key).read_bytes())
+        except (OSError, ValueError):
+            raise AnswerKeyRefused("answer_key_pack_set_missing") from None
+        verify_set(commitment, set_payload_for(commitment))
+        if (
+            commitment["set_key"] != set_key
+            or commitment["challenge_id"] != challenge_id
+            or commitment["challenge_version"] != challenge_version
+        ):
+            raise AnswerKeyRefused("answer_key_wrong_challenge")
+        batches = []
+        for digest in commitment["batches"]:
+            if not self.delivered(digest, challenge_id, challenge_version):
+                raise AnswerKeyRefused("answer_key_pack_set_batch_missing")
+            batches.append(
+                (digest, self.pack_directory(digest, challenge_id, challenge_version))
+            )
+        return batches
+
     def _record_delivery(self, commitment):
         """Record that this pack arrived through the answer-key route: the
         signed commitment, create-only, outside the pack directory. A pack
         placed in the store any other way has no such record."""
         record = self.root / DELIVERED_DIRECTORY
         record.mkdir(mode=0o700, exist_ok=True)
-        name = record / (commitment["manifest_digest"].removeprefix("sha256:") + ".json")
+        name = record / (
+            commitment["manifest_digest"].removeprefix("sha256:") + ".json"
+        )
         if not name.exists():
             name.write_bytes(
                 json.dumps(commitment, sort_keys=True, separators=(",", ":")).encode()
@@ -324,6 +454,8 @@ class SealedPackAdapter:
         )
 
     def holds_answer_key(self, commitment):
+        if commitment.get("schema") == SET_COMMITMENT_SCHEMA:
+            return self.store.holds_set(commitment)
         return self.store.holds(commitment)
 
     def import_answer_key(self, commitment, payload):
@@ -332,6 +464,8 @@ class SealedPackAdapter:
             or commitment.get("challenge_version") != self.challenge_version
         ):
             raise AnswerKeyRefused("answer_key_wrong_challenge")
+        if commitment.get("schema") == SET_COMMITMENT_SCHEMA:
+            return self.store.import_pack_set(commitment, payload)
         return self.store.import_pack(commitment, payload)
 
     def withdraw_answer_key(self, manifest):
@@ -342,9 +476,14 @@ __all__ = [
     "DEPLOYMENT_SCHEMA",
     "SEALED_COMMITMENT_SCHEMA",
     "SEALED_KIND",
+    "SET_COMMITMENT_SCHEMA",
+    "SET_KIND",
     "SealedPackAdapter",
     "SealedPackStore",
     "commitment_for",
     "payload_for",
+    "set_commitment_for",
+    "set_payload_for",
     "verify_payload",
+    "verify_set",
 ]

@@ -166,11 +166,20 @@ class ProducerKey:
 def package(key, commitment, payload):
     """One signed package: the producer commitment and its payload."""
     from .batch_source import COMMITMENT_SCHEMA, SERVED_KINDS
-    from .sealed_pack_import import SEALED_COMMITMENT_SCHEMA, SEALED_KIND
+    from .sealed_pack_import import (
+        SEALED_COMMITMENT_SCHEMA,
+        SEALED_KIND,
+        SET_COMMITMENT_SCHEMA,
+        SET_KIND,
+    )
 
     if type(key) is not ProducerKey:
         raise TypeError("a ProducerKey is required")
-    if commitment.get("schema") == SEALED_COMMITMENT_SCHEMA:
+    if commitment.get("schema") == SET_COMMITMENT_SCHEMA:
+        # A Challenge version's pack set (OWNER-FULL-EXAM-BANK-01).
+        if commitment.get("kind") != SET_KIND:
+            raise AnswerKeyRefused("answer_key_kind_not_served")
+    elif commitment.get("schema") == SEALED_COMMITMENT_SCHEMA:
         # A sealed evaluation pack (Workstream I2), not a hidden batch.
         if commitment.get("kind") != SEALED_KIND:
             raise AnswerKeyRefused("answer_key_kind_not_served")
@@ -201,7 +210,12 @@ def verify_manifest(value, producer_public_key):
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
     from .batch_source import COMMITMENT_SCHEMA, SERVED_KINDS
-    from .sealed_pack_import import SEALED_COMMITMENT_SCHEMA, SEALED_KIND
+    from .sealed_pack_import import (
+        SEALED_COMMITMENT_SCHEMA,
+        SEALED_KIND,
+        SET_COMMITMENT_SCHEMA,
+        SET_KIND,
+    )
 
     try:
         manifest = value["manifest"]
@@ -222,11 +236,17 @@ def verify_manifest(value, producer_public_key):
     if (
         manifest.get("schema") != MANIFEST_SCHEMA
         or type(commitment) is not dict
-        or commitment.get("schema") not in (COMMITMENT_SCHEMA, SEALED_COMMITMENT_SCHEMA)
+        or commitment.get("schema")
+        not in (COMMITMENT_SCHEMA, SEALED_COMMITMENT_SCHEMA, SET_COMMITMENT_SCHEMA)
     ):
         raise AnswerKeyRefused("answer_key_malformed")
-    sealed = commitment["schema"] == SEALED_COMMITMENT_SCHEMA
-    if commitment.get("kind") not in ((SEALED_KIND,) if sealed else SERVED_KINDS):
+    schema = commitment["schema"]
+    served = (
+        (SEALED_KIND,)
+        if schema == SEALED_COMMITMENT_SCHEMA
+        else (SET_KIND,) if schema == SET_COMMITMENT_SCHEMA else SERVED_KINDS
+    )
+    if commitment.get("kind") not in served:
         raise AnswerKeyRefused("answer_key_kind_not_served")
     return commitment
 
