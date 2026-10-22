@@ -513,7 +513,7 @@ scenario("the model step offers a provider call timeout with its default and sen
   const choice = fx.caps_setup_model.model.setup_choice;
   const timeout = fx.caps_setup_model.model.call_timeout;
   // No Carbon maximum for a miner's timeout (limits row #8).
-  assert.deepEqual(timeout.bounds, [10, 2 ** 63 - 1]);
+  assert.deepEqual(timeout.bounds, [10, 2 ** 31 - 1]);
   assert.equal(timeout.default, 600);
   assert.equal(page.$("wizard-timeout").hidden, false, "the timeout is offered with a model chosen");
   assert.match(page.text("wizard-timeout"), /Provider call timeout \(seconds\)/);

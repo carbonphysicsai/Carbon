@@ -1796,10 +1796,10 @@
     if (text) {
       value = /^\d+$/.test(text) ? Number(text) : NaN;
       if (!Number.isSafeInteger(value) || value < low || value > high) {
-        // No Carbon maximum for a miner's selection (limits row #8): the
-        // bound beyond a safe integer is the 64-bit type check, not a limit.
+        // No Carbon maximum for a miner's selection (limits row #8): a bound
+        // at or above 2**31 - 1 is a representation bound, not a limit.
         problem = "max output tokens must be a whole number from " + low.toLocaleString("en-US")
-          + (Number.isSafeInteger(high) ? " to " + high.toLocaleString("en-US") : " up");
+          + (high < 2147483647 ? " to " + high.toLocaleString("en-US") : " up");
         value = null;
       }
     }
@@ -1819,7 +1819,7 @@
       value = /^\d+$/.test(text) ? Number(text) : NaN;
       if (!Number.isSafeInteger(value) || value < low || value > high) {
         problem = "the provider call timeout must be a whole number of seconds from " + low.toLocaleString("en-US")
-          + (Number.isSafeInteger(high) ? " to " + high.toLocaleString("en-US") : " up");
+          + (high < 2147483647 ? " to " + high.toLocaleString("en-US") : " up");
         value = null;
       }
     }
