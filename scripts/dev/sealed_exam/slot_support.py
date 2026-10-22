@@ -24,6 +24,11 @@ from pathlib import Path
 UNITS = {"b": 1, "k": 1024, "m": 1024**2, "g": 1024**3}
 
 
+class SlotMemoryInsufficient(ValueError):
+    """A container asks for more memory than the slot's cap: refused, never silently lowered
+    (a real need would become a mid-solve OOM)."""
+
+
 def cores(spec):
     """The set of CPU ids in a cpuset spec such as `0-15,32`."""
     out = set()
@@ -74,8 +79,8 @@ def to_bytes(text):
 def rewrite_docker_args(args, cpuset, mem_mib):
     """`docker run` arguments with the slot's `--cpuset-cpus` and `--memory`
     (+ equal `--memory-swap`) applied. A memory cap the job already asks for
-    that is smaller than the slot's is kept; anything else is replaced. Other
-    docker commands are returned unchanged."""
+    that is within the slot's is kept; one above it raises `SlotMemoryInsufficient`
+    (typed refusal, never silently lowered). Other docker commands are returned unchanged."""
     args = list(args)
     if not args or args[0] != "run":
         return args
@@ -90,7 +95,9 @@ def rewrite_docker_args(args, cpuset, mem_mib):
         if name in ("--memory", "-m"):
             raw = value if eq else args[i + 1]
             wanted = to_bytes(raw)
-            keep_mem = min(wanted, cap) if keep_mem is None else min(keep_mem, wanted, cap)
+            if wanted > cap:
+                raise SlotMemoryInsufficient(f"a container asks for {wanted} bytes, the slot's cap is {cap}")
+            keep_mem = wanted if keep_mem is None else min(keep_mem, wanted)
             i += 1 if eq else 2
             continue
         out.append(arg)
@@ -180,7 +187,21 @@ def main(argv):
         real, args = argv[2], argv[3:]
         cpuset, mem = os.environ.get("SLOT_CPUSET"), os.environ.get("SLOT_MEM_MIB")
         if cpuset and mem:
-            args = rewrite_docker_args(args, cpuset, int(mem))
+            try:
+                args = rewrite_docker_args(args, cpuset, int(mem))
+            except SlotMemoryInsufficient as error:
+                print(f"slot_memory_insufficient: {error}", file=sys.stderr)
+                marker = os.environ.get("SLOT_MARKER_DIR")
+                if marker:
+                    Path(marker, ".slot_memory_insufficient").write_text(str(error))
+                return 125
+            result = subprocess.run([real, *args])
+            if result.returncode == 137 and args and args[0] == "run":
+                # killed (the kernel's OOM): infra, typed; the runner stops before sealing anything
+                marker = os.environ.get("SLOT_MARKER_DIR")
+                if marker:
+                    Path(marker, ".slot_oom_137").write_text("rc 137 in a slot")
+            return result.returncode
         os.execvp(real, [real, *args])
     raise SystemExit(__doc__)
 

@@ -74,6 +74,11 @@ if [ "${DRY:-0}" != 1 ]; then
     printf '#!/bin/sh\nexec python3 "%s/slot_support.py" shim "%s" "$@"\n' "$HERE" "$REAL_DOCKER" > "$out/.shim/docker"
     chmod 755 "$out/.shim/docker"
     export SLOT_CPUSET SLOT_MEM_MIB
+    export SLOT_MARKER_DIR="$out"
+    # a Challenge states the most memory one container asks for; a smaller slot is refused before any solve
+    if [ -n "${MEM_REQUIRED_MIB:-}" ] && [ "$SLOT_MEM_MIB" -lt "$MEM_REQUIRED_MIB" ]; then
+      echo "STOP: slot_memory_insufficient: slot $SLOT caps $SLOT_MEM_MIB MiB, $CHALLENGE needs $MEM_REQUIRED_MIB MiB; declare the slot at >= $MEM_REQUIRED_MIB" >&2; exit 1
+    fi
     PATH="$out/.shim:$PATH"
   else
     load1=$(awk '{printf "%d", $1}' /proc/loadavg)
@@ -210,6 +215,9 @@ while [ "$i" -le "$N" ]; do
     fp=$(field "$drawn" fingerprint)
     producer solve --challenge "$CID" --fingerprint "$fp" --workers "$parallel" --timeout-s 7200 >> "$priv/logs/solve-${fp#sha256:}.log" 2>&1
     producer solve --challenge "$CID" --fingerprint "$fp" --workers "$parallel" --timeout-s 7200 >> "$priv/logs/solve-${fp#sha256:}.log" 2>&1
+    if [ -e "$out/.slot_memory_insufficient" ] || [ -e "$out/.slot_oom_137" ]; then
+      echo "STOP: slot_memory_insufficient / OOM rc 137 in slot $SLOT (infrastructure, typed); to the Validator" >&2; exit 1
+    fi
     if [ -n "$SLOT" ] && grep -q '"status": "REFERENCE_TIMEOUT"' "$priv/producer/work/$CID/${fp#sha256:}/records.jsonl" 2>/dev/null; then
       echo "STOP: a REFERENCE_TIMEOUT while slotted (slot $SLOT): the isolation did not hold; to the Validator" >&2; exit 1
     fi
