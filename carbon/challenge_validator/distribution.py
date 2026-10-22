@@ -255,6 +255,18 @@ class DistributionService:
         )
         return status, answer
 
+    #: The route this service answers (its requests are signed for this path).
+    route = PATH
+    request_schema = REQUEST_SCHEMA
+
+    def _packages(self, challenge_id, block, hotkey):
+        """`(packages by fingerprint, skipped)` this hotkey may be served."""
+        return self.inbox.packages(challenge_id, block=block)
+
+    def _served_extra(self, package):
+        """Extra fields for the fetch-log line of a SERVED package."""
+        return {}
+
     def handle(self, headers, body):
         """`(status, answer)` for one request."""
         from carbon.chain.auth import AuthFailure
@@ -265,7 +277,7 @@ class DistributionService:
                 headers,
                 body,
                 method="POST",
-                path=PATH,
+                path=self.route,
                 receiver=self.receiver,
                 now_ns=self.clock_ns(),
                 nonce_store=self.nonces,
@@ -279,7 +291,7 @@ class DistributionService:
             if (
                 type(request) is not dict
                 or set(request) != {"schema", "challenge_id", "fingerprint"}
-                or request["schema"] != REQUEST_SCHEMA
+                or request["schema"] != self.request_schema
                 or type(request["challenge_id"]) is not str
                 or type(request["fingerprint"]) not in (str, type(None))
             ):
@@ -306,7 +318,7 @@ class DistributionService:
             return refuse(403, "answer_key_no_validator_permit", block)
         block = permit["block"]
         try:
-            packages, _ = self.inbox.packages(request["challenge_id"], block=block)
+            packages, _ = self._packages(request["challenge_id"], block, hotkey)
         except (AnswerKeyRefused, OSError):
             return refuse(503, "answer_key_inbox_unavailable", block)
         if fingerprint is None:
@@ -339,6 +351,7 @@ class DistributionService:
             block=block,
             fingerprint=fingerprint,
             verdict="SERVED",
+            **self._served_extra(packages[fingerprint]),
             **delivery,
         )
         return 200, {"package": packages[fingerprint]}
@@ -386,7 +399,7 @@ def load_config(path, *, repository=REPOSITORY):
         "host",
         "port",
     }
-    optional = {"exposure_record", "tls_cert", "tls_key", "signing_key"}
+    optional = {"exposure_record", "tls_cert", "tls_key", "signing_key", "copies"}
     if (
         type(config) is not dict
         or config.get("schema") != CONFIG_SCHEMA
@@ -432,7 +445,12 @@ def make_server(service, config, *, repository=REPOSITORY):
             return self._answer(*service.handle_training(self.path))
 
         def do_POST(self):
-            if self.path != PATH:
+            routes = {PATH: service}
+            extra = getattr(service, "pack_service", None)
+            if extra is not None:
+                routes[extra.route] = extra
+            answering = routes.get(self.path)
+            if answering is None:
                 return self._answer(404, {"refused": "not_found"})
             length = int(self.headers.get("Content-Length") or 0)
             if not 0 < length <= MAX_REQUEST:
@@ -442,7 +460,7 @@ def make_server(service, config, *, repository=REPOSITORY):
             if len(headers) != len(self.headers.items()):
                 # A repeated header is ambiguous: refused, as the intake does.
                 return self._answer(400, {"refused": "answer_key_headers"})
-            return self._answer(*service.handle(headers, body))
+            return self._answer(*answering.handle(headers, body))
 
     return hardened_listener(config, Handler, service=SERVICE)
 
@@ -466,7 +484,7 @@ def build(config):
 
     from .training_pool import TrainingPool
 
-    return DistributionService(
+    service = DistributionService(
         Inbox(config["inbox"], config["producer_public_key"]),
         receiver=config["receiver"],
         verifier=BittensorHotkeyVerifier(),
@@ -480,6 +498,13 @@ def build(config):
         # The host's own owner-only delivery-signing key, when configured.
         signer=_delivery_signer(config),
     )
+    if "copies" in config:
+        # The per-hotkey evaluation-pack route (E4): signed per-hotkey copies the
+        # producer pushed; a hotkey is served only its own.
+        from .copy_route import attach
+
+        attach(service, config["copies"], config["producer_public_key"])
+    return service
 
 
 def main(argv=None):
