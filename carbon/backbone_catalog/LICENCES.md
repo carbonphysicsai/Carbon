@@ -42,9 +42,12 @@ cover them explicitly.
 |---|---|---|
 | `neuraloperator` (neuralop) | MIT (read from package metadata, 2.0.0) | neuralop.*, f08.neuralop.*, cooling.neuralop.* |
 | `nvidia-physicsnemo` | Apache-2.0 (read from package metadata, 2.2.0) | physicsnemo.*, f08/cooling/f02 FullyConnected |
+| `timm` (huggingface pytorch-image-models) | Apache-2.0 (read from package metadata, 1.0.29) | thuml.LSM |
 
 The versions the image actually carries are pinned by its environment digest; the figures above are
 from the test venv and must be re-read from the published image when it is built.
+
+`timm` 1.0.29 is imported by `thuml.LSM` and is not in the entry's bundle lock. It must be in the `torch-cu130-py311` lock, hash-pinned at 1.0.29 (the version the repository's `uv.lock` already ships through physicsnemo; not a bundled wheel, which would move LSM's CPU digest): a change for Launchpad / Test Engineer, not made here (Validator ruling, 2026-10-22). It goes on the owner's next named-licence list; it does not block testnet.
 
 ## Variants (an entry that is not the backbone's plain default)
 
