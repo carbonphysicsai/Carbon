@@ -71,3 +71,8 @@ def test_only_allow_listed_fields_reach_the_page():
         "design_value",
         "note",
     }
+
+
+def test_the_block_is_read_from_the_practice_evaluators_outcome():
+    # The producer's key (Test Engineer): outcome["practice_dual"].
+    assert dual_feedback({"outcome": {"practice_dual": _block()}})["total"] == 0.61

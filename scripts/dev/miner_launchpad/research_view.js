@@ -933,7 +933,7 @@
   // total 0..1 (higher better) with A and D as detail.
   function dualText(dual) {
     if (!dual) return null;
-    if (!dual.available) return "Graded total unavailable" + (dual.reason ? ": " + words(dual.reason) : "");
+    if (!dual.available) return /(^|_)d(_|$)|design_value|decision/i.test(dual.reason || "") ? "D unavailable on practice" : "Graded total unavailable" + (dual.reason ? ": " + words(dual.reason) : "");
     if (!dual.eligible) return "Not eligible: " + (Object.entries(dual.gates || {}).filter(([, ok]) => !ok).map(([name]) => words(name)).join(", ") || "a mandatory gate failed");
     if (typeof dual.total !== "number") return "Not scored";
     const detail = [typeof dual.accuracy === "number" ? "A " + dual.accuracy.toFixed(3) : null, typeof dual.design_value === "number" ? "D " + dual.design_value.toFixed(3) : null].filter(Boolean).join(", ");

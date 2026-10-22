@@ -292,13 +292,18 @@ def dual_feedback(experiment):
     """A practice run's dual-feedback block, allow-listed, wherever the run's
     record carries it (beside its summary or inside it); None when absent.
     One reader for all five Challenges (owner rule; Validator C13)."""
-    summary = (
-        experiment.get("summary") if type(experiment.get("summary")) is dict else {}
-    )
+    # The producer attaches it to the practice evaluator's outcome as
+    # `practice_dual` (`scoring.practice_dual.attach`); a run's record may
+    # carry that outcome, or the block beside or inside its summary.
+    places = [experiment]
+    for key in ("outcome", "summary"):
+        if type(experiment.get(key)) is dict:
+            places.append(experiment[key])
     found = next(
         (
             value
-            for value in (*experiment.values(), *summary.values())
+            for place in places
+            for value in place.values()
             if type(value) is dict and value.get("schema") == DUAL_FEEDBACK_SCHEMA
         ),
         None,
