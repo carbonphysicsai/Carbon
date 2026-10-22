@@ -1010,3 +1010,50 @@ def test_wait_keeps_waiting_while_an_operation_is_in_flight():
         host, SimpleNamespace(campaign={"id": "c1"}), {"campaign": "c1"}
     )
     assert done == {"state": "READY", "in_flight": None, "waited": "FINISHED"}
+
+
+def test_a_malformed_recipe_names_the_shape_and_where_a_ready_one_is():
+    # M1 E2E H19: the agent read only "Read the code" and could not correct.
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    text = next_action("construction_recipe_malformed")
+    assert "carbon.construction-recipe.v1" in text and "toolbox" in text
+    for code in (
+        "construction_recipe_source_invalid",
+        "construction_recipe_procedure_invalid",
+        "construction_recipe_binding_mismatch",
+    ):
+        assert "toolbox" in next_action(code), code
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        "model_provider_auth_credential",
+        "model_provider_context_limit",
+        "model_provider_invalid_request",
+        "model_provider_quota_exhausted",
+        "model_provider_rate_limited",
+        "model_provider_server_unavailable",
+        "model_provider_transient_server",
+        "model_provider_unknown",
+        "model_provider_unreachable",
+        "no_submitted_result",
+    ],
+)
+def test_every_new_refusal_has_its_own_next_step(code):
+    from scripts.dev.miner_launchpad.supervisor import FALLBACK_ACTION, next_action
+
+    assert next_action(code) != FALLBACK_ACTION
+
+
+def test_check_result_with_nothing_submitted_is_refused_plainly(tmp_path):
+    from types import SimpleNamespace
+
+    from scripts.dev.miner_launchpad.controller import Rejected
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    admitted = SimpleNamespace(campaign={"id": "c1", "root": str(tmp_path)})
+    with pytest.raises(Rejected) as refused:
+        RunnerAdapter.check_result_admitted(SimpleNamespace(), admitted, {})
+    assert refused.value.code == "no_submitted_result"

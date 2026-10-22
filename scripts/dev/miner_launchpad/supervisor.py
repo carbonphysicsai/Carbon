@@ -251,6 +251,32 @@ NEXT_ACTIONS = {
         "(carbon_practice) with the recipe you want."
     ),
     "retry_interrupted_boolean_required": "Send retry_interrupted as true or false.",
+    # M1 E2E H19: an agent sent a Strategy 1.0 and read only "Read the code".
+    "construction_recipe_malformed": (
+        "That is not a construction recipe. A recipe is a JSON object with "
+        'exactly these keys: schema ("carbon.construction-recipe.v1"), '
+        "challenge, source, procedure and output; a Strategy 1.0 "
+        "({schema_version, backbone, parameters}) is not one. Easiest: call "
+        "toolbox {challenge, challenge_version}; its catalog list holds a "
+        "ready recipe for every backbone. Copy one and change only "
+        "procedure.configuration."
+    ),
+    "construction_recipe_source_invalid": (
+        "The recipe's source is not one this version takes. Copy a catalog "
+        "recipe from toolbox {challenge, challenge_version} (source "
+        "{kind: catalog, catalog_id, catalog_digest}) and keep its source as "
+        "it is."
+    ),
+    "construction_recipe_procedure_invalid": (
+        "The recipe's procedure is not valid: keep entrypoint, train_use and "
+        "initial_state as the toolbox's catalog recipe has them, and change "
+        "only configuration, with the settings the entry lists."
+    ),
+    "construction_recipe_binding_mismatch": (
+        "The recipe names another Challenge, version or kit: copy challenge "
+        "and output from the toolbox's catalog recipe for this campaign's "
+        "exact version."
+    ),
     "no_submitted_result": (
         "No submit of this campaign reached a validator yet, so there is no "
         "grade to read. If a submit was refused, its reason is the campaign's "
