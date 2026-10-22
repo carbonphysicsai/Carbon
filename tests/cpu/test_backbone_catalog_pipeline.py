@@ -67,7 +67,16 @@ HARD = {
     # A variant: it uses upstream's instance-norm option (CATALOG_HARD_FIXES).
     "thuml.LSM",
 }
-
+#: F08 1.4 / F02 2.3 float32 builds, each with its own pair-identity receipt
+#: (Test Lead, PAIR_IDENTITY_PX14_20261022), offered on their own version only.
+F08 = {
+    "f08.neuralop.FNO",
+    "f08.neuralop.TFNO",
+    "f08.neuralop.UQNO",
+    "f08.physicsnemo.FullyConnected",
+    "f08.transolver",
+}
+F02 = {"f02.physicsnemo.FullyConnected"}
 #: The five Torch builds resized to Cooling's 32 outputs, each with its own
 #: Cooling pair-identity receipt (Test Lead, PAIR_IDENTITY_COOLING_CATALOG_
 #: 20261020), offered on Cooling 1.2 only.
@@ -91,7 +100,9 @@ COVERAGE_ITEM = {
 
 
 def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
-    assert set(pipeline.verify_all()) == TORCH | JNO | CLEAN | HARD | COOLING
+    assert set(pipeline.verify_all()) == (
+        TORCH | JNO | CLEAN | HARD | COOLING | F08 | F02
+    )
     # Motor 1.2 is unchanged: the five Torch entries. Motor 1.3 (1.2 plus
     # allowlist v7) adds the eleven jNO entries, built on the C-03 CPU parent,
     # and the six cleaned DeepXDE/THUML entries.
@@ -106,9 +117,17 @@ def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
             [{"id": "chip-cold-plate", "version": "1.2"}]
             if item["catalog_id"] in COOLING
             else (
-                [{**MOTOR, "version": "1.3"}]
-                if item["catalog_id"] in JNO | CLEAN | HARD
-                else [MOTOR, {**MOTOR, "version": "1.3"}]
+                [{"id": "f08-ribbed-bracket", "version": "1.4"}]
+                if item["catalog_id"] in F08
+                else (
+                    [{"id": "f02", "version": "2.3"}]
+                    if item["catalog_id"] in F02
+                    else (
+                        [{**MOTOR, "version": "1.3"}]
+                        if item["catalog_id"] in JNO | CLEAN | HARD
+                        else [MOTOR, {**MOTOR, "version": "1.3"}]
+                    )
+                )
             )
         )
     for version in ("1.0", "1.1"):
