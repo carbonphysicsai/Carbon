@@ -411,6 +411,13 @@ def test_normal_attachment_runtime_uses_exact_installed_candidate(
             implementation if path == profile_path and document == cfg else None
         ),
     )
+    # The file as it is now: what intakes and settings are read from after
+    # the candidate check (H13b receipt).
+    monkeypatch.setattr(
+        installed,
+        "current_profile",
+        lambda path: cfg if path == profile_path else pytest.fail(str(path)),
+    )
     monkeypatch.setattr(
         research_campaign,
         "accepted_implementation",

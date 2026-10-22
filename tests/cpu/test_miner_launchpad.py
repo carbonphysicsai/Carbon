@@ -397,6 +397,19 @@ def test_rebinding_and_cross_origin_are_denied(server):
     assert request(server, "/api/v1/runs", headers=auth(Origin="null"))[0] == 403
 
 
+def test_the_miners_own_ssh_forward_on_another_loopback_port_is_served(server):
+    # M1 E2E U65: `ssh -L 18790:127.0.0.1:<port>` sends Host 127.0.0.1:18790.
+    forwarded = {"Host": "127.0.0.1:18790", "Origin": "http://127.0.0.1:18790"}
+    assert request(server, "/", headers={"Host": "127.0.0.1:18790"})[0] == 200
+    assert request(server, "/api/v1/runs", headers=auth(**forwarded))[0] == 200
+    assert request(server, "/", headers={"Host": "localhost:18790"})[0] == 200
+    # Never another name, a port-less host, or an origin of another port.
+    for host in ("127.0.0.1.attacker.example:18790", "127.0.0.1", "10.0.0.1:18790"):
+        assert request(server, "/", headers={"Host": host})[0] == 403, host
+    mismatched = {"Host": "127.0.0.1:18790", "Origin": "http://127.0.0.1:9999"}
+    assert request(server, "/api/v1/runs", headers=auth(**mismatched))[0] == 403
+
+
 def test_http_full_flow_and_retry(server):
     headers = auth(**{"Idempotency-Key": "request-1234567890"})
     code, _, body = request(server, "/api/v1/runs", "POST", spec(), headers)
@@ -540,3 +553,32 @@ def test_process_exit_releases_owner_lock(tmp_path):
         process.stdout.close()
     with launchpad.owner_lock(directory):
         pass
+
+
+def test_a_remembered_browser_connects_without_a_token(server):
+    # U1 (owner: no token paste per tab or restart): a tab that proved the
+    # token by bearer gets an HttpOnly, SameSite=Strict session cookie.
+    code, headers, _ = request(server, "/api/v1/session", "POST", {}, auth())
+    assert code == 200
+    cookie = headers["Set-Cookie"]
+    assert cookie.startswith("carbon_session=" + "x" * 40 + ";")
+    assert "HttpOnly" in cookie and "SameSite=Strict" in cookie
+    remembered = {"Cookie": "carbon_session=" + "x" * 40}
+    assert request(server, "/api/v1/runs", headers=remembered)[0] == 200
+    assert (
+        request(server, "/api/v1/runs", headers={"Cookie": "carbon_session=wrong"})[0]
+        == 401
+    )
+    # A cookie alone cannot renew itself, and still needs a loopback origin.
+    assert request(server, "/api/v1/session", "POST", {}, remembered)[0] == 401
+    foreign = {**remembered, "Origin": "http://127.0.0.1:9"}
+    assert request(server, "/api/v1/runs", headers=foreign)[0] == 403
+
+
+def test_the_session_token_survives_a_restart(tmp_path):
+    from scripts.dev.miner_launchpad import controller as module
+
+    first = module.session_token(tmp_path)
+    assert module.session_token(tmp_path) == first
+    assert len(first) >= 32
+    assert (tmp_path / "session-token").stat().st_mode & 0o777 == 0o600

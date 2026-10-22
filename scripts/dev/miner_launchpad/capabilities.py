@@ -250,7 +250,7 @@ def _setup_offers(entry):
     }
 
 
-def _challenges(profile_state, host):
+def _challenges(profile_state, host, cfg=None):
     from carbon.challenge_registry import catalog, describe
     from carbon.challenge_registry.registry import (
         DEFERRED,
@@ -288,6 +288,8 @@ def _challenges(profile_state, host):
                 for p in entry["profiles"]
             ],
             "provisions": _provisions(entry["challenge_id"]),
+            "known_limitations": _known_limitations(entry),
+            "catalog_install": _catalog_install(entry, cfg),
             "setup_offers": _setup_offers(entry),
         }
         refusal = None
@@ -318,6 +320,13 @@ def _challenges(profile_state, host):
                 examples[0].get("strategy", examples[0].get("recipe"))
                 if examples
                 else None
+            )
+            # A catalog version's backbone picker: each entry and its ready
+            # recipe, from the version's catalog (S22); [] elsewhere.
+            from scripts.dev.miner_launchpad.toolbox import catalog_recipes
+
+            item["catalog_recipes"] = catalog_recipes(
+                entry["challenge_id"], entry["version"]
             )
         if refusal is None and not profile_state["configured"]:
             refusal = {
@@ -375,10 +384,52 @@ def _mcp_connection(profile_path):
     except Exception:  # noqa: BLE001 - the placeholder still connects a client
         return {"command": MCP_PLACEHOLDER, "profile_path": None}
     return {
-        "command": shlex.join(connection["command"]),
+        "command": " ".join(
+            [
+                *(f"{k}={v}" for k, v in connection.get("environment", {}).items()),
+                shlex.join(connection["command"]),
+            ]
+        ),
         "profile_path": str(profile_path),
         "client_configuration": connection["client_configuration"],
     }
+
+
+def _catalog_install(entry, cfg):
+    """How many of the version's backbone catalog entries are installed on
+    this host (their pinned material staged where practice and admission
+    look, `library_bundle.install_bundle`), or None where the version serves
+    no catalog (M1 E2E U30: setup read done while nothing could practise)."""
+    from carbon.backbone_catalog import listing
+
+    try:
+        entries = listing.entries(entry["challenge_id"], entry["version"])
+    except Exception:  # noqa: BLE001 - a version without a catalog
+        return None
+    if not entries:
+        return None
+    root = None
+    if type(cfg) is dict and type(cfg.get("campaigns_root")) is str:
+        root = (
+            Path(cfg["campaigns_root"])
+            / ".direct-development"
+            / "library-cache"
+            / "materials"
+        )
+    installed = 0
+    for item in entries:
+        digest = (item.get("bundle_ref") or {}).get("bundle_digest")
+        if root is not None and type(digest) is str and (root / digest[7:]).is_dir():
+            installed += 1
+    return {"entries": len(entries), "installed": installed}
+
+
+def _known_limitations(entry):
+    """What the Challenge version's card states it cannot do yet, as the
+    Validator recorded it (one table for every Challenge)."""
+    from carbon.challenge_registry.known_limitations import known_limitations
+
+    return known_limitations(entry["challenge_id"], entry["version"])
 
 
 def _agents(options, refusal, profile_path=None):
@@ -529,8 +580,8 @@ def _output_cap(providers, limits=None):
     launch and has the last word."""
     from carbon.development_session.model_provider import (
         DEFAULT_SETTINGS,
+        MINER_OUTPUT_TOKEN_BOUNDS,
         OUTPUT_FROM_PUBLISHED_LIVE,
-        OUTPUT_TOKEN_BOUNDS,
         ModelSelectionRefused,
         output_maximum,
     )
@@ -554,7 +605,7 @@ def _output_cap(providers, limits=None):
             if chosen["basis"] == OUTPUT_FROM_PUBLISHED_LIVE:
                 shown["source"] = chosen["source"]
             defaults.setdefault(row["id"], {})[model["id"]] = shown
-    low, high = OUTPUT_TOKEN_BOUNDS
+    low, high = MINER_OUTPUT_TOKEN_BOUNDS
     return {
         "launch_field": "model_settings.max_output_tokens",
         "bounds": [low, high],
@@ -580,15 +631,22 @@ def _call_timeout():
     TIMEOUT_DEFAULT_V2)`): `default`, or half the launch's `elapsed_seconds`
     where that is shorter, never below the lower bound (`bounded_by`). The page
     shows and pre-checks these; the runner validates the launch and has the
-    last word."""
+    last word. `streaming_providers` are the adapters whose calls a new plan
+    streams (`TRANSPORT_STREAM_V1`, S17), where the timeout is the longest
+    wait between chunks; every other adapter's call is read whole within it.
+    No provider speed is recorded, so the page names the trade and invents
+    none (`speed_note`)."""
     from carbon.development_session.model_provider import (
+        ADAPTERS,
+        CHAT_COMPLETIONS,
         DEADLINE_MARGIN_SECONDS,
+        MINER_TIMEOUT_SECONDS_BOUNDS,
         TIMEOUT_DEFAULT_V2,
         TIMEOUT_DEFAULT_V2_SECONDS,
-        TIMEOUT_SECONDS_BOUNDS,
+        TRANSPORT_STREAM_V1,
     )
 
-    low, high = TIMEOUT_SECONDS_BOUNDS
+    low, high = MINER_TIMEOUT_SECONDS_BOUNDS
     return {
         "launch_field": "model_settings.timeout_seconds",
         "bounds": [low, high],
@@ -605,6 +663,25 @@ def _call_timeout():
             "when less than the timeout remains of your elapsed limit. It "
             "reserves no money. Sent only with a provider and model, and "
             "validated by the runner at launch."
+        ),
+        "transport_rule": TRANSPORT_STREAM_V1,
+        "streaming_providers": sorted(
+            adapter.adapter_id
+            for adapter in ADAPTERS.values()
+            if adapter.streaming and adapter.protocol == CHAT_COMPLETIONS
+        ),
+        "streaming_note": (
+            "Streams: long replies are not cut while tokens arrive. The timeout "
+            "is the longest wait between chunks of a reply, not a limit on the "
+            "whole reply; your elapsed limit still ends a call."
+        ),
+        "speed_note": (
+            "This provider's calls are read whole, so a reply must finish within "
+            "the timeout. Carbon records no model speed: a full reply takes your "
+            "max output tokens divided by your model's speed. The campaign view "
+            "shows the speed it observes after the first completed call, and "
+            "warns if a full reply would outlast the timeout; a lower max output "
+            f"or a longer timeout (up to {high}) helps."
         ),
     }
 
@@ -659,7 +736,7 @@ def _input_window(providers, limits=None):
     from carbon.development_session.model_provider import (
         DEFAULT_SETTINGS,
         INPUT_DEFAULT_V2,
-        INPUT_TOKEN_BOUNDS,
+        MINER_INPUT_TOKEN_BOUNDS,
         published_context,
     )
     from carbon.development_session.research_agent import CONTEXT_RESERVE_TOKENS
@@ -676,7 +753,7 @@ def _input_window(providers, limits=None):
             window = _graphite_window(row["id"], model["id"], live)
             if window is not None:
                 graphite.setdefault(row["id"], {})[model["id"]] = window
-    low, high = INPUT_TOKEN_BOUNDS
+    low, high = MINER_INPUT_TOKEN_BOUNDS
     default = DEFAULT_SETTINGS.max_input_tokens
     return {
         "launch_field": "model_settings.max_input_tokens",
@@ -1028,7 +1105,7 @@ def control_center(runner=None):
         "mode": "DEVELOPMENT",
         "authority": "Discovery grants no authority; nothing here is qualified, paid or on chain.",
         "profile": profile_state,
-        "challenges": _challenges(profile_state, host),
+        "challenges": _challenges(profile_state, host, cfg),
         "agents": _agents(options, refusal, profile_path),
         "graphite": _graphite(options, refusal),
         "model": _model(options, refusal, cfg),

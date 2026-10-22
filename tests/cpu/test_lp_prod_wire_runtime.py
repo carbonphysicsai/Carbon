@@ -669,3 +669,23 @@ def get(server, path):
         return response.status, json.loads(response.read())
     finally:
         connection.close()
+
+
+def test_a_stale_profiles_campaigns_still_list_read_only(tmp_path, head, monkeypatch):
+    # M1 E2E U54: after a reinstall every campaign seemed gone until setup was
+    # re-checked; they now list, read-only, from the same database.
+    from scripts.dev.miner_launchpad import runner as runner_module
+
+    setup, _ = installed(tmp_path)
+    head["revision"] = NEW
+    assert controller.attach_runner(setup.profile_path)[0] is None
+    database = tmp_path / "runner.sqlite3"
+    database.write_bytes(b"")
+    monkeypatch.setattr(runner_module, "runner_database", lambda cfg: database)
+    monkeypatch.setattr(
+        runner_module.RunnerAdapter, "recent", lambda self: [{"id": "cmp-1"}]
+    )
+    assert controller.stale_campaigns(setup.profile_path) == [
+        {"id": "cmp-1", "read_only": "carbon_updated_rerun_installer"}
+    ]
+    assert controller.stale_campaigns(None) == []

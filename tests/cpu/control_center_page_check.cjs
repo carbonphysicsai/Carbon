@@ -96,6 +96,19 @@ async function wizardTo(page, step, agent = "manual") {
   }
 }
 function lastPost(state, url) { return [...state.posted].reverse().find(entry => entry.path === url); }
+// From the model step to Launch. Graphite needs both provider ceilings
+// (U17: the page says so on the limits step and holds Next until both are
+// set), so they are set there when the page asks for them.
+async function throughLaunch(page) {
+  for (const next of ["compute", "limits", "review", "launch"]) {
+    if (next === "review" && /model-call ceiling/.test(page.text("wizard-next-reason"))) {
+      await page.press(page.$("path-advanced"));
+      await page.type(page.$("ceiling-provider_attempts"), "200");
+      await page.type(page.$("ceiling-provider_nanodollars"), "5");
+    }
+    await page.press(page.$("wizard-next"));
+  }
+}
 
 const scenarios = [];
 const scenario = (name, run) => scenarios.push([name, run]);
@@ -421,7 +434,7 @@ scenario("a provider listing no models offers and preselects setup's model", asy
   assert.ok(radio.checked, "setup's model is preselected");
   assert.match(radio.parentNode.textContent, /your setup choice/);
   assert.equal(page.$("wizard-next").disabled, false, page.text("wizard-next-reason"));
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "c".repeat(32)}}});
   await page.press(page.$("research-launch"));
   const sent = lastPost(state, "/api/v1/research").body;
@@ -451,11 +464,11 @@ scenario("the model step offers an output cap with the model's default and sends
   for (const bad of [String(cap.bounds[0] - 1), String(cap.bounds[1] + 1), "1.5"]) {
     await page.type(input, bad);
     assert.equal(page.$("wizard-next").disabled, true, bad);
-    assert.match(page.text("wizard-next-reason"), /Fix the output cap: max output tokens must be a whole number from 256 to 131,072/);
+    assert.match(page.text("wizard-next-reason"), /Fix the output cap: max output tokens must be a whole number from 256 up/);
   }
   await page.type(input, "4096");
   assert.equal(page.$("wizard-next").disabled, false, page.text("wizard-next-reason"));
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   assert.match(page.text("wizard-review"), /Max output4,096 tokens per reply, your cap/);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "d".repeat(32)}}});
   await page.press(page.$("research-launch"));
@@ -466,7 +479,7 @@ scenario("the model step offers an output cap with the model's default and sends
   // Blank is the model's default: no model_settings is sent.
   await wizardTo(page, "model", agent);
   await page.type(page.$("wizard-max-output"), "");
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "e".repeat(32)}}});
   await page.press(page.$("research-launch"));
   assert.equal("model_settings" in lastPost(state, "/api/v1/research").body, false);
@@ -512,7 +525,8 @@ scenario("the model step offers a provider call timeout with its default and sen
   await wizardTo(page, "model", agent);
   const choice = fx.caps_setup_model.model.setup_choice;
   const timeout = fx.caps_setup_model.model.call_timeout;
-  assert.deepEqual(timeout.bounds, [10, 600]);
+  // No Carbon maximum for a miner's timeout (limits row #8).
+  assert.deepEqual(timeout.bounds, [10, 2 ** 31 - 1]);
   assert.equal(timeout.default, 600);
   assert.equal(page.$("wizard-timeout").hidden, false, "the timeout is offered with a model chosen");
   assert.match(page.text("wizard-timeout"), /Provider call timeout \(seconds\)/);
@@ -526,12 +540,12 @@ scenario("the model step offers a provider call timeout with its default and sen
   for (const bad of [String(timeout.bounds[0] - 1), String(timeout.bounds[1] + 1), "1.5"]) {
     await page.type(input, bad);
     assert.equal(page.$("wizard-next").disabled, true, bad);
-    assert.match(page.text("wizard-next-reason"), /Fix the provider call timeout: the provider call timeout must be a whole number of seconds from 10 to 600, or leave it blank for the default\./);
+    assert.match(page.text("wizard-next-reason"), /Fix the provider call timeout: the provider call timeout must be a whole number of seconds from 10 up, or leave it blank for the default\./);
     assert.match(page.text("wizard-timeout-note"), /^Not valid: /);
   }
   await page.type(input, "300");
   assert.equal(page.$("wizard-next").disabled, false, page.text("wizard-next-reason"));
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   assert.match(page.text("wizard-review"), /Call timeout300 seconds per provider call, your timeout/);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "f".repeat(32)}}});
   await page.press(page.$("research-launch"));
@@ -541,7 +555,7 @@ scenario("the model step offers a provider call timeout with its default and sen
   // Blank is the default: the review says so and nothing is sent.
   await wizardTo(page, "model", agent);
   await page.type(page.$("wizard-timeout-seconds"), "");
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   assert.match(page.text("wizard-review"), /Call timeoutNot set: 600 seconds per provider call, the default\. New calls stop when less than the timeout remains of your elapsed limit/);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "0".repeat(32)}}});
   await page.press(page.$("research-launch"));
@@ -1051,6 +1065,48 @@ scenario("Tools: a submit retried after a timeout reuses its key and follows the
   Object.assign(run, {state: "READY", journey: {submitted_epochs: [1], final_exams_remaining: 1, frozen_awaiting_submission: false}});
   await refresh(page);
   assert.match(line.textContent, /Submitted for the DEVELOPMENT comparison/);
+  clean(page);
+});
+
+// ---- S22: a catalog version's Recipe box starts from its example and picks a backbone. ----
+scenario("Tools: a catalog version's recipe box is prefilled and its backbone picker fills a recipe", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const catalog = fx.catalog_toolbox;
+  state.view.toolbox = {...state.view.toolbox, examples: copy(catalog.examples), catalog: copy(catalog.catalog)};
+  state.tools = {open: true, idle_close_seconds: 600, holds: "", tasks: [], tools: []};
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/tools");
+  await page.advance(0);
+  const box = [...all(page, "#campaign-detail textarea")].find(node => node.getAttribute("aria-label") === "Recipe JSON");
+  assert.ok(box, "the recipe box is drawn");
+  const example = catalog.examples[0];
+  assert.equal(example.schema, "carbon.construction-recipe.v1");
+  assert.deepEqual(JSON.parse(box.value), example, "prefilled with the version's registered example");
+  const panel = box.closest("details");
+  assert.match(page.text(panel), /Prefilled with the Challenge's registered example/);
+  assert.doesNotMatch(page.text(panel), /registers no example recipe/);
+  const picker = one(page, "#campaign-detail select[data-picker=backbone]");
+  assert.equal(picker.options.length, catalog.catalog.length, "one choice per catalog entry");
+  assert.ok(catalog.catalog.length > 1, "the version offers several backbones");
+  assert.equal(picker.value, example.source.catalog_id, "the picker starts on the example's entry");
+  const other = catalog.catalog.find(item => item.catalog_id !== example.source.catalog_id);
+  await page.change(picker, other.catalog_id);
+  assert.deepEqual(JSON.parse(box.value), other.recipe, "picking a backbone fills its catalog recipe");
+  assert.equal(JSON.parse(box.value).source.catalog_id, other.catalog_id);
+  // A practice refused before it started says its correction, not only the
+  // generic reason every such refusal carries.
+  const payload = {status: "REJECTED_BEFORE_DISPATCH", reason: "contract_incompatibility", detail: "Request does not satisfy the disclosed argument/recipe contract.",
+    correction_code: "backend_not_served", field: "strategy", correction: "This host's practice serves only the backends listed below. Allowed here: neuralop.TFNO."};
+  state.script.push({match: r => /^\/api\/v1\/tools\/[^/]+\/start$/.test(r.path), answer: {body: {ok: true, task: null, result: {content: [{type: "text", text: JSON.stringify({payload})}]}}}});
+  await page.press([...all(page, "#campaign-detail button")].find(b => b.textContent === "Practice this recipe"));
+  const sent = lastPost(state, "/api/v1/tools/" + encodeURIComponent(run.id) + "/start");
+  assert.deepEqual(sent.body.arguments.strategy, other.recipe, "the picked recipe is what practice sends");
+  const said = [...all(page, "#campaign-detail p.reason")].map(node => node.textContent).join("\n");
+  assert.match(said, /Refused before it started: backend not served \(strategy\): This host's practice serves only/);
+  assert.match(said, /Allowed here: neuralop\.TFNO\./);
   clean(page);
 });
 
@@ -1793,6 +1849,15 @@ function graphiteRun(extra = {}) {
 }
 const posts = (state, url) => state.posted.filter(entry => entry.path === url);
 async function launchNow(page, state, id = "g".repeat(32)) {
+  // U17: a Graphite launch needs both provider ceilings; set them where the
+  // page asks, unless the scenario already did.
+  page.window.CarbonControlCenter.goWizard("limits");
+  await page.advance(0);
+  if (/model-call ceiling/.test(page.text("wizard-next-reason"))) {
+    await page.press(page.$("path-advanced"));
+    await page.type(page.$("ceiling-provider_attempts"), "200");
+    await page.type(page.$("ceiling-provider_nanodollars"), "5");
+  }
   page.window.CarbonControlCenter.goWizard("launch");
   await page.advance(0);
   assert.equal(page.$("research-launch").disabled, false, "launch is ready: " + page.text("wizard-launch-reason"));
@@ -1936,6 +2001,9 @@ scenario("Graphite: each mode launches with exactly its own fields; the hunt is 
   await page.press(page.$("path-advanced"));
   const ceiling = page.$("ceiling-provider_nanodollars");
   assert.ok(ceiling, "the model-spend ceiling is offered");
+  // Only the spend ceiling, so the note names the share in dollars alone
+  // (launchNow set both for the launches above, U17).
+  await page.type(page.$("ceiling-provider_attempts"), "");
   await page.type(ceiling, "2");
   ceiling.blur();
   await toAgentStep(page);
@@ -2114,6 +2182,9 @@ scenario("Graphite: per-epoch limits are optional; blank sends none, set sends w
   const page = await open(state);
   await wizardTo(page, "limits", "graphite");
   await page.press(page.$("path-advanced"));
+  // U17: Graphite's two provider ceilings, which every Graphite launch needs.
+  await page.type(page.$("ceiling-provider_attempts"), "200");
+  await page.type(page.$("ceiling-provider_nanodollars"), "5");
   assert.equal(one(page, "#graphite-limits").hidden, false);
   for (const key of ["calls_per_epoch", "trials_per_epoch", "planner_calls"]) assert.equal(page.$("graphite-limit-" + key).value, "", key);
   assert.match(page.text("graphite-limits"), /only your campaign's own limits bind/);

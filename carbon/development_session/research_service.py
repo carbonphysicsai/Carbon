@@ -96,6 +96,184 @@ def submission_issues(strategy, challenge):
     return ()
 
 
+@dataclass(frozen=True)
+class RecipeIssue:
+    """One issue a catalog version's recipe rule names: a registered code, a
+    "/"-separated path and the code's registered text (never the request's
+    own words)."""
+
+    code: str
+    path: str
+    message: str
+
+
+#: The registered text for each code the recipe rule names. A recipe code is
+#: `construction_recipe`'s own; a catalog code is `backbone_catalog.entries`'.
+RECIPE_ISSUE_TEXT = {
+    "construction_recipe_binding_mismatch": (
+        "challenge must be this Challenge version's construction kit exactly: "
+        "id, version, train_digest, interface_digest and "
+        "construction_limits_digest, as the version's example recipe carries them."
+    ),
+    "catalog_entry_unknown": (
+        "source.catalog_id and source.catalog_digest must name an entry of this "
+        "version's backbone catalog."
+    ),
+    "catalog_setting_unknown": (
+        "A procedure setting is not one the chosen catalog entry's settings "
+        "schema has."
+    ),
+    "catalog_setting_invalid": (
+        "A procedure setting's value is outside what the chosen catalog entry's "
+        "settings schema takes."
+    ),
+    "catalog_settings_inconsistent": (
+        "output.format must be the chosen catalog entry's output format."
+    ),
+    "catalog_library_not_pinned": (
+        "The chosen catalog entry's settings schema is not served here."
+    ),
+}
+#: Any other recipe code: the document is not a recipe this version takes.
+RECIPE_ISSUE_DEFAULT = (
+    "Not a carbon.construction-recipe.v1 document this version takes (schema, "
+    "challenge, source, procedure, output); the code names the part. A Level 0 "
+    "strategy (schema_version, challenge_id, backbone, parameters) is not a "
+    "recipe here."
+)
+_RECIPE_ISSUE_PATH = {
+    "construction_recipe_binding_mismatch": "/challenge",
+    "construction_recipe_challenge_invalid": "/challenge",
+    "construction_recipe_source_invalid": "/source",
+    "construction_recipe_procedure_invalid": "/procedure",
+    "construction_recipe_output_invalid": "/output",
+    "catalog_entry_unknown": "/source",
+    "catalog_setting_unknown": "/procedure",
+    "catalog_setting_invalid": "/procedure",
+    "catalog_settings_inconsistent": "/output",
+}
+
+
+def takes_construction_recipes(key):
+    """Whether `key` is a catalog version (Motor 1.2/1.3, Cooling 1.2, F08 1.4,
+    F02 2.3: `served_versions.CATALOG`), whose recipes are construction
+    recipes, never Level 0 strategies."""
+    from carbon.challenge_kit.served_versions import UnregisteredVersion, serves_catalog
+
+    try:
+        return serves_catalog(key.challenge_id, key.version)
+    except UnregisteredVersion:
+        return False
+
+
+def construction_recipe_issues(strategy, key):
+    """The one recipe rule a catalog version's doors share (S22): the issues
+    that refuse `strategy` on `key`, or () when it binds. It binds the
+    version's construction kit (`bind_recipe`) and, for a catalog source,
+    resolves the named entry and its settings over the tested baseline
+    (`backbone_catalog.served.expand`). A dry run: nothing is built."""
+    from carbon.backbone_catalog import served
+    from carbon.backbone_catalog.entries import CatalogRefused
+    from carbon.challenge_kit import physical_material
+
+    from .construction_recipe import RecipeRefused, bind_recipe
+
+    kit = physical_material.construction_kit(key.challenge_id, key.version)
+    try:
+        recipe = bind_recipe(
+            strategy,
+            challenge_id=kit["id"],
+            challenge_version=kit["version"],
+            train_digest=kit["train_digest"],
+            interface_digest=kit["interface_digest"],
+            construction_limits_digest=kit["construction_limits_digest"],
+        )
+        document = recipe.to_dict()
+        if document["source"]["kind"] == "catalog":
+            served.expand(document)
+    except (RecipeRefused, CatalogRefused) as refused:
+        return (
+            RecipeIssue(
+                refused.code,
+                _RECIPE_ISSUE_PATH.get(refused.code, ""),
+                RECIPE_ISSUE_TEXT.get(refused.code, RECIPE_ISSUE_DEFAULT),
+            ),
+        )
+    return ()
+
+
+class ConstructionRecipeValidation:
+    """dry_validate for a catalog version: the recipe rule
+    (`construction_recipe_issues`), not the Level 0 strategy compile, which
+    refused every recipe the version takes (S22)."""
+
+    __slots__ = ("key",)
+
+    def __init__(self, key):
+        self.key = key
+
+    def dry_validate(self, request):
+        from carbon.research.service import dry_validation_result
+
+        if type(request) is not research.DryValidateRequest:
+            raise TypeError("exact DryValidateRequest required")
+        if request.challenge_key != self.key:
+            raise ValueError("research validation binding differs")
+        return dry_validation_result(
+            request, construction_recipe_issues(request.strategy, self.key)
+        )
+
+
+#: The one issue compile_strategy answers a catalog version's binding recipe
+#: with: it has no Level-0 compile (M1 E2E 2026-10-22, F2).
+CATALOG_RECIPE_NOT_COMPILED = "catalog_recipe_not_compiled"
+CATALOG_RECIPE_NOT_COMPILED_TEXT = (
+    "This Challenge version takes construction recipes "
+    "(carbon.construction-recipe.v1), not Level-0 strategies, and has no "
+    "strategy compile. This recipe binds the version: practise it with "
+    "start_research_task kind=practice (strategy_json is the recipe)."
+)
+
+
+class ConstructionRecipeCompilation:
+    """compile_strategy for a catalog version (F2): the recipe rule's issues
+    (`construction_recipe_issues`), or, for a recipe that binds, one issue
+    saying there is no Level-0 compile and to practise it. The Level-0
+    compile refused every recipe the version takes and taught the legacy
+    Strategy 1.0 shape instead. Nothing is built."""
+
+    __slots__ = ("key",)
+
+    def __init__(self, key):
+        self.key = key
+
+    def compile_strategy(self, request):
+        if type(request) is not research.CompileStrategyRequest:
+            raise TypeError("exact CompileStrategyRequest required")
+        if request.challenge_key != self.key:
+            raise ValueError("research compile binding differs")
+        issues = construction_recipe_issues(request.strategy, self.key) or (
+            RecipeIssue(
+                CATALOG_RECIPE_NOT_COMPILED, "", CATALOG_RECIPE_NOT_COMPILED_TEXT
+            ),
+        )
+        return research.CompileStrategyResult(
+            False,
+            tuple(
+                research.CompileIssue(
+                    item.code,
+                    tuple(part for part in item.path.split("/") if part),
+                    item.message,
+                )
+                for item in issues
+            ),
+            None,
+            None,
+            None,
+            None,
+        )
+
+
 class ChallengeContractValidation:
     """dry_validate as the named Challenge's submission path answers it
     (RESEARCH-TOOL-USABILITY-01): the issues `submission_issues` names, with
@@ -833,11 +1011,19 @@ def compose_research_service(
             prior,
             Scaffold(contracts, parts.scaffold_strategy, key),
             (
-                ChallengeContractValidation(key)
-                if parts.contract_validation
-                else research.A2ValidationProvider()
+                ConstructionRecipeValidation(key)
+                if takes_construction_recipes(key)
+                else (
+                    ChallengeContractValidation(key)
+                    if parts.contract_validation
+                    else research.A2ValidationProvider()
+                )
             ),
-            compiler,
+            (
+                ConstructionRecipeCompilation(key)
+                if takes_construction_recipes(key)
+                else compiler
+            ),
             prior,
             inspection,
             forecast,

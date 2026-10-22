@@ -518,6 +518,10 @@ class Engine:
         finish=None,
         limits=None,
         compaction=None,
+        reply_continuation=None,
+        budget_headroom=None,
+        selection_admissibility=None,
+        request_hold=None,
     ):
         self.calls.append(
             {
@@ -535,6 +539,10 @@ class Engine:
                 "finish": finish,
                 "limits": limits,
                 "compaction": compaction,
+                "reply_continuation": reply_continuation,
+                "budget_headroom": budget_headroom,
+                "selection_admissibility": selection_admissibility,
+                "request_hold": request_hold,
                 "max_provider_calls": max_provider_calls,
             }
         )
@@ -617,9 +625,16 @@ class Engine:
 # --- the campaign, prepared ---------------------------------------------------
 
 
-def practise(ledger, owner, strategy, task):
-    """A completed practice result, as the research service retains one."""
-    body = canonical({"provenance": "BATTERY_PUBLIC_PRACTICE", "recipe": strategy})
+def practise(ledger, owner, strategy, task, summary=None):
+    """A completed practice result, as the research service retains one;
+    with `summary`, the practice summary it reports (its gate verdict)."""
+    body = canonical(
+        {
+            "provenance": "BATTERY_PUBLIC_PRACTICE",
+            "recipe": strategy,
+            **({} if summary is None else {"summary": summary}),
+        }
+    )
     with sqlite3.connect(ledger.root / "campaign.sqlite3") as db:
         db.execute(
             "CREATE TABLE IF NOT EXISTS research_results(owner TEXT NOT NULL,task TEXT NOT NULL,body BLOB NOT NULL,digest TEXT NOT NULL,PRIMARY KEY(owner,task))"
@@ -1151,6 +1166,64 @@ def test_an_unpractised_selection_is_never_submitted(world):
     assert w.run(Transport()) is None
     assert w.campaign.evaluated == []
     assert w.stage("build")["ended"] == "NOT_SUBMITTED"
+
+
+GATE_FAILED = {"eligible": False, "n_cases": 100, "n_gate_failed": 58}
+
+
+def test_a_gate_failed_practice_is_never_submitted(world, monkeypatch):
+    """Launchpad Test Runner G2: admissibility before ranking. A selection
+    whose practice failed a gate reaches no submit, whatever froze it - the
+    controller checks it again under the plan's frozen rule - and the build
+    ends NOT_ADMISSIBLE, noted. A plan frozen before the rule submits it as
+    it always did (byte-for-byte replay)."""
+    module = sys.modules[__name__]
+    plain = module.practise
+    monkeypatch.setattr(
+        module,
+        "practise",
+        lambda ledger, owner, strategy, task: plain(
+            ledger, owner, strategy, task, summary=GATE_FAILED
+        ),
+    )
+    w = world(mode="BUILD")
+    w.engine.scripts = {
+        ("plan", 1): [STOP_TURN],
+        (None, 1): [[practice(RECIPE)], [select(RECIPE)]],
+    }
+    assert w.run(Transport()) is None
+    assert w.prepared.manifest["provider"]["selection_admissibility"] == (
+        research_loop.SELECTION_ADMISSIBLE_V1
+    )
+    assert w.campaign.evaluated == []
+    assert w.stage("build")["ended"] == "NOT_ADMISSIBLE"
+    notes = CampaignLedger(w.root).status(owner="alice")["notes"]
+    assert notes[-1]["body"]["code"] == "selection_not_admissible"
+    assert notes[-1]["body"]["gate_verdict"] == "FAILED"
+
+
+def test_a_practice_without_a_gate_verdict_is_shown_not_reported(world):
+    """Validator, G2 ruling: no verdict does not fail closed, but it is never
+    a silent pass - the selection is recorded NOT_REPORTED, with a note, in
+    the ledger and in the build's stage record."""
+    w = world(mode="BUILD")
+    w.engine.scripts = {
+        ("plan", 1): [STOP_TURN],
+        (None, 1): [[practice(RECIPE)], [select(RECIPE)]],
+        (None, 2): [STOP_TURN],
+    }
+    assert w.run(Transport()) is None
+    assert w.campaign.evaluated == [(1, RECIPE)]
+    notes = CampaignLedger(w.root).status(owner="alice")["notes"]
+    shown = [n["body"] for n in notes if "gate_verdict" in n["body"]]
+    assert shown == [
+        {
+            "epoch": 1,
+            "gate_verdict": "NOT_REPORTED",
+            "note": research_campaign.GATES_NOT_REPORTED_NOTE,
+        }
+    ]
+    assert w.stage("build")["gate_verdicts"] == {"1": "NOT_REPORTED"}
 
 
 # --- FULL -----------------------------------------------------------------------
@@ -1907,6 +1980,10 @@ def test_every_stage_runs_under_the_frozen_engine_rules(world):
         assert call["parallel_calls"] == PARALLEL_CALLS_V2
         assert call["miner_guidance"] == plan["miner_guidance"]
         assert call["compaction"] == editions.COMPACTION_V1
+        assert call["reply_continuation"] == plan.get("reply_continuation")
+        assert call["budget_headroom"] == plan["budget_headroom"]
+        assert call["selection_admissibility"] == plan["selection_admissibility"]
+        assert call["request_hold"] == plan["request_hold"]
         assert call["max_provider_calls"] is None
     assert planner["instructions"] == editions.PLANNER_PROMPT
     assert planner["finish"]["tool"] == editions.FINISH_TOOL

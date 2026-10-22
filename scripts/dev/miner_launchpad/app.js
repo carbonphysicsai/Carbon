@@ -24,6 +24,7 @@
   // localStorage, an address or a template, and forgotten the moment the
   // controller refuses it.
   const sessionKey = "carbon.launchpad.session.v1";
+  const rememberedKey = "carbon.launchpad.remembered.v1";
   function keptSession() {
     try { const value = sessionStorage.getItem(sessionKey); return value && /^[!-~]{1,512}$/.test(value) ? value : null; }
     catch (_) { return null; }
@@ -422,7 +423,9 @@
     signer_protocol: "something other than carbon-miner-signer answered on the signer socket"
   };
   async function api(path, body, key, timeout = 5000) {
-    const headers = {Authorization: "Bearer " + token};
+    // With no token in this tab, this browser's session cookie (U1) is sent
+    // by the browser itself: same origin only, never readable here.
+    const headers = token ? {Authorization: "Bearer " + token} : {};
     if (body !== undefined) headers["Content-Type"] = "application/json";
     if (key) headers["Idempotency-Key"] = key;
     const response = await fetch(path, {
@@ -824,6 +827,8 @@
       const name = (setupState?.choices?.inference || []).find(c => c.id === id)?.display_name || (id ? words(id) : "The provider");
       return name + " " + KEY_REFUSALS[error.code] + " The key field clears after each check, so paste it again to retry.";
     }
+    // U13: one plain sentence, never the raw "intakes: challenge has no intake".
+    if (error.code === "challenge_has_no_intake") return error.nextStep || "This Challenge takes no validator intake: put its construction receiver under 'Where your recipe is checked' instead.";
     return (error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : "");
   }
   async function setupCall(step, body, timeout = 60000) {
@@ -1383,6 +1388,42 @@
     const destination = setupField(remoteBox, "destination", "SSH destination (user@host, or your ssh-config alias)");
     const sshPort = setupField(remoteBox, "port", "SSH port (optional; leave empty for your ssh config's)", "number");
     researchNote(remoteBox, "Make `ssh <destination>` work from this machine without a prompt first: your key in your agent, the host key in your known hosts. Carbon passes no key and installs nothing.", "hint");
+    // U59: a guided link for a rented GPU. From the provider's host, port,
+    // user and key path it writes out the ssh-config entry and the one-time
+    // host-key step for the miner to run in their own terminal, and fills in
+    // the destination. Nothing is written or run by Carbon: the miner's own
+    // SSH still decides how the machine is reached.
+    const gpuLink = el("details", undefined, "gpu-link"); gpuLink.id = "setup-link-gpu";
+    gpuLink.append(el("summary", "Link a rented GPU (host, port, user and key from your provider)"));
+    const linkForm = el("div"); linkForm.dataset.step = "compute"; gpuLink.append(linkForm);
+    const linkHost = setupField(linkForm, "link_host", "Host (IP or name your provider shows)");
+    const linkPort = setupField(linkForm, "link_port", "Port", "number");
+    const linkUser = setupField(linkForm, "link_user", "User (often root)");
+    const linkKey = setupField(linkForm, "link_key", "Private key file on this machine (e.g. ~/.ssh/id_ed25519)");
+    const linkOut = el("pre", "", "rs-code"); linkOut.hidden = true;
+    const linkSteps = el("ol", undefined, "checklist"); linkSteps.hidden = true;
+    const linkMake = el("button", "Write my link steps"); linkMake.type = "button";
+    linkMake.addEventListener("click", () => {
+      const host = linkHost.value.trim(), port = linkPort.value.trim(), user = linkUser.value.trim() || "root", key = linkKey.value.trim();
+      const safe = value => /^[A-Za-z0-9._@:~\/+-]+$/.test(value);
+      if (!host || !safe(host) || (port && !/^[0-9]{1,5}$/.test(port)) || !safe(user) || (key && !safe(key))) {
+        linkOut.hidden = false; linkSteps.hidden = true;
+        linkOut.textContent = "Check the fields: a host, a numeric port, a user and a key path with no spaces.";
+        return;
+      }
+      const alias = "carbon-gpu";
+      linkOut.hidden = false;
+      linkOut.textContent = "Host " + alias + "\n  HostName " + host + (port ? "\n  Port " + port : "") + "\n  User " + user + (key ? "\n  IdentityFile " + key + "\n  IdentitiesOnly yes" : "") + "\n";
+      linkSteps.hidden = false;
+      linkSteps.replaceChildren(
+        el("li", "Add the entry above to ~/.ssh/config on this machine (create the file if it is missing)."),
+        el("li", "In your own terminal, run once and answer yes to the host key: ssh " + alias + " nvidia-smi -L"),
+        el("li", "It should list your GPU. Then press Check my setup over my SSH below."),
+      );
+      destination.value = alias; sshPort.value = "";
+    });
+    linkForm.append(linkMake, linkOut, linkSteps);
+    remoteBox.append(gpuLink);
     const missing = el("div"); compute.append(missing);
     // Everything setup fills in for you, or a miner changes on purpose.
     const more = advanced(compute, "Advanced: images and transport");
@@ -1698,10 +1739,17 @@
     // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
     const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver hotkey (its public ss58 address; required with an intake URL)");
     intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
-    const directMore = advanced(review, "Advanced: where your recipe is checked");
-    researchNote(directMore, "For the 1.3 construction-recipe session only. This receiver rebuilds a model but does not return a scored verdict or reward.", "hint");
-    const directIntake = setupField(directMore, "direct_intake_url", "Construction intake URL (https, or loopback)");
-    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Construction receiver hotkey (public ss58 address)");
+    const directMore = advanced(review, "Where your recipe is checked: your construction receiver");
+    researchNote(directMore, "Every new campaign submits its frozen recipe here when its Challenge has no validator intake of its own: the receiver rebuilds it from scratch and grades it. Its operator gives you both values.", "hint");
+    const directIntake = setupField(directMore, "direct_intake_url", "Receiver URL (https, or loopback)");
+    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Receiver hotkey (its public ss58 address)");
+    // U12: what Review last wrote comes back filled in, and is said plainly,
+    // so writing the profile again never clears it by accident.
+    const savedDirect = (steps.evaluation?.challenges || []).map(item => item.direct_intake).find(item => item && item.intake_url);
+    if (savedDirect) {
+      directIntake.value = savedDirect.intake_url; directReceiver.value = savedDirect.receiver_hotkey || "";
+      researchNote(directMore, "Saved: receiver " + savedDirect.intake_url + (savedDirect.receiver_hotkey ? " · hotkey " + savedDirect.receiver_hotkey.slice(0, 8) + "…" : "") + ". Edit the fields and write your profile to change it.", "hint");
+    }
     evaluationSection(evaluationBox, steps.evaluation, (challengeId, url, hotkey) => {
       // Review writes only the intakes it is given: this one, again.
       intakeChallenge.value = challengeId; intake.value = url; receiver.value = hotkey;
@@ -1796,7 +1844,10 @@
     if (text) {
       value = /^\d+$/.test(text) ? Number(text) : NaN;
       if (!Number.isSafeInteger(value) || value < low || value > high) {
-        problem = "max output tokens must be a whole number from " + low.toLocaleString("en-US") + " to " + high.toLocaleString("en-US");
+        // No Carbon maximum for a miner's selection (limits row #8): a bound
+        // at or above 2**31 - 1 is a representation bound, not a limit.
+        problem = "max output tokens must be a whole number from " + low.toLocaleString("en-US")
+          + (high < 2147483647 ? " to " + high.toLocaleString("en-US") : " up");
         value = null;
       }
     }
@@ -1815,7 +1866,8 @@
     if (text) {
       value = /^\d+$/.test(text) ? Number(text) : NaN;
       if (!Number.isSafeInteger(value) || value < low || value > high) {
-        problem = "the provider call timeout must be a whole number of seconds from " + low.toLocaleString("en-US") + " to " + high.toLocaleString("en-US");
+        problem = "the provider call timeout must be a whole number of seconds from " + low.toLocaleString("en-US")
+          + (high < 2147483647 ? " to " + high.toLocaleString("en-US") : " up");
         value = null;
       }
     }
@@ -1825,7 +1877,11 @@
     const elapsed = composition.budget?.elapsed_seconds;
     const bounded = timeout.bounded_by === "budget.elapsed_seconds" && Number.isSafeInteger(elapsed) && elapsed >= 1;
     const fallback = bounded ? Math.min(timeout.default, Math.max(low, Math.floor(elapsed / 2))) : timeout.default;
-    return {low, high, fallback, standard: timeout.default, bounded, value, problem};
+    // How its calls travel (S17): an adapter a new plan streams waits only
+    // between chunks; any other reads a reply whole within the timeout.
+    const streams = Array.isArray(timeout.streaming_providers) && timeout.streaming_providers.includes(launchModel().provider.id);
+    const transport = streams ? timeout.streaming_note : timeout.speed_note;
+    return {low, high, fallback, standard: timeout.default, bounded, value, problem, streams, transport: typeof transport === "string" ? transport : ""};
   }
   // The model settings a launch sends: only what the miner set.
   function modelSettings() {
@@ -1923,6 +1979,16 @@
   }
   // The same words wherever a refused session is met.
   const SESSION_ENDED = "Your session ended: the Control Center was restarted and printed a new link. Open that link, or paste its token.";
+  // U1: a browser this Control Center remembers connects with no token; one
+  // it does not shows the paste form quietly, as before.
+  async function connectRemembered() {
+    // Only a browser that was remembered asks; a first visit sends nothing
+    // before the miner connects (the flag is not a secret: the cookie is).
+    if (!stored(rememberedKey, null)) return;
+    try { await fetch("/api/v1/capabilities", {cache: "no-store", redirect: "error"}).then(r => { if (!r.ok) throw new Error(String(r.status)); }); }
+    catch (_) { return; }
+    connect("", false);
+  }
   async function connect(value, resumed = false) {
     connected = false;
     render();
@@ -1946,7 +2012,12 @@
       await renderExamEnvironment();
       renderComputeChoices(caps.compute.destinations || []);
       await onboardingRequirements();
-      keepSession(value);
+      if (value) {
+        keepSession(value);
+        // U1: remember this browser, so a new tab or a restart needs no
+        // paste. The cookie is HttpOnly and this loopback origin's only.
+        try { await api("/api/v1/session", {}); store(rememberedKey, {remembered: true}); } catch (_) { /* this tab still works */ }
+      }
       store(footerSeenKey, {seen: true});
       message("Connected. Records persist on this machine.");
       await refresh();
@@ -2141,6 +2212,10 @@
     items.push(selectable.length
       ? {ok: true, text: "You can launch: " + selectable.map(entry => entry.title).join(", ") + "."}
       : {ok: false, area: "Challenges", item: caps.challenges.find(entry => entry.implemented) || caps.challenges[0]});
+    // U30: a catalog version cannot practise until its backbone catalog is
+    // installed here, so setup is not done while none is.
+    const uninstalled = selectable.filter(entry => entry.catalog_install && entry.catalog_install.installed === 0);
+    if (uninstalled.length) items.push({ok: false, area: "Backbone catalog", item: {title: "Backbone catalog", reason: "catalog_not_installed", plain: {sentence: "The backbone catalog isn't installed on this machine, so a catalog campaign can't practise yet.", next: null}, next_action: "Install it on this machine: python -B -m scripts.dev.catalog_install --state-dir <your state directory> (in your Carbon checkout). Not installed for: " + uninstalled.map(entry => entry.title + " " + entry.version).join(", ")}});
     const agents = agentChoices().filter(choice => choice.availability === "available");
     items.push(agents.length
       ? {ok: true, text: "Agents ready: " + agents.map(choice => choice.label).join(", ") + "."}
@@ -2321,7 +2396,9 @@
   }
   function challengeLabel(run) {
     if (run.challenge) {
-      const entry = challengeEntry({id: run.challenge.id, version: run.challenge.version});
+      // U57: the Challenge's name even where this version is not listed here
+      // ("<id> · v<version>" read for a Challenge name).
+      const entry = challengeEntry({id: run.challenge.id, version: run.challenge.version}) || (caps?.challenges || []).find(item => item.challenge_id === run.challenge.id);
       return (entry ? entry.title : run.challenge.id) + " · v" + run.challenge.version;
     }
     return run.selects ? "Recorded without a Challenge (historical DEVELOPMENT campaign)" : "Challenge not yet recorded";
@@ -2378,6 +2455,9 @@
       } else {
         box.append(el("p", entry.plain?.sentence || "Unavailable: " + words(entry.reason) + ".", "status-line"));
         if (entry.plain?.next) box.append(link(entry.plain.next, "button fix"));
+      }
+      for (const limitation of entry.known_limitations || []) {
+        box.append(el("p", "Known limitation: " + limitation, "status-line"));
       }
       if (entry.implemented) {
         const description = details(box, "Description", []);
@@ -2614,9 +2694,23 @@
     tabSettings(panels.settings, run);
   }
   function missing(parent, text) { researchNote(parent, "Not yet available: " + text, "empty-state"); }
+  // U31: an agent spending model calls without a practice run is said
+  // plainly, with its refusals, so the miner need not read the raw journal.
+  // A hint only: nothing is stopped or limited by it.
+  function agentHealth(run) {
+    const calls = Number(run.usage?.reported?.provider_attempts || 0) + Number(run.usage?.uncertain?.provider_attempts || 0);
+    if (!(calls >= 10) || (run.completed_experiments ?? 0) > 0) return null;
+    const refusals = run.refusals || [];
+    const counts = {};
+    for (const item of refusals) { const code = item.correction_code || item.reason || item.status; if (code) counts[code] = (counts[code] || 0) + 1; }
+    const most = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    return calls + " model calls and no completed practice run yet" + (refusals.length ? ", " + refusals.length + " refused request" + (refusals.length === 1 ? "" : "s") + (most ? " (most: " + words(most[0]) + ")" : "") : "") + ". The agent may be stuck: read its reasoning under Journal, send it a hint under Messages, or pause the campaign.";
+  }
   function tabOverview(panel, run) {
     researchNote(panel, (run.agent || "Awaiting runtime") + " / " + (run.reasoning || "unavailable") + " / " + (run.compute || "unavailable") + " · Attempts: " + (run.attempted_experiments ?? 0) + " · Completed practice: " + (run.completed_experiments ?? 0));
     if (run.execution_label) researchNote(panel, run.execution_label, "hint");
+    const health = agentHealth(run);
+    if (health) researchNote(panel, health, "reason agent-health");
     if (run.deadline_unix) researchNote(panel, "Deadline from your elapsed limit: " + new Date(run.deadline_unix * 1000).toLocaleString());
     else researchNote(panel, "No deadline: you set no elapsed limit.", "hint");
     if (run.research_guidance) {
@@ -2688,7 +2782,40 @@
     if (!freezes.length && !recipes.length) missing(panel, "the controller does not expose trained weights or files; recipes and frozen candidates appear here once recorded.");
     researchNote(panel, "Export gives the full public record of this campaign as JSON.", "hint");
   }
-  function renderValidatorOutcome(panel, result) {
+  // C13: the evaluator's graded total on the public practice bank, gates
+  // first; the same reading the practice view gives every Challenge.
+  function practiceDualLine(dual) {
+    if (!dual.available) return "Practice graded total: unavailable" + (dual.reason ? " (" + words(dual.reason) + ")" : "") + ".";
+    if (!dual.eligible) return "Practice graded total: not eligible (" + (Object.entries(dual.gates || {}).filter(([, ok]) => ok === false).map(([name]) => words(name)).join(", ") || "a mandatory gate failed") + ").";
+    if (typeof dual.total !== "number") return "Practice graded total: not scored.";
+    return "Practice graded total: " + dual.total.toFixed(4) + " (0 to 1, higher is better" + (typeof dual.accuracy === "number" ? "; A " + dual.accuracy.toFixed(3) : "") + (typeof dual.design_value === "number" ? ", D " + dual.design_value.toFixed(3) : "") + "), on the public practice bank" + (Number.isInteger(dual.n_cases) ? " (" + dual.n_cases + " cases)" : "") + "; compares within this Challenge version only." + (Object.values(dual.gates || {}).includes("NOT_TESTED_ON_PRACTICE") ? " Not tested on practice: " + Object.entries(dual.gates).filter(([, ok]) => ok === "NOT_TESTED_ON_PRACTICE").map(([name]) => words(name)).join(", ") + "." : "");
+  }
+  // M1 E2E R5-1: `latest` is this submission's grade only when the receiver
+  // names this submission; the mining key's latest grade on the exam
+  // (`exam_latest`) is shown apart, never as this submit's, and "not graded
+  // yet" says how far this submission got (its own state).
+  function examLatestLine(grade) {
+    const other = grade && grade.exam_latest;
+    if (!other) return "";
+    const said = other.status === "GATE_FAILED" ? "not eligible (a mandatory gate failed)" : other.status === "NOT_SCORED" || typeof other.total !== "number" ? "not scored" : other.total.toFixed(4);
+    return " Your mining key's latest grade on this exam is " + said + ", from " + (other.recipe_digest ? "another submission" : "a submission the validator did not name") + "; it is not this one's.";
+  }
+  function gradeLine(grade, state) {
+    const latest = grade && grade.latest;
+    const best = grade?.best && typeof grade.best.total === "number" ? grade.best.total.toFixed(4) : null;
+    if (!latest) {
+      const stage = state === "ADMITTED" ? "received, waiting to be rebuilt" : state === "RECONSTRUCTED" ? "rebuilt, not graded yet" : "not graded yet";
+      return "Grade: " + stage + ". It appears here once the validator grades this submission." + examLatestLine(grade) + (best ? " Your best so far is " + best + "." : "");
+    }
+    // Validator (Ladder v3): a non-improvement repeats the best total under
+    // this submit's digest, so it is never read as this submit's score.
+    if (latest.status === "NO_IMPROVEMENT") return "Grade: did not improve on your best" + (typeof latest.total === "number" ? " (" + latest.total.toFixed(4) + ")" : "") + ". Compares within this Challenge version only.";
+    if (latest.status === "GATE_FAILED") return "Grade: not eligible (a mandatory gate failed). Compares within this Challenge version only.";
+    if (typeof latest.total !== "number") return "Grade: not scored.";
+    const detail = [typeof latest.A === "number" ? "A " + latest.A.toFixed(3) : null, typeof latest.D === "number" ? "D " + latest.D.toFixed(3) : null].filter(Boolean).join(", ");
+    return "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better" + (detail ? "; " + detail : "") + ")" + (best ? " · your best: " + best : "") + ". Compares within this Challenge version only.";
+  }
+  function renderValidatorOutcome(panel, result, campaign) {
     const o = result.result;
     const s = o.screening;
     const cases = s && s.cases && typeof s.cases === "object" ? Object.entries(s.cases).map(([k, v]) => words(k) + " " + v).join(", ") : "unavailable";
@@ -2701,9 +2828,28 @@
       o.sealed === true ? "Sealed: under this exam rule its results are computed on hidden cases and shown to no miner until Carbon releases those cases." : s ? "Screening on pool version " + (s.pool_version ?? "?") + ": " + (s.eligible === true ? "eligible" : s.eligible === false ? "not eligible" : "eligibility unavailable") + " · gates failed: " + ((s.gates_failed || []).join(", ") || "none") + " · cases: " + cases : "Screening: not shown in this feedback mode.",
       s && typeof s.score === "number" ? "Score: " + s.score + (typeof s.important_score === "number" ? " · important region: " + s.important_score : "") : o.sealed === true ? "Score: sealed." : "Score: not shown in this feedback mode.",
       o.sealed === true ? "Nomination and finals: sealed." : "Nominated for a final: " + (o.nominated === true ? "yes" : o.nominated === false ? "no" : "unavailable") + ((o.finals || []).length ? " · finals: " + o.finals.map(f => f.state + (f.promoted ? " (promoted)" : "")).join(", ") : ""),
+      // A direct campaign's private-exam grade (Validator display rule): one
+      // graded total 0..1, higher better, A and D as detail; a gate failure
+      // is not eligible; none yet until the receiver grades it.
+      ...(o.grade !== undefined ? [gradeLine(o.grade, o.state)] : []),
+      ...(o.practice_dual ? [practiceDualLine(o.practice_dual)] : []),
       (o.evidence || "DEVELOPMENT") + ": no qualification, no reward, no chain write.",
     ];
     for (const line of lines) researchNote(panel, line, "development-result");
+    // U53: the submit often answers before the validator grades it; the
+    // miner asks again (a signed read, Validator-approved), never unasked.
+    if (o.grade !== undefined && campaign) {
+      const check = document.createElement("button"); check.type = "button";
+      check.textContent = "Check for result";
+      check.addEventListener("click", async () => {
+        if (busy || !connected) return;
+        busy = true; render();
+        try { await api("/api/v1/operations/check_result", {campaign}, undefined, 30000); message("Read your latest grade from the validator."); }
+        catch (error) { message("Not read: " + (error.message || "the validator could not be reached") + ".", true); }
+        finally { busy = false; await refresh(); render(); }
+      });
+      panel.append(check);
+    }
   }
   function tabSubmission(panel, run) {
     if (run.selects === "miner") renderJourneySubmission(panel, run);
@@ -2712,12 +2858,12 @@
       if (result.status === "MULTI_VALIDATOR_OUTCOME") {
         for (const validator of result.validators || []) {
           researchNote(panel, "Validator: " + validator.receiver_hotkey + " · " + validator.intake_url, "development-result");
-          if (validator.result) renderValidatorOutcome(panel, {epoch: result.epoch, result: validator.result});
+          if (validator.result) renderValidatorOutcome(panel, {epoch: result.epoch, result: validator.result}, run.id);
           else researchNote(panel, words(validator.state) + ": " + (validator.next_step || words(validator.code)), "development-result");
         }
         continue;
       }
-      if (result.status === "VALIDATOR_OUTCOME" && result.result) { renderValidatorOutcome(panel, result); continue; }
+      if (result.status === "VALIDATOR_OUTCOME" && result.result) { renderValidatorOutcome(panel, result, run.id); continue; }
       const verified = result.status === "VERIFIED_SOURCE" && result.result;
       researchNote(panel, "DEVELOPMENT evaluation: " + (verified ? (result.result.disposition || "disposition unavailable") + " · Accepted DEVELOPMENT improvement: " + (typeof result.result.accepted_development_improvement === "boolean" ? String(result.result.accepted_development_improvement) : "unavailable") : "Readback unavailable; no disposition inferred."), "development-result");
     }
@@ -3435,8 +3581,13 @@
       const problem = budgetProblem(composition.budget);
       if (problem) return "Fix your limits: " + problem + ".";
       if (offeredAgent(wizard.agentChoice)?.launch_agent === GRAPHITE) {
+        // U17: the controller refuses a Graphite launch without both finite
+        // provider ceilings (graphite_ceilings_required); say so here, before
+        // Launch, instead of calling every limit optional.
         const limits = graphiteLimitsProblem();
         if (limits) return "Fix Graphite's per-epoch limits: " + limits + ".";
+        const ceilings = composition.budget?.ceilings || {};
+        if (!Number.isSafeInteger(ceilings.provider_attempts) || !Number.isSafeInteger(ceilings.provider_nanodollars)) return "Graphite needs two of your limits: a model-call ceiling and a model-spend ceiling. Set both under Advanced limits, Ceilings per resource; every other limit stays optional.";
       }
     }
     if (step === "review") {
@@ -3537,12 +3688,27 @@
       if (document.status === "PUBLIC_CONTRACT_UNAVAILABLE") researchNote(target, "The public construction contract is unavailable. Changed constructions stay closed.", "reason");
     });
   }
+  let wizardAllChallenges = false;
   function renderWizardChallenges() {
     renderConstructionOptions();
     const target = $("wizard-challenges");
     if (!caps) { rebuild(target, "none", node => node.append(el("p", "Connect to read the Challenge registry.", "hint"))); $("wizard-challenge-description").replaceChildren(); $("wizard-challenge-description").dataset.key = ""; return; }
-    rebuild(target, JSON.stringify([capsVersion, caps.challenges.map(entry => [entry.challenge_id, entry.version, entry.selectable]), connected]), node => {
-      for (const entry of caps.challenges) {
+    // U14: the launchable newest version of each Challenge first; older
+    // versions and unavailable Challenges behind one "show all" control.
+    const newer = (a, b) => { const x = String(a || "").split(".").map(Number), y = String(b || "").split(".").map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
+    const newest = {};
+    for (const entry of caps.challenges) if (entry.selectable && (!newest[entry.challenge_id] || newer(entry.version, newest[entry.challenge_id].version))) newest[entry.challenge_id] = entry;
+    const chosen = challengeEntry(wizard.challenge);
+    const primary = caps.challenges.filter(entry => newest[entry.challenge_id] === entry || entry === chosen);
+    const listed = wizardAllChallenges || !primary.length ? caps.challenges : primary;
+    rebuild(target, JSON.stringify([capsVersion, caps.challenges.map(entry => [entry.challenge_id, entry.version, entry.selectable]), connected, listed.length]), node => {
+      if (caps.challenges.length > primary.length && primary.length) {
+        const toggle = el("button", wizardAllChallenges ? "Show only the newest launchable versions" : "Show every version and unavailable Challenge (" + (caps.challenges.length - primary.length) + " more)");
+        toggle.type = "button"; toggle.id = "wizard-all-challenges";
+        toggle.addEventListener("click", () => { wizardAllChallenges = !wizardAllChallenges; render(); });
+        node.append(toggle);
+      }
+      for (const entry of listed) {
         const label = el("label", undefined, "choice" + (entry.selectable ? "" : " unavailable"));
         const input = el("input"); input.type = "radio"; input.name = "wizard-challenge"; input.value = entry.challenge_id;
         input.dataset.version = entry.version || "";
@@ -3837,6 +4003,7 @@
     fill(input, wizard.timeoutSeconds ?? "");
     input.setAttribute("aria-invalid", timeout.problem ? "true" : "false");
     let note = "Default: " + timeout.standard + " seconds, or half your elapsed limit where that is shorter. How long each model call may wait for the provider's answer; a call still unanswered then ends with its outcome unknown and is reconciled, never resent. New calls stop when less than the timeout remains of your elapsed limit; it reserves no money. Leave it blank for the default, or enter a whole number of seconds from " + timeout.low.toLocaleString("en-US") + " to " + timeout.high.toLocaleString("en-US") + ". The Control Center checks it again at launch.";
+    if (timeout.transport) note += " " + timeout.transport;
     if (timeout.problem) note = "Not valid: " + timeout.problem + ". " + note;
     setText($("wizard-timeout-note"), note);
     const kind = timeout.problem ? "reason" : "hint";
@@ -3956,7 +4123,7 @@
       // launch; no maximum is guessed for the model.
       if (agent?.launch_agent === GRAPHITE && cap && !cap.problem && cap.value === null && cap.fallback?.basis === "no_documented_maximum") row("Max output warning", "Carbon knows no output maximum for " + wizard.model + ", so each reply is capped at the conservative " + cap.fallback.max_output_tokens.toLocaleString("en-US") + " tokens, which can cut a Planner's plan short. Set max output to the model's own maximum.");
       const timeout = callTimeout();
-      if (timeout && !timeout.problem) row("Call timeout", timeout.value !== null ? timeout.value.toLocaleString("en-US") + " seconds per provider call, your timeout" : "Not set: " + timeout.fallback.toLocaleString("en-US") + " seconds per provider call, the default" + (timeout.bounded && timeout.fallback < timeout.standard ? " (half your elapsed limit)" : "") + ". New calls stop when less than the timeout remains of your elapsed limit");
+      if (timeout && !timeout.problem) row("Call timeout", timeout.value !== null ? timeout.value.toLocaleString("en-US") + " seconds per provider call, your timeout" : "Not set: " + timeout.fallback.toLocaleString("en-US") + " seconds per provider call, the default" + (timeout.bounded && timeout.fallback < timeout.standard ? " (half your elapsed limit)" : "") + ". New calls stop when less than the timeout remains of your elapsed limit" + (timeout.streams ? ". Streams: long replies are not cut while tokens arrive" : ""));
       row("Compute", compute ? compute.label + " · " + compute.lane + " lane · " + compute.availability : "Unavailable");
       row("Tools", entry ? Object.keys(entry.tools?.workflow || {}).join(", ") || "none listed" : "Choose a Challenge");
       // Stated before launch, not learnt at submit (LAUNCHPAD-PAGE-USABILITY-01).
@@ -4301,6 +4468,11 @@
       const outcome = await keyedOperation(name, body);
       if (outcome.ok) {
         if (name === "practice") practiceIssues.delete(body.campaign);
+        // U62: a form the miner just used is not held against the refresh:
+        // the pressed button lets go of focus and a freeze's typed reason is
+        // done, so the form redraws (Submit enables once the freeze lands).
+        if (document.activeElement?.tagName === "BUTTON") document.activeElement.blur();
+        if (name === "freeze_candidate") for (const node of document.querySelectorAll(".journey-submit [data-edited]")) delete node.dataset.edited;
         watch(name, body.campaign, outcome.value, {...outcome, mode: body.mode}); message(started + (outcome.replaced ? " " + REPLACED : ""));
       }
       // A refusal with the controller's next step, not just its code
@@ -4504,5 +4676,5 @@
   show();
   setInterval(refresh, 1500);
   if (linkToken !== null) connectFromLink(linkToken);
-  else { const resumed = keptSession(); if (resumed) connectFromLink(resumed, true); }
+  else { const resumed = keptSession(); if (resumed) connectFromLink(resumed, true); else connectRemembered(); }
 })();

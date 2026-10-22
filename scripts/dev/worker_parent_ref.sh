@@ -5,8 +5,13 @@ set -euo pipefail
 #
 # Usage: worker_parent_ref.sh PARENT_IMAGE_ID SOURCE_TREE_DIGEST [c03|torch]
 #
-# A local build names the parent in the local image store:
-#   carbon-c03-worker:<first 16 hex of the source digest>@<image ID>.
+# A local build names the parent in the local image store by tag only:
+#   carbon-c03-worker:<first 16 hex of the source digest>,
+# which the child script first points at the exact parent image ID
+# (`docker tag <image ID> <tag>`). A `name:tag@<image ID>` reference is read
+# as a registry manifest digest, which a local image ID never is, so every
+# builder (BuildKit and the legacy one) tried a registry pull and failed on
+# a clean machine (M1 E2E G-B1, 2026-10-22).
 # A release sets CARBON_WORKER_PARENT_REPOSITORY to the registry repository
 # the parent was just pushed to, and the child is built FROM
 #   <repository>@<image ID>.
@@ -33,7 +38,7 @@ esac
 [[ "${source_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "SOURCE_TREE_DIGEST is sha256:<64 hex>"
 repository="${CARBON_WORKER_PARENT_REPOSITORY:-}"
 if [[ -z "${repository}" ]]; then
-  printf '%s:%s@%s\n' "${name}" "${source_digest:7:16}" "${parent}"
+  printf '%s:%s\n' "${name}" "${source_digest:7:16}"
   exit 0
 fi
 component='[a-z0-9]+([._-][a-z0-9]+)*'

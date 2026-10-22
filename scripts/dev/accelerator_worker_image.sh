@@ -15,6 +15,12 @@ parent="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["image
 source_digest="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["source_tree_digest"])' "${parent_manifest}")"
 [[ "${parent}" =~ ^sha256:[0-9a-f]{64}$ && "${source_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
 parent_ref="$(bash "${script_dir}/worker_parent_ref.sh" "${parent}" "${source_digest}")"
+# A local parent is named by tag: point the tag at the exact parent image
+# first, so the child is built on that image and nothing is pulled (G-B1).
+if [[ "${parent_ref}" != *@* ]]; then
+  docker tag "${parent}" "${parent_ref}"
+  [[ "$(docker image inspect --format '{{.Id}}' "${parent_ref}")" == "${parent}" ]]     || { echo 'The local parent tag does not name the exact parent image.' >&2; exit 2; }
+fi
 recipe="${repo_root}/.devcontainer/accelerators/Dockerfile"
 recipe_digest="sha256:$(sha256sum "${recipe}" | cut -d' ' -f1)"
 lock_digest="sha256:$(sha256sum "${repo_root}/.devcontainer/accelerators/cuda13-py311.txt" | cut -d' ' -f1)"

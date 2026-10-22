@@ -39,6 +39,7 @@ from carbon.development_session.research_tools import (
     ARGUMENT_NORMALISATION,
     ARGUMENT_NORMALISATION_V2,
     ARGUMENT_NORMALISATION_V3,
+    ARGUMENT_NORMALISATION_V4,
     PREFIX,
     TOOLS,
     TOOLS_RULE,
@@ -766,12 +767,21 @@ def test_frozen_plans_and_tool_surfaces_replay_unchanged(tmp_path):
         # New plans additionally freeze PLT-19's reply wrapper. Removing that
         # field and restoring v1 argument normalization reproduces the exact
         # historical plan digest; neither historical contract is rewritten.
+        from carbon.development_session.research_loop import REPLY_CONTINUATION_V1
         from carbon.development_session.research_reply import RULE as REPLY_RULE
 
         assert new["research_reply"] == REPLY_RULE
         # A new Graphite plan freezes v3 (M1 rehearsal, 2026-10-21).
-        assert new["argument_normalisation"] == ARGUMENT_NORMALISATION_V3
-        old = {k: v for k, v in new.items() if k != "research_reply"}
+        # v4 since the M1 E2E (2026-10-22, F1: "None" read as null).
+        assert new["argument_normalisation"] == ARGUMENT_NORMALISATION_V4
+        # The reply-continuation rule (Graphite context spec, part 2) is
+        # likewise new-plan only.
+        assert new["reply_continuation"] == REPLY_CONTINUATION_V1
+        old = {
+            k: v
+            for k, v in new.items()
+            if k not in ("research_reply", "reply_continuation")
+        }
         old["argument_normalisation"] = ARGUMENT_NORMALISATION
         assert digest(canonical(old)) == GRAPHITE_PLAN_V1_DIGEST
     # A manifest frozen with v1, or with no rule, reads as it was frozen:
@@ -796,4 +806,5 @@ def test_frozen_plans_and_tool_surfaces_replay_unchanged(tmp_path):
         ARGUMENT_NORMALISATION,
         ARGUMENT_NORMALISATION_V2,
         ARGUMENT_NORMALISATION_V3,
+        ARGUMENT_NORMALISATION_V4,
     )

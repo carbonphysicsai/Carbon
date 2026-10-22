@@ -97,11 +97,17 @@ def check_reexpansion(document_bytes, bundle_recipe_digest):
     return document
 
 
-def expand(recipe):
+def expand(recipe, runtime=None):
     """The Carbon bundle recipe an admitted catalog recipe stands for.
 
     `recipe` is a parsed `ConstructionRecipe` dict whose identity fields were
-    already bound to its Challenge. Raises `CatalogRefused`."""
+    already bound to its Challenge. Raises `CatalogRefused`.
+
+    `runtime` (miner GPU practice only) asks for the entry's build for that
+    bundle runtime (`bundle_refs`); `catalog_gpu_build_missing` when it has
+    none (`GpuBuildMissing`). None, as every receiver and CPU practice asks,
+    is the entry's own
+    `bundle_ref`, exactly as before."""
     challenge = recipe["challenge"]
     source = recipe["source"]
     if source.get("kind") != "catalog":
@@ -129,7 +135,7 @@ def expand(recipe):
     return {
         "schema": recipe["schema"],
         "challenge": dict(challenge),
-        "source": {"kind": "bundle", "bundle_ref": dict(item["bundle_ref"])},
+        "source": {"kind": "bundle", "bundle_ref": dict(_bundle_ref(item, runtime))},
         "procedure": {
             "entrypoint": dict(item["entrypoint"]),
             "configuration": configuration,
@@ -138,3 +144,23 @@ def expand(recipe):
         },
         "output": dict(recipe["output"]),
     }
+
+
+def _bundle_ref(item, runtime):
+    if runtime is None:
+        return item["bundle_ref"]
+    builds = item.get("bundle_refs")
+    built = builds.get(runtime) if type(builds) is dict else None
+    if type(built) is not dict or built.get("runtime_profile_id") != runtime:
+        raise GpuBuildMissing(item["catalog_id"], runtime)
+    return built
+
+
+class GpuBuildMissing(ValueError):
+    """Miner GPU practice only: the entry has no build for the asked runtime,
+    so it practises on CPU. Not a catalog refusal: no receiver screens it."""
+
+    code = "catalog_gpu_build_missing"
+
+    def __init__(self, catalog_id, runtime):
+        super().__init__(f"{catalog_id!r} has no {runtime} build yet")

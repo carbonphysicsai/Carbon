@@ -9,8 +9,8 @@ CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/canonical.sh pyth
 ```
 
 The current prospective public snapshot is
-`docs/development/evidence/role-output-cap-audit/audit-v5.json`. Its source
-basis is `d5046aae7cc0bea529d015d5548d9a00b744392c`: 35 public grant files, each
+`docs/development/evidence/role-output-cap-audit/audit-v8.json`. Its source
+basis is `dd993c524729834233568357423b39725837805e`: 35 public grant files, each
 hashed, and 11 hashed selection/role/price/grant/budget source files. It uses
 the real session selector and the phase-3/phase-4 budget calculators. It lists
 every role/model's uncached maximum input and output reservation. Reasoning
@@ -96,6 +96,29 @@ V4 stays byte-identical, SHA256
 `a868929497e989ba0a53431bfd7e0061b76b3377d34538b4316a36f477691ccf`, and now
 fails the current-source control like v2 and v3. No grant figure, cap logic or
 accounting changes.
+
+## Prospective streamed-transport source refresh (v6)
+
+The S17 streamed provider calls (`062e3aa96`, rule
+`carbon.model-selection.transport.stream.v1`), merged as `356df4481`, changed
+the pinned `model_provider.py` again. V6 rebinds that one hash; all 35 grant
+rows, every profile and the other ten source pins equal v5. V5 stays
+byte-identical, SHA256 `bdee338a3bf7a3479688dfb1491278501b0e119669ba58bcdff52236d99cc1c1`, and now fails the current-source control.
+No grant figure, cap logic or accounting changes.
+
+## Prospective miner-bounds source refresh (v7)
+
+Limits row #8 (`14f4318cc`) gives a miner's selection no Carbon maximum on
+output, input or timeout; Carbon's own Graphite, whose grants this audit
+binds, keeps the historical bounds. Only the `model_provider.py` pin moves: all
+35 grant rows, every profile and the other ten pins equal v6, and v6 bytes are
+untouched (it joins the stale-pin control).
+
+## Prospective source refresh (v8)
+
+Limits row #8 representation bounds for a miner's selection (`dd993c524`) moved only the `model_provider.py` pin: all 35 grant
+rows, every profile and the other ten pins equal v7; v7 bytes are untouched
+and join the stale-pin control.
 
 ## What changed at the larger cap
 

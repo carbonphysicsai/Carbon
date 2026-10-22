@@ -35,6 +35,12 @@ LIFECYCLE = (
 _CAMPAIGN = re.compile(r"[0-9a-f]{32}")
 
 
+#: The environment the server starts with: no bytecode written into the
+#: checkout (M1 E2E H3: a `__pycache__` there fails every later launch's
+#: clean-tree check).
+SERVER_ENVIRONMENT = {"PYTHONDONTWRITEBYTECODE": "1"}
+
+
 def _command():
     # The entry point installed beside this interpreter serves this same
     # installation; one found elsewhere on PATH might not.
@@ -117,8 +123,16 @@ def connection_instructions(*, configuration=None, campaign=None):
         "tier": tier,
         "command": full,
         "command_basis": basis,
+        # No bytecode in the checkout from the server's own imports (H3).
+        "environment": dict(SERVER_ENVIRONMENT),
         "client_configuration": {
-            "mcpServers": {"carbon": {"command": full[0], "args": full[1:]}}
+            "mcpServers": {
+                "carbon": {
+                    "command": full[0],
+                    "args": full[1:],
+                    "env": dict(SERVER_ENVIRONMENT),
+                }
+            }
         },
         "campaign_access": access,
         "tools": tools,

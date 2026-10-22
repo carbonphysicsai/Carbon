@@ -114,6 +114,27 @@ def candidate_implementation(state_dir, *, repository=None) -> dict | None:
     )
 
 
+def _candidate_identity(profile):
+    """What a profile says about its DEVELOPMENT source: the fields that
+    grant source authority, and nothing else."""
+    runtime = profile.get("runtime") if type(profile) is dict else None
+    return (
+        profile.get("campaigns_root") if type(profile) is dict else None,
+        profile.get("accepted_revision") if type(profile) is dict else None,
+        runtime.get("implementation") if type(runtime) is dict else None,
+    )
+
+
+def current_profile(profile_path) -> dict:
+    """The runner profile as the file holds it now, validated: what a caller
+    reads intakes, receivers and settings from after `profile_candidate`
+    accepted its copy (Validator, H13b receipt: never the caller's copy)."""
+    from carbon.development_session.private_records import private_json
+    from scripts.dev.miner_launchpad.runner import validated_profile
+
+    return validated_profile(private_json(Path(profile_path)))
+
+
 def profile_candidate(profile_path, profile=None, *, repository=None) -> dict | None:
     """Resolve a candidate only from the exact owner-private installed profile.
 
@@ -151,7 +172,14 @@ def profile_candidate(profile_path, profile=None, *, repository=None) -> dict | 
         return None
     actual = validated_profile(private_json(path))
     if (
-        (profile is not None and actual != profile)
+        # The caller's copy grants nothing the file does not: its candidate
+        # identity must be the file's. Other fields (intakes, receivers, a
+        # setting) may have been rewritten by setup since the caller read it
+        # (M1 E2E H13b: the first launch after a review refused once).
+        (
+            profile is not None
+            and _candidate_identity(actual) != _candidate_identity(profile)
+        )
         or actual["campaigns_root"] != str(path.parent / "campaigns")
         or actual["accepted_revision"] != candidate["revision"]
         or actual["runtime"]["implementation"] != candidate

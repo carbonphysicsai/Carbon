@@ -257,6 +257,11 @@ def load_direct_installed_source(configuration: Path, *, version="1.2"):
             else None
         )
         development_candidate = implementation is not None
+        if development_candidate:
+            # Intakes, receivers and settings from the file as it is now,
+            # never the copy read before a setup rewrite (H13b receipt).
+            cfg = installed.current_profile(configuration)
+            paths = {name: Path(value) for name, value in cfg["paths"].items()}
         if implementation is None:
             implementation = accepted_implementation(cfg["accepted_revision"])
         parent = load_image_identity(paths["image_manifest"])
@@ -630,6 +635,11 @@ def _runtime(profile):
     with _check("carbon_updated_rerun_installer"):
         implementation = installed.profile_candidate(profile.path, cfg)
         development_candidate = implementation is not None
+        if development_candidate:
+            # Intakes, receivers and settings from the file as it is now,
+            # never the copy read before a setup rewrite (H13b receipt).
+            cfg = installed.current_profile(profile.path)
+            paths = {name: Path(value) for name, value in cfg["paths"].items()}
         if implementation is None:
             implementation = accepted_implementation(cfg["accepted_revision"])
         image = load_image_identity(paths["image_manifest"])
@@ -1944,7 +1954,25 @@ async def serve_open_tier(state_dir=None):
         await _release(held)
 
 
+#: The checkout this installation runs from: its `scripts` package (the
+#: Launchpad runner) is not installed, so `carbon-mcp` puts the checkout on
+#: the import path, as `carbon-control-center` does (M1 E2E H1, 2026-10-22).
+CHECKOUT = Path(__file__).resolve().parents[2]
+
+
+def _serve_from_checkout():
+    """Write no bytecode into the checkout (a `__pycache__` there fails the
+    development candidate's clean-tree check; M1 E2E H3) and import the
+    checkout's `scripts` package from any working directory (H1)."""
+    sys.dont_write_bytecode = True
+    if (CHECKOUT / "scripts" / "dev" / "miner_launchpad").is_dir() and str(
+        CHECKOUT
+    ) not in sys.path:
+        sys.path.insert(0, str(CHECKOUT))
+
+
 def main(argv=None):
+    _serve_from_checkout()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--configuration",

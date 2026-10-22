@@ -195,7 +195,9 @@ def parent_ref(*args, repository=None):
 def test_a_local_build_names_the_parent_in_the_local_store():
     done = parent_ref(PARENT_ID, SOURCE)
     assert done.returncode == 0
-    assert done.stdout == f"carbon-c03-worker:f07e01414c6600f0@{PARENT_ID}\n"
+    # By tag only: a local image ID is not a registry digest (G-B1); each
+    # child tags the exact parent image first.
+    assert done.stdout == "carbon-c03-worker:f07e01414c6600f0\n"
 
 
 def test_a_release_builds_on_the_pushed_parent_by_registry_digest():
@@ -500,3 +502,13 @@ def test_the_release_passes_the_pushed_parent_to_the_analysis_builder():
     assert export < passed < script.index("analysis_manifest=")
     installer = (REPOSITORY / "scripts" / "install_miner.sh").read_text()
     assert "--parent-repository" not in installer
+
+
+@pytest.mark.parametrize("child", CHILDREN)
+def test_every_child_points_the_local_tag_at_the_exact_parent_first(child):
+    # G-B1: a clean machine has no registry copy of the local parent.
+    text = (REPOSITORY / "scripts" / "dev" / child).read_text()
+    tag = 'docker tag "${parent}" "${parent_ref}"'
+    check = "docker image inspect --format '{{.Id}}' \"${parent_ref}\""
+    assert tag in text and check in text
+    assert text.index(tag) < text.index(check) < text.index("docker build")

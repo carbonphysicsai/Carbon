@@ -220,16 +220,20 @@ def test_the_context_table_is_one_record_read_by_graphite_and_the_launchpad():
 
 
 def test_the_input_bounds_are_selects_own():
+    # Carbon's own Graphite keeps the historical bounds; a miner's selection
+    # has no maximum but the 64-bit one (limits row #8).
     assert mp.INPUT_TOKEN_BOUNDS == (16384, 1048576)
+    # Representation bound only: a JSON number the page round-trips.
+    assert mp.MINER_INPUT_TOKEN_BOUNDS == (16384, 2**53 - 1)
     credential = {"kind": "file", "reference": "/nonexistent/fixture.key"}
-    for bad in (16383, 1048577):
+    for bad in (16383, 2**53):
         with pytest.raises(mp.ModelSelectionRefused):
             mp.select(
                 provider_id="engy-chat",
                 credential=credential,
                 settings={"max_input_tokens": bad},
             )
-    for good in mp.INPUT_TOKEN_BOUNDS:
+    for good in (16384, 1048577, 2**53 - 1):
         chosen = mp.select(
             provider_id="engy-chat",
             credential=credential,
@@ -252,7 +256,7 @@ def capability_model():
 def test_the_capability_document_states_the_window_and_published_context():
     window = capability_model()["input_window"]
     assert window["launch_field"] == "model_settings.max_input_tokens"
-    assert window["bounds"] == list(mp.INPUT_TOKEN_BOUNDS)
+    assert window["bounds"] == list(mp.MINER_INPUT_TOKEN_BOUNDS)
     assert window["default"] == mp.DEFAULT_SETTINGS.max_input_tokens == 65536
     assert window["admission_ceiling_at_default"] == 65536 - CONTEXT_RESERVE_TOKENS
     assert window["published_context"], "the specimen offers an Engy model"

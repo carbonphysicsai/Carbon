@@ -395,7 +395,12 @@ def _setups(tmp_path, monkeypatch):
 @pytest.fixture
 def documents(tmp_path, journey, monkeypatch):
     from carbon.development_session.exam_environment import exam_environment
-    from scripts.dev.miner_launchpad import capabilities, controller, prelaunch
+    from scripts.dev.miner_launchpad import (
+        capabilities,
+        controller,
+        prelaunch,
+        toolbox,
+    )
     from scripts.dev.miner_launchpad.operations import describe, perform
     from scripts.dev.miner_launchpad.research_fixture import FixtureRunner
 
@@ -446,6 +451,11 @@ def documents(tmp_path, journey, monkeypatch):
         "setup_send": _setup_document(tmp_path),
         "setup_build": _setup_build_documents(tmp_path),
         "setups": _setups(tmp_path, monkeypatch),
+        # A catalog version's toolbox, from the real toolbox code (S22): its
+        # example recipe and backbone picker for the Recipe box.
+        "catalog_toolbox": toolbox.build(
+            {"id": "electric-motor-magnetics", "version": "1.3"}
+        ),
     }
     # Graphite's documents, from these (GRAPHITE-MINER-S5).
     value["graphite"] = graphite_documents(_plain(value))
@@ -560,7 +570,11 @@ def test_the_mcp_command_names_the_loaded_profile(journey, tmp_path):
     assert words[-2:] == ["--configuration", str(profile)]
     assert "<your runner profile>" not in mcp["command"]
     server = mcp["client_configuration"]["mcpServers"]["carbon"]
-    assert [server["command"], *server["args"]] == words
+    # The shown command starts with the server's environment (no bytecode in
+    # the checkout, M1 E2E H3); the client configuration carries it as env.
+    assert words[0] == "PYTHONDONTWRITEBYTECODE=1"
+    assert server["env"] == {"PYTHONDONTWRITEBYTECODE": "1"}
+    assert [server["command"], *server["args"]] == words[1:]
     # The specimen: with no profile loaded, the placeholder, said as such.
     unloaded = capabilities.control_center(None)["agents"]["choices"]
     none = next(c for c in unloaded if c["id"] == "external_mcp")

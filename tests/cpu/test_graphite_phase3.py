@@ -794,11 +794,15 @@ def test_every_rung_opens_with_its_whole_context_a_600_s_timeout_on_engy_chat(
             window - CONTEXT_RESERVE_TOKENS + MODEL_OUTPUT_CAPS.get(model_id, 2048)
             < ENGY_CONTEXT_TOKENS[model_id]
         )
-    # 1,048,576 is the most `select` accepts.
+    # 1,048,576 is the most `select` accepts for Carbon's own Graphite (its
+    # own adapter registry; a miner's selection has none, limits row #8).
     assert SELECT_MAX_INPUT_TOKENS == 1048576
+    from carbon.agent_campaign.graphite.model_providers import ENGY
+
     with pytest.raises(ModelSelectionRefused, match="max_input_tokens"):
         select(
             provider_id="engy-chat",
+            adapters=ENGY.adapters,
             credential={"kind": "file", "reference": "/k"},
             settings={"max_input_tokens": SELECT_MAX_INPUT_TOKENS + 1},
         )

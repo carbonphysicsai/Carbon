@@ -350,6 +350,7 @@ RECIPE_REFUSAL_CODES = frozenset(
 @functools.cache
 def _correction_choices():
     from carbon.backbone_catalog import listing as catalog_listing
+    from carbon.backbone_catalog.entries import REFUSAL_CODES as CATALOG_REFUSAL_CODES
     from carbon.challenge_registry.campaigns import implemented_backends
 
     from .gpu_code_cell import WRAPPED
@@ -376,8 +377,10 @@ def _correction_choices():
         # The names the carrier stages itself, and the remote wrapper's own.
         "run_files_invalid": reserved_stage_names("run_julia") | {WRAPPED},
         "julia_environment_unknown": frozenset(ENVIRONMENTS),
-        # A direct recipe's own refusal codes (`construction_recipe`).
-        "direct_recipe_required": RECIPE_REFUSAL_CODES,
+        # A direct recipe's own refusal codes (`construction_recipe`), and a
+        # catalog version's catalog codes (`backbone_catalog.entries`).
+        "direct_recipe_required": RECIPE_REFUSAL_CODES
+        | frozenset(CATALOG_REFUSAL_CODES),
     }
 
 
@@ -768,17 +771,35 @@ ARGUMENT_NORMALISATION_V2 = "carbon.autoresearch.argument-normalisation.v2"
 #: left as sent, for the request's own checks to refuse. v1 and v2 stay
 #: registered, unchanged, so a campaign that froze either replays as it was.
 ARGUMENT_NORMALISATION_V3 = "carbon.autoresearch.argument-normalisation.v3"
+#: The rule new plans freeze from the M1 E2E (2026-10-22, F1), where
+#: Qwen3.5-397B sent the string "None" for JSON null and never practised:
+#: everything v3 reads, with each common spelling of null (`NULL_SPELLINGS_V4`)
+#: read as JSON null wherever v3 reads "null". v1-v3 stay registered,
+#: unchanged, so a campaign that froze one replays as it was.
+ARGUMENT_NORMALISATION_V4 = "carbon.autoresearch.argument-normalisation.v4"
+NULL_SPELLINGS_V4 = frozenset({"null", "Null", "NULL", "None", "none"})
 ARGUMENT_NORMALISATIONS = (
     ARGUMENT_NORMALISATION,
     ARGUMENT_NORMALISATION_V2,
     ARGUMENT_NORMALISATION_V3,
+    ARGUMENT_NORMALISATION_V4,
 )
 #: The practice fields whose string "null" each rule reads as JSON null.
 PRACTICE_NULL_FIELDS = {
     ARGUMENT_NORMALISATION: (),
     ARGUMENT_NORMALISATION_V2: ("action", "arguments_json"),
     ARGUMENT_NORMALISATION_V3: ("action", "arguments_json"),
+    ARGUMENT_NORMALISATION_V4: ("action", "arguments_json"),
 }
+
+
+def _is_null(value, rule):
+    """`value` is a string the rule reads as JSON null."""
+    if rule == ARGUMENT_NORMALISATION_V4:
+        return type(value) is str and value in NULL_SPELLINGS_V4
+    return value == "null"
+
+
 #: The workspace actions whose arguments v3 fills, and from what: a call
 #: field (the name itself) or a value (`read_max` stands for the per-call
 #: read_file maximum).
@@ -872,13 +893,15 @@ def normalised_task_arguments(args, rule, read_max=None):
     if rule not in ARGUMENT_NORMALISATIONS or type(args) is not dict:
         return args
     if args.get("kind") == "workspace":
-        if args.get("strategy_json") == "null":
+        if _is_null(args.get("strategy_json"), rule):
             args = {**args, "strategy_json": None}
-        if rule == ARGUMENT_NORMALISATION_V3:
+        if rule in (ARGUMENT_NORMALISATION_V3, ARGUMENT_NORMALISATION_V4):
             args = _workspace_defaults(args, read_max)
         return args
     if args.get("kind") == "practice":
-        nulls = {f: None for f in practice_null_fields(rule) if args.get(f) == "null"}
+        nulls = {
+            f: None for f in practice_null_fields(rule) if _is_null(args.get(f), rule)
+        }
         if nulls:
             return {**args, **nulls}
     return args
@@ -1108,32 +1131,40 @@ class ResearchMinerTools:
                 if args[field] is not None:
                     raise TaskContractMismatch("practice_recipe_required", field)
             strategy = _object(args, "strategy_json")
+            practice = getattr(getattr(c, "executor", None), "practice", None)
+            direct = getattr(practice, "construction_mode", None) == "direct"
+            if direct:
+                # A catalog version's one recipe rule, which its dry_validate
+                # answers with too (S22): a recipe that does not bind the
+                # version's kit, or names a catalog entry or setting it does not
+                # serve, is refused here by its code, before anything starts.
+                from .research_service import (
+                    construction_recipe_issues,
+                    takes_construction_recipes,
+                )
+
+                issues = (
+                    construction_recipe_issues(strategy, key)
+                    if takes_construction_recipes(key)
+                    else ()
+                )
+                if issues:
+                    raise TaskContractMismatch(
+                        "direct_recipe_required", "strategy_json", (issues[0].code,)
+                    )
             # A backend this host cannot practise is refused here, before
             # anything starts or is charged, with the backends it serves.
-            served = getattr(
-                getattr(getattr(c, "executor", None), "practice", None),
-                "backend_refusal",
-                None,
-            )
+            served = getattr(practice, "backend_refusal", None)
             refused = served(strategy) if callable(served) else None
             if refused is not None:
                 # A catalog practice lists its installed entries: none at all
                 # is the miner's install step, not a recipe to change.
-                if (
-                    not refused
-                    and getattr(c.executor.practice, "construction_mode", None)
-                    == "direct"
-                ):
+                if not refused and direct:
                     raise TaskContractMismatch("catalog_not_installed", "strategy_json")
                 raise TaskContractMismatch(
                     "backend_not_served", "strategy_json", refused
                 )
-            if (
-                getattr(
-                    getattr(c.executor, "practice", None), "construction_mode", None
-                )
-                == "direct"
-            ):
+            if direct:
                 try:
                     spec = research.DirectPracticeTaskSpecV1(
                         "carbon.direct-practice.v1", strategy

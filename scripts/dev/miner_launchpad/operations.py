@@ -88,10 +88,19 @@ FIELDS = {
     "budget": ("object", "Optional ceilings, elapsed_seconds or final_reserve."),
     "review_digest": ("string", "The launch review you accepted, when one applies."),
     "profile": ("string", "Your runner profile id, to confirm which one."),
-    "campaign": ("string", "The campaign id."),
+    "campaign": (
+        "string",
+        "The campaign id: launch's campaign_id, with or without its 'cmp-' prefix.",
+    ),
     "strategy": (
         "object",
-        "A recipe: schema_version, challenge_id, backbone, parameters.",
+        (
+            "A construction recipe (schema carbon.construction-recipe.v1: challenge, "
+            "source, procedure, output) for a catalog or direct Challenge version; "
+            "carbon_toolbox lists ready catalog recipes to start from. Older "
+            "versions take a strategy (schema_version, challenge_id, backbone, "
+            "parameters)."
+        ),
     ),
     "reason": ("string", "Why this candidate: what your practice showed."),
     "recommit": (
@@ -214,6 +223,10 @@ FIELDS = {
     "after": (
         "integer",
         "Return only messages after this sequence: the last next_cursor. 0 or omitted: from the start.",
+    ),
+    "wait_seconds": (
+        "integer",
+        "Wait at most this many seconds, 1 to 600; omit it for 300.",
     ),
     "limit": ("integer", "At most this many messages, 1 to 100. Omitted: 50."),
     "task": (
@@ -439,6 +452,30 @@ LIBRARY_WRITES = (
 #: The browser door's closed-request gate is unchanged, so a browser request
 #: that omits one still gets the body's specific refusal.
 BODY_REQUIRED = {"launch": frozenset({"challenge", "challenge_version"})}
+
+
+#: Operations that only read: an MCP client may run them without asking
+#: (`readOnlyHint`, M1 E2E H18: Hermes gated every Carbon tool on an
+#: untrusted server). Everything else changes something and stays gated.
+READ_ONLY_OPERATIONS = frozenset(
+    {
+        "options",
+        "observe",
+        "wait",
+        "check_result",
+        "campaign_view",
+        "messages",
+        "toolbox",
+        "ladder",
+        "budget_status",
+        "run_output",
+        "library_search",
+        "library_card",
+        "library_list",
+        "plan_list",
+        "plan_get",
+    }
+)
 
 
 def takes_owner_lock(name, request):
@@ -693,6 +730,31 @@ OPERATIONS = {
             "submission the validator queued, it also asks the validator for "
             "its verdict, at most once per chain epoch, with a read-only "
             "signed status read.",
+            frozenset({"campaign"}),
+            frozenset(),
+            ("request", "profile", "campaign"),
+            admits_work=False,
+        ),
+        Operation(
+            "wait",
+            "Wait until the campaign's running operation (a practice, freeze "
+            "or submit) has finished, then answer as observe does, so an agent "
+            "need not poll observe. Returns at once when nothing is running; "
+            "after wait_seconds (at most 600) it answers with the campaign as "
+            "it is, still running. Reads only.",
+            frozenset({"campaign"}),
+            frozenset({"wait_seconds"}),
+            ("request", "profile", "campaign"),
+            admits_work=False,
+        ),
+        Operation(
+            "check_result",
+            "Check for your submitted candidate's grade: reads your own "
+            "private-exam Ladder again from the receiver your latest submit "
+            "went to, signed by your signer, and stores it beside that "
+            "epoch. A submit often answers before the validator grades it; "
+            "this shows the grade once it exists. Reads only; nothing is "
+            "submitted or resent.",
             frozenset({"campaign"}),
             frozenset(),
             ("request", "profile", "campaign"),
@@ -1108,6 +1170,10 @@ def perform(host, name, request):
     for gate in op.gates:
         if gate == "request":
             _closed(op, request)
+            held = request.get("campaign")
+            if type(held) is str and held.startswith("cmp-"):
+                # launch's campaign_id names the same campaign (M1 E2E H4).
+                request = {**request, "campaign": held[len("cmp-") :]}
             agent = request.get("agent")
             if type(agent) is str and agent in AGENT_ALIASES:
                 # Setup's name for the same choice; never the caller's dict.
