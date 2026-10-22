@@ -395,7 +395,12 @@ def _setups(tmp_path, monkeypatch):
 @pytest.fixture
 def documents(tmp_path, journey, monkeypatch):
     from carbon.development_session.exam_environment import exam_environment
-    from scripts.dev.miner_launchpad import capabilities, controller, prelaunch
+    from scripts.dev.miner_launchpad import (
+        capabilities,
+        controller,
+        prelaunch,
+        toolbox,
+    )
     from scripts.dev.miner_launchpad.operations import describe, perform
     from scripts.dev.miner_launchpad.research_fixture import FixtureRunner
 
@@ -446,6 +451,11 @@ def documents(tmp_path, journey, monkeypatch):
         "setup_send": _setup_document(tmp_path),
         "setup_build": _setup_build_documents(tmp_path),
         "setups": _setups(tmp_path, monkeypatch),
+        # A catalog version's toolbox, from the real toolbox code (S22): its
+        # example recipe and backbone picker for the Recipe box.
+        "catalog_toolbox": toolbox.build(
+            {"id": "electric-motor-magnetics", "version": "1.3"}
+        ),
     }
     # Graphite's documents, from these (GRAPHITE-MINER-S5).
     value["graphite"] = graphite_documents(_plain(value))

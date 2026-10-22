@@ -1054,6 +1054,48 @@ scenario("Tools: a submit retried after a timeout reuses its key and follows the
   clean(page);
 });
 
+// ---- S22: a catalog version's Recipe box starts from its example and picks a backbone. ----
+scenario("Tools: a catalog version's recipe box is prefilled and its backbone picker fills a recipe", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const catalog = fx.catalog_toolbox;
+  state.view.toolbox = {...state.view.toolbox, examples: copy(catalog.examples), catalog: copy(catalog.catalog)};
+  state.tools = {open: true, idle_close_seconds: 600, holds: "", tasks: [], tools: []};
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/tools");
+  await page.advance(0);
+  const box = [...all(page, "#campaign-detail textarea")].find(node => node.getAttribute("aria-label") === "Recipe JSON");
+  assert.ok(box, "the recipe box is drawn");
+  const example = catalog.examples[0];
+  assert.equal(example.schema, "carbon.construction-recipe.v1");
+  assert.deepEqual(JSON.parse(box.value), example, "prefilled with the version's registered example");
+  const panel = box.closest("details");
+  assert.match(page.text(panel), /Prefilled with the Challenge's registered example/);
+  assert.doesNotMatch(page.text(panel), /registers no example recipe/);
+  const picker = one(page, "#campaign-detail select[data-picker=backbone]");
+  assert.equal(picker.options.length, catalog.catalog.length, "one choice per catalog entry");
+  assert.ok(catalog.catalog.length > 1, "the version offers several backbones");
+  assert.equal(picker.value, example.source.catalog_id, "the picker starts on the example's entry");
+  const other = catalog.catalog.find(item => item.catalog_id !== example.source.catalog_id);
+  await page.change(picker, other.catalog_id);
+  assert.deepEqual(JSON.parse(box.value), other.recipe, "picking a backbone fills its catalog recipe");
+  assert.equal(JSON.parse(box.value).source.catalog_id, other.catalog_id);
+  // A practice refused before it started says its correction, not only the
+  // generic reason every such refusal carries.
+  const payload = {status: "REJECTED_BEFORE_DISPATCH", reason: "contract_incompatibility", detail: "Request does not satisfy the disclosed argument/recipe contract.",
+    correction_code: "backend_not_served", field: "strategy", correction: "This host's practice serves only the backends listed below. Allowed here: neuralop.TFNO."};
+  state.script.push({match: r => /^\/api\/v1\/tools\/[^/]+\/start$/.test(r.path), answer: {body: {ok: true, task: null, result: {content: [{type: "text", text: JSON.stringify({payload})}]}}}});
+  await page.press([...all(page, "#campaign-detail button")].find(b => b.textContent === "Practice this recipe"));
+  const sent = lastPost(state, "/api/v1/tools/" + encodeURIComponent(run.id) + "/start");
+  assert.deepEqual(sent.body.arguments.strategy, other.recipe, "the picked recipe is what practice sends");
+  const said = [...all(page, "#campaign-detail p.reason")].map(node => node.textContent).join("\n");
+  assert.match(said, /Refused before it started: backend not served \(strategy\): This host's practice serves only/);
+  assert.match(said, /Allowed here: neuralop\.TFNO\./);
+  clean(page);
+});
+
 scenario("Tools: a result reads as lines of text", async () => {
   const state = launchable(world());
   state.runs = [copy(fx.run)];
