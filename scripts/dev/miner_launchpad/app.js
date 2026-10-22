@@ -2366,7 +2366,10 @@
     if (!row) { row = el("div", undefined, "gs-recheck"); row.id = "gs-recheck"; panel.append(row); }
     row.hidden = false;
     const label = typeof recheck.label === "string" ? recheck.label : "Recheck my setup";
-    const why = typeof recheck === "string" ? recheck : typeof recheck.why === "string" ? recheck.why : typeof recheck.note === "string" ? recheck.note : "Something out of date may be holding this up; one recheck clears it.";
+    // The recheck is named by operation, with no wording of its own: the reason is what the status says is stale or
+    // set aside, or the preflight's next step.
+    const said = value => typeof value === "string" ? value : value && typeof value === "object" ? [value.plain, value.note, value.message, value.text, value.reason].find(x => typeof x === "string") : undefined;
+    const why = said(setupState?.next?.stale) || said(setupState?.next?.set_aside) || said(research?.preflight?.next_step) || "Something out of date may be holding this up; one recheck clears it.";
     const key = label + "|" + why;
     if (row.dataset.key === key) return;
     row.dataset.key = key;
