@@ -15,6 +15,7 @@ import dataclasses
 import json
 import os
 import subprocess
+import sys
 import time
 import uuid
 from pathlib import Path
@@ -213,6 +214,18 @@ def development_candidate_implementation(
             os.unlink(entry.path)
         cache.rmdir()
         removed_caches += 1
+    if removed_caches:
+        # The count goes to the launch's own log, never into the returned
+        # implementation identity: that identity is written into the runner
+        # profile and compared with the operator's pin, which never carries a
+        # cleanup count (M1 E2E H13: every launch after a cleanup refused
+        # "development candidate profile differs").
+        print(
+            f"Removed {removed_caches} stale bytecode cache folder(s) before the "
+            "development-candidate check.",
+            file=sys.stderr,
+            flush=True,
+        )
     ignored = ignored_paths()
     isolated = {
         ".venv/",
@@ -249,7 +262,6 @@ def development_candidate_implementation(
         "tree": tree,
         "source_tree_digest": archive_digest,
         "source_authority": "DEVELOPMENT_CANDIDATE",
-        **({"removed_bytecode_caches": removed_caches} if removed_caches else {}),
     }
 
 

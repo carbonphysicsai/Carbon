@@ -146,7 +146,15 @@ def test_a_stale_pycache_of_only_pyc_files_is_removed_and_counted(tmp_path):
         cache.parent.mkdir(parents=True, exist_ok=True)
         cache.write_bytes(b"stale bytecode")
     checked = _checked(repo, revision, tree, source_digest)
-    assert checked["removed_bytecode_caches"] == 2
+    # The identity is the same as for a clean checkout (H13): the runner
+    # profile and the operator's pin both carry exactly these fields.
+    assert set(checked) == {
+        "revision",
+        "tree",
+        "source_tree_digest",
+        "source_authority",
+    }
+    assert checked == _checked(repo, revision, tree, source_digest)
     assert not (repo / "carbon" / "__pycache__").exists()
     assert not (repo / "x" / "__pycache__").exists()
 
