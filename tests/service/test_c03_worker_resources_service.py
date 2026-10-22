@@ -18,7 +18,7 @@ Asserts, per profile:
    shared memory past its size fails with ENOSPC and a smaller write inside it
    succeeds; an output past the envelope is refused by the exporter (rc 20)
    while one inside it exports; the network and filesystem probes still hold.
-   A torch DataLoader with workers runs under v7's shm when torch is present.
+   A torch DataLoader with workers runs (asserted, rc 0) under each shm.
 """
 
 from __future__ import annotations
@@ -205,8 +205,9 @@ def _run_profile(real_docker, profile, tmp_path, expected):
         assert _exec(cli, name, [*PROBES, "paths"]).returncode == 0
         assert _exec(cli, name, [*PROBES, "connect", "1.1.1.1", "53"], accepted=(10,)).returncode == 10
         # A DataLoader with workers needs real shared memory.
-        loader = _python(cli, name, DATALOADER, accepted=(0, 77))
-        return {"dataloader": "ran" if loader.returncode == 0 else "torch_absent"}
+        # The C-03 worker image carries torch: rc 0 means the DataLoader ran
+        # (77 would mean torch is absent, which is a failure here, not a skip).
+        assert _python(cli, name, DATALOADER, accepted=(0, 77)).returncode == 0
     finally:
         remove_exact_container(cli=cli, container_name=name, launch_digest=launch)
 
