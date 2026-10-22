@@ -10,7 +10,7 @@ Fast physics models approximate expensive simulations. An engineer might use one
 
 Carbon brings competitive model discovery and independent evaluation into one system. This repository contains the implementation, scientific contracts, development studies, and commercial plan.
 
-[Project status](docs/publications/PROJECT_STATUS.md) · [Business and market](Business/Investor_Positioning_and_Market.md) · [Miner MCP](carbon/miner_mcp/README.md) · [Development setup](docs/DEVELOPMENT.md) · [Website](https://carbonphysics.ai)
+**Mining? [Connect your agent](carbon/miner_mcp/README.md#connect-your-agent).** · [Project status](docs/publications/PROJECT_STATUS.md) · [Business and market](Business/Investor_Positioning_and_Market.md) · [Miner MCP](carbon/miner_mcp/README.md) · [Development setup](docs/DEVELOPMENT.md) · [Website](https://carbonphysics.ai)
 
 ## How Carbon works
 
