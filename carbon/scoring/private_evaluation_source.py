@@ -72,6 +72,7 @@ def produce_dual_benchmark_input(
     graph_originals: dict,
     evaluation_source_receipt_raw: bytes,
     timing_step: float,
+    copy_hotkey: str | None = None,
 ) -> tuple[dict, dict, str]:
     """Run the fixed DEVELOPMENT cold-eight producer, or refuse unavailable roles.
 
@@ -100,6 +101,7 @@ def produce_dual_benchmark_input(
                 selected_pack=selected_pack,
                 private_root=private_root,
                 development_adapter=adapter,
+                copy_hotkey=copy_hotkey,
             )
             if sealed is None:
                 bank = physical_pack.development_bank(
@@ -164,6 +166,7 @@ def produce_registered_dual_measurement(
     graph_originals: dict,
     evaluation_source_receipt_raw: bytes,
     timing_step: float,
+    copy_hotkey: str | None = None,
 ) -> PreparedPrivateDualMeasurement:
     """Bind a fixed producer's output with the real source/pack receipt checks.
 
@@ -181,6 +184,7 @@ def produce_registered_dual_measurement(
         graph_originals=graph_originals,
         evaluation_source_receipt_raw=evaluation_source_receipt_raw,
         timing_step=timing_step,
+        copy_hotkey=copy_hotkey,
     )
     return build_dual_measurement_receipt(
         selected_pack=selected_pack,

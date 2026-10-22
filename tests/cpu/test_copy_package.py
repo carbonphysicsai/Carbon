@@ -12,10 +12,15 @@ import pytest
 import test_cooling_hidden_family as cooling_family
 import test_f02_sealed_pack as f02_pack
 import test_f08_sealed_pack as f08_pack
-import test_motor_grid_copy as motor_copy
+import test_battery_sealed_family_grading as battery_family
 import test_motor_sealed_family as motor_family
 
-from carbon.challenge_kit import cooling_sealed_pack, f02_sealed_pack, f08_sealed_pack
+from carbon.challenge_kit import (
+    battery_sealed_pack,
+    cooling_sealed_pack,
+    f02_sealed_pack,
+    f08_sealed_pack,
+)
 from carbon.challenge_kit import motor_sealed_pack
 from carbon.challenge_validator import motor_sealed_grid as grid
 from carbon.motor_grid_exam import population
@@ -43,6 +48,27 @@ def _cooling():
     cases = cooling_family.population.draw(random.Random(2), 16)[0]
     doc = cooling_family.document(cases)
     return doc, cooling_family.records_for(doc)
+
+
+def _battery():
+    sources = battery_family._ev4_sources()
+    cases, _ = battery_family.population.draw(
+        random.Random(11), battery_family.population.CELLS
+    )
+    document = battery_family._document(cases)
+
+    def nearest(inputs):
+        t, soc = inputs["t_amb_c"], inputs["soc0"]
+        return min(
+            sources,
+            key=lambda s: ((s[0][0] - t) / 29.0) ** 2 + ((s[0][1] - soc) / 0.36) ** 2,
+        )[1]
+
+    records = [
+        battery_family._record(c["case_id"], c["inputs"], nearest(c["inputs"])[i % 35])
+        for i, c in enumerate(document["cases"])
+    ]
+    return document, records
 
 
 FORMATS = {
@@ -116,7 +142,9 @@ def test_two_validators_copies_canonicalize_to_one_exam(tmp_path, name):
         assert all(word not in text for word in ("permutation", "mapping", "order"))
     assert canonical[0] == canonical[1]
     # The copies differ from each other wherever the Challenge renames ids.
-    if name != "f02":
+    # F02 and Battery keep their meaningful ids; their builders re-sort by id, so
+    # their copies are identical (the trace is the signed delivery record).
+    if name not in ("f02", "battery"):
         assert _normal(copies[0]) != _normal(copies[1])
 
 
@@ -151,7 +179,7 @@ def test_a_package_without_a_header_or_with_a_tampered_one_is_refused(tmp_path, 
     assert caught.value.code == "copy_digest_mismatch"
 
 
-@pytest.mark.parametrize("name", ["motor-grid", "f08", "f02"])
+@pytest.mark.parametrize("name", sorted(FORMATS))
 def test_the_producer_resolves_each_validators_copy_to_the_same_canonical_bank(
     tmp_path, name
 ):
@@ -203,3 +231,52 @@ def _f02_adapter(version):
     from carbon.scoring import physical_adapters
 
     return physical_adapters.adapter(source.F02, version)
+
+
+@pytest.mark.parametrize("name", sorted(FORMATS))
+def test_a_custody_batch_is_repacked_canonically_with_a_signed_append_only_record(
+    tmp_path, name
+):
+    from carbon.challenge_validator import answer_key as ak
+    from carbon.challenge_validator import canonicalisation_record as record
+
+    challenge, version, build, _builder, _kit = FORMATS[name]
+    document, records = build()
+    manifest, raw = record.manifest_for(challenge, version, document, records)
+    # The re-pack is the same exam: no re-solve, values unchanged.
+    assert manifest["re_solved"] is False
+    root = tmp_path / "repack"
+    root.mkdir()
+    (root / source.SEALED_BATCH_FILE).write_bytes(raw)
+    carried = source.read_batch(root)
+    bank = source._build(
+        challenge, source._kit(challenge), carried[0], carried[1], version
+    )
+    original = source._build(
+        challenge, source._kit(challenge), document, records, version
+    )
+    opaque = cp.cd.opaque_for(challenge)
+    assert (
+        cp.cd.content_digest(bank, opaque=opaque) == manifest["canonical_fingerprint"]
+    )
+    assert (
+        cp.cd.content_digest(original, opaque=opaque)
+        == manifest["canonical_fingerprint"]
+    )
+    # A second re-pack of the re-pack is a fixed point.
+    again, _src, canonical = cp.canonical_batch(challenge, version, *carried)
+    assert again == raw and canonical == manifest["canonical_fingerprint"]
+    # Signed, create-only.
+    signer = ak.ProducerKey.create(str(tmp_path / "producer.key"))
+    signed = record.sign(signer, manifest)
+    assert record.verify(signed, signer.public_key) == manifest
+    other = ak.ProducerKey.create(str(tmp_path / "other.key"))
+    assert record.verify(signed, other.public_key) is None
+    store = record.RecordStore(tmp_path / "records")
+    store.append(signed, signer.public_key)
+    assert store.get(manifest["source_fingerprint"], signer.public_key) == manifest
+    with pytest.raises(ak.AnswerKeyRefused):
+        store.append(signed, signer.public_key)
+    tampered = json.loads(json.dumps(signed))
+    tampered["manifest"]["canonical_fingerprint"] = "sha256:" + "2" * 64
+    assert record.verify(tampered, signer.public_key) is None

@@ -353,7 +353,11 @@ def _set_batch_adapters(cfg, root, challenge, material, discovery, providers, le
                 evaluation_pack_private_root=Path(selection["private_root"]),
             )
         adapters[digest] = LeanRecipeAdapter(
-            batch_discovery, providers, ledger, measure_query=cfg["measure_query"]
+            batch_discovery,
+            providers,
+            ledger,
+            measure_query=cfg["measure_query"],
+            copy_hotkey=cfg["receiver_hotkey"],
         )
     return adapters
 
@@ -1235,6 +1239,7 @@ def serve(
                 provider_for=providers,
                 attempt_ledger=ledger,
                 measure_query=cfg["measure_query"],
+                copy_hotkey=cfg["receiver_hotkey"],
             )
             if retention is not None:
                 task_id, artifact_directory, entry_directory = retention

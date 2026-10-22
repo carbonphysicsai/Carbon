@@ -78,10 +78,15 @@ class DirectRecipeIntake(BatteryIntake):
         provider_for,
         attempt_ledger,
         measure_query: bool = False,
+        copy_hotkey: str | None = None,
         clock_ns=time.time_ns,
     ):
         adapter = LeanRecipeAdapter(
-            discovery, provider_for, attempt_ledger, measure_query=measure_query
+            discovery,
+            provider_for,
+            attempt_ledger,
+            measure_query=measure_query,
+            copy_hotkey=copy_hotkey,
         )
         door = Validator(Adapters([adapter]), attempt_ledger)
         super().__init__(

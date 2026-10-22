@@ -29,6 +29,7 @@ MOTOR = "electric-motor-magnetics"
 COOLING = "chip-cold-plate"
 F02 = "f02"
 F08 = "f08-ribbed-bracket"
+BATTERY = "battery-fastcharge-ageing-development-v1"
 
 
 class SealedBankRefused(ValueError):
@@ -83,6 +84,8 @@ def _kit(challenge):
         from carbon.challenge_kit import f02_sealed_pack as kit
     elif challenge == F08:
         from carbon.challenge_kit import f08_sealed_pack as kit
+    elif challenge == BATTERY:
+        from carbon.challenge_kit import battery_sealed_pack as kit
     else:
         return None
     return kit
@@ -97,6 +100,8 @@ def _build(challenge, kit, document, records, version):
         except ValueError:
             return kit.sealed_bank(document, records, version=version)
         return kit.grid_bank(document, records, version=version)
+    if challenge == BATTERY:  # one sealed grid, one served bank format
+        return kit.sealed_bank(document, records)
     return kit.sealed_bank(document, records, version=version)
 
 
@@ -115,6 +120,17 @@ def _adapter(challenge, bank, version, development_adapter):
         return f08_dual_pack.sealed_adapter(version)
     if challenge == F02:
         return development_adapter  # bank_kind() reads the bank's population
+    if challenge == COOLING:
+        from carbon.scoring import cooling_dual_pack
+
+        return cooling_dual_pack.sealed_adapter(version)
+    if challenge == BATTERY:
+        from carbon.scoring import battery_sealed_dual_pack as sealed
+
+        try:
+            return sealed.adapter_for_bank(bank, version)
+        except ValueError:  # a population with no sealed grader
+            return None
     return None
 
 

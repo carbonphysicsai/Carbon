@@ -781,6 +781,7 @@ def _retain_selected_pack_evaluation(
             graph_originals=originals,
             evaluation_source_receipt_raw=registered["evaluation_source_receipt_raw"],
             timing_step=_timing_step(adapter),
+            copy_hotkey=getattr(adapter, "copy_hotkey", None),
         )
         directory = _private_evaluation_directory(result, submission_id)
         measurement_path = directory / "dual-measurement.json"

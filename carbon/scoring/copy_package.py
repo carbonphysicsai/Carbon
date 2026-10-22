@@ -74,21 +74,9 @@ def make_copy(challenge, version, document, records, *, key, hotkey):
     derived, _objective, mapping = cd.derive_copy_with_mapping(
         bank, None, key=key, opaque=opaque
     )
-    rename = lambda name: mapping.get(name, name)  # noqa: E731
-    cases = {c["case_id"]: c for c in document["cases"]}
-    new_document = copy.deepcopy(document)
-    new_document["cases"] = [
-        dict(copy.deepcopy(cases[_original(mapping, new)]), case_id=new)
-        for new in derived["case_ids"]
-    ]
-    new_records = []
-    for record in records:
-        record = copy.deepcopy(record)
-        for name in opaque:
-            if name in record:
-                record[name] = rename(record[name])
-        new_records.append(record)
-    new_records.sort(key=lambda r: r["case_id"])
+    new_document, new_records = _renamed(
+        document, records, mapping, derived["case_ids"], opaque
+    )
     raw = source.batch_bytes(new_document, new_records)
     header = {
         "schema": HEADER_SCHEMA,
@@ -101,11 +89,53 @@ def make_copy(challenge, version, document, records, *, key, hotkey):
     return raw, header_bytes(header)
 
 
-def _original(mapping, new):
-    for old, fresh in mapping.items():
-        if fresh == new:
-            return old
-    return new
+def _renamed(document, records, mapping, ordered_ids, opaque):
+    """The batch with its opaque ids renamed by ``mapping`` and its cases listed in
+    ``ordered_ids`` (the new ids) order."""
+    inverse = {fresh: old for old, fresh in mapping.items()}
+    cases = {c["case_id"]: c for c in document["cases"]}
+    new_document = copy.deepcopy(document)
+    new_document["cases"] = [
+        dict(copy.deepcopy(cases[inverse.get(new, new)]), case_id=new)
+        for new in ordered_ids
+    ]
+    new_records = []
+    for record in records:
+        record = copy.deepcopy(record)
+        for name in opaque:
+            if name in record:
+                record[name] = mapping.get(record[name], record[name])
+        new_records.append(record)
+    new_records.sort(key=lambda r: r["case_id"])
+    return new_document, new_records
+
+
+def canonical_batch(challenge, version, document, records):
+    """``(batch file bytes, source fingerprint, canonical fingerprint)``: the
+    batch re-packed in its canonical form (rank ids, content order), from its
+    custody document and records alone (no re-solve; values unchanged). The source
+    fingerprint pins today's custody bytes, the canonical fingerprint the exam's
+    content identity every copy shares."""
+    opaque = cd.opaque_for(challenge)
+    _kit, bank = _build(challenge, version, document, records)
+    canonical = cd.canonicalize(bank, opaque=opaque)
+    n = len(bank["case_ids"])
+    ids = {
+        cd._cell_key(canonical, k, opaque): canonical["case_ids"][k] for k in range(n)
+    }
+    mapping = {
+        bank["case_ids"][i]: ids[cd._cell_key(bank, i, opaque)] for i in range(n)
+    }
+    mapping = {old: new for old, new in mapping.items() if old != new}
+    new_document, new_records = _renamed(
+        document, records, mapping, canonical["case_ids"], opaque
+    )
+    raw = source.batch_bytes(new_document, new_records)
+    return (
+        raw,
+        _sha(source.batch_bytes(document, records)),
+        cd.content_digest(canonical, opaque=opaque),
+    )
 
 
 def read_header(private_root):
