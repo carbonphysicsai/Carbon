@@ -1721,8 +1721,8 @@ def regrade_retained_entry(
     slot is a REGRADE (never counted, no epoch limit), and provenance is recorded beside
     the result. With ``promotion`` (a BankPromotion or a PoolStore), the evaluation is also recorded under
     the origin task's submission id on the new evaluation key, which is where the incumbent
-    comparison looks it up. Only bundle recipes are supported; a graph recipe is typed
-    unavailable.
+    comparison looks it up. Bundle and graph recipes are supported; any other source
+    kind is typed unavailable.
     """
     import io
     from types import SimpleNamespace

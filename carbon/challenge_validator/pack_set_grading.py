@@ -8,9 +8,9 @@ graded rows and writes the one set-level result under the pack-set key.
 
 ``batch_adapters`` maps each batch's manifest digest to a trusted served adapter
 whose discovery is bound to that batch's pack (the receiver builds them from the
-delivered pack set, `SealedPackStore.pack_set`). Only bundle recipes are regraded
-today; a graph recipe is typed unavailable (`regrade_source_kind_unavailable`) and
-so gives no set result. DEVELOPMENT only.
+delivered pack set, `SealedPackStore.pack_set`). Bundle and graph recipes
+are regraded; any other source kind is typed unavailable
+(`regrade_source_kind_unavailable`) and so gives no set result. DEVELOPMENT only.
 """
 
 from __future__ import annotations
