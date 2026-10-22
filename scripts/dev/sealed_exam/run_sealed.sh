@@ -132,6 +132,10 @@ if declare -F prepare > /dev/null; then prepare; fi
 producer() { ( cd "$repo" && PY -m carbon.challenge_validator.producer "$@" --config "$priv/config.json" ); }
 field() { PY -c "import json,sys; print(json.loads(sys.argv[1])[sys.argv[2]])" "$1" "$2"; }
 
+if [ "$MODE" = u_coverage ] && declare -F u_coverage_run > /dev/null; then
+  # the Challenge's own panel (its method, its pinned image); DRY is handled by the hook
+  u_coverage_run; exit $?
+fi
 if [ "$MODE" = u_coverage ]; then
   # C8: 8 public cases from the exam's own law (recorded public seed) through the Challenge's rung solves.
   if [ "${DRY:-0}" = 1 ]; then echo "DRY=1: verified files, code, env, custody, config and image; stopped before solving"; exit 0; fi
@@ -145,6 +149,27 @@ if [ "$MODE" = u_coverage ]; then
   exit $?
 fi
 
+if [ "$MODE" = repack ]; then
+  : "${REPACK:?REPACK=\"<fp> <fp>\" (complete batches whose pack was refused)}"
+  if [ "${DRY:-0}" = 1 ]; then echo "DRY=1: verified files, code, env, custody, config and image; stopped before packing"; exit 0; fi
+  for fp in $REPACK; do
+    pack_rc=0
+    ( cd "$repo" && PY "$STATE/$PACK_SCRIPT" "$priv/config.json" "$fp" "$priv/packs" ) >> "$out/summary.jsonl" || pack_rc=$?
+    qa_rc=-1
+    if [ "$pack_rc" -eq 0 ]; then
+      qa_rc=0
+      if ! declare -F qa_run > /dev/null; then
+        qa_run() { ( cd "$repo" && PY "$STATE/$QA_SCRIPT" judge "$priv/config.json" "$1" "$priv/qa/${1#sha256:}" ); }
+      fi
+      qa_run "$fp" >> "$out/qa-public.jsonl" || qa_rc=$?
+    fi
+    echo "{\"repack\": \"$fp\", \"pack_rc\": $pack_rc, \"qa_rc\": $qa_rc}" >> "$out/walls.jsonl"
+    if [ "$pack_rc" -ne 0 ] || [ "$qa_rc" -ne 0 ]; then
+      echo "STOP: repack pack rc $pack_rc, QA rc $qa_rc (see summary.jsonl, qa-public.jsonl); to the Validator" >&2; exit 1
+    fi
+  done
+  echo '{"repacked": true}'; exit 0
+fi
 [ "$MODE" = batches ] || { echo "unknown mode $MODE" >&2; exit 2; }
 N=${N:?N=last batch index, e.g. 2}
 if [ "${DRY:-0}" = 1 ]; then echo "DRY=1: verified files, code, env, custody, config and image; stopped before solving"; exit 0; fi
