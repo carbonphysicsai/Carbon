@@ -146,7 +146,34 @@ def _launch(real_docker, version, tmp_path, monkeypatch):
         launch_digest=launch,
         worker_profile=profile,
     )
+    _wait_ready(cli, name)
     return name, launch, profile
+
+
+def _wait_ready(cli, name, seconds=30):
+    """The entrypoint creates /scratch/tmp a moment after start; probing earlier
+    sees an empty /scratch and no usable temp directory."""
+    import time
+
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        done = cli.run(
+            [
+                "exec",
+                "--user",
+                "65532:65532",
+                name,
+                "test",
+                "-d",
+                "/scratch/tmp",
+            ],
+            timeout=20,
+            accepted=(0, 1),
+        )
+        if done.returncode == 0:
+            return
+        time.sleep(0.5)
+    pytest.fail("the worker never became ready (/scratch/tmp)")
 
 
 def _probe(cli, name, env):
@@ -189,9 +216,12 @@ def test_jax_writes_only_under_scratch_and_the_root_stays_read_only(
         for env in ({}, ROOT_CACHES):
             result = _probe(cli, name, env)
             assert len(result["devices"]) == 1, result["devices"]
-            # A usable temp directory is under /scratch; one pointed at an unusable
-            # root is an error, never a path outside the tmpfs.
-            assert result["tmp"].startswith(("/scratch", "ERR ")), result["tmp"]
+            # The launch's own environment puts temp files under /scratch; a variable
+            # pointed at an unusable root is an error, never a path outside the tmpfs.
+            if env:
+                assert result["tmp"].startswith(("/scratch", "ERR ")), result["tmp"]
+            else:
+                assert result["tmp"].startswith("/scratch"), result["tmp"]
             for directory, outcome in result["writes"].items():
                 assert outcome in ("EROFS", "EACCES"), (directory, outcome)
             assert result["writes"]["/root"] in ("EROFS", "EACCES")
