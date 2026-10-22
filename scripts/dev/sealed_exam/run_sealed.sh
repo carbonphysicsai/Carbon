@@ -182,7 +182,15 @@ while [ "$i" -le "$N" ]; do
     pack_rc=0
     ( cd "$repo" && PY "$STATE/$PACK_SCRIPT" "$priv/config.json" "$fp" "$priv/packs" ) >> "$out/summary.jsonl" || pack_rc=$?
     qa_rc=-1
-    if [ "$pack_rc" -eq 0 ]; then
+    dec_rc=0
+    if [ "$pack_rc" -eq 0 ] && [ -n "${DECISION_KEY:-}" ]; then
+      # C5: the post-solve decision check on the reference labels with U (sealed_exam_common);
+      # a batch that cannot measure design value is unusable like a straddle shortfall (rc 10)
+      ( cd "$repo" && PY "$HERE/decision_stage.py" "$DECISION_KEY" "$priv/config.json" "$fp" ) \
+        >> "$out/decision.jsonl" || dec_rc=$?
+      qa_rc=$dec_rc
+    fi
+    if [ "$pack_rc" -eq 0 ] && [ "$dec_rc" -eq 0 ]; then
       qa_rc=0
       ( cd "$repo" && PY "$STATE/$QA_SCRIPT" judge "$priv/config.json" "$fp" "$priv/qa/${fp#sha256:}" ) \
         >> "$out/qa-public.jsonl" || qa_rc=$?
