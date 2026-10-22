@@ -1,0 +1,5 @@
+{
+  "about": "The producer public key that signs Carbon's sealed exams, pinned in the release a validator installs (Validator, E4 condition 1). A validator accepts exam packages signed by this key only; an exam-source file never supplies it. null: no key is registered yet (owner decision O-KEY), so fetching exams refuses (exam_producer_unregistered). Changed only by review.",
+  "producer_public_key": null,
+  "schema": "carbon.validator.exam-producer.v1"
+}

@@ -18,15 +18,21 @@ each as a persistent `systemd --user` service, and records the host's layout
 (STATE/validator/host.json, owner-only). Running it again keeps what is there
 and adds what is new; the hotkey never changes under a prepared host.
 
-The exams (E4): with `--exam-source FILE` (Carbon's distribution URL, its
-receiver hotkey and Carbon's producer public key, all public), `setup` fetches
+The exams (E4): with `--exam-source FILE` (Carbon's distribution URL and its
+receiver hotkey, both public), `setup` fetches
 this hotkey's own traceable copy of each Challenge's sealed pack over the
 per-hotkey route (`copy_route.PackFetcher`, signed by the validator's own
 signer), verifies and imports it (`copy_delivery.sync_copies`) into the
 owner-only store STATE/validator/exams, and prepares the receiver with the
 canonical pack by its digest (`--pack-store`/`--pack-digest`), re-verified at
-use. `--packs DIR` instead selects an operator-built pack at DIR/ID-VERSION
-(development only). Either way a Challenge with no exam is refused
+use. Every package must be signed by the producer key pinned in this release
+(`exam_producer.json`); the exam-source file never supplies a key, so a
+tampered one cannot redirect trust (Validator, E4 condition 1), and with no key
+registered fetching refuses (`exam_producer_unregistered`). `--packs DIR`
+instead selects an operator-built pack at DIR/ID-VERSION, only on an install
+with an explicit DEVELOPMENT candidate profile: an operator-built pack never
+serves as an official exam (`built_packs_development_only`, condition 2).
+Either way a Challenge with no exam is refused
 (`evaluation_pack_missing`) before anything is prepared, since a receiver that
 cannot grade would spend miners' epoch slots; one with several delivered packs
 for its version is refused (`evaluation_pack_ambiguous`): the per-hotkey route
@@ -49,7 +55,7 @@ import sys
 from pathlib import Path
 
 from . import receiver_setup
-from .receiver_setup import SetupRefused
+from .receiver_setup import REPO, SetupRefused
 
 HOST_SCHEMA = "carbon.validator-host.v1"
 HOST_FILE = "host.json"
@@ -59,7 +65,9 @@ DEFAULT_BASE_PORT = receiver_setup.DEFAULT_PORT
 #: The published-endpoints list a miner's Launchpad reads (an entry is added
 #: there by pull request).
 PUBLISHED = "scripts/dev/miner_launchpad/published_endpoints.json"
-EXAM_SOURCE_SCHEMA = "carbon.validator-host.exam-source.v1"
+EXAM_SOURCE_SCHEMA = "carbon.validator-host.exam-source.v2"
+EXAM_PRODUCER = Path(__file__).with_name("exam_producer.json")
+EXAM_PRODUCER_SCHEMA = "carbon.validator.exam-producer.v1"
 EXAMS_DIRECTORY = "exams"
 
 
@@ -118,9 +126,41 @@ def read_host(installed_state: Path):
     return value
 
 
-def read_exam_source(path: Path) -> dict:
-    """Where the signed exams come from: public facts only (no key)."""
+def pinned_producer_key(path: Path | None = None) -> str:
+    """The release-pinned producer public key, or a typed refusal."""
     import re
+
+    try:
+        value = json.loads(Path(EXAM_PRODUCER if path is None else path).read_bytes())
+        key = value["producer_public_key"]
+        if (
+            type(value) is not dict
+            or set(value) != {"schema", "about", "producer_public_key"}
+            or value["schema"] != EXAM_PRODUCER_SCHEMA
+        ):
+            raise ValueError("malformed")
+    except (OSError, ValueError, KeyError, TypeError):
+        raise SetupRefused(
+            "exam_producer_registry_invalid",
+            "this Carbon release's exam producer record is unreadable; reinstall.",
+        ) from None
+    if key is None:
+        raise SetupRefused(
+            "exam_producer_unregistered",
+            "no exam producer key is registered in this Carbon release yet, so "
+            "no exam can be verified; update Carbon when one is published.",
+        )
+    if type(key) is not str or not re.fullmatch(r"[0-9a-f]{64}", key):
+        raise SetupRefused(
+            "exam_producer_registry_invalid",
+            "this Carbon release's exam producer key is malformed; reinstall.",
+        )
+    return key
+
+
+def read_exam_source(path: Path) -> dict:
+    """Where the signed exams come from: the URL and the host's hotkey only.
+    A file naming a producer key is refused: the key is the release's."""
 
     from carbon.development_session.intake_targets import ADDRESS, intake_url
 
@@ -131,14 +171,12 @@ def read_exam_source(path: Path) -> dict:
     if (
         type(value) is not dict
         or value.get("schema") != EXAM_SOURCE_SCHEMA
-        or not {"schema", "url", "receiver", "producer_public_key"}
+        or not {"schema", "url", "receiver"}
         <= set(value)
-        <= {"schema", "url", "receiver", "producer_public_key", "signer_socket", "ca"}
+        <= {"schema", "url", "receiver", "signer_socket", "ca"}
         or not intake_url(value["url"])
         or type(value["receiver"]) is not str
         or not ADDRESS.fullmatch(value["receiver"])
-        or type(value["producer_public_key"]) is not str
-        or not re.fullmatch(r"[0-9a-f]{64}", value["producer_public_key"])
         or any(
             name in value and type(value[name]) is not str
             for name in ("signer_socket", "ca")
@@ -147,8 +185,8 @@ def read_exam_source(path: Path) -> dict:
         raise SetupRefused(
             "exam_source_invalid",
             f"{path} must name Carbon's exam distribution: schema "
-            f"{EXAM_SOURCE_SCHEMA}, url, receiver (its hotkey), producer_public_key "
-            "(64 hex), optionally signer_socket and ca.",
+            f"{EXAM_SOURCE_SCHEMA}, url, receiver (its hotkey), optionally "
+            "signer_socket and ca; never a key.",
         )
     return value
 
@@ -173,6 +211,7 @@ def fetch_exams(
     *,
     fetcher=None,
     sync=None,
+    producer_public_key=None,
 ) -> dict:
     """This hotkey's own copy of each Challenge's sealed pack, verified and
     imported; returns ``{(id, version): canonical manifest digest}`` for each
@@ -182,6 +221,8 @@ def fetch_exams(
 
     if sync is None:
         from .copy_delivery import sync_copies as sync
+    # The trust root is the release's pinned key (tests pass their own).
+    key = pinned_producer_key() if producer_public_key is None else producer_public_key
     store_root = _host_dir(installed_state) / EXAMS_DIRECTORY
     store_root.mkdir(mode=0o700, parents=True, exist_ok=True)
     store = SealedPackStore(store_root)
@@ -192,7 +233,7 @@ def fetch_exams(
             listed = sync(
                 store,
                 fetcher,
-                source["producer_public_key"],
+                key,
                 challenge_id,
                 hotkey=hotkey,
             )["packages"]
@@ -225,6 +266,16 @@ def fetch_exams(
     return {"store": store_root, "packs": found}
 
 
+def _development_install(installed_state: Path) -> bool:
+    """Whether this install carries an explicit DEVELOPMENT candidate profile
+    (`install_validator.sh --development-candidate ...`)."""
+    from scripts.dev.miner_launchpad import installed
+
+    return (
+        installed.candidate_implementation(installed_state, repository=REPO) is not None
+    )
+
+
 def setup(
     *,
     installed_state: Path,
@@ -237,6 +288,7 @@ def setup(
     prepare=None,
     service=None,
     fetch=None,
+    development=None,
 ) -> dict:
     """Prepare and start one receiver service per Challenge; return the layout."""
     prepare = prepare or receiver_setup.prepare
@@ -247,6 +299,13 @@ def setup(
             "exam_choice_conflict",
             "give --exam-source (Carbon's signed exams) or --packs (built "
             "packs), not both.",
+        )
+    if packs is not None and not (development or _development_install)(installed_state):
+        raise SetupRefused(
+            "built_packs_development_only",
+            "--packs is for development installs only (an explicit DEVELOPMENT "
+            "candidate profile); an operator-built pack never serves as an "
+            "official exam. Use --exam-source.",
         )
     root = _host_dir(installed_state)
     root.mkdir(mode=0o700, parents=True, exist_ok=True)

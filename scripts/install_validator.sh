@@ -69,10 +69,11 @@ usage: scripts/install_validator.sh [--check-only] [--gpu]
                 default), all, or ID@VERSION,ID@VERSION,...
   --exam-source FILE
                 with --setup: where Carbon's signed exams come from (its
-                distribution URL, receiver hotkey and producer public key);
-                each receiver gets this hotkey's own verified copy
-  --packs DIR   with --setup, development only: a directory of built
-                evaluation packs, one per ID-VERSION subdirectory
+                distribution URL and receiver hotkey); each receiver gets this
+                hotkey's own copy, verified against the producer key pinned in
+                this Carbon release
+  --packs DIR   with --setup, on a --development-candidate install only: a
+                directory of built evaluation packs, one per ID-VERSION
   --domain NAME with --setup: the public DNS name of this host; writes the
                 HTTPS proxy (Caddy) configuration and the endpoint entries
   --status      report every receiver: service, intake, exam, last graded

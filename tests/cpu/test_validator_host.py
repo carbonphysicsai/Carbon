@@ -57,6 +57,7 @@ def _packs(state, challenges):
 
 
 def _setup(state, receivers, **extra):
+    # Built packs: an explicit development install (condition 2).
     challenges = extra.pop("challenges", validator_host.select("current"))
     return validator_host.setup(
         installed_state=state,
@@ -64,7 +65,11 @@ def _setup(state, receivers, **extra):
         challenges=challenges,
         prepare=receivers.prepare,
         service=receivers.service,
-        **{"packs": _packs(state, challenges), **extra},
+        **{
+            "packs": _packs(state, challenges),
+            "development": lambda _state: True,
+            **extra,
+        },
     )
 
 
@@ -213,7 +218,6 @@ SOURCE = {
     "schema": validator_host.EXAM_SOURCE_SCHEMA,
     "url": "https://exams.example.org",
     "receiver": OTHER,
-    "producer_public_key": "a" * 64,
 }
 
 
@@ -223,7 +227,8 @@ def test_the_exam_source_is_public_facts_only(tmp_path):
     assert validator_host.read_exam_source(good) == SOURCE
     for changed in (
         {"url": "http://exams.example.org"},
-        {"producer_public_key": "A" * 64},
+        # Condition 1: a source file never names the trust root.
+        {"producer_public_key": "a" * 64},
         {"receiver": "carbon"},
         {"private_key": "x"},
         {"schema": "other"},
@@ -268,7 +273,7 @@ def test_setup_fetches_verifies_and_selects_this_hotkeys_own_copy(state, tmp_pat
     producer = ak.ProducerKey.create(str(tmp_path / "producer.key"))
     hotkey = HOTKEYS[0]
     fetcher, challenge, _manifest = _copy_route(producer, hotkey)
-    source = {**SOURCE, "producer_public_key": producer.public_key}
+    source = SOURCE
     receivers = Receivers()
     validator_host.setup(
         installed_state=state,
@@ -277,7 +282,9 @@ def test_setup_fetches_verifies_and_selects_this_hotkeys_own_copy(state, tmp_pat
         exam_source=source,
         prepare=receivers.prepare,
         service=receivers.service,
-        fetch=lambda *args: validator_host.fetch_exams(*args, fetcher=fetcher),
+        fetch=lambda *args: validator_host.fetch_exams(
+            *args, fetcher=fetcher, producer_public_key=producer.public_key
+        ),
     )
     (prepared,) = receivers.prepared
     store = state / "validator" / validator_host.EXAMS_DIRECTORY
@@ -296,7 +303,9 @@ def test_setup_fetches_verifies_and_selects_this_hotkeys_own_copy(state, tmp_pat
         exam_source=source,
         prepare=receivers.prepare,
         service=receivers.service,
-        fetch=lambda *args: validator_host.fetch_exams(*args, fetcher=fetcher),
+        fetch=lambda *args: validator_host.fetch_exams(
+            *args, fetcher=fetcher, producer_public_key=producer.public_key
+        ),
     )
     assert fetcher.asked == [] and len(receivers.prepared) == 1
 
@@ -314,10 +323,12 @@ def test_another_hotkeys_copy_is_refused_and_nothing_is_prepared(state, tmp_path
             installed_state=state,
             hotkey=HOTKEYS[0],
             challenges=[challenge],
-            exam_source={**SOURCE, "producer_public_key": producer.public_key},
+            exam_source=SOURCE,
             prepare=receivers.prepare,
             service=receivers.service,
-            fetch=lambda *args: validator_host.fetch_exams(*args, fetcher=fetcher),
+            fetch=lambda *args: validator_host.fetch_exams(
+                *args, fetcher=fetcher, producer_public_key=producer.public_key
+            ),
         )
     assert receivers.prepared == [] and receivers.started == []
 
@@ -353,7 +364,10 @@ def test_no_delivered_exam_or_several_are_refused_before_anything_is_prepared(
                 prepare=receivers.prepare,
                 service=receivers.service,
                 fetch=lambda *args, rows=rows: validator_host.fetch_exams(
-                    *args, fetcher=object(), sync=lambda *a, **k: {"packages": rows}
+                    *args,
+                    fetcher=object(),
+                    sync=lambda *a, **k: {"packages": rows},
+                    producer_public_key="a" * 64,
                 ),
             )
         assert receivers.prepared == []
@@ -375,9 +389,58 @@ def test_an_unfetchable_exam_is_a_typed_refusal(state):
             SOURCE,
             fetcher=object(),
             sync=refused,
+            producer_public_key="a" * 64,
         )
 
 
 def test_signed_exams_and_built_packs_are_not_combined(state, tmp_path):
     with pytest.raises(receiver_setup.SetupRefused, match="exam_choice_conflict"):
         _setup(state, Receivers(), exam_source=SOURCE)
+
+
+def test_exams_are_verified_only_against_the_release_pinned_producer_key(
+    state, tmp_path, monkeypatch
+):
+    # Condition 1: with no key registered (the committed state, O-KEY open),
+    # fetching refuses before anything is asked.
+    asked = []
+    with pytest.raises(receiver_setup.SetupRefused, match="exam_producer_unregistered"):
+        validator_host.fetch_exams(
+            state,
+            HOTKEY,
+            [{"id": "f02", "version": "2.3"}],
+            SOURCE,
+            fetcher=object(),
+            sync=lambda *a, **k: asked.append(a) or {"packages": []},
+        )
+    assert asked == []
+    registry = json.loads(validator_host.EXAM_PRODUCER.read_bytes())
+    pinned = tmp_path / "exam_producer.json"
+    pinned.write_text(json.dumps({**registry, "producer_public_key": "b" * 64}))
+    monkeypatch.setattr(validator_host, "EXAM_PRODUCER", pinned)
+    used = []
+    validator_host.fetch_exams(
+        state,
+        HOTKEY,
+        [{"id": "f02", "version": "2.3"}],
+        SOURCE,
+        fetcher=object(),
+        sync=lambda store, fetcher, key, *a, **k: used.append(key) or {"packages": []},
+    )
+    assert used == ["b" * 64]
+    pinned.write_text(json.dumps({**registry, "producer_public_key": "B" * 64}))
+    with pytest.raises(
+        receiver_setup.SetupRefused, match="exam_producer_registry_invalid"
+    ):
+        validator_host.pinned_producer_key()
+
+
+def test_built_packs_need_an_explicit_development_install(state):
+    # Condition 2: an operator-built pack never serves as an official exam.
+    receivers = Receivers()
+    with pytest.raises(
+        receiver_setup.SetupRefused, match="built_packs_development_only"
+    ):
+        _setup(state, receivers, development=lambda _state: False)
+    assert receivers.prepared == []
+    assert validator_host._development_install(state) is False  # no pin here
