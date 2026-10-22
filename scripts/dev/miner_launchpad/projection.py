@@ -602,7 +602,15 @@ def project(row, root):
                 {
                     "sequence": note["sequence"],
                     **_text_fields(
-                        note["body"], {"reason", "stop", "intervention", "evidence"}
+                        note["body"],
+                        {
+                            "reason",
+                            "stop",
+                            "intervention",
+                            "evidence",
+                            "gate_verdict",
+                            "note",
+                        },
                     ),
                 }
             )
