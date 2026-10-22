@@ -72,16 +72,22 @@ def checked(document, *, latest=False):
     allow-listed fields and schema, and status IMPROVED for a best document
     or any of the builder's statuses for a ``latest`` one); else refused."""
     statuses = gf.STATUSES if latest else ("IMPROVED",)
+    version = gf.shape(document)
     if (
-        type(document) is not dict
-        or set(document) != gf.FIELDS
-        or document["schema"] != gf.SCHEMA
+        version is None
         or document["status"] not in statuses
         or type(document["exam_version"]) is not str
         or type(document["gate_names"]) is not list
     ):
         raise LadderStoreRefused("ladder_document")
-    return {name: document[name] for name in sorted(gf.FIELDS)}
+    if version == gf.SCHEMA_V3 and (
+        type(document["recipe_digest"]) is not str
+        or type(document["epoch"]) is not int
+        or document["epoch"] < 0
+    ):
+        raise LadderStoreRefused("ladder_document")
+    fields = gf.FIELDS_V3 if version == gf.SCHEMA_V3 else gf.FIELDS
+    return {name: document[name] for name in sorted(fields)}
 
 
 def _noise_value(rebuild_noise):
@@ -146,7 +152,17 @@ class LadderStore:
         )
 
     def record(
-        self, hotkey, challenge, exam_key, graded, *, exam_version, gates, rebuild_noise
+        self,
+        hotkey,
+        challenge,
+        exam_key,
+        graded,
+        *,
+        exam_version,
+        gates,
+        rebuild_noise,
+        recipe_digest=None,
+        epoch=None,
     ):
         """Apply one graded private-exam result (the score row) and return the
         document it shows: stored as the latest, and as the best only when it
@@ -160,6 +176,8 @@ class LadderStore:
             exam_version=exam_version,
             gate_registry=gates,
             rebuild_noise=noise,
+            recipe_digest=recipe_digest,
+            epoch=epoch,
         )
         kept = gf.next_best(best, shown)
         with self.ledger._db() as db:
