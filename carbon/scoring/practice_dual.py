@@ -46,6 +46,11 @@ def _unavailable(adapter, reason):
     }
 
 
+def unavailable(adapter, reason):
+    """The explicit "unavailable" document (never a silent omission)."""
+    return _unavailable(adapter, reason)
+
+
 def _rows(adapter):
     bank = physical_pack.development_bank(adapter.CHALLENGE, adapter.VERSION)
     public = physical_pack.public_roles(adapter.CHALLENGE, adapter.VERSION)

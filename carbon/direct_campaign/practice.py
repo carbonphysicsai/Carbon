@@ -365,6 +365,12 @@ class DirectPractice:
             "official_eligible": False,
             "scientific_qualification": False,
             "recipe": strategy,
+            # C13: the same dual measurement the exam grades (gates first, then
+            # A, D and the total in 0..1, 1 best) on the public development
+            # bank, which is exactly the query above. Feedback only: public,
+            # not the exam, and labelled practice. The model is queried once,
+            # so the paired repeat is the same rows.
+            "practice_dual": _dual_feedback(self.spec, self.version, rows),
         }
         if source["kind"] == "catalog":
             plain = json.loads(canonical(strategy))["source"]
@@ -452,6 +458,26 @@ class DirectPractice:
         )
         backend = {"kind": "C03_DOCKER", "adapter": spec.adapter_id}
         return result, backend, recipe
+
+
+def _dual_feedback(spec, version, rows):
+    """The shared practice dual block for the rows of the exposed bank."""
+    import importlib
+
+    from carbon.scoring import physical_dual_pack, practice_dual
+
+    module = importlib.import_module(f"carbon.scoring.{spec.prefix}_dual_pack")
+    adapter = physical_dual_pack.versioned(module, version)
+    if adapter is None:
+        return practice_dual.unavailable(module, "practice_version_not_registered")
+    values = [[float(v) for v in row] for row in rows]
+
+    def predict(cases):
+        if len(cases) != len(values):
+            raise ValueError("practice rows differ from the bank")
+        return values
+
+    return practice_dual.feedback(adapter, predict)
 
 
 def _expand(recipe):

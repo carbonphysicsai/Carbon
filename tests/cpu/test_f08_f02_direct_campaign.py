@@ -986,3 +986,54 @@ def test_an_unset_profile_field_is_still_refused(spec, version, monkeypatch):
 @pytest.mark.parametrize("unset", [None, "HUMAN_INPUT", "TODO", ""])
 def test_every_unset_spelling_is_refused(unset):
     assert unset in direct_contracts.UNSET
+
+
+@pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
+def test_practice_carries_the_shared_dual_feedback_on_the_exposed_bank(
+    spec, version, tmp_path, monkeypatch
+):
+    """C13: the same dual measurement the exam grades, on the public bank that is
+    the practice query; gates first, then A, D and the total (1 best)."""
+    from carbon.challenge_kit import physical_pack
+
+    inject(monkeypatch, spec.challenge_id, version)
+    material = physical_material.bundle_material(spec.challenge_id, version)
+    bank = physical_pack.development_bank(spec.challenge_id, version)
+    reference = np.asarray(bank["references"], dtype=np.float32).tolist()
+    monkeypatch.setattr(
+        bundle_worker,
+        "reconstruct_and_infer_public",
+        _fake(material, [], rows=reference),
+    )
+    item, _ = _practice(spec, version, tmp_path)
+    result = item(
+        spec.prefix + "-catalog-0001", catalog_recipe(spec, STAND_IN, version=version)
+    )
+    assert result["schema"] == "carbon." + spec.prefix + ".direct-practice-feedback.v2"
+    dual = result["practice_dual"]
+    assert dual["schema"] == "carbon.practice.dual-feedback.v1"
+    assert dual["available"] is True and dual["n_cases"] == len(reference)
+    assert dual["gates"] and all(dual["gates"].values()) and dual["eligible"] is True
+    assert 0 < dual["total"] <= 1
+    assert dual["total"] == pytest.approx(
+        0.5 * dual["accuracy"] + 0.5 * dual["design_value"]
+    )
+
+
+@pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
+def test_a_model_failing_a_gate_is_not_eligible_on_practice(
+    spec, version, tmp_path, monkeypatch
+):
+    inject(monkeypatch, spec.challenge_id, version)
+    material = physical_material.bundle_material(spec.challenge_id, version)
+    # Rows that are finite float32 but not a valid native answer for any case.
+    monkeypatch.setattr(
+        bundle_worker, "reconstruct_and_infer_public", _fake(material, [])
+    )
+    item, _ = _practice(spec, version, tmp_path)
+    result = item(
+        spec.prefix + "-catalog-0002", catalog_recipe(spec, STAND_IN, version=version)
+    )
+    dual = result["practice_dual"]
+    assert dual.get("eligible") is not True
+    assert dual.get("total") is None
