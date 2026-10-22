@@ -795,6 +795,12 @@ EOF
   exit 0
 fi
 
+echo "Install the backbone catalog, which today's catalog Challenges need (the"
+echo "install must have used the --pytorch option):"
+echo "  cd ${repo_root} && ${python} -B -m scripts.dev.catalog_install --state-dir ${STATE_DIR}"
+echo "On a remote machine (a VPS), open the page from your own computer through"
+echo "an SSH tunnel (any local port works), then browse to http://127.0.0.1:${PORT}:"
+echo "  ssh -N -L ${PORT}:127.0.0.1:${PORT} ${USER:-$(id -un)}@<this machine's address>"
 echo "Start it again later with:"
 echo "  ${start_command}"
 if [[ "${START}" == 0 || "${UPDATE}" == 1 ]]; then
