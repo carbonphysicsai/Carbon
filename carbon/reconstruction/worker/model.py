@@ -58,6 +58,8 @@ def _large_applies(allowlist_version):
     return LARGE_MODEL_PROFILE_APPLIED and (
         allowlist_version in LARGE_MODEL_ALLOWLIST_VERSIONS
     )
+
+
 LARGE_MODEL_RESOURCES = {
     "output_bytes": 2 * 1024**3,
     "scratch_bytes": 4 * 1024**3,
@@ -125,6 +127,9 @@ class WorkerCode(str, Enum):
     OUTPUT = "reconstruction.worker.output.rejected"
     CLEANUP = "reconstruction.worker.cleanup.uncertain"
     QUARANTINED = "reconstruction.worker.slot.quarantined"
+    # An allowlisted primitive the interpreter cannot bind: a Carbon gap, never the
+    # candidate's. Code only on miner surfaces.
+    PRIMITIVE_UNSUPPORTED = "reconstruction.worker.primitive_unsupported"
 
 
 class WorkerFailure(RuntimeError):
@@ -516,7 +521,10 @@ class DevelopmentWorkerProfile(LaunchAuthorityBearing):
             },
             "memory": {"bytes": self.effective_memory_bytes, "swap_bytes": SWAP_BYTES},
             "pids": PIDS_LIMIT,
-            "scratch": {"bytes": self.effective_scratch_bytes, "inodes": SCRATCH_INODES},
+            "scratch": {
+                "bytes": self.effective_scratch_bytes,
+                "inodes": SCRATCH_INODES,
+            },
             "input": {"bytes": INPUT_BYTES, "expanded_bytes": EXPANDED_INPUT_BYTES},
             "control_bytes": CONTROL_BYTES,
             "output": {

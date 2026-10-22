@@ -18,6 +18,7 @@ def _primitives():
     import jax.extend.core.primitives as public
 
     # Typed-key wrapping has no public handle in the pinned JAX.
+    from jax._src.lax import lax as lax_internal
     from jax._src.random import prng
 
     table = {}
@@ -25,6 +26,13 @@ def _primitives():
         if name.endswith("_p"):
             primitive = getattr(public, name)
             table[primitive.name] = primitive
+    # `lax.split` has no public primitive handle in the pinned JAX either.
+    table["split"] = lax_internal.split_p
+    # The allowlist names ops with underscores where JAX hyphenates (scatter-add):
+    # every hyphenated primitive is also bound under its underscore name.
+    for name, primitive in list(table.items()):
+        if "-" in name:
+            table.setdefault(name.replace("-", "_"), primitive)
     table["random_wrap"] = prng.random_wrap_p
     table["random_unwrap"] = prng.random_unwrap_p
     return table
@@ -79,7 +87,13 @@ def rebuild(doc, allowlist):
             elif node["op"] == "named_function":
                 outs = named.call(bound["name"], ins)
             else:
-                primitive = _PRIMITIVES[node["op"]]
+                primitive = _PRIMITIVES.get(node["op"])
+                if primitive is None:
+                    # An allowlisted op this interpreter cannot bind is Carbon's gap,
+                    # never the candidate's (build_refusal: CARBON_CAPABILITY_GAP).
+                    raise graph.GraphRefused(
+                        "primitive_unsupported", f"{name}.nodes[{i}]"
+                    )
                 out = primitive.bind(*ins, **bound)
                 outs = list(out) if primitive.multiple_results else [out]
             if len(outs) != len(node["out"]):
