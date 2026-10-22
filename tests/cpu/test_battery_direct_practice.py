@@ -178,6 +178,16 @@ def test_direct_practice_uses_exact_owner_graph_and_retains_state(
     # The bank's decision and probe cases were asked of the model, once.
     asked = {c["case_id"] for c in seen["test_inputs"]["cases"]}
     assert set(bank["case_ids"]) <= asked
+    # And nothing else: practice evaluates only the public practice, decision-grid
+    # and development-bank case ids, never a sealed or private one.
+    from carbon.battery import practice_safety
+
+    public = (
+        set(bank["case_ids"])
+        | set(practice.practice.case_ids)
+        | set(practice_safety.decision_set(ROOT).case_ids)
+    )
+    assert asked <= public
     assert result["provenance"] == "BATTERY_PUBLIC_PRACTICE"
     assert result["worker"]["inference_operation"] == "operation-inference-test"
     assert result["recipe"] == strategy and result["official_eligible"] is False
