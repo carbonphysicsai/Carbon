@@ -505,7 +505,11 @@ def test_owner_install_cli_uses_checked_gpu_profile_without_private_path_args(
     monkeypatch.setattr(command, "load_image_identity", lambda _: parent)
     monkeypatch.setattr(command, "gpu_image_backend", lambda _: "pytorch")
     monkeypatch.setattr(command, "direct_parent_backend", lambda _: "pytorch")
-    monkeypatch.setattr(command, "_private_dir", lambda path: path)
+    monkeypatch.setattr(
+        command,
+        "_private_dir",
+        lambda path: (path.mkdir(mode=0o700, parents=True, exist_ok=True), path)[1],
+    )
     monkeypatch.setattr(command, "DockerCLI", lambda: adapter)
 
     def install(input_directory, cache_root, selected_parent, *, expected_bundle, cli):
@@ -610,7 +614,11 @@ def test_owner_install_cpu_uses_checked_installed_worker_identity(
     )
     monkeypatch.setattr(command, "load_image_identity", lambda path: parent)
     monkeypatch.setattr(command, "gpu_image_backend", lambda image: None)
-    monkeypatch.setattr(command, "_private_dir", lambda path: path)
+    monkeypatch.setattr(
+        command,
+        "_private_dir",
+        lambda path: (path.mkdir(mode=0o700, parents=True, exist_ok=True), path)[1],
+    )
     monkeypatch.setattr(command, "DockerCLI", lambda: object())
     calls = []
 
@@ -630,6 +638,15 @@ def test_owner_install_cpu_uses_checked_installed_worker_identity(
             selected,
         )
     ]
+    # F4 (M1 2026-10-22): the install stages the exact material too, where
+    # admission inspects it; an image alone resolved nothing.
+    from carbon.development_session.library_environment_cache import (
+        inspect_staged_bundle_material,
+    )
+
+    cache = tmp_path / "campaigns" / ".direct-development" / "library-cache"
+    assert (cache / "materials" / selected.bundle_digest[7:]).is_dir()
+    inspect_staged_bundle_material(cache, selected)
     profile["runtime"]["images"][0] = "sha256:" + "6" * 64
     with pytest.raises(ValueError, match="installed CPU parent lock or ABI differs"):
         command.install_bundle(directory, tmp_path)
@@ -681,7 +698,11 @@ def test_owner_install_selects_only_profile_pinned_torch_cpu_parent(
         return selected_parent[0]
 
     monkeypatch.setattr(command, "load_image_identity", load_image)
-    monkeypatch.setattr(command, "_private_dir", lambda path: path)
+    monkeypatch.setattr(
+        command,
+        "_private_dir",
+        lambda path: (path.mkdir(mode=0o700, parents=True, exist_ok=True), path)[1],
+    )
     monkeypatch.setattr(command, "DockerCLI", lambda: object())
     calls = []
 
