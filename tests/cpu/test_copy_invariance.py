@@ -18,9 +18,20 @@ import numpy as np
 import pytest
 
 from carbon.challenge_kit import physical_pack
+from carbon.scoring import copy_derivation
 from carbon.scoring import physical_dual_pack as physical
 
 CHALLENGES = ("motor", "cooling", "f08", "f02", "battery")
+#: The ids a copy renames. F02's action names and Battery's registered EV4
+#: candidates carry meaning (their manifests declare it), so those keep theirs.
+OPAQUE_IDS = {
+    "motor": copy_derivation.OPAQUE,
+    "cooling": copy_derivation.OPAQUE,
+    "f08": copy_derivation.OPAQUE,
+    "f02": (),
+    "battery": (),
+}
+KEYS = (b"validator-one-key-0123456789", b"validator-two-key-9876543210")
 
 
 def _adapter(name):
@@ -57,12 +68,17 @@ def _permuted(bank, order):
     }
 
 
-def _graded(name, order=None):
+def _graded(name, order=None, key=None):
     adapter = _adapter(name)
     bank = physical_pack.development_bank(adapter.CHALLENGE, adapter.VERSION)
     if order is not None:
         bank = _permuted(bank, order)
     public = physical_pack.public_roles(adapter.CHALLENGE, adapter.VERSION)
+    objective = json.loads(public["design_objective"])
+    if key is not None:
+        bank, objective = copy_derivation.derive_copy(
+            bank, objective, key=key, opaque=OPAQUE_IDS[name]
+        )
     names = physical.input_names(adapter)
     rows = physical.bank_rows(bank, names)
     refs = np.asarray(bank["references"], dtype=float)
@@ -89,7 +105,7 @@ def _graded(name, order=None):
         repeats=[outputs, outputs],
         definition=definition,
         limits=json.loads(public["important_limit_definition"]),
-        objective=json.loads(public["design_objective"]),
+        objective=objective,
         train_raw=public["train"],
         names=names,
     )
@@ -110,3 +126,66 @@ def test_a_shuffled_copy_scores_byte_identically(name):
         assert order != list(range(n))
         shuffled, _ = _graded(name, order)
         assert shuffled == original, f"{name} depends on row order (seed {seed})"
+
+
+def _bank(name):
+    adapter = _adapter(name)
+    return physical_pack.development_bank(
+        adapter.CHALLENGE, adapter.VERSION
+    ), physical_pack.public_roles(adapter.CHALLENGE, adapter.VERSION)
+
+
+@pytest.mark.parametrize("name", CHALLENGES)
+def test_two_validators_copies_score_byte_identically(name):
+    """The E9 requirement: copies built from two validators' keys score the same
+    bytes as the original (and each other), while the copies themselves differ."""
+    original, _ = _graded(name)
+    assert json.loads(original)["A"] is not None
+    for key in KEYS:
+        derived, _ = _graded(name, key=key)
+        assert derived == original, f"{name} copy scores differently"
+
+
+@pytest.mark.parametrize("name", CHALLENGES)
+def test_the_copies_differ_but_have_one_identity(name):
+    bank, public = _bank(name)
+    objective = json.loads(public["design_objective"])
+    opaque = OPAQUE_IDS[name]
+    copies = [
+        copy_derivation.derive_copy(bank, objective, key=key, opaque=opaque)
+        for key in KEYS
+    ]
+    one, two = copies[0][0], copies[1][0]
+    # Different row order for different validators (and from the original).
+    assert one["case_ids"] != two["case_ids"] != list(bank["case_ids"])
+    assert [list(map(float, r)) for r in one["inputs"]] != [
+        list(map(float, r)) for r in bank["inputs"]
+    ]
+    if opaque:
+        # No original id survives in a record, the id lists or the case ids.
+        old = set(bank["case_ids"])
+        assert not old & set(one["case_ids"])
+        assert not old & set(two["case_ids"])
+        assert set(one["case_ids"]) != set(two["case_ids"])
+        text = json.dumps(copies[0][1])
+        assert all(
+            f'"{design}"' not in text for design in objective.get("design_ids", [])
+        )
+    # One identity over the canonical form, whichever copy is read.
+    identity = copy_derivation.content_digest(bank, opaque=opaque)
+    assert copy_derivation.content_digest(one, opaque=opaque) == identity
+    assert copy_derivation.content_digest(two, opaque=opaque) == identity
+    # A copy is a deterministic function of the exam and the key.
+    again = copy_derivation.derive_copy(bank, objective, key=KEYS[0], opaque=opaque)
+    assert json.dumps(again[1], sort_keys=True) == json.dumps(
+        copies[0][1], sort_keys=True
+    )
+    assert again[0]["case_ids"] == one["case_ids"]
+
+
+def test_a_short_key_is_refused():
+    bank, public = _bank("motor")
+    with pytest.raises(copy_derivation.CopyRefused, match="copy_key_invalid"):
+        copy_derivation.derive_copy(bank, {}, key=b"short")
+    with pytest.raises(copy_derivation.CopyRefused, match="copy_key_invalid"):
+        copy_derivation.derive_copy(bank, {}, key="not bytes")
