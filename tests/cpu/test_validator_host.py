@@ -401,8 +401,12 @@ def test_signed_exams_and_built_packs_are_not_combined(state, tmp_path):
 def test_exams_are_verified_only_against_the_release_pinned_producer_key(
     state, tmp_path, monkeypatch
 ):
-    # Condition 1: with no key registered (the committed state, O-KEY open),
-    # fetching refuses before anything is asked.
+    # Condition 1: with no key registered, fetching refuses before anything is
+    # asked.
+    registry = json.loads(validator_host.EXAM_PRODUCER.read_bytes())
+    unregistered = tmp_path / "unregistered.json"
+    unregistered.write_text(json.dumps({**registry, "producer_public_key": None}))
+    monkeypatch.setattr(validator_host, "EXAM_PRODUCER", unregistered)
     asked = []
     with pytest.raises(receiver_setup.SetupRefused, match="exam_producer_unregistered"):
         validator_host.fetch_exams(
@@ -414,7 +418,6 @@ def test_exams_are_verified_only_against_the_release_pinned_producer_key(
             sync=lambda *a, **k: asked.append(a) or {"packages": []},
         )
     assert asked == []
-    registry = json.loads(validator_host.EXAM_PRODUCER.read_bytes())
     pinned = tmp_path / "exam_producer.json"
     pinned.write_text(json.dumps({**registry, "producer_public_key": "b" * 64}))
     monkeypatch.setattr(validator_host, "EXAM_PRODUCER", pinned)
@@ -444,3 +447,13 @@ def test_built_packs_need_an_explicit_development_install(state):
         _setup(state, receivers, development=lambda _state: False)
     assert receivers.prepared == []
     assert validator_host._development_install(state) is False  # no pin here
+
+
+def test_the_release_pins_the_testnet_exam_producer_key():
+    # OWNER-TESTNET-EXAM-KEYS-01: the testnet producer key created on the
+    # custody host; its public half is the trust root (TESTNET 567 only).
+    from carbon.challenge_validator.answer_key import key_id
+
+    key = validator_host.pinned_producer_key()
+    assert key == "375e792210bf352ae3b331b9f5055414a05480fb9ab0b8a891585c435060ec17"
+    assert key_id(key) == "carbon-producer-8d358757cf077562"
