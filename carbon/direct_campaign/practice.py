@@ -464,20 +464,13 @@ def _dual_feedback(spec, version, rows):
     """The shared practice dual block for the rows of the exposed bank."""
     import importlib
 
-    from carbon.scoring import physical_dual_pack, practice_dual
+    from carbon.scoring import practice_dual
 
     module = importlib.import_module(f"carbon.scoring.{spec.prefix}_dual_pack")
-    adapter = physical_dual_pack.versioned(module, version)
+    adapter = practice_dual.versioned(module, version)
     if adapter is None:
         return practice_dual.unavailable(module, "practice_version_not_registered")
-    values = [[float(v) for v in row] for row in rows]
-
-    def predict(cases):
-        if len(cases) != len(values):
-            raise ValueError("practice rows differ from the bank")
-        return values
-
-    return practice_dual.feedback(adapter, predict)
+    return practice_dual.from_rows(adapter, rows)
 
 
 def _expand(recipe):

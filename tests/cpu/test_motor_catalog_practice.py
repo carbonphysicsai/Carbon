@@ -67,7 +67,16 @@ def test_a_catalog_recipe_runs_as_its_bundle_with_the_receivers_inputs(practice)
     # PRACTICE-SAFETY-01's safety block (Validator, 2026-10-21), read through
     # the provider; the feedback schema is versioned for it.
     assert result["schema"] == catalog_practice.FEEDBACK_SCHEMA
-    assert result["schema"].endswith(".v2")
+    assert result["schema"].endswith(".v3")
+    # C13: the query is the practice rows then the public development bank, so
+    # the exam's dual measurement is computable on the same model.
+    # C13: the query is the practice rows then the public development bank, so
+    # the exam's dual measurement is computable on the same model (the constant
+    # stand-in rows here score poorly but validly).
+    dual = result["practice_dual"]
+    assert dual["schema"] == "carbon.practice.dual-feedback.v1"
+    assert dual["available"] is True and 0 < dual["total"] <= 1
+    assert len(call["inputs"]) == 30 + 90
     assert result["safety"]["schema"] == "carbon.practice-safety-feedback.v1"
 
 
@@ -290,3 +299,39 @@ def test_the_practice_binding_is_the_one_the_bundle_worker_accepts(
         "construction_limits_digest",
     }
     assert isinstance(seen["recipe"], ConstructionRecipe)
+
+
+def test_a_model_equal_to_the_references_is_scored_on_the_public_bank(
+    tmp_path, monkeypatch
+):
+    """C13: practice rows first, then the 90 public bank rows; the dual block is
+    the exam's measurement on those (1 for the references themselves)."""
+    from carbon.challenge_kit import physical_pack
+
+    bank = physical_pack.development_bank("electric-motor-magnetics", "1.0")
+    refs = np.asarray(bank["references"], dtype=float)
+
+    def fake(ledger_, **kwargs):
+        n = len(kwargs["inputs"]) - len(refs)
+        rows = np.vstack([np.full((n, 60), 1.0), refs]).tolist()
+        state = "sha256:" + "5" * 64
+        return SimpleNamespace(
+            build=SimpleNamespace(state_digest=state),
+            inference=SimpleNamespace(state_digest=state, predictions=rows),
+        )
+
+    monkeypatch.setattr(worker, "reconstruct_and_infer_public", fake)
+    parent = SimpleNamespace(image_id="sha256:" + "7" * 64)
+    item = catalog_practice.MotorCatalogPractice(
+        ledger=ledger(tmp_path / "ledger"),
+        owner="alice",
+        parent=parent,
+        cache_root=tmp_path / "cache",
+        root=".",
+        resolver=lambda ref: SimpleNamespace(bundle_ref=ref),
+        parents=SimpleNamespace(for_bundle=lambda _ref: parent),
+    )
+    dual = item("motor-catalog-0002", catalog_recipe("neuralop.FNO"))["practice_dual"]
+    assert dual["available"] is True and dual["eligible"] is True
+    assert dual["n_cases"] == len(refs)
+    assert dual["total"] == pytest.approx(1.0)

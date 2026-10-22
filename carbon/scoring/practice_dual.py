@@ -155,6 +155,39 @@ def cooling_predict(model):
     return predict
 
 
+def query_inputs(adapter, like):
+    """The public development bank's inputs as one numeric array in the
+    interface's input order, cast to ``like``'s dtype: the rows a practice must
+    query the model on for the dual measurement to be computable."""
+    import numpy as np
+
+    _bank, _public, names, rows = _rows(adapter)
+    return np.asarray(
+        [[float(row["inputs"][name]) for name in names] for row in rows],
+        dtype=like.dtype,
+    )
+
+
+def from_rows(adapter, rows):
+    """The dual block for ``rows``: the model's flat outputs on exactly the
+    bank's inputs (`query_inputs`), in the bank's order. The model is queried
+    once, so the paired repeat is the same rows."""
+    values = [[float(v) for v in row] for row in rows]
+
+    def predict(cases):
+        if len(cases) != len(values):
+            raise ValueError("practice rows differ from the bank")
+        return values
+
+    return feedback(adapter, predict)
+
+
+def versioned(module, version):
+    """The dual adapter for exactly ``version`` of ``module``'s Challenge, or
+    None when that version has no registered measurement."""
+    return physical.versioned(module, version)
+
+
 def attach(outcome, adapter, predict):
     """``outcome`` plus the shared ``practice_dual`` block: the one call every
     practice evaluator makes (its outcome schema is bumped and its disclosure

@@ -37,7 +37,9 @@ from .challenge import CHALLENGE, PUBLIC_OUTPUTS
 from .practice import PROVENANCE
 
 #: v2 adds the `safety` block (Validator, 2026-10-21); v1 had none.
-FEEDBACK_SCHEMA = "carbon.cold-plate.catalog-practice-feedback.v2"
+#: v3 adds the shared `practice_dual` block (C13); v2 added `safety`.
+FEEDBACK_SCHEMA = "carbon.cold-plate.catalog-practice-feedback.v3"
+FEEDBACK_SCHEMA_V2 = "carbon.cold-plate.catalog-practice-feedback.v2"
 FEEDBACK_SCHEMA_V1 = "carbon.cold-plate.catalog-practice-feedback.v1"
 
 
@@ -171,6 +173,8 @@ class CoolingCatalogPractice:
         from carbon.development_session.profile import canonical, digest
         from carbon.development_session.research_workspace import ResearchWorkspace
 
+        from carbon.scoring import cooling_dual_pack, practice_dual
+
         from .challenge import PublicMaterial
         from .practice import PracticeSet, score_practice
         from .research import safety_feedback
@@ -191,6 +195,14 @@ class CoolingCatalogPractice:
             ],
             dtype=interface["dtype"],
         )
+        # The 100 practice inputs, then the public development bank: one query,
+        # so the dual measurement (C13) is computable on the same model.
+        adapter = practice_dual.versioned(cooling_dual_pack, self.version)
+        n_practice = len(inputs)
+        if adapter is not None:
+            inputs = np.concatenate(
+                [inputs, practice_dual.query_inputs(adapter, inputs)]
+            )
         bundle = _bundle_ref(recipe.to_dict()["source"]["bundle_ref"])
         image = self._resolve(bundle)
         construction_parent = self.parents().for_bundle(bundle)
@@ -216,14 +228,15 @@ class CoolingCatalogPractice:
             example=inputs,
             seed=0,
             inputs=inputs,
-            expected_output_shape=(len(practice.records), width),
+            expected_output_shape=(len(inputs), width),
             allowlist_bytes=material["allowlist_bytes"],
             expected_output_dtype=output_dtype(interface),
             runner=self.runner,
         )
         if result.build.state_digest != result.inference.state_digest:
             raise ValueError("cooling catalog practice state differs between phases")
-        rows = result.inference.predictions
+        all_rows = result.inference.predictions
+        rows = all_rows[:n_practice]
         if len(rows) != len(practice.records):
             raise ValueError("cooling catalog practice row count differs")
         predictions = {
@@ -255,6 +268,14 @@ class CoolingCatalogPractice:
             # PRACTICE-SAFETY-01: feedback only, on the same public cases.
             "safety": safety_feedback(predictions, practice),
             "recipe": strategy,
+            # C13: the exam's dual measurement on the public development bank.
+            "practice_dual": (
+                practice_dual.unavailable(
+                    cooling_dual_pack, "practice_version_not_registered"
+                )
+                if adapter is None
+                else practice_dual.from_rows(adapter, all_rows[n_practice:])
+            ),
         }
         ResearchWorkspace(self.ledger, self.owner).put(
             "trial-"

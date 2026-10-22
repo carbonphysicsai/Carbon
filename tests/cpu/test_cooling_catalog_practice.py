@@ -88,9 +88,14 @@ def test_a_catalog_recipe_runs_as_its_bundle_on_the_public_practice_inputs(pract
         [[record["inputs"][name] for name in domain.INPUTS] for record in records],
         dtype="<f8",
     )
-    assert np.array_equal(call["inputs"], expected)
+    # The 100 practice inputs, then the 48 public bank inputs (C13).
+    assert np.array_equal(call["inputs"][: len(expected)], expected)
     assert call["example"] is call["inputs"]
-    assert call["expected_output_shape"] == (100, 2 + domain.PROFILE_SEGMENTS)
+    dual = result["practice_dual"]
+    assert dual["schema"] == "carbon.practice.dual-feedback.v1"
+    assert "available" in dual and dual.get("total") is None
+    assert len(call["inputs"]) == 100 + 48
+    assert call["expected_output_shape"] == (148, 2 + domain.PROFILE_SEGMENTS)
     assert call["expected_output_dtype"] == "<f8"
     assert result["provenance"] == PROVENANCE == "COLD_PLATE_PUBLIC_PRACTICE"
     assert result["catalog_id"] == STAND_IN
@@ -99,7 +104,7 @@ def test_a_catalog_recipe_runs_as_its_bundle_on_the_public_practice_inputs(pract
     # PRACTICE-SAFETY-01's safety block (Validator, 2026-10-21), read through
     # the provider; the feedback schema is versioned for it.
     assert result["schema"] == catalog_practice.FEEDBACK_SCHEMA
-    assert result["schema"].endswith(".v2")
+    assert result["schema"].endswith(".v3")
     assert result["safety"]["schema"] == "carbon.practice-safety-feedback.v1"
 
 
@@ -299,3 +304,42 @@ def test_the_cpu_parent_is_served_only_when_docker_finds_it(
         ("python-cpu-py311", "torch-cpu-py311") if eligible else ("torch-cpu-py311",)
     )
     assert seen == [torch_image().base_image_digest]
+
+
+def test_a_model_equal_to_the_references_is_scored_on_the_public_bank(
+    tmp_path, monkeypatch
+):
+    """C13: the 100 practice rows first, then the 48 public bank rows; the dual
+    block is the exam's measurement on those (1 for the references themselves)."""
+    from carbon.challenge_kit import physical_pack
+
+    inject(monkeypatch)
+    bank = physical_pack.development_bank("chip-cold-plate", "1.2")
+    refs = [list(map(float, row)) for row in bank["references"]]
+
+    def fake(ledger_, **kwargs):
+        rows = [*_native_rows(), *refs]
+        assert len(kwargs["inputs"]) == len(rows)
+        state = "sha256:" + "5" * 64
+        return SimpleNamespace(
+            build=SimpleNamespace(state_digest=state),
+            inference=SimpleNamespace(state_digest=state, predictions=rows),
+        )
+
+    monkeypatch.setattr(worker, "reconstruct_and_infer_public", fake)
+    parent = SimpleNamespace(image_id="sha256:" + "7" * 64)
+    item = catalog_practice.CoolingCatalogPractice(
+        ledger=ledger(tmp_path / "ledger"),
+        owner="alice",
+        parent=parent,
+        cache_root=tmp_path / "cache",
+        version="1.2",
+        root=ROOT,
+        resolver=lambda ref: SimpleNamespace(bundle_ref=ref),
+        parents=SimpleNamespace(for_bundle=lambda _ref: parent),
+    )
+    result = item("cooling-catalog-0002", catalog_recipe(STAND_IN, version="1.2"))
+    dual = result["practice_dual"]
+    assert dual["available"] is True and dual["eligible"] is True
+    assert dual["n_cases"] == 48
+    assert dual["total"] == pytest.approx(1.0)
