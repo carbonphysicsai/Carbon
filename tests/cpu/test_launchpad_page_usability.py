@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from carbon.development_session.model_provider import (
     ADAPTERS,
+    MINER_OUTPUT_TOKEN_BOUNDS,
     OUTPUT_DEFAULT_V2,
     OUTPUT_TOKEN_BOUNDS,
     output_maximum,
@@ -40,7 +41,9 @@ def test_the_output_cap_is_the_runners_bounds_and_defaults():
     model = _model()
     cap = model["output_cap"]
     assert cap["launch_field"] == "model_settings.max_output_tokens"
-    assert cap["bounds"] == list(OUTPUT_TOKEN_BOUNDS)
+    # A miner's output cap has no Carbon maximum (limits #8): its bound is
+    # the representation bound, not Carbon's own Graphite's.
+    assert cap["bounds"] == list(MINER_OUTPUT_TOKEN_BOUNDS)
     offered = [
         (row["id"], entry["id"])
         for row in model["providers"]

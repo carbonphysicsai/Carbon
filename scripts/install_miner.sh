@@ -761,8 +761,8 @@ if [[ "${service_mode}" == 1 ]]; then
   Stop it:     systemctl --user stop ${SERVICE_NAME%.service}
   Its state:   systemctl --user status ${SERVICE_NAME%.service}
   Its output:  tail -f ${STATE_DIR}/control-center.log
-  Install the backbone catalog (needed by today's catalog Challenges; after an
-  install with --pytorch):
+  Install the backbone catalog, which today's catalog Challenges need (the
+  install must have used the --pytorch option):
     cd ${repo_root} && ${python} -B -m scripts.dev.catalog_install --state-dir ${STATE_DIR}
   On a remote machine (a VPS), open the page from your own computer through
   an SSH tunnel, then browse to http://127.0.0.1:${PORT}:
