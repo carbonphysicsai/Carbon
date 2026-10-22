@@ -447,6 +447,18 @@ def make_server(service, config, *, repository=REPOSITORY):
     return hardened_listener(config, Handler, service=SERVICE)
 
 
+def _delivery_signer(config):
+    """The host's delivery-signing key, or None. It must be the host's own: a key
+    equal to the producer's would let the public host forge package signatures,
+    so it is refused."""
+    if "signing_key" not in config:
+        return None
+    signer = ProducerKey.load(config["signing_key"])
+    if signer.public_key == config["producer_public_key"]:
+        raise AnswerKeyRefused("answer_key_signing_key_is_producer_key")
+    return signer
+
+
 def build(config):
     from carbon.chain.auth import BittensorHotkeyVerifier
     from carbon.chain.models import ChainContext
@@ -466,9 +478,7 @@ def build(config):
             Path(config["inbox"]) / "training", config["producer_public_key"]
         ),
         # The host's own owner-only delivery-signing key, when configured.
-        signer=(
-            ProducerKey.load(config["signing_key"]) if "signing_key" in config else None
-        ),
+        signer=_delivery_signer(config),
     )
 
 

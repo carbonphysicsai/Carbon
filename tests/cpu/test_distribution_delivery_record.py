@@ -101,3 +101,39 @@ def test_the_service_takes_only_a_producer_key_as_its_signer(tmp_path, published
             log=None,
             signer="a string",
         )
+
+
+def test_a_delivery_key_equal_to_the_producers_is_refused(tmp_path, monkeypatch):
+    producer = ak.ProducerKey.create(str(tmp_path / "producer.key"))
+    host_key = ak.ProducerKey.create(str(tmp_path / "host.key"))
+    config = {
+        "signing_key": str(tmp_path / "producer.key"),
+        "producer_public_key": producer.public_key,
+    }
+    with pytest.raises(
+        ak.AnswerKeyRefused, match="answer_key_signing_key_is_producer_key"
+    ):
+        dist._delivery_signer(config)
+    own = {**config, "signing_key": str(tmp_path / "host.key")}
+    assert dist._delivery_signer(own).public_key == host_key.public_key
+    assert dist._delivery_signer({"producer_public_key": producer.public_key}) is None
+
+    # build() takes the same refusal, before it serves anything.
+    for module, name in (
+        ("carbon.chain.auth", "BittensorHotkeyVerifier"),
+        ("carbon.chain.models", "ChainContext"),
+        ("carbon.chain.permits", "ValidatorPermitReader"),
+    ):
+        monkeypatch.setattr(f"{module}.{name}", lambda *a, **k: object())
+    full = {
+        **config,
+        "inbox": str(tmp_path),
+        "receiver": "r",
+        "chain": {},
+        "nonces": str(tmp_path / "nonces.sqlite3"),
+        "fetch_log": str(tmp_path / "fetch.jsonl"),
+    }
+    with pytest.raises(
+        ak.AnswerKeyRefused, match="answer_key_signing_key_is_producer_key"
+    ):
+        dist.build(full)
