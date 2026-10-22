@@ -228,6 +228,22 @@ def stale_campaigns(profile):
     return [{**row, "read_only": "carbon_updated_rerun_installer"} for row in rows]
 
 
+def loopback_authority(value) -> bool:
+    """Whether a Host header names this machine's loopback by literal
+    address or `localhost`, on any port: the page itself or the miner's own
+    SSH forward to it. Any other name is refused (DNS rebinding)."""
+    if type(value) is not str:
+        return False
+    host, separator, port = value.rpartition(":")
+    return (
+        separator == ":"
+        and host in ("127.0.0.1", "localhost", "[::1]")
+        and port.isdigit()
+        and not port.startswith("0")
+        and 0 < int(port) <= 65535
+    )
+
+
 def session_url(origin: str, token: str) -> str:
     """The page's address with the session token in its fragment.
 
@@ -849,10 +865,15 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def check(self, authenticated=False) -> None:
-        if self.headers.get_all("Host") != [self.server.authority]:
+        hosts = self.headers.get_all("Host")
+        if hosts is None or len(hosts) != 1 or not loopback_authority(hosts[0]):
             raise Rejected("invalid_host", 403)
+        # The page's origin is the loopback authority it was opened at: this
+        # port, or the miner's own SSH forward to it on another loopback port
+        # (M1 E2E U65: a VPS miner's `ssh -L 18790:127.0.0.1:18788` was
+        # refused). Never a name that could rebind to another address.
         origins = self.headers.get_all("Origin")
-        if origins is not None and origins != [self.server.origin]:
+        if origins is not None and origins != ["http://" + hosts[0]]:
             raise Rejected("cross_origin_denied", 403)
         if authenticated:
             expected = "Bearer " + self.server.token

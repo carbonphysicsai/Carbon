@@ -2775,11 +2775,11 @@
   function gradeLine(grade) {
     const latest = grade && grade.latest;
     if (!latest) return "Grade: not graded yet. It appears here once the validator grades this submission.";
-    if (latest.status === "GATE_FAILED") return "Grade: not eligible (a mandatory gate failed). Compares within this Challenge version only.";
+    if (latest.status === "GATE_FAILED") return "Grade: not eligible (a mandatory gate failed). Compares within this Challenge version only. It is your hotkey's latest grade on this exam, which may be from an earlier submission until the validator grades this one.";
     if (typeof latest.total !== "number") return "Grade: not scored.";
     const best = grade.best && typeof grade.best.total === "number" ? " · your best: " + grade.best.total.toFixed(4) : "";
     const detail = [typeof latest.A === "number" ? "A " + latest.A.toFixed(3) : null, typeof latest.D === "number" ? "D " + latest.D.toFixed(3) : null].filter(Boolean).join(", ");
-    return "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better" + (detail ? "; " + detail : "") + ")" + best + ". Compares within this Challenge version only.";
+    return "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better" + (detail ? "; " + detail : "") + ")" + best + ". Compares within this Challenge version only. It is your hotkey's latest grade on this exam, which may be from an earlier submission until the validator grades this one.";
   }
   function renderValidatorOutcome(panel, result, campaign) {
     const o = result.result;
@@ -4434,6 +4434,11 @@
       const outcome = await keyedOperation(name, body);
       if (outcome.ok) {
         if (name === "practice") practiceIssues.delete(body.campaign);
+        // U62: a form the miner just used is not held against the refresh:
+        // the pressed button lets go of focus and a freeze's typed reason is
+        // done, so the form redraws (Submit enables once the freeze lands).
+        if (document.activeElement?.tagName === "BUTTON") document.activeElement.blur();
+        if (name === "freeze_candidate") for (const node of document.querySelectorAll(".journey-submit [data-edited]")) delete node.dataset.edited;
         watch(name, body.campaign, outcome.value, {...outcome, mode: body.mode}); message(started + (outcome.replaced ? " " + REPLACED : ""));
       }
       // A refusal with the controller's next step, not just its code

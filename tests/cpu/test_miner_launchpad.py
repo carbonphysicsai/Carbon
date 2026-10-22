@@ -397,6 +397,19 @@ def test_rebinding_and_cross_origin_are_denied(server):
     assert request(server, "/api/v1/runs", headers=auth(Origin="null"))[0] == 403
 
 
+def test_the_miners_own_ssh_forward_on_another_loopback_port_is_served(server):
+    # M1 E2E U65: `ssh -L 18790:127.0.0.1:<port>` sends Host 127.0.0.1:18790.
+    forwarded = {"Host": "127.0.0.1:18790", "Origin": "http://127.0.0.1:18790"}
+    assert request(server, "/", headers={"Host": "127.0.0.1:18790"})[0] == 200
+    assert request(server, "/api/v1/runs", headers=auth(**forwarded))[0] == 200
+    assert request(server, "/", headers={"Host": "localhost:18790"})[0] == 200
+    # Never another name, a port-less host, or an origin of another port.
+    for host in ("127.0.0.1.attacker.example:18790", "127.0.0.1", "10.0.0.1:18790"):
+        assert request(server, "/", headers={"Host": host})[0] == 403, host
+    mismatched = {"Host": "127.0.0.1:18790", "Origin": "http://127.0.0.1:9999"}
+    assert request(server, "/api/v1/runs", headers=auth(**mismatched))[0] == 403
+
+
 def test_http_full_flow_and_retry(server):
     headers = auth(**{"Idempotency-Key": "request-1234567890"})
     code, _, body = request(server, "/api/v1/runs", "POST", spec(), headers)
