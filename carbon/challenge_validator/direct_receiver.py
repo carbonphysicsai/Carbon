@@ -1232,6 +1232,22 @@ def main(argv=None):
 
             if isinstance(failure, RetentionUnavailable):
                 code = str(failure)
+        from scripts.dev.miner_launchpad.controller import LockHeld
+
+        if isinstance(failure, LockHeld):
+            # A running serve owns this receiver state (Validator RECV3
+            # follow-up): say so, not the generic unavailable.
+            print(
+                json.dumps(
+                    {
+                        "unavailable": "receiver_state_locked",
+                        "next": "stop the receiver's serve unit first, then "
+                        "run this again",
+                    }
+                ),
+                flush=True,
+            )
+            return 1
         if type(code) is not str:
             code = "direct_receiver_unavailable"
         print(json.dumps({"unavailable": code}), flush=True)
