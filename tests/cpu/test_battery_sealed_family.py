@@ -57,7 +57,9 @@ def test_the_image_is_the_truth_images_and_the_version_is_the_validators():
 def test_the_hull_is_the_420_grids_own_extremes():
     from carbon.battery.value import contract as ev
 
-    contract = ev.load()
+    contract = json.loads(
+        (ev.CONTRACTS / "ev4-charge-protocol-selection.v1.json").read_bytes()
+    )
     t = [c[0] for s in ev.scenarios(contract, "development") for c in s["conditions"]]
     soc = [c[1] for s in ev.scenarios(contract, "development") for c in s["conditions"]]
     candidates = ev.candidates(contract)
