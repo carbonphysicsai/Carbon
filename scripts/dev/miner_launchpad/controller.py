@@ -200,6 +200,34 @@ def attach_runner(profile, *, legacy_database=None, role=None):
     return runner, None
 
 
+def stale_campaigns(profile):
+    """The campaigns of a runner profile that was not attached because Carbon
+    was updated (`attach_runner`), read-only: the same rows the attached host
+    lists, from the same database; [] when there is none or it cannot be read
+    (M1 E2E U54: every campaign seemed gone after a reinstall). No operation
+    is admitted through this; it only reads."""
+    if profile is None:
+        return []
+    from scripts.dev.miner_launchpad import supervisor as supervision
+    from scripts.dev.miner_launchpad.runner import (
+        RunnerAdapter,
+        private_json,
+        runner_database,
+        validated_profile,
+    )
+
+    try:
+        cfg = validated_profile(private_json(Path(profile)))
+        database = runner_database(cfg)
+        if not database.is_file():
+            return []
+        host = RunnerAdapter(database, configuration=profile, role=supervision.CLIENT)
+        rows = host.recent()
+    except Exception:  # noqa: BLE001 - a listing only; never a trace or path
+        return []
+    return [{**row, "read_only": "carbon_updated_rerun_installer"} for row in rows]
+
+
 def session_url(origin: str, token: str) -> str:
     """The page's address with the session token in its fragment.
 
@@ -696,6 +724,8 @@ class Server(ThreadingHTTPServer):
         # Why the runner profile was not attached, when it no longer
         # describes this install (`attach_runner`, LP-PROD-W2).
         self.profile_refusal = None
+        #: The set-aside profile whose campaigns list read-only (U54).
+        self.research_profile_path = None
         self.legacy_database = legacy_database
         self.attach_lock = threading.Lock()
         self.setup = None
@@ -745,6 +775,8 @@ class Server(ThreadingHTTPServer):
             )
             self.profile_refusal = refused
             if runner is None:
+                # Its campaigns still list read-only (U54).
+                self.research_profile_path = Path(profile) if refused else None
                 return False
             self.research_runner = runner
             self.research_profile = Path(profile)
@@ -951,7 +983,17 @@ class Handler(BaseHTTPRequestHandler):
                             else self.server.profile_refusal
                             or {"available": False, "status": "ADMISSION_DISABLED"}
                         ),
-                        "runs": runner.recent() if runner else [],
+                        # U54: with a profile set aside after an update, the
+                        # campaigns still list, read-only, so a miner never
+                        # thinks their work is gone; nothing can be operated
+                        # until setup is re-checked.
+                        "runs": (
+                            runner.recent()
+                            if runner
+                            else stale_campaigns(
+                                getattr(self.server, "research_profile_path", None)
+                            )
+                        ),
                     },
                 )
             elif self.path.startswith("/api/v1/research/"):
@@ -1314,6 +1356,8 @@ def main() -> None:
         )
         if runner is not None:
             server.research_profile = args.research_profile
+        elif refused is not None and args.research_profile is not None:
+            server.research_profile_path = Path(args.research_profile)
         server.profile_refusal = refused
         controller.recover()
         done = threading.Event()
