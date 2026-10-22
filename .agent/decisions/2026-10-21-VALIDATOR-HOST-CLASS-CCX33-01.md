@@ -1,7 +1,7 @@
 # VALIDATOR-HOST-CLASS-CCX33-01: the DEVELOPMENT host class moves to Hetzner ccx33
 
 Date: 2026-10-21
-Status: DECIDED by the Carbon Validator. The owner told the Validator directly, in its own session, to "make your best judgement" on the one open point (the memory floor).
+Status: APPROVED by the owner, directly in the Carbon Validator's session on 2026-10-21. The owner first said "make your best judgement" on the one open point (the memory floor), then answered "Yes, approve 30 GiB" when the Validator asked.
 Amends: OWNER-VALIDATOR-HOST-CLASS-01 (the class definition and the "one class" rule are unchanged; this replaces the measured host).
 Maturity: engineering control, DEVELOPMENT scope. No scientific or security acceptance is created, and no score, minimum or noise is registered.
 
