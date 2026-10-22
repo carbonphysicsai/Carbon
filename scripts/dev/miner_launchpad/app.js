@@ -866,8 +866,11 @@
       const pytorch = needing.length ? [setupLine("This install's worker is the JAX CPU one. " + needing.map(item => item.title + " " + item.version).join(", ") + " practise" + (needing.length === 1 ? "s" : "") + " on the PyTorch CPU worker; to mine " + (needing.length === 1 ? "it" : "them") + ", " + String(check.pytorch_step || "reinstall with --pytorch") + ", then check compute again.", "error")] : [];
       // Review writes the profile and says what it could not do: a Challenge
       // with no evaluation endpoint, an unreadable published list (LP-PROD-E).
-      const warnings = step === "review" && Array.isArray(result.warnings) ? result.warnings.filter(item => typeof item?.message === "string") : [];
-      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")), ...pytorch, ...warnings.map(item => setupLine(item.message, "error")));
+      const allWarnings = step === "review" && Array.isArray(result.warnings) ? result.warnings.filter(item => typeof item?.message === "string") : [];
+      // Many Challenges without a Carbon receiver are one calm line, not a red notice each (U8).
+      const noReceiver = allWarnings.filter(item => /has not published an evaluation endpoint/.test(item.message));
+      const warnings = allWarnings.filter(item => !noReceiver.includes(item));
+      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")), ...pytorch, ...(noReceiver.length ? [setupLine(noReceiver.length + " Challenge" + (noReceiver.length === 1 ? " has" : "s have") + " no Carbon receiver yet. Practice and freezing work without one.")] : []), ...warnings.map(item => setupLine(item.message, "error")));
       // The written profile changes what can launch: read it again now.
       if (step === "review") { try { await readCapabilities(); } catch (_) { /* re-read on request */ } }
       await readSetup();
@@ -1048,6 +1051,13 @@
     if (!items.length && !evaluation?.problem) return null;
     const box = el("section", undefined, "setup-evaluation"); box.id = "setup-evaluation";
     box.append(el("h3", "Where your candidates are evaluated"));
+    // One line for the whole list; each Challenge's detail sits in a fold (U8).
+    if (items.length) {
+      const have = items.filter(item => item.intake).length;
+      box.append(el("p", "Submitting: " + have + " of " + items.length + " Challenges have a Carbon receiver yet." + (have < items.length ? " Practice and freezing work without one." : ""), "status-line"));
+    }
+    const folded = el("details", undefined, "evaluation-details");
+    folded.append(el("summary", "Details for each Challenge"));
     for (const item of items) {
       const row = el("div", undefined, "evaluation-row"); row.dataset.challenge = item.id;
       const head = el("p");
@@ -1062,15 +1072,16 @@
       }
       // A profile from before receivers were pinned (LAUNCHPAD-ACCEPT-03).
       if (item.receiver_hotkey_warning) row.append(el("p", item.receiver_hotkey_warning, "reason"));
-      if (item.note) row.append(el("p", item.note, item.intake ? "hint" : "reason"));
+      if (item.note) row.append(el("p", item.note, "hint"));
       if (item.set_aside_intake) {
         row.append(el("p", "Your own intake, set aside by the update: " + item.set_aside_intake, "status-line"));
         const again = el("button", "Name it again"); again.type = "button"; again.dataset.nameAgain = item.id;
         again.addEventListener("click", () => nameAgain(item.id, item.set_aside_intake, item.set_aside_receiver || ""));
         row.append(again);
       }
-      box.append(row);
+      folded.append(row);
     }
+    if (items.length) box.append(folded);
     if (evaluation.problem) box.append(el("p", "Carbon's list of evaluation endpoints could not be read (" + words(evaluation.problem) + "), so none is offered.", "reason"));
     if (evaluation.published_by) box.append(el("p", "Carbon publishes its endpoints in " + evaluation.published_by + ", in this checkout.", "hint"));
     parent.append(box);

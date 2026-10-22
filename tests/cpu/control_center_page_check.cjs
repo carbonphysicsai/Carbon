@@ -1751,7 +1751,11 @@ scenario("Review's answer names what it could not do; Carbon's endpoint shows it
   state.script.push({match: r => r.path === "/api/v1/setup/review", answer: () => { state.setup = copy(fx.setups.none_reviewed); return {body: copy(answer)}; }});
   await page.press([...all(page, "#setup-body form[data-step=review] button")].find(b => /Write my profile/.test(b.textContent)));
   assert.deepEqual(lastPost(state, "/api/v1/setup/review").body, {confirm: true});
-  for (const warning of answer.warnings) assert.ok(page.text("setup-result").includes(warning.message), warning.code);
+  // Challenges with no Carbon receiver are one calm line (U8); any other warning is shown whole.
+  for (const warning of answer.warnings) {
+    if (/has not published an evaluation endpoint/.test(warning.message)) assert.match(page.text("setup-result"), /no Carbon receiver yet\. Practice and freezing work without one/, warning.code);
+    else assert.ok(page.text("setup-result").includes(warning.message), warning.code);
+  }
   // Carbon's published endpoint: whose it is, and its receiver, now binding
   // (LAUNCHPAD-ACCEPT-03).
   const published = fx.setups.published.steps.evaluation.challenges[0];
