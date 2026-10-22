@@ -15,6 +15,7 @@ The registered class host (Targon noise-h1, "AMD EPYC-v4 Processor", 4 vCPU) was
 - ISA flags: avx2 yes, fma yes, avx512f no, avx512_bf16 no, amx no. This is the same exact set as the old class.
 - nproc: 8.
 - Memory: `free -g` total 30 GiB. The install check floors `MemTotal` to whole GiB the same way.
+- Exact fingerprint (Test Lead): `MemTotal: 32087344 kB` = 30.60 GiB, which floors to 30, so the install check passes at the registered floor. The full lscpu flags line contains avx2 and fma, and no avx512* or amx* flag. Fingerprint file sha256 `c45ad40fb24af1b3b4a04737fd55db59db6c10ae01d9646f3093cde617080475` (two lines: flags, MemTotal), kept with the Test Lead's devclass-wall results.
 
 ## The class registered (`carbon/challenge_validator/validator-host-class.json`)
 
