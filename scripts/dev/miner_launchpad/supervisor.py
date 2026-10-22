@@ -627,20 +627,22 @@ NEXT_ACTIONS = {
     "intake_receiver_mismatch": (
         "The validator intake reports another receiver hotkey than the one "
         "your profile pins for this Challenge, so nothing was signed or sent; "
-        "the frozen candidate is kept. Review the evaluation endpoint under "
-        "Set up your environment (carbon_setup_review): check the intake "
-        "address and its receiver hotkey, then submit again."
+        "the frozen candidate is kept. Read your setup (carbon_setup_status, "
+        "which changes nothing) to see the intake address and the receiver "
+        "hotkey your profile pins; to change either, the miner reviews setup "
+        "again, which rewrites the profile. Then submit again."
     ),
     # Launchpad Test Runner G3: a construction receiver serves exactly one
     # Challenge version, and the intake this submit reached serves another.
     "construction_intake_challenge_mismatch": (
         "The intake this campaign submits to serves another Challenge: each "
         "validator intake serves exactly one Challenge version, so nothing was "
-        "signed or sent, and the frozen candidate is kept. Open Set up your "
-        "environment and read Review's evaluation list (carbon_setup_review): "
-        "it shows which Challenge each intake serves. Add an intake that serves "
-        "this Challenge and version, or wait until Carbon publishes one, then "
-        "submit again."
+        "signed or sent, and the frozen candidate is kept. Read your setup "
+        "(carbon_setup_status, which changes nothing): it shows which "
+        "Challenge each intake serves. If none serves this Challenge and "
+        "version, no receiver serves it for you yet: practise it now, and add "
+        "one when it is published (setup review, which rewrites the profile), "
+        "then submit again."
     ),
     "construction_intake_chain_mismatch": (
         "The intake this campaign submits to serves another chain or subnet, "

@@ -497,7 +497,9 @@ def test_setup_refuses_another_challenges_intake_at_review():
 def test_the_mismatch_refusal_says_plainly_what_to_do():
     step = next_action("construction_intake_challenge_mismatch")
     assert "serves exactly one Challenge version" in step
-    assert "carbon_setup_review" in step and "frozen candidate is kept" in step
+    # R6-5: it names the read-only check, never the profile-writing review.
+    assert "carbon_setup_status" in step and "frozen candidate is kept" in step
+    assert "carbon_setup_review" not in step
     from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
 
     for code in (
