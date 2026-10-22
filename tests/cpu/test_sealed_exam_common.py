@@ -98,9 +98,7 @@ def test_a_straddle_needs_a_third_of_all_cells_on_each_side_per_limit():
     )
     # The unresolved fraction cap (Motor's U decision) is its own failure.
     assert (
-        common.straddle(
-            {"q": third}, unresolved_max_fraction=0.25
-        )
+        common.straddle({"q": third}, unresolved_max_fraction=0.25)
         == "unresolved_over_fraction:q"
     )
     assert common.straddle({"q": third}, unresolved_max_fraction=1 / 3) is None
@@ -250,3 +248,90 @@ def test_per_condition_choice_is_batterys_every_scenario_decides_for_itself():
     assert check(lambda d, c: True) == common.CONDITION_NO_INFEASIBLE
     with pytest.raises(ValueError):
         common.decision_check(grid, lambda cell: FEASIBLE, choice="other")
+
+
+# --- the pack set and the version aggregate (OWNER-FULL-EXAM-BANK-01) --------------------
+
+
+def _digest(c):
+    return "sha256:" + c * 64
+
+
+def test_a_pack_set_has_one_body_and_its_digest_is_the_evaluation_key():
+    one = common.pack_set_document("motor", "1.0", [_digest("b"), _digest("a")])
+    two = common.pack_set_document("motor", "1.0", [_digest("a"), _digest("b")])
+    assert one == two and one["batches"] == [_digest("a"), _digest("b")]
+    key = common.pack_set_key(one)
+    assert key.startswith("sha256:") and len(key) == 71
+    # A rotation is a new set and so a new key.
+    rotated = common.pack_set_document("motor", "1.0", [_digest("a"), _digest("c")])
+    assert common.pack_set_key(rotated) != key
+    # The Challenge version is part of the body.
+    other = common.pack_set_document("motor", "1.1", [_digest("a"), _digest("b")])
+    assert common.pack_set_key(other) != key
+
+
+@pytest.mark.parametrize(
+    "challenge,version,batches",
+    [
+        ("motor", "1.0", []),
+        ("motor", "1.0", [_digest("a"), _digest("a")]),
+        ("motor", "1.0", ["sha256:short"]),
+        ("motor", "1.0", ["a" * 64]),
+        ("", "1.0", [_digest("a")]),
+        ("motor", "", [_digest("a")]),
+    ],
+)
+def test_a_malformed_pack_set_is_refused(challenge, version, batches):
+    with pytest.raises(common.PackSetRefused):
+        common.pack_set_document(challenge, version, batches)
+
+
+def test_a_body_not_built_by_the_builder_has_no_key():
+    body = common.pack_set_document("motor", "1.0", [_digest("a")])
+    for broken in (
+        {**body, "batches": [_digest("b"), _digest("a")]},
+        {**body, "extra": 1},
+        {**body, "schema": "other"},
+        {k: v for k, v in body.items() if k != "challenge"},
+    ):
+        with pytest.raises(common.PackSetRefused):
+            common.pack_set_key(broken)
+
+
+def _batch(a, d, ok=True, extra=None):
+    gates = {"native": ok, "coverage": True}
+    gates.update(extra or {})
+    return {"gates": gates, "A": a, "D": d}
+
+
+def test_the_version_grade_is_the_equal_weight_mean_over_its_batches():
+    graded = common.aggregate([_batch(0.8, 0.4), _batch(0.6, 0.2)])
+    assert graded["eligible"] is True and graded["batches"] == 2
+    assert graded["A"] == pytest.approx(0.7) and graded["D"] == pytest.approx(0.3)
+    assert graded["total"] == pytest.approx(0.5)
+    # One batch is the version of a single-batch launch set.
+    single = common.aggregate([_batch(0.8, 0.4)])
+    assert single["total"] == pytest.approx(0.6)
+
+
+def test_a_gate_must_pass_on_every_batch_and_a_failure_shows_no_number():
+    graded = common.aggregate([_batch(0.8, 0.4), _batch(0.9, 0.9, ok=False)])
+    assert graded["gates"] == {"coverage": True, "native": False}
+    assert graded["eligible"] is False
+    assert graded["A"] is graded["D"] is graded["total"] is None
+
+
+def test_an_aggregate_refuses_what_cannot_be_averaged():
+    for bad in (
+        [],
+        [_batch(0.8, 0.4), _batch(0.6, 0.2, extra={"more": True})],
+        [_batch(float("nan"), 0.4)],
+        [_batch(0.8, None)],
+        [_batch(1.2, 0.4)],
+        [{"A": 0.5, "D": 0.5}],
+    ):
+        with pytest.raises(common.PackSetRefused):
+            common.aggregate(bad)
+    with pytest.raises(common.PackSetRefused):
+        common.aggregate([_batch(0.5, 0.5)], value_weight=1.0)
