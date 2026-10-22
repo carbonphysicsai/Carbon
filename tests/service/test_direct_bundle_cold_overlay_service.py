@@ -307,12 +307,17 @@ def test_normal_cpu_source_only_task_cold_prepares_builds_and_retains(tmp_path):
         assert evidence["inference_image_id"] == parent.image_id
         assert evidence["build_receipt"]["train_digest"] == digest(material["train"])
         assert evidence["prediction_comparison"]["exact_equal"] is True
-        assert len(operations) == 3
+        # prep, build, the graded per-case inference and (measure_query) the batched
+        # cold timing query a measured bundle task keeps separate (308d4731a).
+        assert len(operations) == 4
         assert {item["state"] for item in operations} == {"SUCCEEDED"}
         expected_provenance = {
             "prep": "DIRECT_BUNDLE_DEPENDENCY_PREP",
             "build": "DIRECT_BUNDLE_OVERLAY_RECONSTRUCTION",
             "inference": "DIRECT_BUNDLE_PUBLIC_INFERENCE",
+            # The timing query is an inference child of its own: same provenance,
+            # same hostile-parent controls; its digest is not retained separately.
+            "timed": "DIRECT_BUNDLE_PUBLIC_INFERENCE",
         }
         policy = material["construction_limits_document"][
             "reconstruction_resource_policy"
@@ -324,9 +329,11 @@ def test_normal_cpu_source_only_task_cold_prepares_builds_and_retains(tmp_path):
             assert intent["request"]["provenance"] == provenance
             controls_raw = json.loads((operation / "resources.json").read_bytes())
             controls = controls_raw["controls"]
-            assert (
-                controls_raw["controls_digest"] == evidence[phase + "_controls_digest"]
-            )
+            if phase != "timed":
+                assert (
+                    controls_raw["controls_digest"]
+                    == evidence[phase + "_controls_digest"]
+                )
             assert controls_raw["controls_digest"] == digest(canonical(controls))
             host = controls["daemon_host_config"]
             assert host["network_mode"] == "none"
@@ -413,6 +420,6 @@ def test_normal_cpu_source_only_task_cold_prepares_builds_and_retains(tmp_path):
             )
             == evidence["prediction_comparison"]
         )
-        assert len(ledger.status(owner=owner)["operations"]) == 3
+        assert len(ledger.status(owner=owner)["operations"]) == 4
     finally:
         provider.close()

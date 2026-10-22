@@ -18,7 +18,9 @@ Asserts, per profile:
    shared memory past its size fails with ENOSPC and a smaller write inside it
    succeeds; an output past the envelope is refused by the exporter (rc 20)
    while one inside it exports; the network and filesystem probes still hold.
-   A torch DataLoader with workers runs (asserted, rc 0) under each shm.
+   A parallel shared-memory workload runs under each shm, parent-aware: a torch
+   DataLoader where the parent has torch, a numpy/JAX workload over a
+   SharedMemory block where it has none (the python-cpu JAX parent).
 """
 
 from __future__ import annotations
@@ -43,7 +45,12 @@ from carbon.reconstruction.worker.docker_runtime import (
 GIB = 1024**3
 MIB = 1024**2
 V7 = "level4-allowlist-v7"
-PROBES = ["/opt/carbon-worker/bin/python", "-I", "-m", "carbon.reconstruction.worker.probes"]
+PROBES = [
+    "/opt/carbon-worker/bin/python",
+    "-I",
+    "-m",
+    "carbon.reconstruction.worker.probes",
+]
 
 #: Writes `target` bytes to a tmpfs file in 1 MiB blocks; exits 0 when the
 #: write is refused with ENOSPC, 12 when it all lands.
@@ -81,6 +88,57 @@ except ImportError:
 data = TensorDataset(torch.arange(256, dtype=torch.float32).reshape(64, 4))
 total = sum(batch[0].sum().item() for batch in DataLoader(data, batch_size=8, num_workers=2))
 raise SystemExit(0 if total == sum(range(256)) else 12)
+"""
+
+
+HAS_TORCH = """
+import importlib.util
+print(1 if importlib.util.find_spec("torch") is not None else 0)
+"""
+#: numpy over a SharedMemory block in /dev/shm, summed by two worker processes
+#: (the DataLoader's pattern), then a jitted JAX reduction of the same data.
+#: Exits 0 on the exact expected totals, 12 otherwise.
+SHM_WORKLOAD = """
+import multiprocessing as mp
+import sys
+from multiprocessing import shared_memory
+
+import numpy as np
+
+
+def _sum(name, count, start, stop, queue):
+    block = shared_memory.SharedMemory(name=name)
+    try:
+        queue.put(float(np.ndarray((count,), np.float32, buffer=block.buf)[start:stop].sum()))
+    finally:
+        block.close()
+
+
+if __name__ == "__main__":
+    count = int(sys.argv[1]) // 4
+    block = shared_memory.SharedMemory(create=True, size=count * 4)
+    try:
+        data = np.ndarray((count,), np.float32, buffer=block.buf)
+        data[:] = 1.0
+        queue = mp.get_context("fork").Queue()
+        half = count // 2
+        procs = [
+            mp.get_context("fork").Process(target=_sum, args=(block.name, count, a, b, queue))
+            for a, b in ((0, half), (half, count))
+        ]
+        for proc in procs:
+            proc.start()
+        total = sum(queue.get(timeout=120) for _ in procs)
+        for proc in procs:
+            proc.join(timeout=60)
+        import jax.numpy as jnp
+
+        jax_total = float(jnp.asarray(data).sum())
+        ok = total == float(count) and jax_total == float(count)
+    finally:
+        block.close()
+        block.unlink()
+    raise SystemExit(0 if ok else 12)
 """
 
 
@@ -173,41 +231,79 @@ def _run_profile(real_docker, profile, tmp_path, expected):
 
         # Scratch past its size is refused by the kernel.
         _python(
-            cli, name, FILL, "/scratch/fill", str(expected["scratch"] + 64 * MIB),
+            cli,
+            name,
+            FILL,
+            "/scratch/fill",
+            str(expected["scratch"] + 64 * MIB),
             timeout=900,
         )
         _python(cli, name, "import os;os.unlink('/scratch/fill')")
         # Shared memory: past its size is refused, and a write inside it lands.
-        _python(cli, name, FILL, "/dev/shm/fill", str(expected["shm"] + 64 * MIB), timeout=900)
+        _python(
+            cli,
+            name,
+            FILL,
+            "/dev/shm/fill",
+            str(expected["shm"] + 64 * MIB),
+            timeout=900,
+        )
         _python(cli, name, "import os;os.unlink('/dev/shm/fill')")
         _python(
-            cli, name, INSIDE, "/dev/shm/inside",
+            cli,
+            name,
+            INSIDE,
+            "/dev/shm/inside",
             str(min(expected["shm"] // 2, 512 * MIB)),
         )
         # The exporter: a member past the envelope is refused (typed rc 20);
         # one inside it exports (control specimen).
         _python(cli, name, SPARSE, str(expected["output"] + 1))
         refused = _exec(
-            cli, name,
-            ["/opt/carbon-worker/bin/python", "-I", "-m",
-             "carbon.reconstruction.worker.exporter", *expected["export_args"]],
+            cli,
+            name,
+            [
+                "/opt/carbon-worker/bin/python",
+                "-I",
+                "-m",
+                "carbon.reconstruction.worker.exporter",
+                *expected["export_args"],
+            ],
             accepted=(20,),
         )
         assert refused.returncode == 20
         _python(cli, name, SPARSE, "4096")
         exported = _exec(
-            cli, name,
-            ["/opt/carbon-worker/bin/python", "-I", "-m",
-             "carbon.reconstruction.worker.exporter", *expected["export_args"]],
+            cli,
+            name,
+            [
+                "/opt/carbon-worker/bin/python",
+                "-I",
+                "-m",
+                "carbon.reconstruction.worker.exporter",
+                *expected["export_args"],
+            ],
         )
         assert exported.returncode == 0
         # The network and filesystem probes still hold.
         assert _exec(cli, name, [*PROBES, "paths"]).returncode == 0
-        assert _exec(cli, name, [*PROBES, "connect", "1.1.1.1", "53"], accepted=(10,)).returncode == 10
-        # A DataLoader with workers needs real shared memory.
-        # The C-03 worker image carries torch: rc 0 means the DataLoader ran
-        # (77 would mean torch is absent, which is a failure here, not a skip).
-        assert _python(cli, name, DATALOADER, accepted=(0, 77)).returncode == 0
+        assert (
+            _exec(
+                cli, name, [*PROBES, "connect", "1.1.1.1", "53"], accepted=(10,)
+            ).returncode
+            == 10
+        )
+        # Real shared memory under a parallel workload, parent-aware: the torch
+        # parent runs a DataLoader with workers; the python-cpu (JAX) parent has no
+        # torch by design (rc 77 there) and runs an equivalent numpy/JAX workload
+        # over a shared-memory block with worker processes. Neither is a skip.
+        torch_present = _python(cli, name, HAS_TORCH).stdout.strip() == b"1"
+        if torch_present:
+            assert _python(cli, name, DATALOADER).returncode == 0
+        else:
+            assert _python(cli, name, DATALOADER, accepted=(0, 77)).returncode == 77
+            block = min(expected["shm"] // 2, 256 * MIB)
+            assert _python(cli, name, SHM_WORKLOAD, str(block)).returncode == 0
     finally:
         remove_exact_container(cli=cli, container_name=name, launch_digest=launch)
 
