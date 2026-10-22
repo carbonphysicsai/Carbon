@@ -106,3 +106,46 @@ def test_practice_decodes_an_encoded_row_and_leaves_a_native_one():
     assert native["peak_c"] == 0.0 and native["pressure_drop_pa"] == 0.0
     with pytest.raises(ValueError, match="unknown Cooling output encoding"):
         _outputs(row, slices, "another")
+
+
+def test_a_malformed_encoded_row_is_a_typed_gate_failure_not_an_exception():
+    import json
+
+    from carbon.challenge_kit import physical_pack
+    from carbon.scoring import cooling_dual_pack, cooling_encoded_dual_pack
+    from carbon.scoring import physical_dual_pack as physical
+
+    bank = physical_pack.development_bank(COOLING, "1.2")
+    public = physical_pack.public_roles(COOLING, "1.2")
+    names = physical_public_train.numeric_interface_document(COOLING)["input_names"]
+    rows = physical.bank_rows(bank, names)
+    train = cooling_dual_pack._train_records(public["train"], names)
+    native = np.asarray(cooling_dual_pack._baseline_outputs(rows, train))
+    profile_max = native[:, 1:31].max(axis=1)
+    native[:, 0] = np.maximum(native[:, 0], profile_max + 1.0)
+    encoded = enc.encode_targets(native).tolist()
+    definition = {
+        **cooling_encoded_dual_pack.definition(bank=bank, train_raw=None),
+        "producer_digest": cooling_encoded_dual_pack.producer_digest(),
+    }
+
+    def measure(outputs):
+        return cooling_encoded_dual_pack.measure(
+            bank_rows=rows,
+            outputs=outputs,
+            repeats=[outputs, outputs],
+            definition=definition,
+            limits=json.loads(public["important_limit_definition"]),
+            objective=json.loads(public["design_objective"]),
+            train_raw=None,
+            names=names,
+        )
+
+    assert measure(encoded)["gates"]["native_cold_plate"] is True
+    for bad in (
+        encoded[0][:20],
+        [*encoded[0][:31], float("nan")],
+        [float("-inf")] + encoded[0][1:],
+    ):
+        result = measure([bad, *encoded[1:]])
+        assert result["gates"]["native_cold_plate"] is False

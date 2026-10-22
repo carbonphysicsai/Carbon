@@ -33,9 +33,24 @@ def _native_train():
 
 
 def _decoded(rows):
+    """Each predicted row decoded; a row that is not 32 finite numbers stays
+    malformed (32 NaN), so Cooling's `schema_finite` gate fails that case as
+    the candidate's typed gate failure, never an exception (Validator,
+    chosen-implementation receipt)."""
+    import math
+
     from carbon.cold_plate.output_encoding import decode_flat
 
-    return [decode_flat(row) for row in rows]
+    def one(row):
+        try:
+            values = [float(v) for v in row]
+        except (TypeError, ValueError):
+            values = []
+        if len(values) != 32 or not all(math.isfinite(v) for v in values):
+            return [math.nan] * 32
+        return decode_flat(values)
+
+    return [one(row) for row in rows]
 
 
 def definition(*, bank, train_raw, rule="baseline_legs"):
