@@ -302,17 +302,20 @@ def _motor():
     )
 
 
-def _motor_catalog():
-    """Motor 1.2 (OWNER-BACKBONE-CATALOG-01): Carbon's tested backbones by
-    catalog id on the direct recipe path. Each hook runs under the 1.2
-    research key, so Motor's shared campaign code serves exactly 1.2."""
+def _motor_catalog(version="1.2"):
+    """A Motor catalog version (OWNER-BACKBONE-CATALOG-01): Carbon's tested
+    backbones by catalog id on the direct recipe path; 1.3 is 1.2 plus
+    allowlist v7. Each hook runs under that version's research key, so Motor's
+    shared campaign code serves exactly that version."""
     from carbon.challenge_kit import physical_material, physical_public
     from carbon.development_session import direct_submission
     from carbon.motor import campaign as motor
     from carbon.motor import research_view as motor_view
     from carbon.motor.contracts import key_for, keyed
 
-    key = key_for(motor.CATALOG_VERSION)
+    if version not in motor.CATALOG_VERSIONS:
+        raise ValueError("motor catalog version required")
+    key = key_for(version)
 
     def bound(function):
         @functools.wraps(function)
@@ -359,12 +362,151 @@ def _motor_catalog():
     )
 
 
+def _cold_plate_catalog(version):
+    """A Cooling catalog version (OWNER-BACKBONE-CATALOG-01, as Motor's):
+    Carbon's tested backbones by catalog id on the direct recipe path. Each
+    hook runs under that version's research key, so Cooling's shared campaign
+    code serves exactly that version. Practice reuses Cooling's practice
+    provenance, so a practised catalog recipe supports a freeze."""
+    from carbon.challenge_kit import physical_material, physical_public
+    from carbon.cold_plate import campaign as cold_plate
+    from carbon.cold_plate import research_view as cold_plate_view
+    from carbon.cold_plate.contracts import key_for, keyed
+    from carbon.development_session import direct_submission
+
+    if version not in cold_plate.CATALOG_VERSIONS:
+        raise ValueError("cooling catalog version required")
+    key = key_for(version)
+
+    def bound(function):
+        @functools.wraps(function)
+        def call(*args, **kwargs):
+            with keyed(key):
+                return function(*args, **kwargs)
+
+        return call
+
+    def bound_async(function):
+        @functools.wraps(function)
+        async def call(*args, **kwargs):
+            with keyed(key):
+                return await function(*args, **kwargs)
+
+        return call
+
+    return ChallengeCampaign(
+        key=key,
+        prepare=bound_async(cold_plate.prepare_cold_plate),
+        evaluate=bound_async(cold_plate.evaluate_frozen),
+        observation=bound(cold_plate.agent_observation),
+        refusal_retains_candidate=True,
+        check_attached=bound(cold_plate.check_attached),
+        compose=bound(cold_plate.compose),
+        feedback_modes=cold_plate.FEEDBACK_MODES,
+        feedback_schema="carbon.cold-plate.permitted-feedback.v1",
+        research_view=cold_plate_view.research_view,
+        practice_provenance=cold_plate.PRACTICE_PROVENANCE,
+        backends=("torch_cpu",),
+        construction_kit=lambda: physical_public.construction_kit(
+            key.challenge_id, key.version
+        ),
+        construction_reconstruct=lambda *args, **kwargs: None,
+        construction_bundle_material=lambda: physical_material.bundle_material(
+            key.challenge_id, key.version
+        ),
+        intake_check=direct_submission.read_intake,
+        record_verdict=cold_plate.record_verdict,
+    )
+
+
+def _direct(campaign, view, contracts, version):
+    """A direct-recipe-only version (F08 1.4, F02 2.3; `carbon.direct_campaign`):
+    catalog or graph recipes on the direct recipe path, as the catalog versions
+    above. Each hook runs under that version's research key. Practice carries
+    the Challenge's own provenance (`versioned_practice_provenances`), so a
+    practised recipe supports a freeze."""
+    from carbon.challenge_kit import physical_material
+    from carbon.development_session import direct_submission
+
+    key = contracts.key_for(version)
+
+    def bound(function):
+        @functools.wraps(function)
+        def call(*args, **kwargs):
+            with contracts.keyed(key):
+                return function(*args, **kwargs)
+
+        return call
+
+    def bound_async(function):
+        @functools.wraps(function)
+        async def call(*args, **kwargs):
+            with contracts.keyed(key):
+                return await function(*args, **kwargs)
+
+        return call
+
+    spec = contracts.SPEC
+    return ChallengeCampaign(
+        key=key,
+        prepare=bound_async(getattr(campaign, "prepare_" + spec.prefix)),
+        evaluate=bound_async(campaign.evaluate_frozen),
+        observation=bound(campaign.agent_observation),
+        refusal_retains_candidate=True,
+        check_attached=bound(campaign.check_attached),
+        compose=bound(campaign.compose),
+        feedback_modes=campaign.FEEDBACK_MODES,
+        feedback_schema=spec.feedback_schema,
+        research_view=bound(view.research_view),
+        practice_provenance=campaign.PRACTICE_PROVENANCE,
+        backends=campaign.BACKENDS,
+        construction_kit=lambda: spec.public().construction_kit(
+            key.challenge_id, key.version
+        ),
+        construction_reconstruct=lambda *args, **kwargs: None,
+        construction_bundle_material=lambda: physical_material.bundle_material(
+            key.challenge_id, key.version
+        ),
+        intake_check=direct_submission.read_intake,
+        record_verdict=campaign.record_verdict,
+    )
+
+
+def _f08_direct(version):
+    from carbon.f08 import campaign, contracts, research_view
+
+    return _direct(campaign, research_view, contracts, version)
+
+
+def _f02_direct(version):
+    from carbon.f02 import campaign, contracts, research_view
+
+    return _direct(campaign, research_view, contracts, version)
+
+
 def _versioned_campaigns():
     """Campaigns registered for a Challenge version beyond its first, by
     (Challenge id, version)."""
-    from carbon.reconstruction.capability_registry import MOTOR_CHALLENGE
+    from carbon.reconstruction.capability_registry import (
+        COLD_PLATE_CHALLENGE,
+        MOTOR_CHALLENGE,
+    )
 
-    return {(MOTOR_CHALLENGE, "1.2"): _motor_catalog}
+    return {
+        (MOTOR_CHALLENGE, "1.2"): _motor_catalog,
+        (MOTOR_CHALLENGE, "1.3"): functools.partial(_motor_catalog, "1.3"),
+        (COLD_PLATE_CHALLENGE, "1.2"): functools.partial(_cold_plate_catalog, "1.2"),
+        **_direct_campaigns(),
+    }
+
+
+def _direct_campaigns():
+    """The direct-recipe-only versions: their Challenges have no id-level
+    campaign (no Level-0 version), so each is registered by version only."""
+    return {
+        ("f08-ribbed-bracket", "1.4"): functools.partial(_f08_direct, "1.4"),
+        ("f02", "2.3"): functools.partial(_f02_direct, "2.3"),
+    }
 
 
 def _campaigns():
@@ -381,10 +523,28 @@ def _campaigns():
     }
 
 
+def _provenance_sources():
+    """The campaigns whose practice provenance and backends count: every
+    id-level campaign, and each version-keyed campaign of a Challenge with no
+    id-level one (F08 1.4, F02 2.3), whose provenance no other campaign
+    declares. A versioned campaign of a Challenge with an id-level campaign
+    (Motor 1.2/1.3, Cooling 1.2) reuses that one's provenance, so the sets are
+    exactly what they were for those Challenges."""
+    with_id = set(_campaigns())
+    return [
+        *_campaigns().values(),
+        *(
+            build
+            for (challenge_id, _), build in _versioned_campaigns().items()
+            if challenge_id not in with_id
+        ),
+    ]
+
+
 def practice_provenances():
     """Every registered campaign's public-practice result provenance."""
     values = []
-    for build in _campaigns().values():
+    for build in _provenance_sources():
         provenance = build().practice_provenance
         if provenance is not None:
             values.append(provenance)
@@ -394,7 +554,7 @@ def practice_provenances():
 def implemented_backends():
     """Every reconstruction backend a registered campaign may name."""
     values = []
-    for build in _campaigns().values():
+    for build in _provenance_sources():
         values.extend(build().backends)
     return frozenset(values)
 

@@ -44,6 +44,7 @@ from carbon.development_session.research_ledger import CampaignLedger
 from carbon.development_session.research_reply import RULE as RESEARCH_REPLY_RULE
 from carbon.development_session.research_tools import (
     ARGUMENT_NORMALISATION_V2,
+    ARGUMENT_NORMALISATION_V3,
     TOOLS_RULE,
 )
 
@@ -67,18 +68,19 @@ def new_plan_selection(args, agent=None):
     (OWNER-LAUNCHPAD-PROD-02: the model's own maximum output, unless the
     miner set a cap), else as before it; and for `agent`'s plan under the
     new-plan input default where this tree has it
-    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01)."""
+    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01); and under the new-plan timeout
+    default where this tree has it (`model_provider.TIMEOUT_DEFAULT_V2`)."""
     output_default = getattr(campaigns, "new_plan_output_default", None)
     if output_default is None:
         return campaigns.supplied_selection(args)
+    chosen = {"output_default": output_default(args)}
+    timeout_default = getattr(campaigns, "new_plan_timeout_default", None)
+    if timeout_default is not None:
+        chosen["timeout_default"] = timeout_default(args)
     input_default = getattr(campaigns, "new_plan_input_default", None)
-    if input_default is None or agent is None:
-        return campaigns.supplied_selection(args, output_default=output_default(args))
-    return campaigns.supplied_selection(
-        args,
-        output_default=output_default(args),
-        input_default=input_default(args, agent),
-    )
+    if input_default is not None and agent is not None:
+        chosen["input_default"] = input_default(args, agent)
+    return campaigns.supplied_selection(args, **chosen)
 
 
 #: What one model call of a new product plan on the pinned model reserves.
@@ -139,8 +141,9 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
     assert plan["research_tools"] == TOOLS_RULE
     assert plan["research_reply"] == RESEARCH_REPLY_RULE
     # LP-PROD-FIX-01: a new Graphite plan freezes the argument normalisation;
-    # RESEARCH-TOOL-USABILITY-01: from now on its v2.
-    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V2
+    # RESEARCH-TOOL-USABILITY-01: v2; since the M1 rehearsal (2026-10-21) v3,
+    # which also fills a workspace call's obvious fields.
+    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V3
     assert plan["compaction"] == editions.COMPACTION_V1
     assert plan["limits"] == {
         "plan": {

@@ -38,27 +38,33 @@ def evaluation(cfg):
     profile's intakes and validators and the endpoints Carbon publishes
     (LP-PROD-E). Configuration only: an endpoint is reached when a candidate
     is submitted, never here."""
+    from carbon.development_session.intake_targets import for_challenge, for_version
     from scripts.dev.miner_launchpad.environment_setup import (
         NO_ENDPOINT,
         RECEIVER_NOT_PINNED,
         intake_challenges,
         published_endpoints,
+        published_entry,
     )
     from scripts.dev.miner_launchpad.runner import intakes, receivers, validators
 
-    published = published_endpoints()["endpoints"]
-    configured = intakes(cfg)
-    pinned = receivers(cfg)
+    published = published_endpoints()
     local = validators(cfg) if type(cfg.get("paths")) is dict else {}
     challenges = []
+    # Per Challenge version: a receiver serves exactly one (published-endpoints
+    # v2), and each version reads only its own intake (`for_version`).
     for challenge in intake_challenges():
-        entry = published.get(challenge["id"])
+        own = for_version(cfg, challenge["id"], challenge["version"])
+        configured, pinned = intakes(own), receivers(own)
+        entry = published_entry(published, challenge)
         entries = entry.get("validators", [entry]) if entry is not None else []
         url = configured.get(challenge["id"])
-        item = {"challenge_id": challenge["id"], "title": challenge["title"]}
-        from carbon.development_session.intake_targets import for_challenge
-
-        targets = for_challenge(cfg, challenge["id"])
+        item = {
+            "challenge_id": challenge["id"],
+            "version": challenge["version"],
+            "title": challenge["title"],
+        }
+        targets = for_challenge(own, challenge["id"])
         if targets is not None:
             item["validators"] = [
                 {**target, "receiver_pinned": True} for target in targets

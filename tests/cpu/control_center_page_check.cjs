@@ -116,7 +116,7 @@ scenario("normal challenge selection shows only its construction serving paths",
   await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id));
   assert.equal(one(page, "#wizard-construction-options").hidden, false);
   assert.match(page.text("wizard-construction-options"), /Construction serving paths/);
-  assert.match(page.text("wizard-construction-options"), /Official submission · unserved/);
+  assert.match(page.text("wizard-construction-options"), /Official submission · not served yet/);
   clean(page);
 
   const unknown = world();
@@ -127,7 +127,7 @@ scenario("normal challenge selection shows only its construction serving paths",
   await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id));
   assert.equal(one(second, "#wizard-construction-options").hidden, false);
   assert.match(second.text("wizard-construction-options"), /Construction path status unavailable/);
-  assert.doesNotMatch(second.text("wizard-construction-options"), /Official submission · unserved/,
+  assert.doesNotMatch(second.text("wizard-construction-options"), /Official submission · not served yet/,
     "an unrelated response key must not supply construction paths for this Challenge");
   clean(second);
 });
@@ -158,11 +158,11 @@ scenario("v2 construction paths render without family admission claims", async (
   const notice = page.text("wizard-construction-options");
   assert.match(notice, /Construction serving paths/);
   assert.match(notice, /Public reconstruction · available for a compatible bounded recipe/);
-  assert.match(notice, /Official submission · unserved/);
+  assert.match(notice, /Official submission · not served yet/);
   assert.match(notice, /Scientific qualification: untested/);
   assert.doesNotMatch(notice, /Families you can freeze|What you can change/);
   const availability = page.text("launch-availability");
-  assert.match(availability, /Official submission · unserved/);
+  assert.match(availability, /Official submission · not served yet/);
   assert.doesNotMatch(availability, /Model families/);
   clean(page);
 
@@ -225,6 +225,40 @@ scenario("acceptance labels name a revision and never follow availability", asyn
   assert.ok(!page.text("research-selects").includes("Tested at"));
   assert.ok(!page.text("launchpad-strip").includes("Tested at"));
   assert.equal(byValue(page, "#research-selects input", "manual").disabled, false);
+  clean(page);
+});
+
+scenario("a Challenge pending readiness reads planned for launch, never Launch", async () => {
+  // Validator, 2026-10-21: launch_pending_readiness shows "Planned for
+  // launch · readiness not yet confirmed" and never the bare word Launch.
+  const state = world();
+  const entry = state.caps.challenges.find(item => item.implemented);
+  entry.portfolio = "launch_pending_readiness";
+  const page = await open(state);
+  page.go("#challenges");
+  await refresh(page);
+  const text = page.text("challenge-catalog");
+  assert.ok(text.includes("Planned for launch · readiness not yet confirmed"), "the label is shown");
+  assert.ok(!/launch pending readiness/i.test(text), "the raw value is never shown");
+  assert.ok(!/Launch/.test(text.replace(/Launch Challenge|Launchpad|Launch a|Launch it|Launch again/g, "")), "never the bare word Launch");
+  clean(page);
+});
+
+scenario("an exam Carbon has not set yet renders and the page stays connected", async () => {
+  // A direct version (F08 1.4, F02 2.3) registers its exam components and
+  // gates as HUMAN_INPUT until the owner sets them: the catalog says so, and
+  // every refresh still connects (the 2026-10-21 M1 interruption).
+  const state = world();
+  const entry = state.caps.challenges.find(item => item.implemented);
+  assert.ok(entry, "an implemented Challenge");
+  entry.description = {...(entry.description || {}), exam: {components: "HUMAN_INPUT", gates: "HUMAN_INPUT", rule: "HUMAN_INPUT", qualification: false}};
+  const page = await open(state);
+  for (const route of ["#challenges", "#setup", "#overview"]) {
+    page.go(route);
+    await refresh(page);
+    assert.equal(page.text("connection-state"), "Connected", "connected on " + route);
+  }
+  assert.ok(page.text("challenge-catalog").includes("not yet set by Carbon"), "the catalog names the unset exam");
   clean(page);
 });
 
@@ -439,6 +473,90 @@ scenario("the model step offers an output cap with the model's default and sends
   clean(page);
 });
 
+// Owner direction 2026-10-21 ("just enable them"): a model whose provider's
+// public list publishes its maximum output defaults to that figure, and the
+// page names the list and when setup read it; a model with no published
+// maximum says so and asks the miner to set it.
+scenario("the model step names a provider-published default, or asks for one", async () => {
+  const caps = fx.caps_published_limits;
+  const agent = carbonAgent(caps);
+  const choice = caps.model.setup_choice;
+  const shown = caps.model.output_cap.defaults[choice.provider_id][choice.model_id];
+  assert.equal(shown.basis, "provider_published_live");
+  assert.equal(shown.max_output_tokens, 65535);
+  const state = launchable(world({caps: copy(caps), options: copy(fx.options_setup_model)}), agent);
+  const page = await open(state);
+  await wizardTo(page, "model", agent);
+  assert.equal(page.$("wizard-max-output").placeholder, "Default: 65535");
+  const note = page.text("wizard-output-note");
+  assert.match(note, /65,535 tokens \(this model's maximum as its provider's model list published it, https:\/\/llm\.chutes\.ai\/v1\/models, read 2026-10-21T09:30:00Z\)/);
+  assert.doesNotMatch(note, /no published maximum/);
+  clean(page);
+  // Setup's model with nothing published: the conservative cap, said plainly.
+  const other = carbonAgent(fx.caps_setup_model);
+  const plain = await open(launchable(world({caps: copy(fx.caps_setup_model), options: copy(fx.options_setup_model)}), other));
+  await wizardTo(plain, "model", other);
+  assert.match(plain.text("wizard-output-note"), /2,048 tokens \(Carbon has no published maximum for this model, so the conservative cap\)/);
+  assert.match(plain.text("wizard-output-note"), /Carbon has no published maximum for this model: set the model's own maximum here if you know it\./);
+  clean(plain);
+});
+
+// M1 rehearsal 2026-10-21: the Model step offers the optional provider call
+// timeout beside the output cap, with the controller's bounds and default
+// (model_provider's TIMEOUT_DEFAULT_V2, 600 s), and sends
+// model_settings.timeout_seconds only when the miner typed one.
+scenario("the model step offers a provider call timeout with its default and sends it", async () => {
+  const agent = carbonAgent(fx.caps_setup_model);
+  const state = launchable(world({caps: copy(fx.caps_setup_model), options: copy(fx.options_setup_model)}), agent);
+  const page = await open(state);
+  await wizardTo(page, "model", agent);
+  const choice = fx.caps_setup_model.model.setup_choice;
+  const timeout = fx.caps_setup_model.model.call_timeout;
+  assert.deepEqual(timeout.bounds, [10, 600]);
+  assert.equal(timeout.default, 600);
+  assert.equal(page.$("wizard-timeout").hidden, false, "the timeout is offered with a model chosen");
+  assert.match(page.text("wizard-timeout"), /Provider call timeout \(seconds\)/);
+  const input = page.$("wizard-timeout-seconds");
+  assert.equal(input.placeholder, "Default: 600");
+  assert.equal(input.min, String(timeout.bounds[0]));
+  assert.equal(input.max, String(timeout.bounds[1]));
+  assert.match(page.text("wizard-timeout-note"), /^Default: 600 seconds, or half your elapsed limit where that is shorter\./);
+  assert.match(page.text("wizard-timeout-note"), /New calls stop when less than the timeout remains of your elapsed limit/);
+  // Outside the runner's bounds: the step does not pass, and says why.
+  for (const bad of [String(timeout.bounds[0] - 1), String(timeout.bounds[1] + 1), "1.5"]) {
+    await page.type(input, bad);
+    assert.equal(page.$("wizard-next").disabled, true, bad);
+    assert.match(page.text("wizard-next-reason"), /Fix the provider call timeout: the provider call timeout must be a whole number of seconds from 10 to 600, or leave it blank for the default\./);
+    assert.match(page.text("wizard-timeout-note"), /^Not valid: /);
+  }
+  await page.type(input, "300");
+  assert.equal(page.$("wizard-next").disabled, false, page.text("wizard-next-reason"));
+  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  assert.match(page.text("wizard-review"), /Call timeout300 seconds per provider call, your timeout/);
+  state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "f".repeat(32)}}});
+  await page.press(page.$("research-launch"));
+  const sent = lastPost(state, "/api/v1/research").body;
+  assert.equal(sent.model_provider, choice.provider_id);
+  assert.deepEqual(sent.model_settings, {timeout_seconds: 300});
+  // Blank is the default: the review says so and nothing is sent.
+  await wizardTo(page, "model", agent);
+  await page.type(page.$("wizard-timeout-seconds"), "");
+  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  assert.match(page.text("wizard-review"), /Call timeoutNot set: 600 seconds per provider call, the default\. New calls stop when less than the timeout remains of your elapsed limit/);
+  state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "0".repeat(32)}}});
+  await page.press(page.$("research-launch"));
+  assert.equal("model_settings" in lastPost(state, "/api/v1/research").body, false);
+  // An elapsed limit shorter than the default bounds it, as the runner does.
+  page.window.CarbonControlCenter.goWizard("limits");
+  await page.advance(0);
+  await page.press(page.$("path-advanced"));
+  await page.type(page.$("budget-elapsed"), "300");
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  assert.match(page.text("wizard-review"), /Call timeoutNot set: 150 seconds per provider call, the default \(half your elapsed limit\)\. New calls stop/);
+  clean(page);
+});
+
 // ---- 3. A pending launch: kept only while its outcome is unknown. ----
 scenario("a definite refusal clears the pending launch; a lost answer keeps it", async () => {
   const state = launchable(world());
@@ -578,7 +696,7 @@ scenario("with no evaluation endpoint the submission says what works and what to
   assert.equal(note.dataset.evaluation, "NONE_PUBLISHED");
   assert.match(note.textContent, /Evaluation is unavailable for this Challenge today: no validator intake is configured in your runner profile, and none is published for it yet\./);
   assert.match(note.textContent, /What you can do now: practise, observe, freeze a candidate, and stop or pause this campaign\./);
-  assert.match(note.textContent, /Next: No evaluation endpoint is published/);
+  assert.match(note.textContent, /Next: Carbon has not published an evaluation endpoint for .* yet, so there is nothing for you to fix/);
   assert.equal(note.querySelector("a").getAttribute("href"), "#setup/review");
   // The submit is still sent: the controller decides, and its next step shows.
   state.script.push({match: r => r.path === "/api/v1/operations/submit", answer: {status: 409, body: {error: "evaluation_unavailable", next_step: "Your frozen candidate is kept, but it cannot be evaluated yet."}}});
@@ -730,7 +848,7 @@ scenario("a campaign without last_refusal shows no refusal", async () => {
 // Reconcile for each of these states (the lead's W3 contract; review repair).
 const LABELS = {reconcile: "Reconcile", resume: "Resume", stop: "Stop"};
 for (const stateName of ["RECONCILIATION_REQUIRED", "INTERRUPTED", "PAUSE_REQUESTED"]) {
-  scenario("Reconcile is on the Live tab, with why, for " + stateName, async () => {
+  scenario("the control bar offers what " + stateName + " needs, with why", async () => {
     const real = fx.recovering[stateName];
     const offered = real.view.recovery.map(item => item.action);
     assert.ok(offered.includes("reconcile"), "the controller offers Reconcile for " + stateName + ": " + offered);
@@ -742,23 +860,31 @@ for (const stateName of ["RECONCILIATION_REQUIRED", "INTERRUPTED", "PAUSE_REQUES
     const page = await open(state);
     page.go("#campaigns/" + run.id + "/live");
     await page.advance(0);
-    const now = "#campaign-detail [data-part=now]";
-    // Each action the controller offers is among the Live tab's controls,
-    // ready, and the ways forward (Stop aside) are primary.
+    // The one control bar is the campaign header's: the page's controls are
+    // drawn there once, and the Live tab's Now card draws none.
+    const bar = "#campaign-detail [data-part=head]";
+    assert.equal(all(page, "#campaign-detail [data-part=now] [data-action]").length, 0, "no second set of controls");
+    // Each action the controller offers is in the bar, ready, and the first
+    // way forward is the one primary button.
     for (const action of offered) {
-      const button = one(page, now + " [data-action=" + action + "]");
+      const button = one(page, bar + " [data-action=" + action + "]");
       assert.equal(button.disabled, false, action);
-      assert.equal(button.classList.contains("primary"), action !== "stop", action);
+      assert.equal(button.classList.contains("primary"), action === offered[0] && action !== "stop", action);
     }
+    assert.equal(all(page, bar + " .primary").length, 1, "one primary button");
     // Reconcile is there, once, ready.
-    assert.equal(all(page, now + " [data-action=reconcile]").length, 1);
-    const button = one(page, now + " [data-action=reconcile]");
+    assert.equal(all(page, bar + " [data-action=reconcile]").length, 1);
+    const button = one(page, bar + " [data-action=reconcile]");
     assert.equal(button.disabled, false);
     // Why, naming the way forward and Reconcile.
     const attention = page.text(one(page, "#campaign-detail [data-part=attention]"));
     assert.match(attention, /Needs attention/);
     assert.ok(attention.includes(LABELS[offered[0]]), "why names the way forward: " + attention);
-    assert.match(attention, /Reconcile/, "why says what Reconcile is for: " + attention);
+    if (offered[0] === "reconcile") assert.match(attention, /Reconcile/, "why says what Reconcile is for: " + attention);
+    if (stateName === "INTERRUPTED") {
+      assert.match(attention, /stopped mid-step/, "says only that it stopped: " + attention);
+      assert.doesNotMatch(attention, /Nothing is lost|restarted|slept/, "no guessed cause and no promise: " + attention);
+    }
     await page.press(button);
     assert.ok(state.posted.some(entry => entry.path === "/api/v1/research/" + run.id + "/reconcile"));
     clean(page);
@@ -776,7 +902,7 @@ scenario("a controller that publishes no recovery list gets Reconcile from the s
     const page = await open(state);
     page.go("#campaigns/" + run.id + "/live");
     await page.advance(0);
-    const button = one(page, "#campaign-detail [data-part=now] [data-action=reconcile]");
+    const button = one(page, "#campaign-detail [data-part=head] [data-action=reconcile]");
     assert.equal(button.disabled, false, name);
     assert.match(page.text(one(page, "#campaign-detail [data-part=attention]")), /Needs attention/, name);
     await page.press(button);
@@ -784,15 +910,18 @@ scenario("a controller that publishes no recovery list gets Reconcile from the s
     clean(page);
   }
 });
-scenario("a healthy campaign's Live tab keeps Reconcile in the header only", async () => {
+scenario("a healthy campaign's control bar keeps Reconcile and Export under More", async () => {
   const state = launchable(world());
   state.runs = [copy(fx.run)];
   state.view = copy(fx.view);
   const page = await open(state);
   page.go("#campaigns/" + fx.run.id + "/live");
   await page.advance(0);
-  assert.equal(all(page, "#campaign-detail [data-part=now] [data-action=reconcile]").length, 0);
+  assert.equal(all(page, "#campaign-detail [data-part=now] [data-action]").length, 0);
   assert.equal(all(page, "#campaign-detail .rs-head [data-action=reconcile]").length, 1);
+  assert.equal(all(page, "#campaign-detail .rs-more [data-action=reconcile]").length, 1, "Reconcile is under More when nothing needs it");
+  assert.equal(all(page, "#campaign-detail .rs-more [data-action=export]").length, 1);
+  assert.equal(all(page, "#campaign-detail .rs-head .primary").length, 0, "a healthy campaign has no primary button");
   assert.equal(page.text(one(page, "#campaign-detail [data-part=attention]")), "");
   // No model call's outcome is unknown: nothing to settle is shown.
   assert.equal(one(page, "#campaign-detail [data-part=settlement]").hidden, true);
@@ -845,7 +974,7 @@ scenario("the controller's own recovery actions are offered when its record carr
 // What Reconcile settles (LP-PROD-W2), over a real campaign's documents
 // (fx.reconciled: a model call answered by another model, so its outcome is
 // unknown, published awaiting Reconcile and again once it settled it).
-scenario("the Live tab says what Reconcile books before the press, and what it booked after", async () => {
+scenario("the campaign page says what Reconcile books before the press, and what it booked after", async () => {
   const {awaiting, settled} = fx.reconciled;
   const state = launchable(world());
   const run = copy(awaiting.run);
@@ -868,7 +997,7 @@ scenario("the Live tab says what Reconcile books before the press, and what it b
   // A press refused with the settlement's own step: the page says that step.
   const step = "a model call of this campaign is still being admitted or in flight; settle once it has ended";
   state.script.push({match: r => r.path === "/api/v1/research/" + run.id + "/reconcile", answer: {status: 409, body: {error: "call_in_flight", next_step: step}}});
-  await page.press(one(page, "#campaign-detail [data-part=now] [data-action=reconcile]"));
+  await page.press(one(page, "#campaign-detail [data-part=head] [data-action=reconcile]"));
   assert.match(page.text("message"), /call_in_flight/);
   assert.ok(page.text("message").includes("Next: " + step + "."), page.text("message"));
   // The press, answered as the controller answers it: the settled campaign.
@@ -877,7 +1006,7 @@ scenario("the Live tab says what Reconcile books before the press, and what it b
     state.view = copy(settled.view);
     return {body: settled.run};
   }});
-  await page.press(one(page, "#campaign-detail [data-part=now] [data-action=reconcile]"));
+  await page.press(one(page, "#campaign-detail [data-part=head] [data-action=reconcile]"));
   assert.ok(state.posted.some(entry => entry.path === "/api/v1/research/" + run.id + "/reconcile"));
   for (let i = 0; i < 3; i++) await refresh(page);
   // After: what it booked, why the outcome was unknown, and the caveat that
@@ -1169,6 +1298,54 @@ scenario("a send that does not go through leaves its button ready again", async 
   clean(page);
 });
 
+// ---- 8b. A GPU route with no GPU worker offers the build (S15a). ----
+scenario("a GPU route with no GPU worker offers Build the GPU worker, on consent to its command, and follows it", async () => {
+  const docs = fx.setup_build;
+  const command = docs.offered.gpu_build.command;
+  const state = launchable(world({setup: copy(docs.offered)}));
+  state.script.push({match: r => r.path === "/api/v1/page/gpu_worker_build", answer: () => { state.setup = copy(docs.running); return {body: copy(docs.started)}; }});
+  const page = await open(state);
+  page.go("#setup/compute");
+  await page.advance(0);
+  await page.press(page.$("setup-where-own-server"));
+  // The button, where the build command to copy was; text only.
+  const box = one(page, "#setup-gpu-build");
+  assert.match(box.textContent, /Build the GPU worker/);
+  assert.ok(box.textContent.includes("Run " + command + " on this machine."));
+  assert.ok(![...all(page, "form[data-step=compute] code")].some(code => code.textContent.includes("accelerator_worker_image.sh")), "no command to copy");
+  const button = page.$("setup-gpu-build-submit");
+  assert.equal(button.textContent, "Build the GPU worker");
+  assert.equal(button.disabled, true, "nothing runs before consent");
+  await page.press(page.$("setup-gpu-build-consent"));
+  assert.equal(button.disabled, false);
+  await page.press(button);
+  const posted = lastPost(state, "/api/v1/page/gpu_worker_build");
+  assert.deepEqual(posted.body, {route: "remote-machine", consent: {build: {command}}});
+  assert.equal(page.text("setup-result"), "Building the GPU worker on this machine. This page follows it.");
+  // Re-read: running, with how long and Docker's step, and no button.
+  assert.match(page.text("setup-gpu-build-progress"), /^Building the GPU worker on this machine: \d+s so far, Docker step 4\/12\./);
+  assert.ok(one(page, "#setup-gpu-build progress"));
+  assert.equal(page.$("setup-gpu-build-submit"), null);
+  clean(page);
+});
+
+scenario("a refused GPU worker build says what failed and leaves its button ready", async () => {
+  const docs = fx.setup_build;
+  const state = launchable(world({setup: copy(docs.offered)}));
+  state.script.push({match: r => r.path === "/api/v1/page/gpu_worker_build", answer: {status: 409, body: {error: "nvidia_driver_not_found", field: "gpu", next_step: "install the NVIDIA driver so nvidia-smi is found on this machine"}}});
+  const page = await open(state);
+  page.go("#setup/compute");
+  await page.advance(0);
+  await page.press(page.$("setup-where-this-machine-gpu"));
+  await page.press(page.$("setup-gpu-build-consent"));
+  await page.press(page.$("setup-gpu-build-submit"));
+  assert.equal(lastPost(state, "/api/v1/page/gpu_worker_build").body.route, "this-machine-gpu");
+  assert.match(page.text("setup-result"), /^gpu: nvidia driver not found\. Next: install the NVIDIA driver/);
+  assert.equal(page.$("setup-gpu-build-submit").textContent, "Build the GPU worker");
+  assert.equal(page.$("setup-gpu-build-submit").disabled, false);
+  clean(page);
+});
+
 // ---- 9. The Tools tab reads a file under either research tools rule. ----
 scenario("Tools: a read answered as text (v2 rule) or as base64 (historical) shows the same file", async () => {
   const state = launchable(world());
@@ -1205,9 +1382,10 @@ scenario("Tools: a read answered as text (v2 rule) or as base64 (historical) sho
   clean(page);
 });
 
-// ---- 10. The session link (LP-PROD-C D14): read once, kept nowhere. ----
+// ---- 10. The session link (LP-PROD-C D14): read once from the address; the tab keeps the token (owner,
+// 2026-10-21: a reload must not drop the session) in its own sessionStorage and nowhere else. ----
 const kept = storage => [...storage.map.values()].join("\n");
-scenario("a session link connects once and leaves its token nowhere", async () => {
+scenario("a session link connects once; this tab keeps the token and nothing else does", async () => {
   const LINK = "link_" + "A1b2-C3d4_".repeat(4);
   const state = launchable(world());
   const session = new Storage(), local = new Storage();
@@ -1219,11 +1397,12 @@ scenario("a session link connects once and leaves its token nowhere", async () =
   assert.deepEqual(page.replaced, ["http://127.0.0.1:8788/"], "this history entry replaced, no other");
   assert.ok(page.requests.length > 3 && page.requests.every(r => r.headers.Authorization === "Bearer " + LINK));
   assert.equal(page.$("token").value, "");
-  // Browsing on saves routes, never the token.
+  // Browsing on saves routes, never the token; the tab's own session holds it.
   page.go("#campaigns");
   await page.advance(0);
   assert.match(kept(local), /#campaigns/);
-  assert.ok(!kept(local).includes(LINK) && !kept(session).includes(LINK));
+  assert.ok(!kept(local).includes(LINK), "never in localStorage");
+  assert.ok(kept(session).includes(LINK), "kept in this tab's sessionStorage");
   // A link opened later in this same tab (the Control Center restarted with
   // a new token) is taken the same way, before the route is read.
   const OTHER = "other_" + "Z9y8-X7w6_".repeat(4);
@@ -1234,7 +1413,8 @@ scenario("a session link connects once and leaves its token nowhere", async () =
   assert.equal(page.text("connection-state"), "Connected");
   const after = page.requests.slice(before);
   assert.ok(after.length && after.every(r => r.headers.Authorization === "Bearer " + OTHER));
-  assert.ok(!kept(local).includes(OTHER) && !kept(session).includes(OTHER));
+  assert.ok(!kept(local).includes(OTHER), "never in localStorage");
+  assert.ok(kept(session).includes(OTHER) && !kept(session).includes(LINK), "the newer token replaces the older one");
   assert.ok(page.replaced.every(address => !address.includes(LINK) && !address.includes(OTHER)));
   clean(page);
 });
@@ -1248,6 +1428,131 @@ scenario("an unreadable session link is removed, kept nowhere, and said", async 
   assert.match(page.text("message"), /session link this page cannot read/);
   assert.equal(page.requests.length, 0, "nothing sent with it");
   assert.ok(!kept(local).includes("space"));
+  clean(page);
+});
+
+// A reload, and the way back in after the controller restarts (owner, 2026-10-21).
+scenario("a reload keeps the session: the tab's token connects again with no link and no paste", async () => {
+  const LINK = "link_" + "A1b2-C3d4_".repeat(4);
+  const state = launchable(world());
+  const session = new Storage(), local = new Storage();
+  const first = await openPage(ROOT, state.server, {sessionStorage: session, localStorage: local, hash: "#token=" + LINK});
+  first.state = state;
+  await first.advance(0);
+  assert.equal(first.text("connection-state"), "Connected");
+  // The same tab, reloaded: a new page over the same sessionStorage, no fragment.
+  const second = await openPage(ROOT, state.server, {sessionStorage: session, localStorage: local});
+  second.state = state;
+  await second.advance(0);
+  assert.equal(second.text("connection-state"), "Connected", "connected by the tab's kept session alone");
+  assert.equal(second.$("connect-panel").hidden, true);
+  assert.ok(second.requests.length > 3 && second.requests.every(r => r.headers.Authorization === "Bearer " + LINK));
+  assert.ok(!kept(local).includes(LINK), "never in localStorage");
+  assert.ok(second.replaced.every(address => !address.includes(LINK)));
+  clean(first); clean(second);
+});
+scenario("a session the controller refuses is forgotten, and the page says it ended", async () => {
+  const OLD = "old_" + "Q1w2-E3r4_".repeat(4);
+  const state = launchable(world());
+  state.script.push({match: r => r.path === "/api/v1/control-center/capabilities", answer: {status: 401, body: {error: "unauthorized"}}, keep: true});
+  const session = new Storage();
+  session.setItem("carbon.launchpad.session.v1", OLD);
+  const page = await openPage(ROOT, state.server, {sessionStorage: session});
+  page.state = state;
+  await page.advance(0);
+  assert.notEqual(page.text("connection-state"), "Connected");
+  assert.match(page.text("message"), /Your session ended: the Control Center was restarted and printed a new link/);
+  assert.ok(!kept(session).includes(OLD), "a refused token is forgotten");
+  assert.equal(page.$("connect-panel").hidden, false);
+  assert.equal(page.$("reconnect").hidden, true, "nothing to reconnect with");
+  clean(page);
+});
+scenario("a controller that does not answer keeps the session, and Reconnect is one click", async () => {
+  const KEPT = "kept_" + "Z9y8-X7w6_".repeat(4);
+  const state = launchable(world());
+  state.script.push({match: r => r.path === "/api/v1/control-center/capabilities", answer: {network: true}, keep: true});
+  const session = new Storage();
+  session.setItem("carbon.launchpad.session.v1", KEPT);
+  const page = await openPage(ROOT, state.server, {sessionStorage: session});
+  page.state = state;
+  await page.advance(0);
+  assert.notEqual(page.text("connection-state"), "Connected");
+  assert.match(page.text("message"), /did not answer\. Start it, then press Reconnect/);
+  assert.ok(kept(session).includes(KEPT), "an unanswered controller does not lose the session");
+  assert.equal(page.$("reconnect").hidden, false);
+  state.script.length = 0;  // the controller is back
+  await page.press(page.$("reconnect"));
+  await page.advance(0);
+  assert.equal(page.text("connection-state"), "Connected");
+  assert.equal(page.$("reconnect").hidden, true);
+  assert.ok(page.requests.slice(-3).every(r => r.headers.Authorization === "Bearer " + KEPT));
+  clean(page);
+});
+
+// One cause, one banner (owner smoke sweep S6/S11, 2026-10-21).
+scenario("one banner says the cause holding the page up, with its one fix, on every page", async () => {
+  const state = world();
+  const page = await open(state);
+  const banner = page.$("setup-banner");
+  assert.equal(banner.hidden, false, "something blocks a launch in this world");
+  const text = page.text("setup-banner");
+  assert.match(text, /Setup needs (one fix:|\d+ fixes\. First:)/);
+  assert.equal(all(page, "#setup-banner a, #setup-banner button").length, 1, "one fix button");
+  // The raw code is never in the banner's sentence.
+  assert.doesNotMatch(text, /[a-z]+_[a-z]+_[a-z]+/);
+  // It follows the miner to another page, and steps aside on Setup itself.
+  page.go("#challenges");
+  await page.advance(0);
+  assert.equal(page.$("setup-banner").hidden, false);
+  page.go("#setup");
+  await page.advance(0);
+  assert.equal(page.$("setup-banner").hidden, true);
+  // Overview never says "You are set up" while a launch is blocked.
+  page.go("#overview");
+  await page.advance(0);
+  assert.doesNotMatch(page.text("overview-lede"), /^You are set up/);
+  clean(page);
+});
+
+// A slow model must not look stuck (owner smoke sweep): the running step says how long it has been going.
+scenario("the running step says how long it has been working, and that a slow model is not stuck", async () => {
+  const state = launchable(world());
+  state.runs = [copy(fx.run)];
+  state.view = copy(fx.view);
+  assert.ok(state.view.current_operation, "the fixture campaign has a running step");
+  const page = await open(state);
+  page.go("#campaigns/" + fx.run.id + "/live");
+  await page.advance(0);
+  const node = () => one(page, "#campaign-detail .working-for");
+  assert.equal(page.text(node()), "", "nothing to say in the first seconds");
+  for (let i = 0; i < 70; i++) await refresh(page);
+  assert.match(page.text(node()), /working on this step for \d+m/);
+  assert.match(page.text(node()), /not stuck/);
+  assert.match(page.text(one(page, "#campaign-detail [data-part=now]")), /step \d+ of this campaign/);
+  clean(page);
+});
+
+// The wiring guide is long: its sections are folds, and a link to one opens it (owner smoke sweep S10).
+scenario("the wiring guide's sections fold, and a link to a section opens it", async () => {
+  const state = launchable(world());
+  const blocks = [
+    {type: "paragraph", text: [{text: "Three steps to a working miner."}]},
+    {type: "heading", level: 2, anchor: "step-one", text: [{text: "Step one"}]},
+    {type: "paragraph", text: [{text: "Do the first thing."}]},
+    {type: "heading", level: 2, anchor: "step-two", text: [{text: "Step two"}]},
+    {type: "paragraph", text: [{text: "Do the second thing."}]},
+  ];
+  state.script.push({match: r => r.path === "/api/v1/guide/remote-setup", answer: {body: {schema: "carbon.control-center.guide.v1", available: true, source: "docs", title: "Wiring guide", blocks}}, keep: true});
+  const page = await open(state);
+  page.go("#guide/step-two");
+  await page.advance(0);
+  await refresh(page);
+  const sections = all(page, "#guide-body details.guide-section");
+  assert.equal(sections.length, 2, "each main section is a fold");
+  assert.ok(page.text("guide-body").includes("Three steps to a working miner."), "the introduction reads straight through");
+  assert.ok(!sections[0].open, "the other section stays folded");
+  assert.ok(sections[1].open, "the linked section is open");
+  assert.ok(page.text(sections[1]).includes("Do the second thing."));
   clean(page);
 });
 
@@ -1269,6 +1574,10 @@ scenario("setup shows a stale compute check, why, and the installer's update tha
   page.go("#overview");
   await page.advance(0);
   assert.ok(page.text("getting-started-steps").includes("Next: " + compute.next_step + "."));
+  // And the banner, on any page: after an update, check the computer again.
+  assert.equal(page.$("setup-banner").hidden, false);
+  assert.match(page.text("setup-banner"), /no longer matches this install/);
+  assert.match(page.text("setup-banner"), /Re-check your computer/);
   clean(page);
 });
 
@@ -1495,7 +1804,7 @@ async function toAgentStep(page) {
   page.window.CarbonControlCenter.goWizard("agent");
   await page.advance(0);
 }
-const GRAPHITE_KEYS = ["graphite_mode", "research_share", "plan", "hunt", "limits", "submission_policy"];
+const GRAPHITE_KEYS = ["graphite_mode", "graphite_edition", "research_share", "plan", "hunt", "limits", "submission_policy"];
 const planHref = digest => "#library/plans/" + encodeURIComponent(digest);
 const usd = nano => "$" + String(Number((nano / 1e9).toPrecision(2)));
 
@@ -1632,6 +1941,46 @@ scenario("Graphite: each mode launches with exactly its own fields; the hunt is 
   await toAgentStep(page);
   assert.match(page.text("wizard-research-share-note"), /% of your model budget: \$[0-9.]+ of your .* model spend\. When that is used, research stops \(research share reached\)/);
   clean(page);
+});
+
+scenario("Graphite: the edition is chosen from the controller's list, v1 by default, and sent as graphite_edition", async () => {
+  const V1 = "carbon.graphite.miner-edition.v1";
+  const V2 = "carbon.graphite.miner-edition.v2";
+  const state = graphiteWorld();
+  const listed = state.options.graphite.editions;
+  assert.deepEqual(listed.map(item => [item.id, item.default]), [[V1, true], [V2, false]], "the options list both editions, v1 the default");
+  const page = await open(state);
+  await wizardTo(page, "agent", "graphite");
+  const box = one(page, "#wizard-graphite-editions");
+  assert.equal(box.hidden, false, "the edition choice shows once Graphite is chosen");
+  const inputs = [...all(page, "input[name=wizard-graphite-edition]")];
+  assert.deepEqual(inputs.map(input => input.value), [V1, V2], "one choice per listed edition, in the controller's order");
+  assert.deepEqual(inputs.map(input => input.checked), [true, false], "v1 is chosen by default");
+  assert.match(page.text(box), /carbon\.graphite\.miner-edition\.v1 · the default/);
+  assert.match(page.text(box), /The depth edition/);
+  let body = await launchNow(page, state);
+  assert.equal(body.graphite_edition, V1, "the default is sent as chosen");
+  await toAgentStep(page);
+  await page.press(byValue(page, "input[name=wizard-graphite-edition]", V2));
+  assert.equal(byValue(page, "input[name=wizard-graphite-edition]", V2).checked, true);
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  assert.match(page.text("wizard-review"), /Graphite edition.*carbon\.graphite\.miner-edition\.v2 · The depth edition/s);
+  body = await launchNow(page, state);
+  assert.equal(body.graphite_edition, V2, "a v2 pick is posted as graphite_edition");
+  assert.equal(body.graphite_mode, "FULL", "the mode is unchanged by the edition");
+  clean(page);
+  // A controller that lists no editions: none is offered or sent, and its
+  // own default runs.
+  const older = graphiteWorld();
+  delete older.options.graphite.editions;
+  delete older.caps.graphite.editions;
+  const olderPage = await open(older);
+  await wizardTo(olderPage, "agent", "graphite");
+  assert.equal(one(olderPage, "#wizard-graphite-editions").hidden, true);
+  body = await launchNow(olderPage, older);
+  assert.ok(!("graphite_edition" in body), "no edition is sent where none is listed");
+  clean(olderPage);
 });
 
 scenario("Graphite: retain before submit is visible, opt-in, and sent only when declared", async () => {
@@ -1802,7 +2151,7 @@ scenario("Graphite: a template carries its choices, as launch fields, and loads 
   await page.type(page.$("template-name"), "research forty");
   await page.press(page.$("template-save"));
   const saved = JSON.parse(page.window.localStorage.getItem("carbon.launchpad.launch-templates.v1"))["research forty"];
-  assert.deepEqual(saved, {agent: "graphite", graphite_mode: "RESEARCH", hunt: {max_records: 40}});
+  assert.deepEqual(saved, {agent: "graphite", graphite_mode: "RESEARCH", graphite_edition: "carbon.graphite.miner-edition.v1", hunt: {max_records: 40}});
   await toAgentStep(page);
   await page.press(one(page, "#wizard-graphite-mode-build"));
   page.window.CarbonControlCenter.goWizard("limits");
@@ -1879,6 +2228,72 @@ scenario("Graphite: the campaign shows its stage, plan, research and build spend
   for (let i = 0; i < 3; i++) await refresh(page);
   assert.equal(one(page, "#campaign-detail [data-part=graphite]").hidden, true);
   clean(page);
+});
+
+// GRAPHITE-PLAN-OUTPUT-CAP: a FULL campaign (or a BUILD with no chosen plan)
+// whose Planner's replies were cut at the output cap ends without a planless
+// build (graphite_plan_output_cap);
+// the plan stage names the cap and the step, as the campaign view states it.
+scenario("Graphite: a plan cut at the output cap names the cap and the step, and its build did not run", async () => {
+  const state = graphiteWorld();
+  const run = graphiteRun({state: "COMPLETED"});
+  state.runs = [run];
+  state.view = copy(G().view);
+  state.view.graphite.stages = copy(G().plan_output_cap_stages);
+  state.view.graphite.stage = "complete";
+  state.view.campaign.state = "COMPLETED";
+  const plan = state.view.graphite.stages.find(item => item.stage === "plan");
+  assert.equal(plan.cause, "turn_hit_output_cap");
+  assert.equal(plan.output_cap, 2048);
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/live");
+  await page.advance(0);
+  await refresh(page);
+  const box = one(page, "#campaign-detail [data-part=graphite]");
+  const text = page.text(box);
+  assert.ok(text.includes("StagesHunt: done · Plan: stopped (replies truncated at 2,048 output tokens) · Build: stopped (graphite plan output cap)"), text);
+  assert.ok(text.includes("Plan cut shortReplies were cut at 2,048 output tokens. Set max output tokens higher (the model's maximum if you know it) and launch again."), text);
+  const cut = [...all(page, "#campaign-detail [data-part=graphite] dd")].filter(dd => dd.dataset.code === "turn_hit_output_cap");
+  assert.equal(cut.length, 1);
+  assert.equal(cut[0].className, "reason");
+  // A plan stopped at the research share names no cap and no step.
+  state.view = copy(G().view);
+  for (let i = 0; i < 3; i++) await refresh(page);
+  assert.ok(!page.text(one(page, "#campaign-detail [data-part=graphite]")).includes("cut short"));
+  clean(page);
+});
+
+scenario("Graphite: Review warns when Carbon knows no output maximum for the model, and not once a cap is set", async () => {
+  const state = graphiteWorld();
+  const choice = state.caps.model.setup_choice;
+  const fallback = state.caps.model.output_cap.defaults[choice.provider_id][choice.model_id];
+  assert.equal(choice.provider_id, "chutes");
+  assert.deepEqual([fallback.basis, fallback.max_output_tokens], ["no_documented_maximum", 2048]);
+  const page = await open(state);
+  await wizardTo(page, "model", "graphite");
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  const warning = "Max output warningCarbon knows no output maximum for " + choice.model_id + ", so each reply is capped at the conservative 2,048 tokens, which can cut a Planner's plan short. Set max output to the model's own maximum.";
+  assert.ok(page.text("wizard-review").includes(warning), page.text("wizard-review"));
+  // The miner's own cap: the warning goes.
+  page.window.CarbonControlCenter.goWizard("model");
+  await page.advance(0);
+  await page.type(page.$("wizard-max-output"), "16384");
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  assert.match(page.text("wizard-review"), /Max output16,384 tokens per reply, your cap/);
+  assert.ok(!page.text("wizard-review").includes("Max output warning"), page.text("wizard-review"));
+  clean(page);
+  // A model whose maximum Carbon records: no warning.
+  const documented = graphiteWorld();
+  documented.caps.model.output_cap.defaults[choice.provider_id][choice.model_id] = {max_output_tokens: 32768, basis: "model_documented_maximum"};
+  const second = await open(documented);
+  await wizardTo(second, "model", "graphite");
+  second.window.CarbonControlCenter.goWizard("review");
+  await second.advance(0);
+  assert.match(second.text("wizard-review"), /Max outputNot set: 32,768 tokens \(this model's documented maximum\)/);
+  assert.ok(!second.text("wizard-review").includes("Max output warning"), second.text("wizard-review"));
+  clean(second);
 });
 
 scenario("Library: every card says where it came from and UNCHECKED; search ranks with reasons", async () => {
@@ -2293,7 +2708,7 @@ scenario("Library: a controller without it says so, and nothing is asked of it",
   clean(page);
 });
 
-scenario("Library: a session link opened on a Library address connects and keeps its token nowhere", async () => {
+scenario("Library: a session link opened on a Library address connects, and only this tab keeps the token", async () => {
   const LINK = "link_" + "L1b2-R3d4_".repeat(4);
   const state = graphiteWorld();
   const session = new Storage(), local = new Storage();
@@ -2307,7 +2722,7 @@ scenario("Library: a session link opened on a Library address connects and keeps
   await refresh(page);
   assert.match(page.text(one(page, "#library-body [data-part=plan]")), /Written by/);
   assert.match(kept(local), /#library\/plans\//);
-  assert.ok(!kept(local).includes(LINK) && !kept(session).includes(LINK));
+  assert.ok(!kept(local).includes(LINK) && kept(session).includes(LINK));
   assert.ok(page.requests.every(r => r.headers.Authorization === "Bearer " + LINK));
   for (const r of page.requests) assert.ok(!JSON.stringify(r.body || {}).includes(LINK) && !r.path.includes(LINK));
   clean(page);

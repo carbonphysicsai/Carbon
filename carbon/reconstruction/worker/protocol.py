@@ -221,13 +221,17 @@ def _closed_json_line(stream, fields: frozenset[str]) -> dict[str, object]:
     return value
 
 
-def decode_output_stream(source: Path, destination: Path) -> None:
-    """Decode the fixed worker framing into a fresh controller-owned tree."""
+def decode_output_stream(
+    source: Path, destination: Path, *, output_bytes: int = OUTPUT_BYTES
+) -> None:
+    """Decode the fixed worker framing into a fresh controller-owned tree,
+    bounded by the launch's output envelope (`OUTPUT_BYTES` unless its profile
+    has a next version's larger one)."""
 
     if (
         source.is_symlink()
         or not source.is_file()
-        or source.stat().st_size > OUTPUT_BYTES + 2 * CONTROL_BYTES
+        or source.stat().st_size > output_bytes + 2 * CONTROL_BYTES
         or destination.exists()
         or destination.is_symlink()
     ):
@@ -262,7 +266,7 @@ def decode_output_stream(source: Path, destination: Path) -> None:
                 if (
                     type(size) is not int
                     or size < 0
-                    or size > OUTPUT_BYTES - total
+                    or size > output_bytes - total
                     or relative.as_posix() in seen
                 ):
                     raise WorkerFailure(WorkerCode.OUTPUT)
@@ -411,6 +415,10 @@ def stage_request(
         != identity.policy_ref.content_digest
         or worker_profile.resource_class_digest
         != identity.resource_class_ref.content_digest
+        # The staged request does not carry a next version's larger resources,
+        # so the worker could not rebuild this profile from it. Refused here,
+        # typed, rather than failing the worker's own integrity check.
+        or getattr(worker_profile, "worker_resources_version", None) is not None
     ):
         raise WorkerFailure(WorkerCode.POLICY)
     seed = derived_seed.as_backend_bytes()

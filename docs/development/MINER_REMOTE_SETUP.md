@@ -34,7 +34,13 @@ Carbon** other than SSH itself.
 
 1. **Build the pinned GPU worker on your controller machine.** No GPU is needed
    to build it.
-   - Run `./scripts/dev/accelerator_worker_image.sh` from a clean checkout.
+   - In the Control Center, the Compute step offers **Build the GPU worker**
+     when setup finds none. It runs the installer's own GPU build (the command
+     below) on this machine, after you agree to that exact command, and shows
+     its progress. It refuses first, naming the cause, when Docker is missing
+     or not running, when there is too little disk where Docker keeps its
+     images, or, for this machine's GPU, when `nvidia-smi` is not found.
+   - Or run `./scripts/dev/accelerator_worker_image.sh` from a clean checkout.
      `scripts/install_miner.sh --gpu` also builds and records it, but checks
      for the NVIDIA driver on this machine first.
    - It writes `.carbon-artifacts/accelerator-worker-image.json`. Setup finds
@@ -120,8 +126,8 @@ That layer is yours: Carbon does not build, publish or check it.
 
 Provider facts below were read from each provider's public documentation on
 2026-10-02, through fetched page summaries; the source is named on each.
-Nothing here was run live: Carbon has no account with any of them. Anything
-marked **UNVERIFIED** was not found in public documentation. Re-check the
+Nothing here was run live, except a run a section names. Anything marked
+**UNVERIFIED** was not found in public documentation. Re-check the
 provider's current documentation before relying on any of it.
 
 ### RunPod pods
@@ -170,6 +176,21 @@ provider's current documentation before relying on any of it.
 - **Stop it yourself:** `lium rm <pod>` removes the pod, and cannot be undone
   (docs.lium.io/developers/cli/reference/rm). Volumes and backups bill until
   deleted (docs.lium.io/pod-users/billing).
+- For Docker inside a Lium pod, see the Pytorch (Cuda + DinD) template below.
+
+### Lium: the Pytorch (Cuda + DinD) template
+
+- **Transport:** `ssh-docker`. This Lium template runs Docker inside the pod
+  (Docker in Docker). Carbon's Test Lead ran `docker run --gpus all` in it on
+  an RTX A6000 pod (2026-10-21). Setup's check reaches it like any machine
+  with Docker: Docker, the NVIDIA Container Toolkit, Docker without sudo and
+  your GPU worker by image ID.
+- **Image:** none to push. Setup's "Send your worker" step streams it over SSH.
+- **Ports:** as for any Lium pod above: internal port 22, mapped to its own
+  external port. The destination is `root@<host>` with that external port.
+  - **UNVERIFIED:** the login user, inferred from the documented `/root` home.
+- **Stop it yourself:** `lium rm <pod>` removes the pod, and cannot be undone
+  (docs.lium.io/developers/cli/reference/rm).
 
 ### Targon VMs (Bittensor subnet 4)
 

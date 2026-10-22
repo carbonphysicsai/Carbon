@@ -161,5 +161,6 @@ def test_1_2_is_graded_by_1_1s_evaluation_versions():
         motor_sealed_pack.sealed_bank({}, [], version="1.2")
     assert refused.value.code == "motor_sealed_document_malformed"
     with pytest.raises(motor_sealed_pack.SealedPackRefused) as refused:
-        motor_sealed_pack.sealed_bank({}, [], version="1.3")
+        motor_sealed_pack.sealed_bank({}, [], version="9.9")  # 1.3 is served (v7)
     assert refused.value.code == "motor_sealed_version"
+    assert "1.3" in motor_sealed.SERVED_VERSIONS

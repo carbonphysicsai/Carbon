@@ -250,3 +250,58 @@ def test_the_validator_orchestration_records_no_protected_value():
     document = json.loads(path.read_text())
     assert set(document) == {"schema", "execution_id"}
     assert document["schema"] == CANCEL_SCHEMA
+
+
+# --- M1 rehearsal, 2026-10-21: a miner tool's result is checked by token ----
+
+import pytest
+
+from carbon.agent_campaign.graphite import protected_material as _pm
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # The two M1 strings' shape: Carbon's own prose naming "confirmation".
+        "public practice is adaptive research evidence, not confirmation",
+        "Reuse of the reference solver awaits a confirmation design",
+    ],
+)
+def test_carbon_prose_never_withholds_a_result(text):
+    assert not _pm.protected_result({"x": text})
+    # Requests, briefs and literature keep the whole-string rule.
+    assert _pm.protected({"x": text})
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "ev5_confirmation_evidence.json",  # a bare file name
+        "docs/development/evidence/x/records.jsonl",  # a relative path
+        r"docs\development\ev4\out.json",  # a Windows path
+        ".env",
+        "see tests/cpu/x.py for it",  # a path inside a sentence
+        "credential.json ",  # with whitespace around it
+    ],
+)
+def test_a_path_like_token_still_withholds_a_result(text):
+    assert _pm.protected_result({"x": text})
+
+
+def test_graphite_markers_still_read_every_string_of_a_result():
+    assert _pm.protected_result({"x": "the official seed of this exam"})
+    assert _pm.protected_result({"x": "hidden_case 7"})
+
+
+def test_a_public_practice_path_token_is_public():
+    (path,) = sorted(_pm.PUBLIC_PRACTICE_PATHS)[:1]
+    assert not _pm.protected_result({"x": path})
+
+
+def test_motor_objective_and_roadmap_pass_the_result_check():
+    from carbon.development_session.capability_demand import public_roadmap
+    from carbon.motor import research as motor_research
+    from carbon.reconstruction import capability_registry as registry
+
+    assert not _pm.protected_result(public_roadmap(None, registry.MOTOR_CHALLENGE))
+    assert not _pm.protected_result(motor_research.objective())

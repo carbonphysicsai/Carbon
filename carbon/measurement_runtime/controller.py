@@ -124,6 +124,12 @@ class IsolatedBurgersMeasurementController:
             or type(worker_profile) is not DevelopmentWorkerProfile
         ):
             raise WorkerFailure(WorkerCode.INVALID)
+        # Measurement runs Carbon's own fixed program, never a candidate's
+        # training: it keeps today's C-03 envelope, which its export and
+        # snapshot checks below are built for. A next version's larger worker
+        # resources are the rebuild lane's only.
+        if worker_profile.large_model:
+            raise WorkerFailure(WorkerCode.UNSUPPORTED)
         self.state_root = state_root
         self.image = image
         self.worker_profile = worker_profile

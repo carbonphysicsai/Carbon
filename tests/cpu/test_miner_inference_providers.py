@@ -198,6 +198,12 @@ class Checks:
             provider_id, model_id, opener=chutes_lister(), now=NOW
         )
 
+    def published_limits(self, provider_id, model_id):
+        self.calls.append(("published_limits", provider_id, model_id))
+        return mp.published_limits(
+            provider_id, model_id, opener=chutes_lister(), now=NOW
+        )
+
     def inference(self, provider_id, model_id, credential_file, spec=None):
         self.calls.append(("inference", provider_id, model_id, spec))
         return {

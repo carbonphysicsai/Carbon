@@ -109,12 +109,23 @@ def test_challenges_are_the_registry_catalog_with_its_descriptions():
         assert entry["status"] == registry[challenge_id, version]["status"]
         if entry["implemented"]:
             assert entry["description"] == describe(challenge_id, entry["version"])
-            example = entry["description"]["examples"][0]
-            assert entry["example_strategy"] == example.get(
-                "strategy", example.get("recipe")
-            )
             assert entry["tools"]["workflow"] == entry["description"].get(
                 "workflow", {}
+            )
+            examples = entry["description"]["examples"]
+            if not examples:
+                # A catalog version with no tested entry yet (Cooling 1.2,
+                # F08 1.4, F02 2.3) offers no example, and the page shows none.
+                assert (challenge_id, version) in {
+                    ("chip-cold-plate", "1.2"),
+                    ("f08-ribbed-bracket", "1.4"),
+                    ("f02", "2.3"),
+                }
+                assert entry["example_strategy"] is None
+                continue
+            example = examples[0]
+            assert entry["example_strategy"] == example.get(
+                "strategy", example.get("recipe")
             )
         else:
             assert "description" not in entry

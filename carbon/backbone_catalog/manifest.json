@@ -3,6 +3,533 @@
   {
    "backbone": "neuralop.FNO",
    "bundle_ref": {
+    "bundle_digest": "sha256:891cb46b3adf84eaaf9eb9d62399d4d8ad003eb7df82c8129e0052ed01b848e8",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "cooling.neuralop.FNO",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.2"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "arch": {
+      "hidden": 16,
+      "layers": 2,
+      "modes": 12
+     },
+     "backbone": "neuralop.FNO",
+     "learning_rate": 0.002
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-levers-cooling-v1"
+  },
+  {
+   "backbone": "neuralop.TFNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:372b832e9e6e762e90af84fe0cff08f59b9bd29553e08f2643661835a68e4f45",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "cooling.neuralop.TFNO",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.2"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "arch": {
+      "hidden": 16,
+      "layers": 2,
+      "modes": 12,
+      "rank": 0.5
+     },
+     "backbone": "neuralop.TFNO",
+     "learning_rate": 0.002
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-levers-cooling-v1"
+  },
+  {
+   "backbone": "neuralop.UQNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:062c71f0c97dd7e3706ac91fc9b0e9c37ad7cff5bac0dd686a07d3d0b9ef1534",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "cooling.neuralop.UQNO",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.2"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "neuralop.UQNO",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-levers-cooling-v1"
+  },
+  {
+   "backbone": "physicsnemo.FullyConnected",
+   "bundle_ref": {
+    "bundle_digest": "sha256:271502487f89b4959fbc121e510e634219a3f0ffaed4b6d815774fcaf61b3ffc",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "cooling.physicsnemo.FullyConnected",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.2"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "physicsnemo.FullyConnected",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-levers-cooling-v1"
+  },
+  {
+   "backbone": "transolver",
+   "bundle_ref": {
+    "bundle_digest": "sha256:ab173cfedbea5c2481b01dfb347153a3a0709737b39bfdd5a7a53e7f11fe8d7a",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "cooling.transolver",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.2"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "arch": {
+      "heads": 4,
+      "hidden": 32,
+      "layers": 2,
+      "slices": 8
+     },
+     "backbone": "transolver",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-levers-cooling-v1"
+  },
+  {
+   "backbone": "deepxde.DeepONetCartesianProd",
+   "bundle_ref": {
+    "bundle_digest": "sha256:8bd248e4b03b49b6b03ce7ff04f907c8d0bfb35e42cb409eba1052130cff446d",
+    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "deepxde.DeepONetCartesianProd",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "deepxde.DeepONetCartesianProd",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.tune",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-coverage-v1"
+  },
+  {
+   "backbone": "deeponet",
+   "bundle_ref": {
+    "bundle_digest": "sha256:dc01a9e0db1e7c78a2cb422d857bf737318e805728eba171fe988fa49c209206",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "jno.deeponet",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "deeponet",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-levers-v1"
+  },
+  {
+   "backbone": "fno1d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:bd08bd7ad7391bff8eb2c2ed583d0b177e8a8d941d0ba016df8c14fccdbb248a",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "jno.fno1d",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "fno1d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-levers-v1"
+  },
+  {
+   "backbone": "fno2d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:369887aea6ec797f1f8660f5a443a3b7c005403e95a25b2066b1fefd446fdf49",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "jno.fno2d",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "fno2d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-levers-v1"
+  },
+  {
+   "backbone": "fno3d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:e91352eac5c1c08b767355a502d977cc631888b0fd9d6010f2ebe961a35905e8",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "jno.fno3d",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "fno3d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-levers-v1"
+  },
+  {
+   "backbone": "geofno",
+   "bundle_ref": {
+    "bundle_digest": "sha256:d531d312485b849424764ada8b6109495beac0df3d4472a5e6563ba753120fd7",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "jno.geofno",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "geofno",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-levers-v1"
+  },
+  {
+   "backbone": "linear",
+   "bundle_ref": {
+    "bundle_digest": "sha256:2f724b9f4b76afd88f6b2a68770464111396a72dbbc42ed9185f63f867d2de47",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "jno.linear",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "linear",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-levers-v1"
+  },
+  {
+   "backbone": "mgno1d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:6acd73a674be9c29f8e1a362d85853a2641ba5f94e7d09752bef093bb2adc430",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "jno.mgno1d",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "mgno1d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-levers-v1"
+  },
+  {
+   "backbone": "mgno2d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:e5581e0f33bb6c8a0fd2d0860e1a22412ee1b65ec654e5daadfc88575af235a1",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "jno.mgno2d",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "mgno2d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-levers-v1"
+  },
+  {
+   "backbone": "mlp",
+   "bundle_ref": {
+    "bundle_digest": "sha256:00f9b79becd88d1e53c0bab129c6e955c750ad2bd831921984bcf97dbee1aaeb",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "jno.mlp",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "mlp",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-levers-v1"
+  },
+  {
+   "backbone": "unet1d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:81055dbbc2ed2c72ecd671dbfb170fa75789a391489726481fdbe5dc256f662e",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "jno.unet1d",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "unet1d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-levers-v1"
+  },
+  {
+   "backbone": "unet2d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:5f62e7142650fe2393cb7875fb318bc570a5fecfd966cd56b9342d9427163976",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "jno.unet2d",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "unet2d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-levers-v1"
+  },
+  {
+   "backbone": "neuralop.FNO",
+   "bundle_ref": {
     "bundle_digest": "sha256:dc24f45d12d97e444929af967f5ae0b2baf29de9703223f87634bcf1b2c4feb5",
     "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
     "language": "python",
@@ -14,6 +541,10 @@
     {
      "id": "electric-motor-magnetics",
      "version": "1.2"
+    },
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
     }
    ],
    "defaults": {
@@ -49,6 +580,10 @@
     {
      "id": "electric-motor-magnetics",
      "version": "1.2"
+    },
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
     }
    ],
    "defaults": {
@@ -85,6 +620,10 @@
     {
      "id": "electric-motor-magnetics",
      "version": "1.2"
+    },
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
     }
    ],
    "defaults": {
@@ -115,6 +654,10 @@
     {
      "id": "electric-motor-magnetics",
      "version": "1.2"
+    },
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
     }
    ],
    "defaults": {
@@ -132,6 +675,156 @@
    "settings_schema": "carbon-candidate-levers-v1"
   },
   {
+   "backbone": "thuml.FNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:e900d7d18a8049e43b7281b753f0c91f0b4cc567e4ce36f96cdd143b3ec167fc",
+    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "thuml.FNO",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.FNO",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.tune",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-coverage-v1"
+  },
+  {
+   "backbone": "thuml.F_FNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:70f959f2e9d0792debe6f2bb295ebd3b865918ff246b668f27b3b168d32bda00",
+    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "thuml.F_FNO",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.F_FNO",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.tune",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-coverage-v1"
+  },
+  {
+   "backbone": "thuml.Factformer",
+   "bundle_ref": {
+    "bundle_digest": "sha256:ad1951f29df0f635a22098e67aa87ba38bb5a6415ed40fc5ca5964519c166251",
+    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "thuml.Factformer",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.Factformer",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.tune",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-coverage-v1"
+  },
+  {
+   "backbone": "thuml.Galerkin_Transformer",
+   "bundle_ref": {
+    "bundle_digest": "sha256:5d1321647573cd9025d51a0fdf6ce11c70d94e9e049171ae11e3060ca27f6a7c",
+    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "thuml.Galerkin_Transformer",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.Galerkin_Transformer",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.tune",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-coverage-v1"
+  },
+  {
+   "backbone": "thuml.Transolver",
+   "bundle_ref": {
+    "bundle_digest": "sha256:69c7bc30045143d0ca11ba8f234ee932a24f50436973d4f3605fbd04b7ec15c4",
+    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "thuml.Transolver",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.Transolver",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.tune",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-coverage-v1"
+  },
+  {
    "backbone": "transolver",
    "bundle_ref": {
     "bundle_digest": "sha256:b3fad147ec398f7a1abb6becf755aafcd3252d70ebc86426a502824a22f5b02b",
@@ -145,6 +838,10 @@
     {
      "id": "electric-motor-magnetics",
      "version": "1.2"
+    },
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
     }
    ],
    "defaults": {

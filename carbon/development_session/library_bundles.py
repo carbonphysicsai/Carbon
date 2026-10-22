@@ -385,6 +385,22 @@ def _private_cache_directory(path, message):
     return base
 
 
+def _owner_only_directory(path):
+    """Create `path` owner-only, or bring this owner's existing directory to
+    0700 (an install made under the umask left it 0755); refuse a link or a
+    directory another user owns."""
+    if path.is_symlink():
+        raise ValueError("bundle cache symlink")
+    path.mkdir(mode=0o700, exist_ok=True)
+    if os.name == "posix":
+        status = path.stat()
+        if status.st_uid != os.getuid():
+            raise ValueError("bundle cache directory is not operator-owned")
+        if stat.S_IMODE(status.st_mode) & 0o077:
+            path.chmod(0o700)
+    return path
+
+
 def _environment_digest(base, lock):
     return _digest(
         json.dumps(
@@ -857,7 +873,12 @@ def prepare_offline_context(
     root = base / bundle_digest[7:] / parent_image[7:]
     if root.is_symlink() or root.parent.is_symlink():
         raise ValueError("bundle cache symlink")
-    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    # Each level owner-only, the bundle's as well as the parent's: mkdir's
+    # `parents=True` gives intermediates the umask's mode (0755 under 022), and
+    # the cache refuses a parent that is not owner-only (Graphite Test
+    # executor, V2 catalog install, 2026-10-21).
+    for level in (root.parent, root):
+        _owner_only_directory(level)
 
     def once(path, body):
         if path.is_symlink():

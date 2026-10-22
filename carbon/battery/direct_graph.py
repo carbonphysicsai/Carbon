@@ -72,9 +72,13 @@ def training_settings(recipe: ConstructionRecipe) -> dict:
         or use["dataset"] != TRAIN_USE
     ):
         raise RecipeRefused("battery_graph_procedure_invalid")
+    # The training surfaces the recipe's exact version serves; an unregistered
+    # version reads the published contract and is refused below.
     surfaces = {
         name: row
-        for name, row in catalog_surfaces(BATTERY_CHALLENGE).items()
+        for name, row in catalog_surfaces(
+            BATTERY_CHALLENGE, doc["challenge"]["version"]
+        ).items()
         if row[0] == "train"
     }
     selected = config["training"]
@@ -117,12 +121,20 @@ def training_settings(recipe: ConstructionRecipe) -> dict:
 
 #: Battery's graph allowlist per Challenge version, as
 #: `carbon.challenge_kit.served_versions.graph_allowlist_bytes` registers it:
-#: 1.0 keeps v1, step-2's 2.0 serves v6. Kept here, not imported, because this
-#: module runs inside the isolated worker with only its staged modules.
-GRAPH_ALLOWLISTS = {"1.0": "allowlist_v1.json", "2.0": "allowlist_v6.json"}
-#: Per version, the training surfaces with no upper bound: 2.0's step surfaces
-#: (`construction_kit.STEP_SURFACES`, held equal by a test).
-UNCAPPED_STEP_SURFACES = {"2.0": frozenset({"steps", "warmup_steps", "polish_steps"})}
+#: 1.0 keeps v1, step-2's 2.0 serves v6, the catalog version 2.1 serves v7.
+#: Kept here, not imported, because this module runs inside the isolated
+#: worker with only its staged modules.
+GRAPH_ALLOWLISTS = {
+    "1.0": "allowlist_v1.json",
+    "2.0": "allowlist_v6.json",
+    "2.1": "allowlist_v7.json",
+}
+#: Per version, the training surfaces with no upper bound: 2.0's and 2.1's
+#: step surfaces (`construction_kit.STEP_SURFACES`, held equal by a test).
+UNCAPPED_STEP_SURFACES = {
+    version: frozenset({"steps", "warmup_steps", "polish_steps"})
+    for version in ("2.0", "2.1")
+}
 
 
 def graph_allowlist(version: str):
@@ -134,7 +146,18 @@ def graph_allowlist(version: str):
         raise RecipeRefused("battery_graph_challenge_version_unregistered")
     if name == "allowlist_v6.json":
         return allowlist_module.load_served()
+    if name == "allowlist_v7.json":
+        return allowlist_module.Allowlist(allowlist_module.v7_bytes())
     return allowlist_module.load(allowlist_module.PATH.with_name(name))
+
+
+def submission_bytes(version: str) -> int:
+    """The whole-submission intake bound of a Battery graph recipe of
+    `version`: its graph allowlist's (`intake.bounds_for`), the owner's
+    `BOUNDS` under v1/v6 and containment only under v7."""
+    from carbon.level4 import intake
+
+    return intake.bounds_for(graph_allowlist(version))["submission_bytes"]
 
 
 def graph_interface(settings: dict):
@@ -389,7 +412,7 @@ def load_frozen_state(
     import jax
 
     from carbon.challenge_validator.strict_json import parse_strategy
-    from carbon.level4 import intake, staging
+    from carbon.level4 import staging
 
     if (
         type(raw) is not bytes
@@ -471,7 +494,7 @@ def load_frozen_state(
                 recipe,
                 manifest,
                 documents,
-                max_bytes=intake.BOUNDS["submission_bytes"],
+                max_bytes=submission_bytes(recipe.to_dict()["challenge"]["version"]),
                 train_cases=train_cases,
                 resolved_settings=resolved_settings,
             )

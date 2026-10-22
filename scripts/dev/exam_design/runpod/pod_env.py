@@ -16,7 +16,11 @@ from pathlib import Path
 
 #: Bound on a pod environment (names plus values), kept about 10,000 under the
 #: provider's observed failure point (about 118,000 characters; an oversized
-#: request fails as an opaque 500). It was 90,000 until the Level 4 Constructor
+#: request fails as an opaque 500). Recorded by the Validator (owner direction,
+#: 2026-10-21) as the provider limit: observed ~118,000 characters on a RunPod
+#: pod create, 2026-10-13; 108,000 is the bound. It is the only pod-size bound:
+#: the A40 test's file count and 60,000-character margin had no provider basis
+#: and were removed. It was 90,000 until the Level 4 Constructor
 #: run of 2026-10-13, whose code manifest alone reached 91,029 characters and
 #: refused three launches on a bound that sat 27,000 under the real limit.
 ENV_LIMIT_CHARS = 108_000

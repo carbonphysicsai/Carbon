@@ -112,7 +112,29 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
         # versions keep their bytes (as physical_public).
         document["training_step_cap"] = None
         document["training_limit"] = "build_wall_seconds_max"
+    _bind_catalog_and_graph_adapter(document, challenge_id, version)
     return document
+
+
+def _bind_catalog_and_graph_adapter(document: dict, challenge_id: str, version: str):
+    """F08 1.4 / F02 2.3 only (the Validator, 2026-10-20): the exact backbone
+    catalog the version serves (as `physical_public`) and Carbon's graph
+    training adapter, its surfaces and its pinned trainer's digest. Earlier
+    versions keep their bytes."""
+    from .served_versions import serves_catalog
+
+    if not serves_catalog(challenge_id, version):
+        return
+    from carbon.backbone_catalog import served
+    from carbon.development_session import physical_graph_adapter
+
+    document["backbone_catalog"] = {
+        "schema": served.SCHEMA,
+        "digest": served.digest(challenge_id, version),
+    }
+    document["graph_training_adapter"] = physical_graph_adapter.adapter_block(
+        challenge_id, version
+    )
 
 
 def construction_kit(challenge_id: str, version: str) -> dict:

@@ -9,8 +9,8 @@ CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/canonical.sh pyth
 ```
 
 The current prospective public snapshot is
-`docs/development/evidence/role-output-cap-audit/audit-v4.json`. Its source
-basis is `09c03aeea4b681fb532235407c070387a48c4ae1`: 35 public grant files, each
+`docs/development/evidence/role-output-cap-audit/audit-v5.json`. Its source
+basis is `d5046aae7cc0bea529d015d5548d9a00b744392c`: 35 public grant files, each
 hashed, and 11 hashed selection/role/price/grant/budget source files. It uses
 the real session selector and the phase-3/phase-4 budget calculators. It lists
 every role/model's uncached maximum input and output reservation. Reasoning
@@ -83,6 +83,19 @@ cost/selection/capacity row retain their prior values. No grant figure, cap
 logic or accounting changes, and the exact regeneration control stays
 unchanged. A future re-bind carrying any non-mechanical change in those 11
 sources is the spending owner's decision, not an integrity re-pin.
+
+## Prospective provider-defaults source refresh (v5)
+
+The Launchpad provider-call defaults (a 600-second timeout bounded by the
+miner's elapsed limit, and a live-listed provider's published model limits as
+defaults: `661e042db`, `692107229`, `9e8d4ff86`, `d5046aae7`) changed the pinned
+`carbon/development_session/model_provider.py` source. V5 rebinds that one
+hash and records `d5046aae7` as its source revision; all 35 grant rows, every
+role/model/price/capacity profile and the other ten source pins equal v4.
+V4 stays byte-identical, SHA256
+`a868929497e989ba0a53431bfd7e0061b76b3377d34538b4316a36f477691ccf`, and now
+fails the current-source control like v2 and v3. No grant figure, cap logic or
+accounting changes.
 
 ## What changed at the larger cap
 

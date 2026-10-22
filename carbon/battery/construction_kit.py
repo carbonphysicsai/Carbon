@@ -42,26 +42,33 @@ def interface_digest() -> str:
     return "sha256:" + hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
-def construction_limits_document() -> dict:
-    """Current bounded graph DEVELOPMENT envelope; no new numerical values."""
-    from carbon.level4 import allowlist, intake
-    from carbon.level4 import compile as graph_compile
+def _train_surfaces(version: str | None = None) -> dict:
+    """The registered training surfaces an exact version serves
+    (`capability_registry.catalog_surfaces`; None: the published contract)."""
     from carbon.reconstruction.capability_registry import (
         BATTERY_CHALLENGE,
         catalog_surfaces,
     )
-    from carbon.reconstruction.worker import model as worker
 
-    surfaces = {
+    return {
         name: {
             "kind": row[1],
             "low": list(row[2]) if type(row[2]) is tuple else row[2],
             "high": row[3],
             "default": row[4],
         }
-        for name, row in catalog_surfaces(BATTERY_CHALLENGE).items()
+        for name, row in catalog_surfaces(BATTERY_CHALLENGE, version).items()
         if row[0] == "train"
     }
+
+
+def construction_limits_document() -> dict:
+    """Current bounded graph DEVELOPMENT envelope; no new numerical values."""
+    from carbon.level4 import allowlist, intake
+    from carbon.level4 import compile as graph_compile
+    from carbon.reconstruction.worker import model as worker
+
+    surfaces = _train_surfaces()
     return {
         "schema": "carbon.battery.construction-limits.v1",
         "scope": "PUBLIC_DEVELOPMENT_GRAPH_CPU",
@@ -109,8 +116,9 @@ def construction_kit() -> dict:
 
 
 #: The graph kit's registered versions: 1.0 above, unchanged; 2.0 the step-2
-#: version (STEP2_BATCH_VERSIONS_20261020), with no fixed training-step caps.
-VERSIONS = ("1.0", "2.0")
+#: version (STEP2_BATCH_VERSIONS_20261020), with no fixed training-step caps;
+#: 2.1 the catalog version, 2.0's limits under its own version binding.
+VERSIONS = ("1.0", "2.0", "2.1")
 #: The training surfaces whose upper bound was a fixed step cap; for 2.0 they
 #: keep only their lower bounds and dependency rules (warmup below the main
 #: steps, polish leaving 16 main steps: `battery.compile.rebuild_issues`).
@@ -128,12 +136,24 @@ def _version(version: str) -> str:
 def construction_limits_document_for(version: str) -> dict:
     """1.0's limits as above; 2.0 with the step surfaces uncapped and the
     worker's productive deadline named as the only training limit
-    (OWNER-REBUILD-TIME-LIMIT-01)."""
+    (OWNER-REBUILD-TIME-LIMIT-01); 2.1 also publishes its allowlist v7's caps
+    and intake bounds (`allowlist.caps_for`, `intake.bounds_for`)."""
     if _version(version) == "1.0":
         return construction_limits_document()
+    from carbon.level4 import allowlist, intake
+
+    from .direct_graph import graph_allowlist
+
     document = construction_limits_document()
     document["schema"] = "carbon.battery.construction-limits.v2"
-    document["challenge"] = {"id": challenge.CHALLENGE.challenge_id, "version": "2.0"}
+    document["challenge"] = {"id": challenge.CHALLENGE.challenge_id, "version": version}
+    document["train_surfaces"] = _train_surfaces(version)
+    # The caps and intake bounds the version's graph allowlist is measured
+    # against: the owner's CAPS and BOUNDS under v6 (2.0, unchanged), and
+    # containment only under v7 (2.1; owner, 2026-10-21: no model-size caps).
+    served = graph_allowlist(version)
+    document["graph_caps"] = allowlist.caps_for(served)
+    document["graph_intake"] = intake.bounds_for(served)
     for name in STEP_SURFACES:
         document["train_surfaces"][name]["high"] = None
     document["training_step_cap"] = None

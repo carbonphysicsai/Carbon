@@ -5,10 +5,17 @@ A catalog recipe names one of Carbon's tested backbones; it is expanded to the
 Carbon bundle it stands for (`backbone_catalog.served.expand`) and rebuilt by
 the receiver's own two-phase call, `bundle_construction_worker.
 reconstruct_and_infer_public`, with the receiver's inputs: the version's public
-construction material, its installed child image over the campaign's PyTorch
-CPU parent, and seed 0. So a practice predicts what the judge will rebuild.
+construction material, its installed child image over the parent of the
+bundle's pinned runtime, and seed 0. So a practice predicts what the judge
+will rebuild. A `torch-cpu-py311` bundle builds on the campaign's PyTorch CPU
+worker; a `python-cpu-py311` bundle (jNO) on the C-03 CPU worker that worker
+was built FROM. Inference stays on the PyTorch CPU worker, which carries the
+C-03 JAX stack the fixed inference program reads.
 The 30 PRACTICE rows of the development bank are scored with Motor's own
-practice scorer; nothing private is read.
+practice scorer; nothing private is read. The result carries PRACTICE-SAFETY-01's
+feedback-only safety block for the same predictions, exactly as Level 0
+practice attaches it, read through the provider (`research.safety_feedback`;
+Validator, 2026-10-21), so this module never imports the safety code.
 
 A catalog entry whose child image is not installed on this host is refused
 before anything runs or is charged (`backend_not_served`, listing the entries
@@ -24,7 +31,9 @@ from .challenge import CHALLENGE
 
 VERSION = "1.2"
 PROVENANCE = "MOTOR_PUBLIC_PRACTICE"
-FEEDBACK_SCHEMA = "carbon.motor.catalog-practice-feedback.v1"
+#: v2 adds the `safety` block (Validator, 2026-10-21); v1 had none.
+FEEDBACK_SCHEMA = "carbon.motor.catalog-practice-feedback.v2"
+FEEDBACK_SCHEMA_V1 = "carbon.motor.catalog-practice-feedback.v1"
 
 
 class MotorCatalogPractice:
@@ -41,25 +50,55 @@ class MotorCatalogPractice:
         version=VERSION,
         runner=None,
         resolver=None,
+        parents=None,
     ):
         self.ledger, self.owner = ledger, owner
         self.parent, self.cache_root = parent, Path(cache_root)
         self.root, self.version, self.runner = Path(root), version, runner
         self.resolver = resolver
+        self._parents = parents
         self.backends = ("torch_cpu",)
         self.gpu_image = None
 
     # -- what this host can build ---------------------------------------------
 
+    def parents(self):
+        """The construction parent of each bundle runtime served here.
+
+        The PyTorch CPU worker always; the C-03 CPU worker it was built FROM
+        only when Docker finds that exact image installed. Otherwise a
+        `python-cpu-py311` entry is `backend_not_served` on this host.
+        """
+        if self._parents is None:
+            from carbon.development_session.gpu_practice import (
+                DirectParentRefused,
+                DirectParents,
+                derived_cpu_parent,
+            )
+            from carbon.reconstruction.worker.docker_runtime import doctor
+
+            served = {"torch-cpu-py311": self.parent}
+            try:
+                cpu = derived_cpu_parent(self.parent)
+                if doctor(image_id=cpu.image_id, image_identity=cpu).eligible:
+                    served["python-cpu-py311"] = cpu
+            except (DirectParentRefused, OSError):
+                pass
+            self._parents = DirectParents(served)
+        return self._parents
+
     def _resolve(self, bundle_ref):
+        # The parent comes from the bundle's pinned runtime alone; a runtime
+        # with no parent here is refused before any image is looked up.
+        parent = self.parents().for_bundle(bundle_ref)
         if self.resolver is not None:
             return self.resolver(bundle_ref)
         from carbon.miner_mcp.standard_cli import DirectOwnerImageResolver
         from carbon.reconstruction.worker.docker_runtime import DockerCLI
 
         return DirectOwnerImageResolver(
-            self.cache_root, self.parent
-        ).provision_admitted(bundle_ref, parent=self.parent, cli=DockerCLI())
+            self.cache_root, parents=self.parents()
+        ).provision_admitted(bundle_ref, parent=parent, cli=DockerCLI())
 
     def installed(self):
         """The catalog ids whose child image is installed on this host."""
@@ -123,20 +162,31 @@ class MotorCatalogPractice:
 
         from .challenge import PublicMaterial
         from .practice import PracticeSet, score_practice
+        from .research import safety_feedback
 
         material = self._material()
         recipe = ConstructionRecipe.from_dict(self._expanded(strategy, material))
         kit = material["construction_kit"]
-        image = self._resolve(_bundle_ref(recipe.to_dict()["source"]["bundle_ref"]))
+        bundle = _bundle_ref(recipe.to_dict()["source"]["bundle_ref"])
+        image = self._resolve(bundle)
+        construction_parent = self.parents().for_bundle(bundle)
         result = reconstruct_and_infer_public(
             self.ledger,
             owner=self.owner,
             identity=identity,
             image=image,
             inference_image=self.parent,
-            construction_parent=self.parent,
+            construction_parent=construction_parent,
             recipe=recipe,
-            challenge_binding=dict(kit),
+            # The worker's trusted binding names the kit by challenge_id /
+            # challenge_version (`_checked_binding`), as the receiver's does.
+            challenge_binding={
+                "challenge_id": kit["id"],
+                "challenge_version": kit["version"],
+                "train_digest": kit["train_digest"],
+                "interface_digest": kit["interface_digest"],
+                "construction_limits_digest": kit["construction_limits_digest"],
+            },
             limits_document=material["construction_limits_document"],
             train=material["train"],
             example=material["example"],
@@ -175,11 +225,13 @@ class MotorCatalogPractice:
             "fit": {"state_digest": result.build.state_digest},
             "backend": {
                 "kind": "C03_DOCKER",
-                "parent": getattr(self.parent, "image_id", None),
+                "parent": getattr(construction_parent, "image_id", None),
             },
             "adaptively_seen": True,
             "final_exam": False,
             "official_eligible": False,
+            # PRACTICE-SAFETY-01: feedback only, on the same public cases.
+            "safety": safety_feedback(predictions, practice),
             "recipe": strategy,
         }
         ResearchWorkspace(self.ledger, self.owner).put(

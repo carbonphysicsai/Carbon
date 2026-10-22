@@ -57,7 +57,7 @@ def make_cap(tmp_path, clock, **options):
 
 @pytest.fixture
 def cap(tmp_path, clock):
-    """The committed registry: 67.2 CPU-h a day (the registered 4-vCPU host class)."""
+    """The committed registry: 134.4 CPU-h a day (the registered 8-vCPU host class)."""
     return make_cap(tmp_path, clock)
 
 
@@ -102,7 +102,7 @@ def _count(cap, hotkey=HOTKEY, exam=EXAM):
 def test_the_committed_registry_is_the_approved_proposals_table():
     registered = exam_cap.registered_cadence()
     # R = nproc x 24 h x 0.7 for the registered validator host class (4 vCPU).
-    assert registered["capacity_cpu_hours_per_day"] == pytest.approx(4 * 24 * 0.7)
+    assert registered["capacity_cpu_hours_per_day"] == pytest.approx(8 * 24 * 0.7)
     assert registered["rebuild_cpu_hours_placeholder"] == PLACEHOLDERS
     assert set(PLACEHOLDERS) == set(exam_cap.registered_challenges())
     document = json.loads(exam_cap.REGISTRY.read_bytes())
@@ -148,8 +148,8 @@ def test_without_a_registry_grading_refuses_not_defaults(tmp_path, clock, monkey
 # --- the cadence ------------------------------------------------------------------
 
 
-# floor(67.2 / (miners x 4.7)), at least 1, for the registered 4-vCPU host class.
-@pytest.mark.parametrize("miners, expected", [(2, 7), (5, 2), (25, 1), (100, 1)])
+# floor(134.4 / (miners x 4.7)), at least 1, for the registered 8-vCPU host class.
+@pytest.mark.parametrize("miners, expected", [(2, 14), (5, 5), (25, 1), (100, 1)])
 def test_the_allowance_follows_the_approved_tables_miner_counts(cap, miners, expected):
     for n in range(miners - 1):  # the others are active in the rolling day
         _grade(cap, n, hotkey=f"hotkey-{n}", block=360 * 30 + n)

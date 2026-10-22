@@ -17,7 +17,8 @@ miner's model, key, budget and compute, and uses none of them:
   research share, which stops a FULL campaign's research typed
   `research_share_reached`, and the miner's ceilings and time, which end a
   stage typed `miner_ceiling_reached`; a replayed call is never refused.
-- `plan`: the miner plan (`carbon.graphite.miner-plan.v1`) and its checks.
+- `plan`: the miner plan (`carbon.graphite.miner-plan.v1`, and v2 for the
+  depth edition `carbon.graphite.miner-edition.v2`) and its checks.
 - `driver`: `run(prepared)`, the RESEARCH / BUILD / FULL stages over the
   shared research loop, submitting through the campaign's own submit.
 

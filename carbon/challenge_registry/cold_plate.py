@@ -221,3 +221,200 @@ def describe():
             ],
         },
     }
+
+
+def catalog_recipe(catalog_id=None, *, version):
+    """A ready catalog recipe for Cooling `version` (a catalog version; no
+    default): the version's kit, one catalog entry (`catalog_id`, or the first
+    the version offers), its tested baseline settings (empty: unset settings
+    keep the baseline's).
+
+    While the version's catalog is empty (no Cooling entry is tested yet) and
+    no id is named, this is an unfilled template whose `catalog_id` and
+    `output.format` are None: an explicit gap, never a recipe that runs. A
+    named id the version does not offer is refused (`catalog_entry_unknown`).
+    """
+    from carbon.backbone_catalog import listing, served
+    from carbon.backbone_catalog.entries import CatalogRefused
+    from carbon.challenge_kit import physical_public
+    from carbon.challenge_kit.served_versions import serves_catalog
+    from carbon.reconstruction.capability_registry import COLD_PLATE_CHALLENGE
+
+    if not serves_catalog(COLD_PLATE_CHALLENGE, version):
+        raise ValueError("cooling catalog version required")
+    kit = physical_public.construction_kit(COLD_PLATE_CHALLENGE, version)
+    if catalog_id is None:
+        offered = listing.entries(COLD_PLATE_CHALLENGE, version)
+        item = offered[0] if offered else None
+    else:
+        item = listing.entry(catalog_id, COLD_PLATE_CHALLENGE, version)
+        if item is None:
+            raise CatalogRefused(
+                "catalog_entry_unknown",
+                f"{catalog_id!r} is not in this Challenge version's catalog",
+            )
+    return {
+        "schema": "carbon.construction-recipe.v1",
+        "challenge": kit,
+        "source": {
+            "kind": "catalog",
+            "catalog_id": None if item is None else item["catalog_id"],
+            "catalog_digest": served.digest(COLD_PLATE_CHALLENGE, version),
+        },
+        "procedure": {
+            "entrypoint": None,
+            "configuration": {},
+            "train_use": {},
+            "initial_state": None,
+        },
+        "output": {
+            "format": None if item is None else item["output_format"],
+            "interface_digest": kit["interface_digest"],
+        },
+    }
+
+
+def describe_catalog(version):
+    """Cooling's catalog version: Carbon's tested backbones by catalog id,
+    built and judged as the Carbon bundle each names, on the direct recipe
+    path (as Motor's `describe_catalog`)."""
+    from carbon.backbone_catalog import served
+    from carbon.cold_plate import domain, exam
+    from carbon.cold_plate.challenge import (
+        PRACTICE_CASES,
+        PUBLIC_OUTPUTS,
+        TRAIN_CASES,
+        TRAIN_PATH,
+        TRAIN_SHA256,
+    )
+    from carbon.reconstruction.capability_registry import (
+        COLD_PLATE_CHALLENGE,
+        public_registry,
+    )
+    from carbon.reconstruction.served_recipe_contract import registered
+
+    contract = registered(COLD_PLATE_CHALLENGE, version)
+    catalog = served.document(COLD_PLATE_CHALLENGE, version)
+    capabilities = public_registry(COLD_PLATE_CHALLENGE)["capabilities"]
+    # The Level 0 registry's unrebuildable capabilities. Neural operators
+    # stay listed: only Carbon-tested ones are served, by catalog id
+    # (Validator, 2026-10-20, Motor's rule).
+    unsupported = [
+        {
+            "id": value["id"],
+            "status": value["status"],
+            "blocker": (
+                "only Carbon-tested ones, by catalog id; miner-authored "
+                "neural operators are not rebuildable"
+                if value["id"] == "model_family.neural_operator"
+                else value["blocker"]
+            ),
+            "summary": value["summary"],
+        }
+        for value in capabilities
+        if value["status"] != "rebuildable_development"
+    ]
+    outputs = {name: list(value["shape"]) for name, value in PUBLIC_OUTPUTS.items()}
+    return {
+        "identity": "carbon.chip-cold-plate-catalog." + version,
+        "contract_digest": contract.digest,
+        "task": (
+            "Predict peak heated-face temperature, the 30-segment axial "
+            "temperature profile and channel pressure drop for the registered "
+            "steady periodic cold-plate cell."
+        ),
+        "intended_use": (
+            "Public DEVELOPMENT construction and practice only; not a manifold, "
+            "transient, product or customer-acceptance model."
+        ),
+        "interface": {
+            "inputs": list(domain.INPUTS),
+            "outputs": outputs,
+            "conventions": (
+                "millimetres, litres/minute/kW, degrees C, watts and pascals; "
+                "channels follow the 30 mm footprint"
+            ),
+        },
+        "public_material": {
+            "names": [
+                "objective",
+                "capabilities",
+                "training_data",
+                "practice_data",
+                "reference_method",
+                "catalog",
+                "construction_kit",
+            ],
+            "access": (
+                "start_research_task kind=workspace action=public_material with "
+                "arguments_json encoding one listed name"
+            ),
+            "train": {"path": TRAIN_PATH, "cases": TRAIN_CASES, "sha256": TRAIN_SHA256},
+            "practice": {"cases": PRACTICE_CASES, "adaptively_seen": True},
+        },
+        "models": {
+            "rebuildable": [
+                {
+                    "id": "catalog." + catalog_id,
+                    "selector": catalog_id,
+                    "summary": "Carbon's tested " + entry["backbone"] + " bundle",
+                }
+                for catalog_id, entry in catalog["entries"].items()
+            ],
+            "catalog": catalog,
+            "note": (
+                "Choose a backbone by catalog_id; its settings are that "
+                "bundle's own, defaulted to the tested baseline's."
+                if catalog["entries"]
+                else "No backbone is tested for this version yet: each Cooling "
+                "entry needs its own Cooling pair-identity receipt, so nothing "
+                "can be practised or submitted until one is added."
+            ),
+        },
+        "prediction_contract": {
+            "per_case": outputs,
+            "produced_by": (
+                "Carbon builds the named tested bundle on the pinned public "
+                "TRAIN; a miner supplies neither code, predictions nor weights"
+            ),
+        },
+        "execution": {
+            "backend": "PyTorch in the pinned Linux CPU isolated C-03 worker",
+            "worker_image": "the campaign's verified C-03 PyTorch CPU worker image",
+            "gpu_lane": False,
+            "recipe": "carbon.construction-recipe.v1, source kind catalog",
+        },
+        "limits": {
+            "budget": "the campaign ledger; discovery charges nothing",
+            "training": "the rebuild's wall time is the only training limit",
+        },
+        "workflow": {
+            "validate": "the recipe door refuses an unknown entry or setting by code",
+            "practice": "Carbon builds the bundle on public TRAIN, scores public PRACTICE",
+            "freeze": "the campaign freezes one practised recipe",
+            "submit": "the signed construction receiver rebuilds and judges it",
+        },
+        "exam": {
+            "gates": [gate.gate_id for gate in exam.GATES],
+            "components": list(exam.COMPONENTS),
+            "rule": "development normalized prediction error; lower is better",
+            "qualification": False,
+        },
+        "feedback": {
+            "practice": "aggregate public-practice components and typed gates",
+            "evaluation": "the receiver's judged feedback",
+        },
+        "examples": (
+            [{"recipe": catalog_recipe(version=version)}] if catalog["entries"] else []
+        ),
+        "unsupported": unsupported,
+        "exclusion_scope": {
+            "catalog": "Carbon's tested bundles only; miner source stays closed",
+            "excluded": [
+                "participant code or weights",
+                "reference-solver reuse",
+                "private or counted evidence",
+                "manifolds, transients and two-dimensional chiplet maps",
+            ],
+        },
+    }

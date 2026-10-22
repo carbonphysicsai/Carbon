@@ -168,7 +168,7 @@ def test_composed_bundle_forwards_each_phase_control(
     monkeypatch.setattr(
         bundle_worker,
         "verify_direct_resource_policy",
-        lambda binding, limits: _sha("c"),
+        lambda binding, limits, resources=None: _sha("c"),
     )
     policy = {
         "reconstruction_resource_policy": {
@@ -191,7 +191,9 @@ def test_composed_bundle_forwards_each_phase_control(
         seed=0,
         inputs=np.zeros((1, 1), dtype=np.float32),
         expected_output_shape=(1, 1),
-        allowlist_bytes=b"allowlist",
+        # A registered allowlist: the call checks it before either phase runs
+        # (it names the worker resources), so a placeholder is refused.
+        allowlist_bytes=allowlist.served_bytes(),
         accelerator=accelerator,
         inference_accelerator=inference_accelerator,
         runner=object(),

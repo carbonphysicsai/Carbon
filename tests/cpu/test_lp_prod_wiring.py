@@ -160,6 +160,7 @@ def test_status_and_review_say_where_candidates_are_evaluated(
         {
             "code": "no_evaluation_endpoint",
             "challenge": c["id"],
+            "version": c["version"],
             "message": environment.NO_ENDPOINT.format(title=c["title"]),
         }
         for c in challenges

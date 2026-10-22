@@ -306,7 +306,7 @@ def test_the_committed_class_is_registered_and_well_formed():
     )
     assert document["schema"] == "carbon.validator.host-class.v1"
     assert document["scope"] == "DEVELOPMENT"
-    assert document["cpu_model_name"] == "AMD EPYC-v4 Processor"
+    assert document["cpu_model_name"] == "AMD EPYC-Milan Processor"
     assert document["isa_flags_present"] == {
         "avx2": True,
         "fma": True,
@@ -314,7 +314,7 @@ def test_the_committed_class_is_registered_and_well_formed():
         "avx512_bf16": False,
         "amx": False,
     }
-    assert document["nproc"] == 4 and document["mem_total_min_gib"] == 50
+    assert document["nproc"] == 8 and document["mem_total_min_gib"] == 30
 
 
 @pytest.mark.parametrize(

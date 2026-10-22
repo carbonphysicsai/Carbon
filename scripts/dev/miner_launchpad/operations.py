@@ -48,6 +48,20 @@ def _output_bounds():
     return " to ".join(format(value, ",") for value in OUTPUT_TOKEN_BOUNDS)
 
 
+def _timeout_bounds():
+    # The runner validates timeout_seconds against these (model_provider).
+    from carbon.development_session.model_provider import TIMEOUT_SECONDS_BOUNDS
+
+    return " to ".join(format(value, ",") for value in TIMEOUT_SECONDS_BOUNDS)
+
+
+def _timeout_default():
+    # What a new plan's builder chooses when none is set (TIMEOUT_DEFAULT_V2).
+    from carbon.development_session.model_provider import TIMEOUT_DEFAULT_V2_SECONDS
+
+    return format(TIMEOUT_DEFAULT_V2_SECONDS, ",")
+
+
 #: Every request field any operation takes, with its JSON type and meaning.
 #: Both doors read these: the browser validates bodies against them and MCP
 #: builds its tool schemas from them, so a field cannot mean two things.
@@ -154,9 +168,17 @@ FIELDS = {
             "model_provider; recorded in the campaign manifest. Omitted: the "
             "pinned defaults, except max_output_tokens, which is the chosen "
             "model's own maximum output where Carbon records one; set it to "
-            "cap the agent's replies (each call is reserved at the cap). "
+            "cap the agent's replies (each call is reserved at the cap); and "
+            "timeout_seconds, which is "
+            + _timeout_default()
+            + " seconds, or half the budget's elapsed_seconds where that "
+            "is shorter: how long each call may wait for the provider's answer "
+            "before it ends with its outcome unknown (it reserves no money; "
+            "new calls stop when less than it remains of elapsed_seconds). "
             "max_output_tokens is an integer from "
             + _output_bounds()
+            + " and timeout_seconds one from "
+            + _timeout_bounds()
             + "; any other value is refused model_selection_refused."
         ),
     ),
@@ -217,6 +239,18 @@ FIELDS = {
             "construct, practise, select and submit. FULL, the default: "
             "research within research_share of your budget, then build. "
             "Frozen at launch."
+        ),
+    ),
+    "graphite_edition": (
+        "string",
+        (
+            "Graphite only: the miner edition the campaign runs. "
+            "carbon.graphite.miner-edition.v1, the default, is the original "
+            "edition; carbon.graphite.miner-edition.v2 is the depth edition, "
+            "whose Planner plans deeper research per role at a higher "
+            "reasoning effort and a larger output cap, so each planning call "
+            "can cost more. carbon_options lists them (graphite.editions). "
+            "Frozen at launch; a resumed campaign keeps its edition."
         ),
     ),
     "submission_policy": (
@@ -369,6 +403,12 @@ CHOICES = {
     "action": ("stop", "pause", "reconcile"),
     "note_kind": ("hypothesis", "plan", "observation", "reply"),
     "graphite_mode": ("RESEARCH", "BUILD", "FULL"),
+    # The edition registry's ids (`MINER_EDITIONS`; a test holds the two
+    # equal), so an edition a new Carbon publishes is added here with it.
+    "graphite_edition": (
+        "carbon.graphite.miner-edition.v1",
+        "carbon.graphite.miner-edition.v2",
+    ),
     "submission_policy": ("retain_only_v1",),
     "mode": ("full", "smoke"),
 }
@@ -487,6 +527,7 @@ REFUSAL_FIELDS = {
     "graphite_fields_need_the_graphite_agent": "agent",
     "graphite_mode_invalid": "graphite_mode",
     "graphite_field_not_used_by_mode": "graphite_mode",
+    "graphite_edition_unknown": "graphite_edition",
     "submission_policy_invalid": "submission_policy",
     "submission_retained_by_policy": "submission_policy",
     "research_share_invalid": "research_share",
@@ -621,6 +662,7 @@ OPERATIONS = {
                     "model_settings",
                     "feedback_mode",
                     "graphite_mode",
+                    "graphite_edition",
                     "research_share",
                     "submission_policy",
                     "plan",
@@ -966,7 +1008,14 @@ OPERATIONS = {
 #: sent with nulls (a browser) and without them (MCP, which strips None) is
 #: one request with one identity, whichever agent it names. These fields are
 #: new, so no recorded launch's identity changes.
-NULLABLE_GRAPHITE_FIELDS = ("graphite_mode", "research_share", "plan", "hunt", "limits")
+NULLABLE_GRAPHITE_FIELDS = (
+    "graphite_mode",
+    "graphite_edition",
+    "research_share",
+    "plan",
+    "hunt",
+    "limits",
+)
 
 
 def without_null_graphite_fields(request):

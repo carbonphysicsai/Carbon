@@ -67,35 +67,75 @@ RESOURCE_PROFILE_ENV = "CARBON_RESEARCH_RESOURCE_PROFILE"
 #: there, so its research stays unlimited exactly as before.
 RESOURCE_PROFILE_FALLBACK = Path(".config", "carbon", "research-resource-profile.json")
 RESOURCE_PROFILE_SCHEMA = "carbon.miner-research.resource-profile.v1"
+#: Profile v2 adds the scratch tmpfs size and the output bound, so an operator
+#: can give the lane a next version's larger worker resources (OWNER-WORKER-
+#: RESOURCES-LARGE-MODELS-01: 4 GiB scratch, 2 GiB output, inside 16 GiB of
+#: memory). v1 is read exactly as before and keeps the named caps below.
+RESOURCE_PROFILE_SCHEMA_V2 = "carbon.miner-research.resource-profile.v2"
 #: The closed refusal codes of a Carbon-operated hostile-code path that must
 #: never start unbounded (`require_host_profile`).
 RESOURCE_PROFILE_REQUIRED = "resource_profile_required"
 RESOURCE_PROFILE_INVALID = "resource_profile_invalid"
 _PROFILE_FIELDS = ("cpus", "memory_bytes", "pids_limit", "nofile")
+_PROFILE_FIELDS_V2 = (*_PROFILE_FIELDS, "scratch_bytes", "output_bytes")
 _PROFILE_LABEL = "carbon.resource-profile"
 
 
 @dataclass(frozen=True)
 class ResourceProfile:
     """An operator's bounds for the miner lane on Carbon's own host: whole
-    CPUs, memory in bytes (swap included), processes and open files. Each is
-    a positive integer; there is no default and no Carbon-chosen value."""
+    CPUs, memory in bytes (swap included), processes and open files, and with
+    profile v2 the scratch tmpfs and output bytes. Each is a positive integer;
+    there is no default and no Carbon-chosen value. A v1 profile has neither
+    v2 field, and its scratch and output stay at the named caps."""
 
     cpus: int
     memory_bytes: int
     pids_limit: int
     nofile: int
+    scratch_bytes: int | None = None
+    output_bytes: int | None = None
 
     def __post_init__(self):
-        for name in _PROFILE_FIELDS:
+        fields = _PROFILE_FIELDS_V2 if self.v2 else _PROFILE_FIELDS
+        if not self.v2 and self.output_bytes is not None:
+            raise WorkerFailure(WorkerCode.INVALID)
+        for name in fields:
             value = getattr(self, name)
             if type(value) is not int or value <= 0:
                 raise WorkerFailure(WorkerCode.INVALID)
 
+    @property
+    def v2(self):
+        return self.scratch_bytes is not None
+
+    @property
+    def scratch_cap_bytes(self):
+        """The scratch tmpfs size this profile gives a run."""
+        return self.scratch_bytes if self.v2 else SCRATCH_CAP_BYTES
+
+    @property
+    def tmpfs_options(self):
+        """Exactly what the bounded lane mounts at /scratch for this profile."""
+        return scratch_tmpfs_options(self.scratch_cap_bytes)
+
+    @property
+    def export_max_bytes(self):
+        """The bound on a run's output stream: the scratch it could fill (v1),
+        or the profile's output bytes (v2), plus a header block and padding
+        for every inode the tmpfs can hold."""
+        content = self.output_bytes if self.v2 else SCRATCH_CAP_BYTES
+        return content + SCRATCH_CAP_INODES * 4096 + 1024**2
+
     def record(self):
+        if not self.v2:
+            return {
+                "schema": RESOURCE_PROFILE_SCHEMA,
+                **{name: getattr(self, name) for name in _PROFILE_FIELDS},
+            }
         return {
-            "schema": RESOURCE_PROFILE_SCHEMA,
-            **{name: getattr(self, name) for name in _PROFILE_FIELDS},
+            "schema": RESOURCE_PROFILE_SCHEMA_V2,
+            **{name: getattr(self, name) for name in _PROFILE_FIELDS_V2},
         }
 
     def digest(self):
@@ -166,13 +206,18 @@ def _read_profile(path):
         document = json.loads(path.read_bytes())
     except (OSError, ValueError):
         raise WorkerFailure(WorkerCode.POLICY) from None
-    if (
-        type(document) is not dict
-        or set(document) != {"schema", *_PROFILE_FIELDS}
-        or document["schema"] != RESOURCE_PROFILE_SCHEMA
-    ):
+    if type(document) is not dict:
         raise WorkerFailure(WorkerCode.POLICY)
-    return ResourceProfile(**{name: document[name] for name in _PROFILE_FIELDS})
+    # Exactly v1 or exactly v2: nothing missing, nothing extra.
+    if document.get("schema") == RESOURCE_PROFILE_SCHEMA:
+        fields = _PROFILE_FIELDS
+    elif document.get("schema") == RESOURCE_PROFILE_SCHEMA_V2:
+        fields = _PROFILE_FIELDS_V2
+    else:
+        raise WorkerFailure(WorkerCode.POLICY)
+    if set(document) != {"schema", *fields}:
+        raise WorkerFailure(WorkerCode.POLICY)
+    return ResourceProfile(**{name: document[name] for name in fields})
 
 
 class ResourceProfileRefused(ValueError):
@@ -238,11 +283,17 @@ SCRATCH_CAP_INODES = 100_000
 #: the worker alone. Without `uid`, `gid` and `mode` Docker's tmpfs is root-owned
 #: 0755, so the worker (uid 65532) cannot create `/scratch/home` and every run
 #: died (containment Run E, 2026-10-20).
-SCRATCH_TMPFS_OPTIONS = (
-    "rw,nosuid,nodev,noexec,"
-    f"size={SCRATCH_CAP_BYTES},nr_inodes={SCRATCH_CAP_INODES},"
-    f"uid={WORKER_UID},gid={WORKER_GID},mode=0700"
-)
+def scratch_tmpfs_options(size):
+    """The bounded lane's /scratch tmpfs options at ``size`` bytes."""
+    return (
+        "rw,nosuid,nodev,noexec,"
+        f"size={size},nr_inodes={SCRATCH_CAP_INODES},"
+        f"uid={WORKER_UID},gid={WORKER_GID},mode=0700"
+    )
+
+
+#: Under a v1 profile (`ResourceProfile.tmpfs_options` for any profile).
+SCRATCH_TMPFS_OPTIONS = scratch_tmpfs_options(SCRATCH_CAP_BYTES)
 #: The closed refusal a bounded run is typed with when its program failed
 #: and its scratch was found full (bytes or inodes), never a score.
 SCRATCH_CAP_EXCEEDED = "scratch_cap_exceeded"
@@ -302,11 +353,14 @@ def scratch_full(cli, container_name, timeout=10):
     return value["free_bytes"] < SCRATCH_FULL_BYTES or value["free_inodes"] == 0
 
 
-def copy_out_scratch(cli, container_name, scratch: Path) -> Path:
+def copy_out_scratch(
+    cli, container_name, scratch: Path, maximum: int = SCRATCH_EXPORT_MAX_BYTES
+) -> Path:
     """Copy a bounded run's output from its tmpfs into `scratch / "output"`
     on the host, while the container still runs, where `collect_outputs`
     takes it exactly as from a bind-mounted scratch. A link or special file
-    refuses (`MinerOutputRefused`); the stream is bounded."""
+    refuses (`MinerOutputRefused`); the stream is bounded by ``maximum`` (the
+    profile's `export_max_bytes`)."""
     archive = scratch.parent / "scratch-output.tar"
     try:
         cli.stream_to_file(
@@ -319,7 +373,7 @@ def copy_out_scratch(cli, container_name, scratch: Path) -> Path:
                 SCRATCH_EXPORT,
             ],
             archive,
-            maximum=SCRATCH_EXPORT_MAX_BYTES,
+            maximum=maximum,
             timeout=SCRATCH_EXPORT_SECONDS,
         )
         return unpack_outputs(archive, scratch)
@@ -498,7 +552,7 @@ def _scratch_arguments(launch):
     """Scratch on the miner's own disk; under a host profile, a tmpfs the
     kernel caps in bytes and inodes instead (LANE-RESOURCE-BOUND-01)."""
     if launch.resource_profile is not None:
-        return ["--tmpfs", f"/scratch:{SCRATCH_TMPFS_OPTIONS}"]
+        return ["--tmpfs", f"/scratch:{launch.resource_profile.tmpfs_options}"]
     return [
         "--mount",
         (
@@ -516,7 +570,7 @@ def _scratch_exactly(launch, host, by_target):
             "Source"
         ) == str(launch.scratch_directory)
     return set(by_target) == {"/input"} and host.get("Tmpfs") == {
-        "/scratch": SCRATCH_TMPFS_OPTIONS
+        "/scratch": launch.resource_profile.tmpfs_options
     }
 
 
@@ -638,7 +692,7 @@ def inspect_isolation(cli, launch: MinerResearchLaunch) -> dict:
             if launch.resource_profile is None
             else {
                 "resource_profile": launch.resource_profile.digest(),
-                "scratch_tmpfs": SCRATCH_TMPFS_OPTIONS,
+                "scratch_tmpfs": launch.resource_profile.tmpfs_options,
             }
         ),
     }
