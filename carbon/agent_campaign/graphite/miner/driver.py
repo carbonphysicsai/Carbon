@@ -808,6 +808,7 @@ class _Run:
             # None for a plan frozen before the rule: replayed unchanged.
             "reply_continuation": self.provider_plan.get("reply_continuation"),
             "budget_headroom": self.provider_plan.get("budget_headroom"),
+            "request_hold": self.provider_plan.get("request_hold"),
             "selection_admissibility": self.admissibility,
             **self.provider_kw(role),
         }

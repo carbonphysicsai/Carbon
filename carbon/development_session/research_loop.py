@@ -58,12 +58,14 @@ from .model_provider import DEFAULT_SELECTION
 from .profile import CHALLENGE, canonical, digest
 from .research_agent import (
     CONTEXT_RESERVE_TOKENS,
+    REQUEST_HOLDS,
     caching_status,
     incomplete_reply,
     input_token_bound,
     provider_turns,
     request_model,
 )
+from .research_agent import request_hold as request_hold_of
 from .research_agent_policy import (
     AUTONOMOUS,
     COMPACT,
@@ -275,6 +277,9 @@ _REPLY_CONTINUATION_FIELDS = frozenset({"schema", "max_truncated_turns"})
 #: and the sure count are unchanged.
 BUDGET_HEADROOM_V1 = "carbon.autoresearch.budget-headroom.v1"
 BUDGET_HEADROOMS = (BUDGET_HEADROOM_V1,)
+#: Bytes the turn status itself adds to the next request at most, so the
+#: status can state that request's hold before the status is written.
+STATUS_BYTES_BOUND = 4096
 #: A caller's selection-admissibility rule (`selection_admissibility`,
 #: opt-in; frozen by new Graphite plans only, so every earlier plan replays
 #: unchanged). Admissibility before ranking: Carbon's own agent never freezes
@@ -926,6 +931,7 @@ def budget_status(
     finish=None,
     omit_unmetered_trials=False,
     headroom=None,
+    hold_nano=None,
 ):
     """The budget a session under `LIMITS_V2` sees before each turn: the
     optional per-session caps where set, and what the campaign ledger's own
@@ -935,7 +941,10 @@ def budget_status(
     call's reservation - reach `FINISH_NOTICE_CALLS`. Under `headroom`
     (`BUDGET_HEADROOM_V1`) the spend counts at the calls' booked average
     instead (`money_headroom`), and its line says both. Journalled once,
-    before the request, so a replay sends the same request (`turn_status`)."""
+    before the request, so a replay sends the same request (`turn_status`).
+    `hold_nano`, under `research_agent.REQUEST_HOLD_V1`, is what the next
+    call will hold (its own request's most possible cost); the spend counts
+    against it, and the line says each call holds at most its request's."""
     if headroom is not None and headroom not in BUDGET_HEADROOMS:
         raise ValueError("a budget-headroom rule is a registered rule id")
     path = root / (turn + "-status.json")
@@ -960,7 +969,7 @@ def budget_status(
         )
         sure.append(attempts_left)
     money = budget.get("provider_nanodollars")
-    reservation = provider.reservation_nano
+    reservation = provider.reservation_nano if hold_nano is None else hold_nano
     money_left = likely = None
     if type(money) is int and type(reservation) is int and reservation > 0:
         money_left = max(0, money - used["provider_nanodollars"])
@@ -968,6 +977,11 @@ def budget_status(
             f"{_usd(money_left)} of {_usd(money)} provider spend left in the "
             f"campaign budget; each model call holds up to {_usd(reservation)} "
             "until it is booked"
+            if hold_nano is None
+            else f"{_usd(money_left)} of {_usd(money)} provider spend left in "
+            "the campaign budget; each model call holds at most its own "
+            "request's input and its whole output cap until it is booked, "
+            f"about {_usd(reservation)} for the next one"
         )
         if headroom is None:
             sure.append(money_left // reservation)
@@ -1790,6 +1804,7 @@ async def run_epoch(
     reply_continuation=None,
     budget_headroom=None,
     selection_admissibility=None,
+    request_hold=None,
 ):
     """Run once or resume completed provider/tool observations without resends.
 
@@ -1803,6 +1818,12 @@ async def run_epoch(
     is a caller's `SELECTION_ADMISSIBLE_V1` rule: the practice check also
     refuses a recipe whose practice reports a failed gate
     (`practice_check`). The plan records the rule.
+
+    `request_hold` (default None, every earlier plan unchanged) is a
+    caller's `research_agent.REQUEST_HOLD_V1` rule: each model call holds
+    its own request's most possible cost, not the whole input window's
+    (`research_agent.request_hold`), and the budget status counts the spend
+    left against the next request's hold. The plan records the rule.
 
     `reply_continuation` (default None, every earlier plan and journal
     unchanged) is a caller's `REPLY_CONTINUATION_SCHEMA` rule: a reply cut at
@@ -1987,6 +2008,8 @@ async def run_epoch(
         and selection_admissibility not in SELECTION_ADMISSIBILITIES
     ):
         raise ValueError("a selection-admissibility rule is a registered rule id")
+    if request_hold is not None and request_hold not in REQUEST_HOLDS:
+        raise ValueError("a request-hold rule is a registered rule id")
     if reply_continuation is not None:
         reply_continuation = check_reply_continuation(reply_continuation)
     truncated_limit = (
@@ -2108,6 +2131,8 @@ async def run_epoch(
         plan["budget_headroom"] = budget_headroom
     if selection_admissibility is not None:
         plan["selection_admissibility"] = selection_admissibility
+    if request_hold is not None:
+        plan["request_hold"] = request_hold
     if "research_guidance" in initial_observation:
         plan["effective_input_digest"] = effective_digest(policy, initial_observation)
     write_once(root / "plan.json", canonical(plan))
@@ -2197,6 +2222,8 @@ async def run_epoch(
         policy a call the miner's own ceiling refuses raises
         `CeilingReached(MINER_CEILING_REACHED)`, before anything of it is
         reserved; otherwise every exception is the provider layer's own."""
+        if request_hold is not None:
+            arguments = {**arguments, "hold": request_hold}
         try:
             return request_model(calls_ledger, **arguments)
         except ValueError as error:
@@ -2700,6 +2727,18 @@ async def run_epoch(
                     finish=finish_name,
                     omit_unmetered_trials=omit_unmetered_trials,
                     headroom=budget_headroom,
+                    **(
+                        {}
+                        if request_hold is None or provider.reservation_nano is None
+                        else {
+                            "hold_nano": request_hold_of(
+                                provider,
+                                len(canonical(request_for(history)))
+                                + STATUS_BYTES_BOUND,
+                                anchor,
+                            )
+                        }
+                    ),
                 )
             )
         request = request_for(history)

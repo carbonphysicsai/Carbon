@@ -521,6 +521,7 @@ class Engine:
         reply_continuation=None,
         budget_headroom=None,
         selection_admissibility=None,
+        request_hold=None,
     ):
         self.calls.append(
             {
@@ -541,6 +542,7 @@ class Engine:
                 "reply_continuation": reply_continuation,
                 "budget_headroom": budget_headroom,
                 "selection_admissibility": selection_admissibility,
+                "request_hold": request_hold,
                 "max_provider_calls": max_provider_calls,
             }
         )
@@ -1956,6 +1958,7 @@ def test_every_stage_runs_under_the_frozen_engine_rules(world):
         assert call["reply_continuation"] == plan.get("reply_continuation")
         assert call["budget_headroom"] == plan["budget_headroom"]
         assert call["selection_admissibility"] == plan["selection_admissibility"]
+        assert call["request_hold"] == plan["request_hold"]
         assert call["max_provider_calls"] is None
     assert planner["instructions"] == editions.PLANNER_PROMPT
     assert planner["finish"]["tool"] == editions.FINISH_TOOL

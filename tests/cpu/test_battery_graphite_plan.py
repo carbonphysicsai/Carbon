@@ -35,7 +35,7 @@ from carbon.development_session.model_provider import (
 )
 from carbon.development_session.product_campaign import AGENTS, ProductLaunch
 from carbon.development_session.profile import canonical, digest
-from carbon.development_session.research_agent import RESERVATION_NANO
+from carbon.development_session.research_agent import REQUEST_HOLD_V1, RESERVATION_NANO
 from carbon.development_session.research_agent_policy import (
     AUTONOMOUS,
     PARALLEL_CALLS_V2,
@@ -141,6 +141,7 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
         "reply_continuation",
         "budget_headroom",
         "selection_admissibility",
+        "request_hold",
         "graphite",
     }
     assert plan["agent"] == "graphite" and plan["policy"] == editions.AGENT_POLICY
@@ -164,6 +165,7 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
     # admissibility before ranking at selection.
     assert plan["budget_headroom"] == BUDGET_HEADROOM_V1
     assert plan["selection_admissibility"] == SELECTION_ADMISSIBLE_V1
+    assert plan["request_hold"] == REQUEST_HOLD_V1
     assert plan["limits"] == {
         "plan": {
             "schema": editions.LIMITS_SCHEMA,

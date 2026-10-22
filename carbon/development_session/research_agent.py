@@ -369,6 +369,31 @@ def input_token_bound(request_bytes, anchor):
     return tokens + request_bytes - anchored_bytes
 
 
+#: A caller's request-hold rule (`hold`, opt-in; frozen by new Graphite plans
+#: only, so every earlier plan reserves exactly as before). Each call holds
+#: its request's own most possible cost: the input tokens this request can
+#: have at most (`input_token_bound`, never above the input window) at the
+#: input price, plus the whole output cap at the output price. Still a true
+#: bound, so the miner's money ceiling stays hard; only the input part
+#: shrinks (Launchpad Test Runner G1: a USD 2 cap stopped at USD 0.27 of
+#: work because every call held USD 0.2163). The output part is the miner's
+#: max_output_tokens; it is never assumed smaller.
+REQUEST_HOLD_V1 = "carbon.autoresearch.request-hold.v1"
+REQUEST_HOLDS = (REQUEST_HOLD_V1,)
+
+
+def request_hold(selection, request_bytes, anchor=None):
+    """The most one request of `request_bytes` canonical bytes can cost on a
+    priced `selection` under `REQUEST_HOLD_V1`, never above its whole
+    reservation (`ModelSelection.reservation_nano`)."""
+    settings, pricing = selection.settings, selection.pricing
+    tokens = min(input_token_bound(request_bytes, anchor), settings.max_input_tokens)
+    return min(
+        selection.reservation_nano,
+        tokens * pricing.input_nano + settings.max_output_tokens * pricing.output_nano,
+    )
+
+
 def request_model(
     ledger,
     *,
@@ -383,6 +408,7 @@ def request_model(
     anchor=None,
     accept_incomplete=False,
     jitter=None,
+    hold=None,
 ):
     """One model call, with bounded automatic retries of failures that
     incurred no charge, each under a new identity and reservation.
@@ -419,6 +445,7 @@ def request_model(
                     provider=provider,
                     anchor=anchor,
                     accept_incomplete=accept_incomplete,
+                    **({} if hold is None else {"hold": hold}),
                 )
         except _Passed as passed:
             attempt += 1
@@ -488,7 +515,7 @@ def _uncertain(directory, identity, reason, failure=None, metered=None):
         pass
 
 
-def _beyond_bounds(response, selection):
+def _beyond_bounds(response, selection, held=None):
     """Why a reply's usage could not be booked, and the charge it implies.
 
     `usage_cost` refuses usage that is missing or malformed, and usage that
@@ -526,7 +553,7 @@ def _beyond_bounds(response, selection):
     report = provider_report(response, selection)
     if report is not None and report["charged_micro"] is not None:
         metered = report["charged_micro"] * 1000
-    if metered > selection.reservation_nano:
+    if metered > (selection.reservation_nano if held is None else held):
         return "usage_exceeds_reservation", metered
     return "usage_beyond_bounds", metered
 
@@ -629,9 +656,12 @@ def _request_once(
     provider,
     anchor=None,
     accept_incomplete=False,
+    hold=None,
 ):
     settings = provider.settings
     priced = provider.reservation_nano is not None
+    if hold is not None and hold not in REQUEST_HOLDS:
+        raise ValueError("a request-hold rule is a registered rule id")
     if type(request) is not dict or set(request) != {
         "model",
         "instructions",
@@ -683,10 +713,16 @@ def _request_once(
     directory = ledger.root / ("model-" + digest(canonical([owner, identity]))[7:])
     # A known price reserves the request's maximum cost before dispatch. An
     # unknown one has no calculable maximum: attempts and bytes are reserved,
-    # money is neither reserved nor metered (the selection says so).
+    # money is neither reserved nor metered (the selection says so). Under
+    # `REQUEST_HOLD_V1` the maximum is this request's own (`request_hold`).
+    held = (
+        provider.reservation_nano
+        if hold is None or not priced
+        else request_hold(provider, len(payload), anchor)
+    )
     reservation = {
         "provider_attempts": 1,
-        **({"provider_nanodollars": provider.reservation_nano} if priced else {}),
+        **({"provider_nanodollars": held} if priced else {}),
         "retained_bytes": 3 * 1024**2,
     }
     unbilled_actual = {
@@ -753,7 +789,7 @@ def _request_once(
     try:
         usage = usage_cost(response.get("usage"), provider)
     except ValueError as error:
-        reason, metered = _beyond_bounds(response, provider)
+        reason, metered = _beyond_bounds(response, provider, held)
         stream = response.get("provider_stream") if type(response) is dict else None
         if (
             reason == "usage_unavailable"
@@ -783,8 +819,8 @@ def _request_once(
     # recorded, with its exact metered charge; `incomplete` says how it ended.
     status = "SUCCEEDED" if response.get("status") == "completed" else "FAILED_INFRA"
     report = provider_report(response, provider)
-    charge = settled_charge(usage, report, provider)
-    if priced and charge["nanodollars"] > provider.reservation_nano:
+    charge = settled_charge(usage, report, provider, held)
+    if priced and charge["nanodollars"] > held:
         _uncertain(
             directory,
             identity,
@@ -1292,7 +1328,7 @@ def settle_uncertain_calls(ledger, *, owner, charge_from_response=False):
     return {"settled": settled, "refused": refused}
 
 
-def settled_charge(usage, report, selection):
+def settled_charge(usage, report, selection, held=None):
     """What a call cost, and on what basis.
 
     The provider's own reported charge settles it where the adapter reports
@@ -1301,13 +1337,16 @@ def settled_charge(usage, report, selection):
     their reservation (`ProviderAdapter.unreported_charge`). Otherwise the
     metered usage at the selection's price. The
     token-price estimate is always kept beside it, never substituted for it.
+    `held` is what the call reserved, when it is not the selection's whole
+    reservation (`REQUEST_HOLD_V1`).
     """
     estimate = usage["nanodollars"]
+    kept = selection.reservation_nano if held is None else held
     if selection.adapter.reported_charge is not None:
         micro = None if report is None else report["charged_micro"]
         if micro is None:
             return {
-                "nanodollars": selection.reservation_nano,
+                "nanodollars": kept,
                 "basis": "provider charge not reported; full reservation retained",
                 "provider_reported_micro": None,
                 "estimated_nanodollars": estimate,
@@ -1323,7 +1362,7 @@ def settled_charge(usage, report, selection):
         # reservation, exactly as for a reporting adapter whose report is
         # missing, never the headline-rate estimate.
         return {
-            "nanodollars": selection.reservation_nano,
+            "nanodollars": kept,
             "basis": "provider charge not reported; full reservation retained",
             "provider_reported_micro": None,
             "estimated_nanodollars": estimate,
