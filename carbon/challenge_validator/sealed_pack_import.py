@@ -33,6 +33,7 @@ import base64
 import binascii
 import json
 import os
+import re
 import shutil
 import stat
 import tempfile
@@ -59,6 +60,8 @@ _COMMITMENT_FIELDS = {
 _PAYLOAD_FIELDS = {"manifest", "files"}
 #: Transport bounds only (the package body is bounded by `MAX_PACKAGE`).
 MAX_FILES = 256
+_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
+DELIVERED_DIRECTORY = ".delivered"
 
 
 def commitment_for(challenge_id, challenge_version, manifest_bytes, files, window):
@@ -178,11 +181,8 @@ class SealedPackStore:
         self.root = Path(root)
 
     def _directory(self, manifest_digest):
-        if (
-            type(manifest_digest) is not str
-            or not manifest_digest.startswith("sha256:")
-            or len(manifest_digest) != 71
-        ):
+        # Operator-typed through --pack-digest: exactly 64 lowercase hex.
+        if type(manifest_digest) is not str or _DIGEST.fullmatch(manifest_digest) is None:
             raise AnswerKeyRefused("answer_key_malformed")
         return self.root / manifest_digest.removeprefix("sha256:")
 
@@ -234,9 +234,49 @@ class SealedPackStore:
             except EvaluationPackUnavailable:
                 raise AnswerKeyRefused("answer_key_sealed_pack_files") from None
             os.rename(staging, directory)
+            self._record_delivery(commitment)
         finally:
             shutil.rmtree(staging, ignore_errors=True)
         return commitment["manifest_digest"]
+
+    def _record_delivery(self, commitment):
+        """Record that this pack arrived through the answer-key route: the
+        signed commitment, create-only, outside the pack directory. A pack
+        placed in the store any other way has no such record."""
+        record = self.root / DELIVERED_DIRECTORY
+        record.mkdir(mode=0o700, exist_ok=True)
+        name = record / (commitment["manifest_digest"].removeprefix("sha256:") + ".json")
+        if not name.exists():
+            name.write_bytes(
+                json.dumps(commitment, sort_keys=True, separators=(",", ":")).encode()
+            )
+            name.chmod(0o600)
+
+    def delivered(self, manifest_digest, challenge_id, challenge_version):
+        """Whether the verified pack in this store was delivered through the
+        answer-key route for this Challenge version: the delivery record
+        exists, names exactly this pack and Challenge, and the pack
+        re-verifies now. This is the one definition of a sealed delivery
+        (Validator, Workstream I5): never the pack's shape."""
+        try:
+            self.pack_directory(manifest_digest, challenge_id, challenge_version)
+            recorded = json.loads(
+                (
+                    self.root
+                    / DELIVERED_DIRECTORY
+                    / (manifest_digest.removeprefix("sha256:") + ".json")
+                ).read_bytes()
+            )
+        except (AnswerKeyRefused, OSError, ValueError):
+            return False
+        return (
+            type(recorded) is dict
+            and recorded.get("schema") == SEALED_COMMITMENT_SCHEMA
+            and recorded.get("kind") == SEALED_KIND
+            and recorded.get("manifest_digest") == manifest_digest
+            and recorded.get("challenge_id") == challenge_id
+            and recorded.get("challenge_version") == challenge_version
+        )
 
     def pack_directory(self, manifest_digest, challenge_id, challenge_version):
         """The verified directory of a stored pack, for the receiver; raises

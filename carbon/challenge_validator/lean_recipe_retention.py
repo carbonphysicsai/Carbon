@@ -1070,15 +1070,15 @@ def _contend(adapter, pool_store, submission_id, artifacts, bind_inputs, pin):
             "accuracy_definition",
             max_bytes=65536,
         )
-        from carbon.challenge_validator.evaluation_pack import is_sealed_pack
-
         outcome = promotion.consider_private(
             submission_id,
             filed["evaluation_key"],
             koth_registry.comparator(
                 adapter.challenge_id, bind_inputs["score_pack"], accuracy
             ),
-            sealed=is_sealed_pack(discovery.evaluation_pack_snapshot),
+            # Delivery provenance, never the pack's shape: only a pack that
+            # arrived through the answer-key route into the sealed store.
+            sealed=getattr(discovery, "evaluation_pack_sealed", False) is True,
         )
     # A pool refusal, whatever its type, never unbinds the evaluation.
     except Exception as exc:  # noqa: BLE001

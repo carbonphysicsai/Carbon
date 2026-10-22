@@ -204,3 +204,88 @@ def test_a_hidden_batch_commitment_still_packages_and_other_kinds_do_not(tmp_pat
     with pytest.raises(ak.AnswerKeyRefused) as refused:
         ak.package(key, {"schema": "something-else", "kind": "sealed_pack"}, {})
     assert refused.value.code == "answer_key_commitment_malformed"
+
+
+def _delivered(tmp_path):
+    key, commitment, package = _signed(tmp_path)
+    adapter = _adapter(tmp_path)
+    ak.sync(adapter, _Fetcher(package), key.public_key, CHALLENGE)
+    return adapter.store, commitment
+
+
+def test_sealed_means_delivered_through_the_answer_key_route(tmp_path):
+    store, commitment = _delivered(tmp_path)
+    digest = commitment["manifest_digest"]
+    assert store.delivered(digest, CHALLENGE, VERSION)
+    assert not store.delivered(digest, CHALLENGE, "9.9")
+    assert not store.delivered(_sha(b"other"), CHALLENGE, VERSION)
+    # The same bytes placed in the store by hand have no delivery record.
+    manual = sp.SealedPackStore(tmp_path / "manual")
+    manual._owner_only_root()
+    import shutil
+
+    shutil.copytree(
+        store.pack_directory(digest, CHALLENGE, VERSION),
+        manual.root / digest.removeprefix("sha256:"),
+    )
+    assert manual.pack_directory(digest, CHALLENGE, VERSION)
+    assert not manual.delivered(digest, CHALLENGE, VERSION)
+    # A delivery record that names another pack does not vouch for this one.
+    record = store.root / ".delivered" / (digest.removeprefix("sha256:") + ".json")
+    record.write_bytes(record.read_bytes().replace(digest.encode(), _sha(b"x").encode()))
+    assert not store.delivered(digest, CHALLENGE, VERSION)
+
+
+def test_the_receiver_decides_sealed_from_delivery_not_shape(tmp_path):
+    from types import SimpleNamespace
+
+    from carbon.challenge_validator import direct_receiver as dr
+
+    store, commitment = _delivered(tmp_path)
+    digest = commitment["manifest_digest"]
+    directory = store.pack_directory(digest, CHALLENGE, VERSION)
+    challenge = SimpleNamespace(challenge_id=CHALLENGE, version=VERSION)
+    root = str(directory)
+    delivered = {
+        "root": root,
+        "manifest": "evaluation-pack.json",
+        "public_root": root,
+        "private_root": root,
+        "sealed_delivery": {"store": str(store.root), "manifest_digest": digest},
+    }
+    assert dr._delivered_sealed(delivered, challenge)
+    # An operator-typed --pack DIR (same bytes, no delivery claim): never sealed.
+    typed = {k: v for k, v in delivered.items() if k != "sealed_delivery"}
+    assert not dr._delivered_sealed(typed, challenge)
+    # A claim whose root is not the store's directory for the digest.
+    other = tmp_path / "typed-copy"
+    other.mkdir()
+    moved = dict(delivered, root=str(other), public_root=str(other), private_root=str(other))
+    assert not dr._delivered_sealed(moved, challenge)
+    # Another Challenge version.
+    assert not dr._delivered_sealed(
+        delivered, SimpleNamespace(challenge_id=CHALLENGE, version="9.9")
+    )
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "sha256:" + "A" * 64,
+        "sha256:" + "a" * 63,
+        "sha256:" + "a" * 65,
+        "sha256:../" + "a" * 61,
+        "a" * 71,
+        "sha256:" + "g" * 64,
+        "",
+    ],
+)
+def test_an_operator_typed_digest_must_be_64_lowercase_hex(tmp_path, bad):
+    store = sp.SealedPackStore(tmp_path / "packs")
+    with pytest.raises(ak.AnswerKeyRefused) as refused:
+        store.pack_directory(bad, CHALLENGE, VERSION)
+    assert refused.value.code == "answer_key_malformed"
+    with pytest.raises(receiver_setup.SetupRefused):
+        receiver_setup._stored_pack(
+            tmp_path / "packs", bad, {"id": CHALLENGE, "version": VERSION}
+        )

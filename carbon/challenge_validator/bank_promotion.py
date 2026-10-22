@@ -341,9 +341,9 @@ class BankPromotion:
         incumbent with the reason `bank_comparison_development`, which the
         reward layer refuses to pay (`PROMOTION_DEVELOPMENT_ONLY`).
 
-        ``sealed`` is true only when the comparison ran on a sealed
-        evaluation pack (`evaluation_pack.is_sealed_pack`, derived from the
-        pinned pack identity by the caller composing the contest). Its win
+        ``sealed`` is true only when the comparison ran on a pack delivered
+        through the answer-key route (`SealedPackStore.delivered`, decided by
+        the receiver; never the pack's shape). Its win
         then carries `bank_comparison_sealed_testnet`, which the reward layer
         pays only under a testnet policy (Workstream I5).
         """

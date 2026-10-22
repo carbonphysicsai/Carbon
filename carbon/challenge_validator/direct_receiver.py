@@ -136,13 +136,21 @@ def load_config(path: Path) -> dict:
         raise ValueError("exact construction runtimes required")
     if "evaluation_pack" in value:
         selected = value["evaluation_pack"]
-        if type(selected) is not dict or set(selected) != {
-            "root",
-            "manifest",
-            "public_root",
-            "private_root",
-        }:
+        base = {"root", "manifest", "public_root", "private_root"}
+        if type(selected) is not dict or set(selected) not in (
+            base,
+            base | {"sealed_delivery"},
+        ):
             raise ValueError("exact evaluation pack selection required")
+        delivery = selected.get("sealed_delivery")
+        if delivery is not None and (
+            type(delivery) is not dict
+            or set(delivery) != {"store", "manifest_digest"}
+            or type(delivery["store"]) is not str
+            or not Path(delivery["store"]).is_absolute()
+            or type(delivery["manifest_digest"]) is not str
+        ):
+            raise ValueError("exact sealed delivery selection required")
         for name in ("root", "public_root", "private_root"):
             path = selected[name]
             if (
@@ -208,6 +216,34 @@ def _pack_check(root, relative_path, digest, public_root, private_root, challeng
             raise EvaluationPackUnavailable("evaluation_pack.train_mismatch")
 
     return checked
+
+
+def _delivered_sealed(selection, challenge) -> bool:
+    """Whether the selected pack arrived through the answer-key route
+    (`SealedPackStore.delivered`): the selection names its store and digest,
+    the pack root is exactly that store's directory for the digest, and the
+    store's own delivery record and verification hold now. An operator-typed
+    `--pack` directory never qualifies."""
+    delivery = selection.get("sealed_delivery")
+    if delivery is None:
+        return False
+    from carbon.challenge_validator.answer_key import AnswerKeyRefused
+    from carbon.challenge_validator.sealed_pack_import import SealedPackStore
+
+    store = SealedPackStore(delivery["store"])
+    try:
+        directory = store.pack_directory(
+            delivery["manifest_digest"], challenge.challenge_id, challenge.version
+        )
+    except AnswerKeyRefused:
+        return False
+    return {
+        selection["root"],
+        selection["public_root"],
+        selection["private_root"],
+    } == {str(directory)} and store.delivered(
+        delivery["manifest_digest"], challenge.challenge_id, challenge.version
+    )
 
 
 def _sealed_pack(root, selection, challenge):
@@ -999,6 +1035,10 @@ def serve(
             pack_check=pack_check,
             evaluation_pack_digest=pack_digest,
             evaluation_pack_snapshot=pack_snapshot,
+            evaluation_pack_sealed=(
+                pack_snapshot is not None
+                and _delivered_sealed(cfg["evaluation_pack"], challenge)
+            ),
             evaluation_pack_public_root=(
                 Path(cfg["evaluation_pack"]["public_root"])
                 if pack_snapshot is not None

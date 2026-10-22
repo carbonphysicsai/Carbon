@@ -163,6 +163,13 @@ def prepare(
     if pack_store is not None:
         pack = _stored_pack(pack_store, pack_digest, challenge)
     selection = _pack_selection(pack)
+    if selection is not None and pack_store is not None:
+        # Delivery provenance: the receiver re-checks it against the store, so
+        # only a pack that came through the answer-key route is sealed.
+        selection["sealed_delivery"] = {
+            "store": str(pack_store),
+            "manifest_digest": pack_digest,
+        }
     development = (
         installed.candidate_implementation(installed_state, repository=repository)
         is not None

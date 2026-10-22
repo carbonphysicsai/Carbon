@@ -11,14 +11,6 @@ from __future__ import annotations
 import pytest
 
 from carbon.challenge_validator import bank_promotion as bp
-from carbon.challenge_validator.evaluation_pack import (
-    PRIVATE_ROLES,
-    PUBLIC_ROLES,
-    SCHEMA,
-    UNAVAILABLE,
-    is_sealed_pack,
-    parse_pack,
-)
 from carbon.rewards import winner_decay as wd
 from carbon.rewards import winner_eligibility as we
 from carbon.rewards.core import DAY_MS, RewardFailure
@@ -108,38 +100,6 @@ def test_a_sealed_crown_pays_on_testnet_and_a_mainnet_policy_refuses_it(tmp_path
         "sealed_crown_testnet_only",
     )
     assert we.payable(refused, {"hk-b"}) is None
-
-
-def _snapshot(pack_version="1", unavailable=()):
-    private = {name: UNAVAILABLE for name in PRIVATE_ROLES}
-    for role in ("case_bank", "reference_rows", "score_pack"):
-        if role not in unavailable:
-            private[role] = {"path": f"private/{role}.bin", "sha256": "sha256:" + "a" * 64}
-    import hashlib
-    import json
-
-    payload = json.dumps(
-        {
-            "schema": SCHEMA,
-            "challenge": {"id": "c", "version": "1"},
-            "pack_version": pack_version,
-            "public": {name: UNAVAILABLE for name in PUBLIC_ROLES},
-            "private": private,
-        },
-        sort_keys=True,
-    ).encode()
-    return parse_pack(
-        payload,
-        expected_digest="sha256:" + hashlib.sha256(payload).hexdigest(),
-        challenge_id="c",
-        challenge_version="1",
-    )
-
-
-def test_a_pack_is_sealed_by_its_pinned_identity_not_a_flag():
-    assert is_sealed_pack(_snapshot())
-    assert not is_sealed_pack(_snapshot("1-exposed-bank"))
-    assert not is_sealed_pack(_snapshot(unavailable=("score_pack",)))
 
 
 @pytest.mark.parametrize(
