@@ -2726,6 +2726,34 @@
   }
 
   // ---- Campaigns: list, deep-linked detail and tabs. ----
+  // The list reads as: what needs the miner first (one count), then running campaigns by
+  // Challenge name, then finished ones folded away (U3).
+  const NEEDS_ATTENTION = ["INTERRUPTED", "RECONCILIATION_REQUIRED"];
+  function campaignGroups(target, runs) {
+    const attention = runs.filter(run => NEEDS_ATTENTION.includes(run.state));
+    const finished = runs.filter(run => TERMINAL.includes(run.state));
+    const going = runs.filter(run => !attention.includes(run) && !finished.includes(run));
+    const byChallenge = (parent, items) => {
+      const groups = new Map();
+      for (const run of items) { const name = challengeLabel(run).replace(/ · v[\d.]+$/, ""); (groups.get(name) || groups.set(name, []).get(name)).push(run); }
+      for (const [name, group] of groups) {
+        parent.append(el("h3", name + " (" + group.length + ")", "campaign-group"));
+        for (const run of group) campaignCard(parent, run);
+      }
+    };
+    if (attention.length) {
+      const note = el("p", attention.length + (attention.length === 1 ? " campaign needs" : " campaigns need") + " your attention: " + (attention.length === 1 ? "it stopped" : "they stopped") + " before finishing and can be resumed or closed.", "reason attention-count");
+      target.append(note);
+      byChallenge(target, attention);
+    }
+    byChallenge(target, going);
+    if (finished.length) {
+      const fold = el("details", undefined, "finished-campaigns");
+      fold.append(el("summary", "Finished (" + finished.length + ")"));
+      byChallenge(fold, finished);
+      target.append(fold);
+    }
+  }
   function renderCampaigns() {
     const list = $("research-runs");
     const current = route();
@@ -2746,7 +2774,7 @@
         empty.append(el("h3", "No campaign yet."), el("p", "New campaign walks you through Challenge, agent, model, compute, tools and limits."));
         target.append(empty);
       }
-      for (const item of research.runs) campaignCard(target, item);
+      campaignGroups(target, research.runs);
     });
     if (current.view === "campaigns" && current.id && !run) {
       rebuild(detail, "missing|" + current.id + "|" + connected, target => {
