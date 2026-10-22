@@ -2638,9 +2638,23 @@
     tabSettings(panels.settings, run);
   }
   function missing(parent, text) { researchNote(parent, "Not yet available: " + text, "empty-state"); }
+  // U31: an agent spending model calls without a practice run is said
+  // plainly, with its refusals, so the miner need not read the raw journal.
+  // A hint only: nothing is stopped or limited by it.
+  function agentHealth(run) {
+    const calls = Number(run.usage?.reported?.provider_attempts || 0) + Number(run.usage?.uncertain?.provider_attempts || 0);
+    if (!(calls >= 10) || (run.completed_experiments ?? 0) > 0) return null;
+    const refusals = run.refusals || [];
+    const counts = {};
+    for (const item of refusals) { const code = item.correction_code || item.reason || item.status; if (code) counts[code] = (counts[code] || 0) + 1; }
+    const most = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    return calls + " model calls and no completed practice run yet" + (refusals.length ? ", " + refusals.length + " refused request" + (refusals.length === 1 ? "" : "s") + (most ? " (most: " + words(most[0]) + ")" : "") : "") + ". The agent may be stuck: read its reasoning under Journal, send it a hint under Messages, or pause the campaign.";
+  }
   function tabOverview(panel, run) {
     researchNote(panel, (run.agent || "Awaiting runtime") + " / " + (run.reasoning || "unavailable") + " / " + (run.compute || "unavailable") + " · Attempts: " + (run.attempted_experiments ?? 0) + " · Completed practice: " + (run.completed_experiments ?? 0));
     if (run.execution_label) researchNote(panel, run.execution_label, "hint");
+    const health = agentHealth(run);
+    if (health) researchNote(panel, health, "reason agent-health");
     if (run.deadline_unix) researchNote(panel, "Deadline from your elapsed limit: " + new Date(run.deadline_unix * 1000).toLocaleString());
     else researchNote(panel, "No deadline: you set no elapsed limit.", "hint");
     if (run.research_guidance) {
