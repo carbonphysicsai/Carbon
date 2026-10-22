@@ -163,10 +163,27 @@ def test_the_sealed_pack_registers_its_own_gate_keys():
     assert pack["hard_gates"] == list(cdm.SEALED_GATES)
 
 
-def test_the_sealed_adapter_serves_exactly_cooling_1_1_and_1_2():
-    for version in ("1.1", "1.2"):
+def test_the_sealed_adapter_serves_exactly_cooling_1_1_to_1_3():
+    for version in ("1.1", "1.2", "1.3"):
         chosen = adapter.sealed_adapter(version)
         assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v1"
         assert chosen.VERSION == version
-    for version in ("1.0", "1.3", None):
+    for version in ("1.0", "1.4", None):
         assert adapter.sealed_adapter(version) is None
+
+
+def test_the_sealed_exam_is_graded_under_every_served_cooling_version():
+    from carbon.challenge_kit import physical_pack
+    from carbon.scoring import cooling_dual_pack as cdp
+
+    assert set(cdp.SEALED_VERSIONS) == {"1.1", "1.2", "1.3"}
+    assert len(set(cdp.SEALED_VERSIONS.values())) == 1
+    # 1.3 is 1.2 plus allowlist v7: the same exam, so its train and interface
+    # roles must equal 1.2's wherever 1.3 is served.
+    try:
+        newer = physical_pack.public_roles(cdp.CHALLENGE, "1.3")
+    except ValueError:
+        pytest.skip("Cooling 1.3 is not served at this base")
+    older = physical_pack.public_roles(cdp.CHALLENGE, "1.2")
+    assert newer["train"] == older["train"]
+    assert newer["interface"] == older["interface"]

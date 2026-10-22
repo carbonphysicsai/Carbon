@@ -117,7 +117,9 @@ def _build(challenge, kit, document, records, version):
         except ValueError:
             return kit.sealed_bank(document, records, version=version)
         return kit.grid_bank(document, records, version=version)
-    if challenge == BATTERY:  # one sealed grid, one served bank format
+    if challenge in (BATTERY, COOLING):
+        # One sealed grid family and bank format, graded under every served
+        # version of the same exam (Cooling 1.1-1.3): the family's own version.
         return kit.sealed_bank(document, records)
     return kit.sealed_bank(document, records, version=version)
 
@@ -194,9 +196,13 @@ def resolve(
     pinned = _pinned_case_bank(selected_pack)
     if pinned is None:
         return None
-    development = physical_pack.development_bank(challenge, version)
+    try:
+        development = physical_pack.development_bank(challenge, version)
+    except ValueError:
+        development = None  # a version with no development bank has no such pack
     if (
-        "sha256:"
+        development is not None
+        and "sha256:"
         + hashlib.sha256(kit.private_roles(development)["case_bank"]).hexdigest()
         == pinned
     ):

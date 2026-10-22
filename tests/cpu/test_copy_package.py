@@ -284,3 +284,30 @@ def test_a_custody_batch_is_repacked_canonically_with_a_signed_append_only_recor
     tampered = json.loads(json.dumps(signed))
     tampered["manifest"]["canonical_fingerprint"] = "sha256:" + "2" * 64
     assert record.verify(tampered, signer.public_key) is None
+
+
+@pytest.mark.parametrize("version", ["1.2", "1.3"])
+def test_cooling_copies_resolve_under_every_served_cooling_version(tmp_path, version):
+    from types import SimpleNamespace
+
+    challenge, _v, build, _builder, kit = FORMATS["cooling"]
+    document, records = build()
+    raw, header = cp.make_copy(
+        challenge, "1.1", document, records, key=KEYS[0], hotkey=HOTKEYS[0]
+    )
+    root = _deliver(tmp_path / "v", raw, header)
+    copy_bank = source._build(challenge, kit, *source.read_batch(root), "1.1")
+    pinned = source._sha(kit.private_roles(copy_bank)["case_bank"])
+    # Header names the served exam version it was made for.
+    header_doc = json.loads(header)
+    header_doc["challenge_version"] = version
+    (root / cp.HEADER_FILE).write_bytes(cp.header_bytes(header_doc))
+    bank, adapter = source.resolve(
+        challenge=challenge,
+        version=version,
+        selected_pack=SimpleNamespace(private={"case_bank": {"sha256": pinned}}),
+        private_root=root,
+        development_adapter=None,
+        copy_hotkey=HOTKEYS[0],
+    )
+    assert adapter is not None and bank["cohorts"]

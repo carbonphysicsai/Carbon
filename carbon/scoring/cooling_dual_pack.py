@@ -54,7 +54,9 @@ VERSIONS = {
 #: A sealed exam batch's evaluation version, per Challenge version (Validator,
 #: 2026-10-20): Cooling 1.1's sealed batches, served on 1.1 and 1.2.
 SEALED_EVALUATION_VERSION = "cooling-dual-sealed-batch-16-v1"
-SEALED_VERSIONS = {"1.1": SEALED_EVALUATION_VERSION, "1.2": SEALED_EVALUATION_VERSION}
+SEALED_VERSIONS = {
+    version: SEALED_EVALUATION_VERSION for version in ("1.1", "1.2", "1.3")
+}
 OUTPUT = {"quantity": "peak_c,profile_c[30],pressure_drop_pa", "unit": "degC,degC,Pa"}
 FILES = ("cooling_dual_pack.py", "cooling_dual_measurement.py")
 #: Legs a measured baseline run sets minimums for (default rule).
