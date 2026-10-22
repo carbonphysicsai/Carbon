@@ -527,6 +527,15 @@ NEXT_ACTIONS = {
         "tell which is not running; otherwise check the address and your "
         "connection. Then submit again."
     ),
+    # M1 E2E R5-2: a direct campaign's construction receiver did not answer.
+    # The profile does name it, so this is never "no intake configured".
+    "construction_intake_unavailable": (
+        "Your construction receiver is configured but could not be reached, "
+        "so nothing was graded and no exam was used. The frozen candidate is "
+        "kept. For a receiver on this machine's loopback (a tunnel), start "
+        "the tunnel; otherwise the receiver may be down, so ask its operator "
+        "or wait. Then submit again."
+    ),
     # Every other closed code a submission through a validator intake can
     # end with (`carbon.battery.campaign.intake_code`: the intake's and its
     # transport's codes, `intake_client.REFUSALS`, and the trip's own). None
