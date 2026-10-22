@@ -241,3 +241,25 @@ def test_two_campaigns_freezing_one_recipe_never_share_a_request_id(tmp_path):
     assert len(a) <= 128
     ds._bump_submit_attempt(first, 1)
     assert ds._submit_request(first, 1, recipe) == a + "-r1"
+
+
+def test_a_direct_freezes_epoch_outcome_is_read(tmp_path):
+    # M1 E2E H20: the direct record's schema replaced the outcome's, so the
+    # epoch read READBACK_UNAVAILABLE while its result was graded.
+    import json as _json
+
+    path = tmp_path / "outcome.json"
+    written = {
+        "schema": "carbon.direct-selected-recipe.v2",
+        "epoch": 1,
+        "status": "SELECTED",
+        "reason": "practiced",
+        "selected_by": "miner",
+    }
+    path.write_text(_json.dumps(written))
+    shown = projection._epoch_outcome(1, path)
+    assert shown["status"] == "SELECTED" and shown["selected_by"] == "miner"
+    # Not another epoch's file, and not a foreign shape.
+    assert projection._epoch_outcome(2, path)["status"] == "READBACK_UNAVAILABLE"
+    path.write_text(_json.dumps({**written, "selected_by": "agent"}))
+    assert projection._epoch_outcome(1, path)["status"] == "READBACK_UNAVAILABLE"

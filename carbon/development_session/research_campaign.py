@@ -1655,9 +1655,13 @@ async def freeze_candidate(
         folder / "outcome.json",
         canonical(
             {
+                # The record first: a direct record names its own schema
+                # (carbon.direct-selected-recipe.v*), which must never replace
+                # the outcome's (M1 E2E H20: every direct epoch read
+                # READBACK_UNAVAILABLE while its result was graded).
+                **record,
                 "schema": "carbon.autoresearch.epoch-outcome.v1",
                 "epoch": epoch,
-                **record,
                 "selected_by": "miner",
                 "accounting": ledger.status(owner=owner),
                 "chain_transactions": 0,

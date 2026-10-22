@@ -118,6 +118,61 @@ def pointer_exists(directory):
     return (directory / "final/comparison-ref.json").is_file()
 
 
+#: A direct freeze's selected-recipe schemas (`research_campaign`).
+DIRECT_SELECTED_SCHEMAS = frozenset(
+    {"carbon.direct-selected-recipe.v1", "carbon.direct-selected-recipe.v2"}
+)
+
+
+def _epoch_outcome(epoch, outcome_path):
+    """One epoch's own-research outcome as observe shows it, or
+    READBACK_UNAVAILABLE for a file that is not one."""
+    try:
+        if outcome_path.is_symlink() or outcome_path.stat().st_size > 4 * 1024**2:
+            raise ValueError("bounded own-research outcome required")
+        outcome = json.loads(outcome_path.read_bytes())
+        if (
+            type(outcome) is dict
+            and outcome.get("schema") in DIRECT_SELECTED_SCHEMAS
+            and outcome.get("selected_by") == "miner"
+        ):
+            # Written before H20 by a direct freeze: its record's
+            # schema replaced the outcome's; the epoch is still its
+            # own and is checked below.
+            outcome = {
+                **outcome,
+                "schema": "carbon.autoresearch.epoch-outcome.v1",
+            }
+        if (
+            outcome.get("schema") != "carbon.autoresearch.epoch-outcome.v1"
+            or outcome.get("epoch") != epoch
+            or outcome.get("status")
+            not in {"SELECTED", "STOPPED", "RECONCILIATION_REQUIRED"}
+        ):
+            raise ValueError("research outcome association differs")
+        return {
+            "epoch": epoch,
+            "status": outcome["status"],
+            **_text_fields(outcome, {"reason", "stop_evidence"}),
+            "used_feedback": (
+                outcome.get("used_feedback")
+                if type(outcome.get("used_feedback")) is bool
+                else None
+            ),
+            "selected_by": (
+                "miner" if outcome.get("selected_by") == "miner" else "agent"
+            ),
+            "evidence_basis": "AGENT_OR_CONTROLLER_REPORTED_NOT_INDEPENDENT_SCIENCE",
+            "final_evidence": False,
+        }
+    except (OSError, ValueError, TypeError, AttributeError):
+        return {
+            "epoch": epoch,
+            "status": "READBACK_UNAVAILABLE",
+            "final_evidence": False,
+        }
+
+
 def _validator_outcome(epoch, path):
     """The validator's outcome for one submitted epoch, from the campaign's
     permitted feedback (the same allow-listed view the agent receives), or
@@ -624,47 +679,7 @@ def project(row, root):
         directory = root / ("epoch-" + str(epoch))
         outcome_path = directory / "outcome.json"
         if outcome_path.exists():
-            try:
-                if (
-                    outcome_path.is_symlink()
-                    or outcome_path.stat().st_size > 4 * 1024**2
-                ):
-                    raise ValueError("bounded own-research outcome required")
-                outcome = json.loads(outcome_path.read_bytes())
-                if (
-                    outcome.get("schema") != "carbon.autoresearch.epoch-outcome.v1"
-                    or outcome.get("epoch") != epoch
-                    or outcome.get("status")
-                    not in {"SELECTED", "STOPPED", "RECONCILIATION_REQUIRED"}
-                ):
-                    raise ValueError("research outcome association differs")
-                value["epoch_outcomes"].append(
-                    {
-                        "epoch": epoch,
-                        "status": outcome["status"],
-                        **_text_fields(outcome, {"reason", "stop_evidence"}),
-                        "used_feedback": (
-                            outcome.get("used_feedback")
-                            if type(outcome.get("used_feedback")) is bool
-                            else None
-                        ),
-                        "selected_by": (
-                            "miner"
-                            if outcome.get("selected_by") == "miner"
-                            else "agent"
-                        ),
-                        "evidence_basis": "AGENT_OR_CONTROLLER_REPORTED_NOT_INDEPENDENT_SCIENCE",
-                        "final_evidence": False,
-                    }
-                )
-            except (OSError, ValueError, TypeError, AttributeError):
-                value["epoch_outcomes"].append(
-                    {
-                        "epoch": epoch,
-                        "status": "READBACK_UNAVAILABLE",
-                        "final_evidence": False,
-                    }
-                )
+            value["epoch_outcomes"].append(_epoch_outcome(epoch, outcome_path))
         selected = directory / "selected-recipe.json"
         if selected.is_file():
             selection = json.loads(selected.read_bytes())
