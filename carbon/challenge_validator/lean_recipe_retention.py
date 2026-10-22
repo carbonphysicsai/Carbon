@@ -686,6 +686,9 @@ def _retain_selected_pack_evaluation(
         # Validator-only: Battery's adapter is never imported by the shared
         # dispatch, which miner surfaces reach (physical_adapters).
         physical_adapters.register(battery_dual_pack)
+        from carbon.scoring import battery_sealed_dual_pack, sealed_batch_source
+
+        sealed_batch_source.register(battery_sealed_dual_pack)
 
         source = snapshot.read_source_registration(private_root)
         # The daily allowance, the epoch limit and the exam key's age refuse here, before

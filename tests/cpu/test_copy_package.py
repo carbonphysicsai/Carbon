@@ -185,6 +185,10 @@ def test_the_producer_resolves_each_validators_copy_to_the_same_canonical_bank(
 ):
     from types import SimpleNamespace
 
+    from carbon.scoring import battery_sealed_dual_pack
+
+    # Validator-only registration, as the retention path does it.
+    source.register(battery_sealed_dual_pack)
     challenge, version, build, builder, kit = FORMATS[name]
     document, records = build()
     banks = []

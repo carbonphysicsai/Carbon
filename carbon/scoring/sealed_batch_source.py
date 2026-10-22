@@ -32,6 +32,23 @@ F08 = "f08-ribbed-bracket"
 BATTERY = "battery-fastcharge-ageing-development-v1"
 
 
+#: Challenge id -> sealed adapter module, registered by validator-only code.
+_REGISTERED = {}
+
+
+def register(module):
+    """Make a validator-side sealed adapter selectable (idempotent). Only Battery's
+    (whose pinned value modules reach the attack harness) is registered this way; a
+    different adapter already registered refuses."""
+    if module.CHALLENGE != BATTERY:
+        raise ValueError("only Battery's sealed adapter is registered")
+    known = _REGISTERED.get(module.CHALLENGE)
+    if known is not None and known is not module:
+        raise ValueError("a different sealed adapter is registered for this Challenge")
+    _REGISTERED[module.CHALLENGE] = module
+    return module
+
+
 class SealedBankRefused(ValueError):
     """A typed refusal; the code names the check, never the hidden content."""
 
@@ -133,8 +150,11 @@ def _adapter(challenge, bank, version, development_adapter):
 
         return cooling_dual_pack.sealed_adapter(version)
     if challenge == BATTERY:
-        from carbon.scoring import battery_sealed_dual_pack as sealed
-
+        # Validator-only, never imported here (its value modules reach the attack
+        # harness, which no miner surface may import): registered by validator code.
+        sealed = _REGISTERED.get(BATTERY)
+        if sealed is None:
+            return None
         try:
             return sealed.adapter_for_bank(bank, version)
         except ValueError:  # a population with no sealed grader
