@@ -76,3 +76,27 @@ def test_only_allow_listed_fields_reach_the_page():
 def test_the_block_is_read_from_the_practice_evaluators_outcome():
     # The producer's key (Test Engineer): outcome["practice_dual"].
     assert dual_feedback({"outcome": {"practice_dual": _block()}})["total"] == 0.61
+
+
+def test_a_validator_outcomes_practice_dual_reaches_the_submission_view(tmp_path):
+    # The Test Engineer's wiring (Motor outcome v2): outcome["practice_dual"].
+    import json
+
+    from scripts.dev.miner_launchpad import projection
+
+    path = tmp_path / "permitted-final-feedback.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "carbon.battery.permitted-feedback.v1",
+                "epoch": 1,
+                "outcome": {
+                    "state": "SCORED",
+                    "evidence": "DEVELOPMENT",
+                    "practice_dual": _block(hidden="secret"),
+                },
+            }
+        )
+    )
+    shown = projection._validator_outcome(1, path)["result"]["practice_dual"]
+    assert shown["total"] == 0.61 and "hidden" not in shown

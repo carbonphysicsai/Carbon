@@ -188,6 +188,13 @@ def _validator_outcome(epoch, path):
         }
         if direct:
             result["grade"] = _grade(_latest_ladder(path, document))
+        if type(outcome.get("practice_dual")) is dict:
+            # C13: the evaluator's practice dual block, allow-listed.
+            from scripts.dev.miner_launchpad.campaign_view import dual_feedback
+
+            result["practice_dual"] = dual_feedback(
+                {"practice_dual": outcome["practice_dual"]}
+            )
     except (OSError, ValueError, TypeError, KeyError):
         return unavailable
     return {
@@ -542,6 +549,10 @@ def project(row, root):
                                     "diagnostics",
                                     "inline_curve",
                                     "inline_curve_indices",
+                                    # The graded dual measurement on the
+                                    # public bank (C13), read allow-listed
+                                    # by campaign_view.dual_feedback.
+                                    "practice_dual",
                                 )
                                 if k in result
                             },

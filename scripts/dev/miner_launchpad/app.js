@@ -2726,6 +2726,14 @@
     if (!freezes.length && !recipes.length) missing(panel, "the controller does not expose trained weights or files; recipes and frozen candidates appear here once recorded.");
     researchNote(panel, "Export gives the full public record of this campaign as JSON.", "hint");
   }
+  // C13: the evaluator's graded total on the public practice bank, gates
+  // first; the same reading the practice view gives every Challenge.
+  function practiceDualLine(dual) {
+    if (!dual.available) return "Practice graded total: unavailable" + (dual.reason ? " (" + words(dual.reason) + ")" : "") + ".";
+    if (!dual.eligible) return "Practice graded total: not eligible (" + (Object.entries(dual.gates || {}).filter(([, ok]) => !ok).map(([name]) => words(name)).join(", ") || "a mandatory gate failed") + ").";
+    if (typeof dual.total !== "number") return "Practice graded total: not scored.";
+    return "Practice graded total: " + dual.total.toFixed(4) + " (0 to 1, higher is better" + (typeof dual.accuracy === "number" ? "; A " + dual.accuracy.toFixed(3) : "") + (typeof dual.design_value === "number" ? ", D " + dual.design_value.toFixed(3) : "") + "), on the public practice bank; compares within this Challenge version only.";
+  }
   function gradeLine(grade) {
     const latest = grade && grade.latest;
     if (!latest) return "Grade: not graded yet. It appears here once the validator grades this submission.";
@@ -2752,6 +2760,7 @@
       // graded total 0..1, higher better, A and D as detail; a gate failure
       // is not eligible; none yet until the receiver grades it.
       ...(o.grade !== undefined ? [gradeLine(o.grade)] : []),
+      ...(o.practice_dual ? [practiceDualLine(o.practice_dual)] : []),
       (o.evidence || "DEVELOPMENT") + ": no qualification, no reward, no chain write.",
     ];
     for (const line of lines) researchNote(panel, line, "development-result");
