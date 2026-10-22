@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -420,3 +421,45 @@ def test_outputs_must_be_finite_rows_of_the_interface(tmp_path, monkeypatch):
     recipe = catalog_recipe(BATTERY_CATALOG, STAND_IN, version="2.2")
     with pytest.raises(ValueError, match="battery_catalog_practice_output_invalid"):
         item("battery-catalog-0002", recipe)
+
+
+# --- the launch version: offered, with a runnable example ---------------------
+
+
+def test_the_launch_offers_2_2_as_battery_s_newest_version():
+    from scripts.dev.miner_launchpad import capabilities
+
+    listed = [
+        entry
+        for entry in capabilities.control_center(None)["challenges"]
+        if entry["challenge_id"] == BATTERY and entry["implemented"]
+    ]
+    versions = [tuple(int(p) for p in e["version"].split(".")) for e in listed]
+    # Latest-version-only: the page offers each Challenge's newest version.
+    assert max(versions) == (2, 2)
+    assert {e["version"] for e in listed} == {"1.0", "2.2"}
+
+
+def test_describe_offers_a_catalog_example_practice_accepts(monkeypatch):
+    from carbon.development_session.research_service import (
+        construction_recipe_issues,
+    )
+    from scripts.dev.miner_launchpad import toolbox
+
+    inject(monkeypatch, BATTERY, "2.2")
+    document = describe(BATTERY, "2.2")
+    (example,) = document["examples"]
+    recipe = example["recipe"]
+    assert recipe["source"]["catalog_id"] == STAND_IN
+    key = campaign_for(CHALLENGE).key
+    assert construction_recipe_issues(recipe, key) == ()
+    toolbox._catalog_recipes.cache_clear()
+    try:
+        offered = json.loads(toolbox._catalog_recipes(BATTERY, "2.2"))
+    finally:
+        toolbox._catalog_recipes.cache_clear()
+    assert [item["catalog_id"] for item in offered] == [STAND_IN]
+    assert construction_recipe_issues(offered[0]["recipe"], key) == ()
+    # The older versions offer no catalog.
+    for version in ("1.0", "2.0", "2.1"):
+        assert listing.entries(BATTERY, version) == []
