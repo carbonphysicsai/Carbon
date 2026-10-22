@@ -102,7 +102,7 @@ if [ "$MODE" = u_coverage ]; then
   ( cd "$repo" && PY "$HERE/u_coverage.py" plan "$CHALLENGE_KEY" "$out/plan.json" ) > "$out/plan.log"
   ( cd "$repo" && PY "$HERE/u_coverage.py" disjoint "$CHALLENGE_KEY" "$priv/config.json" "$out/plan.json" ) > "$out/disjoint.json" \
     || { echo "STOP: a coverage geometry equals a sealed one (see disjoint.json)" >&2; exit 1; }
-  ( cd "$repo" && env "$RUNNER_IMAGE_ENV=$RUNNER_IMAGE_VALUE" PY "$repo/$RUNNER" "$out/plan.json" --out "$out/run" \
+  ( cd "$repo" && export "$RUNNER_IMAGE_ENV=$RUNNER_IMAGE_VALUE" && PY "$repo/$RUNNER" "$out/plan.json" --out "$out/run" \
       --parallel "${PARALLEL:-8}" --timeout-s 7200 --keep none ) > "$out/run.log" 2>&1 \
     || { echo "STOP: the coverage run failed (see run.log)" >&2; exit 1; }
   ( cd "$repo" && PY "$HERE/u_coverage.py" compute "$CHALLENGE_KEY" "$out/run/records.jsonl" "$out/u-coverage.json" )
@@ -124,9 +124,12 @@ sample() {
   done
 }
 cp "$STATE/probe-plan.json" "$out/"
-sample "$out/probe.resources.log" & sampler=$!
+# the sampler must not inherit the host-lock descriptor (9), or a dead run would keep the lock
+sampler=""
+trap 'if [ -n "$sampler" ]; then kill "$sampler" 2>/dev/null || true; fi' EXIT
+sample "$out/probe.resources.log" 9>&- & sampler=$!
 probe_rc=0
-( cd "$repo" && env "$RUNNER_IMAGE_ENV=$RUNNER_IMAGE_VALUE" PY "$repo/$RUNNER" "$out/probe-plan.json" --out "$out/probe" \
+( cd "$repo" && export "$RUNNER_IMAGE_ENV=$RUNNER_IMAGE_VALUE" && PY "$repo/$RUNNER" "$out/probe-plan.json" --out "$out/probe" \
     --parallel "$PROBE_PARALLEL" --timeout-s 7200 --keep none ) > "$out/probe.log" 2>&1 || probe_rc=$?
 kill "$sampler" 2>/dev/null || true
 PY - "$out" "$probe_rc" "$(awk 'BEGIN{m=0} {if($2>m)m=$2} END{print m}' "$out/probe.resources.log")" \
