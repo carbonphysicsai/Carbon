@@ -65,7 +65,7 @@ def test_the_registration_is_the_grid_family_beside_the_placed_one():
     family = motor_sealed_grid_family()
     assert (family.challenge_id, family.challenge_version) == (MOTOR, "1.1")
     assert family.population_version == population.POPULATION_VERSION
-    assert family.population_version == "carbon.motor.sealed-grid-5x6.v1"
+    assert family.population_version == "carbon.motor.sealed-grid-5x6.v2"
     assert family.document_schema != placed.DOCUMENT_SCHEMA
     assert family.batch_cases == 30 and family.image == placed.SOLVER_IMAGE
     assert issubclass(MotorSealedGridBatchSource, FamilySource)
@@ -93,9 +93,14 @@ def test_a_draw_is_a_full_buildable_5_by_6_grid_meeting_the_placement(drawn_grid
     ok_t, ok_r = torque >= 4.0, ripple <= 0.30
     assert 16 <= ok_t.sum() <= 19 and 16 <= ok_r.sum() <= 19
     feasible = (ok_t & ok_r).reshape(5, 6)  # design-major, as drawn
-    assert 1 <= feasible.all(axis=1).sum() <= 3
-    assert feasible.any(axis=0).all() and not feasible.all(axis=0).any()
+    assert feasible.all(axis=1).sum() >= 2 and not feasible.all(axis=0).any()
+    # C17 fallback: 2 to 3 designs cleared at every condition at U-only clearance, and every condition has one
+    clear = (torque >= 4.0 + 0.0052) & (ripple <= 0.30 - 0.026)
+    sure = clear.reshape(5, 6)
+    assert 2 <= sure.all(axis=1).sum() <= 3 and sure.any(axis=0).all()
     assert tries >= 1
+    stored = population.placement_predictions(cases)
+    assert len(stored) == 30 and set(stored[0]) == {"predicted_mean_torque_nm", "predicted_ripple_fraction"}
 
 
 def test_a_seed_without_a_grid_raises_and_the_next_role_is_a_new_seed():
@@ -220,3 +225,17 @@ def test_cells_within_u_of_a_limit_are_unresolved_not_feasible():
     assert dc.label(3.9, 0.1, *U) == dc.INFEASIBLE
     with pytest.raises(ValueError):
         dc.label(float("nan"), 0.1, *U)
+
+
+def test_the_clearance_rule_refuses_without_a_measured_value_and_the_full_one_places_nothing():
+    with pytest.raises(RuntimeError, match="placement_clearance_unavailable"):
+        population.draw_v2(random.Random(1), population.CELLS, None)
+    with pytest.raises(RuntimeError, match="placement_clearance_unavailable"):
+        population.draw_v2(random.Random(1), population.CELLS, {"mean_torque_nm": 0.4362})
+    full = {  # the measured clearance (90 cells): torque 0.4362, ripple e 0.9138 with U 0.026
+        "mean_torque_nm": 0.4362,
+        "ripple_fraction_log_ratio": 0.9138,
+        "ripple_fraction_u": 0.026,
+    }
+    with pytest.raises(RuntimeError, match="placed no grid"):
+        population.draw_v2(random.Random(0), population.CELLS, full, max_attempts=3000)
