@@ -2155,7 +2155,10 @@ class EnvironmentSetup:
                 + str(revision)[:12]
             )
         head = checkout_revision()
-        if head != stamp["revision"]:
+        # Judged only on what can be read: a HEAD git cannot report now (a
+        # busy or locked checkout) is no evidence the checkout moved, and
+        # read as moved it sent a running miner to reinstall (M1 E2E R6-2).
+        if head is not None and head != stamp["revision"]:
             reasons.append(
                 "this checkout is at "
                 + str(head)[:12]

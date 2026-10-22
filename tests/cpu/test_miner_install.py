@@ -438,6 +438,13 @@ case "$2" in
           echo no
         fi ;;
     esac ;;
+  scripts.dev.miner_launchpad.superseded_images)
+    # Carbon's own images from earlier installs (R6-1): the one the test
+    # names, if any.
+    case "$3" in
+      list) [ -z "${CARBON_TEST_OLD_IMAGES:-}" ] || echo "  ${CARBON_TEST_OLD_IMAGES}  (1.2GB)" ;;
+      remove) echo "  removed ${CARBON_TEST_OLD_IMAGES}" ;;
+    esac ;;
   scripts.dev.worker_image_release)
     # pull --record RECORD --out MANIFEST: pulls nothing; a named kind fails.
     case "$5" in
@@ -900,6 +907,32 @@ def test_one_filesystem_for_the_checkout_and_images_needs_room_for_both(sandbox)
     assert "need 17 GiB free" in completed.stderr
     assert "13 GiB are free" in completed.stderr
     assert sandbox.logged() == []
+
+
+def test_short_space_offers_carbons_old_images_and_removes_them_only_on_yes(sandbox):
+    """M1 E2E R6-1: earlier installs' images filled the disk until an update
+    stopped at this check. Carbon's own superseded images are listed, and
+    removed only on the miner's yes (here --remove-old-images, since no
+    terminal answers); with enough space nothing is listed."""
+    old = "carbon-c03-worker:0123456789abcdef"
+    sandbox._executable(sandbox.clone / ".venv" / "bin" / "python", FAKE_PYTHON)
+    fake_df(sandbox, 13 * 1048576)
+    asked = sandbox.run("--no-start", CARBON_TEST_OLD_IMAGES=old)
+    assert asked.returncode == 2  # still short: nothing was removed
+    assert "Carbon's own images from earlier installs" in asked.stdout
+    assert old in asked.stdout
+    assert "Kept them" in asked.stdout and "--remove-old-images" in asked.stdout
+    assert not any("superseded_images remove" in line for line in sandbox.logged())
+    removed = sandbox.run(
+        "--no-start", "--remove-old-images", CARBON_TEST_OLD_IMAGES=old
+    )
+    assert "removed " + old in removed.stdout
+    assert any("superseded_images remove" in line for line in sandbox.logged())
+    sandbox.log.unlink()
+    fake_df(sandbox, 1024 * 1048576)
+    roomy = sandbox.run("--no-start", CARBON_TEST_OLD_IMAGES=old)
+    assert "earlier installs" not in roomy.stdout
+    assert not any("superseded_images" in line for line in sandbox.logged())
 
 
 def test_two_filesystems_each_need_only_their_own_share(sandbox):

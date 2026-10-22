@@ -723,6 +723,61 @@ def test_recheck_leaves_a_remote_setup_and_a_moved_checkout_to_their_owners(
     assert refused.value.next_step == REINSTALL_STEP
 
 
+def test_a_stale_check_that_blocks_nothing_reads_done_on_the_step_and_the_list(
+    tmp_path, state, head
+):
+    """M1 E2E R6-2: the compute step read "next" while launches ran, and
+    agents could not tell whether it blocked. A stale check under a profile
+    that still describes this install reads done, with why and the one
+    click; once the profile no longer does, it blocks, and says so."""
+    from scripts.dev.miner_launchpad import setup_operations
+
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Current())
+    made = completed(tmp_path, setup)
+    setup.review({"confirm": True})
+    # The manifest is written again, naming the same image: the check is
+    # stale, the profile (pinned by image ID) is not.
+    worker = Path(made["worker.json"])
+    worker.write_text(json.dumps({**json.loads(worker.read_bytes()), "note": 1}))
+    assert setup.state()["steps"]["compute"]["stale"]
+    for door in (setup_operations.MCP, setup_operations.HTTP):
+        view = setup_operations.status(setup, door=door)
+        row = next(r for r in view["steps"] if r["id"] == "compute")
+        assert row["state"] == "done" and "compute" in view["done"]
+        assert row["blocks_launch"] is False
+        assert row["stale"] == ["the worker image was rebuilt since the check"]
+        assert "launches work" in row["note"]
+        assert row["recheck"] == setup_operations.call("recheck", door)
+        assert view["next"]["step"] == "launch"
+        # The step and the list agree, row by row.
+        assert view["done"] == [
+            r["id"]
+            for r in view["steps"]
+            if r["blocks_launch"] is False and r["state"] == "done"
+        ]
+    # The profile no longer loads: now the stale check blocks.
+    setup.profile_path.unlink()
+    view = setup_operations.status(setup, door=setup_operations.MCP)
+    row = next(r for r in view["steps"] if r["id"] == "compute")
+    assert row["state"] == "next" and row["blocks_launch"] is True
+    assert row["missing"] == ["compute_check_is_stale"]
+    assert "compute" not in view["done"]
+
+
+def test_a_head_git_cannot_read_is_not_a_moved_checkout(tmp_path, state, head):
+    """M1 E2E R6-2: judged only on what can be read; a busy checkout whose
+    HEAD git could not report sent a running miner to reinstall."""
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Reinstalled())
+    completed(tmp_path, setup)
+    rebuild(tmp_path, state, REVISION)
+    setup.after_install()
+    assert "stale" not in setup.state()["steps"]["compute"]
+    head["revision"] = None
+    assert "stale" not in setup.state()["steps"]["compute"]
+    head["revision"] = NEW
+    assert setup.state()["steps"]["compute"]["next_step"] == REINSTALL_STEP
+
+
 def test_after_install_needs_the_installed_images(state, head):
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Reinstalled())
     with pytest.raises(SetupRefused) as refused:
