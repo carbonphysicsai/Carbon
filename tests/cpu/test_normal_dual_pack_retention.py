@@ -376,6 +376,8 @@ def test_normal_retention_routes_trusted_fixture_to_same_core(
         result["score_state"] == "NOT_COMPUTED" and result["official_eligible"] is False
     )
     assert result["private_evaluation_state"] == "BOUND_DEVELOPMENT_ONLY"
+    # The graded row is a regrade-only, operator-only field of a pack set batch.
+    assert "graded_row" not in result
     binding = json.loads(result["private_evaluation_path"].read_bytes())
     # A graph recipe binds the paired form the KOTH comparison requires.
     assert binding["schema"] == "carbon.scoring.private-evaluation-binding.v4"

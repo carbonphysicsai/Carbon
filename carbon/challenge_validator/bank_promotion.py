@@ -331,20 +331,29 @@ class BankPromotion:
             raise TypeError("a BankResult is required")
         raise StateError("evaluation_binding_unavailable")
 
-    def consider_private(self, submission_id, evaluation_key, comparator):
+    def consider_private(
+        self, submission_id, evaluation_key, comparator, *, sealed=False
+    ):
         """King of the hill on one shared evaluation key, DEVELOPMENT only.
 
         The contender meets the incumbent's retained evidence for the same
         key (`private_pair`); `compare_private_pair` decides. A win moves the
         incumbent with the reason `bank_comparison_development`, which the
         reward layer refuses to pay (`PROMOTION_DEVELOPMENT_ONLY`).
+
+        ``sealed`` is true only when the comparison ran on a pack delivered
+        through the answer-key route (`SealedPackStore.delivered`, decided by
+        the receiver; never the pack's shape). Its win
+        then carries `bank_comparison_sealed_testnet`, which the reward layer
+        pays only under a testnet policy (Workstream I5).
         """
+        reason = SEALED_TESTNET_PROMOTION if sealed else DEVELOPMENT_PROMOTION
         pair = self.private_pair(submission_id, evaluation_key)
         outcome = compare_private_pair(pair, comparator)
         if outcome["outcome"] in (FIRST_INCUMBENT, CHALLENGER):
             self.store.set_incumbent(
                 submission_id,
-                DEVELOPMENT_PROMOTION,
+                reason,
                 expected=pair["expected_incumbent"],
             )
         elif outcome["outcome"] == DETHRONED:
@@ -359,6 +368,10 @@ class BankPromotion:
 PAIRED_BINDING = "carbon.scoring.private-evaluation-binding.v4"
 COMPARATOR_SCHEMA = "carbon.challenge-validator.bank-comparator.v1"
 DEVELOPMENT_PROMOTION = "bank_comparison_development"
+#: A crown won on a sealed evaluation pack. The reward layer pays it only
+#: under a testnet policy; a mainnet policy refuses it until qualification
+#: (invariant 5; frontier promotion stays separate, 7.7).
+SEALED_TESTNET_PROMOTION = "bank_comparison_sealed_testnet"
 SCORED = "SCORED_DEVELOPMENT_CANDIDATE"
 #: Statuses that say nothing about the model: infrastructure or evidence,
 #: never a science failure, so they can neither win nor be dethroned.
