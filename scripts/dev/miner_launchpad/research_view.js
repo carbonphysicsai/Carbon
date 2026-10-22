@@ -280,7 +280,9 @@
     const head = el("div", undefined, "rs-head");
     const title = el("div", undefined, "rs-title");
     const challenge = doc.campaign.challenge;
-    title.append(el("p", "Campaign · " + doc.labels.mode + " · " + doc.labels.network + " " + doc.labels.netuid, "eyebrow section-label"));
+    const eyebrow = el("p", "Campaign · " + (doc.labels.mode === "DEVELOPMENT" ? "Practice" : words(doc.labels.mode)) + " · " + (String(doc.labels.network).toLowerCase() === "testnet" ? "Test network" : words(doc.labels.network)), "eyebrow section-label");
+    eyebrow.title = "Network " + doc.labels.network + ", subnet " + doc.labels.netuid;
+    title.append(eyebrow);
     title.append(el(compact ? "h3" : "h2", challenge ? plainTitle(challenge.title || challenge.id) + " · v" + challenge.version : "Older practice campaign"));
     const meta = el("div", undefined, "rs-meta");
     meta.append(CC.pill(words(doc.campaign.state), stateKind(doc.campaign.state)));
@@ -373,8 +375,8 @@
         note.append(bar, el("span", "Your ceiling: " + money(t.spend.ceiling_nanodollars), "hint"));
       } else note.append(el("span", "No ceiling set: Carbon caps nothing.", "hint"));
       note.append(el("span", "Billed by your provider to you. Carbon bills nothing.", "hint"));
-      tile("Model spend · your ledger", money(t.spend.used_nanodollars), note);
-    } else tile("Model spend · your ledger", "No ledger yet", el("span", "Appears once the campaign ledger exists.", "hint"));
+      tile("Model spend · your record", money(t.spend.used_nanodollars), note);
+    } else tile("Model spend · your record", "Nothing yet", el("span", "Appears once the campaign starts spending.", "hint"));
     const runs = el("div");
     if (typeof t.practice_runs.attempted === "number") runs.append(el("span", "completed, of " + t.practice_runs.attempted + " attempted", "hint"));
     runs.append(el("span", t.trials && typeof t.trials.ceiling === "number" ? "Trials used " + t.trials.used + " of your " + t.trials.ceiling : "Trials used " + (t.trials ? t.trials.used : 0) + " · no cap set", "hint"));
@@ -1398,7 +1400,7 @@
     box.append(list);
     para(box, "Provider payloads, worker output and errors stay private to the campaign; this shows operation states only.", "hint");
     const usage = run && run.usage;
-    const res = section(panel, "Resources", "Your ledger");
+    const res = section(panel, "Resources", "Your record");
     if (!usage) { para(res, "Appears once the campaign ledger exists.", "hint"); return; }
     // Every column in the unit your limit is set in (LP-PROD-F).
     CC.usageTable(res, usage);
