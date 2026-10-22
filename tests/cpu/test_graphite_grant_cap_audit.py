@@ -267,7 +267,12 @@ def test_v6_rebinds_the_streamed_provider_source_and_preserves_v5():
     directory = audit.ROOT / "docs/development/evidence/role-output-cap-audit"
     previous_bytes = (directory / "audit-v5.json").read_bytes()
     previous = json.loads(previous_bytes)
-    current = json.loads((directory / "audit-v6.json").read_bytes())
+    current_bytes = (directory / "audit-v6.json").read_bytes()
+    current = json.loads(current_bytes)
+    # V6 is historical: v7 below re-pins model_provider.py after limits #8.
+    assert hashlib.sha256(current_bytes).hexdigest() == (
+        "0829494cbceddae24d8351e08f37c047c461265177d756735de6a5e45ca60dce"
+    )
     assert current.pop("snapshot_version") == 6
     assert current.pop("source_revision") == (
         "356df4481cb7fbf2a6fec62b26d585e0b1e06ffb"
@@ -277,9 +282,6 @@ def test_v6_rebinds_the_streamed_provider_source_and_preserves_v5():
         "sha256": hashlib.sha256(previous_bytes).hexdigest(),
         "grant_count": 35,
     }
-    # Keep exact current-source regeneration: every public file hash, source
-    # pin, registered selection and capacity must match the real audit.
-    _assert_snapshot_matches_current(current)
     assert current["grant_count"] == 35
     assert current["grants"] == previous["grants"]
     assert current["profiles"] == previous["profiles"]
@@ -293,8 +295,44 @@ def test_v6_rebinds_the_streamed_provider_source_and_preserves_v5():
     assert changed_sources == {"carbon/development_session/model_provider.py"}
 
 
+def test_v7_rebinds_the_miner_selection_bounds_and_preserves_v6():
+    directory = audit.ROOT / "docs/development/evidence/role-output-cap-audit"
+    previous_bytes = (directory / "audit-v6.json").read_bytes()
+    previous = json.loads(previous_bytes)
+    current = json.loads((directory / "audit-v7.json").read_bytes())
+    assert current.pop("snapshot_version") == 7
+    assert current.pop("source_revision") == (
+        "14f4318ccd279fb26550dbe83e0feeb1163baec4"
+    )
+    assert current.pop("supersedes") == {
+        "path": "docs/development/evidence/role-output-cap-audit/audit-v6.json",
+        "sha256": hashlib.sha256(previous_bytes).hexdigest(),
+        "grant_count": 35,
+    }
+    # Keep exact current-source regeneration: every public file hash, source
+    # pin, registered selection and capacity must match the real audit.
+    _assert_snapshot_matches_current(current)
+    assert current["grants"] == previous["grants"]
+    assert current["profiles"] == previous["profiles"]
+    changed_sources = {
+        path
+        for path, value in current["source_sha256"].items()
+        if value != previous["source_sha256"][path]
+    }
+    # model_provider.py: limits row #8, miner selections only (Carbon's own
+    # Graphite keeps its bounds); no grant, price, cap or capacity row changed.
+    assert changed_sources == {"carbon/development_session/model_provider.py"}
+
+
 @pytest.mark.parametrize(
-    "name", ["audit-v2.json", "audit-v3.json", "audit-v4.json", "audit-v5.json"]
+    "name",
+    [
+        "audit-v2.json",
+        "audit-v3.json",
+        "audit-v4.json",
+        "audit-v5.json",
+        "audit-v6.json",
+    ],
 )
 def test_historical_source_pins_cannot_pass_current_regeneration_control(name):
     directory = audit.ROOT / "docs/development/evidence/role-output-cap-audit"
