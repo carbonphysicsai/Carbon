@@ -78,6 +78,42 @@ def grid_layout(rows, *, design_of, condition_of, shape, refuse, cohort=GRID_COH
     return GridLayout(tuple(designs), tuple(conditions), cells, tuple(indices))
 
 
+class _NotAGrid(Exception):
+    pass
+
+
+def _not_a_grid(_code):
+    raise _NotAGrid
+
+
+def is_grid_bank(cohorts, records, *, shape, design_of, condition_of):
+    """Whether a bank declares the sealed grid population: every cohort is
+    `GRID_COHORT` and the records are a complete grid of ``shape`` (the
+    graders' dispatch by the bank's declared population). ``design_of`` and
+    ``condition_of`` read a record's cell ids."""
+    if (
+        type(cohorts) not in (tuple, list)
+        or type(records) not in (tuple, list)
+        or len(cohorts) != len(records)
+        or not cohorts
+        or any(c != GRID_COHORT for c in cohorts)
+        or any(type(r) is not dict for r in records)
+    ):
+        return False
+    rows = [{"cohort": GRID_COHORT, "record": r} for r in records]
+    try:
+        grid_layout(
+            rows,
+            design_of=lambda row: design_of(row["record"]),
+            condition_of=lambda row: condition_of(row["record"]),
+            shape=shape,
+            refuse=_not_a_grid,
+        )
+    except _NotAGrid:
+        return False
+    return True
+
+
 def decision_objective(layout, contract):
     """The objective document Motor's registered decision workflow reads
     (`motor_dual_measurement._decision`): the grid's own design and condition
@@ -89,4 +125,10 @@ def decision_objective(layout, contract):
     }
 
 
-__all__ = ["GRID_COHORT", "GridLayout", "decision_objective", "grid_layout"]
+__all__ = [
+    "GRID_COHORT",
+    "GridLayout",
+    "decision_objective",
+    "grid_layout",
+    "is_grid_bank",
+]
