@@ -944,3 +944,18 @@ def minimal_profile(tmp_path):
     path.write_bytes(canonical(cfg))
     path.chmod(0o600)
     return path
+
+
+def test_a_model_provider_failure_names_the_provider_and_what_to_do():
+    # M1 E2E U24: a provider timeout read only "campaign interrupted".
+    from carbon.development_session.model_provider import ProviderOutcome
+    from carbon.development_session.research_agent import ProviderCallFailed
+    from scripts.dev.miner_launchpad import supervisor
+
+    for outcome in ProviderOutcome:
+        code = supervisor.provider_interruption_code(
+            ProviderCallFailed("private", outcome=outcome)
+        )
+        assert code == "model_provider_" + outcome.value
+        assert "model provider" in supervisor.NEXT_ACTIONS[code]
+    assert supervisor.provider_interruption_code(ValueError("x")) is None

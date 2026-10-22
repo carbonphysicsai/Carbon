@@ -5043,7 +5043,9 @@ class RunnerAdapter:
             self._state(identity, "INTERRUPTED")
             self._refused(
                 identity,
-                exception_code(exc) or "operation_interrupted",
+                exception_code(exc)
+                or supervision.provider_interruption_code(exc)
+                or "operation_interrupted",
                 operation,
                 kind="interrupted",
             )
@@ -5343,7 +5345,9 @@ class RunnerAdapter:
                     self._state(run_id, "INTERRUPTED")
                     self._refused(
                         run_id,
-                        exception_code(exc) or "campaign_interrupted",
+                        exception_code(exc)
+                        or supervision.provider_interruption_code(exc)
+                        or "campaign_interrupted",
                         "run",
                         kind="interrupted",
                     )

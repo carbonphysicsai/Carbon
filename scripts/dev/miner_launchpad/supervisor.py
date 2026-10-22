@@ -255,6 +255,45 @@ NEXT_ACTIONS = {
         "The campaign stopped before it finished. Resume it; reconcile first "
         "if it asks for reconciliation."
     ),
+    # M1 E2E U24: the model provider, not the campaign, failed the call.
+    "model_provider_unknown": (
+        "Your model provider did not answer the agent's call in time, or its "
+        "answer could not be read. Reconcile, then Resume; if it repeats, "
+        "lower the max output per reply or choose a faster model."
+    ),
+    "model_provider_transient_server": (
+        "Your model provider failed the agent's call with a server error. "
+        "Reconcile, then Resume; if it repeats, try again later or choose "
+        "another model."
+    ),
+    "model_provider_server_unavailable": (
+        "Your model provider was unavailable. Resume later; nothing was "
+        "charged for that call."
+    ),
+    "model_provider_unreachable": (
+        "Your model provider could not be reached from this machine (no "
+        "connection or no such host). Check the network, then Resume."
+    ),
+    "model_provider_rate_limited": (
+        "Your model provider rate-limited the agent. Wait, then Resume."
+    ),
+    "model_provider_quota_exhausted": (
+        "Your model provider says your account's quota or credit is used up. "
+        "Add credit with the provider, then Resume."
+    ),
+    "model_provider_auth_credential": (
+        "Your model provider refused the key. Set a working key under Set "
+        "up, Inference, then Resume."
+    ),
+    "model_provider_context_limit": (
+        "Your model provider refused the agent's request as longer than the "
+        "model accepts. Choose a model with a longer context, or launch a new "
+        "campaign."
+    ),
+    "model_provider_invalid_request": (
+        "Your model provider rejected the agent's request as invalid. Choose "
+        "another model, or launch a new campaign."
+    ),
     "paused_when_supervisor_closed": (
         "The Control Center (or the supervisor running this campaign) closed, "
         "so the campaign was paused, not stopped. Resume it to continue."
@@ -1524,6 +1563,17 @@ FALLBACK_ACTION = (
 def next_action(code):
     """The next step for `code`: its `NEXT_ACTIONS` entry, or the fallback."""
     return NEXT_ACTIONS.get(code, FALLBACK_ACTION)
+
+
+def provider_interruption_code(exc):
+    """`model_provider_<outcome>` for a model-provider call that ended a run
+    (`research_agent.ProviderCallFailed`, its typed outcome), else None; never
+    the message (M1 E2E U24: the page said only campaign_interrupted)."""
+    outcome = getattr(getattr(exc, "outcome", None), "value", None)
+    if type(outcome) is not str or type(exc).__name__ != "ProviderCallFailed":
+        return None
+    code = "model_provider_" + outcome
+    return code if code in NEXT_ACTIONS else None
 
 
 def exception_code(exc):
