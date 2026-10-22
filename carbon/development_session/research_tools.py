@@ -95,15 +95,15 @@ TASK_CORRECTIONS = {
         "(entrypoint, configuration, train_use, initial_state null) and output "
         "(format and the kit's interface_digest). A Level 0 strategy "
         "(schema_version, challenge_id, backbone, parameters) is not a recipe "
-        "here. For a ready recipe, where the discovery document lists "
-        "scaffold_recipe: call start_research_task with kind=workspace, "
-        'action=public_material and the arguments {"name": '
-        '"scaffold_recipe"}. It stages the published scaffold graph in '
-        "your workspace and returns the recipe document to practise, as it is "
-        "or edited. Where it lists catalog instead (one of Carbon's tested "
-        'backbones by catalog id), public_material with {"name": '
-        '"catalog"} returns the entries, their settings and a ready '
-        "recipe. The recipe's own refusal is listed."
+        "here. For a ready recipe, call start_research_task with "
+        'kind=workspace, action=public_material and the arguments {"name": '
+        '"scaffold_recipe"}: where a scaffold graph is published it stages it '
+        "in your workspace and returns its recipe; on a catalog version it "
+        "returns one ready recipe (or template) for each source kind the "
+        "version takes. Practise one as it is or edited. "
+        'public_material {"name": "catalog"} returns the catalog entries and '
+        "their settings. Listed below: the recipe's own refusal and the "
+        "source kinds this version takes (source.<kind>)."
     ),
     "json_string_required": (
         "This field carries JSON encoded as a string: send the object as a "
@@ -180,6 +180,16 @@ TASK_CORRECTIONS = {
     "tool_text_bounded": (
         "hypothesis and expected_effect are each a string of 1 to 2048 "
         "characters, stated before the result is known."
+    ),
+    "strategy_control_field_forbidden": (
+        "strategy_json holds a key the research request refuses anywhere in a "
+        "strategy (a data, path, seed, reference, scoring, key or context "
+        "control); the forms it matched are listed below. A graph recipe's "
+        "procedure.train_use.dataset is one, so dry_validate, "
+        "compile_strategy, inspect_resources and forecast_resources cannot "
+        "carry a graph recipe: practise it instead (start_research_task "
+        "kind=practice), which checks the version's recipe rule before "
+        "anything starts or is charged."
     ),
     "tool_value_invalid": (
         "This argument's value is outside what the tool's schema allows; the "
@@ -329,6 +339,10 @@ _CHOICE = re.compile(r"[A-Za-z0-9_.:+-]{1,96}\Z")
 
 #: The closed codes `construction_recipe.ConstructionRecipe` refuses with;
 #: a test holds this equal to that module's own list.
+#: A construction recipe's source kinds as a correction lists them.
+RECIPE_SOURCE_CHOICES = tuple(
+    "source." + kind for kind in ("graph", "bundle", "catalog")
+)
 RECIPE_REFUSAL_CODES = frozenset(
     {
         "construction_recipe_binding_mismatch",
@@ -381,7 +395,10 @@ def _correction_choices():
         # catalog version's catalog codes (`backbone_catalog.entries`).
         "direct_recipe_required": RECIPE_REFUSAL_CODES
         | frozenset(CATALOG_REFUSAL_CODES)
-        | catalog_setting_choices(),
+        | catalog_setting_choices()
+        | frozenset(RECIPE_SOURCE_CHOICES),
+        # The forms the research wire refuses as a strategy key.
+        "strategy_control_field_forbidden": frozenset(strategy_forbidden_forms()),
     }
 
 
@@ -501,6 +518,24 @@ def _registered_argument(field):
 #: The start_research_task fields whose value is either a string or JSON null.
 NULLABLE_TASK_FIELDS = ("strategy_json", "action", "arguments_json")
 
+#: What a workspace argument holds, said after a correction that names it
+#: (M1 G5d: workspace_field_missing arguments_json.files left an agent
+#: guessing). Carbon's own wording for its registered fields.
+FIELD_HINTS = {
+    "arguments_json.files": (
+        "files is a list of your own workspace filenames to stage beside the "
+        "code (for example the train file public_material training_data "
+        "wrote); [] stages none. inventory lists your files."
+    ),
+    "arguments_json.expected_digest": (
+        "expected_digest is the file's current sha256 as inventory lists it, "
+        "or null to create a new file."
+    ),
+    "arguments_json.content_base64": (
+        "content_base64 is the whole file's bytes, base64-encoded."
+    ),
+}
+
 
 def task_correction(code, field, value, *, choices=(), tool=None):
     """The correction for one broken field: what it must hold, the values
@@ -511,6 +546,8 @@ def task_correction(code, field, value, *, choices=(), tool=None):
     if choices:
         text += " Allowed here: " + ", ".join(choices) + "."
     text += " The field that broke the contract: " + field + "."
+    if field in FIELD_HINTS:
+        text += " " + FIELD_HINTS[field]
     if tool is not None:
         text += " The tool: " + tool + "."
     if value == "null":
@@ -808,11 +845,25 @@ ARGUMENT_NORMALISATION_V3 = "carbon.autoresearch.argument-normalisation.v3"
 #: unchanged, so a campaign that froze one replays as it was.
 ARGUMENT_NORMALISATION_V4 = "carbon.autoresearch.argument-normalisation.v4"
 NULL_SPELLINGS_V4 = frozenset({"null", "Null", "NULL", "None", "none"})
+#: The rule new plans freeze from the M1 Launchpad test run (2026-10-22, G4),
+#: where a workspace read that left out strategy_json was refused
+#: tool_field_missing: everything v4 reads, and also a start_research_task
+#: field left out where its kind takes only JSON null (`OMITTED_NULL_FIELDS_V5`:
+#: strategy_json on kind=workspace; action and arguments_json on
+#: kind=practice) is read as sent with JSON null. A field the kind needs is
+#: still refused when left out. v1-v4 stay registered, unchanged, so a
+#: campaign that froze one replays as it was.
+ARGUMENT_NORMALISATION_V5 = "carbon.autoresearch.argument-normalisation.v5"
+OMITTED_NULL_FIELDS_V5 = {
+    "workspace": ("strategy_json",),
+    "practice": ("action", "arguments_json"),
+}
 ARGUMENT_NORMALISATIONS = (
     ARGUMENT_NORMALISATION,
     ARGUMENT_NORMALISATION_V2,
     ARGUMENT_NORMALISATION_V3,
     ARGUMENT_NORMALISATION_V4,
+    ARGUMENT_NORMALISATION_V5,
 )
 #: The practice fields whose string "null" each rule reads as JSON null.
 PRACTICE_NULL_FIELDS = {
@@ -820,12 +871,13 @@ PRACTICE_NULL_FIELDS = {
     ARGUMENT_NORMALISATION_V2: ("action", "arguments_json"),
     ARGUMENT_NORMALISATION_V3: ("action", "arguments_json"),
     ARGUMENT_NORMALISATION_V4: ("action", "arguments_json"),
+    ARGUMENT_NORMALISATION_V5: ("action", "arguments_json"),
 }
 
 
 def _is_null(value, rule):
     """`value` is a string the rule reads as JSON null."""
-    if rule == ARGUMENT_NORMALISATION_V4:
+    if rule in (ARGUMENT_NORMALISATION_V4, ARGUMENT_NORMALISATION_V5):
         return type(value) is str and value in NULL_SPELLINGS_V4
     return value == "null"
 
@@ -925,7 +977,11 @@ def normalised_task_arguments(args, rule, read_max=None):
     if args.get("kind") == "workspace":
         if _is_null(args.get("strategy_json"), rule):
             args = {**args, "strategy_json": None}
-        if rule in (ARGUMENT_NORMALISATION_V3, ARGUMENT_NORMALISATION_V4):
+        if rule in (
+            ARGUMENT_NORMALISATION_V3,
+            ARGUMENT_NORMALISATION_V4,
+            ARGUMENT_NORMALISATION_V5,
+        ):
             args = _workspace_defaults(args, read_max)
         return args
     if args.get("kind") == "practice":
@@ -935,6 +991,21 @@ def normalised_task_arguments(args, rule, read_max=None):
         if nulls:
             return {**args, **nulls}
     return args
+
+
+def filled_task_arguments(args, rule):
+    """`args` of a start_research_task call with, under v5, each field its
+    kind takes only as JSON null (`OMITTED_NULL_FIELDS_V5`) that was left out
+    added as JSON null, so the call is checked as if it had sent null. A
+    field that was sent is never changed. Every other call, and every call
+    under another rule or none, is returned as sent; a new dict, so what was
+    sent is what is journalled."""
+    if rule != ARGUMENT_NORMALISATION_V5 or type(args) is not dict:
+        return args
+    omitted = [
+        f for f in OMITTED_NULL_FIELDS_V5.get(args.get("kind"), ()) if f not in args
+    ]
+    return {**args, **dict.fromkeys(omitted)} if omitted else args
 
 
 def tools_for_sdk(sdk, rule=_FROM_CAMPAIGN):
@@ -979,6 +1050,59 @@ def tools_for_sdk(sdk, rule=_FROM_CAMPAIGN):
 #: The protocol's bound on a workspace task's encoded arguments
 #: (`carbon.research.model`, DevelopmentWorkspaceTaskSpec), in UTF-8 bytes.
 WORKSPACE_ARGUMENT_BYTES = 12_288
+
+
+#: The tools whose request is the Challenge key and one strategy_json, with
+#: any other argument (forecast_resources' seconds) checked by name first.
+_STRATEGY_TOOLS = frozenset(
+    {"dry_validate", "compile_strategy", "inspect_resources", "forecast_resources"}
+)
+
+
+def _strategy_request(constructor, *args):
+    """`constructor(*args)`, a request carrying a strategy, with a key the
+    research wire refuses anywhere in a strategy (a scientific control or
+    context-selection field, `carbon.research.model`) named as
+    `strategy_control_field_forbidden` on strategy_json, listing the
+    registered forms it matched - Carbon's own list, never the key sent."""
+    from carbon.research.model import ForbiddenControlField
+
+    try:
+        return constructor(*args)
+    except ForbiddenControlField:
+        strategy = next(a for a in args if type(a) is dict)
+        raise TaskContractMismatch(
+            "strategy_control_field_forbidden",
+            "strategy_json",
+            forbidden_strategy_forms(strategy),
+        ) from None
+
+
+def strategy_forbidden_forms():
+    """Every form the research wire refuses as a strategy key, as it compares
+    them: separators dropped, casefolded (`carbon.research.model`)."""
+    from carbon.research import model
+
+    return model._FORBIDDEN_SCIENTIFIC_CONTROL_FORMS | model._CONTEXT_SELECTION_FORMS
+
+
+def forbidden_strategy_forms(strategy):
+    """The refused forms (`strategy_forbidden_forms`) some key of `strategy`,
+    at any depth, matches as the wire compares them, sorted."""
+    forms = strategy_forbidden_forms()
+    found, stack = set(), [strategy]
+    while stack:
+        current = stack.pop()
+        if type(current) is dict:
+            for key, child in current.items():
+                if type(key) is str:
+                    form = re.sub(r"[-_ ]+", "", key).casefold()
+                    if form in forms:
+                        found.add(form)
+                stack.append(child)
+        elif type(current) is list:
+            stack.extend(current)
+    return tuple(sorted(found))
 
 
 def _object(args, field):
@@ -1113,20 +1237,32 @@ class ResearchMinerTools:
         if operation == "get_mock_scaffold":
             return research.GetMockScaffoldRequest(key, support, None)
         if operation == "dry_validate":
-            return research.DryValidateRequest(key, _object(args, "strategy_json"))
+            return _strategy_request(
+                research.DryValidateRequest, key, _object(args, "strategy_json")
+            )
         if operation == "compile_strategy":
-            return research.CompileStrategyRequest(
-                key, _object(args, "strategy_json"), support
+            return _strategy_request(
+                research.CompileStrategyRequest,
+                key,
+                _object(args, "strategy_json"),
+                support,
             )
         if operation == "inspect_resources":
-            return research.InspectResourcesRequest(
-                key, _object(args, "strategy_json"), c.inspection.policy_ref
+            return _strategy_request(
+                research.InspectResourcesRequest,
+                key,
+                _object(args, "strategy_json"),
+                c.inspection.policy_ref,
             )
         if operation == "forecast_resources":
             strategy = _object(args, "strategy_json")
             _bounded(args, "seconds", 1, 600)
-            return research.ForecastResourcesRequest(
-                key, strategy, c.inspection.policy_ref, args["seconds"]
+            return _strategy_request(
+                research.ForecastResourcesRequest,
+                key,
+                strategy,
+                c.inspection.policy_ref,
+                args["seconds"],
             )
         if operation == "get_research_result":
             task = _task_id(args)
@@ -1170,13 +1306,20 @@ class ResearchMinerTools:
                 # serve, is refused here by its code, before anything starts.
                 from .research_service import (
                     construction_recipe_issues,
+                    recipe_source_kinds,
                     takes_construction_recipes,
                 )
 
+                catalog_version = takes_construction_recipes(key)
+                # The source kinds this version takes, listed with the
+                # recipe's own refusal (M1 G5a: a graph recipe refused on
+                # F08 1.4 said nothing of what the version takes).
+                kinds = tuple(
+                    "source." + kind
+                    for kind in (recipe_source_kinds(key) if catalog_version else ())
+                )
                 issues = (
-                    construction_recipe_issues(strategy, key)
-                    if takes_construction_recipes(key)
-                    else ()
+                    construction_recipe_issues(strategy, key) if catalog_version else ()
                 )
                 if issues:
                     # R9-1: an unknown setting lists the settings that place
@@ -1190,7 +1333,7 @@ class ResearchMinerTools:
                     raise TaskContractMismatch(
                         "direct_recipe_required",
                         "strategy_json",
-                        (issues[0].code, *settings_named),
+                        (issues[0].code, *settings_named, *kinds),
                     )
             # A backend this host cannot practise is refused here, before
             # anything starts or is charged, with the backends it serves.
@@ -1216,7 +1359,7 @@ class ResearchMinerTools:
                     raise TaskContractMismatch(
                         "direct_recipe_required",
                         "strategy_json",
-                        (code,) if code in RECIPE_REFUSAL_CODES else (),
+                        ((code,) if code in RECIPE_REFUSAL_CODES else ()) + kinds,
                     ) from None
             else:
                 spec = research.PracticeTaskSpec(strategy, None)
@@ -1530,13 +1673,20 @@ class ResearchMinerTools:
                 field="arguments",
                 tool=operation,
             )
+        sent = args
+        if operation == "start_research_task":
+            # Under v5 a field the call's kind takes only as null may be left
+            # out; what was sent stays what a refusal journals.
+            args = filled_task_arguments(
+                args, campaign_argument_normalisation(self.ledger)
+            )
         missing = sorted(set(FIELDS[operation]) - set(args))
         if missing or set(args) != set(FIELDS[operation]):
             # A missing field is a registered name; an extra one is the
             # requester's own text and is never repeated.
             return self.rejected(
                 name,
-                args,
+                sent,
                 identity,
                 correction="tool_field_missing" if missing else "tool_field_unexpected",
                 field=missing[0] if missing else "arguments",
@@ -1555,7 +1705,7 @@ class ResearchMinerTools:
             code, field = exc.args
             return self.rejected(
                 operation,
-                args,
+                sent,
                 identity,
                 correction=code,
                 field=field,
@@ -1563,14 +1713,18 @@ class ResearchMinerTools:
                 tool=operation,
             )
         except (ValueError, TypeError, KeyError):
-            # What no named check covers: the request's arguments as a whole,
-            # still refused before anything could start, and the tool named.
+            # What no named check covers, still refused before anything could
+            # start, and the tool named. A strategy tool's other arguments are
+            # each checked by name first, so what is left is its strategy_json
+            # (M1 G5c); otherwise the request's arguments as a whole.
             return self.rejected(
                 operation,
-                args,
+                sent,
                 identity,
                 correction="tool_value_invalid",
-                field="arguments",
+                field=(
+                    "strategy_json" if operation in _STRATEGY_TOOLS else "arguments"
+                ),
                 tool=operation,
             )
         # Authentication and execution exceptions remain operational stops. Only

@@ -2423,7 +2423,8 @@ class EnvironmentSetup:
                     ),
                 ),
                 "compute": compute,
-                "agent": _public(record.get("agent"), ("choice", "check")),
+                # With Hermes, the files the miner agreed it writes.
+                "agent": _public(record.get("agent"), ("choice", "check", "consent")),
                 "review": {
                     "ready": "hotkey" in record and all(done.values()),
                     "profile_written": "profile" in record,
@@ -3149,10 +3150,13 @@ class EnvironmentSetup:
                 }
             if socket_path is not None:
                 paths["signer_socket"] = str(socket_path)
-            return self._step(
-                "agent",
-                {"choice": value["choice"], "paths": paths, "check": check},
-            )
+            step = {"choice": value["choice"], "paths": paths, "check": check}
+            if value["choice"] == HERMES:
+                # What the miner agreed Hermes' setup writes, kept so setup
+                # still shows it once the step is done (M1 E2E H17). Already
+                # checked above to be exactly these files.
+                step["consent"] = {"writes": list(value["consent"]["writes"])}
+            return self._step("agent", step)
 
     def profile(self) -> dict:
         """The runner profile the checked steps describe, validated."""

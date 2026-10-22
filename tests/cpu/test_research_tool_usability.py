@@ -40,6 +40,7 @@ from carbon.development_session.research_tools import (
     ARGUMENT_NORMALISATION_V2,
     ARGUMENT_NORMALISATION_V3,
     ARGUMENT_NORMALISATION_V4,
+    ARGUMENT_NORMALISATION_V5,
     PREFIX,
     TOOLS,
     TOOLS_RULE,
@@ -772,8 +773,9 @@ def test_frozen_plans_and_tool_surfaces_replay_unchanged(tmp_path):
 
         assert new["research_reply"] == REPLY_RULE
         # A new Graphite plan freezes v3 (M1 rehearsal, 2026-10-21).
-        # v4 since the M1 E2E (2026-10-22, F1: "None" read as null).
-        assert new["argument_normalisation"] == ARGUMENT_NORMALISATION_V4
+        # v4 since the M1 E2E (2026-10-22, F1: "None" read as null); v5
+        # since the M1 Launchpad run (G4: an omitted null-only field).
+        assert new["argument_normalisation"] == ARGUMENT_NORMALISATION_V5
         # The reply-continuation rule (Graphite context spec, part 2) is
         # likewise new-plan only.
         assert new["reply_continuation"] == REPLY_CONTINUATION_V1
@@ -816,4 +818,5 @@ def test_frozen_plans_and_tool_surfaces_replay_unchanged(tmp_path):
         ARGUMENT_NORMALISATION_V2,
         ARGUMENT_NORMALISATION_V3,
         ARGUMENT_NORMALISATION_V4,
+        ARGUMENT_NORMALISATION_V5,
     )

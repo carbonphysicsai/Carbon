@@ -478,8 +478,8 @@ def test_a_run_reserves_only_the_names_its_own_carrier_stages(door):
 
 
 def test_what_no_named_check_covers_still_names_the_tool(door, monkeypatch):
-    """The catch-all refusal names the tool and the arguments as a whole,
-    never the exception text behind it."""
+    """The catch-all refusal names the tool and, on a strategy tool, its
+    strategy_json (M1 G5c), never the exception text behind it."""
     sdk, meter, _ = door
 
     def refusing(*args):
@@ -494,7 +494,7 @@ def test_what_no_named_check_covers_still_names_the_tool(door, monkeypatch):
     assert result["status"] == "REJECTED_BEFORE_DISPATCH"
     assert (result["correction_code"], result["field"]) == (
         "tool_value_invalid",
-        "arguments",
+        "strategy_json",
     )
     assert "The tool: dry_validate." in result["correction"]
     assert registered_correction(result)

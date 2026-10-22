@@ -2206,6 +2206,47 @@ SCAFFOLD_RECIPE = "scaffold_recipe"
 #: Motor 1.2's backbone catalog and construction kit
 #: (`carbon.motor.research.MotorCatalogMaterial`).
 CATALOG_MATERIALS = ("catalog", "construction_kit")
+#: How a catalog version's scaffold_recipe reads (`ready_recipes`).
+READY_RECIPES_USE = (
+    "One recipe per source kind this version takes. Practise one as "
+    "strategy_json (kind=practice), as it is or edited. catalog: one of "
+    "Carbon's tested backbones, ready to run; its settings go in "
+    "procedure.configuration and procedure.train_use, each from the entry's "
+    "own list (public_material catalog). graph: a template for your own "
+    "graph - stage it in your workspace and put its submission_digest in "
+    "source; procedure.configuration.training left empty keeps every "
+    "registered default."
+)
+
+
+def ready_recipes(challenge_id, version, builders):
+    """A catalog version's scaffold_recipe document (M1 G5b): for each source
+    kind the version takes (`research_service.recipe_source_kinds`), the
+    ready recipe or template `builders[kind]()` returns. A kind it takes
+    with no builder here is listed with null, never left out; none taken
+    (an empty catalog and no graph adapter) says so."""
+    from carbon import research
+
+    from .research_service import recipe_source_kinds
+
+    kinds = recipe_source_kinds(research.ChallengeKey(challenge_id, version))
+    return {
+        "schema": "carbon.ready-recipes.v1",
+        "challenge": {"id": challenge_id, "version": version},
+        "source_kinds": list(kinds),
+        "recipes": {
+            kind: builders[kind]() if kind in builders else None for kind in kinds
+        },
+        "use": (
+            READY_RECIPES_USE
+            if kinds
+            else "This version takes no source kind yet: no backbone is tested "
+            "for it and no graph adapter is registered, so nothing can be "
+            "practised."
+        ),
+    }
+
+
 #: The material names every bound material service serves.
 PUBLIC_MATERIALS = (
     "objective",

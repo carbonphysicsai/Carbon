@@ -16,6 +16,146 @@ from typing import Annotated
 
 PREFIX = "carbon_challenges_v1__"
 CATALOG_URI = "carbon://challenges/v1/catalog"
+COMPACT_SCHEMA = "carbon.challenge-description.compact.v1"
+
+#: The practice-call corrections an agent meets first while sending a recipe,
+#: by their registered `research_tools.TASK_CORRECTIONS` codes.
+_COMPACT_TASK_CORRECTIONS = ("practice_recipe_required", "json_string_required")
+#: The Level 0 compile codes a strategy most often meets, by their registered
+#: `construction.compiler` texts.
+_COMPACT_STRATEGY_CODES = (
+    "strategy.challenge_mismatch",
+    "strategy.backbone_mismatch",
+    "parameter.unknown",
+    "parameter.missing_required",
+    "parameter.domain_mismatch",
+)
+
+
+def _names(field):
+    """The names a recipe binds: a mapping's keys or a list's items."""
+    if isinstance(field, dict):
+        return list(field)
+    if isinstance(field, list):
+        return [name for name in field if isinstance(name, str)]
+    return None
+
+
+def _ready_example(described):
+    """The first published example the description itself marks ready: a
+    one-key {kind: document}, admitted where an admission verdict is listed."""
+    examples = described.get("examples") or []
+    verdicts = described.get("examples_admission")
+    for index, example in enumerate(examples):
+        if not isinstance(example, dict) or len(example) != 1:
+            continue
+        if verdicts is not None and not (
+            index < len(verdicts) and verdicts[index].get("valid") is True
+        ):
+            continue
+        ((kind, document),) = example.items()
+        return kind, document
+    return None, None
+
+
+def _refusal_hints(kind):
+    """Registered refusal codes and their registered text, grouped by text:
+    never written here, never a requester's words."""
+    from carbon.development_session.research_tools import TASK_CORRECTIONS
+
+    pairs = [(code, TASK_CORRECTIONS[code]) for code in _COMPACT_TASK_CORRECTIONS]
+    if kind == "recipe":
+        from carbon.development_session.research_service import (
+            _RECIPE_ISSUE_PATH,
+            RECIPE_ISSUE_DEFAULT,
+            RECIPE_ISSUE_TEXT,
+        )
+
+        pairs.append(("construction_recipe_malformed", RECIPE_ISSUE_DEFAULT))
+        pairs += [
+            (code, RECIPE_ISSUE_TEXT.get(code, RECIPE_ISSUE_DEFAULT))
+            for code in _RECIPE_ISSUE_PATH
+        ]
+    elif kind == "strategy":
+        from carbon.construction.compiler import _ISSUE_MESSAGES
+
+        pairs += [(code, _ISSUE_MESSAGES[code]) for code in _COMPACT_STRATEGY_CODES]
+    grouped = {}
+    for code, text in pairs:
+        grouped.setdefault(text, []).append(code)
+    return [{"codes": codes, "fix": text} for text, codes in grouped.items()]
+
+
+def compact_description(described):
+    """The essentials for building one recipe, projected from the full public
+    description `described` (so it adds nothing hidden): interface names,
+    catalog ids, one ready example, source kinds and refusal hints. An item a
+    version does not have is null with its reason, never silently absent."""
+    models = described.get("models") or {}
+    interface = described.get("interface") or {}
+    catalog = models.get("catalog") if isinstance(models, dict) else None
+    adapter = models.get("graph_training_adapter") if isinstance(models, dict) else None
+    kind, ready = _ready_example(described)
+
+    entries = catalog.get("entries") if isinstance(catalog, dict) else None
+    catalog_ids = sorted(entries) if isinstance(entries, dict) else None
+
+    kinds = []
+    for holder in (catalog, adapter):
+        if isinstance(holder, dict) and isinstance(holder.get("source_kind"), str):
+            kinds.append(holder["source_kind"])
+    if kind == "recipe" and isinstance(ready, dict):
+        source_kind = (ready.get("source") or {}).get("kind")
+        if isinstance(source_kind, str):
+            kinds.append(source_kind)
+    source_kinds = sorted(set(kinds)) or None
+
+    rebuildable = models.get("rebuildable") if isinstance(models, dict) else None
+    backbones = [
+        m["selector"]
+        for m in rebuildable or []
+        if isinstance(m, dict) and isinstance(m.get("selector"), str)
+    ]
+
+    compact = {
+        "schema": COMPACT_SCHEMA,
+        "challenge_id": described.get("challenge_id"),
+        "version": described.get("version"),
+        "title": described.get("title"),
+        "status": described.get("status"),
+        "interface": {
+            "inputs": _names(interface.get("inputs")),
+            "outputs": _names(interface.get("outputs")),
+        },
+        "backbones": backbones or None,
+        "catalog_ids": catalog_ids,
+        "ready_recipe_kind": kind,
+        "ready_recipe": ready,
+        "source_kinds": source_kinds,
+        "refusal_hints": _refusal_hints(kind),
+        "full_answer": "describe with compact=false gives every field",
+    }
+    reasons = {}
+    if catalog_ids is None:
+        reasons["catalog_ids"] = "this version serves no backbone catalog"
+    if ready is None:
+        reasons["ready_recipe"] = "this version publishes no admitted example"
+    elif kind == "strategy":
+        reasons["ready_recipe"] = (
+            "this version takes a Level 0 strategy (schema_version, challenge_id, "
+            "backbone, parameters), sent as is"
+        )
+    if source_kinds is None:
+        reasons["source_kinds"] = (
+            "this version takes no construction recipe source"
+            if kind != "recipe"
+            else "the description names no source kind"
+        )
+    if not backbones:
+        reasons["backbones"] = "the description lists no rebuildable backbone"
+    if reasons:
+        compact["reasons"] = reasons
+    return compact
 
 
 def configured_host_facts(profile=None):
@@ -88,6 +228,17 @@ def make_challenge_tools(*, guard=None, host_facts=None):
                 ..., description="The exact version; null only for unversioned entries."
             ),
         ),
+        compact=(
+            bool,
+            Field(
+                False,
+                description=(
+                    "true returns only what building a recipe needs: interface "
+                    "names, catalog ids, one ready recipe, source kinds and "
+                    "refusal hints. Default false: the full description."
+                ),
+            ),
+        ),
     )
 
     async def list_challenges():
@@ -95,7 +246,7 @@ def make_challenge_tools(*, guard=None, host_facts=None):
             guard()
         return ChallengeResult(operation="list", payload=challenges.catalog(facts()))
 
-    async def describe(challenge_id, version):
+    async def describe(challenge_id, version, compact=False):
         if guard is not None:
             guard()
         try:
@@ -105,6 +256,8 @@ def make_challenge_tools(*, guard=None, host_facts=None):
             raise ToolError(
                 f"{refused.code}; next_action={refused.next_action}"
             ) from None
+        if compact:
+            payload = compact_description(payload)
         return ChallengeResult(operation="describe", payload=payload)
 
     from mcp_types import ToolAnnotations
@@ -136,7 +289,9 @@ def make_challenge_tools(*, guard=None, host_facts=None):
             describe_model,
             "One Challenge in full: task, interface and units, public material, "
             "reference method, models and controls, limits, exam gates, permitted "
-            "feedback, validated examples and unsupported capabilities. Refuses "
+            "feedback, validated examples and unsupported capabilities. "
+            "compact=true returns only the recipe essentials (interface names, "
+            "catalog ids, one ready recipe, source kinds, refusal hints). Refuses "
             "an unknown, reserved, deferred or wrong-version Challenge by code.",
         ),
     ]

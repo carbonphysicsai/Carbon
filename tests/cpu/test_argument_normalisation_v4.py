@@ -39,7 +39,7 @@ def _workspace(value):
 
 
 def test_v4_is_registered_after_v3():
-    assert ARGUMENT_NORMALISATIONS[-2:] == (
+    assert ARGUMENT_NORMALISATIONS[2:4] == (
         ARGUMENT_NORMALISATION_V3,
         ARGUMENT_NORMALISATION_V4,
     )
