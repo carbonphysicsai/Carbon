@@ -115,11 +115,19 @@ def _adapter(challenge, bank, version, development_adapter):
         except ValueError:  # a population with no sealed grader
             return None
     if challenge == F08:
-        from carbon.scoring import f08_dual_pack
+        from carbon.scoring import f08_sealed_dual_pack as sealed
 
-        return f08_dual_pack.sealed_adapter(version)
+        try:
+            return sealed.adapter_for_bank(bank, version)
+        except ValueError:  # a population with no sealed grader
+            return None
     if challenge == F02:
-        return development_adapter  # bank_kind() reads the bank's population
+        from carbon.scoring import f02_sealed_dual_pack as sealed
+
+        try:
+            return sealed.adapter_for_bank(bank, version)
+        except ValueError:  # a population with no sealed grader
+            return None
     if challenge == COOLING:
         from carbon.scoring import cooling_dual_pack
 
