@@ -485,6 +485,61 @@ def trial_admissible(ledger, owner, strategy):
     )
 
 
+#: A selected recipe's practice gate verdict (`practice_gate_verdict`).
+GATES_PASSED, GATES_FAILED, GATES_NOT_REPORTED = "PASSED", "FAILED", "NOT_REPORTED"
+#: What a selection says when its practice reports no gate verdict
+#: (Validator ruling on G2: missing is not a pass, and never shown as one).
+GATES_NOT_REPORTED_NOTE = (
+    "Practice for this Challenge does not report gates yet, so this recipe's "
+    "gates are unknown here; the exam still applies every gate."
+)
+
+
+def practice_gate_reported(result):
+    """Whether a retained practice result reports a gate verdict at all: a
+    Boolean summary `eligible`, or an available dual-feedback block."""
+    if type(result) is not dict:
+        return False
+    summary = result.get("summary")
+    if type(summary) is dict and type(summary.get("eligible")) is bool:
+        return True
+    places = [result] + [
+        result[key] for key in ("outcome", "summary") if type(result.get(key)) is dict
+    ]
+    return any(
+        type(value) is dict
+        and value.get("schema") == PRACTICE_DUAL_SCHEMA
+        and value.get("available") is True
+        for place in places
+        for value in place.values()
+    )
+
+
+def practice_gate_verdict(ledger, owner, strategy):
+    """`GATES_FAILED` when any practice of exactly `strategy` reports a failed
+    gate, `GATES_PASSED` when one reports a verdict and none fails, otherwise
+    `GATES_NOT_REPORTED` (no verdict, or a dual block not available)."""
+    if practice_failed_gates(ledger, owner, strategy):
+        return GATES_FAILED
+    with ledger.db() as db:
+        if (
+            db.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' "
+                "AND name='research_results'"
+            ).fetchone()
+            is None
+        ):
+            return GATES_NOT_REPORTED
+        rows = db.execute(
+            "SELECT body FROM research_results WHERE owner=?", (owner,)
+        ).fetchall()
+    for (body,) in rows:
+        result = json.loads(body)
+        if result.get("recipe") == strategy and practice_gate_reported(result):
+            return GATES_PASSED
+    return GATES_NOT_REPORTED
+
+
 def practice_failed_gates(ledger, owner, strategy):
     """Whether any retained practice of exactly `strategy` reports a failed
     gate (`practice_gates_failed`); False where nothing was practised."""

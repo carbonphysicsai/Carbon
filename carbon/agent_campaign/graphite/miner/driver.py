@@ -1231,6 +1231,7 @@ async def _build(run, plan_doc, plan_digest):
         else campaigns.FINAL_EPOCHS[:epoch_cap]
     )
     ended, stopped = "EPOCHS_USED", None
+    verdicts = {}
     for epoch in epochs:
         ledger.checkpoint()
         saved = ledger.root / ("epoch-" + str(epoch)) / "permitted-final-feedback.json"
@@ -1264,9 +1265,12 @@ async def _build(run, plan_doc, plan_digest):
             if type(result.get("code")) is str:
                 stopped = _stopped(result)
             break
-        if run.admissibility is not None and campaigns.practice_failed_gates(
-            ledger, owner, result["strategy"]
-        ):
+        verdict = (
+            None
+            if run.admissibility is None
+            else campaigns.practice_gate_verdict(ledger, owner, result["strategy"])
+        )
+        if verdict == campaigns.GATES_FAILED:
             # The loop refuses such a select; this is the controller's own
             # check before it is retained or sent: a gate failure is never
             # submitted, whatever froze it (admissibility before ranking).
@@ -1278,10 +1282,29 @@ async def _build(run, plan_doc, plan_digest):
                     "stop": "selected recipe's practice failed a gate; "
                     "nothing submitted",
                     "code": SELECTION_NOT_ADMISSIBLE,
+                    "gate_verdict": verdict,
                 },
             )
             ended = "NOT_ADMISSIBLE"
             break
+        if verdict is not None:
+            # Recorded and shown whatever it is: a practice that reports no
+            # gate verdict is NOT_REPORTED, never a silent pass (Validator,
+            # G2 ruling).
+            verdicts[str(epoch)] = verdict
+            ledger.note(
+                owner=owner,
+                kind="decision",
+                body={
+                    "epoch": epoch,
+                    "gate_verdict": verdict,
+                    **(
+                        {"note": campaigns.GATES_NOT_REPORTED_NOTE}
+                        if verdict == campaigns.GATES_NOT_REPORTED
+                        else {}
+                    ),
+                },
+            )
         if retain_only:
             ledger.note(
                 owner=owner,
@@ -1311,6 +1334,9 @@ async def _build(run, plan_doc, plan_digest):
         "ended": ended,
         "plan_digest": plan_digest,
     }
+    if verdicts:
+        # Each selected epoch's practice gate verdict, shown with the build.
+        body["gate_verdicts"] = verdicts
     applied = run.role_selection("constructor")[1]
     if applied is not None:
         body["role_settings"] = applied

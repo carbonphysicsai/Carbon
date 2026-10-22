@@ -1199,6 +1199,31 @@ def test_a_gate_failed_practice_is_never_submitted(world, monkeypatch):
     assert w.stage("build")["ended"] == "NOT_ADMISSIBLE"
     notes = CampaignLedger(w.root).status(owner="alice")["notes"]
     assert notes[-1]["body"]["code"] == "selection_not_admissible"
+    assert notes[-1]["body"]["gate_verdict"] == "FAILED"
+
+
+def test_a_practice_without_a_gate_verdict_is_shown_not_reported(world):
+    """Validator, G2 ruling: no verdict does not fail closed, but it is never
+    a silent pass - the selection is recorded NOT_REPORTED, with a note, in
+    the ledger and in the build's stage record."""
+    w = world(mode="BUILD")
+    w.engine.scripts = {
+        ("plan", 1): [STOP_TURN],
+        (None, 1): [[practice(RECIPE)], [select(RECIPE)]],
+        (None, 2): [STOP_TURN],
+    }
+    assert w.run(Transport()) is None
+    assert w.campaign.evaluated == [(1, RECIPE)]
+    notes = CampaignLedger(w.root).status(owner="alice")["notes"]
+    shown = [n["body"] for n in notes if "gate_verdict" in n["body"]]
+    assert shown == [
+        {
+            "epoch": 1,
+            "gate_verdict": "NOT_REPORTED",
+            "note": research_campaign.GATES_NOT_REPORTED_NOTE,
+        }
+    ]
+    assert w.stage("build")["gate_verdicts"] == {"1": "NOT_REPORTED"}
 
 
 # --- FULL -----------------------------------------------------------------------

@@ -317,6 +317,20 @@ def test_the_admissibility_mutation_is_caught(tmp_path, monkeypatch):
         test_a_gate_failed_practice_cannot_be_selected_under_the_rule(tmp_path)
 
 
+def test_the_gate_verdict_says_not_reported_for_no_verdict(tmp_path):
+    from carbon.development_session.research_campaign import practice_gate_verdict
+
+    meter = ledger(tmp_path, ceilings=ROOMY)
+    assert practice_gate_verdict(meter, "alice", STRATEGY) == "NOT_REPORTED"
+    record_practice(meter, STRATEGY)
+    assert practice_gate_verdict(meter, "alice", STRATEGY) == "NOT_REPORTED"
+    gated(meter, OTHER, eligible=True)
+    assert practice_gate_verdict(meter, "alice", OTHER) == "PASSED"
+    failed = {**OTHER, "parameters": {"steps": 128, "enforce_mean": True}}
+    gated(meter, failed, eligible=False)
+    assert practice_gate_verdict(meter, "alice", failed) == "FAILED"
+
+
 def test_the_admissibility_rule_is_closed(tmp_path):
     with pytest.raises(ValueError, match="selection-admissibility"):
         research_loop.practice_check(ledger(tmp_path), "alice", "x")
