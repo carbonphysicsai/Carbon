@@ -21,6 +21,16 @@ within one boot. A zombie (exited, not yet reaped) counts as gone.
 
 Exit codes: 0 when the container is gone or not this launch's, or after
 removing it; 2 on bad arguments; 3 when removal could not be confirmed.
+
+**The owner is checked on every read** (M1 rehearsal, 2026-10-21). Docker 29
+reports a missing container as "no such object" (lowercase), which the
+original case-sensitive match missed: every read came back "runtime could not
+answer", and since the owner was checked only after a label was read, 46
+reapers outlived both their containers and their owners. Absence is now
+matched case-insensitively, and once the owner is gone the reaper removes
+what it can and, if the runtime still cannot say the container is absent,
+exits 3 after `UNANSWERED_LIMIT` reads rather than watching for ever. While
+the owner lives, an unanswering runtime is still never read as absence.
 """
 
 from __future__ import annotations
@@ -46,6 +56,10 @@ LAUNCH_LABEL = "org.opencontainers.image.carbon.c03.launch"
 #: How often the reaper looks. A cost, not a limit: nothing is removed on a
 #: schedule, only when the owner is observed gone.
 POLL_SECONDS = 2.0
+#: Reads after the owner is gone, with the runtime unable to say whether the
+#: container exists, before the reaper gives up (exit 3). A bound on a dead
+#: owner's watch, never on a live run.
+UNANSWERED_LIMIT = 30
 
 
 def process_identity(pid: int) -> str | None:
@@ -94,7 +108,7 @@ def _launch_label(cli, container_name):
         accepted=(0, 1),
     )
     if result.returncode != 0:
-        return None if b"No such" in result.stderr else ""
+        return None if b"no such" in result.stderr.lower() else ""
     return result.stdout.decode("utf-8", errors="replace").strip()
 
 
@@ -111,20 +125,28 @@ def watch(
 ):
     """Wait while the controller lives; remove the exact container when it
     does not. Returns the exit code."""
+    unanswered = 0
     while True:
         label = _launch_label(cli, container_name)
         if label is None:
             return 0  # The run finished and its owner cleaned up.
         if label and label != launch_digest:
             return 0  # Another launch's container: never this reaper's.
-        if label and identify(controller_pid) != controller_identity:
+        if identify(controller_pid) != controller_identity:
+            # The owner is gone, whatever the label read said. Removal is by
+            # exact name and launch label, and confirms absence itself.
             try:
                 remove_exact_container(
                     cli=cli, container_name=container_name, launch_digest=launch_digest
                 )
             except WorkerFailure:
                 return 3
-            return 0
+            if label or _launch_label(cli, container_name) is None:
+                return 0
+            # The runtime still cannot say the container is gone.
+            unanswered += 1
+            if unanswered >= UNANSWERED_LIMIT:
+                return 3
         sleep(poll)
 
 

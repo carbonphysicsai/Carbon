@@ -42,7 +42,11 @@ _OPTIONAL_FIELDS = {
     "inference_image_manifest",
     "evaluation_pack",
     "challenge",
+    "construction_runtimes",
 }
+#: The one opt-in per-runtime construction set (OWNER-BACKBONE-CATALOG-01):
+#: a PyTorch CPU worker and the C-03 CPU worker it was built FROM.
+CONSTRUCTION_RUNTIMES = ["python-cpu-py311", "torch-cpu-py311"]
 
 
 class ReceiverUnavailable(RuntimeError):
@@ -104,12 +108,20 @@ def load_config(path: Path) -> dict:
         from carbon.challenge_kit.synthetic_linear_field_2d import CHALLENGE
 
         selected = value["challenge"]
+        from carbon.battery.construction_bundle_material import (
+            VERSIONS as BATTERY_VERSIONS,
+        )
+
         registered = (
             {"id": CHALLENGE.challenge_id, "version": "1.3"},
-            {
-                "id": battery_challenge.CHALLENGE.challenge_id,
-                "version": battery_challenge.CHALLENGE.version,
-            },
+            # Every served Battery construction version (1.0; step-2 2.0; the
+            # catalog version 2.1), each with its approved pack (Validator,
+            # 2026-10-20). Battery serves its own versioned material, not a
+            # physical kit, so it is listed here rather than in REGISTERED.
+            *(
+                {"id": battery_challenge.CHALLENGE.challenge_id, "version": version}
+                for version in BATTERY_VERSIONS
+            ),
             *(
                 {"id": challenge_id, "version": version}
                 for challenge_id, version in physical_material.REGISTERED
@@ -117,6 +129,11 @@ def load_config(path: Path) -> dict:
         )
         if type(selected) is not dict or selected not in registered:
             raise ValueError("registered direct Challenge selection required")
+    if (
+        "construction_runtimes" in value
+        and value["construction_runtimes"] != CONSTRUCTION_RUNTIMES
+    ):
+        raise ValueError("exact construction runtimes required")
     if "evaluation_pack" in value:
         selected = value["evaluation_pack"]
         if type(selected) is not dict or set(selected) != {
@@ -476,6 +493,31 @@ def installed_source(
     return implementation, parent, network, cache
 
 
+def construction_parents(parent, implementation):
+    """Both CPU construction parents for an operator that opts in.
+
+    The C-03 CPU worker is derived from the verified PyTorch CPU worker built
+    FROM it (`gpu_practice.derived_cpu_parent`), never read from a separate
+    path, then checked against the worker ABI and the real image. Each bundle
+    task then builds on the parent of its pinned runtime only.
+    """
+    from carbon.development_session.gpu_practice import (
+        DirectParents,
+        derived_cpu_parent,
+        direct_parent_backend,
+    )
+    from carbon.development_session.research_campaign import verify_direct_v13_worker
+    from carbon.reconstruction.worker.docker_runtime import doctor
+
+    if direct_parent_backend(parent) != "torch_cpu":
+        raise ValueError("per-runtime construction parents need the PyTorch CPU worker")
+    cpu = derived_cpu_parent(parent)
+    verify_direct_v13_worker(cpu, implementation, role="cpu")
+    if not doctor(image_id=cpu.image_id, image_identity=cpu).eligible:
+        raise ReceiverUnavailable("installed_cpu_construction_worker_unavailable")
+    return DirectParents({"torch-cpu-py311": parent, "python-cpu-py311": cpu})
+
+
 class OwnerProviders:
     """One maintained task supervisor and ledger per authenticated hotkey."""
 
@@ -493,7 +535,16 @@ class OwnerProviders:
         window=None,
         receiver=None,
         evaluation_pack_digest=None,
+        parents=None,
     ):
+        from carbon.development_session.gpu_practice import DirectParents
+
+        if parents is not None and (
+            type(parents) is not DirectParents
+            or parents.for_runtime("torch-cpu-py311") != parent
+        ):
+            raise ValueError("per-runtime parents must include the receiver parent")
+        self.parents = parents
         self.root, self.discovery = root, discovery
         self.parent, self.cache_root = parent, cache_root
         self.inference_image = parent if inference_image is None else inference_image
@@ -581,6 +632,11 @@ class OwnerProviders:
         }
         if self.inference_image != self.parent:
             binding["inference_image"] = self.inference_image.image_id
+        if self.parents is not None:
+            binding["construction_parents"] = {
+                runtime: self.parents.for_runtime(runtime).image_id
+                for runtime in self.parents.runtimes()
+            }
         if self.material_cache_bytes is not None:
             binding["material_cache_bytes"] = self.material_cache_bytes
         if self.evaluation_pack_digest is not None:
@@ -609,6 +665,16 @@ class OwnerProviders:
                         [self.inference_image.image_id]
                         if self.inference_image != self.parent
                         else []
+                    ),
+                    *(
+                        []
+                        if self.parents is None
+                        else [
+                            self.parents.for_runtime(runtime).image_id
+                            for runtime in self.parents.runtimes()
+                            if self.parents.for_runtime(runtime)
+                            not in (self.parent, self.inference_image)
+                        ]
                     ),
                 ],
             },
@@ -683,11 +749,19 @@ class OwnerProviders:
                     discovery=self.discovery,
                     image=None,
                     inference_image=self.inference_image,
-                    construction_parent=self.parent,
+                    **(
+                        {"construction_parent": self.parent}
+                        if self.parents is None
+                        else {"construction_parents": self.parents}
+                    ),
                     evaluation_pack_digest=self.evaluation_pack_digest,
                     image_resolver=DirectOwnerImageResolver(
                         self.cache_root,
-                        self.parent,
+                        **(
+                            {"parent": self.parent}
+                            if self.parents is None
+                            else {"parents": self.parents}
+                        ),
                         **(
                             {"material_cache_bytes": self.material_cache_bytes}
                             if self.material_cache_bytes is not None
@@ -871,6 +945,11 @@ def serve(
         else:
             raise ValueError("private inference worker backend is unregistered")
     build_accelerator, _ = direct_bundle_accelerators(parent, inference_image)
+    parents = (
+        construction_parents(parent, implementation)
+        if "construction_runtimes" in cfg
+        else None
+    )
     if build_accelerator is not None and "material_cache_bytes" not in cfg:
         raise ReceiverUnavailable("gpu_overlay_cache_unconfigured")
     if not doctor(
@@ -945,6 +1024,8 @@ def serve(
         }
         if inference_image != parent:
             immutable["inference_image"] = asdict(inference_image)
+        if parents is not None:
+            immutable["construction_parents"] = parents.identities()
         if "material_cache_bytes" in cfg:
             immutable["material_cache_bytes"] = cfg["material_cache_bytes"]
         if pack_digest is not None:
@@ -964,6 +1045,7 @@ def serve(
             window=window,
             receiver=cfg["receiver_hotkey"],
             evaluation_pack_digest=pack_digest,
+            parents=parents,
         )
         timer = threading.Timer(cfg["lifetime_seconds"], stop.set)
         timer.daemon = True

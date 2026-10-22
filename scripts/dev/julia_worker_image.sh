@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Never write bytecode into the checkout: a development candidate refuses
+# an ignored runtime source such as carbon/**/__pycache__ (M1, 2026-10-21).
+export PYTHONDONTWRITEBYTECODE=1
 
 # Extend a current, clean-source C-03 build; never alter an accepted image/tag.
 script_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"

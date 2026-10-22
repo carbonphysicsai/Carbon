@@ -64,7 +64,33 @@ LEVERS = Schema(
         }
     ),
 )
-SCHEMAS = {s.schema_id: s for s in (COVERAGE, LEVERS)}
+#: The JAX (foundax / jNO) levers build: the same levers, no architecture
+#: settings, and float32 as a precision too (JAX's FFT refuses bfloat16).
+JAX_LEVERS = Schema(
+    "carbon-candidate-jax-levers-v1",
+    "carbon_candidate/build.py",
+    "sha256:944d004c9c973d15a942f7d6fdc4314385fbe6a6e298d32c55a9d120e1e90f83",
+    frozenset({"learning_rate"}),
+    LEVERS.train_use,
+)
+#: The levers build resized to Cooling's 32 outputs (60 -> 32 in its
+#: Transolver curve; `codex-queue/inputs/cooling_catalog/
+#: build_cooling_packets.py`): the same vocabulary as the levers build, its
+#: own build bytes, each entry with its own Cooling pair-identity receipt.
+COOLING_LEVERS = Schema(
+    "carbon-candidate-levers-cooling-v1",
+    "carbon_candidate/build.py",
+    "sha256:c017c4e6c0f65bd9ae7548ce66cde43f9bde51875a8c4cbf4962744033e23c4a",
+    LEVERS.configuration,
+    LEVERS.train_use,
+)
+SCHEMAS = {s.schema_id: s for s in (COVERAGE, LEVERS, JAX_LEVERS, COOLING_LEVERS)}
+#: Each levers build's accepted mixed-precision values.
+PRECISIONS = {
+    LEVERS.schema_id: ("bfloat16", "float16"),
+    COOLING_LEVERS.schema_id: ("bfloat16", "float16"),
+    JAX_LEVERS.schema_id: ("bfloat16", "float16", "float32"),
+}
 #: The levers build's architecture settings, per backbone (its `ARCH`).
 ARCH = {
     "neuralop.FNO": ("modes", "hidden", "layers"),
@@ -239,7 +265,7 @@ def _validation(spec, where):
         )
 
 
-def _train_levers(use, where):
+def _train_levers(use, where, precisions=("bfloat16", "float16")):
     """The levers one training run takes (also a search candidate's)."""
     if "loss" in use:
         _loss(use["loss"], where + ".loss")
@@ -250,7 +276,7 @@ def _train_levers(use, where):
     if "data" in use:
         _data(use["data"], where + ".data")
     if "precision" in use and use["precision"] is not None:
-        _choice(use["precision"], where + ".precision", ("bfloat16", "float16"))
+        _choice(use["precision"], where + ".precision", precisions)
     if "averaging" in use:
         spec = use["averaging"]
         _only(spec, {"kind", "decay", "start"}, where + ".averaging")
@@ -276,8 +302,8 @@ def _train_levers(use, where):
                 _schedule(stage["schedule"], at + ".schedule")
 
 
-def _levers(backbone, use):
-    _train_levers(use, "train_use")
+def _levers(backbone, use, precisions=("bfloat16", "float16")):
+    _train_levers(use, "train_use", precisions)
     if "early_stopping" in use:
         spec = use["early_stopping"]
         _only(spec, {"validation", "every", "patience"}, "train_use.early_stopping")
@@ -313,7 +339,7 @@ def _levers(backbone, use):
                 _rate(candidate["learning_rate"], at + ".learning_rate")
             if "arch" in candidate:
                 _arch(backbone, candidate["arch"], at + ".arch")
-            _train_levers(candidate, at)
+            _train_levers(candidate, at, precisions)
     if "ensemble" in use:
         spec = use["ensemble"]
         _only(spec, {"members", "combine", "validation"}, "train_use.ensemble")
@@ -387,7 +413,7 @@ def resolve(item, configuration, train_use):
                 train_use["derivative_weight"], "train_use.derivative_weight", 0, None
             )
     else:
-        _levers(backbone, train_use)
+        _levers(backbone, train_use, PRECISIONS[schema.schema_id])
     defaults = item["defaults"]
     merged = {**defaults["configuration"], **configuration, "backbone": backbone}
     if "arch" in configuration and "arch" in defaults["configuration"]:

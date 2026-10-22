@@ -137,7 +137,7 @@ def _verified(workspace, record):
         allowlist=loaded,
         challenge=CHALLENGE,
         interface=declared["interface"],
-        max_bytes=intake.BOUNDS["document_bytes"],
+        max_bytes=intake.bounds_for(loaded)["document_bytes"],
     )
     if record["expression"] is not None and "loss" in parsed:
         from carbon.training_budget.cost import CostRefused
@@ -209,7 +209,7 @@ def _measure_precision(model, train, structure, recipe, record, context):
         allowlist=loaded,
         challenge=CHALLENGE,
         interface=model._interface().digest(),
-        max_bytes=intake.BOUNDS["document_bytes"],
+        max_bytes=intake.bounds_for(loaded)["document_bytes"],
     )
     input_hash = g5.input_digest(parsed, loaded)
     if (

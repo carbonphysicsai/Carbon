@@ -692,7 +692,11 @@ def test_every_worker_image_is_built_with_the_identity_carbon_reads():
     assert f"> {remote_container.BUILD_FILE}" in base
     # The GPU worker keeps that file, updating only its base, recipe and lock,
     # and its manifest is that file plus the image ID.
-    gpu = (REPOSITORY / ".devcontainer/accelerators/Dockerfile").read_text()
+    # Its Dockerfile runs that update from a program file (S20: a RUN heredoc
+    # is dropped silently by Docker's legacy builder).
+    recipe = (REPOSITORY / ".devcontainer/accelerators/Dockerfile").read_text()
+    assert "/tmp/carbon-build-identity.py" in recipe and "<<" not in recipe
+    gpu = (REPOSITORY / ".devcontainer/accelerators/build_identity.py").read_text()
     assert f'pathlib.Path("{remote_container.BUILD_FILE}")' in gpu
     updated = re.search(r"document\.update\((.*?)\)\n", gpu, re.DOTALL).group(1)
     assert set(re.findall(r"(\w+)=", updated)) == {

@@ -1439,8 +1439,9 @@ def _head():
 
 def test_the_real_pod_environment_fits_well_under_the_provider_limit():
     ref = _head()
+    # No file count: it had no provider basis (Validator ruling, owner
+    # direction, 2026-10-21). The bound is the pod environment's size.
     manifest = a40.build_manifest(ref)
-    assert len(manifest) < 600  # the closure, not the 1,400-file tree
     runner = object.__new__(a40.PodRunner)
     runner.code_ref, runner.manifest = ref, manifest
     config = a40.phase_config(
@@ -1450,7 +1451,10 @@ def test_the_real_pod_environment_fits_well_under_the_provider_limit():
         barrier=True,
     )  # fmt: skip
     env = runner._env("pytorch", config, "t" * 32, 1.0)
-    assert a40.check_env_size(env) < 60_000
+    # The real bound: pod_env.ENV_LIMIT_CHARS (108,000), about 10,000 under
+    # RunPod's observed failure point (about 118,000 characters; pod_env.py).
+    # check_env_size refuses above it, so passing it is the assertion.
+    assert a40.check_env_size(env) <= a40.ENV_LIMIT_CHARS
 
 
 def _copy_shipped(tmp_path):

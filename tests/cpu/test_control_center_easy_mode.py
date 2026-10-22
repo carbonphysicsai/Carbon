@@ -73,6 +73,7 @@ def test_each_gpu_card_takes_the_transport_its_guide_section_names():
     assert list(cards) == [
         "runpod",
         "lium",
+        "lium-dind",
         "targon",
         "vast",
         "lambda",
@@ -85,7 +86,10 @@ def test_each_gpu_card_takes_the_transport_its_guide_section_names():
         "lium",
         "vast",
     }
+    # Lium's Pytorch (Cuda + DinD) template runs Docker in the pod (S15c);
+    # Lium's own row stays a container rental.
     assert {i for i, c in cards.items() if c["transport"] == SSH_DOCKER} == {
+        "lium-dind",
         "targon",
         "lambda",
         "own-server",

@@ -33,10 +33,13 @@ OTHER = "sha256:" + "b" * 64
 class FakeDocker:
     """Containers by name -> launch label. Records every mutating command."""
 
-    def __init__(self, containers=None, *, unanswering=False):
+    def __init__(
+        self, containers=None, *, unanswering=False, absent=b"Error: No such object: x"
+    ):
         self.containers = dict(containers or {})
         self.mutations = []
         self.unanswering = unanswering
+        self.absent = absent
 
     def run(self, arguments, *, timeout=30, accepted=(0,)):
         verb, target = arguments[0], arguments[1] if len(arguments) > 1 else None
@@ -46,9 +49,7 @@ class FakeDocker:
                     returncode=1, stdout=b"", stderr=b"Cannot connect to the daemon"
                 )
             if target not in self.containers:
-                return SimpleNamespace(
-                    returncode=1, stdout=b"", stderr=b"Error: No such object: x"
-                )
+                return SimpleNamespace(returncode=1, stdout=b"", stderr=self.absent)
             return SimpleNamespace(
                 returncode=0,
                 stdout=self.containers[target].encode() + b"\n",
@@ -64,7 +65,7 @@ class FakeDocker:
         raise AssertionError(arguments)
 
     def json(self, arguments, *, timeout=30):
-        if arguments[1] not in self.containers:
+        if self.unanswering or arguments[1] not in self.containers:
             raise WorkerFailure("absent")
         return {"Config": {"Labels": {LAUNCH_LABEL: self.containers[arguments[1]]}}}
 
@@ -227,7 +228,8 @@ def test_a_finished_run_ends_the_reaper_without_touching_anything():
 
 def test_an_unanswering_runtime_is_not_absence():
     """A daemon that cannot answer has not shown the container gone, and has
-    not shown whose it is: keep watching, remove nothing."""
+    not shown whose it is: while the owner lives, keep watching, remove
+    nothing."""
 
     class Enough(Exception):
         pass
@@ -242,9 +244,88 @@ def test_an_unanswering_runtime_is_not_absence():
 
     with pytest.raises(Enough):
         watch(
-            NAME, LAUNCH, 4242, "start:1", cli=cli, identify=lambda _: None, sleep=sleep
+            NAME,
+            LAUNCH,
+            4242,
+            "start:1",
+            cli=cli,
+            identify=lambda _: "start:1",
+            sleep=sleep,
         )
     assert cli.mutations == []
+
+
+# --- M1 rehearsal, 2026-10-21: 46 reapers outlived containers and owners -----
+
+DOCKER_29_ABSENT = b"Error: no such object: carbon-no-such-container"
+
+
+def test_docker_29s_lowercase_absence_ends_the_reaper():
+    # Verbatim from Docker 29.1.3 (M1): "no such object", lowercase.
+    cli = FakeDocker({}, absent=DOCKER_29_ABSENT)
+    polls = []
+    assert (
+        watch(
+            NAME,
+            LAUNCH,
+            4242,
+            "start:1",
+            cli=cli,
+            identify=lambda _: "start:1",
+            sleep=polls.append,
+        )
+        == 0
+    )
+    assert polls == [] and cli.mutations == []
+
+
+def test_a_dead_owner_is_seen_even_when_the_runtime_cannot_answer():
+    """The owner is checked on every read. With the runtime unable to say the
+    container is gone, a dead owner's reaper tries removal on each read and
+    exits 3 after UNANSWERED_LIMIT reads instead of watching for ever."""
+    cli = FakeDocker({NAME: LAUNCH}, unanswering=True)
+    polls = []
+    assert (
+        watch(
+            NAME,
+            LAUNCH,
+            4242,
+            "start:1",
+            cli=cli,
+            identify=lambda _: None,
+            sleep=polls.append,
+        )
+        == 3
+    )
+    assert len(polls) == liveness_reaper.UNANSWERED_LIMIT - 1
+    # Nothing was confirmed this launch's, so nothing was stopped or removed.
+    assert cli.mutations == []
+
+
+def test_a_dead_owner_whose_container_the_runtime_then_shows_gone_exits_clean():
+    cli = FakeDocker({}, unanswering=True)
+    reads = []
+    original = cli.run
+
+    def run(arguments, **kwargs):
+        reads.append(arguments[0])
+        # The first label read cannot be answered; the daemon then recovers.
+        cli.unanswering = len([r for r in reads if r == "inspect"]) < 2
+        return original(arguments, **kwargs)
+
+    cli.run = run
+    assert (
+        watch(
+            NAME,
+            LAUNCH,
+            4242,
+            "start:1",
+            cli=cli,
+            identify=lambda _: None,
+            sleep=lambda _: None,
+        )
+        == 0
+    )
 
 
 def test_bad_arguments_are_refused():

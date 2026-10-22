@@ -190,7 +190,12 @@ def test_v4_binds_the_named_qwen_grant_and_preserves_the_prior_snapshot():
     directory = audit.ROOT / "docs/development/evidence/role-output-cap-audit"
     previous_bytes = (directory / "audit-v3.json").read_bytes()
     previous = json.loads(previous_bytes)
-    current = json.loads((directory / "audit-v4.json").read_bytes())
+    current_bytes = (directory / "audit-v4.json").read_bytes()
+    current = json.loads(current_bytes)
+    # V4 is historical: v5 below re-pins model_provider.py prospectively.
+    assert hashlib.sha256(current_bytes).hexdigest() == (
+        "a868929497e989ba0a53431bfd7e0061b76b3377d34538b4316a36f477691ccf"
+    )
     assert current.pop("snapshot_version") == 4
     assert current.pop("source_revision") == (
         "09c03aeea4b681fb532235407c070387a48c4ae1"
@@ -200,9 +205,6 @@ def test_v4_binds_the_named_qwen_grant_and_preserves_the_prior_snapshot():
         "sha256": hashlib.sha256(previous_bytes).hexdigest(),
         "grant_count": 34,
     }
-    # Keep exact current-source regeneration: every public file hash, source
-    # pin, registered selection and capacity must match the real audit.
-    _assert_snapshot_matches_current(current)
     assert current["grant_count"] == 35
     qwen_id = "GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1"
     qwen = [row for row in current["grants"] if row["grant_id"] == qwen_id]
@@ -228,7 +230,38 @@ def test_v4_binds_the_named_qwen_grant_and_preserves_the_prior_snapshot():
     }
 
 
-@pytest.mark.parametrize("name", ["audit-v2.json", "audit-v3.json"])
+def test_v5_rebinds_the_provider_source_and_preserves_the_prior_snapshot():
+    directory = audit.ROOT / "docs/development/evidence/role-output-cap-audit"
+    previous_bytes = (directory / "audit-v4.json").read_bytes()
+    previous = json.loads(previous_bytes)
+    current = json.loads((directory / "audit-v5.json").read_bytes())
+    assert current.pop("snapshot_version") == 5
+    assert current.pop("source_revision") == (
+        "d5046aae7cc0bea529d015d5548d9a00b744392c"
+    )
+    assert current.pop("supersedes") == {
+        "path": "docs/development/evidence/role-output-cap-audit/audit-v4.json",
+        "sha256": hashlib.sha256(previous_bytes).hexdigest(),
+        "grant_count": 35,
+    }
+    # Keep exact current-source regeneration: every public file hash, source
+    # pin, registered selection and capacity must match the real audit.
+    _assert_snapshot_matches_current(current)
+    assert current["grant_count"] == 35
+    assert current["grants"] == previous["grants"]
+    assert current["profiles"] == previous["profiles"]
+    changed_sources = {
+        path
+        for path, value in current["source_sha256"].items()
+        if value != previous["source_sha256"][path]
+    }
+    # model_provider.py: the Launchpad published-limit and timeout defaults
+    # (661e042db, 692107229, 9e8d4ff86, d5046aae7); no grant, price, cap or
+    # capacity row changed.
+    assert changed_sources == {"carbon/development_session/model_provider.py"}
+
+
+@pytest.mark.parametrize("name", ["audit-v2.json", "audit-v3.json", "audit-v4.json"])
 def test_historical_source_pins_cannot_pass_current_regeneration_control(name):
     directory = audit.ROOT / "docs/development/evidence/role-output-cap-audit"
     stale = json.loads((directory / name).read_bytes())

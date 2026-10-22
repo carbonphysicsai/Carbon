@@ -73,8 +73,8 @@ def test_the_version_table_serves_v6_to_exactly_the_step2_versions():
 
 @pytest.mark.parametrize(
     "key",
-    # Motor 1.2 is the backbone-catalog version; 1.3 is unregistered.
-    [("electric-motor-magnetics", "1.3"), ("chip-cold-plate", ""), ("unknown", "1.0")],
+    # Motor 1.2 and 1.3 are the catalog versions; 1.4 is unregistered.
+    [("electric-motor-magnetics", "1.4"), ("chip-cold-plate", ""), ("unknown", "1.0")],
 )
 def test_an_unregistered_version_is_refused_never_mapped(key):
     from carbon.challenge_kit import served_versions as sv
@@ -104,7 +104,7 @@ def test_batterys_worker_side_graph_choice_matches_the_version_table():
     from carbon.battery import direct_graph
     from carbon.challenge_kit import served_versions as sv
 
-    battery = sorted(v for c, v in sv.STEP2 | sv.EXISTING if c == sv.BATTERY)
+    battery = sorted(v for c, v in sv.STEP2 | sv.EXISTING | sv.V7 if c == sv.BATTERY)
     assert sorted(direct_graph.GRAPH_ALLOWLISTS) == battery
     for version in battery:
         assert (

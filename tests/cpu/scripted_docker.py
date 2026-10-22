@@ -236,9 +236,11 @@ class ScriptedDocker:
                 # so a profile's own limit is what the inspection sees.
                 "Memory": int((flags.get("memory") or [0])[0]),
                 "MemorySwap": int((flags.get("memory-swap") or [0])[0]),
-                "NanoCpus": CPU_COUNT * 1_000_000_000,
+                "NanoCpus": round(
+                    float((flags.get("cpus") or [CPU_COUNT])[0]) * 1_000_000_000
+                ),
                 "CpusetCpus": (flags.get("cpuset-cpus") or [""])[0],
-                "ShmSize": _SHM_BYTES,
+                "ShmSize": int((flags.get("shm-size") or [_SHM_BYTES])[0]),
                 "CapAdd": [],
                 "CapDrop": flags.get("cap-drop", []),
                 "Devices": [],
@@ -306,12 +308,14 @@ class ScriptedDocker:
         if "/bin/df" in tail:
             if "/dev/shm" in tail:
                 return SimpleNamespace(
-                    returncode=0, stdout=f"size\n{_SHM_BYTES}\n".encode(), stderr=b""
+                    returncode=0,
+                    stdout=f"size\n{self._created_shm()}\n".encode(),
+                    stderr=b"",
                 )
             if "--output=size,used" in tail:
                 return SimpleNamespace(
                     returncode=0,
-                    stdout=f"size used\n{_SCRATCH_TMPFS_BYTES} 0\n".encode(),
+                    stdout=f"size used\n{self._created_scratch()} 0\n".encode(),
                     stderr=b"",
                 )
             if "--output=itotal,iused" in tail:
@@ -328,12 +332,31 @@ class ScriptedDocker:
                 )
             return SimpleNamespace(
                 returncode=0,
-                stdout=f"size\n{_SCRATCH_TMPFS_BYTES}\n".encode(),
+                stdout=f"size\n{self._created_scratch()}\n".encode(),
                 stderr=b"",
             )
         if "/usr/bin/nvidia-smi" in tail:
             return self._smi(tail)
         raise AssertionError(f"unscripted exec: {command}")
+
+    def _created_cpus(self):
+        flags = _flags(self.create_arguments)
+        return int(float((flags.get("cpus") or [CPU_COUNT])[0]))
+
+    def _created_cpuset(self):
+        return (_flags(self.create_arguments).get("cpuset-cpus") or ["0-1"])[0]
+
+    def _created_shm(self):
+        return int((_flags(self.create_arguments).get("shm-size") or [_SHM_BYTES])[0])
+
+    def _created_scratch(self):
+        for value in _flags(self.create_arguments).get("tmpfs", []):
+            destination, _, options = value.partition(":")
+            if destination == "/scratch":
+                for option in options.split(","):
+                    if option.startswith("size="):
+                        return int(option[5:])
+        return _SCRATCH_TMPFS_BYTES
 
     def _cat(self, path):
         if path.endswith("/proc/1/status"):
@@ -342,8 +365,8 @@ class ScriptedDocker:
                 b"NoNewPrivs:\t1\nSeccomp:\t2\n"
             )
         table = {
-            "cpu.max": f"{CPU_COUNT * 100000} 100000",
-            "cpuset.cpus.effective": "0-1",
+            "cpu.max": f"{self._created_cpus() * 100000} 100000",
+            "cpuset.cpus.effective": self._created_cpuset(),
             "memory.max": (_flags(self.create_arguments).get("memory") or ["max"])[0],
             "memory.swap.max": "0",
             "pids.max": str(PIDS_LIMIT),

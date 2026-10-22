@@ -73,21 +73,26 @@ def test_published_validators_group_by_challenge_without_changing_a_single_entry
     ]
 
     def write(items):
+        # v1 (entries name the Challenge only): Battery has one intake version.
         path.write_text(
-            json.dumps({"schema": setup.PUBLISHED_SCHEMA, "endpoints": items}),
+            json.dumps({"schema": setup.PUBLISHED_SCHEMA_V1, "endpoints": items}),
             encoding="utf-8",
         )
 
+    version = campaign.CHALLENGE.version
     write(entries[:1])
-    assert setup.published_endpoints(path)["endpoints"][CHALLENGE] == entries[0]
+    assert (
+        setup.published_endpoints(path)["endpoints"][CHALLENGE][version] == entries[0]
+    )
     write(entries)
     loaded = setup.published_endpoints(path)
     assert loaded["problem"] is None
-    assert loaded["endpoints"][CHALLENGE]["validators"] == entries
+    assert loaded["endpoints"][CHALLENGE][version]["validators"] == entries
     write([entries[0], entries[0]])
     assert setup.published_endpoints(path) == {
         "endpoints": {},
         "problem": "published_endpoints_unreadable",
+        "unversioned": [],
     }
 
 
@@ -365,16 +370,21 @@ def test_review_writes_every_published_validator_and_reuses_legacy_primary_field
     environment = setup.EnvironmentSetup(root, onboarding=Onboarding(), checks=Checks())
     completed(tmp_path, environment)
     entry = {**PAIRS[0], "validators": list(PAIRS)}
+    version = campaign.CHALLENGE.version
     monkeypatch.setattr(
         setup,
         "published_endpoints",
-        lambda: {"endpoints": {CHALLENGE: entry}, "problem": None},
+        lambda: {"endpoints": {CHALLENGE: {version: entry}}, "problem": None},
     )
     environment.review({"confirm": True})
     cfg = runner.validated_profile(json.loads(environment.profile_path.read_bytes()))
-    assert cfg["intake_targets"][CHALLENGE] == PAIRS
-    assert cfg["intakes"][CHALLENGE] == PAIRS[0]["intake_url"]
-    assert cfg["receivers"][CHALLENGE] == PAIRS[0]["receiver_hotkey"]
+    # Written for exactly the published version (published-endpoints v2); the
+    # campaign of that version reads the legacy primary fields from it.
+    assert cfg["version_intakes"] == {CHALLENGE: {version: PAIRS}}
+    own = targets.for_version(cfg, CHALLENGE, version)
+    assert own["intake_targets"][CHALLENGE] == PAIRS
+    assert own["intakes"][CHALLENGE] == PAIRS[0]["intake_url"]
+    assert own["receivers"][CHALLENGE] == PAIRS[0]["receiver_hotkey"]
     assert (
         environment._evaluation(environment._record())["challenges"][0]["validators"]
         == PAIRS

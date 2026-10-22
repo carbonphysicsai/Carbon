@@ -478,6 +478,9 @@ class Checks:
     def published_pricing(self, provider_id, model_id):
         return {}
 
+    def published_limits(self, provider_id, model_id):
+        return {}
+
     def inference(self, provider_id, model_id, credential_file, spec=None):
         return {"models_source": "fixture", "models_listed": 1, "completion": "ok"}
 

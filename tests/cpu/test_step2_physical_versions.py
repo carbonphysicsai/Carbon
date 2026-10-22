@@ -48,7 +48,8 @@ def test_an_existing_version_keeps_its_limits_bytes(key):
     assert new == limits
 
 
-@pytest.mark.parametrize("version", ["1.3", "2.0", ""])  # 1.2 is the catalog version
+# 1.2 and 1.3 are the catalog versions.
+@pytest.mark.parametrize("version", ["1.4", "2.0", ""])
 def test_an_unregistered_version_is_refused(version):
     with pytest.raises(ValueError, match="unknown public physical Challenge version"):
         physical_public.construction_kit(sv.MOTOR, version)

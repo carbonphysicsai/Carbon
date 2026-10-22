@@ -22,6 +22,7 @@ from pathlib import Path
 import numpy as np
 
 from carbon.challenge_validator.strict_json import MalformedStrategy, parse_strategy
+from carbon.reconstruction.worker.model import worker_resources_version
 
 from .bundle_graph_state import MAX_BYTES as MAX_STATE_BYTES
 from .bundle_graph_state import state_fits, state_limit
@@ -541,7 +542,7 @@ def prepare_library_overlay(
     from .library_environment_cache import pinned_uv_bytes
 
     binding = _checked_binding(recipe, challenge_binding)
-    verify_direct_resource_policy(binding, limits_document)
+    verify_direct_resource_policy(binding, limits_document, _ANY_SERVED)
     if (
         type(parent) is not WorkerImageIdentity
         or type(material) is not tuple
@@ -676,7 +677,12 @@ def _checked_binding(recipe: ConstructionRecipe, binding: dict) -> dict:
     return binding
 
 
-def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
+_ANY_SERVED = object()
+
+
+def verify_direct_resource_policy(
+    binding: dict, limits_document: dict, worker_resources_version=None
+) -> str:
     """Check a registered Challenge policy against the actual C-03 lane.
 
     A request or operator profile cannot author this policy. The kit's pinned
@@ -684,6 +690,11 @@ def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
     finite limits are the ones this direct source route actually enforces.
     The aggregate task deadline remains an orchestration obligation, not a
     property inferred from either 600-second worker call.
+
+    ``worker_resources_version`` names the profile the run uses (a next
+    version's larger worker resources, from the allowlist it builds under);
+    `_ANY_SERVED`, for a step that runs at today's resources whatever the
+    version (dependency preparation), accepts the policy of either profile.
     """
     from carbon.challenge_kit import synthetic_linear_field_2d
 
@@ -796,23 +807,49 @@ def verify_direct_resource_policy(binding: dict, limits_document: dict) -> str:
         or limits_document.get("scope") != expected_scope
     ):
         raise RecipeRefused("construction_resource_policy_binding_invalid")
-    profile = _worker_profile(None, LIBRARY_BUILD_PROVENANCE).body
-    expected = {
-        "schema": resource_schema,
-        "cpu_count_max": profile["cpu"]["count"],
-        "memory_bytes_max": profile["memory"]["bytes"],
-        "swap_bytes_max": profile["memory"]["swap_bytes"],
-        "pids_max": profile["pids"],
-        "nofile_max": profile["nofile_per_process"],
-        "scratch_bytes_max": profile["scratch"]["bytes"],
-        "scratch_inodes_max": profile["scratch"]["inodes"],
-        "build_wall_seconds_max": profile["deadline_seconds"],
-        "inference_wall_seconds_max": profile["deadline_seconds"],
-        "total_reconstruction_wall_seconds_max": MAX_TASK_WALL_SECONDS,
-        "network": profile["security"]["network"],
-        "cleanup_required": True,
-    }
-    if limits_document.get("reconstruction_resource_policy") != expected:
+    from carbon.reconstruction.worker.model import (
+        LARGE_MODEL_ALLOWLIST_VERSIONS,
+    )
+    from carbon.reconstruction.worker.model import (
+        worker_resources_version as resources_for,
+    )
+
+    def expected(resources_version):
+        profile = (
+            _worker_profile(None, LIBRARY_BUILD_PROVENANCE)
+            if resources_version is None
+            else _worker_profile(None, LIBRARY_BUILD_PROVENANCE, resources_version)
+        ).body
+        return {
+            "schema": resource_schema,
+            "cpu_count_max": profile["cpu"]["count"],
+            "memory_bytes_max": profile["memory"]["bytes"],
+            "swap_bytes_max": profile["memory"]["swap_bytes"],
+            "pids_max": profile["pids"],
+            "nofile_max": profile["nofile_per_process"],
+            "scratch_bytes_max": profile["scratch"]["bytes"],
+            "scratch_inodes_max": profile["scratch"]["inodes"],
+            "build_wall_seconds_max": profile["deadline_seconds"],
+            "inference_wall_seconds_max": profile["deadline_seconds"],
+            "total_reconstruction_wall_seconds_max": MAX_TASK_WALL_SECONDS,
+            "network": profile["security"]["network"],
+            "cleanup_required": True,
+        }
+
+    candidates = (
+        (
+            None,
+            *(
+                version
+                for version in sorted(LARGE_MODEL_ALLOWLIST_VERSIONS)
+                if resources_for(version) is not None
+            ),
+        )
+        if worker_resources_version is _ANY_SERVED
+        else (worker_resources_version,)
+    )
+    served = limits_document.get("reconstruction_resource_policy")
+    if not any(served == expected(candidate) for candidate in candidates):
         raise RecipeRefused("construction_resource_policy_unserved")
     return binding["construction_limits_digest"]
 
@@ -856,10 +893,11 @@ def _trusted_allowlist(raw: bytes):
     prospective = getattr(synthetic_linear_field_2d, "allowlist_v5_bytes", None)
     if callable(prospective):
         trusted += (prospective(),)
-    from carbon.level4.allowlist import served_bytes
+    from carbon.level4.allowlist import served_bytes, v7_bytes
 
-    # The served allowlist (v6); v1-v5 stay trusted for historical builds.
-    trusted += (served_bytes(),)
+    # The served allowlists: v6, and v7 on the catalog versions that serve it
+    # (`served_versions.V7`); v1-v5 stay trusted for historical builds.
+    trusted += (served_bytes(), v7_bytes())
     if raw not in trusted:
         raise RecipeRefused("bundle_allowlist_unregistered")
     return Allowlist(raw)
@@ -1038,9 +1076,10 @@ def reconstruct_public(
     ):
         raise RecipeRefused("bundle_build_binding_invalid")
     binding = _checked_binding(recipe, challenge_binding)
-    if limits_document is not None:
-        verify_direct_resource_policy(binding, limits_document)
     allowed = _trusted_allowlist(allowlist_bytes)
+    resources_version = worker_resources_version(allowed.version)
+    if limits_document is not None:
+        verify_direct_resource_policy(binding, limits_document, resources_version)
     example_bytes = _tensors(inputs=example)
     files, codec_modules = _stage_bundle_modules(binding, training=True)
     from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
@@ -1160,6 +1199,11 @@ def reconstruct_public(
             if overlay is not None
             else {}
         ),
+        **(
+            {}
+            if resources_version is None
+            else {"worker_resources_version": resources_version}
+        ),
     )
     snapshot = ledger.root / worker["operation"] / "snapshot"
     state, receipt = checked(snapshot)
@@ -1250,7 +1294,11 @@ def infer_public(
     state = expected.read_bytes()
     binding = _checked_binding(recipe, challenge_binding)
     if limits_document is not None:
-        verify_direct_resource_policy(binding, limits_document)
+        verify_direct_resource_policy(
+            binding,
+            limits_document,
+            worker_resources_version(_trusted_allowlist(allowlist_bytes).version),
+        )
     if _digest(state) != build.state_digest:
         raise RecipeRefused("bundle_inference_state_changed")
     return _infer_state(
@@ -1320,9 +1368,11 @@ def infer_saved_bundle(
     if _digest(state_bytes) != expected_state_digest:
         raise RecipeRefused("saved_bundle_inference_state_changed")
     binding = _checked_binding(recipe, challenge_binding)
-    if limits_document is not None:
-        verify_direct_resource_policy(binding, limits_document)
     allowed = _trusted_allowlist(allowlist_bytes)
+    if limits_document is not None:
+        verify_direct_resource_policy(
+            binding, limits_document, worker_resources_version(allowed.version)
+        )
     from .bundle_graph_state import load
 
     load(state_bytes, recipe, allowed)
@@ -1390,7 +1440,12 @@ def _infer_state(
     seconds: int = 600,
     accelerator: str | None = None,
     runner=None,
+    program: str | None = None,
+    staged_files: dict[str, bytes] | None = None,
 ) -> BundleInferenceResult:
+    """`program` and `staged_files` serve a graph adapter's own inference
+    program and its extra trusted modules (`direct_graph_construction_worker`).
+    Omitted, this is the plain inference program."""
     if provenance not in (
         "DIRECT_BUNDLE_PUBLIC_INFERENCE",
         "DIRECT_GRAPH_PUBLIC_INFERENCE",
@@ -1399,6 +1454,10 @@ def _infer_state(
     allowed = _trusted_allowlist(allowlist_bytes)
     inputs_bytes = _tensors(inputs=inputs)
     files, codec_modules = _stage_bundle_modules(binding, training=False)
+    if staged_files is not None:
+        if any(name in files for name in staged_files):
+            raise RecipeRefused("bundle_worker_module_closure_changed")
+        files.update(staged_files)
     control = {
         "recipe_digest": recipe.digest,
         "binding": binding,
@@ -1417,7 +1476,7 @@ def _infer_state(
         # graded query runs one case at a time (the program's default).
         control["per_case"] = False
     if input_name != "inputs/x":
-        if input_name != "inputs/forcing":
+        if input_name not in ("inputs/forcing", "inputs/features"):
             raise RecipeRefused("direct_inference_input_name_invalid")
         control["input_name"] = input_name
     files.update(
@@ -1511,7 +1570,7 @@ def _infer_state(
         ledger,
         owner=owner,
         identity=identity,
-        source=INFER_PROGRAM,
+        source=INFER_PROGRAM if program is None else program,
         files=files,
         image=inference_image,
         seconds=seconds,
@@ -1521,6 +1580,13 @@ def _infer_state(
         ),
         output_validator=checked,
         **_accelerator_kwargs(accelerator),
+        # A model built under a next version's larger resources is loaded
+        # and run under them too.
+        **(
+            {}
+            if worker_resources_version(allowed.version) is None
+            else {"worker_resources_version": allowed.version}
+        ),
     )
     snapshot = ledger.root / worker["operation"] / "snapshot"
     raw, predictions, receipt = checked(snapshot)
@@ -1659,7 +1725,11 @@ def reconstruct_and_infer_public(
     A test runner proves bytes and custody, never C-03 isolation.
     """
     binding = _checked_binding(recipe, challenge_binding)
-    policy_digest = verify_direct_resource_policy(binding, limits_document)
+    policy_digest = verify_direct_resource_policy(
+        binding,
+        limits_document,
+        worker_resources_version(_trusted_allowlist(allowlist_bytes).version),
+    )
     policy = limits_document["reconstruction_resource_policy"]
     now = time.monotonic()
     if total_deadline_started is not None and (
