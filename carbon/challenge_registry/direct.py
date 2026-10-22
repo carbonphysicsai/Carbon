@@ -133,6 +133,7 @@ def describe(spec, version):
                 "reference_method",
                 "catalog",
                 "construction_kit",
+                "scaffold_recipe",
             ],
             "access": (
                 "start_research_task kind=workspace action=public_material with "
