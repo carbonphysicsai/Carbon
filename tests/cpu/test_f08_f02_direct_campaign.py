@@ -15,7 +15,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
-from direct_catalog_stand_in import STAND_IN, inject
+from direct_catalog_stand_in import STAND_IN, empty, inject
 from test_lp_prod_research_tools import ledger
 
 from carbon.challenge_kit import physical_material
@@ -163,8 +163,9 @@ def test_the_launchpad_lists_the_version_generically(spec, version):
 
 @pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
 def test_an_empty_catalog_campaign_is_refused_before_anything_starts(
-    spec, version, tmp_path
+    spec, version, tmp_path, monkeypatch
 ):
+    empty(monkeypatch, spec.challenge_id, version)
     campaign = campaign_for(_challenge(spec, version))
     args = SimpleNamespace(
         root=tmp_path,
@@ -362,6 +363,7 @@ def test_outputs_must_be_finite_float32_rows_of_the_interface(
 def test_a_level0_strategy_and_the_empty_template_are_not_recipes(
     spec, version, tmp_path, monkeypatch
 ):
+    empty(monkeypatch, spec.challenge_id, version)
     calls = []
     monkeypatch.setattr(
         bundle_worker, "reconstruct_and_infer_public", lambda *a, **k: calls.append(k)
@@ -638,8 +640,12 @@ def test_the_approved_facts_are_pinned_to_their_approval(spec, version):
 
 
 @pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
-def test_the_approved_facts_are_served_and_the_rest_is_human_input(spec, version):
+def test_the_approved_facts_are_served_and_the_rest_is_human_input(
+    spec, version, monkeypatch
+):
     from carbon.direct_campaign import contracts
+
+    empty(monkeypatch, spec.challenge_id, version)
 
     document = describe(spec.challenge_id, version)
     assert document["task"] == TASKS[spec.challenge_id]

@@ -28,3 +28,18 @@ def inject(monkeypatch, challenge_id, version):
     patched = {**manifest, "entries": [*manifest["entries"], item]}
     monkeypatch.setattr(listing, "load", lambda: patched)
     return item
+
+
+def empty(monkeypatch, challenge_id, version):
+    """Offer nothing on (challenge_id, version): the empty-catalog paths, now
+    that F08 1.4 / F02 2.3 serve tested entries (B3, 2026-10-22)."""
+    from carbon.backbone_catalog import listing
+
+    manifest = listing.load()
+    key = {"id": challenge_id, "version": version}
+    entries = [
+        {**e, "challenges": [c for c in e["challenges"] if c != key]}
+        for e in manifest["entries"]
+    ]
+    patched = {**manifest, "entries": [e for e in entries if e["challenges"]]}
+    monkeypatch.setattr(listing, "load", lambda: patched)
