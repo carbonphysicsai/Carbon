@@ -619,3 +619,76 @@ def test_receiver_start_up_refuses_before_restoring_when_the_policy_is_missing(
     uncapped = discovery("some-fixture", {})
     direct_receiver._exam_cap_startup(ledger, uncapped, lambda: restored.append(1))
     assert restored == [1]
+
+
+def test_the_cap_holds_whatever_request_id_a_resubmit_uses(cap, monkeypatch):
+    # Validator, H16 receipt condition: a miner's transport request id is not
+    # the receiver's submission identity. The task is derived from the hotkey,
+    # the contract, the recipe and the evaluation pack only, so the same
+    # recipe resubmitted under a new request id (same hotkey, epoch, pack set)
+    # is the same submission: its slot is reused and it is not graded again;
+    # on a rotated pack set it is a new submission.
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.registry.model import ChallengeKey
+
+    info = SimpleNamespace(
+        challenge_key=ChallengeKey(*MOTOR),
+        public_train_digest="sha256:" + "1" * 64,
+        practice_inputs_digest="sha256:" + "2" * 64,
+        interface_digest="sha256:" + "3" * 64,
+        construction_limits_digest="sha256:" + "4" * 64,
+    )
+    host = SimpleNamespace(
+        discovery=SimpleNamespace(
+            info=info,
+            _material={
+                "construction_limits_document": {"reconstruction_resource_policy": {}}
+            },
+        ),
+        contract_digest="sha256:" + "c" * 64,
+        _measure_query=False,
+        _identities={
+            "challenge_info_digest": "sha256:" + "5" * 64,
+            "manifest_digest": "sha256:" + "6" * 64,
+            "construction_kit_digest": "sha256:" + "7" * 64,
+            "resource_policy_digest": "sha256:" + "9" * 64,
+        },
+    )
+    recipe = SimpleNamespace(digest="sha256:" + "8" * 64, to_dict=lambda: {"r": 1})
+    # The task request's own fields, without its recipe validation: only its
+    # derived identity is under test here.
+    import carbon.research
+
+    monkeypatch.setattr(
+        carbon.research,
+        "DirectStartTaskRequestV3",
+        lambda *fields: SimpleNamespace(idempotency_key=fields[1]),
+    )
+
+    def submission(pack):
+        made = LeanRecipeAdapter._request(
+            host, HOTKEY, recipe, evaluation_pack_digest=pack
+        )
+        return made.idempotency_key
+
+    pack_a, pack_b = "sha256:" + "a" * 64, "sha256:" + "b" * 64
+    assert submission(pack_a) == submission(pack_a)  # any request id: one task
+    assert submission(pack_a) != submission(pack_b)  # a rotated pack: a new one
+    first = cap.reserve(
+        hotkey=HOTKEY,
+        challenge_id=MOTOR[0],
+        challenge_version=MOTOR[1],
+        exam_key=pack_a,
+        submission_id=submission(pack_a),
+        block=360,
+    )
+    cap.settle(first, "SCORED_DEVELOPMENT_CANDIDATE")
+    again = cap.reserve(
+        hotkey=HOTKEY,
+        challenge_id=MOTOR[0],
+        challenge_version=MOTOR[1],
+        exam_key=pack_a,
+        submission_id=submission(pack_a),
+        block=360,
+    )
+    assert again == first and _count(cap, exam=pack_a) == 1
