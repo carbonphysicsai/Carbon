@@ -1430,7 +1430,7 @@
     para(box, "Provider payloads, worker output and errors stay private to the campaign; this shows operation states only.", "hint");
     const usage = run && run.usage;
     const res = section(panel, "Resources", "Your record");
-    if (!usage) { para(res, "Appears once the campaign ledger exists.", "hint"); return; }
+    if (!usage) { para(res, "Appears once the spending record exists.", "hint"); return; }
     // Every column in the unit your limit is set in (LP-PROD-F).
     CC.usageTable(res, usage);
     para(res, usage.cost_basis || "", "hint");
@@ -1572,10 +1572,10 @@
       {id: "challenge", title: "Challenge", value: entry ? plainTitle(entry.title) + " · v" + entry.version : "Not chosen", note: entry ? (entry.selectable ? "Ready to launch" : "Set up first") : "Choose what to mine", go: () => CC.goWizard("challenge")},
       {id: "agent", title: "Agent", value: steps.agent?.checked ? choiceName("agent", steps.agent.choice) : agent ? agent.label : "Not chosen", note: agent ? (agent.launch_agent === "graphite" ? "Graphite · " + CC.graphite.summary() : agent.uses_model ? "Carbon's agent calls your model" : "Calls no model") : j?.skipped?.inference ? "Your own agent, with its own model" : "Who researches and submits", href: "#setup/agent"},
     ];
-    if (!skipsInference) cards.push({id: "inference", title: "Inference", value: steps.inference?.checked ? choiceName("inference", steps.inference.provider_id) + " · " + steps.inference.model_id : "Not checked", note: "Only Carbon's own agent calls a model, with your key", href: "#setup/inference"});
+    if (!skipsInference) cards.push({id: "inference", title: "AI model", value: steps.inference?.checked ? choiceName("inference", steps.inference.provider_id) + " · " + steps.inference.model_id : "Not checked", note: "Only Carbon's own agent calls a model, with your key", href: "#setup/inference"});
     cards.push(
       {id: "compute", title: "Compute", value: steps.compute?.checked ? choiceName("compute", steps.compute.choice) : (s.caps.compute?.choices?.[0]?.label || "Not checked"), note: "Your machine, or your own remote one", href: "#setup/compute"},
-      {id: "limits", title: "Limits", value: parts.length ? parts.join(", ") : "None set", note: "Your own campaign ledger. Carbon caps and bills nothing.", go: () => CC.goWizard("limits")},
+      {id: "limits", title: "Limits", value: parts.length ? parts.join(", ") : "None set", note: "Your own spending record. Carbon caps and bills nothing.", go: () => CC.goWizard("limits")},
       {id: "review", title: "Review", value: problem ? "Not ready" : "Ready", note: problem || "Every step can pass.", href: "#setup/review"},
     );
     const key = JSON.stringify([cards.map(c => [c.value, c.note]), setup.choices, s.caps.agents?.choices?.map(row => row.acceptance), s.caps.compute?.choices?.map(row => row.acceptance), problem, s.busy, s.pendingResearch ? 1 : 0]);

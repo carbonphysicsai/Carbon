@@ -2879,7 +2879,7 @@
       }
       panel.append(usage);
       researchNote(panel, run.usage.cost_basis || "Cost basis unavailable.");
-    } else missing(panel, "usage appears once the campaign ledger exists.");
+    } else missing(panel, "usage appears once the spending record exists.");
     const results = run.final_results || [];
     researchNote(panel, results.length ? "Independent DEVELOPMENT results: " + results.length + " (see Submission)" : "No independent DEVELOPMENT result yet.", "development-summary");
   }
@@ -2908,7 +2908,7 @@
     researchNote(parent, "Shown in USD, minutes and MB; the ledger counts whole nanodollars, milliseconds and bytes.", "hint");
   }
   function tabMetrics(panel, run) {
-    if (!run.usage) { missing(panel, "resource metrics appear once the campaign ledger exists."); return; }
+    if (!run.usage) { missing(panel, "resource metrics appear once the spending record exists."); return; }
     usageTable(panel, run.usage);
     const scores = (run.experiments || []).map((experiment, index) => experiment.outcome === "SMOKE" ? null : "#" + (index + 1) + ": " + (experiment.diagnostics?.descriptive_score ?? experiment.summary?.score ?? "unavailable")).filter(Boolean);
     researchNote(panel, scores.length ? "Descriptive practice scores (not accepted improvements): " + scores.join(" · ") : "No practice score yet.");
@@ -3873,7 +3873,7 @@
         input.disabled = !entry.implemented || comingSoon(entry);
         input.addEventListener("change", () => selectChallenge(entry));
         const text = el("span");
-        text.append(el("strong", plainTitle(entry.title)), el("span", " " + challengeStatus(entry) + (entry.version ? " · v" + entry.version : "") + " · " + acceptanceText(entry), "small-tag"));
+        text.append(el("strong", plainTitle(entry.title)), el("span", " " + challengePill(entry)[0] + (entry.version ? " · v" + entry.version : "") + testedSuffix(entry), "small-tag"));
         if (comingSoon(entry)) text.append(el("span", " " + (typeof entry.practise.plain === "string" ? entry.practise.plain : "Coming soon."), "hint"));
         if (!entry.selectable) text.append(el("span", "Unavailable: " + why(entry) + " · Next: " + entry.next_action, "reason"));
         label.append(input, text); node.append(label);
