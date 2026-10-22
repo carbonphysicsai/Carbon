@@ -69,7 +69,16 @@ def test_a_gpu_host_without_the_gpu_build_installed_falls_back_and_says_why(
     out = gpu_practice.device_build(
         _Practice("gpu", {"cpu": "cpu-image"}), _expand_for, str
     )
-    assert out[3:] == ("parent-of-cpu", None, "gpu_build_not_installed")
+    assert out[3:] == ("parent-of-cpu", None, "gpu_overlay_not_installed")
+
+    # An overlay preparation that fails never fails the practice: CPU runs.
+    def failing(bundle, parent, built):
+        raise RuntimeError("prep failed")
+
+    out = gpu_practice.device_build(
+        _Practice("gpu", {"cpu": "cpu-image"}), _expand_for, str, failing
+    )
+    assert out[3:] == ("parent-of-cpu", None, "gpu_build_failed")
     # A GPU build resolved as a library child, not a verified overlay, is not
     # run on the GPU (the bundle worker requires the overlay).
     out = gpu_practice.device_build(
@@ -92,3 +101,26 @@ def test_a_gpu_host_with_the_overlay_runs_the_gpu_build_on_the_gpu(monkeypatch):
         _Practice("gpu", {"gpu": overlay}), _expand_for, str
     )
     assert out == (_expand_for("x"), "gpu", overlay, "parent-of-gpu", MINER_GPU, None)
+
+
+def test_a_gpu_host_prepares_the_overlay_on_demand(monkeypatch):
+    from carbon.development_session import library_environment_cache as cache
+    from carbon.development_session.research_carrier import MINER_GPU
+
+    class Overlay:
+        pass
+
+    monkeypatch.setattr(cache, "VerifiedLibraryOverlay", Overlay)
+    monkeypatch.setattr(gpu_practice, "gpu_runtime", lambda image: "torch-cu130-py311")
+    made = Overlay()
+    asked = []
+
+    def overlay(bundle, parent, built):
+        asked.append((bundle, parent))
+        return made
+
+    out = gpu_practice.device_build(
+        _Practice("gpu", {"gpu": "child"}), _expand_for, str, overlay
+    )
+    assert out[2:5] == (made, "parent-of-gpu", MINER_GPU)
+    assert asked == [("gpu", "parent-of-gpu")]

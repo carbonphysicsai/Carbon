@@ -169,13 +169,22 @@ class MotorCatalogPractice:
         from .research import safety_feedback
 
         material = self._material()
-        from carbon.development_session.gpu_practice import device_build
+        from carbon.development_session.gpu_practice import device_build, gpu_overlay
 
         expanded, _bundle, image, construction_parent, accelerator, gpu_note = (
             device_build(
                 self,
                 lambda runtime: self._expanded(strategy, material, runtime),
                 _bundle_ref,
+                lambda bundle, parent, built: gpu_overlay(
+                    self,
+                    identity,
+                    bundle,
+                    parent,
+                    built,
+                    material["construction_kit"],
+                    material["construction_limits_document"],
+                ),
             )
         )
         recipe = ConstructionRecipe.from_dict(expanded)

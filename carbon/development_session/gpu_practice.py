@@ -215,14 +215,73 @@ class DirectParents:
         }
 
 
-def device_build(practice, expand_for, bundle_of):
+#: The miner host's overlay cache bound for GPU builds: the receiver's own
+#: (`challenge_validator.receiver_setup.MATERIAL_CACHE_BYTES`), so a GPU
+#: practice prepares exactly what a receiver would (one shared path).
+MINER_OVERLAY_CACHE_BYTES = 192 * 1024 * 1024
+
+
+def gpu_overlay(practice, identity, bundle, parent, expanded, kit, limits_document):
+    """Stage S2: an entry's GPU build as a verified overlay on the GPU parent,
+    prepared in a controlled C-03 operation on the GPU (offline wheels from
+    the installed bundle material only) and sealed in the owner cache, as the
+    receiver's direct path prepares one. The same for every Challenge."""
+    from .bundle_construction_worker import (
+        direct_child_identity,
+        prepare_library_overlay,
+    )
+    from .construction_recipe import ConstructionRecipe
+    from .library_bundles import (
+        load_pinned_bundle_directory,
+        verify_bundle_parent_environment,
+    )
+    from .library_environment_cache import (
+        cache_verified_overlay,
+        inspect_staged_bundle_material,
+    )
+    from .research_carrier import MINER_GPU
+
+    directory = inspect_staged_bundle_material(practice.cache_root, bundle)
+    material = load_pinned_bundle_directory(directory)
+    verify_bundle_parent_environment(material[0], parent)
+    prep = prepare_library_overlay(
+        practice.ledger,
+        owner=practice.owner,
+        identity=direct_child_identity(identity, "prep"),
+        parent=parent,
+        recipe=ConstructionRecipe.from_dict(expanded),
+        challenge_binding={
+            "challenge_id": kit["id"],
+            "challenge_version": kit["version"],
+            "train_digest": kit["train_digest"],
+            "interface_digest": kit["interface_digest"],
+            "construction_limits_digest": kit["construction_limits_digest"],
+        },
+        limits_document=limits_document,
+        material=material,
+        accelerator=MINER_GPU,
+        runner=practice.runner,
+    )
+    if prep.controls_digest is None:
+        raise ValueError("completed C03 preparation controls unavailable")
+    return cache_verified_overlay(
+        prep.snapshot,
+        practice.cache_root,
+        expected_bundle=bundle,
+        expected_parent=parent,
+        expected_receipt=prep.receipt,
+        material_cache_bytes=MINER_OVERLAY_CACHE_BYTES,
+    )
+
+
+def device_build(practice, expand_for, bundle_of, overlay=None):
     """The build one catalog practice runs, chosen by device, the same for
     every Challenge: the entry's GPU build on the host's declared PyTorch
     GPU worker when that build is installed as a verified overlay, else its
     CPU build. Returns (expanded, bundle, image, construction_parent,
     accelerator, gpu_note); gpu_note says why a GPU host ran the CPU build
-    (`catalog_gpu_build_missing`, `gpu_build_not_installed`,
-    `gpu_overlay_not_installed`), None otherwise. Never a score input."""
+    (`catalog_gpu_build_missing`, `gpu_overlay_not_installed`,
+    `gpu_build_failed`), None otherwise. Never a score input."""
     from carbon.backbone_catalog.served import GpuBuildMissing
 
     from .library_environment_cache import VerifiedLibraryOverlay
@@ -234,15 +293,21 @@ def device_build(practice, expand_for, bundle_of):
         try:
             expanded = expand_for(runtime)
             bundle = bundle_of(expanded["source"]["bundle_ref"])
-            image = practice._resolve(bundle)
             parent = practice.parents().for_bundle(bundle)
+            try:
+                image = practice._resolve(bundle)
+            except FileNotFoundError:
+                image = None
+            if type(image) is not VerifiedLibraryOverlay and overlay is not None:
+                # S2: prepared on the GPU, as the receiver prepares one.
+                image = overlay(bundle, parent, expanded)
             if type(image) is VerifiedLibraryOverlay:
                 return expanded, bundle, image, parent, MINER_GPU, None
             note = "gpu_overlay_not_installed"
         except GpuBuildMissing as missing:
             note = missing.code
-        except (FileNotFoundError, ValueError, OSError):
-            note = "gpu_build_not_installed"
+        except Exception:  # noqa: BLE001 - a GPU attempt never fails the practice
+            note = "gpu_build_failed"
     expanded = expand_for(None)
     bundle = bundle_of(expanded["source"]["bundle_ref"])
     image = practice._resolve(bundle)

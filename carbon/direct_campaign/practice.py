@@ -389,11 +389,33 @@ class DirectPractice:
             reconstruct_and_infer_public,
         )
         from carbon.development_session.construction_recipe import ConstructionRecipe
-        from carbon.development_session.gpu_practice import device_build
+        from carbon.development_session.gpu_practice import device_build, gpu_overlay
 
         expanded, _bundle, image, construction_parent, accelerator, gpu_note = (
             device_build(
-                self, lambda runtime: _expand(catalog_recipe, runtime), _bundle_ref
+                self,
+                lambda runtime: _expand(catalog_recipe, runtime),
+                _bundle_ref,
+                lambda bundle, parent, built: gpu_overlay(
+                    self,
+                    identity,
+                    bundle,
+                    parent,
+                    built,
+                    {
+                        "id": binding["challenge_id"],
+                        "version": binding["challenge_version"],
+                        **{
+                            k: binding[k]
+                            for k in (
+                                "train_digest",
+                                "interface_digest",
+                                "construction_limits_digest",
+                            )
+                        },
+                    },
+                    material["construction_limits_document"],
+                ),
             )
         )
         recipe = ConstructionRecipe.from_dict(expanded)
