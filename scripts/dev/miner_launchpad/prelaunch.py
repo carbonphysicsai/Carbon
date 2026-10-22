@@ -87,6 +87,18 @@ def evaluation(cfg):
                     warning="intake_receiver_not_pinned",
                     next_step=RECEIVER_NOT_PINNED.format(title=challenge["title"]),
                 )
+        elif type(cfg.get("direct_intake_target")) is dict:
+            # M1 E2E U19: a direct campaign of a Challenge with no intake
+            # submits to the profile's direct target (`_direct_target`, and
+            # the submit check since H9b), so it is configured, not refused.
+            direct = cfg["direct_intake_target"]
+            item.update(
+                status="INTAKE_CONFIGURED",
+                source="YOURS",
+                direct=True,
+                intake=direct.get("intake_url"),
+                receiver_pinned=type(direct.get("receiver_hotkey")) is str,
+            )
         elif challenge["id"] in local:
             item.update(status="VALIDATOR_ON_THIS_MACHINE", source="YOURS")
         elif entry is not None:

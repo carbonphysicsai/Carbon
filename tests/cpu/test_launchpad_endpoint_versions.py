@@ -451,3 +451,18 @@ def test_battery_reads_its_own_versions_endpoint_only():
     legacy = _profile_args({})
     legacy.intakes = {challenge: URL_13}
     assert battery._own_version(legacy) is legacy
+
+
+def test_the_prelaunch_review_counts_the_direct_target():
+    # M1 E2E U19: Review said "Unavailable today" for Motor 1.3 although its
+    # direct campaign submits to the profile's direct target.
+    cfg = {
+        "paths": {},
+        "direct_intake_target": {"intake_url": URL_12, "receiver_hotkey": HOTKEY},
+    }
+    review = prelaunch.evaluation(cfg)
+    motor = [i for i in review["challenges"] if i["challenge_id"] == MOTOR]
+    assert motor and all(i["status"] == "INTAKE_CONFIGURED" for i in motor)
+    assert all(i["direct"] is True and i["intake"] == URL_12 for i in motor)
+    plain = prelaunch.evaluation({"paths": {}})
+    assert all(i["status"] != "INTAKE_CONFIGURED" for i in plain["challenges"])
