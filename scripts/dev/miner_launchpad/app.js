@@ -1385,6 +1385,42 @@
     const destination = setupField(remoteBox, "destination", "SSH destination (user@host, or your ssh-config alias)");
     const sshPort = setupField(remoteBox, "port", "SSH port (optional; leave empty for your ssh config's)", "number");
     researchNote(remoteBox, "Make `ssh <destination>` work from this machine without a prompt first: your key in your agent, the host key in your known hosts. Carbon passes no key and installs nothing.", "hint");
+    // U59: a guided link for a rented GPU. From the provider's host, port,
+    // user and key path it writes out the ssh-config entry and the one-time
+    // host-key step for the miner to run in their own terminal, and fills in
+    // the destination. Nothing is written or run by Carbon: the miner's own
+    // SSH still decides how the machine is reached.
+    const gpuLink = el("details", undefined, "gpu-link"); gpuLink.id = "setup-link-gpu";
+    gpuLink.append(el("summary", "Link a rented GPU (host, port, user and key from your provider)"));
+    const linkForm = el("div"); linkForm.dataset.step = "compute"; gpuLink.append(linkForm);
+    const linkHost = setupField(linkForm, "link_host", "Host (IP or name your provider shows)");
+    const linkPort = setupField(linkForm, "link_port", "Port", "number");
+    const linkUser = setupField(linkForm, "link_user", "User (often root)");
+    const linkKey = setupField(linkForm, "link_key", "Private key file on this machine (e.g. ~/.ssh/id_ed25519)");
+    const linkOut = el("pre", "", "rs-code"); linkOut.hidden = true;
+    const linkSteps = el("ol", undefined, "checklist"); linkSteps.hidden = true;
+    const linkMake = el("button", "Write my link steps"); linkMake.type = "button";
+    linkMake.addEventListener("click", () => {
+      const host = linkHost.value.trim(), port = linkPort.value.trim(), user = linkUser.value.trim() || "root", key = linkKey.value.trim();
+      const safe = value => /^[A-Za-z0-9._@:~\/+-]+$/.test(value);
+      if (!host || !safe(host) || (port && !/^[0-9]{1,5}$/.test(port)) || !safe(user) || (key && !safe(key))) {
+        linkOut.hidden = false; linkSteps.hidden = true;
+        linkOut.textContent = "Check the fields: a host, a numeric port, a user and a key path with no spaces.";
+        return;
+      }
+      const alias = "carbon-gpu";
+      linkOut.hidden = false;
+      linkOut.textContent = "Host " + alias + "\n  HostName " + host + (port ? "\n  Port " + port : "") + "\n  User " + user + (key ? "\n  IdentityFile " + key + "\n  IdentitiesOnly yes" : "") + "\n";
+      linkSteps.hidden = false;
+      linkSteps.replaceChildren(
+        el("li", "Add the entry above to ~/.ssh/config on this machine (create the file if it is missing)."),
+        el("li", "In your own terminal, run once and answer yes to the host key: ssh " + alias + " nvidia-smi -L"),
+        el("li", "It should list your GPU. Then press Check my setup over my SSH below."),
+      );
+      destination.value = alias; sshPort.value = "";
+    });
+    linkForm.append(linkMake, linkOut, linkSteps);
+    remoteBox.append(gpuLink);
     const missing = el("div"); compute.append(missing);
     // Everything setup fills in for you, or a miner changes on purpose.
     const more = advanced(compute, "Advanced: images and transport");
