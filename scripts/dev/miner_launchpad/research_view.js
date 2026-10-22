@@ -313,6 +313,8 @@
       // anything on a finished campaign) is not drawn, unless the state's recovery needs it,
       // where its reason is the message.
       if (!control.available && !needs.includes(control.action)) continue;
+      // A campaign that is ready, with nothing running, has nothing to pause.
+      if (control.action === "pause" && doc.campaign.state === "READY") continue;
       const b = button(control.label, control.action === "stop" ? "rs-stop" : control.action === lead ? "primary" : "", () => CC.researchAction(doc.campaign.id, control.action));
       b.disabled = !control.available || !CC.state().connected || CC.state().busy;
       if (control.reason) b.title = control.reason;
@@ -378,7 +380,11 @@
       tile("Model spend · your record", money(t.spend.used_nanodollars), note);
     } else tile("Model spend · your record", "Nothing yet", el("span", "Appears once the campaign starts spending.", "hint"));
     const runs = el("div");
-    if (typeof t.practice_runs.attempted === "number") runs.append(el("span", "completed, of " + t.practice_runs.attempted + " attempted", "hint"));
+    if (typeof t.practice_runs.attempted === "number") {
+      // Practice runs that finished are the count; a launch that was interrupted is said apart (U50).
+      const unfinished = t.practice_runs.attempted - (typeof t.practice_runs.completed === "number" ? t.practice_runs.completed : t.practice_runs.attempted);
+      runs.append(el("span", unfinished > 0 ? "finished · " + unfinished + " more started but not finished" : "finished", "hint"));
+    }
     runs.append(el("span", t.trials && typeof t.trials.ceiling === "number" ? "Trials used " + t.trials.used + " of your " + t.trials.ceiling : "Trials used " + (t.trials ? t.trials.used : 0) + " · no cap set", "hint"));
     tile("Practice runs", String(t.practice_runs.completed), runs);
     if (t.model_speed) speedTile(tile, t.model_speed);
@@ -566,7 +572,7 @@
       }
       if (doc.hypothesis) {
         const quote = el("blockquote", undefined, "rs-quote");
-        quote.append(el("p", doc.hypothesis), el("cite", "Latest hypothesis · recorded text, shown as text"));
+        quote.append(el("p", doc.hypothesis), el("cite", "Latest idea the agent is testing"));
         now.append(quote);
       }
       // The controls are the header's, once: this card does not draw them
