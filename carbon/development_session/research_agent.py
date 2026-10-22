@@ -812,10 +812,13 @@ def _request_once(
             provider_id=provider.provider_id,
             charge=charge,
             provider_report=report,
+        )
+        if getattr(provider, "transport", None) is not None:
             # Milliseconds from dispatch to the whole reply: with its output
             # tokens, the campaign's observed speed (never a recorded one).
-            reply_ms=reply_ms,
-        )
+            # Only under a plan that froze a transport rule (S17): a plan
+            # frozen before it records the bytes it always did.
+            result["reply_ms"] = reply_ms
         write_once(directory / "call.json", canonical({"identity": identity, **result}))
     ledger.finish(
         identity,
