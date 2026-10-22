@@ -52,6 +52,35 @@ _OPTIONAL_FIELDS = {
 CONSTRUCTION_RUNTIMES = ["python-cpu-py311", "torch-cpu-py311"]
 
 
+def served_challenges() -> tuple:
+    """Every Challenge version this receiver can serve, as ``{"id", "version"}``:
+    the synthetic fixture, every served Battery construction version, and every
+    registered physical kit. One list, read from the registrations (no
+    Challenge is named here), for the configuration check and operator setup."""
+    from carbon.battery import challenge as battery_challenge
+    from carbon.battery.construction_bundle_material import (
+        VERSIONS as BATTERY_VERSIONS,
+    )
+    from carbon.challenge_kit import physical_material
+    from carbon.challenge_kit.synthetic_linear_field_2d import CHALLENGE
+
+    return (
+        {"id": CHALLENGE.challenge_id, "version": "1.3"},
+        # Every served Battery construction version (1.0; step-2 2.0; the
+        # catalog version 2.1), each with its approved pack (Validator,
+        # 2026-10-20). Battery serves its own versioned material, not a
+        # physical kit, so it is listed here rather than in REGISTERED.
+        *(
+            {"id": battery_challenge.CHALLENGE.challenge_id, "version": version}
+            for version in BATTERY_VERSIONS
+        ),
+        *(
+            {"id": challenge_id, "version": version}
+            for challenge_id, version in physical_material.REGISTERED
+        ),
+    )
+
+
 class ReceiverUnavailable(RuntimeError):
     """A named operator/infrastructure refusal; never a scientific result."""
 
@@ -70,8 +99,14 @@ def load_config(path: Path) -> dict:
         or value.get("host") not in ("127.0.0.1", "localhost")
         or type(value.get("port")) is not int
         or not 1 <= value["port"] <= 65535
-        or type(value.get("lifetime_seconds")) is not int
-        or not 0 < value["lifetime_seconds"] < 2**31
+        # None: a service, running until it is stopped (E5); an int: a finite run.
+        or (
+            value.get("lifetime_seconds") is not None
+            and (
+                type(value.get("lifetime_seconds")) is not int
+                or not 0 < value["lifetime_seconds"] < 2**31
+            )
+        )
         or type(value.get("measure_query")) is not bool
         or type(value.get("receiver_hotkey")) is not str
         or not ADDRESS.fullmatch(value["receiver_hotkey"])
@@ -106,31 +141,8 @@ def load_config(path: Path) -> dict:
         ):
             raise ValueError(refusal)
     if "challenge" in value:
-        from carbon.battery import challenge as battery_challenge
-        from carbon.challenge_kit import physical_material
-        from carbon.challenge_kit.synthetic_linear_field_2d import CHALLENGE
-
         selected = value["challenge"]
-        from carbon.battery.construction_bundle_material import (
-            VERSIONS as BATTERY_VERSIONS,
-        )
-
-        registered = (
-            {"id": CHALLENGE.challenge_id, "version": "1.3"},
-            # Every served Battery construction version (1.0; step-2 2.0; the
-            # catalog version 2.1), each with its approved pack (Validator,
-            # 2026-10-20). Battery serves its own versioned material, not a
-            # physical kit, so it is listed here rather than in REGISTERED.
-            *(
-                {"id": battery_challenge.CHALLENGE.challenge_id, "version": version}
-                for version in BATTERY_VERSIONS
-            ),
-            *(
-                {"id": challenge_id, "version": version}
-                for challenge_id, version in physical_material.REGISTERED
-            ),
-        )
-        if type(selected) is not dict or selected not in registered:
+        if type(selected) is not dict or selected not in served_challenges():
             raise ValueError("registered direct Challenge selection required")
     if "auto_grade" in value and (
         type(value["auto_grade"]) is not dict
@@ -1027,8 +1039,11 @@ def serve(
     pool_store=None,
     exam_se=False,
     grade_set=False,
+    permits=None,
 ):
-    """Run the same signed intake/task loop with finite admission and owned stop."""
+    """Run the same signed intake/task loop with finite admission and owned stop.
+
+    ``permits`` replaces the chain's validator-permit read (tests only)."""
     from carbon.battery import challenge as battery_challenge
     from carbon.battery.construction_bundle_material import (
         versioned_material as battery_versioned_material,
@@ -1125,8 +1140,9 @@ def serve(
         image_id=inference_image.image_id, image_identity=inference_image
     ).eligible:
         raise ReceiverUnavailable("installed_inference_worker_unavailable")
-    if cfg["receiver_hotkey"] != network.publisher_hotkey:
-        raise ValueError("receiver differs from installed network publisher")
+    # The receiver is the operator's own validator hotkey (E2): Carbon's network
+    # publisher, or a hotkey holding a validator permit on the subnet now.
+    _require_receiver_identity(cfg["receiver_hotkey"], network, permits)
     stop = threading.Event() if stop is None else stop
     reader = BittensorReader() if reader is None else reader
     snapshot = asyncio.run(reader.capture(network.context))
@@ -1220,8 +1236,14 @@ def serve(
             evaluation_pack_digest=pack_digest,
             parents=parents,
         )
-        timer = threading.Timer(cfg["lifetime_seconds"], stop.set)
-        timer.daemon = True
+        # A service (no lifetime) runs until it is stopped.
+        timer = (
+            None
+            if cfg["lifetime_seconds"] is None
+            else threading.Timer(cfg["lifetime_seconds"], stop.set)
+        )
+        if timer is not None:
+            timer.daemon = True
 
         def listening(address):
             target = {
@@ -1304,7 +1326,8 @@ def serve(
                         entry_directory=entry_directory,
                         pool_store=_open_pool_store(pool_store),
                     )
-            timer.start()
+            if timer is not None:
+                timer.start()
             grader = None
             if "auto_grade" in cfg:
                 from carbon.challenge_validator.auto_grade import AutoGrader
@@ -1323,7 +1346,8 @@ def serve(
             )
         finally:
             stop.set()
-            timer.cancel()
+            if timer is not None:
+                timer.cancel()
             # The shared listener waits for its worker, even if cancellation
             # raises. No worker or carrier is reimplemented here.
             try:
@@ -1331,6 +1355,23 @@ def serve(
                     providers.cancel()
             finally:
                 providers.close()
+
+
+def _require_receiver_identity(hotkey, network, permits=None):
+    """The receiver hotkey is Carbon's network publisher, or a hotkey that holds
+    a validator permit on the subnet at the finalized head (the answer-key
+    distribution's own rule). An unreadable chain is infrastructure."""
+    if hotkey == network.publisher_hotkey:
+        return
+    from carbon.chain.permits import PermitUnavailable, ValidatorPermitReader
+
+    reader = ValidatorPermitReader(network.context) if permits is None else permits
+    try:
+        permit = reader.read(hotkey)
+    except PermitUnavailable:
+        raise ReceiverUnavailable("receiver_permit_unavailable") from None
+    if permit is None or permit["permit"] is not True:
+        raise ValueError("receiver hotkey holds no validator permit on the subnet")
 
 
 class PoolStoreUnavailable(ValueError):

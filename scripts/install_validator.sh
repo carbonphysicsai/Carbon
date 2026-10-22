@@ -5,6 +5,8 @@
 #   git clone https://github.com/carbonphysicsai/Carbon.git ~/carbon
 #   ~/carbon/scripts/install_validator.sh              # add --gpu for GPU rebuilds
 #   ~/carbon/scripts/install_validator.sh --check-only # only the machine checks
+#   ~/carbon/scripts/install_validator.sh --setup --hotkey SS58  # the whole validator
+#   ~/carbon/scripts/install_validator.sh --status     # is it working?
 #
 # What it does, in order, and nothing else:
 #   1. checks this machine against the published validator requirements
@@ -17,10 +19,16 @@
 #   3. checks the result: the recorded worker and analysis images exist in
 #      Docker.
 #
-# Exit 0 means the host and its images are ready. With --receiver ID VERSION it
-# then writes the receiver's profile and configuration (and with --start-receiver
-# starts it). It does not build an evaluation pack, sync answer keys or run
-# weights. It never asks for or stores a key or password.
+# Exit 0 means the host and its images are ready. With --setup it then sets up
+# the validator (carbon.challenge_validator.validator_host): one receiver per
+# Challenge (each Challenge's current version unless --challenges names others),
+# received under your own validator hotkey (--hotkey, its public ss58 address),
+# each a systemd user service that keeps running and starts again after a
+# reboot; with --domain also the HTTPS proxy configuration and the endpoint
+# entries miners' Launchpad lists. --status reports every receiver. With
+# --receiver ID VERSION it prepares one receiver only (and with
+# --start-receiver starts it). It does not build an evaluation pack, sync answer
+# keys or run weights. It never asks for or stores a key or password.
 set -euo pipefail
 
 # Draft requirement values (VALIDATOR_REQUIREMENTS_DRAFT_20261019.md); a published
@@ -43,10 +51,27 @@ MEMINFO_FILE="${CARBON_VALIDATOR_MEMINFO_FILE:-/proc/meminfo}"
 usage() {
   cat <<'EOF'
 usage: scripts/install_validator.sh [--check-only] [--gpu]
-                                    [--receiver ID VERSION [--pack DIR] [--start-receiver]]
+                                    [--setup [--hotkey SS58] [--challenges LIST]
+                                     [--packs DIR] [--domain NAME]]
+                                    [--receiver ID VERSION --hotkey SS58
+                                     [--pack DIR] [--start-receiver]]
                                     [install_miner.sh options]
+       scripts/install_validator.sh --status
 
   --check-only  run the machine checks and stop
+  --setup       after the install, set up the validator: one receiver service
+                per Challenge, under your validator hotkey
+  --hotkey SS58 your validator hotkey's public ss58 address (asked for when
+                missing and this is a terminal); it must hold a validator
+                permit on the subnet
+  --challenges LIST
+                with --setup: current (each Challenge's newest version, the
+                default), all, or ID@VERSION,ID@VERSION,...
+  --packs DIR   with --setup: a directory of evaluation packs, one per
+                ID-VERSION subdirectory
+  --domain NAME with --setup: the public DNS name of this host; writes the
+                HTTPS proxy (Caddy) configuration and the endpoint entries
+  --status      report every receiver: service, intake, exam, last graded
   --receiver ID VERSION
                 after the install, write the receiver's profile and configuration
                 for that registered Challenge
@@ -69,6 +94,12 @@ receiver_id=""
 receiver_version=""
 receiver_pack=""
 receiver_start=0
+setup=0
+status=0
+hotkey=""
+challenges="current"
+packs=""
+domain=""
 pass=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -80,12 +111,42 @@ while [[ $# -gt 0 ]]; do
     --receiver) receiver_id="${2:?--receiver needs ID VERSION}"; receiver_version="${3:?--receiver needs ID VERSION}"; shift 2 ;;
     --pack) receiver_pack="${2:?--pack needs a directory}"; shift ;;
     --start-receiver) receiver_start=1 ;;
+    --setup) setup=1 ;;
+    --status) status=1 ;;
+    --hotkey) hotkey="${2:?--hotkey needs an ss58 address}"; shift ;;
+    --challenges) challenges="${2:?--challenges needs a list}"; shift ;;
+    --packs) packs="${2:?--packs needs a directory}"; shift ;;
+    --domain) domain="${2:?--domain needs a DNS name}"; shift ;;
     --pytorch|--no-start) ;;
     *) usage >&2; exit 2 ;;
   esac
   shift
 done
 
+repo_root="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+if [[ "${status}" == 1 ]]; then
+  # Read-only: no machine check and no install.
+  cd "${repo_root}"
+  exec .venv/bin/python -B -m carbon.challenge_validator.validator_host status \
+    --installed-state "$(realpath -m -- "${STATE_DIR}")"
+fi
+if [[ "${setup}" == 1 && -n "${receiver_id}" ]]; then
+  printf 'Carbon validator install stopped: use --setup (every Challenge) or --receiver ID VERSION (one), not both.\n' >&2
+  exit 2
+fi
+if [[ "${setup}" == 0 && ( -n "${packs}" || -n "${domain}" || "${challenges}" != current ) ]]; then
+  printf 'Carbon validator install stopped: --challenges, --packs and --domain go with --setup.\n' >&2
+  exit 2
+fi
+if [[ ( "${setup}" == 1 || -n "${receiver_id}" ) && -z "${hotkey}" && "${check_only}" == 0 ]]; then
+  if [[ -t 0 ]]; then
+    read -r -p "Your validator hotkey's ss58 address (public, not a key): " hotkey
+  fi
+  if [[ -z "${hotkey}" ]]; then
+    printf 'Carbon validator install stopped: --hotkey SS58 is required (your validator hotkey'"'"'s public address; it must hold a validator permit on the subnet).\n' >&2
+    exit 2
+  fi
+fi
 if [[ -z "${receiver_id}" && ( "${receiver_start}" == 1 || -n "${receiver_pack}" ) ]]; then
   printf 'Carbon validator install stopped: --start-receiver and --pack need --receiver ID VERSION (the receiver is prepared first, then started).\n' >&2
   exit 2
@@ -295,8 +356,6 @@ fi
 printf 'This machine meets the requirements.\n'
 [[ "${check_only}" == 0 ]] || exit 0
 
-repo_root="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
-
 step "2/3 Installing the environment and worker images (scripts/install_miner.sh)"
 "${repo_root}/scripts/install_miner.sh" --pytorch --no-start "${pass[@]}"
 
@@ -338,7 +397,7 @@ if [[ -n "${receiver_id}" ]]; then
   receiver_state="${STATE_DIR}/receiver-${receiver_id}"
   setup_args=(prepare --installed-state "$(realpath -- "${STATE_DIR}")"
               --receiver-state "$(realpath -m -- "${receiver_state}")"
-              --challenge "${receiver_id}" "${receiver_version}")
+              --hotkey "${hotkey}" --challenge "${receiver_id}" "${receiver_version}")
   [[ -z "${receiver_pack}" ]] || setup_args+=(--pack "$(realpath -- "${receiver_pack}")")
   .venv/bin/python -B -m carbon.challenge_validator.receiver_setup "${setup_args[@]}" \
     || { printf 'Carbon validator install stopped: the receiver setup was refused (see above).\n' >&2; exit 4; }
@@ -349,6 +408,15 @@ if [[ -n "${receiver_id}" ]]; then
   else
     printf 'Receiver prepared, not started. Start it: .venv/bin/python -B -m carbon.challenge_validator.receiver_setup start --receiver-state %s --detach\n' "${receiver_state}"
   fi
+elif [[ "${setup}" == 1 ]]; then
+  step "Validator receivers (one service per Challenge)"
+  host_args=(setup --installed-state "$(realpath -- "${STATE_DIR}")"
+             --hotkey "${hotkey}" --challenges "${challenges}")
+  [[ -z "${packs}" ]] || host_args+=(--packs "$(realpath -- "${packs}")")
+  [[ -z "${domain}" ]] || host_args+=(--domain "${domain}")
+  .venv/bin/python -B -m carbon.challenge_validator.validator_host "${host_args[@]}" \
+    || { printf 'Carbon validator install stopped: the validator setup was refused (see above).\n' >&2; exit 4; }
+  printf 'Check it is working: %s/scripts/install_validator.sh --status\n' "${repo_root}"
 else
-  printf 'Not done here: receiver configuration and start (pass --receiver ID VERSION), answer-key sync and weights.\n'
+  printf 'Not done here: the validator receivers (pass --setup --hotkey SS58), answer-key sync and weights.\n'
 fi

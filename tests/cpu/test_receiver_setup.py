@@ -14,6 +14,8 @@ from carbon.challenge_validator import direct_receiver, receiver_setup
 from scripts.dev.miner_launchpad import installed
 
 HOTKEY = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+#: An outside validator's own hotkey (not Carbon's publisher).
+OPERATOR = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
 MOTOR = {"id": "electric-motor-magnetics", "version": "1.0"}
 
 
@@ -23,6 +25,17 @@ class Checks:
 
     def network(self):
         return {"publisher_hotkey": HOTKEY, "context": {"netuid": 567}}, 4321
+
+
+class Permits:
+    def __init__(self, answer):
+        self.answer, self.asked = answer, []
+
+    def read(self, hotkey):
+        self.asked.append(hotkey)
+        if isinstance(self.answer, Exception):
+            raise self.answer
+        return self.answer
 
 
 @pytest.fixture
@@ -58,7 +71,7 @@ def _prepare(tmp_path, state, **extra):
         receiver_state=tmp_path / "receiver-state",
         challenge=MOTOR,
         checks=Checks(),
-        **extra,
+        **{"hotkey": HOTKEY, **extra},
     )
 
 
@@ -112,12 +125,81 @@ def test_prepare_does_not_overwrite_a_prepared_receiver_state(
         _prepare(tmp_path, installed_state)
 
 
-def test_only_registered_lean_challenges_are_accepted():
-    assert receiver_setup._challenge(
-        **{"challenge_id": "chip-cold-plate", "version": "1.0"}
+def test_every_served_challenge_version_is_accepted_and_nothing_else():
+    # E3: every Challenge the receiver serves, Battery included; not the
+    # synthetic software fixture, and nothing unregistered.
+    for challenge in receiver_setup.served():
+        assert receiver_setup._challenge(challenge["id"], challenge["version"])
+    assert {c["id"] for c in receiver_setup.served()} >= {
+        "battery-fastcharge-ageing-development-v1",
+        "electric-motor-magnetics",
+        "chip-cold-plate",
+        "f08-ribbed-bracket",
+        "f02",
+    }
+    for refused in (("anything-else", "1.0"), ("synthetic-linear-field-2d", "1.3")):
+        with pytest.raises(
+            receiver_setup.SetupRefused, match="challenge_not_registered"
+        ):
+            receiver_setup._challenge(*refused)
+
+
+def test_current_is_each_challenges_newest_served_version():
+    current = receiver_setup.current()
+    assert len({c["id"] for c in current}) == len(current)
+    for challenge in current:
+        assert challenge in receiver_setup.served()
+        assert all(
+            receiver_setup._version_key(other["version"])
+            <= receiver_setup._version_key(challenge["version"])
+            for other in receiver_setup.served()
+            if other["id"] == challenge["id"]
+        )
+
+
+def test_the_receiver_is_the_operators_own_permit_holding_hotkey(
+    tmp_path, installed_state, faked
+):
+    # E2: an outside validator's hotkey, with a validator permit now.
+    holder = Permits({"permit": True, "block": 9})
+    done = _prepare(tmp_path, installed_state, hotkey=OPERATOR, permits=holder)
+    assert done["receiver_hotkey"] == OPERATOR and holder.asked == [OPERATOR]
+    config = json.loads(
+        (tmp_path / "receiver-state/receiver/receiver.json").read_bytes()
     )
-    with pytest.raises(receiver_setup.SetupRefused, match="challenge_not_registered"):
-        receiver_setup._challenge("anything-else", "1.0")
+    assert config["receiver_hotkey"] == OPERATOR
+    assert config["lifetime_seconds"] is None  # E5: a service by default
+
+
+@pytest.mark.parametrize(
+    "answer, code",
+    [
+        (None, "hotkey_not_registered"),
+        ({"permit": False, "block": 9}, "hotkey_no_validator_permit"),
+    ],
+)
+def test_a_hotkey_without_a_permit_is_refused_before_anything_is_written(
+    tmp_path, installed_state, faked, answer, code
+):
+    with pytest.raises(receiver_setup.SetupRefused, match=code):
+        _prepare(tmp_path, installed_state, hotkey=OPERATOR, permits=Permits(answer))
+    assert not (tmp_path / "receiver-state" / "environment").exists()
+
+
+def test_an_unreadable_chain_or_a_malformed_hotkey_is_refused(
+    tmp_path, installed_state, faked
+):
+    from carbon.chain.permits import PermitUnavailable
+
+    with pytest.raises(receiver_setup.SetupRefused, match="permit_unreadable"):
+        _prepare(
+            tmp_path,
+            installed_state,
+            hotkey=OPERATOR,
+            permits=Permits(PermitUnavailable("x")),
+        )
+    with pytest.raises(receiver_setup.SetupRefused, match="hotkey_invalid"):
+        _prepare(tmp_path, installed_state, hotkey="my-wallet-name")
 
 
 def test_start_needs_a_prepared_state(tmp_path):
@@ -175,3 +257,120 @@ def test_a_receiver_with_no_configuration_names_the_missing_file(tmp_path, capsy
     assert printed["unavailable"] == "receiver_config_missing"
     assert printed["config"] == str(missing)
     assert "receiver_setup prepare" in printed["next"]
+
+
+class Run:
+    """systemctl/loginctl, recorded; `fail` names a systemctl verb that fails."""
+
+    def __init__(self, *, linger="yes", active="active", fail=None):
+        self.calls, self.linger, self.active, self.fail = [], linger, active, fail
+
+    def __call__(self, argv, **kwargs):
+        self.calls.append(argv)
+        if argv[0] == "loginctl":
+            stdout = self.linger + "\n"
+        elif argv[:3] == ["systemctl", "--user", "is-active"]:
+            stdout = self.active + "\n"
+        else:
+            stdout = ""
+        failed = self.fail is not None and self.fail in argv
+        return type("Done", (), {"returncode": 1 if failed else 0, "stdout": stdout})()
+
+
+def test_service_installs_a_restarting_user_unit_and_enables_it(
+    tmp_path, installed_state, faked, monkeypatch
+):
+    # E5: a persistent service, restarted on failure and after a reboot.
+    _prepare(tmp_path, installed_state)
+    state = tmp_path / "receiver-state"
+    run = Run()
+    monkeypatch.setattr(receiver_setup.subprocess, "run", run)
+    units = tmp_path / "units"
+    done = receiver_setup.service(state, unit_dir=units, run=run)
+    unit = receiver_setup.unit_name(state)
+    assert done["status"] == "RECEIVER_SERVICE_ENABLED" and done["unit"] == unit
+    text = (units / (unit + ".service")).read_text()
+    assert "Restart=on-failure" in text and "WantedBy=default.target" in text
+    assert "carbon.challenge_validator.direct_receiver --config" in text
+    assert ["systemctl", "--user", "enable", "--now", unit + ".service"] in run.calls
+
+
+def test_service_refuses_a_finite_receiver_no_linger_or_a_failed_enable(
+    tmp_path, installed_state, faked, monkeypatch
+):
+    _prepare(tmp_path, installed_state, lifetime_seconds=7200)
+    finite = tmp_path / "receiver-state"
+    with pytest.raises(receiver_setup.SetupRefused, match="service_has_lifetime"):
+        receiver_setup.service(finite, unit_dir=tmp_path / "u", run=Run())
+    other = tmp_path / "other"
+    other.mkdir()
+    receiver_setup.prepare(
+        installed_state=installed_state,
+        receiver_state=other / "state",
+        challenge=MOTOR,
+        checks=Checks(),
+        hotkey=HOTKEY,
+    )
+    lingerless = Run(linger="no")
+    monkeypatch.setattr(receiver_setup.subprocess, "run", lingerless)
+    with pytest.raises(receiver_setup.SetupRefused, match="receiver_linger_off"):
+        receiver_setup.service(other / "state", unit_dir=tmp_path / "u", run=lingerless)
+    failing = Run(fail="enable")
+    monkeypatch.setattr(receiver_setup.subprocess, "run", failing)
+    with pytest.raises(
+        receiver_setup.SetupRefused, match="receiver_service_not_started"
+    ):
+        receiver_setup.service(other / "state", unit_dir=tmp_path / "u", run=failing)
+
+
+def test_status_reports_service_intake_exam_and_last_graded(
+    tmp_path, installed_state, faked
+):
+    # E7: read-only; healthy only when the service is active and the intake answers.
+    _prepare(tmp_path, installed_state)
+    state = tmp_path / "receiver-state"
+    healthy = receiver_setup.status(
+        state, run=Run(), fetch=lambda url: {"schema": "intake"}
+    )
+    assert healthy["status"] == "RECEIVER_HEALTHY"
+    assert (healthy["service"], healthy["intake"]) == ("active", "LISTENING")
+    assert healthy["challenge"] == MOTOR and healthy["receiver_hotkey"] == HOTKEY
+    assert (healthy["graded"], healthy["last_graded_unix"]) == (0, None)
+
+    def unreachable(url):
+        raise OSError("refused")
+
+    down = receiver_setup.status(state, run=Run(active="inactive"), fetch=unreachable)
+    assert down["status"] == "RECEIVER_NOT_HEALTHY"
+    assert (down["service"], down["intake"]) == ("inactive", "UNREACHABLE")
+
+
+def test_status_counts_graded_submissions_from_the_receivers_own_ledger(
+    tmp_path, installed_state, faked
+):
+    from carbon.challenge_validator import exam_cap
+    from carbon.challenge_validator.ledger import AttemptLedger
+
+    _prepare(tmp_path, installed_state)
+    state = tmp_path / "receiver-state"
+    root = state / "receiver" / "state"
+    root.mkdir(mode=0o700)
+    cap = exam_cap.ExamCap(
+        AttemptLedger(root / "attempts.sqlite3"),
+        cadence={
+            "capacity_cpu_hours_per_day": 270.0,
+            "rebuild_cpu_hours_placeholder": {MOTOR["id"]: 1.0},
+        },
+        clock=lambda: 5_000_000_000_000,
+    )
+    slot = cap.reserve(
+        hotkey=HOTKEY,
+        challenge_id=MOTOR["id"],
+        challenge_version=MOTOR["version"],
+        exam_key="sha256:" + "1" * 64,
+        submission_id="rtsk_1",
+        block=360,
+    )
+    cap.settle(slot, "SCORED_DEVELOPMENT_CANDIDATE")
+    found = receiver_setup.status(state, run=Run(), fetch=lambda url: {})
+    assert (found["graded"], found["last_graded_unix"]) == (1, 5000)
