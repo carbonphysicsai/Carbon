@@ -13,6 +13,7 @@ def test_an_unreachable_construction_receiver_is_not_called_unconfigured():
     assert words != supervisor.FALLBACK_ACTION
     assert "could not be reached" in words
     assert "configured" in words and "no validator" not in words
+    assert "never graded twice" in words
     assert "frozen candidate is kept" in words
 
 

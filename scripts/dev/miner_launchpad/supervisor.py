@@ -531,10 +531,11 @@ NEXT_ACTIONS = {
     # The profile does name it, so this is never "no intake configured".
     "construction_intake_unavailable": (
         "Your construction receiver is configured but could not be reached, "
-        "so nothing was graded and no exam was used. The frozen candidate is "
-        "kept. For a receiver on this machine's loopback (a tunnel), start "
-        "the tunnel; otherwise the receiver may be down, so ask its operator "
-        "or wait. Then submit again."
+        "or did not answer. The frozen candidate is kept. If the receiver did "
+        "get your submission, submitting again returns that submission's "
+        "result; it is never graded twice. For a receiver on this machine's "
+        "loopback (a tunnel), start the tunnel; otherwise the receiver may be "
+        "down, so ask its operator or wait. Then submit again."
     ),
     # Every other closed code a submission through a validator intake can
     # end with (`carbon.battery.campaign.intake_code`: the intake's and its
