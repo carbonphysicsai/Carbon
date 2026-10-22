@@ -454,6 +454,30 @@ LIBRARY_WRITES = (
 BODY_REQUIRED = {"launch": frozenset({"challenge", "challenge_version"})}
 
 
+#: Operations that only read: an MCP client may run them without asking
+#: (`readOnlyHint`, M1 E2E H18: Hermes gated every Carbon tool on an
+#: untrusted server). Everything else changes something and stays gated.
+READ_ONLY_OPERATIONS = frozenset(
+    {
+        "options",
+        "observe",
+        "wait",
+        "check_result",
+        "campaign_view",
+        "messages",
+        "toolbox",
+        "ladder",
+        "budget_status",
+        "run_output",
+        "library_search",
+        "library_card",
+        "library_list",
+        "plan_list",
+        "plan_get",
+    }
+)
+
+
 def takes_owner_lock(name, request):
     """Whether this call's body takes the campaign's ownership lock - which
     a research attachment (`carbon_attach_campaign`, the page's tool session)

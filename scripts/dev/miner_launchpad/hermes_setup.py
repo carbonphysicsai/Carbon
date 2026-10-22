@@ -14,7 +14,11 @@ the miner's own Hermes configuration is never touched:
 Nothing is written without the miner's consent to that exact list of files.
 The Carbon server is marked `trust: untrusted`, so Hermes asks the miner
 before every tool call that can change anything (launch, practice, freeze,
-submit). The miner may change that in their own copy.
+submit); tools that only read carry `readOnlyHint: true` and run without
+asking (M1 E2E H18). Hermes' trust values are `full` and `untrusted` (any
+other value reads as untrusted). A miner who wants no prompts sets
+`trust: full` in their own copy and then runs `hermes gateway stop`, since a
+running gateway keeps the trust it started with.
 
 Hermes facts, read 2026-10-02 from the Hermes Agent documentation and
 repository (v0.21.5): profiles live in `~/.hermes/profiles/<name>/` (selected
