@@ -14,6 +14,15 @@ from __future__ import annotations
 
 from carbon.direct_campaign.spec import HUMAN_INPUT
 
+#: What a catalog-only version says is coming (the Validator's Battery 2.2
+#: graph-route ruling, 2026-10-22).
+COMING = {
+    (
+        "battery-fastcharge-ageing-development-v1",
+        "2.2",
+    ): " Battery 2.2: catalog backbones now; your own graphs coming.",
+}
+
 
 def _kit(spec, version):
     from carbon.direct_campaign.spec import key_for
@@ -169,6 +178,7 @@ def describe(spec, version):
                     "Carbon's graph training adapter."
                     if adapter is not None
                     else "Choose a backbone by catalog_id."
+                    + COMING.get((spec.challenge_id, version), "")
                 )
                 if catalog["entries"]
                 else "No backbone is tested for this version yet: each entry "

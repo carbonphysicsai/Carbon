@@ -463,3 +463,18 @@ def test_describe_offers_a_catalog_example_practice_accepts(monkeypatch):
     # The older versions offer no catalog.
     for version in ("1.0", "2.0", "2.1"):
         assert listing.entries(BATTERY, version) == []
+
+
+def test_the_card_and_description_say_graphs_are_coming(monkeypatch):
+    # The Validator's ruling (2026-10-22): round 8 registers 2.2 catalog-only
+    # while saying so; the Battery graph adapter follows.
+    from carbon.challenge_registry.known_limitations import known_limitations
+
+    line = "Battery 2.2: catalog backbones now; your own graphs coming."
+    assert line in known_limitations(BATTERY, "2.2")
+    for version in ("1.0", "2.0", "2.1"):
+        assert line not in known_limitations(BATTERY, version)
+    inject(monkeypatch, BATTERY, "2.2")
+    assert describe(BATTERY, "2.2")["models"]["note"] == (
+        "Choose a backbone by catalog_id. " + line
+    )
