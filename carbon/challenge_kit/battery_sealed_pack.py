@@ -87,6 +87,11 @@ def sealed_bank(document, records) -> dict:
             **by_case[case_id],
             "scenario_id": scenario_of[(x["t_amb_c"], x["soc0"])],
             "candidate_id": candidate_of[(x["c1"], x["c2"])],
+            # the measured reference run: both solves (standard 30-cycle and mesh 160)
+            "wall_s": float(
+                by_case[case_id]["solves"]["standard"]["wall_s"]
+                + by_case[case_id]["solves"]["m160"]["wall_s"]
+            ),
         }
     x = np.asarray(rows, dtype=np.float64)
     y = np.asarray(references, dtype=np.float64)

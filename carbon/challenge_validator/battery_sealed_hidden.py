@@ -152,6 +152,19 @@ def check_document(document):
     return cases
 
 
+def _walls_ok(solves):
+    """The two measured solves, each with a positive finite wall time (the
+    reference run's cost, which the dual pack records)."""
+    return (
+        type(solves) is dict
+        and set(solves) >= {"standard", "m160"}
+        and all(
+            type(solves[k]) is dict and _finite(solves[k].get("wall_s")) and solves[k]["wall_s"] > 0
+            for k in ("standard", "m160")
+        )
+    )
+
+
 def overlay_lock_sha256(repository=REPOSITORY):
     """The overlay lock's sha256 (hex): what every record must carry."""
     from carbon.battery import truth
@@ -190,6 +203,7 @@ def check_reference(record, inputs):
             for v in outputs[key]
         )
         or not _finite(m160)
+        or not _walls_ok(record.get("solves"))
         or type(plating) is not dict
         or set(plating) != {"label", "rule"}
         or plating["label"] not in LABELS

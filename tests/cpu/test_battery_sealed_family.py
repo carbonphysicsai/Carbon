@@ -139,6 +139,7 @@ def _record(case_id, inputs, m20, m160, **changes):
             "capacity_ah": [1.0, 0.99, 0.98, 0.97],
         },
         "plating_margin_m160_v": m160,
+        "solves": {"standard": {"wall_s": 50.0}, "m160": {"wall_s": 250.0}},
     }
     record["plating"] = hidden.plating_label(m20, m160)
     record.update(changes)
@@ -186,6 +187,7 @@ def test_the_pack_is_the_whole_straddling_grid_with_cell_ids(grid):
     assert {s for s, _ in ids} == {f"scenario-{i}" for i in range(4)}
     assert {k for _, k in ids} == {c["id"] for c in population.candidates()}
     assert set(pack.private_roles(bank)) == {"case_bank", "reference_rows", "solver_evidence"}
+    assert {r["wall_s"] for r in bank["reference_records"]} == {300.0}  # standard + mesh 160
     with pytest.raises(pack.SealedPackRefused) as refused:
         pack.sealed_bank(document, _records(document)[:139])
     assert refused.value.code == "battery_sealed_case_unresolved"
