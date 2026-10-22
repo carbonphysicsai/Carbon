@@ -1126,7 +1126,7 @@
       // own signed re-read while none has arrived (Validator-approved).
       if (r.grade !== undefined) {
         const latest = r.grade && r.grade.latest;
-        para(box, !latest ? "Grade: not graded yet." : latest.status === "GATE_FAILED" ? "Grade: not eligible (a mandatory gate failed)." : typeof latest.total === "number" ? "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better)" + (r.grade.best && typeof r.grade.best.total === "number" ? " · your best: " + r.grade.best.total.toFixed(4) : "") + ". Compares within this Challenge version only. It is your hotkey's latest grade on this exam, which may be from an earlier submission until the validator grades this one." : "Grade: not scored.", "status-line");
+        para(box, !latest ? "Grade: not graded yet." : latest.status === "GATE_FAILED" ? "Grade: not eligible (a mandatory gate failed)." : typeof latest.total === "number" ? "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better)" + (r.grade.best && typeof r.grade.best.total === "number" ? " · your best: " + r.grade.best.total.toFixed(4) : "") + ". Compares within this Challenge version only." + (latest.recipe_digest ? "" : " It is your hotkey's latest grade on this exam, which may be from an earlier submission until the validator grades this one.") : "Grade: not scored.", "status-line");
         const check = el("button", latest ? "Check for a newer result" : "Check for result"); check.type = "button";
         const said = el("p", "", "hint");
         check.disabled = !CC.state().connected;

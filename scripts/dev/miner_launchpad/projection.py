@@ -187,7 +187,14 @@ def _validator_outcome(epoch, path):
             "reward": False,
         }
         if direct:
-            result["grade"] = _grade(_latest_ladder(path, document))
+            result["grade"] = _grade(
+                _latest_ladder(path, document),
+                (
+                    document.get("recipe_digest")
+                    if type(document.get("recipe_digest")) is str
+                    else None
+                ),
+            )
         if type(outcome.get("practice_dual")) is dict:
             # C13: the evaluator's practice dual block, allow-listed.
             from scripts.dev.miner_launchpad.campaign_view import dual_feedback
@@ -229,7 +236,7 @@ def _latest_ladder(path, document):
     return document["exam_feedback"]
 
 
-def _grade(ladder):
+def _grade(ladder, submission=None):
     """The miner's own Ladder for the exam, as the display rule shows it
     (Validator VALUE_SCORE_GAP): one graded total 0..1 per document, its
     A and D as detail, a gate failure as not eligible; None when the
@@ -254,11 +261,28 @@ def _grade(ladder):
                 shown[name] = float(value)
         if type(document.get("exam_version")) is str:
             shown["exam_version"] = document["exam_version"][:64]
+        # Ladder v3 names the submission each document is about (U63).
+        if type(document.get("recipe_digest")) is str:
+            shown["recipe_digest"] = document["recipe_digest"][:71]
+        if type(document.get("epoch")) is int and not isinstance(
+            document["epoch"], bool
+        ):
+            shown["epoch"] = document["epoch"]
         return shown
 
     if type(ladder) is not dict:
         return None
-    return {"latest": one(ladder.get("latest")), "best": one(ladder.get("best"))}
+    latest, best = one(ladder.get("latest")), one(ladder.get("best"))
+    # A v3 document about another submission is not this one's grade: this
+    # submit is not graded yet (U63). A v2 document names none and is shown
+    # with the page's "may be an earlier submission" label.
+    if (
+        submission is not None
+        and latest is not None
+        and latest.get("recipe_digest") not in (None, submission)
+    ):
+        latest = None
+    return {"latest": latest, "best": best, "submission": submission}
 
 
 def _multi_validator_outcome(epoch, path):

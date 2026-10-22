@@ -2379,7 +2379,7 @@
   function challengeLabel(run) {
     if (run.challenge) {
       // U57: the Challenge's name even where this version is not listed here
-      // ("f02 · v2.3" read for Burst Thermal 2.3).
+      // ("<id> · v<version>" read for a Challenge name).
       const entry = challengeEntry({id: run.challenge.id, version: run.challenge.version}) || (caps?.challenges || []).find(item => item.challenge_id === run.challenge.id);
       return (entry ? entry.title : run.challenge.id) + " · v" + run.challenge.version;
     }
@@ -2774,12 +2774,12 @@
   }
   function gradeLine(grade) {
     const latest = grade && grade.latest;
-    if (!latest) return "Grade: not graded yet. It appears here once the validator grades this submission.";
-    if (latest.status === "GATE_FAILED") return "Grade: not eligible (a mandatory gate failed). Compares within this Challenge version only. It is your hotkey's latest grade on this exam, which may be from an earlier submission until the validator grades this one.";
+    if (!latest) return "Grade: not graded yet. It appears here once the validator grades this submission." + (grade?.best && typeof grade.best.total === "number" ? " Your best so far, " + grade.best.total.toFixed(4) + ", is from " + (grade.best.recipe_digest && grade.best.recipe_digest !== grade.submission ? "another submission" : "an earlier grade") + "." : "");
+    if (latest.status === "GATE_FAILED") return "Grade: not eligible (a mandatory gate failed). Compares within this Challenge version only." + (latest.recipe_digest ? "" : " It is your hotkey's latest grade on this exam, which may be from an earlier submission until the validator grades this one.");
     if (typeof latest.total !== "number") return "Grade: not scored.";
     const best = grade.best && typeof grade.best.total === "number" ? " · your best: " + grade.best.total.toFixed(4) : "";
     const detail = [typeof latest.A === "number" ? "A " + latest.A.toFixed(3) : null, typeof latest.D === "number" ? "D " + latest.D.toFixed(3) : null].filter(Boolean).join(", ");
-    return "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better" + (detail ? "; " + detail : "") + ")" + best + ". Compares within this Challenge version only. It is your hotkey's latest grade on this exam, which may be from an earlier submission until the validator grades this one.";
+    return "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better" + (detail ? "; " + detail : "") + ")" + best + ". Compares within this Challenge version only." + (latest.recipe_digest ? "" : " It is your hotkey's latest grade on this exam, which may be from an earlier submission until the validator grades this one.");
   }
   function renderValidatorOutcome(panel, result, campaign) {
     const o = result.result;

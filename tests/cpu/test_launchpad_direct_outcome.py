@@ -63,7 +63,11 @@ def test_a_direct_outcome_is_read_with_its_grade(tmp_path):
 
 def test_a_direct_outcome_before_any_grade_says_none_yet(tmp_path):
     shown = _project(tmp_path, _document({"best": None, "latest": None}))
-    assert shown["result"]["grade"] == {"latest": None, "best": None}
+    assert shown["result"]["grade"] == {
+        "latest": None,
+        "best": None,
+        "submission": "sha256:" + "a" * 64,
+    }
 
 
 def test_a_battery_shaped_outcome_is_unchanged(tmp_path):
@@ -159,7 +163,11 @@ def test_a_stored_read_of_another_recipe_is_not_shown(tmp_path, monkeypatch):
         )
     )
     shown = projection._validator_outcome(1, folder / "permitted-final-feedback.json")
-    assert shown["result"]["grade"] == {"latest": None, "best": None}
+    assert shown["result"]["grade"] == {
+        "latest": None,
+        "best": None,
+        "submission": "sha256:" + "a" * 64,
+    }
 
 
 def test_check_for_result_without_an_admission_record_is_refused(tmp_path, monkeypatch):
@@ -196,3 +204,21 @@ def test_the_research_view_shows_a_direct_outcome_and_its_grade():
     (entry,) = outcomes(own, view, "FULL")
     assert entry["result"]["grade"]["latest"]["total"] == 0.5488
     assert "withheld" not in entry["result"] and "secret" not in entry["result"]
+
+
+def test_a_v3_grade_shows_only_on_the_submit_it_is_about(tmp_path):
+    # M1 E2E U63: a hotkey's earlier grade read as a newer submit's.
+    other = {
+        **LADDER,
+        "schema": "carbon.private-exam.ladder-feedback.v3",
+        "recipe_digest": "sha256:" + "b" * 64,
+        "epoch": 1,
+    }
+    mine = {**other, "recipe_digest": "sha256:" + "a" * 64, "epoch": 2}
+    shown = _project(tmp_path, _document({"best": other, "latest": other}))
+    grade = shown["result"]["grade"]
+    assert grade["latest"] is None
+    assert grade["best"]["recipe_digest"] == "sha256:" + "b" * 64
+    (tmp_path / "permitted-final-feedback.json").unlink()
+    shown = _project(tmp_path, _document({"best": other, "latest": mine}))
+    assert shown["result"]["grade"]["latest"]["epoch"] == 2
