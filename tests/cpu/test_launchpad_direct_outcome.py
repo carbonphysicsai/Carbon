@@ -170,3 +170,29 @@ def test_check_for_result_without_an_admission_record_is_refused(tmp_path, monke
     with pytest.raises(ds.DirectIntakeRefusal) as refused:
         ds.refresh_exam_feedback(tmp_path, 1, "miner-signer")
     assert refused.value.code == "construction_admission_record_required"
+
+
+def test_the_research_view_shows_a_direct_outcome_and_its_grade():
+    # M1 E2E U53 (browser): the Submission tab read "withheld" for every
+    # direct campaign, whose research views name no feedback fields.
+    from types import SimpleNamespace
+
+    from scripts.dev.miner_launchpad.campaign_view import outcomes
+
+    view = SimpleNamespace(feedback_fields=lambda mode: None)
+    own = {
+        "final_results": [
+            {
+                "epoch": 1,
+                "status": "VALIDATOR_OUTCOME",
+                "result": {
+                    "state": "SCORED",
+                    "grade": {"latest": {"status": "IMPROVED", "total": 0.5488}},
+                    "secret": "never shown",
+                },
+            }
+        ]
+    }
+    (entry,) = outcomes(own, view, "FULL")
+    assert entry["result"]["grade"]["latest"]["total"] == 0.5488
+    assert "withheld" not in entry["result"] and "secret" not in entry["result"]

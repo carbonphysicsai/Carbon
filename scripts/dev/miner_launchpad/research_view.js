@@ -1121,6 +1121,22 @@
       if (typeof r.accepted_development_improvement === "boolean") line.push("accepted DEVELOPMENT improvement: " + r.accepted_development_improvement);
       para(box, line.join(" · "), "status-line");
       if (r.withheld) para(box, "Withheld: " + r.withheld, "hint");
+      // U53: a direct campaign's grade, by the display rule, and the miner's
+      // own signed re-read while none has arrived (Validator-approved).
+      if (r.grade !== undefined) {
+        const latest = r.grade && r.grade.latest;
+        para(box, !latest ? "Grade: not graded yet." : latest.status === "GATE_FAILED" ? "Grade: not eligible (a mandatory gate failed)." : typeof latest.total === "number" ? "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better)" + (r.grade.best && typeof r.grade.best.total === "number" ? " · your best: " + r.grade.best.total.toFixed(4) : "") + ". Compares within this Challenge version only." : "Grade: not scored.", "status-line");
+        const check = el("button", latest ? "Check for a newer result" : "Check for result"); check.type = "button";
+        const said = el("p", "", "hint");
+        check.disabled = !CC.state().connected;
+        check.addEventListener("click", async () => {
+          check.disabled = true; said.textContent = "Reading your grade from the validator…";
+          try { await CC.api("/api/v1/operations/check_result", {campaign: doc.campaign.id}, undefined, 30000); said.textContent = "Read. The grade above updates on the next refresh."; }
+          catch (error) { said.textContent = "Not read: " + (error.message || "the validator could not be reached") + "."; }
+          finally { check.disabled = !CC.state().connected; }
+        });
+        box.append(check, said);
+      }
       if (r.feedback_mode && r.feedback_mode !== "FULL") para(box, "Shown through the frozen feedback mode " + r.feedback_mode + ".", "hint");
     }
     para(box, "DEVELOPMENT only: no qualification, reward, rank or chain write.", "hint");

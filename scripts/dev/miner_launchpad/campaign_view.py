@@ -1234,6 +1234,21 @@ def events(own):
     return {"operations": ops[-EVENTS_MAX:], "total": len(ops)}
 
 
+#: What a direct campaign's outcome shows its miner: the projection's own
+#: allow-listed fields for that shape (`projection._validator_outcome`).
+DIRECT_OUTCOME_FIELDS = (
+    "submission_id",
+    "evidence",
+    "rule",
+    "recipe_digest",
+    "contract_digest",
+    "reconstruction",
+    "failure",
+    "grade",
+    "practice_dual",
+)
+
+
 def outcomes(own, view, mode):
     """DEVELOPMENT outcomes, through the campaign's frozen feedback mode."""
     fields = view.feedback_fields(mode) if view is not None else None
@@ -1281,6 +1296,15 @@ def outcomes(own, view, mode):
                     shown["screening"] = {
                         k: screening[k] for k in screening_fields if k in screening
                     }
+                shown["feedback_mode"] = mode
+            elif "grade" in result:
+                # A direct campaign's outcome (Motor, Cooling, the direct
+                # versions): the miner's own permitted feedback, already
+                # allow-listed by the projection, shown with its grade and
+                # practice block (M1 E2E U53: it read "withheld").
+                for key in DIRECT_OUTCOME_FIELDS:
+                    if key in result:
+                        shown[key] = result[key]
                 shown["feedback_mode"] = mode
             else:
                 shown["feedback_mode"] = mode
