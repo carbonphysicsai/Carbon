@@ -69,7 +69,8 @@ def test_the_bank_has_the_development_banks_shape():
     for a, b in zip(
         mine["reference_records"], theirs["reference_records"], strict=True
     ):
-        assert set(a) == set(b)
+        assert set(a) - {"condition_id"} == set(b)  # the one additive key (C3)
+        assert a["condition_id"] == "condition-0"
         assert set(a["observed"]) == set(b["observed"])
         assert set(a["rung_peaks_c"]) == set(b["rung_peaks_c"])
         assert a["context"] == b["context"]
