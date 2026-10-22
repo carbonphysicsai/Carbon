@@ -35,6 +35,8 @@ from carbon.reconstruction.worker.model import (
     WorkerCode,
     WorkerFailure,
     WorkerImageIdentity,
+    worker_resources_for,
+    worker_resources_version as resources_version_for,
 )
 from carbon.reconstruction.worker.protocol import decode_output_stream
 
@@ -721,6 +723,7 @@ def _run_locked(
     trusted_overlay=None,
     trusted_stage_provider=None,
     trusted_stage_identity=None,
+    worker_resources_version=None,
 ):
     before_finish = before_finish or (lambda: None)
     # The miner's own research has no Carbon limits (owner direction): any
@@ -738,6 +741,16 @@ def _run_locked(
             )
     elif type(seconds) is not int or not 40 <= seconds <= 600:
         raise ValueError("bounded worker wall allowance required")
+    # A next version's larger worker resources (OWNER-WORKER-RESOURCES-LARGE-
+    # MODELS-01), named by the allowlist version the run builds under. Only
+    # Carbon's bounded C-03 lane takes them; the miner lane is bounded, if at
+    # all, by its host's own profile.
+    if worker_resources_version is not None and (
+        miner_lane
+        or resources_version_for(worker_resources_version) != worker_resources_version
+    ):
+        raise ValueError("unsupported worker resources")
+    output_bytes = worker_resources_for(worker_resources_version)["output_bytes"]
     if type(files) is not dict or "program.py" in files or program_name in files:
         raise ValueError("closed stage required")
     if executable_files not in ((), ("uv-bin",)) or (
@@ -847,6 +860,9 @@ def _run_locked(
             "parent_image_id": trusted_overlay.parent_image_id,
             "archive_digest": trusted_overlay.archive_digest,
         }
+    if worker_resources_version is not None:
+        # Absent for today's resources, so every existing identity is unchanged.
+        request["worker_resources_version"] = worker_resources_version
     if execution_contract is not None:
         # Prospective language routes bind their complete reviewed environment.
         # Leaving this absent preserves historical Python operation identities.
@@ -897,7 +913,7 @@ def _run_locked(
             sum(map(len, files.values()))
             + trusted_stage_bound
             + (trusted_overlay.total_bytes if trusted_overlay is not None else 0)
-            + 2 * OUTPUT_BYTES
+            + 2 * output_bytes
             + 2 * CONTROL_BYTES
             + 65536
         )
@@ -949,6 +965,15 @@ def _run_locked(
     )
     stage = operation / "input"
     cli = DockerCLI()
+    sizing = (
+        {}
+        if worker_resources_version is None
+        else {
+            "worker_profile": _worker_profile(
+                device, provenance, worker_resources_version
+            )
+        }
+    )
     try:
         with _fixed_practice_stage(operation, provenance, "STAGING"):
             stage.mkdir(mode=0o755)
@@ -977,7 +1002,7 @@ def _run_locked(
                 from .research_image import verify_library_worker_image
 
                 verify_library_worker_image(image, cli)
-                checked = doctor(image_id=image.image_id, cli=cli)
+                checked = doctor(image_id=image.image_id, cli=cli, **sizing)
             elif provenance == "MINER_SELF_REPORTED":
                 from .julia_analysis import (
                     JuliaResearchImageIdentity,
@@ -1006,7 +1031,9 @@ def _run_locked(
                     verify_image(image, cli)
                     checked = doctor(image_id=image.image_id, cli=cli)
             else:
-                checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
+                checked = doctor(
+                    image_id=image.image_id, image_identity=image, cli=cli, **sizing
+                )
                 if device is not None:
                     _check_gpu_host(cli, image, device, _gpu_pins(image, accelerator))
             if not checked.eligible:
@@ -1048,7 +1075,7 @@ def _run_locked(
             device=device,
         )
     with _fixed_practice_stage(operation, provenance, "PROFILE"):
-        worker = _worker_profile(device, provenance)
+        worker = _worker_profile(device, provenance, worker_resources_version)
     create_attempted = False
     output = operation / "export.stream"
     lease = ExitStack()
@@ -1238,9 +1265,12 @@ def _run_locked(
                         "-I",
                         "-m",
                         "carbon.reconstruction.worker.exporter",
+                        # Today's envelope is the exporter's own default, so
+                        # today's command line is unchanged.
+                        *(() if output_bytes == OUTPUT_BYTES else (str(output_bytes),)),
                     ],
                     output,
-                    maximum=OUTPUT_BYTES + 2 * CONTROL_BYTES,
+                    maximum=output_bytes + 2 * CONTROL_BYTES,
                     timeout=export_timeout,
                 )
             except Exception as error:
@@ -1333,7 +1363,7 @@ def _run_locked(
         _check_cancel(ledger, owner, identity)
     snapshot = operation / "snapshot"
     with _fixed_practice_stage(operation, provenance, "DECODE"):
-        decode_output_stream(output, snapshot)
+        decode_output_stream(output, snapshot, output_bytes=output_bytes)
     with _fixed_practice_stage(operation, provenance, "VALIDATE"):
         if output_validator is not None:
             output_validator(snapshot)
@@ -1457,11 +1487,17 @@ def _check_gpu_host(cli, image, device, pins=None):
 G5_PROVENANCE = "LEVEL4_G5_COMPILE_DEVELOPMENT"
 
 
-def _worker_profile(device, provenance=None):
+def _worker_profile(device, provenance=None, worker_resources_version=None):
     """The carrier's worker profile: CPU, the G5 compile lane's CPU profile
     (only for G5's own provenance, never with a device), or the miner lane on
-    `device`."""
+    `device`; under a next version's larger resources when
+    ``worker_resources_version`` names one."""
     policy = digest(b"carbon.autoresearch.public-research.v1")
+    if worker_resources_version is not None and (
+        provenance == G5_PROVENANCE
+        or resources_version_for(worker_resources_version) != worker_resources_version
+    ):
+        raise ValueError("unsupported worker resources")
     if device is None and provenance == G5_PROVENANCE:
         from carbon.reconstruction.worker.model import G5_PROFILE_ID, PROFILE_VERSION
 
@@ -1471,9 +1507,15 @@ def _worker_profile(device, provenance=None):
             G5_PROFILE_ID,
             PROFILE_VERSION,
         )
-    resources = digest(b"2cpu-4gib-noswap-600seconds")
+    resources = digest(
+        b"2cpu-4gib-noswap-600seconds"
+        if worker_resources_version is None
+        else b"4cpu-16gib-noswap-600seconds"
+    )
     if device is None:
-        return DevelopmentWorkerProfile(policy, resources)
+        return DevelopmentWorkerProfile(
+            policy, resources, worker_resources_version=worker_resources_version
+        )
     from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
     from carbon.reconstruction.worker.model import (
         MINER_HOST_AUTHORITY,
@@ -1499,7 +1541,8 @@ def _worker_profile(device, provenance=None):
         MINER_HOST_AUTHORITY,
         None,
         device.device_uuid,
-        registered_run_controls(),
+        registered_run_controls(worker_resources_version),
+        worker_resources_version=worker_resources_version,
     )
 
 
@@ -1714,7 +1757,7 @@ def _run_miner_lane(
                     canonical(
                         {
                             "refusal": SCRATCH_CAP_EXCEEDED,
-                            "cap_bytes": SCRATCH_CAP_BYTES,
+                            "cap_bytes": profile.scratch_cap_bytes,
                             "cap_inodes": SCRATCH_CAP_INODES,
                         }
                     ),
@@ -1734,7 +1777,7 @@ def _run_miner_lane(
                 # cannot read one: the output is copied out first, through
                 # the same refusals collection applies.
                 try:
-                    copy_out_scratch(cli, name, scratch)
+                    copy_out_scratch(cli, name, scratch, profile.export_max_bytes)
                 except MinerOutputRefused as refusal:
                     output_refused = refusal
         write_once(operation / "resources.json", canonical({"isolation": isolation}))

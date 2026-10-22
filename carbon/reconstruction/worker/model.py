@@ -52,6 +52,28 @@ LARGE_MODEL_RESOURCES = {
 }
 
 
+#: The worker envelope extras a next version also gets (Validator rulings
+#: VALIDATOR_MINER_PATH_LIMITS_RULINGS_20261021, #11; OWNER-MINER-LIMITS-EXAM-
+#: ONLY-01): the validator host class's 4 vCPU, and shared memory a torch
+#: DataLoader can use (8 MiB starves it), counted inside the lane's memory
+#: rather than inside scratch. PIDs, nofile, output members, scratch inodes and
+#: the input bound are kept as containment.
+LARGE_MODEL_CPU_COUNT = 4
+LARGE_MODEL_SHM_BYTES = 2 * 1024**3
+#: Today's shared memory, carved out of `SCRATCH_BYTES` (the scratch tmpfs is
+#: the rest), so today's profile is unchanged.
+SHM_BYTES = 8 * 1024**2
+
+
+def worker_resources_version(allowlist_version):
+    """What a `DevelopmentWorkerProfile` carries as ``worker_resources_version``
+    for a launch under ``allowlist_version`` (its version string): that version
+    when it gets the larger resources, else None (today's profile, unchanged)."""
+    if allowlist_version in LARGE_MODEL_ALLOWLIST_VERSIONS:
+        return allowlist_version
+    return None
+
+
 def worker_resources_for(allowlist_version):
     """The worker resources a reconstruction under ``allowlist_version`` (its
     version string) may be given: `LARGE_MODEL_RESOURCES` for a next version,
@@ -173,7 +195,7 @@ TASK_OWNED_AUTHORITIES = (LOCAL_DEVELOPMENT_AUTHORITY, MINER_HOST_AUTHORITY)
 ALLOCATION_AUTHORITIES = (STRICT_HOST_GRANT_AUTHORITY, *TASK_OWNED_AUTHORITIES)
 
 
-def registered_run_controls() -> dict[str, object]:
+def registered_run_controls(worker_resources_version=None) -> dict[str, object]:
     """The bounds the worker implementation itself enforces, with nothing added.
 
     The miner lane has no approval to narrow anything, so resolving its controls
@@ -185,11 +207,15 @@ def registered_run_controls() -> dict[str, object]:
     batch authority, and the implementation registers no value for them. Giving
     them an invented number here would publish a bound nobody set and that
     nothing enforces.
+
+    A launch under a next version's larger resources (`worker_resources_version`)
+    is enforced at those, so its controls state them.
     """
+    resources = worker_resources_for(worker_resources_version)
     return {
         "productive_seconds": PRODUCTIVE_DEADLINE_SECONDS,
-        "host_ram_bytes": MEMORY_BYTES,
-        "output_bytes": OUTPUT_BYTES,
+        "host_ram_bytes": resources["memory_bytes"],
+        "output_bytes": resources["output_bytes"],
         "worker_network": "DISABLED",
     }
 
@@ -277,6 +303,16 @@ class DevelopmentWorkerProfile(LaunchAuthorityBearing):
     # them. Absent means the registered implementation constants apply, which is
     # the case for every CPU and strict launch, so their bodies are unchanged.
     accelerator_controls: dict | None = None
+    # The allowlist version whose larger worker resources this launch runs
+    # under (`worker_resources_version`), or None for today's C-03 values.
+    # Absent from the body when None, so every existing profile's body and
+    # digest are unchanged.
+    worker_resources_version: str | None = None
+
+    @property
+    def large_model(self) -> bool:
+        """Whether this launch runs under a next version's larger resources."""
+        return self.worker_resources_version is not None
 
     @property
     def effective_deadline_seconds(self) -> int:
@@ -292,17 +328,52 @@ class DevelopmentWorkerProfile(LaunchAuthorityBearing):
         compile lane's, or the C-03 constant for every other profile."""
         if self.profile_id == G5_PROFILE_ID:
             return G5_MEMORY_BYTES
-        return MEMORY_BYTES
+        return worker_resources_for(self.worker_resources_version)["memory_bytes"]
 
     @property
     def effective_output_bytes(self) -> int:
         """The output ceiling this launch's collection is actually bounded by."""
         controls = self.accelerator_controls
         if not controls:
-            return OUTPUT_BYTES
+            return worker_resources_for(self.worker_resources_version)["output_bytes"]
         return int(controls["output_bytes"])
 
+    @property
+    def effective_cpu_count(self) -> int:
+        """Whole CPUs, and the cores of its cpuset, this launch is given."""
+        return LARGE_MODEL_CPU_COUNT if self.large_model else CPU_COUNT
+
+    @property
+    def effective_shm_bytes(self) -> int:
+        """The launch's /dev/shm."""
+        return LARGE_MODEL_SHM_BYTES if self.large_model else SHM_BYTES
+
+    @property
+    def effective_scratch_bytes(self) -> int:
+        """The scratch budget: today's tmpfs and shm together, or a next
+        version's scratch tmpfs alone (its shm is counted in lane memory)."""
+        return worker_resources_for(self.worker_resources_version)["scratch_bytes"]
+
+    @property
+    def effective_scratch_tmpfs_bytes(self) -> int:
+        """The size of the /scratch tmpfs itself."""
+        if self.large_model:
+            return self.effective_scratch_bytes
+        return SCRATCH_BYTES - SHM_BYTES
+
+    @property
+    def effective_storage_bytes(self) -> int:
+        """What /scratch and /dev/shm may hold together."""
+        return self.effective_scratch_tmpfs_bytes + self.effective_shm_bytes
+
     def __post_init__(self) -> None:
+        # Only a version registered for the larger resources may be named, and
+        # never on the G5 compile lane, whose memory is its own.
+        if self.worker_resources_version is not None and (
+            self.worker_resources_version not in LARGE_MODEL_ALLOWLIST_VERSIONS
+            or self.profile_id == G5_PROFILE_ID
+        ):
+            raise WorkerFailure(WorkerCode.UNSUPPORTED)
         if self.accelerator_profile_id is None:
             if (
                 self.profile_id not in (PROFILE_ID, G5_PROFILE_ID)
@@ -425,10 +496,14 @@ class DevelopmentWorkerProfile(LaunchAuthorityBearing):
                 "resource_class_digest": self.resource_class_digest,
             },
             "concurrency": 1,
-            "cpu": {"count": CPU_COUNT, "quota_cpus": 2, "cpuset_count": 2},
+            "cpu": {
+                "count": self.effective_cpu_count,
+                "quota_cpus": self.effective_cpu_count,
+                "cpuset_count": self.effective_cpu_count,
+            },
             "memory": {"bytes": self.effective_memory_bytes, "swap_bytes": SWAP_BYTES},
             "pids": PIDS_LIMIT,
-            "scratch": {"bytes": SCRATCH_BYTES, "inodes": SCRATCH_INODES},
+            "scratch": {"bytes": self.effective_scratch_bytes, "inodes": SCRATCH_INODES},
             "input": {"bytes": INPUT_BYTES, "expanded_bytes": EXPANDED_INPUT_BYTES},
             "control_bytes": CONTROL_BYTES,
             "output": {
@@ -453,6 +528,13 @@ class DevelopmentWorkerProfile(LaunchAuthorityBearing):
                 "restart": "no",
             },
         }
+        if self.large_model:
+            # Only on a next version's launch, so today's bodies are unchanged.
+            result["worker_resources"] = {
+                "allowlist_version": self.worker_resources_version,
+                "scratch_tmpfs_bytes": self.effective_scratch_tmpfs_bytes,
+                "shm_bytes": self.effective_shm_bytes,
+            }
 
         if self.accelerator_profile_id is not None:
             from carbon.reconstruction.accelerators import GPU_PROFILE, TPU_PROFILE
@@ -657,6 +739,10 @@ __all__ = [
     "EXPANDED_OUTPUT_BYTES",
     "G5_MEMORY_BYTES",
     "G5_PROFILE_ID",
+    "LARGE_MODEL_ALLOWLIST_VERSIONS",
+    "LARGE_MODEL_CPU_COUNT",
+    "LARGE_MODEL_RESOURCES",
+    "LARGE_MODEL_SHM_BYTES",
     "GRACEFUL_CANCELLATION_SECONDS",
     "INPUT_BYTES",
     "MEMORY_BYTES",
@@ -669,6 +755,7 @@ __all__ = [
     "SCOPE",
     "SCRATCH_BYTES",
     "SCRATCH_INODES",
+    "SHM_BYTES",
     "SWAP_BYTES",
     "VALIDATION_CPU_SECONDS",
     "VALIDATION_MEMORY_BYTES",
@@ -685,4 +772,6 @@ __all__ = [
     "exact_digest",
     "exact_token",
     "tagged_sha256",
+    "worker_resources_for",
+    "worker_resources_version",
 ]
