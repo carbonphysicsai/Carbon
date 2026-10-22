@@ -54,6 +54,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from carbon.scoring import copy_derivation
+
 MANIFEST_NAME = "evaluation-pack.json"
 DEVICE_CLASS = "carbon-c03-docker-cpu"
 METRICS = {"A": "robust_fidelity_benefit", "D": "verified_value_benefit"}
@@ -341,6 +343,13 @@ def pack_documents(
         DUAL_MEASUREMENT_CONTRACT_SCHEMA,
     )
 
+    # The definition, the bank pin and the baseline are built from the exam in
+    # canonical row order, shared by every copy of it (traceable copies); the
+    # reference rows stay in the order of the bank given, the copy's own.
+    copy_bank = bank
+    bank = copy_derivation.canonical_bank(
+        bank, opaque=copy_derivation.opaque_for(adapter.CHALLENGE)
+    )
     physics_digest = bench.physics_contract_identity(physics)["definition_digest"]
     names = input_names(adapter)
     definition = {
@@ -436,11 +445,11 @@ def pack_documents(
     reference_row = {
         "id": adapter.CASE_ID,
         "status": "RESOLVED",
-        "outputs": flat_references(bank),
+        "outputs": flat_references(copy_bank),
         # Only a masked bank adds the mask, so unmasked reference rows stay.
         **(
-            {"reference_present": list(reference_mask(bank))}
-            if not all(reference_mask(bank))
+            {"reference_present": list(reference_mask(copy_bank))}
+            if not all(reference_mask(copy_bank))
             else {}
         ),
         # The measured solves only: a row without a reference has no wall time.
@@ -448,7 +457,9 @@ def pack_documents(
             sum(
                 float(r["wall_s"])
                 for r, present in zip(
-                    bank["reference_records"], reference_mask(bank), strict=True
+                    copy_bank["reference_records"],
+                    reference_mask(copy_bank),
+                    strict=True,
                 )
                 if present
             )
@@ -774,7 +785,14 @@ def _inputs(
         and definition.get("train_digest")
         == entry.get("train_digest")
         == sha(train_raw)
-        and definition.get("bank_digest") == bank_digest(bank),
+        # The pack's documents pin the exam's canonical row order, shared by every
+        # copy of it; this copy lists its rows in its own order.
+        and definition.get("bank_digest")
+        == bank_digest(
+            copy_derivation.canonical_bank(
+                bank, opaque=copy_derivation.opaque_for(adapter.CHALLENGE)
+            )
+        ),
         "dual_native_producer_or_train_binding",
     )
     require(
@@ -946,11 +964,21 @@ def produce(
     def benchmark_of(outputs, repeat_rows):
         """One set of outputs measured by this adapter and reduced to the
         dual benchmark input, the graded run's or the timed run's alike."""
+        # A producer measure never sees a copy's row order (traceable copies):
+        # the common grader maps the copy to canonical order first.
+        canonical_rows, canonical_outputs, canonical_repeats = (
+            copy_derivation.canonical_call(
+                bank_rows(bank, interface_names),
+                outputs,
+                repeat_rows,
+                opaque=copy_derivation.opaque_for(adapter.CHALLENGE),
+            )
+        )
         try:
             measured = adapter.measure(
-                bank_rows=bank_rows(bank, interface_names),
-                outputs=outputs,
-                repeats=repeat_rows,
+                bank_rows=canonical_rows,
+                outputs=canonical_outputs,
+                repeats=canonical_repeats,
                 definition=definition,
                 limits=roles["important_limit_definition"],
                 objective=roles["design_objective"],

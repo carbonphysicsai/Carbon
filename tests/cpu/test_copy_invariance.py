@@ -10,7 +10,6 @@ id), as a real model's are."""
 from __future__ import annotations
 
 import hashlib
-import importlib
 import json
 import random
 
@@ -35,7 +34,20 @@ KEYS = (b"validator-one-key-0123456789", b"validator-two-key-9876543210")
 
 
 def _adapter(name):
-    return importlib.import_module(f"carbon.scoring.{name}_dual_pack")
+    # A static dispatch: the code-authority inventory forbids a computed import.
+    if name == "motor":
+        from carbon.scoring import motor_dual_pack as module
+    elif name == "cooling":
+        from carbon.scoring import cooling_dual_pack as module
+    elif name == "f08":
+        from carbon.scoring import f08_dual_pack as module
+    elif name == "f02":
+        from carbon.scoring import f02_dual_pack as module
+    elif name == "battery":
+        from carbon.scoring import battery_dual_pack as module
+    else:
+        raise ValueError(name)
+    return module
 
 
 def _content_noise(inputs, width, scale=0.002):
@@ -94,15 +106,24 @@ def _graded(name, order=None, key=None):
         outputs.append(
             (base * _content_noise(row["inputs"], len(base), scale)).tolist()
         )
+    opaque = copy_derivation.opaque_for(adapter.CHALLENGE)
     definition = {
-        **adapter.definition(bank=bank, train_raw=public["train"]),
+        # The pack's documents are built from the canonical exam, shared by every copy.
+        **adapter.definition(
+            bank=copy_derivation.canonical_bank(bank, opaque=opaque),
+            train_raw=public["train"],
+        ),
         "challenge": {"id": adapter.CHALLENGE, "version": adapter.VERSION},
         "scope": "PUBLIC_PRACTICE_FEEDBACK",
     }
+    # The common grader maps the copy to canonical order before any measure.
+    rows, outputs, repeats = copy_derivation.canonical_call(
+        rows, outputs, [outputs, outputs], opaque=opaque
+    )
     measured = adapter.measure(
         bank_rows=rows,
         outputs=outputs,
-        repeats=[outputs, outputs],
+        repeats=repeats,
         definition=definition,
         limits=json.loads(public["important_limit_definition"]),
         objective=objective,

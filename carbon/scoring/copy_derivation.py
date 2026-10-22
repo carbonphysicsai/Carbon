@@ -48,6 +48,27 @@ class CopyRefused(ValueError):
         super().__init__(code)
 
 
+#: Which ids a Challenge's copy renames. F02's action names and Battery's
+#: registered EV4 candidates carry meaning, so those keep theirs and only their
+#: row order differs between copies. (C16: each manifest declares this; until the
+#: registry lands, this is the one place.)
+OPAQUE_BY_CHALLENGE = {
+    "electric-motor-magnetics": OPAQUE,
+    "chip-cold-plate": OPAQUE,
+    "f08-ribbed-bracket": OPAQUE,
+    "f02": (),
+    "battery-fastcharge-ageing-development-v1": (),
+}
+
+
+def opaque_for(challenge_id):
+    """The opaque ids of a registered Challenge, or a refusal (fail closed)."""
+    try:
+        return OPAQUE_BY_CHALLENGE[challenge_id]
+    except KeyError:
+        raise CopyRefused("copy_challenge_unregistered") from None
+
+
 def _canonical(value):
     return json.dumps(
         value, sort_keys=True, separators=(",", ":"), allow_nan=False
@@ -88,6 +109,70 @@ def canonical_form(bank, *, opaque=OPAQUE):
 def content_digest(bank, *, opaque=OPAQUE):
     """The exam's identity over its canonical form: equal for every copy."""
     return _digest(canonical_form(bank, opaque=opaque))
+
+
+def row_order(cohorts, inputs, case_ids, records, *, opaque=OPAQUE):
+    """The canonical order of a bank's rows, as indexes into it: by content
+    (cohort, inputs, native record without its opaque ids) when the Challenge's
+    case ids are opaque, else by case id. Every copy of one exam has one canonical
+    order, so a grader that maps its rows to it first scores them identically."""
+    if "case_id" not in opaque:
+        order = sorted(range(len(case_ids)), key=lambda i: case_ids[i])
+        if len({case_ids[i] for i in order}) != len(order):
+            raise CopyRefused("copy_ids_not_unique")
+        return order
+    keys = [
+        _canonical(
+            {
+                "cohort": cohorts[i],
+                "inputs": [float(v) for v in inputs[i]],
+                "record": _strip(records[i], opaque),
+            }
+        )
+        for i in range(len(case_ids))
+    ]
+    if len(set(keys)) != len(keys):
+        raise CopyRefused("copy_rows_not_distinct")
+    return sorted(range(len(keys)), key=lambda i: keys[i])
+
+
+def bank_order(bank, *, opaque=OPAQUE):
+    return row_order(
+        bank["cohorts"],
+        bank["inputs"],
+        bank["case_ids"],
+        bank["reference_records"],
+        opaque=opaque,
+    )
+
+
+def canonical_bank(bank, *, opaque=OPAQUE):
+    """The bank with its rows in canonical order (a definition built from it is
+    the same for every copy)."""
+    order = bank_order(bank, opaque=opaque)
+    return {
+        name: ([bank[name][i] for i in order] if name in PER_ROW else bank[name])
+        for name in bank
+    }
+
+
+def canonical_call(rows, outputs, repeats, *, opaque=OPAQUE):
+    """``(rows, outputs, repeats)`` for one producer measure, all in canonical
+    order. ``rows`` are `physical_dual_pack.bank_rows` rows and ``outputs`` and
+    each of ``repeats`` the model's flat rows, in the copy's own order. A producer
+    measure never sees a copy's order."""
+    order = row_order(
+        [r["cohort"] for r in rows],
+        [list(r["inputs"].values()) for r in rows],
+        [r["case_id"] for r in rows],
+        [r["record"] for r in rows],
+        opaque=opaque,
+    )
+    return (
+        [rows[i] for i in order],
+        [outputs[i] for i in order],
+        [[run[i] for i in order] for run in repeats],
+    )
 
 
 def _prf(key, *parts):
