@@ -117,8 +117,15 @@ def test_each_bundle_runtime_gets_its_own_parent_and_nothing_else():
         ).image_id
         == image.base_image_digest
     )
+    # The GPU runtimes are registered (shared GPU path S1/S2), so a CPU host
+    # with no GPU parent refuses them as not served here; a runtime no table
+    # names stays unknown.
+    for gpu in ("torch-cu130-py311", "jax-cuda13-py311"):
+        with pytest.raises(gp.DirectParentRefused) as refused:
+            parents.for_bundle(SimpleNamespace(runtime_profile_id=gpu))
+        assert refused.value.code == "backend_not_served"
     with pytest.raises(gp.DirectParentRefused) as refused:
-        parents.for_bundle(SimpleNamespace(runtime_profile_id="torch-cu130-py311"))
+        parents.for_bundle(SimpleNamespace(runtime_profile_id="made-up-py311"))
     assert refused.value.code == "construction_runtime_unknown"
     only_torch = gp.DirectParents({"torch-cpu-py311": image})
     with pytest.raises(gp.DirectParentRefused) as refused:
@@ -130,8 +137,11 @@ def test_a_parent_of_the_wrong_kind_is_refused_for_its_runtime():
     image = torch_image()
     with pytest.raises(ValueError, match="differs from its runtime"):
         gp.DirectParents({"python-cpu-py311": image})
-    with pytest.raises(ValueError, match="registered runtimes"):
+    # A registered GPU runtime given the Torch CPU image is the wrong kind.
+    with pytest.raises(ValueError, match="differs from its runtime"):
         gp.DirectParents({"jax-cuda13-py311": image})
+    with pytest.raises(ValueError, match="registered runtimes"):
+        gp.DirectParents({"made-up-py311": image})
 
 
 def test_the_torch_layer_repins_nothing_the_cpu_parent_carries():

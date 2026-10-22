@@ -167,8 +167,10 @@ def test_each_task_builds_on_its_own_runtimes_parent(tmp_path, monkeypatch, runt
     [
         (
             lambda: gpu_practice.DirectParents.from_torch(torch_image()),
+            # Registered since the shared GPU path (S1/S2), with no GPU
+            # parent on this host: not served here.
             "torch-cu130-py311",
-            ResearchServiceErrorCode.REFERENCE_MISMATCH,
+            ResearchServiceErrorCode.CAPABILITY_UNAVAILABLE,
         ),
         (
             lambda: gpu_practice.DirectParents({"torch-cpu-py311": torch_image()}),
@@ -264,7 +266,8 @@ def test_the_resolver_picks_each_bundles_parent_from_its_runtime(tmp_path, monke
     assert seen == [parents.for_runtime(r) for r in parents.runtimes()]
     with pytest.raises(gpu_practice.DirectParentRefused) as refused:
         resolver(LibraryBundleRef.from_dict(_bundle("jax-cuda13-py311")))
-    assert refused.value.code == "construction_runtime_unknown"
+    # Registered (shared GPU path), with no JAX GPU parent here.
+    assert refused.value.code == "backend_not_served"
     only_torch = DirectOwnerImageResolver(
         cache, parents=gpu_practice.DirectParents({"torch-cpu-py311": torch_image()})
     )
