@@ -25,6 +25,8 @@
   // controller refuses it.
   const sessionKey = "carbon.launchpad.session.v1";
   const rememberedKey = "carbon.launchpad.remembered.v1";
+  // A browser this Control Center remembers is connecting, not disconnected: no token card flashes first (R5-8).
+  let resuming = false;
   function keptSession() {
     try { const value = sessionStorage.getItem(sessionKey); return value && /^[!-~]{1,512}$/.test(value) ? value : null; }
     catch (_) { return null; }
@@ -535,7 +537,7 @@
     if (route().view === "guide") renderGuide(route().id);
     $("settings-recheck").disabled = !connected || busy;
     // Connected: the token form steps aside; interrupted or new, it returns.
-    $("connect-panel").hidden = connected;
+    $("connect-panel").hidden = connected || resuming;
     // One click back in, from the session this tab kept.
     $("reconnect").hidden = connected || !keptSession();
     // The research surface (research_view.js) redraws with the page.
@@ -2084,7 +2086,7 @@
           launchShape = operationsListed?.find(op => op.operation === "launch") || null;
         } catch (_) { launchShape = null; }
       }
-      connected = true;
+      connected = true; resuming = false;
       land();
       settleWatches();
       settleHeld();
@@ -2094,7 +2096,7 @@
       else pollSetup();
       setText($("connection-state"), "Connected");
     } catch (error) {
-      connected = false;
+      connected = false; resuming = false;
       if (error.status === 401 || error.status === 403) {
         // The controller no longer knows this token: it was restarted.
         token = ""; forgetSession();
@@ -2117,8 +2119,7 @@
     // person wants to land (U2); they get the Overview and its next step.
     const active = research.runs.find(run => !TERMINAL.includes(run.state) && !["INTERRUPTED", "RECONCILIATION_REQUIRED"].includes(run.state));
     if (active) { location.hash = campaignHref(active.id); return; }
-    const last = stored(routeKey, null);
-    if (last && typeof last.hash === "string" && last.hash.startsWith("#")) location.hash = last.hash;
+    // No restored last page: a returning person lands on the Overview and its next step (U2, R5-8).
   }
   $("reconnect").addEventListener("click", () => {
     const resumed = keptSession();
@@ -2186,6 +2187,7 @@
       await refresh();
       if (storageError) message("Browser retry storage is unavailable. Launch is disabled to preserve duplicate protection.", true);
     } catch (error) {
+      resuming = false;
       token = "";
       connected = false;
       $("connection-state").textContent = "Disconnected";
@@ -4921,6 +4923,8 @@
   const footerSeenKey = "carbon.launchpad.footer-seen.v1";
   const pageFooter = document.querySelector("main > footer");
   if (pageFooter && stored(footerSeenKey, {}).seen === true) pageFooter.hidden = true;
+  resuming = linkToken === null && Boolean(stored(rememberedKey, null) || keptSession());
+  if (resuming) { setText($("connection-state"), "Connecting…"); setTimeout(() => { if (resuming) { resuming = false; quietly(render); } }, 6000); }
   buildNavigation();
   show();
   setInterval(refresh, 1500);
