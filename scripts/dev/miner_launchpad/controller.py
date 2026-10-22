@@ -189,13 +189,26 @@ def attach_runner(profile, *, legacy_database=None, role=None):
     except Rejected as refused:
         if refused.code != CARBON_UPDATED:
             raise
+        from scripts.dev.miner_launchpad.environment_setup import REINSTALL_STEP
+        from scripts.dev.miner_launchpad.setup_operations import HTTP, call
+
+        next_step = getattr(refused, "next_step", None)
         return None, {
             "available": False,
             "profile": None,
             "status": "CARBON_UPDATED",
             "code": refused.code,
             "reason": NEXT_ACTIONS[refused.code],
-            "next_step": getattr(refused, "next_step", None),
+            "next_step": next_step,
+            # The page's one click after an update (M1 E2E U54/U67): checks
+            # Compute again with the miner's last choice and writes the
+            # profile again with their own intakes; None when only the
+            # installer clears it.
+            "recheck": (
+                None
+                if (next_step or "").startswith(REINSTALL_STEP)
+                else call("recheck", HTTP)
+            ),
         }
     return runner, None
 

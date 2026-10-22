@@ -338,6 +338,44 @@ def dual_feedback(experiment):
     }
 
 
+#: Carbon's practice baseline per (Challenge id, version): the practice-dual
+#: total of the Challenge's `baseline_strategy()` on the public bank, from
+#: the same practice_dual code, each recorded with its strategy, bank and
+#: code digests (Validator, U45). Never `koth_registry.baseline_total`,
+#: which is sealed-exam derived. None is registered yet, so every Challenge
+#: shows none, with why; nothing here is invented.
+PRACTICE_BASELINES: dict = {}
+BASELINE_LABEL = "practice baseline on the public bank"
+
+
+def baseline(challenge):
+    """The "beat this" line's record for a campaign's Challenge version:
+    {score, label, reason, record}, score None with `baseline_unregistered`
+    where no baseline is registered."""
+    key = (
+        (challenge.get("id"), challenge.get("version"))
+        if type(challenge) is dict
+        else None
+    )
+    found = PRACTICE_BASELINES.get(key)
+    if type(found) is not dict or finite(found.get("score")) is None:
+        return {
+            "score": None,
+            "label": BASELINE_LABEL,
+            "reason": "baseline_unregistered",
+            "record": None,
+        }
+    return {
+        "score": finite(found["score"]),
+        "label": BASELINE_LABEL,
+        "reason": None,
+        "record": {
+            k: _str(found.get(k))
+            for k in ("strategy_digest", "bank_digest", "code_head")
+        },
+    }
+
+
 def experiment_rows(own, view):
     keys = [k for k, _ in view.components] if view is not None else None
     rows = []
@@ -422,10 +460,51 @@ def experiment_rows(own, view):
                 ),
                 "image": _str(backend.get("image"), 160),
                 "learning_curve": _curve(experiment) is not None,
+                # What the run took and what the model calls that chose it
+                # cost, from the campaign's ledger (M1 E2E U45); None where
+                # the record carries none, with why.
+                **run_cost(experiment),
                 "accepted_improvement": False,
             }
         )
     return rows
+
+
+def run_cost(experiment):
+    """A run's `duration` and `model_cost`, allow-listed from its record
+    (`projection.run_costs`), with `model_cost_reason` when it has none."""
+    duration = experiment.get("duration")
+    cost = experiment.get("model_cost")
+
+    def count(value):
+        return value if type(value) is int and value >= 0 else None
+
+    return {
+        "duration": (
+            {
+                "wall_seconds": finite(duration.get("wall_seconds")),
+                "worker_seconds": finite(duration.get("worker_seconds")),
+                "wall_reason": _str(duration.get("wall_reason"), 64),
+            }
+            if type(duration) is dict
+            else None
+        ),
+        "model_cost": (
+            {
+                "nanodollars": count(cost.get("nanodollars")),
+                "calls": count(cost.get("calls")),
+                "unsettled_calls": count(cost.get("unsettled_calls")),
+                "basis": _str(cost.get("basis"), 256),
+            }
+            if type(cost) is dict
+            else None
+        ),
+        "model_cost_reason": (
+            None
+            if type(cost) is dict
+            else _str(experiment.get("model_cost_reason"), 64) or "not_recorded"
+        ),
+    }
 
 
 def _curve(experiment):
@@ -1744,6 +1823,9 @@ def build(
         # record holds it (C-MLP-02-D6), with its digest; None without one.
         "research_task": research_task(own.get("research_guidance")),
         "experiments": {"rows": shown, "total": len(rows)},
+        # The "beat this" line (U45): Carbon's practice baseline for this
+        # Challenge version, or None with why.
+        "baseline": baseline(challenge),
         # Count the full local PRACTICE ledger, including trials beyond the
         # bounded recent-row feed. Public gate names come only from the
         # Challenge contract; this same document serves browser and MCP.

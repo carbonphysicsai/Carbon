@@ -151,6 +151,16 @@ SETUP_OPERATIONS = {
                 "practice_auto_retry",
             },
         ),
+        _op(
+            "recheck",
+            "review",
+            REGISTERED,
+            "After an update: check Compute again with your last choice and "
+            "write your runner profile again with your own intakes, in one "
+            "call. Your remote setup stays yours to check. Nothing is "
+            "launched or spent.",
+            {"confirm"},
+        ),
     )
 }
 
@@ -237,6 +247,7 @@ FIELDS = {
 NEXT_STEPS = {
     "registration_not_confirmed": "confirm your registration: carbon_setup_begin",
     "step_not_checked": "take the step named in field first; carbon_setup_status",
+    "recheck_needs_confirmation": "send confirm: true",
     "unknown_field": "send only the fields in the step's arguments schema",
     "practice_auto_retry_boolean_required": "send practice_auto_retry as true or false",
     "field_required": "send every required field in the step's arguments schema",
@@ -446,7 +457,10 @@ def status(
     already has `carbon_launch`, and `profile_unusable` whether the written
     profile failed to load here (`_launch_call`)."""
     from scripts.dev.miner_launchpad.environment_setup import (
+        LOCAL_CPU,
+        LOCAL_GPU,
         OWN_AGENT,
+        REINSTALL_STEP,
         USES_SETUP_MODEL,
     )
 
@@ -571,6 +585,18 @@ def status(
             entry["next_step"] = steps["compute"].get("next_step")
         elif step == "compute" and steps["compute"].get("set_aside"):
             entry["set_aside"] = steps["compute"]["set_aside"].get("reasons", [])
+        if step == "compute" and (stale or steps["compute"].get("set_aside")):
+            # After an update, one call checks Compute again with the
+            # miner's last choice and writes their profile again with their
+            # own intakes (M1 E2E U54/U67), unless only the installer can.
+            choice = steps["compute"].get("choice") or (
+                steps["compute"].get("set_aside") or {}
+            ).get("choice")
+            if entry.get("next_step") != REINSTALL_STEP and choice in (
+                LOCAL_CPU,
+                LOCAL_GPU,
+            ):
+                entry["recheck"] = call("recheck", door)
     result["next"] = entry
     result["skips"] = {OWN_AGENT: {"inference": "your agent uses its own model"}}
     return result

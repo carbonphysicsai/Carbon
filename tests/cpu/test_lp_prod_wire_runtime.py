@@ -557,6 +557,8 @@ def test_the_control_center_never_attaches_a_stale_profile(tmp_path, head):
         "code": CARBON_UPDATED,
         "reason": NEXT_ACTIONS[CARBON_UPDATED],
         "next_step": step + ": " + "; ".join(reasons),
+        # The checkout moved since the install: no one click clears it.
+        "recheck": None,
     }
     server = controller.Server(
         controller.Controller(tmp_path / "http.sqlite3"),

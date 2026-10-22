@@ -556,6 +556,173 @@ def test_an_update_names_the_gpu_worker_build_when_none_is_built(
     assert report["next_steps"][0].endswith("then check Compute again in setup")
 
 
+# --- an update leaves the miner ready (M1 E2E U54/U67) ---------------------------
+
+
+class Current(Intakes):
+    """Fixture checks whose compute check reads each image ID from its
+    manifest, as the real check does, so a profile written now is current."""
+
+    def compute(self, image, analysis):
+        runtime = super().compute(image, analysis)
+        images = [
+            json.loads(Path(path).read_bytes()).get("image_id", fixed)
+            for path, fixed in zip((image, analysis), runtime["images"], strict=False)
+        ]
+        return {**runtime, "images": images + runtime["images"][2:]}
+
+
+def test_an_update_writes_a_stale_profile_again_though_compute_is_current(
+    tmp_path, state, head, challenge
+):
+    """Compute checked again after the checkout moved, but the profile not
+    written again: the next install finds compute current and, before U54,
+    left the stale profile for the Control Center to refuse."""
+    checks = Current()
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=checks)
+    completed(tmp_path, setup)
+    setup.review(own_review(challenge))
+    head["revision"] = checks.revision = NEW
+    worker, analysis = rebuild(tmp_path, state, NEW)
+    # Compute checked again in setup, which drops Review's record ("any
+    # change needs a new review"); the profile file stays where the Control
+    # Center loads it.
+    setup.compute(
+        {
+            "choice": LOCAL_CPU,
+            "image_manifest": str(worker),
+            "analysis_image_manifest": str(analysis),
+        }
+    )
+    assert profile(setup)["accepted_revision"] == REVISION
+    assert "profile" not in setup._record()
+    report = setup.after_install()
+    assert report["compute"] == "unchanged"
+    assert report["profile"]["written"] is True
+    assert profile(setup)["accepted_revision"] == NEW
+    assert profile(setup)["intakes"] == {challenge["id"]: OWN}
+    assert profile(setup)["receivers"] == {challenge["id"]: HOTKEY}
+    assert setup.profile_staleness(profile(setup)) == ([], None)
+
+
+def test_an_update_after_a_refused_recheck_checks_again_with_the_kept_choices(
+    tmp_path, state, head, challenge
+):
+    """An earlier update set compute aside and its check again was refused:
+    before U54 the next install said "not set up yet" and stopped, with
+    catalog_install refused step_not_checked. The choice and the miner's own
+    intake were kept beside the set-aside record and are used again."""
+
+    class Refusing(Intakes):
+        def compute(self, image, analysis):
+            raise SetupRefused("image_manifest", "worker_image_unverified")
+
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Intakes())
+    completed(tmp_path, setup)
+    setup.review(own_review(challenge))
+    head["revision"] = NEW
+    rebuild(tmp_path, state, NEW)
+    setup.checks = Refusing(NEW)
+    assert setup.after_install()["compute"] == "set aside"
+    kept = setup._record()["compute_set_aside"]
+    assert kept["choice"] == LOCAL_CPU
+    assert setup._record()["profile_set_aside"]["intakes"][challenge["id"]] == {
+        "url": OWN,
+        "source": "yours",
+        "receiver": HOTKEY,
+    }
+    setup.checks = Intakes(NEW)
+    report = setup.after_install()
+    assert report["compute"] == "checked again"
+    assert report["profile"]["written"] is True
+    assert setup.state()["steps"]["compute"]["checked"] is True
+    assert profile(setup)["accepted_revision"] == NEW
+    assert profile(setup)["intakes"] == {challenge["id"]: OWN}
+    assert profile(setup)["receivers"] == {challenge["id"]: HOTKEY}
+    record = setup._record()
+    assert "profile_set_aside" not in record and "compute" in record
+
+
+def test_one_recheck_call_leaves_the_miner_ready_after_an_update(
+    tmp_path, state, head, challenge
+):
+    """The page's one click (and the MCP door's `carbon_setup_recheck`): the
+    same check again and profile write as the installer, for a check the
+    installer could not make (here, refused), with the miner's choices."""
+    from scripts.dev.miner_launchpad import setup_operations
+
+    class Refusing(Intakes):
+        def compute(self, image, analysis):
+            raise SetupRefused("image_manifest", "worker_image_unverified")
+
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Intakes())
+    completed(tmp_path, setup)
+    setup.review(own_review(challenge))
+    head["revision"] = NEW
+    rebuild(tmp_path, state, NEW)
+    setup.checks = Refusing(NEW)
+    setup.after_install()
+    for door in (setup_operations.MCP, setup_operations.HTTP):
+        nxt = setup_operations.status(setup, door=door)["next"]
+        assert nxt["step"] == "compute"
+        assert nxt["recheck"] == setup_operations.call("recheck", door)
+    with pytest.raises(SetupRefused) as refused:
+        setup.recheck({"confirm": False})
+    assert refused.value.code == "recheck_needs_confirmation"
+    setup.checks = Current(NEW)
+    result = setup.recheck({"confirm": True})
+    assert result["update"]["compute"] == "checked again"
+    assert result["update"]["profile"]["written"] is True
+    assert result["update"]["next_steps"] == []
+    assert result["steps"]["compute"]["checked"] is True
+    assert result["steps"]["review"]["profile_written"] is True
+    assert profile(setup)["accepted_revision"] == NEW
+    assert profile(setup)["intakes"] == {challenge["id"]: OWN}
+    nxt = setup_operations.status(setup, door=setup_operations.MCP)["next"]
+    assert nxt is None or "recheck" not in nxt
+    # Nothing left to do: a second call checks nothing and writes nothing.
+    calls = len(setup.checks.calls)
+    again = setup.recheck({"confirm": True})["update"]
+    assert again == {"compute": "unchanged", "next_steps": []}
+    assert len(setup.checks.calls) == calls
+
+
+def test_recheck_leaves_a_remote_setup_and_a_moved_checkout_to_their_owners(
+    tmp_path, state, head
+):
+    from scripts.dev.miner_launchpad import setup_operations
+
+    checks = Reinstalled()
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=checks)
+    completed(tmp_path, setup)
+    setup.review({"confirm": True})
+    record = setup._record()
+    record["compute"]["choice"] = REMOTE
+    setup._save(record)
+    head["revision"] = NEW
+    rebuild(tmp_path, state, NEW)
+    setup.after_install()
+    nxt = setup_operations.status(setup, door=setup_operations.MCP)["next"]
+    assert "recheck" not in nxt  # the miner checks their own setup
+    calls = len(checks.calls)
+    update = setup.recheck({"confirm": True})["update"]
+    assert update["next_steps"] == [REMOTE_RECHECK]
+    assert len(checks.calls) == calls  # nothing reached
+    # The checkout moved since the install: only the installer clears it.
+    other, files = tmp_path / "other", tmp_path / "o"
+    other.mkdir(mode=0o700)
+    files.mkdir()
+    setup2 = EnvironmentSetup(other, onboarding=Onboarding(), checks=Reinstalled(NEW))
+    completed(files, setup2)
+    rebuild(files, other, NEW)
+    setup2.after_install()
+    head["revision"] = "e" * 40
+    with pytest.raises(SetupRefused) as refused:
+        setup2.recheck({"confirm": True})
+    assert refused.value.code == "carbon_updated_rerun_installer"
+    assert refused.value.next_step == REINSTALL_STEP
+
+
 def test_after_install_needs_the_installed_images(state, head):
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Reinstalled())
     with pytest.raises(SetupRefused) as refused:
