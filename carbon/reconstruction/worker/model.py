@@ -45,6 +45,19 @@ OUTPUT_MEMBERS = 1024
 #: only after a real-lane containment run at that profile (a new containment
 #: acceptance, OWNER-CONTAINMENT-ACCEPT-TESTNET-01).
 LARGE_MODEL_ALLOWLIST_VERSIONS = frozenset({"level4-allowlist-v7"})
+#: The gate: no served version resolves to the larger resources until the
+#: Test Lead's real-lane containment run at this profile (Run F) has passed and
+#: the acceptance for it is recorded. The commit that sets this True is the
+#: only change that applies the profile; every constant justified by it (the
+#: launch values, the output bound, the custody read) moves with it and not
+#: before.
+LARGE_MODEL_PROFILE_APPLIED = False
+
+
+def _large_applies(allowlist_version):
+    return LARGE_MODEL_PROFILE_APPLIED and (
+        allowlist_version in LARGE_MODEL_ALLOWLIST_VERSIONS
+    )
 LARGE_MODEL_RESOURCES = {
     "output_bytes": 2 * 1024**3,
     "scratch_bytes": 4 * 1024**3,
@@ -69,7 +82,7 @@ def worker_resources_version(allowlist_version):
     """What a `DevelopmentWorkerProfile` carries as ``worker_resources_version``
     for a launch under ``allowlist_version`` (its version string): that version
     when it gets the larger resources, else None (today's profile, unchanged)."""
-    if allowlist_version in LARGE_MODEL_ALLOWLIST_VERSIONS:
+    if _large_applies(allowlist_version):
         return allowlist_version
     return None
 
@@ -78,7 +91,7 @@ def worker_resources_for(allowlist_version):
     """The worker resources a reconstruction under ``allowlist_version`` (its
     version string) may be given: `LARGE_MODEL_RESOURCES` for a next version,
     else today's C-03 profile values. An unknown version gets today's."""
-    if allowlist_version in LARGE_MODEL_ALLOWLIST_VERSIONS:
+    if _large_applies(allowlist_version):
         return dict(LARGE_MODEL_RESOURCES)
     return {
         "output_bytes": OUTPUT_BYTES,
@@ -370,7 +383,7 @@ class DevelopmentWorkerProfile(LaunchAuthorityBearing):
         # Only a version registered for the larger resources may be named, and
         # never on the G5 compile lane, whose memory is its own.
         if self.worker_resources_version is not None and (
-            self.worker_resources_version not in LARGE_MODEL_ALLOWLIST_VERSIONS
+            not _large_applies(self.worker_resources_version)
             or self.profile_id == G5_PROFILE_ID
         ):
             raise WorkerFailure(WorkerCode.UNSUPPORTED)
@@ -741,6 +754,7 @@ __all__ = [
     "G5_PROFILE_ID",
     "LARGE_MODEL_ALLOWLIST_VERSIONS",
     "LARGE_MODEL_CPU_COUNT",
+    "LARGE_MODEL_PROFILE_APPLIED",
     "LARGE_MODEL_RESOURCES",
     "LARGE_MODEL_SHM_BYTES",
     "GRACEFUL_CANCELLATION_SECONDS",

@@ -247,17 +247,25 @@ def test_the_state_ceiling_follows_the_allowlist_version():
     assert not state.state_fits(0, V7.raw)
 
 
-def test_custody_reads_up_to_the_largest_worker_output_envelope():
+def test_custody_reads_the_output_envelope_of_the_build_version(monkeypatch):
+    from carbon.reconstruction.worker import model
+
+    monkeypatch.setattr(model, "LARGE_MODEL_PROFILE_APPLIED", True)
     from carbon.challenge_validator import lean_recipe_retention as retention
-    from carbon.reconstruction.worker import model as worker
 
-    largest = max(
-        worker.worker_resources_for(v)["output_bytes"] for v in (V6.version, V7.version)
-    )
-    assert retention._STATE_CUSTODY_BYTES == largest == 2 * 1024**3
+    # OWNER-WORKER-RESOURCES-LARGE-MODELS-01: the custody bound moves only for
+    # a version whose profile is applied; every other keeps 128 MiB.
+    assert retention._custody_limit(V6.raw) == 128 * 1024**2
+    assert retention._custody_limit(V7.raw) == 2 * 1024**3
+    assert retention._custody_limit(b"not an allowlist") == 128 * 1024**2
+    assert retention._custody_limit(None) == 128 * 1024**2
+    assert not hasattr(retention, "_STATE_CUSTODY_BYTES")
 
 
-def test_worker_resources_follow_the_allowlist_version():
+def test_worker_resources_follow_the_allowlist_version(monkeypatch):
+    from carbon.reconstruction.worker import model
+
+    monkeypatch.setattr(model, "LARGE_MODEL_PROFILE_APPLIED", True)
     from carbon.reconstruction.worker import model as worker
 
     # OWNER-WORKER-RESOURCES-LARGE-MODELS-01: next versions only.

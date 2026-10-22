@@ -45,6 +45,15 @@ from carbon.reconstruction.worker.model import (
 )
 from carbon.reconstruction.worker.protocol import decode_output_stream
 
+@pytest.fixture
+def large_profile_applied(monkeypatch):
+    """Apply the larger-resources profile for a test (the gate is off in code
+    until Run F passes)."""
+    from carbon.reconstruction.worker import model
+
+    monkeypatch.setattr(model, "LARGE_MODEL_PROFILE_APPLIED", True)
+
+
 V6 = "level4-allowlist-v6"
 V7 = "level4-allowlist-v7"
 #: The C-03 CPU profile's digest before this change (pinned elsewhere too).
@@ -58,7 +67,7 @@ def _profile(version):
     return rc._worker_profile(None, rc.LIBRARY_BUILD_PROVENANCE, version)
 
 
-def test_a_v6_launch_resolves_todays_values_exactly():
+def test_a_v6_launch_resolves_todays_values_exactly(large_profile_applied):
     for version in (V6, None, "level4-allowlist-v99"):
         assert worker_resources_version(version) is None
     today = _profile(None)
@@ -74,7 +83,7 @@ def test_a_v6_launch_resolves_todays_values_exactly():
     )
 
 
-def test_a_v7_launch_resolves_2_4_16_and_the_extras():
+def test_a_v7_launch_resolves_2_4_16_and_the_extras(large_profile_applied):
     version = worker_resources_version(V7)
     assert version == V7
     large = _profile(version)
@@ -120,7 +129,7 @@ def _flag(arguments, name):
     return arguments[arguments.index(name) + 1]
 
 
-def test_the_create_line_follows_the_profile(tmp_path):
+def test_the_create_line_follows_the_profile(tmp_path, large_profile_applied):
     today = _arguments(_profile(None), tmp_path)
     large = _arguments(_profile(V7), tmp_path)
     assert _flag(today, "--memory") == str(4 * GIB)
@@ -155,7 +164,7 @@ def _inspect(expected, created_with, tmp_path):
     )
 
 
-def test_inspection_accepts_each_profile_and_refuses_the_other(tmp_path):
+def test_inspection_accepts_each_profile_and_refuses_the_other(tmp_path, large_profile_applied):
     today, large = _profile(None), _profile(V7)
     _inspect(today, today, tmp_path)
     _digest, evidence = _inspect(large, large, tmp_path)
@@ -169,7 +178,7 @@ def test_inspection_accepts_each_profile_and_refuses_the_other(tmp_path):
         assert refused.value.code == WorkerCode.POLICY
 
 
-def test_the_doctor_sizes_the_host_for_the_launch():
+def test_the_doctor_sizes_the_host_for_the_launch(large_profile_applied):
     class Cli:
         def __init__(self, ncpu, memory):
             self.info = {
@@ -196,7 +205,7 @@ def test_the_doctor_sizes_the_host_for_the_launch():
     assert ready.eligible and ready.cpuset == "0,1,2,3"
 
 
-def test_the_cpuset_follows_the_cpu_count(tmp_path):
+def test_the_cpuset_follows_the_cpu_count(tmp_path, large_profile_applied):
     from carbon.reconstruction.host_execution import resolve_cpuset
 
     assert resolve_cpuset(logical_cpus=8) == "0,1"
@@ -205,7 +214,7 @@ def test_the_cpuset_follows_the_cpu_count(tmp_path):
         resolve_cpuset(logical_cpus=3, count=4)
 
 
-def test_exporter_and_decoder_bound_by_the_launch_envelope(tmp_path, monkeypatch):
+def test_exporter_and_decoder_bound_by_the_launch_envelope(tmp_path, monkeypatch, large_profile_applied):
     from carbon.reconstruction.worker import exporter
 
     assert exporter._output_bytes([]) == OUTPUT_BYTES
@@ -230,7 +239,7 @@ def test_exporter_and_decoder_bound_by_the_launch_envelope(tmp_path, monkeypatch
     assert (tmp_path / "large" / "a").stat().st_size == big
 
 
-def test_other_lanes_refuse_the_larger_resources(tmp_path):
+def test_other_lanes_refuse_the_larger_resources(tmp_path, large_profile_applied):
     from carbon.measurement_runtime.controller import (
         IsolatedBurgersMeasurementController as MeasurementController,
     )
@@ -250,7 +259,7 @@ def test_other_lanes_refuse_the_larger_resources(tmp_path):
         )
 
 
-def test_the_staged_worker_request_does_not_carry_large_resources():
+def test_the_staged_worker_request_does_not_carry_large_resources(large_profile_applied):
     # The staged request has no field for them, so a v7 profile cannot be
     # rebuilt from one; the staging path refuses it by name (protocol.py).
     import inspect
@@ -341,3 +350,36 @@ def test_battery_graph_intake_follows_the_versions_allowlist():
     )
     with pytest.raises(Exception):
         direct_graph.submission_bytes("9.9")
+
+
+def test_no_served_version_resolves_to_the_larger_resources():
+    # The gate: the profile applies only to an allowlist version in
+    # LARGE_MODEL_ALLOWLIST_VERSIONS, and no registered Challenge version
+    # serves one until Run F passes and a version is registered on it.
+    from carbon.challenge_kit import served_versions as sv
+    from carbon.level4.allowlist import Allowlist
+
+    registered = sv.STEP2 | sv.EXISTING | sv.CATALOG
+    assert registered
+    for challenge_id, version in sorted(registered):
+        served = Allowlist(sv.material_allowlist_bytes(challenge_id, version))
+        assert worker_resources_version(served.version) is None, (
+            challenge_id,
+            version,
+        )
+        graph = Allowlist(sv.graph_allowlist_bytes(challenge_id, version))
+        assert worker_resources_version(graph.version) is None, (challenge_id, version)
+
+
+def test_the_gate_is_off_in_code_and_refuses_every_large_use(tmp_path):
+    from carbon.reconstruction.worker import model
+
+    assert model.LARGE_MODEL_PROFILE_APPLIED is False
+    assert worker_resources_version(V7) is None
+    assert worker_resources_for(V7) == worker_resources_for(V6)
+    with pytest.raises(WorkerFailure):
+        DevelopmentWorkerProfile(
+            "sha256:" + "a" * 64, "sha256:" + "b" * 64, worker_resources_version=V7
+        )
+    with pytest.raises(ValueError):
+        rc._worker_profile(None, rc.LIBRARY_BUILD_PROVENANCE, V7)
