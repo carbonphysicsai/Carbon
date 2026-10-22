@@ -395,15 +395,11 @@ def _mcp_connection(profile_path):
 
 
 def _known_limitations(entry):
-    """What the Challenge version's card states it cannot do yet, as recorded
-    (Cooling 1.2: catalog recipes fail the mandatory peak gate)."""
-    from carbon.reconstruction.capability_registry import COLD_PLATE_CHALLENGE
+    """What the Challenge version's card states it cannot do yet, as the
+    Validator recorded it (one table for every Challenge)."""
+    from carbon.challenge_registry.known_limitations import known_limitations
 
-    if entry["challenge_id"] != COLD_PLATE_CHALLENGE:
-        return []
-    from carbon.challenge_registry.cold_plate import known_limitations
-
-    return known_limitations(entry["version"])
+    return known_limitations(entry["challenge_id"], entry["version"])
 
 
 def _agents(options, refusal, profile_path=None):

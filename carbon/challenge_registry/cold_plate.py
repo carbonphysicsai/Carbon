@@ -418,26 +418,3 @@ def describe_catalog(version):
             ],
         },
     }
-
-
-#: Known limitations a version's card states, as the Validator recorded them.
-#: Cooling 1.2 (VALIDATOR_RULING_COOLING12_PEAK_GATE_20261022, finding G1): no
-#: catalog recipe can pass the mandatory peak_bounds_profile gate, because
-#: the 1.2 output encoding does not keep the peak above its profile by
-#: construction; the gate stands, and the fix is a law-safe encoding on
-#: Cooling 1.3.
-KNOWN_LIMITATIONS = {
-    "1.2": (
-        (
-            "Catalog recipes on this version are not eligible: the output "
-            "encoding does not keep the peak temperature at or above its "
-            "profile, so the mandatory peak_bounds_profile gate fails. A "
-            "law-safe encoding comes with Cooling 1.3."
-        ),
-    ),
-}
-
-
-def known_limitations(version):
-    """The known limitations a Cooling `version`'s card states."""
-    return list(KNOWN_LIMITATIONS.get(version, ()))
