@@ -23,6 +23,7 @@ historical replay. A and D are measured by ``cooling_dual_measurement``.
 from __future__ import annotations
 
 import functools
+import hashlib
 import io
 import json
 import math
@@ -50,6 +51,10 @@ VERSIONS = {
     # measurement under its evaluation version; only the served allowlist differs.
     "1.2": ("cooling-dual-development-bank-48-v3", CASE_ID),
 }
+#: A sealed exam batch's evaluation version, per Challenge version (Validator,
+#: 2026-10-20): Cooling 1.1's sealed batches, served on 1.1 and 1.2.
+SEALED_EVALUATION_VERSION = "cooling-dual-sealed-batch-16-v1"
+SEALED_VERSIONS = {"1.1": SEALED_EVALUATION_VERSION, "1.2": SEALED_EVALUATION_VERSION}
 OUTPUT = {"quantity": "peak_c,profile_c[30],pressure_drop_pa", "unit": "degC,degC,Pa"}
 FILES = ("cooling_dual_pack.py", "cooling_dual_measurement.py")
 #: Legs a measured baseline run sets minimums for (default rule).
@@ -145,6 +150,9 @@ def definition(*, bank, train_raw, rule="baseline_legs"):
     slices = physical_public_train.numeric_interface_document(CHALLENGE)[
         "target_slices"
     ]
+    # The bank says which it is: a sealed batch is one decision_sealed_grid
+    # cohort; anything else is checked against the development cohorts.
+    sealed = set(bank["cohorts"]) == {cdm.SEALED_COHORT}
     return {
         "schema": cdm.DEFINITION_SCHEMA,
         "method": cdm.METHOD,
@@ -156,9 +164,21 @@ def definition(*, bank, train_raw, rule="baseline_legs"):
         "study_config_sha256": _file_sha(STUDY_CONFIG),
         "source_replay_sha256": _file_sha(REFERENCE_REPLAY),
         "components": list(exam.COMPONENTS),
-        "reductions": ["all48", "worst_geometry", "boundary"],
+        **(
+            {
+                "bank_kind": "sealed_batch",
+                "reference_evidence_sha256": "sha256:"
+                + hashlib.sha256(bank["solver_evidence"]).hexdigest(),
+                "reductions": list(cdm._SEALED_REDUCTIONS),
+                "cohort_counts": dict(cdm.SEALED_COHORT_COUNTS),
+            }
+            if sealed
+            else {
+                "reductions": ["all48", "worst_geometry", "boundary"],
+                "cohort_counts": dict(cdm.COHORT_COUNTS),
+            }
+        ),
         "A_reducer": "minimum",
-        "cohort_counts": dict(cdm.COHORT_COUNTS),
         "target_slices": {k: list(v) for k, v in slices.items()},
         "leg_minimum_rule": rule,
         "paired_repeat_procedure": "per_case",
@@ -261,7 +281,7 @@ def applied_pack(*, bank_rows, definition, limits, objective, train_raw, names):
         "schema": dual_score.PACK_SCHEMA,
         "scope": "PUBLIC_DEVELOPMENT",
         "challenge": CHALLENGE,
-        "hard_gates": list(cdm.GATES),
+        "hard_gates": list(cdm.gates_for(definition)),
         "legs": {
             leg: {
                 "components": [
@@ -319,7 +339,8 @@ def applied_pack(*, bank_rows, definition, limits, objective, train_raw, names):
                 {
                     "artifact_digest": provisional,
                     "gates": {
-                        k: "PASS" if measured["gates"][k] else "FAIL" for k in cdm.GATES
+                        k: "PASS" if measured["gates"][k] else "FAIL"
+                        for k in cdm.gates_for(definition)
                     },
                     "measurements": {
                         physical.METRICS[leg]: (
@@ -373,6 +394,15 @@ def adapter(rule="baseline_legs"):
     if rule not in LEG_MINIMUM_RULES:
         raise ValueError("unknown cooling leg-minimum rule")
     return _ADAPTER if rule == "baseline_legs" else _Variant(rule)
+
+
+def sealed_adapter(version):
+    """The adapter for a sealed exam batch of exactly Challenge ``version``
+    (``SEALED_VERSIONS``), or None: no default. The definition reads the bank
+    kind from the bank's cohort, so measurement is this module's."""
+    if type(version) is not str or version not in SEALED_VERSIONS:
+        return None
+    return physical.Variant(_ADAPTER, version, SEALED_VERSIONS[version], CASE_ID)
 
 
 def producer_digest():
