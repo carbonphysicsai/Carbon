@@ -382,7 +382,12 @@ def _mcp_connection(profile_path):
     except Exception:  # noqa: BLE001 - the placeholder still connects a client
         return {"command": MCP_PLACEHOLDER, "profile_path": None}
     return {
-        "command": shlex.join(connection["command"]),
+        "command": " ".join(
+            [
+                *(f"{k}={v}" for k, v in connection.get("environment", {}).items()),
+                shlex.join(connection["command"]),
+            ]
+        ),
         "profile_path": str(profile_path),
         "client_configuration": connection["client_configuration"],
     }

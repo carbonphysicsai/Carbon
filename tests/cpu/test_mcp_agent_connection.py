@@ -80,3 +80,24 @@ def test_a_failed_handshake_reports_disconnected_without_its_text():
     assert result["status"] == "DISCONNECTED"
     assert result["reason"] == "RuntimeError"
     assert "sk-FIXTURE" not in str(result)
+
+
+def test_the_server_runs_from_any_directory_and_writes_no_bytecode(
+    tmp_path, monkeypatch
+):
+    """M1 E2E H1/H3 (2026-10-22): `carbon-mcp` imported the checkout's
+    `scripts` package only with the checkout as the working directory, and
+    wrote `__pycache__` into it, which failed every later launch."""
+    import sys
+
+    from carbon.miner_mcp import agent_connection, standard_cli
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "dont_write_bytecode", False)
+    monkeypatch.setattr(
+        sys, "path", [p for p in sys.path if p != str(standard_cli.CHECKOUT)]
+    )
+    standard_cli._serve_from_checkout()
+    assert sys.dont_write_bytecode is True
+    assert sys.path[0] == str(standard_cli.CHECKOUT)
+    assert agent_connection.SERVER_ENVIRONMENT == {"PYTHONDONTWRITEBYTECODE": "1"}
