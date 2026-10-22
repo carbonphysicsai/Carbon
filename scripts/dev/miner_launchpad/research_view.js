@@ -968,7 +968,8 @@
     }
     wrap.append(table); box.append(wrap);
     para(box, "Descriptive practice on public cases. Not an accepted improvement, a rank or an official score.", "hint");
-    if (dual) para(box, "Graded total: the exam's own gates and 0.5·A + 0.5·D, computed on the public practice bank; it compares within this Challenge version only and is not the exam grade.", "hint");
+    const queried = rows.map(r => r.dual?.n_cases).find(n => Number.isInteger(n));
+    if (dual) para(box, "Graded total: the exam's own gates and 0.5·A + 0.5·D, computed on the public practice bank" + (Number.isInteger(queried) ? " (practice queries your model on " + queried + " public cases, on your own machine)" : "") + "; it compares within this Challenge version only and is not the exam grade.", "hint");
     const byId = Object.fromEntries(doc.charts.map(c => [c.id, c]));
     for (const id of ["trend_score", "trend_components", "components"]) if (byId[id]) chart(box, byId[id]);
   }

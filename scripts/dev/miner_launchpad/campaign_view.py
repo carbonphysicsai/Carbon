@@ -325,6 +325,13 @@ def dual_feedback(experiment):
         "accuracy": finite(found.get("accuracy")),
         "design_value": finite(found.get("design_value")),
         "note": _str(found.get("note"), 256),
+        # How many public bank cases practice queried the model on, on the
+        # miner's own machine (Validator C13: the page states it).
+        "n_cases": (
+            found["n_cases"]
+            if type(found.get("n_cases")) is int and found["n_cases"] >= 0
+            else None
+        ),
     }
 
 

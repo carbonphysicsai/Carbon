@@ -21,6 +21,7 @@ def _block(**overrides):
         "design_value": 0.8,
         "decision_outcome": "VERIFIED_FEASIBLE",
         "note": "Computed on the public development bank.",
+        "n_cases": 48,
         **overrides,
     }
 
@@ -69,6 +70,7 @@ def test_only_allow_listed_fields_reach_the_page():
         "total",
         "accuracy",
         "design_value",
+        "n_cases",
         "note",
     }
 
@@ -100,3 +102,8 @@ def test_a_validator_outcomes_practice_dual_reaches_the_submission_view(tmp_path
     )
     shown = projection._validator_outcome(1, path)["result"]["practice_dual"]
     assert shown["total"] == 0.61 and "hidden" not in shown
+
+
+def test_the_query_size_is_carried():
+    assert dual_feedback({"x": _block()})["n_cases"] == 48
+    assert dual_feedback({"x": _block(n_cases="48")})["n_cases"] is None
