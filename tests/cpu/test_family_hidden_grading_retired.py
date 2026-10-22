@@ -7,21 +7,23 @@ validator package defines, so a family added later without the guard fails here.
 
 from __future__ import annotations
 
-import importlib
 import pkgutil
 from types import SimpleNamespace
 
 import pytest
 
 import carbon.challenge_validator as package
-from carbon.challenge_validator import family_hidden
+from carbon.challenge_validator import (  # noqa: F401  (imported for their subclasses)
+    cooling_hidden,
+    f02_hidden,
+    f08_hidden,
+    family_hidden,
+    motor_hidden,
+)
 from carbon.challenge_validator.interface import Admitted, Unavailable
 
 
 def _subclasses():
-    for info in pkgutil.iter_modules(package.__path__):
-        if info.name.endswith("_hidden"):
-            importlib.import_module(f"{package.__name__}.{info.name}")
     found, queue = [], list(family_hidden.FamilyHiddenImport.__subclasses__())
     while queue:
         cls = queue.pop()
@@ -31,6 +33,20 @@ def _subclasses():
 
 
 FAMILIES = _subclasses()
+
+
+IMPORTED = {"cooling_hidden", "f02_hidden", "f08_hidden", "motor_hidden"}
+
+
+def test_every_hidden_family_module_is_imported_above():
+    """A family module added later must be added to the static imports, or this
+    walk would not see its adapter."""
+    modules = {
+        info.name
+        for info in pkgutil.iter_modules(package.__path__)
+        if info.name.endswith("_hidden")
+    }
+    assert modules == IMPORTED
 
 
 def test_the_conformance_walk_finds_the_hidden_family_adapters():
