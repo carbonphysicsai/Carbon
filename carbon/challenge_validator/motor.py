@@ -24,6 +24,7 @@ from carbon.motor.challenge import (
 from carbon.motor.compile import NEURAL_FAMILIES, compile_recipe, rebuild
 from carbon.motor.contracts import implementation_digest as model_digest
 from carbon.reconstruction.capability_registry import contract
+from carbon.scoring import motor_dual_pack, practice_dual
 
 from .candidate_fault import load_policy as load_candidate_fault_policy
 from .interface import Admitted, CandidateFault, ChallengeAdapter, Unavailable, digest
@@ -32,7 +33,7 @@ from .scoring import COVERAGE_RULE, cover
 
 ADAPTER_SCHEMA = "carbon.motor.validator-adapter.v1"
 BATCH_SCHEMA = "carbon.motor.validator-public-batch.v1"
-OUTCOME_SCHEMA = "carbon.motor.validator-outcome.v1"
+OUTCOME_SCHEMA = "carbon.motor.validator-outcome.v2"
 SCORE_RECORD_SCHEMA = "carbon.motor.operator-score-record.v1"
 STORE_SCHEMA = "carbon.motor.validator-store.v1"
 PUBLIC_BATCH_KIND = "public_practice"
@@ -74,6 +75,8 @@ def implementation_digest():
         "compiler": Path(compiler.__file__),
         "exam": Path(exam.__file__),
         "learned_baseline": Path(learned_baseline.__file__),
+        "practice_dual": Path(practice_dual.__file__),
+        "motor_dual_pack": Path(motor_dual_pack.__file__),
         "public_practice_store": Path(public_practice_store.__file__),
         "recipes": Path(recipes.__file__),
         "scoring": Path(scoring.__file__),
@@ -131,7 +134,14 @@ class MotorAdapter(ChallengeAdapter):
     contract_digest = contract(CHALLENGE.challenge_id).digest
     max_strategy_bytes = MAX_STRATEGY_BYTES
     disclosure_fields = frozenset(
-        {"score", "eligible", "n_cases", "n_scored", "n_gate_failed"}
+        {
+            "score",
+            "eligible",
+            "n_cases",
+            "n_scored",
+            "n_gate_failed",
+            "practice_dual",
+        }
     )
 
     def __init__(self, root, *, repository="."):
@@ -174,7 +184,9 @@ class MotorAdapter(ChallengeAdapter):
         )
         return "motor-" + identity.removeprefix("sha256:")
 
-    def _outcome(self, submission_id, state, *, failure=None, summary=None):
+    def _outcome(
+        self, submission_id, state, *, failure=None, summary=None, practice_dual=None
+    ):
         outcome = {
             "schema": OUTCOME_SCHEMA,
             "submission_id": submission_id,
@@ -194,6 +206,8 @@ class MotorAdapter(ChallengeAdapter):
                 n_scored=summary["n_scored"],
                 n_gate_failed=summary["n_gate_failed"],
             )
+        if practice_dual is not None:
+            outcome["practice_dual"] = practice_dual
         return outcome
 
     @staticmethod
@@ -264,7 +278,12 @@ class MotorAdapter(ChallengeAdapter):
             raise CandidateFault(
                 "non_finite_score", self.candidate_fault_policy
             ) from fault
-        outcome = self._outcome(submission_id, "SCORED", summary=summary)
+        dual = practice_dual.feedback(
+            motor_dual_pack, practice_dual.motor_predict(model)
+        )
+        outcome = self._outcome(
+            submission_id, "SCORED", summary=summary, practice_dual=dual
+        )
         score_record = {
             "schema": SCORE_RECORD_SCHEMA,
             "submission_id": submission_id,

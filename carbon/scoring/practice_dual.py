@@ -124,3 +124,10 @@ def motor_predict(model):
         return [[float(v) for v in model.predict(row)["torque_nm"]] for row in inputs]
 
     return predict
+
+
+def attach(outcome, adapter, predict):
+    """``outcome`` plus the shared ``practice_dual`` block: the one call every
+    practice evaluator makes (its outcome schema is bumped and its disclosure
+    allow-list gains ``practice_dual``)."""
+    return {**outcome, "practice_dual": feedback(adapter, predict)}
