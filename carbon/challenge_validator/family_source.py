@@ -484,7 +484,19 @@ def _cooling():
     return CoolingBatchSource
 
 
-FAMILY_SOURCES = {"motor": _motor, "f02": _f02, "f08": _f08, "cooling": _cooling}
+def _battery_sealed():
+    from .battery_sealed_source import BatterySealedSource
+
+    return BatterySealedSource
+
+
+FAMILY_SOURCES = {
+    "motor": _motor,
+    "f02": _f02,
+    "f08": _f08,
+    "cooling": _cooling,
+    "battery-sealed": _battery_sealed,
+}
 
 
 def family_source_class(challenge_id):
@@ -496,6 +508,7 @@ def family_source_class(challenge_id):
         "f02": "f02",
         "f08-ribbed-bracket": "f08",
         "chip-cold-plate": "cooling",
+        "battery-sealed-exam": "battery-sealed",
     }
     if challenge_id not in names:
         return None

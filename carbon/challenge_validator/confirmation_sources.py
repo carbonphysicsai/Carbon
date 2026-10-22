@@ -351,6 +351,22 @@ def _sources():
             "f08",
             ("f08-*", "reference-solvers-2026-10-15"),
         ),
+        # Battery's sealed exam (VALIDATOR_BATTERY_SEALED_RULINGS_20261022): a
+        # producer-only id, never a registry Challenge. Every published Battery
+        # case (the 420 grid, practice, B15 probes, plating studies, EV4/PDD
+        # records) is an overlap key.
+        "battery-sealed-exam": PopulationSource(
+            "battery-sealed-exam",
+            "battery_sealed",
+            (
+                "ev4-*",
+                "pdd-*",
+                "battery-*",
+                "plating-*",
+                "exam-design-*",
+                "reference-solvers-2026-10-15",
+            ),
+        ),
     }
 
 
