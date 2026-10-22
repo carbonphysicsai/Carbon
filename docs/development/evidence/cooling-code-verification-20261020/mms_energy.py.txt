@@ -1,0 +1,177 @@
+"""Cooling code verification, manufactured-energy rung (verification.json check 2;
+OWNER-COOLING-VERIFICATION-01). Standard library only.
+
+    python3 mms_energy.py write NY OUTDIR      # one case directory
+    python3 mms_energy.py analyze OUTDIR...    # errors and observed orders (JSON)
+
+Constant-property channel of height H and length L = 10 H: the exact plane
+Poiseuille velocity u(y) = 6 U y (H - y) / H^2 is prescribed cell by cell, and
+scalarTransportFoam solves  u dT/dx = D lap(T) + S/(rho cp)  for the
+manufactured field (carbon.challenge_pipeline.cooling_readiness.manufactured_channel)
+
+    T = T0 + a x + b sin(pi y / H),
+    S/(rho cp) = u a + D b (pi/H)^2 sin(pi y / H).
+
+The source is injected by an fvOptions scalarCodedSource (compiled in the image);
+the inlet and walls carry the exact T trace (exprFixedValue) and the outlet the exact
+normal gradient dT/dx = a (fixedGradient). Central differencing
+(second order). Errors are taken at cell centres against the exact field;
+observed order from successive NY = 16, 32, 64 (ratio 2).
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import re
+import sys
+from pathlib import Path
+
+H, L, U_MEAN, D = 1e-3, 1e-2, 0.1, 1e-6
+T0, A, B = 300.0, 100.0, 1.0
+ASPECT = 10  # NX = ASPECT * NY
+
+
+def header(cls, obj, location=None):
+    loc = f" location \"{location}\";" if location else ""
+    return f"FoamFile {{ version 2.0; format ascii; class {cls};{loc} object {obj}; }}\n"
+
+
+def u_exact(y):
+    return 6 * U_MEAN * y * (H - y) / H**2
+
+
+def t_exact(x, y):
+    return T0 + A * x + B * math.sin(math.pi * y / H)
+
+
+def write(ny, out):
+    out = Path(out)
+    if out.exists():
+        raise SystemExit(f"{out} exists; refusing to overwrite")
+    nx = ASPECT * ny
+    files = {}
+    files["system/blockMeshDict"] = header("dictionary", "blockMeshDict") + f"""scale 1;
+vertices ((0 0 0)({L} 0 0)({L} {H} 0)(0 {H} 0)(0 0 {H})({L} 0 {H})({L} {H} {H})(0 {H} {H}));
+blocks (hex (0 1 2 3 4 5 6 7) ({nx} {ny} 1) simpleGrading (1 1 1));
+edges ();
+boundary (
+ inlet {{type patch; faces ((0 4 7 3));}}
+ outlet {{type patch; faces ((1 2 6 5));}}
+ walls {{type wall; faces ((0 1 5 4)(3 7 6 2));}}
+ frontBack {{type empty; faces ((0 3 2 1)(4 5 6 7));}}
+);
+mergePatchPairs ();
+"""
+    files["system/controlDict"] = header("dictionary", "controlDict") + """application scalarTransportFoam;
+startFrom startTime; startTime 0; stopAt endTime; endTime 1; deltaT 1;
+writeControl timeStep; writeInterval 1; writeFormat ascii; writePrecision 17;
+writeCompression off; timeFormat general; timePrecision 6; runTimeModifiable false;
+"""
+    files["system/fvSchemes"] = header("dictionary", "fvSchemes") + """ddtSchemes { default steadyState; }
+gradSchemes { default Gauss linear; }
+divSchemes { default none; div(phi,T) Gauss linear; }
+laplacianSchemes { default Gauss linear corrected; }
+interpolationSchemes { default linear; }
+snGradSchemes { default corrected; }
+"""
+    files["system/fvSolution"] = header("dictionary", "fvSolution") + """solvers { T { solver PBiCGStab; preconditioner DILU; tolerance 1e-14; relTol 0; maxIter 100000; } }
+SIMPLE { nNonOrthogonalCorrectors 0; }
+"""
+    src_expr = (
+        f"const scalar uy = {6 * U_MEAN / H**2:.17g}*y*({H:.17g} - y);\n"
+        f"            Su[i] -= V[i]*(uy*{A:.17g} + {D * B * (math.pi / H) ** 2:.17g}"
+        f"*Foam::sin({math.pi / H:.17g}*y));"
+    )
+    files["system/fvOptions"] = header("dictionary", "fvOptions") + f"""mmsSource
+{{
+    type            scalarCodedSource;
+    active          yes;
+    name            mmsSource;
+    selectionMode   all;
+    fields          (T);
+    codeInclude     #{{ #}};
+    codeCorrect     #{{ #}};
+    codeConstrain   #{{ #}};
+    codeAddSup
+    #{{
+        const vectorField& C = mesh_.C();
+        const scalarField& V = mesh_.V();
+        scalarField& Su = eqn.source();
+        forAll(C, i)
+        {{
+            const scalar y = C[i].y();
+            {src_expr}
+        }}
+    #}};
+}}
+"""
+    files["constant/transportProperties"] = header("dictionary", "transportProperties") + f"DT {D:.17g};\n"
+    # Prescribed exact velocity, cell by cell (cells are ordered x fastest).
+    dy = H / ny
+    cells = [f"({u_exact((j + 0.5) * dy):.17g} 0 0)" for j in range(ny) for _ in range(nx)]
+    faces_in = [f"({u_exact((j + 0.5) * dy):.17g} 0 0)" for j in range(ny)]
+    files["0/U"] = header("volVectorField", "U", "0") + "dimensions [0 1 -1 0 0 0 0];\n" + (
+        f"internalField nonuniform List<vector> {len(cells)}\n(\n" + "\n".join(cells) + "\n);\n"
+        "boundaryField {\n"
+        f" inlet {{ type fixedValue; value nonuniform List<vector> {ny}\n(\n" + "\n".join(faces_in) + "\n); }\n"
+        f" outlet {{ type fixedValue; value nonuniform List<vector> {ny}\n(\n" + "\n".join(faces_in) + "\n); }\n"
+        " walls { type fixedValue; value uniform (0 0 0); }\n frontBack { type empty; }\n}\n"
+    )
+    expr = (f"{T0:.17g} + {A:.17g}*pos().x() + {B:.17g}*sin({math.pi / H:.17g}*pos().y())")
+    # OpenFOAM v2512's exprFixedValue reads `valueExpr` (RR-PACKS-12 FATAL on
+    # `expression`).
+    bc = f'{{ type exprFixedValue; value uniform {T0}; valueExpr "{expr}"; }}'
+    # Outflow carries the exact normal gradient dT/dx = a (outward normal +x),
+    # not an over-constraining Dirichlet value (Validator, RR-PACKS-12c).
+    outlet = f"{{ type fixedGradient; gradient uniform {A:.17g}; }}"
+    files["0/T"] = header("volScalarField", "T", "0") + "dimensions [0 0 0 1 0 0 0];\n" + (
+        f"internalField uniform {T0};\nboundaryField {{\n inlet {bc}\n outlet {outlet}\n walls {bc}\n frontBack {{ type empty; }}\n}}\n"
+    )
+    for rel, text in files.items():
+        p = out / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+    (out / "case.json").write_text(json.dumps({"ny": ny, "nx": nx, "H": H, "L": L, "U_mean": U_MEAN, "D": D, "T0": T0, "a": A, "b": B}) + "\n")
+
+
+def _field(path):
+    text = Path(path).read_text()
+    m = re.search(r"internalField\s+nonuniform\s+List<(\w+)>\s*(\d+)\s*\((.*?)\)\s*;", text, re.S)
+    if not m:
+        raise ValueError(f"no nonuniform internalField in {path}")
+    kind, n, body = m.group(1), int(m.group(2)), m.group(3)
+    if kind == "scalar":
+        vals = [float(v) for v in body.split()]
+    else:
+        vals = [tuple(float(c) for c in t.split()) for t in re.findall(r"\(([^()]*)\)", body)]
+    if len(vals) != n:
+        raise ValueError(f"{path}: expected {n} values, read {len(vals)}")
+    return vals
+
+
+def analyze_one(case):
+    case = Path(case)
+    meta = json.loads((case / "case.json").read_text())
+    t = _field(case / "1" / "T")
+    c = _field(case / "1" / "C")
+    err = [ti - t_exact(x, y) for ti, (x, y, _z) in zip(t, c)]
+    return {"ny": meta["ny"], "cells": len(err),
+            "l2": math.sqrt(sum(e * e for e in err) / len(err)), "linf": max(abs(e) for e in err)}
+
+
+def analyze(cases):
+    rows = sorted((analyze_one(c) for c in cases), key=lambda r: r["ny"])
+    orders = {k: [math.log2(rows[i][k] / rows[i + 1][k]) for i in range(len(rows) - 1)] for k in ("l2", "linf")}
+    return {"schema": "carbon.cooling.mms-energy.v1", "rows": rows, "orders": orders,
+            "finest_order": {k: v[-1] for k, v in orders.items()},
+            "band": [1.7, 2.3], "pass": all(1.7 <= v[-1] <= 2.3 for v in orders.values())}
+
+
+if __name__ == "__main__":
+    if sys.argv[1] == "write":
+        write(int(sys.argv[2]), sys.argv[3])
+    elif sys.argv[1] == "analyze":
+        print(json.dumps(analyze(sys.argv[2:]), indent=1))
+    else:
+        raise SystemExit("usage: mms_energy.py write NY OUT | analyze OUT...")

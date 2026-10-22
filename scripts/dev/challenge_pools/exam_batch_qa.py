@@ -62,6 +62,12 @@ U_RECORDS = {
         "docs/development/evidence/f02-cold-pack-20261020/reference-uncertainty/f02-reference-uncertainty.json",
         "e2262bf8eeca845c2b33d0e32b5f184751693a1771d9bd156cadd5613ac2dc6c",
     ),
+    # Cooling: die 0.037 C, hydraulic 3 percent relative; at most 1 cell within
+    # U, re-solved at r = 4 (VALIDATOR_COOLING_RR14_DECISION_20261020).
+    "chip-cold-plate": (
+        "docs/development/evidence/cooling-reference-uncertainty-20261020/cooling-reference-uncertainty.json",
+        "450ae6737e3c45f8808df04458f59a5c9ab593d6696bc2f89eedaa198e364d33",
+    ),
     # Motor: bounded full-range bands (VALIDATOR_MOTOR_U_DECISION_20261020).
     "electric-motor-magnetics": (
         "docs/development/evidence/motor-reference-uncertainty-20261020/motor-reference-uncertainty.json",
@@ -105,12 +111,36 @@ def registered_u(challenge: str, root: Path = REPOSITORY) -> dict:
     return dict(_record(challenge, root)["U"])
 
 
+#: Batch rules a pinned U record may declare; a spec must then carry each one
+#: unchanged (no silent default), or the batch is refused (spec_<rule>).
+RECORD_RULES = ("unresolved_max_fraction", "unresolved_max_cases", "refine_unresolved")
+
+
+def registered_rules(challenge: str, root: Path = REPOSITORY) -> dict:
+    """The batch rules a Challenge's pinned U record declares (Motor: the 1/3
+    fraction; Cooling: at most 1 unresolved cell, re-solved one level finer)."""
+    if challenge not in U_RECORDS:
+        return {}
+    record = _record(challenge, root)
+    return {rule: record[rule] for rule in RECORD_RULES if rule in record}
+
+
 def registered_unresolved_max(challenge: str, root: Path = REPOSITORY):
     """The unresolved-fraction stop a Challenge's pinned record declares, or
     None (Motor: 1/3, VALIDATOR_MOTOR_U_DECISION_20261020)."""
-    if challenge not in U_RECORDS:
-        return None
-    return _record(challenge, root).get("unresolved_max_fraction")
+    return registered_rules(challenge, root).get("unresolved_max_fraction")
+
+
+def _valid_u(u) -> bool:
+    if type(u) is dict:
+        return set(u) == {"relative"} and _finite(u["relative"]) and u["relative"] >= 0
+    return _finite(u) and u >= 0
+
+
+def u_at(u, value):
+    """The absolute U at a value: a number, or {"relative": r} as r * |value|
+    (Cooling's hydraulic U, 3% of each case's own value)."""
+    return u["relative"] * abs(value) if type(u) is dict else u
 
 
 def spot_case_ids(batch) -> list[str]:
@@ -122,23 +152,61 @@ def spot_case_ids(batch) -> list[str]:
     return sorted(random.Random(seed).sample(ids, SPOT_CASES))
 
 
-def _straddle(batch, spec):
+def unresolved_cases(batch, spec) -> dict:
+    """{quantity: {case_id: reference value}} for cases within U of a limit."""
+    found = {}
+    for limit in spec["limits"]:
+        q, u = limit["quantity"], spec["u"].get(limit["quantity"])
+        found[q] = {
+            case["case_id"]: case["quantities"][q]
+            for case in batch["cases"]
+            if _valid_u(u)
+            and _finite(case["quantities"].get(q))
+            and abs(case["quantities"][q] - limit["threshold"])
+            <= u_at(u, case["quantities"][q])
+        }
+    return found
+
+
+def _straddle(batch, spec, fine=None):
     counts, fraction = {}, spec.get("straddle_min_fraction", 1 / 3)
     n = len(batch["cases"])
     for limit in spec["limits"]:
-        q, u = limit["quantity"], spec["u"].get(limit["quantity"])
-        if not _finite(u) or u < 0:
+        q = limit["quantity"]
+        if not _valid_u(spec["u"].get(q)):
             return counts, f"u_unregistered:{q}"
+        if not all(_finite(c["quantities"].get(q)) for c in batch["cases"]):
+            return counts, f"straddle_short:{q}"
+    within = unresolved_cases(batch, spec)
+    distinct = set().union(*within.values()) if within else set()
+    most_cases = spec.get("unresolved_max_cases")
+    if most_cases is not None and len(distinct) > most_cases:
+        return {q: {"unresolved_cases": v} for q, v in within.items()}, (
+            "unresolved_over_count"
+        )
+    refine = spec.get("refine_unresolved") is not None
+    fine = fine or {}
+    for limit in spec["limits"]:
+        q, u = limit["quantity"], spec["u"][limit["quantity"]]
         row = {"feasible": 0, "infeasible": 0, "unresolved": 0, "unresolved_cases": {}}
+        if refine:
+            row["refined_cases"] = {}
         for case in batch["cases"]:
-            value = case["quantities"].get(q)
-            if not _finite(value):
-                return counts, f"straddle_short:{q}"
-            if abs(value - limit["threshold"]) <= u:
-                row["unresolved"] += 1
-                row["unresolved_cases"][case["case_id"]] = value
-            else:
+            value = case["quantities"][q]
+            if case["case_id"] not in within[q]:
                 row[side(value, limit)] += 1
+                continue
+            row["unresolved"] += 1
+            row["unresolved_cases"][case["case_id"]] = value
+            if refine:
+                # Cooling: the one cell within U, re-solved one level finer.
+                finer = (fine.get(case["case_id"]) or {}).get(q)
+                if not _finite(finer):
+                    return counts, f"refine_missing:{q}"
+                if abs(finer - limit["threshold"]) <= u_at(u, finer):
+                    return counts, f"unresolved_after_refine:{q}"
+                row["refined_cases"][case["case_id"]] = finer
+                row[side(finer, limit)] += 1
         counts[q] = row
         most = spec.get("unresolved_max_fraction")
         if most is not None and row["unresolved"] > most * n:
@@ -153,14 +221,15 @@ def _spot(batch, spec, fine):
     rows = []
     for case_id in spot_case_ids(batch):
         for limit in spec["limits"]:
-            q, u = limit["quantity"], spec["u"].get(limit["quantity"])
+            q, u_spec = limit["quantity"], spec["u"].get(limit["quantity"])
             ref = by_id[case_id]["quantities"][q]
             value = (fine.get(case_id) or {}).get(q)
-            resolved = _finite(u) and abs(ref - limit["threshold"]) > u
+            u = u_at(u_spec, ref) if _valid_u(u_spec) else None
+            resolved = u is not None and abs(ref - limit["threshold"]) > u
             flip = (
                 resolved and _finite(value) and side(value, limit) != side(ref, limit)
             )
-            ok = _finite(u) and _finite(value) and abs(value - ref) <= u and not flip
+            ok = u is not None and _finite(value) and abs(value - ref) <= u and not flip
             rows.append(
                 {
                     "case_id": case_id,
@@ -180,10 +249,16 @@ def judge(batch, spec, fine) -> dict:
     """The host-only QA record; `public()` gives what may be shown."""
     if spec.get("u") == "registered":
         spec = {**spec, "u": registered_u(spec["challenge"])}
-    # A stop the pinned record declares can't be dropped or changed by a
+    # A rule the pinned record declares can't be dropped or changed by a
     # spec (no silent default): omitting or altering it refuses the batch.
-    required = registered_unresolved_max(spec["challenge"])
-    refused = required is not None and spec.get("unresolved_max_fraction") != required
+    refused = next(
+        (
+            rule
+            for rule, value in sorted(registered_rules(spec["challenge"]).items())
+            if spec.get(rule) != value
+        ),
+        None,
+    )
     record = {
         "schema": SCHEMA,
         "challenge": spec["challenge"],
@@ -196,11 +271,11 @@ def judge(batch, spec, fine) -> dict:
         "failure": None,
     }
     if refused:
-        record["failure"] = "spec_unresolved_max_fraction"
+        record["failure"] = f"spec_{refused}"
     elif batch["image_digest"] not in spec["verified_image_digests"]:
         record["failure"] = "image_not_verified"
     else:
-        record["straddle"], failure = _straddle(batch, spec)
+        record["straddle"], failure = _straddle(batch, spec, fine)
         if failure is None:
             record["spot_check"], failure = _spot(batch, spec, fine)
         record["failure"] = failure
@@ -221,7 +296,18 @@ def main(argv=None) -> int:
         if batch["image_digest"] not in spec["verified_image_digests"]:
             print(json.dumps({"stop": "image_not_verified"}))
             return 1
-        print(json.dumps({"spot_case_ids": spot_case_ids(batch)}))
+        if spec.get("u") == "registered":
+            spec = {**spec, "u": registered_u(spec["challenge"])}
+        out = {"spot_case_ids": spot_case_ids(batch)}
+        if spec.get("refine_unresolved") is not None:
+            within = unresolved_cases(batch, spec)
+            distinct = sorted(set().union(*within.values()) if within else set())
+            most = spec.get("unresolved_max_cases")
+            if most is not None and len(distinct) > most:
+                print(json.dumps({"stop": "unresolved_over_count"}))
+                return 1
+            out["refine_case_ids"] = distinct
+        print(json.dumps(out))
         return 0
     if argv[:1] == ["judge"] and len(argv) == 5:
         record = judge(load(argv[1]), load(argv[2]), load(argv[3]))

@@ -1,0 +1,57 @@
+{
+ "verdict": "PASS",
+ "limit": 1e-05,
+ "levels": {
+  "r2": {
+   "case_id": "probe-decision-d08-boundary-02-ghs1-r2",
+   "counted_outcome": "REFERENCE_INVALID",
+   "counted_reasons": [
+    "energy_balance_rel=-0.000155 exceeds 1e-05"
+   ],
+   "heated_faces": 2000,
+   "heated_area_rel_error": -8.215650382226158e-15,
+   "distinct_axial_centres": 100,
+   "nx": 100,
+   "heat_in_uniform_w": 11.666680624103654,
+   "heat_in_actual_w": 11.664867523602144,
+   "energy_balance_rel_counted": -0.000155403330735715,
+   "energy_balance_rel_corrected": 5.098548694348892e-09,
+   "other_reasons": [],
+   "ok": true
+  },
+  "r2s2": {
+   "case_id": "probe-decision-d08-boundary-02-ghs1-r2s2",
+   "counted_outcome": "REFERENCE_INVALID",
+   "counted_reasons": [
+    "energy_balance_rel=-6.85e-05 exceeds 1e-05"
+   ],
+   "heated_faces": 3948,
+   "heated_area_rel_error": -1.2878587085651816e-14,
+   "distinct_axial_centres": 141,
+   "nx": 141,
+   "heat_in_uniform_w": 11.666673713413482,
+   "heat_in_actual_w": 11.665874562766943,
+   "energy_balance_rel_counted": -6.851097362714498e-05,
+   "energy_balance_rel_corrected": -1.2389003156698664e-08,
+   "other_reasons": [],
+   "ok": true
+  },
+  "r4": {
+   "case_id": "probe-decision-d08-boundary-02-ghs1-r4",
+   "counted_outcome": "REFERENCE_INVALID",
+   "counted_reasons": [
+    "energy_balance_rel=-3.55e-05 exceeds 1e-05"
+   ],
+   "heated_faces": 8000,
+   "heated_area_rel_error": -4.440892098500626e-16,
+   "distinct_axial_centres": 200,
+   "nx": 200,
+   "heat_in_uniform_w": 11.66667017573479,
+   "heat_in_actual_w": 11.66625705981468,
+   "energy_balance_rel_counted": -3.545463481169353e-05,
+   "energy_balance_rel_corrected": -4.471103587366798e-08,
+   "other_reasons": [],
+   "ok": true
+  }
+ }
+}

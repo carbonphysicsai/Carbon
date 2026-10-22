@@ -1,0 +1,199 @@
+{
+ "acceptance": {
+  "by": "owner, directly in the Carbon Validator's session; relayed to Data Collection 2026-10-21",
+  "file": ".agent/decisions/2026-10-21-OWNER-COOLING-VERIFICATION-ACCEPT-01.md",
+  "record": "OWNER-COOLING-VERIFICATION-ACCEPT-01",
+  "scope": "code verification of the discretisation only; not reference adequacy, physical validity or qualification",
+  "verdict_commit": "370e8c569656445af31cf8edd260cddb030f8b7e"
+ },
+ "accepted_development_pass": true,
+ "coverage": {
+  "manufactured_energy_rung": "scalarTransportFoam: verifies the shared finite-volume convection/diffusion operators and fvOptions source handling at second order; does NOT verify the production solver's (chtMultiRegionSimpleFoam, openfoam.py) enthalpy-form energy equation or its coupling",
+  "open_option": "a manufactured case through chtMultiRegionSimpleFoam with frozen velocity would close this fully; not required for this verdict (Validator 2026-10-19)",
+  "production_energy_path": "verified by rung 2 (Nusselt, closed form) and rung 3 (conjugate coupling on the production solver) at the levels tested; closed-form, not manufactured"
+ },
+ "criteria_digest": "sha256:279f683c9939bc845ee2d7a07d23065527b25366f9a69767a8a296fc9b118e3a",
+ "criteria_note": "criteria_digest is the canonical digest of the committed cooling-criteria.json; the draft's 368c00c6 matched no current bytes. Its round-off wording is superseded by the later Validator readings (OWNER-COOLING-VERIFICATION-01 'Applying the criteria' and VALIDATOR_COOLING_RR14_DECISION section 3), recorded per rung",
+ "family": "cooling",
+ "image_digest": "sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319",
+ "kind": "code_verification",
+ "metrics": {
+  "rung1_finest_order": 2.0,
+  "rung2_finest_order": 2.0,
+  "rung4_energy_l2_order": 1.9999161046055254,
+  "rung4_energy_linf_order": 1.998673452169378
+ },
+ "missing": [],
+ "qualified": false,
+ "recommendation_agrees": true,
+ "rungs": [
+  {
+   "dp_dx_rel_error": [
+    -0.004975,
+    -0.001248,
+    -0.000312
+   ],
+   "evidence": "scripts/dev/cold_plate/channel_verification/README.md",
+   "evidence_digest": "sha256:ac3aca0f12b9da10a49637dbcc9d8bd79fff01ae660679bd16bb71c957c92bf9",
+   "finest_order": 2.0,
+   "meshes": [
+    "200x20",
+    "400x40",
+    "800x80"
+   ],
+   "name": "planar Poiseuille (laminar parallel-plate)",
+   "orders": [
+    1.9950785914561253,
+    2.0
+   ],
+   "pass": true,
+   "rung": 1,
+   "u_max_rel_error": [
+    -0.004975,
+    -0.001248,
+    -0.000312
+   ]
+  },
+  {
+   "dTb_dx_rel_error": [
+    1.2e-10,
+    1.6e-10,
+    -4.9e-10
+   ],
+   "evidence": "scripts/dev/cold_plate/heat_flux_verification/README.md",
+   "evidence_digest": "sha256:e81918e551bff70a96723f5a9b1e482c481a91bd999224036682fad0f6223145",
+   "finest_order": 2.0,
+   "meshes": [
+    "200x20",
+    "400x40",
+    "800x80"
+   ],
+   "name": "uniformly heated channel (Nu = 140/17)",
+   "nu_rel_error": [
+    0.001739,
+    0.00044,
+    0.00011
+   ],
+   "orders": [
+    1.9826825037819273,
+    2.0
+   ],
+   "pass": true,
+   "round_off_pass": true,
+   "rung": 2
+  },
+  {
+   "dTb_dx_rel_error": [
+    -4.6e-09,
+    -1.1e-08
+   ],
+   "evidence": "scripts/dev/cold_plate/conjugate_verification/README.md",
+   "evidence_digest": "sha256:2a2223b85545982c7eea1683b917d2fdd80dbbbe752a3539e716d48781785ee5",
+   "interface_gap_k": [
+    1.2e-07,
+    7.7e-08
+   ],
+   "meshes": [
+    "200x20x10",
+    "400x40x20"
+   ],
+   "name": "conjugate solid-fluid coupling",
+   "note": "coupling exactness check; its Nu order is the fluid discretisation's, measured by rung 2",
+   "nu_matches_rung2_same_fluid_mesh": true,
+   "nu_rel_error": [
+    0.001739,
+    0.00044
+   ],
+   "pass": true,
+   "round_off": {
+    "accepted": "a demonstrated floor: largest term 2.3e-7 of the 0.5 K drop (about 1.2e-7 K), five orders under the mesh term; recorded as a FAIL of a miscast rule, not a PASS (VALIDATOR_COOLING_RR14_DECISION_20261020 section 3)",
+    "rr12d_evidence_archive_sha256": "sha256:f77c02c1c00fee77bc2bf47df8df6d15c88b9c2f9d859c090898f1827b614aa8",
+    "rule_as_written": "RR-12c tight run INCOMPLETE (stopped at 5,453 iterations); RR-12d (coarse mesh, 8,000 iterations): FAIL, no term fell 10x (factors 1.0-1.7)"
+   },
+   "round_off_pass": true,
+   "rung": 3,
+   "solid_drop_rel_error": [
+    -1.6e-08,
+    -2e-08
+   ]
+  },
+  {
+   "analysis_source": {
+    "digest": "sha256:be306d59c1b027703304a9eaf8e8b71770951020aa7240bbad57e41049ae3432",
+    "file": "docs\\development\\evidence\\cooling-code-verification-20261020\\mms_energy.py.txt"
+   },
+   "band": [
+    1.7,
+    2.3
+   ],
+   "evidence": "docs\\development\\evidence\\cooling-code-verification-20261020\\rr12c-energy-analysis.json",
+   "evidence_digest": "sha256:8e38814ae0b808cb6cb50a0d6b370f84fceac40968fd40de2af2998c6f570f0d",
+   "finest_order": {
+    "l2": 1.9999161046055254,
+    "linf": 1.998673452169378
+   },
+   "image_record": {
+    "digest": "sha256:aed78f502a6859c81087bf26794f3f4863d014d6c9a89491e7e42c31b15d8cc6",
+    "file": "docs\\development\\evidence\\cooling-code-verification-20261020\\rr12c-image-before.json"
+   },
+   "meshes": [
+    "ny16",
+    "ny32",
+    "ny64"
+   ],
+   "name": "manufactured energy (fvOptions source, exact-gradient outlet; RR-PACKS-12c)",
+   "norms": [
+    {
+     "cells": 2560,
+     "l2": 0.0007644496686283715,
+     "linf": 0.0016673911620159743,
+     "ny": 16
+    },
+    {
+     "cells": 10240,
+     "l2": 0.0001911539911992489,
+     "linf": 0.00041838066681521013,
+     "ny": 32
+    },
+    {
+     "cells": 40960,
+     "l2": 4.77912768704648e-05,
+     "linf": 0.00010469138544522139,
+     "ny": 64
+    }
+   ],
+   "orders": {
+    "l2": [
+     1.9996861944268525,
+     1.9999161046055254
+    ],
+    "linf": [
+     1.9947045014665354,
+     1.998673452169378
+    ]
+   },
+   "pass": true,
+   "rung": 4,
+   "solved_inputs": {
+    "ny16": {
+     "1/C": "sha256:fa7c07960f3b7f3f0cb64569980ffb1157cfa48f54cfed22cb4e03882f5f6349",
+     "1/T": "sha256:80512da3fddeb4d77a44b0fda762aac6a0037add0451c58d95f5851a83b5fd35",
+     "case.json": "sha256:3fae6b61c7527e979b1637b12b9fb07f1c4c04a896efd60e4ca772d1d2e37d33"
+    },
+    "ny32": {
+     "1/C": "sha256:f11d0f332d47ab717091bb49af0aa3ada4e6371d6247dd360eb8182541ed91bc",
+     "1/T": "sha256:af46f4d792362e43dc0b9c0969aca318bc542c4bc922f19be6105168e8dc57ce",
+     "case.json": "sha256:1c82a583a2dd0b97ac4363a8e6f7d961b732d23f009d83529e303f3dd36fdca4"
+    },
+    "ny64": {
+     "1/C": "sha256:abc4fc1d5c66166af3d23ccebc2560495e66fadbcd631daabf7cd3f9055ee117",
+     "1/T": "sha256:0e84141e95fa99fee429645f17c15139b27322fa77d5505358c040e0aacb64c2",
+     "case.json": "sha256:8037a35d4d1be4a9c90d70f070dc402779469a228291848b2aeb96bcf91801aa"
+    }
+   }
+  }
+ ],
+ "schema": "carbon.code-verification.result.v1",
+ "source": "machine outputs cited by digest: rungs 1-3 from their committed READMEs' recorded runs; rung 4 re-analysed from RR-12c's fetched solved fields with RR-12c's own mms_energy.py (output byte-identical in values to RR-12c's report)",
+ "state": "PASS"
+}
