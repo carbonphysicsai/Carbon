@@ -158,6 +158,10 @@ def test_new_work_is_refused_but_the_campaign_stays_readable(journey):
         )
     observed = perform(journey, "observe", {"campaign": identity})
     assert observed["id"] == identity
+    # launch's campaign_id form names the same campaign (M1 E2E H4).
+    assert (
+        perform(journey, "observe", {"campaign": "cmp-" + identity})["id"] == identity
+    )
     view = journey.get(identity)
     assert view["state"] != "INTERRUPTED" and view["in_flight"] is None
 

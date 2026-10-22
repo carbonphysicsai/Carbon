@@ -88,10 +88,19 @@ FIELDS = {
     "budget": ("object", "Optional ceilings, elapsed_seconds or final_reserve."),
     "review_digest": ("string", "The launch review you accepted, when one applies."),
     "profile": ("string", "Your runner profile id, to confirm which one."),
-    "campaign": ("string", "The campaign id."),
+    "campaign": (
+        "string",
+        "The campaign id: launch's campaign_id, with or without its 'cmp-' prefix.",
+    ),
     "strategy": (
         "object",
-        "A recipe: schema_version, challenge_id, backbone, parameters.",
+        (
+            "A construction recipe (schema carbon.construction-recipe.v1: challenge, "
+            "source, procedure, output) for a catalog or direct Challenge version; "
+            "carbon_toolbox lists ready catalog recipes to start from. Older "
+            "versions take a strategy (schema_version, challenge_id, backbone, "
+            "parameters)."
+        ),
     ),
     "reason": ("string", "Why this candidate: what your practice showed."),
     "recommit": (
@@ -1108,6 +1117,10 @@ def perform(host, name, request):
     for gate in op.gates:
         if gate == "request":
             _closed(op, request)
+            held = request.get("campaign")
+            if type(held) is str and held.startswith("cmp-"):
+                # launch's campaign_id names the same campaign (M1 E2E H4).
+                request = {**request, "campaign": held[len("cmp-") :]}
             agent = request.get("agent")
             if type(agent) is str and agent in AGENT_ALIASES:
                 # Setup's name for the same choice; never the caller's dict.
