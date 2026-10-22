@@ -117,6 +117,12 @@ def heat_in(case_dir, record):
     start, n = _patch(mesh / "boundary", "heated")
     length = FIXED["footprint_mm"] * 1e-3
     half_cell = (inputs["channel_width_mm"] + inputs["fin_width_mm"]) / 2 * 1e-3
+    # The solver meshed the geometry as `openfoam.block_mesh` wrote it: vertices
+    # at 6 significant digits (`{y:.6g}`), so the heated patch spans the written
+    # half cell, not the exact one. Comparing with the exact value passed only
+    # round-number inputs and refused every continuous draw (VALIDATOR_COOLING_
+    # SEALED_STOP_20261022). The 1e-9 tolerance is unchanged.
+    written_half_cell = float(f"{half_cell * 1e3:.6g}") * 1e-3
     faces_w, area_sum, xs = 0.0, 0.0, []
     for face in faces[start : start + n]:
         centre, area = centre_and_area([points[i] for i in face])
@@ -124,7 +130,7 @@ def heat_in(case_dir, record):
         area_sum += area
         xs.append(centre[0])
     nx = record["mesh"]["nx"]
-    if abs(area_sum / (length * half_cell) - 1) > 1e-9 or _columns(xs) != nx:
+    if abs(area_sum / (length * written_half_cell) - 1) > 1e-9 or _columns(xs) != nx:
         raise ValueError("heated faces do not match the case's footprint and nx")
     # The counted formula, verbatim (analysis.at_time).
     uniform_w = (

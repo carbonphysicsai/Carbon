@@ -35,11 +35,27 @@ def test_correct_reproduces_rr14s_reanalysis(level):
     assert fixed["outputs"] == counted["outputs"]  # nothing else changes
 
 
-def _graded_case_dir(tmp_path, jitter=2e-13, nx_override=None):
+#: A cell drawn from the sealed law with the recorded public seed 20261022
+#: (SEALED_COOLING_DIAG_20261022): continuous inputs, unlike RR-14's fixtures.
+LAW_CELL = {
+    "channel_width_mm": 0.24227953683919978,
+    "fin_width_mm": 0.3043113354034113,
+    "channel_depth_mm": 1.1141021707895193,
+    "flow_lpm_per_kw": 1.8752906972352945,
+    "inlet_c": 40.0696090505744,
+    "heat_load_w": 1417.6574458320997,
+    "hotspot_ratio": 1.0787758787628,
+    "hotspot_center_mm": 21.3896504457261,
+    "hotspot_width_mm": 2.612777634836104,
+}
+
+
+def _graded_case_dir(tmp_path, jitter=2e-13, nx_override=None, inputs=None, written=False):
     """A case dir whose solid polyMesh holds only the heated patch, laid out
     exactly as the family's x grading at r = 2 (blockMesh's section rounding)."""
     registered = json.loads((RR14 / "cases" / "r2" / "case.json").read_text())
-    inputs = registered["inputs"]
+    inputs = inputs or registered["inputs"]
+    registered = {**registered, "inputs": inputs}
     nx = registered["mesh"]["nx"]
     length = FIXED["footprint_mm"]
     g = mf.x_grading(
@@ -55,6 +71,8 @@ def _graded_case_dir(tmp_path, jitter=2e-13, nx_override=None):
         xe += [(pos + fl * length * (k + 1) / n) * 1e-3 for k in range(n)]
         pos += fl * length
     half = (inputs["channel_width_mm"] + inputs["fin_width_mm"]) / 2 * 1e-3
+    if written:  # the mesh as openfoam.block_mesh writes it: vertices at 6 digits
+        half = float(f"{half * 1e3:.6g}") * 1e-3
     ny = 4
     rng = random.Random(1)
     ye = [half * j / ny for j in range(ny + 1)]
@@ -115,3 +133,43 @@ def test_a_failed_counted_analysis_passes_through_unchanged():
     failed = {"outcome": "REFERENCE_SOLVER_FAILED", "reasons": ["unreadable"]}
     assert ag.correct(failed, 1.0, 1.0) is failed
     assert math.isfinite(ag.COLUMN_TOLERANCE_M)
+
+
+def test_the_real_writers_vertices_are_what_the_guard_expects():
+    """The guard's written half cell is read from what the case writer emits,
+    for round fixtures and for a continuous law draw."""
+    import re
+
+    for inputs in (
+        json.loads((RR14 / "cases" / "r2" / "case.json").read_text())["inputs"],
+        LAW_CELL,
+    ):
+        texts, _record = mf.files(
+            inputs, mesh_family=mf.GRADED_HOTSPOT_V1, resolution=2 * math.sqrt(2)
+        )
+        ys = {
+            float(m.group(1))
+            for m in re.finditer(
+                r"^\s+\(\S+ (\S+) \S+\)$", texts["system/blockMeshDict"], re.M
+            )
+        }
+        exact = (inputs["channel_width_mm"] + inputs["fin_width_mm"]) / 2
+        assert max(ys) == float(f"{exact:.6g}")
+        assert (max(ys) == exact) == (inputs is not LAW_CELL)  # only the fixture is exact
+
+
+def test_a_continuous_inputs_mesh_at_written_precision_passes(tmp_path):
+    """The failure on 30 of 32 sealed cases: the heated area is the written
+    (6-digit) half cell, which the exact-input check refused."""
+    from carbon.cold_plate.domain import FIXED  # noqa: F401 - the footprint is 30 mm
+
+    d, record, _ = _graded_case_dir(tmp_path, inputs=LAW_CELL, written=True)
+    uniform_w, faces_w = ag.heat_in(d, record)
+    assert faces_w > 0 and uniform_w > 0
+
+
+def test_the_tolerance_still_refuses_a_wrong_area(tmp_path):
+    """The area check is not loosened: a mesh 1e-6 off the written geometry fails."""
+    d, record, _ = _graded_case_dir(tmp_path, inputs=LAW_CELL, written=False)
+    with pytest.raises(ValueError, match="footprint"):
+        ag.heat_in(d, record)  # exact-half-cell mesh vs written expectation: ~1e-6 apart
