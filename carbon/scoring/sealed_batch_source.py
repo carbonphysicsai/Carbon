@@ -118,14 +118,30 @@ def _adapter(challenge, bank, version, development_adapter):
     return None
 
 
+def _sha(raw):
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
 def _pinned_case_bank(selected_pack):
     entry = selected_pack.private.get("case_bank")
     digest = entry.get("sha256") if type(entry) is dict else None
     return digest if type(digest) is str else None
 
 
-def resolve(*, challenge, version, selected_pack, private_root, development_adapter):
-    """``None`` (development pack) or ``(bank, adapter)`` for a sealed pack."""
+def resolve(
+    *,
+    challenge,
+    version,
+    selected_pack,
+    private_root,
+    development_adapter,
+    copy_hotkey=None,
+):
+    """``None`` (development pack) or ``(bank, adapter)`` for a sealed pack.
+
+    With ``copy_hotkey`` (the validator's own) the package must carry the copy
+    header (``copy_header_missing`` otherwise): the batch is verified as that
+    validator's copy and graded in its canonical form (``copy_package``)."""
     kit = _kit(challenge)
     if kit is None:
         return None
@@ -141,15 +157,25 @@ def resolve(*, challenge, version, selected_pack, private_root, development_adap
         == pinned
     ):
         return None
-    carried = read_batch(private_root)
-    if carried is None:
-        raise SealedBankRefused("sealed_bank_missing")
-    try:
-        bank = _build(challenge, kit, carried[0], carried[1], version)
-    except ValueError as exc:  # SealedPackRefused is a ValueError
-        raise SealedBankRefused("sealed_bank_malformed") from exc
+    if copy_hotkey is not None:
+        from carbon.scoring import copy_package
+
+        try:
+            received, bank = copy_package.receive(
+                challenge, version, private_root, hotkey=copy_hotkey
+            )
+        except copy_package.CopyPackageRefused as exc:
+            raise SealedBankRefused(exc.code) from exc
+    else:
+        carried = read_batch(private_root)
+        if carried is None:
+            raise SealedBankRefused("sealed_bank_missing")
+        try:
+            received = bank = _build(challenge, kit, carried[0], carried[1], version)
+        except ValueError as exc:  # SealedPackRefused is a ValueError
+            raise SealedBankRefused("sealed_bank_malformed") from exc
     rebuilt = (
-        "sha256:" + hashlib.sha256(kit.private_roles(bank)["case_bank"]).hexdigest()
+        "sha256:" + hashlib.sha256(kit.private_roles(received)["case_bank"]).hexdigest()
     )
     if rebuilt != pinned:
         raise SealedBankRefused("sealed_bank_mismatch")

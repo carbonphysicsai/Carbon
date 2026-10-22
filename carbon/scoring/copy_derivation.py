@@ -193,7 +193,16 @@ def _rename(value, mapping):
 
 
 def derive_copy(bank, objective, *, key, opaque=OPAQUE):
-    """``(bank', objective')``: this validator's copy of the exam.
+    """``(bank', objective')``: this validator's copy of the exam (see
+    ``derive_copy_with_mapping``)."""
+    derived, renamed, _mapping = derive_copy_with_mapping(
+        bank, objective, key=key, opaque=opaque
+    )
+    return derived, renamed
+
+
+def derive_copy_with_mapping(bank, objective, *, key, opaque=OPAQUE):
+    """``(bank', objective', {old id: new id})``: this validator's copy of the exam.
 
     ``key`` is the Carbon-held per-validator key (bytes, at least 16). Rows are
     permuted and the opaque ids renamed from HMAC(key, content digest, ...), so the
@@ -239,7 +248,7 @@ def derive_copy(bank, objective, *, key, opaque=OPAQUE):
                 record[name] = mapping.get(record[name], record[name])
         records.append(record)
     derived["reference_records"] = records
-    return derived, _rename(copy.deepcopy(objective), mapping)
+    return derived, _rename(copy.deepcopy(objective), mapping), mapping
 
 
 # --- the canonical identity of a copy (rank ids) -----------------------------------------
