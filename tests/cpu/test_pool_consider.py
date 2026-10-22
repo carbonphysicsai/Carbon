@@ -210,7 +210,7 @@ def test_the_leg_minimum_baseline_never_contends(tmp_path, monkeypatch):
 def test_a_pool_refusal_never_unbinds_the_evaluation(tmp_path, monkeypatch):
     fixture, store = _setup(tmp_path, monkeypatch)
 
-    def refuse(self, submission_id, key, comparator):
+    def refuse(self, submission_id, key, comparator, *, sealed=False):
         raise StateError("incumbent_moved")
 
     monkeypatch.setattr(BankPromotion, "consider_private", refuse)
