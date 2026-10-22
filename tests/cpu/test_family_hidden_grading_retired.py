@@ -14,6 +14,7 @@ import pytest
 
 import carbon.challenge_validator as package
 from carbon.challenge_validator import (  # noqa: F401  (imported for their subclasses)
+    battery_sealed_hidden,
     cooling_hidden,
     f02_hidden,
     f08_hidden,
@@ -36,6 +37,9 @@ FAMILIES = _subclasses()
 
 
 IMPORTED = {
+    # Battery's sealed family has no windowed adapter (no FamilyHiddenImport
+    # subclass): it is listed so the module set stays exactly known.
+    "battery_sealed_hidden",
     "cooling_hidden",
     "f02_hidden",
     "f08_hidden",
