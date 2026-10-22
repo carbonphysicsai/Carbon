@@ -198,6 +198,203 @@
    "settings_schema": "carbon-candidate-coverage-v1"
   },
   {
+   "backbone": "physicsnemo.FullyConnected",
+   "bundle_ref": {
+    "bundle_digest": "sha256:7d8627ba1c728d7799881bcf14f24864e31cb356330f5e7d788a40612f2c33ce",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "f02.physicsnemo.FullyConnected",
+   "challenges": [
+    {
+     "id": "f02",
+     "version": "2.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "physicsnemo.FullyConnected",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-levers-f02-v1"
+  },
+  {
+   "backbone": "neuralop.FNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:5dfd50c2cae072e12e19ebc9acc6e6a53c94e312632d185b9fbce8ff0cc591c4",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "f08.neuralop.FNO",
+   "challenges": [
+    {
+     "id": "f08-ribbed-bracket",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "arch": {
+      "hidden": 16,
+      "layers": 2,
+      "modes": 12
+     },
+     "backbone": "neuralop.FNO",
+     "learning_rate": 0.002
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-levers-f08-v1"
+  },
+  {
+   "backbone": "neuralop.TFNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:b028938a1fe0a5ec973f06feeadbad193c65ea0b772b8a9edf34083254f2016f",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "f08.neuralop.TFNO",
+   "challenges": [
+    {
+     "id": "f08-ribbed-bracket",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "arch": {
+      "hidden": 16,
+      "layers": 2,
+      "modes": 12,
+      "rank": 0.5
+     },
+     "backbone": "neuralop.TFNO",
+     "learning_rate": 0.002
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-levers-f08-v1"
+  },
+  {
+   "backbone": "neuralop.UQNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:3dec9db14858cd9931cd8f7d687d6edd0e42907e5bb0a9409b3ff29630e3c03f",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "f08.neuralop.UQNO",
+   "challenges": [
+    {
+     "id": "f08-ribbed-bracket",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "neuralop.UQNO",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-levers-f08-v1"
+  },
+  {
+   "backbone": "physicsnemo.FullyConnected",
+   "bundle_ref": {
+    "bundle_digest": "sha256:3dfc0111c6d50a78b0bed4763bf9a209a06fe6259e2e9c486372c93ca98dafd2",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "f08.physicsnemo.FullyConnected",
+   "challenges": [
+    {
+     "id": "f08-ribbed-bracket",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "physicsnemo.FullyConnected",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-levers-f08-v1"
+  },
+  {
+   "backbone": "transolver",
+   "bundle_ref": {
+    "bundle_digest": "sha256:2858d19ab300a58d3a032dd77d608c4f15e2e26ada2dada80169c3a2f642a507",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "f08.transolver",
+   "challenges": [
+    {
+     "id": "f08-ribbed-bracket",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "arch": {
+      "heads": 4,
+      "hidden": 32,
+      "layers": 2,
+      "slices": 8
+     },
+     "backbone": "transolver",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-levers-f08-v1"
+  },
+  {
    "backbone": "deeponet",
    "bundle_ref": {
     "bundle_digest": "sha256:dc01a9e0db1e7c78a2cb422d857bf737318e805728eba171fe988fa49c209206",

@@ -1,0 +1,17 @@
+{
+ "catalog_id": "f08.neuralop.FNO",
+ "differ": [],
+ "distinct_states": 1,
+ "files": 2,
+ "identical": 1,
+ "image_digest": "sha256:95cbaaad59db0cb65ac06aa5bec1ae0ae5d2e9929e24ba3abece6316c0bc16dd",
+ "key": "f08_neuralop_fno",
+ "pairs": 1,
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "source_report": "PAIR_IDENTITY_PX14_20261022.json",
+ "source_report_sha256": "sha256:18ff3c959d74fb3a3a5b146ea4cbfdbdc445885729cb9589bf305082b10e7910",
+ "tested_interface_digest": "sha256:96d0f10bcedb1b4df050e39377df4476af61dc524fcf01754e9d303e67b4c9e8",
+ "tested_on": "f08-ribbed-bracket@1.4",
+ "tested_train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
+ "unpaired": 0
+}
