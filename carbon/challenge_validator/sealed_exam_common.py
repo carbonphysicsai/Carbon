@@ -44,7 +44,9 @@ FEASIBLE, INFEASIBLE, UNRESOLVED = "FEASIBLE", "INFEASIBLE", "UNRESOLVED"
 GRID_COHORT = "decision_sealed_grid"
 ROBUST, PER_CONDITION = "robust", "per_condition"
 #: ``<challenge>-dual-sealed-<shape>-v<n>`` (C3).
-EVALUATION_VERSION = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*-dual-sealed-[a-z0-9-]+-v[0-9]+")
+EVALUATION_VERSION = re.compile(
+    r"[a-z0-9]+(?:-[a-z0-9]+)*-dual-sealed-[a-z0-9-]+-v[0-9]+"
+)
 
 #: Closed failure kinds.
 GRID_INCOMPLETE = "decision_grid_incomplete"
@@ -109,7 +111,10 @@ def straddle(sides_by_limit, *, min_fraction=1 / 3, unresolved_max_fraction=None
             raise ValueError("a straddle needs cells")
         feasible, infeasible = sides.count(FEASIBLE), sides.count(INFEASIBLE)
         neither = n - feasible - infeasible
-        if unresolved_max_fraction is not None and neither > unresolved_max_fraction * n:
+        if (
+            unresolved_max_fraction is not None
+            and neither > unresolved_max_fraction * n
+        ):
             return f"unresolved_over_fraction:{name}"
         if min(feasible, infeasible) < min_fraction * n:
             return f"straddle_short:{name}"
@@ -201,7 +206,9 @@ def decision_check(cells, label_of, *, choice=ROBUST, shape=None):
     if choice == ROBUST:
         if not any(sides[k] >= {FEASIBLE, INFEASIBLE} for k in conditions):
             return NO_NONTRIVIAL_CONDITION
-        if not any(all(labels[(d, k)] == FEASIBLE for k in conditions) for d in designs):
+        if not any(
+            all(labels[(d, k)] == FEASIBLE for k in conditions) for d in designs
+        ):
             return NO_DESIGN_FEASIBLE_EVERYWHERE
         return None
     if choice == PER_CONDITION:
@@ -237,3 +244,128 @@ __all__ = [
     "validate_grid",
     "validate_pack_fields",
 ]
+
+
+# --- the pack set and the version's aggregate (OWNER-FULL-EXAM-BANK-01) -----------------
+#
+# A Challenge version's exam is the union of its active sealed batches. The signed
+# pack-set manifest lists the batch packs by manifest digest; the digest of its
+# canonical body is the evaluation key KOTH compares on. A rotation is a new
+# manifest and so a new key; the king is regraded on it before any comparison.
+
+PACK_SET_SCHEMA = "carbon.sealed-exam.pack-set.v1"
+SET_REFUSED = "pack_set_malformed"
+_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
+
+
+class PackSetRefused(ValueError):
+    """A typed refusal: the code names the check, never a pack's content."""
+
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code)
+
+
+def pack_set_document(challenge_id, challenge_version, batch_digests):
+    """The pack-set body: the Challenge version and its active batch packs'
+    manifest digests, sorted and distinct so one set has one body. At least one
+    batch is required; a rehearsal batch is never listed (the caller's rule)."""
+    if type(challenge_id) is not str or not challenge_id:
+        raise PackSetRefused(SET_REFUSED)
+    if type(challenge_version) is not str or not challenge_version:
+        raise PackSetRefused(SET_REFUSED)
+    digests = list(batch_digests)
+    if (
+        not digests
+        or any(type(d) is not str or not _DIGEST.fullmatch(d) for d in digests)
+        or len(set(digests)) != len(digests)
+    ):
+        raise PackSetRefused(SET_REFUSED)
+    return {
+        "schema": PACK_SET_SCHEMA,
+        "challenge": {"id": challenge_id, "version": challenge_version},
+        "batches": sorted(digests),
+    }
+
+
+def pack_set_key(document):
+    """The evaluation key: the digest of the canonical body. Refuses a body that
+    is not exactly what `pack_set_document` builds."""
+    import hashlib
+    import json
+
+    if type(document) is not dict or set(document) != {
+        "schema",
+        "challenge",
+        "batches",
+    }:
+        raise PackSetRefused(SET_REFUSED)
+    challenge = document["challenge"]
+    if (
+        document["schema"] != PACK_SET_SCHEMA
+        or type(challenge) is not dict
+        or set(challenge) != {"id", "version"}
+    ):
+        raise PackSetRefused(SET_REFUSED)
+    rebuilt = pack_set_document(
+        challenge["id"], challenge["version"], document["batches"]
+    )
+    if rebuilt != document:
+        raise PackSetRefused(SET_REFUSED)
+    raw = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def _unit(value):
+    return type(value) in (int, float) and math.isfinite(value) and 0 <= value <= 1
+
+
+def aggregate(batches, *, value_weight=0.5):
+    """The version's grade from its batches' measurements.
+
+    ``batches`` is one measurement per active batch, each ``{"gates": {name:
+    bool}, "A": float|None, "D": float|None}`` as the Challenge's grader returns
+    it for that batch's full grid. Every batch must carry the same gate names;
+    a gate passes only if it passes on every batch (one failed batch makes the
+    version ineligible: "not eligible", never a number). The version's A and D
+    are the equal-weight means over the batches and the total is
+    ``(1 - w)*A + w*D`` in 0..1. Refuses an empty list, differing gate sets, or a
+    non-finite leg on an eligible version."""
+    if type(batches) not in (list, tuple) or not batches:
+        raise PackSetRefused("aggregate_no_batches")
+    if not (type(value_weight) in (int, float) and 0 < value_weight < 1):
+        raise PackSetRefused("aggregate_weight")
+    names = None
+    for batch in batches:
+        gates = batch.get("gates") if type(batch) is dict else None
+        if type(gates) is not dict or not gates:
+            raise PackSetRefused("aggregate_gates")
+        if names is None:
+            names = set(gates)
+        elif set(gates) != names:
+            raise PackSetRefused("aggregate_gate_names")
+    gates = {
+        name: all(bool(batch["gates"][name]) for batch in batches)
+        for name in sorted(names)
+    }
+    eligible = all(gates.values())
+    result = {
+        "batches": len(batches),
+        "gates": gates,
+        "eligible": eligible,
+        "A": None,
+        "D": None,
+        "total": None,
+        "per_batch": [
+            {"A": b.get("A"), "D": b.get("D"), "eligible": all(b["gates"].values())}
+            for b in batches
+        ],
+    }
+    if not eligible:
+        return result
+    if not all(_unit(b.get("A")) and _unit(b.get("D")) for b in batches):
+        raise PackSetRefused("aggregate_legs")
+    a = math.fsum(b["A"] for b in batches) / len(batches)
+    d = math.fsum(b["D"] for b in batches) / len(batches)
+    result.update(A=a, D=d, total=(1 - value_weight) * a + value_weight * d)
+    return result
