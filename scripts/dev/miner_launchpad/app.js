@@ -672,7 +672,7 @@
       // claim from unknown, and neither is a figure to plan around.
       const rows = [
         ["Network", value.network + " · netuid " + value.netuid],
-        ["How joining works", value.mechanism === "BURNED_REGISTRATION" ? "A one-time payment from your own wallet; Carbon does not receive it" : words(value.mechanism)],
+        ["How joining works", value.mechanism === "BURNED_REGISTRATION" ? "A payment from your own wallet each time you join; Carbon does not receive it" : words(value.mechanism)],
         ["Joining cost", value.cost && value.cost.value === "NOT_READ"
           ? "Not read by Carbon: your wallet shows the exact amount before you sign"
           : String((value.cost || {}).value)],
