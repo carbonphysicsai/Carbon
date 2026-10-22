@@ -162,8 +162,6 @@ class MotorCatalogPractice:
         from carbon.development_session.profile import canonical, digest
         from carbon.development_session.research_workspace import ResearchWorkspace
 
-        import numpy as np
-
         from carbon.scoring import motor_dual_pack, practice_dual
 
         from .challenge import PublicMaterial
@@ -171,21 +169,11 @@ class MotorCatalogPractice:
         from .research import safety_feedback
 
         material = self._material()
-        # The practice rows, then the public development bank: one query, so
-        # the dual measurement (C13) is computable on the same model.
+        # Motor's practice query is the whole public development bank (90 cases,
+        # of which the 30 PRACTICE cases are scored below), so the exam's dual
+        # measurement (C13) is computable on the same rows.
         practice_inputs = material["practice_inputs"]
         adapter = practice_dual.versioned(motor_dual_pack, self.version)
-        bank_inputs = (
-            None
-            if adapter is None
-            else practice_dual.query_inputs(adapter, practice_inputs)
-        )
-        queried = (
-            practice_inputs
-            if bank_inputs is None
-            else np.concatenate([practice_inputs, bank_inputs])
-        )
-        n_practice = len(practice_inputs)
         recipe = ConstructionRecipe.from_dict(self._expanded(strategy, material))
         kit = material["construction_kit"]
         bundle = _bundle_ref(recipe.to_dict()["source"]["bundle_ref"])
@@ -212,19 +200,15 @@ class MotorCatalogPractice:
             train=material["train"],
             example=material["example"],
             seed=0,
-            inputs=queried,
-            expected_output_shape=(
-                len(queried),
-                *tuple(material["expected_output_shape"])[1:],
-            ),
+            inputs=practice_inputs,
+            expected_output_shape=material["expected_output_shape"],
             allowlist_bytes=material["allowlist_bytes"],
             expected_output_dtype=output_dtype(material["interface_document"]),
             runner=self.runner,
         )
         if result.build.state_digest != result.inference.state_digest:
             raise ValueError("motor catalog practice state differs between phases")
-        all_rows = result.inference.predictions
-        rows = all_rows[:n_practice]
+        rows = result.inference.predictions
         practice = PracticeSet.load(self.root)
         by_case = dict(zip(material["practice_case_ids"], rows))
         predictions = {
@@ -264,7 +248,7 @@ class MotorCatalogPractice:
                     motor_dual_pack, "practice_version_not_registered"
                 )
                 if adapter is None
-                else practice_dual.from_rows(adapter, all_rows[n_practice:])
+                else practice_dual.from_rows(adapter, rows)
             ),
         }
         ResearchWorkspace(self.ledger, self.owner).put(

@@ -68,15 +68,15 @@ def test_a_catalog_recipe_runs_as_its_bundle_with_the_receivers_inputs(practice)
     # the provider; the feedback schema is versioned for it.
     assert result["schema"] == catalog_practice.FEEDBACK_SCHEMA
     assert result["schema"].endswith(".v3")
-    # C13: the query is the practice rows then the public development bank, so
+    # C13: the query is the whole public development bank, so
     # the exam's dual measurement is computable on the same model.
-    # C13: the query is the practice rows then the public development bank, so
+    # C13: the query is the whole public development bank, so
     # the exam's dual measurement is computable on the same model (the constant
     # stand-in rows here score poorly but validly).
     dual = result["practice_dual"]
     assert dual["schema"] == "carbon.practice.dual-feedback.v1"
     assert dual["available"] is True and 0 < dual["total"] <= 1
-    assert len(call["inputs"]) == 30 + 90
+    assert len(call["inputs"]) == 90
     assert result["safety"]["schema"] == "carbon.practice-safety-feedback.v1"
 
 
@@ -304,16 +304,16 @@ def test_the_practice_binding_is_the_one_the_bundle_worker_accepts(
 def test_a_model_equal_to_the_references_is_scored_on_the_public_bank(
     tmp_path, monkeypatch
 ):
-    """C13: practice rows first, then the 90 public bank rows; the dual block is
-    the exam's measurement on those (1 for the references themselves)."""
+    """C13: the query is the 90 public bank rows; the dual block is the exam's
+    measurement on those (1 for the references themselves)."""
     from carbon.challenge_kit import physical_pack
 
     bank = physical_pack.development_bank("electric-motor-magnetics", "1.0")
     refs = np.asarray(bank["references"], dtype=float)
 
     def fake(ledger_, **kwargs):
-        n = len(kwargs["inputs"]) - len(refs)
-        rows = np.vstack([np.full((n, 60), 1.0), refs]).tolist()
+        assert len(kwargs["inputs"]) == len(refs)
+        rows = refs.tolist()
         state = "sha256:" + "5" * 64
         return SimpleNamespace(
             build=SimpleNamespace(state_digest=state),
