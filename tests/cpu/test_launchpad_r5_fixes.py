@@ -71,3 +71,25 @@ def test_an_unnamed_grade_is_never_any_submission_s_own(tmp_path):
         assert "it is not this one's" in text
         assert "rebuilt, not graded yet" in text
         assert "may be from an earlier submission" not in text
+
+
+def test_a_v3_grade_of_this_recipe_s_other_epoch_is_not_this_submit_s():
+    # Validator note on R5-1: v3 names the epoch as well as the recipe.
+    from scripts.dev.miner_launchpad import projection
+
+    digest = "sha256:" + "a" * 64
+    earlier = {
+        "schema": "carbon.private-exam.ladder-feedback.v3",
+        "exam_version": "motor-1.3-dev",
+        "status": "IMPROVED",
+        "total": 0.5,
+        "A": 0.3,
+        "D": 0.7,
+        "gate_names": [],
+        "recipe_digest": digest,
+        "epoch": 1,
+    }
+    grade = projection._grade({"best": earlier, "latest": earlier}, digest, 2)
+    assert grade["latest"] is None and grade["exam_latest"]["epoch"] == 1
+    grade = projection._grade({"best": earlier, "latest": earlier}, digest, 1)
+    assert grade["latest"]["epoch"] == 1 and grade["exam_latest"] is None

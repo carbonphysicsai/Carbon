@@ -249,6 +249,7 @@ def _validator_outcome(epoch, path):
                     if type(document.get("recipe_digest")) is str
                     else None
                 ),
+                epoch,
             )
         if type(outcome.get("practice_dual")) is dict:
             # C13: the evaluator's practice dual block, allow-listed.
@@ -291,7 +292,7 @@ def _latest_ladder(path, document):
     return document["exam_feedback"]
 
 
-def _grade(ladder, submission=None):
+def _grade(ladder, submission=None, epoch=None):
     """The miner's own Ladder for the exam, as the display rule shows it
     (Validator VALUE_SCORE_GAP): one graded total 0..1 per document, its
     A and D as detail, a gate failure as not eligible; None when the
@@ -338,6 +339,9 @@ def _grade(ladder, submission=None):
         if latest is not None
         and submission is not None
         and latest.get("recipe_digest") == submission
+        # v3 also names the epoch: a document about this recipe's earlier
+        # submit (another epoch) is not this one's (Validator, R5-1 note).
+        and (epoch is None or latest.get("epoch") in (None, epoch))
         else None
     )
     return {
