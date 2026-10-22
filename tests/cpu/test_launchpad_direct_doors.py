@@ -81,7 +81,11 @@ def test_new_direct_campaign_fails_closed_through_both_doors(
     receiver = call(
         "submit", {"campaign": identity, "idempotency_key": "direct-door-submit-0002"}
     )
-    assert receiver["error"] == "construction_submission_unserved"
+    # A direct campaign submits through its own evaluate to the construction
+    # receiver (M1 E2E H9), so the gate is no longer a blanket refusal: here
+    # the next truthful refusal is the frozen record itself, before anything
+    # is signed or sent.
+    assert receiver["error"] == "freeze_a_candidate_first"
     assert battery.view(identity)["in_flight"] is None
     assert battery.view(identity)["journey"]["submitted_epochs"] == []
 

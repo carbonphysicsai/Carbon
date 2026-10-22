@@ -4458,12 +4458,17 @@ class RunnerAdapter:
         self._require_current_revision(admitted)
         self._require_submission_policy(admitted)
         self._require_frozen(admitted)
-        if levels.campaign_is_direct(admitted.campaign, admitted.profile):
-            raise Rejected("construction_submission_unserved", 409)
+        # A direct campaign (catalog, graph or bundle recipe) submits through
+        # its own `evaluate`, to the signed construction receiver the profile
+        # names, exactly as Graphite's direct submit does (M1 E2E H9: an own
+        # agent could freeze but never submit). It has no Level-0 level or
+        # chain commitment to check.
+        direct = levels.campaign_is_direct(admitted.campaign, admitted.profile)
         budget = self._frozen_budget(admitted)
         self._require_evaluation(admitted)
-        self._require_level_served(admitted)
-        self._require_commitment(admitted)
+        if not direct:
+            self._require_level_served(admitted)
+            self._require_commitment(admitted)
         return self._with_budget(
             self._background(admitted, "submit", {}, "SUBMITTING", request), budget
         )

@@ -569,14 +569,14 @@ def project(row, root):
                 {
                     "epoch": epoch,
                     **{
-                        k: selection[k]
-                        for k in (
-                            "strategy",
-                            "strategy_hash",
-                            "construction_plan_digest",
-                            "reason",
-                            "used_feedback",
-                        )
+                        k: selection[k] for k in ("strategy", "reason", "used_feedback")
+                    },
+                    # A Level-0 strategy's compile identities; a direct
+                    # campaign's construction recipe has neither (M1 E2E H10:
+                    # every observe after its freeze raised KeyError).
+                    **{
+                        k: selection.get(k)
+                        for k in ("strategy_hash", "construction_plan_digest")
                     },
                     "final_evidence": False,
                 }

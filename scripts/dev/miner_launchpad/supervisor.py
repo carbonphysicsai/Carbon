@@ -431,6 +431,12 @@ NEXT_ACTIONS = {
     ),
     # LAUNCHPAD-PAGE-USABILITY-01: says what still works and what to do,
     # since a miner usually cannot add an intake until one is published.
+    "construction_submission_unserved": (
+        "This campaign's level does not submit through a level intake. A "
+        "direct campaign (a catalog, graph or bundle recipe) submits to its "
+        "construction receiver: freeze a practised recipe and submit again; "
+        "if this persists, update Carbon and review your setup."
+    ),
     "evaluation_unavailable": (
         "Your frozen candidate is kept, but it cannot be evaluated yet: no "
         "validator deployment or intake is configured for this Challenge in "
