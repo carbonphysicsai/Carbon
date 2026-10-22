@@ -57,6 +57,23 @@ class FamilyHiddenImport:
 
     hidden: HiddenFamily
 
+    #: OWNER-FULL-EXAM-BANK-01: a graded run uses the full active sealed pack set
+    #: only. The windowed hidden path (per-slot batch windows) may not produce a
+    #: new graded score; a submission already scored keeps its stored outcome
+    #: (history replay).
+    RETIRED = "windowed_grading_retired"
+    #: True: `evaluate` replays history and refuses new grading. The scoring code
+    #: below it in each adapter stays for the staged cutover, not for use.
+    GRADING_RETIRED = True
+
+    def _retired(self, submission_id):
+        """The stored outcome of a submission already graded here, or the typed
+        refusal for a new one."""
+        existing = self.store.submission(submission_id)
+        if existing is not None:
+            return existing["outcome"]
+        raise Unavailable(self.RETIRED)
+
     def _refused(self, code):
         return self.hidden.error_type(f"{self.hidden.name}_{code}")
 

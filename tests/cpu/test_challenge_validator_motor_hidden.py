@@ -245,55 +245,40 @@ def test_a_changed_reference_is_refused(tmp_path):
 # --- the validator ----------------------------------------------------------------------
 
 
-def test_an_import_only_validator_imports_and_scores_the_shared_batch(
+def test_an_import_only_validator_imports_the_batch_but_grades_nothing(
     tmp_path, published
 ):
+    """OWNER-FULL-EXAM-BANK-01: the windowed hidden path may not produce a new
+    graded score; a graded run uses the full active sealed pack set only."""
     adapter = validator(tmp_path)
     result = ak.import_local(adapter, published["key"].public_key, published["outbox"])
     assert [p["state"] for p in result["packages"]] == ["IMPORTED"]
     again = ak.import_local(adapter, published["key"].public_key, published["outbox"])
     assert [p["state"] for p in again["packages"]] == ["HELD"]
 
-    with pytest.raises(Unavailable) as early:
-        adapter.evaluate(admitted(1079))
-    assert early.value.code == "motor_hidden_pool_not_open"
-
-    outcome = adapter.evaluate(admitted(1200))
-    assert outcome["state"] == "SCORED"
-    assert outcome["n_cases"] == BATCH_CASES and outcome["n_scored"] == BATCH_CASES
-    assert set(outcome) - {"failure"} == {
-        "schema",
-        "submission_id",
-        "challenge",
-        "state",
-        "evidence",
-        "qualification",
-        "reward",
-        "score",
-        "eligible",
-        "n_cases",
-        "n_scored",
-        "n_gate_failed",
-    }
-    hidden = published["value"]["payload"]["document"]["cases"]
-    text = json.dumps(outcome)
-    assert not any(case["case_id"] in text for case in hidden)
-    record = adapter.score_record(outcome["submission_id"])
-    assert record["batches"] == [published["commitment"]["fingerprint"]]
-
-    # One scored submission per hotkey per 360 blocks; another hotkey scores.
-    other = dict(SCAFFOLD, parameters=dict(SCAFFOLD["parameters"], length="length_8"))
-    with pytest.raises(Unavailable) as used:
-        adapter.evaluate(admitted(1201, strategy=other))
-    assert used.value.code == "hotkey_window_used"
-    assert used.value.retry == {"next_block": 1440}
-    assert adapter.evaluate(admitted(1201, hotkey="hk-other"))["state"] == "SCORED"
-    assert adapter.evaluate(admitted(1440, strategy=other))["state"] == "SCORED"
-    # After its window the batch keeps scoring until a new one activates.
-    assert adapter.evaluate(admitted(5000, hotkey="hk-late"))["state"] == "SCORED"
+    for block in (1079, 1200, 5000):
+        with pytest.raises(Unavailable) as retired:
+            adapter.evaluate(admitted(block))
+        assert retired.value.code == "windowed_grading_retired"
+    # Nothing was recorded and no hotkey window was spent.
+    assert adapter.store.used("hk-motor", 0, 10**9) == 0
 
 
-def test_a_reference_failure_is_counted_never_charged(tmp_path):
+def test_a_submission_already_graded_here_replays_its_stored_outcome(
+    tmp_path, published
+):
+    adapter = validator(tmp_path)
+    ak.import_local(adapter, published["key"].public_key, published["outbox"])
+    submission = admitted(1200)
+    submission_id = adapter._submission_id(submission)
+    stored = {"state": "SCORED", "submission_id": submission_id, "score": 0.5}
+    adapter.store.record_submission(
+        submission_id, submission.hotkey, submission.strategy, stored, None
+    )
+    assert adapter.evaluate(submission) == stored
+
+
+def test_a_batch_with_a_reference_failure_still_imports_but_grades_nothing(tmp_path):
     first = make_source(tmp_path)
     fingerprint = first.draw("pscreen-S1", kind="screening")
     bad = min(job["case_id"] for job in first.jobs(fingerprint))
@@ -309,11 +294,9 @@ def test_a_reference_failure_is_counted_never_charged(tmp_path):
     ak.import_local(
         adapter, key.public_key, tmp_path / "producer" / "outbox" / CHALLENGE
     )
-    outcome = adapter.evaluate(admitted(1200))
-    assert outcome["n_cases"] == BATCH_CASES
-    assert outcome["n_scored"] == BATCH_CASES - 1
-    aggregate = adapter.score_record(outcome["submission_id"])["aggregate"]
-    assert aggregate["n_reference_invalid"] == 1
+    with pytest.raises(Unavailable) as retired:
+        adapter.evaluate(admitted(1200))
+    assert retired.value.code == "windowed_grading_retired"
 
 
 def resigned(published, commitment, payload):
@@ -397,14 +380,12 @@ def test_the_producer_serves_motor_only_under_its_approval(tmp_path):
     assert served.identities() == source.identities()
 
 
-def test_a_neural_recipe_is_not_served_and_uses_no_window(tmp_path, published):
-    """MOTOR-NEURAL-01: as the public adapter; the hotkey's window stays free."""
-    from carbon.challenge_validator.motor import NEURAL_NOT_SERVED
-
+def test_a_neural_recipe_uses_no_window_and_nothing_is_graded(tmp_path, published):
+    """The retired path refuses every new graded run alike; no window is spent."""
     adapter = validator(tmp_path)
     ak.import_local(adapter, published["key"].public_key, published["outbox"])
     neural = {**SCAFFOLD, "backbone": "mlp", "parameters": {}}
-    with pytest.raises(Unavailable) as refused:
-        adapter.evaluate(admitted(1200, strategy=neural))
-    assert refused.value.code == NEURAL_NOT_SERVED
-    assert adapter.evaluate(admitted(1200))["state"] == "SCORED"
+    for strategy in (neural, SCAFFOLD):
+        with pytest.raises(Unavailable) as retired:
+            adapter.evaluate(admitted(1200, strategy=strategy))
+        assert retired.value.code == "windowed_grading_retired"
