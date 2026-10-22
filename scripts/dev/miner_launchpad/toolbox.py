@@ -73,12 +73,22 @@ _lanes_cache = {}
 def _sources(challenge_id, version):
     from carbon.challenge_registry import registry
     from carbon.development_session.exam_environment import exam_environment
-    from carbon.reconstruction.capability_registry import public_registry
+    from carbon.reconstruction.capability_registry import (
+        UnknownChallenge,
+        public_registry,
+    )
 
+    try:
+        capabilities = public_registry(challenge_id)["capabilities"]
+    except UnknownChallenge:
+        # A direct Challenge (F08, F02) has no construction capability
+        # contract; its toolbox still holds its tools, catalog and recipe
+        # examples (M1 E2E R5-9: it read challenge_has_no_toolbox).
+        capabilities = []
     return json.dumps(
         {
             "described": registry.describe(challenge_id, version),
-            "capabilities": public_registry(challenge_id)["capabilities"],
+            "capabilities": capabilities,
             "exam": exam_environment(),
         }
     )
