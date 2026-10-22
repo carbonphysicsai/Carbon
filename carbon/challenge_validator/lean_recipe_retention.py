@@ -887,6 +887,9 @@ def _retain_selected_pack_evaluation(
         **result,
         "private_evaluation_state": "BOUND_DEVELOPMENT_ONLY",
         "private_evaluation_path": binding_path,
+        # A regrade's graded row (operator-only): the set-level grade of a pack set
+        # reads it for each batch.
+        **({"graded_row": scoring["models"][0]} if regrade is not None else {}),
         # A regrade is not a graded submission of the miner: it never feeds the Ladder.
         **(
             {}
