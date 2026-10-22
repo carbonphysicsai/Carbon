@@ -164,6 +164,19 @@ def _digest_bytes(payload: bytes) -> str:
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
+def is_sealed_pack(snapshot) -> bool:
+    """Whether a pack is a sealed exam rather than an exposed development
+    bank: its case bank, reference rows and score pack are all supplied, and
+    its version is not the exposed-bank draft (`physical_pack`'s
+    ``-exposed-bank`` suffix). Derived from the pinned pack identity; never a
+    flag a caller sets."""
+    private = snapshot.private
+    return not snapshot.pack_version.endswith("-exposed-bank") and all(
+        private.get(role, UNAVAILABLE) != UNAVAILABLE
+        for role in ("case_bank", "reference_rows", "score_pack")
+    )
+
+
 @dataclass(frozen=True)
 class EvaluationPackSnapshot:
     """Exact admission identity and role pins; no mutable file contents cached."""

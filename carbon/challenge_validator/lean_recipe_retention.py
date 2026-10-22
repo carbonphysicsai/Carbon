@@ -1070,12 +1070,15 @@ def _contend(adapter, pool_store, submission_id, artifacts, bind_inputs, pin):
             "accuracy_definition",
             max_bytes=65536,
         )
+        from carbon.challenge_validator.evaluation_pack import is_sealed_pack
+
         outcome = promotion.consider_private(
             submission_id,
             filed["evaluation_key"],
             koth_registry.comparator(
                 adapter.challenge_id, bind_inputs["score_pack"], accuracy
             ),
+            sealed=is_sealed_pack(discovery.evaluation_pack_snapshot),
         )
     # A pool refusal, whatever its type, never unbinds the evaluation.
     except Exception as exc:  # noqa: BLE001
