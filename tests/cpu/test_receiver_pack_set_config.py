@@ -185,9 +185,12 @@ def test_each_batch_gets_its_own_adapter_and_the_primary_keeps_its_discovery(
             self.material, self.kwargs = material, kwargs
 
     class Adapter:
-        def __init__(self, discovery, providers, ledger, *, measure_query):
+        def __init__(
+            self, discovery, providers, ledger, *, measure_query, copy_hotkey=None
+        ):
             self.discovery, self.providers = discovery, providers
             self.ledger, self.measure_query = ledger, measure_query
+            self.copy_hotkey = copy_hotkey
 
     monkeypatch.setattr(direct_receiver, "_sealed_pack", fake_sealed)
     monkeypatch.setattr(direct_receiver, "_delivered_sealed", lambda *_a: True)

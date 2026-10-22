@@ -357,7 +357,7 @@ def _set_batch_adapters(cfg, root, challenge, material, discovery, providers, le
             providers,
             ledger,
             measure_query=cfg["measure_query"],
-            copy_hotkey=cfg["receiver_hotkey"],
+            copy_hotkey=cfg.get("receiver_hotkey"),
         )
     return adapters
 
