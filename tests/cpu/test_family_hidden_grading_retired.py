@@ -35,7 +35,13 @@ def _subclasses():
 FAMILIES = _subclasses()
 
 
-IMPORTED = {"cooling_hidden", "f02_hidden", "f08_hidden", "motor_hidden"}
+IMPORTED = {
+    "cooling_hidden",
+    "f02_hidden",
+    "f08_hidden",
+    "family_hidden",
+    "motor_hidden",
+}
 
 
 def test_every_hidden_family_module_is_imported_above():
