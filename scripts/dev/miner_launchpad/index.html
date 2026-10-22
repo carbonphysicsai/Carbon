@@ -59,12 +59,15 @@
           <div class="templates"><label for="template-name">Save these choices as a template</label><div class="inline"><input id="template-name" type="text" maxlength="60" autocomplete="off" placeholder="Template name"><button id="template-save" type="button">Save template</button></div><label for="template-pick">Your templates</label><div class="inline"><select id="template-pick"></select><button id="template-load" type="button">Load</button><button id="template-delete" type="button">Delete</button></div><p id="template-note" class="hint">Templates live in this browser only and never hold a token or key.</p></div>
         </section>
         <section class="step" data-step="review" aria-labelledby="step-review-heading" hidden><h2 id="step-review-heading">Review</h2>
-          <dl id="wizard-review" class="review-grid"></dl>
+          <dl id="wizard-summary" class="review-summary"></dl>
           <ul id="wizard-missing" class="checklist"></ul>
+          <details class="review-more"><summary>More detail</summary>
+          <dl id="wizard-review" class="review-grid"></dl>
           <p id="research-preflight">Connect to check admission.</p>
           <div id="research-guidance-review" hidden><label for="research-guidance">Research task</label><textarea id="research-guidance" class="research-guidance" rows="5" readonly aria-describedby="research-guidance-help"></textarea><p id="research-guidance-help" class="hint">Configured by the local operator. Launch freezes this task; it cannot override resource limits, research permissions or independent evaluation rules.</p><p id="research-runtime" class="hint"></p></div>
           <div id="research-review"></div>
           <p id="composition-summary" class="hint" aria-live="polite"></p>
+          </details>
         </section>
         <section class="step" data-step="launch" aria-labelledby="step-launch-heading" hidden><h2 id="step-launch-heading">Launch</h2><p id="wizard-launch-note" class="hint">Launching records the campaign, then your registration is read before anything runs. A lost response is retried with the same request, never duplicated.</p><p id="wizard-launch-summary" class="launch-summary"></p><p id="research-pending" class="reason" role="status" hidden></p><div class="launch-actions"><button id="research-launch" class="primary" type="button" disabled>Launch research</button><button id="research-discard" type="button" hidden>Discard the unconfirmed launch</button></div><p id="wizard-launch-reason" class="reason"></p></section>
         <div class="wizard-nav"><button id="wizard-back" type="button">Back</button><button id="wizard-next" type="button" class="primary">Next</button></div>

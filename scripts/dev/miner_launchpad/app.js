@@ -4297,6 +4297,20 @@
       if (!research.preflight.available) problems.push({ok: false, text: "Research launch: " + words(research.preflight.reason || research.preflight.status)});
       problems.push({ok: null, text: "Registration is read at launch, before anything is recorded.", href: "#wallet"});
     }
+    // The five lines a person decides on (Dana #7); everything else is under More detail.
+    const summary = [];
+    if (caps) {
+      const entry = challengeEntry(wizard.challenge), agent = agentEntry(wizard.agentChoice), provider = selectedProvider(), compute = computeChoice(), setup = setupModel(), budget = composition.budget || {};
+      const set = [];
+      if ("elapsed_seconds" in budget) set.push(Math.round(budget.elapsed_seconds / 60) + " min");
+      for (const name of caps.budget.ceilings) if (budget.ceilings && name in budget.ceilings && budget.ceilings[name] !== null) set.push(resourceShort(name) + " " + resourceValue(name, budget.ceilings[name]));
+      summary.push(["Challenge", entry ? plainTitle(entry.title) + " · v" + entry.version : "Not chosen"]);
+      summary.push(["Agent", agent ? agent.label : "Not chosen"]);
+      summary.push(["Model", agent && !agent.uses_model ? "None needed" : provider && wizard.model ? provider.provider + " · " + wizard.model : setup ? setup.model_id : "Not chosen"]);
+      summary.push(["Computer", compute ? compute.label : "Not chosen"]);
+      summary.push(["Limits", set.length ? set.join(" · ") : "None set: you decide when to stop"]);
+    }
+    rebuild($("wizard-summary"), JSON.stringify(summary), grid => { for (const [label, value] of summary) grid.append(el("dt", label), el("dd", value)); });
     rebuild($("wizard-review"), JSON.stringify(rows), grid => { for (const [label, value] of rows) grid.append(el("dt", label), el("dd", value)); });
     rebuild($("wizard-missing"), JSON.stringify(problems), list => renderChecklist(list, problems));
   }
