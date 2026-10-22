@@ -96,6 +96,9 @@ def feedback(adapter, predict):
         "scope": SCOPE,
         "challenge": {"id": adapter.CHALLENGE, "version": adapter.VERSION},
         "available": True,
+        # How many public cases practice queries the model on (the full public
+        # development bank, run on the miner's own machine).
+        "n_cases": len(rows),
         # Gates first. A gate failure is "not eligible", never a number.
         "gates": gates,
         "eligible": eligible,

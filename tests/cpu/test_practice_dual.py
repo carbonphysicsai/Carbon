@@ -40,6 +40,7 @@ def test_a_reference_model_is_eligible_and_scored_in_unit_range(name):
     assert document["scope"] == pdual.SCOPE
     assert document["gates"] and all(document["gates"].values())
     assert document["eligible"] is True
+    assert type(document["n_cases"]) is int and document["n_cases"] > 0
     a, d, total = (document[k] for k in ("accuracy", "design_value", "total"))
     assert 0 < a <= 1 and 0 < d <= 1
     assert total == pytest.approx(0.5 * a + 0.5 * d) and 0 < total <= 1
@@ -49,6 +50,7 @@ def test_a_reference_model_is_eligible_and_scored_in_unit_range(name):
         "scope",
         "challenge",
         "available",
+        "n_cases",
         "gates",
         "eligible",
         "total",
