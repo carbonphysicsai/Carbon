@@ -121,6 +121,8 @@ fi
 # --- image ----------------------------------------------------------------------------------------------
 inspect() { docker image inspect "$IMAGE" --format '{"id": "{{.Id}}"}'; }
 before=$(inspect) || { echo "STOP: the pinned image $IMAGE is not on this host" >&2; exit 1; }
+# a config may define prepare() (extra setup and verification before any solve, e.g. an overlay and an in-image preflight)
+if declare -F prepare > /dev/null; then prepare; fi
 
 producer() { ( cd "$repo" && PY -m carbon.challenge_validator.producer "$@" --config "$priv/config.json" ); }
 field() { PY -c "import json,sys; print(json.loads(sys.argv[1])[sys.argv[2]])" "$1" "$2"; }
@@ -152,6 +154,7 @@ sample() {
     sleep 10
   done
 }
+if [ "${PROBE_MODE:-plan}" = plan ]; then
 cp "$STATE/probe-plan.json" "$out/"
 # the sampler must not inherit the host-lock descriptor (9), or a dead run would keep the lock
 sampler=""
@@ -189,8 +192,18 @@ print(json.dumps({"probe": status, "abs_delta": delta, "parallel": parallel}))
 sys.exit(1 if stop else 0)
 PYEOF
 parallel=$(PY -c "import json,sys; print(json.load(open(sys.argv[1]))['parallel'])" "$out/probe.json")
+else
+  # the Challenge's cost probe ran as its own priced step (PROBE_MODE=none); sizing() sets `parallel` from the slot / host
+  sizing
+fi
 
 # --- batches --------------------------------------------------------------------------------------------
+if ! declare -F run_solve > /dev/null; then
+  run_solve() { producer solve --challenge "$CID" --fingerprint "$1" --workers "$parallel" --timeout-s 7200 >> "$priv/logs/solve-${1#sha256:}.log" 2>&1; }
+fi
+if ! declare -F qa_run > /dev/null; then
+  qa_run() { ( cd "$repo" && PY "$STATE/$QA_SCRIPT" judge "$priv/config.json" "$1" "$priv/qa/${1#sha256:}" ); }
+fi
 unusable=0
 i=$START
 while [ "$i" -le "$N" ]; do
@@ -208,10 +221,13 @@ while [ "$i" -le "$N" ]; do
     done
     [ -n "$drawn" ] || { echo "STOP: no seed placed a batch in 6 tries (see seeds.jsonl)" >&2; exit 1; }
     fp=$(field "$drawn" fingerprint)
-    producer solve --challenge "$CID" --fingerprint "$fp" --workers "$parallel" --timeout-s 7200 >> "$priv/logs/solve-${fp#sha256:}.log" 2>&1
-    producer solve --challenge "$CID" --fingerprint "$fp" --workers "$parallel" --timeout-s 7200 >> "$priv/logs/solve-${fp#sha256:}.log" 2>&1
+    run_solve "$fp"
+    run_solve "$fp"
     if [ -n "$SLOT" ] && grep -q '"status": "REFERENCE_TIMEOUT"' "$priv/producer/work/$CID/${fp#sha256:}/records.jsonl" 2>/dev/null; then
       echo "STOP: a REFERENCE_TIMEOUT while slotted (slot $SLOT): the isolation did not hold; to the Validator" >&2; exit 1
+    fi
+    if declare -F price_check > /dev/null; then
+      price_check "$fp" >> "$out/price.jsonl" || { echo "STOP: a solve passed its stated price bound (see price.jsonl); bring it back priced" >&2; exit 1; }
     fi
     sealed=$(producer seal --challenge "$CID" --fingerprint "$fp" || true)
     echo "$sealed" >> "$out/seal.jsonl"
@@ -228,8 +244,7 @@ while [ "$i" -le "$N" ]; do
     fi
     if [ "$pack_rc" -eq 0 ] && [ "$dec_rc" -eq 0 ]; then
       qa_rc=0
-      ( cd "$repo" && PY "$STATE/$QA_SCRIPT" judge "$priv/config.json" "$fp" "$priv/qa/${fp#sha256:}" ) \
-        >> "$out/qa-public.jsonl" || qa_rc=$?
+      qa_run "$fp" >> "$out/qa-public.jsonl" || qa_rc=$?
     fi
     wall=$(( $(date +%s) - t0 ))
     echo "{\"role_index\": $i, \"attempt\": \"$role\", \"wall_s\": $wall, \"pack_rc\": $pack_rc, \"qa_rc\": $qa_rc, \"slot\": \"$SLOT\", \"cpuset\": \"$SLOT_CPUSET\", \"cap_mib\": \"$SLOT_MEM_MIB\"}" >> "$out/walls.jsonl"

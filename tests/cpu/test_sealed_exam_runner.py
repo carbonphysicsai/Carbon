@@ -109,3 +109,21 @@ def test_an_incomplete_or_failed_panel_stops(tmp_path):
 def test_unknown_challenges_have_no_coverage_config_yet():
     with pytest.raises(SystemExit):
         _coverage()._spec("motor")
+
+
+def test_the_battery_config_carries_batterys_own_values_and_hooks():
+    from carbon.challenge_validator import battery_sealed_hidden as hidden
+
+    config = _config("battery")
+    assert config["CID"] == hidden.CHALLENGE_ID == "battery-sealed-exam"
+    assert config["DEPLOYMENT_SCHEMA"] == hidden.DEPLOYMENT_SCHEMA
+    assert config["PROBE_MODE"] == "none"
+    assert config["IMAGE"].endswith("@" + hidden.SOLVER_IMAGE)
+    text = (CONFIGS / "battery.env").read_text()
+    for hook in ("prepare()", "sizing()", "run_solve()", "price_check()", "qa_run()"):
+        assert hook in text
+    runner = RUNNER.read_text()
+    for call in ("prepare;", "sizing", "run_solve ", "price_check ", "qa_run "):
+        assert call in runner
+    # a slot must cover the mesh-320 spot solves
+    assert "below the $MIN_QA_MIB MiB" in text
