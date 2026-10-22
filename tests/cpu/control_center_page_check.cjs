@@ -1018,6 +1018,22 @@ scenario("a healthy campaign's control bar keeps Export under More and draws no 
   assert.equal(one(page, "#campaign-detail [data-part=settlement]").hidden, true);
   clean(page);
 });
+scenario("a finished campaign with no practice result says so, never a bare Completed (Dana #9)", async () => {
+  const state = launchable(world());
+  state.runs = [{...copy(fx.run), state: "COMPLETED"}];
+  state.view = copy(fx.view);
+  state.view.campaign.state = "COMPLETED";
+  state.view.graphite = null;
+  state.view.tiles.practice_runs = {completed: 0, attempted: 1};
+  const page = await open(state);
+  page.go("#campaigns/" + fx.run.id + "/live");
+  await page.advance(0);
+  const banner = one(page, "#campaign-detail .rs-endstate");
+  assert.match(page.text(banner), /Finished without a result/);
+  assert.equal(all(page, "#campaign-detail .rs-endstate a").length, 1, "one fix button");
+  assert.doesNotMatch(page.text(one(page, "#campaign-detail .rs-meta")), /Completed/i);
+  clean(page);
+});
 scenario("a queued campaign with no frozen record can be reconciled without its view", async () => {
   const state = launchable(world());
   const run = {id: "e".repeat(32), state: "QUEUED", experiments: [], refusals: []};

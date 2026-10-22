@@ -70,6 +70,21 @@
     });
     return b;
   }
+  // How a finished campaign ends, in plain words (Dana #9): never "Completed" without a result.
+  // An early stop names its reason and the one fix; an empty finish says nothing was graded.
+  function endState(doc) {
+    const state = doc?.campaign?.state;
+    if (state !== "COMPLETED" && state !== "STOPPED") return null;
+    const early = doc.graphite?.ended_early && typeof doc.graphite.ended_early.code === "string" ? doc.graphite.ended_early : null;
+    if (early) {
+      const stage = early.stage ? (STAGE_NOUNS[early.stage] || words(early.stage)).toLowerCase() : "";
+      return {label: "Stopped early", reason: "Stopped early" + (stage ? " while " + stage : "") + ": " + words(early.code) + ".", next: typeof early.next_step === "string" ? early.next_step : ""};
+    }
+    if (!doc.graphite && doc.tiles?.practice_runs && !(doc.tiles.practice_runs.completed > 0)) {
+      return {label: "Finished, no result", reason: "Finished without a result: no practice run completed, so there is nothing to grade.", next: ""};
+    }
+    return null;
+  }
   function stateKind(state) {
     if (TERMINAL.includes(state)) return "pill-wait";
     if (["PAUSED", "PAUSE_REQUESTED", "INTERRUPTED", "RECONCILIATION_REQUIRED"].includes(state)) return "pill-need";
@@ -285,7 +300,8 @@
     title.append(eyebrow);
     title.append(el(compact ? "h3" : "h2", challenge ? plainTitle(challenge.title || challenge.id) + " · v" + challenge.version : "Older practice campaign"));
     const meta = el("div", undefined, "rs-meta");
-    meta.append(CC.pill(words(doc.campaign.state), stateKind(doc.campaign.state)));
+    const ended = endState(doc);
+    meta.append(CC.pill(ended ? ended.label : words(doc.campaign.state), ended ? "pill-need" : stateKind(doc.campaign.state)));
     if (doc.fixture) meta.append(CC.pill("Synthetic fixture", "pill-need"));
     if (typeof doc.tiles.started_unix === "number") meta.append(el("span", "Started " + when(doc.tiles.started_unix), "rs-started"));
     const id = el("code", doc.campaign.id, "rs-id");
@@ -334,12 +350,19 @@
     if (more.children.length > 1) actions.append(more);
     head.append(actions);
     parent.append(head);
+    if (ended && !compact) {
+      const banner = el("div", undefined, "rs-endstate"); banner.setAttribute("role", "status");
+      banner.append(el("p", ended.reason, "reason"));
+      if (ended.next) banner.append(el("p", ended.next, "hint"));
+      banner.append(anchor("Start a new campaign", "#launch", "button primary"));
+      parent.append(banner);
+    }
     if (doc.fixture) para(parent, "Synthetic fixture data, for seeing the surface. Not a campaign, not evidence, never LIVE.", "rs-fixture");
   }
   // What the header shows, as one key (no clock).
   function headerKey(doc, run, compact) {
     const s = CC.state();
-    return JSON.stringify([compact, doc.campaign, doc.labels, doc.fixture, doc.controls, doc.tiles.started_unix, s.connected, s.busy, recovery(doc.campaign.state, run, doc)]);
+    return JSON.stringify([compact, doc.campaign, endState(doc), doc.labels, doc.fixture, doc.controls, doc.tiles.started_unix, s.connected, s.busy, recovery(doc.campaign.state, run, doc)]);
   }
   function tilesKey(doc) { return JSON.stringify({...doc.tiles, now_unix: 0, elapsed_seconds: doc.tiles.elapsed_seconds === null ? null : 0}); }
   // A refusal and a recovery line, above the campaign's own parts.
