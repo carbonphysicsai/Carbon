@@ -1076,8 +1076,10 @@
     box.append(el("h3", "Where your candidates are evaluated"));
     // One line for the whole list; each Challenge's detail sits in a fold (U8).
     if (items.length) {
-      const have = items.filter(item => item.intake).length;
-      box.append(el("p", "Submitting: " + have + " of " + items.length + " Challenges have a Carbon receiver yet." + (have < items.length ? " Practice and freezing work without one." : ""), "status-line"));
+      const have = items.filter(item => item.intake || item.direct_intake?.serves).length;
+      // Your own recipe receiver, set but not yet read for which Challenge it serves, is not counted for every Challenge (R5-5).
+      const unread = items.filter(item => !item.intake && item.direct_intake && !item.direct_intake.serves).length;
+      box.append(el("p", "Submitting: " + have + " of " + items.length + " Challenges have a receiver." + (have < items.length ? " Practice and freezing work without one." : "") + (unread ? " Your own recipe receiver is set; which Challenge it serves is checked when you submit." : ""), "status-line"));
     }
     const folded = el("details", undefined, "evaluation-details");
     folded.append(el("summary", "Details for each Challenge"));
@@ -3230,14 +3232,24 @@
     const journey = run.journey || {};
     return {journey, frozen: journey.frozen_awaiting_submission === true, exhausted: journey.final_exams_remaining === 0, ready: run.state === "READY"};
   }
-  function practicedRecipes(run) {
-    const practiced = [];
+  // The practiced recipes for the freeze choice, each with its run number and gate result, passing runs first so
+  // the default is never a run that failed a gate (R5-4).
+  function practicedRuns(run) {
+    const seen = new Set();
+    const found = [];
+    let number = 0;
     for (const experiment of run.experiments || []) {
+      if (experiment.outcome === "SMOKE") continue;
+      number += 1;
       if (!experiment.recipe) continue;
       const text = JSON.stringify(experiment.recipe);
-      if (!practiced.includes(text)) practiced.push(text);
+      if (seen.has(text)) continue;
+      seen.add(text);
+      const eligible = experiment.summary && typeof experiment.summary.eligible === "boolean" ? experiment.summary.eligible : null;
+      found.push({text, run: number, eligible});
     }
-    return practiced;
+    const rank = item => item.eligible === true ? 0 : item.eligible === null ? 1 : 2;
+    return found.sort((a, b) => rank(a) - rank(b) || a.run - b.run);
   }
   const practiceIssues = new Map();
   const smokeUnavailable = new Set();
@@ -3323,10 +3335,11 @@
     const box = document.createElement("div"); box.className = "journey-submit";
     box.append(el("h4", "Freeze and submit"));
     const {journey, frozen, exhausted, ready} = journeyState(run);
-    const practiced = practicedRecipes(run);
+    const runs = practicedRuns(run);
+    const practiced = runs.map(item => item.text);
     researchNote(box, "Final exams remaining: " + (journey.final_exams_remaining ?? "unavailable") + " · Submitted rounds: " + ((journey.submitted_epochs || []).join(", ") || "none") + (frozen ? " · A frozen candidate is waiting for submission." : ""));
     const choose = document.createElement("select");
-    practiced.forEach((text, index) => { const option = document.createElement("option"); option.value = text; option.textContent = "Run " + (index + 1) + ": " + recipeWords(text); choose.append(option); });
+    runs.forEach(item => { const option = document.createElement("option"); option.value = item.text; option.textContent = "Run " + item.run + ": " + recipeWords(item.text) + (item.eligible === true ? " · passed the gates" : item.eligible === false ? " · a gate failed" : ""); choose.append(option); });
     journeyField(box, run.id, "candidate", "Practiced recipe to freeze", choose, practiced[0] || "");
     const reason = journeyField(box, run.id, "reason", "Why this candidate", document.createElement("input"), "");
     if (!practiced.length) researchNote(box, "No practiced recipe yet: a candidate must have a practice result before it can be frozen. Practice under Experiments.", "reason");
