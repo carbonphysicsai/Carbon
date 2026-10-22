@@ -2149,6 +2149,10 @@
     items.push(selectable.length
       ? {ok: true, text: "You can launch: " + selectable.map(entry => entry.title).join(", ") + "."}
       : {ok: false, area: "Challenges", item: caps.challenges.find(entry => entry.implemented) || caps.challenges[0]});
+    // U30: a catalog version cannot practise until its backbone catalog is
+    // installed here, so setup is not done while none is.
+    const uninstalled = selectable.filter(entry => entry.catalog_install && entry.catalog_install.installed === 0);
+    if (uninstalled.length) items.push({ok: false, area: "Backbone catalog", item: {title: "Backbone catalog", reason: "catalog_not_installed", plain: {sentence: "The backbone catalog isn't installed on this machine, so a catalog campaign can't practise yet.", next: null}, next_action: "Install it on this machine: python -B -m scripts.dev.catalog_install --state-dir <your state directory> (in your Carbon checkout). Not installed for: " + uninstalled.map(entry => entry.title + " " + entry.version).join(", ")}});
     const agents = agentChoices().filter(choice => choice.availability === "available");
     items.push(agents.length
       ? {ok: true, text: "Agents ready: " + agents.map(choice => choice.label).join(", ") + "."}
@@ -3473,8 +3477,13 @@
       const problem = budgetProblem(composition.budget);
       if (problem) return "Fix your limits: " + problem + ".";
       if (offeredAgent(wizard.agentChoice)?.launch_agent === GRAPHITE) {
+        // U17: the controller refuses a Graphite launch without both finite
+        // provider ceilings (graphite_ceilings_required); say so here, before
+        // Launch, instead of calling every limit optional.
         const limits = graphiteLimitsProblem();
         if (limits) return "Fix Graphite's per-epoch limits: " + limits + ".";
+        const ceilings = composition.budget?.ceilings || {};
+        if (!Number.isSafeInteger(ceilings.provider_attempts) || !Number.isSafeInteger(ceilings.provider_nanodollars)) return "Graphite needs two of your limits: a model-call ceiling and a model-spend ceiling. Set both under Advanced limits, Ceilings per resource; every other limit stays optional.";
       }
     }
     if (step === "review") {

@@ -23,3 +23,21 @@ def test_battery_cards_state_the_sealed_exam_gap():
     for version in ("1.0", "2.0", "2.1"):
         (line,) = capabilities._known_limitations({**battery, "version": version})
         assert "below 10 °C" in line and "above 0.42" in line
+
+
+def test_a_catalog_versions_card_counts_its_installed_entries(tmp_path):
+    # M1 E2E U30: setup read done while the catalog was not installed.
+    from carbon.backbone_catalog import listing
+
+    motor = {"challenge_id": "electric-motor-magnetics", "version": "1.3"}
+    entries = listing.entries(motor["challenge_id"], motor["version"])
+    cfg = {"campaigns_root": str(tmp_path)}
+    assert capabilities._catalog_install(motor, cfg) == {
+        "entries": len(entries),
+        "installed": 0,
+    }
+    digest = entries[0]["bundle_ref"]["bundle_digest"][7:]
+    staged = tmp_path / ".direct-development/library-cache/materials" / digest
+    staged.mkdir(parents=True)
+    assert capabilities._catalog_install(motor, cfg)["installed"] == 1
+    assert capabilities._catalog_install({**motor, "version": "1.0"}, cfg) is None

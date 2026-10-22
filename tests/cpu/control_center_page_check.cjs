@@ -96,6 +96,19 @@ async function wizardTo(page, step, agent = "manual") {
   }
 }
 function lastPost(state, url) { return [...state.posted].reverse().find(entry => entry.path === url); }
+// From the model step to Launch. Graphite needs both provider ceilings
+// (U17: the page says so on the limits step and holds Next until both are
+// set), so they are set there when the page asks for them.
+async function throughLaunch(page) {
+  for (const next of ["compute", "limits", "review", "launch"]) {
+    if (next === "review" && /model-call ceiling/.test(page.text("wizard-next-reason"))) {
+      await page.press(page.$("path-advanced"));
+      await page.type(page.$("ceiling-provider_attempts"), "200");
+      await page.type(page.$("ceiling-provider_nanodollars"), "5");
+    }
+    await page.press(page.$("wizard-next"));
+  }
+}
 
 const scenarios = [];
 const scenario = (name, run) => scenarios.push([name, run]);
@@ -421,7 +434,7 @@ scenario("a provider listing no models offers and preselects setup's model", asy
   assert.ok(radio.checked, "setup's model is preselected");
   assert.match(radio.parentNode.textContent, /your setup choice/);
   assert.equal(page.$("wizard-next").disabled, false, page.text("wizard-next-reason"));
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "c".repeat(32)}}});
   await page.press(page.$("research-launch"));
   const sent = lastPost(state, "/api/v1/research").body;
@@ -455,7 +468,7 @@ scenario("the model step offers an output cap with the model's default and sends
   }
   await page.type(input, "4096");
   assert.equal(page.$("wizard-next").disabled, false, page.text("wizard-next-reason"));
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   assert.match(page.text("wizard-review"), /Max output4,096 tokens per reply, your cap/);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "d".repeat(32)}}});
   await page.press(page.$("research-launch"));
@@ -466,7 +479,7 @@ scenario("the model step offers an output cap with the model's default and sends
   // Blank is the model's default: no model_settings is sent.
   await wizardTo(page, "model", agent);
   await page.type(page.$("wizard-max-output"), "");
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "e".repeat(32)}}});
   await page.press(page.$("research-launch"));
   assert.equal("model_settings" in lastPost(state, "/api/v1/research").body, false);
@@ -532,7 +545,7 @@ scenario("the model step offers a provider call timeout with its default and sen
   }
   await page.type(input, "300");
   assert.equal(page.$("wizard-next").disabled, false, page.text("wizard-next-reason"));
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   assert.match(page.text("wizard-review"), /Call timeout300 seconds per provider call, your timeout/);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "f".repeat(32)}}});
   await page.press(page.$("research-launch"));
@@ -542,7 +555,7 @@ scenario("the model step offers a provider call timeout with its default and sen
   // Blank is the default: the review says so and nothing is sent.
   await wizardTo(page, "model", agent);
   await page.type(page.$("wizard-timeout-seconds"), "");
-  for (const next of ["compute", "limits", "review", "launch"]) await page.press(page.$("wizard-next"));
+  await throughLaunch(page);
   assert.match(page.text("wizard-review"), /Call timeoutNot set: 600 seconds per provider call, the default\. New calls stop when less than the timeout remains of your elapsed limit/);
   state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "0".repeat(32)}}});
   await page.press(page.$("research-launch"));
@@ -1836,6 +1849,15 @@ function graphiteRun(extra = {}) {
 }
 const posts = (state, url) => state.posted.filter(entry => entry.path === url);
 async function launchNow(page, state, id = "g".repeat(32)) {
+  // U17: a Graphite launch needs both provider ceilings; set them where the
+  // page asks, unless the scenario already did.
+  page.window.CarbonControlCenter.goWizard("limits");
+  await page.advance(0);
+  if (/model-call ceiling/.test(page.text("wizard-next-reason"))) {
+    await page.press(page.$("path-advanced"));
+    await page.type(page.$("ceiling-provider_attempts"), "200");
+    await page.type(page.$("ceiling-provider_nanodollars"), "5");
+  }
   page.window.CarbonControlCenter.goWizard("launch");
   await page.advance(0);
   assert.equal(page.$("research-launch").disabled, false, "launch is ready: " + page.text("wizard-launch-reason"));
@@ -1979,6 +2001,9 @@ scenario("Graphite: each mode launches with exactly its own fields; the hunt is 
   await page.press(page.$("path-advanced"));
   const ceiling = page.$("ceiling-provider_nanodollars");
   assert.ok(ceiling, "the model-spend ceiling is offered");
+  // Only the spend ceiling, so the note names the share in dollars alone
+  // (launchNow set both for the launches above, U17).
+  await page.type(page.$("ceiling-provider_attempts"), "");
   await page.type(ceiling, "2");
   ceiling.blur();
   await toAgentStep(page);
@@ -2157,6 +2182,9 @@ scenario("Graphite: per-epoch limits are optional; blank sends none, set sends w
   const page = await open(state);
   await wizardTo(page, "limits", "graphite");
   await page.press(page.$("path-advanced"));
+  // U17: Graphite's two provider ceilings, which every Graphite launch needs.
+  await page.type(page.$("ceiling-provider_attempts"), "200");
+  await page.type(page.$("ceiling-provider_nanodollars"), "5");
   assert.equal(one(page, "#graphite-limits").hidden, false);
   for (const key of ["calls_per_epoch", "trials_per_epoch", "planner_calls"]) assert.equal(page.$("graphite-limit-" + key).value, "", key);
   assert.match(page.text("graphite-limits"), /only your campaign's own limits bind/);

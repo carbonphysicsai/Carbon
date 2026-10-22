@@ -250,7 +250,7 @@ def _setup_offers(entry):
     }
 
 
-def _challenges(profile_state, host):
+def _challenges(profile_state, host, cfg=None):
     from carbon.challenge_registry import catalog, describe
     from carbon.challenge_registry.registry import (
         DEFERRED,
@@ -289,6 +289,7 @@ def _challenges(profile_state, host):
             ],
             "provisions": _provisions(entry["challenge_id"]),
             "known_limitations": _known_limitations(entry),
+            "catalog_install": _catalog_install(entry, cfg),
             "setup_offers": _setup_offers(entry),
         }
         refusal = None
@@ -392,6 +393,35 @@ def _mcp_connection(profile_path):
         "profile_path": str(profile_path),
         "client_configuration": connection["client_configuration"],
     }
+
+
+def _catalog_install(entry, cfg):
+    """How many of the version's backbone catalog entries are installed on
+    this host (their pinned material staged where practice and admission
+    look, `library_bundle.install_bundle`), or None where the version serves
+    no catalog (M1 E2E U30: setup read done while nothing could practise)."""
+    from carbon.backbone_catalog import listing
+
+    try:
+        entries = listing.entries(entry["challenge_id"], entry["version"])
+    except Exception:  # noqa: BLE001 - a version without a catalog
+        return None
+    if not entries:
+        return None
+    root = None
+    if type(cfg) is dict and type(cfg.get("campaigns_root")) is str:
+        root = (
+            Path(cfg["campaigns_root"])
+            / ".direct-development"
+            / "library-cache"
+            / "materials"
+        )
+    installed = 0
+    for item in entries:
+        digest = (item.get("bundle_ref") or {}).get("bundle_digest")
+        if root is not None and type(digest) is str and (root / digest[7:]).is_dir():
+            installed += 1
+    return {"entries": len(entries), "installed": installed}
 
 
 def _known_limitations(entry):
@@ -1075,7 +1105,7 @@ def control_center(runner=None):
         "mode": "DEVELOPMENT",
         "authority": "Discovery grants no authority; nothing here is qualified, paid or on chain.",
         "profile": profile_state,
-        "challenges": _challenges(profile_state, host),
+        "challenges": _challenges(profile_state, host, cfg),
         "agents": _agents(options, refusal, profile_path),
         "graphite": _graphite(options, refusal),
         "model": _model(options, refusal, cfg),
