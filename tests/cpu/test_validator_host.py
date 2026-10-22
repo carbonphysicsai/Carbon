@@ -46,14 +46,25 @@ def state(tmp_path):
     return path
 
 
+def _packs(state, challenges):
+    """A pack directory per Challenge, as fetched exams would leave them."""
+    root = state.parent / "packs"
+    for challenge in challenges:
+        (root / f"{challenge['id']}-{challenge['version']}").mkdir(
+            parents=True, exist_ok=True
+        )
+    return root
+
+
 def _setup(state, receivers, **extra):
+    challenges = extra.pop("challenges", validator_host.select("current"))
     return validator_host.setup(
         installed_state=state,
         hotkey=extra.pop("hotkey", HOTKEY),
-        challenges=extra.pop("challenges", validator_host.select("current")),
+        challenges=challenges,
         prepare=receivers.prepare,
         service=receivers.service,
-        **extra,
+        **{"packs": _packs(state, challenges), **extra},
     )
 
 
@@ -109,18 +120,23 @@ def test_setup_never_changes_a_hosts_hotkey(state):
         _setup(state, Receivers(), hotkey=OTHER)
 
 
-def test_a_pack_is_selected_only_when_its_directory_exists(state, tmp_path):
-    packs = tmp_path / "packs"
+def test_every_new_receiver_needs_its_exam_before_anything_is_prepared(state, tmp_path):
+    # Validator, E4 (c): a receiver that cannot grade is never set up.
+    packs = tmp_path / "fetched"
     (packs / "f02-2.3").mkdir(parents=True)
     receivers = Receivers()
-    _setup(
-        state,
-        receivers,
-        challenges=validator_host.select("f02@2.3,f08-ribbed-bracket@1.4"),
-        packs=packs,
-    )
-    chosen = {c["challenge"]["id"]: c["pack"] for c in receivers.prepared}
-    assert chosen == {"f02": packs / "f02-2.3", "f08-ribbed-bracket": None}
+    with pytest.raises(receiver_setup.SetupRefused, match="evaluation_pack_missing"):
+        _setup(
+            state,
+            receivers,
+            challenges=validator_host.select("f02@2.3,f08-ribbed-bracket@1.4"),
+            packs=packs,
+        )
+    assert receivers.prepared == [] and receivers.started == []
+    with pytest.raises(receiver_setup.SetupRefused, match="evaluation_pack_missing"):
+        _setup(state, receivers, packs=None)
+    _setup(state, receivers, challenges=validator_host.select("f02@2.3"), packs=packs)
+    assert [c["pack"] for c in receivers.prepared] == [packs / "f02-2.3"]
 
 
 def test_the_proxy_serves_each_receiver_by_challenge_and_version(state):

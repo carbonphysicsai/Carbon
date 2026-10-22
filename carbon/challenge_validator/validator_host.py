@@ -17,8 +17,10 @@ receiver state and loopback port, under STATE/validator/receivers), installs
 each as a persistent `systemd --user` service, and records the host's layout
 (STATE/validator/host.json, owner-only). Running it again keeps what is there
 and adds what is new; the hotkey never changes under a prepared host. With
-`--packs DIR`, a receiver selects the evaluation pack at DIR/ID-VERSION when
-there is one. With `--domain`, it writes a Caddy reverse-proxy configuration
+`--packs DIR`, each receiver selects the evaluation pack at DIR/ID-VERSION; a
+Challenge with no pack there is refused (`evaluation_pack_missing`) before
+anything is prepared, since a receiver that cannot grade would spend miners'
+epoch slots. With `--domain`, it writes a Caddy reverse-proxy configuration
 (TLS from Caddy's automatic certificates) that serves each receiver at
 https://DOMAIN/ID/VERSION, and the matching endpoint entries for Carbon's
 published-endpoints list, so miners' Launchpad finds them.
@@ -129,6 +131,22 @@ def setup(
             "this host's receivers belong to another hotkey; use that hotkey, "
             "or a new CARBON_STATE_DIR for a new one.",
         )
+    # Every new receiver needs its exam before anything is prepared (E4 (c)).
+    missing = [
+        _slug(c)
+        for c in challenges
+        if not any(
+            (e["challenge"]["id"], e["challenge"]["version"]) == (c["id"], c["version"])
+            for e in host["receivers"]
+        )
+        and (packs is None or not (packs / _slug(c)).is_dir())
+    ]
+    if missing:
+        raise SetupRefused(
+            "evaluation_pack_missing",
+            "no evaluation pack for " + ", ".join(missing) + "; fetch the signed "
+            "exams first, or choose --challenges with packs.",
+        )
     used = {entry["port"] for entry in host["receivers"]}
     by_challenge = {
         (e["challenge"]["id"], e["challenge"]["version"]): e for e in host["receivers"]
@@ -147,13 +165,12 @@ def setup(
                 "port": port,
                 "receiver_state": str(root / "receivers" / _slug(challenge)),
             }
-            pack = None if packs is None else packs / _slug(challenge)
             prepare(
                 installed_state=installed_state,
                 receiver_state=Path(entry["receiver_state"]),
                 challenge=challenge,
                 hotkey=hotkey,
-                pack=pack if pack is not None and pack.is_dir() else None,
+                pack=packs / _slug(challenge),
                 port=port,
             )
             host["receivers"].append(entry)

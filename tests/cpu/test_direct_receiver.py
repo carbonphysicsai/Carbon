@@ -1910,3 +1910,33 @@ def test_every_served_challenge_is_one_registered_list():
 
     for challenge_id, version in physical_material.REGISTERED:
         assert {"id": challenge_id, "version": version} in served
+
+
+def test_the_permit_is_read_again_each_round_and_a_lost_one_stops_the_receiver():
+    # Validator, E2 note: a permit lost mid-run is noticed within a round.
+    import threading
+
+    from carbon.chain.permits import PermitUnavailable
+
+    network = SimpleNamespace(publisher_hotkey=RECEIVER, context=None)
+    stop = threading.Event()
+    answers = iter([PermitUnavailable("x"), {"permit": True, "block": 8}, None])
+
+    class Reads:
+        asked = 0
+
+        def read(self, hotkey):
+            Reads.asked += 1
+            answer = next(answers)
+            if isinstance(answer, Exception):
+                raise answer
+            return answer
+
+    watch = receiver.PermitWatch(OTHER, network, Reads(), stop, interval=0.01)
+    watch.run()
+    assert Reads.asked == 3  # unreadable: kept serving; held; lost: stopped
+    assert watch.lost and stop.is_set()
+    assert receiver.PERMIT_RECHECK_SECONDS == 360 * 12
+    # Carbon's publisher needs no read, so no watch thread runs for it.
+    quiet = receiver.PermitWatch(RECEIVER, network, Reads(), threading.Event())
+    assert quiet.start() is quiet and not quiet.lost

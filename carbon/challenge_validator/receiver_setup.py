@@ -532,6 +532,14 @@ def service(receiver_state: Path, *, unit_dir: Path | None = None, run=None) -> 
 
     run = run or subprocess.run
     config = load_config(receiver_state / "receiver" / CONFIG_NAME)
+    if "evaluation_pack" not in config:
+        # A validator receiver that cannot grade would spend miners' epoch slots
+        # on nothing (Validator, E4 (c)): the service refuses to start.
+        raise SetupRefused(
+            "evaluation_pack_missing",
+            "this receiver has no evaluation pack; fetch the signed exam for its "
+            "Challenge and prepare it with the pack.",
+        )
     if config["lifetime_seconds"] is not None:
         raise SetupRefused(
             "service_has_lifetime",
@@ -629,7 +637,11 @@ def status(receiver_state: Path, *, run=None, fetch=None) -> dict:
         exam = json.loads(binding.read_bytes()).get("evaluation_pack_digest")
     except (OSError, ValueError):
         exam = None
-    healthy = service_state == "active" and intake == "LISTENING"
+    healthy = (
+        service_state == "active"
+        and intake == "LISTENING"
+        and "evaluation_pack" in config
+    )
     return {
         "status": "RECEIVER_HEALTHY" if healthy else "RECEIVER_NOT_HEALTHY",
         "challenge": config.get("challenge"),
@@ -638,7 +650,9 @@ def status(receiver_state: Path, *, run=None, fetch=None) -> dict:
         "service": service_state,
         "intake": intake,
         "port": config["port"],
-        "exam_selected": "evaluation_pack" in config,
+        "exam": (
+            "SELECTED" if "evaluation_pack" in config else "evaluation_pack_missing"
+        ),
         "exam_digest": exam,
         **_last_graded(root),
     }

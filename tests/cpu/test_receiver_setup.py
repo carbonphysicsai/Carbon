@@ -277,11 +277,18 @@ class Run:
         return type("Done", (), {"returncode": 1 if failed else 0, "stdout": stdout})()
 
 
+def _pack(tmp_path):
+    pack = tmp_path / "pack"
+    pack.mkdir(exist_ok=True)
+    (pack / "evaluation-pack.json").write_text("{}")
+    return pack
+
+
 def test_service_installs_a_restarting_user_unit_and_enables_it(
     tmp_path, installed_state, faked, monkeypatch
 ):
     # E5: a persistent service, restarted on failure and after a reboot.
-    _prepare(tmp_path, installed_state)
+    _prepare(tmp_path, installed_state, pack=_pack(tmp_path))
     state = tmp_path / "receiver-state"
     run = Run()
     monkeypatch.setattr(receiver_setup.subprocess, "run", run)
@@ -298,7 +305,7 @@ def test_service_installs_a_restarting_user_unit_and_enables_it(
 def test_service_refuses_a_finite_receiver_no_linger_or_a_failed_enable(
     tmp_path, installed_state, faked, monkeypatch
 ):
-    _prepare(tmp_path, installed_state, lifetime_seconds=7200)
+    _prepare(tmp_path, installed_state, lifetime_seconds=7200, pack=_pack(tmp_path))
     finite = tmp_path / "receiver-state"
     with pytest.raises(receiver_setup.SetupRefused, match="service_has_lifetime"):
         receiver_setup.service(finite, unit_dir=tmp_path / "u", run=Run())
@@ -310,6 +317,7 @@ def test_service_refuses_a_finite_receiver_no_linger_or_a_failed_enable(
         challenge=MOTOR,
         checks=Checks(),
         hotkey=HOTKEY,
+        pack=_pack(tmp_path),
     )
     lingerless = Run(linger="no")
     monkeypatch.setattr(receiver_setup.subprocess, "run", lingerless)
@@ -326,8 +334,9 @@ def test_service_refuses_a_finite_receiver_no_linger_or_a_failed_enable(
 def test_status_reports_service_intake_exam_and_last_graded(
     tmp_path, installed_state, faked
 ):
-    # E7: read-only; healthy only when the service is active and the intake answers.
-    _prepare(tmp_path, installed_state)
+    # E7: read-only; healthy only when the service is active, the intake
+    # answers and the receiver holds its exam.
+    _prepare(tmp_path, installed_state, pack=_pack(tmp_path))
     state = tmp_path / "receiver-state"
     healthy = receiver_setup.status(
         state, run=Run(), fetch=lambda url: {"schema": "intake"}
@@ -336,6 +345,7 @@ def test_status_reports_service_intake_exam_and_last_graded(
     assert (healthy["service"], healthy["intake"]) == ("active", "LISTENING")
     assert healthy["challenge"] == MOTOR and healthy["receiver_hotkey"] == HOTKEY
     assert (healthy["graded"], healthy["last_graded_unix"]) == (0, None)
+    assert healthy["exam"] == "SELECTED"
 
     def unreachable(url):
         raise OSError("refused")
@@ -374,3 +384,19 @@ def test_status_counts_graded_submissions_from_the_receivers_own_ledger(
     cap.settle(slot, "SCORED_DEVELOPMENT_CANDIDATE")
     found = receiver_setup.status(state, run=Run(), fetch=lambda url: {})
     assert (found["graded"], found["last_graded_unix"]) == (1, 5000)
+
+
+def test_a_receiver_without_an_exam_never_becomes_a_service(
+    tmp_path, installed_state, faked, monkeypatch
+):
+    # Validator, E4 (c): it would spend miners' epoch slots on nothing.
+    _prepare(tmp_path, installed_state)
+    state = tmp_path / "receiver-state"
+    run = Run()
+    monkeypatch.setattr(receiver_setup.subprocess, "run", run)
+    with pytest.raises(receiver_setup.SetupRefused, match="evaluation_pack_missing"):
+        receiver_setup.service(state, unit_dir=tmp_path / "u", run=run)
+    assert run.calls == []  # nothing was installed or started
+    shown = receiver_setup.status(state, run=Run(), fetch=lambda url: {})
+    assert shown["status"] == "RECEIVER_NOT_HEALTHY"
+    assert shown["exam"] == "evaluation_pack_missing"

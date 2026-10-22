@@ -1328,6 +1328,7 @@ def serve(
                     )
             if timer is not None:
                 timer.start()
+            watch = PermitWatch(cfg["receiver_hotkey"], network, permits, stop).start()
             grader = None
             if "auto_grade" in cfg:
                 from carbon.challenge_validator.auto_grade import AutoGrader
@@ -1344,6 +1345,10 @@ def serve(
                 ready=listening,
                 closing=providers.cancel,
             )
+            if watch.lost:
+                # The service exits non-zero; its next start refuses until the
+                # permit is back.
+                raise ReceiverUnavailable("receiver_permit_lost")
         finally:
             stop.set()
             if timer is not None:
@@ -1372,6 +1377,47 @@ def _require_receiver_identity(hotkey, network, permits=None):
         raise ReceiverUnavailable("receiver_permit_unavailable") from None
     if permit is None or permit["permit"] is not True:
         raise ValueError("receiver hotkey holds no validator permit on the subnet")
+
+
+#: One round: an epoch of 360 blocks of 12 s. The permit is read again once a
+#: round while the receiver serves (Validator, E2 note).
+PERMIT_RECHECK_SECONDS = 360 * 12
+
+
+class PermitWatch:
+    """Reads the receiver's identity again every round while it serves. A lost
+    permit stops the receiver (``lost``); an unreadable chain is infrastructure
+    and is read again next round. Carbon's publisher needs no read."""
+
+    def __init__(self, hotkey, network, permits, stop, *, interval=None):
+        self.hotkey, self.network, self.permits = hotkey, network, permits
+        self.stop = stop
+        self.interval = PERMIT_RECHECK_SECONDS if interval is None else interval
+        self.lost = False
+
+    def check_once(self) -> bool:
+        """Whether the receiver may keep serving; sets ``lost`` and stops it if not."""
+        try:
+            _require_receiver_identity(self.hotkey, self.network, self.permits)
+        except ReceiverUnavailable:
+            return True
+        except ValueError:
+            self.lost = True
+            self.stop.set()
+            return False
+        return True
+
+    def run(self):
+        while not self.stop.wait(self.interval):
+            if not self.check_once():
+                return
+
+    def start(self):
+        if self.hotkey != self.network.publisher_hotkey:
+            threading.Thread(
+                target=self.run, name="carbon-permit-watch", daemon=True
+            ).start()
+        return self
 
 
 class PoolStoreUnavailable(ValueError):
