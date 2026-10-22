@@ -32,9 +32,10 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 DECISION_REFERENCES = (
     REPOSITORY / "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz"
 )
-#: Battery's development producer digest before this change (HANDOFF §2).
+#: Battery's development producer digest after the one accepted move that hashed
+#: the sealed bank loader and copy modules (Validator, 2026-10-22).
 DEV_PRODUCER_DIGEST = (
-    "sha256:abd7a4cbe54eac8500d3e30a79937a5ea68ac6f3f67b0d51f3eb3c9f0344f670"
+    "sha256:615a11005e080d439b26685cf4e4a43652f7e36d92f6d80f3ac6db045265e540"
 )
 
 
@@ -45,11 +46,7 @@ def _sealed_bank():
     decision-row format with each record's own mesh-160 margin."""
     contract = dev._contract()
     lines = gzip.decompress(DECISION_REFERENCES.read_bytes()).decode().splitlines()
-    ok = {
-        r["case_id"]: r
-        for r in map(json.loads, lines)
-        if r["status"] == "OK"
-    }
+    ok = {r["case_id"]: r for r in map(json.loads, lines) if r["status"] == "OK"}
     m160 = gp.m160_by_case()
     candidates = ev.candidates(contract)
     chosen = []
@@ -155,7 +152,14 @@ def test_the_definition_binds_the_batchs_own_scenarios_and_receipt():
         {**definition, "grid": {"scenarios": 12, "candidates": 35}},
         {**definition, "decision_scenarios": definition["decision_scenarios"][:3]},
         {**definition, "reference_receipt_sha256": "x"},
-        {**definition, "g_feas": {"measure": "feasibility", "cutoff": 0.5, "comparison": "exceeds"}},
+        {
+            **definition,
+            "g_feas": {
+                "measure": "feasibility",
+                "cutoff": 0.5,
+                "comparison": "exceeds",
+            },
+        },
         {k: v for k, v in definition.items() if k != "unresolved_mask"},
     ):
         with pytest.raises(bdm.BatteryMeasurementRefused):
@@ -260,7 +264,9 @@ def test_a_grid_that_is_not_4_by_35_refuses():
     with pytest.raises(bdm.BatteryMeasurementRefused):
         _measure(_truth(), rows=foreign)
     moved = copy.deepcopy(rows)
-    moved[0]["inputs"] = dict(moved[0]["inputs"], soc0=moved[0]["inputs"]["soc0"] + 0.01)
+    moved[0]["inputs"] = dict(
+        moved[0]["inputs"], soc0=moved[0]["inputs"]["soc0"] + 0.01
+    )
     with pytest.raises(bdm.BatteryMeasurementRefused):
         _measure(_truth(), rows=moved)
     absent = copy.deepcopy(rows)
@@ -268,9 +274,12 @@ def test_a_grid_that_is_not_4_by_35_refuses():
     with pytest.raises(bdm.BatteryMeasurementRefused):
         _measure(_truth(), rows=absent)
     # A definition from another batch's scenarios is refused.
-    other = dict(_definition(), decision_scenarios=[
-        {**s, "id": s["id"] + "x"} for s in _definition()["decision_scenarios"]
-    ])
+    other = dict(
+        _definition(),
+        decision_scenarios=[
+            {**s, "id": s["id"] + "x"} for s in _definition()["decision_scenarios"]
+        ],
+    )
     with pytest.raises(bdm.BatteryMeasurementRefused) as refused:
         _measure(_truth(), definition=other)
     assert refused.value.code == "battery_sealed_scenarios"
@@ -311,8 +320,12 @@ def test_dispatch_is_by_the_banks_declared_population():
     chosen = sealed.adapter_for_bank(development, "2.0")
     assert chosen.EVALUATION_VERSION == dev.VERSIONS["2.0"][0]
     assert sealed.is_sealed_bank(_bank()) and not sealed.is_sealed_bank(development)
-    mixed = dict(_bank(), cohorts=(sealed.COHORT,) * 139 + ("practice",) + (sealed.PROBE,) * 0)
-    mixed["cohorts"] = tuple(mixed["cohorts"]) + (sealed.PROBE,) * (len(_bank()["cohorts"]) - 140)
+    mixed = dict(
+        _bank(), cohorts=(sealed.COHORT,) * 139 + ("practice",) + (sealed.PROBE,) * 0
+    )
+    mixed["cohorts"] = tuple(mixed["cohorts"]) + (sealed.PROBE,) * (
+        len(_bank()["cohorts"]) - 140
+    )
     with pytest.raises(bdm.BatteryMeasurementRefused):
         sealed.adapter_for_bank(mixed, "2.1")
 

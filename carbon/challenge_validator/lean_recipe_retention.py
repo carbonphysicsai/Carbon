@@ -686,6 +686,9 @@ def _retain_selected_pack_evaluation(
         # Validator-only: Battery's adapter is never imported by the shared
         # dispatch, which miner surfaces reach (physical_adapters).
         physical_adapters.register(battery_dual_pack)
+        from carbon.scoring import battery_sealed_dual_pack, sealed_batch_source
+
+        sealed_batch_source.register(battery_sealed_dual_pack)
 
         source = snapshot.read_source_registration(private_root)
         # The daily allowance, the epoch limit and the exam key's age refuse here, before
@@ -781,6 +784,7 @@ def _retain_selected_pack_evaluation(
             graph_originals=originals,
             evaluation_source_receipt_raw=registered["evaluation_source_receipt_raw"],
             timing_step=_timing_step(adapter),
+            copy_hotkey=getattr(adapter, "copy_hotkey", None),
         )
         directory = _private_evaluation_directory(result, submission_id)
         measurement_path = directory / "dual-measurement.json"
@@ -911,7 +915,16 @@ def _retain_selected_pack_evaluation(
         "private_evaluation_path": binding_path,
         # A regrade's graded row (operator-only): the set-level grade of a pack set
         # reads it for each batch.
-        **({"graded_row": scoring["models"][0]} if regrade is not None else {}),
+        **(
+            {
+                "graded_row": scoring["models"][0],
+                # The pin this evaluation registered in owner custody (the set
+                # grade files its KOTH evaluation under the same one).
+                "registered_source_receipt_sha256": source_pin,
+            }
+            if regrade is not None
+            else {}
+        ),
         # A regrade is not a graded submission of the miner: it never feeds the Ladder.
         **(
             {}

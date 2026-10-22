@@ -35,6 +35,8 @@ def grade_entry_on_set(
     submission_id,
     block,
     runner=None,
+    promotion=None,
+    pins=None,
 ):
     """The set-level result for one retained entry, or ``{"state": "UNAVAILABLE",
     "reason": code}`` (slot returned, nothing written) when any batch cannot be
@@ -50,7 +52,10 @@ def grade_entry_on_set(
             artifact_directory=artifact_directory,
             entry_directory=entry_directory,
             runner=runner,
+            promotion=promotion,
         )
+        if pins is not None:
+            pins.add(regraded.get("registered_source_receipt_sha256"))
         row = regraded.get("graded_row")
         if type(row) is not dict:
             # The bound evaluation could not be completed (UNAVAILABLE or
@@ -103,21 +108,31 @@ def grade_set_entry(
     artifact_directory,
     entry_directory,
     runner=None,
+    promotion=None,
 ):
     """The operator step: grade one retained entry on its whole pack set and, when
     a set result exists, record it once on the miner's Ladder under the set key.
 
     The owner and the submission are the retained task's own (`_regrade_origin`);
-    the epoch slot is the submission's, taken once under the set key. Returns the
-    set result (with ``ladder_feedback_state``) or the typed UNAVAILABLE."""
+    the epoch slot is the submission's, taken once under the set key. With a
+    ``promotion`` (a BankPromotion or the PoolStore) each batch's evaluation is
+    filed as it is graded, then the set evaluation is derived from them and meets
+    the incumbent under the set's key (KOTH, DEVELOPMENT). Returns the set result
+    (with ``ladder_feedback_state``) or the typed UNAVAILABLE."""
     from . import exam_cap
 
     primary = batch_adapters[batches[0]]
     base = retention._owner_directory(artifact_directory, "artifact_directory")
     entries = retention._owner_directory(entry_directory, "entry_directory")
-    _entry, origin, owner, *_rest = retention._regrade_origin(
+    entry, origin, owner, _manifest, files, _recipe = retention._regrade_origin(
         primary, base, entries, entry_id
     )
+    if promotion is not None:
+        # The model enters the pool once, so its batch evaluations can be filed.
+        retention._pool_admit(
+            getattr(promotion, "store", promotion), primary, origin, entry, files
+        )
+    pins = set()
     cap = exam_cap.ExamCap(
         primary.ledger, cadence=getattr(primary, "exam_cadence", None)
     )
@@ -139,11 +154,13 @@ def grade_set_entry(
             primary.ledger, primary.contract_digest, origin
         ),
         runner=runner,
+        promotion=promotion,
+        pins=pins,
     )
     if "graded" not in result:
         return result
     version, gates = _set_exam_facts(batch_adapters, batches)
-    return {
+    out = {
         **result,
         "ladder_feedback_state": retention._record_ladder(
             primary,
@@ -154,3 +171,54 @@ def grade_set_entry(
             graded=result["graded"],
         ),
     }
+    if promotion is not None:
+        out["koth_comparison"] = _contend_set(
+            promotion, batch_adapters, batches, set_key, origin, pins
+        )
+    return out
+
+
+def _contend_set(promotion, batch_adapters, batches, set_key, origin, pins):
+    """File the submission's set evaluation and let it meet the incumbent under
+    the set's key. Its own failure never unbinds the set result: the outcome
+    names the refusal."""
+    try:
+        from carbon.battery.pool_store import PoolStore
+        from carbon.challenge_validator import koth_registry
+        from carbon.challenge_validator.bank_promotion import BankPromotion
+
+        (pin,) = pins  # every batch registered under one source pin, or refuse
+        if type(promotion) is PoolStore:
+            promotion = BankPromotion(promotion, registered_source_receipt_sha256=pin)
+        discoveries = [batch_adapters[digest].discovery for digest in batches]
+        filed = promotion.retain_set(
+            origin, set_key, [d.evaluation_pack_digest for d in discoveries]
+        )
+        packs = [
+            d.evaluation_pack_snapshot.read_json_role(
+                d.evaluation_pack_private_root, "private", "score_pack", max_bytes=65536
+            )
+            for d in discoveries
+        ]
+        accuracies = [
+            d.evaluation_pack_snapshot.read_json_role(
+                d.evaluation_pack_public_root,
+                "public",
+                "accuracy_definition",
+                max_bytes=65536,
+            )
+            for d in discoveries
+        ]
+        comparator = koth_registry.comparator_for_set(
+            batch_adapters[batches[0]].challenge_id, packs, accuracies
+        )
+        return promotion.consider_private(
+            origin,
+            filed["evaluation_key"],
+            comparator,
+            sealed=all(
+                getattr(d, "evaluation_pack_sealed", False) is True for d in discoveries
+            ),
+        )
+    except Exception as exc:  # noqa: BLE001 - a pool refusal never unbinds the grade
+        return {"error": str(getattr(exc, "code", None) or type(exc).__name__)}

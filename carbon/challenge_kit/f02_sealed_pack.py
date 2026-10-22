@@ -27,7 +27,8 @@ from pathlib import Path
 
 import numpy as np
 
-COHORT = "decision_cold_eight"
+#: The one cohort a sealed grid's cells carry (C3); the development bank's `decision_cold_eight` is not used.
+COHORT = "decision_sealed_grid"
 POPULATION = "SEALED_EXAM_BATCH_NEAR_LIMIT_S1"
 DECISION_COVERAGE = "RANKING_AND_FEASIBILITY_STRADDLE"
 EVIDENCE_SCHEMA = "carbon.f02.sealed-batch-evidence.v1"

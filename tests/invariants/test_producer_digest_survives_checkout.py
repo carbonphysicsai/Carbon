@@ -13,17 +13,31 @@ from pathlib import Path
 import pytest
 
 from carbon.scoring import battery_dual_pack as battery
+from carbon.scoring import battery_sealed_dual_pack as battery_sealed
 from carbon.scoring import cooling_dual_pack as cooling
 from carbon.scoring import f02_dual_pack as f02
+from carbon.scoring import f02_sealed_dual_pack as f02_sealed
 from carbon.scoring import f08_dual_pack as f08
+from carbon.scoring import f08_sealed_dual_pack as f08_sealed
 from carbon.scoring import motor_dual_pack as motor
+from carbon.scoring import motor_sealed_dual_pack as motor_sealed
 from carbon.scoring import physical_dual_pack as physical
 
 pytestmark = pytest.mark.invariant
 
 ROOT = Path(__file__).resolve().parents[2]
 SCORING = Path(physical.__file__).parent
-ADAPTERS = (battery, cooling, f02, f08, motor)
+ADAPTERS = (
+    battery,
+    cooling,
+    f02,
+    f08,
+    motor,
+    battery_sealed,
+    f02_sealed,
+    f08_sealed,
+    motor_sealed,
+)
 
 
 def _hashed():
@@ -31,7 +45,7 @@ def _hashed():
 
 
 def test_a_crlf_copy_has_the_lf_trees_digest(tmp_path):
-    lf = {a.CHALLENGE: physical.producer_digest(a) for a in ADAPTERS}
+    lf = {a.__name__: physical.producer_digest(a) for a in ADAPTERS}
     for name in _hashed():
         raw = (SCORING / name).read_bytes()
         assert b"\r\n" not in raw, name
@@ -41,7 +55,7 @@ def test_a_crlf_copy_has_the_lf_trees_digest(tmp_path):
     saved = physical.__file__
     physical.__file__ = str(tmp_path / "physical_dual_pack.py")
     try:
-        crlf = {a.CHALLENGE: physical.producer_digest(a) for a in ADAPTERS}
+        crlf = {a.__name__: physical.producer_digest(a) for a in ADAPTERS}
     finally:
         physical.__file__ = saved
     assert crlf == lf
@@ -77,4 +91,4 @@ def test_an_autocrlf_checkout_never_converts_a_hashed_file():
         if checkout != committed:
             converted.append(path)
     assert not converted, f"checkout converts producer files: {converted}"
-    assert len(_hashed()) == 12
+    assert len(_hashed()) == 21

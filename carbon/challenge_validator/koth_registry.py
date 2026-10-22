@@ -77,6 +77,47 @@ def comparator(challenge_id, score_pack, accuracy_definition, *, path=REGISTRY):
     }
 
 
+def comparator_for_set(
+    challenge_id, score_packs, accuracy_definitions, *, path=REGISTRY
+):
+    """The DEVELOPMENT comparator for a Challenge version's whole pack set: the
+    score digest of the set's packs, the union of their leg-minimum source
+    entries, and the baseline graded on the same set (the equal-weight mean of
+    each batch's baseline total; one batch without one makes it None, which is
+    UNAVAILABLE downstream, never a partial mean)."""
+    from carbon.challenge_validator.interface import digest
+    from carbon.scoring.physical_dual_pack import minimum_source_entry_ids
+
+    if (
+        type(score_packs) not in (list, tuple)
+        or not score_packs
+        or len(score_packs) != len(accuracy_definitions)
+    ):
+        raise ValueError("a score pack and accuracy definition for every batch")
+    totals = [baseline_total(pack) for pack in score_packs]
+    sources = sorted(
+        {
+            entry
+            for definition in accuracy_definitions
+            for entry in minimum_source_entry_ids(definition)
+        }
+    )
+    return {
+        "schema": COMPARATOR_SCHEMA,
+        "scope": "DEVELOPMENT",
+        "challenge": challenge_id,
+        "score_pack_digest": digest(
+            sorted(pack["pack_digest"] for pack in score_packs)
+        ),
+        "rebuild_noise": rebuild_noise(challenge_id, path=path),
+        "ties": "incumbent_keeps",
+        "minimum_source_entry_ids": sources,
+        "baseline_total": (
+            None if any(t is None for t in totals) else math.fsum(totals) / len(totals)
+        ),
+    }
+
+
 def baseline_total(score_pack):
     """The total of a model sitting exactly on the pack's leg minimums: Carbon's
     baseline, the unpaid starting king the first crown must beat by the margin

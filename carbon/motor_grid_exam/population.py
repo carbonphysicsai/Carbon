@@ -44,13 +44,23 @@ from .domain import (
     MIN_TORQUE_NM,
 )
 
-POPULATION_VERSION = "carbon.motor.sealed-grid-5x6.v1"
+POPULATION_VERSION = "carbon.motor.sealed-grid-5x6.v2"
 DESIGNS = 5
 CONDITIONS = 6
 CELLS = DESIGNS * CONDITIONS
 CANDIDATES = 40
 WINDOW = placed.WINDOW  # predicted feasible cells of 30, per limit
 SEARCH = 200_000
+#: C17 placement clearance (VALIDATOR_EXAM_ARCHITECTURE_COMMON_20261022). Measured on the 90 sealed v1 cells
+#: (torque max abs error 0.4310; ripple max |log(pred/ref)| 0.9138, file sha256 e08b473d880112e4c2045db4d6fa9c6e1791cb982f6f155f276a59de054f3640)
+#: the full clearance leaves no placeable grid (0 of 6 seeds), so v2 uses the Validator's fallback: 2 to 3 designs
+#: cleared at every condition at U-only clearance (the registered U: torque 0.0052 N.m, ripple 0.026).
+U_ONLY_CLEARANCE = {
+    "mean_torque_nm": 0.0052,
+    "ripple_fraction_log_ratio": 0.0,
+    "ripple_fraction_u": 0.026,
+}
+FALLBACK_DESIGNS_EVERYWHERE = (2, 3)
 
 admitted = development.admitted
 
@@ -80,26 +90,57 @@ def predict(cases):
 
 
 def draw(rng, count, *, max_attempts=None):
-    """One placed 5 x 6 grid (30 cases, design-major) and the subset tries it
-    took. `count` must be 30: the batch is the grid."""
+    """One placed 5 x 6 grid (30 cases, design-major) and the subset tries it took (population v2: the
+    fallback clearance, `draw_v2`). `count` must be 30: the batch is the grid."""
+    cases, tries, _ = draw_v2(
+        rng,
+        count,
+        U_ONLY_CLEARANCE,
+        designs_everywhere=FALLBACK_DESIGNS_EVERYWHERE,
+        max_attempts=max_attempts,
+    )
+    return cases, tries
+
+
+def draw_v2(rng, count, clearance, *, designs_everywhere=(1, 3), max_attempts=None):
+    """`draw` with C17 (VALIDATOR_EXAM_ARCHITECTURE_COMMON_20261022): the cells that satisfy the
+    decision check must clear their limits by the measured clearance: torque absolutely
+    (`mean_torque_nm`: U plus the predictor's maximum absolute error), ripple multiplicatively
+    (`ripple_fraction_log_ratio` e = max |log(predicted / reference)| and `ripple_fraction_u`: a placed
+    design needs predicted * exp(e) <= 0.30 - U; the Validator's option 1 for a multiplicative predictor).
+
+    The window counts and "no condition where every design is feasible" read the plain prediction, as
+    in v1; "every condition has a feasible design" and "1 to 3 designs feasible at all 6 conditions"
+    read the cleared prediction. Returns `(cases, tries, predictions)`: `predictions` is one
+    `{"predicted_mean_torque_nm", "predicted_ripple_fraction"}` per case (private batch record; never
+    a label). `designs_everywhere` is the allowed count of designs cleared at every condition (the
+    Validator's fallback is `(2, 3)` at the U-only clearance)."""
     if count != CELLS:
         raise ValueError(f"a Motor sealed batch is one {DESIGNS} x {CONDITIONS} grid")
+    if not clearance or set(clearance) != {
+        "mean_torque_nm",
+        "ripple_fraction_log_ratio",
+        "ripple_fraction_u",
+    } or not all(type(v) is float and v >= 0 for v in clearance.values()):
+        raise RuntimeError("placement_clearance_unavailable")
     published, key = placed._published()
-    designs = [
-        {k: rng.uniform(*INPUT_BOUNDS[k]) for k in DESIGN_INPUTS}
-        for _ in range(CANDIDATES)
-    ]
-    conditions = [
-        {k: rng.uniform(*INPUT_BOUNDS[k]) for k in CONDITION_INPUTS}
-        for _ in range(CANDIDATES)
-    ]
+    designs = [{k: rng.uniform(*INPUT_BOUNDS[k]) for k in DESIGN_INPUTS} for _ in range(CANDIDATES)]
+    conditions = [{k: rng.uniform(*INPUT_BOUNDS[k]) for k in CONDITION_INPUTS} for _ in range(CANDIDATES)]
     cells = [{**d, **c} for d in designs for c in conditions]
     buildable = np.array(
         [development.admitted(x) and key(x) not in published for x in cells]
     ).reshape(CANDIDATES, CANDIDATES)
     torque, ripple = predict(cells)
-    torque_ok = (torque >= MIN_TORQUE_NM).reshape(CANDIDATES, CANDIDATES)
-    ripple_ok = (ripple <= MAX_RIPPLE_FRACTION).reshape(CANDIDATES, CANDIDATES)
+    shape = (CANDIDATES, CANDIDATES)
+    torque_ok = (torque >= MIN_TORQUE_NM).reshape(shape)
+    ripple_ok = (ripple <= MAX_RIPPLE_FRACTION).reshape(shape)
+    cleared = (
+        (torque >= MIN_TORQUE_NM + clearance["mean_torque_nm"])
+        & (
+            ripple * np.exp(clearance["ripple_fraction_log_ratio"])
+            <= MAX_RIPPLE_FRACTION - clearance["ripple_fraction_u"]
+        )
+    ).reshape(shape)
     tries = 0
     for tries in range(1, (max_attempts or SEARCH) + 1):
         di = rng.sample(range(CANDIDATES), DESIGNS)
@@ -110,15 +151,40 @@ def draw(rng, count, *, max_attempts=None):
         a, b = int(torque_ok[sub].sum()), int(ripple_ok[sub].sum())
         if not (WINDOW[0] <= a <= WINDOW[1] and WINDOW[0] <= b <= WINDOW[1]):
             continue
-        feasible = torque_ok[sub] & ripple_ok[sub]  # design x condition
-        everywhere = feasible.all(axis=1)
+        plain = torque_ok[sub] & ripple_ok[sub]
+        sure = cleared[sub]
         if (
-            1 <= int(everywhere.sum()) <= 3
-            and feasible.any(axis=0).all()
-            and not feasible.all(axis=0).any()
+            designs_everywhere[0] <= int(sure.all(axis=1).sum()) <= designs_everywhere[1]
+            and sure.any(axis=0).all()
+            and not plain.all(axis=0).any()
         ):
-            return [{**designs[i], **conditions[j]} for i in sorted(di) for j in sorted(cj)], tries
+            order = [(i, j) for i in sorted(di) for j in sorted(cj)]
+            predictions = [
+                {
+                    "predicted_mean_torque_nm": float(torque[i * CANDIDATES + j]),
+                    "predicted_ripple_fraction": float(ripple[i * CANDIDATES + j]),
+                }
+                for i, j in order
+            ]
+            return [{**designs[i], **conditions[j]} for i, j in order], tries, predictions
     raise RuntimeError(f"{tries} subset tries placed no grid in the window")
 
 
-__all__ = ["POPULATION_VERSION", "admitted", "draw", "grid_of", "predict"]
+def placement_predictions(cases):
+    """The placement predictions for `cases`, one per case in order (private batch record; never a label)."""
+    torque, ripple = predict(cases)
+    return [
+        {"predicted_mean_torque_nm": float(t), "predicted_ripple_fraction": float(r)}
+        for t, r in zip(torque, ripple)
+    ]
+
+
+__all__ = [
+    "POPULATION_VERSION",
+    "admitted",
+    "draw",
+    "draw_v2",
+    "grid_of",
+    "placement_predictions",
+    "predict",
+]

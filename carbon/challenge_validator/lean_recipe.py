@@ -86,7 +86,13 @@ class LeanRecipeAdapter(ChallengeAdapter):
     disclosure_fields = frozenset({"task_id", "state_digest", "predictions_digest"})
 
     def __init__(
-        self, discovery, provider_for: Callable, ledger, *, measure_query: bool = False
+        self,
+        discovery,
+        provider_for: Callable,
+        ledger,
+        *,
+        measure_query: bool = False,
+        copy_hotkey: str | None = None,
     ):
         from carbon.challenge_validator.ledger import AttemptLedger
         from carbon.development_session.research_service import DirectFixtureDiscovery
@@ -111,6 +117,9 @@ class LeanRecipeAdapter(ChallengeAdapter):
         self.provider_for = provider_for
         self.ledger = ledger
         self._measure_query = measure_query
+        # This validator's hotkey: a sealed pack is accepted only as its copy for
+        # this hotkey (traceable copies; None = no copy header required).
+        self.copy_hotkey = copy_hotkey
         self.challenge_id = contract.challenge_id
         self.challenge_version = contract.version
         self.contract_digest = contract.digest

@@ -61,6 +61,11 @@ _SHARED_FILES = (
     "physical_dual_pack.py",
     "private_evaluation_source.py",
     "inference_pair_evidence.py",
+    # The sealed bank a sealed pack is graded on, and the canonical form of a
+    # validator's copy of it (E4, traceable copies): both change what is graded.
+    "sealed_batch_source.py",
+    "copy_package.py",
+    "copy_derivation.py",
 )
 
 
