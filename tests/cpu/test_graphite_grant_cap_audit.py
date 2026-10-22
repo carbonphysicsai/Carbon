@@ -299,13 +299,44 @@ def test_v7_rebinds_the_miner_selection_bounds_and_preserves_v6():
     directory = audit.ROOT / "docs/development/evidence/role-output-cap-audit"
     previous_bytes = (directory / "audit-v6.json").read_bytes()
     previous = json.loads(previous_bytes)
-    current = json.loads((directory / "audit-v7.json").read_bytes())
+    current_bytes = (directory / "audit-v7.json").read_bytes()
+    current = json.loads(current_bytes)
+    # V7 is historical: v8 re-pins model_provider.py.
+    assert hashlib.sha256(current_bytes).hexdigest() == (
+        "dbeaa0df463fe4b39b9783a988a745d171979ed7df46dc38ca026e6b12af10fd"
+    )
     assert current.pop("snapshot_version") == 7
     assert current.pop("source_revision") == (
         "14f4318ccd279fb26550dbe83e0feeb1163baec4"
     )
     assert current.pop("supersedes") == {
         "path": "docs/development/evidence/role-output-cap-audit/audit-v6.json",
+        "sha256": hashlib.sha256(previous_bytes).hexdigest(),
+        "grant_count": 35,
+    }
+    assert current["grants"] == previous["grants"]
+    assert current["profiles"] == previous["profiles"]
+    changed_sources = {
+        path
+        for path, value in current["source_sha256"].items()
+        if value != previous["source_sha256"][path]
+    }
+    # model_provider.py: limits row #8, miner selections only (Carbon's own
+    # Graphite keeps its bounds); no grant, price, cap or capacity row changed.
+    assert changed_sources == {"carbon/development_session/model_provider.py"}
+
+
+def test_v8_rebinds_the_provider_source_and_preserves_v7():
+    directory = audit.ROOT / "docs/development/evidence/role-output-cap-audit"
+    previous_bytes = (directory / "audit-v7.json").read_bytes()
+    previous = json.loads(previous_bytes)
+    current = json.loads((directory / "audit-v8.json").read_bytes())
+    assert current.pop("snapshot_version") == 8
+    assert current.pop("source_revision") == (
+        "dd993c524729834233568357423b39725837805e"
+    )
+    assert current.pop("supersedes") == {
+        "path": "docs/development/evidence/role-output-cap-audit/audit-v7.json",
         "sha256": hashlib.sha256(previous_bytes).hexdigest(),
         "grant_count": 35,
     }
@@ -319,8 +350,7 @@ def test_v7_rebinds_the_miner_selection_bounds_and_preserves_v6():
         for path, value in current["source_sha256"].items()
         if value != previous["source_sha256"][path]
     }
-    # model_provider.py: limits row #8, miner selections only (Carbon's own
-    # Graphite keeps its bounds); no grant, price, cap or capacity row changed.
+    # model_provider.py: limits row #8 representation bounds for a miner's selection; no grant, price, cap or capacity row changed.
     assert changed_sources == {"carbon/development_session/model_provider.py"}
 
 
@@ -332,6 +362,7 @@ def test_v7_rebinds_the_miner_selection_bounds_and_preserves_v6():
         "audit-v4.json",
         "audit-v5.json",
         "audit-v6.json",
+        "audit-v7.json",
     ],
 )
 def test_historical_source_pins_cannot_pass_current_regeneration_control(name):
