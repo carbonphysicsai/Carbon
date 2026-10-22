@@ -3783,7 +3783,11 @@ class RunnerAdapter:
                 raise Rejected("campaign_busy", 409)
         try:
             signer = (self.verdict_signer or signer_ready)(self.configured())
-            refresh_exam_feedback(root, epochs[-1], signer)
+            # Every submitted epoch, each through its own admission record
+            # (U55: the grade read for the latest epoch only showed on that
+            # one, although the submit graded was the first).
+            for epoch in epochs:
+                refresh_exam_feedback(root, epoch, signer)
         except DirectIntakeRefusal as refused:
             raise Rejected(refused.code, 409) from None
         except SignerFailure as failure:

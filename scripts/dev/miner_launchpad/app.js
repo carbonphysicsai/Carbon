@@ -2342,7 +2342,9 @@
   }
   function challengeLabel(run) {
     if (run.challenge) {
-      const entry = challengeEntry({id: run.challenge.id, version: run.challenge.version});
+      // U57: the Challenge's name even where this version is not listed here
+      // ("f02 · v2.3" read for Burst Thermal 2.3).
+      const entry = challengeEntry({id: run.challenge.id, version: run.challenge.version}) || (caps?.challenges || []).find(item => item.challenge_id === run.challenge.id);
       return (entry ? entry.title : run.challenge.id) + " · v" + run.challenge.version;
     }
     return run.selects ? "Recorded without a Challenge (historical DEVELOPMENT campaign)" : "Challenge not yet recorded";

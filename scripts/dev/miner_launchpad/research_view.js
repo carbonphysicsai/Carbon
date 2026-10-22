@@ -1140,6 +1140,20 @@
       }
       if (r.feedback_mode && r.feedback_mode !== "FULL") para(box, "Shown through the frozen feedback mode " + r.feedback_mode + ".", "hint");
     }
+    // U53b: a submitted epoch whose grade was never read (or read back as
+    // unavailable) still offers the miner's own read, so the loop can start.
+    if (doc.outcomes.length && !doc.outcomes.some(o => o.result && o.result.grade !== undefined)) {
+      const check = el("button", "Check for result"); check.type = "button";
+      const said = el("p", "Reads your grade for your latest submit from the validator, signed by your signer.", "hint");
+      check.disabled = !CC.state().connected;
+      check.addEventListener("click", async () => {
+        check.disabled = true; said.textContent = "Reading your grade from the validator…";
+        try { await CC.api("/api/v1/operations/check_result", {campaign: doc.campaign.id}, undefined, 30000); said.textContent = "Read. The grade appears above on the next refresh."; }
+        catch (error) { said.textContent = "Not read: " + (error.message || "the validator could not be reached") + "."; }
+        finally { check.disabled = !CC.state().connected; }
+      });
+      box.append(check, said);
+    }
     para(box, "DEVELOPMENT only: no qualification, reward, rank or chain write.", "hint");
   }
   function tabLogs(panel, doc, run) {
