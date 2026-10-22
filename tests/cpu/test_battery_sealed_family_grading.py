@@ -11,8 +11,12 @@ from __future__ import annotations
 import copy
 import json
 import random
+from pathlib import Path
 
+import numpy as np
 import pytest
+
+REPOSITORY = Path(__file__).resolve().parents[2]
 
 pytest.importorskip("carbon.battery_sealed.population")
 pytest.importorskip("carbon.challenge_kit.battery_sealed_pack")
@@ -42,6 +46,21 @@ def _record(case_id, inputs, source):
     development reference's (a real solve with a feasible and an infeasible
     side), so the batch can define a decision."""
     outputs = copy.deepcopy(source["outputs"])
+    # Move the borrowed curves to this cell's own start (synthetic; the peak
+    # voltage and the shape are kept): the exam's initial-state gates compare the first voltage with
+    # the cell's open-circuit voltage and the first temperature with its ambient.
+    from carbon.battery.challenge import PublicMaterial
+
+    material = PublicMaterial.load(REPOSITORY)
+    ocv = float(np.interp(inputs["soc0"], material.ocv_soc, material.ocv_v))
+    v0, vmax = outputs["voltage_v"][0], max(outputs["voltage_v"])
+    outputs["voltage_v"] = [
+        ocv + (v - v0) * (vmax - ocv) / (vmax - v0) for v in outputs["voltage_v"]
+    ]
+    outputs["temperature_c"] = [
+        v + (inputs["t_amb_c"] - outputs["temperature_c"][0])
+        for v in outputs["temperature_c"]
+    ]
     m20 = outputs["plating_margin_v"]
     m160 = source["plating_margin_m160_v"]
     record = {
@@ -52,23 +71,68 @@ def _record(case_id, inputs, source):
         "overlay_lock_sha256": hidden.overlay_lock_sha256(),
         "outputs": outputs,
         "plating_margin_m160_v": m160,
-        # The runner records a measured solve time per case; the pack's
-        # reference rows total it.
-        "wall_s": 1.5,
+        # The family's per-solve walls (the standard and the mesh-160 solve),
+        # exactly as it writes them.
+        "solves": {"standard": {"wall_s": 50.0}, "m160": {"wall_s": 250.0}},
     }
     record["plating"] = hidden.plating_label(m20, m160)
     return record
 
 
+def _ev4_sources():
+    """Every fully solved EV4 development scenario's 35 references (real
+    solves) with its (ambient, soc0): the cells' synthetic outputs start from the
+    scenario nearest each drawn one."""
+    import gzip
+
+    from carbon.battery import quiz_stratum
+    from carbon.battery.value import contract as ev
+    from carbon.battery.value import gate_plating_v2 as gp
+
+    contract = quiz_stratum.contract(REPOSITORY)
+    lines = gzip.decompress(
+        (
+            REPOSITORY
+            / "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz"
+        ).read_bytes()
+    ).decode().splitlines()
+    ok = {r["case_id"]: r for r in map(json.loads, lines) if r["status"] == "OK"}
+    m160 = gp.m160_by_case()
+    sources = []
+    for scenario in contract["scenarios"]["development"]:
+        ids = [ev.case_id(contract, scenario, c, 0) for c in ev.candidates(contract)]
+        if not all(i in ok for i in ids):
+            continue
+        cells = []
+        for case_id in ids:
+            record = copy.deepcopy(ok[case_id])
+            entry = m160.get(case_id)
+            record["plating_margin_m160_v"] = (
+                entry[1] if entry is not None else record["outputs"]["plating_margin_v"]
+            )
+            cells.append(record)
+        sources.append((tuple(scenario["conditions"][0]), cells))
+    return sources
+
+
 @pytest.fixture(scope="module")
 def batch():
-    # The family's own drawn 4 x 35 grid; each scenario's 35 cells take the
-    # 35 EV4 development references of one fully solved scenario in order.
-    cells = _sealed_bank()["reference_records"][:35]
+    # The family's own drawn 4 x 35 grid; each drawn scenario's 35 cells take
+    # the 35 EV4 development references of the nearest fully solved EV4
+    # scenario, moved to the drawn start (synthetic, non-production).
+    sources = _ev4_sources()
     cases, _attempts = population.draw(random.Random(11), population.CELLS)
     document = _document(cases)
+
+    def nearest(inputs):
+        t, soc = inputs["t_amb_c"], inputs["soc0"]
+        return min(
+            sources,
+            key=lambda s: ((s[0][0] - t) / 29.0) ** 2 + ((s[0][1] - soc) / 0.36) ** 2,
+        )[1]
+
     records = [
-        _record(case["case_id"], case["inputs"], cells[i % 35])
+        _record(case["case_id"], case["inputs"], nearest(case["inputs"])[i % 35])
         for i, case in enumerate(document["cases"])
     ]
     return family_pack.sealed_bank(document, records)
@@ -81,6 +145,39 @@ def _outputs(bank):
         fixed if cohort == sealed.PROBE else row
         for row, cohort in zip(rows, bank["cohorts"], strict=True)
     ]
+
+
+def test_every_scenario_has_a_feasible_and_an_infeasible_reference(batch):
+    """The family's decision check (§11 rule 4), on the references' v2 labels:
+    each scenario has a candidate FEASIBLE and one INFEASIBLE, so D is defined
+    and the choice is not trivial."""
+    from carbon.battery.value import decision as d
+    from carbon.battery.value import gate_plating_v2 as gp
+
+    contract = sealed._contract()
+    bank = sealed.prepared(batch)
+    rows = physical.bank_rows(bank, sealed.input_names())
+    _scenarios, grid, _cells = sealed._grid(rows, contract)
+    labels = sealed._labels(contract, [rows[i]["record"] for i in grid])
+    bands = contract["reference"]["uncertainty"]["bands"]
+    status = {}
+    for i in grid:
+        record = rows[i]["record"]
+        checks = gp.check(
+            contract,
+            d.measure(contract, record["outputs"]),
+            bands,
+            labels[record["case_id"]],
+        )
+        values = set(checks.values())
+        side = (
+            "INFEASIBLE"
+            if d.FAIL in values
+            else "UNRESOLVED" if d.UNRESOLVED in values else "FEASIBLE"
+        )
+        status.setdefault(record["scenario_id"], set()).add(side)
+    assert len(status) == 4
+    assert all({"FEASIBLE", "INFEASIBLE"} <= sides for sides in status.values())
 
 
 def test_the_familys_bank_is_the_graders_population(batch):
@@ -114,12 +211,12 @@ def test_a_model_equal_to_the_references_is_graded_on_the_batchs_four_scenarios(
         names=names,
     )
     assert measured["decision"]["scenarios"] == 4
-    # D is defined on the four scenarios. A depends on the exam's physics gates
-    # against each cell's own initial state, which borrowed EV4 outputs do not
-    # match for freshly drawn conditions, so only its range is asserted here
-    # (A's value is pinned by test_battery_sealed_grading on consistent cells).
-    assert 0 < measured["D"] <= 1
-    assert measured["A"] is None or 0 < measured["A"] <= 1
+    # A, D and the total are defined and in 0..1 with no refusal. The cells'
+    # synthetic outputs are the nearest EV4 scenario's, moved to each cell's own
+    # start, so the exam's initial-state gates pass.
+    assert 0 < measured["A"] <= 1 and 0 < measured["D"] <= 1
+    assert 0 < 0.5 * measured["A"] + 0.5 * measured["D"] <= 1
+    assert measured["gates"]["exam_gates"] is True
     assert set(measured["gates"]) == set(bdm.GATES)
     assert measured["decision_outcome"] == "VERIFIED_FEASIBLE"
 

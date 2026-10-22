@@ -207,14 +207,32 @@ def prepared(bank):
     their references are unchanged."""
     cohorts = bank["cohorts"]
     records = [
-        (
-            {**record, "design_id": record.get("design_id") or record.get("scenario_id")}
-            if cohort == COHORT and type(record) is dict
-            else record
-        )
+        _shared_fields(record) if cohort == COHORT and type(record) is dict else record
         for cohort, record in zip(cohorts, bank["reference_records"], strict=True)
     ]
     return with_probe_rows({**bank, "reference_records": records})
+
+
+def _shared_fields(record):
+    """A cell record with the two fields the shared pack machinery reads: a
+    ``design_id`` (the scenario), and a ``wall_s`` totalling the family's
+    per-solve walls (``solves``: the standard and the mesh-160 solve) when the
+    record has no single wall."""
+    out = {**record}
+    out["design_id"] = record.get("design_id") or record.get("scenario_id")
+    if "wall_s" not in out and type(record.get("solves")) is dict:
+        walls = [
+            solve.get("wall_s")
+            for solve in record["solves"].values()
+            if type(solve) is dict
+        ]
+        bdm._require(
+            walls
+            and all(type(w) in (int, float) and math.isfinite(w) and w >= 0 for w in walls),
+            "battery_sealed_walls",
+        )
+        out["wall_s"] = float(math.fsum(walls))
+    return out
 
 
 def is_sealed_bank(bank) -> bool:
