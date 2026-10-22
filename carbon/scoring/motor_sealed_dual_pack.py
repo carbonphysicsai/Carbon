@@ -49,6 +49,7 @@ from carbon.motor import score_candidates as candidates
 from carbon.scoring import motor_dual_measurement as mdm
 from carbon.scoring import motor_dual_pack as _motor
 from carbon.scoring import physical_dual_pack as physical
+from carbon.scoring import sealed_grid_common as grid_common
 
 CHALLENGE = _motor.CHALLENGE
 #: The first sealed Challenge version; 1.2 and 1.3 grade the same batches
@@ -60,10 +61,10 @@ VERSIONS = {
     version: (EVALUATION_VERSION, CASE_ID) for version in ("1.1", "1.2", "1.3")
 }
 OUTPUT = _motor.OUTPUT
-FILES = (*_motor.FILES, "motor_sealed_dual_pack.py")
+FILES = (*_motor.FILES, "sealed_grid_common.py", "motor_sealed_dual_pack.py")
 MINIMUM_LEGS = _motor.MINIMUM_LEGS
 MANIFEST_NAME = physical.MANIFEST_NAME
-COHORT = "decision_sealed_grid"
+COHORT = grid_common.GRID_COHORT
 CASES = 30
 DESIGNS, CONDITIONS = 5, 6
 DEFINITION_SCHEMA = "carbon.scoring.motor-sealed-dual-accuracy.v1"
@@ -185,17 +186,14 @@ def measure(
     mdm._require(
         all(row.get("cohort") == COHORT for row in bank_rows), "motor_bank_cohort"
     )
-    designs = sorted({row.get("design_id") for row in bank_rows})
-    conditions = sorted({row.get("condition_id") for row in bank_rows})
-    cells = {(row.get("design_id"), row.get("condition_id")) for row in bank_rows}
-    mdm._require(
-        len(designs) == DESIGNS
-        and len(conditions) == CONDITIONS
-        and len(cells) == n == DESIGNS * CONDITIONS
-        and None not in designs
-        and None not in conditions,
-        "motor_sealed_grid",
+    layout = grid_common.grid_layout(
+        bank_rows,
+        design_of=lambda row: row.get("design_id"),
+        condition_of=lambda row: row.get("condition_id"),
+        shape=(DESIGNS, CONDITIONS),
+        refuse=lambda code: mdm._require(False, "motor_sealed_grid"),
     )
+    designs = sorted(layout.designs)
     constraints = limits.get("constraints") if type(limits) is dict else None
     contract = (objective or {}).get("decision_contract")
     mdm._require(
@@ -205,11 +203,7 @@ def measure(
         "motor_limit_or_objective",
     )
     # The grid's own ids, from the batch itself; the contract is the registered one.
-    grid_objective = {
-        "design_ids": designs,
-        "condition_ids": conditions,
-        "decision_contract": contract,
-    }
+    grid_objective = grid_common.decision_objective(layout, contract)
     train = _motor._train_records(train_raw)
     exam_scales = exam.scales_from_train(train)
     component_scales = candidates.scales(train)
@@ -316,25 +310,14 @@ def is_sealed_bank(bank) -> bool:
     """Whether a bank declares the sealed Motor population: 30 cells, every
     cohort ``decision_sealed_grid``, each a distinct design x condition cell of
     the 5 x 6 grid."""
-    cohorts = bank.get("cohorts") if type(bank) is dict else None
-    records = bank.get("reference_records") if type(bank) is dict else None
-    if (
-        type(cohorts) not in (tuple, list)
-        or len(cohorts) != CASES
-        or not all(c == COHORT for c in cohorts)
-        or type(records) not in (tuple, list)
-        or len(records) != CASES
-    ):
+    if type(bank) is not dict:
         return False
-    cells = {
-        (r.get("design_id"), r.get("condition_id")) for r in records if type(r) is dict
-    }
-    return (
-        len(cells) == CASES
-        and len({c[0] for c in cells}) == DESIGNS
-        and len({c[1] for c in cells}) == CONDITIONS
-        and None not in {c[0] for c in cells}
-        and None not in {c[1] for c in cells}
+    return grid_common.is_grid_bank(
+        bank.get("cohorts"),
+        bank.get("reference_records"),
+        shape=(DESIGNS, CONDITIONS),
+        design_of=lambda r: r.get("design_id"),
+        condition_of=lambda r: r.get("condition_id"),
     )
 
 

@@ -248,7 +248,11 @@ def test_the_development_producer_is_untouched_and_a_sealed_bank_refuses_under_i
     assert dev.producer_digest() == DEV_PRODUCER_DIGEST
     assert dev.FILES == ("motor_dual_pack.py", "motor_dual_measurement.py")
     assert sealed.producer_digest() != dev.producer_digest()
-    assert sealed.FILES == (*dev.FILES, "motor_sealed_dual_pack.py")
+    assert sealed.FILES == (
+        *dev.FILES,
+        "sealed_grid_common.py",
+        "motor_sealed_dual_pack.py",
+    )
     with pytest.raises(mdm.MotorMeasurementRefused) as refused:
         dev.measure(
             bank_rows=case["rows"],
