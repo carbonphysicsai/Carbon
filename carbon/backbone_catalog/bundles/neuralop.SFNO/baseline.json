@@ -1,0 +1,20 @@
+{
+ "bundle_ref": {
+  "bundle_digest": "sha256:65a5671c69f260ab59ebd063b8c17c5b69a7feaa9f17b5a6732a87788bcab8b2",
+  "environment_digest": "sha256:c5ef7580adff31faf4dd7d32e7302de4231eaf4c8026bb59afbeb62835e5b71c",
+  "language": "python",
+  "runtime_profile_id": "torch-cpu-py311",
+  "schema": "carbon.library-bundle-ref.v1"
+ },
+ "configuration": {
+  "backbone": "neuralop.SFNO",
+  "learning_rate": 0.001
+ },
+ "entrypoint": {
+  "module": "carbon_candidate.build",
+  "name": "build"
+ },
+ "output_format": "carbon.numeric-graph.v1",
+ "packet": "t_neuralop_sfno_baseline",
+ "train_use": {}
+}

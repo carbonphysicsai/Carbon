@@ -51,6 +51,17 @@ CLEAN = {
     "thuml.Galerkin_Transformer",
     "thuml.Transolver",
 }
+#: Hard-remainder entries pair-identical on Motor 1.3 (Test Lead,
+#: PAIR_IDENTITY_HARD_V7_20261021): v7 builds, offered on Motor 1.3.
+HARD = {
+    "cno.CNO1d",
+    "thuml.MWT",
+    "thuml.Transformer",
+    "oformer.Encoder1D_PointWiseDecoder1D",
+    "neuralop.SFNO",
+    "neuralop.LocalNO",
+}
+
 #: The five Torch builds resized to Cooling's 32 outputs, each with its own
 #: Cooling pair-identity receipt (Test Lead, PAIR_IDENTITY_COOLING_CATALOG_
 #: 20261020), offered on Cooling 1.2 only.
@@ -74,14 +85,14 @@ COVERAGE_ITEM = {
 
 
 def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
-    assert set(pipeline.verify_all()) == TORCH | JNO | CLEAN | COOLING
+    assert set(pipeline.verify_all()) == TORCH | JNO | CLEAN | HARD | COOLING
     # Motor 1.2 is unchanged: the five Torch entries. Motor 1.3 (1.2 plus
     # allowlist v7) adds the eleven jNO entries, built on the C-03 CPU parent,
     # and the six cleaned DeepXDE/THUML entries.
     assert {e["catalog_id"] for e in pipeline.entries(MOTOR["id"], "1.2")} == TORCH
     assert {
         e["catalog_id"] for e in pipeline.entries(MOTOR["id"], "1.3")
-    } == TORCH | JNO | CLEAN
+    } == TORCH | JNO | CLEAN | HARD
     # Never on a released or step-2 version (Validator): only Motor's catalog
     # versions.
     for item in pipeline.entries():
@@ -90,7 +101,7 @@ def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
             if item["catalog_id"] in COOLING
             else (
                 [{**MOTOR, "version": "1.3"}]
-                if item["catalog_id"] in JNO | CLEAN
+                if item["catalog_id"] in JNO | CLEAN | HARD
                 else [MOTOR, {**MOTOR, "version": "1.3"}]
             )
         )

@@ -1,6 +1,36 @@
 {
  "entries": [
   {
+   "backbone": "cno.CNO1d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:484a8e221c42fd2f63c2426dc54a1856d60df08783f29868251f65757090c65d",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "cno.CNO1d",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "cno.CNO1d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.tune",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-coverage-v1"
+  },
+  {
    "backbone": "neuralop.FNO",
    "bundle_ref": {
     "bundle_digest": "sha256:891cb46b3adf84eaaf9eb9d62399d4d8ad003eb7df82c8129e0052ed01b848e8",
@@ -567,6 +597,66 @@
    "settings_schema": "carbon-candidate-levers-v1"
   },
   {
+   "backbone": "neuralop.LocalNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:e37d94064bc05c422ebed9a3be1f9f941f65200580432b89a866ab83a73ccada",
+    "environment_digest": "sha256:c5ef7580adff31faf4dd7d32e7302de4231eaf4c8026bb59afbeb62835e5b71c",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "neuralop.LocalNO",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "neuralop.LocalNO",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-levers-v1"
+  },
+  {
+   "backbone": "neuralop.SFNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:65a5671c69f260ab59ebd063b8c17c5b69a7feaa9f17b5a6732a87788bcab8b2",
+    "environment_digest": "sha256:c5ef7580adff31faf4dd7d32e7302de4231eaf4c8026bb59afbeb62835e5b71c",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "neuralop.SFNO",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "neuralop.SFNO",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-levers-v1"
+  },
+  {
    "backbone": "neuralop.TFNO",
    "bundle_ref": {
     "bundle_digest": "sha256:047a0b5f40cf7afbde34ad8f35c2bc6a90ab8594c9ba0f88047aeb6af521d6a2",
@@ -639,6 +729,36 @@
    },
    "output_format": "carbon.numeric-graph.v1",
    "settings_schema": "carbon-candidate-levers-v1"
+  },
+  {
+   "backbone": "oformer.Encoder1D_PointWiseDecoder1D",
+   "bundle_ref": {
+    "bundle_digest": "sha256:67079eecfd1a590a956b5e3a3e8b055d22911ce7915c5beb0d313739f2287ea3",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "oformer.Encoder1D_PointWiseDecoder1D",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "oformer.Encoder1D_PointWiseDecoder1D",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.tune",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-coverage-v1"
   },
   {
    "backbone": "physicsnemo.FullyConnected",
@@ -783,6 +903,66 @@
    "defaults": {
     "configuration": {
      "backbone": "thuml.Galerkin_Transformer",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.tune",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-coverage-v1"
+  },
+  {
+   "backbone": "thuml.MWT",
+   "bundle_ref": {
+    "bundle_digest": "sha256:8e4903c18e403dac2e64462e3e7562ea1f395979e78c55a8ecef5d754276d7f3",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "thuml.MWT",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.MWT",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.tune",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-coverage-v1"
+  },
+  {
+   "backbone": "thuml.Transformer",
+   "bundle_ref": {
+    "bundle_digest": "sha256:c27c922a035f8978ed0bbde1fb6173ecf1b62f86450ac493e16b518f6cbc9093",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "thuml.Transformer",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.3"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.Transformer",
      "learning_rate": 0.001
     },
     "train_use": {}
