@@ -2817,8 +2817,21 @@
   // The list reads as: what needs the miner first (one count), then running campaigns by
   // Challenge name, then finished ones folded away (U3).
   const NEEDS_ATTENTION = ["INTERRUPTED", "RECONCILIATION_REQUIRED"];
+  // Old stopped test campaigns should not nag: the miner can hide them (kept in this browser only, never sent
+  // anywhere) and show them again (R6-7).
+  const dismissedKey = "carbon.control-center.hidden-campaigns.v1";
+  function dismissedIds() { const value = stored(dismissedKey, {}); return value && typeof value === "object" ? value : {}; }
+  function hideCampaigns(ids, hide) {
+    const now = dismissedIds();
+    for (const id of ids) { if (hide) now[id] = true; else delete now[id]; }
+    store(dismissedKey, now);
+    quietly(render);
+  }
   function campaignGroups(target, runs) {
-    const attention = runs.filter(run => NEEDS_ATTENTION.includes(run.state));
+    const hidden = dismissedIds();
+    const stopped = runs.filter(run => NEEDS_ATTENTION.includes(run.state));
+    const attention = stopped.filter(run => !hidden[run.id]);
+    const hiddenStopped = stopped.filter(run => hidden[run.id]);
     const finished = runs.filter(run => TERMINAL.includes(run.state));
     const going = runs.filter(run => !attention.includes(run) && !finished.includes(run));
     const byChallenge = (parent, items) => {
@@ -2830,11 +2843,25 @@
       }
     };
     if (attention.length) {
+      const hideAll = el("button", "Hide " + (attention.length === 1 ? "it" : "all " + attention.length), "link-button"); hideAll.type = "button"; hideAll.id = "hide-stopped-campaigns";
+      hideAll.addEventListener("click", () => hideCampaigns(attention.map(run => run.id), true));
+      target.append(hideAll);
+    }
+    if (attention.length) {
       const note = el("p", attention.length + (attention.length === 1 ? " campaign needs" : " campaigns need") + " your attention: " + (attention.length === 1 ? "it stopped" : "they stopped") + " before finishing and can be resumed or closed.", "reason attention-count");
       target.append(note);
       byChallenge(target, attention);
     }
     byChallenge(target, going);
+    if (hiddenStopped.length) {
+      const fold = el("details", undefined, "hidden-campaigns");
+      fold.append(el("summary", "Hidden stopped campaigns (" + hiddenStopped.length + ")"));
+      const showAll = el("button", "Show them again", "link-button"); showAll.type = "button";
+      showAll.addEventListener("click", () => hideCampaigns(hiddenStopped.map(run => run.id), false));
+      fold.append(showAll);
+      byChallenge(fold, hiddenStopped);
+      target.append(fold);
+    }
     if (finished.length) {
       const fold = el("details", undefined, "finished-campaigns");
       fold.append(el("summary", "Finished (" + finished.length + ")"));
@@ -2855,7 +2882,7 @@
     const run = current.view === "campaigns" && current.id ? research.runs.find(r => r.id === current.id) : null;
     list.hidden = Boolean(run);
     detail.hidden = !run && !(current.view === "campaigns" && current.id);
-    rebuild(list, JSON.stringify([connected, research.runs.map(cardKey), capsVersion]), target => {
+    rebuild(list, JSON.stringify([connected, research.runs.map(cardKey), capsVersion, Object.keys(dismissedIds()).sort()]), target => {
       if (!connected) researchNote(target, "Reconnect to reconcile research state. Controls are disabled.", "hint");
       else if (!research.runs.length) {
         const empty = el("div", undefined, "empty");
