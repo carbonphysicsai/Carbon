@@ -26,6 +26,9 @@ from carbon.scoring import physical_dual_pack as physical
 SCHEMA = "carbon.practice.dual-feedback.v1"
 SCOPE = "PUBLIC_PRACTICE_FEEDBACK"
 VALUE_WEIGHT = 0.5
+#: The repeat gate compares a graded run with two fresh repeats; practice has one run.
+REPEAT_GATE = "paired_repeat"
+NOT_TESTED = "NOT_TESTED_ON_PRACTICE"
 
 
 class PracticeDualRefused(ValueError):
@@ -89,8 +92,14 @@ def feedback(adapter, predict):
         )
     except adapter.Refused as exc:
         return _unavailable(adapter, f"practice_{exc.code}")
-    gates = {name: bool(ok) for name, ok in measured["gates"].items()}
-    eligible = all(gates.values())
+    # Practice queries the model once, so the paired-repeat gate has nothing to
+    # compare: it is shown as not tested (never PASS) and does not count toward
+    # eligibility (Validator, C13 receipt). The exam tests it on two fresh runs.
+    gates = {
+        name: (NOT_TESTED if name == REPEAT_GATE else bool(ok))
+        for name, ok in measured["gates"].items()
+    }
+    eligible = all(ok for name, ok in gates.items() if name != REPEAT_GATE)
     a, d = measured.get("A"), measured.get("D")
     legs = (a, d)
     scored = eligible and all(

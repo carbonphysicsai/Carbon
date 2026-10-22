@@ -1013,7 +1013,10 @@ def test_practice_carries_the_shared_dual_feedback_on_the_exposed_bank(
     dual = result["practice_dual"]
     assert dual["schema"] == "carbon.practice.dual-feedback.v1"
     assert dual["available"] is True and dual["n_cases"] == len(reference)
-    assert dual["gates"] and all(dual["gates"].values()) and dual["eligible"] is True
+    gates = dual["gates"]
+    assert gates["paired_repeat"] == "NOT_TESTED_ON_PRACTICE"
+    assert all(v is True for k, v in gates.items() if k != "paired_repeat")
+    assert dual["eligible"] is True
     assert 0 < dual["total"] <= 1
     assert dual["total"] == pytest.approx(
         0.5 * dual["accuracy"] + 0.5 * dual["design_value"]

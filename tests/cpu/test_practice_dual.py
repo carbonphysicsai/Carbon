@@ -38,7 +38,13 @@ def test_a_reference_model_is_eligible_and_scored_in_unit_range(name):
     document = pdual.feedback(adapter, lambda cases: refs)
     assert document["schema"] == pdual.SCHEMA and document["available"] is True
     assert document["scope"] == pdual.SCOPE
-    assert document["gates"] and all(document["gates"].values())
+    gates = document["gates"]
+    assert gates
+    # The paired-repeat gate is never PASS on practice (one run, nothing to
+    # compare) and does not count toward eligibility.
+    assert all(v is True for k, v in gates.items() if k != pdual.REPEAT_GATE)
+    if pdual.REPEAT_GATE in gates:
+        assert gates[pdual.REPEAT_GATE] == "NOT_TESTED_ON_PRACTICE"
     assert document["eligible"] is True
     assert type(document["n_cases"]) is int and document["n_cases"] > 0
     a, d, total = (document[k] for k in ("accuracy", "design_value", "total"))
