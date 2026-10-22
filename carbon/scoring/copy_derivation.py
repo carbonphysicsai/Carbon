@@ -240,3 +240,98 @@ def derive_copy(bank, objective, *, key, opaque=OPAQUE):
         records.append(record)
     derived["reference_records"] = records
     return derived, _rename(copy.deepcopy(objective), mapping)
+
+
+# --- the canonical identity of a copy (rank ids) -----------------------------------------
+
+
+def _cell_key(bank, i, opaque):
+    """A row's content key: cohort, inputs, native record and reference, without
+    its opaque ids."""
+    return _canonical(
+        {
+            "cohort": bank["cohorts"][i],
+            "inputs": [float(v) for v in bank["inputs"][i]],
+            "record": _strip(bank["reference_records"][i], opaque),
+            "reference": [_number(float(v)) for v in bank["references"][i]],
+        }
+    ).decode("utf-8")
+
+
+def _group_ranks(keys_by_group):
+    """``{group id: rank}`` where a group's rank is its place when the groups are
+    ordered by their members' content (never by their ids)."""
+    content = {
+        group: "\x00".join(sorted(keys)) for group, keys in keys_by_group.items()
+    }
+    if len(set(content.values())) != len(content):
+        raise CopyRefused("copy_groups_not_distinct")
+    return {g: r for r, g in enumerate(sorted(content, key=content.__getitem__))}
+
+
+def canonicalize(bank, *, opaque=OPAQUE, objective=None):
+    """The bank in its canonical form: rows in content order, and every opaque id
+    renamed by rank (case ``c0000``…, design ``d0``…, condition ``k0``…). Any copy
+    of one exam, whatever its order and ids, canonicalizes to the same bank, so a
+    receiver recovers today's identity from content alone, and a header needs
+    carry no permutation or id map. Ids a Challenge declares meaningful are kept
+    and then order by id (`row_order`)."""
+    n = len(bank["case_ids"])
+    keys = [_cell_key(bank, i, opaque) for i in range(n)]
+    if len(set(keys)) != n:
+        raise CopyRefused("copy_rows_not_distinct")
+    records = bank["reference_records"]
+    design_rank = condition_rank = None
+    if "design_id" in opaque and any("design_id" in r for r in records):
+        design_rank = _group_ranks(
+            {
+                d: [keys[i] for i in range(n) if records[i].get("design_id") == d]
+                for d in {r.get("design_id") for r in records}
+            }
+        )
+    if "condition_id" in opaque and any("condition_id" in r for r in records):
+        condition_rank = _group_ranks(
+            {
+                c: [keys[i] for i in range(n) if records[i].get("condition_id") == c]
+                for c in {r.get("condition_id") for r in records}
+            }
+        )
+
+    def place(i):
+        record = records[i]
+        return (
+            design_rank[record["design_id"]] if design_rank else 0,
+            condition_rank[record["condition_id"]] if condition_rank else 0,
+            keys[i],
+        )
+
+    if "case_id" in opaque:
+        order = sorted(range(n), key=place)
+    else:
+        order = sorted(range(n), key=lambda i: bank["case_ids"][i])
+    bank_records_in_order = [bank["reference_records"][i] for i in order]
+    derived = {
+        name: ([bank[name][i] for i in order] if name in PER_ROW else bank[name])
+        for name in bank
+    }
+    if "case_id" in opaque:
+        derived["case_ids"] = [f"c{r:04d}" for r in range(n)]
+    out = []
+    for r, record in enumerate(derived["reference_records"]):
+        record = copy.deepcopy(record)
+        if "case_id" in opaque and "case_id" in record:
+            record["case_id"] = f"c{r:04d}"
+        if design_rank is not None:
+            record["design_id"] = f"d{design_rank[record['design_id']]}"
+        if condition_rank is not None:
+            record["condition_id"] = f"k{condition_rank[record['condition_id']]}"
+        out.append(record)
+    derived["reference_records"] = out
+    if objective is None:
+        return derived
+    mapping = {}
+    for old_record, new_record in zip(bank_records_in_order, out, strict=True):
+        for name in opaque:
+            if name in old_record and name in new_record:
+                mapping[old_record[name]] = new_record[name]
+    return derived, _rename(copy.deepcopy(objective), mapping)
