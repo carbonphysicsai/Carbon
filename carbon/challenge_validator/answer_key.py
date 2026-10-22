@@ -166,12 +166,17 @@ class ProducerKey:
 def package(key, commitment, payload):
     """One signed package: the producer commitment and its payload."""
     from .batch_source import COMMITMENT_SCHEMA, SERVED_KINDS
+    from .sealed_pack_import import SEALED_COMMITMENT_SCHEMA, SEALED_KIND
 
     if type(key) is not ProducerKey:
         raise TypeError("a ProducerKey is required")
-    if commitment.get("schema") != COMMITMENT_SCHEMA:
+    if commitment.get("schema") == SEALED_COMMITMENT_SCHEMA:
+        # A sealed evaluation pack (Workstream I2), not a hidden batch.
+        if commitment.get("kind") != SEALED_KIND:
+            raise AnswerKeyRefused("answer_key_kind_not_served")
+    elif commitment.get("schema") != COMMITMENT_SCHEMA:
         raise AnswerKeyRefused("answer_key_commitment_malformed")
-    if commitment.get("kind") not in SERVED_KINDS:
+    elif commitment.get("kind") not in SERVED_KINDS:
         # Producer-only sets (tuning, confirmation) are never packaged.
         raise AnswerKeyRefused("answer_key_kind_not_served")
     manifest = {
@@ -196,6 +201,7 @@ def verify_manifest(value, producer_public_key):
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
     from .batch_source import COMMITMENT_SCHEMA, SERVED_KINDS
+    from .sealed_pack_import import SEALED_COMMITMENT_SCHEMA, SEALED_KIND
 
     try:
         manifest = value["manifest"]
@@ -216,10 +222,11 @@ def verify_manifest(value, producer_public_key):
     if (
         manifest.get("schema") != MANIFEST_SCHEMA
         or type(commitment) is not dict
-        or commitment.get("schema") != COMMITMENT_SCHEMA
+        or commitment.get("schema") not in (COMMITMENT_SCHEMA, SEALED_COMMITMENT_SCHEMA)
     ):
         raise AnswerKeyRefused("answer_key_malformed")
-    if commitment.get("kind") not in SERVED_KINDS:
+    sealed = commitment["schema"] == SEALED_COMMITMENT_SCHEMA
+    if commitment.get("kind") not in ((SEALED_KIND,) if sealed else SERVED_KINDS):
         raise AnswerKeyRefused("answer_key_kind_not_served")
     return commitment
 
@@ -531,11 +538,15 @@ def adapter_for(deployment):
     """The validator adapter a deployment file names: motor's hidden pool by
     its schema (VALIDATOR-21), otherwise battery's deployment."""
     from .motor_hidden import DEPLOYMENT_SCHEMA, MotorHiddenAdapter
+    from .sealed_pack_import import DEPLOYMENT_SCHEMA as SEALED_SCHEMA
+    from .sealed_pack_import import SealedPackAdapter
 
     try:
         schema = json.loads(Path(deployment).read_text()).get("schema")
     except (OSError, ValueError, AttributeError):
         schema = None
+    if schema == SEALED_SCHEMA:
+        return SealedPackAdapter.from_deployment(deployment, repository=REPOSITORY)
     if schema == DEPLOYMENT_SCHEMA:
         from .motor import MotorAdapterError
 

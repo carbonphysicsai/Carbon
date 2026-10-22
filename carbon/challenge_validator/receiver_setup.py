@@ -1,7 +1,8 @@
 """Operator setup for the DEVELOPMENT direct receiver: profile, configuration, start.
 
     .venv/bin/python -B -m carbon.challenge_validator.receiver_setup prepare \\
-        --installed-state STATE --receiver-state DIR --challenge ID VERSION [--pack DIR]
+        --installed-state STATE --receiver-state DIR --challenge ID VERSION \\
+        [--pack DIR | --pack-store DIR --pack-digest sha256:...]
     .venv/bin/python -B -m carbon.challenge_validator.receiver_setup start \\
         --receiver-state DIR [--detach]
 
@@ -16,6 +17,10 @@ the pinned worker and analysis images and records them under STATE. This writes
 what the drivers wrote by hand: the receiver's runner profile and its closed
 configuration, both private (0600) under DIR, and starts the receiver. It builds
 no image, builds no pack and holds no key.
+
+The sealed pack arrives through the answer-key route into the validator's pack
+store (`sealed_pack_import`); `--pack-store` and `--pack-digest` take it by its
+manifest digest, re-verified at use, instead of an operator-typed directory.
 
 The evaluation pack is an input (`--pack`): a pack's leg minimums come from a
 baseline run on the judge image, which a validator host does not produce. The
@@ -92,12 +97,31 @@ def _pack_selection(pack: Path | None) -> dict | None:
     }
 
 
+def _stored_pack(store: Path, digest: str, challenge: dict) -> Path:
+    """The verified directory of a delivered pack, by manifest digest."""
+    from carbon.challenge_validator.answer_key import AnswerKeyRefused
+    from carbon.challenge_validator.sealed_pack_import import SealedPackStore
+
+    try:
+        return SealedPackStore(store).pack_directory(
+            digest, challenge["id"], challenge["version"]
+        )
+    except AnswerKeyRefused as refused:
+        raise SetupRefused(
+            refused.code,
+            "run the answer-key sync for this Challenge first; the delivered "
+            "pack is missing, altered, or another Challenge's.",
+        ) from None
+
+
 def prepare(
     *,
     installed_state: Path,
     receiver_state: Path,
     challenge: dict,
     pack: Path | None = None,
+    pack_store: Path | None = None,
+    pack_digest: str | None = None,
     port: int = DEFAULT_PORT,
     lifetime_seconds: int = DEFAULT_LIFETIME_SECONDS,
     repository: Path = REPO,
@@ -129,6 +153,15 @@ def prepare(
             "run scripts/install_validator.sh (or install_miner.sh) first; no "
             "installed worker and analysis images are recorded.",
         )
+    if (pack_store is None) != (pack_digest is None) or (
+        pack is not None and pack_store is not None
+    ):
+        raise SetupRefused(
+            "evaluation_pack_invalid",
+            "give either --pack, or --pack-store with --pack-digest.",
+        )
+    if pack_store is not None:
+        pack = _stored_pack(pack_store, pack_digest, challenge)
     selection = _pack_selection(pack)
     development = (
         installed.candidate_implementation(installed_state, repository=repository)
@@ -326,6 +359,8 @@ def main(argv=None) -> int:
     prep.add_argument("--receiver-state", type=Path, required=True)
     prep.add_argument("--challenge", nargs=2, metavar=("ID", "VERSION"), required=True)
     prep.add_argument("--pack", type=Path)
+    prep.add_argument("--pack-store", type=Path)
+    prep.add_argument("--pack-digest")
     prep.add_argument("--port", type=int, default=DEFAULT_PORT)
     prep.add_argument("--lifetime-seconds", type=int, default=DEFAULT_LIFETIME_SECONDS)
     run = sub.add_parser("start")
@@ -340,6 +375,8 @@ def main(argv=None) -> int:
             receiver_state=args.receiver_state,
             challenge=_challenge(*args.challenge),
             pack=args.pack,
+            pack_store=args.pack_store,
+            pack_digest=args.pack_digest,
             port=args.port,
             lifetime_seconds=args.lifetime_seconds,
         )
