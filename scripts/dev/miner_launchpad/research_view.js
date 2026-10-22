@@ -1114,7 +1114,8 @@
       }
     });
     const figure = el("div", undefined, "run-figure"); figure.append(svg);
-    figure.append(el("p", "● passed the gates   ✕ a mandatory gate failed" + (known ? "   ━ best passing score so far" : "") + (baseline !== undefined ? "   ┄ baseline" : "") + ". Gates come first: a failed run is never ranked on its score. Hover a mark for the run.", "hint run-legend"));
+    figure.append(el("p", "● passed the gates   ✕ a mandatory gate failed" + (known ? "   ━ best passing score so far" : "") + (baseline !== undefined ? "   ┄ " + (typeof doc.baseline?.label === "string" ? doc.baseline.label : "baseline") : "") + ". Gates come first: a failed run is never ranked on its score. Hover a mark for the run.", "hint run-legend"));
+    if (baseline === undefined && doc.baseline && doc.baseline.score === null) figure.append(el("p", "No baseline score is registered for this Challenge yet, so no baseline line is drawn.", "hint"));
     box.append(figure);
     // The pinned best passing run, with the next step for it.
     if (best) {
@@ -1153,7 +1154,9 @@
     const table = el("table", undefined, "metrics-table sortable");
     const headRow = el("tr");
     const dual = rows.some(r => r.dual);
-    for (const name of ["Run", "Model", "Gates", ...(dual ? ["Graded total (0 to 1, higher is better)"] : []), "Practice " + directionWords(doc).unit + directionWords(doc).paren, ...keys.map(k => labels[k] || k), "Final loss", "Compute budget", "Framework", "Ran on"]) headRow.append(el("th", name));
+    const hasDuration = rows.some(r => r.duration && typeof r.duration.wall_seconds === "number");
+    const hasCost = rows.some(r => r.model_cost && typeof r.model_cost.nanodollars === "number");
+    for (const name of ["Run", "Model", "Gates", ...(dual ? ["Graded total (0 to 1, higher is better)"] : []), "Practice " + directionWords(doc).unit + directionWords(doc).paren, ...keys.map(k => labels[k] || k), "Final loss", ...(hasDuration ? ["Time"] : []), ...(hasCost ? ["Model cost"] : []), "Compute budget", "Framework", "Ran on"]) headRow.append(el("th", name));
     table.append(headRow);
     // The model a run used: its backbone, or for a catalog recipe the catalog id
     // with the settings it changed (U52). A graph recipe has neither: say so.
@@ -1170,7 +1173,7 @@
       for (const k of keys) row.append(el("td", fmt(r.components[k])));
       // What the run actually ran on: its recipe's framework (or the
       // Challenge's default) and the worker record's backend and image.
-      row.append(el("td", r.fit.final_loss === null || r.fit.final_loss === undefined ? "–" : fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend === "C03_DOCKER_GPU" ? "GPU · measured on GPU, not official" : r.backend === "REMOTE_GPU" ? (r.ran_on || "GPU (your remote setup)") + " · measured on GPU, not official" : (r.ran_on || (r.backend ? backendWords(r.backend) : null)), r.image].filter(Boolean).join(" · ") || "–"));
+      row.append(el("td", r.fit.final_loss === null || r.fit.final_loss === undefined ? "–" : fmt(r.fit.final_loss)), ...(hasDuration ? [el("td", r.duration && typeof r.duration.wall_seconds === "number" ? duration(r.duration.wall_seconds) : "–")] : []), ...(hasCost ? [el("td", r.model_cost && typeof r.model_cost.nanodollars === "number" ? money(r.model_cost.nanodollars) + (r.model_cost.unsettled_calls ? " (+" + r.model_cost.unsettled_calls + " unsettled)" : "") : "–")] : []), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend === "C03_DOCKER_GPU" ? "GPU · measured on GPU, not official" : r.backend === "REMOTE_GPU" ? (r.ran_on || "GPU (your remote setup)") + " · measured on GPU, not official" : (r.ran_on || (r.backend ? backendWords(r.backend) : null)), r.image].filter(Boolean).join(" · ") || "–"));
       // R9-3: a GPU host that ran the CPU build says so, in words, under where it ran.
       if (typeof r.fallback === "string" && r.fallback) row.lastChild.append(el("br"), el("span", r.fallback, "run-fallback"));
       table.append(row);

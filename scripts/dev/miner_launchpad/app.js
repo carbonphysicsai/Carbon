@@ -2354,6 +2354,25 @@
     setText($("overview-lede"), j.current ? "Step " + (SETUP_IDS.indexOf(j.current) + 1) + " of 6 is next. Each step is checked before it counts." : blocked ? "Your steps are done, but one thing still stops a launch. It is at the top of this page." : "You are set up. Choose a Challenge and launch.");
     rebuild(list, key, target => drawGettingStarted(target, j));
     setText($("getting-started-progress"), Object.values(j.state).filter(state => state === "done").length + " of 6 done");
+    renderRecheck();
+  }
+  // When the controller says one click clears a stale setup (`next.recheck` in the setup status, or the research
+  // preflight's `recheck`), that click is offered here; it posts the same recheck the MCP tool does.
+  function renderRecheck() {
+    const panel = $("getting-started");
+    let row = $("gs-recheck");
+    const recheck = setupState?.next?.recheck || research?.preflight?.recheck || null;
+    if (!recheck) { if (row) row.hidden = true; return; }
+    if (!row) { row = el("div", undefined, "gs-recheck"); row.id = "gs-recheck"; panel.append(row); }
+    row.hidden = false;
+    const label = typeof recheck.label === "string" ? recheck.label : "Recheck my setup";
+    const why = typeof recheck === "string" ? recheck : typeof recheck.why === "string" ? recheck.why : typeof recheck.note === "string" ? recheck.note : "Something out of date may be holding this up; one recheck clears it.";
+    const key = label + "|" + why;
+    if (row.dataset.key === key) return;
+    row.dataset.key = key;
+    const go = el("button", label, "primary"); go.type = "button"; go.id = "gs-recheck-go";
+    go.addEventListener("click", async () => { await setupCall("recheck", {confirm: true}); await readSetup(); });
+    row.replaceChildren(el("p", plainWords(why), "hint"), go);
   }
   function drawGettingStarted(list, j) {
     SETUP_IDS.forEach((id, index) => {
