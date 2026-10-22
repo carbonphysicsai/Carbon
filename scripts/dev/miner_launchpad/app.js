@@ -1854,6 +1854,39 @@
       reviewMore.parentNode.open = true;
       $("setup-result").replaceChildren(setupLine("Your intake is named again below. Write your profile to keep it."));
     });
+    // U9: pick where the finished recipe is checked from Carbon's published receivers, instead of typing a URL and a
+    // key. A pick fills the same fields the two Advanced folds hold, so writing the profile is unchanged. A Challenge
+    // with several published validators lists each one; a construction receiver is listed beside them.
+    const picks = [];
+    for (const item of steps.evaluation?.challenges || []) {
+      const name = plainTitle(item.title || item.id) + " · v" + item.version;
+      const validators = Array.isArray(item.validators) && item.validators.length
+        ? item.validators
+        : item.source === "published" && item.intake && item.receiver_hotkey ? [{intake_url: item.intake, receiver_hotkey: item.receiver_hotkey}] : [];
+      validators.forEach((v, i) => picks.push({kind: "validator", label: name + " · Carbon's receiver" + (validators.length > 1 ? " " + (i + 1) : ""), id: item.id, version: item.version, url: v.intake_url, hotkey: v.receiver_hotkey}));
+      if (item.direct_intake?.intake_url) picks.push({kind: "direct", label: name + " · rebuilds and grades your recipe", url: item.direct_intake.intake_url, hotkey: item.direct_intake.receiver_hotkey || ""});
+    }
+    const pickBox = el("div", undefined, "receiver-picker");
+    if (picks.length) {
+      const pickLabel = el("label", "Where should your finished recipe be checked?"); pickLabel.htmlFor = "setup-review-receiver-pick";
+      const pick = document.createElement("select"); pick.id = "setup-review-receiver-pick"; pick.name = "receiver_pick";
+      pick.append(Object.assign(el("option", "Choose a receiver Carbon publishes…"), {value: ""}));
+      picks.forEach((entry, index) => pick.append(Object.assign(el("option", entry.label), {value: String(index)})));
+      const said = el("p", "", "hint"); said.id = "setup-review-receiver-said";
+      pick.addEventListener("change", () => {
+        const entry = picks[Number(pick.value)];
+        if (!entry) { said.textContent = ""; return; }
+        if (entry.kind === "validator") {
+          intakeChallenge.value = [...intakeChallenge.options].map(option => option.value).find(value => value === entry.id + "@" + entry.version) || intakeChallenge.value;
+          intake.value = entry.url; receiver.value = entry.hotkey || "";
+        } else { directIntake.value = entry.url; directReceiver.value = entry.hotkey; }
+        said.textContent = "Chosen. Write your profile to keep it. You can still change the details under Advanced.";
+      });
+      pickBox.append(pickLabel, pick, said);
+    } else {
+      pickBox.append(el("p", "Carbon has not published a receiver yet, so there is nothing to choose. Practice and freezing work without one.", "hint"));
+    }
+    review.insertBefore(pickBox, reviewMore.parentNode);
     const write = el("button", written ? "Write my profile again" : "Write my profile", written ? "" : "primary");
     write.disabled = !steps.review?.ready;
     const reviewAction = el("div", undefined, "step-action"); reviewAction.append(write);

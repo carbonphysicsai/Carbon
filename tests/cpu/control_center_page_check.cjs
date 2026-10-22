@@ -1784,6 +1784,16 @@ scenario("Review's answer names what it could not do; Carbon's endpoint shows it
   assert.match(text, /Carbon's endpoint/);
   assert.ok(text.includes(published.intake) && text.includes("Receiver mining key: " + published.receiver_hotkey));
   assert.ok(text.includes("Binding" + published.receiver_hotkey_note.slice("binding".length).replace(/hotkeys/g, "mining keys").replace(/hotkey/g, "mining key").replace(/subnet/g, "Carbon network").replace(/ss58/g, "wallet")));
+  // The receiver picker (U9): Carbon's published receiver is a choice, and choosing it fills the fields the
+  // Advanced fold holds, so writing the profile is unchanged.
+  const pick = other.$("setup-review-receiver-pick");
+  assert.ok(pick, "the receiver picker is drawn");
+  assert.ok([...pick.options].some(option => option.textContent.includes("Carbon's receiver")), "the published receiver is offered");
+  await other.change(pick, "0");
+  assert.equal(other.$("setup-review-intake_url").value, published.intake);
+  assert.equal(other.$("setup-review-receiver_hotkey").value, published.receiver_hotkey);
+  assert.equal(other.$("setup-review-intake_challenge").value, published.id + "@" + published.version);
+  assert.match(other.text("setup-review-receiver-said"), /Chosen\. Write your profile to keep it/);
   clean(page);
   clean(other);
 });
