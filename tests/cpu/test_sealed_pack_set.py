@@ -215,3 +215,133 @@ def test_the_signature_covers_the_set(world):
             {**world["set"], "kind": "screening"},
             sp.set_payload_for(world["set"]),
         )
+
+
+# --- signed withdrawal (mainnet exam delivery; VALIDATOR-24 for sealed packs) -------------
+
+
+class _WithdrawingFetcher(_Fetcher):
+    def __init__(self, notices, *packages):
+        super().__init__(*packages)
+        self.notices = notices
+
+    def ask(self, challenge_id, fingerprint=None):
+        answer = super().ask(challenge_id, fingerprint)
+        if fingerprint is None:
+            answer["withdrawals"] = self.notices
+        return answer
+
+
+def _imported(world):
+    ak.sync(
+        world["adapter"],
+        _Fetcher(*world["packages"]),
+        world["key"].public_key,
+        CHALLENGE,
+    )
+
+
+def test_a_signed_withdrawal_of_a_batch_stops_it_and_its_set(world):
+    _imported(world)
+    victim = sorted(world["digests"])[0]
+    notice = ak.withdrawal_notice(world["key"], CHALLENGE, victim, "leaked", 7)
+    result = ak.sync(
+        world["adapter"],
+        _WithdrawingFetcher([notice], *world["packages"]),
+        world["key"].public_key,
+        CHALLENGE,
+    )
+    assert {"fingerprint": victim, "state": "WITHDRAWN"} in result["packages"]
+    store = world["store"]
+    assert store.withdrawn(victim)
+    assert not store.delivered(victim, CHALLENGE, VERSION)
+    with pytest.raises(ak.AnswerKeyRefused, match="answer_key_sealed_pack_withdrawn"):
+        store.pack_directory(victim, CHALLENGE, VERSION)
+    # A set that lists the withdrawn batch grades nothing.
+    with pytest.raises(
+        ak.AnswerKeyRefused, match="answer_key_pack_set_batch_withdrawn"
+    ):
+        store.pack_set(world["set"]["set_key"], CHALLENGE, VERSION)
+    # The other batch is untouched; the withdrawn files stay for audit.
+    other = sorted(world["digests"])[1]
+    assert store.delivered(other, CHALLENGE, VERSION)
+    assert (store.root / victim.removeprefix("sha256:")).is_dir()
+
+
+def test_a_withdrawn_pack_is_never_imported_again(world, tmp_path):
+    victim = sorted(world["digests"])[0]
+    notice = ak.withdrawal_notice(world["key"], CHALLENGE, victim, "leaked", 7)
+    # Withdrawn before it was ever imported: the sync skips it and records it.
+    result = ak.sync(
+        world["adapter"],
+        _WithdrawingFetcher([notice], *world["packages"]),
+        world["key"].public_key,
+        CHALLENGE,
+    )
+    states = {e["fingerprint"]: e["state"] for e in result["packages"]}
+    assert states[victim] == "WITHDRAWN"
+    assert not world["store"].delivered(victim, CHALLENGE, VERSION)
+    package = next(
+        p
+        for p in world["packages"]
+        if p["manifest"]["commitment"]["fingerprint"] == victim
+    )
+    commitment, payload = ak.verify(package, world["key"].public_key)
+    with pytest.raises(ak.AnswerKeyRefused, match="answer_key_withdrawn"):
+        world["adapter"].import_answer_key(commitment, payload)
+    assert not world["adapter"].holds_answer_key(commitment)
+
+
+def test_a_signed_withdrawal_of_a_set_stops_the_set(world):
+    _imported(world)
+    key = world["set"]["set_key"]
+    notice = ak.withdrawal_notice(world["key"], CHALLENGE, key, "rotated_early", 9)
+    ak.sync(
+        world["adapter"],
+        _WithdrawingFetcher([notice], *world["packages"]),
+        world["key"].public_key,
+        CHALLENGE,
+    )
+    store = world["store"]
+    assert not world["adapter"].holds_answer_key(world["set"])
+    with pytest.raises(ak.AnswerKeyRefused, match="answer_key_pack_set_withdrawn"):
+        store.pack_set(key, CHALLENGE, VERSION)
+    with pytest.raises(ak.AnswerKeyRefused, match="answer_key_withdrawn"):
+        store.import_pack_set(world["set"], sp.set_payload_for(world["set"]))
+    # The batches stay delivered; only the set is withdrawn.
+    assert all(store.delivered(d, CHALLENGE, VERSION) for d in world["digests"])
+
+
+def test_a_withdrawal_is_create_only(world):
+    store = world["store"]
+    digest = world["digests"][0]
+    store.withdraw(digest, "leaked", 7)
+    store.withdraw(digest, "leaked", 7)  # the same notice again: a no-op
+    with pytest.raises(ak.AnswerKeyRefused, match="answer_key_withdrawal_changed"):
+        store.withdraw(digest, "other_reason", 7)
+
+
+def test_a_forged_or_foreign_withdrawal_changes_nothing(world, tmp_path):
+    _imported(world)
+    victim = sorted(world["digests"])[0]
+    stranger = ak.ProducerKey.create(str(tmp_path / "stranger.key"))
+    forged = ak.withdrawal_notice(stranger, CHALLENGE, victim, "leaked", 7)
+    with pytest.raises(ak.AnswerKeyRefused):
+        ak.sync(
+            world["adapter"],
+            _WithdrawingFetcher([forged], *world["packages"]),
+            world["key"].public_key,
+            CHALLENGE,
+        )
+    other_challenge = ak.withdrawal_notice(
+        world["key"], "another-challenge", victim, "leaked", 7
+    )
+    with pytest.raises(ak.AnswerKeyRefused, match="answer_key_wrong_challenge"):
+        ak.sync(
+            world["adapter"],
+            _WithdrawingFetcher([other_challenge], *world["packages"]),
+            world["key"].public_key,
+            CHALLENGE,
+        )
+    assert not world["store"].withdrawn(victim)
+    assert world["store"].delivered(victim, CHALLENGE, VERSION)

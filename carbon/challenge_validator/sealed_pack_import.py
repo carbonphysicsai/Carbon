@@ -62,6 +62,10 @@ _PAYLOAD_FIELDS = {"manifest", "files"}
 SET_COMMITMENT_SCHEMA = "carbon.challenge-validator.sealed-pack-set-commitment.v1"
 SET_KIND = "sealed_pack_set"
 SETS_DIRECTORY = ".sets"
+#: A producer-signed withdrawal (VALIDATOR-24) of a pack or a pack set: create-only
+#: records beside the store. A withdrawn exam is never graded on or imported again;
+#: its files stay for audit.
+WITHDRAWN_DIRECTORY = ".withdrawn"
 _SET_COMMITMENT_FIELDS = {
     "schema",
     "kind",
@@ -269,6 +273,8 @@ class SealedPackStore:
 
     def holds(self, commitment):
         try:
+            if self.withdrawn(commitment["manifest_digest"]):
+                return False
             return self._verified_directory(commitment) is not None
         except AnswerKeyRefused:
             return False
@@ -291,6 +297,8 @@ class SealedPackStore:
 
     def import_pack(self, commitment, payload):
         manifest, files, snapshot = verify_payload(commitment, payload)
+        if self.withdrawn(commitment["manifest_digest"]):
+            raise AnswerKeyRefused("answer_key_withdrawn")
         self._owner_only_root()
         directory = self._directory(commitment["manifest_digest"])
         if directory.exists():
@@ -314,6 +322,36 @@ class SealedPackStore:
             shutil.rmtree(staging, ignore_errors=True)
         return commitment["manifest_digest"]
 
+    def _withdrawn_path(self, fingerprint):
+        if type(fingerprint) is not str or _DIGEST.fullmatch(fingerprint) is None:
+            raise AnswerKeyRefused("answer_key_malformed")
+        return (
+            self.root
+            / WITHDRAWN_DIRECTORY
+            / (fingerprint.removeprefix("sha256:") + ".json")
+        )
+
+    def withdrawn(self, fingerprint):
+        """Whether a producer-signed withdrawal of this pack (its manifest digest)
+        or pack set (its key) is recorded here."""
+        return self._withdrawn_path(fingerprint).is_file()
+
+    def withdraw(self, fingerprint, reason, block):
+        """Record a verified withdrawal, create-only; a repeat of the same one is
+        a no-op and a different one for the same fingerprint is refused. The
+        exam files stay in place for audit but can never be used again."""
+        record = {"fingerprint": fingerprint, "reason": reason, "block": block}
+        path = self._withdrawn_path(fingerprint)
+        self._owner_only_root()
+        path.parent.mkdir(mode=0o700, exist_ok=True)
+        raw = json.dumps(record, sort_keys=True, separators=(",", ":")).encode()
+        if path.exists():
+            if path.read_bytes() != raw:
+                raise AnswerKeyRefused("answer_key_withdrawal_changed")
+            return
+        path.write_bytes(raw)
+        path.chmod(0o600)
+
     def _set_path(self, set_key):
         if type(set_key) is not str or _DIGEST.fullmatch(set_key) is None:
             raise AnswerKeyRefused("answer_key_malformed")
@@ -321,6 +359,8 @@ class SealedPackStore:
 
     def holds_set(self, commitment):
         try:
+            if self.withdrawn(commitment["set_key"]):
+                return False
             return self._set_path(commitment["set_key"]).is_file()
         except (AnswerKeyRefused, KeyError, TypeError):
             return False
@@ -330,6 +370,8 @@ class SealedPackStore:
         need not be here yet (a sync may deliver them in any order); they are
         verified, one by one, when the set is used (`pack_set`)."""
         verify_set(commitment, payload)
+        if self.withdrawn(commitment["set_key"]):
+            raise AnswerKeyRefused("answer_key_withdrawn")
         self._owner_only_root()
         record = self.root / SETS_DIRECTORY
         record.mkdir(mode=0o700, exist_ok=True)
@@ -347,6 +389,8 @@ class SealedPackStore:
         in this store, re-verified now and delivered through the answer-key
         route; otherwise `AnswerKeyRefused` (an unset or partial set grades
         nothing)."""
+        if self.withdrawn(set_key):
+            raise AnswerKeyRefused("answer_key_pack_set_withdrawn")
         try:
             commitment = json.loads(self._set_path(set_key).read_bytes())
         except (OSError, ValueError):
@@ -360,6 +404,8 @@ class SealedPackStore:
             raise AnswerKeyRefused("answer_key_wrong_challenge")
         batches = []
         for digest in commitment["batches"]:
+            if self.withdrawn(digest):
+                raise AnswerKeyRefused("answer_key_pack_set_batch_withdrawn")
             if not self.delivered(digest, challenge_id, challenge_version):
                 raise AnswerKeyRefused("answer_key_pack_set_batch_missing")
             batches.append(
@@ -412,6 +458,8 @@ class SealedPackStore:
         """The verified directory of a stored pack, for the receiver; raises
         `AnswerKeyRefused` when it is absent, altered, or another Challenge's."""
         directory = self._directory(manifest_digest)
+        if self.withdrawn(manifest_digest):
+            raise AnswerKeyRefused("answer_key_sealed_pack_withdrawn")
         if directory.is_symlink() or not (directory / MANIFEST_NAME).is_file():
             raise AnswerKeyRefused("answer_key_sealed_pack_missing")
         probe = {
@@ -469,7 +517,13 @@ class SealedPackAdapter:
         return self.store.import_pack(commitment, payload)
 
     def withdraw_answer_key(self, manifest):
-        raise AnswerKeyRefused("answer_key_withdrawal_unsupported")
+        """A verified producer withdrawal of a pack or a pack set (the manifest's
+        fingerprint is the pack's manifest digest or the set's key)."""
+        if manifest.get("challenge_id") != self.challenge_id:
+            raise AnswerKeyRefused("answer_key_wrong_challenge")
+        self.store.withdraw(
+            manifest["fingerprint"], manifest["reason"], manifest["block"]
+        )
 
 
 __all__ = [
