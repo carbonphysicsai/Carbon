@@ -10,7 +10,7 @@ def decision(**body):
 
 def test_passed_and_failed_are_said():
     passed = decision(gate_verdict="PASSED")
-    assert passed["text"] == "Practice gates: passed."
+    assert passed["text"] == "Practice gates passed."
     failed = decision(gate_verdict="FAILED", reason="selected recipe failed a gate")
     assert failed["text"] == "selected recipe failed a gate"
     assert "failed, so nothing is submitted" in failed["detail"]

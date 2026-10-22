@@ -129,9 +129,9 @@ def refusal_meaning(code):
 
 #: A practice's gate verdict, as the journal says it. Never a silent pass.
 GATE_VERDICT_WORDS = {
-    "PASSED": "Practice gates: passed.",
-    "FAILED": "Practice gates: failed, so nothing is submitted.",
-    "NOT_REPORTED": "Practice gates: not reported. That is not a pass.",
+    "PASSED": "Practice gates passed.",
+    "FAILED": "Practice gates failed, so nothing is submitted.",
+    "NOT_REPORTED": "Practice gates not reported. That is not a pass.",
 }
 
 
