@@ -121,8 +121,7 @@ def test_the_runner_refuses_a_small_slot_and_types_oom_and_refusal_as_infra_stop
     assert done.returncode == 125 and "slot_memory_insufficient" in done.stderr
     assert (tmp_path / ".slot_memory_insufficient").exists()
     fake = tmp_path / "docker"
-    fake.write_text("#!/bin/sh
-exit 137
-"); fake.chmod(0o755)
+    fake.write_text("#!/bin/sh\nexit 137\n")
+    fake.chmod(0o755)
     done = subprocess.run([sys.executable, str(script), "shim", str(fake), "run", "img"], env=env)
     assert done.returncode == 137 and (tmp_path / ".slot_oom_137").exists()
