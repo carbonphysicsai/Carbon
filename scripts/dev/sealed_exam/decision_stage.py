@@ -20,13 +20,11 @@ from pathlib import Path
 KEYS = {
     "f02": {
         "cid": "f02",
-        "wrapper": "carbon.f02.decision_check",
         "quantity": "peak_top_c",
         "value": lambda record: record["outputs"]["peak_top_c"],
     },
     "f08": {
         "cid": "f08-ribbed-bracket",
-        "wrapper": "carbon.f08.decision_check",
         "quantity": "worst_dynamic_mm_per_n",
         "value": lambda record: record["outputs"]["worst_dynamic_mm_per_n"],
     },
@@ -43,10 +41,21 @@ def registered_u(cid, quantity):
     return module.registered_u(cid)[quantity]
 
 
+def wrapper_for(key):
+    """The Challenge's decision wrapper: a static dispatch (no dynamic import)."""
+    if key == "f02":
+        from carbon.f02 import decision_check
+    elif key == "f08":
+        from carbon.f08 import decision_check
+    else:
+        raise KeyError(key)
+    return decision_check
+
+
 def decide(key, exported, u):
     """The failure kind (or None) for an export; split out so it can be tested."""
     entry = KEYS[key]
-    wrapper = importlib.import_module(entry["wrapper"])
+    wrapper = wrapper_for(key)
     cells = []
     for case_id, record in sorted(exported["references"].items()):
         if record.get("status") != "OK":
