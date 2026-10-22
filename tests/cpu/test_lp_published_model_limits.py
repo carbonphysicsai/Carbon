@@ -206,20 +206,17 @@ def test_a_frozen_limits_record_is_checked_exactly(change):
         )
 
 
-def test_the_smaller_context_binds_and_only_selects_bounds_clamp():
+def test_the_smaller_context_binds_and_no_carbon_maximum_clamps():
     record = limits("narrow/model")
     context = mp.published_context("chutes", "narrow/model", record)
     # context_length 262,144 and max_model_len 131,072 differ: the server's
     # enforced length is the smaller.
     assert (context["tokens"], context["field"]) == (131072, "max_model_len")
     found = mp.output_maximum("chutes", "narrow/model", published_limits=record)
-    high = mp.OUTPUT_TOKEN_BOUNDS[1]
-    assert found["max_output_tokens"] == high == 131072
+    # A miner's selection: the published 200,000 as it is (limits row #8).
+    assert found["max_output_tokens"] == 200000
     assert found["source"]["max_output_length"] == 200000
-    assert found["source"]["bound"] == {
-        "applied": 131072,
-        "source": "model_provider.OUTPUT_TOKEN_BOUNDS",
-    }
+    assert found["source"]["bound"] is None
 
 
 def test_engy_and_a_generic_adapter_are_unchanged():

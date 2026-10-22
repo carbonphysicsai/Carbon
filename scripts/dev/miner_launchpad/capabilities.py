@@ -529,8 +529,8 @@ def _output_cap(providers, limits=None):
     launch and has the last word."""
     from carbon.development_session.model_provider import (
         DEFAULT_SETTINGS,
+        MINER_OUTPUT_TOKEN_BOUNDS,
         OUTPUT_FROM_PUBLISHED_LIVE,
-        OUTPUT_TOKEN_BOUNDS,
         ModelSelectionRefused,
         output_maximum,
     )
@@ -554,7 +554,7 @@ def _output_cap(providers, limits=None):
             if chosen["basis"] == OUTPUT_FROM_PUBLISHED_LIVE:
                 shown["source"] = chosen["source"]
             defaults.setdefault(row["id"], {})[model["id"]] = shown
-    low, high = OUTPUT_TOKEN_BOUNDS
+    low, high = MINER_OUTPUT_TOKEN_BOUNDS
     return {
         "launch_field": "model_settings.max_output_tokens",
         "bounds": [low, high],
@@ -589,13 +589,13 @@ def _call_timeout():
         ADAPTERS,
         CHAT_COMPLETIONS,
         DEADLINE_MARGIN_SECONDS,
+        MINER_TIMEOUT_SECONDS_BOUNDS,
         TIMEOUT_DEFAULT_V2,
         TIMEOUT_DEFAULT_V2_SECONDS,
-        TIMEOUT_SECONDS_BOUNDS,
         TRANSPORT_STREAM_V1,
     )
 
-    low, high = TIMEOUT_SECONDS_BOUNDS
+    low, high = MINER_TIMEOUT_SECONDS_BOUNDS
     return {
         "launch_field": "model_settings.timeout_seconds",
         "bounds": [low, high],
@@ -685,7 +685,7 @@ def _input_window(providers, limits=None):
     from carbon.development_session.model_provider import (
         DEFAULT_SETTINGS,
         INPUT_DEFAULT_V2,
-        INPUT_TOKEN_BOUNDS,
+        MINER_INPUT_TOKEN_BOUNDS,
         published_context,
     )
     from carbon.development_session.research_agent import CONTEXT_RESERVE_TOKENS
@@ -702,7 +702,7 @@ def _input_window(providers, limits=None):
             window = _graphite_window(row["id"], model["id"], live)
             if window is not None:
                 graphite.setdefault(row["id"], {})[model["id"]] = window
-    low, high = INPUT_TOKEN_BOUNDS
+    low, high = MINER_INPUT_TOKEN_BOUNDS
     default = DEFAULT_SETTINGS.max_input_tokens
     return {
         "launch_field": "model_settings.max_input_tokens",

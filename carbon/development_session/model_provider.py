@@ -81,6 +81,31 @@ INPUT_TOKEN_BOUNDS = (16384, 1048576)
 #: The provider call timeouts (`timeout_seconds`) a selection may carry,
 #: inclusive.
 TIMEOUT_SECONDS_BOUNDS = (10, 600)
+#: A miner's selection (the miner-facing `ADAPTERS`) has no Carbon-chosen
+#: maximum on its output cap, input window or call timeout
+#: (OWNER-MINER-LIMITS-EXAM-ONLY-01, limits row #8): the provider's own
+#: published limits are the defaults, and the provider refuses past its own
+#: maximum. The upper bound is the unsigned 64-bit one, a type check; the
+#: minimums stay. A frozen miner selection's values lie inside these, so it
+#: re-validates unchanged. Carbon's own Graphite (its own adapter registry,
+#: grant-bound) keeps the bounds above.
+UNBOUNDED = 2**63 - 1
+MINER_OUTPUT_TOKEN_BOUNDS = (OUTPUT_TOKEN_BOUNDS[0], UNBOUNDED)
+MINER_INPUT_TOKEN_BOUNDS = (INPUT_TOKEN_BOUNDS[0], UNBOUNDED)
+MINER_TIMEOUT_SECONDS_BOUNDS = (TIMEOUT_SECONDS_BOUNDS[0], UNBOUNDED)
+
+
+def selection_bounds(adapters=None):
+    """`(output, input, timeout)` bounds for a selection validated against
+    `adapters`: the miner's (none above 64 bits) for the miner-facing
+    registry, the historical ones for any other (Carbon's own Graphite)."""
+    if adapters is None or adapters is ADAPTERS:
+        return (
+            MINER_OUTPUT_TOKEN_BOUNDS,
+            MINER_INPUT_TOKEN_BOUNDS,
+            MINER_TIMEOUT_SECONDS_BOUNDS,
+        )
+    return OUTPUT_TOKEN_BOUNDS, INPUT_TOKEN_BOUNDS, TIMEOUT_SECONDS_BOUNDS
 
 
 @dataclass(frozen=True)
@@ -1030,8 +1055,9 @@ def output_maximum(provider_id, model_id, *, adapters=None, published_limits=Non
     if documented is None:
         documented, basis = adapter.output_maximum, OUTPUT_FROM_PROVIDER
     live = _live_output(published_limits)
+    output_bounds = selection_bounds(adapters)[0]
     if documented is None and live is not None:
-        low, high = OUTPUT_TOKEN_BOUNDS
+        low, high = output_bounds
         tokens = min(max(live, low), high)
         return {
             "max_output_tokens": tokens,
@@ -1045,7 +1071,11 @@ def output_maximum(provider_id, model_id, *, adapters=None, published_limits=Non
                     if tokens == live
                     else {
                         "applied": tokens,
-                        "source": "model_provider.OUTPUT_TOKEN_BOUNDS",
+                        "source": (
+                            "model_provider.OUTPUT_TOKEN_BOUNDS"
+                            if output_bounds == OUTPUT_TOKEN_BOUNDS
+                            else "model_provider.MINER_OUTPUT_TOKEN_BOUNDS"
+                        ),
                     }
                 ),
             },
@@ -1056,7 +1086,7 @@ def output_maximum(provider_id, model_id, *, adapters=None, published_limits=Non
             "basis": OUTPUT_CONSERVATIVE,
             "source": None,
         }
-    low, high = OUTPUT_TOKEN_BOUNDS
+    low, high = output_bounds
     return {
         "max_output_tokens": min(max(documented.tokens, low), high),
         "basis": basis,
@@ -1106,7 +1136,9 @@ INPUT_NO_ROOM = "published_context_leaves_no_window"
 INPUT_FROM_MINER = "miner_set"
 
 
-def input_window(provider_id, model_id, max_output_tokens, published_limits=None):
+def input_window(
+    provider_id, model_id, max_output_tokens, published_limits=None, *, bounds=None
+):
     """The input window a new Graphite miner-edition plan opens with when the
     miner sets none (`INPUT_DEFAULT_V2`), as a record:
     `{rule, max_input_tokens, basis, published_context, max_output_tokens,
@@ -1135,7 +1167,7 @@ def input_window(provider_id, model_id, max_output_tokens, published_limits=None
             "max_input_tokens": DEFAULT_SETTINGS.max_input_tokens,
             "basis": INPUT_CONSERVATIVE,
         }
-    low, high = INPUT_TOKEN_BOUNDS
+    low, high = INPUT_TOKEN_BOUNDS if bounds is None else bounds
     room = published["tokens"] - max_output_tokens
     if room < low:
         return {
@@ -1148,7 +1180,14 @@ def input_window(provider_id, model_id, max_output_tokens, published_limits=None
             **record,
             "max_input_tokens": high,
             "basis": INPUT_FROM_PUBLISHED,
-            "bound": {"upper": high, "source": "model_provider.INPUT_TOKEN_BOUNDS"},
+            "bound": {
+                "upper": high,
+                "source": (
+                    "model_provider.INPUT_TOKEN_BOUNDS"
+                    if high == INPUT_TOKEN_BOUNDS[1]
+                    else "model_provider.MINER_INPUT_TOKEN_BOUNDS"
+                ),
+            },
         }
     return {**record, "max_input_tokens": room, "basis": INPUT_FROM_PUBLISHED}
 
@@ -1244,8 +1283,9 @@ def select(
         chosen.update(settings)
     if chosen["reasoning_effort"] not in EFFORTS:
         raise ModelSelectionRefused("unsupported reasoning effort")
+    output_bounds, input_bounds, timeout_bounds = selection_bounds(adapters)
     max_output_tokens = _int(
-        chosen["max_output_tokens"], *OUTPUT_TOKEN_BOUNDS, "max_output_tokens"
+        chosen["max_output_tokens"], *output_bounds, "max_output_tokens"
     )
     window = None
     if input_default == INPUT_DEFAULT_V2:
@@ -1259,16 +1299,18 @@ def select(
                 "basis": INPUT_FROM_MINER,
             }
         else:
-            window = input_window(provider_id, model_id, max_output_tokens, limits)
+            window = input_window(
+                provider_id, model_id, max_output_tokens, limits, bounds=input_bounds
+            )
             chosen["max_input_tokens"] = window["max_input_tokens"]
     resolved = Settings(
         max_input_tokens=_int(
-            chosen["max_input_tokens"], *INPUT_TOKEN_BOUNDS, "max_input_tokens"
+            chosen["max_input_tokens"], *input_bounds, "max_input_tokens"
         ),
         max_output_tokens=max_output_tokens,
         reasoning_effort=chosen["reasoning_effort"],
         timeout_seconds=_int(
-            chosen["timeout_seconds"], *TIMEOUT_SECONDS_BOUNDS, "timeout_seconds"
+            chosen["timeout_seconds"], *timeout_bounds, "timeout_seconds"
         ),
     )
     listed = adapter.priced_models.get(model_id)

@@ -85,9 +85,10 @@ def test_a_new_graphite_plan_freezes_the_published_window():
         assert plan["input_window"] == selection.input_window
 
 
-def test_the_window_is_bounded_by_selects_upper_limit_and_says_so():
-    # kimi-k3 publishes 1,113,088; with a 4,096 output cap the room is above
-    # the most `select` accepts.
+def test_a_miners_window_is_the_published_room_with_no_carbon_maximum():
+    # kimi-k3 publishes 1,113,088; with a 4,096 output cap the room was above
+    # the historical 1,048,576. A miner's selection has no Carbon maximum
+    # (limits row #8), so the window is the whole room.
     selection = new_plan(
         launch(
             {
@@ -97,15 +98,11 @@ def test_the_window_is_bounded_by_selects_upper_limit_and_says_so():
             }
         )
     )
-    high = mp.INPUT_TOKEN_BOUNDS[1]
-    assert selection.settings.max_input_tokens == high == 1048576
+    assert selection.settings.max_input_tokens == 1113088 - 4096 == 1108992
     assert selection.input_window["basis"] == mp.INPUT_FROM_PUBLISHED
-    assert selection.input_window["bound"] == {
-        "upper": high,
-        "source": "model_provider.INPUT_TOKEN_BOUNDS",
-    }
+    assert selection.input_window["bound"] is None
     plan = agent_plan.provider_plan("graphite", BUDGET, selection, graphite=block())
-    assert plan["input_window"]["bound"]["upper"] == high
+    assert plan["input_window"] == selection.input_window
 
 
 def test_a_window_the_miner_sets_binds():

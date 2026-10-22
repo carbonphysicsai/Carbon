@@ -81,8 +81,12 @@ def test_the_rule_and_its_value_are_selects_own_bound():
             timeout_default="longest",
             **ENGY,
         )
-    for bad in (9, 601, 120.0, "600", True):
-        with pytest.raises(mp.ModelSelectionRefused, match=r"\[10, 600\]"):
+    # A miner's timeout has no maximum but the 64-bit one (limits row #8):
+    # with streamed calls it counts only idle time.
+    for bad in (9, 2**63, 120.0, "600", True):
+        with pytest.raises(
+            mp.ModelSelectionRefused, match=r"\[10, 9223372036854775807\]"
+        ):
             mp.select(
                 credential={"kind": "file", "reference": "unset"},
                 settings={"timeout_seconds": bad},
@@ -232,7 +236,7 @@ def test_the_launch_surfaces_read_the_same_bounds_and_default():
     model = capabilities._model(options, capabilities.NO_PROFILE, {})
     timeout = model["call_timeout"]
     assert timeout["launch_field"] == "model_settings.timeout_seconds"
-    assert timeout["bounds"] == list(mp.TIMEOUT_SECONDS_BOUNDS)
+    assert timeout["bounds"] == list(mp.MINER_TIMEOUT_SECONDS_BOUNDS)
     assert timeout["default"] == mp.TIMEOUT_DEFAULT_V2_SECONDS
     assert timeout["default_rule"] == mp.TIMEOUT_DEFAULT_V2
     # The default shown is what a launch that sets none gets.
