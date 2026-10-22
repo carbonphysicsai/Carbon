@@ -619,3 +619,66 @@ def submit_and_wait(
         sleep(min(POLL_S, max(0.0, deadline - clock())))
         if clock() >= deadline:
             raise DirectConstructionPending(task_id)
+
+
+#: An epoch's Ladder as last read again by the miner (M1 E2E U53): the
+#: permitted feedback is written once at submit, often before the receiver
+#: grades it, so "Check for result" stores the fresh read beside it.
+EXAM_FEEDBACK_FILE = "exam-feedback.json"
+EXAM_FEEDBACK_SCHEMA = "carbon.construction.exam-feedback-read.v1"
+
+
+def refresh_exam_feedback(root, epoch, signer, *, read=read_intake, send=post):
+    """Read the miner's own Ladder again for a submitted epoch and store it
+    beside the epoch's permitted feedback; returns the Ladder.
+
+    Everything the read binds - intake, receiver, chain context, contract -
+    comes from the epoch's own admission record, written when it was
+    submitted, and the recipe from its frozen selection, so nothing here is
+    chosen anew. Signed by the miner's signer, as the submit's own read is
+    (Validator: a miner-pressed operation, no signer-scope change)."""
+    from carbon.development_session.profile import canonical
+
+    root = Path(root)
+    folder = root / ("epoch-" + str(int(epoch)))
+    record_path = _record_path(root, epoch)
+    try:
+        record = json.loads(record_path.read_bytes())
+        stored = json.loads((folder / "permitted-final-feedback.json").read_bytes())
+        selected = json.loads((folder / "selected-recipe.json").read_bytes())
+        recipe = ConstructionRecipe.from_dict(selected["strategy"])
+        context = ChainContext(**record["context"])
+    except (OSError, ValueError, TypeError, KeyError):
+        raise DirectIntakeRefusal("construction_admission_record_required") from None
+    if (
+        record_path.is_symlink()
+        or record.get("schema") != RECORD_SCHEMA
+        or record.get("epoch") != int(epoch)
+        or record.get("recipe_digest") != recipe.digest
+        or stored.get("recipe_digest") != recipe.digest
+    ):
+        raise DirectIntakeRefusal("construction_admission_record_required")
+    ladder = read_exam_feedback(
+        record["url"],
+        signer,
+        recipe=recipe,
+        contract_digest=record["contract_digest"],
+        receiver=record["receiver"],
+        context=context,
+        read=read,
+        send=send,
+    )
+    target = folder / EXAM_FEEDBACK_FILE
+    staged = folder / (EXAM_FEEDBACK_FILE + ".tmp")
+    staged.write_bytes(
+        canonical(
+            {
+                "schema": EXAM_FEEDBACK_SCHEMA,
+                "epoch": int(epoch),
+                "recipe_digest": recipe.digest,
+                "exam_feedback": ladder,
+            }
+        )
+    )
+    staged.replace(target)
+    return ladder

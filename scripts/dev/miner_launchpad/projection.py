@@ -187,7 +187,7 @@ def _validator_outcome(epoch, path):
             "reward": False,
         }
         if direct:
-            result["grade"] = _grade(document["exam_feedback"])
+            result["grade"] = _grade(_latest_ladder(path, document))
     except (OSError, ValueError, TypeError, KeyError):
         return unavailable
     return {
@@ -196,6 +196,30 @@ def _validator_outcome(epoch, path):
         "status": "VALIDATOR_OUTCOME",
         "result": result,
     }
+
+
+def _latest_ladder(path, document):
+    """The epoch's Ladder as the miner last read it ("Check for result",
+    `direct_submission.refresh_exam_feedback`) when that read is of this
+    recipe, else the one stored at submit."""
+    from carbon.development_session.direct_submission import (
+        EXAM_FEEDBACK_FILE,
+        EXAM_FEEDBACK_SCHEMA,
+    )
+
+    fresh = path.parent / EXAM_FEEDBACK_FILE
+    try:
+        if not fresh.is_symlink() and 0 < fresh.stat().st_size <= 65536:
+            read = json.loads(fresh.read_bytes())
+            if (
+                type(read) is dict
+                and read.get("schema") == EXAM_FEEDBACK_SCHEMA
+                and read.get("recipe_digest") == document.get("recipe_digest")
+            ):
+                return read.get("exam_feedback")
+    except (OSError, ValueError):
+        pass
+    return document["exam_feedback"]
 
 
 def _grade(ladder):

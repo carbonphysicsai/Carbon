@@ -3757,6 +3757,43 @@ class RunnerAdapter:
             read_queued_verdict(self, admitted)
         return self.read(admitted.campaign["id"])
 
+    def check_result_admitted(self, admitted, request):
+        # M1 E2E U53 (Validator: a miner-pressed, normally signed read): the
+        # latest submitted epoch's Ladder, read again and stored beside it.
+        from carbon.chain.external_signer import SignerFailure
+        from carbon.development_session.direct_submission import (
+            DirectIntakeRefusal,
+            refresh_exam_feedback,
+        )
+
+        identity = admitted.campaign["id"]
+        root = Path(admitted.campaign["root"])
+        epochs = sorted(
+            int(folder.name.split("-", 1)[1])
+            for folder in root.glob("epoch-*")
+            if folder.name.split("-", 1)[1].isdigit()
+            and (folder / "permitted-final-feedback.json").is_file()
+            and (root / f"construction-intake-epoch-{folder.name[6:]}.json").is_file()
+        )
+        if not epochs:
+            raise Rejected("no_submitted_result", 409)
+        with self.lock:
+            thread = self.threads.get(identity)
+            if thread is not None and thread.is_alive():
+                raise Rejected("campaign_busy", 409)
+        try:
+            signer = (self.verdict_signer or signer_ready)(self.configured())
+            refresh_exam_feedback(root, epochs[-1], signer)
+        except DirectIntakeRefusal as refused:
+            raise Rejected(refused.code, 409) from None
+        except SignerFailure as failure:
+            raise Rejected(
+                exception_code(failure) or "signer_unavailable", 409
+            ) from None
+        except OSError:
+            raise Rejected("construction_intake_unavailable", 409) from None
+        return self.read(identity)
+
     def campaign_view_admitted(self, admitted, request):
         # The research surface's one document (RSURF-D1), which the page
         # polls: a phantom in-flight campaign is settled first.

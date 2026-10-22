@@ -75,3 +75,98 @@ def test_a_battery_shaped_outcome_is_unchanged(tmp_path):
     shown = _project(tmp_path, document)
     assert shown["status"] == "VALIDATOR_OUTCOME"
     assert "grade" not in shown["result"]
+
+
+# --- U53 part 2: "Check for result" reads the Ladder again ------------------
+
+
+def _submitted(tmp_path, monkeypatch, ladder_at_submit):
+    from types import SimpleNamespace
+
+    from carbon.development_session import direct_submission as ds
+
+    digest = "sha256:" + "a" * 64
+    monkeypatch.setattr(
+        ds.ConstructionRecipe,
+        "from_dict",
+        staticmethod(lambda value: SimpleNamespace(digest=digest)),
+    )
+    folder = tmp_path / "epoch-1"
+    folder.mkdir()
+    (folder / "selected-recipe.json").write_text(json.dumps({"strategy": {}}))
+    (folder / "permitted-final-feedback.json").write_text(
+        json.dumps(_document(ladder_at_submit))
+    )
+    (tmp_path / "construction-intake-epoch-1.json").write_text(
+        json.dumps(
+            {
+                "schema": ds.RECORD_SCHEMA,
+                "url": "http://127.0.0.1:8769",
+                "epoch": 1,
+                "receiver": "receiver-hotkey",
+                "context": {
+                    "network": "testnet",
+                    "endpoint": "wss://chain.example",
+                    "provider": "fixture",
+                    "genesis_hash": "0x" + "1" * 64,
+                    "netuid": 567,
+                },
+                "recipe_digest": digest,
+                "contract_digest": "sha256:" + "c" * 64,
+            }
+        )
+    )
+    return ds, folder
+
+
+def test_check_for_result_stores_the_fresh_ladder_and_the_page_shows_it(
+    tmp_path, monkeypatch
+):
+    ds, folder = _submitted(tmp_path, monkeypatch, {"best": None, "latest": None})
+    asked = []
+
+    def read(url, signer, **kwargs):
+        asked.append((url, signer, kwargs["receiver"], kwargs["contract_digest"]))
+        return {"best": LADDER, "latest": LADDER}
+
+    monkeypatch.setattr(ds, "read_exam_feedback", read)
+    ladder = ds.refresh_exam_feedback(tmp_path, 1, "miner-signer")
+    assert ladder["latest"] == LADDER
+    # Everything the read binds comes from the epoch's own admission record.
+    assert asked == [
+        (
+            "http://127.0.0.1:8769",
+            "miner-signer",
+            "receiver-hotkey",
+            "sha256:" + "c" * 64,
+        )
+    ]
+    assert (folder / ds.EXAM_FEEDBACK_FILE).is_file()
+    shown = projection._validator_outcome(1, folder / "permitted-final-feedback.json")
+    assert shown["result"]["grade"]["latest"]["total"] == 0.5488
+
+
+def test_a_stored_read_of_another_recipe_is_not_shown(tmp_path, monkeypatch):
+    ds, folder = _submitted(tmp_path, monkeypatch, {"best": None, "latest": None})
+    (folder / ds.EXAM_FEEDBACK_FILE).write_text(
+        json.dumps(
+            {
+                "schema": ds.EXAM_FEEDBACK_SCHEMA,
+                "epoch": 1,
+                "recipe_digest": "sha256:" + "f" * 64,
+                "exam_feedback": {"best": LADDER, "latest": LADDER},
+            }
+        )
+    )
+    shown = projection._validator_outcome(1, folder / "permitted-final-feedback.json")
+    assert shown["result"]["grade"] == {"latest": None, "best": None}
+
+
+def test_check_for_result_without_an_admission_record_is_refused(tmp_path, monkeypatch):
+    import pytest
+
+    ds, _folder = _submitted(tmp_path, monkeypatch, {"best": None, "latest": None})
+    (tmp_path / "construction-intake-epoch-1.json").unlink()
+    with pytest.raises(ds.DirectIntakeRefusal) as refused:
+        ds.refresh_exam_feedback(tmp_path, 1, "miner-signer")
+    assert refused.value.code == "construction_admission_record_required"

@@ -2708,7 +2708,7 @@
     const detail = [typeof latest.A === "number" ? "A " + latest.A.toFixed(3) : null, typeof latest.D === "number" ? "D " + latest.D.toFixed(3) : null].filter(Boolean).join(", ");
     return "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better" + (detail ? "; " + detail : "") + ")" + best + ". Compares within this Challenge version only.";
   }
-  function renderValidatorOutcome(panel, result) {
+  function renderValidatorOutcome(panel, result, campaign) {
     const o = result.result;
     const s = o.screening;
     const cases = s && s.cases && typeof s.cases === "object" ? Object.entries(s.cases).map(([k, v]) => words(k) + " " + v).join(", ") : "unavailable";
@@ -2728,6 +2728,20 @@
       (o.evidence || "DEVELOPMENT") + ": no qualification, no reward, no chain write.",
     ];
     for (const line of lines) researchNote(panel, line, "development-result");
+    // U53: the submit often answers before the validator grades it; the
+    // miner asks again (a signed read, Validator-approved), never unasked.
+    if (o.grade !== undefined && campaign) {
+      const check = document.createElement("button"); check.type = "button";
+      check.textContent = "Check for result";
+      check.addEventListener("click", async () => {
+        if (busy || !connected) return;
+        busy = true; render();
+        try { await api("/api/v1/operations/check_result", {campaign}, undefined, 30000); message("Read your latest grade from the validator."); }
+        catch (error) { message("Not read: " + (error.message || "the validator could not be reached") + ".", true); }
+        finally { busy = false; await refresh(); render(); }
+      });
+      panel.append(check);
+    }
   }
   function tabSubmission(panel, run) {
     if (run.selects === "miner") renderJourneySubmission(panel, run);
@@ -2736,12 +2750,12 @@
       if (result.status === "MULTI_VALIDATOR_OUTCOME") {
         for (const validator of result.validators || []) {
           researchNote(panel, "Validator: " + validator.receiver_hotkey + " · " + validator.intake_url, "development-result");
-          if (validator.result) renderValidatorOutcome(panel, {epoch: result.epoch, result: validator.result});
+          if (validator.result) renderValidatorOutcome(panel, {epoch: result.epoch, result: validator.result}, run.id);
           else researchNote(panel, words(validator.state) + ": " + (validator.next_step || words(validator.code)), "development-result");
         }
         continue;
       }
-      if (result.status === "VALIDATOR_OUTCOME" && result.result) { renderValidatorOutcome(panel, result); continue; }
+      if (result.status === "VALIDATOR_OUTCOME" && result.result) { renderValidatorOutcome(panel, result, run.id); continue; }
       const verified = result.status === "VERIFIED_SOURCE" && result.result;
       researchNote(panel, "DEVELOPMENT evaluation: " + (verified ? (result.result.disposition || "disposition unavailable") + " · Accepted DEVELOPMENT improvement: " + (typeof result.result.accepted_development_improvement === "boolean" ? String(result.result.accepted_development_improvement) : "unavailable") : "Readback unavailable; no disposition inferred."), "development-result");
     }

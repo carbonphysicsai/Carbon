@@ -708,6 +708,19 @@ OPERATIONS = {
             admits_work=False,
         ),
         Operation(
+            "check_result",
+            "Check for your submitted candidate's grade: reads your own "
+            "private-exam Ladder again from the receiver your latest submit "
+            "went to, signed by your signer, and stores it beside that "
+            "epoch. A submit often answers before the validator grades it; "
+            "this shows the grade once it exists. Reads only; nothing is "
+            "submitted or resent.",
+            frozenset({"campaign"}),
+            frozenset(),
+            ("request", "profile", "campaign"),
+            admits_work=False,
+        ),
+        Operation(
             "campaign_view",
             "The campaign's research view: the one allow-listed document the "
             "Control Center draws every panel from - stage, controls, practice "
