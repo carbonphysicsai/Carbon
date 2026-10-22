@@ -409,7 +409,7 @@
     if (typeof t.practice_runs.attempted === "number") {
       // Practice runs that finished are the count; a launch that was interrupted is said apart (U50).
       const unfinished = t.practice_runs.attempted - (typeof t.practice_runs.completed === "number" ? t.practice_runs.completed : t.practice_runs.attempted);
-      runs.append(el("span", unfinished > 0 ? "finished · " + unfinished + " more started but not finished" : "finished", "hint"));
+      runs.append(el("span", unfinished > 0 ? "finished · " + unfinished + " other trial" + (unfinished === 1 ? "" : "s") + " used (smoke checks or starts that did not finish)" : "finished", "hint"));
     }
     runs.append(el("span", t.trials && typeof t.trials.ceiling === "number" ? "Trials used " + t.trials.used + " of your " + t.trials.ceiling : "Trials used " + (t.trials ? t.trials.used : 0) + " · no cap set", "hint"));
     tile("Practice runs", String(t.practice_runs.completed), runs);
@@ -625,7 +625,14 @@
     part(grid, "curve", JSON.stringify([byId.learning_curve || null, doc.learning_curve]), curve => {
       head(curve, "Learning curve", "Training");
       if (byId.learning_curve) chart(curve, byId.learning_curve);
-      else para(curve, "Not recorded. " + (doc.learning_curve.basis || ""), "empty-state");
+      else {
+        // The registered kernel-ridge fit has no training curve (a closed-form solve); a catalog model's curve is
+        // simply not recorded here yet, and the kernel-ridge sentence would be wrong for it (R5-7).
+        const rows = doc.experiments?.rows || [];
+        const latest = rows[rows.length - 1];
+        const kernel = !latest || (!latest.backbone && !latest.recipe) || /kernel|krr/i.test(String(latest.backbone || ""));
+        para(curve, kernel ? "Not recorded. " + (doc.learning_curve.basis || "") : "Not recorded for this model yet.", "empty-state");
+      }
     });
     part(grid, "cases", JSON.stringify(doc.per_case), cases => {
       head(cases, "A public practice case", "Predicted against reference");

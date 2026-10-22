@@ -4791,6 +4791,9 @@
       return {kind: "refused", text: "Interrupted before it finished (" + words(run.state).toLowerCase() + "). Reconcile the campaign, then try again."};
     }
     if (Date.now() - entry.since < SETTLE_MS) return {kind: "working", text: "Finishing: waiting for the campaign's record · " + elapsed + "."};
+    // A submit that was sent and not refused is not "ended without the change": the page may simply not have
+    // read the record yet (R5-3, U62). Say that, and where the result will be.
+    if (entry.name === "submit") return {kind: "unclear", text: "Your submit was sent and was not refused. This page has not read the campaign's record of it yet; look under Submission for the result."};
     return {kind: "unclear", text: "It ended without the change it was for (" + words(run.state).toLowerCase() + "). Any reason is in the campaign's Logs and journal."};
   }
   // Each refresh: an operation that ended says so once, in the page's message.
