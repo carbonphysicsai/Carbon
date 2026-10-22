@@ -483,3 +483,36 @@ def test_a_record_without_its_network_or_decision_is_refused(tmp_path):
             receiver_setup.SetupRefused, match="exam_producer_registry_invalid"
         ):
             validator_host.pinned_producer_key(record)
+
+
+def test_the_receivers_chain_context_is_the_network_the_key_check_reads(tmp_path):
+    # Validator, on 3a8ab97e2: installed_network() reads carbon_testnet_context().
+    # The receiver binds its network from the installed profile's miner-network
+    # file, which miner_network.load accepts only for that same context. A
+    # receiver that could bind another network must break this test, and the
+    # key check must then read the installed profile instead.
+    import inspect
+
+    from carbon.challenge_validator import direct_receiver
+    from carbon.development_session import miner_network
+    from carbon.development_session.chain_onboarding import carbon_testnet_context
+
+    context = carbon_testnet_context()
+    assert miner_network._context() == context
+    bound = miner_network.NetworkBinding(context, HOTKEY, context.netuid)
+    path = tmp_path / "miner-network.json"
+    path.write_text(json.dumps(miner_network.document(bound, 7)))
+    loaded = miner_network.load(path)
+    assert loaded.context == context
+    assert validator_host.installed_network() == (
+        f"{loaded.context.network}-{loaded.context.netuid}"
+    )
+    other = miner_network.document(bound, 7)
+    other["context"] = {**other["context"], "network": "finney"}
+    path.write_text(json.dumps(other))
+    with pytest.raises(miner_network.NetworkUnavailable):
+        miner_network.load(path)
+    # The receiver takes its network through that loader, from its profile.
+    source = inspect.getsource(direct_receiver.installed_source)
+    assert "miner_network import binding" in source
+    assert 'miner_network=paths.get("miner_network")' in source
