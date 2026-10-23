@@ -398,6 +398,9 @@ FAKE_CHECKOUT = {
 }
 FAKE_PYTHON = """#!/bin/sh
 echo "python $*" >> "$CARBON_TEST_LOG"
+# -B (no bytecode) comes first where the installer passes it.
+bytecode=yes
+if [ "$1" = -B ]; then bytecode=no; shift; fi
 case "$1" in -c) exec "$CARBON_TEST_REAL_PYTHON" "$@" ;; esac
 case "$2" in
   scripts.dev.development_image_artifact)
@@ -444,6 +447,11 @@ case "$2" in
   scripts.dev.miner_launchpad.superseded_images)
     # Carbon's own images from earlier installs (R6-1): the one the test
     # names, if any.
+    # A real interpreter run without -B writes bytecode beside the module.
+    if [ "$bytecode" = yes ] && [ "${PYTHONDONTWRITEBYTECODE:-}" != 1 ]; then
+      mkdir -p scripts/dev/miner_launchpad/__pycache__
+      : > scripts/dev/miner_launchpad/__pycache__/superseded_images.cpython-311.pyc
+    fi
     case "$3" in
       list) [ -z "${CARBON_TEST_OLD_IMAGES:-}" ] || echo "  ${CARBON_TEST_OLD_IMAGES}  (1.2GB)" ;;
       remove) echo "  removed ${CARBON_TEST_OLD_IMAGES}" ;;
@@ -931,6 +939,9 @@ def test_short_space_offers_carbons_old_images_and_removes_them_only_on_yes(sand
     )
     assert "removed " + old in removed.stdout
     assert any("superseded_images remove" in line for line in sandbox.logged())
+    # M1 E2E R8b-1: it runs before the development candidate's ignored-source
+    # check, so it leaves no bytecode in the checkout.
+    assert not list(sandbox.clone.rglob("__pycache__"))
     sandbox.log.unlink()
     fake_df(sandbox, 1024 * 1048576)
     roomy = sandbox.run("--no-start", CARBON_TEST_OLD_IMAGES=old)

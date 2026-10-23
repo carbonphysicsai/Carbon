@@ -358,7 +358,10 @@ docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
 offer_old_images() {
   local py="${repo_root}/.venv/bin/python" listing answer=""
   [[ -x "${py}" ]] || return 0
-  listing="$(cd "${repo_root}" && "${py}" -m scripts.dev.miner_launchpad.superseded_images \
+  # -B and PYTHONDONTWRITEBYTECODE: this runs before the development
+  # candidate's ignored-source check, which refuses any __pycache__ it
+  # leaves (M1 E2E R8b-1).
+  listing="$(cd "${repo_root}" && PYTHONDONTWRITEBYTECODE=1 "${py}" -B -m scripts.dev.miner_launchpad.superseded_images \
     list --state-dir "${STATE_DIR}" --repo "${repo_root}" 2>/dev/null)" || return 0
   [[ -n "${listing}" ]] || return 0
   echo "Space is short. These are Carbon's own images from earlier installs, which this install does not use:"
@@ -372,7 +375,7 @@ offer_old_images() {
       return 0
     fi
   fi
-  (cd "${repo_root}" && "${py}" -m scripts.dev.miner_launchpad.superseded_images \
+  (cd "${repo_root}" && PYTHONDONTWRITEBYTECODE=1 "${py}" -B -m scripts.dev.miner_launchpad.superseded_images \
     remove --state-dir "${STATE_DIR}" --repo "${repo_root}") \
     || echo "Docker kept the images above that a container still uses."
 }
