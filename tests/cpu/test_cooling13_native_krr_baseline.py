@@ -112,3 +112,24 @@ def test_its_practice_dual_total_equals_the_1_2_krr_total(tmp_path):
     assert before["eligible"] and after["eligible"]
     assert before["design_value"] == after["design_value"]
     assert abs(after["total"] - before["total"]) <= TOTAL_TOLERANCE
+
+
+def test_the_practice_baseline_entry_is_the_recorded_run():
+    # Validator, 2026-10-23: the "beat this" score is the recorded
+    # practice-dual run's total, cited by the record's sha256.
+    from scripts.dev.miner_launchpad import campaign_view
+
+    raw = (PACKET / "cooling13-krr-practice-baseline.json").read_bytes()
+    record = json.loads(raw)
+    entry = campaign_view.PRACTICE_BASELINES[("chip-cold-plate", "1.3")]
+    assert entry["record_digest"] == _sha(raw)
+    assert entry["score"] == record["score"] == record["practice_dual"]["total"]
+    assert entry["strategy_digest"] == record["strategy_digest"] == RECIPE_DIGEST
+    assert entry["bank_digest"] == record["bank_digest"]
+    assert entry["code_head"] == record["code_head"]
+    assert record["n_cases"] == 48 and record["practice_dual"]["eligible"] is True
+    assert record["environment"]["platform"].startswith("Linux")
+    shown = campaign_view.baseline({"id": "chip-cold-plate", "version": "1.3"})
+    assert shown["score"] == campaign_view.finite(record["score"])
+    assert shown["reason"] is None
+    assert shown["record"]["record_digest"] == entry["record_digest"]
