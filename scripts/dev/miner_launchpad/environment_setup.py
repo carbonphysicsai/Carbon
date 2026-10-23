@@ -422,6 +422,7 @@ IMAGE_LABELS = {
     "image_manifest": "the worker image",
     "analysis_image_manifest": "the analysis image",
     "gpu_image_manifest": "the GPU worker image",
+    "torch_gpu_image_manifest": "the PyTorch GPU worker image",
 }
 #: A compute check made before checks pinned their images.
 STALE_UNPINNED = "this check was made before setup pinned the images it checked"
@@ -1449,14 +1450,17 @@ class LiveChecks:
     def _remote(self, gpu_manifest: Path, machine):
         """The pinned GPU worker and the transport to the miner's setup."""
         from carbon.compute.remote_transport import transport_for
-        from carbon.development_session.gpu_practice import is_gpu_image
+        from carbon.development_session.gpu_practice import gpu_image_backend
         from carbon.reconstruction.worker.docker_runtime import load_image_identity
 
         try:
             image = load_image_identity(gpu_manifest)
         except Exception:  # noqa: BLE001 - never echo a local path or error.
             image = None
-        if not is_gpu_image(image):
+        # Any registered GPU worker: the JAX one or the PyTorch one
+        # (torch_profile.GPU_LOCK_DIGEST); the Challenge's own scope decides
+        # whether it serves that backend (M1 E2E, --gpu for each backend).
+        if gpu_image_backend(image) is None:
             raise SetupRefused(
                 "gpu_image_manifest",
                 "gpu_image_unverified",
@@ -1921,6 +1925,25 @@ def published_entry(published, challenge) -> dict | None:
     return published["endpoints"].get(challenge["id"], {}).get(challenge["version"])
 
 
+def extra_gpu_manifest(state_dir, offered) -> str | None:
+    """The PyTorch GPU worker the installer built with --pytorch --gpu, beside
+    the JAX GPU worker setup offers (`offered`, the installer's recorded or
+    default `gpu_image_manifest`): checked too, so the profile carries one
+    GPU worker per installed backend (Validator ruling) and each catalog
+    entry practises on the worker of its own backend. None without it, or
+    when the miner named another GPU worker themself."""
+    from scripts.dev.miner_launchpad import installed
+
+    recorded = installed.read(Path(state_dir)) or {}
+    torch_gpu = recorded.get("torch_gpu_image_manifest")
+    if torch_gpu is None:
+        return None
+    jax_gpu = installed.found(Path(state_dir), REPO)["gpu_image_manifest"]["path"]
+    if jax_gpu is not None and Path(str(offered)).resolve() == Path(jax_gpu).resolve():
+        return torch_gpu
+    return None
+
+
 def checkout_revision(repo=REPO):
     """This checkout's HEAD commit, or None when git cannot say."""
     try:
@@ -1966,6 +1989,8 @@ def _manifest_paths(compute) -> dict:
     }
     if compute.get("gpu_image"):
         paths["gpu_image_manifest"] = compute["gpu_image"]
+    if compute.get("extra_gpu_image"):
+        paths["torch_gpu_image_manifest"] = compute["extra_gpu_image"]
     return paths
 
 
@@ -2272,11 +2297,19 @@ class EnvironmentSetup:
                 + " Carbon was installed at"
             )
             reinstall = True
+        torch_gpu = stamp["images"].get("torch_gpu_image_manifest")
         for field, entry in stamp["images"].items():
             if (
                 field in manifests
                 and type(entry) is dict
                 and entry.get("path") != manifests[field]
+                # This machine's GPU practice uses the PyTorch GPU worker the
+                # installer built beside the JAX one (`local_gpu_manifest`).
+                and not (
+                    field == "gpu_image_manifest"
+                    and type(torch_gpu) is dict
+                    and torch_gpu.get("path") == manifests[field]
+                )
             ):
                 reasons.append(
                     other
@@ -2748,6 +2781,13 @@ class EnvironmentSetup:
         if remote and campaign.remote_worker is None:
             raise SetupRefused("challenge", "challenge_offers_no_remote_practice")
         machine = _remote_machine(value["remote"]) if remote else None
+        # The other backend's GPU worker the installer built beside the one
+        # offered (Validator ruling: one GPU worker per installed backend).
+        extra = (
+            extra_gpu_manifest(self.root.parent, value["gpu_image_manifest"])
+            if gpu
+            else None
+        )
         paths, manifests = {}, {}
         fields = ("image_manifest", "analysis_image_manifest") + (
             ("gpu_image_manifest",) if gpu else ()
@@ -2798,7 +2838,16 @@ class EnvironmentSetup:
                 step["gpu_image"] = gpu_image
             if value["choice"] == LOCAL_GPU:
                 detected = self.checks.gpu(Path(gpu_image), campaign=campaign)
-                runtime = {**runtime, "gpu_research": [detected["scope"]]}
+                scopes = [detected["scope"]]
+                more = self._extra_gpu(
+                    extra, lambda path: self.checks.gpu(path, campaign=campaign)
+                )
+                if more is not None:
+                    scopes.append(more["scope"])
+                    step["extra_gpu_image"] = extra
+                    manifests["torch_gpu_image_manifest"] = _manifest(extra)["digest"]
+                    check["extra_gpu_image"] = more["scope"]["image"]
+                runtime = {**runtime, "gpu_research": scopes}
                 check.update(
                     gpu=detected["device_kind"],
                     device_record=detected["record_digest"],
@@ -2807,10 +2856,22 @@ class EnvironmentSetup:
                 )
             if remote:
                 found = self.checks.remote(Path(gpu_image), machine, campaign)
+                scopes, remotes = [found["scope"]], [found["remote_scope"]]
+                more = self._extra_gpu(
+                    extra, lambda path: self.checks.remote(path, machine, campaign)
+                )
+                if more is not None:
+                    # Every backend the host registers, on the remote setup too.
+                    scopes.append(more["scope"])
+                    remotes.append(more["remote_scope"])
+                    step["extra_gpu_image"] = extra
+                    manifests["torch_gpu_image_manifest"] = _manifest(extra)["digest"]
+                    check["extra_gpu_image"] = more["scope"]["image"]
+                    check["remote_extra"] = more["check"]
                 runtime = {
                     **runtime,
-                    "gpu_research": [found["scope"]],
-                    "remote_gpu": [found["remote_scope"]],
+                    "gpu_research": scopes,
+                    "remote_gpu": remotes,
                 }
                 # Where it is stays in the profile, never in a campaign.
                 step["remote_machine"] = machine.document()
@@ -2820,11 +2881,26 @@ class EnvironmentSetup:
                     balance="not applicable: your own setup, never billed by Carbon",
                     note=SPEED_ONLY_NOTE,
                 )
-                if found["check"].get("worker_image") == "missing":
+                if found["check"].get("worker_image") == "missing" or (
+                    (check.get("remote_extra") or {}).get("worker_image") == "missing"
+                ):
                     check["next_step"] = "send your worker"
             if self._forget_compute_keys():
                 check["retired_compute_key"] = COMPUTE_KEY_REMOVED
             return self._step("compute", {**step, "runtime": runtime, "check": check})
+
+    def _extra_gpu(self, extra, checked):
+        """The other backend's GPU worker, checked as the first was
+        (`checked`), or None: none was built, or this Challenge's GPU
+        practice does not serve its backend."""
+        if extra is None:
+            return None
+        try:
+            return checked(Path(extra))
+        except SetupRefused as refused:
+            if refused.code != "gpu_image_unverified":
+                raise
+            return None
 
     def send_worker(self, value) -> dict:
         """Send the pinned GPU worker to the miner's own machine with Docker.
@@ -2847,7 +2923,20 @@ class EnvironmentSetup:
             machine = RemoteMachine.from_document(compute["remote_machine"])
             if machine.transport != SSH_DOCKER:
                 raise SetupRefused("transport", "send_worker_is_for_ssh_docker")
-            image_id = compute["runtime"]["remote_gpu"][0]["image"]
+            # Each GPU worker the remote setup runs (one per backend), sent
+            # one at a time, each on consent naming its image.
+            workers = [compute["gpu_image"]] + (
+                [compute["extra_gpu_image"]] if compute.get("extra_gpu_image") else []
+            )
+            images = [scope["image"] for scope in compute["runtime"]["remote_gpu"]]
+            consent = value["consent"]
+            send = consent.get("send") if type(consent) is dict else None
+            named = send.get("image") if type(send) is dict else None
+            if named not in images:
+                raise SetupRefused(
+                    "consent", "consent_must_name_the_destination_and_image"
+                )
+            image_id = named
             expected = {
                 "destination": machine.destination,
                 **({"port": machine.port} if machine.port is not None else {}),
@@ -2857,13 +2946,17 @@ class EnvironmentSetup:
                 raise SetupRefused(
                     "consent", "consent_must_name_the_destination_and_image"
                 )
-            sent = self.checks.send_worker(
-                Path(compute["gpu_image"]), machine, image_id
-            )
+            which = images.index(image_id)
+            sent = self.checks.send_worker(Path(workers[which]), machine, image_id)
             check = dict(compute["check"])
-            check["remote"] = {**check["remote"], "worker_image": "present"}
-            check["worker"] = sent
-            check.pop("next_step", None)
+            key = "remote" if which == 0 else "remote_extra"
+            check[key] = {**check[key], "worker_image": "present"}
+            check["worker" if which == 0 else "extra_worker"] = sent
+            if all(
+                (check.get(k) or {}).get("worker_image") != "missing"
+                for k in ("remote", "remote_extra")
+            ):
+                check.pop("next_step", None)
             record["compute"] = {**compute, "check": check}
             self._save(record)
         return self.state()
@@ -3072,6 +3165,11 @@ class EnvironmentSetup:
             "campaigns_root": str(campaigns),
             "runtime": compute["runtime"],
             **({"gpu_image": compute["gpu_image"]} if "gpu_image" in compute else {}),
+            **(
+                {"extra_gpu_image": compute["extra_gpu_image"]}
+                if "extra_gpu_image" in compute
+                else {}
+            ),
             # Where the miner's remote setup is: the profile's, never a
             # campaign's (LINKONLY-D9).
             **(

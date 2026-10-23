@@ -160,13 +160,23 @@ def install_bundle(directory, state_dir=DEFAULT_STATE_DIR):
         }.get(selected.runtime_profile_id)
         if expected_backend is None:
             raise ValueError("pinned bundle runtime has no registered parent")
-        parent_manifest = profile.get("gpu_image")
-        if type(parent_manifest) is not str:
+        # The profile's GPU worker of the bundle's backend: one per installed
+        # backend (`gpu_image`, and `extra_gpu_image` beside it).
+        manifests = [
+            profile.get(field)
+            for field in ("gpu_image", "extra_gpu_image")
+            if type(profile.get(field)) is str
+        ]
+        if not manifests:
             raise ValueError(
                 "compatible installed parent missing for " + selected.runtime_profile_id
             )
-        parent = load_image_identity(Path(parent_manifest))
-        if direct_parent_backend(parent) != expected_backend:
+        candidates = [load_image_identity(Path(path)) for path in manifests]
+        parent = next(
+            (c for c in candidates if direct_parent_backend(c) == expected_backend),
+            None,
+        )
+        if parent is None:
             raise ValueError("installed parent backend differs from pinned bundle")
     campaigns = Path(profile["campaigns_root"])
     owner_root = _private_dir(campaigns / ".direct-development")

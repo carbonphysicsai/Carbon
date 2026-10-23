@@ -107,12 +107,15 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --re
                latest main), build its images again (or use the ones already
                built from that exact source tree), check setup's compute again
                and rewrite your runner profile, then say what changed
-  --gpu        also build the GPU worker (needs an NVIDIA GPU and the
-               NVIDIA Container Toolkit)
+  --gpu        also build the GPU worker of each installed backend: the JAX
+               GPU worker, and with --pytorch the PyTorch GPU worker too.
+               Practice on this machine's GPU needs an NVIDIA GPU and the
+               NVIDIA Container Toolkit; without them the workers are built
+               for your own remote GPU
   --pytorch    select the CPU Torch worker and its matching analysis image
                for JAX/PyTorch practice; repeat this option on updates.
-               With --release, the release must publish torch-analysis.
-               --gpu still selects the separate JAX GPU worker
+               With --release, the release must publish torch-analysis
+               (and torch-gpu with --gpu)
   --ref REF    the Carbon ref to install, a branch, tag or commit in main
                (default: main, or $CARBON_REF)
   --release TAG
@@ -327,8 +330,14 @@ if [[ "${service_mode}" == 1 ]] && command -v systemctl >/dev/null 2>&1 \
   fi
 fi
 if [[ "${GPU}" == 1 ]]; then
-  command -v nvidia-smi >/dev/null 2>&1 \
-    || fail "--gpu needs the NVIDIA driver (nvidia-smi was not found)."
+  # Building the GPU workers needs Docker only. Without the NVIDIA driver
+  # here they are built and recorded for the miner's own remote GPU, which
+  # setup's remote route sends them to; this machine's GPU practice stays
+  # refused by setup's own driver check (M1 E2E S4: a CPU-only controller
+  # driving a rented GPU).
+  if ! command -v nvidia-smi >/dev/null 2>&1; then
+    echo "No NVIDIA driver here (nvidia-smi was not found): the GPU worker(s) are built for your own remote GPU and will not run on this machine."
+  fi
 fi
 if [[ "${UPDATE}" == 1 && ! -d "${STATE_DIR}" ]]; then
   fail "--update found no install at ${STATE_DIR}; run this without --update first."
@@ -339,12 +348,18 @@ if [[ -f "${STATE_DIR}/owner.lock" ]] && command -v flock >/dev/null 2>&1 \
   && ! flock -n "${STATE_DIR}/owner.lock" true 2>/dev/null; then
   fail "a Control Center is running from ${STATE_DIR}. Stop it first ($(stop_hint)); this install moves the checkout it runs from. Then run this again."
 fi
-# A GPU worker built here before is rebuilt by every install (step 4).
+# A GPU worker built here before is rebuilt by every install (step 4): the
+# JAX GPU worker, and with --pytorch the PyTorch GPU worker beside it.
 gpu_space=0
 if [[ "${GPU}" == 1 ]] \
   || grep -qs '"gpu_image_manifest"' "${STATE_DIR}/installed-images.json" \
   || [[ -f "${repo_root}/.carbon-artifacts/accelerator-worker-image.json" ]]; then
-  gpu_space=1
+  gpu_space=$(( 1 + PYTORCH ))
+fi
+# The PyTorch GPU worker's release record, only where a GPU worker is
+# wanted: a --pytorch release install without one needs no torch-gpu.
+if [[ "${PYTORCH}" == 1 && "${gpu_space}" -gt 0 ]]; then
+  RELEASE_KINDS+=(torch-gpu)
 fi
 need_space "${repo_root}" "${CHECKOUT_GIB}" "Carbon's locked environment and its cache"
 docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
@@ -641,12 +656,16 @@ if [[ -n "${DEVELOPMENT_REVISION}" && "${PYTORCH}" == 0 ]]; then
   else
     fail "DEVELOPMENT image cache is invalid or could not be verified. No image was built."
   fi
-  check_image_space "$(( cpu_build_gib + gpu_build * GPU_GIB ))"
+  check_image_space "$(( cpu_build_gib + gpu_build * (1 + PYTORCH) * GPU_GIB ))"
 fi
 
 worker_manifest="${artifacts}/${worker_kind}-worker-image.json"
 gpu_manifest=""
 gpu_release_record=""
+#: The PyTorch GPU worker (`scripts/dev/torch_gpu_worker_image.sh`), built
+#: with --gpu when the PyTorch backend is installed (Validator ruling: --gpu
+#: selects the GPU worker of each installed backend).
+torch_gpu_manifest=""
 if [[ -n "${RELEASE}" ]]; then
   step "4/6 Pulling the released images of ${RELEASE} by digest"
   # Fetched again at the revision this installer runs at: a carried-on
@@ -661,6 +680,9 @@ if [[ -n "${RELEASE}" ]]; then
   if [[ "${gpu_build}" == 1 ]]; then
     kinds+=(accelerator)
     rebuild+=" --gpu"
+    if [[ "${PYTORCH}" == 1 ]]; then
+      kinds+=(torch-gpu)
+    fi
   fi
   for kind in "${kinds[@]}"; do
     "${python}" -m scripts.dev.worker_image_release pull \
@@ -673,6 +695,9 @@ if [[ -n "${RELEASE}" ]]; then
   analysis="${release_dir}/${analysis_kind}-worker-image.json"
   if [[ "${gpu_build}" == 1 ]]; then
     gpu_manifest="${release_dir}/accelerator-worker-image.json"
+    if [[ "${PYTORCH}" == 1 ]]; then
+      torch_gpu_manifest="${release_dir}/torch-gpu-worker-image.json"
+    fi
   fi
   gpu_release_record="${release_dir}/accelerator-worker-image.release.json"
 else
@@ -719,6 +744,14 @@ else
       ./scripts/dev/accelerator_worker_image.sh "${artifacts}/accelerator-worker-image.json"
     fi
     gpu_manifest="${artifacts}/accelerator-worker-image.json"
+    if [[ "${PYTORCH}" == 1 ]]; then
+      if current_image "${artifacts}/torch-gpu-worker-image.json"; then
+        echo "The PyTorch GPU worker built here from this exact source tree is still present; using it again."
+      else
+        ./scripts/dev/torch_gpu_worker_image.sh "${artifacts}/torch-gpu-worker-image.json"
+      fi
+      torch_gpu_manifest="${artifacts}/torch-gpu-worker-image.json"
+    fi
   fi
 fi
 
@@ -730,6 +763,8 @@ chmod 700 "${STATE_DIR}"
   --image-manifest "${worker_manifest}" \
   --analysis-image-manifest "${analysis}" \
   ${gpu_manifest:+--gpu-image-manifest "${gpu_manifest}"} \
+  ${torch_gpu_manifest:+--torch-gpu-image-manifest "${torch_gpu_manifest}"} \
+  $([[ -n "${DEVELOPMENT_REVISION}" ]] || echo --clear-development-candidate) \
   ${gpu_release_record:+--gpu-release-record "${gpu_release_record}"}
 if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
   "${python}" -m scripts.dev.miner_launchpad.installed bind-development-candidate \

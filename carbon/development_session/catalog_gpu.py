@@ -59,41 +59,55 @@ def gpu_scope(challenge_id, image):
     }
 
 
+#: The campaign-root record of each declared GPU worker, in scope order: the
+#: first as every profile wrote it, the second for the other backend's
+#: worker (Validator ruling: one GPU worker per installed backend).
+GPU_IMAGE_RECORDS = ("gpu-worker-image.json", "extra-gpu-worker-image.json")
+
+
 def declared_scope(runtime):
-    """The GPU scope a runtime declares, checked for shape only; the binding
-    check is `registered_gpu_image`, which recomputes it."""
+    """The GPU scopes a runtime declares, one per GPU worker (one or two, of
+    distinct backends), checked for shape only; the binding check is
+    `registered_gpu_image`, which recomputes them."""
     scopes = runtime.get(RUNTIME_KEY)
     if (
         type(scopes) is not list
-        or len(scopes) != 1
-        or type(scopes[0]) is not dict
-        or scopes[0].get("schema") != SCOPE_SCHEMA
-        or scopes[0].get("purpose") != "speed_only"
-        or scopes[0].get("official_eligible") is not False
-        or scopes[0].get("score") is not None
+        or not 1 <= len(scopes) <= len(GPU_IMAGE_RECORDS)
+        or any(
+            type(scope) is not dict
+            or scope.get("schema") != SCOPE_SCHEMA
+            or scope.get("purpose") != "speed_only"
+            or scope.get("official_eligible") is not False
+            or scope.get("score") is not None
+            for scope in scopes
+        )
+        or len({scope.get("backend") for scope in scopes}) != len(scopes)
     ):
         raise ValueError("exact catalog GPU practice scope required")
-    return [dict(scopes[0])]
+    return [dict(scope) for scope in scopes]
 
 
 def registered_gpu_image(root, declared, challenge_id):
-    """The GPU worker the campaign's runtime declares, verified against the
-    record installed in the campaign root; None without GPU practice."""
+    """The GPU worker(s) the campaign's runtime declares, each verified
+    against its record installed in the campaign root (`GPU_IMAGE_RECORDS`):
+    one image as before, or a tuple of one per backend; None without GPU
+    practice."""
     if RUNTIME_KEY not in declared:
         return None
     from carbon.reconstruction.worker.docker_runtime import load_image_identity
 
-    from .gpu_research import GPU_IMAGE_RECORD
     from .research_campaign import private_file
 
-    declared_scope(declared)
-    path = private_file(root / GPU_IMAGE_RECORD)
-    if path.resolve() != path or path.stat().st_size > 65536:
-        raise ValueError("fixed bounded GPU image record required")
-    image = load_image_identity(path)
-    if declared[RUNTIME_KEY] != [gpu_scope(challenge_id, image)]:
+    scopes = declared_scope(declared)
+    images = []
+    for name in GPU_IMAGE_RECORDS[: len(scopes)]:
+        path = private_file(root / name)
+        if path.resolve() != path or path.stat().st_size > 65536:
+            raise ValueError("fixed bounded GPU image record required")
+        images.append(load_image_identity(path))
+    if declared[RUNTIME_KEY] != [gpu_scope(challenge_id, image) for image in images]:
         raise ValueError("the installed GPU image differs from the declared scope")
-    return image
+    return images[0] if len(images) == 1 else tuple(images)
 
 
 def with_gpu(runtime, declared, challenge_id, gpu_image):
@@ -105,9 +119,15 @@ def with_gpu(runtime, declared, challenge_id, gpu_image):
         if REMOTE_KEY in declared:
             raise ValueError("remote GPU practice needs the GPU practice scope")
         return runtime
-    if gpu_image is None:
+    from .gpu_practice import gpu_images
+
+    images = gpu_images(gpu_image)
+    if not images:
         raise ValueError("a GPU practice runtime needs its installed GPU image")
-    runtime = {**runtime, RUNTIME_KEY: [gpu_scope(challenge_id, gpu_image)]}
+    runtime = {
+        **runtime,
+        RUNTIME_KEY: [gpu_scope(challenge_id, image) for image in images],
+    }
     if REMOTE_KEY in declared:
         from carbon.compute.remote_route import declared_remote, remote_scope
         from carbon.compute.remote_transport import SSH_DOCKER
@@ -117,7 +137,10 @@ def with_gpu(runtime, declared, challenge_id, gpu_image):
             # A bundle job lays its inputs out as the local carrier mounts
             # them, which only Carbon's hardened job container provides.
             raise ValueError("catalog practice on a remote GPU runs over ssh-docker")
-        runtime[REMOTE_KEY] = [remote_scope(challenge_id, gpu_image, transport)]
+        # Every backend the host registers, on the miner's remote setup too.
+        runtime[REMOTE_KEY] = [
+            remote_scope(challenge_id, image, transport) for image in images
+        ]
     return runtime
 
 
@@ -195,17 +218,25 @@ class RemotePractice:
     def __init__(self, remote, local=None):
         from carbon.compute.remote_runner import RemoteRunner
 
-        if type(remote) is not RemoteRunner:
+        # One remote runner per GPU worker the host registers (one per
+        # backend); a run goes to the one whose image it names.
+        runners = tuple(remote) if type(remote) in (tuple, list) else (remote,)
+        if not runners or any(type(r) is not RemoteRunner for r in runners):
             raise ValueError("the remote practice runner is the remote route's")
-        self.remote, self.local = remote, local
+        if len({r.image_id for r in runners}) != len(runners):
+            raise ValueError("one remote runner per GPU worker")
+        self.runners, self.local = runners, local
+        self.remote = runners[0]
 
     @property
     def image_id(self):
         return self.remote.image_id
 
     def __call__(self, ledger, **kwargs):
-        if getattr(kwargs.get("image"), "image_id", None) == self.remote.image_id:
-            return self.remote(ledger, **kwargs)
+        named = getattr(kwargs.get("image"), "image_id", None)
+        for runner in self.runners:
+            if named == runner.image_id:
+                return runner(ledger, **kwargs)
         if self.local is not None:
             return self.local(ledger, **kwargs)
         from .research_carrier import _run

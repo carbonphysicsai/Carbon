@@ -62,11 +62,12 @@ def parents(cfg) -> dict[str, str]:
                 found["python-cpu-py311"] = cpu.image_id
         else:
             found["python-cpu-py311"] = primary.image_id
-    gpu = identity(cfg.get("gpu_image"))
-    if gpu is not None:
-        runtime = GPU_RUNTIMES.get(direct_parent_backend(gpu))
-        if runtime is not None:
-            found[runtime] = gpu.image_id
+    for field in ("gpu_image", "extra_gpu_image"):
+        gpu = identity(cfg.get(field))
+        if gpu is not None:
+            runtime = GPU_RUNTIMES.get(direct_parent_backend(gpu))
+            if runtime is not None:
+                found[runtime] = gpu.image_id
     return found
 
 

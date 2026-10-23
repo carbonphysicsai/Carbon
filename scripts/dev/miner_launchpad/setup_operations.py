@@ -636,7 +636,16 @@ def status(
             "send": {
                 "destination": machine["destination"],
                 **({"port": machine["port"]} if machine.get("port") else {}),
-                "image": steps["compute"]["check"]["gpu_image"],
+                # The first GPU worker the remote setup still lacks.
+                "image": (
+                    steps["compute"]["check"]["extra_gpu_image"]
+                    if (steps["compute"]["check"].get("remote") or {}).get(
+                        "worker_image"
+                    )
+                    != "missing"
+                    and steps["compute"]["check"].get("extra_gpu_image")
+                    else steps["compute"]["check"]["gpu_image"]
+                ),
             }
         }
     else:
