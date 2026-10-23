@@ -1,0 +1,17 @@
+{
+ "catalog_id": "v2.cooling.jno.pit",
+ "differ": [],
+ "distinct_states": 1,
+ "files": 2,
+ "identical": 1,
+ "image_digest": "sha256:d8219eb27117f3115e7825526c0b7b866be09f86af82045d445bae5bade3ace0",
+ "key": "cooling_jno_pit",
+ "pairs": 1,
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "source_report": "PAIR_IDENTITY_V2_COOLING.json",
+ "source_report_sha256": "sha256:24e66134108e766084fb68f9500c4ccd9b12e281d0c9becc7ef3690f1b0dcf2c",
+ "tested_interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+ "tested_on": "chip-cold-plate@1.4",
+ "tested_train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
+ "unpaired": 0
+}

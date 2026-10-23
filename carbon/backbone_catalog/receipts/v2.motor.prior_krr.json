@@ -1,0 +1,17 @@
+{
+ "catalog_id": "v2.motor.prior_krr",
+ "differ": [],
+ "distinct_states": 1,
+ "files": 2,
+ "identical": 1,
+ "image_digest": "sha256:440190bedb9afccb9ec7f777ea827b0693a3d7a10025fcfc6c4c6416a63a9820",
+ "key": "motor_prior_krr",
+ "pairs": 1,
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "source_report": "PAIR_IDENTITY_PRIORS.json",
+ "source_report_sha256": "sha256:8fc8d416584cba19e6c6b89af9592f428f7f73f1b173e8e4d1abe28d9c143cfc",
+ "tested_interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+ "tested_on": "electric-motor-magnetics@1.4",
+ "tested_train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
+ "unpaired": 0
+}

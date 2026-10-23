@@ -1,0 +1,17 @@
+{
+ "accelerator": "cpu",
+ "architecture": "amd64",
+ "base_environment_digest": "sha256:5dd9a364333ca3ec56383a36c0b3edefad817be93a2f30c49f775af00cd094a4",
+ "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+ "language": "python",
+ "license_sha256": "sha256:1776bbc6884f5982c21d2875ba2a1c595a19aff71983141cade8aad502c40709",
+ "lock_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+ "name": "cooling-catalog-jno-transformer-baseline-v2",
+ "os": "linux",
+ "python_abi": "cp311",
+ "runtime_profile_id": "python-cpu-py311",
+ "schema": "carbon.development.library-bundle.v1",
+ "source_bytes": 18924,
+ "source_sha256": "sha256:8b6176894d5d2625223e056b34157419743f2bc3b891845c538aa61bb598aa03",
+ "wheels": {}
+}

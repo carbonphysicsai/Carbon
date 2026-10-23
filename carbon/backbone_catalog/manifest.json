@@ -2450,6 +2450,1343 @@
    "settings_schema": "carbon-candidate-levers-v1"
   },
   {
+   "backbone": "cno.CNO1d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:16bee985772eb9b4a7400a4aa7f11733360adcbfa886015fa05014af166f19b9",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.cno.CNO1d",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "cno.CNO1d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "deepxde.DeepONetCartesianProd",
+   "bundle_ref": {
+    "bundle_digest": "sha256:9c330cbe71016e2b386338ec70aa01815bf460bf883bb6d62fbf35dc657f4095",
+    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.deepxde.DeepONetCartesianProd",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "deepxde.DeepONetCartesianProd",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "bcat",
+   "bundle_ref": {
+    "bundle_digest": "sha256:262871e25b8e12b99c66aef3d79a8cb99656b2f4f7481c4edce081b78006984f",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.bcat",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "bcat",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "cno2d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:f09199a4b598c7412403d74d3a93ff0d81d5ee10879b40b2740be6e188134f1d",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.cno2d",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "cno2d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "deeponet",
+   "bundle_ref": {
+    "bundle_digest": "sha256:6d3aad1c3465501ff95be9be6dbc253b2d14687b005e5b703d56bc7d5bf0adc3",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.deeponet",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "deeponet",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "dpot",
+   "bundle_ref": {
+    "bundle_digest": "sha256:a6641da2ddbddd45c3fdd872b07e94334d73f9f9a980c4c7d3fe53379a1e80b1",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.dpot",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "dpot",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "fno1d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:2fb8e97a7442d4f64a1ca6da358e6edd9998ac6bb2f17c762002792922c6ab00",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.fno1d",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "fno1d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "fno2d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:8b8fafc581f78ec8edb41bc62e7c9c7a41c3b1706c5baf66fe9f10ca620d50a4",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.fno2d",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "fno2d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "fno3d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:8d2d0bb49adbfddbc26838bb895ad015e3c2105df86db349139166a7f107352d",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.fno3d",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "fno3d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "geofno",
+   "bundle_ref": {
+    "bundle_digest": "sha256:74a792a1e85fc53022e027ea654fd6179901b884d26403fc9477747be276101f",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.geofno",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "geofno",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "gnot",
+   "bundle_ref": {
+    "bundle_digest": "sha256:c99d7a6824cb18ee15ae3d8abac6c9938008ed1e2fceff7f601d8606d5ba0311",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.gnot",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "gnot",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "linear",
+   "bundle_ref": {
+    "bundle_digest": "sha256:0cbf4073c09b4f5934bacfe5826551d6621d4d08ce852e72006b251af921c251",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.linear",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "linear",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "mgno1d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:dd591565318789d0aa8d10abe86d90cbf0133f3c80d1748b25c947b2393199e6",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.mgno1d",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "mgno1d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "mgno2d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:34c913cc226f8fa5bb73fae2a2e8bc71cc2d3318a675700bc54e11aa06ea3c12",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.mgno2d",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "mgno2d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "mlp",
+   "bundle_ref": {
+    "bundle_digest": "sha256:4ad797d39bd1bb896139702e745f30e2c366fd0e2835c1147b5d1165f0357512",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.mlp",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "mlp",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "moegptno",
+   "bundle_ref": {
+    "bundle_digest": "sha256:0dbac0136deb1ce41cbaaaed617447a27e648d4ccb76d2ac774aec0c112aa858",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.moegptno",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "moegptno",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "morph",
+   "bundle_ref": {
+    "bundle_digest": "sha256:79cc886c7f5e912ed3382bc35304fc4c89273f294d428724801f28db1eb01df8",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.morph",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "morph",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "mpp",
+   "bundle_ref": {
+    "bundle_digest": "sha256:d32af09c5f15bbdc0e9e9d7fd89184bbc80d875d389db3d81d1cffb72668d647",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.mpp",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "mpp",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "pcno",
+   "bundle_ref": {
+    "bundle_digest": "sha256:ea6e020631f1645cb5997cb1bd7b2d7c91f7ad1c6060cb8cea15c0e3fd62ed2a",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.pcno",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "pcno",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "pdeformer2",
+   "bundle_ref": {
+    "bundle_digest": "sha256:49b51aa2749014c3fb646c284d8ef673ba6b4fb0c03e248d81d2dc288648e733",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.pdeformer2",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "pdeformer2",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "pit",
+   "bundle_ref": {
+    "bundle_digest": "sha256:3db69d5a0555abc07da22c427a7f6e0018d988edaf7df620e83e233eebb47256",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.pit",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "pit",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "transformer",
+   "bundle_ref": {
+    "bundle_digest": "sha256:c19974138ef907ae2b67aad8ca624e7651cf54a74b8c7d1d4c8dbb78adfca650",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.transformer",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "transformer",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "transolver",
+   "bundle_ref": {
+    "bundle_digest": "sha256:5d026dc2c5269514889fc159ee5a3b1df71ccd13c2918996ae729f63d81bd7ac",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.transolver",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "arch": {
+      "heads": 4,
+      "hidden": 32,
+      "layers": 2,
+      "slices": 8
+     },
+     "backbone": "transolver",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "unet1d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:201bf217c6c4972532dc63bf9117ed89f12f4b0ce62c728cabb960eb5d421ba2",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.unet1d",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "unet1d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "unet2d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:4e609ac3b9d9c61e3e59b1fa53b41df5b7e235f94ff684f9bf3294c21f6b1b25",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.unet2d",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "unet2d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "unet3d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:269cdcb7f65e677952d6cf954b5e0ec421aebbb11ab6072bd3a1ade7d2a5aaed",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.unet3d",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "unet3d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "walrus",
+   "bundle_ref": {
+    "bundle_digest": "sha256:e25bdffe37446372c3e497b8b6db216ae142b96308c489453c1f06f8d122bfb2",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.jno.walrus",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "walrus",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-jax-v2"
+  },
+  {
+   "backbone": "lno.LNO1d",
+   "bundle_ref": {
+    "bundle_digest": "sha256:0b40f993f5ff142b2b7c62f2eb1d72822f30ac546e1b939835c46899c5d3c841",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.lno.LNO1d",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "lno.LNO1d",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "neuralop.FNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:96d65d10a9bec8d5e5973a5de44d7b629d8c7de2b6b0f3633652cd5070cb23cd",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.neuralop.FNO",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "arch": {
+      "hidden": 16,
+      "layers": 2,
+      "modes": 12
+     },
+     "backbone": "neuralop.FNO",
+     "learning_rate": 0.002
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "neuralop.GINO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:439651dd5d1f08255bc6ed0885346fae43e66f72d8ca0ae0b336e7e688aea63f",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.neuralop.GINO",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "neuralop.GINO",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "neuralop.LocalNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:7e39f8344544ac51d1818798d78a5fc8f6f7bf39fd0b8d9d5f5749231c0aa2d9",
+    "environment_digest": "sha256:c5ef7580adff31faf4dd7d32e7302de4231eaf4c8026bb59afbeb62835e5b71c",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.neuralop.LocalNO",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "neuralop.LocalNO",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "neuralop.TFNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:bc17131b9a4c5014917acc74d7f42c11e961ba4c49b6a385478aebcce400cd1f",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.neuralop.TFNO",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "arch": {
+      "hidden": 16,
+      "layers": 2,
+      "modes": 12,
+      "rank": 0.5
+     },
+     "backbone": "neuralop.TFNO",
+     "learning_rate": 0.002
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "neuralop.UQNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:7a30d53a7d56ef677355ebf96ffb576424253a46f91480c8bff1135b29719842",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.neuralop.UQNO",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "neuralop.UQNO",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "oformer.Encoder1D_PointWiseDecoder1D",
+   "bundle_ref": {
+    "bundle_digest": "sha256:10d570a9b9c88fcf9af380e433dfdb88f7c6f6a7e400235bf6c49f0554764007",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.oformer.Encoder1D_PointWiseDecoder1D",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "oformer.Encoder1D_PointWiseDecoder1D",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "physicsnemo.FullyConnected",
+   "bundle_ref": {
+    "bundle_digest": "sha256:38f8ea0ab746d5220b8ae1da7fb81c113682490b871795e0378995a95742962e",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.physicsnemo.FullyConnected",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "physicsnemo.FullyConnected",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "physicsnemo.MeshGraphNet",
+   "bundle_ref": {
+    "bundle_digest": "sha256:a42950d4be0d57abf8ff815fff4b46b9e44497c35939c1d4a6ca5af0ded3dbef",
+    "environment_digest": "sha256:0a313185d40515172cd71c18383598ae8d6f52e5540569dc51c385fa570f7f96",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.physicsnemo.MeshGraphNet",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "physicsnemo.MeshGraphNet",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "thuml.FNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:6081b0e4aa9a0ea28a9315dec76711fb0f50336dffed2ec4543e660507d816e3",
+    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.thuml.FNO",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.FNO",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "thuml.F_FNO",
+   "bundle_ref": {
+    "bundle_digest": "sha256:2bcf28fee1ac2e8345d51054b7d0d65dd4e9c9b4828fab6481518dc8ca55f094",
+    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.thuml.F_FNO",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.F_FNO",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "thuml.Factformer",
+   "bundle_ref": {
+    "bundle_digest": "sha256:94d1901374bc0cd21b63e4049283c6f834bdd820df18d9b10672869e3de7a0ee",
+    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.thuml.Factformer",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.Factformer",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "thuml.Galerkin_Transformer",
+   "bundle_ref": {
+    "bundle_digest": "sha256:d08be42d60f1642b1bd4f48bf02902d46d8cd589202dc92d77ef2132f4e2de6a",
+    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.thuml.Galerkin_Transformer",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.Galerkin_Transformer",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "thuml.LSM",
+   "bundle_ref": {
+    "bundle_digest": "sha256:c09e28e2538eb42bf19edec86bdc305f5ff1f120391a8e78587ba10c875b3900",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.thuml.LSM",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.LSM",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "thuml.MWT",
+   "bundle_ref": {
+    "bundle_digest": "sha256:bc4a1ca051983b29aaf378faa17fd8c9b2edeeeb3db7738d9f634f3748c047d9",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.thuml.MWT",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.MWT",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "thuml.Transformer",
+   "bundle_ref": {
+    "bundle_digest": "sha256:fe7846fc9763acf79e3babc56cd0772772718d4ab0950fb6b2ba33abee3fc0e3",
+    "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.thuml.Transformer",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.Transformer",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "thuml.Transolver",
+   "bundle_ref": {
+    "bundle_digest": "sha256:1006f71b581af50917acb20506da044b8d2f292802ffad1befdd3a3974650ca6",
+    "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+    "language": "python",
+    "runtime_profile_id": "torch-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.cooling.thuml.Transolver",
+   "challenges": [
+    {
+     "id": "chip-cold-plate",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "thuml.Transolver",
+     "learning_rate": 0.001
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
    "backbone": "deepxde.DeepONetCartesianProd",
    "bundle_ref": {
     "bundle_digest": "sha256:573bc86769c8d41d7084f2a1060207d808aa4c261521b282c816eb802e70dd94",
@@ -2568,6 +3905,39 @@
    },
    "output_format": "carbon.numeric-graph.v1",
    "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "krr",
+   "bundle_ref": {
+    "bundle_digest": "sha256:0d17ae4381867edf00d6193fde0e1fdecbe946c61daa5c3b9df5f5403aa4b8fc",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.f02.prior_krr",
+   "challenges": [
+    {
+     "id": "f02",
+     "version": "2.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "krr"
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "prior": {
+    "id": "prior.f02.two-node-rc-v1",
+    "positive_outputs": []
+   },
+   "settings_schema": "carbon-candidate-jax-prior-v1"
   },
   {
    "backbone": "cno.CNO1d",
@@ -3635,6 +5005,47 @@
    },
    "output_format": "carbon.numeric-graph.v1",
    "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "krr",
+   "bundle_ref": {
+    "bundle_digest": "sha256:3b5922e69d8373d943289329041e8b71716278d3c9924fb0dbafe27ee62d4aa0",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.f08.prior_krr",
+   "challenges": [
+    {
+     "id": "f08-ribbed-bracket",
+     "version": "1.5"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "krr"
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "prior": {
+    "id": "prior.f08.cantilever-beam-v1",
+    "positive_outputs": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ]
+   },
+   "settings_schema": "carbon-candidate-jax-prior-v1"
   },
   {
    "backbone": "thuml.FNO",
@@ -5002,6 +6413,39 @@
    },
    "output_format": "carbon.numeric-graph.v1",
    "settings_schema": "carbon-candidate-torch-v2"
+  },
+  {
+   "backbone": "krr",
+   "bundle_ref": {
+    "bundle_digest": "sha256:1f0ab5c03a4e03afaf9ba833907d2e1838235bf92c0ea29e6bdcebcdbae9b017",
+    "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+    "language": "python",
+    "runtime_profile_id": "python-cpu-py311",
+    "schema": "carbon.library-bundle-ref.v1"
+   },
+   "catalog_id": "v2.motor.prior_krr",
+   "challenges": [
+    {
+     "id": "electric-motor-magnetics",
+     "version": "1.4"
+    }
+   ],
+   "defaults": {
+    "configuration": {
+     "backbone": "krr"
+    },
+    "train_use": {}
+   },
+   "entrypoint": {
+    "module": "carbon_candidate.build",
+    "name": "build"
+   },
+   "output_format": "carbon.numeric-graph.v1",
+   "prior": {
+    "id": "prior.motor.surface-pm-v1",
+    "positive_outputs": []
+   },
+   "settings_schema": "carbon-candidate-jax-prior-v1"
   },
   {
    "backbone": "thuml.FNO",

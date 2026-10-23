@@ -152,7 +152,11 @@ def test_the_v2_entries_are_offered_on_their_own_version_and_use_the_v2_schemas(
         assert item["challenges"] == [V2_VERSION[group]], item["catalog_id"]
         assert item["settings_schema"] in V2_SCHEMAS, item["catalog_id"]
         bare = item["catalog_id"].removeprefix(f"v2.{group}.")
-        assert item["backbone"] == bare.removeprefix("jno."), item["catalog_id"]
+        if bare == "prior_krr":
+            assert item["backbone"] == "krr" and item["prior"]["id"], item["catalog_id"]
+            assert item["settings_schema"] == "carbon-candidate-jax-prior-v1"
+        else:
+            assert item["backbone"] == bare.removeprefix("jno."), item["catalog_id"]
         assert item["defaults"]["train_use"] == {}
 
 
