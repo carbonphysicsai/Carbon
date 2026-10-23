@@ -326,6 +326,31 @@ def gpu_overlay(practice, identity, bundle, parent, expanded, kit, limits_docume
     )
 
 
+def gpu_build_staged(practice, expand_for, bundle_of) -> bool:
+    """Whether the entry `expand_for` expands has a GPU build this host can
+    practise: one of its GPU workers' runtimes, the entry's build for it, its
+    parent registered and its material staged (`stage_twins`). Read before
+    dispatch, beside the CPU child check: an entry served only on this host's
+    GPU (M1 S5: jno.fno1d, whose CPU child was not installed, was refused
+    `backend_not_served` with its JAX GPU build staged) is not refused. The
+    same for every Challenge."""
+    from .library_environment_cache import inspect_staged_bundle_material
+
+    try:
+        runtimes = gpu_runtimes(getattr(practice, "gpu_image", None))
+    except ValueError:
+        return False
+    for runtime in runtimes:
+        try:
+            bundle = bundle_of(expand_for(runtime)["source"]["bundle_ref"])
+            practice.parents().for_bundle(bundle)
+            inspect_staged_bundle_material(practice.cache_root, bundle)
+        except Exception:  # noqa: BLE001, S112 - not this runtime; the next, or CPU
+            continue
+        return True
+    return False
+
+
 def device_build(practice, expand_for, bundle_of, overlay=None):
     """The build one catalog practice runs, chosen by device, the same for
     every Challenge: the entry's GPU build on the host's GPU worker of the
@@ -391,5 +416,12 @@ def device_build(practice, expand_for, bundle_of, overlay=None):
             note = "gpu_build_failed"
     expanded = expand_for(None)
     bundle = bundle_of(expanded["source"]["bundle_ref"])
-    image = practice._resolve(bundle)
+    try:
+        image = practice._resolve(bundle)
+    except (FileNotFoundError, ValueError, OSError):
+        if note is None:
+            raise
+        # Admitted for its GPU build (`gpu_build_staged`), which did not run,
+        # and no CPU child here: the capability gap, typed.
+        raise DirectParentRefused("backend_not_served") from None
     return expanded, bundle, image, practice.parents().for_bundle(bundle), None, note

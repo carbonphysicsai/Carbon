@@ -310,6 +310,13 @@ class DirectPractice:
         try:
             self._resolve(_bundle_ref(expanded["source"]["bundle_ref"]))
         except (FileNotFoundError, ValueError, OSError):
+            from carbon.development_session.gpu_practice import gpu_build_staged
+
+            # Served on this host's GPU alone: not refused.
+            if gpu_build_staged(
+                self, lambda runtime: _expand(recipe, runtime), _bundle_ref
+            ):
+                return None
             return self.installed()
         return None
 
