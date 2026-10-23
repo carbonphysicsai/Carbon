@@ -109,7 +109,7 @@ class Reader(sdk.BittensorReader):
         self.rpc = rpc
         self.waits = []
         if attempts is not None:
-            self.attempts = attempts
+            self._attempts = attempts
 
     def _sdk(self):
         return FAKE_SDK
@@ -156,13 +156,13 @@ def test_backoff_is_bounded_and_ignores_an_untrusted_retry_after():
     reader = Reader(Always())
     with pytest.raises(ChainFailure) as failure:
         asyncio.run(reader.capture(context()))
-    assert len(reader.waits) == reader.attempts - 1
-    assert all(0 < wait <= reader.max_delay for wait in reader.waits)
+    assert len(reader.waits) == reader._attempts - 1
+    assert all(0 < wait <= reader._max_delay for wait in reader.waits)
     huge = Reader(Always())
-    huge.base_delay = 1000.0
+    huge._base_delay = 1000.0
     with pytest.raises(ChainFailure):
         asyncio.run(huge.capture(context("other")))
-    assert huge.waits == [huge.max_delay] * (huge.attempts - 1)
+    assert huge.waits == [huge._max_delay] * (huge._attempts - 1)
     # A refusal still standing is typed infrastructure, and closed.
     assert failure.value.code is FailureCode.RATE_LIMITED
     assert failure.value.code.value == "PROVIDER_RATE_LIMITED"
@@ -182,7 +182,7 @@ def test_a_dropped_connection_is_retried_and_a_chain_error_is_not():
     with pytest.raises(ChainFailure) as failure:
         asyncio.run(reader.capture(context()))
     assert failure.value.code is FailureCode.UNAVAILABLE
-    assert Dropped.calls == reader.attempts
+    assert Dropped.calls == reader._attempts
 
     class Broken:
         calls = 0

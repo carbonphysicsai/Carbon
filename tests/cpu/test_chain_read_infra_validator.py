@@ -140,7 +140,7 @@ def test_a_refused_read_is_failed_infra_and_changes_no_score_or_king(
     assert supervisor.chain_interruption_code(failure.value) == (
         "chain_read_failed_infra"
     )
-    assert refusing.calls == sdk.BittensorReader.attempts
+    assert refusing.calls == sdk.BittensorReader._attempts
     # The score feed's read at the finalized head: absent, not raised.
     assert sf.chain_snapshot(CONTEXT) is None
     without = build(None)

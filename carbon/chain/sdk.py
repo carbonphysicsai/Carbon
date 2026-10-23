@@ -35,13 +35,13 @@ _shared: dict = {}
 
 class BittensorReader:
     #: A read the endpoint refused under its traffic policy, or dropped, is
-    #: infrastructure: tried again up to `attempts` times in all, waiting the
+    #: infrastructure: tried again up to `_attempts` times in all, waiting the
     #: endpoint's Retry-After when it gives one, else doubling from
-    #: `base_delay`, never longer than `max_delay` per wait (the public RPC
+    #: `_base_delay`, never longer than `_max_delay` per wait (the public RPC
     #: asks for up to 60 s).
-    attempts = 4
-    base_delay = 2.0
-    max_delay = 60.0
+    _attempts = 4
+    _base_delay = 2.0
+    _max_delay = 60.0
 
     async def capture(self, context: ChainContext) -> MetagraphSnapshot:
         return await _shared_capture(context, self._read)
@@ -72,7 +72,7 @@ class BittensorReader:
     async def _read(self, context: ChainContext) -> MetagraphSnapshot:
         bt = self._sdk()
         failure = None
-        for attempt in range(self.attempts):
+        for attempt in range(self._attempts):
             wait = None
             try:
                 return await self._attempt(bt, context)
@@ -84,7 +84,7 @@ class BittensorReader:
                     "chain read refused by the endpoint's policy (attempt %d of "
                     "%d): status=%s policy=%s reason=%s retry_after=%s",
                     attempt + 1,
-                    self.attempts,
+                    self._attempts,
                     getattr(refused, "status_code", None),
                     getattr(refused, "policy", None),
                     getattr(refused, "reason", None),
@@ -95,9 +95,9 @@ class BittensorReader:
             except bt.ChainError:
                 failure = FailureCode.CHAIN
                 break
-            if attempt + 1 < self.attempts:
-                backoff = self.base_delay * 2**attempt * (0.5 + random.random() / 2)
-                await self._sleep(min(self.max_delay, max(wait or 0.0, backoff)))
+            if attempt + 1 < self._attempts:
+                backoff = self._base_delay * 2**attempt * (0.5 + random.random() / 2)
+                await self._sleep(min(self._max_delay, max(wait or 0.0, backoff)))
         raise ChainFailure(failure)
 
 

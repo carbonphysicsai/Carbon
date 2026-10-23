@@ -55,6 +55,7 @@ def test_a_direct_outcome_is_read_with_its_grade(tmp_path):
     assert grade["latest"] is None
     assert grade["other_submission_latest"] == {
         "status": "IMPROVED",
+        "words": "graded: a new best for your mining key on this exam",
         "total": 0.5488,
         "A": 0.298,
         "D": 0.8,
