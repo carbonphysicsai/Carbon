@@ -345,3 +345,37 @@ def test_a_pytorch_gpu_build_needs_buildx_and_says_so_before_building(sandbox):
         assert allowed.returncode == 0, allowed.stderr
     again = sandbox.run("--pytorch", "--no-start")
     assert again.returncode == 2 and "needs Docker buildx" in again.stderr
+
+
+UV = "ghcr.io/astral-sh/uv:0.12.7@sha256:" + "9" * 64
+
+
+def test_a_gpu_install_pulls_the_pinned_uv_image_its_builds_prepare_with(sandbox):
+    """Gate2c: GPU overlay preparation needs the pinned uv image in this
+    machine's Docker; the installer did not pull it, and its absence read as
+    a silent CPU fallback. With a GPU worker, it is pulled by digest when
+    Docker lacks it; a failed pull is said with the command, never fatal."""
+    bundles = sandbox.work / "carbon/development_session/library_bundles.py"
+    bundles.parent.mkdir(parents=True, exist_ok=True)
+    bundles.write_text(f'UV_IMAGE = "{UV}"\n')
+    sandbox.publish("fixture pinned uv image")
+    sandbox._executable(
+        sandbox.tools / "docker",
+        "#!/bin/sh\n"
+        'echo "docker $*" >> "$CARBON_TEST_LOG"\n'
+        'if [ "$*" = "info --format {{.DockerRootDir}}" ]; then\n'
+        '  echo "$CARBON_TEST_DOCKER_ROOT"\nfi\n'
+        'case "$*" in\n'
+        '  "image inspect ghcr.io/astral-sh/uv"*) exit 1 ;;\n'
+        '  "pull ghcr.io/astral-sh/uv"*) [ "${CARBON_TEST_UV_PULL:-ok}" = ok ] || exit 1 ;;\n'
+        "esac\n"
+        "exit 0\n",
+    )
+    result = sandbox.run("--gpu", "--no-start")
+    assert result.returncode == 0, result.stderr
+    assert f"docker pull {UV}" in sandbox.logged()
+    assert "Pulled the pinned uv image" in result.stdout
+    sandbox.log.unlink()
+    failed = sandbox.run("--gpu", "--no-start", CARBON_TEST_UV_PULL="no")
+    assert failed.returncode == 0, failed.stderr
+    assert f"Run: docker pull {UV}" in failed.stdout

@@ -241,6 +241,12 @@ FALLBACK_WORDS = {
     "catalog_gpu_build_not_offered": "the entry's GPU build has no GPU receipt yet",
     "gpu_overlay_not_installed": "the entry's GPU build is not installed here",
     "gpu_build_failed": "the entry's GPU build failed",
+    "gpu_uv_image_missing": (
+        "the pinned uv image GPU builds prepare with is not on this machine; "
+        "run: docker pull "
+        "ghcr.io/astral-sh/uv:0.12.7@sha256:95f2aa1fe59274951cfe9b0cbc7972e879ff1004bc8945d130a32eb0dbd85945"
+        " (the installer pulls it with --gpu), then practise again"
+    ),
     "gpu_driver_too_old": (
         "your GPU machine's NVIDIA driver is older than this GPU worker's CUDA "
         "runtime; update the driver (nvidia-smi shows the newest CUDA it "

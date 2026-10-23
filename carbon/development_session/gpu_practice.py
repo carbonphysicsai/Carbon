@@ -374,14 +374,57 @@ def campaign_limits():
     return (LedgerRefusal, DispatchStopped, DispatchPaused)
 
 
+class PracticeUnavailable(Exception):
+    """A catalog practice this host cannot run at all: its GPU build did not
+    run (`note`, the GPU attempt's reason) and the entry has no CPU build
+    here to practise instead. The task completes with this typed outcome and
+    its words (`research_tasks.practice_unavailable_result`), never as an
+    infrastructure failure (gate2c: a GPU-only JAX entry on a CUDA 12.8
+    driver gave the miner nothing)."""
+
+    def __init__(self, note):
+        super().__init__(note)
+        self.code = note
+
+
+#: `gpu_uv_image_missing`: the pinned uv image GPU builds use is not in this
+#: machine's Docker (gate2c: its absence read as a silent CPU fallback).
+GPU_UV_IMAGE_MISSING = "gpu_uv_image_missing"
+
+
+def _uv_image_present():
+    """Whether this machine's Docker holds the pinned uv image a GPU build's
+    preparation uses (`library_bundles.UV_IMAGE`); True when Docker cannot
+    say, so no other failure is misnamed."""
+    import subprocess
+
+    from .library_bundles import UV_IMAGE
+
+    try:
+        done = subprocess.run(  # fixed argv
+            ["docker", "image", "inspect", UV_IMAGE],
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return True
+    return done.returncode == 0
+
+
 def _gpu_failure_note(failure):
     """The note a GPU attempt's failure leaves: `gpu_driver_too_old` when the
-    miner's driver is older than the worker's CUDA runtime (the one cause the
-    miner can act on), else `gpu_build_failed`."""
+    miner's driver is older than the worker's CUDA runtime,
+    `gpu_uv_image_missing` when the pinned uv image its preparation needs is
+    not here (the causes the miner can act on), else `gpu_build_failed`."""
     from carbon.compute.remote_runner import GPU_DRIVER_TOO_OLD
 
     detail = getattr(failure, "detail", None)
-    return GPU_DRIVER_TOO_OLD if detail == GPU_DRIVER_TOO_OLD else "gpu_build_failed"
+    if detail == GPU_DRIVER_TOO_OLD:
+        return GPU_DRIVER_TOO_OLD
+    if not _uv_image_present():
+        return GPU_UV_IMAGE_MISSING
+    return "gpu_build_failed"
 
 
 def run_on_device(practice, identity, expand_for, bundle_of, overlay, run):
@@ -418,14 +461,15 @@ def run_on_device(practice, identity, expand_for, bundle_of, overlay, run):
         )
         expanded = expand_for(None)
         bundle = bundle_of(expanded["source"]["bundle_ref"])
+        note = _gpu_failure_note(failure)
         try:
             image = practice._resolve(bundle)
         except (FileNotFoundError, ValueError, OSError):
-            # No CPU child here either: the capability gap, typed.
-            raise DirectParentRefused("backend_not_served") from None
+            # No CPU child here either: unavailable, with the GPU's reason.
+            raise PracticeUnavailable(note) from None
         parent = practice.parents().for_bundle(bundle)
         result = run(identity + "-cpu", expanded, image, parent, None)
-        return result, expanded, parent, None, _gpu_failure_note(failure)
+        return result, expanded, parent, None, note
     return result, expanded, parent, accelerator, None
 
 
@@ -505,6 +549,6 @@ def device_build(practice, expand_for, bundle_of, overlay=None):
         if note is None:
             raise
         # Admitted for its GPU build (`gpu_build_staged`), which did not run,
-        # and no CPU child here: the capability gap, typed.
-        raise DirectParentRefused("backend_not_served") from None
+        # and no CPU child here: unavailable, with the GPU's reason.
+        raise PracticeUnavailable(note) from None
     return expanded, bundle, image, practice.parents().for_bundle(bundle), None, note

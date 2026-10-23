@@ -145,3 +145,12 @@ def test_a_failed_gpu_build_logs_why(monkeypatch, caplog):
     (record,) = [r for r in caplog.records if r.name == gpu_practice.__name__]
     assert "torch-cu130-py311" in record.getMessage()
     assert "sm_120" in str(record.exc_info[1])
+
+
+@pytest.fixture(autouse=True)
+def _uv_image_here(monkeypatch):
+    """The pinned uv image is present unless a test says otherwise, so a GPU
+    failure's note never depends on this machine's Docker."""
+    from carbon.development_session import gpu_practice
+
+    monkeypatch.setattr(gpu_practice, "_uv_image_present", lambda: True)
