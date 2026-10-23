@@ -461,7 +461,10 @@ def test_both_browser_panes_render_acceptance_separately_from_readiness():
     app = (ROOT / "scripts/dev/miner_launchpad/app.js").read_text()
     pane = (ROOT / "scripts/dev/miner_launchpad/research_view.js").read_text()
     assert "function acceptanceText(item)" in app
-    assert 'return "Untested"' in app
+    # E6 (owner: "Untested" leaves the miner's page): an untested item says
+    # nothing; only a named-cell test result is shown.
+    assert 'return "Untested"' not in app
+    assert "nothing is said (E6)" in app
     assert 'value.scope === "NAMED_CELL_REVISION_ONLY"' in app
     assert "acceptanceText(client)" in app and "acceptanceText(change)" in app
     assert "CC.acceptanceText(acceptance)" in pane
