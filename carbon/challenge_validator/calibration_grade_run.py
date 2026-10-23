@@ -75,9 +75,11 @@ def prepare(pack_root, challenge_id, version):
         raise cg.CalibrationRefused("calibration_pack_unreadable") from exc
 
 
-def resolve_bank(snapshot, pack_root, challenge_id, version):
+def resolve_bank(snapshot, pack_root, challenge_id, version, copy_hotkey=None):
     """``(bank, adapter, names)``: the sealed batch the pack carries, or the
-    development bank of a development pack."""
+    development bank of a development pack. With ``copy_hotkey`` (a validator's own) the
+    pack is graded in the canonical form of that validator's signed copy
+    (``copy_package.receive``: the copy sits beside the pack in ``.copies/<name>/``)."""
     from carbon.challenge_kit import physical_pack
     from carbon.scoring import physical_adapters, sealed_batch_source
     from carbon.scoring import physical_dual_pack as physical
@@ -92,6 +94,7 @@ def resolve_bank(snapshot, pack_root, challenge_id, version):
             selected_pack=snapshot,
             private_root=pack_root,
             development_adapter=development,
+            copy_hotkey=copy_hotkey,
         )
     except sealed_batch_source.SealedBankRefused as exc:
         raise cg.CalibrationRefused(exc.code) from exc
@@ -192,6 +195,7 @@ def run(
     run_config=None,
     run_config_digest=None,
     pins=None,
+    copy_hotkey=None,
 ):
     """The aggregates for one artifact on one calibration pack. ``judge_image`` is the
     host's inference ``WorkerImageIdentity`` (required unless ``fake``)."""
