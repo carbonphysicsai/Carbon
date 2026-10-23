@@ -15,6 +15,6 @@
   "name": "build"
  },
  "output_format": "carbon.numeric-graph.v1",
- "packet": "t_cooling_thuml_galerkin_transformer_baseline",
+ "packet": "t_v2_cooling_thuml_galerkin_transformer_baseline",
  "train_use": {}
 }
