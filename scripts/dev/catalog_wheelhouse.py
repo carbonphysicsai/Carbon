@@ -14,7 +14,9 @@ host. The wheel set is read from this checkout's catalog (the union over every
 entry's bundle manifest; two entries that disagree on a hash are refused). Each
 wheel is taken from a `--from` directory when one holds a file of that name with
 the pinned sha256, and otherwise fetched by exact name and version with
-`pip download --no-deps --only-binary=:all:` (a network step on the host, by
+`pip download --no-deps --only-binary=:all:`; a pure-Python wheel the index
+has only as source is rebuilt from it with `pip wheel` (isolated,
+SOURCE_DATE_EPOCH=0). Either is a network step on the host, by
 its owner or the background catalog install it started; never an MCP tool). A
 file whose sha256 differs from the catalog's
 pin is never kept: the build fails.
@@ -95,8 +97,70 @@ def _sha256(path):
 
 def _fetch(name, hexdigest, into):
     """One wheel from the index, by exact name and version, kept only if its
-    sha256 is the pin."""
+    sha256 is the pin. A pure-Python wheel (`py3-none-any`) the index has no
+    binary of is rebuilt from its source distribution (`_rebuild`) and kept
+    only on the same terms (M1 E2E R10-1: torch_harmonics 0.7.4 is published
+    as an sdist only)."""
     with tempfile.TemporaryDirectory() as work:
+        found = Path(work) / name
+        try:
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "download",
+                    requirement(name),
+                    "--no-deps",
+                    "--only-binary=:all:",
+                    "--python-version",
+                    "3.11",
+                    "--implementation",
+                    "cp",
+                    "--abi",
+                    "cp311",
+                    "--platform",
+                    "manylinux2014_x86_64",
+                    "--platform",
+                    "manylinux_2_17_x86_64",
+                    "--platform",
+                    "manylinux_2_28_x86_64",
+                    "--platform",
+                    "any",
+                    "-d",
+                    work,
+                    "-q",
+                ],
+                check=True,
+            )
+        except subprocess.CalledProcessError:
+            if not name.endswith(PURE):
+                raise
+        if not found.is_file():
+            if not name.endswith(PURE):
+                raise WheelhouseRefused(f"the index did not give {name}")
+            found = _rebuild(name, Path(work))
+        if _sha256(found) != hexdigest:
+            raise WheelhouseRefused(f"{name}: the index's file is not the pinned one")
+        shutil.copyfile(found, Path(into) / name)
+
+
+#: The wheels `_rebuild` may build: pure Python, the same bytes on any host.
+PURE = "-py3-none-any.whl"
+
+
+def _rebuild(name, work):
+    """`name` built from its source distribution on the index, by exact name
+    and version: `pip wheel --no-deps` in pip's build isolation with
+    SOURCE_DATE_EPOCH=0, which makes the archive reproducible (Graphite
+    Test, 2026-10-23: torch_harmonics 0.7.4 rebuilt byte-identical to its
+    pin, twice). The caller keeps it only when its sha256 is the pin."""
+    sources, built = work / "sdist", work / "built"
+    sources.mkdir()
+    built.mkdir()
+    environment = {**os.environ, "SOURCE_DATE_EPOCH": "0"}
+    environment.pop("PIP_NO_BUILD_ISOLATION", None)
+    try:
         subprocess.run(
             [
                 sys.executable,
@@ -105,33 +169,41 @@ def _fetch(name, hexdigest, into):
                 "download",
                 requirement(name),
                 "--no-deps",
-                "--only-binary=:all:",
-                "--python-version",
-                "3.11",
-                "--implementation",
-                "cp",
-                "--abi",
-                "cp311",
-                "--platform",
-                "manylinux2014_x86_64",
-                "--platform",
-                "manylinux_2_17_x86_64",
-                "--platform",
-                "manylinux_2_28_x86_64",
-                "--platform",
-                "any",
+                "--no-binary=:all:",
                 "-d",
-                work,
+                str(sources),
                 "-q",
             ],
             check=True,
         )
-        found = Path(work) / name
-        if not found.is_file():
-            raise WheelhouseRefused(f"the index did not give {name}")
-        if _sha256(found) != hexdigest:
-            raise WheelhouseRefused(f"{name}: the index's file is not the pinned one")
-        shutil.copyfile(found, Path(into) / name)
+        archives = sorted(sources.iterdir())
+        if len(archives) != 1:
+            raise WheelhouseRefused(
+                f"{name}: the index has no wheel and no single source distribution"
+            )
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "wheel",
+                "--no-deps",
+                str(archives[0]),
+                "-w",
+                str(built),
+                "-q",
+            ],
+            check=True,
+            env=environment,
+        )
+    except subprocess.CalledProcessError:
+        raise WheelhouseRefused(
+            f"{name}: the index has no wheel, and its source could not be built"
+        ) from None
+    found = built / name
+    if not found.is_file():
+        raise WheelhouseRefused(f"{name}: its source did not build that wheel")
+    return found
 
 
 def _record(directory, wanted):

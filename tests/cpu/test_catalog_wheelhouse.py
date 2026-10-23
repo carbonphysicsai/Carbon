@@ -9,6 +9,7 @@ import json
 import os
 import stat
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -260,3 +261,68 @@ def test_a_wheelhouse_built_for_an_earlier_catalog_is_brought_up_to_date(
     (target / "stray.txt").write_text("x")
     with pytest.raises(wheelhouse.WheelhouseRefused, match="different contents"):
         wheelhouse.build(target, sources=[source], checkout=checkout)
+
+
+class FakeIndex:
+    """pip as the index answers it: no binary of the wheel, its sdist, and
+    the wheel `pip wheel` builds from it (`built`)."""
+
+    def __init__(self, name, built):
+        self.name, self.built, self.calls = name, built, []
+
+    def __call__(self, command, check, env=None):
+        self.calls.append((command, env))
+        work = Path(command[command.index("-d" if "download" in command else "-w") + 1])
+        if "--only-binary=:all:" in command:
+            raise subprocess.CalledProcessError(1, command)
+        if "download" in command:
+            (work / "pkg-0.7.4.tar.gz").write_bytes(b"sdist")
+        else:
+            (work / self.name).write_bytes(self.built)
+
+
+def test_a_pure_wheel_with_no_binary_is_rebuilt_from_its_sdist_and_kept_by_hash(
+    tmp_path, monkeypatch
+):
+    """M1 E2E R10-1: torch_harmonics 0.7.4 is on the index as an sdist only.
+    Rebuilt with pip wheel (isolated, SOURCE_DATE_EPOCH=0), it is kept only
+    because its sha256 is the pin."""
+    name = "torch_harmonics-0.7.4-py3-none-any.whl"
+    pinned = b"reproducible wheel bytes"
+    index = FakeIndex(name, pinned)
+    monkeypatch.setattr(wheelhouse.subprocess, "run", index)
+    monkeypatch.setenv("PIP_NO_BUILD_ISOLATION", "1")
+    wheelhouse._fetch(name, _digest(pinned), tmp_path)
+    assert (tmp_path / name).read_bytes() == pinned
+    (binary, _), (sdist, _), (build, env) = index.calls
+    assert "--only-binary=:all:" in binary
+    assert "torch-harmonics==0.7.4" in sdist and "--no-binary=:all:" in sdist
+    assert build[2:4] == ["pip", "wheel"] and "--no-deps" in build
+    assert env["SOURCE_DATE_EPOCH"] == "0"
+    assert "PIP_NO_BUILD_ISOLATION" not in env  # pip's own build isolation
+
+
+def test_a_rebuilt_wheel_that_differs_from_its_pin_is_never_kept(tmp_path, monkeypatch):
+    name = "torch_harmonics-0.7.4-py3-none-any.whl"
+    monkeypatch.setattr(wheelhouse.subprocess, "run", FakeIndex(name, b"other"))
+    with pytest.raises(wheelhouse.WheelhouseRefused, match="not the pinned one"):
+        wheelhouse._fetch(name, _digest(b"pinned"), tmp_path)
+    assert not (tmp_path / name).exists()
+
+
+def test_a_platform_wheel_is_never_rebuilt_from_source(tmp_path, monkeypatch):
+    name = "native-1.0-cp311-cp311-manylinux_2_17_x86_64.whl"
+    index = FakeIndex(name, b"x")
+    monkeypatch.setattr(wheelhouse.subprocess, "run", index)
+    with pytest.raises(subprocess.CalledProcessError):
+        wheelhouse._fetch(name, _digest(b"x"), tmp_path)
+    assert len(index.calls) == 1
+
+
+def test_an_index_with_neither_wheel_nor_source_is_a_refusal(tmp_path, monkeypatch):
+    def nothing(command, check, env=None):
+        raise subprocess.CalledProcessError(1, command)
+
+    monkeypatch.setattr(wheelhouse.subprocess, "run", nothing)
+    with pytest.raises(wheelhouse.WheelhouseRefused, match="could not be built"):
+        wheelhouse._fetch("pure-1.0-py3-none-any.whl", _digest(b"x"), tmp_path)
