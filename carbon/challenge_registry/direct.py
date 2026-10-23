@@ -1,5 +1,5 @@
 """Discovery for the direct-recipe-only versions: F08 (Ribbed Bracket) 1.4,
-F02 (Burst Thermal) 2.3 and Battery 2.2 (catalog recipes only).
+F02 (Burst Thermal) 2.3 and Battery 2.2.
 
 A description names the registered interface, construction kit, served backbone
 catalog and graph training adapter (each from its registered source), and a
@@ -13,15 +13,6 @@ is `HUMAN_INPUT`. Practice reports aggregate errors on the registered scale
 from __future__ import annotations
 
 from carbon.direct_campaign.spec import HUMAN_INPUT
-
-#: What a catalog-only version says is coming (the Validator's Battery 2.2
-#: graph-route ruling, 2026-10-22).
-COMING = {
-    (
-        "battery-fastcharge-ageing-development-v1",
-        "2.2",
-    ): " Battery 2.2: catalog backbones now; your own graphs coming.",
-}
 
 
 def _kit(spec, version):
@@ -78,15 +69,23 @@ def catalog_recipe(spec, catalog_id=None, *, version):
 
 
 def graph_recipe(spec, submission_digest=None, *, version, training=None):
-    """A graph recipe for Carbon's registered graph training adapter at
-    `version`: the adapter's dataset, `train_fraction` 1.0 (its registered
-    default) and `training` (empty: every surface keeps its registered
-    default). Without `submission_digest` it is an unfilled template (None):
-    the miner's graph, staged in their workspace, names it."""
-    from carbon.development_session import physical_graph_adapter as adapter
+    """A graph recipe for the version's registered graph training adapter
+    (`graph_adapters`) at `version`: the adapter's TRAIN use with its
+    registered defaults and `training` (empty: every surface keeps its
+    registered default). Without `submission_digest` it is an unfilled
+    template (None): the miner's graph, staged in their workspace, names it."""
+    from carbon.development_session.graph_adapters import for_version
 
     kit = _kit(spec, version)
-    block = adapter.adapter_block(spec.challenge_id, version)
+    block = for_version(spec.challenge_id, version).adapter_block(
+        spec.challenge_id, version
+    )
+    # Battery's adapter states its whole TRAIN use default; F08/F02's state
+    # their dataset and train_fraction surface.
+    train_use = block.get("train_use_default") or {
+        "dataset": block["train_use_dataset"],
+        "train_fraction": block["train_fraction"]["default"],
+    }
     return {
         "schema": "carbon.construction-recipe.v1",
         "challenge": kit,
@@ -94,10 +93,7 @@ def graph_recipe(spec, submission_digest=None, *, version, training=None):
         "procedure": {
             "entrypoint": None,
             "configuration": {"training": dict(training or {})},
-            "train_use": {
-                "dataset": block["train_use_dataset"],
-                "train_fraction": block["train_fraction"]["default"],
-            },
+            "train_use": dict(train_use),
             "initial_state": None,
         },
         "output": {
@@ -105,6 +101,21 @@ def graph_recipe(spec, submission_digest=None, *, version, training=None):
             "interface_digest": kit["interface_digest"],
         },
     }
+
+
+def _empty_catalog_note(adapter):
+    """What a version with no catalog entry yet says, in plain words."""
+    waiting = (
+        "No backbone is installable yet: each catalog entry arrives after its "
+        "own pair-identity check."
+    )
+    if adapter is not None:
+        return (
+            waiting + " Meanwhile, practise your own graph: stage it in your "
+            "workspace and name its digest in graph_recipe_template's "
+            "source.submission_digest."
+        )
+    return waiting + " Until one is added, the campaign refuses to start."
 
 
 def describe(spec, version):
@@ -178,12 +189,9 @@ def describe(spec, version):
                     "Carbon's graph training adapter."
                     if adapter is not None
                     else "Choose a backbone by catalog_id."
-                    + COMING.get((spec.challenge_id, version), "")
                 )
                 if catalog["entries"]
-                else "No backbone is tested for this version yet: each entry "
-                "needs its own pair-identity receipt, so the campaign refuses "
-                "to start until one is added."
+                else _empty_catalog_note(adapter)
             ),
         },
         "execution": {
@@ -216,6 +224,13 @@ def describe(spec, version):
             [{"recipe": catalog_recipe(spec, version=version)}]
             if catalog["entries"]
             else []
+        ),
+        # Never an empty list with no reason (round 8b): why there is no ready
+        # recipe yet, and what this version can already practise.
+        **(
+            {}
+            if catalog["entries"]
+            else {"examples_note": _empty_catalog_note(adapter)}
         ),
         "unsupported": [
             {

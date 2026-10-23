@@ -347,10 +347,11 @@ SYNTHETIC_ADAPTER_ID = "synthetic-linear-field-2d-public-jax-graph-v1"
 
 def graph_adapter_ids() -> frozenset:
     """Every graph adapter the receiver can run: the synthetic one (1.3) and
-    the F08 1.4 / F02 2.3 adapters."""
-    from .physical_graph_adapter import ADAPTER_IDS
+    each registered per-version adapter (`graph_adapters`: F08 1.4 / F02 2.3,
+    Battery 2.2)."""
+    from .graph_adapters import adapter_ids
 
-    return frozenset({SYNTHETIC_ADAPTER_ID}) | ADAPTER_IDS
+    return frozenset({SYNTHETIC_ADAPTER_ID}) | adapter_ids()
 
 
 def _physical_stage(binding: dict, limits_document: dict, allowlist_bytes: bytes):
@@ -424,7 +425,9 @@ def reconstruct_public_graph(
 
     `adapter_id` selects the Challenge's graph adapter (`graph_adapter_ids`):
     the synthetic 1.3 adapter keeps its exact program and stage; the F08 1.4 /
-    F02 2.3 adapter runs its own program with Carbon's pinned trainer."""
+    F02 2.3 adapter runs its own program with Carbon's pinned trainer; Battery
+    2.2's (`battery_graph_adapter`) runs Battery's registered training on its
+    float64 TRAIN."""
     if (
         type(image) is not WorkerImageIdentity
         or type(seed) is not int
@@ -440,6 +443,9 @@ def reconstruct_public_graph(
     if _digest(train) != binding["train_digest"]:
         raise RecipeRefused("direct_graph_train_binding_invalid")
     _checked_envelope(recipe, source_envelope)
+    from . import battery_graph_adapter, physical_graph_adapter
+
+    train_name = "train.npz"
     if adapter_id == SYNTHETIC_ADAPTER_ID:
         allowed = _trusted_allowlist(allowlist_bytes)
         files = _stage_modules()
@@ -455,7 +461,7 @@ def reconstruct_public_graph(
         def load_built(state):
             load_state(state, recipe, allowed)
 
-    elif adapter_id in graph_adapter_ids():
+    elif adapter_id in physical_graph_adapter.ADAPTER_IDS:
         from . import physical_graph_state
 
         spec, allowed, physical_files = _physical_stage(
@@ -470,13 +476,30 @@ def reconstruct_public_graph(
         def load_built(state):
             physical_graph_state.load(state, recipe, allowed)
 
+    elif adapter_id in battery_graph_adapter.ADAPTER_IDS:
+        from carbon.level4.allowlist import Allowlist
+
+        spec, battery_files = battery_graph_adapter.build_stage(
+            binding, limits_document, allowlist_bytes, recipe
+        )
+        if spec.adapter_id != adapter_id:
+            raise RecipeRefused("direct_graph_adapter_identity_invalid")
+        allowed = Allowlist(allowlist_bytes)
+        files = _stage_modules()
+        files.update(battery_files)
+        program = battery_graph_adapter.build_program()
+        train_name = battery_graph_adapter.TRAIN_NAME
+
+        def load_built(state):
+            battery_graph_adapter.check_state(state, recipe)
+
     else:
         raise RecipeRefused("direct_graph_adapter_unavailable")
     files.update(
         {
             "recipe.json": recipe.canonical_bytes,
             "source-envelope.json": source_envelope,
-            "train.npz": train,
+            train_name: train,
             "allowlist.json": allowlist_bytes,
             "control.json": canonical(
                 {
@@ -670,7 +693,16 @@ def reconstruct_and_infer_graph_public(
         "provenance": INFERENCE_PROVENANCE,
         "runner": runner,
     }
-    if adapter_id != SYNTHETIC_ADAPTER_ID:
+    from . import battery_graph_adapter
+
+    if adapter_id in battery_graph_adapter.ADAPTER_IDS:
+        # Battery's adapter: its inert state reopened by Battery's registered
+        # graph code, one isolated case per call, float64 rows.
+        query["input_name"] = battery_graph_adapter.INPUT_NAME
+        query["expected_output_dtype"] = battery_graph_adapter.OUTPUT_DTYPE
+        query["program"] = battery_graph_adapter.infer_program()
+        query["staged_files"] = battery_graph_adapter.inference_files(binding, recipe)
+    elif adapter_id != SYNTHETIC_ADAPTER_ID:
         # The F08/F02 adapter: its decoded state, applied by its own program.
         root = Path(__file__).resolve().parents[2]
         name = "carbon.development_session.physical_graph_state"

@@ -158,14 +158,44 @@ def test_the_launchpad_lists_the_version_generically(spec, version):
     )
 
 
-# --- an empty catalog refuses to start --------------------------------------
+# --- an empty catalog refuses to start only without a graph route ----------
 
 
 @pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
-def test_an_empty_catalog_campaign_is_refused_before_anything_starts(
+def test_an_empty_catalog_with_a_graph_route_still_starts(
+    spec, version, tmp_path, monkeypatch
+):
+    # The miner can practise their own graph while the catalog waits on its
+    # checks (round 8b), so the empty catalog is not the refusal.
+    empty(monkeypatch, spec.challenge_id, version)
+    campaign = campaign_for(_challenge(spec, version))
+    args = SimpleNamespace(
+        root=tmp_path,
+        command="run",
+        product=SimpleNamespace(runtime={"implementation": "x"}, agent="none"),
+    )
+    granted = SimpleNamespace(root=tmp_path, admission="a-grant")
+    with pytest.raises(ValueError, match="never consumes a development grant"):
+        asyncio.run(campaign.prepare(args, ledger=granted, campaign=campaign))
+    note = describe(spec.challenge_id, version)["examples_note"]
+    assert note.startswith("No backbone is installable yet")
+    assert "practise your own graph" in note
+
+
+@pytest.mark.parametrize("spec, version", VERSIONS, ids=IDS)
+def test_an_empty_catalog_without_a_graph_route_is_refused_before_anything_starts(
     spec, version, tmp_path, monkeypatch
 ):
     empty(monkeypatch, spec.challenge_id, version)
+    public = spec.public()
+    served = public.construction_limits_document
+
+    def without_graph(challenge_id, version_):
+        limits = dict(served(challenge_id, version_))
+        limits.pop("graph_training_adapter")
+        return limits
+
+    monkeypatch.setattr(public, "construction_limits_document", without_graph)
     campaign = campaign_for(_challenge(spec, version))
     args = SimpleNamespace(
         root=tmp_path,

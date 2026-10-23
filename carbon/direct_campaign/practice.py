@@ -8,8 +8,9 @@ version's registered public material (`physical_material.bundle_material`):
   `bundle_construction_worker.reconstruct_and_infer_public` over the parent of
   the bundle's pinned runtime (as Motor's and Cooling's catalog practice);
 - **graph**: the miner's graph from its own workspace
-  (`construction_recipe.graph_envelope_from_workspace`), trained by Carbon's
-  registered graph training adapter (the version's limits block) through
+  (`construction_recipe.graph_envelope_from_workspace`), trained by the
+  version's registered graph training adapter (`graph_adapters`: F08/F02's, or
+  Battery's on its base version's graph route; the version's limits block) through
   `direct_graph_construction_worker.reconstruct_and_infer_graph_public`.
 
 The query is the version's exposed DEVELOPMENT bank inputs, seed 0. Outputs
@@ -18,7 +19,7 @@ Battery's float64), one finite row per case, of the interface's width;
 anything else is refused.
 
 Battery's catalog version (2.2, `battery.catalog_version`) serves catalog
-recipes only. Its practice is Battery's own registered practice measurement
+recipes and graph recipes (Battery's graph adapter). Its practice is Battery's own registered practice measurement
 (`practice.score_practice`: the exam's gates, TRAIN scales and frozen
 tolerances) on the bank's public PRACTICE rows, the same feedback Battery's
 practice gives; the bank's other rows are queried, never scored here.
@@ -478,17 +479,18 @@ class DirectPractice:
         return result, backend, recipe
 
     def _graph(self, recipe, binding, material, identity):
-        from carbon.development_session import physical_graph_adapter as adapter
         from carbon.development_session.construction_recipe import (
             graph_envelope_from_workspace,
         )
         from carbon.development_session.direct_graph_construction_worker import (
             reconstruct_and_infer_graph_public,
         )
+        from carbon.development_session.graph_adapters import for_version
 
         limits = material["construction_limits_document"]
-        if "graph_training_adapter" not in limits:
-            # Battery's catalog version: graphs stay on its base version.
+        # The version's registered graph adapter (F08/F02's, or Battery's).
+        adapter = for_version(self.spec.challenge_id, self.version)
+        if adapter is None or "graph_training_adapter" not in limits:
             raise ValueError(self.spec.prefix + "_graph_unserved")
         spec = adapter.spec_for(self.spec.challenge_id, self.version)
         if limits.get("graph_training_adapter") != adapter.adapter_block(

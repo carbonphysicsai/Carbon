@@ -18,9 +18,11 @@ It also states, for the shared direct campaign (`carbon.direct_campaign`,
 units and axes of the established Battery outputs), public TRAIN's facts and
 practice scoring: Battery's own registered practice measurement
 (`practice.score_practice`: the exam's gates, TRAIN scales and frozen
-tolerances) on the bank's public PRACTICE rows. Graph recipes stay on the base
-version's own graph worker; this version serves catalog recipes only. Nothing
-here is an exam, a qualification or LIVE authority.
+tolerances) on the bank's public PRACTICE rows. Graph recipes run through
+Battery's graph training adapter (`development_session.battery_graph_adapter`;
+the Validator's ruling (a), 2026-10-22), on the base version's graph route;
+its block is in the limits. Nothing here is an exam, a qualification or LIVE
+authority.
 """
 
 from __future__ import annotations
@@ -67,6 +69,7 @@ def material(version: str, root: Path | None = None) -> dict:
     under the version's own key and limits (the base's plus the catalog)."""
     from carbon.backbone_catalog import served
     from carbon.challenge_kit.served_versions import material_allowlist_bytes
+    from carbon.development_session import battery_graph_adapter
     from carbon.registry import ChallengeKey
 
     from .construction_bundle_material import versioned_material
@@ -86,6 +89,11 @@ def material(version: str, root: Path | None = None) -> dict:
             "schema": served.SCHEMA,
             "digest": served.digest(CHALLENGE_ID, version),
         },
+        # The Validator's ruling (a): Battery's graph training adapter, on the
+        # base version's graph route.
+        "graph_training_adapter": battery_graph_adapter.adapter_block(
+            CHALLENGE_ID, version
+        ),
     }
     found.update(
         {

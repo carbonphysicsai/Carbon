@@ -36,9 +36,6 @@ KNOWN_LIMITATIONS = {
                 "solver fails."
             ),
         ),
-        # The Validator's Battery 2.2 graph-route ruling (2026-10-22): until
-        # the Battery graph adapter lands, the card says graphs are coming.
-        "2.2": ("Battery 2.2: catalog backbones now; your own graphs coming.",),
     },
 }
 

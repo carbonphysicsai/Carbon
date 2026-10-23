@@ -30,8 +30,9 @@ from carbon.challenge_kit import physical_material
 from carbon.challenge_kit import served_versions as sv
 from carbon.challenge_registry import campaigns, describe, registry
 from carbon.challenge_registry.campaigns import campaign_for, implemented_campaigns
-from carbon.challenge_registry.direct import catalog_recipe
+from carbon.challenge_registry.direct import catalog_recipe, graph_recipe
 from carbon.development_session import bundle_construction_worker as bundle_worker
+from carbon.development_session.construction_recipe import RecipeRefused
 from carbon.direct_campaign import contracts as direct_contracts
 from carbon.direct_campaign import research as direct_research
 from carbon.direct_campaign.spec import BATTERY_CATALOG, HUMAN_INPUT, SPECS
@@ -143,7 +144,7 @@ def test_the_receiver_contract_and_worker_policy_accept_2_2():
 # --- the catalog binding, and 2.1 unchanged ----------------------------------
 
 
-def test_2_2_is_2_1_plus_the_catalog_and_nothing_else_moves():
+def test_2_2_is_2_1_plus_the_catalog_and_graph_adapter_and_nothing_else_moves():
     new = cbm.versioned_material("2.2")
     old = cbm.versioned_material("2.1")
     for version, limits in KITS.items():
@@ -158,8 +159,14 @@ def test_2_2_is_2_1_plus_the_catalog_and_nothing_else_moves():
     assert new["construction_kit"]["interface_digest"] == INTERFACE
     assert old["construction_kit"]["interface_digest"] == INTERFACE
     assert new["construction_kit"]["construction_limits_digest"] not in KITS.values()
-    # The limits differ only by version and the exact catalog served.
+    # The limits differ only by version, the exact catalog served and
+    # Battery's graph adapter (the Validator's ruling (a)).
+    from carbon.development_session import battery_graph_adapter
+
     limits = dict(new["construction_limits_document"])
+    assert limits.pop("graph_training_adapter") == (
+        battery_graph_adapter.adapter_block(BATTERY, "2.2")
+    )
     assert limits.pop("backbone_catalog") == {
         "schema": served.SCHEMA,
         "digest": served.digest(BATTERY, "2.2"),
@@ -208,8 +215,9 @@ def test_the_catalog_and_toolbox_list_nothing_until_receipts(monkeypatch):
     toolbox._catalog_recipes.cache_clear()
     document = describe(BATTERY, "2.2")
     assert document["models"]["rebuildable"] == []
-    assert document["models"]["graph_training_adapter"] is None
-    assert "needs its own pair-identity receipt" in document["models"]["note"]
+    assert document["models"]["graph_training_adapter"]["base_version"] == "2.1"
+    assert document["models"]["note"].startswith("No backbone is installable yet")
+    assert document["models"]["note"] == document["examples_note"]
     assert document["examples"] == []
     assert document["task"] == HUMAN_INPUT
     template = catalog_recipe(BATTERY_CATALOG, version="2.2")
@@ -217,9 +225,13 @@ def test_the_catalog_and_toolbox_list_nothing_until_receipts(monkeypatch):
     assert template["challenge"] == catalog_version.construction_kit(BATTERY, "2.2")
 
 
-def test_an_empty_catalog_campaign_is_refused_before_anything_starts(
+def test_an_empty_catalog_campaign_starts_on_the_graph_route_and_says_why(
     tmp_path, monkeypatch
 ):
+    # Round 8b: while the catalog waits on its checks, 2.2 can practise the
+    # miner's own graph; the toolbox says why it offers no ready recipe.
+    from scripts.dev.miner_launchpad import toolbox
+
     empty(monkeypatch, BATTERY, "2.2")
     campaign = campaign_for(CHALLENGE)
     args = SimpleNamespace(
@@ -227,10 +239,22 @@ def test_an_empty_catalog_campaign_is_refused_before_anything_starts(
         command="run",
         product=SimpleNamespace(runtime={"implementation": "x"}, agent="none"),
     )
+    granted = SimpleNamespace(root=tmp_path, admission="a-grant")
+    with pytest.raises(ValueError, match="never consumes a development grant"):
+        asyncio.run(campaign.prepare(args, ledger=granted, campaign=campaign))
     assert catalog_campaign.CATALOG_EMPTY == "battery_catalog_catalog_empty"
-    with pytest.raises(ValueError, match="battery_catalog_catalog_empty"):
-        asyncio.run(campaign.prepare(args, ledger=None, campaign=campaign))
-    assert list(tmp_path.iterdir()) == []
+    note = describe(BATTERY, "2.2")["examples_note"]
+    assert note.startswith("No backbone is installable yet")
+    assert "practise your own graph" in note
+    toolbox._sources.cache_clear()
+    toolbox._catalog_recipes.cache_clear()
+    try:
+        document = toolbox.build(CHALLENGE, direct=True)
+    finally:
+        toolbox._sources.cache_clear()
+        toolbox._catalog_recipes.cache_clear()
+    assert document["examples"] == [] and document["catalog"] == []
+    assert document["examples_note"] == note
 
 
 def test_with_an_offered_entry_the_refusal_is_not_the_catalogs(tmp_path, monkeypatch):
@@ -277,8 +301,11 @@ def test_the_research_parts_take_battery_s_interface_and_the_catalog_only():
     ]
     assert [a.extent.fixed_extent for a in outputs["voltage_v"].shape_contract] == [121]
     assert outputs["plating_margin_v"].shape_contract == ()
-    # Catalog only: no graph adapter source.
-    assert [selector for selector, *_ in sources] == ["direct_catalog"]
+    # Both routes: Battery's graph adapter and the catalog.
+    assert [selector for selector, *_ in sources] == [
+        "direct_adapter",
+        "direct_catalog",
+    ]
     assert [o.kind for o in view.outputs] == [
         "time_series",
         "time_series",
@@ -378,29 +405,55 @@ def test_a_catalog_recipe_runs_through_the_shared_bundle_worker(tmp_path, monkey
     assert summary["error_scale"]["record"] == catalog_version.PRACTICE_RECORD
 
 
-def test_a_graph_recipe_is_refused_before_anything_runs(tmp_path, monkeypatch):
-    inject(monkeypatch, BATTERY, "2.2")
+def test_a_graph_recipe_runs_through_battery_s_graph_adapter(tmp_path, monkeypatch):
+    # The Validator's ruling (a): graphs through Battery's adapter, on 2.1's
+    # graph route (its custody and parity: test_battery_graph_adapter.py).
+    from carbon.development_session import battery_graph_adapter
+    from carbon.development_session import construction_recipe as construction
+    from carbon.development_session import direct_graph_construction_worker as graph
+
+    material = physical_material.bundle_material(BATTERY, "2.2")
+    calls = []
+
+    def fake(ledger_, **kwargs):
+        calls.append(kwargs)
+        state = "sha256:" + "5" * 64
+        return SimpleNamespace(
+            build=SimpleNamespace(state_digest=state),
+            inference=SimpleNamespace(state_digest=state, predictions=_rows(material)),
+        )
+
+    monkeypatch.setattr(graph, "reconstruct_and_infer_graph_public", fake)
+    monkeypatch.setattr(
+        construction, "graph_envelope_from_workspace", lambda *a, **k: b"{}"
+    )
     monkeypatch.setattr(
         bundle_worker,
         "reconstruct_and_infer_public",
-        lambda *a, **k: pytest.fail("nothing runs"),
+        lambda *a, **k: pytest.fail("no bundle runs"),
     )
     item, _ = _practice(tmp_path)
-    kit = catalog_version.construction_kit(BATTERY, "2.2")
-    recipe = {
-        "schema": "carbon.construction-recipe.v1",
-        "challenge": kit,
-        "source": {"kind": "graph", "submission_digest": "sha256:" + "a" * 64},
-        "procedure": {
-            "entrypoint": None,
-            "configuration": {"training": {}},
-            "train_use": {"dataset": "train", "train_fraction": 1.0},
-            "initial_state": None,
-        },
-        "output": {"format": "array", "interface_digest": kit["interface_digest"]},
-    }
-    with pytest.raises(ValueError, match="battery_catalog_graph_unserved"):
-        item("battery-graph-0001", recipe)
+    recipe = graph_recipe(
+        BATTERY_CATALOG, "sha256:" + "a" * 64, version="2.2", training={"steps": 16}
+    )
+    result = item("battery-graph-0001", recipe)
+    (call,) = calls
+    assert (
+        call["adapter_id"] == battery_graph_adapter.SPECS[(BATTERY, "2.2")].adapter_id
+    )
+    assert call["train"] == material["train"]
+    assert np.array_equal(call["inputs"], material["practice_inputs"])
+    assert call["limits_document"] == material["construction_limits_document"]
+    assert call["seed"] == 0
+    assert result["source_kind"] == "graph"
+    assert result["summary"]["n_scored"] == 200
+    # A setting the base version's route refuses is refused before anything runs.
+    bad = graph_recipe(
+        BATTERY_CATALOG, "sha256:" + "a" * 64, version="2.2", training={"steps": 1}
+    )
+    with pytest.raises(RecipeRefused, match="battery_graph_training_value_invalid"):
+        item("battery-graph-0002", bad)
+    assert len(calls) == 1
 
 
 def test_outputs_must_be_finite_rows_of_the_interface(tmp_path, monkeypatch):
@@ -465,16 +518,26 @@ def test_describe_offers_a_catalog_example_practice_accepts(monkeypatch):
         assert listing.entries(BATTERY, version) == []
 
 
-def test_the_card_and_description_say_graphs_are_coming(monkeypatch):
-    # The Validator's ruling (2026-10-22): round 8 registers 2.2 catalog-only
-    # while saying so; the Battery graph adapter follows.
+def test_the_description_serves_both_routes_and_no_coming_line(monkeypatch):
+    # The Validator's ruling (a) built: catalog backbones and your own graphs.
     from carbon.challenge_registry.known_limitations import known_limitations
+    from carbon.development_session import battery_graph_adapter
 
-    line = "Battery 2.2: catalog backbones now; your own graphs coming."
-    assert line in known_limitations(BATTERY, "2.2")
-    for version in ("1.0", "2.0", "2.1"):
-        assert line not in known_limitations(BATTERY, version)
-    inject(monkeypatch, BATTERY, "2.2")
-    assert describe(BATTERY, "2.2")["models"]["note"] == (
-        "Choose a backbone by catalog_id. " + line
+    assert not any(
+        "graphs coming" in line for line in known_limitations(BATTERY, "2.2")
     )
+    inject(monkeypatch, BATTERY, "2.2")
+    document = describe(BATTERY, "2.2")
+    assert document["models"]["graph_training_adapter"] == (
+        battery_graph_adapter.adapter_block(BATTERY, "2.2")
+    )
+    assert "stage a graph" in document["models"]["note"]
+    assert document["execution"]["recipe"].endswith("source kind catalog or graph")
+    template = graph_recipe(BATTERY_CATALOG, version="2.2")
+    assert template["source"] == {"kind": "graph", "submission_digest": None}
+    assert template["procedure"]["train_use"] == {
+        "dataset": "battery-pinned-train-v1",
+        "train_fraction": 1.0,
+        "curriculum": "none",
+    }
+    assert template["output"]["format"] == "carbon.battery.raw-numeric.v1"

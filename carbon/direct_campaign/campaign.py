@@ -9,8 +9,8 @@ research key (`spec.keyed`); each Challenge binds these with its own spec
 (`carbon.f08.campaign`, `carbon.f02.campaign`).
 
 While the version's catalog is empty (no entry has its pair-identity receipt
-yet) a campaign is refused before anything is frozen, connected or charged,
-with the closed code `<prefix>_catalog_empty`.
+yet) and it serves no graph route, a campaign is refused before anything is
+frozen, connected or charged, with the closed code `<prefix>_catalog_empty`.
 """
 
 from __future__ import annotations
@@ -57,13 +57,18 @@ def catalog_empty_code(spec):
 
 
 def refuse_empty_catalog(spec):
-    """A campaign with no tested catalog entry is refused before anything is
-    frozen, connected or charged (each entry needs its own pair-identity
-    receipt)."""
+    """A campaign with no tested catalog entry and no graph route is refused
+    before anything is frozen, connected or charged (each entry needs its own
+    pair-identity receipt). A version whose limits bind a graph training
+    adapter starts: the miner can practise their own graph meanwhile."""
     from carbon.backbone_catalog import listing
 
     key = research_key(spec)
-    if not listing.entries(key.challenge_id, key.version):
+    limits = spec.public().construction_limits_document(key.challenge_id, key.version)
+    if (
+        not listing.entries(key.challenge_id, key.version)
+        and "graph_training_adapter" not in limits
+    ):
         raise ValueError(
             spec.prefix
             + " "
@@ -584,8 +589,7 @@ def agent_observation(spec, prepared, epoch, feedback):
         },
         **extra,
         "scaffold_recipe": control(spec),
-        # None where the limits bind no graph adapter (Battery's catalog
-        # version: catalog recipes only).
+        # None where the limits bind no graph adapter.
         "graph_recipe_template": (
             graph_recipe(spec, version=key.version)
             if "graph_training_adapter"
