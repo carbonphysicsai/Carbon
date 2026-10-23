@@ -272,3 +272,68 @@ def test_auto_grade_with_a_pack_set_is_refused_with_a_typed_code(tmp_path, monke
     with pytest.raises(direct_receiver.ReceiverUnavailable) as refused:
         direct_receiver.load_config(tmp_path / "config.json")
     assert refused.value.code == "auto_grade_pack_set_unsupported"
+
+
+def test_an_incomplete_inference_pair_reaches_only_the_operator_never_a_miner(tmp_path):
+    """Disclosure allowlist: an auto-graded inference_pair_incomplete leaves no
+    "inference_pair" text in anything a miner can read (the Ladder document or the
+    feedback reply); it reaches the operator's marker and status, and the grading
+    is given back as FAILED_INFRA."""
+    from carbon.challenge_validator.direct_intake import FEEDBACK_REPLY_SCHEMA
+    from carbon.challenge_validator.exam_cap import ExamCap
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.challenge_validator.ledger import AttemptLedger
+    from carbon.challenge_validator.ladder_store import LadderStore
+
+    ledger = AttemptLedger(tmp_path / "attempts.sqlite3")
+    hotkey = "5" + "1" * 47
+    challenge = "electric-motor-magnetics"
+    exam_key = "sha256:" + "e" * 64
+
+    class Ledger:
+        _db = staticmethod(ledger._db)
+
+        @staticmethod
+        def submitted_outcomes(contract):
+            return (A,)
+
+    adapter = SimpleNamespace(
+        challenge_id=challenge,
+        challenge_version="1.3",
+        contract_digest="sha256:" + "0" * 64,
+        ledger=Ledger,
+        owner=lambda submission_id: hotkey,
+        _provider=lambda owner: SimpleNamespace(evaluation_pack_digest=exam_key),
+    )
+    intake = FakeIntake([A], {A: RetentionUnavailable("inference_pair_incomplete")})
+    intake.adapter = adapter
+    grader = auto_grade.AutoGrader(intake, tmp_path)
+    assert grader.run_once() == (A, "FAILED")
+    # Operator-side: the marker and the status summary carry the code.
+    assert auto_grade.failure_summary(tmp_path)["auto_grade_last_failure"] == (
+        "inference_pair_incomplete"
+    )
+    assert ExamCap(ledger).released_on_infra(
+        hotkey=hotkey,
+        challenge_id=challenge,
+        challenge_version="1.3",
+        exam_key=exam_key,
+        submission_id=A,
+    )
+    # Miner-side: no Ladder document was written, and the reply built from the store
+    # names nothing; the adapter's disclosure allowlist has no such field.
+    key = SimpleNamespace(challenge_id=challenge, version="1.3")
+    served = LadderStore(ledger).served(hotkey, key, exam_key)
+    reply = {
+        "schema": FEEDBACK_REPLY_SCHEMA,
+        "challenge": {"id": challenge, "version": "1.3"},
+        "best": served["best"],
+        "latest": served["latest"],
+    }
+    assert served == {"best": None, "latest": None}
+    assert "inference_pair" not in json.dumps(reply)
+    assert not any("inference_pair" in f for f in LeanRecipeAdapter.disclosure_fields)
+    # Every file a receiver could serve to a miner is outside auto-grade/markers.
+    for path in tmp_path.rglob("*"):
+        if path.is_file() and "markers" not in path.parts and path.suffix == ".json":
+            assert "inference_pair" not in path.read_text()
