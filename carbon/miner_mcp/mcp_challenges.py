@@ -41,9 +41,22 @@ def _names(field):
     return None
 
 
+def _template(kind, document):
+    """An unfilled graph recipe template: its source names no graph yet, so
+    it is not ready to send (graph route v2's `graph_route.example`)."""
+    source = document.get("source") if isinstance(document, dict) else None
+    return (
+        kind == "recipe"
+        and isinstance(source, dict)
+        and source.get("kind") == "graph"
+        and source.get("submission_digest") is None
+    )
+
+
 def _ready_example(described):
     """The first published example the description itself marks ready: a
-    one-key {kind: document}, admitted where an admission verdict is listed."""
+    one-key {kind: document}, admitted where an admission verdict is listed,
+    and not an unfilled graph template."""
     examples = described.get("examples") or []
     verdicts = described.get("examples_admission")
     for index, example in enumerate(examples):
@@ -54,6 +67,8 @@ def _ready_example(described):
         ):
             continue
         ((kind, document),) = example.items()
+        if _template(kind, document):
+            continue
         return kind, document
     return None, None
 
@@ -139,7 +154,12 @@ def compact_description(described):
     if catalog_ids is None:
         reasons["catalog_ids"] = "this version serves no backbone catalog"
     if ready is None:
-        reasons["ready_recipe"] = "this version publishes no admitted example"
+        reasons["ready_recipe"] = (
+            "no tested catalog entry yet: stage your graph and fill the "
+            "template in describe graph_route.example with its submission_digest"
+            if isinstance(described.get("graph_route"), dict)
+            else "this version publishes no admitted example"
+        )
     elif kind == "strategy":
         reasons["ready_recipe"] = (
             "this version takes a Level 0 strategy (schema_version, challenge_id, "

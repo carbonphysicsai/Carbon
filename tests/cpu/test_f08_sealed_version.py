@@ -19,7 +19,8 @@ def test_the_sealed_adapter_names_its_own_evaluation_version():
 
 
 def test_no_other_version_has_a_sealed_adapter():
-    for version in ("1.0", "1.1", "1.5", None):
+    # 1.5 is graph route v2 (1.4's sealed exam); 1.6 is unregistered.
+    for version in ("1.0", "1.1", "1.6", None):
         assert f08.sealed_adapter(version) is None
 
 

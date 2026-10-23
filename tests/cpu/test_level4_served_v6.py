@@ -73,8 +73,8 @@ def test_the_version_table_serves_v6_to_exactly_the_step2_versions():
 
 @pytest.mark.parametrize(
     "key",
-    # Motor 1.2 and 1.3 are the catalog versions; 1.4 is unregistered.
-    [("electric-motor-magnetics", "1.4"), ("chip-cold-plate", ""), ("unknown", "1.0")],
+    # Motor 1.2-1.4 are the catalog versions; 1.5 is unregistered.
+    [("electric-motor-magnetics", "1.5"), ("chip-cold-plate", ""), ("unknown", "1.0")],
 )
 def test_an_unregistered_version_is_refused_never_mapped(key):
     from carbon.challenge_kit import served_versions as sv

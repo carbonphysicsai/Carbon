@@ -29,8 +29,11 @@ from carbon.scoring import physical_dual_pack as physical
 
 MOTOR = "electric-motor-magnetics"
 #: Motor's development producer digest before this change (HANDOFF §2).
+#: Motor's development producer after graph route v2's one producer move
+#: (Validator no-limits binding: Motor 1.4 joins `VERSIONS` under 1.3's
+#: evaluation version; was sha256:6fd856dc...5621e73).
 DEV_PRODUCER_DIGEST = (
-    "sha256:6fd856dcdd459a08fd841d505d2bffec7b36e776d33c7f9eda6707bee5621e73"
+    "sha256:504e4e27d0fb72849af3e5e88ceb3d8a1e335a94fc4f2c3285636a7912b122fc"
 )
 DESIGNS, CONDITIONS = 5, 6
 
@@ -268,11 +271,11 @@ def test_the_development_producer_is_untouched_and_a_sealed_bank_refuses_under_i
 
 
 def test_dispatch_is_by_the_banks_declared_population(case):
-    for version in ("1.1", "1.2", "1.3"):
+    for version in ("1.1", "1.2", "1.3", "1.4"):
         chosen = sealed.adapter_for_bank(case["bank"], version)
         assert chosen.EVALUATION_VERSION == "motor-dual-sealed-batch-30-v1"
         assert chosen.VERSION == version and chosen.CASE_ID == sealed.CASE_ID
-    assert sealed.adapter("1.0") is None and sealed.adapter("1.4") is None
+    assert sealed.adapter("1.0") is None and sealed.adapter("1.5") is None
     development = physical_pack.development_bank(MOTOR, "1.3")
     chosen = sealed.adapter_for_bank(development, "1.3")
     assert chosen.EVALUATION_VERSION == dev.VERSIONS["1.3"][0]
