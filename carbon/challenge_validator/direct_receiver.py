@@ -45,6 +45,7 @@ _OPTIONAL_FIELDS = {
     "evaluation_pack_set",
     "challenge",
     "construction_runtimes",
+    "auto_grade",
 }
 #: The one opt-in per-runtime construction set (OWNER-BACKBONE-CATALOG-01):
 #: a PyTorch CPU worker and the C-03 CPU worker it was built FROM.
@@ -131,6 +132,18 @@ def load_config(path: Path) -> dict:
         )
         if type(selected) is not dict or selected not in registered:
             raise ValueError("registered direct Challenge selection required")
+    if "auto_grade" in value and (
+        type(value["auto_grade"]) is not dict
+        or set(value["auto_grade"]) - {"pool_store"}
+        or (
+            "pool_store" in value["auto_grade"]
+            and (
+                type(value["auto_grade"]["pool_store"]) is not str
+                or not Path(value["auto_grade"]["pool_store"]).is_absolute()
+            )
+        )
+    ):
+        raise ValueError("invalid auto_grade selection")
     if (
         "construction_runtimes" in value
         and value["construction_runtimes"] != CONSTRUCTION_RUNTIMES
@@ -1283,11 +1296,19 @@ def serve(
                         pool_store=_open_pool_store(pool_store),
                     )
             timer.start()
+            grader = None
+            if "auto_grade" in cfg:
+                from carbon.challenge_validator.auto_grade import AutoGrader
+
+                grader = AutoGrader(
+                    intake, root, pool_store=cfg["auto_grade"].get("pool_store")
+                )
             serve_loopback(
                 intake,
                 {"host": cfg["host"], "port": cfg["port"]},
                 stop=stop,
                 reader=reader,
+                grader=grader,
                 ready=listening,
                 closing=providers.cancel,
             )
