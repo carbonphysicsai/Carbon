@@ -1,5 +1,7 @@
 """Build the pinned wheelhouse for the backbone catalog's wheel-bearing entries
-(owner-run, on each miner and receiver host; never from MCP).
+(on each miner and receiver host: run by its owner, or by the Control
+Center's background catalog install, `scripts/dev/miner_launchpad/
+catalog_build.py`, before it installs; never from MCP).
 
 Some catalog entries (deepxde.DeepONetCartesianProd and the THUML ones) declare
 wheels in their bundle manifests. `python -m scripts.dev.catalog_install` reads
@@ -12,8 +14,9 @@ host. The wheel set is read from this checkout's catalog (the union over every
 entry's bundle manifest; two entries that disagree on a hash are refused). Each
 wheel is taken from a `--from` directory when one holds a file of that name with
 the pinned sha256, and otherwise fetched by exact name and version with
-`pip download --no-deps --only-binary=:all:` (a network step, which is why this
-is an owner-run step on the host). A file whose sha256 differs from the catalog's
+`pip download --no-deps --only-binary=:all:` (a network step on the host, by
+its owner or the background catalog install it started; never an MCP tool). A
+file whose sha256 differs from the catalog's
 pin is never kept: the build fails.
 
 `WHEELHOUSE.json` in the directory is the local build record (name, size and
