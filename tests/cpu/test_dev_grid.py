@@ -38,6 +38,13 @@ KITS = {
         "train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
         "version": "1.4",
     },
+    ("chip-cold-plate", "1.4"): {
+        "construction_limits_digest": "sha256:22e5a43f94235d1511259e754067b8e4f263658a1b8a67a2b32df4f9e5e9f253",
+        "id": "chip-cold-plate",
+        "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+        "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
+        "version": "1.4",
+    },
 }  # fmt: skip
 
 
@@ -71,7 +78,9 @@ def test_the_development_bank_is_the_practice_grid_with_interleaved_probes(key):
         assert tuple(bank["case_ids"]) == tuple(grid["case_ids"])
     cohorts = list(bank["cohorts"])
     assert cohorts.count("probe_response") > 0
-    assert cohorts.count("decision_sealed_grid") == (48 if key[0] == MOTOR else 8)
+    assert cohorts.count("decision_sealed_grid") == (
+        8 if key[0] in ("f08-ribbed-bracket", "f02") else 48
+    )
     last_cell = max(i for i, c in enumerate(cohorts) if c != "probe_response")
     assert "probe_response" in cohorts[:last_cell]  # interleaved, never a suffix
     # the construction material's practice query is this bank
@@ -379,3 +388,57 @@ def test_motor_dev_grade_is_the_sealed_grade_on_the_practice_grid(tmp_path):
     assert dev == exam
     assert set(dev["A_legs"]) == {"A_acc", "A_robust", "A_law", "A_response"}
     assert np.isfinite(dev["A"])
+
+
+# --- Cooling 1.4: the practice grid, graded as 1.3 is (the encoded adapter) -------------
+
+COOLING = "chip-cold-plate"
+
+
+def test_cooling_has_its_practice_and_sealed_adapter_and_the_dev_adapter_shares_its_module():
+    from carbon.scoring import cooling_encoded_dual_pack as encoded
+
+    practice = practice_grid.adapter("cooling", "1.4")
+    assert practice is not None and practice.VERSION == "1.4"
+    dev = dev_grid.adapter(COOLING, "1.4")
+    assert dev.EVALUATION_VERSION == "cooling-dual-development-grid-v2"
+    # one code path: the dev adapter is the same encoded module the sealed one runs
+    assert getattr(dev, "_module", dev) is getattr(practice, "_module", practice)
+    assert getattr(dev, "_module", dev) is encoded._SELF
+    assert "cooling_encoded_dual_pack.py" in dev.FILES
+
+
+def test_cooling_dev_shape_is_bound_to_its_population(tmp_path):
+    """The dev (practice-grid) definition is the 48-cell PRACTICE_PUBLIC_BANK; a sealed
+    definition is exactly the 16-cell batch; neither validates as the other."""
+    adapter = dev_grid.adapter(COOLING, "1.4")
+    public = physical_pack.public_roles(COOLING, "1.4")
+    bank = physical_pack.development_bank(COOLING, "1.4")
+    definition = adapter.definition(bank=bank, train_raw=public["train"])
+    assert definition["population"] == "PRACTICE_PUBLIC_BANK"
+    assert definition["cohort_counts"] == {"decision_sealed_grid": 48}
+    adapter.validate_definition(definition)
+    sealed_named = {k: v for k, v in definition.items() if k != "population"}
+    with pytest.raises(adapter.Refused):
+        adapter.validate_definition(sealed_named)
+    shrunk = {**definition, "cohort_counts": {"decision_sealed_grid": 16}}
+    with pytest.raises(adapter.Refused):
+        adapter.validate_definition(shrunk)
+
+
+def test_cooling_dev_pack_writes_and_practice_still_reads_its_own_cases(tmp_path):
+    """Cooling's practice set (100 public practice cases) is separate from the dev bank
+    and is queried by the practice flow itself, so its totals cannot move; the dev pack
+    writes on the grid with the sealed rule."""
+    adapter = dev_grid.adapter(COOLING, "1.4")
+    manifest = adapter.write_development_pack(
+        tmp_path / "pack", inference_image_id="sha256:" + "a" * 64
+    )
+    draft = json.loads(manifest.read_bytes())
+    path = tmp_path / "pack" / draft["public"]["accuracy_definition"]["path"]
+    definition = json.loads(path.read_bytes())
+    assert "critical" in definition and "physics" in definition
+    material = physical_material.bundle_material(COOLING, "1.4")
+    assert len(material["practice_inputs"]) == len(
+        physical_pack.development_bank(COOLING, "1.4")["case_ids"]
+    )

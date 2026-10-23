@@ -61,7 +61,13 @@ def adapter(kind, version):
     (the exam's own), or None when the version has no sealed v2 grader."""
     _kit, _dev, sealed = _modules(kind)
     if kind == "cooling":
-        return sealed.sealed_adapter(version)
+        chosen = sealed.sealed_adapter(version)
+        if chosen is None:
+            # Cooling 1.4 (graph route v2) is graded as 1.3 is: the encoded sealed adapter.
+            from carbon.scoring import cooling_encoded_dual_pack
+
+            chosen = cooling_encoded_dual_pack.sealed_adapter(version)
+        return chosen
     return sealed.adapter(version)
 
 

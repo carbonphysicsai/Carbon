@@ -18,6 +18,7 @@ GRID_KINDS = {
     ("f08-ribbed-bracket", "1.5"): "f08",
     ("f02", "2.4"): "f02",
     ("electric-motor-magnetics", "1.4"): "motor",
+    ("chip-cold-plate", "1.4"): "cooling",
 }
 
 
