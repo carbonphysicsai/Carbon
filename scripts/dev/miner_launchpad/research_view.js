@@ -940,6 +940,142 @@
     const untested = Object.entries(dual.gates || {}).filter(([, ok]) => ok === "NOT_TESTED_ON_PRACTICE").map(([name]) => words(name));
     return dual.total.toFixed(4) + (detail ? " (" + detail + ")" : "") + (untested.length ? " · not tested on practice: " + untested.join(", ") : "");
   }
+  // ---- The watch-your-agent screen (U45): one chronological picture of every practice run, whoever drives the
+  // campaign (Graphite, Manual or an external MCP agent): runs are read from the same record, not from the agent.
+  function settingsOf(r) {
+    const d = describeRecipe(r.recipe);
+    const map = new Map();
+    for (const text of d.settings) { const i = text.lastIndexOf(" "); map.set(text.slice(0, i), text.slice(i + 1)); }
+    return {title: r.backbone || d.title, map};
+  }
+  function modelText(r) {
+    const d = describeRecipe(r.recipe);
+    const title = r.backbone || d.title;
+    return d.settings.length ? title + " (" + d.settings.join(", ") + ")" : title;
+  }
+  function runDetail(cell, doc, r, rows) {
+    const here = settingsOf(r);
+    const at = rows.findIndex(x => x.index === r.index);
+    const before = at > 0 ? rows[at - 1] : null;
+    para(cell, "Run " + r.index + ": " + modelText(r) + (r.eligible === false ? " · a mandatory gate failed" : r.eligible === true ? " · passed the gates" : ""), "status-line");
+    if (!before) para(cell, "The first practice run: nothing to compare with.", "hint");
+    else {
+      const prev = settingsOf(before);
+      const changes = [];
+      if (prev.title !== here.title) changes.push("model " + prev.title + " → " + here.title);
+      for (const k of new Set([...prev.map.keys(), ...here.map.keys()])) {
+        if (prev.map.get(k) !== here.map.get(k)) changes.push(k + " " + (prev.map.get(k) ?? "–") + " → " + (here.map.get(k) ?? "–"));
+      }
+      para(cell, changes.length ? "Changed from run " + before.index + ": " + changes.join(" · ") : "Same recipe as run " + before.index + " (a repeat).", "hint");
+      if (typeof r.score === "number" && typeof before.score === "number") para(cell, "Score " + fmt(before.score) + " → " + fmt(r.score), "hint");
+    }
+    const failed = Object.entries(r.gate_failures || {}).filter(([, v]) => v && (v.cases || v.trials));
+    if (failed.length) para(cell, "Gates failed: " + failed.map(([k, v]) => words(k) + " (" + (v.cases ?? v.trials) + ")").join(", "), "reason");
+    // A hypothesis is tied to a run only when the notes pair one to one with the runs; otherwise the latest is shown on the latest run.
+    const notes = (doc.journal?.entries || []).filter(e => e.kind === "hypothesis");
+    if (notes.length === rows.length && at >= 0) para(cell, "Hypothesis: " + notes[at].text, "hint");
+    else if (at === rows.length - 1 && doc.hypothesis) para(cell, "Current hypothesis: " + doc.hypothesis, "hint");
+  }
+  function makeSortable(table, headRow) {
+    const heads = [...headRow.children];
+    heads.forEach((th, col) => {
+      th.classList.add("sort-head"); th.tabIndex = 0;
+      const sort = () => {
+        const dir = th.dataset.dir === "asc" ? "desc" : "asc";
+        heads.forEach(h => { delete h.dataset.dir; });
+        th.dataset.dir = dir;
+        const rows = [...table.querySelectorAll("tr.run-row")];
+        const key = tr => { const text = tr.children[col].textContent.trim(); const n = parseFloat(text); return Number.isFinite(n) && /^[-+0-9.]/.test(text) ? n : text.toLowerCase(); };
+        rows.sort((a, b) => { const x = key(a), y = key(b); const c = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y)); return dir === "asc" ? c : -c; });
+        for (const tr of rows) { table.append(tr); table.append(tr._detail); }
+      };
+      th.addEventListener("click", sort);
+      th.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sort(); } });
+    });
+  }
+  function runsDashboard(box, doc, runs) {
+    const lower = doc.declaration?.direction !== "higher_is_better";
+    const scored = runs.filter(r => typeof r.score === "number" && Number.isFinite(r.score));
+    if (!scored.length) return;
+    const better = (a, b) => lower ? a < b : a > b;
+    let best = null; const trace = [];
+    for (const r of scored) {
+      if (r.eligible === true && (best === null || better(r.score, best.score))) best = r;
+      trace.push(best ? best.score : null);
+    }
+    const passed = scored.filter(r => r.eligible === true).length;
+    const strip = el("div", undefined, "run-strip");
+    const tile = (label, value) => { const d = el("div", undefined, "run-tile"); d.append(el("span", label, "hint"), el("strong", value)); strip.append(d); };
+    tile("Runs", String(runs.length)); tile("Passed the gates", passed + " of " + scored.length);
+    tile(lower ? "Best passing score (lower is better)" : "Best passing score (higher is better)", best ? fmt(best.score) : "none yet");
+    tile("Latest", fmt(scored[scored.length - 1].score));
+    box.append(strip);
+    // The chart: x = practice run (integer), y = score. Passing runs are filled marks, gate failures crosses, the
+    // best-so-far line steps only on passing runs. A baseline line is drawn only if the record carries one.
+    const W = 640, H = 230, L = 52, R = 14, T = 14, B = 34;
+    const ys = scored.map(r => r.score);
+    const baseline = [doc.baseline?.score, doc.declaration?.baseline_score].find(v => typeof v === "number" && Number.isFinite(v));
+    const all = baseline === undefined ? ys : [...ys, baseline];
+    let lo = Math.min(...all), hi = Math.max(...all);
+    if (hi === lo) { hi += 0.5; lo -= 0.5; }
+    const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+    const n = runs.length;
+    const X = i => L + (n === 1 ? (W - L - R) / 2 : (W - L - R) * (i - 1) / (n - 1));
+    const Y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("class", "run-chart"); svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Practice score by run, with passing runs, gate failures and the best passing score so far");
+    const add = (parent, tag, attrs, text) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (text !== undefined) e.textContent = text; parent.append(e); return e; };
+    for (let k = 0; k <= 4; k++) { const v = lo + (hi - lo) * k / 4; add(svg, "line", {x1: L, x2: W - R, y1: Y(v), y2: Y(v), class: "grid"}); add(svg, "text", {x: L - 6, y: Y(v) + 4, class: "tick", "text-anchor": "end"}, fmt(v)); }
+    const step = Math.max(1, Math.ceil(n / 10));
+    for (let i = 1; i <= n; i += step) add(svg, "text", {x: X(i), y: H - 16, class: "tick", "text-anchor": "middle"}, String(i));
+    add(svg, "text", {x: (L + W - R) / 2, y: H - 2, class: "tick", "text-anchor": "middle"}, "practice run");
+    if (baseline !== undefined) { add(svg, "line", {x1: L, x2: W - R, y1: Y(baseline), y2: Y(baseline), class: "baseline"}); add(svg, "text", {x: W - R, y: Y(baseline) - 5, class: "tick", "text-anchor": "end"}, "baseline " + fmt(baseline)); }
+    let d = "", last = null;
+    scored.forEach((r, k) => {
+      if (trace[k] === null) return;
+      const x = X(runs.indexOf(r) + 1), y = Y(trace[k]);
+      d += (last === null ? "M" + x + " " + y : " L" + x + " " + last + " L" + x + " " + y);
+      last = y;
+    });
+    if (d) add(svg, "path", {d, class: "best-line"});
+    scored.forEach(r => {
+      const x = X(runs.indexOf(r) + 1), y = Y(r.score);
+      const tip = "Run " + r.index + " · " + modelText(r) + " · score " + fmt(r.score) + " · " + (r.eligible === true ? "passed the gates" : r.eligible === false ? "gate failed" : "gates not reported");
+      if (r.eligible === false) {
+        const g = add(svg, "g", {class: "mark fail"});
+        add(g, "line", {x1: x - 5, y1: y - 5, x2: x + 5, y2: y + 5}); add(g, "line", {x1: x - 5, y1: y + 5, x2: x + 5, y2: y - 5});
+        add(g, "title", {}, tip);
+      } else {
+        const c = add(svg, "circle", {cx: x, cy: y, r: 5, class: "mark " + (r.eligible === true ? "pass" : "unknown") + (r === best ? " best" : "")});
+        add(c, "title", {}, tip);
+      }
+    });
+    const figure = el("div", undefined, "run-figure"); figure.append(svg);
+    figure.append(el("p", "● passed the gates   ✕ a mandatory gate failed   ━ best passing score so far" + (baseline !== undefined ? "   ┄ baseline" : "") + ". Gates come first: a failed run is never ranked on its score. Hover a mark for the run.", "hint run-legend"));
+    box.append(figure);
+    // The pinned best passing run, with the next step for it.
+    if (best) {
+      const card = el("div", undefined, "freeze-card best-card");
+      const dsc = describeRecipe(best.recipe);
+      card.append(el("p", "Best passing run so far", "freeze-kind"), el("p", "Run " + best.index + " · " + (best.backbone || dsc.title) + " · score " + fmt(best.score), "freeze-title"));
+      if (dsc.settings.length) { const chips = el("p", undefined, "freeze-chips"); for (const s of dsc.settings) chips.append(el("span", s, "chip")); card.append(chips); }
+      const state = CC.state ? CC.state() : {};
+      const miner = doc.campaign?.selects === "miner" && typeof CC.operate === "function" && best.recipe;
+      if (miner) {
+        const row = el("div", undefined, "controls");
+        const id = doc.campaign.id;
+        const freeze = button("Freeze this run", "primary"); freeze.disabled = !state.connected || state.busy;
+        freeze.addEventListener("click", () => CC.operate("freeze_candidate", {campaign: id, strategy: best.recipe, reason: "Best passing practice: run " + best.index + " (score " + fmt(best.score) + ")"}, "Freezing run " + best.index + ". It shows here once the campaign records it."));
+        const submit = button("Submit frozen candidate"); submit.disabled = !state.connected || state.busy || doc.journey?.frozen_awaiting_submission !== true;
+        submit.addEventListener("click", () => CC.operate("submit", {campaign: id}, "Submit started: your frozen candidate is sent for the DEVELOPMENT comparison."));
+        row.append(freeze, submit); card.append(row);
+        card.append(el("p", doc.journey?.frozen_awaiting_submission ? "A candidate is frozen and waiting for submission." : "Freeze first; submitting needs a frozen candidate.", "hint"));
+      } else card.append(el("p", "Your agent chooses what to freeze and submit. This is the passing run with the best score so far.", "hint"));
+      box.append(card);
+    }
+  }
   function drawExperiments(box, doc, run) {
     // The existing projection has no mode column. Join its stable trial IDs
     // to the public campaign record so smoke never becomes a score row.
@@ -950,8 +1086,9 @@
     if (!rows.length) { if (!smoke.size) para(box, "No practice run has completed in this campaign.", "empty-state"); return; }
     const keys = Object.keys(rows[0].components || {});
     const labels = Object.fromEntries((doc.declaration?.components || []).map(c => [c.key, c.label]));
+    runsDashboard(box, doc, rows.slice().reverse());
     const wrap = el("div", undefined, "table-wrap");
-    const table = el("table", undefined, "metrics-table");
+    const table = el("table", undefined, "metrics-table sortable");
     const headRow = el("tr");
     const dual = rows.some(r => r.dual);
     for (const name of ["Run", "Model", "Gates", ...(dual ? ["Graded total (0 to 1, higher is better)"] : []), "Score", ...keys.map(k => labels[k] || k), "Final loss", "Compute budget", "Framework", "Ran on"]) headRow.append(el("th", name));
@@ -973,9 +1110,16 @@
       // Challenge's default) and the worker record's backend and image.
       row.append(el("td", fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend === "C03_DOCKER_GPU" ? "GPU · measured on GPU, not official" : r.backend === "REMOTE_GPU" ? (r.ran_on || "GPU (your remote setup)") + " · measured on GPU, not official" : (r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null)), r.image].filter(Boolean).join(" · ") || "–"));
       table.append(row);
+      const detail = el("tr", undefined, "run-detail"); detail.hidden = true;
+      const cell = el("td"); cell.colSpan = headRow.children.length; runDetail(cell, doc, r, rows.slice().reverse());
+      detail.append(cell); table.append(detail);
+      row.classList.add("run-row"); row._detail = detail;
+      const toggle = row.firstChild; toggle.classList.add("run-toggle"); toggle.title = "Show what changed";
+      toggle.addEventListener("click", () => { detail.hidden = !detail.hidden; row.classList.toggle("open", !detail.hidden); });
     }
+    makeSortable(table, headRow);
     wrap.append(table); box.append(wrap);
-    para(box, "Descriptive practice on public cases. Not an accepted improvement, a rank or an official score.", "hint");
+    para(box, "Descriptive practice on public cases. Not an accepted improvement, a rank or an official score. Click a column to sort; click a run number for what changed.", "hint");
     // Shared GPU path (Validator condition 4; owner): a GPU practice is
     // labelled as such, and the miner is told CPU and GPU results can differ.
     if (rows.some(r => r.backend === "C03_DOCKER_GPU" || r.backend === "REMOTE_GPU")) para(box, "Runs marked GPU were measured on your GPU, not official. CPU and GPU results can differ; the validator rebuilds your frozen recipe on its own pinned environment.", "hint");

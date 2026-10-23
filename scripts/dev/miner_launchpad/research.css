@@ -282,3 +282,23 @@ a.rs-change:hover { background: var(--muted); }
 .rs-panel .freeze-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .rs-panel .freeze-chips .chip { border: 1px solid var(--border, currentColor); border-radius: 999px; padding: 2px 10px; font-size: 13px; }
 .rs-panel .freeze-details summary { cursor: pointer; font-size: 13px; margin-top: 6px; }
+.rs-panel .run-strip { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; }
+.rs-panel .run-tile { border: 1px solid var(--border, currentColor); border-radius: 10px; padding: 8px 14px; min-width: 120px; display: flex; flex-direction: column; gap: 2px; }
+.rs-panel .run-tile strong { font-size: 20px; }
+.rs-panel .run-figure { margin: 8px 0 14px; }
+.rs-panel .run-chart { width: 100%; max-width: 760px; height: auto; display: block; }
+.rs-panel .run-chart .grid { stroke: var(--border, currentColor); stroke-opacity: .35; stroke-width: 1; }
+.rs-panel .run-chart .tick { font-size: 11px; fill: currentColor; opacity: .75; }
+.rs-panel .run-chart .best-line { fill: none; stroke: currentColor; stroke-width: 2; }
+.rs-panel .run-chart .baseline { stroke: currentColor; stroke-dasharray: 5 4; stroke-width: 1.5; opacity: .6; }
+.rs-panel .run-chart .mark.pass { fill: currentColor; }
+.rs-panel .run-chart .mark.unknown { fill: none; stroke: currentColor; stroke-width: 1.5; }
+.rs-panel .run-chart .mark.best { stroke: currentColor; stroke-width: 3; stroke-opacity: .35; }
+.rs-panel .run-chart .mark.fail line { stroke: currentColor; stroke-width: 2.5; }
+.rs-panel .best-card { margin: 8px 0 14px; }
+.rs-panel .metrics-table.sortable .sort-head { cursor: pointer; user-select: none; }
+.rs-panel .metrics-table.sortable .sort-head[data-dir="asc"]::after { content: " ▲"; font-size: 10px; }
+.rs-panel .metrics-table.sortable .sort-head[data-dir="desc"]::after { content: " ▼"; font-size: 10px; }
+.rs-panel .metrics-table .run-toggle { cursor: pointer; text-decoration: underline dotted; }
+.rs-panel .metrics-table .run-row.open .run-toggle { font-weight: 700; }
+.rs-panel .metrics-table .run-detail td { padding: 8px 14px 12px; }

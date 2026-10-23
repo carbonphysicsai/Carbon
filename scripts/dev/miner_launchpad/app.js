@@ -4710,7 +4710,7 @@
     launch: launchResearch, discardLaunch,
     launchProblem: () => !connected ? "Connect this browser first." : storageError ? "Browser retry storage is unavailable; launch is disabled to preserve duplicate protection." : stepProblem("review"),
     goWizard(step) { if (STEPS.some(([name]) => name === step)) { wizard.step = step; saveWizard(); } location.hash = "#launch"; render(); },
-    researchAction, renderCampaigns, renderJourneyPractice, renderJourneySubmission, renderPractice, practiceIssue,
+    operate, researchAction, renderCampaigns, renderJourneyPractice, renderJourneySubmission, renderPractice, practiceIssue,
     evaluationFor, evaluationNote,
     // Live regions, refusals and keyed operations (LP-PROD-F), shared with
     // the research surface and its Tools tab so all three behave alike.
