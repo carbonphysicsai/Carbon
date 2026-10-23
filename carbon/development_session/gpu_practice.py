@@ -351,6 +351,17 @@ def gpu_build_staged(practice, expand_for, bundle_of) -> bool:
     return False
 
 
+def campaign_limits():
+    """The exceptions that are the campaign's own limits or control, never a
+    device failure: a ledger refusal against its budget or time, and a stop,
+    pause or deadline. A GPU attempt that meets one ends the practice with
+    it, typed, instead of trying the CPU build."""
+    from .research_control import DispatchPaused, DispatchStopped
+    from .research_ledger import LedgerRefusal
+
+    return (LedgerRefusal, DispatchStopped, DispatchPaused)
+
+
 def run_on_device(practice, identity, expand_for, bundle_of, overlay, run):
     """One catalog practice on the device `device_build` picks, the same for
     every Challenge: `run(trial_identity, expanded, image, construction_parent,
@@ -448,6 +459,11 @@ def device_build(practice, expand_for, bundle_of, overlay=None):
             note = "gpu_overlay_not_installed"
         except GpuBuildMissing as missing:
             note = missing.code
+        except campaign_limits():
+            # The campaign's own limit (its time, a ceiling) or its stop or
+            # pause: never a GPU failure to work around on CPU (gate2b: a
+            # time-fit refusal fell back, failed again, and read as infra).
+            raise
         except Exception:  # a GPU attempt never fails the practice
             # Why, in the controller's own log (M1 E2E: a 5090 fell back with
             # no reason anywhere). The note stays the code; the CPU build runs.

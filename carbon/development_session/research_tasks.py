@@ -193,6 +193,24 @@ class PublicDevelopmentResearchTasks(DurableResearchTaskProvider):
             return load_canonical(self._requests[task_id], StartResearchTaskRequest)
 
 
+def _campaign_limit_code(exc):
+    """`time_limit_reached` or `miner_ceiling_reached` when `exc` is the
+    campaign's own limit refusing work (its elapsed time, or a cap it froze),
+    else None. Carbon's own service capacity is not the campaign's limit."""
+    from .research_control import CampaignDeadlineReached
+    from .research_ledger import ELAPSED_DIMENSION, MINER_CEILING_REACHED, LedgerRefusal
+
+    if type(exc) is CampaignDeadlineReached:
+        return "time_limit_reached"
+    if type(exc) is not LedgerRefusal or exc.code != MINER_CEILING_REACHED:
+        return None
+    return (
+        "time_limit_reached"
+        if exc.dimension == ELAPSED_DIMENSION
+        else "miner_ceiling_reached"
+    )
+
+
 class DirectDevelopmentTasksV3:
     """Durable public-development direct tasks beside the historical v2 store.
 
@@ -2009,6 +2027,19 @@ class DirectDevelopmentTasksV3:
                 child_states.append(child_state)
             with self._lock:
                 view = self._views[task_id.value]
+                limit = _campaign_limit_code(exc)
+                if limit is not None and view.state is not (
+                    DirectTaskStateV3.CANCEL_REQUESTED
+                ):
+                    # The campaign's own limit refused the work before it ran:
+                    # a refusal by its code, never an infrastructure failure
+                    # (gate2b: a time-fit refusal read as a backend down).
+                    receipt = self._receipt(
+                        view, DirectTaskStateV3.REFUSED, refusal_code=limit
+                    )
+                    return self._transition(
+                        view, DirectTaskStateV3.REFUSED, receipt=receipt
+                    )
                 graph_decision = (
                     exc
                     if source_kind == "graph"
@@ -2629,6 +2660,31 @@ def ceiling_correction(record):
         if record["refused_at"] == "reservation"
         else ""
     )
+    if record["basis"] == "miner_launch_budget" and elapsed:
+        # Time, in words: what this work needs and what is left (gate2b: a
+        # practice that could not fit read to the agent as a backend down).
+        left = (
+            max(0, record["ceiling"] - record["used"])
+            if record["ceiling"] is not None and record["used"] is not None
+            else None
+        )
+        needs = (
+            f"This needs {record['requested']} s"
+            if record["requested"]
+            else "Nothing more can start"
+        )
+        has = (
+            f", and the campaign has {left} s left of the time limit you set "
+            f"yourself ({record['ceiling']} s, {record['used']} s used)"
+            if left is not None
+            else " within the time limit you set yourself"
+        )
+        return (
+            f"{needs}{has}. It is a time limit, not a failure: Carbon sets no "
+            "time limit of its own. To go further, launch a new campaign with a "
+            f"larger {field} (or leave it out for no time limit), or leave more "
+            f"of the time for practice.{tail}"
+        )
     if record["basis"] == "miner_launch_budget":
         return (
             f"This campaign reached a ceiling you set yourself: {dimension}"

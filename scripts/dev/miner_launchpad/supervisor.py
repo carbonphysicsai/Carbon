@@ -1575,6 +1575,15 @@ NEXT_ACTIONS = {
         "time - so it stopped there; nothing past it was reserved or sent. "
         "Launch a new campaign with a larger ceiling to go further."
     ),
+    # A practice the campaign's own time limit refused before it ran (gate2b:
+    # it read as FAILED_INFRA, and the agent as a backend down).
+    "time_limit_reached": (
+        "The practice needed more time than the campaign's time limit had "
+        "left, so it did not start; it is your own limit, not a failure, and "
+        "nothing past it was reserved. Launch a new campaign with a larger "
+        "budget.elapsed_seconds (or none), or leave more of the time for "
+        "practice."
+    ),
     "research_share_reached": (
         "The research stages used the share of your budget you set, so they "
         "stopped there and the build went on. Launch again with a larger "
