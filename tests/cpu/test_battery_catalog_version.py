@@ -180,7 +180,12 @@ def test_2_2_is_2_1_plus_the_catalog_and_graph_adapter_and_nothing_else_moves():
     assert np.array_equal(
         new["practice_reference"], old["practice_reference"], equal_nan=True
     )
-    assert new["practice_case_ids"] == old["practice_case_ids"]
+    # The receiver's canonical case names, by position; the bank's own ids,
+    # in order, beside them (Test Lead's B22 fault: "ev4:..." ids).
+    assert new["practice_case_sources"] == old["practice_case_ids"]
+    assert new["practice_case_ids"] == tuple(
+        f"bank-{index:04d}" for index in range(len(old["practice_case_ids"]))
+    )
     assert new["train"] == old["train"]
     assert new["physics_digest"] == old["physics_digest"]
     assert new["allowlist_digest"] == old["allowlist_digest"]
@@ -541,3 +546,18 @@ def test_the_description_serves_both_routes_and_no_coming_line(monkeypatch):
         "curriculum": "none",
     }
     assert template["output"]["format"] == "carbon.battery.raw-numeric.v1"
+
+
+def test_the_receiver_serves_2_2_with_canonical_case_ids():
+    # Test Lead's B22 pair batch (2026-10-22): the receiver refused 2.2 at
+    # normal_retention_preflight, practice_case_ids not canonical.
+    from carbon.development_session.research_service import DirectFixtureDiscovery
+    from carbon.registry.model import validate_canonical_identifier
+
+    material = cbm.versioned_material("2.2")
+    for case in (*material["practice_case_ids"], *material["train_case_ids"]):
+        validate_canonical_identifier(case, "case")
+    assert any(":" in case for case in material["practice_case_sources"])
+    discovery = DirectFixtureDiscovery(material, task_admission=True)
+    assert discovery.info.challenge_key.version == "2.2"
+    assert tuple(discovery.info.practice_case_ids) == material["practice_case_ids"]

@@ -104,6 +104,14 @@ def material(version: str, root: Path | None = None) -> dict:
                 "construction_limits_digest": digest(canonical(limits)),
             },
             "construction_limits_document": limits,
+            # The receiver names served cases by canonical identifiers; the
+            # base bank's EV4 decision rows are named "ev4:...". So a catalog
+            # version names each bank row by its position, as F02's TRAIN rows
+            # are named, and keeps the bank's own ids beside them, in order.
+            "practice_case_ids": tuple(
+                f"bank-{index:04d}" for index in range(len(found["practice_case_ids"]))
+            ),
+            "practice_case_sources": tuple(found["practice_case_ids"]),
         }
     )
     return found
@@ -171,7 +179,7 @@ def practice_summary(version: str, rows, found: dict, root=None) -> dict:
 
     root = REPOSITORY if root is None else Path(root)
     names = list(found["interface_document"]["outputs"]["flat_order"])
-    case_ids = found["practice_case_ids"]
+    case_ids = found["practice_case_sources"]
     public = practice.PracticeSet.load(root)
     picked = {case_ids[i]: rows[i] for i in found["public_practice_rows"]}
     if sorted(picked) != sorted(public.case_ids):
