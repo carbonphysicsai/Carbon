@@ -148,6 +148,7 @@ def world(producer):
     set_package = ak.package(producer, commitment, spi.set_payload_for(commitment))
     return {
         "packages": [p for p, _d, _c in issued],
+        "contents": {d: c for d, (_p, _d2, c) in zip(digests, issued, strict=True)},
         "digests": digests,
         "set_key": commitment["set_key"],
         "set_package": set_package,
@@ -214,7 +215,9 @@ def test_a_set_signed_by_another_key_is_refused_and_imports_nothing(
     state, producer, world, tmp_path
 ):
     stranger = ak.ProducerKey.create(str(tmp_path / "stranger.key"))
-    commitment = spi.set_commitment_for(MOTOR, VERSION, world["digests"], cdt.WINDOW)
+    commitment = spi.set_commitment_for(
+        MOTOR, VERSION, world["digests"], cdt.WINDOW, contents=world["contents"]
+    )
     forged = ak.package(stranger, commitment, spi.set_payload_for(commitment))
     routes = Routes(producer, world["packages"], forged)
     with pytest.raises(receiver_setup.SetupRefused):
