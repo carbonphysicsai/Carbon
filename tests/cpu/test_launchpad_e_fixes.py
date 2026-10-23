@@ -62,3 +62,27 @@ def test_codes_that_can_follow_a_submit_have_their_own_step():
     ):
         assert code in supervisor.NEXT_ACTIONS, code
         assert "nothing was lost" not in supervisor.NEXT_ACTIONS[code].lower()
+
+
+def test_an_unknown_catalog_setting_lists_the_settings_that_place_takes():
+    # R9-1: an agent put "backbone" into an F02 catalog recipe's configuration
+    # and the refusal never said which settings the entry takes.
+    import copy
+
+    from carbon.challenge_registry.campaigns import challenge_ref
+    from carbon.development_session.research_service import construction_recipe_issues
+    from carbon.development_session.research_tools import catalog_setting_choices
+    from carbon.registry.model import ChallengeKey
+    from scripts.dev.miner_launchpad.toolbox import catalog_recipes
+
+    ref = challenge_ref("f02")
+    recipe = copy.deepcopy(catalog_recipes("f02", ref["version"])[0]["recipe"])
+    recipe["procedure"]["configuration"] = {
+        "backbone": "physicsnemo.FullyConnected",
+        "learning_rate": 0.001,
+    }
+    (issue,) = construction_recipe_issues(recipe, ChallengeKey("f02", ref["version"]))
+    assert issue.code == "catalog_setting_unknown"
+    assert "learning_rate" in issue.allowed and "backbone" not in issue.allowed
+    listable = catalog_setting_choices()
+    assert {"setting:" + name for name in issue.allowed} <= listable

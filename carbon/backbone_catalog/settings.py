@@ -151,10 +151,14 @@ def _only(value, allowed, where):
         _bad(where, "an object")
     extra = sorted(set(value) - set(allowed))
     if extra:
-        raise CatalogRefused(
+        refused = CatalogRefused(
             "catalog_setting_unknown",
             f"{where} has no setting {extra[0]!r}; it has {', '.join(sorted(allowed)) or 'none'}",
         )
+        # The settings this place does take, Carbon's own names, so a door
+        # can list them (M1 E2E R9-1: an agent never learned what was wrong).
+        refused.allowed = tuple(sorted(allowed))
+        raise refused
 
 
 def _number(value):
