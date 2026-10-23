@@ -211,6 +211,22 @@ def read_exam_source(path: Path) -> dict:
     return value
 
 
+def _signer(source: dict, hotkey: str):
+    from carbon.chain.external_signer import connect_signer
+
+    socket = source.get("signer_socket")
+    return connect_signer(hotkey, socket_path=None if socket is None else Path(socket))
+
+
+def _set_fetcher(source: dict, hotkey: str):
+    """The first route's client: the signed pack-set commitments (digests only)."""
+    from .answer_key import Fetcher
+
+    return Fetcher(
+        source["url"], _signer(source, hotkey), source["receiver"], ca=source.get("ca")
+    )
+
+
 def _fetcher(source: dict, hotkey: str):
     from carbon.chain.external_signer import connect_signer
 
@@ -232,10 +248,19 @@ def fetch_exams(
     fetcher=None,
     sync=None,
     producer_public_key=None,
+    set_fetcher=None,
+    set_sync=None,
 ) -> dict:
     """This hotkey's own copy of each Challenge's sealed pack, verified and
-    imported; returns ``{(id, version): canonical manifest digest}`` for each
-    Challenge version with exactly one delivered pack."""
+    imported; returns ``{"store", "packs", "sets"}``: ``packs`` maps
+    ``(id, version)`` to the canonical manifest digest of its one delivered pack,
+    ``sets`` maps it to the key of its complete signed pack set (every batch
+    delivered as this hotkey's own copy). A set, when there is one, is the exam;
+    several batches never fall back to choosing one.
+
+    The set commitment (digests only) comes over the first route; the batches come
+    over this hotkey's own per-hotkey route. A caller that passes its own ``fetcher``
+    without a ``set_fetcher`` fetches no sets (test seam)."""
     from .answer_key import AnswerKeyRefused
     from .sealed_pack_import import SealedPackStore
 
@@ -246,8 +271,13 @@ def fetch_exams(
     store_root = _host_dir(installed_state) / EXAMS_DIRECTORY
     store_root.mkdir(mode=0o700, parents=True, exist_ok=True)
     store = SealedPackStore(store_root)
+    real = fetcher is None
     fetcher = fetcher or _fetcher(source, hotkey)
-    found, ambiguous = {}, []
+    if set_fetcher is None and real:
+        set_fetcher = _set_fetcher(source, hotkey)
+    if set_sync is None:
+        from .copy_delivery import sync_sets as set_sync
+    found, ambiguous, sets, incomplete = {}, [], {}, []
     for challenge_id in dict.fromkeys(c["id"] for c in challenges):
         try:
             listed = sync(
@@ -265,6 +295,39 @@ def fetch_exams(
                 "run --setup again.",
             ) from None
         for challenge in (c for c in challenges if c["id"] == challenge_id):
+            if set_fetcher is not None:
+                try:
+                    listed_sets = set_sync(
+                        store, set_fetcher, key, challenge["id"], challenge["version"]
+                    )["sets"]
+                except AnswerKeyRefused as refused:
+                    raise SetupRefused(
+                        refused.code,
+                        "the signed pack set could not be fetched or verified; "
+                        "nothing was imported. Check the exam source and your "
+                        "validator permit, then run --setup again.",
+                    ) from None
+                named = [
+                    row["set_key"]
+                    for row in listed_sets
+                    if row["state"] in ("IMPORTED", "HELD")
+                ]
+                complete = []
+                for set_key in named:
+                    try:
+                        store.pack_set(set_key, challenge["id"], challenge["version"])
+                        complete.append(set_key)
+                    except AnswerKeyRefused:
+                        pass
+                if len(complete) == 1:
+                    sets[(challenge["id"], challenge["version"])] = complete[0]
+                    continue
+                if len(complete) > 1:
+                    ambiguous.append(_slug(challenge))
+                    continue
+                if named:
+                    incomplete.append(_slug(challenge))
+                    continue
             held = [
                 row["fingerprint"]
                 for row in listed
@@ -277,13 +340,20 @@ def fetch_exams(
                 found[(challenge["id"], challenge["version"])] = held[0]
             elif len(held) > 1:
                 ambiguous.append(_slug(challenge))
+    if incomplete:
+        raise SetupRefused(
+            "evaluation_pack_set_incomplete",
+            "a signed pack set for " + ", ".join(incomplete) + " names batches "
+            "this hotkey has no copy of yet; none is chosen. Ask Carbon to issue "
+            "your copies, then run --setup again.",
+        )
     if ambiguous:
         raise SetupRefused(
             "evaluation_pack_ambiguous",
-            "several delivered exams for " + ", ".join(ambiguous) + "; the "
-            "per-hotkey route delivers no pack set yet, so none is chosen.",
+            "several delivered exams or sets for " + ", ".join(ambiguous) + "; "
+            "none is chosen.",
         )
-    return {"store": store_root, "packs": found}
+    return {"store": store_root, "packs": found, "sets": sets}
 
 
 def _development_install(installed_state: Path) -> bool:
@@ -347,7 +417,11 @@ def setup(
     def exam(challenge):
         """The prepare arguments selecting this Challenge's exam, or None."""
         if fetched is not None:
-            digest = fetched["packs"].get((challenge["id"], challenge["version"]))
+            wanted = (challenge["id"], challenge["version"])
+            set_key = fetched.get("sets", {}).get(wanted)
+            if set_key is not None:
+                return {"pack_store": fetched["store"], "pack_set_key": set_key}
+            digest = fetched["packs"].get(wanted)
             return (
                 None
                 if digest is None
