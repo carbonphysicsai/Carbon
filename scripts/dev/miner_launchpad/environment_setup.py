@@ -422,6 +422,7 @@ IMAGE_LABELS = {
     "image_manifest": "the worker image",
     "analysis_image_manifest": "the analysis image",
     "gpu_image_manifest": "the GPU worker image",
+    "torch_gpu_image_manifest": "the PyTorch GPU worker image",
 }
 #: A compute check made before checks pinned their images.
 STALE_UNPINNED = "this check was made before setup pinned the images it checked"
@@ -1442,14 +1443,17 @@ class LiveChecks:
     def _remote(self, gpu_manifest: Path, machine):
         """The pinned GPU worker and the transport to the miner's setup."""
         from carbon.compute.remote_transport import transport_for
-        from carbon.development_session.gpu_practice import is_gpu_image
+        from carbon.development_session.gpu_practice import gpu_image_backend
         from carbon.reconstruction.worker.docker_runtime import load_image_identity
 
         try:
             image = load_image_identity(gpu_manifest)
         except Exception:  # noqa: BLE001 - never echo a local path or error.
             image = None
-        if not is_gpu_image(image):
+        # Any registered GPU worker: the JAX one or the PyTorch one
+        # (torch_profile.GPU_LOCK_DIGEST); the Challenge's own scope decides
+        # whether it serves that backend (M1 E2E, --gpu for each backend).
+        if gpu_image_backend(image) is None:
             raise SetupRefused(
                 "gpu_image_manifest",
                 "gpu_image_unverified",
@@ -1914,6 +1918,28 @@ def published_entry(published, challenge) -> dict | None:
     return published["endpoints"].get(challenge["id"], {}).get(challenge["version"])
 
 
+def local_gpu_manifest(state_dir, offered) -> str:
+    """The GPU worker manifest this machine's GPU practice checks: the
+    PyTorch GPU worker the installer built with --pytorch --gpu, in place of
+    the JAX GPU worker setup offers (`offered`, the installer's recorded or
+    default `gpu_image_manifest`), so its catalog entries get their PyTorch
+    GPU builds (Validator ruling: --gpu selects the GPU worker of each
+    installed backend; `gpu_practice.gpu_runtime` then gives
+    torch-cu130-py311). Any other path the miner names is checked as named.
+    The profile holds one GPU worker, so the catalog's JAX GPU builds then
+    practise on CPU; the remote route keeps the JAX worker."""
+    from scripts.dev.miner_launchpad import installed
+
+    recorded = installed.read(Path(state_dir)) or {}
+    torch_gpu = recorded.get("torch_gpu_image_manifest")
+    if torch_gpu is None:
+        return offered
+    jax_gpu = installed.found(Path(state_dir), REPO)["gpu_image_manifest"]["path"]
+    if jax_gpu is not None and Path(str(offered)).resolve() == Path(jax_gpu).resolve():
+        return torch_gpu
+    return offered
+
+
 def checkout_revision(repo=REPO):
     """This checkout's HEAD commit, or None when git cannot say."""
     try:
@@ -2265,11 +2291,19 @@ class EnvironmentSetup:
                 + " Carbon was installed at"
             )
             reinstall = True
+        torch_gpu = stamp["images"].get("torch_gpu_image_manifest")
         for field, entry in stamp["images"].items():
             if (
                 field in manifests
                 and type(entry) is dict
                 and entry.get("path") != manifests[field]
+                # This machine's GPU practice uses the PyTorch GPU worker the
+                # installer built beside the JAX one (`local_gpu_manifest`).
+                and not (
+                    field == "gpu_image_manifest"
+                    and type(torch_gpu) is dict
+                    and torch_gpu.get("path") == manifests[field]
+                )
             ):
                 reasons.append(
                     other
@@ -2741,6 +2775,13 @@ class EnvironmentSetup:
         if remote and campaign.remote_worker is None:
             raise SetupRefused("challenge", "challenge_offers_no_remote_practice")
         machine = _remote_machine(value["remote"]) if remote else None
+        if value["choice"] == LOCAL_GPU:
+            value = {
+                **value,
+                "gpu_image_manifest": local_gpu_manifest(
+                    self.root.parent, value["gpu_image_manifest"]
+                ),
+            }
         paths, manifests = {}, {}
         fields = ("image_manifest", "analysis_image_manifest") + (
             ("gpu_image_manifest",) if gpu else ()
