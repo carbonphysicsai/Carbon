@@ -222,6 +222,68 @@ def test_the_pod_phase_runs_from_the_shipped_files_alone(shipped, tmp_path):
     assert report["variants"], "no registered battery development variant"
 
 
+
+def test_the_pod_never_reads_catalog_bundles_or_receipts(shipped, tmp_path):
+    """Catalog bundles and GPU receipts are not shipped, and a catalog recipe
+    given to the pod phase from the shipped files alone ends in the same typed
+    compile refusal it gets with the whole repository: nothing on the pod reads
+    them (served.expand and gpu_receipt included)."""
+    assert not [p for p in shipped if p.startswith(pods.UNSHIPPED_TREES[1:])]
+    from scripts.dev.miner_launchpad.toolbox import _catalog_recipe
+
+    motor = "electric-motor-magnetics"
+    from carbon.backbone_catalog import listing
+
+    (entry, *_) = listing.entries(motor, "1.3")
+    strategy = _catalog_recipe(motor, "1.3", entry["catalog_id"])
+    contract = ex.recorded_contract(SCORING)["contract_digest"]
+    with pytest.raises(Exception) as on_host:
+        pod_phase.built_record(strategy, contract, 7, REPOSITORY)
+    sandbox = tmp_path / "pod"
+    for path in shipped:
+        target = sandbox / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(REPOSITORY / path, target)
+    config = tmp_path / "config.json"
+    config.write_text(
+        json.dumps(
+            {
+                "strategy": strategy,
+                "contract_digest": contract,
+                "seed": 7,
+                "expected": {"files": {}, "program": "sha256:" + "0" * 64},
+                "seconds": 600,
+            }
+        )
+    )
+    script = tmp_path / "in_pod.py"
+    script.write_text(_IN_POD_ONLY)
+    done = subprocess.run(
+        [sys.executable, str(script), str(sandbox), str(config), str(tmp_path / "out")],
+        cwd=sandbox,
+        capture_output=True,
+        text=True,
+        check=False,
+        env={"PATH": "/usr/bin:/bin", "HOME": str(tmp_path)},
+    )
+    assert done.returncode == 0, done.stderr[-1500:]
+    assert json.loads(done.stdout.strip().splitlines()[-1])["rc"] == 2
+    failure = json.loads((tmp_path / "out" / "failure.json").read_text())
+    assert failure == {"stage": "compile", "error": type(on_host.value).__name__}
+    assert failure["error"] not in ("FileNotFoundError", "OSError", "GpuReceiptBroken")
+
+
+_IN_POD_ONLY = """
+import json, sys
+root, config, out = sys.argv[1:4]
+sys.path[0] = root
+import carbon
+assert carbon.__file__.startswith(root), carbon.__file__
+from scripts.dev.exam_design import runner
+rc = runner.main(["graphite_practice", "--out", out, "--config", config])
+print(json.dumps({"rc": rc}))
+"""
+
 #: Run inside the sandbox, after `_variant_builds`'s source: only the shipped
 #: files are importable as Carbon.
 _IN_POD = """

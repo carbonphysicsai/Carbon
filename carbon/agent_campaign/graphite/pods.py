@@ -498,8 +498,17 @@ DYNAMIC_PACKAGES = (
     "carbon/training_budget",
 )
 #: Trees inside the closure's directories that the pod never reads: the
-#: lessons register (several hundred records).
-UNSHIPPED_TREES = ("carbon/challenge_pipeline/lessons/",)
+#: lessons register (several hundred records), and the backbone catalog's
+#: bundles and GPU receipts (the pod phase compiles a Graphite strategy through
+#: its Challenge's scoring and never builds or offers a catalog entry; a test
+#: runs a catalog recipe there to its typed refusal). With every catalog entry
+#: and GPU twin they were ~53 KB of manifest, over the provider-bound pod
+#: environment limit (OWNER-A40-POD-ENV-PROVIDER-BOUND-01).
+UNSHIPPED_TREES = (
+    "carbon/challenge_pipeline/lessons/",
+    "carbon/backbone_catalog/bundles/",
+    "carbon/backbone_catalog/receipts/",
+)
 ENV_TOO_LARGE = "pod_env_too_large"
 
 
