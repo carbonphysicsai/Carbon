@@ -63,9 +63,7 @@ def sealed_bank(document, records) -> dict:
         raise SealedPackRefused("battery_sealed_case_unresolved")
     # Bank rows are the grid cells, scenario-major over EV4's candidate order (the
     # grading producer orders the batch's scenarios by first appearance).
-    scenario_of = {
-        s: f"scenario-{i}" for i, s in enumerate(scenarios_of(list(cases.values())))
-    }
+    scenario_of = {s: f"scenario-{i}" for i, s in enumerate(scenarios_of(list(cases.values())))}
     candidate_of = {(c["c1"], c["c2"]): c["id"] for c in candidates()}
     candidate_order = {c["id"]: i for i, c in enumerate(candidates())}
 

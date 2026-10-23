@@ -130,25 +130,19 @@ def grid_bank(document, records, *, version="1.1") -> dict:
     except ValueError:
         raise SealedPackRefused("motor_sealed_document_malformed") from None
     bank = sealed_bank(
-        dict(document, schema=grid.motor_sealed.DOCUMENT_SCHEMA),
-        records,
-        version=version,
+        dict(document, schema=grid.motor_sealed.DOCUMENT_SCHEMA), records, version=version
     )
     designs, conditions = grid_of(list(cases.values()))
     design_id = {d: f"design-{i}" for i, d in enumerate(designs)}
     condition_id = {c: f"condition-{i}" for i, c in enumerate(conditions)}
     out_records = []
-    for case_id, record in zip(
-        bank["case_ids"], bank["reference_records"], strict=True
-    ):
+    for case_id, record in zip(bank["case_ids"], bank["reference_records"], strict=True):
         inputs = cases[case_id]
         out_records.append(
             {
                 **record,
                 "design_id": design_id[tuple(inputs[k] for k in DESIGN_INPUTS)],
-                "condition_id": condition_id[
-                    tuple(inputs[k] for k in CONDITION_INPUTS)
-                ],
+                "condition_id": condition_id[tuple(inputs[k] for k in CONDITION_INPUTS)],
             }
         )
     evidence = _canonical(
