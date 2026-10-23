@@ -157,7 +157,7 @@ def test_a_new_version_is_its_predecessor_s_material(key):
 def test_the_registry_declares_each_new_version_in_full():
     """Each graph route v2 version is written out, never read through its
     predecessor: every field but its identity, pack version, adapter, catalog
-    entries and lineage equals the predecessor's."""
+    entries, lineage and rebuild wall equals the predecessor's."""
     assert {key: version_registry.entry(*key).predecessor for key in NEW} == {
         (COOLING, "1.4"): "1.3",
         (F02, "2.4"): "2.3",
@@ -170,6 +170,8 @@ def test_the_registry_declares_each_new_version_in_full():
         "graph_adapter",
         "catalog_entries_from",
         "predecessor",
+        # Its 30-minute rebuild wall (OWNER-SANDBOX-REBUILD-WALL-01).
+        "rebuild_wall_seconds",
     }
     for cid, version in NEW:
         new = version_registry.entry(cid, version)

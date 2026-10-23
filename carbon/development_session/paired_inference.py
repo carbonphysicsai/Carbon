@@ -30,6 +30,7 @@ from .bundle_construction_worker import (
     _private_controls_digest,
     _tensors,
     _trusted_allowlist,
+    rebuild_wall_kwargs,
     verify_direct_resource_policy,
 )
 from .bundle_graph_state import load, state_fits
@@ -261,6 +262,7 @@ def infer_frozen_pair(
                 runner=runner,
                 **query,
                 **accelerator_kwargs,
+                **rebuild_wall_kwargs(limits_document),
             )
             if (
                 result.receipt.get("inputs_digest") != inputs_digest

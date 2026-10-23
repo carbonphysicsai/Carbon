@@ -74,7 +74,15 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
     )
 
     provenance = _check_identity(challenge_id, version)
-    profile = _worker_profile(None, LIBRARY_BUILD_PROVENANCE).body
+    # A graph route v2 version's rebuild wall (OWNER-SANDBOX-REBUILD-WALL-01)
+    # moves only the two wall fields; every other version keeps its bytes.
+    profile = _worker_profile(
+        None,
+        LIBRARY_BUILD_PROVENANCE,
+        rebuild_wall_seconds=version_registry.entry(
+            challenge_id, version
+        ).rebuild_wall_seconds,
+    ).body
     v1 = version_registry.entry(challenge_id, version).train == (
         version_registry.F08_TRAIN_V1
     )
