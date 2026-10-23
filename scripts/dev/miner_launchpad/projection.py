@@ -582,7 +582,12 @@ def project(row, root):
         admission=(
             "RETIRED_DEVELOPMENT_GRANT"
             if row.get("grant_record") is not None
-            else "SUBNET_REGISTRATION"
+            # Practised without registering: research and reports only.
+            else (
+                "PRACTICE_ONLY"
+                if (manifest.get("admission") or {}).get("admission") == "PRACTICE_ONLY"
+                else "SUBNET_REGISTRATION"
+            )
         ),
     )
     reported = dict.fromkeys(DIMENSIONS, 0)

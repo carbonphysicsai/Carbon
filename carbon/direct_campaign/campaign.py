@@ -252,12 +252,9 @@ def compose(
 
 async def prepare(spec, args, *, ledger=None, campaign):
     """Prepare a registered direct-recipe product campaign and public research."""
-    from carbon.chain.external_signer import miner_signer
-    from carbon.chain.models import CARBON_NETUID
     from carbon.compute.retired import refuse_rented
     from carbon.development_session.data import write_once
     from carbon.development_session.gpu_practice import direct_parent_backend
-    from carbon.development_session.miner_network import binding_for
     from carbon.development_session.profile import canonical
     from carbon.development_session.research_campaign import (
         PreparedCampaign,
@@ -279,7 +276,6 @@ async def prepare(spec, args, *, ledger=None, campaign):
     from carbon.development_session.research_ledger import CampaignLedger
     from carbon.development_session.research_report import report
     from carbon.development_session.research_tools import ResearchMinerTools
-    from carbon.development_session.service import LocalMinerConnection
     from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
 
     key = research_key(spec)
@@ -385,22 +381,11 @@ async def prepare(spec, args, *, ledger=None, campaign):
         gpu_image,
     )
 
-    config = binding_for(args)
-    public = json.loads(private_file(args.miner_public).read_bytes())
-    if public["netuid"] != CARBON_NETUID or config.netuid != CARBON_NETUID:
-        raise ValueError(f"existing subnet {CARBON_NETUID} context required")
-    registered = (
-        frozen["admission"]["hotkey"]
-        if frozen is not None
-        else str(product.miner.hotkey)
-    )
-    if public["hotkey"] != registered:
-        raise ValueError("the registered miner differs from this hotkey")
-    signer = miner_signer(public, getattr(args, "signer_socket", None))
-    session = root / "research-auth"
-    session.mkdir(mode=0o700, exist_ok=True)
-    connection = LocalMinerConnection(
-        session, args.image_manifest, config.context, config.publisher_hotkey, signer
+    from carbon.development_session.miner_connection import campaign_connection
+
+    # The miner's own signer, or a practice-only install's practice identity.
+    connection, signer, config = campaign_connection(
+        args, root, frozen=frozen, product=product
     )
     owner = await requester(connection)
     if (root / "campaign-complete.json").exists():

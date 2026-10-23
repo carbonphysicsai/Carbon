@@ -7,14 +7,15 @@ body runs. Setup's first step offers the choice on both doors; taking it asks
 no chain, signer or wallet, and nothing leaves the machine. Registering later
 keeps the steps checked. A registered profile keeps every path it had.
 
-The practice-only runner profile itself (its typed identity and local
-authentication) is not here yet: Review refuses `practice_profile_unavailable`
-until it is.
+Review writes the practice-only runner profile: the install's practice
+identity (an owner-only key) in place of the hotkey, and no intake, receiver
+or validator. The identity and the campaigns it runs: test_practice_identity.
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
 import socket
 
 import pytest
@@ -60,14 +61,22 @@ class PracticeHost(SpyHost):
             "practice_identity": PRACTICE_IDENTITY,
         }
 
+    def owner(self):
+        self.calls.append("owner")
+        return {"principal": "practice:" + PRACTICE_IDENTITY["public_key"]}
+
 
 # --- freeze, submit and commit need a registration --------------------------------
 
 
 def test_the_registered_only_operations_are_the_table_s_signing_ones():
-    assert practice_only.REGISTERED_ONLY == {"freeze_candidate", "submit", "commit"}
+    assert practice_only.REGISTERED_ONLY == {
+        "freeze_candidate",
+        "submit",
+        "commit",
+        "check_result",
+    }
     assert practice_only.REGISTERED_ONLY <= set(OPERATIONS)
-    assert all(OPERATIONS[name].admits_work for name in practice_only.REGISTERED_ONLY)
 
 
 @pytest.mark.parametrize("name", sorted(practice_only.REGISTERED_ONLY))
@@ -90,7 +99,8 @@ def test_a_practice_only_profile_is_refused_on_both_doors_before_anything(
     with pytest.raises(ToolError, match="registration_required"):
         through_mcp(via_mcp, name, sample(op))
     # Refused at the profile: no replay, no chain read, no body.
-    assert via_browser.calls == via_mcp.calls == ["profile"]
+    gate = "profile" if op.admits_work else "owner"
+    assert via_browser.calls == via_mcp.calls == [gate]
     step = NEXT_ACTIONS["registration_required"]
     for words in ("carbon_setup_begin", "signer", "carbon_setup_review"):
         assert words in step
@@ -201,20 +211,59 @@ def test_practice_only_agent_refuses_a_signer_socket(tmp_path):
     assert refused.value.next_step
 
 
-def test_review_refuses_a_practice_only_profile_until_it_exists(tmp_path, monkeypatch):
+def test_practice_review_writes_the_practice_profile_and_sends_nothing(
+    tmp_path, monkeypatch
+):
+    from carbon.chain import practice as identity
+    from scripts.dev.miner_launchpad.runner import validated_profile
+
     setup = EnvironmentSetup(made(tmp_path), onboarding=Chain(), checks=Checks())
-    perform(setup, "practice", {"confirm": True}, door=MCP)
-    with no_outbound(monkeypatch) as guard, pytest.raises(SetupRefused) as refused:
-        perform(
-            setup,
-            "review",
-            {"confirm": True, "intakes": {"battery": "https://intake.invalid"}},
-            door=MCP,
-        )
-    assert refused.value.code == "practice_profile_unavailable"
-    assert "carbon_setup_begin" in refused.value.next_step
+    with no_outbound(monkeypatch) as guard:
+        perform(setup, "practice", {"confirm": True}, door=MCP)
+        perform(setup, "agent", {"choice": OWN_AGENT}, door=MCP)
+        perform(setup, "compute", _compute_arguments(setup), door=MCP)
+        # An intake is for submitting: refused before anything is read.
+        with pytest.raises(SetupRefused) as refused:
+            perform(
+                setup,
+                "review",
+                {"confirm": True, "intakes": {"battery": "https://intake.invalid"}},
+                door=MCP,
+            )
+        assert refused.value.code == "registration_required"
+        assert "carbon_setup_begin" in refused.value.next_step
+        reviewed = perform(setup, "review", {"confirm": True}, door=MCP)
     assert guard.attempts == []
-    assert not setup.profile_path.exists()
+    assert reviewed["steps"]["review"]["profile_written"] is True
+    profile = json.loads(setup.profile_path.read_bytes())
+    assert validated_profile(profile) == profile
+    key = setup.root / identity.KEY_FILE
+    signer = identity.load(key)
+    assert profile["principal"] == signer.principal
+    assert profile["practice_identity"] == {
+        "kind": "PRACTICE_ONLY",
+        "public_key": signer.public_key.hex(),
+    }
+    assert profile["paths"]["practice_identity"] == str(key)
+    assert "miner_public" not in profile["paths"]
+    assert key.stat().st_mode & 0o777 == 0o600
+    # The key itself is in its file only: never in the profile, the setup
+    # record, a result or status.
+    seed = key.read_bytes().strip().decode()
+    seen = json.dumps(reviewed) + json.dumps(status(setup, door=MCP))
+    for path in setup.root.rglob("*"):
+        if path.is_file() and path != key:
+            seen += path.read_bytes().decode("utf-8", "ignore")
+    assert seed not in seen
+    # Registering later: the profile names the earlier practice principal.
+    setup.onboarding.registered = True
+    perform(setup, "begin", {"address": HOTKEY}, door=MCP)
+    perform(setup, "agent", {"choice": OWN_AGENT}, door=MCP)
+    perform(setup, "review", {"confirm": True}, door=MCP)
+    registered = json.loads(setup.profile_path.read_bytes())
+    assert registered["principal"] == HOTKEY
+    assert registered["practice_principal"] == signer.principal
+    assert "practice_identity" not in registered
 
 
 def test_practice_needs_confirmation_and_is_before_registration(tmp_path):

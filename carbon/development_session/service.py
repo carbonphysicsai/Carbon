@@ -260,12 +260,15 @@ class LocalMinerConnection:
             self.development_comparison_feedback = {}
         self.development_comparison_feedback[submission] = ref
 
-    def __post_init__(self):
+    def _require_network(self):
         if (
             self.chain_context.netuid != CARBON_NETUID
             or self.chain_context.network != CARBON_NETWORK
         ):
             raise ValueError(f"public {CARBON_NETWORK} {CARBON_NETUID} required")
+
+    def __post_init__(self):
+        self._require_network()
         if self.miner_key.ss58_address == self.publisher:
             raise ValueError("distinct miner hotkey required")
         if self.research_inputs is not None:
@@ -309,6 +312,44 @@ class LocalMinerConnection:
         return await registered_research_snapshot(
             self.chain_context, self.miner_key, self.publisher, self.observed
         )
+
+
+class PracticeMinerConnection(LocalMinerConnection):
+    """A practice-only campaign's connection to the in-process research
+    service (LP practice-only): the same authenticated gateway, every request
+    signed and verified, but by the install's practice identity against a
+    local-practice snapshot of that identity alone. No chain is read, no
+    signer is asked and nothing is sent anywhere."""
+
+    def _require_network(self):
+        from carbon.chain.practice import PracticeSigner, context
+
+        if type(self.miner_key) is not PracticeSigner:
+            raise TypeError("a practice connection signs with the practice identity")
+        if (
+            self.chain_context != context()
+            or self.publisher != self.miner_key.publisher
+            or self.research_inputs is not None
+            or self.comparison_contract_digest is not None
+        ):
+            raise ValueError("local-practice research only")
+
+    async def check_registration(self):
+        from carbon.chain.practice import snapshot
+
+        observed = snapshot(self.miner_key)
+        self.observed.value = observed
+        return observed
+
+
+def practice_connection(root, image_manifest, signer):
+    """The practice-only connection for `signer` (a loaded practice
+    identity), on the local-practice context with its local publisher."""
+    from carbon.chain.practice import context
+
+    return PracticeMinerConnection(
+        root, image_manifest, context(), signer.publisher, signer
+    )
 
     async def call(self, tool: str, fields: dict[str, object]):
         if tool not in {item.value for item in mcp.McpTool} or type(fields) is not dict:

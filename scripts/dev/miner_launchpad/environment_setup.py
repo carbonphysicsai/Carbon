@@ -248,12 +248,14 @@ PRACTICE_ONLY_REGISTERED_STEP = (
     "your hotkey is registered: continue setup with it; you practise and "
     "submit with the same setup"
 )
-PRACTICE_PROFILE_STEP = (
-    "a practice-only runner profile is not available in this version yet: "
-    "register your hotkey and confirm it (carbon_setup_begin), start your "
-    "signer, then choose who researches again and Review; the steps you "
-    "checked are kept"
+PRACTICE_REGISTER_STEP = (
+    "intakes and validators are for freezing and submitting, which need a "
+    "registered hotkey: register it and confirm it (carbon_setup_begin), "
+    "start your signer, then choose who researches again and Review; the "
+    "steps you checked are kept"
 )
+#: The practice-only fields Review takes: no intake, receiver or validator.
+PRACTICE_REVIEW_FIELDS = frozenset({"confirm", "practice_auto_retry"})
 
 #: The evaluation endpoints Carbon publishes (LP-PROD-E): for a network,
 #: subnet, Challenge and Challenge version, the validator intake a frozen
@@ -2649,8 +2651,11 @@ class EnvironmentSetup:
             if _practice_only(record):
                 # Registering after practising: the steps checked are kept,
                 # but who researches is chosen again, so the signer is asked
-                # for this hotkey, and Review writes a profile again.
-                record.pop("practice_only", None)
+                # for this hotkey, and Review writes a profile again. The
+                # practice principal is kept, so its campaigns stay readable.
+                practised = record.pop("practice_only", None) or {}
+                if practised.get("public_key"):
+                    record["practised_as"] = practised["public_key"]
                 record.pop("agent", None)
                 record.pop("profile", None)
             record["hotkey"] = address
@@ -2674,10 +2679,25 @@ class EnvironmentSetup:
                     "practice_only_is_before_registration",
                     next_step=PRACTICE_ONLY_REGISTERED_STEP,
                 )
-            if not record.get("practice_only"):
+            from carbon.chain import practice as identity
+
+            # This install's practice identity: an owner-only key made here,
+            # registered nowhere, never logged or sent. An existing one is
+            # kept, so its practice campaigns stay its own; a missing one is
+            # made again.
+            try:
+                signer = identity.create(self.root / identity.KEY_FILE)
+            except identity.PracticeIdentityRefused as refused:
+                raise SetupRefused("confirm", refused.code) from None
+            chosen = record.get("practice_only") or {}
+            if chosen.get("public_key") != signer.public_key.hex():
+                record.pop("profile", None)  # A new identity needs a review.
                 record = {
                     **record,
-                    "practice_only": {"chosen_at": int(time.time())},
+                    "practice_only": {
+                        "chosen_at": int(time.time()),
+                        "public_key": signer.public_key.hex(),
+                    },
                 }
                 self._save(record)
         return self.state()
@@ -3251,12 +3271,6 @@ class EnvironmentSetup:
         from scripts.dev.miner_launchpad.runner import PROFILE_SCHEMA, validated_profile
 
         record = self._record()
-        if _practice_only(record):
-            raise SetupRefused(
-                "confirm",
-                "practice_profile_unavailable",
-                next_step=PRACTICE_PROFILE_STEP,
-            )
         # Inference only for an agent that calls setup's model; the miner's
         # own agent brings its own (OWNER-MINER-SETUP-AGENT-FIRST-01).
         for step in ("agent", "inference", "compute"):
@@ -3290,10 +3304,23 @@ class EnvironmentSetup:
             else str(self.root / "keys" / NO_MODEL_KEY)
         )
         campaigns = _private_dir(self.root / "campaigns")
+        practising = _practice_only(record)
+        if practising:
+            # The practice identity stands where the hotkey would: its key
+            # file (owner-only) in place of the public hotkey, its typed
+            # identity and `practice:<hex>` principal - never an ss58.
+            from carbon.chain import practice as identity
+
+            try:
+                signer = identity.load(self.root / identity.KEY_FILE)
+            except identity.PracticeIdentityRefused as refused:
+                raise SetupRefused("confirm", refused.code) from None
+            if signer.public_key.hex() != record["practice_only"].get("public_key"):
+                raise SetupRefused("confirm", "practice_identity_mismatch")
         cfg = {
             "schema": PROFILE_SCHEMA,
             "profile_id": PROFILE_ID,
-            "principal": record["hotkey"],
+            "principal": signer.principal if practising else record["hotkey"],
             "enabled": True,
             "paths": {
                 **compute["paths"],
@@ -3302,7 +3329,22 @@ class EnvironmentSetup:
                 # so no other provider can fall back to it.
                 "api_key_file": key,
                 "quarantine_journal": str(self.root / "quarantine-journal.sqlite3"),
+                **(
+                    {"practice_identity": str(self.root / identity.KEY_FILE)}
+                    if practising
+                    else {}
+                ),
             },
+            **(
+                {
+                    "practice_identity": {
+                        "kind": identity.PRACTICE_ONLY,
+                        "public_key": signer.public_key.hex(),
+                    }
+                }
+                if practising
+                else {}
+            ),
             "accepted_revision": compute["runtime"]["implementation"]["revision"],
             "campaigns_root": str(campaigns),
             "runtime": compute["runtime"],
@@ -3310,6 +3352,13 @@ class EnvironmentSetup:
             **(
                 {"extra_gpu_image": compute["extra_gpu_image"]}
                 if "extra_gpu_image" in compute
+                else {}
+            ),
+            # The campaigns this install practised without registering, before:
+            # listed and readable under the registration, never new work.
+            **(
+                {"practice_principal": "practice:" + record["practised_as"]}
+                if not practising and record.get("practised_as")
                 else {}
             ),
             # Where the miner's remote setup is: the profile's, never a
@@ -3372,6 +3421,54 @@ class EnvironmentSetup:
         """
         reviewed = self._review(value)
         return {**reviewed, "warnings": reviewed["warnings"] + self.reboot_warnings()}
+
+    def _practice_review(self, value) -> dict:
+        """Review for a practice-only setup: the practice-only runner profile,
+        written and loaded. It names no intake, receiver or validator - those
+        are for freezing and submitting, which need a registration - so none
+        is read, checked or published, and nothing leaves this machine."""
+        from scripts.dev.miner_launchpad.runner import PRACTICE_AUTO_RETRY
+
+        extra = set(value) - PRACTICE_REVIEW_FIELDS
+        if extra:
+            raise SetupRefused(
+                min(extra), "registration_required", next_step=PRACTICE_REGISTER_STEP
+            )
+        with self.lock:
+            record = self._record()
+            cfg = self.profile()
+            preferences = dict(record.get("preferences") or {})
+            if PRACTICE_AUTO_RETRY in value:
+                preferences[PRACTICE_AUTO_RETRY] = value[PRACTICE_AUTO_RETRY]
+            if preferences.get(PRACTICE_AUTO_RETRY) is True:
+                cfg = {**cfg, PRACTICE_AUTO_RETRY: True}
+            agent = record["agent"]
+            if agent.get("check", {}).get("hermes_profile") == "written at review":
+                written = self.checks.hermes(
+                    *self._hermes_document(
+                        {"consent": {"writes": self.checks.hermes_files()}}
+                    )
+                )
+                agent["check"] = {
+                    **agent["check"],
+                    **written,
+                    "hermes_profile": "carbon",
+                    "start": START,
+                    "tools_ask_first": True,
+                }
+            write_private(self.profile_path, canonical(cfg))
+            record["profile"] = {
+                "written_at": int(time.time()),
+                "intakes": {},
+                "practice_only": True,
+                "warnings": [],
+            }
+            if preferences:
+                record["preferences"] = preferences
+            record.pop("profile_set_aside", None)
+            self._save(record)
+        attached = self.attach(self.profile_path) if self.attach is not None else False
+        return {**self.state(), "attached": attached, "warnings": []}
 
     def reboot_warnings(self) -> list:
         """`reboot_recovery_off` when this install's Control Center would not
@@ -3455,11 +3552,7 @@ class EnvironmentSetup:
             practising = _practice_only(self._record())
         if practising:
             # Before any intake is read: nothing leaves this machine.
-            raise SetupRefused(
-                "confirm",
-                "practice_profile_unavailable",
-                next_step=PRACTICE_PROFILE_STEP,
-            )
+            return self._practice_review(value)
         if (
             PRACTICE_AUTO_RETRY in value
             and type(value[PRACTICE_AUTO_RETRY]) is not bool

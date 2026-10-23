@@ -23,6 +23,14 @@ wallet for weight publication. It is importable from the product only because
 the product reads the operator's chain configuration from the same package, on
 the single-host deployment (#431 / OD-7). It is never the miner's key, and no
 product module calls it.
+
+A second, exact and named: `carbon.chain.practice._keypair` builds a
+practice-only install's **practice identity** from its own seed (LP
+practice-only; Validator receipt 2026-10-23). It is a key the install made
+for itself, in an owner-only file, registered nowhere and never sent; what
+it signs is admitted only against a local-practice snapshot, never by a
+network gateway, receiver, intake or the chain. It is never the miner's
+hotkey: that stays in their signer, and a practice-only profile has none.
 """
 
 import ast
@@ -67,7 +75,13 @@ KEY_NAMES = frozenset(
 #: Identifiers that carry a key file's path or the password that decrypts it.
 KEY_PATH_NAMES = frozenset({"key_file", "miner_password_file", "password_file"})
 
-PERMITTED = {("carbon/chain/sdk_weights.py", "open_operator_wallet", "Wallet")}
+PERMITTED = {
+    ("carbon/chain/sdk_weights.py", "open_operator_wallet", "Wallet"),
+    # The practice identity (see the docstring): this one function, only.
+    ("carbon/chain/practice.py", "_keypair", "import Keypair"),
+    ("carbon/chain/practice.py", "_keypair", "Keypair"),
+    ("carbon/chain/practice.py", "_keypair", "create_from_seed"),
+}
 
 
 def _module_path(name, root=ROOT):
@@ -294,12 +308,15 @@ def prepare(args, public):
     assert ("specimen.py", "prepare", "['key_file']") in found
 
 
-def test_the_permitted_exception_is_present_and_found():
-    """Specimen for the one exception: it exists where named and the scanner
-    finds it, so the permit is not silently covering nothing - and nothing in
-    the product's own entry points calls it."""
+def test_the_permitted_exceptions_are_present_and_found():
+    """Specimen for the two exceptions: each exists where named and the
+    scanner finds it, so a permit is not silently covering nothing - nothing
+    in the product's own entry points calls the operator's wallet, and the
+    practice identity's key is built in its one function and nowhere else in
+    its module."""
     wallet = ROOT / "carbon" / "chain" / "sdk_weights.py"
-    assert PERMITTED <= scan([wallet])
+    practice = ROOT / "carbon" / "chain" / "practice.py"
+    assert PERMITTED == scan([wallet, practice])
     entries = [path for entry in PRODUCT_ENTRIES for path in entry.glob("*.py")]
     for path in entries:
         assert "open_operator_wallet" not in path.read_text(encoding="utf-8"), path

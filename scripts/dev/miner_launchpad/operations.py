@@ -1204,7 +1204,7 @@ def perform(host, name, request):
                 raise Rejected("research_profile_mismatch", 409)
             # A practice-only profile freezes, submits and commits nothing:
             # refused here, before a replay or the chain is read.
-            practice_only.require_registered(profile, op.name)
+            practice_only.require_registered(profile, op.name, request)
         elif gate == "replay":
             replayed = host.replayed(profile, request, op.name)
             if replayed is not None:
@@ -1230,6 +1230,9 @@ def perform(host, name, request):
             # cleaned up, but no new work is ever admitted to it.
             if op.admits_work and campaign["kind"] != "product":
                 raise Rejected("retired_grant_campaign", 409)
+            # Practised without registering, before: readable, no new work.
+            if op.admits_work and campaign.get("read_only"):
+                raise Rejected("practice_campaign_read_only", 409)
     # The body is the host's `<operation>_admitted`, found by name: the table
     # names it, and no door supplies one of its own.
     body = getattr(host, op.name + "_admitted")
