@@ -99,3 +99,16 @@ def test_a_gpu_host_that_ran_the_cpu_build_says_so_in_words():
         "Ran on CPU: this catalog entry has no GPU build yet"
     )
     assert "fallback" not in catalog_gpu.backend_record(None, None, None, None)
+
+
+def test_a_gpu_build_without_a_receipt_says_so_in_words():
+    # Validator, R9-3 note: the build exists but is not offered yet.
+    from carbon.backbone_catalog.served import GpuBuildNotOffered
+    from carbon.development_session import catalog_gpu
+
+    code = GpuBuildNotOffered.code
+    record = catalog_gpu.backend_record(None, None, code, None)
+    assert record["fallback"] == (
+        "Ran on CPU: the entry's GPU build has no GPU receipt yet."
+        " The score is the CPU build's."
+    )

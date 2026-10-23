@@ -204,6 +204,7 @@ def backend_record(accelerator, parent, gpu_note, runner):
 #: Why a GPU host ran the CPU build (`gpu_practice.device_build`'s notes).
 FALLBACK_WORDS = {
     "catalog_gpu_build_missing": "this catalog entry has no GPU build yet",
+    "catalog_gpu_build_not_offered": "the entry's GPU build has no GPU receipt yet",
     "gpu_overlay_not_installed": "the entry's GPU build is not installed here",
     "gpu_build_failed": "the entry's GPU build failed",
 }
