@@ -38,6 +38,14 @@ from carbon.direct_campaign import research as direct_research
 from carbon.direct_campaign.spec import BATTERY_CATALOG, HUMAN_INPUT, SPECS
 from carbon.reconstruction.served_recipe_contract import registered
 
+# Battery 2.2 is not served (OWNER-BATTERY-OUT-OF-LAUNCH-01: Battery is out of
+# launch, and 2.2 was never completed). These tests describe 2.2 as served;
+# they come back if 2.2 is registered again. `test_battery_22_not_served`
+# holds the unregistered state.
+pytestmark = pytest.mark.skip(
+    reason="Battery 2.2 is not served (OWNER-BATTERY-OUT-OF-LAUNCH-01)"
+)
+
 BATTERY = "battery-fastcharge-ageing-development-v1"
 CHALLENGE = {"id": BATTERY, "version": "2.2"}
 REPOSITORY = Path(__file__).resolve().parents[2]

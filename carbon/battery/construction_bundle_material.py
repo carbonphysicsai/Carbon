@@ -154,7 +154,7 @@ def bundle_material(root: Path | None = None) -> dict:
 #: version (STEP2_BATCH_VERSIONS_20261020); 2.1 2.0's serving with allowlist
 #: v7 (Validator, 2026-10-20); 2.2 2.1 plus the backbone catalog, served by its
 #: own adapter (`catalog_version`; Validator, 2026-10-22).
-VERSIONS = ("1.0", "2.0", "2.1", "2.2")
+VERSIONS = ("1.0", "2.0", "2.1")
 LIMITS_SCHEMA_V2 = "carbon.battery.bundle-construction-limits.v2"
 PHYSICS_VERSION = "battery-physics-v2"
 
