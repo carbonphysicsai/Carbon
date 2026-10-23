@@ -11,7 +11,7 @@
  "python_abi": "cp311",
  "runtime_profile_id": "torch-cu130-py311",
  "schema": "carbon.development.library-bundle.v1",
- "source_bytes": 70893,
- "source_sha256": "sha256:0071f8e2ada5e48e92a3480fb5d882d522f8ce7638e9eea748fd3945b1e726d4",
+ "source_bytes": 70898,
+ "source_sha256": "sha256:6fb191f11863abac50b26c7bc36b2245ab8b9700d088ba36ab139eac9425a8e8",
  "wheels": {}
 }

@@ -11,8 +11,8 @@
  "python_abi": "cp311",
  "runtime_profile_id": "torch-cu130-py311",
  "schema": "carbon.development.library-bundle.v1",
- "source_bytes": 13874,
- "source_sha256": "sha256:df2692ee2cd56049eb4161d2f993d236b3fbd4d45bb6ba54f6ba86d5b29908b5",
+ "source_bytes": 13891,
+ "source_sha256": "sha256:2a8cacef3d27d6f0d155d3268637f150aa613c056517ec76dddd4da472094df6",
  "wheels": {
   "torch_geometric-2.8.1-py3-none-any.whl": "sha256:b628de243c0893f3435b6eca9a7bbc07f3219293ed27c974b8929aaae42e65d0"
  }

@@ -599,3 +599,33 @@ def test_lsm_has_no_gpu_twin_and_a_gpu_ref_for_it_is_refused(tmp_path, monkeypat
     fake["bundle_refs"] = {"torch-cu130-py311": lsm["bundle_ref"]}
     with pytest.raises(pipeline.CatalogBroken, match="no GPU twin"):
         pipeline.verify(fake)
+
+
+DEVICE_FIXED = ("lno.LNO1d", "neuralop.GINO", "physicsnemo.MeshGraphNet")
+
+
+def _members(path):
+    with tarfile.open(path) as archive:
+        return {
+            m.name.split("/", 1)[1]: archive.extractfile(m).read()
+            for m in archive.getmembers()
+            if m.isfile()
+        }
+
+
+def test_the_three_device_fixed_twins_differ_from_their_cpu_build_by_the_registered_fixes_only():
+    """RTX 4090 repeat (2026-10-22): helper tensors made on the CPU inside `forward` move to the input's device in the
+    GPU twin; the CPU build's bytes are untouched and no other entry carries a device fix.
+    """
+    assert set(gpu_build.DEVICE_FIXES) == set(DEVICE_FIXED)
+    for catalog_id in DEVICE_FIXED:
+        base = pipeline.BUNDLES / catalog_id
+        cpu = _members(base / "source.tar.gz")
+        gpu = _members(base / "torch-cu130-py311" / "source.tar.gz")
+        changed = {name for name in cpu if cpu[name] != gpu[name]}
+        assert set(cpu) == set(gpu)
+        assert changed == {"carbon_candidate/backbones.py", "carbon_candidate/build.py"}
+        text = gpu["carbon_candidate/backbones.py"].decode()
+        for _, before, after in gpu_build.DEVICE_FIXES[catalog_id]:
+            assert after in text and before not in text
+        assert "device" in text

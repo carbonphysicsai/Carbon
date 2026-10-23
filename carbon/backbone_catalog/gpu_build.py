@@ -55,6 +55,73 @@ DETERMINISM = "torch.use_deterministic_algorithms(True)"
 WARN_ONLY = "torch.use_deterministic_algorithms(True, warn_only=True)  # GPU twin of this entry only"
 
 
+BACKBONES_MEMBER = "carbon_candidate/backbones.py"
+#: The third registered change, on an explicit three-entry list (RTX 4090 repeat, 2026-10-22): these builds make helper
+#: tensors (DFT matrices, graph index/one-hot matrices) on the CPU inside `forward`, which only works while the model
+#: runs on the CPU. Each pair below makes the tensor on the input's (or its owner buffer's) device instead; the values
+#: are the same (computed on the CPU, then moved), so the CPU build is untouched and only the GPU twin carries it. Every
+#: `old` must occur exactly once in the member.
+DEVICE_FIXES = {
+    "lno.LNO1d": (
+        (
+            BACKBONES_MEMBER,
+            "        return torch.cos(angle).to(torch.float32), torch.sin(angle).to(torch.float32)",
+            "        return torch.cos(angle).to(torch.float32).to(device), torch.sin(angle).to(torch.float32).to(device)",
+        ),
+        (BACKBONES_MEMBER, "    def _mats():", "    def _mats(device=None):"),
+        (
+            BACKBONES_MEMBER,
+            "        cos_m, sin_m = _mats()\n        return torch.view_as_complex",
+            "        cos_m, sin_m = _mats(x.device)\n        return torch.view_as_complex",
+        ),
+        (
+            BACKBONES_MEMBER,
+            "        cos_m, sin_m = _mats()\n        parts = torch.view_as_real(z)",
+            "        cos_m, sin_m = _mats(z.device)\n        parts = torch.view_as_real(z)",
+        ),
+        (
+            BACKBONES_MEMBER,
+            'node.value = ast.Name("_lambda0", ast.Load())',
+            'node.value = ast.Call(ast.Attribute(ast.Name("_lambda0", ast.Load()), "to", ast.Load()), [ast.Attribute(ast.Name("x", ast.Load()), "device", ast.Load())], [])',
+        ),
+    ),
+    "neuralop.GINO": (
+        (
+            BACKBONES_MEMBER,
+            "rows, owner = torch.arange(self.n_queries).view(-1, 1), self.query_index.view(1, -1)",
+            "rows, owner = torch.arange(self.n_queries, device=self.query_index.device).view(-1, 1), self.query_index.view(1, -1)",
+        ),
+    ),
+    "physicsnemo.MeshGraphNet": (
+        (
+            BACKBONES_MEMBER,
+            "torch.zeros((size,) + tuple(src.shape[1:]), dtype=src.dtype)",
+            "torch.zeros((size,) + tuple(src.shape[1:]), dtype=src.dtype, device=src.device)",
+        ),
+        (
+            BACKBONES_MEMBER,
+            "torch.zeros(size, dtype=src.dtype).index_add(\n            0, index, torch.ones(index.shape[0], dtype=src.dtype)",
+            "torch.zeros(size, dtype=src.dtype, device=src.device).index_add(\n            0, index, torch.ones(index.shape[0], dtype=src.dtype, device=src.device)",
+        ),
+        (
+            BACKBONES_MEMBER,
+            "        src = torch.as_tensor(graph.src_np)\n        dst = torch.as_tensor(graph.dst_np)",
+            "        src = torch.as_tensor(graph.src_np).to(efeat.device)\n        dst = torch.as_tensor(graph.dst_np).to(efeat.device)",
+        ),
+        (
+            BACKBONES_MEMBER,
+            "rows, owner = torch.arange(nodes).view(-1, 1), torch.as_tensor(local).view(1, -1)",
+            "rows, owner = torch.arange(nodes, device=efeat.device).view(-1, 1), torch.as_tensor(local).to(efeat.device).view(1, -1)",
+        ),
+        (
+            BACKBONES_MEMBER,
+            "        edges = torch.as_tensor(edges_np)\n",
+            "        edges = torch.as_tensor(edges_np).to(x.device)\n",
+        ),
+    ),
+}
+
+
 class GpuBuildRefused(ValueError):
     """The CPU build cannot be turned into a GPU build by this transform."""
 
@@ -104,6 +171,13 @@ def patched_source(raw: bytes, catalog_id: str | None = None) -> bytes:
                 f"{COMMON_MEMBER}: determinism call found {common.count(DETERMINISM)} times, expected once"
             )
         files[COMMON_MEMBER] = common.replace(DETERMINISM, WARN_ONLY).encode("utf-8")
+    for member, before, after in DEVICE_FIXES.get(catalog_id, ()):
+        body = files[member].decode("utf-8")
+        if body.count(before) != 1:
+            raise GpuBuildRefused(
+                f"{member}: device fix anchor found {body.count(before)} times, expected once: {before[:60]!r}"
+            )
+        files[member] = body.replace(before, after).encode("utf-8")
     packed = io.BytesIO()
     with tarfile.open(fileobj=packed, mode="w:") as out:
         for rest in sorted(files):
