@@ -32,9 +32,10 @@ MOTOR = "electric-motor-magnetics"
 #: Motor's development producer digest after composite 40's accepted move
 #: (the sealed bank loader and copy modules, Validator 2026-10-22: was
 #: sha256:5fe2c492...c75a2b9c) and graph route v2's one producer move (Motor
-#: 1.4 joins `VERSIONS` under 1.3's evaluation version).
+#: 1.4 joins `VERSIONS` under 1.3's evaluation version), then scoring v2's
+#: modules beside it (rc3, graph route v2 on scoring v2).
 DEV_PRODUCER_DIGEST = (
-    "sha256:8bc3749843a5154ba35fd4bbe26436c21e4547a746985cc06c75f03836b13f90"
+    "sha256:2c7023be118193685c3fb4f71fa656e51865f7e15be3fc14b13a8da19919e5e9"
 )
 DESIGNS, CONDITIONS = 5, 6
 

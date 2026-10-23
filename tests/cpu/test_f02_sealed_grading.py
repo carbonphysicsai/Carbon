@@ -142,8 +142,10 @@ def test_the_v7_catalog_version_serves_the_same_sealed_batches():
     assert adapter.sealed_adapter("2.3").EVALUATION_VERSION == (
         "f02-dual-sealed-batch-8-v1"
     )
-    # 2.4 is graph route v2 (2.3's sealed exam); 2.5 is unregistered.
-    assert adapter.sealed_adapter("2.4").EVALUATION_VERSION == (
-        "f02-dual-sealed-batch-8-v1"
-    )
+    # 2.4 is graph route v2: graded by the sealed grid grader (v2) only, never
+    # this flat v1 path; 2.5 is unregistered.
+    from carbon.scoring import f02_sealed_dual_pack
+
+    assert adapter.sealed_adapter("2.4") is None
+    assert f02_sealed_dual_pack.VERSIONS["2.4"][0] == "f02-dual-sealed-grid-8x1-v2"
     assert adapter.sealed_adapter("2.5") is None

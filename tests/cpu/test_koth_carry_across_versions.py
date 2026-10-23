@@ -32,7 +32,7 @@ from carbon.challenge_validator.bank_promotion import (
 from carbon.rewards.winner_eligibility import WinnerLedger, lean_promotion
 
 F08 = "f08-ribbed-bracket"
-SEALED = "f08-dual-sealed-batch-8-v1"
+SEALED = "f08-dual-sealed-grid-8x1-v2"
 NOISE = 0.01
 OLD_PIN = "sha256:" + "a" * 64
 NEW_PIN = "sha256:" + "b" * 64

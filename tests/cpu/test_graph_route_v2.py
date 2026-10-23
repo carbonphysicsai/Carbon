@@ -262,6 +262,10 @@ def test_every_served_version_resolves_through_the_registry():
                 )
         assert graph_adapters.serves_graph(*key) == (entry.graph_adapter is not None)
     # Development and sealed tables name no version the registry does not.
+    # Battery 2.2 stays in its pinned scorer and is not served
+    # (OWNER-BATTERY-OUT-OF-LAUNCH-01).
+    development.pop((version_registry.BATTERY, "2.2"), None)
+    sealed.pop((version_registry.BATTERY, "2.2"), None)
     assert set(development) <= set(version_registry.VERSIONS)
     assert set(sealed) <= set(version_registry.VERSIONS)
 
@@ -859,7 +863,7 @@ def test_the_scaffold_material_offers_a_graph_recipe_on_each_new_version():
 
 LADDER_GATES = ("native_valid", "complete_fixed_coverage")
 EXAM = "sha256:" + "e" * 64
-SEALED = "f08-dual-sealed-batch-8-v1"
+SEALED = "f08-dual-sealed-grid-8x1-v2"
 
 
 def _ladder(tmp_path):
@@ -905,8 +909,12 @@ def test_the_ladder_keys_on_the_evaluation_version(tmp_path):
         F08, "1.4"
     )
     assert sealed_versions.ladder_key(F08, "1.5") == SEALED
+    # Cooling 1.4 keeps 1.3's sealed exam, so its Ladder key too (rc3).
+    assert sealed_versions.ladder_key(COOLING, "1.4") == sealed_versions.ladder_key(
+        COOLING, "1.3"
+    )
     # No sealed exam registered: the construction version, marked.
-    assert sealed_versions.ladder_key(COOLING, "1.4") == "construction:1.4"
+    assert sealed_versions.ladder_key(COOLING, "1.0") == "construction:1.0"
     store = _ladder(tmp_path)
     key4 = store._key("hk", ChallengeKey(F08, "1.4"), EXAM)[0]
     assert key4 == store._key("hk", ChallengeKey(F08, "1.5"), EXAM)[0]

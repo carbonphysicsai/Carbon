@@ -20,6 +20,7 @@ docs/development/evidence/f02-cold-pack-20261020/train40v2.summary.json -text wh
 docs/development/evidence/** -text
 # Pinned source files outside those patterns (found by that test).
 carbon/development_session/physical_graph_trainer.py -text
+carbon/development_session/physical_graph_trainer_v2.py -text
 Business/research/battery-advantage-families/analyze.py -text
 Business/research/value-metric-audit/res07-analyze.py.txt -text
 Business/research/value-metric-v2-rev2-curves/analyze.py -text
