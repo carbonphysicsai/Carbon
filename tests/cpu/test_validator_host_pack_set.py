@@ -82,7 +82,7 @@ def _issued(producer, document, records, hotkey):
         window=cdt.WINDOW,
     )
     _ = cpt
-    return package, cdt._sha(manifest)
+    return package, cdt._sha(manifest), spi.manifest_content(manifest)
 
 
 class Routes:
@@ -136,12 +136,18 @@ def producer(tmp_path_factory):
 def world(producer):
     drawn = [_batch(3), _batch(4)]
     issued = [_issued(producer, d, r, HOTKEY) for d, r in drawn]
-    digests = [digest for _package, digest in issued]
+    digests = [digest for _package, digest, _content in issued]
     assert digests[0] != digests[1]
-    commitment = spi.set_commitment_for(MOTOR, VERSION, digests, cdt.WINDOW)
+    commitment = spi.set_commitment_for(
+        MOTOR,
+        VERSION,
+        digests,
+        cdt.WINDOW,
+        contents={d: c for d, (_p, _d, c) in zip(digests, issued, strict=True)},
+    )
     set_package = ak.package(producer, commitment, spi.set_payload_for(commitment))
     return {
-        "packages": [p for p, _ in issued],
+        "packages": [p for p, _d, _c in issued],
         "digests": digests,
         "set_key": commitment["set_key"],
         "set_package": set_package,

@@ -334,7 +334,9 @@ def test_with_a_promotion_the_set_evaluation_is_filed_and_meets_the_incumbent(
         _ladder_spy(monkeypatch)
         promotion = _Promotion()
         key = common.pack_set_key(
-            common.pack_set_document(fixture.adapter.challenge_id, "1.0", BATCHES)
+            common.pack_set_document(
+                fixture.adapter.challenge_id, "1.0", _contents(BATCHES)
+            )
         )
         result = grading.grade_set_entry(
             adapters,
@@ -377,7 +379,9 @@ def test_a_pool_refusal_never_unbinds_the_set_result(tmp_path, monkeypatch):
                 raise psr.SetResultRefused("set_batch_evaluation_missing")
 
         key = common.pack_set_key(
-            common.pack_set_document(fixture.adapter.challenge_id, "1.0", BATCHES)
+            common.pack_set_document(
+                fixture.adapter.challenge_id, "1.0", _contents(BATCHES)
+            )
         )
         result = grading.grade_set_entry(
             adapters,

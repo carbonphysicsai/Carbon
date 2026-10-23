@@ -154,7 +154,7 @@ def test_the_pack_set_is_signed_published_once_and_imports_on_a_validator(job):
     # Two real canonical batches: the job's pack, and a second whose exam
     # content (its case bank role) differs.
     other = json.loads(job["manifest"])
-    other["private"]["case_bank"]["sha256"] = "ab" * 32
+    other["private"]["case_bank"]["sha256"] = "sha256:" + "ab" * 32
     other_bytes = json.dumps(other, sort_keys=True).encode()
     first_dir = job["tmp"] / "pack-one"
     second_dir = job["tmp"] / "pack-two"
