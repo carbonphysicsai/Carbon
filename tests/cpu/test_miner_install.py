@@ -464,7 +464,10 @@ case "$2" in
     fi
     case "$3" in
       list) [ -z "${CARBON_TEST_OLD_IMAGES:-}" ] || echo "  ${CARBON_TEST_OLD_IMAGES}  (1.2GB)" ;;
-      remove) echo "  removed ${CARBON_TEST_OLD_IMAGES}" ;;
+      remove)
+        echo "  removed ${CARBON_TEST_OLD_IMAGES}"
+        # The space the removal frees, for a df that reads it (gate1).
+        [ -z "${CARBON_TEST_FREED:-}" ] || : > "${CARBON_TEST_FREED}" ;;
     esac ;;
   scripts.dev.worker_image_release)
     # pull --record RECORD --out MANIFEST: pulls nothing; a named kind fails.
@@ -991,6 +994,48 @@ def test_short_space_offers_carbons_old_images_and_removes_them_only_on_yes(sand
     roomy = sandbox.run("--no-start", CARBON_TEST_OLD_IMAGES=old)
     assert "earlier installs" not in roomy.stdout
     assert not any("superseded_images" in line for line in sandbox.logged())
+
+
+def test_old_images_are_removed_before_the_free_space_check_they_would_fail(
+    sandbox, tmp_path
+):
+    """Gate round 1 step 1: a disk Carbon's old images filled failed the
+    checkout's own free-space check before the cleanup was offered, so the
+    install passed only on retry. Now the cleanup comes first (here with
+    --remove-old-images; a terminal would answer y), the space is read
+    again, and the install goes on - in one run."""
+    old = "carbon-c03-worker:0123456789abcdef"
+    freed = tmp_path / "freed"
+    sandbox._executable(sandbox.clone / ".venv" / "bin" / "python", FAKE_PYTHON)
+    df = sandbox.tools / "df"
+    # 3 GiB free (short of the checkout's 5) until the removal frees space.
+    df.write_text(
+        "#!/bin/sh\necho 'Filesystem 1024-blocks Used Available Capacity Mounted on'\n"
+        f"if [ -f '{freed}' ]; then free={1024 * 1048576}; else free={3 * 1048576}; fi\n"
+        'echo "fixture $((free * 2)) $free $free 50% /"\n'
+    )
+    df.chmod(0o755)
+    refused = sandbox.run("--no-start", CARBON_TEST_OLD_IMAGES=old)
+    # Without a yes nothing is removed, and the check still refuses - but
+    # the cleanup was offered first.
+    assert refused.returncode == 2
+    assert old in refused.stdout and "Kept them" in refused.stdout
+    assert "need 5 GiB free" in refused.stderr
+    assert not freed.exists()
+    sandbox.log.unlink(missing_ok=True)
+    done = sandbox.run(
+        "--no-start",
+        "--remove-old-images",
+        CARBON_TEST_OLD_IMAGES=old,
+        CARBON_TEST_FREED=str(freed),
+    )
+    assert done.returncode == 0, done.stderr
+    assert "removed " + old in done.stdout
+    assert done.stdout.index("removed " + old) < done.stdout.index(
+        "Linux x86-64, git, curl, Docker and free disk: ready."
+    )
+    removals = [line for line in sandbox.logged() if "superseded_images remove" in line]
+    assert len(removals) == 1  # offered once, never again at a later check
 
 
 def test_an_install_starts_the_catalog_in_the_background_when_entries_are_missing(

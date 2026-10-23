@@ -354,7 +354,6 @@ fi
 if [[ "${PYTORCH}" == 1 && "${gpu_space}" -gt 0 ]]; then
   RELEASE_KINDS+=(torch-gpu)
 fi
-need_space "${repo_root}" "${CHECKOUT_GIB}" "Carbon's locked environment and its cache"
 docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
 #: offer_old_images: Carbon's own images from earlier installs, which this
 #: install's records no longer name, listed and removed only on the miner's
@@ -363,8 +362,12 @@ docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
 #: repositories are listed (scripts/dev/miner_launchpad/superseded_images.py);
 #: Docker keeps any image a container still uses. A first install, with no
 #: environment yet, has none.
+old_images_offered=0
 offer_old_images() {
   local py="${repo_root}/.venv/bin/python" listing answer=""
+  # Asked once per install: a second short check re-checks, never re-asks.
+  [[ "${old_images_offered}" == 0 ]] || return 0
+  old_images_offered=1
   [[ -x "${py}" ]] || return 0
   # -B and PYTHONDONTWRITEBYTECODE: this runs before the development
   # candidate's ignored-source check, which refuses any __pycache__ it
@@ -394,6 +397,15 @@ short_of() {
   free="$(free_gib "$1" || true)"
   [[ -n "${free}" ]] && (( free < $2 ))
 }
+# Carbon's own old images go first, when space is short (gate round 1,
+# R11-2 order): the checkout's own free-space check below ran before the
+# cleanup was offered, so a disk those images filled was refused by the very
+# check their removal would have passed. Offered (or, with
+# --remove-old-images, done) now, then every check reads the space again.
+if short_of "${repo_root}" "${CHECKOUT_GIB}"   || { [[ -n "${docker_root}" && -d "${docker_root}" ]]     && short_of "${docker_root}" "$(( IMAGES_GIB + gpu_space * GPU_GIB ))"; }; then
+  offer_old_images
+fi
+need_space "${repo_root}" "${CHECKOUT_GIB}" "Carbon's locked environment and its cache"
 check_image_space() {
   local images_gib="$1" checkout_mount docker_mount
   if [[ -n "${docker_root}" && -d "${docker_root}" ]]; then
