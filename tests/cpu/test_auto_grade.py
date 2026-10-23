@@ -258,3 +258,17 @@ def test_a_graded_row_is_never_given_back(tmp_path):
 
 def test_no_failures_means_an_empty_summary(tmp_path):
     assert auto_grade.failure_summary(tmp_path) == {}
+
+
+def test_auto_grade_with_a_pack_set_is_refused_with_a_typed_code(tmp_path, monkeypatch):
+    from test_direct_receiver import _config
+
+    cfg = {
+        **_config(tmp_path),
+        "auto_grade": {},
+        "evaluation_pack_set": {"store": "/x", "set_key": "sha256:" + "a" * 64},
+    }
+    monkeypatch.setattr(direct_receiver, "private_json", lambda _: cfg)
+    with pytest.raises(direct_receiver.ReceiverUnavailable) as refused:
+        direct_receiver.load_config(tmp_path / "config.json")
+    assert refused.value.code == "auto_grade_pack_set_unsupported"

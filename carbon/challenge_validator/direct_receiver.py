@@ -144,6 +144,10 @@ def load_config(path: Path) -> dict:
         )
     ):
         raise ValueError("invalid auto_grade selection")
+    if "auto_grade" in value and "evaluation_pack_set" in value:
+        # Set auto-grade (one grade over every batch) is not built: a multi-batch
+        # receiver must be graded by --grade-set-entry until it is.
+        raise ReceiverUnavailable("auto_grade_pack_set_unsupported")
     if (
         "construction_runtimes" in value
         and value["construction_runtimes"] != CONSTRUCTION_RUNTIMES
