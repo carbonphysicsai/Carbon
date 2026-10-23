@@ -99,6 +99,30 @@ def test_direct_practice_uses_exact_owner_graph_and_retains_state(
     predictions.update(
         {case: decision.references[case]["outputs"] for case in decision.case_ids}
     )
+    # C13: the model's predictions on the public development bank (the reference
+    # rows themselves; the unmeasured probe rows get a fixed valid row).
+    import numpy as np
+
+    from carbon.battery import domain
+    from carbon.challenge_kit import physical_pack
+
+    bank = physical_pack.development_bank(
+        "battery-fastcharge-ageing-development-v1", "2.0"
+    )
+    references = np.asarray(bank["references"], dtype=float)
+    fixed = references[~np.isnan(references).any(axis=1)][0]
+    g = domain.GRID_POINTS
+    for case_id, row in zip(bank["case_ids"], references, strict=True):
+        row = fixed if np.isnan(row).any() else row
+        predictions.setdefault(
+            case_id,
+            {
+                "voltage_v": row[:g].tolist(),
+                "temperature_c": row[g : 2 * g].tolist(),
+                "plating_margin_v": float(row[2 * g]),
+                "capacity_ah": row[2 * g + 1 :].tolist(),
+            },
+        )
     operation = ledger.root / "operation-direct-test" / "snapshot"
     operation.mkdir(parents=True)
     state = b"numeric-state-fixture"
@@ -145,10 +169,25 @@ def test_direct_practice_uses_exact_owner_graph_and_retains_state(
     )
     assert len(seen["test_inputs"]["cases"]) >= len(practice.practice.case_ids)
     assert result["schema"] == "carbon.battery.direct-practice-feedback.v2"
-    # The dual measurement reaches the attack engine through the quiz and panel
-    # stack, so no miner surface may import it: practice says it is unavailable.
-    assert result["practice_dual"]["available"] is False
-    assert result["practice_dual"]["reason"] == "practice_dual_not_public_for_battery"
+    dual = result["practice_dual"]
+    assert dual["schema"] == "carbon.practice.dual-feedback.v1"
+    assert dual["challenge"]["version"] == "2.0" and dual["available"] is True
+    assert dual["n_cases"] == len(bank["case_ids"])
+    assert dual["gates"]["paired_repeat"] == "NOT_TESTED_ON_PRACTICE"
+    assert dual["eligible"] is True and 0 < dual["total"] <= 1
+    # The bank's decision and probe cases were asked of the model, once.
+    asked = {c["case_id"] for c in seen["test_inputs"]["cases"]}
+    assert set(bank["case_ids"]) <= asked
+    # And nothing else: practice evaluates only the public practice, decision-grid
+    # and development-bank case ids, never a sealed or private one.
+    from carbon.battery import practice_safety
+
+    public = (
+        set(bank["case_ids"])
+        | set(practice.practice.case_ids)
+        | set(practice_safety.decision_set(ROOT).case_ids)
+    )
+    assert asked <= public
     assert result["provenance"] == "BATTERY_PUBLIC_PRACTICE"
     assert result["worker"]["inference_operation"] == "operation-inference-test"
     assert result["recipe"] == strategy and result["official_eligible"] is False
