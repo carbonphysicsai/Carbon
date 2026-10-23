@@ -384,3 +384,29 @@ def test_2_2_measures_as_2_1_on_the_same_bank():
             )
         )
     assert measured[0] == measured[1]
+
+
+def test_battery_s_pack_physics_is_its_served_material_s_envelope(tmp_path):
+    # The development pack writer reads the physics role from physical_pack; for
+    # Battery 2.x it is the served material's own {version, definition}
+    # envelope, exactly the role battery_pack serves (so the sealed writer,
+    # which fell back to that role, sees the same value). 1.0 binds none.
+    import json as _json
+
+    assert physical_pack.physics_contract(adapter.CHALLENGE, "1.0") is None
+    for version in ("2.0", "2.1", "2.2"):
+        physics = physical_pack.physics_contract(adapter.CHALLENGE, version)
+        assert set(physics) == {"version", "definition"}
+        public = physical_pack.public_roles(adapter.CHALLENGE, version)
+        assert physics == _json.loads(public["physics_contract"])
+    # Battery 2.2's calibration pack is written by Battery's own adapter.
+    pack = tmp_path / "pack"
+    pack.mkdir()
+    physical.versioned(adapter, "2.2").write_development_pack(
+        pack, inference_image_id="sha256:" + "0" * 64, calibration=True
+    )
+    manifest = _json.loads((pack / "evaluation-pack.json").read_bytes())
+    assert manifest["challenge"] == {"id": adapter.CHALLENGE, "version": "2.2"}
+    assert manifest["pack_version"].startswith(
+        "battery-normal-construction-development-5"
+    )

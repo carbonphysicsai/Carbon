@@ -371,6 +371,16 @@ def physics_contract(challenge_id: str, version: str) -> dict | None:
         from carbon.scoring import f08_dual_pack
 
         return f08_dual_pack.physics_contract()
+    if challenge_id == battery_pack.CHALLENGE_ID:
+        battery_pack._check(version)
+        if version == "1.0":
+            return None
+        # Battery 2.x: its served material's own {version, definition} envelope
+        # (`construction_bundle_material.versioned_material`), the role its pack
+        # carries (`battery_pack.public_roles`).
+        from carbon.battery.construction_bundle_material import versioned_material
+
+        return versioned_material(version)["physics_contract"]
     if challenge_id == cooling.CHALLENGE.challenge_id:
         _files(challenge_id, version)
         # Cooling's physics contract is the scoring producer's exact native
