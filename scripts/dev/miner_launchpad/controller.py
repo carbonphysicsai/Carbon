@@ -76,6 +76,8 @@ STATIC = {
     # The research surface (OWNER-MINER-RESEARCH-SURFACE-01).
     "/research.css": ("research.css", "text/css; charset=utf-8"),
     "/research_charts.js": ("research_charts.js", "text/javascript; charset=utf-8"),
+    # A small local QR encoder for the money-key address in Setup's funding step.
+    "/qr.js": ("qr.js", "text/javascript; charset=utf-8"),
     "/research_view.js": ("research_view.js", "text/javascript; charset=utf-8"),
     # The working toolbox (OWNER-MINER-RESEARCH-SURFACE-03).
     "/research_tools.js": ("research_tools.js", "text/javascript; charset=utf-8"),

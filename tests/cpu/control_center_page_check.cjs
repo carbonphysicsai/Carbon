@@ -423,6 +423,55 @@ scenario("Review shows a recipe receiver the miner set as the grader for the Cha
   clean(page);
 });
 
+// The Fund-your-wallet step: the money-key address with copy and a local QR, a balance check, how to buy, Ready to join.
+const MONEY_KEY = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
+async function fundingPage(answer) {
+  const state = launchable(world({setup: {...copy(fx.setups.none), registered_hotkey: null}}));
+  state.script.push({match: r => r.path === "/api/v1/onboarding/funding", answer});
+  const page = await open(state);
+  page.go("#setup/register");
+  await page.advance(0);
+  return {state, page};
+}
+scenario("the funding step rejects a non-address, then shows the address with copy and a local QR (no key is asked for)", async () => {
+  const {page} = await fundingPage({body: {}});
+  const input = one(page, "#setup-fund-address");
+  await page.type(input, "not an address");
+  assert.match(page.text("setup-fund-shown"), /does not look like a wallet address/);
+  assert.equal(one(page, "#setup-fund-check").disabled, true);
+  await page.type(input, MONEY_KEY);
+  assert.ok(page.text("setup-fund-shown").includes(MONEY_KEY), "the address is shown to copy");
+  assert.ok(one(page, "#setup-fund-copy"), "a copy button");
+  const svg = one(page, "#setup-fund-qr svg");
+  assert.ok(svg.querySelector("path").getAttribute("d").length > 100, "a drawn QR");
+  assert.equal(svg.getAttribute("role"), "img");
+  assert.equal(one(page, "#setup-fund-check").disabled, false);
+  clean(page);
+});
+scenario("the balance check says Ready to join when the balance covers the joining cost, and how much more when it does not", async () => {
+  const enough = await fundingPage({body: {balance_tao: "1.5", joining_cost_tao: "0.5", enough: true, read_at_block: 123}});
+  await enough.page.type(one(enough.page, "#setup-fund-address"), MONEY_KEY);
+  await enough.page.press(one(enough.page, "#setup-fund-check"));
+  assert.deepEqual(lastPost(enough.state, "/api/v1/onboarding/funding").body, {address: MONEY_KEY});
+  assert.match(enough.page.text("setup-fund-result"), /holds 1\.5 TAO. Joining costs 0\.5 TAO/);
+  assert.ok(one(enough.page, "#setup-fund-ready").textContent.includes("Ready to join"));
+  clean(enough.page);
+  const short = await fundingPage({body: {balance_tao: "0.2", joining_cost_tao: "0.5", enough: false}});
+  await short.page.type(one(short.page, "#setup-fund-address"), MONEY_KEY);
+  await short.page.press(one(short.page, "#setup-fund-check"));
+  assert.equal(all(short.page, "#setup-fund-ready").length, 0);
+  assert.match(short.page.text("setup-fund-result"), /Not enough yet: you need about 0\.3 more TAO/);
+  clean(short.page);
+});
+scenario("the how-to-buy guide names two exchanges as plain links with no affiliate or tracking", async () => {
+  const {page} = await fundingPage({body: {}});
+  const links = [...all(page, "#setup-fund .fund-links a")];
+  assert.deepEqual(links.map(a => a.href), ["https://www.coinbase.com/", "https://www.kraken.com/"]);
+  for (const a of links) assert.match(a.rel, /noopener/);
+  assert.match(page.text("setup-fund"), /Carbon has no link or share in any exchange/);
+  clean(page);
+});
+
 scenario("a GPU host that ran the CPU build says so on the run row and the best-run card (R9-3)", async () => {
   const words = "Ran on CPU: this catalog entry has no GPU build yet. The score is the CPU build's.";
   const state = launchable(world());
@@ -3046,10 +3095,11 @@ scenario("Setup: a miner with no wallet is pointed at the identity helper, in pl
   assert.match(text, /No wallet yet\?/);
   assert.equal(one(page, "#setup-identity-copy").closest(".copy-row").querySelector("code").textContent, "carbon-miner-identity");
   assert.match(text, /Both are public/);
-  // Funding comes before joining, in plain words, with no balance or price claimed.
+  // Funding comes before joining, in plain words, with no balance or price claimed until the miner checks.
   const fund = one(page, "#setup-fund").textContent;
   assert.match(fund, /2\. Put some TAO in your wallet/);
-  assert.match(fund, /Buy TAO from an exchange/);
+  assert.match(fund, /How do I buy TAO\?/);
+  assert.match(fund, /Paste your money-key address/);
   assert.doesNotMatch(fund, /\d{2,}|\$/);
   const folds = [...card.querySelectorAll("details > summary")].map(node => node.textContent);
   assert.deepEqual(folds, ["What are the two keys?", "Is my key safe?", "Lost my phrase?", "What does joining cost?"]);
@@ -3116,7 +3166,7 @@ scenario("miners are offered only the latest version of each Challenge, and no r
   const text = page.text("challenge-catalog");
   assert.doesNotMatch(text, /Reserved|Deferred|Retired/);
   assert.doesNotMatch(text, /electric-motor-magnetics · version 1\.(0|2)/);
-  assert.match(text, /electric-motor-magnetics · version 1\.3/);
+  assert.ok(text.includes("electric-motor-magnetics · version " + latest("electric-motor-magnetics")), "Motor is listed at its latest version");
   clean(page);
 });
 

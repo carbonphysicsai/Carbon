@@ -1262,11 +1262,78 @@
     ]);
     cost.append(link({label: "Open Wallet & Identity", href: "#wallet"}));
     parent.append(box);
-    // 2. Fund it. Carbon does not read a balance or a price here; the miner's own wallet does.
+    // 2. Fund it: the money-key address (copy and QR), a balance check, how to buy, and "Ready to join".
+    parent.append(fundYourWallet());
+  }
+  // The money-key address the miner pasted, kept in this tab only (never stored, never sent anywhere but the check).
+  let fundAddress = "";
+  const SS58 = /^5[1-9A-HJ-NP-Za-km-z]{46,47}$/;
+  const tao = value => { const n = Number(value); return Number.isFinite(n) ? String(Number(n.toFixed(4))) : String(value); };
+  // A QR code of a public address, drawn here from CarbonQr (nothing fetched, nothing third-party).
+  function qrImage(text) {
+    const {size, modules} = window.CarbonQr.encode(text);
+    const unit = 4, quiet = 4, side = (size + 2 * quiet) * unit;
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + side + " " + side); svg.setAttribute("width", "176"); svg.setAttribute("height", "176");
+    svg.setAttribute("role", "img"); svg.setAttribute("aria-label", "QR code of your money-key address"); svg.setAttribute("shape-rendering", "crispEdges");
+    const back = document.createElementNS(NS, "rect"); back.setAttribute("width", "100%"); back.setAttribute("height", "100%"); back.setAttribute("fill", "#fff");
+    const path = document.createElementNS(NS, "path"); let d = "";
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (modules[r][c]) d += "M" + (c + quiet) * unit + " " + (r + quiet) * unit + "h" + unit + "v" + unit + "h-" + unit + "z";
+    path.setAttribute("d", d); path.setAttribute("fill", "#000");
+    svg.append(back, path);
+    return svg;
+  }
+  function fundYourWallet() {
     const fund = el("div", undefined, "identity-fund"); fund.id = "setup-fund";
     fund.append(el("p", "2. Put some TAO in your wallet", "eyebrow"));
-    fund.append(el("p", "Joining is paid in TAO from your money key. Buy TAO from an exchange and send it to your money-key address (the helper shows it). Wait until your wallet shows it before step 3.", "step-lede"));
-    parent.append(fund);
+    fund.append(el("p", "Joining is paid in TAO from your money key. Paste your money-key address (the helper shows it; it is public), send TAO to it, then check your balance here. Carbon only reads the balance; it never moves it.", "step-lede"));
+    const label = el("label", "Your money-key address"); label.htmlFor = "setup-fund-address";
+    const input = el("input"); input.id = "setup-fund-address"; input.type = "text"; input.autocomplete = "off"; input.spellcheck = false; input.placeholder = "5...";
+    input.value = fundAddress;
+    const shown = el("div", undefined, "fund-shown"); shown.id = "setup-fund-shown";
+    const result = el("div", undefined, "fund-result"); result.id = "setup-fund-result";
+    const check = el("button", "Check my balance", "go"); check.type = "button"; check.id = "setup-fund-check";
+    const draw = () => {
+      shown.replaceChildren();
+      const address = input.value.trim();
+      const ok = SS58.test(address);
+      check.disabled = !ok;
+      if (!address) return;
+      if (!ok) { shown.append(el("p", "That does not look like a wallet address. It starts with 5 and is 48 characters. Never paste a key, password or phrase here.", "reason")); return; }
+      copyRow(shown, "Send TAO to this address", address, "setup-fund-copy");
+      if (window.CarbonQr) { const qr = el("div", undefined, "fund-qr"); qr.id = "setup-fund-qr"; try { qr.append(qrImage(address)); shown.append(qr); } catch (_) { /* the copy line stays */ } }
+    };
+    input.addEventListener("input", () => { fundAddress = input.value.trim(); result.replaceChildren(); draw(); });
+    check.addEventListener("click", async () => {
+      const address = input.value.trim();
+      if (!SS58.test(address) || busy || !connected) return;
+      check.classList.add("checking"); check.setAttribute("aria-busy", "true");
+      try {
+        const value = await api("/api/v1/onboarding/funding", {address});
+        const balance = tao(value.balance_tao), cost = tao(value.joining_cost_tao);
+        const lines = [el("p", "Your money key holds " + balance + " TAO. Joining costs " + cost + " TAO right now" + (value.read_at_block ? " (read at block " + value.read_at_block + ")" : "") + ". The price changes, so read it again before you sign.", "status-line")];
+        if (value.enough === true) { const ready = el("p", undefined, "step-done"); ready.id = "setup-fund-ready"; ready.append(pill("Ready to join", "pill-done"), el("span", " You have enough TAO. Continue to step 3.")); lines.push(ready); }
+        else lines.push(el("p", "Not enough yet: you need about " + tao(Number(value.joining_cost_tao) - Number(value.balance_tao)) + " more TAO. Dollar prices are not shown yet.", "reason"));
+        result.replaceChildren(...lines);
+      } catch (error) {
+        result.replaceChildren(el("p", "Could not read your balance: " + words(error.message) + ". Your own wallet shows it too.", "reason"));
+      } finally { check.classList.remove("checking"); check.removeAttribute("aria-busy"); }
+    });
+    const action = el("div", undefined, "step-action"); action.append(check);
+    fund.append(label, input, shown, action, result);
+    draw();
+    const how = details(fund, "How do I buy TAO?", [
+      "TAO is the coin the network is paid in. You buy it on an exchange that lists it, then send it from the exchange to the money-key address above.",
+      "1. Make an account on an exchange that lists TAO (Bittensor) where you live, and finish its identity check. 2. Buy TAO. 3. Use the exchange's Withdraw or Send for TAO, paste your money-key address, and check the first and last characters twice. 4. Wait until it arrives, then press Check my balance.",
+      "Start with a small test amount. Carbon has no link or share in any exchange, and these two are only examples.",
+    ]);
+    const links = el("p", undefined, "fund-links");
+    for (const [name, href] of [["Coinbase", "https://www.coinbase.com/"], ["Kraken", "https://www.kraken.com/"]]) {
+      const anchor = el("a", name, "link"); anchor.href = href; anchor.target = "_blank"; anchor.rel = "noopener noreferrer"; links.append(anchor, " ");
+    }
+    how.append(links);
+    return fund;
   }
   function stepPanel(parent, id, doneText) {
     const panel = el("section", undefined, "setup-step"); panel.dataset.stepPanel = id;
