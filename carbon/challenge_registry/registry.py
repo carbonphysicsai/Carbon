@@ -559,36 +559,7 @@ def _entries():
             _f02_direct,
             None,
         ),
-        # Battery 2.2, Battery's launch version (OWNER-BATTERY-LAUNCH-VERSION-01;
-        # the Validator, 2026-10-22): Battery 2.1 plus the
-        # backbone catalog, by its own adapter (`battery.catalog_version`);
-        # catalog recipes only (`carbon.direct_campaign`). Its exam, TRAIN,
-        # gates and pack set are 2.1's. Its catalog is empty until each entry
-        # has its pair-identity receipt, and until then the campaign refuses
-        # to start.
-        Entry(
-            BATTERY_CHALLENGE,
-            "2.2",
-            "Battery fast charge and ageing (DEVELOPMENT, backbone catalog, "
-            "allowlist v7)",
-            IMPLEMENTED,
-            # Battery's portfolio, as Motor's and Cooling's catalog versions.
-            "launch",
-            "carbonphysicsai/Carbon#341",
-            (
-                ExecutionProfile(
-                    CPU_RESEARCH,
-                    "PyTorch CPU practice of Carbon's tested catalog backbones in "
-                    "the isolated C-03 CPU worker; exact public TRAIN and bundle "
-                    "bytes staged",
-                    "torch-cpu/isolated-carrier",
-                    torch_carrier,
-                ),
-                catalog_gpu,
-            ),
-            _battery_catalog_direct,
-            None,
-        ),
+        # Battery 2.2 is not served (OWNER-BATTERY-OUT-OF-LAUNCH-01).
         Entry(
             "photonic-coupler",
             None,

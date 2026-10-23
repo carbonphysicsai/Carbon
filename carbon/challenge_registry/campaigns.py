@@ -535,12 +535,7 @@ def _direct_campaigns():
     return {
         ("f08-ribbed-bracket", "1.4"): functools.partial(_f08_direct, "1.4"),
         ("f02", "2.3"): functools.partial(_f02_direct, "2.3"),
-        # Battery has an id-level campaign (1.0); its catalog version 2.2 is
-        # registered by version and reuses Battery's practice provenance.
-        (
-            "battery-fastcharge-ageing-development-v1",
-            "2.2",
-        ): functools.partial(_battery_catalog_direct, "2.2"),
+        # Battery 2.2 is not served (OWNER-BATTERY-OUT-OF-LAUNCH-01).
     }
 
 

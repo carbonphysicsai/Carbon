@@ -60,10 +60,9 @@ CATALOG = frozenset(
         # Carbon's graph training adapter) before they freeze.
         (F08, "1.4"),
         (F02, "2.3"),
-        # The Validator, 2026-10-22: Battery 2.2 is 2.1 plus the catalog
-        # binding, by its own adapter (`battery.catalog_version`); its catalog
-        # is empty until each entry has its pair-identity receipt.
-        (BATTERY, "2.2"),
+        # Battery 2.2 is not served: Battery is out of launch
+        # (OWNER-BATTERY-OUT-OF-LAUNCH-01) and 2.2 was never completed; its
+        # adapter (`battery.catalog_version`) stays, unregistered.
     }
 )
 #: Each Challenge's catalog version, serving allowlist v7 (the Validator,
@@ -83,7 +82,6 @@ V7 = frozenset(
         # binding and the graph training adapter.
         (F08, "1.4"),
         (F02, "2.3"),
-        (BATTERY, "2.2"),
     }
 )
 #: Versions registered before step 2: served v5 and their step caps, unchanged.
