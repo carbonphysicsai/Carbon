@@ -1852,12 +1852,12 @@
     const intake = setupField(reviewMore, "intake_url", "Grading address (optional; https, or this machine)");
     // Pinned in the profile: nothing is signed for an intake that reports
     // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
-    const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver mining key address (public; required with an intake URL)");
+    const receiver = setupField(reviewMore, "receiver_hotkey", "The grader's mining key address (public, starts with 5…; never a key, password or seed phrase; required with a grading address)");
     intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
     const directMore = advanced(review, "Where your recipe is graded: your own grader");
     researchNote(directMore, "Every new campaign submits its frozen recipe here when its Challenge has no validator intake of its own: the receiver rebuilds it from scratch and grades it. Its operator gives you both values.", "hint");
     const directIntake = setupField(directMore, "direct_intake_url", "Receiver URL (https, or loopback)");
-    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Receiver mining key address (public)");
+    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "The grader's mining key address (public, starts with 5…; never a key, password or seed phrase)");
     // U12: what Review last wrote comes back filled in, and is said plainly,
     // so writing the profile again never clears it by accident.
     const savedDirect = (steps.evaluation?.challenges || []).map(item => item.direct_intake).find(item => item && item.intake_url);
