@@ -8,7 +8,10 @@ page shows whether the miner's coldkey holds enough to register. Conditions:
   never cached or stored; the reply names the block it was read at;
 - the cost is the wallet's to state at signing: the note says so, word for
   word, and `enough` is "at block N, before transaction fees". No fee
-  estimate and no USD;
+  estimate. TAO is the authoritative amount; "about $X" beside it comes from
+  a separate, address-free price fetch (`tao_price`,
+  OWNER-TAO-USD-PRICE-SOURCE-01), labelled approximate with its time, and is
+  absent when the price can't be fetched;
 - the address travels only in the request body to the configured chain
   reader: never in a URL, a log or to anyone else;
 - the miner's local Launchpad serves it, never Carbon's public intake;
@@ -70,7 +73,7 @@ def tao(rao):
     return f"{whole}.{part:09d}"
 
 
-def funding(context, address, *, fetch=None):
+def funding(context, address, *, fetch=None, price=None):
     """The reply for `address` on `context`'s subnet, or `FundingRefused`."""
     from carbon.chain.models import ChainContext
 
@@ -108,4 +111,23 @@ def funding(context, address, *, fetch=None):
         "read_at_block": block,
         "label": LABEL,
         "note": NOTE.format(block=block),
+        "usd": _usd(balance, cost, price),
+    }
+
+
+def _usd(balance, cost, price):
+    """The approximate USD amounts, or None (TAO only) when no price was
+    fetched for this request. The price fetch carries no miner data."""
+    from carbon.development_session import tao_price
+
+    quote = tao_price.fetch() if price is None else price()
+    if quote is None:
+        return None
+    return {
+        "balance": tao_price.about(balance, quote),
+        "joining_cost": tao_price.about(cost, quote),
+        "usd_per_tao": str(quote["usd_per_tao"]),
+        "fetched_at": quote["fetched_at"],
+        "source": tao_price.SOURCE,
+        "label": tao_price.LABEL,
     }

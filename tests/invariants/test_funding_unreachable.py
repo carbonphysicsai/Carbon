@@ -24,7 +24,11 @@ import pytest
 pytestmark = pytest.mark.invariant
 
 ROOT = Path(__file__).resolve().parents[2]
-FUNDING = ("carbon.chain.funding_read", "carbon.development_session.onboarding_funding")
+FUNDING = (
+    "carbon.chain.funding_read",
+    "carbon.development_session.onboarding_funding",
+    "carbon.development_session.tao_price",
+)
 #: The surfaces a balance or cost must never reach.
 SURFACES = (
     "carbon/scoring",
@@ -48,6 +52,7 @@ SURFACES = (
 NAMERS = {
     "carbon/chain/funding_read.py",
     "carbon/development_session/onboarding_funding.py",
+    "carbon/development_session/tao_price.py",
     "carbon/development_session/chain_onboarding.py",  # the ruling's record
     "scripts/dev/miner_launchpad/onboarding.py",
     "scripts/dev/miner_launchpad/controller.py",
@@ -93,7 +98,7 @@ def test_importing_every_score_weight_koth_ladder_and_receiver_module_loads_no_f
 
 
 def test_only_the_funding_modules_and_the_onboarding_door_name_them():
-    pattern = re.compile(r"funding_read|onboarding_funding")
+    pattern = re.compile(r"funding_read|onboarding_funding|tao_price")
     found = set()
     for top in ("carbon", "scripts"):
         for path in (ROOT / top).rglob("*.py"):

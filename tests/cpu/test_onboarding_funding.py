@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import http.client
 import importlib.util
+import io
 import json
 import threading
 from pathlib import Path
@@ -20,6 +21,10 @@ from carbon.development_session import onboarding_funding as funding
 
 COLDKEY = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
 TOKEN = "x" * 40
+
+
+def NO_PRICE():  # a stand-in for a failed price fetch
+    return None
 
 
 def _context():
@@ -47,7 +52,9 @@ def _fetch(free, burn, frozen=0, block=8286544, calls=None):
 
 
 def test_a_funded_coldkey_reads_enough_at_its_block_before_fees():
-    shown = funding.funding(_context(), COLDKEY, fetch=_fetch(1_988_319_933, 500_000))
+    shown = funding.funding(
+        _context(), COLDKEY, fetch=_fetch(1_988_319_933, 500_000), price=NO_PRICE
+    )
     assert shown == {
         "schema": "carbon.onboarding.funding.v1",
         "network": CARBON_NETWORK,
@@ -65,14 +72,81 @@ def test_a_funded_coldkey_reads_enough_at_its_block_before_fees():
             "Read at block 8286544. Your wallet shows the cost again when you "
             "sign; that figure is the one that counts."
         ),
+        # No price fetched for this request: TAO only, never a stale figure.
+        "usd": None,
     }
-    text = json.dumps(shown).lower()
-    assert "usd" not in text and "fee_estimate" not in text
+    assert "fee" not in json.dumps(shown).lower().replace("transaction fees", "")
+
+
+def test_usd_is_approximate_and_timed_beside_the_authoritative_tao():
+    from decimal import Decimal
+
+    def price():
+        return {
+            "usd_per_tao": Decimal("300.5"),
+            "fetched_at": "2026-10-23T19:00:00+00:00",
+        }
+
+    shown = funding.funding(
+        _context(), COLDKEY, fetch=_fetch(2_000_000_000, 500_000), price=price
+    )
+    assert shown["balance_tao"] == "2.000000000"
+    assert shown["usd"] == {
+        "balance": "about $601.00",
+        "joining_cost": "about $0.15",
+        "usd_per_tao": "300.5",
+        "fetched_at": "2026-10-23T19:00:00+00:00",
+        "source": "CoinGecko",
+        "label": "approximate",
+    }
+
+
+def test_a_price_fetch_failure_shows_tao_only_and_the_request_carries_no_address():
+    import urllib.error
+
+    from carbon.development_session import tao_price
+
+    asked = []
+
+    def down(url, timeout):
+        asked.append(url)
+        raise urllib.error.URLError("unreachable")
+
+    assert tao_price.fetch(opener=down) is None
+    assert asked == [tao_price.URL]
+    assert COLDKEY not in asked[0] and "5F" not in asked[0]
+    assert "vs_currencies=usd" in asked[0] and "ids=bittensor" in asked[0]
+
+    class _Reply(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    for body in (
+        b"{}",
+        b'{"bittensor": {"usd": -1}}',
+        b'{"bittensor": {"usd": true}}',
+        b"x" * 5000,
+    ):
+        assert tao_price.fetch(opener=lambda url, timeout, b=body: _Reply(b)) is None
+    quote = tao_price.fetch(
+        opener=lambda url, timeout: _Reply(b'{"bittensor": {"usd": 412.3}}'),
+        now=lambda: __import__("datetime").datetime(2026, 10, 23, 19, 5, 7, 123),
+    )
+    assert (
+        quote["fetched_at"] == "2026-10-23T19:05:07"
+        and str(quote["usd_per_tao"]) == "412.3"
+    )
 
 
 def test_frozen_balance_is_not_spendable_and_short_reads_not_enough():
     shown = funding.funding(
-        _context(), COLDKEY, fetch=_fetch(1_000_000, 900_000, frozen=200_000)
+        _context(),
+        COLDKEY,
+        fetch=_fetch(1_000_000, 900_000, frozen=200_000),
+        price=NO_PRICE,
     )
     assert shown["balance_rao"] == 800_000 and shown["enough"] is False
     assert shown["enough_words"].startswith("Not enough to join, at block")
@@ -81,7 +155,9 @@ def test_frozen_balance_is_not_spendable_and_short_reads_not_enough():
 def test_every_request_reads_the_chain_afresh():
     calls = []
     for _ in range(2):
-        funding.funding(_context(), COLDKEY, fetch=_fetch(5, 1, calls=calls))
+        funding.funding(
+            _context(), COLDKEY, fetch=_fetch(5, 1, calls=calls), price=NO_PRICE
+        )
     assert calls == [COLDKEY, COLDKEY]
 
 
@@ -95,7 +171,7 @@ def test_every_request_reads_the_chain_afresh():
 )
 def test_bad_input_is_refused_typed(context, address, code):
     with pytest.raises(funding.FundingRefused) as refused:
-        funding.funding(context, address, fetch=_fetch(1, 1))
+        funding.funding(context, address, fetch=_fetch(1, 1), price=NO_PRICE)
     assert refused.value.code == code
     assert refused.value.body() == {
         "error": code,
@@ -108,7 +184,7 @@ def test_a_chain_failure_is_infrastructure_and_retryable():
         raise OSError("429 Too Many Requests")
 
     with pytest.raises(funding.FundingRefused) as refused:
-        funding.funding(_context(), COLDKEY, fetch=broken)
+        funding.funding(_context(), COLDKEY, fetch=broken, price=NO_PRICE)
     assert (refused.value.code, refused.value.status) == (
         "chain_read_failed_infra",
         503,
@@ -123,8 +199,10 @@ MODULE = (
 @pytest.fixture
 def server(tmp_path, monkeypatch):
     from carbon.chain import funding_read
+    from carbon.development_session import tao_price
 
     monkeypatch.setattr(funding_read, "read_funding", _fetch(2_000_000_000, 500_000))
+    monkeypatch.setattr(tao_price, "fetch", NO_PRICE)
     spec = importlib.util.spec_from_file_location("carbon_launchpad_funding", MODULE)
     launchpad = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(launchpad)
