@@ -81,6 +81,8 @@ def test_no_king_reads_carbons_baseline():
         {"to_beat": None},  # a margin with no score to beat
         {"baseline_total": 0.5},  # a baseline beside a king
         {"exam_version_label": "x" * 65},
+        {"to_beat": 0.75},  # not the king's total plus the margin
+        {"king": None, "baseline_total": None},  # a score to beat with nothing to beat
     ],
 )
 def test_anything_outside_the_closed_shape_is_unreadable(changes):
@@ -218,3 +220,10 @@ def test_the_page_reads_the_card_from_the_controller():
     from scripts.dev.miner_launchpad import controller
 
     assert controller.KING_ROUTE == "/api/v1/page/king"
+
+
+def test_a_score_to_beat_within_one_grid_step_of_total_plus_margin_is_read():
+    # One Ladder grid step (max(eta, the margin)) of stepping is tolerated.
+    assert king.parse(answer(to_beat=0.66 + 0.04), COOLING)["to_beat"] == 0.70
+    with pytest.raises(king.KingUnreadable):
+        king.parse(answer(to_beat=0.66 + 0.05), COOLING)

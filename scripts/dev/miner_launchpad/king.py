@@ -112,6 +112,15 @@ def parse(document, challenge_id):
         raise KingUnreadable("to_beat")
     if king is not None and baseline is not None:
         raise KingUnreadable("baseline_total")
+    # The score to beat is the king's total (or, with no king, the baseline)
+    # plus the margin, within one Ladder grid step: max(eta, the registered
+    # noise), and the margin is that noise (Validator, king-card receipt).
+    held = king["total"] if king is not None else baseline
+    if to_beat is not None:
+        from carbon.scoring.grade_feedback import ETA
+
+        if held is None or abs(to_beat - (held + margin)) > max(ETA, margin) + 1e-9:
+            raise KingUnreadable("to_beat")
     return {
         "challenge_id": challenge_id,
         "challenge_version": version,
