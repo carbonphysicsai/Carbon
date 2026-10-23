@@ -5,7 +5,13 @@
 # pinned to its CUDA 13 build; every other package takes its best version
 # across PyPI and the PyTorch index, so general libraries come from PyPI.
 torch==2.13.0+cu130
+# timm needs torchvision: the cu130 build that goes with torch 2.13.0 (the CPU lock has 0.28.0+cpu).
+torchvision==0.28.0+cu130
 neuraloperator==2.0.0
+# The catalog backbones' other imports, at the CPU lock's exact versions (THUML,
+# OFormer and Transolver twins fail ModuleNotFoundError without them).
+timm==1.0.29
+einops==0.8.2
 numpy==2.4.6
 # The PyTorch index serves old general libraries; pin them to the CPU torch
 # worker's uv.lock versions so both PyTorch environments match.
