@@ -658,6 +658,24 @@ def project(row, root):
                     value.setdefault("smoke_practices", []).append(
                         smoke_view(task, result)
                     )
+    # What each run took and what the model calls that chose it cost, from
+    # the ledger (M1 E2E U45): the same record for every agent.
+    costs = run_costs(
+        status["operations"],
+        ledger.operation_times(owner=manifest["owner"]),
+        calls_models=manifest.get("agent") != "none",
+    )
+    for experiment in value["experiments"]:
+        experiment.update(
+            costs.get(
+                experiment["id"],
+                {
+                    "duration": None,
+                    "model_cost": None,
+                    "model_cost_reason": "not_in_the_ledger",
+                },
+            )
+        )
     value["completed_experiments"] = len(value["experiments"])
     if manifest.get("agent") == "graphite":
         # Graphite's mode, stage, plan, research spend and hunt (S4), read
@@ -826,6 +844,81 @@ def model_speed(operations, provider):
             not streams and full is not None and timeout is not None and full > timeout
         ),
     }
+
+
+#: How a run's model cost is attributed: the model calls the campaign's
+#: ledger reserved after the previous run started, up to this run's start -
+#: the calls that chose it. Restated beside every figure so it never reads as
+#: a provider's invoice (the ledger's own cost basis).
+MODEL_COST_BASIS = (
+    "model calls since the previous run started, up to this run's start; "
+    "integer nanodollars, published-rate estimates from provider token usage"
+)
+
+
+def run_costs(operations, times, *, calls_models):
+    """Each research trial's duration and model cost, from the campaign's
+    ledger alone (M1 E2E U45): {trial id: {"duration", "model_cost"}}.
+
+    Duration: wall seconds from the trial's reservation to its settlement,
+    in the ledger's clock (None, with `wall_reason`, for a trial settled
+    before settlement times were recorded, or not settled), and worker
+    seconds, the worker's own measured run time the ledger settled
+    (`numerical_milliseconds`). Model cost: the model calls reserved after
+    the previous trial's reservation, up to this one's (`MODEL_COST_BASIS`),
+    each at its settled charge; a call still reserved is counted apart, at
+    no figure. A campaign whose agent calls no model through Carbon (the
+    miner's own agent, or none) has no model cost here: None, with why."""
+    rows, pending = {}, []
+    for op in operations:
+        reservation = op.get("reservation") or {}
+        actual = op.get("actual")
+        if any(key in reservation for key in SPEND_KEYS):
+            pending.append(op)
+        if not reservation.get("research_trials"):
+            continue
+        created, finished = times.get(op["id"], (None, None))
+        worker = (actual or {}).get("numerical_milliseconds")
+        wall = (
+            round(finished - created, 3)
+            if finished is not None and created is not None and finished >= created
+            else None
+        )
+        cost = None
+        if calls_models:
+            settled = [c for c in pending if c.get("actual") is not None]
+            cost = {
+                "nanodollars": sum(
+                    int((c["actual"] or {}).get("provider_nanodollars", 0))
+                    for c in settled
+                ),
+                "calls": len(settled),
+                "unsettled_calls": len(pending) - len(settled),
+                "basis": MODEL_COST_BASIS,
+            }
+        rows[op["id"]] = {
+            "duration": {
+                "wall_seconds": wall,
+                "worker_seconds": (
+                    worker / 1000 if type(worker) is int and worker >= 0 else None
+                ),
+                "wall_reason": (
+                    None
+                    if wall is not None
+                    else (
+                        "not_settled"
+                        if actual is None
+                        else "settled_before_times_were_recorded"
+                    )
+                ),
+            },
+            "model_cost": cost,
+            "model_cost_reason": (
+                None if calls_models else "no_model_calls_through_carbon"
+            ),
+        }
+        pending = []
+    return rows
 
 
 def _graphite_view(root, operations):

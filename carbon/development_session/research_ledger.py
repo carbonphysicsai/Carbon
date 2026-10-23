@@ -407,6 +407,7 @@ class CampaignLedger:
                 CREATE TABLE IF NOT EXISTS notes (sequence INTEGER PRIMARY KEY, owner TEXT NOT NULL, kind TEXT NOT NULL, body BLOB NOT NULL, created REAL NOT NULL);
                 CREATE TABLE IF NOT EXISTS operation_sequences (parent TEXT PRIMARY KEY, owner TEXT NOT NULL, document BLOB NOT NULL);
                 CREATE TABLE IF NOT EXISTS operation_sequence_claims (child TEXT PRIMARY KEY, generation INTEGER NOT NULL, claimed REAL NOT NULL);
+                CREATE TABLE IF NOT EXISTS operation_finished (id TEXT PRIMARY KEY, finished REAL NOT NULL);
             """)
             existing = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
             if existing:
@@ -948,6 +949,27 @@ class CampaignLedger:
                 "UPDATE operations SET state=?,actual=?,result=? WHERE id=?",
                 (state, canonical(actual), body, identity),
             )
+            # When it settled, beside the operation: what a run took from its
+            # reservation, for the miner's own view (M1 E2E U45). Kept apart
+            # so the operations table's columns stay as they were.
+            db.execute(
+                "INSERT OR IGNORE INTO operation_finished VALUES(?,?)",
+                (identity, self.clock()),
+            )
+
+    def operation_times(self, *, owner):
+        """{operation id: (created, finished or None)} for this owner's
+        operations, in the ledger's own clock; finished is None while one
+        is reserved, or for one settled before finishing was recorded."""
+        with self.db() as db:
+            return {
+                row[0]: (row[1], row[2])
+                for row in db.execute(
+                    "SELECT o.id,o.created,f.finished FROM operations o "
+                    "LEFT JOIN operation_finished f ON f.id=o.id WHERE o.owner=?",
+                    (owner,),
+                )
+            }
 
     def operation_state(self, identity, *, owner):
         """This owner's operation state, or None when it has no such operation."""

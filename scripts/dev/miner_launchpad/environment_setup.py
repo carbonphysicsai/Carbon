@@ -2236,7 +2236,10 @@ class EnvironmentSetup:
                 + str(revision)[:12]
             )
         head = checkout_revision()
-        if head != stamp["revision"]:
+        # Judged only on what can be read: a HEAD git cannot report now (a
+        # busy or locked checkout) is no evidence the checkout moved, and
+        # read as moved it sent a running miner to reinstall (M1 E2E R6-2).
+        if head is not None and head != stamp["revision"]:
             reasons.append(
                 "this checkout is at "
                 + str(head)[:12]
@@ -3628,73 +3631,202 @@ class EnvironmentSetup:
                     "from": was.get(field),
                     "to": found["image_id"],
                 }
-            if compute is None:
+            if compute is None and "compute_set_aside" not in record:
                 report["compute"] = "not set up yet"
                 return report
-            stale = self._stale(compute)
-            if not stale:
+            if compute is None:
+                # Set aside by an earlier update whose check again was
+                # refused or waited on the miner: checked again now, with
+                # the choice kept beside it (M1 E2E U54/U67).
+                report.update(
+                    compute="set aside",
+                    reasons=record["compute_set_aside"].get("reasons", []),
+                )
+            elif stale := self._stale(compute):
+                moved = self._set_compute_aside(record, compute, stale)
+                report.update(compute="set aside", reasons=stale)
+                if moved:
+                    report["profile_set_aside"] = moved
+            else:
                 report["compute"] = "unchanged"
-                return report
-            had_profile = "profile" in record
-            own = self._own_intakes(record) if had_profile else {}
-            pinned = self._own_receivers(record) if had_profile else {}
-            own_targets = self._own_target_lists(record) if had_profile else {}
-            now = int(time.time())
-            record.pop("compute")
-            record.pop("profile", None)
-            record["compute_set_aside"] = {"reasons": stale, "at": now}
-            moved = self._set_profile_aside()
-            if had_profile or moved:
-                record["profile_set_aside"] = {
-                    "at": now,
-                    **({"file": moved} if moved else {}),
-                    "intakes": {
-                        challenge_id: {
-                            "url": url,
-                            "source": "yours",
-                            **(
-                                {"receiver": pinned[challenge_id]}
-                                if challenge_id in pinned
-                                else {}
-                            ),
-                        }
-                        for challenge_id, url in own.items()
-                    },
-                }
-            self._save(record)
-        report.update(compute="set aside", reasons=stale)
-        if moved:
-            report["profile_set_aside"] = moved
-        if compute.get("choice") not in (LOCAL_CPU, LOCAL_GPU):
-            report["next_steps"].append(
-                REMOTE_RECHECK if compute.get("choice") == REMOTE else RECHECK_STEP
-            )
-            return report
-        request = {
-            "choice": compute["choice"],
-            "image_manifest": recorded["image_manifest"],
-            "analysis_image_manifest": recorded["analysis_image_manifest"],
+        return self._make_ready(report, recorded, head)
+
+    def _set_compute_aside(self, record, compute, stale) -> str | None:
+        """Set aside a compute check that no longer describes this install,
+        and the profile with it (LP-PROD-E), keeping the miner's choices for
+        the check again: the compute choice and the Challenge a GPU check was
+        for, and the intakes, receivers and validator lists their last Review
+        named. Returns the set-aside profile's file name, or None. Called
+        under the setup lock; saves the record."""
+        had_profile = "profile" in record
+        own = self._own_intakes(record) if had_profile else {}
+        pinned = self._own_receivers(record) if had_profile else {}
+        own_targets = self._own_target_lists(record) if had_profile else {}
+        now = int(time.time())
+        record.pop("compute")
+        record.pop("profile", None)
+        record["compute_set_aside"] = {
+            "reasons": stale,
+            "at": now,
+            "choice": compute.get("choice"),
+            **(
+                {"challenge": dict(compute["challenge"])}
+                if type(compute.get("challenge")) is dict
+                else {}
+            ),
         }
-        if compute["choice"] == LOCAL_GPU:
-            gpu = installed.found(self.root.parent, REPO)["gpu_image_manifest"]
-            if gpu["path"] is None:
+        moved = self._set_profile_aside()
+        if had_profile or moved:
+            record["profile_set_aside"] = {
+                "at": now,
+                **({"file": moved} if moved else {}),
+                "intakes": {
+                    challenge_id: {
+                        "url": url,
+                        "source": "yours",
+                        **(
+                            {"receiver": pinned[challenge_id]}
+                            if challenge_id in pinned
+                            else {}
+                        ),
+                        **(
+                            {"targets": own_targets[challenge_id]}
+                            if challenge_id in own_targets
+                            else {}
+                        ),
+                    }
+                    for challenge_id, url in own.items()
+                },
+            }
+        self._save(record)
+        return moved
+
+    def _profile_current(self) -> bool:
+        """Whether the written runner profile still describes this install."""
+        try:
+            cfg = json.loads(self.profile_path.read_bytes())
+        except (OSError, ValueError):
+            return False
+        return type(cfg) is dict and not self.profile_staleness(cfg)[0]
+
+    def _kept_from_file(self) -> dict:
+        """The intakes the written profile file names, with the receivers
+        and validator lists pinned beside them, as a Review's record keeps
+        them: every intake in a profile's `intakes` is the miner's own
+        (Carbon's published ones are `version_intakes`)."""
+        try:
+            cfg = (
+                json.loads(self.profile_path.read_bytes())
+                if _owner_only(self.profile_path)
+                else {}
+            )
+        except (OSError, ValueError):
+            cfg = {}
+        cfg = cfg if type(cfg) is dict else {}
+
+        def named(key):
+            return cfg.get(key) if type(cfg.get(key)) is dict else {}
+
+        receivers, targets = named("receivers"), named("intake_targets")
+        return {
+            "profile": {
+                "intakes": {
+                    challenge_id: {
+                        "url": url,
+                        "source": "yours",
+                        **(
+                            {"receiver": receivers[challenge_id]}
+                            if type(receivers.get(challenge_id)) is str
+                            else {}
+                        ),
+                        **(
+                            {"targets": targets[challenge_id]}
+                            if type(targets.get(challenge_id)) is list
+                            else {}
+                        ),
+                    }
+                    for challenge_id, url in named("intakes").items()
+                    if type(url) is str
+                }
+            }
+        }
+
+    def _make_ready(self, report, recorded, head) -> dict:
+        """Leave the miner ready after an update (M1 E2E U54/U67), with their
+        own choices: this machine's compute checked again with their last
+        choice and the installed images where the check no longer describes
+        this install, then the profile written again with the intakes,
+        receivers and validator lists their last Review named, where one was
+        written before and no longer describes it. The miner's own remote
+        setup is never reached: they check it again, since it needs the new
+        GPU worker. Each refusal is reported in `report` with its next step;
+        nothing is retried. Called outside the setup lock."""
+        from scripts.dev.miner_launchpad import installed
+
+        with self.lock:
+            record = self._record()
+        compute = record.get("compute")
+        rechecked = False
+        if compute is None or self._stale(compute):
+            prior = compute if compute is not None else record["compute_set_aside"]
+            choice = prior.get("choice")
+            if choice not in (LOCAL_CPU, LOCAL_GPU):
                 report["next_steps"].append(
-                    "build the GPU worker (" + gpu["build"] + "), then " + RECHECK_STEP
+                    REMOTE_RECHECK if choice == REMOTE else RECHECK_STEP
                 )
                 return report
-            request.update(
-                gpu_image_manifest=gpu["path"], challenge=dict(compute["challenge"])
-            )
-        try:
-            self.compute(request)
-        except SetupRefused as refused:
-            report["recheck"] = _refusal(refused)
-            report["next_steps"].append(RECHECK_STEP)
+            request = {
+                "choice": choice,
+                "image_manifest": recorded["image_manifest"],
+                "analysis_image_manifest": recorded["analysis_image_manifest"],
+            }
+            if choice == LOCAL_GPU:
+                gpu = installed.found(self.root.parent, REPO)["gpu_image_manifest"]
+                if gpu["path"] is None:
+                    report["next_steps"].append(
+                        "build the GPU worker ("
+                        + gpu["build"]
+                        + "), then "
+                        + RECHECK_STEP
+                    )
+                    return report
+                if type(prior.get("challenge")) is not dict:
+                    report["next_steps"].append(RECHECK_STEP)
+                    return report
+                request.update(
+                    gpu_image_manifest=gpu["path"], challenge=dict(prior["challenge"])
+                )
+            try:
+                self.compute(request)
+            except SetupRefused as refused:
+                report["recheck"] = _refusal(refused)
+                report["next_steps"].append(RECHECK_STEP)
+                return report
+            report["compute"] = "checked again"
+            rechecked = True
+            with self.lock:
+                record = self._record()
+        if "profile" in record:
+            if not rechecked and self._profile_current():
+                return report
+            kept = record
+        elif "profile_set_aside" in record:
+            kept = {"profile": record["profile_set_aside"]}
+        elif os.path.lexists(self.profile_path) and (
+            rechecked or not self._profile_current()
+        ):
+            # A step changed since the last Review drops its record ("any
+            # change needs a new review") while its file stays where the
+            # Control Center loads it, refused as stale after an update
+            # (M1 E2E U54): written again with what the file names.
+            kept = self._kept_from_file()
+        else:
+            if rechecked:
+                report["next_steps"].append("review in setup to write your profile")
             return report
-        report["compute"] = "checked again"
-        if not had_profile:
-            report["next_steps"].append("review in setup to write your profile")
-            return report
+        own = self._own_intakes(kept)
+        pinned = self._own_receivers(kept)
+        own_targets = self._own_target_lists(kept)
         try:
             # The receivers the miner's last Review pinned are pinned again;
             # an own intake from before pinning is written again without
@@ -3718,6 +3850,59 @@ class EnvironmentSetup:
             "warnings": reviewed["warnings"],
         }
         return report
+
+    def recheck(self, value) -> dict:
+        """Setup after an update, in one call (M1 E2E U54/U67): what
+        `after_install` does once the installer has recorded the images, for
+        the page's one click and the MCP door. This machine's compute is
+        checked again with the miner's last choice and the installed images,
+        where the check no longer describes this install, and the profile is
+        written again with their own intakes; the result is the setup state
+        with `update`: what was done, and each next step. When this checkout
+        moved since the install, only the installer clears it."""
+        from scripts.dev.miner_launchpad import installed
+
+        _closed(value, {"confirm"})
+        if value["confirm"] is not True:
+            raise SetupRefused("confirm", "recheck_needs_confirmation")
+        recorded = installed.read(self.root.parent) or {}
+        if not {"image_manifest", "analysis_image_manifest"} <= set(recorded):
+            raise SetupRefused(
+                "image_manifest",
+                "installed_images_not_recorded",
+                next_step=REINSTALL_STEP,
+            )
+        with self.lock:
+            record = self._record()
+        compute = record.get("compute")
+        if compute is None and "compute_set_aside" not in record:
+            raise SetupRefused("compute", "step_not_checked")
+        stale, clears = self._staleness(compute) if compute else ([], None)
+        if clears is None and os.path.lexists(self.profile_path):
+            try:
+                clears = self.profile_staleness(
+                    json.loads(self.profile_path.read_bytes())
+                )[1]
+            except (OSError, ValueError):
+                clears = None
+        if clears == REINSTALL_STEP:
+            raise SetupRefused(
+                "accepted_revision",
+                "carbon_updated_rerun_installer",
+                next_step=REINSTALL_STEP,
+            )
+        report = {"next_steps": []}
+        if compute is None:
+            report.update(
+                compute="set aside",
+                reasons=record["compute_set_aside"].get("reasons", []),
+            )
+        elif stale:
+            report.update(compute="stale", reasons=stale)
+        else:
+            report["compute"] = "unchanged"
+        report = self._make_ready(report, recorded, checkout_revision())
+        return {**self.state(), "update": report}
 
 
 def _needs_inference(record) -> bool:

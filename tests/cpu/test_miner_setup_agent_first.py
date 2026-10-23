@@ -343,6 +343,7 @@ def test_the_order_and_the_inference_skip(tmp_path):
         "title": "Inference",
         "state": "skipped",
         "why": "your agent uses its own model",
+        "blocks_launch": False,
     }
     assert view["next"]["step"] == "compute"
     images = view["next"]["options"]

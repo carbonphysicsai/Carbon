@@ -70,6 +70,7 @@ PYTORCH=0
 START=1
 UPDATE=0
 SERVICE=0
+REMOVE_OLD_IMAGES=0
 REF_GIVEN=0
 RELEASE=""
 DEVELOPMENT_REVISION=""
@@ -127,6 +128,11 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --re
                Git archive SHA-256. Requires its own state directory and
                cannot be combined with --ref, --release or --update.
   --no-start   build everything, but do not start the Control Center
+  --remove-old-images
+               when space is short, remove Carbon's own images from earlier
+               installs that this install no longer records without asking
+               (otherwise it lists them and asks first). No other image is
+               touched, and one a container still uses is kept
   --service    run the Control Center as a systemd user service, so this
                terminal stays free: carbon-control-center for the default
                state directory, and carbon-control-center-NAME-HASH for any
@@ -151,6 +157,7 @@ while [[ $# -gt 0 ]]; do
       shift 3 ;;
     --no-start) START=0 ;;
     --service) SERVICE=1 ;;
+    --remove-old-images) REMOVE_OLD_IMAGES=1 ;;
     --port) PORT="${2:?--port needs a value}"; PORT_GIVEN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; exit 2 ;;
@@ -341,11 +348,53 @@ if [[ "${GPU}" == 1 ]] \
 fi
 need_space "${repo_root}" "${CHECKOUT_GIB}" "Carbon's locked environment and its cache"
 docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
+#: offer_old_images: Carbon's own images from earlier installs, which this
+#: install's records no longer name, listed and removed only on the miner's
+#: yes, or with --remove-old-images (M1 E2E R6-1: earlier rounds' images
+#: filled the disk until an update stopped here). Only Carbon's own
+#: repositories are listed (scripts/dev/miner_launchpad/superseded_images.py);
+#: Docker keeps any image a container still uses. A first install, with no
+#: environment yet, has none.
+offer_old_images() {
+  local py="${repo_root}/.venv/bin/python" listing answer=""
+  [[ -x "${py}" ]] || return 0
+  listing="$(cd "${repo_root}" && "${py}" -m scripts.dev.miner_launchpad.superseded_images \
+    list --state-dir "${STATE_DIR}" --repo "${repo_root}" 2>/dev/null)" || return 0
+  [[ -n "${listing}" ]] || return 0
+  echo "Space is short. These are Carbon's own images from earlier installs, which this install does not use:"
+  echo "${listing}"
+  if [[ "${REMOVE_OLD_IMAGES}" == 0 ]]; then
+    if [[ -t 0 ]]; then
+      read -r -p "Remove them? No other image is touched. [y/N] " answer || answer=""
+    fi
+    if [[ "${answer}" != [yY]* ]]; then
+      echo "Kept them. To remove them, answer y, or run this again with --remove-old-images."
+      return 0
+    fi
+  fi
+  (cd "${repo_root}" && "${py}" -m scripts.dev.miner_launchpad.superseded_images \
+    remove --state-dir "${STATE_DIR}" --repo "${repo_root}") \
+    || echo "Docker kept the images above that a container still uses."
+}
+#: short_of PATH GIB: whether fewer than GIB GiB are free at PATH (no when
+#: the free space cannot be read).
+short_of() {
+  local free
+  free="$(free_gib "$1" || true)"
+  [[ -n "${free}" ]] && (( free < $2 ))
+}
 check_image_space() {
   local images_gib="$1" checkout_mount docker_mount
   if [[ -n "${docker_root}" && -d "${docker_root}" ]]; then
     checkout_mount="$(mount_of "${repo_root}" || true)"
     docker_mount="$(mount_of "${docker_root}" || true)"
+    local needed="${images_gib}"
+    if [[ -n "${checkout_mount}" && "${checkout_mount}" == "${docker_mount}" ]]; then
+      needed="$(( CHECKOUT_GIB + images_gib ))"
+    fi
+    if short_of "${docker_root}" "${needed}"; then
+      offer_old_images
+    fi
     if [[ -n "${checkout_mount}" && "${checkout_mount}" == "${docker_mount}" ]]; then
       # One filesystem holds both (WSL's default): it needs room for both.
       need_space "${docker_root}" "$(( CHECKOUT_GIB + images_gib ))" \

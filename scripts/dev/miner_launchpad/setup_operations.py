@@ -151,6 +151,16 @@ SETUP_OPERATIONS = {
                 "practice_auto_retry",
             },
         ),
+        _op(
+            "recheck",
+            "review",
+            REGISTERED,
+            "After an update: check Compute again with your last choice and "
+            "write your runner profile again with your own intakes, in one "
+            "call. Your remote setup stays yours to check. Nothing is "
+            "launched or spent.",
+            {"confirm"},
+        ),
     )
 }
 
@@ -237,6 +247,7 @@ FIELDS = {
 NEXT_STEPS = {
     "registration_not_confirmed": "confirm your registration: carbon_setup_begin",
     "step_not_checked": "take the step named in field first; carbon_setup_status",
+    "recheck_needs_confirmation": "send confirm: true",
     "unknown_field": "send only the fields in the step's arguments schema",
     "practice_auto_retry_boolean_required": "send practice_auto_retry as true or false",
     "field_required": "send every required field in the step's arguments schema",
@@ -468,12 +479,21 @@ def status(
     else:
         compute_missing = "compute_not_checked"
     written = steps["review"]["profile_written"]
+    # A stale compute check blocks nothing while the runner profile Review
+    # wrote still describes this install: launches load that profile, so the
+    # step reads done, with why it should be checked again (M1 E2E R6-2: the
+    # step read "next" while launches ran, and agents could not tell).
+    current = getattr(setup, "_profile_current", None)
+    stale_blocks = bool(stale) and not (written and current is not None and current())
     done = {
         "signer": steps["signer"]["checked"] or agent.get("checked", False),
         "register": registered is not None,
         "agent": agent.get("checked", False),
         "inference": steps["inference"].get("checked", False),
-        "compute": steps["compute"].get("checked", False) and not pending_worker,
+        "compute": (
+            (steps["compute"].get("checked", False) or (stale and not stale_blocks))
+            and not pending_worker
+        ),
         "review": written,
     }
     missing = {
@@ -503,6 +523,20 @@ def status(
             ]
             if blockers:
                 row.update(state="waiting", after=blockers[0])
+        if step == "compute" and stale and done[step]:
+            # Done, and why a check again is still worth taking.
+            row.update(
+                stale=stale,
+                note=(
+                    "your runner profile still describes this install, so "
+                    "launches work; check Compute again when convenient"
+                ),
+            )
+            if _one_click(steps["compute"]):
+                row["recheck"] = call("recheck", door)
+        # Whether this step stands between the miner and a launch: the same
+        # answer as `done`, said on the step itself.
+        row["blocks_launch"] = row["state"] not in ("done", "skipped")
         rows.append(row)
     nxt = next((row for row in rows if row["state"] == "open"), None)
     if nxt is not None:
@@ -571,9 +605,32 @@ def status(
             entry["next_step"] = steps["compute"].get("next_step")
         elif step == "compute" and steps["compute"].get("set_aside"):
             entry["set_aside"] = steps["compute"]["set_aside"].get("reasons", [])
+        if step == "compute" and _one_click(steps["compute"]):
+            # After an update, one call checks Compute again with the
+            # miner's last choice and writes their profile again with their
+            # own intakes (M1 E2E U54/U67), unless only the installer can.
+            entry["recheck"] = call("recheck", door)
     result["next"] = entry
     result["skips"] = {OWN_AGENT: {"inference": "your agent uses its own model"}}
     return result
+
+
+def _one_click(compute) -> bool:
+    """Whether `recheck` clears this compute step: it is stale or set aside,
+    for a choice on this machine, and not one only the installer clears."""
+    from scripts.dev.miner_launchpad.environment_setup import (
+        LOCAL_CPU,
+        LOCAL_GPU,
+        REINSTALL_STEP,
+    )
+
+    if not (compute.get("stale") or compute.get("set_aside")):
+        return False
+    choice = compute.get("choice") or (compute.get("set_aside") or {}).get("choice")
+    return compute.get("next_step") != REINSTALL_STEP and choice in (
+        LOCAL_CPU,
+        LOCAL_GPU,
+    )
 
 
 def _options(setup, step, state) -> dict:
