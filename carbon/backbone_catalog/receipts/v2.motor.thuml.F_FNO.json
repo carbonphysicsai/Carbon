@@ -1,0 +1,17 @@
+{
+ "catalog_id": "v2.motor.thuml.F_FNO",
+ "differ": [],
+ "distinct_states": 1,
+ "files": 2,
+ "identical": 1,
+ "image_digest": "sha256:cd4532580c348a780631f6dd1a22ff29912bd7e4ad268c04861eb098e0b92ceb",
+ "key": "ffno_clean",
+ "pairs": 1,
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "source_report": "PAIR_IDENTITY_V2_MOTOR.json",
+ "source_report_sha256": "sha256:436a5cb99359181c8a05ba47e1b532fd6aa767baced01d3100eee541d61d7523",
+ "tested_interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
+ "tested_on": "electric-motor-magnetics@1.4",
+ "tested_train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
+ "unpaired": 0
+}

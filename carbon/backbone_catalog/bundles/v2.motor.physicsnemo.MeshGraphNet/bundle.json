@@ -1,0 +1,19 @@
+{
+ "accelerator": "cpu",
+ "architecture": "amd64",
+ "base_environment_digest": "sha256:dda045756e7c600e94c02b697a004e2c35020b9a87aca2d860f62b3f174b36ce",
+ "environment_digest": "sha256:0a313185d40515172cd71c18383598ae8d6f52e5540569dc51c385fa570f7f96",
+ "language": "python",
+ "license_sha256": "sha256:1776bbc6884f5982c21d2875ba2a1c595a19aff71983141cade8aad502c40709",
+ "lock_sha256": "sha256:44bf05003e901660fdefbcb33218f5661164842ad5fd1dab730965cd6f571959",
+ "name": "motor-catalog-physicsnemo-meshgraphnet-baseline-v2",
+ "os": "linux",
+ "python_abi": "cp311",
+ "runtime_profile_id": "torch-cpu-py311",
+ "schema": "carbon.development.library-bundle.v1",
+ "source_bytes": 17718,
+ "source_sha256": "sha256:48668868e1edfaabe04564b485086619601ec0518f42ea6321d31e3c29b97563",
+ "wheels": {
+  "torch_geometric-2.8.1-py3-none-any.whl": "sha256:b628de243c0893f3435b6eca9a7bbc07f3219293ed27c974b8929aaae42e65d0"
+ }
+}
