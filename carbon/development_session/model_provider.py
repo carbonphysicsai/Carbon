@@ -2676,9 +2676,16 @@ class SelectionTransport:
             return response
         # Canonical bytes: sorted keys and no volatile fields, so the same
         # history always produces the same prefix for the provider's cache.
-        response = _post(
-            self.selection, canonical(body), self.opener, self.deadline_seconds
-        )
+        deadline = self.deadline_seconds
+        if remaining_seconds is not None:
+            # No later than what is left of the miner's elapsed limit (G1's
+            # time twin); past it, ProviderDeadlineExceeded keeps the full
+            # reservation and resends nothing.
+            deadline = min(
+                deadline or call_deadline_seconds(self.selection.settings),
+                max(1, remaining_seconds),
+            )
+        response = _post(self.selection, canonical(body), self.opener, deadline)
         if protocol == CHAT_COMPLETIONS:
             return chat_response(response)
         if protocol == MESSAGES:

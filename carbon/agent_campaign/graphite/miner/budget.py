@@ -250,6 +250,16 @@ class StageLedger:
     def spent(self):
         return namespace_spend(self._ledger, self._owner, self.namespace)
 
+    def room(self, key, *, phase="research"):
+        """The campaign's room on `key` (`CampaignLedger.room`), and no more
+        than this stage's research share leaves of it."""
+        room = self._ledger.room(key, phase=phase)
+        cap = self.caps.get(key)
+        if cap is None:
+            return room
+        left = max(0, cap - self.spent()[key])
+        return left if room is None else min(room, left)
+
     def _known(self, identity, owner):
         return self._ledger.operation_state(identity, owner=owner) is not None
 

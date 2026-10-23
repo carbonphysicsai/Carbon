@@ -85,7 +85,7 @@ cd ~/carbon && .venv/bin/python -B -m scripts.dev.catalog_install --state-dir ~/
 
 A **Challenge** is a physics task, e.g. motor magnetics, a chip cold plate or a ribbed bracket. Open **Challenges**, read one, and click **Start a campaign**.
 
-With Graphite you set your limits up front: how many model calls, how many dollars, how much time. Graphite plans, builds models, practises them, and picks the best.
+With Graphite you set your limits up front: how many model calls, how many dollars, how much time. Graphite uses them to the end: near your money or time limit it shortens its last calls to fit what is left, and stops only when not even one short call fits (about 2 minutes, or a 512-token reply). The page then says which limit stopped it (money, model calls, practice runs or time) and what to raise next time. Graphite plans, builds models, practises them, and picks the best.
 
 ## 6. Practise, freeze, submit
 

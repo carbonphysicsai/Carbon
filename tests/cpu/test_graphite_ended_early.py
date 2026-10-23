@@ -62,3 +62,39 @@ def test_an_ordinary_stop_or_a_finished_run_is_not_early():
         )["ended_early"]
         is None
     )
+
+
+@pytest.mark.parametrize("dimension", sorted(view.STOP_LIMITS))
+def test_a_ceiling_stop_names_which_limit_stopped_it(dimension):
+    # G1 (Validator): the page names the stopping limit for every dimension; a
+    # time stop read as "a ceiling you set" (cmp-b526c4ec, 2026-10-23).
+    section = _section(
+        [
+            {
+                "stage": "plan",
+                "state": "STOPPED",
+                "code": "miner_ceiling_reached",
+                "dimension": dimension,
+            }
+        ]
+    )
+    early = section["ended_early"]
+    words, step = view.STOP_LIMITS[dimension]
+    assert early["limit"] == words and early["next_step"] == step
+    assert section["stages"][0]["dimension"] == dimension
+
+
+def test_an_unknown_dimension_is_never_shown_and_keeps_the_generic_step():
+    section = _section(
+        [
+            {
+                "stage": "plan",
+                "state": "STOPPED",
+                "code": "miner_ceiling_reached",
+                "dimension": "<script>",
+            }
+        ]
+    )
+    early = section["ended_early"]
+    assert "limit" not in early and "dimension" not in section["stages"][0]
+    assert early["next_step"] == view_next("miner_ceiling_reached")

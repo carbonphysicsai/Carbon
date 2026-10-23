@@ -612,7 +612,10 @@ class MinerReader:
         return budget.READER_PREFIX + digest(canonical(closed))[7:47]
 
     def __call__(self, request):
-        from carbon.development_session.research_agent import request_model
+        from carbon.development_session.research_agent import (
+            REQUEST_HOLD_FIT_V1,
+            request_model,
+        )
 
         from .hunt import ReaderNotSent
 
@@ -630,6 +633,8 @@ class MinerReader:
                 phase="research",
                 transport=self.transport,
                 provider=self.selection,
+                # G1: the hold fits the miner's money left (Validator).
+                hold=REQUEST_HOLD_FIT_V1,
             )
         except budget.STOPS as reached:
             # Refused by the share or the miner's own limit before anything
@@ -1505,6 +1510,10 @@ def view(root, *, operations=None):
             "state": state,
             "code": None if done is None else done.get("code"),
         }
+        if done is not None and type(done.get("dimension")) is str:
+            # Which of the miner's limits stopped it, so the page names it
+            # (G1: a time stop read as "a ceiling you set").
+            row["dimension"] = done["dimension"]
         if done is not None and done.get("cause") == OUTPUT_CAP_HIT:
             # The cap the stage's replies were cut at, for the step a
             # campaign view shows (set max output tokens higher).
