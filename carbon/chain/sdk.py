@@ -1,6 +1,7 @@
 """Bittensor 11.1 boundary. Imports, clients, SDK errors and raw rows stay here."""
 
 import asyncio
+import logging
 import random
 import threading
 import time
@@ -18,13 +19,16 @@ from .models import (
 )
 
 SDK_VERSION = "11.1.0"
+_log = logging.getLogger(__name__)
 
 #: How long one process shares a metagraph read for the same chain context:
 #: campaigns launched together read the chain once, not once each (12h S4:
-#: three of four campaigns launched together were refused by the public RPC).
-#: Shorter than one block, so a reader never sees an older finalized block
-#: than a read of its own would have given it a moment ago.
-SHARE_SECONDS = 6.0
+#: three of four campaigns launched together were refused by the public RPC:
+#: HTTP 429 under its WebSocket-upgrade policy, ten connections a minute,
+#: retry after 10-60 s). One block: one process opens at most five
+#: connections a minute for it, and a reader never sees a finalized block
+#: older than one block before its own read would have.
+SHARE_SECONDS = 12.0
 _shared_lock = threading.Lock()
 _shared: dict = {}
 
@@ -33,10 +37,11 @@ class BittensorReader:
     #: A read the endpoint refused under its traffic policy, or dropped, is
     #: infrastructure: tried again up to `attempts` times in all, waiting the
     #: endpoint's Retry-After when it gives one, else doubling from
-    #: `base_delay`, never longer than `max_delay` per wait.
+    #: `base_delay`, never longer than `max_delay` per wait (the public RPC
+    #: asks for up to 60 s).
     attempts = 4
-    base_delay = 1.0
-    max_delay = 20.0
+    base_delay = 2.0
+    max_delay = 60.0
 
     async def capture(self, context: ChainContext) -> MetagraphSnapshot:
         return await _shared_capture(context, self._read)
@@ -74,6 +79,17 @@ class BittensorReader:
             except bt.RpcPolicyError as refused:
                 failure = FailureCode.RATE_LIMITED
                 wait = _retry_after(getattr(refused, "retry_after", None))
+                # The SDK's typed, bounded fields only, never the message.
+                _log.warning(
+                    "chain read refused by the endpoint's policy (attempt %d of "
+                    "%d): status=%s policy=%s reason=%s retry_after=%s",
+                    attempt + 1,
+                    self.attempts,
+                    getattr(refused, "status_code", None),
+                    getattr(refused, "policy", None),
+                    getattr(refused, "reason", None),
+                    getattr(refused, "retry_after", None),
+                )
             except bt.RpcConnectionError:
                 failure = FailureCode.UNAVAILABLE
             except bt.ChainError:

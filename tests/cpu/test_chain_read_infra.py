@@ -137,15 +137,15 @@ def test_a_refused_read_is_retried_and_honours_retry_after(monkeypatch):
         async def read(self, ctx):
             Twice.calls += 1
             if Twice.calls <= 2:
-                raise RpcPolicyError("PRIVATE", retry_after="3")
+                raise RpcPolicyError("PRIVATE", retry_after="60")
             return translate(ctx, 10, BLOCK, 100000, graph())
 
     reader = Reader(Twice())
     snapshot = asyncio.run(reader.capture(context()))
     assert snapshot.finalized_block == 10
     assert Twice.calls == 3
-    # The endpoint's Retry-After, never shorter, never longer than max_delay.
-    assert reader.waits == [3.0, 3.0]
+    # The endpoint's Retry-After (the public RPC asks for 10-60 s), honoured.
+    assert reader.waits == [60.0, 60.0]
 
 
 def test_backoff_is_bounded_and_ignores_an_untrusted_retry_after():
