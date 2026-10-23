@@ -35,7 +35,7 @@ DECISION_REFERENCES = (
 #: Battery's development producer digest after the one accepted move that hashed
 #: the sealed bank loader and copy modules (Validator, 2026-10-22).
 DEV_PRODUCER_DIGEST = (
-    "sha256:54f4ff424f708e5490ee678958dab4084115baa4e28e8c7de83f930bbc9f9032"
+    "sha256:5ed562ffb5f3720505c72883e5c960672587216ef2e17e6871550cc224261fec"
 )
 
 

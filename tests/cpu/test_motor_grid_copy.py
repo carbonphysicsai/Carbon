@@ -159,11 +159,12 @@ def test_the_private_probes_survive_copy_derivation_in_place(world):
     _bank, public, objective = world
     probed = _grid_bank(probes=True)
     canonical = cd.canonicalize(probed)
-    assert list(canonical["cohorts"][30:]) == ["probe_response"] * 76
+    assert list(canonical["cohorts"]).count("probe_response") == 76
+    assert list(canonical["cohorts"][:30]) != ["decision_sealed_grid"] * 30
     for key in KEYS:
         copy_bank, _ = cd.derive_copy(canonical, objective, key=key)
         again = cd.canonicalize(copy_bank)
         assert list(again["cohorts"]) == list(canonical["cohorts"])
         assert np.array_equal(
-            np.asarray(again["inputs"])[30:], np.asarray(canonical["inputs"])[30:]
+            np.asarray(again["inputs"]), np.asarray(canonical["inputs"])
         )

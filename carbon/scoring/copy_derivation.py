@@ -364,11 +364,27 @@ def canonicalize(bank, *, opaque=OPAQUE, objective=None):
             record["condition_id"] = f"k{condition_rank[record['condition_id']]}"
         out.append(record)
     derived["reference_records"] = out
-    if objective is None:
-        return derived
     mapping = {}
     for old_record, new_record in zip(bank_records_in_order, out, strict=True):
         for name in opaque:
             if name in old_record and name in new_record:
                 mapping[old_record[name]] = new_record[name]
+    if any(is_probe(i) for i in range(n)):
+        # The delivered query holds the probes among the cells in a seeded
+        # content order (probe_design.permutation), never as a suffix. Ids were
+        # assigned above, before the interleaving, as the batch rebuild assigns them.
+        from carbon.scoring import probe_design
+
+        cell_inputs = [
+            derived["inputs"][r]
+            for r in range(n)
+            if derived["cohorts"][r] != PROBE_COHORT
+        ]
+        order = probe_design.permutation(n, probe_design.shuffle_seed(cell_inputs))
+        derived = {
+            name: ([value[i] for i in order] if name in PER_ROW else value)
+            for name, value in derived.items()
+        }
+    if objective is None:
+        return derived
     return derived, _rename(copy.deepcopy(objective), mapping)

@@ -244,19 +244,18 @@ def _model():
     return cooling_physics.registered_model(PUBLIC["train"])
 
 
-def _probe_inputs(bank):
-    rows = physical.bank_rows(bank, NAMES)
-    return [
-        [float(r["inputs"][n]) for n in NAMES]
-        for r in rows
-        if r["cohort"] == "probe_response"
-    ]
-
-
 def _full(bank, cells, probe=None):
+    """Predictions for every row in the delivered order: the cell predictions in
+    the order the cells appear, the stand-in model (or ``probe``) at each probe."""
     probe = probe or _model()
-    return [list(map(float, r)) for r in cells] + [
-        probe(x) for x in _probe_inputs(bank)
+    cells = iter(cells)
+    return [
+        (
+            probe([float(r["inputs"][n]) for n in NAMES])
+            if r["cohort"] == "probe_response"
+            else list(map(float, next(cells, [0.0] * 32)))
+        )
+        for r in physical.bank_rows(bank, NAMES)
     ]
 
 
@@ -297,12 +296,18 @@ def test_the_probed_definition_registers_probes_and_the_physics_block(probed):
     }
 
 
-def test_the_probes_are_private_unreferenced_rows_after_the_cells(probed):
+def test_the_probes_are_private_unreferenced_rows_among_the_cells(probed):
     rows = physical.bank_rows(probed["bank"], NAMES)
-    assert [r["cohort"] for r in rows[:16]] == ["decision_sealed_grid"] * 16
-    probes = rows[16:]
+    cohorts = [r["cohort"] for r in rows]
+    assert cohorts.count("decision_sealed_grid") == 16 and len(rows) == 100
+    # interleaved with the cells, never a suffix
+    assert cohorts[:16] != ["decision_sealed_grid"] * 16
+    assert cohorts[-16:] != ["decision_sealed_grid"] * 16
+    probes = [r for r in rows if r["cohort"] == "probe_response"]
     assert len(probes) == 84 and all(r["reference"] is None for r in probes)
-    assert probed["bank"]["reference_present"] == (True,) * 16 + (False,) * 84
+    assert probed["bank"]["reference_present"] == tuple(
+        c == "decision_sealed_grid" for c in cohorts
+    )
 
 
 def test_a_model_with_the_registered_sensitivities_earns_full_response(probed):

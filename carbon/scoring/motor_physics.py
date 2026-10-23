@@ -40,13 +40,15 @@ SIGN_GATES = (
     (OUTPUT, "current_density_a_mm2", 1),
     (OUTPUT, "current_angle_deg", -1),
 )
-#: The probe region: the registered input bounds, with the current density kept
-#: low enough that k times it stays inside the range and above the 1 A/mm^2 floor
-#: of the positivity law.
+#: The probe region: the registered input bounds, except that the base current
+#: density runs from 1 A/mm^2 (the positivity law and the TRAIN fits hold above it)
+#: to 13, leaving room for the scaled-current law row to stay inside the 15 A/mm^2
+#: range (its factor is then at least 15/13).
 PROBE_BOUNDS = tuple(
-    (2.0, 10.0) if name == "current_density_a_mm2" else domain.INPUT_BOUNDS[name]
+    (1.0, 13.0) if name == "current_density_a_mm2" else domain.INPUT_BOUNDS[name]
     for name in domain.INPUTS
 )
+J_MAX = domain.INPUT_BOUNDS["current_density_a_mm2"][1]
 _J = domain.INPUTS.index("current_density_a_mm2")
 _ANGLE = domain.INPUTS.index("current_angle_deg")
 
@@ -56,7 +58,7 @@ def probe_extra():
 
     def scaled(x):
         moved = list(x)
-        moved[_J] = K * x[_J]
+        moved[_J] = min(K * x[_J], J_MAX)
         return moved
 
     def zero(x):
@@ -119,7 +121,7 @@ def response_registration(train_raw):
         "exponent": [exponent],
         "band": [band],
         "span": [float(h - lo) for lo, h in zip(low, high, strict=True)],
-        "delta": probe_design.DELTA,
+        "delta_range": list(probe_design.DELTA_RANGE),
         "sign_gates": [{"output": o, "input": i, "sign": s} for o, i, s in SIGN_GATES],
     }
 
@@ -209,9 +211,16 @@ def apply(
     indexed = [(i, row["record"]["probe"]) for i, row in enumerate(probe_rows)]
     up = dict(probe_design.law_pairs(indexed, "j_up"))
     zero = dict(probe_design.law_pairs(indexed, "j_zero"))
+
+    def ratio(base, other):
+        """The actual current ratio of the law row (K, or less near the range top)."""
+        return float(probe_rows[other]["inputs"]["current_density_a_mm2"]) / float(
+            probe_rows[base]["inputs"]["current_density_a_mm2"]
+        )
+
     residuals = {
         "linear_in_current": [
-            abs(means[up[b]] - K * means[b]) / spread for b in sorted(up)
+            abs(means[up[b]] - ratio(b, up[b]) * means[b]) / spread for b in sorted(up)
         ],
         "zero_current_torque": [abs(means[zero[b]]) / spread for b in sorted(zero)],
     }

@@ -55,7 +55,7 @@ def test_the_rule_cites_the_exam_and_never_restates_scoring():
     rule = hidden.hidden_rule()
     assert rule["exam"] == {
         "pack_version": "f02-normal-construction-development-3",
-        "evaluation_version": "f02-dual-sealed-batch-8-v1",
+        "evaluation_version": "f02-dual-sealed-grid-8x1-v2",
     }
     assert rule["challenge"] == {"id": "f02", "version": "2.1"}
     assert rule["status"] == "PROVISIONAL_DEVELOPMENT_NON_QUALIFYING"

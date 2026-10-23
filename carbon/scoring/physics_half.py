@@ -119,11 +119,21 @@ def validate_response(spec):
     _require(
         type(spec) is dict
         and set(spec)
-        == {"inputs", "outputs", "exponent", "band", "span", "delta", "sign_gates"}
+        == {
+            "inputs",
+            "outputs",
+            "exponent",
+            "band",
+            "span",
+            "delta_range",
+            "sign_gates",
+        }
         and type(inputs) is list
         and type(outputs) is list
-        and _number(spec["delta"])
-        and 0 < spec["delta"] < 0.5
+        and type(spec["delta_range"]) is list
+        and len(spec["delta_range"]) == 2
+        and all(_number(v) for v in spec["delta_range"])
+        and 0 < spec["delta_range"][0] <= spec["delta_range"][1] < 0.5
         and type(spec["span"]) is list
         and len(spec["span"]) == len(inputs)
         and all(_number(v) and v > 0 for v in spec["span"])

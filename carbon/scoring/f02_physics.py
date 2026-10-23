@@ -51,7 +51,7 @@ def response_registration(train):
         "exponent": [[round(float(coefficients[1 + i]), 6) for i in range(2)]],
         "band": [[round(rmse / float(spread[i]), 6) for i in range(2)]],
         "span": [float(hi - lo) for lo, hi in BOUNDS],
-        "delta": probe_design.DELTA,
+        "delta_range": list(probe_design.DELTA_RANGE),
         "sign_gates": [{"output": o, "input": i, "sign": s} for o, i, s in SIGN_GATES],
     }
 

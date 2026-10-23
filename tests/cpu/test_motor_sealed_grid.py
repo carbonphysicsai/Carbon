@@ -179,20 +179,21 @@ def test_a_grid_batch_is_drawn_solved_sealed_and_packed(tmp_path):
     assert exported["document"]["schema"] == grid.DOCUMENT_SCHEMA
     bank = pack.grid_bank(exported["document"], list(exported["references"].values()))
     # the 30 cells, then the private probes (physics half v1)
-    assert bank["cohorts"][:30] == ("decision_sealed_grid",) * 30
-    assert set(bank["cohorts"][30:]) == {"probe_response"}
+    assert list(bank["cohorts"]).count("decision_sealed_grid") == 30
+    assert set(bank["cohorts"]) == {"decision_sealed_grid", "probe_response"}
 
 
 def test_the_pack_names_each_cell_with_design_and_condition_ids(drawn_grid):
     cases, _ = drawn_grid
     doc = document(cases)
     bank = pack.grid_bank(doc, records_for(doc))
-    assert (
-        bank["cohorts"][:30]
-        == (pack.GRID_COHORT,) * 30
-        == ("decision_sealed_grid",) * 30
-    )
-    cell_records = bank["reference_records"][:30]
+    assert pack.GRID_COHORT == "decision_sealed_grid"
+    assert list(bank["cohorts"]).count(pack.GRID_COHORT) == 30
+    cell_records = [
+        r
+        for r, c in zip(bank["reference_records"], bank["cohorts"], strict=True)
+        if c == pack.GRID_COHORT
+    ]
     designs = {r["design_id"] for r in cell_records}
     conditions = {r["condition_id"] for r in cell_records}
     assert designs == {f"design-{i}" for i in range(5)}
