@@ -33,12 +33,7 @@ from . import (
 SCOPE = physical_public.SCOPE
 #: Registered public physical Challenges, by (id, version): every Motor,
 #: Cooling, F08 and F02 version the version registry declares
-#: (`version_registry`), each with its own explicit entry, and Battery's catalog
-#: versions. Battery 2.2 (the Validator, 2026-10-22) is 2.1 plus the catalog
-#: binding; Battery serves its own versioned material
-#: (`battery.construction_bundle_material`). It is listed here so the catalog's
-#: tested-digest check and the shared direct campaign read it by (id, version)
-#: like the others.
+#: (`version_registry`), each with its own explicit entry.
 REGISTERED = tuple(
     sorted(
         key
@@ -51,9 +46,10 @@ REGISTERED = tuple(
             f02_train.CHALLENGE_ID,
         )
     )
-) + tuple(
-    (battery_catalog.CHALLENGE_ID, version) for version in battery_catalog.VERSIONS
 )
+# Battery 2.2 is not registered: Battery is out of launch
+# (OWNER-BATTERY-OUT-OF-LAUNCH-01) and 2.2 was never completed;
+# `battery.catalog_version` stays, unserved.
 
 
 def is_registered(challenge_id: str, version: str) -> bool:
