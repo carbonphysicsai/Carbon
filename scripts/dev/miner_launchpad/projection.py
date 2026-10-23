@@ -254,14 +254,16 @@ def _validator_outcome(epoch, path):
             "reward": False,
         }
         if direct:
+            submitted = (
+                document.get("recipe_digest")
+                if type(document.get("recipe_digest")) is str
+                else None
+            )
             result["grade"] = _grade(
                 _latest_ladder(path, document),
-                (
-                    document.get("recipe_digest")
-                    if type(document.get("recipe_digest")) is str
-                    else None
-                ),
+                submitted,
                 epoch,
+                also=_graded_digests(path, submitted),
             )
         if type(outcome.get("practice_dual")) is dict:
             # C13: the evaluator's practice dual block, allow-listed.
@@ -304,7 +306,34 @@ def _latest_ladder(path, document):
     return document["exam_feedback"]
 
 
-def _grade(ladder, submission=None, epoch=None):
+def _graded_digests(path, submitted):
+    """The other digest the receiver may grade this submission under: a
+    catalog recipe is graded as the Carbon bundle recipe it names
+    (`backbone_catalog.served.expand`, as `lean_recipe` admits it), so its
+    Ladder names that recipe's digest, not the submitted one (M1 E2E R10-2).
+    Read from the epoch's frozen selection, and only when that selection is
+    the submitted recipe; () otherwise."""
+    if submitted is None:
+        return ()
+    try:
+        from carbon.backbone_catalog.served import expand
+        from carbon.development_session.construction_recipe import (
+            ConstructionRecipe,
+        )
+
+        selected = path.parent / "selected-recipe.json"
+        if selected.is_symlink() or not 0 < selected.stat().st_size <= 262144:
+            return ()
+        strategy = json.loads(selected.read_bytes())["strategy"]
+        recipe = ConstructionRecipe.from_dict(strategy)
+        if recipe.digest != submitted or strategy["source"]["kind"] != "catalog":
+            return ()
+        return (ConstructionRecipe.from_dict(expand(recipe.to_dict())).digest,)
+    except Exception:  # noqa: BLE001 - no mapping is "not graded yet", never a guess
+        return ()
+
+
+def _grade(ladder, submission=None, epoch=None, also=()):
     """The miner's own Ladder for the exam, as the display rule shows it
     (Validator VALUE_SCORE_GAP): one graded total 0..1 per document, its
     A and D as detail, a gate failure as not eligible; None when the
@@ -350,7 +379,7 @@ def _grade(ladder, submission=None, epoch=None):
         latest
         if latest is not None
         and submission is not None
-        and latest.get("recipe_digest") == submission
+        and latest.get("recipe_digest") in (submission, *also)
         # v3 also names the epoch: a document about this recipe's earlier
         # submit (another epoch) is not this one's (Validator, R5-1 note).
         and (epoch is None or latest.get("epoch") in (None, epoch))
