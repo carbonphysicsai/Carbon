@@ -151,6 +151,7 @@ _SET_FIELDS = {
     "challenge_id",
     "challenge_version",
     "batches",
+    "packs",
     "window",
     "inbox",
 }
@@ -163,7 +164,13 @@ def publish_set(config):
     content), so every validator receives the same bytes. It goes into the first
     route's inbox (`<inbox>/<challenge>/set-<key>.json`, create-only, 0600); the host
     serves it to permit holders like any signed package. Returns the set key and the
-    batch count only."""
+    batch count only.
+
+    The set's key is over the batches' exam content (graph route v2's pack-set
+    key): `packs` maps each batch's canonical manifest digest to the directory
+    holding that canonical pack, and each manifest is read from there, checked
+    against its digest, and its `manifest_content` keys the set. Nothing of it is
+    written out."""
     from . import sealed_pack_import as spi
     from .answer_key import package
 
@@ -174,11 +181,21 @@ def publish_set(config):
     ):
         raise AnswerKeyRefused("copy_issuance_config_malformed")
     key = ProducerKey.load(config["producer_key"])
+    packs = config["packs"]
+    if type(packs) is not dict or set(packs) != set(config["batches"]):
+        raise AnswerKeyRefused("copy_issuance_config_malformed")
+    contents = {}
+    for digest, directory in packs.items():
+        manifest = (Path(directory) / MANIFEST_NAME).read_bytes()
+        if copy_delivery._sha(manifest) != digest:
+            raise AnswerKeyRefused("copy_issuance_pack_digest_mismatch")
+        contents[digest] = spi.manifest_content(manifest)
     commitment = spi.set_commitment_for(
         config["challenge_id"],
         config["challenge_version"],
         config["batches"],
         config["window"],
+        contents=contents,
     )
     signed = package(key, commitment, spi.set_payload_for(commitment))
     folder = Path(config["inbox"]) / config["challenge_id"]

@@ -151,21 +151,43 @@ def test_the_pack_set_is_signed_published_once_and_imports_on_a_validator(job):
 
     challenge = job["config"]["challenge_id"]
     version = job["config"]["challenge_version"]
-    batches = [delivery._sha(job["manifest"]), "sha256:" + "ab" * 32]
+    # Two real canonical batches: the job's pack, and a second whose exam
+    # content (its case bank role) differs.
+    other = json.loads(job["manifest"])
+    other["private"]["case_bank"]["sha256"] = "ab" * 32
+    other_bytes = json.dumps(other, sort_keys=True).encode()
+    first_dir = job["tmp"] / "pack-one"
+    second_dir = job["tmp"] / "pack-two"
+    for directory, body in ((first_dir, job["manifest"]), (second_dir, other_bytes)):
+        directory.mkdir()
+        (directory / spi.MANIFEST_NAME).write_bytes(body)
+    batches = [delivery._sha(job["manifest"]), delivery._sha(other_bytes)]
+    contents = [
+        spi.manifest_content(job["manifest"]),
+        spi.manifest_content(other_bytes),
+    ]
     config = {
         "schema": issuance.SET_CONFIG_SCHEMA,
         "producer_key": job["config"]["producer_key"],
         "challenge_id": challenge,
         "challenge_version": version,
         "batches": batches,
+        "packs": {batches[0]: str(first_dir), batches[1]: str(second_dir)},
         "window": WINDOW,
         "inbox": str(job["tmp"] / "inbox"),
     }
     first = issuance.publish_set(config)
     assert first["batches"] == 2 and first["written"] is True
     assert first["set_key"] == common.pack_set_key(
-        common.pack_set_document(challenge, version, batches)
+        common.pack_set_document(challenge, version, contents)
     )
+    # A pack whose manifest is not the one the batch names is refused.
+    wrong = {
+        **config,
+        "packs": {batches[0]: str(second_dir), batches[1]: str(first_dir)},
+    }
+    with pytest.raises(ak.AnswerKeyRefused, match="copy_issuance_pack_digest_mismatch"):
+        issuance.publish_set(wrong)
     assert issuance.publish_set(config)["written"] is False
     (path,) = (job["tmp"] / "inbox" / challenge).glob("set-*.json")
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
