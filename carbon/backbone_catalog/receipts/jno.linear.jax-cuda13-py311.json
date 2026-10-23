@@ -1,14 +1,18 @@
 {
  "catalog_id": "jno.linear",
  "differ": [],
- "environment": "plain uv venv on a Lium pod, no container image; JAX equinox==0.13.8, foundax==0.2.0, jax==0.10.2, jax-cuda13-plugin==0.10.2, jaxlib==0.10.2; XLA_FLAGS=--xla_gpu_deterministic_ops=true in both processes",
+ "environment": "pinned GPU validator image (carbon-accelerator-worker, pulled by digest); jax 0.10.2, jaxlib 0.10.2, equinox 0.13.8, foundax 0.2.0, numpy 2.4.6, optax 0.2.8, python 3.11.16; JAX_PLATFORMS=cuda, XLA_FLAGS=--xla_gpu_deterministic_ops=true in both container processes; 20 steps, two processes then compare",
  "gpu_used": true,
  "identical": 1,
- "image_digest": null,
+ "image_digest": "sha256:e4a2014daa9abc4e3df0bb890bc031a6a859ae21f42d4bec0a0494e25d949794",
  "kind": "repeat",
  "pairs": 1,
  "runtime_profile_id": "jax-cuda13-py311",
  "schema": "carbon.backbone-catalog-pair-identity.v1",
  "smoke_ok": true,
- "tested_on": "1x NVIDIA GeForce RTX 4090, driver 595.71.05"
+ "source_report": {
+  "file": "GPU_TWIN_RECEIPTS_JAX_20261023.json",
+  "sha256": "sha256:22b45b5023536f68b5c627d3fd7f6e581801b0749862dcf73d947ded5f9cb142"
+ },
+ "tested_on": "1x NVIDIA GeForce RTX 3090, driver 595.71.05"
 }
