@@ -170,13 +170,14 @@ def recipe_source_kinds(key):
     """The construction recipe source kinds catalog version `key` takes, in
     `construction_recipe.SOURCE_KINDS` order: catalog while it serves a tested
     entry, graph where a physical graph training adapter is registered for it
-    (`physical_graph_adapter.SPECS`). Miner source bundles stay closed."""
+    (`graph_adapters`: v1 or graph route v2). Miner source bundles stay
+    closed."""
     from carbon.backbone_catalog import listing
 
-    from . import physical_graph_adapter
+    from . import graph_adapters
 
     kinds = set()
-    if (key.challenge_id, key.version) in physical_graph_adapter.SPECS:
+    if graph_adapters.serves_graph(key.challenge_id, key.version):
         kinds.add("graph")
     if listing.entries(key.challenge_id, key.version):
         kinds.add("catalog")
@@ -638,22 +639,22 @@ class DirectFixtureDiscovery:
         selector follows the existing full fixture recheck. A caller's recipe
         or an unverified material flag cannot select an adapter.
         """
-        from . import physical_graph_adapter
+        from . import graph_adapters
 
-        if (
-            type(key) is research.ChallengeKey
-            and (key.challenge_id, key.version) in physical_graph_adapter.SPECS
-        ):
+        adapter = (
+            graph_adapters.module_for(key.challenge_id, key.version)
+            if type(key) is research.ChallengeKey
+            else None
+        )
+        if adapter is not None:
             if key != self.info.challenge_key:
                 return None
             self._checked(key)
-            spec = physical_graph_adapter.SPECS[(key.challenge_id, key.version)]
+            spec = adapter.spec_for(key.challenge_id, key.version)
             block = self._material["construction_limits_document"].get(
                 "graph_training_adapter"
             )
-            expected = physical_graph_adapter.adapter_block(
-                spec.challenge_id, spec.version
-            )
+            expected = adapter.adapter_block(spec.challenge_id, spec.version)
             return spec.adapter_id if block == expected else None
         if (
             type(key) is not research.ChallengeKey

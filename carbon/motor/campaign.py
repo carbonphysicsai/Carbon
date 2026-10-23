@@ -41,7 +41,8 @@ RUNTIME_KEYS = frozenset(
 CATALOG_VERSION = "1.2"
 #: Every catalog version: 1.2 (v6) and 1.3, 1.2 plus allowlist v7 (Validator,
 #: 2026-10-20). Each serves exactly its own version, by its research key.
-CATALOG_VERSIONS = (CATALOG_VERSION, "1.3")
+#: 1.4 is graph route v2: 1.3 plus Carbon's graph training adapter v2.
+CATALOG_VERSIONS = (CATALOG_VERSION, "1.3", "1.4")
 
 
 def _key():

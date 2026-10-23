@@ -26,7 +26,20 @@ CHALLENGE_VERSION = "1.0"
 #: serves the same TRAIN v2 bytes; only the version binding differs.
 #: 1.4 (the Validator, 2026-10-20: the catalog binding plus Carbon's graph
 #: training adapter) serves the same TRAIN v2 bytes.
-CHALLENGE_VERSIONS = ("1.0", "1.1", "1.2", "1.3", "1.4")
+#: 1.5 (graph route v2) is 1.4 plus Carbon's graph training adapter v2, and
+#: serves the same TRAIN v2 bytes (`challenge_kit.version_lineage`).
+CHALLENGE_VERSIONS = ("1.0", "1.1", "1.2", "1.3", "1.4", "1.5")
+#: Each version's TRAIN, by name: v1 (255 rows) or v2 (287 rows). Explicit,
+#: so a version the table does not name is refused, never sent to v1
+#: (Validator, X23).
+TRAIN_FOR_VERSION = {
+    "1.0": "v1",
+    "1.1": "v2",
+    "1.2": "v2",
+    "1.3": "v2",
+    "1.4": "v2",
+    "1.5": "v2",
+}
 TRAIN_SHA256 = "65eb6a5f4e95ab3e2120c78cf3cd6a60d37554934c7d7ddea71e53cdadaac947"
 PROVENANCE_SHA256 = "f510f92f77ec0c1d3655069703e70d25585648dc2766e14cef5f4689089c1860"
 OBSERVED_SHA256 = "bb2d030d486b313efe2c0ebf57151bb4a34727d6e307892a87e1d8a9211ccc45"
@@ -432,10 +445,12 @@ def load_public_train(version: str) -> dict:
     """Load pinned inert tensors; admission and scientific use belong elsewhere."""
     import numpy as np
 
-    if version not in CHALLENGE_VERSIONS:
+    if version not in CHALLENGE_VERSIONS or version not in TRAIN_FOR_VERSION:
         raise ValueError("unknown public f08 TRAIN version")
-    if version in ("1.1", "1.2", "1.3", "1.4"):
+    if TRAIN_FOR_VERSION[version] == "v2":
         return _load_v2()
+    if TRAIN_FOR_VERSION[version] != "v1":
+        raise ValueError("unknown public f08 TRAIN version")
     raw = (_DATA / _TRAIN).read_bytes()
     provenance_raw = (_DATA / _PROVENANCE).read_bytes()
     if _digest(raw) != TRAIN_SHA256 or _digest(provenance_raw) != PROVENANCE_SHA256:

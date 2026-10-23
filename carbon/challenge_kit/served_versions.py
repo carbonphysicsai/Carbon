@@ -57,6 +57,12 @@ CATALOG = frozenset(
         # Carbon's graph training adapter) before they freeze.
         (F08, "1.4"),
         (F02, "2.3"),
+        # Graph route v2 (`version_lineage.GRAPH_ROUTE_V2`): each its
+        # predecessor plus Carbon's graph training adapter v2.
+        (MOTOR, "1.4"),
+        (COOLING, "1.4"),
+        (F08, "1.5"),
+        (F02, "2.4"),
     }
 )
 #: Each Challenge's catalog version, serving allowlist v7 (the Validator,
@@ -76,6 +82,11 @@ V7 = frozenset(
         # binding and the graph training adapter.
         (F08, "1.4"),
         (F02, "2.3"),
+        # Graph route v2, as their predecessors.
+        (MOTOR, "1.4"),
+        (COOLING, "1.4"),
+        (F08, "1.5"),
+        (F02, "2.4"),
     }
 )
 #: Versions registered before step 2: served v5 and their step caps, unchanged.

@@ -453,41 +453,21 @@ class DirectPractice:
         return result, backend, recipe
 
     def _graph(self, recipe, binding, material, identity):
-        from carbon.development_session import physical_graph_adapter as adapter
-        from carbon.development_session.construction_recipe import (
-            graph_envelope_from_workspace,
-        )
-        from carbon.development_session.direct_graph_construction_worker import (
-            reconstruct_and_infer_graph_public,
-        )
+        from carbon.development_session import graph_adapters
 
-        spec = adapter.spec_for(self.spec.challenge_id, self.version)
-        limits = material["construction_limits_document"]
-        if limits.get("graph_training_adapter") != adapter.adapter_block(
-            spec.challenge_id, spec.version
-        ):
-            raise ValueError(self.spec.prefix + "_graph_adapter_unregistered")
-        # Refused here, with the adapter's own closed code, before anything runs.
-        adapter.training_settings(recipe)
-        envelope = graph_envelope_from_workspace(self.ledger, self.owner, recipe)
-        result = reconstruct_and_infer_graph_public(
-            self.ledger,
-            owner=self.owner,
-            identity=identity,
-            image=self.parent,
-            recipe=recipe,
-            challenge_binding=dict(binding),
-            limits_document=limits,
-            source_envelope=envelope,
-            train=material["train"],
-            inputs=material["practice_inputs"],
-            expected_output_shape=material["expected_output_shape"],
-            allowlist_bytes=material["allowlist_bytes"],
-            seed=0,
-            runner=self.runner,
-            adapter_id=spec.adapter_id,
-        )
-        backend = {"kind": "C03_DOCKER", "adapter": spec.adapter_id}
+        try:
+            result, backend = graph_adapters.practise(
+                self.ledger,
+                owner=self.owner,
+                parent=self.parent,
+                runner=self.runner,
+                recipe=recipe,
+                binding=binding,
+                material=material,
+                identity=identity,
+            )
+        except graph_adapters.GraphAdapterUnregistered:
+            raise ValueError(self.spec.prefix + "_graph_adapter_unregistered") from None
         return result, backend, recipe
 
 

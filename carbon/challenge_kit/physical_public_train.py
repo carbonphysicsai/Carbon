@@ -313,7 +313,12 @@ def load_public_train(challenge_id: str, version: str | None = None) -> dict:
     """Load only pinned DEVELOPMENT bytes; never admit an evaluation role.
     `version` selects the encoded TRAIN where that version uses it
     (`ENCODED_VERSIONS`); otherwise the native TRAIN, as for every version
-    before."""
+    before. A construction-only successor (`version_lineage`) reads its
+    predecessor's TRAIN, so Cooling 1.4 reads 1.3's encoded TRAIN."""
+    from .version_lineage import material_version
+
+    if version is not None:
+        version = material_version(challenge_id, version)
     if (challenge_id, version) in ENCODED_VERSIONS:
         return _load_encoded(challenge_id)
     challenge, domain, count = _source(challenge_id)

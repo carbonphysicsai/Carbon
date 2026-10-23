@@ -514,6 +514,9 @@ def _versioned_campaigns():
         (MOTOR_CHALLENGE, "1.3"): functools.partial(_motor_catalog, "1.3"),
         (COLD_PLATE_CHALLENGE, "1.2"): functools.partial(_cold_plate_catalog, "1.2"),
         (COLD_PLATE_CHALLENGE, "1.3"): functools.partial(_cold_plate_catalog, "1.3"),
+        # Graph route v2: the predecessor's catalog campaign plus the graph route.
+        (MOTOR_CHALLENGE, "1.4"): functools.partial(_motor_catalog, "1.4"),
+        (COLD_PLATE_CHALLENGE, "1.4"): functools.partial(_cold_plate_catalog, "1.4"),
         **_direct_campaigns(),
     }
 
@@ -524,6 +527,8 @@ def _direct_campaigns():
     return {
         ("f08-ribbed-bracket", "1.4"): functools.partial(_f08_direct, "1.4"),
         ("f02", "2.3"): functools.partial(_f02_direct, "2.3"),
+        ("f08-ribbed-bracket", "1.5"): functools.partial(_f08_direct, "1.5"),
+        ("f02", "2.4"): functools.partial(_f02_direct, "2.4"),
     }
 
 

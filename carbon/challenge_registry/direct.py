@@ -73,8 +73,20 @@ def graph_recipe(spec, submission_digest=None, *, version, training=None):
     `version`: the adapter's dataset, `train_fraction` 1.0 (its registered
     default) and `training` (empty: every surface keeps its registered
     default). Without `submission_digest` it is an unfilled template (None):
-    the miner's graph, staged in their workspace, names it."""
+    the miner's graph, staged in their workspace, names it. A graph route v2
+    version's template is its adapter v2's (`graph_adapters.graph_recipe`)."""
+    from carbon.challenge_kit import version_lineage
     from carbon.development_session import physical_graph_adapter as adapter
+
+    if version_lineage.serves_graph_route_v2(spec.challenge_id, version):
+        from carbon.development_session import graph_adapters
+
+        return graph_adapters.graph_recipe(
+            spec.challenge_id,
+            version,
+            submission_digest,
+            configuration={"training": dict(training or {})},
+        )
 
     kit = _kit(spec, version)
     block = adapter.adapter_block(spec.challenge_id, version)

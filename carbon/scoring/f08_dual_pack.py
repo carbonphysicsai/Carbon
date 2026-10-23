@@ -80,6 +80,10 @@ VERSIONS = {
     # Catalog + graph version (Launchpad, allowlist v7): the predecessor's
     # measurement under its evaluation version.
     "1.4": ("f08-dual-near-limit-bank-8-v2", "f08-near-limit-bank-8"),
+    # Graph route v2 (`challenge_kit.version_lineage`; Validator no-limits
+    # binding, 2026-10-23): construction only, so the predecessor's measurement
+    # under its evaluation version.
+    "1.5": ("f08-dual-near-limit-bank-8-v2", "f08-near-limit-bank-8"),
 }
 #: A sealed exam batch's evaluation version, per Challenge version (Validator,
 #: 2026-10-20): the same measurement as that version's, under its own name.
@@ -87,6 +91,8 @@ SEALED_VERSIONS = {
     "1.2": "f08-dual-sealed-batch-8-v1",
     "1.3": "f08-dual-sealed-batch-8-v1",
     "1.4": "f08-dual-sealed-batch-8-v1",
+    # Graph route v2: 1.4's sealed exam, the same evaluation version.
+    "1.5": "f08-dual-sealed-batch-8-v1",
 }
 LEG_MINIMUM_RULES = {
     "baseline_legs": (

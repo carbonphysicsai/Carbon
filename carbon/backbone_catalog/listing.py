@@ -35,12 +35,21 @@ def load():
 
 
 def entries(challenge_id=None, version=None):
-    """Every entry, or those offered on (challenge_id, version)."""
+    """Every entry, or those offered on (challenge_id, version): named for it,
+    or for the predecessor whose entries a graph route v2 version inherits
+    (`challenge_kit.version_lineage.INHERITS_CATALOG`)."""
+    if challenge_id is None:
+        return list(load()["entries"])
+    from carbon.challenge_kit.version_lineage import catalog_versions
+
+    offered = [
+        {"id": challenge_id, "version": named}
+        for named in catalog_versions(challenge_id, version)
+    ]
     return [
         e
         for e in load()["entries"]
-        if challenge_id is None
-        or {"id": challenge_id, "version": version} in e["challenges"]
+        if any(challenge in e["challenges"] for challenge in offered)
     ]
 
 

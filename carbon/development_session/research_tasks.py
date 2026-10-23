@@ -2213,6 +2213,21 @@ def ready_recipes(challenge_id, version, builders):
     from .research_service import recipe_source_kinds
 
     kinds = recipe_source_kinds(research.ChallengeKey(challenge_id, version))
+    if "graph" in kinds and "graph" not in builders:
+        # Every graph-served version's template, one builder for all
+        # (`graph_adapters.graph_recipe`), with the v2 configuration example.
+        from . import graph_adapters
+
+        builders = {
+            **builders,
+            "graph": lambda: graph_adapters.graph_recipe(
+                challenge_id,
+                version,
+                configuration=graph_adapters.configuration_example(
+                    challenge_id, version
+                ),
+            ),
+        }
     return {
         "schema": "carbon.ready-recipes.v1",
         "challenge": {"id": challenge_id, "version": version},

@@ -253,6 +253,29 @@ def _motor_catalog_v7():
     return describe_catalog("1.3")
 
 
+def _motor_describe_catalog(version):
+    from .motor import describe_catalog
+
+    return describe_catalog(version)
+
+
+def _cold_plate_describe_catalog(version):
+    from .cold_plate import describe_catalog
+
+    return describe_catalog(version)
+
+
+def _direct_describe(challenge):
+    def describe(version):
+        from carbon.direct_campaign.spec import SPECS
+
+        from .direct import describe as direct_describe
+
+        return direct_describe(SPECS[challenge], version)
+
+    return describe
+
+
 def _f08_direct():
     from carbon.direct_campaign.spec import F08
 
@@ -267,6 +290,53 @@ def _f02_direct():
     from .direct import describe
 
     return describe(F02, "2.3")
+
+
+def _with_graph_route(described, challenge_id, version):
+    """A graph route v2 version's description: its predecessor's, plus the
+    graph training adapter v2 it serves and a ready graph recipe template
+    (`development_session.graph_adapters`)."""
+    from carbon.challenge_kit import version_lineage
+    from carbon.development_session import graph_adapters
+
+    block = graph_adapters.adapter_block(challenge_id, version)
+    described = dict(described)
+    described["graph_route"] = {
+        "adapter": block,
+        "predecessor": version_lineage.predecessor(challenge_id, version),
+        "summary": (
+            "Your own graph, trained by Carbon's graph training adapter v2: "
+            "per-output loss weights, ensembles whose members each train on a "
+            "chosen subset of the outputs (combined per output), any number of "
+            "members within the build's resource limits, and training settings "
+            "bounded only by structure."
+        ),
+        "example": {
+            "recipe": graph_adapters.graph_recipe(
+                challenge_id,
+                version,
+                configuration=graph_adapters.configuration_example(
+                    challenge_id, version
+                ),
+            ),
+            "note": (
+                "Stage your graph in your workspace and put its submission_digest "
+                "in source; every configuration field is optional."
+            ),
+        },
+    }
+    described["examples"] = [
+        *described.get("examples", []),
+        {"recipe": described["graph_route"]["example"]["recipe"]},
+    ]
+    return described
+
+
+def _graph_route(predecessor_describe, challenge_id, version):
+    def describe():
+        return _with_graph_route(predecessor_describe(version), challenge_id, version)
+
+    return describe
 
 
 def _compile_burgers(strategy):
@@ -450,6 +520,31 @@ def _entries():
             _motor_catalog_v7,
             None,
         ),
+        # Graph route v2 (`challenge_kit.version_lineage`): the predecessor
+        # plus Carbon's graph training adapter v2; the predecessor is unchanged.
+        Entry(
+            MOTOR_CHALLENGE,
+            "1.4",
+            "Electric-motor magnetics (DEVELOPMENT periodic cross-section, backbone "
+            "catalog and graph training adapter v2, allowlist v7)",
+            IMPLEMENTED,
+            "launch",
+            "carbonphysicsai/Carbon#344",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "JAX CPU practice of your own graph by Carbon's graph training "
+                    "adapter v2, in the isolated C-03 CPU worker; exact public TRAIN "
+                    "and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+                catalog_gpu,
+            ),
+            _graph_route(_motor_describe_catalog, MOTOR_CHALLENGE, "1.4"),
+            None,
+        ),
         # Cooling 1.2, Cooling's catalog version (allowlist v7 and the backbone
         # catalog, as Motor 1.2/1.3): Carbon's tested backbones by catalog id
         # on the direct recipe path; the Level 0 strategy compiler stays 1.0's.
@@ -502,6 +597,31 @@ def _entries():
             _cold_plate_catalog_encoded,
             None,
         ),
+        # Graph route v2 (`challenge_kit.version_lineage`): the predecessor
+        # plus Carbon's graph training adapter v2; the predecessor is unchanged.
+        Entry(
+            COLD_PLATE_CHALLENGE,
+            "1.4",
+            "AI-chip liquid cold plate (DEVELOPMENT periodic cell, backbone catalog, "
+            "graph training adapter v2, allowlist v7, law-safe output encoding)",
+            IMPLEMENTED,
+            "launch",
+            "carbonphysicsai/Carbon#342",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "JAX CPU practice of your own graph by Carbon's graph training "
+                    "adapter v2, in the isolated C-03 CPU worker; exact public TRAIN "
+                    "and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+                catalog_gpu,
+            ),
+            _graph_route(_cold_plate_describe_catalog, COLD_PLATE_CHALLENGE, "1.4"),
+            None,
+        ),
         # F08 (Ribbed Bracket) 1.4 and F02 (Burst Thermal) 2.3, direct-recipe
         # only (`carbon.direct_campaign`): Carbon's tested backbones by catalog
         # id, or a graph trained by Carbon's registered graph training adapter;
@@ -529,6 +649,33 @@ def _entries():
             _f08_direct,
             None,
         ),
+        # Graph route v2 (`challenge_kit.version_lineage`): the predecessor
+        # plus Carbon's graph training adapter v2; the predecessor is unchanged.
+        Entry(
+            "f08-ribbed-bracket",
+            "1.5",
+            "Ribbed Bracket (F08, DEVELOPMENT, backbone catalog and graph training "
+            "adapter v2, allowlist v7)",
+            IMPLEMENTED,
+            LAUNCH_PENDING_READINESS,
+            None,
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "JAX CPU practice of your own graph by Carbon's graph training "
+                    "adapter v2, in the isolated C-03 CPU worker; exact public TRAIN "
+                    "and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+                catalog_gpu,
+            ),
+            _graph_route(
+                _direct_describe("f08-ribbed-bracket"), "f08-ribbed-bracket", "1.5"
+            ),
+            None,
+        ),
         Entry(
             "f02",
             "2.3",
@@ -549,6 +696,31 @@ def _entries():
                 catalog_gpu,
             ),
             _f02_direct,
+            None,
+        ),
+        # Graph route v2 (`challenge_kit.version_lineage`): the predecessor
+        # plus Carbon's graph training adapter v2; the predecessor is unchanged.
+        Entry(
+            "f02",
+            "2.4",
+            "Burst Thermal (F02, DEVELOPMENT, backbone catalog and graph training "
+            "adapter v2, allowlist v7)",
+            IMPLEMENTED,
+            LAUNCH_PENDING_READINESS,
+            None,
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "PyTorch CPU practice of Carbon's tested catalog backbones, or "
+                    "JAX CPU practice of your own graph by Carbon's graph training "
+                    "adapter v2, in the isolated C-03 CPU worker; exact public TRAIN "
+                    "and recipe bytes staged",
+                    "torch-cpu/isolated-carrier",
+                    torch_carrier,
+                ),
+                catalog_gpu,
+            ),
+            _graph_route(_direct_describe("f02"), "f02", "2.4"),
             None,
         ),
         Entry(

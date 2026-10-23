@@ -145,13 +145,14 @@ def _bind_catalog_and_graph_adapter(document: dict, challenge_id: str, version: 
     if not serves_catalog(challenge_id, version):
         return
     from carbon.backbone_catalog import served
-    from carbon.development_session import physical_graph_adapter
+    from carbon.development_session import graph_adapters
 
     document["backbone_catalog"] = {
         "schema": served.SCHEMA,
         "digest": served.digest(challenge_id, version),
     }
-    document["graph_training_adapter"] = physical_graph_adapter.adapter_block(
+    # v1 on F08 1.4 / F02 2.3, v2 on their graph route v2 successors.
+    document["graph_training_adapter"] = graph_adapters.adapter_block(
         challenge_id, version
     )
 

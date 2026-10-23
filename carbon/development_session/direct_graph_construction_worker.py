@@ -344,13 +344,209 @@ def _decoded_infer_program() -> str:
 PHYSICAL_INFER_PROGRAM = _decoded_infer_program()
 SYNTHETIC_ADAPTER_ID = "synthetic-linear-field-2d-public-jax-graph-v1"
 
+#: Graph route v2 (`physical_graph_adapter_v2`): its own staged modules and
+#: programs beside v1's, which keep their bytes (the F08/F02 graph golden).
+PHYSICAL_V2_STAGED_MODULES = (
+    *(name for name in STAGED_MODULES if not name.endswith("synthetic_graph_adapter")),
+    "carbon.development_session.build_refusal",
+    "carbon.development_session.build_refusal_v2",
+    "carbon.development_session.physical_graph_state",
+    "carbon.development_session.physical_graph_state_v2",
+    "carbon.development_session.physical_graph_trainer_v2",
+    "carbon.development_session.physical_graph_adapter_v2",
+)
+
+
+def _v2_build_program() -> str:
+    """v1's build program on the v2 adapter, trainer and ensemble state; an
+    interface in float64 (Motor, Cooling) runs with JAX's 64-bit mode on,
+    set before JAX loads."""
+    program = PHYSICAL_BUILD_PROGRAM.replace(
+        repr(PHYSICAL_STAGED_MODULES), repr(PHYSICAL_V2_STAGED_MODULES)
+    )
+    for old, new in (
+        (
+            (
+                '"""Fixed F08/F02 direct-graph construction (Carbon\'s pinned trainer);'
+                ' no judge."""\nimport hashlib, json, shutil, sys\n'
+            ),
+            (
+                '"""Fixed graph route v2 construction (Carbon\'s trainer v2); no judge."""\n'
+                "import hashlib, json, os, shutil, sys\n"
+            ),
+        ),
+        (
+            "sys.path.insert(0, str(work))\n",
+            (
+                "sys.path.insert(0, str(work))\n"
+                'if json.loads((work / "control.json").read_bytes()).get("x64") is True:\n'
+                '    os.environ["JAX_ENABLE_X64"] = "1"\n'
+            ),
+        ),
+        (
+            "from carbon.development_session import build_refusal\n",
+            "from carbon.development_session import build_refusal_v2 as build_refusal\n",
+        ),
+        (
+            "from carbon.development_session.physical_graph_adapter import (\n",
+            "from carbon.development_session.physical_graph_adapter_v2 import (\n",
+        ),
+        (
+            "from carbon.development_session.physical_graph_state import load\n",
+            "from carbon.development_session.physical_graph_state_v2 import load\n",
+        ),
+        (
+            '(work / "carbon.development_session.physical_graph_trainer.py")',
+            '(work / "carbon.development_session.physical_graph_trainer_v2.py")',
+        ),
+        (
+            '    if not error.code.endswith("_graph_nonfinite_state"):\n',
+            '    if error.code != "graph_route_nonfinite_state":\n',
+        ),
+    ):
+        if program.count(old) != 1:
+            raise RuntimeError("graph route v2 build program anchor moved")
+        program = program.replace(old, new)
+    return program
+
+
+def _v2_infer_program() -> str:
+    """The decoded inference program over an ensemble: every member's
+    prediction, combined per output, then the decoder."""
+    from .bundle_construction_worker import INFER_PROGRAM
+    from .bundle_construction_worker import STAGED_MODULES as INFER_MODULES
+
+    program = INFER_PROGRAM
+    for old, new in (
+        (
+            '"""Fixed input-only graph inference; no source or TRAIN."""',
+            (
+                '"""Fixed input-only graph route v2 ensemble inference; no source or'
+                ' TRAIN."""'
+            ),
+        ),
+        (
+            repr(INFER_MODULES),
+            repr(
+                (
+                    *INFER_MODULES,
+                    "carbon.development_session.physical_graph_state",
+                    "carbon.development_session.physical_graph_state_v2",
+                )
+            ),
+        ),
+        (
+            "from carbon.development_session.bundle_graph_state import load\n",
+            "from carbon.development_session.physical_graph_state_v2 import load\n",
+        ),
+        (
+            "doc, parameters = load(state, recipe, allowed)\n",
+            (
+                "doc, members, decoder_mu, decoder_sd, combine = load(state, recipe,"
+                " allowed)\nparameters = list(members[0])\n"
+            ),
+        ),
+        (
+            "parameter_arrays = [jnp.asarray(p) for p in parameters]\n",
+            (
+                "parameter_arrays = [jnp.asarray(p) for p in parameters]\n"
+                "member_arrays = [[jnp.asarray(p) for p in member] for member in members]\n"
+            ),
+        ),
+        (
+            "forward = rebuild(doc, allowed)\n",
+            (
+                "member_forward = rebuild(doc, allowed)\n"
+                "def forward(*arguments):\n"
+                "    # Each output: the members that train it, by the combination.\n"
+                "    part = arguments[-1]\n"
+                "    total = None\n"
+                "    for weights, arrays in zip(combine, member_arrays):\n"
+                "        produced = member_forward(*arrays, part)\n"
+                "        if len(produced) != 1:\n"
+                '            raise ValueError("graph inference output arity differs")\n'
+                "        term = produced[0] * jnp.asarray(weights)\n"
+                "        total = term if total is None else total + term\n"
+                "    return [total]\n"
+            ),
+        ),
+        (
+            "result = np.asarray(outputs[0])\n",
+            "result = np.asarray(outputs[0]) * decoder_sd + decoder_mu\n",
+        ),
+    ):
+        if program.count(old) != 1:
+            raise RuntimeError("graph route v2 inference program anchor moved")
+        program = program.replace(old, new)
+    return program
+
+
+PHYSICAL_V2_BUILD_PROGRAM = _v2_build_program()
+PHYSICAL_V2_INFER_PROGRAM = _v2_infer_program()
+
 
 def graph_adapter_ids() -> frozenset:
-    """Every graph adapter the receiver can run: the synthetic one (1.3) and
-    the F08 1.4 / F02 2.3 adapters."""
-    from .physical_graph_adapter import ADAPTER_IDS
+    """Every graph adapter the receiver can run: the synthetic one (1.3), the
+    F08 1.4 / F02 2.3 adapters and every graph route v2 adapter."""
+    from . import graph_adapters
 
-    return frozenset({SYNTHETIC_ADAPTER_ID}) | ADAPTER_IDS
+    return frozenset({SYNTHETIC_ADAPTER_ID}) | graph_adapters.adapter_ids()
+
+
+def v2_infer_query(challenge_id: str, version: str) -> dict:
+    """The `_infer_state` arguments of a graph route v2 version's
+    source-free inference: the ensemble state, combined and decoded by its own
+    program (the receiver and regrade share it). The output dtype is the
+    interface's, which each caller passes."""
+    from . import physical_graph_adapter_v2
+
+    physical_graph_adapter_v2.spec_for(challenge_id, version)
+    root = Path(__file__).resolve().parents[2]
+    names = (
+        "carbon.development_session.physical_graph_state",
+        "carbon.development_session.physical_graph_state_v2",
+    )
+    return {
+        "input_name": "inputs/features",
+        "program": PHYSICAL_V2_INFER_PROGRAM,
+        "staged_files": {
+            name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
+            for name in names
+        },
+    }
+
+
+def _v2_adapter_ids() -> frozenset:
+    from . import physical_graph_adapter_v2
+
+    return physical_graph_adapter_v2.ADAPTER_IDS
+
+
+def _v2_stage(binding: dict, limits_document: dict, allowlist_bytes: bytes):
+    """Check a graph route v2 adapter's served identity; return its staged
+    files (as `_physical_stage` does for v1)."""
+    from carbon.level4.allowlist import Allowlist
+
+    from . import physical_graph_adapter_v2 as adapter
+
+    spec = adapter.spec_for(binding["challenge_id"], binding["challenge_version"])
+    if limits_document.get("graph_training_adapter") != adapter.adapter_block(
+        spec.challenge_id, spec.version
+    ):
+        raise RecipeRefused("direct_graph_adapter_identity_invalid")
+    if allowlist_bytes != adapter.served_allowlist_bytes(
+        spec.challenge_id, spec.version
+    ):
+        raise RecipeRefused("direct_graph_allowlist_unregistered")
+    if binding["train_digest"] != "sha256:" + spec.train_sha256:
+        raise RecipeRefused("direct_graph_train_binding_invalid")
+    adapter.trainer_source()
+    root = Path(__file__).resolve().parents[2]
+    files = {
+        name + ".py": (root / (name.replace(".", "/") + ".py")).read_bytes()
+        for name in PHYSICAL_V2_STAGED_MODULES
+    }
+    return spec, Allowlist(allowlist_bytes), files
 
 
 def _physical_stage(binding: dict, limits_document: dict, allowlist_bytes: bytes):
@@ -455,6 +651,22 @@ def reconstruct_public_graph(
         def load_built(state):
             load_state(state, recipe, allowed)
 
+    elif adapter_id in _v2_adapter_ids():
+        from . import physical_graph_state_v2
+
+        spec, allowed, physical_files = _v2_stage(
+            binding, limits_document, allowlist_bytes
+        )
+        if spec.adapter_id != adapter_id:
+            raise RecipeRefused("direct_graph_adapter_identity_invalid")
+        files = _stage_modules()
+        files.update(physical_files)
+        program = PHYSICAL_V2_BUILD_PROGRAM
+        x64 = spec.dtype == "float64"
+
+        def load_built(state):
+            physical_graph_state_v2.load(state, recipe, allowed)
+
     elif adapter_id in graph_adapter_ids():
         from . import physical_graph_state
 
@@ -488,6 +700,8 @@ def reconstruct_public_graph(
                     "envelope_digest": _digest(source_envelope),
                     "allowlist_digest": allowed.digest,
                     "seed": seed,
+                    # Graph route v2 only, so v1's control bytes are unchanged.
+                    **({"x64": x64} if adapter_id in _v2_adapter_ids() else {}),
                 }
             ),
         }
@@ -670,7 +884,16 @@ def reconstruct_and_infer_graph_public(
         "provenance": INFERENCE_PROVENANCE,
         "runner": runner,
     }
-    if adapter_id != SYNTHETIC_ADAPTER_ID:
+    if adapter_id in _v2_adapter_ids():
+        from . import physical_graph_adapter_v2
+
+        query.update(
+            v2_infer_query(binding["challenge_id"], binding["challenge_version"])
+        )
+        query["expected_output_dtype"] = physical_graph_adapter_v2.spec_for(
+            binding["challenge_id"], binding["challenge_version"]
+        ).dtype
+    elif adapter_id != SYNTHETIC_ADAPTER_ID:
         # The F08/F02 adapter: its decoded state, applied by its own program.
         root = Path(__file__).resolve().parents[2]
         name = "carbon.development_session.physical_graph_state"

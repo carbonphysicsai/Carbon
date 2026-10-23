@@ -43,6 +43,11 @@ REGISTERED = (
     (motor.CHALLENGE.challenge_id, "1.3"),
     (cooling.CHALLENGE.challenge_id, "1.2"),
     (cooling.CHALLENGE.challenge_id, "1.3"),
+    # Graph route v2 (`version_lineage`): each its predecessor's material plus
+    # Carbon's graph training adapter v2. F08 1.5 registers through
+    # f08_train.CHALLENGE_VERSIONS below.
+    (motor.CHALLENGE.challenge_id, "1.4"),
+    (cooling.CHALLENGE.challenge_id, "1.4"),
     # Both F08 versions: 1.0 (255-row TRAIN v1) and 1.1 (287-row TRAIN v2, the straddling bank).
     *((f08_train.CHALLENGE_ID, version) for version in f08_train.CHALLENGE_VERSIONS),
     # F02 2.0 (TRAIN40-v2): its own public module and float32 TRAIN, like F08. Named explicitly,
@@ -56,6 +61,7 @@ REGISTERED = (
     # adapter. F08 1.4 registers through f08_train.CHALLENGE_VERSIONS above. Their material
     # loads once their pack labels exist (physical_pack); until then it fails closed.
     ("f02", "2.3"),
+    ("f02", "2.4"),
 )
 
 

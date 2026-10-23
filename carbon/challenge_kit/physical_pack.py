@@ -129,6 +129,16 @@ PACK_VERSIONS = {
     (f02_train.CHALLENGE_ID, "2.1"): "f02-normal-construction-development-3",
     (f02_train.CHALLENGE_ID, "2.2"): "f02-normal-construction-development-4",
     (f02_train.CHALLENGE_ID, "2.3"): "f02-normal-construction-development-5",
+    # Graph route v2 (`version_lineage`; Validator, 2026-10-23: no exam
+    # redraw): each the predecessor's exam content under its own pack
+    # version; only the construction kit (graph adapter v2) differs.
+    (motor.CHALLENGE.challenge_id, "1.4"): "motor-normal-construction-development-5",
+    (
+        cooling.CHALLENGE.challenge_id,
+        "1.4",
+    ): "cooling-normal-construction-development-5",
+    (f08_train.CHALLENGE_ID, "1.5"): "f08-normal-construction-development-6",
+    (f02_train.CHALLENGE_ID, "2.4"): "f02-normal-construction-development-6",
 }
 #: F02's eight registered cold actions (the scoring producer's
 #: `_F02_ACTIONS`), judged B10 ACCEPTED_FOR_DEVELOPMENT_BANK by RR-PACKS-04's
@@ -237,6 +247,16 @@ _F08_EXAMS = {
         F08_LADDER_DECISION_COVERAGE,
         F08_LADDER_POPULATION,
         "f08-normal-construction-development-5",
+    ),
+    # 1.5 (graph route v2): 1.4's ladder bank and TRAIN v2, unchanged.
+    "1.5": (
+        _F08_LADDER_OBSERVED,
+        _F08_LADDER_ENVIRONMENT,
+        "ladder",
+        "decision_near_limit",
+        F08_LADDER_DECISION_COVERAGE,
+        F08_LADDER_POPULATION,
+        "f08-normal-construction-development-6",
     ),
 }
 _F08_BRIEF = (

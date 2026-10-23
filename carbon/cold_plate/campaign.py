@@ -42,7 +42,8 @@ RUNTIME_KEYS = frozenset(
 )
 #: The backbone-catalog versions. Each serves exactly its own version, by its
 #: research key.
-CATALOG_VERSIONS = ("1.2", "1.3")
+#: 1.4 is graph route v2: 1.3 plus Carbon's graph training adapter v2.
+CATALOG_VERSIONS = ("1.2", "1.3", "1.4")
 
 
 def _key():
