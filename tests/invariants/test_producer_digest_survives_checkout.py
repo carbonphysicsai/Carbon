@@ -91,4 +91,7 @@ def test_an_autocrlf_checkout_never_converts_a_hashed_file():
         if checkout != committed:
             converted.append(path)
     assert not converted, f"checkout converts producer files: {converted}"
-    assert len(_hashed()) == 21
+    # Scoring v2 added nine hashed producer modules (cooling_physics,
+    # critical_fidelity, design_fidelity, f02_physics, f08_critical,
+    # f08_physics, motor_physics, physics_half, probe_design): 21 -> 30.
+    assert len(_hashed()) == 30
