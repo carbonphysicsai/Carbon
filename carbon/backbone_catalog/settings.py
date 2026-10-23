@@ -32,6 +32,8 @@ class Schema:
     vocabulary: str = "v1"
     #: Exclusive upper bound of a seed candidate (the trainer's own: torch seeds up to 2**64 - 1, numpy up to 2**32 - 1).
     seed_limit: int = 2**32
+    #: The physics-prior + residual build (`prior_src/build_prior.py`): also takes `configuration.prior` and `configuration.krr`.
+    prior: bool = False
 
 
 #: The coverage build: one backbone trained fresh with Adam (the DeepXDE and
@@ -141,6 +143,18 @@ JAX_V2 = Schema(
     # raises OverflowError from 2**63 (measured on jax 0.10.2), so the JAX build keeps uint32 seeds.
     seed_limit=2**32,
 )
+#: Physics prior + learned residual (`prior_src/build_prior.py`, JAX; one Challenge-neutral build, the Challenge's prior is the
+#: bundle's own `prior.py`): the catalog trainer v2 vocabulary for a residual backbone, plus the closed-form KRR settings.
+JAX_PRIOR = Schema(
+    "carbon-candidate-jax-prior-v1",
+    "carbon_candidate/build.py",
+    "sha256:3a3394ddcd35fe4c4581a2142408ee97e058cf02c4e182e0005a2999525b4bd2",
+    frozenset({"learning_rate", "prior", "krr"}),
+    LEVERS.train_use,
+    vocabulary="v2",
+    seed_limit=2**32,
+    prior=True,
+)
 SCHEMAS = {
     s.schema_id: s
     for s in (
@@ -153,6 +167,7 @@ SCHEMAS = {
         COVERAGE_F32,
         TORCH_V2,
         JAX_V2,
+        JAX_PRIOR,
     )
 }
 #: Each Torch schema's GPU (`torch-cu130-py311`) build, the one deterministic
@@ -207,6 +222,7 @@ PRECISIONS = {
     JAX_LEVERS.schema_id: ("bfloat16", "float16", "float32"),
     TORCH_V2.schema_id: ("bfloat16", "float16", "float32", "float64"),
     JAX_V2.schema_id: ("bfloat16", "float16", "float32"),
+    JAX_PRIOR.schema_id: ("bfloat16", "float16", "float32"),
 }
 #: The levers build's architecture settings, per backbone (its `ARCH`).
 ARCH = {
@@ -235,28 +251,33 @@ LIBRARY_ARCH = (
 
 
 @functools.lru_cache(maxsize=None)
-def output_count(challenge_id, version):
-    """The output width of a registered Challenge version's interface (None when this process cannot resolve it).
+def interface_shape(challenge_id, version):
+    """(inputs, outputs) of a registered Challenge version's interface; an entry is None when this process cannot resolve it.
 
-    Read from the version's own served material, so a new Challenge or a changed interface needs no edit here: the
-    expected output shape of the public bank for the physical Challenges, the sealed pack's width for Battery.
+    Read from the version's own served material, so a new Challenge or a changed interface needs no edit here: the practice
+    bank's shapes for the physical Challenges, the sealed pack's width for Battery.
     """
     try:
         if challenge_id == "battery-fastcharge-ageing-development-v1":
             from carbon.challenge_kit import battery_pack
 
-            return battery_pack.OUTPUT_WIDTH
+            return None, battery_pack.OUTPUT_WIDTH
         from carbon.challenge_kit import physical_material
 
         if not physical_material.is_registered(challenge_id, version):
-            return None
-        return int(
-            physical_material.bundle_material(challenge_id, version)[
-                "expected_output_shape"
-            ][1]
+            return None, None
+        material = physical_material.bundle_material(challenge_id, version)
+        return (
+            int(material["practice_inputs"].shape[1]),
+            int(material["expected_output_shape"][1]),
         )
     except (ImportError, ValueError):
-        return None
+        return None, None
+
+
+def output_count(challenge_id, version):
+    """The output width of a registered Challenge version's interface (None when this process cannot resolve it)."""
+    return interface_shape(challenge_id, version)[1]
 
 
 #: Choice lists per vocabulary: what the build implements.
@@ -396,6 +417,14 @@ def _arch(backbone, arch, where, vocabulary="v1"):
             _within(value, f"{where}.dropout", 0, 1, high_open=True)
         else:
             _positive_int(value, f"{where}.{key}")
+    if vocabulary != "v2" and backbone == "transolver":
+        # The pinned v1 build refuses it. The v2 build does not: the vendored library builds and runs hidden 33 / heads 4.
+        merged = {"hidden": 32, "heads": 4, **arch}  # the build's ARCH defaults
+        if merged["hidden"] % merged["heads"]:
+            raise CatalogRefused(
+                "catalog_settings_inconsistent",
+                "transolver hidden must be a multiple of heads",
+            )
 
 
 def _loss(spec, where, vocabulary="v1", n_out=None):
@@ -700,6 +729,80 @@ def _levers(backbone, use, precisions=("bfloat16", "float16"), schema=None, n_ou
             _bad("train_use.quantize.bits", "a whole number from 2 to 16")
 
 
+KRR_KERNELS = ("rbf", "matern32", "matern52")
+KRR_GROUP_KEYS = frozenset({"outputs", "kernel", "length_scales", "ridge", "log_space"})
+
+
+def _prior_settings(item, configuration, train_use, n_in, n_out):
+    """`configuration.prior` / `configuration.krr` of a physics-prior entry (mirror of `prior_src/build_prior.py`)."""
+    if "prior" in configuration:
+        _choice(configuration["prior"], "configuration.prior", ("analytic", "none"))
+        if configuration["prior"] == "analytic" and not item.get("prior"):
+            raise CatalogRefused(
+                "catalog_setting_invalid",
+                "this entry's bundle ships no prior, so configuration.prior can only be none",
+            )
+    krr_entry = item["backbone"] == "krr"
+    if "krr" in configuration and not krr_entry:
+        _bad("configuration.krr", "only for the closed-form krr backbone")
+    if krr_entry and train_use:
+        _bad("train_use", "empty: the krr fit takes no training levers")
+    if not krr_entry:
+        return
+    spec = configuration.get("krr", {})
+    _only(spec, (KRR_GROUP_KEYS - {"outputs"}) | {"groups"}, "configuration.krr")
+    positive = tuple((item.get("prior") or {}).get("positive_outputs", ()))
+    raw = spec.get("groups")
+    if raw is None:
+        raw = [{"outputs": [0, n_out]}] if n_out else []
+    if type(raw) is not list or (raw == [] and "groups" in spec):
+        _bad("configuration.krr.groups", "a non-empty list")
+    at = 0
+    for index, group in enumerate(raw):
+        where = f"configuration.krr.groups[{index}]"
+        _only(group, KRR_GROUP_KEYS, where)
+        span = group.get("outputs")
+        if (
+            type(span) is not list
+            or len(span) != 2
+            or any(type(v) is not int for v in span)
+            or not 0 <= span[0] < span[1]
+            or (n_out is not None and span[1] > n_out)
+        ):
+            _bad(where + ".outputs", "[start, stop] inside the Challenge's outputs")
+        if span[0] != at:
+            raise CatalogRefused(
+                "catalog_settings_inconsistent",
+                f"{where}: krr groups must cover every output once, in order (output {at})",
+            )
+        at = span[1]
+        for source in (spec, group):
+            if "kernel" in source:
+                _choice(source["kernel"], where + ".kernel", KRR_KERNELS)
+            if "ridge" in source:
+                _within(source["ridge"], where + ".ridge", 0, None, low_open=True)
+            if "length_scales" in source:
+                scales = source["length_scales"]
+                listed = type(scales) is list
+                if listed and n_in is not None and len(scales) != n_in:
+                    _bad(where + ".length_scales", f"one number or {n_in} numbers")
+                for value in scales if listed else [scales]:
+                    _within(value, where + ".length_scales", 0, None, low_open=True)
+            if "log_space" in source and type(source["log_space"]) is not bool:
+                _bad(where + ".log_space", "true or false")
+        logged = group.get("log_space", spec.get("log_space", False))
+        if logged and not all(o in positive for o in range(*span)):
+            raise CatalogRefused(
+                "catalog_setting_invalid",
+                where + ".log_space: only for outputs the prior declares positive",
+            )
+    if n_out is not None and at != n_out:
+        raise CatalogRefused(
+            "catalog_settings_inconsistent",
+            f"configuration.krr.groups leave output {at} covered by no group",
+        )
+
+
 def resolve(item, configuration, train_use):
     """The bundle's configuration and train_use for catalog entry `item`: the
     miner's settings checked by the entry's schema over the tested baseline's
@@ -727,11 +830,14 @@ def resolve(item, configuration, train_use):
                 train_use["derivative_weight"], "train_use.derivative_weight", 0, None
             )
     else:
-        n_out = None
+        n_in = n_out = None
         if vocabulary == "v2":
             first = item["challenges"][0]
-            n_out = output_count(first["id"], first["version"])
-        _levers(backbone, train_use, PRECISIONS[schema.schema_id], schema, n_out)
+            n_in, n_out = interface_shape(first["id"], first["version"])
+        if schema.prior:
+            _prior_settings(item, configuration, train_use, n_in, n_out)
+        if not (schema.prior and backbone == "krr"):
+            _levers(backbone, train_use, PRECISIONS[schema.schema_id], schema, n_out)
         if train_use.get("precision") == "float64" and backbone in COMPLEX_WEIGHTS:
             raise CatalogRefused(
                 "catalog_setting_invalid",
