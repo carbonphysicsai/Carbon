@@ -23,3 +23,8 @@ urllib3==2.7.0
 certifi==2026.7.22
 charset-normalizer==3.5.1
 idna==3.19
+# thuml.LSM imports timm (Validator ruling). The no-dependency image install needs
+# its dependencies in the lock: torchvision (its CUDA 13 build, with torch), and
+# huggingface-hub, safetensors and pyyaml from the constraints.
+timm==1.0.29
+torchvision==0.28.0+cu130
