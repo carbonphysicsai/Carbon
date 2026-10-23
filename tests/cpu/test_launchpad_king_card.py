@@ -164,7 +164,12 @@ def test_the_page_reads_the_card_from_the_controller():
 
 
 def test_a_score_to_beat_within_one_grid_step_of_total_plus_margin_is_read():
-    # One Ladder grid step (max(eta, the margin)) of stepping is tolerated.
-    assert king.parse(answer(to_beat=0.70), COOLING)["to_beat"] == pytest.approx(0.70)
+    # One Ladder grid step (eta) of stepping is tolerated; the margin is not.
+    assert king.parse(answer(to_beat=0.68), COOLING)["to_beat"] == pytest.approx(0.68)
+    for off in (0.66 + 0.04 / 2 + 0.001, 0.66 + 0.04, 0.66 - 0.03):
+        with pytest.raises(king.KingUnreadable):
+            king.parse(answer(to_beat=off), COOLING)
+    baseline = {"king": None, "baseline_total": 0.5}
+    king.parse(answer(**baseline, to_beat=0.54), COOLING)
     with pytest.raises(king.KingUnreadable):
-        king.parse(answer(to_beat=0.71), COOLING)
+        king.parse(answer(**baseline, to_beat=0.58), COOLING)
