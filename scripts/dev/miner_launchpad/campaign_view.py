@@ -432,6 +432,19 @@ def experiment_rows(own, view):
             recipe = None
         score = summary.get("score", diagnostics.get("descriptive_score"))
         failures = summary.get("gate_failures")
+        dual = dual_feedback(experiment)
+        # A direct practice reports its gates in the dual block, not the
+        # summary (M1 E2E R11: a catalog default read "eligible: null" though
+        # its exam gate failed): the run's eligibility is the dual block's.
+        eligible = (
+            summary.get("eligible")
+            if type(summary.get("eligible")) is bool
+            else (
+                dual["eligible"]
+                if type(dual) is dict and type(dual.get("eligible")) is bool
+                else None
+            )
+        )
         rows.append(
             {
                 "index": index,
@@ -440,15 +453,11 @@ def experiment_rows(own, view):
                 or _str((recipe or {}).get("backbone")),
                 "recipe_digest": _str(experiment.get("recipe_digest")),
                 "recipe": recipe,
-                "eligible": (
-                    summary.get("eligible")
-                    if type(summary.get("eligible")) is bool
-                    else None
-                ),
+                "eligible": eligible,
                 "score": finite(score),
                 # The graded dual measurement on the public bank (C13), the
                 # same block for every Challenge: gates first, then the total.
-                "dual": dual_feedback(experiment),
+                "dual": dual,
                 "important_score": finite(summary.get("important_score")),
                 "components": {
                     str(k): finite(components.get(k))
