@@ -135,8 +135,11 @@
     if (value?.status === "TESTED" && value.result === "PASS" && value.scope === "NAMED_CELL_REVISION_ONLY" && /^[0-9a-f]{40}$/.test(value.revision || "") && value.cell && value.evidence) {
       return "Tested at " + value.revision.slice(0, 12) + " · " + value.cell + " only";
     }
-    return "Untested";
+    // "Untested" is Carbon's internal acceptance state, not a miner's concern: nothing is said (E6).
+    return "";
   }
+  function acceptanceSuffix(item, separator = " · ") { const text = acceptanceText(item); return text ? separator + text : ""; }
+  function acceptanceNote(parent, item) { const text = acceptanceText(item); if (text) researchNote(parent, text, "hint"); }
   // An unavailable thing, shown as such (LINKONLY-D10): one plain sentence,
   // one link to the place that fixes it, and its code and full next action
   // behind Details.
@@ -988,7 +991,7 @@
     return "Checked" + time + " ✓: " + checkedText(id, steps) + tail;
   }
   // Only a Carbon test is worth a word in a setup list; "Untested" on every row is noise (U4, U6).
-  function testedSuffix(item) { const text = acceptanceText(item); return text === "Untested" ? "" : " · " + text; }
+  function testedSuffix(item) { return acceptanceSuffix(item); }
   // What a model check learned, only from fields the record carries (U7).
   function learnedCard(parent, check) {
     if (!check?.checked) return;
@@ -1600,7 +1603,7 @@
         return;
       }
       const g = card.guide;
-      const head = el("div", undefined, "card-head"); head.append(el("h3", g.display_name), pill(g.transport, "pill-dev"), ...(acceptanceText(g) === "Untested" ? [] : [pill(acceptanceText(g), "pill-wait")]));
+      const head = el("div", undefined, "card-head"); head.append(el("h3", g.display_name), pill(g.transport, "pill-dev"), ...(acceptanceText(g) === "" ? [] : [pill(acceptanceText(g), "pill-wait")]));
       wherePanel.append(head);
       wherePanel.append(el("p", "You start, stop and pay for it" + (g.id === "own-server" ? "" : " at " + g.display_name) + ". Carbon reaches it with your own SSH and never starts, stops or bills it."));
       wherePanel.append(el("p", "Your steps, from the guide", "eyebrow"));
@@ -1723,7 +1726,7 @@
       // One disclosure per client: its snippets, its source and what Carbon
       // has not verified.
       for (const client of connect.clients) {
-        const body = details(connectBox, client.name + " · " + acceptanceText(client), []).querySelector(".detail-body");
+        const body = details(connectBox, client.name + acceptanceSuffix(client), []).querySelector(".detail-body");
         body.append(el("p", "From " + client.source + ".", "hint"));
         client.snippets.forEach((snippet, index) => copyRow(body, snippet.label, snippet.text, "setup-agent-" + client.id + "-" + index));
         for (const note of client.unverified) {
@@ -2597,7 +2600,7 @@
       const box = card(target, choice.label, ...readiness(choice));
       box.dataset.agent = choice.id;
       box.append(el("p", choice.summary, "hint"));
-      researchNote(box, acceptanceText(choice), "hint");
+      acceptanceNote(box, choice);
       if (choice.command && choice.availability === "available") copyRow(box, "Connect your client with:", choice.command);
       if (choice.launch_agent === GRAPHITE) {
         box.append(el("p", "Modes: Research, Build or Full. It reads the shared card pack and your own Library, and can hunt arXiv for more, on your model and budget.", "hint"));
@@ -2644,7 +2647,7 @@
       if (route.id === "this-machine") {
         const [tag, kind] = route.availability === "available" ? [route.in_use ? "In use" : "Ready", "pill-done"] : ["Needs setup", "pill-need"];
         const box = card(target, route.label, tag, kind);
-        researchNote(box, acceptanceText(route), "hint");
+        acceptanceNote(box, route);
         const facts = choice ? [
           "Lanes: " + Object.entries(choice.lanes).map(([lane, state]) => lane + " " + state.availability + (state.reason ? " (" + words(state.reason) + ")" : "")).join(" · "),
           caps.compute.selection,
@@ -2658,7 +2661,7 @@
       }
       const set = route.availability === "configured";
       const box = card(target, route.label, set ? "In use" : "Not set up", set ? "pill-done" : "pill-wait");
-      researchNote(box, acceptanceText(route), "hint");
+      acceptanceNote(box, route);
       if (set) box.append(el("p", "In your profile: " + route.transport + ", over your own SSH.", "status-line"));
       else if (checked?.checked && checked.remote_machine) box.append(el("p", "Checked over your SSH: " + checked.remote_machine.destination + " (" + checked.remote_machine.transport + "). Write your profile to use it.", "status-line"));
       else box.append(el("p", "Use a GPU you run anywhere: RunPod, Lium, Targon, Vast.ai, Lambda or your own server, reached with your own SSH.", "status-line"));
@@ -2673,7 +2676,7 @@
     const mcp = agentEntry("external_mcp");
     if (mcp) {
       const box = card(target, "Your own MCP client · stdio", ...readiness(mcp));
-      researchNote(box, acceptanceText(mcp), "hint");
+      acceptanceNote(box, mcp);
       box.append(el("p", "Run on this machine with your runner profile. Every operation - launch, observe, practice, freeze, submit, halt, resume - is the same one this page calls, over the same records. Nothing is issued by Carbon.", "hint"));
       copyRow(box, "Connect your client with:", mcp.command, "connection-mcp-copy");
       // The command names this controller's own runner profile when it has
@@ -3781,7 +3784,7 @@
       if (v2) { researchNote(target, "Construction path status unavailable for this Challenge; no served path is claimed.", "reason"); return; }
       researchNote(target, "Carbon reads what your model changes. You do not choose a level.", "hint");
       for (const change of document.types || []) {
-        researchNote(target, change.label + " · " + change.status + " · " + acceptanceText(change) + ": " + change.reason);
+        researchNote(target, change.label + " · " + change.status + acceptanceSuffix(change) + ": " + change.reason);
       }
       if (document.status === "PUBLIC_CONTRACT_UNAVAILABLE") researchNote(target, "The public construction contract is unavailable. Changed constructions stay closed.", "reason");
     });
@@ -3831,7 +3834,7 @@
         input.disabled = choice.availability !== "available" || !here;
         input.addEventListener("change", () => { wizard.agentChoice = choice.id; composition = {...composition, agent: choice.launch_agent}; saveWizard(); render(); });
         const text = el("span");
-        text.append(el("strong", choice.label), el("span", " " + choice.summary + " · " + acceptanceText(choice), "hint"));
+        text.append(el("strong", choice.label), el("span", " " + choice.summary + acceptanceSuffix(choice), "hint"));
         if (choice.availability !== "available") text.append(el("span", "Unavailable: " + why(choice) + " · Next: " + choice.next_action, "reason"));
         else if (!here) text.append(el("span", "Not offered for " + entry.title + ": graphite not offered for challenge · Next: choose a Challenge with a registered Graphite campaign.", "reason"));
         label.append(input, text); node.append(label);
@@ -4032,7 +4035,7 @@
       if (setup) researchNote(node, "Your setup chose " + setup.model_id + " (" + ((caps.model.providers.find(row => row.id === setup.provider_id) || {}).provider || setup.provider_id) + "). It is selected below; a launch with nothing chosen here runs with it too.", "status-line");
       for (const provider of caps.model.providers) {
         const group = el("fieldset", undefined, "selects");
-        group.append(el("legend", provider.provider + " · " + acceptanceText(provider)));
+        group.append(el("legend", provider.provider + acceptanceSuffix(provider)));
         for (const model of provider.models) {
           const label = el("label", undefined, "choice" + (provider.availability === "available" ? "" : " unavailable"));
           const input = el("input"); input.type = "radio"; input.name = "wizard-model"; input.value = provider.id + "/" + model.id;
@@ -4098,7 +4101,7 @@
       researchNote(target, caps.compute.selection, "hint");
       for (const choice of caps.compute.choices) {
         const box = card(target, choice.label, ...readiness(choice));
-        researchNote(box, acceptanceText(choice), "hint");
+        acceptanceNote(box, choice);
         researchNote(box, "Lane: " + choice.lane + " · " + Object.entries(choice.lanes).map(([lane, state]) => lane + " " + state.availability + (state.reason ? " (" + words(state.reason) + ")" : "")).join(" · "));
         if (choice.availability !== "available") unavailableNote(box, choice);
       }
