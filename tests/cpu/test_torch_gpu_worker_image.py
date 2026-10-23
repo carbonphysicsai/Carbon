@@ -190,11 +190,11 @@ def test_the_image_never_sets_what_the_overlay_sets_as_jaxs_does_not():
 
 def shared_version_drift(cpu, cuda):
     """Packages both PyTorch environments install at different versions,
-    torch's build tag aside."""
+    the build tag of torch and torchvision (+cpu / +cu130) aside."""
     return sorted(
         name
         for name in cpu.keys() & cuda.keys()
-        if name != "torch" and cpu[name] != cuda[name]
+        if name not in ("torch", "torchvision") and cpu[name] != cuda[name]
     )
 
 
@@ -202,6 +202,8 @@ def test_every_package_shared_with_the_cpu_export_is_the_identical_version():
     cpu, cuda = requirements(CPU_EXPORT), requirements(LOCK)
     assert shared_version_drift(cpu, cuda) == []
     assert cpu["torch"] == "2.13.0+cpu" and cuda["torch"] == "2.13.0+cu130"
+    # timm needs torchvision: the cu130 build of the CPU lock's 0.28.0.
+    assert cpu["torchvision"] == "0.28.0+cpu" and cuda["torchvision"] == "0.28.0+cu130"
     # The general libraries the PyTorch index also serves are PyPI's current
     # ones, exactly as the CPU export has them.
     for name in ("requests", "urllib3", "certifi", "packaging", "tensorly"):
@@ -211,10 +213,12 @@ def test_every_package_shared_with_the_cpu_export_is_the_identical_version():
     assert shared_version_drift(cpu, drifted) == ["requests"]
 
 
-def test_the_constraints_are_the_cpu_export_without_torch():
+def test_the_constraints_are_the_cpu_export_without_torch_and_torchvision():
     constraints = requirements(CONSTRAINTS)
     cpu = requirements(CPU_EXPORT)
-    assert constraints == {k: v for k, v in cpu.items() if k != "torch"}
+    assert constraints == {
+        k: v for k, v in cpu.items() if k not in ("torch", "torchvision")
+    }
 
 
 def test_the_cpu_recipe_builds_from_source_exactly_the_exports_without_wheels():
@@ -241,3 +245,73 @@ def test_the_cpu_recipe_builds_from_source_exactly_the_exports_without_wheels():
     assert "--require-hashes --only-binary=:all: --no-deps" in recipe
     listed = set(re.findall(r"--no-binary ([A-Za-z0-9._-]+)", recipe))
     assert without and listed == without
+
+
+#: nvidia-physicsnemo and everything only it pulls in: DEFERRED to post-testnet
+#: (Validator 2026-10-23, the Lead's scope): its dependency antlr4-python3-runtime
+#: ships only as a source distribution, which the wheels-only GPU lock cannot
+#: take. The PhysicsNeMo GPU twins stay FAILED_UNDER_PINNED_GPU_LOCK until then.
+PHYSICSNEMO_DEFERRED = [
+    "aiobotocore",
+    "aiohappyeyeballs",
+    "aiohttp",
+    "aioitertools",
+    "aiosignal",
+    "antlr4-python3-runtime",
+    "attrs",
+    "botocore",
+    "cftime",
+    "cloudpickle",
+    "donfig",
+    "frozenlist",
+    "gitdb",
+    "gitpython",
+    "google-crc32c",
+    "hydra-core",
+    "importlib-metadata",
+    "jaxtyping",
+    "jmespath",
+    "ml-dtypes",
+    "multidict",
+    "numcodecs",
+    "nvidia-physicsnemo",
+    "nvtx",
+    "omegaconf",
+    "onnx",
+    "orjson",
+    "pandas",
+    "propcache",
+    "psutil",
+    "pyvers",
+    "s3fs",
+    "smmap",
+    "tensordict",
+    "termcolor",
+    "treelib",
+    "wadler-lindig",
+    "warp-lang",
+    "wrapt",
+    "yarl",
+    "zarr",
+    "zipp",
+]
+
+
+def _lock_names(path):
+    names = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line and line[0].isalpha() and "==" in line:
+            names.add(line.split("==", 1)[0].strip().lower())
+    return names
+
+
+def test_every_package_the_cpu_lock_pins_is_in_the_gpu_lock_but_the_deferred_physicsnemo_set():
+    """The catalog backbones import timm, einops and the rest on both images, so a
+    CPU pin the GPU lock lacks makes that twin fail ModuleNotFoundError. The only
+    pins allowed to be missing are the named deferred set, and nothing else."""
+    cpu = _lock_names(CPU_EXPORT)
+    gpu = _lock_names(REPOSITORY / torch_profile.GPU_REQUIREMENTS_PATH)
+    assert {"timm", "einops", "torchvision"} <= gpu
+    assert sorted(cpu - gpu) == sorted(PHYSICSNEMO_DEFERRED)
+    assert "nvidia-physicsnemo" in PHYSICSNEMO_DEFERRED
+    assert not (set(PHYSICSNEMO_DEFERRED) & gpu)
