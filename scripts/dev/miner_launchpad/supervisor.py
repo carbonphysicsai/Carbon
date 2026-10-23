@@ -1634,15 +1634,23 @@ OPERATION_NEXT_ACTIONS = {
         "Reconcile first if the campaign asks for reconciliation."
     ),
 }
+#: The plain tail every code without its own entry gets (M1 E2E E9: "Read
+#: the code" was not a next step a newcomer could take).
 FALLBACK_ACTION = (
-    "Read the code: it names what was refused. Correct what it names and try "
-    "again; observe shows the campaign's state."
+    "Nothing was lost: your campaign and any frozen candidate are kept. Check "
+    "the campaign's state (observe) and your setup, change what this names, "
+    "then try again."
 )
 
 
 def next_action(code):
-    """The next step for `code`: its `NEXT_ACTIONS` entry, or the fallback."""
-    return NEXT_ACTIONS.get(code, FALLBACK_ACTION)
+    """The next step for `code`: its `NEXT_ACTIONS` entry, or the code said
+    in words followed by the fallback."""
+    if code in NEXT_ACTIONS:
+        return NEXT_ACTIONS[code]
+    if type(code) is str and _CODE.fullmatch(code):
+        return "Refused: " + code.replace("_", " ") + ". " + FALLBACK_ACTION
+    return FALLBACK_ACTION
 
 
 def provider_interruption_code(exc):
