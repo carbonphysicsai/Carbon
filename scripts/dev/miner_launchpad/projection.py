@@ -727,7 +727,13 @@ def project(row, root):
         ledger.operation_times(owner=manifest["owner"]),
         calls_models=manifest.get("agent") != "none",
     )
+    from scripts.dev.miner_launchpad.campaign_view import run_eligible
+
     for experiment in value["experiments"]:
+        # Its eligibility beside its record, as the view reads it, so an
+        # agent reading the experiment over MCP sees the gate verdict (R11e:
+        # a direct practice's summary carries none; its dual block does).
+        experiment["eligible"] = run_eligible(experiment)
         experiment.update(
             costs.get(
                 experiment["id"],

@@ -408,6 +408,22 @@ def baseline(challenge):
     }
 
 
+def run_eligible(experiment, dual=None):
+    """A practice run's eligibility: its summary's verdict, else its dual
+    block's, else None (unknown). A direct practice reports its gates in the
+    dual block, not the summary (M1 E2E R11: a catalog default read
+    "eligible: null" though its exam gate failed). One reader for the view
+    and the projection the MCP tools return (R11e)."""
+    summary = experiment.get("summary") if type(experiment) is dict else None
+    if type(summary) is dict and type(summary.get("eligible")) is bool:
+        return summary["eligible"]
+    if dual is None and type(experiment) is dict:
+        dual = dual_feedback(experiment)
+    if type(dual) is dict and type(dual.get("eligible")) is bool:
+        return dual["eligible"]
+    return None
+
+
 def experiment_rows(own, view):
     keys = [k for k, _ in view.components] if view is not None else None
     rows = []
@@ -433,18 +449,7 @@ def experiment_rows(own, view):
         score = summary.get("score", diagnostics.get("descriptive_score"))
         failures = summary.get("gate_failures")
         dual = dual_feedback(experiment)
-        # A direct practice reports its gates in the dual block, not the
-        # summary (M1 E2E R11: a catalog default read "eligible: null" though
-        # its exam gate failed): the run's eligibility is the dual block's.
-        eligible = (
-            summary.get("eligible")
-            if type(summary.get("eligible")) is bool
-            else (
-                dual["eligible"]
-                if type(dual) is dict and type(dual.get("eligible")) is bool
-                else None
-            )
-        )
+        eligible = run_eligible(experiment, dual)
         rows.append(
             {
                 "index": index,
