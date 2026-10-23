@@ -14,6 +14,7 @@ search candidate or teacher may name another.
 
 from __future__ import annotations
 
+import functools
 import math
 from dataclasses import dataclass
 
@@ -209,14 +210,33 @@ LIBRARY_ARCH = (
     "mwt_k",
     "dropout",
 )
-#: The output counts of the registered interfaces, so a per-output setting is checked at the door, not in the build.
-OUTPUT_COUNT = {
-    "electric-motor-magnetics": 60,
-    "chip-cold-plate": 32,
-    "f08-ribbed-bracket": 7,
-    "f02": 1,
-    "battery-fastcharge-ageing-development-v1": 247,
-}
+
+
+@functools.lru_cache(maxsize=None)
+def output_count(challenge_id, version):
+    """The output width of a registered Challenge version's interface (None when this process cannot resolve it).
+
+    Read from the version's own served material, so a new Challenge or a changed interface needs no edit here: the
+    expected output shape of the public bank for the physical Challenges, the sealed pack's width for Battery.
+    """
+    try:
+        if challenge_id == "battery-fastcharge-ageing-development-v1":
+            from carbon.challenge_kit import battery_pack
+
+            return battery_pack.OUTPUT_WIDTH
+        from carbon.challenge_kit import physical_material
+
+        if not physical_material.is_registered(challenge_id, version):
+            return None
+        return int(
+            physical_material.bundle_material(challenge_id, version)[
+                "expected_output_shape"
+            ][1]
+        )
+    except (ImportError, ValueError):
+        return None
+
+
 #: Choice lists per vocabulary: what the build implements.
 CHOICES = {
     "v1": {
@@ -691,7 +711,8 @@ def resolve(item, configuration, train_use):
     else:
         n_out = None
         if vocabulary == "v2":
-            n_out = OUTPUT_COUNT.get(item["challenges"][0]["id"])
+            first = item["challenges"][0]
+            n_out = output_count(first["id"], first["version"])
         _levers(backbone, train_use, PRECISIONS[schema.schema_id], schema, n_out)
     defaults = item["defaults"]
     merged = {**defaults["configuration"], **configuration, "backbone": backbone}

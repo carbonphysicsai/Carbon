@@ -8,7 +8,7 @@ import pytest
 from carbon.backbone_catalog import settings
 from carbon.backbone_catalog.entries import CatalogRefused
 
-MOTOR = {"id": "electric-motor-magnetics", "version": "1.4"}
+MOTOR = {"id": "electric-motor-magnetics", "version": "1.3"}
 N = 60
 
 
@@ -247,3 +247,22 @@ def test_hooked_library_entries_take_their_constructors_arguments():
         configuration={"arch": {"modes": 3}},
         code="catalog_setting_unknown",
     )
+
+
+def test_the_output_count_is_the_interfaces_for_every_served_catalog_version():
+    from carbon.challenge_kit import physical_material, served_versions
+
+    versions = sorted(served_versions.CATALOG)
+    assert versions
+    for challenge_id, version in versions:
+        shape = physical_material.bundle_material(challenge_id, version)[
+            "expected_output_shape"
+        ]
+        assert settings.output_count(challenge_id, version) == shape[1], (
+            challenge_id,
+            version,
+        )
+    assert (
+        settings.output_count("battery-fastcharge-ageing-development-v1", "2.2") == 247
+    )
+    assert settings.output_count("no-such-challenge", "1.0") is None
