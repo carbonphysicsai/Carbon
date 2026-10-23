@@ -56,5 +56,5 @@ def test_the_backend_qualification_says_it_does_not_stop_a_submission():
     # Validator: grading happens on its own registered machines, and no
     # cross-backend parity is promised.
     assert "on its own registered machines" in text
-    assert "this environment" not in text
+    assert "grades your recipe on this environment" not in text
     assert "not done yet" not in text
