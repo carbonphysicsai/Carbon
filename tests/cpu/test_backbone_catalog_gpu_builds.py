@@ -629,3 +629,15 @@ def test_the_three_device_fixed_twins_differ_from_their_cpu_build_by_the_registe
         for _, before, after in gpu_build.DEVICE_FIXES[catalog_id]:
             assert after in text and before not in text
         assert "device" in text
+
+
+def test_an_unlisted_entry_gets_no_device_fix_and_a_listed_one_missing_its_anchor_is_refused():
+    raw = (pipeline.BUNDLES / "neuralop.FNO" / "source.tar.gz").read_bytes()
+    # An entry outside the three-entry list is derived by the first change alone.
+    assert "neuralop.FNO" not in gpu_build.DEVICE_FIXES
+    assert gpu_build.derived_source(
+        "torch-cpu-py311", raw, "neuralop.FNO"
+    ) == gpu_build.derived_source("torch-cpu-py311", raw, None)
+    # A listed entry whose build lacks the anchor exactly once is refused, never skipped.
+    with pytest.raises(gpu_build.GpuBuildRefused, match="device fix anchor found 0"):
+        gpu_build.derived_source("torch-cpu-py311", raw, "neuralop.GINO")
