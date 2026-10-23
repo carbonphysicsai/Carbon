@@ -1187,6 +1187,14 @@ NEXT_ACTIONS = {
         "Check the --configuration path, or write it again under Set up your "
         "environment."
     ),
+    # carbon-mcp with --configuration naming no file (an update set the
+    # profile aside): it serves setup instead (gate round 2b).
+    "runner_profile_missing": (
+        "No runner profile is at that path: an update sets it aside when its "
+        "compute check no longer matches this install. Re-check compute "
+        "(carbon_setup_recheck {confirm: true}, or Compute in the Control "
+        "Center's setup), then review; the profile is written again."
+    ),
     "campaign_not_found": (
         "No campaign of this profile has that id. List your campaigns "
         "(carbon_observe, or the Control Center) and name one by its "

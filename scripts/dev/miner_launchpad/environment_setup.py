@@ -4478,8 +4478,28 @@ def describe_install(report: dict) -> list[str]:
             + "; the Control Center will not load it."
         )
     for next_step in report.get("next_steps", []):
-        lines.append("Next: " + next_step[0].upper() + next_step[1:] + ".")
+        lines.append(
+            "Next: " + next_step[0].upper() + next_step[1:] + _mcp_form(next_step) + "."
+        )
     return lines
+
+
+#: The setup step a Next line names, as an agent or a headless miner takes it
+#: (gate round 2b: an update's Next lines named only the page, and a miner on
+#: carbon-mcp could not tell which call re-checks compute).
+MCP_FORMS = (
+    ("review in setup to write your profile", "carbon_setup_review {confirm: true}"),
+    (RECHECK_STEP, "carbon_setup_recheck {confirm: true}"),
+)
+
+
+def _mcp_form(next_step):
+    """' (or, from your agent or carbon-mcp: <call>)' for a step setup takes,
+    else nothing: the page's words stay as they are."""
+    for words, call in MCP_FORMS:
+        if words in next_step:
+            return " (or, from your agent or carbon-mcp: " + call + ")"
+    return ""
 
 
 def main(argv=None) -> int:

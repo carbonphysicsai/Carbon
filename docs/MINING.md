@@ -34,7 +34,7 @@ Add `--gpu` if the machine has an NVIDIA GPU.
 
 The installer checks your machine, sets up Carbon's environment, builds the images your practice runs use, and starts the **Control Center**, the web page where you run everything. It never asks for a key or password.
 
-**Updating.** Run `~/carbon/scripts/install_miner.sh --update --pytorch`, repeating the other options you installed with (e.g. `--gpu`). If the disk is short, it lists Carbon's own images from earlier installs that this install no longer uses and asks before removing them; nothing else is touched. To say yes up front, add `--remove-old-images`. An update checks your setup's compute again, rewrites your runner profile, and says what changed.
+**Updating.** Run `~/carbon/scripts/install_miner.sh --update --pytorch`, repeating the other options you installed with (e.g. `--gpu`). If the disk is short, it lists Carbon's own images from earlier installs that this install no longer uses and asks before removing them; nothing else is touched. To say yes up front, add `--remove-old-images`. An update checks your setup's compute again, rewrites your runner profile, and says what changed. If it can't (for example, it rebuilt images your compute check named), it sets the check and your runner profile aside and says so in its **Next** lines: check Compute again on the page, or from your agent or `carbon-mcp` with `carbon_setup_recheck {confirm: true}`, then review.
 
 ## 2. Start your signer
 
@@ -141,6 +141,7 @@ Hermes asks you before each action that changes something (launch, practise, fre
 | The page asks for your token | Show it with the `cat` command in step 3; an update keeps the same token. |
 | Setup says **your compute check no longer matches this install** | Do the step it names next (check Compute again, or run the installer's update). |
 | After an update, Setup says **an update set your compute check aside** | Check Compute again. An update re-checks your compute; this is shown when that could not finish. |
+| `carbon-mcp` says **your runner profile cannot be used here** | It is serving setup instead, so your agent can fix it: call `carbon_setup_status`, then `carbon_setup_recheck {confirm: true}` (re-checks compute and writes your profile again). Once the profile is written, `carbon_launch` appears. |
 | Submit says your receiver **could not be reached, or did not answer** | Start your tunnel if the receiver is on this machine, or wait, then submit again. If it did get your submission, you get that result back; it is never graded twice. |
 | A submission says **rebuilt, not graded yet** | Click **Check for result** on the page (an agent runs `check_result`): that reads the latest grade from the validator; the campaign view shows the one last read. A grade from another of your submissions is shown apart and is not this one's. |
 | A campaign says **Interrupted** | Click **Resume**. Your work is kept. |

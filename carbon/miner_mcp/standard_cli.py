@@ -1924,8 +1924,11 @@ async def serve_operations(configuration: Path, state_dir=None):
     from carbon.miner_mcp.open_tier import create_open_tier_server
     from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
-    with _check("runner_profile_unusable"):
+    try:
         host = RunnerAdapter.for_profile(configuration)
+    except Exception as exc:  # noqa: BLE001 - its closed code, never its text
+        # The door then serves setup instead (`main`).
+        raise _unusable(configuration, exc) from None
 
     def host_facts():
         # Discovery reports what this operator's host can run: its configured
@@ -2122,11 +2125,25 @@ def main(argv=None):
         elif not args.campaign:
             # With a profile and no campaign: every operation, including
             # launching one. A miner's own client needs nothing Carbon issues.
-            asyncio.run(
-                serve_operations(args.configuration)
-                if args.state_dir is None
-                else serve_operations(args.configuration, state_dir=args.state_dir)
-            )
+            try:
+                asyncio.run(
+                    serve_operations(args.configuration)
+                    if args.state_dir is None
+                    else serve_operations(args.configuration, state_dir=args.state_dir)
+                )
+            except ProfileUnusable as unusable:
+                # A profile an update set aside, or one that no longer fits:
+                # setup serves, with the step that writes it again, rather
+                # than an exit (gate round 2b: carbon-mcp exited
+                # runner_profile_unusable and a headless miner could not
+                # re-check compute).
+                state_dir = args.state_dir or _state_dir_of(args.configuration)
+                print(setup_fallback_message(unusable.code), file=sys.stderr)
+                asyncio.run(
+                    serve_open_tier()
+                    if state_dir is None
+                    else serve_open_tier(state_dir=state_dir)
+                )
         else:
             asyncio.run(
                 serve(args.configuration, args.campaign, cleanup_only=args.cleanup_only)
@@ -2139,6 +2156,52 @@ def main(argv=None):
         print(unavailable_message(exc), file=sys.stderr)
         return 2
     return 0
+
+
+#: What carbon-mcp serves instead of an unusable runner profile, and the
+#: calls that write it again (`setup_fallback_message`).
+SETUP_FALLBACK_STEP = (
+    "Serving setup instead. Call carbon_setup_status: it names the next step. "
+    "After an update, that is re-checking compute: carbon_setup_recheck "
+    "{confirm: true} (or carbon_setup_compute, then carbon_setup_review); "
+    "once your runner profile is written again, carbon_launch is added here."
+)
+
+
+class ProfileUnusable(Exception):
+    """The runner profile `serve_operations` was given cannot be served:
+    missing (an update set it aside), unreadable or no longer describing this
+    install. `code` is its closed code; never its content."""
+
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
+def _unusable(configuration, exc):
+    """`ProfileUnusable` for the failure building the campaign host from the
+    profile at `configuration`."""
+    from scripts.dev.miner_launchpad.supervisor import exception_code
+
+    if not Path(configuration).exists():
+        return ProfileUnusable("runner_profile_missing")
+    return ProfileUnusable(exception_code(exc) or "runner_profile_unusable")
+
+
+def _state_dir_of(configuration):
+    """The Control Center state directory a setup-written runner profile
+    lives in (`<state>/environment/runner-profile.json`), else None (the
+    default state directory)."""
+    parent = Path(configuration).absolute().parent
+    return parent.parent if parent.name == "environment" else None
+
+
+def setup_fallback_message(code):
+    """What the terminal is told when carbon-mcp serves setup instead of an
+    unusable runner profile: the code, and the calls that write it again."""
+    return (
+        "Your runner profile cannot be used here (" + code + "). " + SETUP_FALLBACK_STEP
+    )
 
 
 def unavailable_message(exc):
