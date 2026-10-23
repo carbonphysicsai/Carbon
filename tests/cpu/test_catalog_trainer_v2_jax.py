@@ -50,7 +50,9 @@ def make_package(root: Path):
 def trainer(tmp_path_factory):
     import importlib
 
-    if not jax.config.jax_enable_x64:
+    # Restored on teardown (see test_catalog_prior.prior_build): never leave x64 on.
+    was_x64 = bool(jax.config.jax_enable_x64)
+    if not was_x64:
         jax.config.update("jax_enable_x64", True)
     root = tmp_path_factory.mktemp("trainer_v2_jax")
     make_package(root)
@@ -58,6 +60,7 @@ def trainer(tmp_path_factory):
     try:
         yield importlib.import_module("v2jax.build")
     finally:
+        jax.config.update("jax_enable_x64", was_x64)
         sys.path.remove(str(root))
         for name in [m for m in sys.modules if m == "v2jax" or m.startswith("v2jax.")]:
             del sys.modules[name]
