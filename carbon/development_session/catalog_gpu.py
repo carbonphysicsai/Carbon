@@ -168,7 +168,22 @@ def backend_record(accelerator, parent, gpu_note, runner):
         record["label"] = LABEL
     if gpu_note:
         record["gpu_note"] = gpu_note
+        # M1 E2E R9-3: a GPU host that ran the CPU build says so in words,
+        # where the result is read, not only as a code.
+        record["fallback"] = (
+            "Ran on CPU: "
+            + FALLBACK_WORDS.get(gpu_note, "the GPU build did not run")
+            + ". The score is the CPU build's."
+        )
     return record
+
+
+#: Why a GPU host ran the CPU build (`gpu_practice.device_build`'s notes).
+FALLBACK_WORDS = {
+    "catalog_gpu_build_missing": "this catalog entry has no GPU build yet",
+    "gpu_overlay_not_installed": "the entry's GPU build is not installed here",
+    "gpu_build_failed": "the entry's GPU build failed",
+}
 
 
 class RemotePractice:

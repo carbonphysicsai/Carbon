@@ -86,3 +86,16 @@ def test_an_unknown_catalog_setting_lists_the_settings_that_place_takes():
     assert "learning_rate" in issue.allowed and "backbone" not in issue.allowed
     listable = catalog_setting_choices()
     assert {"setting:" + name for name in issue.allowed} <= listable
+
+
+def test_a_gpu_host_that_ran_the_cpu_build_says_so_in_words():
+    # R9-3: a Motor practice on a GPU pod ran the CPU build and only a
+    # buried code said so.
+    from carbon.development_session import catalog_gpu
+
+    record = catalog_gpu.backend_record(None, None, "catalog_gpu_build_missing", None)
+    assert record["kind"] == "C03_DOCKER"
+    assert record["fallback"].startswith(
+        "Ran on CPU: this catalog entry has no GPU build yet"
+    )
+    assert "fallback" not in catalog_gpu.backend_record(None, None, None, None)

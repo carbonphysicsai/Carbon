@@ -452,6 +452,8 @@ def experiment_rows(own, view):
                 "backend": _str(backend.get("kind"), 64),
                 # CPU or GPU, and where (RSURF-D19), from the run's own record.
                 "ran_on": ran_on(backend),
+                # R9-3: a GPU host that ran the CPU build, in words.
+                "fallback": _str(backend.get("fallback"), 160),
                 # What this run actually ran on (RSURF-D11): the framework
                 # its recipe named (None: the Challenge's default) and the
                 # pinned image the worker record names.

@@ -464,4 +464,7 @@ def test_a_remote_run_is_recorded_as_such_and_labelled_not_official():
         "kind": "C03_DOCKER",
         "parent": parent.image_id,
         "gpu_note": "catalog_gpu_build_missing",
+        "fallback": catalog_gpu.FALLBACK_WORDS["catalog_gpu_build_missing"].join(
+            ("Ran on CPU: ", ". The score is the CPU build's.")
+        ),
     }
