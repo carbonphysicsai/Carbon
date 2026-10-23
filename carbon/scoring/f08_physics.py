@@ -105,7 +105,7 @@ def response_registration(train_raw, targets, bounds):
         "exponent": exponent,
         "band": band,
         "span": [float(hi - lo) for lo, hi in bounds],
-        "delta": probe_design.DELTA,
+        "delta_range": list(probe_design.DELTA_RANGE),
         "sign_gates": [{"output": o, "input": i, "sign": s} for o, i, s in SIGN_GATES],
     }
 

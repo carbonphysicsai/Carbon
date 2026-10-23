@@ -98,7 +98,9 @@ def applied_pack(**kwargs):
 def definition(*, bank, train_raw):
     """F02's registered accuracy definition for a sealed batch plus the sealed grid: the cohort count and the grid
     shape (the shared module adds the producer, TRAIN and bank pins)."""
-    base = _f02.definition(bank=probe_design.cells_only(bank), train_raw=train_raw)
+    base = _f02.definition(
+        bank=probe_design.cells_only(bank, by_case_id=True), train_raw=train_raw
+    )
     _require(base["bank_kind"] == "sealed_batch", "f02_sealed_bank_kind")
     probes = sum(1 for c in bank["cohorts"] if c == probe_design.PROBE_COHORT)
     return {
@@ -174,11 +176,13 @@ def measure(
         len(cells) == CASES
         and len(cells) + len(probes) == len(bank_rows)
         and len(probes) == definition["probes"]["rows"]
-        and all(i < CASES for i in cells)
         and len(outputs) == len(bank_rows)
         and all(len(r) == len(bank_rows) for r in repeats),
         "f02_bank_cohort",
     )
+    # The delivered query interleaves probes among the cells; F02 measure reads its
+    # eight actions in id order.
+    cells = sorted(cells, key=lambda i: bank_rows[i]["case_id"])
     cell_rows = [bank_rows[i] for i in cells]
     probe_rows = [bank_rows[i] for i in probes]
     _layout(cell_rows)
@@ -265,8 +269,6 @@ def is_sealed_bank(bank) -> bool:
     ):
         return False
     keep = [i for i, c in enumerate(cohorts) if c != probe_design.PROBE_COHORT]
-    if keep != list(range(len(keep))):
-        return False
     return grid_common.is_grid_bank(
         [cohorts[i] for i in keep],
         [records[i] for i in keep],

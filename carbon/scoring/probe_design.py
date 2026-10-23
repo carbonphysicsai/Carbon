@@ -24,6 +24,9 @@ import json
 
 PROBE_COHORT = "probe_response"
 DELTA = 0.01
+#: Each probe base point draws its own step, a fraction of every input span
+#: (Validator condition on receipt 615327e56: no fixed step to learn).
+DELTA_RANGE = (0.005, 0.015)
 PROBE_STATUS = "PROBE"
 
 
@@ -91,13 +94,23 @@ def row_key(probe):
     return (base, 1, dim, 0 if sign > 0 else 1, "")
 
 
-def response_rows(points, bounds, *, delta=DELTA, extra=()):
-    """The probe rows for ``points``: ``[(case_id, record, x)]``. ``extra`` is
-    ``[(name, transform)]``: each adds one law-probe row per base point,
-    ``transform(base point) -> point`` (kind ``law:<name>``)."""
+def draw_steps(seed_bytes, count, *, step_range=DELTA_RANGE):
+    """One step per base point, uniform in ``step_range`` (span fractions)."""
+    low, high = step_range
+    return [
+        low + _uniform(seed_bytes + b"steps", k) * (high - low) for k in range(count)
+    ]
+
+
+def response_rows(points, bounds, *, steps, extra=()):
+    """The probe rows for ``points``: ``[(case_id, record, x)]``; base ``k`` moves
+    every input by ``steps[k]`` of its span. ``extra`` is ``[(name, transform)]``:
+    each adds one law-probe row per base point, ``transform(base point) -> point``
+    (kind ``law:<name>``)."""
     spans = [hi - lo for lo, hi in bounds]
     rows = []
     for k, base in enumerate(points):
+        delta = steps[k]
         rows.append(
             (
                 f"probe-{k:02d}-base",
@@ -157,23 +170,23 @@ def with_probes(
     bases,
     dtype,
     extra=(),
-    delta=DELTA,
-    margin=DELTA,
+    step_range=DELTA_RANGE,
+    margin=0.0,
 ):
     """``bank`` (a sealed bank in the development bank format) with the private
     probes appended as unreferenced rows (``reference_present`` False, NaN
     references), seeded by the batch input content ``cases`` (input dicts)."""
     import numpy as np
 
-    points = draw_valid(
-        seed(content_bytes(cases), challenge),
-        bounds,
-        valid,
-        bases,
-        delta=max(delta, margin),
-    )
+    drawn = seed(content_bytes(cases), challenge)
+    points = draw_valid(drawn, bounds, valid, bases, delta=max(step_range[1], margin))
     rows = sorted(
-        response_rows(points, bounds, delta=delta, extra=extra),
+        response_rows(
+            points,
+            bounds,
+            steps=draw_steps(drawn, bases, step_range=step_range),
+            extra=extra,
+        ),
         key=lambda row: row_key(row[1]["probe"]),
     )
     width = bank["references"].shape[1]
@@ -183,17 +196,47 @@ def with_probes(
     references = np.concatenate(
         [bank["references"], np.full((len(rows), width), np.nan, dtype=dtype)]
     )
+    order = permutation(len(inputs), shuffle_seed(bank["inputs"]))
+    inputs, references = inputs[order], references[order]
     inputs.setflags(write=False)
     references.setflags(write=False)
+
+    def mixed(values):
+        return [values[i] for i in order]
+
     return {
         **bank,
-        "case_ids": (*bank["case_ids"], *[c for c, _, _ in rows]),
-        "cohorts": (*bank["cohorts"], *[PROBE_COHORT] * len(rows)),
+        "case_ids": tuple(mixed([*bank["case_ids"], *[c for c, _, _ in rows]])),
+        "cohorts": tuple(mixed([*bank["cohorts"], *[PROBE_COHORT] * len(rows)])),
         "inputs": inputs,
         "references": references,
-        "reference_records": [*bank["reference_records"], *[r for _, r, _ in rows]],
-        "reference_present": (True,) * len(bank["case_ids"]) + (False,) * len(rows),
+        "reference_records": mixed(
+            [*bank["reference_records"], *[r for _, r, _ in rows]]
+        ),
+        "reference_present": tuple(
+            mixed((True,) * len(bank["case_ids"]) + (False,) * len(rows))
+        ),
     }
+
+
+def shuffle_seed(cell_inputs) -> bytes:
+    """The seed of the interleaving: the exam cells input content alone (sorted),
+    so every copy of one exam interleaves its probes the same way."""
+    rows = sorted(tuple(float(v) for v in row) for row in cell_inputs)
+    return hashlib.sha256(
+        b"carbon.exam-probes.interleave/1\n" + repr(rows).encode()
+    ).digest()
+
+
+def permutation(n, seed_bytes):
+    """A seeded permutation of ``range(n)`` (Fisher-Yates over a hash stream):
+    the delivered query holds cells and probes in this order, never probes as a
+    suffix."""
+    order = list(range(n))
+    for i in range(n - 1, 0, -1):
+        j = int(_uniform(seed_bytes, i) * (i + 1))
+        order[i], order[j] = order[j], order[i]
+    return order
 
 
 def groups(rows):
@@ -251,9 +294,12 @@ _PER_ROW = (
 )
 
 
-def cells_only(bank):
-    """``bank`` without its probe rows (the exam cells alone)."""
+def cells_only(bank, *, by_case_id=False):
+    """``bank`` without its probe rows (the exam cells alone); with ``by_case_id``
+    the cells in case-id order (the order the Challenge definitions read)."""
     keep = [i for i, c in enumerate(bank["cohorts"]) if c != PROBE_COHORT]
+    if by_case_id:
+        keep.sort(key=lambda i: bank["case_ids"][i])
     return {
         name: ([value[i] for i in keep] if name in _PER_ROW else value)
         for name, value in bank.items()

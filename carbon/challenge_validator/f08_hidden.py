@@ -57,7 +57,7 @@ ACTIVE_BATCHES = 1
 PACK_VERSION = "f08-normal-construction-development-3"
 #: The Test Engineer's sealed F08 evaluation version (1.2's measurement
 #: unchanged; Validator, 2026-10-20).
-EVALUATION_VERSION = "f08-dual-sealed-batch-8-v1"
+EVALUATION_VERSION = "f08-dual-sealed-grid-8x1-v2"
 RUNGS = ("h3", "h2.25", "h1.7")
 ZETAS = ("zeta_0.005", "zeta_0.01", "zeta_0.02")
 OBSERVED = (

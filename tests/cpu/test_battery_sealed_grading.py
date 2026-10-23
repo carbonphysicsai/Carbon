@@ -37,7 +37,7 @@ DECISION_REFERENCES = (
 #: Battery-only move registering 2.2 (Validator, 2026-10-23, option (b); was
 #: sha256:d0f4804a0b4c9294cfeec7674900aad6472ba6ad9c8a20c9f277cb9abb420e35).
 DEV_PRODUCER_DIGEST = (
-    "sha256:f9e63bcdfa9d3a2014016cd298b16789ee3c1c1fcd97c16469de9568d6e1594c"
+    "sha256:1c08900617512838f9b75beb05234a48fc10ec289dc1a67413f3483e1ef0a91e"
 )
 
 

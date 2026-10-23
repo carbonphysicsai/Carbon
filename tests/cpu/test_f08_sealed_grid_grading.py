@@ -34,7 +34,11 @@ def case():
         "rows": physical.bank_rows(bank, names),
         "definition": sealed.definition(bank=bank, train_raw=public["train"]),
         "limits": json.loads(public["important_limit_definition"]),
-        "truth": [[float(v) for v in row] for row in bank["references"][:8]],
+        "truth": [
+            [float(v) for v in row]
+            for row, c in zip(bank["references"], bank["cohorts"], strict=True)
+            if c == "decision_sealed_grid"
+        ],
         "model": _power_law_model(public["train"]),
     }
 
@@ -58,26 +62,29 @@ def _power_law_model(train_raw):
     return predict
 
 
-def _probe_inputs(case):
-    return [
-        [float(row["inputs"][n]) for n in case["names"]]
-        for row in case["rows"]
-        if row["cohort"] == "probe_response"
-    ]
+def _cells(rows):
+    return [r for r in rows if r["cohort"] != "probe_response"]
 
 
-def _full(case, cell_outputs, probe=None):
-    """Cell predictions followed by the probe-row predictions (the stand-in
-    power-law model unless ``probe`` is given)."""
+def _full(case, cell_outputs, probe=None, rows=None):
+    """Predictions for every row in the delivered order: the cell predictions in
+    the order the cells appear, the stand-in power-law model (or ``probe``) at
+    each probe row."""
     model = probe or case["model"]
-    return [list(map(float, r)) for r in cell_outputs] + [
-        model(x) for x in _probe_inputs(case)
+    cells = iter(cell_outputs)
+    return [
+        (
+            model([float(row["inputs"][n]) for n in case["names"]])
+            if row["cohort"] == "probe_response"
+            else list(map(float, next(cells, [0.0] * 7)))
+        )
+        for row in (rows or case["rows"])
     ]
 
 
 def _measure(case, outputs, *, rows=None, definition=None, module=sealed):
     if module is sealed and len(outputs) == 8:
-        outputs = _full(case, outputs)
+        outputs = _full(case, outputs, rows=rows)
     elif module is not sealed:
         rows = [r for r in (rows or case["rows"]) if r["cohort"] != "probe_response"]
     return module.measure(
@@ -103,14 +110,19 @@ def test_the_definition_registers_the_grid_and_the_batchs_own_receipt(case):
     assert sealed.EVALUATION_VERSION == "f08-dual-sealed-grid-8x1-v2"
     assert sealed.COHORT == "decision_sealed_grid"
     cohorts = case["bank"]["cohorts"]
-    assert cohorts[:8] == (sealed.COHORT,) * 8
-    # The private response probes follow the cells, unreferenced.
-    assert set(cohorts[8:]) == {"probe_response"} and len(cohorts) == 60
+    assert cohorts.count(sealed.COHORT) == 8 and len(cohorts) == 60
+    # The private probes are interleaved with the cells, never a suffix.
+    assert cohorts[:8] != (sealed.COHORT,) * 8 and cohorts[-8:] != (sealed.COHORT,) * 8
+    assert set(cohorts) == {sealed.COHORT, "probe_response"}
     assert definition["probes"] == {"cohort": "probe_response", "rows": 52}
-    assert case["bank"]["reference_present"] == (True,) * 8 + (False,) * 52
-    assert {r["condition_id"] for r in case["bank"]["reference_records"][:8]} == {
-        "condition-0"
-    }
+    assert case["bank"]["reference_present"] == tuple(
+        c == sealed.COHORT for c in cohorts
+    )
+    assert {
+        r["condition_id"]
+        for r, c in zip(case["bank"]["reference_records"], cohorts, strict=True)
+        if c == sealed.COHORT
+    } == {"condition-0"}
 
 
 def test_a_model_equal_to_the_references_earns_full_a_and_d(case):
@@ -135,7 +147,9 @@ def test_the_grid_measure_equals_the_development_measure_on_a_dev_shaped_bank(ca
     measurement gives the same A, D, gates and pick."""
     outputs = [[v * 1.02 for v in row] for row in case["truth"]]
     sealed_result = _measure(case, outputs)
-    dev_rows = [{**row, "cohort": "decision_near_limit"} for row in case["rows"][:8]]
+    dev_rows = [
+        {**row, "cohort": "decision_near_limit"} for row in _cells(case["rows"])
+    ]
     dev_definition = {
         **dev.definition(
             bank=case["bank"], train_raw=case["public"]["train"], version="1.2"
@@ -168,15 +182,18 @@ def test_a_bank_that_is_not_the_sealed_grid_refuses(case):
     with pytest.raises(fdm.F08MeasurementRefused) as refused:
         _measure(case, truth, rows=wrong_cohort)
     assert refused.value.code == "f08_bank_cohort"
+    first, second = [
+        i for i, r in enumerate(case["rows"]) if r["cohort"] != "probe_response"
+    ][:2]
     twice = copy.deepcopy(case["rows"])
-    twice[1]["record"][
+    twice[second]["record"][
         "condition_id"
     ] = "condition-1"  # 8 designs x 2 conditions is not the registered shape
     with pytest.raises(fdm.F08MeasurementRefused) as refused:
         _measure(case, truth, rows=twice)
     assert refused.value.code == "f08_sealed_grid"
     repeated = copy.deepcopy(case["rows"])
-    repeated[1]["record"]["design_id"] = repeated[0]["record"]["design_id"]
+    repeated[second]["record"]["design_id"] = repeated[first]["record"]["design_id"]
     with pytest.raises(fdm.F08MeasurementRefused):
         _measure(case, truth, rows=repeated)
     short = case["rows"][:7]
@@ -273,7 +290,7 @@ def _shift_frequency(case, geometry):
 def test_a_right_pick_with_wrong_resonance_scores_d_below_one(case):
     exact = _measure(case, case["truth"])
     assert exact["D"] == 1.0 and exact["design_fidelity"]["C"] == 1.0
-    ids = [row["case_id"] for row in case["rows"]]
+    ids = [row["case_id"] for row in _cells(case["rows"])]
     other = next(i for i, cid in enumerate(ids) if cid != exact["pick"])
     skewed = _measure(case, _shift_frequency(case, other))
     # The pick, the gates and the verified value are all unchanged.
@@ -285,7 +302,7 @@ def test_a_right_pick_with_wrong_resonance_scores_d_below_one(case):
 
 def test_wrong_margins_on_the_selected_geometry_also_cap_d(case):
     exact = _measure(case, case["truth"])
-    ids = [row["case_id"] for row in case["rows"]]
+    ids = [row["case_id"] for row in _cells(case["rows"])]
     chosen = ids.index(exact["pick"])
     skewed = _measure(case, _shift_frequency(case, chosen))
     assert skewed["pick"] == exact["pick"] and skewed["D"] < 1.0
@@ -293,7 +310,7 @@ def test_wrong_margins_on_the_selected_geometry_also_cap_d(case):
 
 def test_a_definition_without_the_critical_block_grades_value_only(case):
     legacy = {k: v for k, v in case["definition"].items() if k != "critical"}
-    ids = [row["case_id"] for row in case["rows"]]
+    ids = [row["case_id"] for row in _cells(case["rows"])]
     exact = _measure(case, case["truth"])
     other = next(i for i, cid in enumerate(ids) if cid != exact["pick"])
     skewed = _measure(case, _shift_frequency(case, other), definition=legacy)
@@ -400,7 +417,8 @@ def _wrong_trend_model(case):
 
 def test_the_probes_are_private_unreferenced_rows_after_the_cells(case):
     rows = case["rows"]
-    assert [r["cohort"] for r in rows[:8]] == ["decision_sealed_grid"] * 8
+    assert [r["cohort"] for r in rows].count("decision_sealed_grid") == 8
+    assert [r["cohort"] for r in rows[:8]] != ["decision_sealed_grid"] * 8
     probes = [r for r in rows if r["cohort"] == "probe_response"]
     assert len(probes) == 52 and all(r["reference"] is None for r in probes)
     assert sum(1 for r in probes if r["record"]["probe"]["dim"] is None) == 4
@@ -449,7 +467,7 @@ def test_the_probes_are_deterministic_from_the_batch(case):
     again = pack.sealed_bank(*batch())
     assert (again["inputs"] == case["bank"]["inputs"]).all()
     other = pack.sealed_bank(*batch(seed=12))
-    assert not (other["inputs"][8:] == case["bank"]["inputs"][8:]).all()
+    assert not (other["inputs"] == case["bank"]["inputs"]).all()
 
 
 def test_an_infeasible_pick_under_v2_is_not_eligible(case):
@@ -471,7 +489,7 @@ def test_an_infeasible_pick_under_v2_is_not_eligible(case):
     for j in tips:
         bad[infeasible][j] = 1e-4  # predicted far safer and better than any other
     result = _measure(case, bad)
-    ids = [r["case_id"] for r in case["rows"][:8]]
+    ids = [r["case_id"] for r in _cells(case["rows"])]
     assert result["pick"] == ids[infeasible] != exact["pick"]
     assert result["gates"]["verified_pick_feasible"] is False
     assert result["decision_outcome"] == "MISSED_OPPORTUNITY"

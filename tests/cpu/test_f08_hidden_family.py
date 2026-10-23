@@ -59,7 +59,7 @@ def test_the_rule_cites_the_exam_and_never_restates_scoring():
     rule = hidden.hidden_rule()
     assert rule["exam"] == {
         "pack_version": "f08-normal-construction-development-3",
-        "evaluation_version": "f08-dual-sealed-batch-8-v1",
+        "evaluation_version": "f08-dual-sealed-grid-8x1-v2",
     }
     assert rule["challenge"] == {"id": "f08-ribbed-bracket", "version": "1.2"}
     assert rule["references"] == {"terminal": list(hidden.TERMINAL), "scored": ["OK"]}

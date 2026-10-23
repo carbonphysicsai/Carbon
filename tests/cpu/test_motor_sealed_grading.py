@@ -32,7 +32,7 @@ MOTOR = "electric-motor-magnetics"
 #: Motor's development producer digest after the one accepted move that hashed
 #: the sealed bank loader and copy modules (Validator, 2026-10-22).
 DEV_PRODUCER_DIGEST = (
-    "sha256:ca886b21025d4c106709fe72f9c73b4aaf0f812666a2d2bc68619ce831da9c03"
+    "sha256:8bc3749843a5154ba35fd4bbe26436c21e4547a746985cc06c75f03836b13f90"
 )
 DESIGNS, CONDITIONS = 5, 6
 
@@ -109,26 +109,31 @@ def case():
     }
 
 
-def _probe_curves(case, model=None):
-    """The stand-in model curves (flat at the registered-fit mean torque) for
-    the private probe rows."""
+def _cells(rows):
+    return [r for r in rows if r["cohort"] == "decision_sealed_grid"]
+
+
+def _full(case, cells, model=None, rows=None):
+    """Predictions for every row in the delivered order: the cell curves in the
+    order the cells appear, the stand-in model (a flat curve at the
+    registered-fit mean torque) at each probe row."""
     model = model or case["model"]
+    cells = iter(cells)
     return [
-        [model([row["inputs"][n] for n in case["names"]])] * ANGLE_STEPS
-        for row in case["rows"]
-        if row["cohort"] == "probe_response"
+        (
+            [model([row["inputs"][n] for n in case["names"]])] * ANGLE_STEPS
+            if row["cohort"] == "probe_response"
+            else list(map(float, next(cells, [0.0] * ANGLE_STEPS)))
+        )
+        for row in (rows or case["rows"])
     ]
-
-
-def _full(case, cells, model=None):
-    return [list(map(float, r)) for r in cells] + _probe_curves(case, model)
 
 
 def _measure(case, outputs, repeats=None, definition=None, rows=None, model=None):
     if len(outputs) == 30:
         repeats = repeats or [outputs, outputs]
-        outputs = _full(case, outputs, model)
-        repeats = [_full(case, r, model) for r in repeats]
+        outputs = _full(case, outputs, model, rows)
+        repeats = [_full(case, r, model, rows) for r in repeats]
     return sealed.measure(
         bank_rows=rows or case["rows"],
         outputs=outputs,
@@ -254,7 +259,7 @@ def test_a_failed_gate_leaves_a_unmeasured_not_zero(case):
     result = _measure(case, broken)
     assert result["A"] is None
     assert result["gates"]["native_motor_valid"] is False
-    assert case["rows"][0]["case_id"] in result["gate_failed_cases"]
+    assert _cells(case["rows"])[0]["case_id"] in result["gate_failed_cases"]
 
 
 def test_a_roster_cohort_or_grid_that_is_not_the_sealed_grid_refuses(case):
@@ -266,14 +271,17 @@ def test_a_roster_cohort_or_grid_that_is_not_the_sealed_grid_refuses(case):
         _measure(case, truth, rows=wrong_cohort)
     assert refused.value.code == "motor_bank_cohort"
     # Two cells claiming one (design, condition): not a complete grid.
+    first, second = [
+        i for i, r in enumerate(case["rows"]) if r["cohort"] == "decision_sealed_grid"
+    ][:2]
     duplicate = copy.deepcopy(case["rows"])
-    duplicate[1]["condition_id"] = duplicate[0]["condition_id"]
+    duplicate[second]["condition_id"] = duplicate[first]["condition_id"]
     with pytest.raises(mdm.MotorMeasurementRefused) as refused:
         _measure(case, truth, rows=duplicate)
     assert refused.value.code == "motor_sealed_grid"
     # A sixth design id is not 5 x 6.
     extra = copy.deepcopy(case["rows"])
-    extra[0]["design_id"] = "design-9"
+    extra[first]["design_id"] = "design-9"
     with pytest.raises(mdm.MotorMeasurementRefused):
         _measure(case, truth, rows=extra)
 
@@ -296,7 +304,7 @@ def test_the_development_producer_is_untouched_and_a_sealed_bank_refuses_under_i
     )
     with pytest.raises(mdm.MotorMeasurementRefused) as refused:
         dev.measure(
-            bank_rows=case["rows"][:30],
+            bank_rows=_cells(case["rows"]),
             outputs=_truth(case),
             repeats=[_truth(case), _truth(case)],
             definition=dev.definition(bank=None, train_raw=b""),
@@ -480,9 +488,13 @@ def test_the_definition_registers_the_physics_and_probe_blocks(case):
     assert response["exponent"][0][angle] is None  # sign gate only
 
 
-def test_the_probes_are_private_unreferenced_rows_after_the_cells(case):
+def test_the_probes_are_private_unreferenced_rows_among_the_cells(case):
     rows = case["rows"]
-    assert [r["cohort"] for r in rows[:30]] == ["decision_sealed_grid"] * 30
+    cohorts = [r["cohort"] for r in rows]
+    assert cohorts.count("decision_sealed_grid") == 30 and len(rows) == 106
+    # interleaved with the cells, never a suffix
+    assert cohorts[:30] != ["decision_sealed_grid"] * 30
+    assert cohorts[-30:] != ["decision_sealed_grid"] * 30
     probes = [r for r in rows if r["cohort"] == "probe_response"]
     assert len(probes) == 76 and all(r["reference"] is None for r in probes)
     zero = [r for r in probes if r["record"]["probe"].get("kind") == "law:j_zero"]

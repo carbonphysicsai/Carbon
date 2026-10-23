@@ -226,7 +226,6 @@ def measure(
         len(cells) == CASES
         and len(cells) + len(probes) == len(bank_rows)
         and len(probes) == definition["probes"]["rows"]
-        and all(i < CASES for i in cells)
         and type(outputs) is list
         and len(outputs) == len(bank_rows)
         and type(repeats) in (list, tuple)
@@ -486,8 +485,6 @@ def is_sealed_bank(bank) -> bool:
     ):
         return False
     keep = [i for i, c in enumerate(cohorts) if c != probe_design.PROBE_COHORT]
-    if keep != list(range(len(keep))):
-        return False
     return grid_common.is_grid_bank(
         [cohorts[i] for i in keep],
         [records[i] for i in keep],

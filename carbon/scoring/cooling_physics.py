@@ -52,18 +52,19 @@ _HOT = tuple(
     domain.INPUTS.index(n)
     for n in ("hotspot_ratio", "hotspot_center_mm", "hotspot_width_mm")
 )
-#: The probe region: the registered bounds, with the inlet low enough that the
-#: shifted row stays in range.
-PROBE_BOUNDS = tuple(
-    (30.0, 45.0 - INLET_SHIFT_C) if n == "inlet_c" else domain.INPUT_BOUNDS[n]
-    for n in domain.INPUTS
-)
+#: The probe region: the registered bounds. The inlet-shift row moves up by
+#: INLET_SHIFT_C, or down when that would leave the range; the law residual uses
+#: the actual shift.
+PROBE_BOUNDS = tuple(domain.INPUT_BOUNDS[n] for n in domain.INPUTS)
 
 
 def probe_extra():
     def shifted(x):
         moved = list(x)
-        moved[_INLET] = x[_INLET] + INLET_SHIFT_C
+        up = x[_INLET] + INLET_SHIFT_C
+        moved[_INLET] = (
+            up if up <= domain.INPUT_BOUNDS["inlet_c"][1] else x[_INLET] - INLET_SHIFT_C
+        )
         return moved
 
     def mirrored(x):
@@ -115,7 +116,7 @@ def response_registration(train_raw):
         "exponent": exponent,
         "band": band,
         "span": [float(hi - lo) for lo, hi in PROBE_BOUNDS],
-        "delta": probe_design.DELTA,
+        "delta_range": list(probe_design.DELTA_RANGE),
         "sign_gates": [{"output": o, "input": i, "sign": s} for o, i, s in SIGN_GATES],
     }
 
@@ -203,10 +204,16 @@ def apply(
     shift = dict(probe_design.law_pairs(indexed, "inlet_shift"))
     mirror = dict(probe_design.law_pairs(indexed, "hotspot_mirror"))
     outs = [[float(v) for v in row] for row in probe_outputs]
+
+    def inlet_move(base):
+        return float(probe_rows[shift[base]]["inputs"]["inlet_c"]) - float(
+            probe_rows[base]["inputs"]["inlet_c"]
+        )
+
     residuals = {
         "inlet_shift_temperatures": [
             fmean(
-                abs((a - b) - INLET_SHIFT_C) / peak_spread
+                abs((a - b) - inlet_move(base)) / peak_spread
                 for a, b in zip(outs[shift[base]][:31], outs[base][:31], strict=True)
             )
             for base in sorted(shift)

@@ -256,7 +256,6 @@ def measure(
         len(probes) != definition["probes"]["rows"]
         or len(outputs) != len(bank_rows)
         or not all(len(r) == len(bank_rows) for r in repeats)
-        or cells != list(range(len(cells)))
     ):
         raise Refused("cooling_bank_cohort")
     measured = cdm.measure(

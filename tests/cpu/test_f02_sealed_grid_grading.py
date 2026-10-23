@@ -56,24 +56,28 @@ def _power_law_model():
     return predict
 
 
-def _probe_inputs(case):
-    return [
-        [float(row["inputs"][n]) for n in ("peak_w", "on_time_s")]
-        for row in case["rows"]
-        if row["cohort"] == "probe_response"
-    ]
+def _cells(rows):
+    return [r for r in rows if r["cohort"] != "probe_response"]
 
 
-def _full(case, cell_outputs, probe=None):
+def _full(case, cell_outputs, probe=None, rows=None):
+    """Predictions for every row in the delivered order: the cell predictions in
+    the order the cells appear, the stand-in model (or ``probe``) at each probe."""
     model = probe or case["model"]
-    return [list(map(float, r)) for r in cell_outputs] + [
-        model(x) for x in _probe_inputs(case)
+    cells = iter(cell_outputs)
+    return [
+        (
+            model([float(row["inputs"][n]) for n in ("peak_w", "on_time_s")])
+            if row["cohort"] == "probe_response"
+            else list(map(float, next(cells, [0.0])))
+        )
+        for row in (rows or case["rows"])
     ]
 
 
 def _measure(case, outputs, *, rows=None, definition=None, module=sealed):
     if module is sealed and len(outputs) == 8:
-        outputs = _full(case, outputs)
+        outputs = _full(case, outputs, rows=rows)
     elif module is not sealed:
         rows = [r for r in (rows or case["rows"]) if r["cohort"] != "probe_response"]
     return module.measure(
@@ -100,13 +104,16 @@ def test_the_definition_registers_the_grid_and_the_batchs_own_receipt(case):
     assert sealed.EVALUATION_VERSION == "f02-dual-sealed-grid-8x1-v2"
     assert sealed.COHORT == "decision_sealed_grid"
     cohorts = case["bank"]["cohorts"]
-    assert cohorts[:8] == (sealed.COHORT,) * 8
-    # 4 base points: each the base, 2 moves per input (2 inputs) and 2 law rows.
-    assert set(cohorts[8:]) == {"probe_response"} and len(cohorts) == 8 + 4 * 7
+    # 4 base points: each the base, 2 moves per input (2 inputs) and 2 law rows,
+    # interleaved with the cells (never a suffix).
+    assert cohorts.count(sealed.COHORT) == 8 and len(cohorts) == 8 + 4 * 7
+    assert cohorts[-8:] != (sealed.COHORT,) * 8 and cohorts[:8] != (sealed.COHORT,) * 8
     assert definition["probes"] == {"cohort": "probe_response", "rows": 28}
-    assert {r["condition_id"] for r in case["bank"]["reference_records"][:8]} == {
-        "condition-0"
-    }
+    assert {
+        r["condition_id"]
+        for r, c in zip(case["bank"]["reference_records"], cohorts, strict=True)
+        if c == sealed.COHORT
+    } == {"condition-0"}
 
 
 def test_a_model_equal_to_the_references_earns_full_a_and_d(case):
@@ -134,9 +141,13 @@ def test_the_grid_measure_equals_the_development_measure_on_a_dev_shaped_bank(ca
     measurement gives the same A, D, gates and decision."""
     outputs = [[row[0] + 0.1] for row in case["truth"]]
     sealed_result = _measure(case, outputs)
-    dev_rows = [{**row, "cohort": "decision_cold_eight"} for row in case["rows"][:8]]
+    cells = _cells(case["rows"])
+    order = sorted(range(len(cells)), key=lambda i: cells[i]["case_id"])
+    dev_rows = [{**cells[i], "cohort": "decision_cold_eight"} for i in order]
+    outputs = [outputs[i] for i in order]
     dev_definition = dev.definition(
-        bank=sealed.probe_design.cells_only(case["bank"]), train_raw=b""
+        bank=sealed.probe_design.cells_only(case["bank"], by_case_id=True),
+        train_raw=b"",
     )
     dev_result = _measure(
         case, outputs, rows=dev_rows, definition=dev_definition, module=dev
@@ -159,13 +170,16 @@ def test_a_bank_that_is_not_the_sealed_grid_refuses(case):
     with pytest.raises(sealed.Refused) as refused:
         _measure(case, truth, rows=wrong_cohort)
     assert refused.value.code == "f02_bank_cohort"
+    first, second = [
+        i for i, r in enumerate(case["rows"]) if r["cohort"] != "probe_response"
+    ][:2]
     twice = copy.deepcopy(case["rows"])
-    twice[1]["record"]["condition_id"] = "condition-1"
+    twice[second]["record"]["condition_id"] = "condition-1"
     with pytest.raises(sealed.Refused) as refused:
         _measure(case, truth, rows=twice)
     assert refused.value.code == "f02_sealed_grid"
     repeated = copy.deepcopy(case["rows"])
-    repeated[1]["record"]["design_id"] = repeated[0]["record"]["design_id"]
+    repeated[second]["record"]["design_id"] = repeated[first]["record"]["design_id"]
     with pytest.raises(sealed.Refused):
         _measure(case, truth, rows=repeated)
     with pytest.raises(sealed.Refused):
@@ -310,14 +324,14 @@ def test_an_infeasible_pick_under_v2_is_not_eligible(case):
     from carbon.scoring import dual_score
 
     exact = _measure(case, case["truth"])
-    bad = [list(r) for r in case["truth"]]
     infeasible = next(i for i, r in enumerate(case["truth"]) if r[0] > 95.0)
-    # The model calls the infeasible burst cold and the highest-energy one.
+    # The model calls every other burst too hot and the infeasible one cold: it is
+    # the only action offered, so it is picked, and it fails verification.
+    bad = [[120.0] for _ in case["truth"]]
     bad[infeasible] = [60.0]
     result = _measure(case, bad)
-    assert result["gates"]["verified_pick"] is False or (
-        result["selected_action"] != exact["selected_action"]
-    )
+    assert result["gates"]["verified_pick"] is False
+    assert result["selected_action"] != exact["selected_action"]
     provisional = "sha256:" + "0" * 64
     pack = dual_score.register_pack(
         {
@@ -359,5 +373,4 @@ def test_an_infeasible_pick_under_v2_is_not_eligible(case):
         },
         pack,
     )["models"][0]
-    if result["gates"]["verified_pick"] is False:
-        assert row["status"] != "SCORED_DEVELOPMENT_CANDIDATE"
+    assert row["status"] != "SCORED_DEVELOPMENT_CANDIDATE"
