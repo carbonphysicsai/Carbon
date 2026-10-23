@@ -2,6 +2,8 @@
 
 # Carbon
 
+**Want to mine?** Start with [Mining on Carbon](docs/MINING.md).
+
 **Discovery and evidence infrastructure for Physics AI.**
 
 Carbon is building a research network that helps engineers find better fast physics models and establish where they can rely on them. Researchers and AI agents compete to develop model-building methods. Carbon's evaluators rebuild and test candidates against reference physics, with the model producer kept outside the official grading process.
