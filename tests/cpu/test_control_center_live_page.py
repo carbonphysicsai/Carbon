@@ -364,7 +364,9 @@ def _setups(tmp_path, monkeypatch):
     )
     head["revision"] = NEW
     value["stale"] = _served_setup(setup)
-    assert value["stale"]["steps"]["compute"]["next_step"] == environment.REINSTALL_STEP
+    assert value["stale"]["steps"]["compute"]["next_step"].startswith(
+        environment.REINSTALL_STEP
+    )
     head["revision"] = REVISION
     # An update sets a remote miner's compute check and profile aside, and
     # keeps the intake the miner named in it.

@@ -398,6 +398,9 @@ FAKE_CHECKOUT = {
 }
 FAKE_PYTHON = """#!/bin/sh
 echo "python $*" >> "$CARBON_TEST_LOG"
+# -B (no bytecode) comes first where the installer passes it.
+bytecode=yes
+if [ "$1" = -B ]; then bytecode=no; shift; fi
 case "$1" in -c) exec "$CARBON_TEST_REAL_PYTHON" "$@" ;; esac
 case "$2" in
   scripts.dev.development_image_artifact)
@@ -422,6 +425,8 @@ case "$2" in
     case "$3" in
       gpu-installed) echo "${CARBON_TEST_GPU_INSTALLED:-no}" ;;
       after-install) echo "What this install changed: (fixture)" ;;
+      catalog-needed) echo "${CARBON_TEST_CATALOG_MISSING:-no}" ;;
+      session-link) echo "http://127.0.0.1:$7/#token=fixture-token" ;;
       service-unit)
         echo "[Unit]"
         echo "ExecStart=/fixture/carbon-control-center --state-dir $5 --port $7" ;;
@@ -438,9 +443,16 @@ case "$2" in
           echo no
         fi ;;
     esac ;;
+  scripts.dev.miner_launchpad.catalog_build)
+    [ "${CARBON_TEST_CATALOG_FAILS:-no}" != yes ] || exit 2 ;;
   scripts.dev.miner_launchpad.superseded_images)
     # Carbon's own images from earlier installs (R6-1): the one the test
     # names, if any.
+    # A real interpreter run without -B writes bytecode beside the module.
+    if [ "$bytecode" = yes ] && [ "${PYTHONDONTWRITEBYTECODE:-}" != 1 ]; then
+      mkdir -p scripts/dev/miner_launchpad/__pycache__
+      : > scripts/dev/miner_launchpad/__pycache__/superseded_images.cpython-311.pyc
+    fi
     case "$3" in
       list) [ -z "${CARBON_TEST_OLD_IMAGES:-}" ] || echo "  ${CARBON_TEST_OLD_IMAGES}  (1.2GB)" ;;
       remove) echo "  removed ${CARBON_TEST_OLD_IMAGES}" ;;
@@ -551,23 +563,57 @@ class Sandbox:
         return subprocess.run(
             ["bash", str(self.clone / "scripts" / "install_miner.sh"), *args],
             cwd=self.tmp,
-            env={
-                "PATH": f"{self.tools}:/usr/bin:/bin",
-                "HOME": str(self.tmp / "home"),
-                "CARBON_STATE_DIR": str(self.state),
-                "CARBON_TEST_LOG": str(self.log),
-                "CARBON_TEST_PYTHON": str(self.tmp / "python"),
-                # The canonical image's interpreter is not on /usr/bin.
-                "CARBON_TEST_REAL_PYTHON": sys.executable,
-                "CARBON_TEST_CONTROL_CENTER": str(self.tmp / "control-center"),
-                "CARBON_TEST_DOCKER_ROOT": str(self.tmp / "docker-root"),
-                **env,
-            },
+            env=self.env(**env),
             capture_output=True,
             text=True,
             check=False,
             timeout=120,
         )
+
+    def run_in_terminal(self, *args, **env) -> str:
+        """The install with its output on a terminal (a pty), as a miner runs
+        it; what it printed there."""
+        import pty
+
+        master, slave = pty.openpty()
+        try:
+            subprocess.run(
+                ["bash", str(self.clone / "scripts" / "install_miner.sh"), *args],
+                cwd=self.tmp,
+                env=self.env(**env),
+                stdin=subprocess.DEVNULL,
+                stdout=slave,
+                stderr=subprocess.DEVNULL,
+                check=False,
+                timeout=120,
+            )
+        finally:
+            os.close(slave)
+        out = b""
+        while True:
+            try:
+                chunk = os.read(master, 65536)
+            except OSError:
+                break
+            if not chunk:
+                break
+            out += chunk
+        os.close(master)
+        return out.decode().replace("\r\n", "\n")
+
+    def env(self, **env):
+        return {
+            "PATH": f"{self.tools}:/usr/bin:/bin",
+            "HOME": str(self.tmp / "home"),
+            "CARBON_STATE_DIR": str(self.state),
+            "CARBON_TEST_LOG": str(self.log),
+            "CARBON_TEST_PYTHON": str(self.tmp / "python"),
+            # The canonical image's interpreter is not on /usr/bin.
+            "CARBON_TEST_REAL_PYTHON": sys.executable,
+            "CARBON_TEST_CONTROL_CENTER": str(self.tmp / "control-center"),
+            "CARBON_TEST_DOCKER_ROOT": str(self.tmp / "docker-root"),
+            **env,
+        }
 
     def logged(self) -> list[str]:
         return self.log.read_text().splitlines() if self.log.exists() else []
@@ -928,11 +974,78 @@ def test_short_space_offers_carbons_old_images_and_removes_them_only_on_yes(sand
     )
     assert "removed " + old in removed.stdout
     assert any("superseded_images remove" in line for line in sandbox.logged())
+    # M1 E2E R8b-1: it runs before the development candidate's ignored-source
+    # check, so it leaves no bytecode in the checkout.
+    assert not list(sandbox.clone.rglob("__pycache__"))
     sandbox.log.unlink()
     fake_df(sandbox, 1024 * 1048576)
     roomy = sandbox.run("--no-start", CARBON_TEST_OLD_IMAGES=old)
     assert "earlier installs" not in roomy.stdout
     assert not any("superseded_images" in line for line in sandbox.logged())
+
+
+def test_an_install_starts_the_catalog_in_the_background_when_entries_are_missing(
+    sandbox,
+):
+    """M1 E2E R7-1, E2: an update rebuilt the construction parent and left
+    the catalog uninstalled, silently, and a newcomer had to know to install
+    it. Where a profile exists and entries are missing, it starts in the
+    background, said first with how long; a failure to start says what to
+    run."""
+    quiet = sandbox.run("--no-start")
+    assert quiet.returncode == 0, quiet.stderr
+    assert not any("catalog_build" in line for line in sandbox.logged())
+    assert "entries built over" not in quiet.stdout
+    again = sandbox.run("--no-start", CARBON_TEST_CATALOG_MISSING="3")
+    assert again.returncode == 0, again.stderr
+    assert "needs 3 entries built over" in again.stdout
+    assert "in the background now (about 40 minutes" in again.stdout
+    assert any(
+        "-B -m scripts.dev.miner_launchpad.catalog_build start --state-dir "
+        + str(sandbox.state)
+        in line
+        for line in sandbox.logged()
+    )
+    failed = sandbox.run(
+        "--no-start", CARBON_TEST_CATALOG_MISSING="3", CARBON_TEST_CATALOG_FAILS="yes"
+    )
+    assert failed.returncode == 0, failed.stderr
+    assert "The catalog install could not start" in failed.stdout
+    assert "scripts.dev.catalog_install --state-dir" in failed.stdout
+
+
+def test_the_last_line_is_the_page_link_and_a_remote_box_gets_its_tunnel(sandbox):
+    """M1 E2E E1: no token to fetch and paste. In a terminal, the installer's
+    last line is the page's link with this install's token; over SSH, the
+    one tunnel command comes first."""
+    lines = sandbox.run_in_terminal("--no-start").strip().splitlines()
+    assert lines[-1] == "http://127.0.0.1:8788/#token=fixture-token"
+    assert not any("ssh -N -L" in line for line in lines)
+    remote = sandbox.run_in_terminal(
+        "--no-start", SSH_CONNECTION="198.51.100.7 51000 203.0.113.9 22", USER="dana"
+    )
+    lines = remote.strip().splitlines()
+    assert lines[-1] == "http://127.0.0.1:8788/#token=fixture-token"
+    assert "  ssh -N -L 8788:127.0.0.1:8788 dana@203.0.113.9" in lines
+
+
+def test_a_captured_install_never_carries_the_token(sandbox, tmp_path):
+    """Validator, E1 review: a piped or captured install (tee, an agent, CI)
+    names the owner-only token file, never the token."""
+    captured = tmp_path / "install.out"
+    with captured.open("w") as out:
+        subprocess.run(
+            ["bash", str(sandbox.clone / "scripts" / "install_miner.sh"), "--no-start"],
+            cwd=sandbox.tmp,
+            env=sandbox.env(),
+            stdout=out,
+            stderr=subprocess.STDOUT,
+            check=True,
+            timeout=120,
+        )
+    text = captured.read_text()
+    assert "fixture-token" not in text and "#token=" not in text
+    assert str(sandbox.state / "session-token") + " (owner-only)" in text
 
 
 def test_two_filesystems_each_need_only_their_own_share(sandbox):

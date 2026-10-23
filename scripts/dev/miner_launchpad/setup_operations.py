@@ -146,6 +146,7 @@ SETUP_OPERATIONS = {
             {
                 "intakes",
                 "intake_targets",
+                "direct_intake_target",
                 "receiver_hotkey",
                 "receivers",
                 "practice_auto_retry",
@@ -213,6 +214,15 @@ FIELDS = {
         (
             "Challenge id to a list of distinct {intake_url, receiver_hotkey} validators. "
             "Every receiver is required and checked before signing; the same frozen model is sent to each."
+        ),
+    ),
+    "direct_intake_target": (
+        "object",
+        (
+            "{intake_url, receiver_hotkey}: the construction receiver that "
+            "checks your frozen recipe, for a Challenge that takes no "
+            "validator intake (a direct construction Challenge). Omitted: the "
+            "one you named before is kept."
         ),
     ),
     "receiver_hotkey": (
@@ -538,6 +548,13 @@ def status(
         # answer as `done`, said on the step itself.
         row["blocks_launch"] = row["state"] not in ("done", "skipped")
         rows.append(row)
+    # The backbone catalog this install had, when its entries have no child
+    # for the current parents (an update rebuilt them): its own not-done
+    # item, never all-done (M1 E2E R7-1). Launch still works; practice on a
+    # catalog backbone is refused until it is installed again.
+    catalog_row = _catalog_row(setup)
+    if catalog_row is not None:
+        rows.append(catalog_row)
     nxt = next((row for row in rows if row["state"] == "open"), None)
     if nxt is not None:
         nxt["state"] = "next"
@@ -562,6 +579,29 @@ def status(
     # (MINER-SURVIVE-REBOOT-01): setup's own read-only warning, as Review's.
     reboot = getattr(setup, "reboot_warnings", None)
     result["warnings"] = reboot() if reboot is not None else []
+    if nxt is not None and nxt["id"] == "catalog":
+        launched = campaigns is not None and campaigns > 0
+        result["next"] = {
+            "step": "catalog",
+            "title": nxt["title"],
+            "missing": nxt["missing"],
+            "blocks_launch": False,
+            "install": nxt.get("install"),
+            **(
+                {"human_action_required": nxt["human_action_required"]}
+                if "human_action_required" in nxt
+                else {}
+            ),
+            # Launch is not held up by it.
+            "then": {
+                "step": "launch",
+                "done": launched,
+                "call": _launch_call(
+                    setup, door, launch_available, profile_unusable=profile_unusable
+                ),
+            },
+        }
+        return result
     if nxt is None:
         launched = campaigns is not None and campaigns > 0
         result["next"] = {
@@ -615,6 +655,50 @@ def status(
     return result
 
 
+def _catalog_row(setup):
+    """The catalog's own step, open, while entries are not installed for
+    this install's current parents (a new install, or an update that
+    rebuilt the parent), with how its background install stands; else
+    None. It never blocks launch: a catalog backbone's practice waits for
+    its entry (M1 E2E R7-1, E2)."""
+    from scripts.dev.miner_launchpad import catalog_build
+    from scripts.dev.miner_launchpad.catalog_state import INSTALL_COMMAND
+
+    read = getattr(setup, "catalog", None)
+    found = read() if read is not None else None
+    if not found or not found["missing"]:
+        return None
+    state_dir = Path(setup.root).parent
+    try:
+        job = catalog_build.status(state_dir)
+    except Exception:  # noqa: BLE001 - the step still says what to do
+        job = None
+    row = {
+        "id": "catalog",
+        "title": "Backbone catalog",
+        "state": "open",
+        "missing": ["catalog_not_installed_for_this_install"],
+        "entries": found["entries"],
+        "not_installed": found["missing"],
+        "blocks_launch": False,
+        "blocks": "practice on catalog backbones, each until its entry is ready",
+        "install": job,
+        "duration": catalog_build.DURATION,
+    }
+    if job is None or job["state"] != "RUNNING":
+        row["human_action_required"] = {
+            "who": "you, on the Control Center page or in a terminal here",
+            "page": "Install the catalog (one click, in the background)",
+            "command": INSTALL_COMMAND.format(state_dir=state_dir),
+            "why": (
+                "practice on a catalog backbone needs its image built over "
+                "this install's construction parent; Carbon's agents never "
+                "start this"
+            ),
+        }
+    return row
+
+
 def _one_click(compute) -> bool:
     """Whether `recheck` clears this compute step: it is stale or set aside,
     for a choice on this machine, and not one only the installer clears."""
@@ -627,7 +711,9 @@ def _one_click(compute) -> bool:
     if not (compute.get("stale") or compute.get("set_aside")):
         return False
     choice = compute.get("choice") or (compute.get("set_aside") or {}).get("choice")
-    return compute.get("next_step") != REINSTALL_STEP and choice in (
+    return not (compute.get("next_step") or "").startswith(
+        REINSTALL_STEP
+    ) and choice in (
         LOCAL_CPU,
         LOCAL_GPU,
     )

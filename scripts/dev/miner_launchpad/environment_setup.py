@@ -2210,7 +2210,24 @@ class EnvironmentSetup:
         reasons += drift
         if not reasons:
             return [], None
-        return reasons, REINSTALL_STEP if reinstall else RECHECK_STEP
+        return reasons, self._reinstall_step() if reinstall else RECHECK_STEP
+
+    def _reinstall_step(self) -> str:
+        """The installer step that clears a moved checkout, for this setup's
+        own state directory: one checkout may serve several installs, and an
+        update of one moves the checkout under the others (M1 E2E R8-2:
+        agents on a second state directory were sent to "--update" with no
+        word of which install, while the default one was current)."""
+        state_dir = self.root.parent
+        if os.path.realpath(state_dir) == os.path.realpath(DEFAULT_STATE_DIR):
+            return REINSTALL_STEP
+        return (
+            REINSTALL_STEP
+            + " with CARBON_STATE_DIR="
+            + shlex.quote(str(state_dir))
+            + " (this setup's own state directory: another install sharing "
+            "this checkout updated it)"
+        )
 
     def _install_drift(self, revision, manifests, *, made, other):
         """Why `revision` and the image manifests at `manifests` ({field:
@@ -2305,7 +2322,7 @@ class EnvironmentSetup:
                 )
         if not reasons:
             return [], None
-        return reasons, REINSTALL_STEP if reinstall else PROFILE_RECHECK_STEP
+        return reasons, self._reinstall_step() if reinstall else PROFILE_RECHECK_STEP
 
     # -- the steps
 
@@ -3245,10 +3262,10 @@ class EnvironmentSetup:
                     "intakes",
                     "challenge_has_no_intake",
                     next_step=(
-                        "This Challenge takes no validator intake. Put its "
-                        "construction receiver under 'Where your recipe is "
-                        "checked' instead, and leave the validator intake "
-                        "empty."
+                        "This Challenge takes no validator intake: leave it "
+                        "out of intakes. Its construction receiver goes in "
+                        "direct_intake_target, {intake_url, receiver_hotkey} "
+                        "(on the page: 'Where your recipe is checked')."
                     ),
                 )
         paired_value = value
@@ -3709,6 +3726,18 @@ class EnvironmentSetup:
             return False
         return type(cfg) is dict and not self.profile_staleness(cfg)[0]
 
+    def catalog(self) -> dict | None:
+        """Whether the backbone catalog this install had is installed for
+        the parents its written profile names (`catalog_state.state`): None
+        without a profile, else {"entries", "missing"}."""
+        from scripts.dev.miner_launchpad import catalog_state
+
+        try:
+            cfg = json.loads(self.profile_path.read_bytes())
+            return catalog_state.state(cfg) if type(cfg) is dict else None
+        except (OSError, ValueError):
+            return None
+
     def _kept_from_file(self) -> dict:
         """The intakes the written profile file names, with the receivers
         and validator lists pinned beside them, as a Review's record keeps
@@ -3812,13 +3841,13 @@ class EnvironmentSetup:
             kept = record
         elif "profile_set_aside" in record:
             kept = {"profile": record["profile_set_aside"]}
-        elif os.path.lexists(self.profile_path) and (
-            rechecked or not self._profile_current()
-        ):
+        elif os.path.lexists(self.profile_path):
             # A step changed since the last Review drops its record ("any
             # change needs a new review") while its file stays where the
-            # Control Center loads it, refused as stale after an update
-            # (M1 E2E U54): written again with what the file names.
+            # Control Center loads it: refused as stale after an update (M1
+            # E2E U54), or describing the steps before the change (R8-7: a
+            # compute choice changed, and recheck wrote nothing). Written
+            # again with what the file names.
             kept = self._kept_from_file()
         else:
             if rechecked:
@@ -3885,11 +3914,11 @@ class EnvironmentSetup:
                 )[1]
             except (OSError, ValueError):
                 clears = None
-        if clears == REINSTALL_STEP:
+        if (clears or "").startswith(REINSTALL_STEP):
             raise SetupRefused(
                 "accepted_revision",
                 "carbon_updated_rerun_installer",
-                next_step=REINSTALL_STEP,
+                next_step=clears,
             )
         report = {"next_steps": []}
         if compute is None:
@@ -3902,7 +3931,14 @@ class EnvironmentSetup:
         else:
             report["compute"] = "unchanged"
         report = self._make_ready(report, recorded, checkout_revision())
-        return {**self.state(), "update": report}
+        state = self.state()
+        if not state["steps"]["review"]["profile_written"] and "profile" not in report:
+            # Said, never left to be inferred (M1 E2E R8-7): there was no
+            # profile to write again, so Review writes the first one.
+            report["profile"] = {"written": False, "code": "profile_not_written"}
+            if not report["next_steps"]:  # else an earlier step comes first
+                report["next_steps"].append("review in setup to write your profile")
+        return {**state, "update": report}
 
 
 def _needs_inference(record) -> bool:
@@ -4100,13 +4136,22 @@ def main(argv=None) -> int:
     `after-install` checks setup against what was just installed and prints
     what changed; `gpu-installed` says whether a GPU worker was built here
     before; `service-unit` prints the systemd user unit for the Control
-    Center."""
+    Center; `catalog-needed` says how many entries of the backbone catalog
+    need installing for this install's current parents; `session-link`
+    prints the page's link with this install's session token, for the
+    miner's terminal only."""
     parser = argparse.ArgumentParser(description=main.__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("after-install", "gpu-installed", "service-unit"):
+    for name in (
+        "after-install",
+        "gpu-installed",
+        "service-unit",
+        "catalog-needed",
+        "session-link",
+    ):
         command = commands.add_parser(name)
         command.add_argument("--state-dir", type=Path, required=True)
-        if name == "service-unit":
+        if name in ("service-unit", "session-link"):
             command.add_argument("--port", type=int, required=True)
     args = parser.parse_args(argv)
     state_dir = args.state_dir
@@ -4115,6 +4160,26 @@ def main(argv=None) -> int:
 
         found = installed.found(state_dir, REPO)["gpu_image_manifest"]["path"]
         print("yes" if found else "no")
+        return 0
+    if args.command == "session-link":
+        # The page's address with this install's session token in its
+        # fragment, for the installer's last line (M1 E2E E1): printed to
+        # the miner's terminal only, never written to a log. The same token
+        # the Control Center keeps in <state>/session-token and reuses after
+        # a restart or an update. Nothing when the page cannot read it.
+        from scripts.dev.miner_launchpad import controller
+
+        if not controller.session_link_supported():
+            return 1
+        _private_dir(Path(state_dir))
+        token = controller.session_token(Path(state_dir))
+        print(controller.session_url(f"http://127.0.0.1:{args.port}", token))
+        return 0
+    if args.command == "catalog-needed":
+        # How many entries of the catalog this install had need installing
+        # again for its current parents (M1 E2E R7-1), or "no".
+        found = EnvironmentSetup(state_dir, onboarding=None).catalog()
+        print(len(found["missing"]) if found and found["missing"] else "no")
         return 0
     if args.command == "service-unit":
         try:

@@ -122,7 +122,8 @@ def test_status_names_a_stale_compute_check_and_the_installers_update(tmp_path, 
     entry = status["next"]
     assert entry["step"] == "compute" and entry["missing"] == ["compute_check_is_stale"]
     assert entry["stale"] == compute["stale"] and entry["stale"]
-    assert entry["next_step"] == environment.REINSTALL_STEP == compute["next_step"]
+    assert entry["next_step"] == compute["next_step"]
+    assert compute["next_step"].startswith(environment.REINSTALL_STEP)
     # The specimen: a check that is not stale carries neither.
     head["revision"] = REVISION
     assert "stale" not in _call(server, STATUS)["payload"]["next"]
