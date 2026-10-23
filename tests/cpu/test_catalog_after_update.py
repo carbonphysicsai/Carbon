@@ -251,7 +251,13 @@ def test_the_page_starts_it_after_review_and_on_one_click(tmp_path, state):
         status, body = post(controller.CATALOG_ROUTE, {"start": True})
         assert (status, body) == (200, {"state": "RUNNING"})
         assert calls == ["start", "start"]
-        assert post(controller.CATALOG_ROUTE, {"start": True, "x": 1})[0] == 400
+        # Only the closed {"start": true} body starts it; anything else is
+        # refused by its code before an install is started.
+        for wrong in ({"start": True, "x": 1}, {"start": False}, ["start"]):
+            status, body = post(controller.CATALOG_ROUTE, wrong)
+            assert status == 400
+            assert body["error"] == "closed_catalog_request_required"
+        assert calls == ["start", "start"]
     finally:
         served.shutdown()
         served.server_close()
