@@ -78,7 +78,11 @@ Loop until launch:
 
 Order: start your signer, register on the subnet, who researches, inference
 (skipped for your own agent: it uses its own model), compute, review and
-launch. Carbon rents no compute: a remote machine is the miner's own, reached
+launch. Until the miner registers, `practice_choice` (also `next.or`) offers
+the first step's other choice, carbon_setup_practice: practise without
+registering, with no keys or signer, and nothing leaving the machine. Offer
+it; make it only when the miner chooses it. Freeze, submit and commit then
+refuse registration_required until the miner registers (carbon_setup_begin). Carbon rents no compute: a remote machine is the miner's own, reached
 over their own SSH. DEVELOPMENT, on Carbon's testnet; nothing here is qualified.
 """
 
@@ -341,7 +345,8 @@ class SetupDoor:
             return WORKFLOW
 
         state = self.setup.state()
-        if state["registered_hotkey"] is not None:
+        # Practice-only setup (carbon_setup_practice) takes the same steps.
+        if state["registered_hotkey"] is not None or state.get("practice_only"):
             added += self._registered()
         if (
             self.attach_operations is not None
@@ -377,7 +382,10 @@ class SetupDoor:
             or payload.get("result") == "human_action_required"
         ):
             return []
-        if name == "begin" and payload.get("registered_hotkey") and not self.registered:
+        if (
+            (name == "begin" and payload.get("registered_hotkey"))
+            or (name == "practice" and payload.get("practice_only"))
+        ) and not self.registered:
             return self._registered()
         written = payload.get("steps", {}).get("review", {}).get("profile_written")
         if name == "review" and written and not self.operations:

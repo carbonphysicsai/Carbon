@@ -106,13 +106,18 @@ class BittensorMessageSigner:
     """Signs a Carbon request through the miner's own signer process.
 
     Accepts only an ``ExternalSigner`` from ``connect_signer``: that type cannot
-    be built from key material, so no private key can reach this class.
+    be built from key material, so no private key can reach this class. The
+    one exception is a practice-only install's ``PracticeSigner``
+    (``carbon.chain.practice``): its key is that install's practice identity,
+    registered nowhere, and what it signs is admitted only against a
+    local-practice snapshot - never a hotkey's key.
     """
 
     def __init__(self, signer):
         from .external_signer import ExternalSigner
+        from .practice import PracticeSigner
 
-        if type(signer) is not ExternalSigner:
+        if type(signer) not in (ExternalSigner, PracticeSigner):
             raise TypeError("sign through the miner's external signer (connect_signer)")
         self._signer = signer
 

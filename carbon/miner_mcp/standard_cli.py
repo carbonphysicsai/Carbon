@@ -111,10 +111,11 @@ class OperatorProfile:
     development_grant: object = None
 
     @property
-    def registered_hotkey(self) -> str:
+    def registered_hotkey(self) -> str | None:
         if self.development_grant is not None:
             return self.development_grant.document["miner_identity"]
-        return self.manifest["admission"]["hotkey"]
+        # A practice-only campaign has none (its admission is an identity).
+        return self.manifest["admission"].get("hotkey")
 
 
 @dataclass(frozen=True)
@@ -686,9 +687,49 @@ def _runtime(profile):
     return _connection(profile, paths), image, analysis, None
 
 
+def _practice_connection(profile, paths):
+    """A practice-only campaign's session: the install's practice identity,
+    which must be the one the campaign was admitted with. No chain, no
+    signer (LP practice-only)."""
+    from carbon.development_session.practice_identity import (
+        PRACTICE_ONLY,
+        PracticeIdentityRefused,
+        load,
+    )
+    from carbon.development_session.service import practice_connection
+
+    admitted = profile.manifest.get("admission") or {}
+    try:
+        signer = load(Path(paths["practice_identity"]))
+    except PracticeIdentityRefused as refused:
+        raise AttachRefused(refused.code, "practice identity unavailable") from None
+    if (
+        admitted.get("admission") != PRACTICE_ONLY
+        or admitted.get("identity") != signer.public_key.hex()
+    ):
+        raise AttachRefused(
+            "miner_differs_from_campaign", "practice identity differs from campaign"
+        )
+    session = profile.root / "research-auth"
+    if not session.is_dir() or session.is_symlink():
+        raise AttachRefused(
+            "session_unavailable", "prepared authenticated session required"
+        )
+    return practice_connection(session, paths["image_manifest"], signer)
+
+
 def _connection(profile, paths):
     """The existing signed session for this campaign's registered miner."""
     from carbon.chain.external_signer import miner_signer
+
+    if "practice_identity" in paths:
+        return _practice_connection(profile, paths)
+    if (profile.manifest.get("admission") or {}).get("admission") == "PRACTICE_ONLY":
+        # Registered since: a practice campaign stays readable, but takes no
+        # work under the hotkey (launch a new campaign).
+        raise AttachRefused(
+            "practice_campaign_read_only", "practice campaign under a registration"
+        )
     from carbon.development_session.miner_network import binding
     from carbon.development_session.research_campaign import private_file
     from carbon.development_session.service import LocalMinerConnection

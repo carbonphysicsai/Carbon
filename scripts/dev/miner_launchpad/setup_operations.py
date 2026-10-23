@@ -91,6 +91,17 @@ SETUP_OPERATIONS = {
             {"address"},
         ),
         _op(
+            "practice",
+            "register",
+            OPEN,
+            "Practise without registering: run your agent and practise any "
+            "Challenge on your own machine, with no registration, keys or "
+            "signer. Nothing leaves this machine. Freezing, submitting and "
+            "committing need a registered hotkey and its signer: register "
+            "later with carbon_setup_begin, keeping the steps you checked.",
+            {"confirm"},
+        ),
+        _op(
             "agent",
             "agent",
             REGISTERED,
@@ -211,8 +222,8 @@ FIELDS = {
         "boolean",
         (
             "Must be true: you confirm this step writes (review) or rewrites"
-            " (recheck) your runner profile and loads it. Nothing is launched"
-            " or spent."
+            " (recheck) your runner profile and loads it, or that you practise"
+            " without registering (practice). Nothing is launched or spent."
         ),
     ),
     "intakes": ("object", "Challenge id to validator intake URL (optional)."),
@@ -265,6 +276,11 @@ NEXT_STEPS = {
     "registration_not_confirmed": "confirm your registration: carbon_setup_begin",
     "step_not_checked": "take the step named in field first; carbon_setup_status",
     "recheck_needs_confirmation": "send confirm: true",
+    "practice_needs_confirmation": "send confirm: true",
+    "nothing_to_check_in_practice_only": (
+        "leave signer_socket and operator_config out: practice-only setup "
+        "asks no signer and reads no network"
+    ),
     "unknown_field": "send only the fields in the step's arguments schema",
     "practice_auto_retry_boolean_required": "send practice_auto_retry as true or false",
     "field_required": "send every required field in the step's arguments schema",
@@ -481,6 +497,10 @@ def status(
     state = setup.state()
     steps = state["steps"]
     registered = state["registered_hotkey"]
+    # Setup's first step's other choice (`practice`): the signer and
+    # registration wait until the miner registers; every other step is
+    # taken as a registered miner takes it.
+    practising = state.get("practice_only") is True
     agent = steps["agent"]
     own = agent.get("checked") and agent.get("choice") not in USES_SETUP_MODEL
     pending_worker = bool(
@@ -526,13 +546,22 @@ def status(
         row = {"id": step, "title": TITLES[step]}
         if step == "inference" and own:
             row.update(state="skipped", why="your agent uses its own model")
+        elif step in ("signer", "register") and practising:
+            row.update(
+                state="skipped",
+                why=(
+                    "you practise without registering; register to freeze, "
+                    "submit or commit"
+                ),
+                later=call("begin" if step == "register" else "signer", door),
+            )
         elif done[step]:
             row["state"] = "done"
             if step == "agent" and type(agent.get("consent")) is dict:
                 # What the miner agreed Hermes writes, still shown once the
                 # step is done (M1 E2E H17).
                 row["consent"] = agent["consent"]
-        elif step in ("signer", "register") or registered is not None:
+        elif step in ("signer", "register") or registered is not None or practising:
             row.update(state="open", missing=missing[step])
         else:
             row.update(state="waiting", missing=missing[step], after="register")
@@ -573,6 +602,22 @@ def status(
         "schema": SCHEMA,
         "door": door,
         "registered_hotkey": registered,
+        # True once the miner chose to practise without registering, until
+        # a registration is confirmed (carbon_setup_begin). Freeze, submit
+        # and commit refuse registration_required meanwhile.
+        "practice_only": practising,
+        # Setup's first step's other choice, offered until the miner has
+        # registered or chosen it: practise with nothing to register,
+        # install or sign.
+        "practice_choice": (
+            None
+            if registered is not None or practising
+            else {
+                "title": "Practise without registering",
+                "summary": SETUP_OPERATIONS["practice"].summary,
+                "call": call("practice", door),
+            }
+        ),
         "steps": rows,
         "done": [row["id"] for row in rows if row["state"] == "done"],
         "profile_written": written,
@@ -625,6 +670,9 @@ def status(
         return result
     step = nxt["id"]
     entry = {"step": step, "title": TITLES[step], "missing": nxt["missing"]}
+    if step in ("signer", "register") and result["practice_choice"] is not None:
+        # The first step's other choice: practise with nothing to sign.
+        entry["or"] = result["practice_choice"]
     if step == "signer":
         entry["human_action_required"] = human_action("signer", "signer_not_checked")
         entry["call"] = call("signer", door)

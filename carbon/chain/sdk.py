@@ -17,6 +17,7 @@ from .models import (
     hash256,
     uint,
 )
+from .practice import LOCAL_PRACTICE
 
 SDK_VERSION = "11.1.0"
 _log = logging.getLogger(__name__)
@@ -44,6 +45,9 @@ class BittensorReader:
     _max_delay = 60.0
 
     async def capture(self, context: ChainContext) -> MetagraphSnapshot:
+        if context.network == LOCAL_PRACTICE:
+            # A practice identity's local context names no chain to read.
+            raise ChainFailure(FailureCode.IDENTITY)
         return await _shared_capture(context, self._read)
 
     @staticmethod

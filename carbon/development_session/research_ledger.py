@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import sqlite3
 import time
 from contextlib import contextmanager
@@ -258,7 +259,9 @@ def _check_product(manifest):
     returns; the per-call registration read happens on the connection.
     """
     admission = manifest.get("admission")
-    if (
+    if type(admission) is dict and admission.get("admission") == PRACTICE_ADMISSION:
+        _check_practice(manifest, admission)
+    elif (
         type(admission) is not dict
         or admission.get("admission") != PRODUCT_ADMISSION
         or set(admission)
@@ -279,6 +282,38 @@ def _check_product(manifest):
             raise ValueError("incomplete product campaign manifest")
     if "grant" in manifest:
         raise ValueError("a product campaign never carries a development grant")
+
+
+def _check_practice(manifest, admission):
+    """A practice-only manifest (`practice_identity.PracticeMiner.record`):
+    typed PRACTICE_ONLY, local-practice, its principal the identity's."""
+    from .practice_identity import LOCAL_PRACTICE
+
+    identity = admission.get("identity")
+    if (
+        set(admission) != {"admission", "network", "identity"}
+        or admission["network"] != LOCAL_PRACTICE
+        or type(identity) is not str
+        or re.fullmatch(r"[0-9a-f]{64}", identity) is None
+        or manifest.get("principal") != "practice:" + identity
+    ):
+        raise ValueError("practice campaign must record its practice identity")
+
+
+#: A practice-only campaign's admission (Setup's "Practise without
+#: registering"): research and reports only, every other phase refused.
+PRACTICE_ADMISSION = "PRACTICE_ONLY"
+PRACTICE_PHASES = frozenset({"research", "report"})
+
+
+class RegistrationRequired(ValueError):
+    """A practice-only campaign asked for work that needs a registration: a
+    final, a selection, anything that reaches a validator or the chain."""
+
+    code = "registration_required"
+
+    def __init__(self):
+        super().__init__("registration required")
 
 
 #: The code of a refusal by one of the campaign's own ceilings: a cap in its
@@ -453,6 +488,8 @@ class CampaignLedger:
                 raise ValueError(
                     "a product campaign never consumes a development grant"
                 )
+            if manifest["admission"]["admission"] == PRACTICE_ADMISSION:
+                return {"kind": PRACTICE_ADMISSION, "expires_unix": None}
             return {"kind": PRODUCT_ADMISSION, "expires_unix": None}
         raise ValueError("controlled campaign authority required")
 
@@ -727,6 +764,9 @@ class CampaignLedger:
                 from .research_control import CampaignControl
 
                 grant = self.authority(manifest)
+                if grant["kind"] == PRACTICE_ADMISSION and phase not in PRACTICE_PHASES:
+                    # Practice-only: research and reports, nothing else.
+                    raise RegistrationRequired()
                 if owner != manifest["owner"]:
                     raise ValueError("authenticated campaign owner differs")
                 # Same transaction as the dispatch reservation: a concurrent

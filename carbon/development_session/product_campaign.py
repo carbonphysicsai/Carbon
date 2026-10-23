@@ -69,7 +69,14 @@ class ProductLaunch:
     def __post_init__(self):
         if self.agent not in AGENTS:
             raise ValueError("agent is one of: " + ", ".join(AGENTS))
-        if type(self.miner) is not RegisteredMiner:
+        from carbon.development_session.practice_identity import PracticeMiner
+
+        if type(self.miner) is PracticeMiner:
+            # Practice-only: admitted by the practice identity, for research
+            # and reports only (the ledger refuses every other phase).
+            if self.principal != self.miner.principal:
+                raise ValueError("a practice launch's principal is its identity")
+        elif type(self.miner) is not RegisteredMiner:
             raise TypeError("a product launch requires a RegisteredMiner")
         for value in (self.campaign_id, self.principal):
             if type(value) is not str or not 1 <= len(value) <= 128:

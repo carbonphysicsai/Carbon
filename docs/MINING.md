@@ -17,7 +17,8 @@ This guide gets you from a clean machine to your first graded model.
 ## What you need
 
 - **A Linux machine** (x86-64), or Windows with WSL2. It needs Docker and free disk for Carbon's images; the installer checks the space first and says how much it needs. A GPU is optional.
-- **A Bittensor wallet with a hotkey registered on subnet 567.** Carbon never asks for your keys or seed phrase. Your hotkey stays in your own wallet.
+- **To practise: nothing to register.** You can run your agent and practise on any Challenge without a wallet, a registration or a signer (see **Just want to practise?** in step 4).
+- **To freeze and submit: a Bittensor wallet with a hotkey registered on subnet 567.** Carbon never asks for your keys or seed phrase. Your hotkey stays in your own wallet.
 - **A model key from a provider**, if you want Carbon's agent (Graphite) or Hermes to do the research. Setup lists the providers each agent can use. Save the key in a file only you can read; Carbon reads it from that file. Skip this if you bring your own agent, e.g. Claude Code, which uses its own model.
 
 ---
@@ -36,6 +37,8 @@ The installer checks your machine, sets up Carbon's environment, builds the imag
 **Updating.** Run `~/carbon/scripts/install_miner.sh --update --pytorch`, repeating the other options you installed with (e.g. `--gpu`). If the disk is short, it lists Carbon's own images from earlier installs that this install no longer uses and asks before removing them; nothing else is touched. To say yes up front, add `--remove-old-images`. An update checks your setup's compute again, rewrites your runner profile, and says what changed.
 
 ## 2. Start your signer
+
+Practising only? Skip this step: you need the signer only to freeze and submit.
 
 Your signer signs your submissions with your hotkey. Keys stay in your wallet. In its own terminal:
 
@@ -64,6 +67,16 @@ cat ~/.carbon/development-launchpad/session-token
 ## 4. Set up (on the page)
 
 The **Setup** page walks you through six steps. Each one is checked before you go on.
+
+**Just want to practise?** At the first step, choose **Practise without registering**. You skip the signer and the registration. Setup makes a **practice identity** for this machine: a key kept in a file only you can read, registered nowhere and never sent. Carbon uses it to sign your practice locally. Then set up who researches, your AI model and your compute as usual, save your settings, and practise on any Challenge. Nothing from your practice is sent to Carbon or to a validator: your agent's model calls go to your own provider, and practice runs on your own compute.
+
+In practice-only mode, **Freeze**, **Submit**, **Commit** and **Check for result** say *registration required*. Graphite can research and practise: launch it in **Research** mode, or with its submission policy set to retain only (`retain_only_v1`), when it plans and practises and then stops, *registration required*, where it would pick its final candidate. To unlock freezing and submitting later, register your hotkey in your own wallet, then:
+1. confirm it at Setup's first step (**Join Carbon mining**);
+2. start your signer;
+3. choose **Who researches** again, so Setup checks your signer;
+4. **Review and launch** again.
+
+The other steps you checked are kept. Your practice campaigns stay on the page and readable, but to freeze and submit, start a new campaign.
 
 1. **Start your signer.** Your signer holds your mining key on this machine; Carbon never sees your key.
 2. **Join Carbon mining.** It confirms your hotkey's registration from the chain. You sign any registration in your own wallet.
@@ -109,6 +122,8 @@ claude mcp add carbon --scope user -- ~/carbon/.venv/bin/carbon-mcp --configurat
 
 Then ask it, for example: *"Launch a Carbon campaign on electric-motor-magnetics 1.3 with agent none, run two practices, freeze the better eligible one, submit it, and check the result."*
 
+Your agent can set up practice-only too: `carbon_setup_status` lists `practice_choice` (the call is `carbon_setup_practice` with `{"confirm": true}`). An agent should offer it and take it only when you choose it.
+
 **Hermes:** choose **Hermes** in Setup step 3. Setup writes a ready Hermes profile called `carbon`. Then run:
 
 ```bash
@@ -130,6 +145,9 @@ Hermes asks you before each action that changes something (launch, practise, fre
 | A submission says **rebuilt, not graded yet** | Click **Check for result** on the page (an agent runs `check_result`): that reads the latest grade from the validator; the campaign view shows the one last read. A grade from another of your submissions is shown apart and is not this one's. |
 | A campaign says **Interrupted** | Click **Resume**. Your work is kept. |
 | A practice says **not eligible** | It broke a physics rule; the card says which one. Try another recipe. |
+| Freeze, submit, commit or check for result says **registration required** | You set up to practise without registering. Register, then follow the four steps under **Just want to practise?**. |
+| A campaign says **practised without registering** and takes no new work | It was made with your practice identity before you registered. It stays readable; start a new campaign to practise, freeze and submit. |
+| Setup or a campaign says your **practice identity** is missing, damaged or not readable by you alone | Run `chmod 600` on it if it is only readable by others, otherwise choose **Practise without registering** again at Setup's first step, then **Review and launch**. |
 | Submit says the validator doesn't serve this Challenge | No validator grades that Challenge yet. Practise it now; submit when one appears. |
 
 **Need help?** Ask in Carbon's Discord: <DISCORD_INVITE_URL>. Miners and the Carbon team answer there.

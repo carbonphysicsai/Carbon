@@ -48,7 +48,7 @@ from carbon.development_session.private_records import private_json
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_control import CampaignControl, DispatchStopped
 from carbon.development_session.research_ledger import CampaignLedger
-from scripts.dev.miner_launchpad import budget_view, levels
+from scripts.dev.miner_launchpad import budget_view, levels, practice_only
 from scripts.dev.miner_launchpad import supervisor as supervision
 from scripts.dev.miner_launchpad.controller import Rejected, owner_lock
 
@@ -86,6 +86,24 @@ OPTIONAL_PATH_FIELDS = {
     "battery_validator",
     "signer_socket",
 } | NETWORK_PATH_FIELDS
+#: A practice-only profile (Setup's "Practise without registering"): its
+#: practice identity's owner-only key file stands where the public hotkey
+#: would, and it names no network, signer or validator, because it reaches
+#: none (`practice_identity`).
+PRACTICE_KEY_PATH = "practice_identity"
+PRACTICE_PATH_FIELDS = (PATH_FIELDS - {"miner_public"}) | {PRACTICE_KEY_PATH}
+#: Fields that send a frozen candidate somewhere: never in a practice-only
+#: profile, which freezes and submits nothing.
+SUBMISSION_PROFILE_FIELDS = {
+    "intakes",
+    "intake_targets",
+    "direct_intake_target",
+    "direct_intake_serves",
+    "validators",
+    "receivers",
+    "version_intakes",
+    "battery_intake",
+}
 
 PROFILE_FIELDS = {
     "schema",
@@ -149,6 +167,12 @@ OPTIONAL_PROFILE_FIELDS = {
     # own (LAUNCHPAD-PRACTICE-RETRY-01): a boolean, off when absent. Setup's
     # Review writes it only when the miner turned it on.
     "practice_auto_retry",
+    # A practice-only profile's typed identity: {"kind": "PRACTICE_ONLY",
+    # "public_key": hex}, beside principal "practice:<hex>" (never ss58).
+    "practice_identity",
+    # A registered profile's earlier practice principal: the campaigns it
+    # practised without registering stay listed and readable, no new work.
+    "practice_principal",
 }
 #: The runner profile's field for the miner's auto-retry choice.
 PRACTICE_AUTO_RETRY = "practice_auto_retry"
@@ -347,13 +371,57 @@ def review_pin(cfg):
     return "review-v3:" + digest(canonical(cfg))
 
 
+def _practice_profile(cfg):
+    """A practice-only profile, closed: typed identity, principal
+    `practice:<hex>` for exactly that key, the practice key file in place of
+    the public hotkey, and nothing that names a network, a signer or a
+    validator."""
+    from carbon.development_session import practice_identity as practice
+
+    identity = cfg["practice_identity"]
+    if (
+        type(identity) is not dict
+        or set(identity) != {"kind", "public_key"}
+        or identity["kind"] != practice.PRACTICE_ONLY
+        or not practice.is_practice_principal(cfg["principal"])
+        or cfg["principal"] != "practice:" + str(identity["public_key"])
+    ):
+        raise ValueError("a typed practice identity and its principal required")
+    if type(cfg["paths"]) is not dict or set(cfg["paths"]) != PRACTICE_PATH_FIELDS:
+        raise ValueError("closed practice-only runner inputs required")
+    if SUBMISSION_PROFILE_FIELDS & set(cfg):
+        raise ValueError("a practice-only profile names no intake or validator")
+
+
+def is_practice_profile(cfg):
+    return type(cfg) is dict and "practice_identity" in cfg
+
+
+def practice_registration(cfg):
+    """A practice-only profile's admission: its practice identity, read from
+    its owner-only key file and matched to the profile's principal. Nothing
+    is read from the chain or asked of a signer."""
+    from carbon.development_session import practice_identity as practice
+
+    try:
+        signer = practice.load(Path(cfg["paths"][PRACTICE_KEY_PATH]))
+    except practice.PracticeIdentityRefused as refused:
+        raise Rejected(refused.code, 409) from None
+    if signer.principal != cfg["principal"]:
+        raise Rejected("practice_identity_mismatch", 409)
+    return practice.PracticeMiner(signer)
+
+
 def chain_registration(cfg):
     """The admission read: is the configured hotkey registered, right now.
 
     The same read the onboarding `status` answers from, through the operator's
     configured chain context. Returns a `RegisteredMiner` or raises the closed
-    onboarding failure that says why not.
+    onboarding failure that says why not. A practice-only profile is admitted
+    by its practice identity instead (`practice_registration`): no chain read.
     """
+    if is_practice_profile(cfg):
+        return practice_registration(cfg)
     from carbon.chain.sdk import BittensorReader
     from carbon.development_session.chain_onboarding import registered_miner
     from carbon.development_session.miner_network import binding
@@ -378,6 +446,9 @@ def signer_ready(cfg):
     """
     from carbon.chain.external_signer import connect_signer
 
+    if is_practice_profile(cfg):
+        # Practice-only: no signer; the practice identity signs locally.
+        return None
     public = json.loads(Path(cfg["paths"]["miner_public"]).read_bytes())
     socket_path = cfg["paths"].get("signer_socket")
     return connect_signer(
@@ -387,7 +458,10 @@ def signer_ready(cfg):
 
 
 def miner_hotkey(cfg):
-    """The profile's public hotkey; never a key."""
+    """The profile's public hotkey; never a key. A practice-only profile has
+    none: anything that needs one (a commitment) needs a registration."""
+    if is_practice_profile(cfg):
+        raise Rejected("registration_required", 403)
     return json.loads(Path(cfg["paths"]["miner_public"]).read_bytes())["hotkey"]
 
 
@@ -751,12 +825,23 @@ def validated_profile(cfg):
     if retired.declares_rented(cfg["runtime"]):
         # A rented GPU is refused by name, never read as another runtime.
         raise Rejected(retired.RENTED_GPU_RETIRED, 409)
-    if (
+    if "practice_principal" in cfg:
+        from carbon.development_session.practice_identity import (
+            is_practice_principal,
+        )
+
+        if "practice_identity" in cfg or not is_practice_principal(
+            cfg["practice_principal"]
+        ):
+            raise ValueError("a registered profile's earlier practice principal")
+    if "practice_identity" in cfg:
+        _practice_profile(cfg)
+    elif (
         type(cfg["paths"]) is not dict
         or set(cfg["paths"]) - OPTIONAL_PATH_FIELDS != PATH_FIELDS
     ):
         raise ValueError("closed runner inputs required")
-    if len(NETWORK_PATH_FIELDS & set(cfg["paths"])) != 1:
+    elif len(NETWORK_PATH_FIELDS & set(cfg["paths"])) != 1:
         raise ValueError("exactly one of operator_config or miner_network required")
     if any(
         type(v) is not str or not Path(v).is_absolute()
@@ -1947,6 +2032,14 @@ class RunnerAdapter:
             private_json(configuration)["principal"]
             if configuration is not None
             else principal
+        )
+        #: The practice principal this install practised as before it
+        #: registered (Review writes it as `practice_principal`): its
+        #: campaigns stay listed and readable, and take no new work.
+        self.practice_principal = (
+            private_json(configuration).get("practice_principal")
+            if configuration is not None
+            else None
         )
         #: The miner's private Graphite library: in the setup root, beside
         #: the runner profile, owner-only. Always an absolute path, as S2's
@@ -3629,11 +3722,14 @@ class RunnerAdapter:
         return {"principal": self.principal}
 
     def owned_campaign(self, identity):
-        """The campaign gate: a campaign this principal owns, and its kind."""
+        """The campaign gate: a campaign this principal owns, and its kind.
+        One practised without registering, under a registration since, is
+        `read_only`: readable and stoppable, never given new work."""
         if type(identity) is not str:
             raise Rejected("research_run_unavailable", 404)
         row, kind, _ = self._bound(identity)
-        return {**dict(row), "kind": kind}
+        read_only = row["principal"] != self.principal
+        return {**dict(row), "kind": kind, **({"read_only": True} if read_only else {})}
 
     def options_admitted(self, admitted, request):
         """Host choices and separate public/official construction path status.
@@ -4969,6 +5065,9 @@ class RunnerAdapter:
         commit touches no campaign record but its own request). `retry_of`
         names the interrupted practice this one sends again.
         """
+        # Whatever door or retry reached it, a practice-only profile starts
+        # no freeze, submit or commit.
+        practice_only.require_registered(admitted.profile, operation)
         identity = admitted.campaign["id"]
         key = request.get("idempotency_key")
         delegating = self._delegating()
@@ -5581,9 +5680,15 @@ class RunnerAdapter:
                     "SELECT * FROM research_runs WHERE id=?", (identity,)
                 ).fetchone()
                 kind = "retired_grant"
-        if row is None or row["principal"] != self.principal:
+        if row is None or row["principal"] not in self._readable_principals():
             raise Rejected("research_run_unavailable", 404)
         return row, kind, Path(row["root"])
+
+    def _readable_principals(self):
+        """This principal, and the practice principal it practised as before
+        it registered, whose campaigns stay readable (LP practice-only)."""
+        practice = getattr(self, "practice_principal", None)
+        return (self.principal,) + ((practice,) if practice else ())
 
     def _ledger(self, row, kind, root):
         """The campaign's ledger. A retired grant is held only for cleanup."""
@@ -5856,8 +5961,13 @@ class RunnerAdapter:
             ids = [
                 r[0]
                 for r in db.execute(
-                    "SELECT id FROM (SELECT id,created FROM launchpad_campaigns WHERE principal=? UNION ALL SELECT id,created FROM research_runs WHERE principal=?) ORDER BY created DESC LIMIT 100",
-                    (self.principal, self.principal),
+                    "SELECT id FROM (SELECT id,created FROM launchpad_campaigns WHERE principal IN (?,?) UNION ALL SELECT id,created FROM research_runs WHERE principal=?) ORDER BY created DESC LIMIT 100",
+                    (
+                        self.principal,
+                        # Practised without registering, before (read-only).
+                        getattr(self, "practice_principal", None) or self.principal,
+                        self.principal,
+                    ),
                 )
             ]
         result = []
