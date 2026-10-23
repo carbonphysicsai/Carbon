@@ -199,7 +199,9 @@ def _validator_outcome(epoch, path):
         outcome = document["result"] if direct else document["outcome"]
         if (
             document.get("schema") not in feedback_schemas()
-            or (not direct and document.get("epoch") != epoch)
+            # A direct document may name no epoch (its file does); one that
+            # names another epoch is not this one's (U48, receipted).
+            or (document["epoch"] != epoch if "epoch" in document else not direct)
             or type(outcome) is not dict
             or type(outcome.get("state")) is not str
         ):
