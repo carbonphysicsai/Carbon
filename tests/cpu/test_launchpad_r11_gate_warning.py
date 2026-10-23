@@ -80,3 +80,31 @@ def test_the_gate_warning_names_the_failed_gate(tmp_path):
     (tmp_path / "b").mkdir()
     root2 = _campaign(tmp_path / "b", [{"recipe": recipe, "summary": {"x": two}}])
     assert freeze_gate_warning(root2, recipe)["gates"] == ["law", "verified_pick"]
+
+
+def test_the_gate_warning_never_fails_a_freeze_or_submit(tmp_path):
+    # Validator (R11e receipt): a changed retained result, or a manifest that
+    # cannot be read, gives no warning; it never raises.
+    from carbon.development_session.research_campaign import (
+        PRACTICE_DUAL_SCHEMA,
+        CampaignLedger,
+        failed_gate_names,
+        freeze_gate_warning,
+    )
+
+    recipe = {"schema": "carbon.construction-recipe.v1", "source": {"kind": "catalog"}}
+    dual = {
+        "schema": PRACTICE_DUAL_SCHEMA,
+        "available": True,
+        "eligible": False,
+        "gates": {"verified_pick": False},
+    }
+    root = _campaign(tmp_path, [{"recipe": recipe, "practice_dual": dual}])
+    with CampaignLedger(root).db() as db:
+        db.execute("UPDATE research_results SET digest='sha256:changed'")
+    assert failed_gate_names(CampaignLedger(root), "alice", recipe) == ()
+    assert freeze_gate_warning(root, recipe) is None
+
+    for broken in (b"not json", b"[]", b"{}"):
+        (root / "campaign-manifest.json").write_bytes(broken)
+        assert freeze_gate_warning(root, recipe) is None

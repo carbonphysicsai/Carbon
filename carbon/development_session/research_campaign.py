@@ -567,7 +567,8 @@ def practice_failed_gates(ledger, owner, strategy):
 def failed_gate_names(ledger, owner, strategy):
     """The gates any retained practice of exactly `strategy` reports as failed
     (False in its dual-feedback block), sorted and bounded; () where none is
-    named. Names only, as the practice result already shows them."""
+    named, or where a retained result changed (a warning never fails a
+    freeze or submit). Names only, as the practice result already shows them."""
     with ledger.db() as db:
         if (
             db.execute(
@@ -583,7 +584,7 @@ def failed_gate_names(ledger, owner, strategy):
     names = set()
     for body, fingerprint in rows:
         if digest(body) != fingerprint:
-            raise ValueError("retained practice result changed")
+            return ()
         result = json.loads(body)
         if result.get("recipe") != strategy:
             continue
@@ -1716,14 +1717,22 @@ def _gate_warning(names):
 def freeze_gate_warning(root, strategy):
     """`GATE_WARNING` when a retained practice of exactly `strategy` in the
     campaign at `root` reports a failed gate (`practice_failed_gates`), read
-    from the campaign's own records without preparing it; None otherwise."""
-    manifest_path = Path(root) / "campaign-manifest.json"
-    if not manifest_path.exists():
+    from the campaign's own records without preparing it; None otherwise.
+    A warning never fails a freeze or submit (Validator, R11e receipt): any
+    read, parse or digest error is None, never raised."""
+    import sqlite3
+
+    try:
+        manifest_path = Path(root) / "campaign-manifest.json"
+        if not manifest_path.exists():
+            return None
+        manifest = json.loads(manifest_path.read_bytes())
+        ledger = CampaignLedger(root)
+        owner = manifest["owner"]
+        if practice_failed_gates(ledger, owner, strategy):
+            return _gate_warning(failed_gate_names(ledger, owner, strategy))
+    except (OSError, ValueError, TypeError, KeyError, sqlite3.Error):
         return None
-    manifest = json.loads(manifest_path.read_bytes())
-    ledger = CampaignLedger(root)
-    if practice_failed_gates(ledger, manifest["owner"], strategy):
-        return _gate_warning(failed_gate_names(ledger, manifest["owner"], strategy))
     return None
 
 
