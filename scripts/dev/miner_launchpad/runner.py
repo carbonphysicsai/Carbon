@@ -3329,9 +3329,34 @@ class RunnerAdapter:
 
         bound = runtime_challenge(runtime)
         if bound is not None and bound != challenge["id"]:
-            # GPU practice was set up for one Challenge; it never runs another.
-            raise Rejected("gpu_scope_is_for_another_challenge", 409)
+            from carbon.challenge_registry.campaigns import campaign_for
+            from carbon.development_session import catalog_gpu
+
+            # One GPU setup serves every catalog Challenge (GPU for every
+            # Challenge): the launch binds it to this one (`_bound_runtime`).
+            # A Challenge's own GPU scope (outside the catalog path) still
+            # runs only the Challenge it was set up for.
+            scopes = (runtime or {}).get(catalog_gpu.RUNTIME_KEY) or [{}]
+            if scopes[0].get("schema") != catalog_gpu.SCOPE_SCHEMA or not (
+                catalog_gpu.offers_catalog_gpu(campaign_for(challenge))
+            ):
+                raise Rejected("gpu_scope_is_for_another_challenge", 409)
         return challenge
+
+    @staticmethod
+    def _bound_runtime(runtime, challenge):
+        """The profile's runtime bound to the launched Challenge: its catalog
+        GPU scopes name that Challenge (`catalog_gpu.rebind`); otherwise as
+        it is."""
+        from carbon.challenge_registry.campaigns import campaign_for
+        from carbon.development_session import catalog_gpu
+
+        if challenge is None:
+            return runtime
+        try:
+            return catalog_gpu.rebind(runtime, campaign_for(challenge))
+        except ValueError:
+            raise Rejected("gpu_scope_is_for_another_challenge", 409) from None
 
     @staticmethod
     def _launch_choice(cfg, request, challenge):
@@ -3557,7 +3582,7 @@ class RunnerAdapter:
             campaign_id="cmp-" + run_id,
             principal=cfg["principal"],
             miner=miner,
-            runtime=cfg["runtime"],
+            runtime=self._bound_runtime(cfg["runtime"], challenge),
             budget=budget,
             agent=request["agent"],
             challenge=challenge,
@@ -3707,7 +3732,7 @@ class RunnerAdapter:
             campaign_id=row["campaign"],
             principal=cfg["principal"],
             miner=miner,
-            runtime=cfg["runtime"],
+            runtime=self._bound_runtime(cfg["runtime"], challenge),
             budget=miner_budget(request.get("budget")),
             agent=request["agent"],
             challenge=challenge,

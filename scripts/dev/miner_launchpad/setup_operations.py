@@ -206,7 +206,9 @@ FIELDS = {
         "object",
         (
             "{id, version} of a Challenge status lists under options.challenge "
-            "- the one your GPU practice is set up for. Only with a GPU choice "
+            "- the one your GPU practice is checked with; set up through any "
+            "catalog Challenge, it serves every catalog Challenge (each launch "
+            "binds it to the Challenge it launches). Only with a GPU choice "
             "(this machine's GPU, or your remote machine): required there, "
             "refused with the CPU choice (challenge_is_for_the_gpu_choice)."
         ),

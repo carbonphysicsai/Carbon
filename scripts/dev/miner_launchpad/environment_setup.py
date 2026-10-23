@@ -2912,7 +2912,9 @@ class EnvironmentSetup:
                 "manifests": manifests,
             }
             if gpu:
-                # GPU practice is set up for one Challenge, the miner's choice.
+                # GPU practice is checked with one Challenge, the miner's
+                # choice; a catalog Challenge's scope serves every catalog
+                # Challenge (each launch binds it, `catalog_gpu.rebind`).
                 step["challenge"] = dict(value["challenge"])
                 check["challenge"] = value["challenge"]["id"]
                 step["gpu_image"] = gpu_image

@@ -59,6 +59,40 @@ def gpu_scope(challenge_id, image):
     }
 
 
+def rebind(runtime, campaign):
+    """`runtime` with its catalog GPU practice scopes (and their remote scopes)
+    bound to `campaign`'s Challenge (GPU for every Challenge, owner
+    2026-10-22). Every catalog Challenge's scope is the same document but for
+    the Challenge it names, so one GPU setup serves them all: a launch binds
+    the profile's scopes to the Challenge it launches, and the campaign
+    freezes, checks and runs exactly that. A runtime without catalog GPU
+    scopes is returned as it is (CPU, or a Challenge's own GPU scope); a
+    Challenge that does not share the catalog GPU path is refused."""
+    scopes = runtime.get(RUNTIME_KEY) if type(runtime) is dict else None
+    if not scopes or type(scopes) is not list or type(scopes[0]) is not dict:
+        return runtime
+    if scopes[0].get("schema") != SCOPE_SCHEMA:
+        return runtime
+    if getattr(campaign, "declared_gpu", None) is not declared_scope:
+        raise ValueError("this Challenge does not share the catalog GPU practice")
+    challenge_id = campaign.key.challenge_id
+    bound = {
+        **runtime,
+        RUNTIME_KEY: [{**scope, "challenge": challenge_id} for scope in scopes],
+    }
+    if type(runtime.get(REMOTE_KEY)) is list:
+        bound[REMOTE_KEY] = [
+            {**scope, "challenge": challenge_id} if type(scope) is dict else scope
+            for scope in runtime[REMOTE_KEY]
+        ]
+    return bound
+
+
+def offers_catalog_gpu(campaign) -> bool:
+    """Whether `campaign` practises on GPU through the shared catalog path."""
+    return getattr(campaign, "declared_gpu", None) is declared_scope
+
+
 #: The campaign-root record of each declared GPU worker, in scope order: the
 #: first as every profile wrote it, the second for the other backend's
 #: worker (Validator ruling: one GPU worker per installed backend).

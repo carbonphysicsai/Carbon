@@ -1280,8 +1280,10 @@ NEXT_ACTIONS = {
         "Challenge list (carbon_challenges_v1__list)."
     ),
     "gpu_scope_is_for_another_challenge": (
-        "Your GPU practice was set up for another Challenge. Launch that one, "
-        "or set up compute again for this one (carbon_setup_compute)."
+        "Your GPU practice was set up through a Challenge's own GPU path, "
+        "which serves only that Challenge (one set up for any catalog "
+        "Challenge serves every catalog Challenge). Launch that one, or set "
+        "up compute again for this one (carbon_setup_compute)."
     ),
     "invalid_agent": (
         "Send graphite (Graphite, Carbon's research agent) or none (you or "
