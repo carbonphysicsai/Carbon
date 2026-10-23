@@ -6,11 +6,12 @@ encoding (`carbon.cold_plate.output_encoding`, Cooling 1.3). `prior(x)` takes th
 and returns the (n, 32) encoded slots: slot 0 the raw peak excess, slots 1-30 the profile, slot 31 the raw pressure.
 
 Only operations on the allowlist are used (add, mul, div, pow, exp, log, log1p, expm1, tanh, sqrt, erf, floor, max, select,
-reduce_sum, reduce_max, slices, concatenate). The loops are unrolled Python loops over the fixed 600 cells (the
-bulk-temperature march and the Thomas algorithm are sequential by nature); everything else is vectorised over the cells.
+reduce_sum, reduce_max, split, concatenate). The bulk-temperature march is an unrolled Python loop over the cells (it is
+sequential by nature); the tridiagonal conduction solve is parallel cyclic reduction (log2 levels of array operations);
+everything else is vectorised over the cells.
 
-Fidelity: the port follows the reference line for line; the differences are floating-point summation order and
-`floor(30 / period + 1e-9)` for the channel count (the reference's `int(30 // period + 1e-9)`). It is a prior, never a
+Fidelity: the port follows the reference model line for line at a coarser march (see STEPS_PER_SEGMENT); the other differences
+are floating-point order and `floor(30 / period + 1e-9)` for the channel count (the reference's `int(30 // period + 1e-9)`). It is a prior, never a
 reference: the scored outputs are the learned model's, and the exam never uses this module.
 """
 
@@ -47,7 +48,13 @@ N_OUT = 32
 POSITIVE_OUTPUTS = (31,)
 FOOTPRINT_MM, BASE_MM, LID_MM, COPPER_K = 30.0, 1.0, 0.5, 391.0
 K0 = 273.15
-PROFILE_SEGMENTS, STEPS_PER_SEGMENT, COUPLING_PASSES = 30, 20, 3
+PROFILE_SEGMENTS = 30
+#: The repository's model marches 20 cells per profile segment with 3 coupling passes (`carbon.cold_plate.analytic`). That unrolled
+#: is ~16k graph nodes (about 2 MB); 10 cells per segment and 2 passes is ~6k nodes. The model, its closed forms and the
+#: coupling are the same; the measured difference from the repository's output is at most 0.02 K on the peak, 0.07 K on the
+#: profile and 1e-4 relative on the pressure (rung-7 style inputs, 24 TRAIN rows). Set STEPS_PER_SEGMENT = 20 and
+#: COUPLING_PASSES = 3 to reproduce `analytic.predict` to rounding (`native(x, 20, 3)` does, for a check).
+STEPS_PER_SEGMENT, COUPLING_PASSES = 10, 2
 ULP_FACTOR, F32_EPS = 32, 2.0**-23
 PG25 = {
     "rho": (471.83672241567854, 5.3710481851085525, -0.01615703005055183, 1.4345731910287373e-05),
@@ -89,7 +96,38 @@ def _columns(items):
     return jnp.concatenate([item[:, None] for item in items], axis=1)
 
 
-def native(x):
+def _shift(x, by, fill):
+    """x moved `by` places along axis 1 (positive: x[:, i - by] at i), `fill` where nothing arrives."""
+    n, width = x.shape
+    pad = jnp.full((n, abs(by)), fill, dtype=x.dtype)
+    if by > 0:
+        return jnp.concatenate([pad, x[:, : width - by]], axis=1)
+    return jnp.concatenate([x[:, -by:], pad], axis=1)
+
+
+def _solve_tridiagonal(off, diag, rhs):
+    """Solve off*x[i-1] + diag[i]*x[i] + off*x[i+1] = rhs[i] (no neighbour past either end) by parallel cyclic reduction."""
+    n, width = diag.shape
+    index = jnp.arange(width)
+    lower = jnp.where(index == 0, 0.0, 1.0).astype(diag.dtype)[None, :] * off
+    upper = jnp.where(index == width - 1, 0.0, 1.0).astype(diag.dtype)[None, :] * off
+    b, d = diag, rhs
+    a, c = lower, upper
+    stride = 1
+    while stride < width:
+        alpha = -a / _shift(b, stride, 1.0)
+        gamma = -c / _shift(b, -stride, 1.0)
+        b, d, a, c = (
+            b + alpha * _shift(c, stride, 0.0) + gamma * _shift(a, -stride, 0.0),
+            d + alpha * _shift(d, stride, 0.0) + gamma * _shift(d, -stride, 0.0),
+            alpha * _shift(a, stride, 0.0),
+            gamma * _shift(c, -stride, 0.0),
+        )
+        stride *= 2
+    return d / b
+
+
+def native(x, steps_per_segment=STEPS_PER_SEGMENT, passes=COUPLING_PASSES):
     """(peak_c (n,), profile_c (n, 30), pressure_drop_pa (n,)) of the analytic model for (n, 9) inputs."""
     x = jnp.asarray(x)
     dt = x.dtype
@@ -111,7 +149,7 @@ def native(x):
     nu_fd, f_re = _nu_fully_developed(aspect), _f_re(aspect)
     k_area = k_s * (t_base * period + w_f * h_c + LID_MM * 1e-3 * period)
 
-    steps = PROFILE_SEGMENTS * STEPS_PER_SEGMENT
+    steps = PROFILE_SEGMENTS * steps_per_segment
     dx = length / steps
     xs = (jnp.arange(steps, dtype=dt) + 0.5) * dx  # metres
     # hotspot map (domain.hotspot_shape / heat_flux)
@@ -128,13 +166,14 @@ def native(x):
     absorbed = applied
     col = lambda a, i: a[:, i]  # noqa: E731
 
-    for _ in range(COUPLING_PASSES):
+    for _ in range(passes):
         # the bulk temperature entering each cell: a sequential march
-        tbs, t_b = [], t_in
-        for i in range(steps):
+        tbs, t_b = [], t_in[:, None]
+        steps_b = jnp.split(absorbed * dx / m_dot[:, None], steps, axis=1)
+        for step_b in steps_b:
             tbs.append(t_b)
-            t_b = t_b + col(absorbed, i) * dx / (m_dot * _pg("cp", t_b))
-        tb = _columns(tbs)
+            t_b = t_b + step_b / _pg("cp", t_b)
+        tb = jnp.concatenate(tbs, axis=1)
         cp, mu, k_f = _pg("cp", tb), _pg("mu", tb), _pg("kappa", tb)
         bulk = tb + absorbed * dx / 2 / (m_dot[:, None] * cp)
         re = (mass_flux * d_h)[:, None] / mu
@@ -145,21 +184,13 @@ def native(x):
         mh = m * fin_height[:, None]
         eta = jnp.tanh(mh) / mh
         conductance = h * (w_c[:, None] + 2 * eta * fin_height[:, None])
-        # theta from k_area theta'' - G theta = -q' (zero-flux ends), by the Thomas algorithm
-        off = k_area / dx**2
-        diag = -(2 * off)[:, None] - conductance
+        # theta from k_area theta'' - G theta = -q' (zero-flux ends): a symmetric tridiagonal system, solved by parallel cyclic
+        # reduction (log2(steps) levels of array operations; the Thomas algorithm it replaces is sequential, which unrolled costs
+        # thousands of graph nodes).
+        off = (k_area / dx**2)[:, None]
         edge = ((jnp.arange(steps) == 0) | (jnp.arange(steps) == steps - 1)).astype(dt)
-        diag = diag + off[:, None] * edge[None, :]
-        rhs = -applied
-        c_prime, d_prime = [off / col(diag, 0)], [col(rhs, 0) / col(diag, 0)]
-        for i in range(1, steps):
-            denominator = col(diag, i) - off * c_prime[i - 1]
-            c_prime.append(off / denominator)
-            d_prime.append((col(rhs, i) - off * d_prime[i - 1]) / denominator)
-        theta = [d_prime[-1]]
-        for i in range(steps - 2, -1, -1):
-            theta.append(d_prime[i] - c_prime[i] * theta[-1])
-        theta = _columns(theta[::-1])
+        diag = -2 * off - conductance + off * edge[None, :]
+        theta = _solve_tridiagonal(off, diag, -applied)
         absorbed = conductance * theta
     walls = bulk + theta
     face = walls + (t_base / k_s) * (flux + absorbed / period[:, None]) / 2
@@ -171,7 +202,7 @@ def native(x):
     rho_in = _pg("rho", t_in)
     u_in = mass_flux / rho_in
     entrance = _k_infinity(aspect) * rho_in * u_in**2 / 2
-    profile = jnp.mean(face.reshape(face.shape[0], PROFILE_SEGMENTS, STEPS_PER_SEGMENT), axis=2) - K0
+    profile = jnp.mean(face.reshape(face.shape[0], PROFILE_SEGMENTS, steps_per_segment), axis=2) - K0
     return jnp.max(face, axis=1) - K0, profile, friction + entrance
 
 

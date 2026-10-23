@@ -159,18 +159,32 @@ def cooling_inputs(n, seed=0):
     return rows
 
 
-def test_the_cooling_prior_equals_the_repositorys_analytic_model_and_encoding(
+def test_the_cooling_prior_follows_the_repositorys_analytic_model_and_stays_small(
     prior_build,
 ):
+    import jax
     import jax.numpy as jnp
 
     from carbon.cold_plate import analytic, domain, output_encoding
 
     _, prior = prior_build
     rows = cooling_inputs(3)
-    got = np.asarray(prior.prior(jnp.asarray(rows)))
-    for row, mine in zip(rows, got):
+    references = []
+    for row in rows:
         reference = analytic.predict(dict(zip(domain.INPUTS, map(float, row))))
+        references.append(reference)
+    # the same model at the repository's own resolution (20 cells per segment, 3 passes) agrees to rounding
+    peak, profile, pressure = prior.native(jnp.asarray(rows), 20, 3)
+    for k, reference in enumerate(references):
+        assert abs(float(peak[k]) - reference["peak_c"]) < 1e-6
+        assert (
+            np.abs(np.asarray(profile[k]) - np.array(reference["profile_c"])).max()
+            < 1e-6
+        )
+        assert abs(float(pressure[k]) / reference["pressure_drop_pa"] - 1) < 1e-9
+    # the shipped resolution (10 cells, 2 passes) stays close to it, in the interface's encoding
+    got = np.asarray(prior.prior(jnp.asarray(rows)))
+    for reference, mine in zip(references, got):
         native = np.concatenate(
             [
                 [reference["peak_c"]],
@@ -179,10 +193,13 @@ def test_the_cooling_prior_equals_the_repositorys_analytic_model_and_encoding(
             ]
         )
         expected = output_encoding.encode_targets(native.reshape(1, -1))[0]
-        assert np.abs(mine - expected).max() < 1e-6
+        assert np.abs(mine[1:31] - expected[1:31]).max() < 0.15
+        assert abs(mine[31] / expected[31] - 1) < 5e-4
     assert prior.PRIOR_ID == "cold_plate.analytic.v1" and prior.POSITIVE_OUTPUTS == (
         31,
     )
+    # the graph must stay small: a custody ceiling of 1 MiB bound it at about 130 bytes per equation
+    assert len(jax.make_jaxpr(prior.prior)(jnp.asarray(rows)).jaxpr.eqns) < 7500
 
 
 def test_solve_spd_matches_numpy_and_krr_is_deterministic_and_beats_the_plain_fit(
