@@ -540,6 +540,69 @@ NEXT_ACTIONS = {
     ),
     # M1 E2E R5-2: a direct campaign's construction receiver did not answer.
     # The profile does name it, so this is never "no intake configured".
+    # Validator (E9 follow-up): the codes that can follow a submit, given
+    # their own step before the generic one.
+    "construction_request_deadline": (
+        "Your construction receiver did not answer before the submit's "
+        "deadline. The frozen candidate is kept. If the receiver did get your "
+        "submission, submitting again returns that submission's result; it is "
+        "never graded twice. Submit again later."
+    ),
+    "construction_intake_answer_unrecognised": (
+        "Your construction receiver answered in a form this Carbon does not "
+        "read. The frozen candidate is kept. If the receiver did get your "
+        "submission, submitting again returns that submission's result; it is "
+        "never graded twice. If it repeats, the receiver may run another "
+        "Carbon version: update Carbon, or ask its operator."
+    ),
+    "construction_snapshot_unavailable": (
+        "Your construction receiver did not report its current exam, so "
+        "nothing was signed or sent. The frozen candidate is kept. Submit "
+        "again later; if it repeats, ask the receiver's operator."
+    ),
+    "construction_intake_contract_mismatch": (
+        "The intake this campaign submits to is not a DEVELOPMENT receiver "
+        "for this Challenge, so nothing was signed or sent. The frozen "
+        "candidate is kept. Read your setup (carbon_setup_status, which "
+        "changes nothing) to see which Challenge each receiver serves."
+    ),
+    "construction_intake_identity_mismatch": (
+        "The receiver reported other identities than the ones your setup "
+        "pins for it, so nothing was signed or sent. The frozen candidate is "
+        "kept. Read your setup (carbon_setup_status) and ask the receiver's "
+        "operator which receiver serves this Challenge now."
+    ),
+    "construction_intake_changed_since_submission": (
+        "This round's candidate was submitted to another receiver than the "
+        "one your setup names now, and nothing was sent. Its result is read "
+        "from the receiver it was submitted to; set that one back to read it."
+    ),
+    "construction_contract_not_registered": (
+        "This Carbon does not register this Challenge version's recipe "
+        "contract, so nothing was sent. The frozen candidate is kept. Update "
+        "Carbon (scripts/install_miner.sh --update), then start a campaign on "
+        "the version offered."
+    ),
+    "construction_contract_binding_mismatch": (
+        "The recipe's Challenge binding differs from the contract this Carbon "
+        "registers for that version, so nothing was sent. The frozen "
+        "candidate is kept. Update Carbon, then start a campaign on the "
+        "version offered."
+    ),
+    "construction_admission_record_required": (
+        "Check for result needs this round's own submission record, which is "
+        "missing or no longer matches the frozen recipe, so nothing was read. "
+        "Submit again from this campaign to record it."
+    ),
+    "exam_feedback_unavailable": (
+        "Your grade could not be read from the receiver just now. Your "
+        "submission is not affected. Try Check for result again later."
+    ),
+    "exam_feedback_reply_invalid": (
+        "The receiver's grade answer was not in the form Carbon accepts, so "
+        "it is not shown. Your submission is not affected. Try again later; "
+        "if it repeats, the receiver may run another Carbon version."
+    ),
     "construction_intake_unavailable": (
         "Your construction receiver is configured but could not be reached, "
         "or did not answer. The frozen candidate is kept. If the receiver did "

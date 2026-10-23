@@ -43,3 +43,22 @@ def test_each_implemented_challenge_says_whether_it_can_be_practised():
         assert ready == bool(entry["example_strategy"] or entry["catalog_recipes"])
         if not ready:
             assert entry["practise"]["plain"].startswith("Coming soon")
+
+
+def test_codes_that_can_follow_a_submit_have_their_own_step():
+    # Validator, E9 follow-up: the codes that can follow a spend first.
+    for code in (
+        "construction_request_deadline",
+        "construction_intake_answer_unrecognised",
+        "construction_snapshot_unavailable",
+        "construction_intake_contract_mismatch",
+        "construction_intake_identity_mismatch",
+        "construction_intake_changed_since_submission",
+        "construction_contract_not_registered",
+        "construction_contract_binding_mismatch",
+        "construction_admission_record_required",
+        "exam_feedback_unavailable",
+        "exam_feedback_reply_invalid",
+    ):
+        assert code in supervisor.NEXT_ACTIONS, code
+        assert "nothing was lost" not in supervisor.NEXT_ACTIONS[code].lower()
