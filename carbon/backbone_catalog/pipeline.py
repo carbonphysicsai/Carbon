@@ -119,6 +119,37 @@ def _source_member(source, suffix):
         return archive.extractfile(members[0]).read()
 
 
+def _prior_facts(source):
+    """The physics prior a bundle ships (`carbon_candidate/prior.py`), read without importing it: its id and the outputs it
+    declares positive. None for a bundle with no prior."""
+    import ast
+
+    with tarfile.open(fileobj=io.BytesIO(source), mode="r:gz") as archive:
+        members = [
+            m
+            for m in archive.getmembers()
+            if m.isfile() and m.name.endswith("carbon_candidate/prior.py")
+        ]
+        if not members:
+            return None
+        text = archive.extractfile(members[0]).read().decode("utf-8")
+    facts = {}
+    for node in ast.parse(text).body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target = node.targets[0]
+            if isinstance(target, ast.Name) and target.id in (
+                "PRIOR_ID",
+                "POSITIVE_OUTPUTS",
+            ):
+                facts[target.id] = ast.literal_eval(node.value)
+    if type(facts.get("PRIOR_ID")) is not str:
+        raise CatalogBroken("a bundle's prior.py names its PRIOR_ID")
+    return {
+        "id": facts["PRIOR_ID"],
+        "positive_outputs": sorted(facts.get("POSITIVE_OUTPUTS", ())),
+    }
+
+
 def verify(item, *, wheelhouse=None):
     """Raise `CatalogBroken` unless `item` is exactly what it claims.
 
@@ -175,6 +206,10 @@ def verify(item, *, wheelhouse=None):
     ):
         raise CatalogBroken(
             f"{item['catalog_id']}: build module differs from its settings schema"
+        )
+    if _prior_facts(files["source.tar.gz"]) != item.get("prior"):
+        raise CatalogBroken(
+            f"{item['catalog_id']}: its prior differs from the bundle's"
         )
     baseline = json.loads(files["baseline.json"])
     if (
@@ -409,6 +444,9 @@ def add(packet, *, challenges, receipt, receipt_key, image_digest, catalog_id=No
         "defaults": {"configuration": procedure["configuration"], "train_use": {}},
         "challenges": bound,
     }
+    prior = _prior_facts((root / "source.tar.gz").read_bytes())
+    if prior is not None:
+        item["prior"] = prior
     manifest = load()
     manifest["entries"] = sorted(
         [e for e in manifest["entries"] if e["catalog_id"] != catalog_id] + [item],
