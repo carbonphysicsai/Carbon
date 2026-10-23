@@ -495,6 +495,9 @@ def _entries():
                     "torch-cpu/isolated-carrier",
                     torch_carrier,
                 ),
+                # The shared GPU practice profile every catalog version
+                # declares (S3); 1.3 predates it on its own branch.
+                catalog_gpu,
             ),
             _cold_plate_catalog_encoded,
             None,
