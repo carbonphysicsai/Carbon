@@ -33,9 +33,11 @@ MOTOR = "electric-motor-magnetics"
 #: (the sealed bank loader and copy modules, Validator 2026-10-22: was
 #: sha256:5fe2c492...c75a2b9c) and graph route v2's one producer move (Motor
 #: 1.4 joins `VERSIONS` under 1.3's evaluation version), then scoring v2's
-#: modules beside it (rc3, graph route v2 on scoring v2).
+#: modules beside it (rc3, graph route v2 on scoring v2), then the sealed-pack
+#: fail-closed fix (Validator P0, 2026-10-23; was
+#: sha256:2c7023be118193685c3fb4f71fa656e51865f7e15be3fc14b13a8da19919e5e9).
 DEV_PRODUCER_DIGEST = (
-    "sha256:2c7023be118193685c3fb4f71fa656e51865f7e15be3fc14b13a8da19919e5e9"
+    "sha256:6b72a0162a5b691b2f44613523e453a61ccf235a35ff8bc6fdec5ffdbf4537ab"
 )
 DESIGNS, CONDITIONS = 5, 6
 

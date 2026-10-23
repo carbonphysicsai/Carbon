@@ -32,7 +32,12 @@ from pathlib import Path
 SCHEMA = "carbon.calibration-artifact.v1"
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 _PLAIN = re.compile(r"[A-Za-z0-9._:/+-]{1,128}")
-_RUNTIMES = ("torch-cu130-py311", "jax-cuda13-py311", "torch-cpu-py311")
+_RUNTIMES = (
+    "torch-cu130-py311",
+    "jax-cuda13-py311",
+    "torch-cpu-py311",
+    "python-cpu-py311",
+)
 _GPU = ("torch-cu130-py311", "jax-cuda13-py311")
 
 

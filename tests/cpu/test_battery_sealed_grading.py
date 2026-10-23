@@ -35,9 +35,13 @@ DECISION_REFERENCES = (
 #: Battery's development producer digest after the one accepted move that hashed
 #: the sealed bank loader and copy modules (Validator, 2026-10-22), then the
 #: Battery-only move registering 2.2 (Validator, 2026-10-23, option (b); was
-#: sha256:d0f4804a0b4c9294cfeec7674900aad6472ba6ad9c8a20c9f277cb9abb420e35).
+#: sha256:d0f4804a0b4c9294cfeec7674900aad6472ba6ad9c8a20c9f277cb9abb420e35),
+#: then the sealed-pack fail-closed fix (Validator P0, 2026-10-23: a parsed pack's role
+#: entries are read-only mappings, and a pack that is not positively the development
+#: pack is never graded on the public bank; was
+#: sha256:1c08900617512838f9b75beb05234a48fc10ec289dc1a67413f3483e1ef0a91e).
 DEV_PRODUCER_DIGEST = (
-    "sha256:1c08900617512838f9b75beb05234a48fc10ec289dc1a67413f3483e1ef0a91e"
+    "sha256:9ce2c2eaf26dd87149b0821f5081751bcf7c554527e86ea86d5ffd73848e93d0"
 )
 
 
