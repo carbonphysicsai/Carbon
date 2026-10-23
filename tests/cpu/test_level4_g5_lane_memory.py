@@ -37,7 +37,7 @@ from carbon.reconstruction.worker.model import (
 
 #: The C-03 CPU profile's digest before LEVEL4-G5-LANE-MEMORY-01.
 C03_CPU_DIGEST = (
-    "sha256:0d1168fb5bbffde24617c54df2cedfcb092d73b97f88fa8aae400f430869347f"
+    "sha256:c0d93d4429d347eb968fdcc0df8ff2290ab81699acf986a46f414e47aa0c62ac"
 )
 
 

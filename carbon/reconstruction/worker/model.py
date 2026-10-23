@@ -14,7 +14,13 @@ from carbon.registry import is_sha256_digest
 PROFILE_ID = "carbon.c03.linux-x86_64-cpu.development.v1"
 PROFILE_VERSION = "1.0"
 SCOPE = "UNQUALIFIED_PUBLIC_DEVELOPMENT"
-PRODUCTIVE_DEADLINE_SECONDS = 600
+#: The registered rebuild limit (OWNER-REBUILD-TIME-LIMIT-01, interim until the measured
+#: wall replaces it on the 4090 class). A launch's reservation IS this limit, never a
+#: stricter value of its own: a lower reservation silently refuses builds the limit
+#: admits (Battery CZ003). It is a Carbon resource setting, not exam protection and no
+#: training bound; past it the stop stays a typed resource refusal (WorkerCode.DEADLINE).
+REBUILD_LIMIT_SECONDS = 1800
+PRODUCTIVE_DEADLINE_SECONDS = REBUILD_LIMIT_SECONDS
 GRACEFUL_CANCELLATION_SECONDS = 5
 CLEANUP_CONFIRMATION_SECONDS = 30
 CPU_COUNT = 2
