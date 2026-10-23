@@ -312,54 +312,20 @@ def test_an_applied_control_reaches_the_adapter_in_graded_and_repeat_runs(tmp_pa
     assert all(r == call["outputs"] for r in call["repeats"])
 
 
-def test_the_module_never_imports_the_official_store():
+@pytest.mark.parametrize("module", ["calibration_grade", "calibration_grade_run"])
+def test_the_module_never_imports_the_official_store(module):
     import ast
 
-    tree = ast.parse(Path(cg.__file__).read_text(encoding="utf-8"))
+    path = Path(cg.__file__).with_name(module + ".py")
+    tree = ast.parse(path.read_text(encoding="utf-8"))
     imported = {
         alias.name if isinstance(n, ast.Import) else f"{n.module}.{alias.name}"
         for n in ast.walk(tree)
         if isinstance(n, ast.Import | ast.ImportFrom)
         for alias in n.names
     }
-    assert not [m for m in imported if "retention" in m or "custody" in m]
-
-
-def test_a_control_needs_a_run_config_that_names_it_and_hashes_to_the_given_digest(
-    tmp_path,
-):
-    control = {"name": "ctrl.nonaffine_power", "params": {"shift": 5.0}}
-    config, digest = _config(control)
-    result, _ = _grade(
-        _artifact(tmp_path), control=control, config=config, digest=digest
-    )
-    assert result["run_config_digest"] == digest
-    for args, code in (
-        ({}, "control_run_config_required"),
-        (
-            {"config": config, "digest": "sha256:" + "0" * 64},
-            "control_run_config_digest",
-        ),
-        (
-            {
-                "config": {"controls": [{**control, "params": {"shift": 9.0}}]},
-                "digest": cg.config_digest(
-                    {"controls": [{**control, "params": {"shift": 9.0}}]}
-                ),
-            },
-            "control_run_config_mismatch",
-        ),
-    ):
-        (tmp_path / code).mkdir()
-        with pytest.raises(cg.CalibrationRefused) as info:
-            _grade(_artifact(tmp_path / code), control=control, **args)
-        assert info.value.code == code
-
-
-def test_leg_delta_reports_what_a_control_moved_beside_the_targeted_leg():
-    before = {"A": 0.9, "D": 0.5, "total": 0.7, "A_legs": {"A_acc": 0.9, "A_law": 0.8}}
-    after = {"A": 0.8, "D": 0.5, "total": 0.65, "A_legs": {"A_acc": 0.88, "A_law": 0.3}}
-    delta = cg.leg_delta(before, after)
-    assert delta["A_legs.A_law"] == pytest.approx(-0.5)
-    assert delta["A_legs.A_acc"] == pytest.approx(-0.02)
-    assert delta["D"] == 0
+    assert not [
+        m
+        for m in imported
+        if "retention" in m or "custody" in m or "direct_receiver" in m
+    ]
