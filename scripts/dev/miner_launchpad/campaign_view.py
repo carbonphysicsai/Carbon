@@ -345,9 +345,30 @@ def dual_feedback(experiment):
 #: total of the Challenge's `baseline_strategy()` on the public bank, from
 #: the same practice_dual code, each recorded with its strategy, bank and
 #: code digests (Validator, U45). Never `koth_registry.baseline_total`,
-#: which is sealed-exam derived. None is registered yet, so every Challenge
-#: shows none, with why; nothing here is invented.
-PRACTICE_BASELINES: dict = {}
+#: which is sealed-exam derived. A Challenge with no entry shows none, with
+#: why; nothing here is invented. Each entry's score is copied from its
+#: recorded practice-dual run, cited by the record's sha256.
+PRACTICE_BASELINES: dict = {
+    # Cooling 1.3: the registered learned-krr-v1 in its 1.3-native bundle, its
+    # practice-dual total through cooling_encoded_dual_pack on the public bank
+    # (Validator, 2026-10-23). Record: docs/development/evidence/
+    # cooling13-native-krr-baseline-v1/cooling13-krr-practice-baseline.json,
+    # sha256:12dd3aafe21c814d05f9c9a543fd8e2af40fd22fefd0f2d4d77f40b4163b27e3
+    # (Linux, torch 2.13.0+cpu).
+    ("chip-cold-plate", "1.3"): {
+        "score": 0.9137914131624103,
+        "strategy_digest": (
+            "sha256:ffde968a02665765afb346307b9ce1935bde838d67a3c2ace5273521778629d1"
+        ),
+        "bank_digest": (
+            "sha256:80a60bbe615ef21d13ea2a45a5baa21693abe0da3c8ff5812f39ce816a2a9792"
+        ),
+        "code_head": "abbdc3eb8b7b9c69d1b892cbcb7462ef19aa65c1",
+        "record_digest": (
+            "sha256:12dd3aafe21c814d05f9c9a543fd8e2af40fd22fefd0f2d4d77f40b4163b27e3"
+        ),
+    },
+}
 BASELINE_LABEL = "practice baseline on the public bank"
 
 
@@ -374,7 +395,7 @@ def baseline(challenge):
         "reason": None,
         "record": {
             k: _str(found.get(k))
-            for k in ("strategy_digest", "bank_digest", "code_head")
+            for k in ("strategy_digest", "bank_digest", "code_head", "record_digest")
         },
     }
 
