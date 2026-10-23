@@ -199,7 +199,9 @@ def _validator_outcome(epoch, path):
         outcome = document["result"] if direct else document["outcome"]
         if (
             document.get("schema") not in feedback_schemas()
-            or (not direct and document.get("epoch") != epoch)
+            # A direct document may name no epoch (its file does); one that
+            # names another epoch is not this one's (U48, receipted).
+            or (document["epoch"] != epoch if "epoch" in document else not direct)
             or type(outcome) is not dict
             or type(outcome.get("state")) is not str
         ):
@@ -602,7 +604,15 @@ def project(row, root):
                 {
                     "sequence": note["sequence"],
                     **_text_fields(
-                        note["body"], {"reason", "stop", "intervention", "evidence"}
+                        note["body"],
+                        {
+                            "reason",
+                            "stop",
+                            "intervention",
+                            "evidence",
+                            "gate_verdict",
+                            "note",
+                        },
                     ),
                 }
             )
@@ -617,7 +627,7 @@ def project(row, root):
             "SELECT 1 FROM sqlite_master WHERE name='research_results' AND type='table'"
         ).fetchone():
             for task, body, pin in db.execute(
-                "SELECT task,body,digest FROM research_results WHERE owner=?",
+                "SELECT task,body,digest FROM research_results WHERE owner=? ORDER BY rowid",
                 (manifest["owner"],),
             ):
                 if digest(body) != pin:

@@ -142,8 +142,8 @@ with the fields in [Record](#record).
    `~/carbon/.venv/bin/carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>`
    for your registered hotkey. With `--service`, this is your only terminal.
 3. **Open the Control Center.** Use the address and token the installer
-   printed. With `--service`, the token is the last `Local session token` line
-   of `control-center.log` in the state directory. Confirm your registration
+   printed. With `--service`, the token is never written to the log: show it
+   with `cat <state directory>/session-token` (owner-only). Confirm your registration
    under Wallet & Identity; for an unregistered hotkey it prepares the unsigned
    registration and the `btcli` command to run in your own wallet. Setup
    opens. A restart reopens your written setup without a flag.

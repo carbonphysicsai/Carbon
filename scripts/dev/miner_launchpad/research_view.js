@@ -16,6 +16,9 @@
   const $ = id => document.getElementById(id);
   const TABS = [["live", "Live"], ["conversation", "Conversation"], ["experiments", "Experiments"], ["reasoning", "Agent reasoning"], ["tools", "Tools"], ["contract", "Contract"], ["artifacts", "Artifacts"], ["submission", "Submission"], ["logs", "Logs"], ["settings", "Settings"]];
   const TERMINAL = ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE", "EXPIRED"];
+  // A Challenge's registry title carries internal labels in brackets ("Name (DEVELOPMENT ...)"):
+  // people read the name; the full title stays on hover (U10).
+  function plainTitle(title) { return typeof title === "string" ? title.replace(/\s*\(.*$/, "").trim() || title : title; }
   const POLL_MS = 3000;
   const NOTE_MAX = 2000;
   // Per-campaign view state: the last document, when it was read, and the
@@ -24,6 +27,9 @@
 
   // ---- Small helpers, all text. ----
   function words(value) { return String(value ?? "").replaceAll("_", " "); }
+  // Where a run ran, in the words the person uses (a backend record kind is not a sentence).
+  const RAN_ON_WORDS = {ISOLATED_CARRIER: "CPU (isolated sandbox)", ISOLATED_CARRIER_GPU: "GPU (this machine)", REMOTE_GPU: "GPU (your remote setup)"};
+  function backendWords(kind) { return RAN_ON_WORDS[kind] || words(kind).toLowerCase(); }
   function para(parent, text, className) { const p = el("p", text, className); parent.append(p); return p; }
   function button(label, className, onClick) {
     const b = el("button", label, className); b.type = "button";
@@ -54,7 +60,7 @@
     const h = Math.floor(seconds / 3600), m = Math.floor(seconds % 3600 / 60), s = Math.floor(seconds % 60);
     return (h ? h + "h " : "") + (h || m ? m + "m " : "") + s + "s";
   }
-  function when(unix) { return typeof unix === "number" ? new Date(unix * 1000).toLocaleString() : "unavailable"; }
+  function when(unix) { return typeof unix === "number" ? new Date(unix * 1000).toLocaleString(undefined, {timeZoneName: "short"}) : "unavailable"; }
   function fmt(value) { return Charts.fmt(value); }
   function copyButton(text, label) {
     const b = button("Copy", "rs-copy");
@@ -66,6 +72,21 @@
       setTimeout(() => { b.textContent = "Copy"; }, 1600);
     });
     return b;
+  }
+  // How a finished campaign ends, in plain words (Dana #9): never "Completed" without a result.
+  // An early stop names its reason and the one fix; an empty finish says nothing was graded.
+  function endState(doc) {
+    const state = doc?.campaign?.state;
+    if (state !== "COMPLETED" && state !== "STOPPED") return null;
+    const early = doc.graphite?.ended_early && typeof doc.graphite.ended_early.code === "string" ? doc.graphite.ended_early : null;
+    if (early) {
+      const stage = early.stage ? (STAGE_NOUNS[early.stage] || words(early.stage)).toLowerCase() : "";
+      return {label: "Stopped early", reason: "Stopped early" + (stage ? " while " + stage : "") + ": " + words(early.code) + ".", next: typeof early.next_step === "string" ? early.next_step : ""};
+    }
+    if (!doc.graphite && doc.tiles?.practice_runs && !(doc.tiles.practice_runs.completed > 0)) {
+      return {label: "Finished, no result", reason: "Finished without a result: no practice run completed, so there is nothing to grade.", next: ""};
+    }
+    return null;
   }
   function stateKind(state) {
     if (TERMINAL.includes(state)) return "pill-wait";
@@ -277,12 +298,15 @@
     const head = el("div", undefined, "rs-head");
     const title = el("div", undefined, "rs-title");
     const challenge = doc.campaign.challenge;
-    title.append(el("p", "Campaign · " + doc.labels.mode + " · " + doc.labels.network + " " + doc.labels.netuid, "eyebrow section-label"));
-    title.append(el(compact ? "h3" : "h2", challenge ? (challenge.title || challenge.id) + " · v" + challenge.version : "Campaign without a Challenge"));
+    const eyebrow = el("p", "Campaign · " + (doc.labels.mode === "DEVELOPMENT" ? "Practice" : words(doc.labels.mode)) + " · " + (String(doc.labels.network).toLowerCase() === "testnet" ? "Test network" : words(doc.labels.network)), "eyebrow section-label");
+    eyebrow.title = "Network " + doc.labels.network + ", Carbon network " + doc.labels.netuid;
+    title.append(eyebrow);
+    title.append(el(compact ? "h3" : "h2", challenge ? plainTitle(challenge.title || challenge.id) + " · v" + challenge.version : "Older practice campaign"));
     const meta = el("div", undefined, "rs-meta");
-    meta.append(CC.pill(words(doc.campaign.state), stateKind(doc.campaign.state)));
+    const ended = endState(doc);
+    meta.append(CC.pill(ended ? ended.label : words(doc.campaign.state), ended ? "pill-need" : stateKind(doc.campaign.state)));
     if (doc.fixture) meta.append(CC.pill("Synthetic fixture", "pill-need"));
-    meta.append(el("span", "Started " + when(doc.tiles.started_unix), "rs-started"));
+    if (typeof doc.tiles.started_unix === "number") meta.append(el("span", "Started " + when(doc.tiles.started_unix), "rs-started"));
     const id = el("code", doc.campaign.id, "rs-id");
     meta.append(id, copyButton(doc.campaign.id, "campaign id"));
     title.append(meta);
@@ -304,6 +328,12 @@
     const controls = doc.controls.filter(control => !compact || control.action === "stop" || control.action === "pause" || needs.includes(control.action));
     controls.sort((a, b) => (b.action === lead) - (a.action === lead));
     for (const control of controls) {
+      // Only what applies to this state: a control that cannot be pressed (Resume while it runs,
+      // anything on a finished campaign) is not drawn, unless the state's recovery needs it,
+      // where its reason is the message.
+      if (!control.available && !needs.includes(control.action)) continue;
+      // A campaign that is ready, with nothing running, has nothing to pause.
+      if (control.action === "pause" && doc.campaign.state === "READY") continue;
       const b = button(control.label, control.action === "stop" ? "rs-stop" : control.action === lead ? "primary" : "", () => CC.researchAction(doc.campaign.id, control.action));
       b.disabled = !control.available || !CC.state().connected || CC.state().busy;
       if (control.reason) b.title = control.reason;
@@ -323,12 +353,19 @@
     if (more.children.length > 1) actions.append(more);
     head.append(actions);
     parent.append(head);
+    if (ended && !compact) {
+      const banner = el("div", undefined, "rs-endstate"); banner.setAttribute("role", "status");
+      banner.append(el("p", ended.reason, "reason"));
+      if (ended.next) banner.append(el("p", ended.next, "hint"));
+      banner.append(anchor("Start a new campaign", "#launch", "button primary"));
+      parent.append(banner);
+    }
     if (doc.fixture) para(parent, "Synthetic fixture data, for seeing the surface. Not a campaign, not evidence, never LIVE.", "rs-fixture");
   }
   // What the header shows, as one key (no clock).
   function headerKey(doc, run, compact) {
     const s = CC.state();
-    return JSON.stringify([compact, doc.campaign, doc.labels, doc.fixture, doc.controls, doc.tiles.started_unix, s.connected, s.busy, recovery(doc.campaign.state, run, doc)]);
+    return JSON.stringify([compact, doc.campaign, endState(doc), doc.labels, doc.fixture, doc.controls, doc.tiles.started_unix, s.connected, s.busy, recovery(doc.campaign.state, run, doc)]);
   }
   function tilesKey(doc) { return JSON.stringify({...doc.tiles, now_unix: 0, elapsed_seconds: doc.tiles.elapsed_seconds === null ? null : 0}); }
   // A refusal and a recovery line, above the campaign's own parts.
@@ -366,14 +403,18 @@
         note.append(bar, el("span", "Your ceiling: " + money(t.spend.ceiling_nanodollars), "hint"));
       } else note.append(el("span", "No ceiling set: Carbon caps nothing.", "hint"));
       note.append(el("span", "Billed by your provider to you. Carbon bills nothing.", "hint"));
-      tile("Model spend · your ledger", money(t.spend.used_nanodollars), note);
-    } else tile("Model spend · your ledger", "No ledger yet", el("span", "Appears once the campaign ledger exists.", "hint"));
+      tile("Model spend · your record", money(t.spend.used_nanodollars), note);
+    } else tile("Model spend · your record", "Nothing yet", el("span", "Appears once the campaign starts spending.", "hint"));
     const runs = el("div");
-    if (typeof t.practice_runs.attempted === "number") runs.append(el("span", "completed, of " + t.practice_runs.attempted + " attempted", "hint"));
+    if (typeof t.practice_runs.attempted === "number") {
+      // Practice runs that finished are the count; a launch that was interrupted is said apart (U50).
+      const unfinished = t.practice_runs.attempted - (typeof t.practice_runs.completed === "number" ? t.practice_runs.completed : t.practice_runs.attempted);
+      runs.append(el("span", unfinished > 0 ? "finished · " + unfinished + " other trial" + (unfinished === 1 ? "" : "s") + " used (smoke checks or starts that did not finish)" : "finished", "hint"));
+    }
     runs.append(el("span", t.trials && typeof t.trials.ceiling === "number" ? "Trials used " + t.trials.used + " of your " + t.trials.ceiling : "Trials used " + (t.trials ? t.trials.used : 0) + " · no cap set", "hint"));
     tile("Practice runs", String(t.practice_runs.completed), runs);
     if (t.model_speed) speedTile(tile, t.model_speed);
-    tile("Compute", t.compute.backend ? words(t.compute.backend).toLowerCase() : (t.compute.lane || "unavailable"), el("span", typeof t.compute.numerical_seconds === "number" ? t.compute.numerical_seconds + " s of worker time" : "Worker time appears once a trial runs.", "hint"));
+    tile("Compute", t.compute.backend ? backendWords(t.compute.backend) : (t.compute.lane || "unavailable"), el("span", typeof t.compute.numerical_seconds === "number" ? t.compute.numerical_seconds + " s of worker time" : "Worker time appears once a trial runs.", "hint"));
     parent.append(grid);
   }
   // The model's speed as this campaign observed it (S17): none is recorded
@@ -557,7 +598,7 @@
       }
       if (doc.hypothesis) {
         const quote = el("blockquote", undefined, "rs-quote");
-        quote.append(el("p", doc.hypothesis), el("cite", "Latest hypothesis · recorded text, shown as text"));
+        quote.append(el("p", doc.hypothesis), el("cite", "Latest idea the agent is testing"));
         now.append(quote);
       }
       // The controls are the header's, once: this card does not draw them
@@ -584,7 +625,14 @@
     part(grid, "curve", JSON.stringify([byId.learning_curve || null, doc.learning_curve]), curve => {
       head(curve, "Learning curve", "Training");
       if (byId.learning_curve) chart(curve, byId.learning_curve);
-      else para(curve, "Not recorded. " + (doc.learning_curve.basis || ""), "empty-state");
+      else {
+        // The registered kernel-ridge fit has no training curve (a closed-form solve); a catalog model's curve is
+        // simply not recorded here yet, and the kernel-ridge sentence would be wrong for it (R5-7).
+        const rows = doc.experiments?.rows || [];
+        const latest = rows[rows.length - 1];
+        const kernel = !latest || (!latest.backbone && !latest.recipe) || /kernel|krr/i.test(String(latest.backbone || ""));
+        para(curve, kernel ? "Not recorded. " + (doc.learning_curve.basis || "") : "Not recorded for this model yet.", "empty-state");
+      }
     });
     part(grid, "cases", JSON.stringify(doc.per_case), cases => {
       head(cases, "A public practice case", "Predicted against reference");
@@ -1066,7 +1114,8 @@
       }
     });
     const figure = el("div", undefined, "run-figure"); figure.append(svg);
-    figure.append(el("p", "● passed the gates   ✕ a mandatory gate failed" + (known ? "   ━ best passing score so far" : "") + (baseline !== undefined ? "   ┄ baseline" : "") + ". Gates come first: a failed run is never ranked on its score. Hover a mark for the run.", "hint run-legend"));
+    figure.append(el("p", "● passed the gates   ✕ a mandatory gate failed" + (known ? "   ━ best passing score so far" : "") + (baseline !== undefined ? "   ┄ " + (typeof doc.baseline?.label === "string" ? doc.baseline.label : "baseline") : "") + ". Gates come first: a failed run is never ranked on its score. Hover a mark for the run.", "hint run-legend"));
+    if (baseline === undefined && doc.baseline && doc.baseline.score === null) figure.append(el("p", "No baseline score is registered for this Challenge yet, so no baseline line is drawn.", "hint"));
     box.append(figure);
     // The pinned best passing run, with the next step for it.
     if (best) {
@@ -1105,7 +1154,9 @@
     const table = el("table", undefined, "metrics-table sortable");
     const headRow = el("tr");
     const dual = rows.some(r => r.dual);
-    for (const name of ["Run", "Model", "Gates", ...(dual ? ["Graded total (0 to 1, higher is better)"] : []), "Practice " + directionWords(doc).unit + directionWords(doc).paren, ...keys.map(k => labels[k] || k), "Final loss", "Compute budget", "Framework", "Ran on"]) headRow.append(el("th", name));
+    const hasDuration = rows.some(r => r.duration && typeof r.duration.wall_seconds === "number");
+    const hasCost = rows.some(r => r.model_cost && typeof r.model_cost.nanodollars === "number");
+    for (const name of ["Run", "Model", "Gates", ...(dual ? ["Graded total (0 to 1, higher is better)"] : []), "Practice " + directionWords(doc).unit + directionWords(doc).paren, ...keys.map(k => labels[k] || k), "Final loss", ...(hasDuration ? ["Time"] : []), ...(hasCost ? ["Model cost"] : []), "Compute budget", "Framework", "Ran on"]) headRow.append(el("th", name));
     table.append(headRow);
     // The model a run used: its backbone, or for a catalog recipe the catalog id
     // with the settings it changed (U52). A graph recipe has neither: say so.
@@ -1122,7 +1173,7 @@
       for (const k of keys) row.append(el("td", fmt(r.components[k])));
       // What the run actually ran on: its recipe's framework (or the
       // Challenge's default) and the worker record's backend and image.
-      row.append(el("td", fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend === "C03_DOCKER_GPU" ? "GPU · measured on GPU, not official" : r.backend === "REMOTE_GPU" ? (r.ran_on || "GPU (your remote setup)") + " · measured on GPU, not official" : (r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null)), r.image].filter(Boolean).join(" · ") || "–"));
+      row.append(el("td", r.fit.final_loss === null || r.fit.final_loss === undefined ? "–" : fmt(r.fit.final_loss)), ...(hasDuration ? [el("td", r.duration && typeof r.duration.wall_seconds === "number" ? duration(r.duration.wall_seconds) : "–")] : []), ...(hasCost ? [el("td", r.model_cost && typeof r.model_cost.nanodollars === "number" ? money(r.model_cost.nanodollars) + (r.model_cost.unsettled_calls ? " (+" + r.model_cost.unsettled_calls + " unsettled)" : "") : "–")] : []), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend === "C03_DOCKER_GPU" ? "GPU · measured on GPU, not official" : r.backend === "REMOTE_GPU" ? (r.ran_on || "GPU (your remote setup)") + " · measured on GPU, not official" : (r.ran_on || (r.backend ? backendWords(r.backend) : null)), r.image].filter(Boolean).join(" · ") || "–"));
       // R9-3: a GPU host that ran the CPU build says so, in words, under where it ran.
       if (typeof r.fallback === "string" && r.fallback) row.lastChild.append(el("br"), el("span", r.fallback, "run-fallback"));
       table.append(row);
@@ -1152,8 +1203,8 @@
       feed(box, doc);
     });
     const outcomes = part(panel, "outcomes", JSON.stringify(doc.journal.epoch_outcomes), box => {
-      head(box, "Epoch outcomes", "Agent or miner reported");
-      for (const o of doc.journal.epoch_outcomes) para(box, "Epoch " + o.epoch + ": " + words(o.status) + " · selected by " + (o.selected_by === "miner" ? "you" : "the agent") + (o.reason ? " · " + o.reason : "") + ". Reported, not independent science.");
+      head(box, "Round results", "Agent or miner reported");
+      for (const o of doc.journal.epoch_outcomes) para(box, "Round " + o.epoch + ": " + words(o.status) + " · selected by " + (o.selected_by === "miner" ? "you" : "the agent") + (o.reason ? " · " + o.reason : "") + ". Reported, not independent science.");
     });
     outcomes.hidden = !doc.journal.epoch_outcomes.length;
   }
@@ -1197,7 +1248,7 @@
     para(top, "Read from the Challenge's registered construction contract. Only what is rebuildable can be submitted; everything else is research only or excluded, with the blocker that keeps it there.", "lede");
     const facts = el("dl", undefined, "review-grid");
     const fact = (k, v) => facts.append(el("dt", k), el("dd", v));
-    fact("Challenge", (c.challenge.title || c.challenge.id) + " · version " + c.challenge.version);
+    fact("Challenge", plainTitle(c.challenge.title || c.challenge.id) + " · version " + c.challenge.version);
     fact("Contract digest", c.contract_digest || "unavailable");
     fact("Exam rule", [c.exam.rule.status, c.exam.rule.authority].filter(Boolean).map(words).join(" · ") || "unavailable");
     fact("Feedback mode", (c.feedback_mode?.frozen || "FULL") + " · " + (c.feedback_mode?.basis || ""));
@@ -1265,7 +1316,7 @@
     card.append(el("p", d.kind, "freeze-kind"), el("p", d.title, "freeze-title"));
     if (d.settings.length) { const chips = el("p", undefined, "freeze-chips"); for (const s of d.settings) chips.append(el("span", s, "chip")); card.append(chips); }
     const why = [];
-    why.push("Frozen at epoch " + c.epoch);
+    why.push("Frozen in round " + c.epoch);
     if (c.reason) why.push(c.reason);
     why.push(c.used_feedback ? "chosen with feedback" : "chosen without exam feedback");
     card.append(el("p", why.join(" · "), "hint"));
@@ -1304,13 +1355,35 @@
     journey.hidden = !journey.children.length;
     part(panel, "outcomes", JSON.stringify(doc.outcomes), box => drawOutcomes(box, doc), "rs-outcomes-part", "div");
   }
+  // Submitted → Received → Rebuilt → Graded, each from what the record says
+  // and no further: a stage the record does not reach is "not yet", and an
+  // unreadable record says so rather than guessing (U48).
+  const REBUILT = ["RECONSTRUCTED", "SCORED", "SCREENED", "ELIGIBLE", "FINALIST", "PROMOTED"];
+  function timeline(box, o, doc) {
+    const r = o.result || {};
+    const state = typeof r.state === "string" ? r.state.toUpperCase() : null;
+    const submitted = (doc.journey?.submitted_epochs || []).includes(o.epoch) || o.status !== undefined;
+    const unreadable = o.status === "READBACK_UNAVAILABLE";
+    const received = !unreadable && (o.status === "VALIDATOR_OUTCOME" || o.status === "MULTI_VALIDATOR_OUTCOME" || o.status === "VERIFIED_SOURCE");
+    const rebuilt = received && (state === null ? o.status !== "VALIDATOR_OUTCOME" : REBUILT.includes(state));
+    const graded = received && (state === "SCORED" || typeof (r.screening || {}).score === "number" || o.status === "VERIFIED_SOURCE");
+    const list = el("ol", undefined, "outcome-timeline");
+    for (const [label, done] of [["Submitted", submitted], ["Received", received], ["Rebuilt", rebuilt], ["Graded", graded]]) {
+      const item = el("li", undefined, done ? "done" : "pending");
+      item.append(el("span", done ? "✓" : unreadable && label !== "Submitted" ? "?" : "·", "mark"), el("span", label));
+      list.append(item);
+    }
+    box.append(list);
+    if (unreadable) para(box, "Submitted. What the validator did next could not be read back from this machine.", "hint");
+    else if (received && !graded) para(box, "Your recipe was received and rebuilt from scratch" + (rebuilt ? "" : " (rebuild not yet confirmed)") + ". It is not graded here: no score is shown for this campaign's feedback mode.", "hint");
+  }
   function drawOutcomes(panel, doc) {
     const box = section(panel, "DEVELOPMENT outcomes", "Validator");
     if (!doc.outcomes.length) para(box, "No DEVELOPMENT outcome yet.", "empty-state");
     for (const o of doc.outcomes) {
       const r = o.result || {};
       const s = r.screening || {};
-      const line = [typeof o.epoch === "number" ? "Epoch " + o.epoch : "Outcome", words(o.status).toLowerCase()];
+      const line = [typeof o.epoch === "number" ? "Round " + o.epoch : "Outcome", words(o.status).toLowerCase()];
       if (r.state) line.push(words(r.state).toLowerCase());
       if (typeof s.eligible === "boolean") line.push(s.eligible ? "eligible" : "not eligible");
       if (Array.isArray(s.gates_failed)) line.push("gates failed: " + (s.gates_failed.join(", ") || "none"));
@@ -1318,6 +1391,7 @@
       if (r.disposition) line.push(words(r.disposition).toLowerCase());
       if (typeof r.accepted_development_improvement === "boolean") line.push("accepted DEVELOPMENT improvement: " + r.accepted_development_improvement);
       para(box, line.join(" · "), "status-line");
+      timeline(box, o, doc);
       if (r.withheld) para(box, "Withheld: " + r.withheld, "hint");
       // U53: a direct campaign's grade, by the display rule, and the miner's
       // own signed re-read while none has arrived (Validator-approved).
@@ -1368,8 +1442,8 @@
     box.append(list);
     para(box, "Provider payloads, worker output and errors stay private to the campaign; this shows operation states only.", "hint");
     const usage = run && run.usage;
-    const res = section(panel, "Resources", "Your ledger");
-    if (!usage) { para(res, "Appears once the campaign ledger exists.", "hint"); return; }
+    const res = section(panel, "Resources", "Your record");
+    if (!usage) { para(res, "Appears once the spending record exists.", "hint"); return; }
     // Every column in the unit your limit is set in (LP-PROD-F).
     CC.usageTable(res, usage);
     para(res, usage.cost_basis || "", "hint");
@@ -1506,15 +1580,19 @@
     // applies. Your own agent (own-agent) uses its own model and skips it,
     // as does a launch that calls no model.
     const j = CC.journey ? CC.journey() : null;
-    const skipsInference = Boolean(j?.skipped?.inference) || Boolean(agent && !agent.uses_model);
+    // One source for the agent (R5-6): once Setup has checked "Who researches?", that choice speaks for the card, and a
+    // stale Launch-wizard agent (its Graphite plan, its model) does not mix into it.
+    const setupAgent = steps.agent?.checked ? steps.agent.choice : null;
+    const setupOwnAgent = Boolean(setupAgent) && setupAgent !== "carbon-graphite";
+    const skipsInference = Boolean(j?.skipped?.inference) || setupOwnAgent || (!setupAgent && Boolean(agent && !agent.uses_model));
     const cards = [
-      {id: "challenge", title: "Challenge", value: entry ? entry.title + " · v" + entry.version : "Not chosen", note: entry ? (entry.selectable ? "Ready to launch" : "Set up first") : "Choose what to mine", go: () => CC.goWizard("challenge")},
-      {id: "agent", title: "Agent", value: steps.agent?.checked ? choiceName("agent", steps.agent.choice) : agent ? agent.label : "Not chosen", note: agent ? (agent.launch_agent === "graphite" ? "Graphite · " + CC.graphite.summary() : agent.uses_model ? "Carbon's agent calls your model" : "Calls no model") : j?.skipped?.inference ? "Your own agent, with its own model" : "Who researches and submits", href: "#setup/agent"},
+      {id: "challenge", title: "Challenge", value: entry ? plainTitle(entry.title) + " · v" + entry.version : "Not chosen", note: entry ? (entry.selectable ? "Ready to launch" : "Set up first") : "Choose what to mine", go: () => CC.goWizard("challenge")},
+      {id: "agent", title: "Agent", value: steps.agent?.checked ? choiceName("agent", steps.agent.choice) : agent ? agent.label : "Not chosen", note: setupOwnAgent ? "Your own agent, with its own model" : agent ? (agent.launch_agent === "graphite" ? "Graphite · " + CC.graphite.summary() : agent.uses_model ? "Carbon's agent calls your model" : "Calls no model") : j?.skipped?.inference ? "Your own agent, with its own model" : "Who researches and submits", href: "#setup/agent"},
     ];
-    if (!skipsInference) cards.push({id: "inference", title: "Inference", value: steps.inference?.checked ? choiceName("inference", steps.inference.provider_id) + " · " + steps.inference.model_id : "Not checked", note: "Only Carbon's own agent calls a model, with your key", href: "#setup/inference"});
+    if (!skipsInference) cards.push({id: "inference", title: "AI model", value: steps.inference?.checked ? choiceName("inference", steps.inference.provider_id) + " · " + steps.inference.model_id : "Not checked", note: "Only Carbon's own agent calls a model, with your key", href: "#setup/inference"});
     cards.push(
       {id: "compute", title: "Compute", value: steps.compute?.checked ? choiceName("compute", steps.compute.choice) : (s.caps.compute?.choices?.[0]?.label || "Not checked"), note: "Your machine, or your own remote one", href: "#setup/compute"},
-      {id: "limits", title: "Limits", value: parts.length ? parts.join(", ") : "None set", note: "Your own campaign ledger. Carbon caps and bills nothing.", go: () => CC.goWizard("limits")},
+      {id: "limits", title: "Limits", value: parts.length ? parts.join(", ") : "None set", note: "Your own spending record. Carbon caps and bills nothing.", go: () => CC.goWizard("limits")},
       {id: "review", title: "Review", value: problem ? "Not ready" : "Ready", note: problem || "Every step can pass.", href: "#setup/review"},
     );
     const key = JSON.stringify([cards.map(c => [c.value, c.note]), setup.choices, s.caps.agents?.choices?.map(row => row.acceptance), s.caps.compute?.choices?.map(row => row.acceptance), problem, s.busy, s.pendingResearch ? 1 : 0]);

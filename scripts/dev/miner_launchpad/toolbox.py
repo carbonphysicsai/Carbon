@@ -124,7 +124,7 @@ ENTRY_VARIANTS = {
 
 @functools.lru_cache(maxsize=16)
 def _catalog_recipes(challenge_id, version):
-    from carbon.backbone_catalog import listing
+    from carbon.backbone_catalog import listing, settings
     from carbon.challenge_kit.served_versions import UnregisteredVersion, serves_catalog
 
     try:
@@ -138,6 +138,16 @@ def _catalog_recipes(challenge_id, version):
                 "catalog_id": item["catalog_id"],
                 "backbone": item["backbone"],
                 "recipe": _catalog_recipe(challenge_id, version, item["catalog_id"]),
+                # The settings this entry's schema accepts, so the page offers only fields the entry takes (a
+                # newcomer's first run cannot hit catalog_setting_unknown).
+                "settings": {
+                    "configuration": sorted(
+                        settings.SCHEMAS[item["settings_schema"]].configuration
+                    ),
+                    "train_use": sorted(
+                        settings.SCHEMAS[item["settings_schema"]].train_use
+                    ),
+                },
                 **(
                     {"variant": ENTRY_VARIANTS[item["catalog_id"]]}
                     if item["catalog_id"] in ENTRY_VARIANTS
