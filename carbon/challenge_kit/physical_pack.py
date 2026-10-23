@@ -118,6 +118,9 @@ PACK_VERSIONS = {
     (battery_pack.CHALLENGE_ID, "1.0"): battery_pack.PACK_VERSION,
     (battery_pack.CHALLENGE_ID, "2.0"): "battery-normal-construction-development-3",
     (battery_pack.CHALLENGE_ID, "2.1"): "battery-normal-construction-development-4",
+    # Battery 2.2 (Validator, 2026-10-23): 2.1's bank and measurement under its
+    # own pack version; only the construction kit differs.
+    (battery_pack.CHALLENGE_ID, "2.2"): "battery-normal-construction-development-5",
     (f08_train.CHALLENGE_ID, "1.0"): "f08-normal-construction-development-1",
     (f08_train.CHALLENGE_ID, "1.1"): "f08-normal-construction-development-2",
     (f08_train.CHALLENGE_ID, "1.2"): "f08-normal-construction-development-3",

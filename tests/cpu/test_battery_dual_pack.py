@@ -332,3 +332,55 @@ def test_g_feas_is_the_pinned_exceeds_comparison():
     for measured in (None, 0.0, 0.04999, 0.05, 0.0500001, 0.3, 1.0):
         pinned = st.exceeds_verdict(measured, 0.05) == st.admissibility.PASS
         assert bdm.g_feas_passes(measured, 0.05) is pinned
+
+
+def test_2_2_measures_as_2_1_on_the_same_bank():
+    # The Validator (2026-10-23, option (b)): Battery 2.2's development pack is
+    # 2.1's measurement under 2.1's evaluation version, on the same bank, with
+    # its own pack label; only the construction kit differs.
+    import json as _json
+
+    old = physical.versioned(adapter, "2.1")
+    new = physical.versioned(adapter, "2.2")
+    assert new.EVALUATION_VERSION == old.EVALUATION_VERSION
+    assert new.CASE_ID == old.CASE_ID
+    banks = [
+        physical_pack.development_bank(adapter.CHALLENGE, v) for v in ("2.1", "2.2")
+    ]
+    assert banks[0]["case_ids"] == banks[1]["case_ids"]
+    assert banks[0]["inputs"].tobytes() == banks[1]["inputs"].tobytes()
+    assert banks[0]["references"].tobytes() == banks[1]["references"].tobytes()
+    roles = [physical_pack.public_roles(adapter.CHALLENGE, v) for v in ("2.1", "2.2")]
+    for name in ("train", "interface", "physics_contract"):
+        assert roles[0][name] == roles[1][name], name
+    kits = [_json.loads(role["construction_kit"]) for role in roles]
+    assert {
+        k: v
+        for k, v in kits[0].items()
+        if k not in ("version", "construction_limits_digest")
+    } == {
+        k: v
+        for k, v in kits[1].items()
+        if k not in ("version", "construction_limits_digest")
+    }
+    assert physical_pack.PACK_VERSIONS[(adapter.CHALLENGE, "2.2")] != (
+        physical_pack.PACK_VERSIONS[(adapter.CHALLENGE, "2.1")]
+    )
+    # The same model measures the same on both.
+    outputs = _truth()
+    measured = []
+    for version, module in (("2.1", old), ("2.2", new)):
+        bank = physical_pack.development_bank(adapter.CHALLENGE, version)
+        measured.append(
+            module.measure(
+                bank_rows=physical.bank_rows(bank, adapter.input_names()),
+                outputs=outputs,
+                repeats=[outputs, outputs],
+                definition=module.definition(bank=bank, train_raw=b""),
+                limits={},
+                objective={},
+                train_raw=b"",
+                names=adapter.input_names(),
+            )
+        )
+    assert measured[0] == measured[1]

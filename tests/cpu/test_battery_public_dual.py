@@ -110,13 +110,7 @@ def test_the_adapter_constants_and_definition_are_the_registered_ones():
     assert public.VERSION == registered.VERSION
     assert public.EVALUATION_VERSION == registered.EVALUATION_VERSION
     assert public.CASE_ID == registered.CASE_ID
-    # Every registered version is measured as registered. Practice also serves
-    # Battery 2.2, which serves 2.1's bank and pack set (Validator, 2026-10-22),
-    # under 2.1's measurement; battery_dual_pack itself is unchanged (its
-    # producer digest would move).
-    assert {v: public.VERSIONS[v] for v in registered.VERSIONS} == registered.VERSIONS
-    assert set(public.VERSIONS) - set(registered.VERSIONS) == {"2.2"}
-    assert public.VERSIONS["2.2"] == registered.VERSIONS["2.1"]
+    assert public.VERSIONS == registered.VERSIONS
     bank = physical_pack.development_bank(public.CHALLENGE, public.VERSION)
     train = physical_pack.public_roles(public.CHALLENGE, public.VERSION)["train"]
     assert public.definition(bank=bank, train_raw=train) == registered.definition(
