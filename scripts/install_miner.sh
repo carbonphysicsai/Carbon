@@ -368,7 +368,6 @@ if [[ "${PYTORCH}" == 1 && "${gpu_space}" -gt 0 ]]; then
     fail "building the PyTorch GPU worker needs Docker buildx, which this Docker lacks. Install Docker buildx (Ubuntu or Debian: sudo apt-get install docker-buildx-plugin, or docker-buildx with your distribution's Docker), then run the installer again."
   fi
 fi
-need_space "${repo_root}" "${CHECKOUT_GIB}" "Carbon's locked environment and its cache"
 docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
 #: offer_old_images: Carbon's own images from earlier installs, which this
 #: install's records no longer name, listed and removed only on the miner's
@@ -377,8 +376,12 @@ docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
 #: repositories are listed (scripts/dev/miner_launchpad/superseded_images.py);
 #: Docker keeps any image a container still uses. A first install, with no
 #: environment yet, has none.
+old_images_offered=0
 offer_old_images() {
   local py="${repo_root}/.venv/bin/python" listing answer=""
+  # Asked once per install: a second short check re-checks, never re-asks.
+  [[ "${old_images_offered}" == 0 ]] || return 0
+  old_images_offered=1
   [[ -x "${py}" ]] || return 0
   # -B and PYTHONDONTWRITEBYTECODE: this runs before the development
   # candidate's ignored-source check, which refuses any __pycache__ it
@@ -386,11 +389,11 @@ offer_old_images() {
   listing="$(cd "${repo_root}" && PYTHONDONTWRITEBYTECODE=1 "${py}" -B -m scripts.dev.miner_launchpad.superseded_images \
     list --state-dir "${STATE_DIR}" --repo "${repo_root}" 2>/dev/null)" || return 0
   [[ -n "${listing}" ]] || return 0
-  echo "Space is short. These are Carbon's own images from earlier installs, which this install does not use:"
+  echo "Space is short. These are Carbon's own images and finished practice-job containers from earlier installs, which this install does not use (the catalog images are built again over the new worker):"
   echo "${listing}"
   if [[ "${REMOVE_OLD_IMAGES}" == 0 ]]; then
     if [[ -t 0 ]]; then
-      read -r -p "Remove them? No other image is touched. [y/N] " answer || answer=""
+      read -r -p "Remove them? No other image or container is touched. [y/N] " answer || answer=""
     fi
     if [[ "${answer}" != [yY]* ]]; then
       echo "Kept them. To remove them, answer y, or run this again with --remove-old-images."
@@ -408,6 +411,15 @@ short_of() {
   free="$(free_gib "$1" || true)"
   [[ -n "${free}" ]] && (( free < $2 ))
 }
+# Carbon's own old images go first, when space is short (gate round 1,
+# R11-2 order): the checkout's own free-space check below ran before the
+# cleanup was offered, so a disk those images filled was refused by the very
+# check their removal would have passed. Offered (or, with
+# --remove-old-images, done) now, then every check reads the space again.
+if short_of "${repo_root}" "${CHECKOUT_GIB}"   || { [[ -n "${docker_root}" && -d "${docker_root}" ]]     && short_of "${docker_root}" "$(( IMAGES_GIB + gpu_space * GPU_GIB ))"; }; then
+  offer_old_images
+fi
+need_space "${repo_root}" "${CHECKOUT_GIB}" "Carbon's locked environment and its cache"
 check_image_space() {
   local images_gib="$1" checkout_mount docker_mount
   if [[ -n "${docker_root}" && -d "${docker_root}" ]]; then

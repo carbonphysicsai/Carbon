@@ -1,21 +1,26 @@
-"""Carbon's own images from earlier installs, which this install no longer
-records (M1 E2E R6-1).
+"""Carbon's own images and containers from earlier installs, which this
+install no longer uses (M1 E2E R6-1, R11-2).
 
 Every install builds or pulls new worker and analysis images and records
-them; the earlier ones stay in Docker. Over a few updates they filled the
-disk until an update stopped at its own space check. `scripts/install_miner.sh`
-lists them here and removes them only on the miner's yes.
+them; the earlier ones stay in Docker, and so do the catalog images built
+over an earlier worker and the containers finished practice jobs leave.
+Over a few updates they filled the disk until an update stopped at its own
+space check. `scripts/install_miner.sh` lists them here, with how much each
+kind frees, and removes them only on the miner's yes.
 
 What counts, and nothing else:
 - an image tagged in one of Carbon's own repositories (`REPOSITORIES`, or
-  Carbon's release registry `RELEASE_PREFIX`);
-- whose image ID no record of the current install names: not the images
-  setup's installer record points to, not the manifests the installer
-  writes under `.carbon-artifacts/`, and not any image either names as a
-  parent.
-Another program's image is never listed. A tag is removed with
-`docker image rm` without force, so Docker refuses an image a container
-still uses, and that refusal is reported, not overridden.
+  Carbon's release registry `RELEASE_PREFIX`) whose image ID no record of
+  the current install names: not the images setup's installer record points
+  to, not the manifests the installer writes under `.carbon-artifacts/`, and
+  not any image either names as a parent;
+- a catalog image (labelled `LIBRARY_LABEL`, as the catalog install builds
+  it) built over a construction parent the current install no longer names
+  (`PARENT_LABEL`); the update builds the catalog again over the new one;
+- an exited container of a Carbon practice job (labelled `JOB_LABEL`).
+Another program's image or container is never listed. Each is removed
+without force: Docker refuses an image a container still uses, and that
+refusal is reported, not overridden. A running container is never listed.
 """
 
 from __future__ import annotations
@@ -29,17 +34,36 @@ from pathlib import Path
 
 #: The local repositories Carbon's image scripts tag (`c03_worker_image.sh`,
 #: `torch_worker_image.sh`, `accelerator_worker_image.sh`,
-#: `research_image.LOCAL_ANALYSIS_REPOSITORY` and its parent tag).
+#: `torch_gpu_worker_image.sh`, `research_image.LOCAL_ANALYSIS_REPOSITORY`
+#: and its parent tag, and the catalog build's parent stage tag).
 REPOSITORIES = (
     "carbon-c03-worker",
     "carbon-torch-worker",
     "carbon-gpu-worker",
+    "carbon-torch-gpu-worker",
     "carbon-analysis",
     "carbon-cw1d4-parent",
+    "carbon-library-parent",
 )
 #: Carbon's released images (`worker_image_release.py pull`).
 RELEASE_PREFIX = "ghcr.io/carbonphysicsai/"
+#: The labels the catalog install puts on each catalog image
+#: (`library_bundles`): the bundle, and the construction parent it is built
+#: over.
+LIBRARY_LABEL = "org.opencontainers.image.carbon.development.library-bundle"
+PARENT_LABEL = "org.opencontainers.image.carbon.development.parent"
+#: The label every Carbon practice job's container carries
+#: (`docker_runtime`'s worker containers).
+JOB_LABEL = "org.opencontainers.image.carbon.c03.launch"
+#: Each kind, in the order it is removed (containers first: they hold images).
+KINDS = {
+    "container": "practice job containers that finished",
+    "catalog": "catalog images built over an earlier worker",
+    "image": "Carbon images from earlier installs",
+}
 _IMAGE_ID = re.compile(r"sha256:[0-9a-f]{64}")
+_SIZE = re.compile(r"([0-9.]+)\s*([kKMGT]?B)")
+_UNITS = {"B": 1, "kB": 1e3, "KB": 1e3, "MB": 1e6, "GB": 1e9, "TB": 1e12}
 
 
 def _docker(*argv):
@@ -72,26 +96,108 @@ def ours(repository: str) -> bool:
     return repository in REPOSITORIES or repository.startswith(RELEASE_PREFIX)
 
 
-def superseded(state_dir, repo, docker=_docker) -> list[dict]:
-    """Carbon's tagged images the current install does not name, as
-    [{ref, id, size}], in Docker's order. [] when Docker cannot list."""
-    listed = docker("image", "ls", "--no-trunc", "--format", "{{json .}}")
-    if listed.returncode != 0:
+def size_bytes(text) -> int:
+    """Docker's human size ("1.2GB"; a container's "0B (virtual 1GB)" is its
+    own first part), in bytes; 0 when unreadable."""
+    found = _SIZE.search(str(text or ""))
+    if found is None:
+        return 0
+    return int(float(found.group(1)) * _UNITS.get(found.group(2), 0))
+
+
+def human(count) -> str:
+    for unit, scale in (("TB", 1e12), ("GB", 1e9), ("MB", 1e6), ("kB", 1e3)):
+        if count >= scale:
+            return f"{count / scale:.1f}{unit}"
+    return f"{count}B"
+
+
+def _lines(result):
+    if result.returncode != 0:
         return []
-    keep = kept(state_dir, repo)
     found = []
-    for line in listed.stdout.splitlines():
+    for line in result.stdout.splitlines():
         try:
-            image = json.loads(line)
+            value = json.loads(line)
         except ValueError:
             continue
-        repository, tag = image.get("Repository", ""), image.get("Tag", "")
-        if not ours(repository) or tag in ("", "<none>"):
+        if type(value) is dict:
+            found.append(value)
+    return found
+
+
+def superseded(state_dir, repo, docker=_docker) -> list[dict]:
+    """Carbon's images and containers the current install does not use, as
+    [{kind, ref, id, size}] in removal order; [] when Docker cannot list."""
+    keep = kept(state_dir, repo)
+    found = []
+    containers = _lines(
+        docker(
+            "ps",
+            "--all",
+            "--no-trunc",
+            "--size",
+            "--filter",
+            "label=" + JOB_LABEL,
+            "--filter",
+            "status=exited",
+            "--format",
+            "{{json .}}",
+        )
+    )
+    for container in containers:
+        found.append(
+            {
+                "kind": "container",
+                "ref": container.get("Names") or container.get("ID"),
+                "id": container.get("ID"),
+                "size": container.get("Size", "0B"),
+            }
+        )
+    catalog = _lines(
+        docker(
+            "image",
+            "ls",
+            "--no-trunc",
+            "--filter",
+            "label=" + LIBRARY_LABEL,
+            "--format",
+            "{{json .}}",
+        )
+    )
+    seen = set()
+    for image in catalog:
+        image_id = image.get("ID")
+        if image_id in seen or image_id in keep:
             continue
-        if image.get("ID") in keep:
+        seen.add(image_id)
+        inspected = docker(
+            "image", "inspect", "--format", "{{json .Config.Labels}}", image_id
+        )
+        try:
+            labels = json.loads(inspected.stdout) if inspected.returncode == 0 else {}
+        except ValueError:
+            labels = {}
+        parent = (labels or {}).get(PARENT_LABEL)
+        if type(labels) is not dict or not labels.get(LIBRARY_LABEL) or parent in keep:
             continue
         found.append(
             {
+                "kind": "catalog",
+                "ref": image_id,
+                "id": image_id,
+                "size": image.get("Size", "?"),
+            }
+        )
+    for image in _lines(docker("image", "ls", "--no-trunc", "--format", "{{json .}}")):
+        repository, tag = image.get("Repository", ""), image.get("Tag", "")
+        if not ours(repository) or tag in ("", "<none>"):
+            continue
+        if image.get("ID") in keep or image.get("ID") in seen:
+            continue
+        found.append(
+            {
+                "kind": "image",
                 "ref": repository + ":" + tag,
                 "id": image.get("ID"),
                 "size": image.get("Size", "?"),
@@ -100,15 +206,33 @@ def superseded(state_dir, repo, docker=_docker) -> list[dict]:
     return found
 
 
-def remove(images, docker=_docker) -> list[tuple[str, str | None]]:
-    """Remove each tag, without force: [(ref, None)] when removed, or
+def totals(found) -> dict:
+    """{kind: (count, bytes)} of what `superseded` lists."""
+    result = {}
+    for item in found:
+        count, total = result.get(item["kind"], (0, 0))
+        result[item["kind"]] = (count + 1, total + size_bytes(item["size"]))
+    return result
+
+
+def remove(found, docker=_docker) -> list[tuple[str, str | None]]:
+    """Remove each, without force: [(ref, None)] when removed, or
     [(ref, why)] when Docker refused it."""
     done = []
-    for image in images:
-        result = docker("image", "rm", image["ref"])
+    for item in found:
+        command = (
+            ("rm", item["id"])
+            if item["kind"] == "container"
+            else (
+                "image",
+                "rm",
+                item["ref"],
+            )
+        )
+        result = docker(*command)
         done.append(
             (
-                image["ref"],
+                item["ref"],
                 None if result.returncode == 0 else result.stderr.strip()[:200],
             )
         )
@@ -121,13 +245,18 @@ def main(argv=None, docker=_docker) -> int:
     parser.add_argument("--state-dir", type=Path, required=True)
     parser.add_argument("--repo", type=Path, required=True)
     args = parser.parse_args(argv)
-    images = superseded(args.state_dir, args.repo, docker)
+    found = superseded(args.state_dir, args.repo, docker)
     if args.command == "list":
-        for image in images:
-            print(f"  {image['ref']}  ({image['size']})")
+        for item in found:
+            print(f"  {item['ref']}  ({item['size']})")
+        summary = totals(found)
+        for kind, words in KINDS.items():
+            if kind in summary:
+                count, total = summary[kind]
+                print(f"  {words}: {count}, frees about {human(total)}")
         return 0
     refused = 0
-    for ref, why in remove(images, docker):
+    for ref, why in remove(found, docker):
         if why is None:
             print(f"  removed {ref}")
         else:
