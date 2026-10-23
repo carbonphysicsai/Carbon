@@ -294,6 +294,10 @@ def contract_section(challenge, feedback_mode, offered_modes=(), level=None):
 
 #: The practice dual-feedback block (C13, `scoring.practice_dual.SCHEMA`).
 DUAL_FEEDBACK_SCHEMA = "carbon.practice.dual-feedback.v1"
+#: v2: the exam's own v2 legs on the full public bank as a grid with public
+#: probes ("practice (public bank)"; never comparable with a sealed grade).
+DUAL_FEEDBACK_SCHEMA_V2 = "carbon.practice.dual-feedback.v2"
+DUAL_FEEDBACK_SCHEMAS = (DUAL_FEEDBACK_SCHEMA, DUAL_FEEDBACK_SCHEMA_V2)
 NOT_TESTED_ON_PRACTICE = "NOT_TESTED_ON_PRACTICE"
 
 
@@ -313,7 +317,7 @@ def dual_feedback(experiment):
             value
             for place in places
             for value in place.values()
-            if type(value) is dict and value.get("schema") == DUAL_FEEDBACK_SCHEMA
+            if type(value) is dict and value.get("schema") in DUAL_FEEDBACK_SCHEMAS
         ),
         None,
     )
@@ -322,6 +326,8 @@ def dual_feedback(experiment):
     if found.get("available") is not True:
         return {"available": False, "reason": _str(found.get("reason"), 128)}
     gates = found.get("gates") if type(found.get("gates")) is dict else {}
+    legs = found.get("accuracy_legs")
+    parts = found.get("design_parts")
     return {
         "available": True,
         "gates": {
@@ -346,6 +352,29 @@ def dual_feedback(experiment):
             if type(found.get("n_cases")) is int and found["n_cases"] >= 0
             else None
         ),
+        **(
+            {
+                "schema": found.get("schema"),
+                # v2 only: the legs, aggregate values, and the names of failed laws.
+                "bank": _str(found.get("bank"), 64),
+                "accuracy_legs": (
+                    {str(k)[:32]: finite(v) for k, v in list(legs.items())[:8]}
+                    if type(legs) is dict
+                    else None
+                ),
+                "design_parts": (
+                    {str(k)[:32]: finite(v) for k, v in list(parts.items())[:8]}
+                    if type(parts) is dict
+                    else None
+                ),
+                "failed_laws": [
+                    _str(name, 64)
+                    for name in (found.get("gates_failed_laws") or [])[:16]
+                ],
+            }
+            if found.get("schema") == DUAL_FEEDBACK_SCHEMA_V2
+            else {}
+        ),
     }
 
 
@@ -364,6 +393,9 @@ PRACTICE_BASELINES: dict = {
     # sha256:12dd3aafe21c814d05f9c9a543fd8e2af40fd22fefd0f2d4d77f40b4163b27e3
     # (Linux, torch 2.13.0+cpu).
     ("chip-cold-plate", "1.3"): {
+        # Measured by the earlier practice dual (v1); not shown while practice
+        # reports the exam's v2 legs (`baseline`).
+        "dual_schema": DUAL_FEEDBACK_SCHEMA,
         "score": 0.9137914131624103,
         "strategy_digest": (
             "sha256:ffde968a02665765afb346307b9ce1935bde838d67a3c2ace5273521778629d1"
@@ -390,6 +422,18 @@ def baseline(challenge):
         else None
     )
     found = PRACTICE_BASELINES.get(key)
+    if type(found) is dict and found.get("dual_schema", DUAL_FEEDBACK_SCHEMA) != (
+        DUAL_FEEDBACK_SCHEMA_V2
+    ):
+        # A baseline measured by the earlier practice dual is not comparable with
+        # the practice totals now shown (the exam's v2 legs): none, with why,
+        # until it is re-measured by the same code.
+        return {
+            "score": None,
+            "label": BASELINE_LABEL,
+            "reason": "baseline_predates_practice_dual_v2",
+            "record": None,
+        }
     if type(found) is not dict or finite(found.get("score")) is None:
         return {
             "score": None,

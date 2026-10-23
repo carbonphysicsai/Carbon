@@ -448,6 +448,9 @@ def trial_supports_selection(ledger, owner, strategy):
 #: practice result carries it: its own `eligible` is the gate verdict on the
 #: public bank for a Challenge whose summary reports none.
 PRACTICE_DUAL_SCHEMA = "carbon.practice.dual-feedback.v1"
+#: v2 is the exam's own v2 legs on the practice grid (`scoring.practice_dual`);
+#: both carry the same gate verdict, so every reader accepts either.
+PRACTICE_DUAL_SCHEMAS = (PRACTICE_DUAL_SCHEMA, "carbon.practice.dual-feedback.v2")
 
 
 def practice_gates_failed(result):
@@ -467,7 +470,7 @@ def practice_gates_failed(result):
         return True
     return any(
         type(value) is dict
-        and value.get("schema") == PRACTICE_DUAL_SCHEMA
+        and value.get("schema") in PRACTICE_DUAL_SCHEMAS
         and value.get("available") is True
         and value.get("eligible") is not True
         for place in places
@@ -508,7 +511,7 @@ def practice_gate_reported(result):
     ]
     return any(
         type(value) is dict
-        and value.get("schema") == PRACTICE_DUAL_SCHEMA
+        and value.get("schema") in PRACTICE_DUAL_SCHEMAS
         and value.get("available") is True
         for place in places
         for value in place.values()

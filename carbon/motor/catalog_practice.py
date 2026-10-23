@@ -185,6 +185,27 @@ class MotorCatalogPractice:
         # of which the 30 PRACTICE cases are scored below), so the exam's dual
         # measurement (C13) is computable on the same rows.
         practice_inputs = material["practice_inputs"]
+        # The exam's own v2 grader on the practice grid (public cells and public
+        # probes) when this version has one: the grid query follows the bank's
+        # rows in the same inference call (practice must match the exam).
+        import numpy as np
+
+        from carbon.scoring import practice_grid
+
+        v2 = practice_grid.adapter("motor", self.version) is not None
+        n_bank = len(practice_inputs)
+        query = practice_inputs
+        expected_shape = material["expected_output_shape"]
+        if v2:
+            query = np.concatenate(
+                [
+                    practice_inputs,
+                    practice_dual.query_inputs_v2(
+                        "motor", self.version, like=practice_inputs
+                    ),
+                ]
+            )
+            expected_shape = (len(query), *tuple(expected_shape)[1:])
         adapter = practice_dual.versioned(motor_dual_pack, self.version)
         from carbon.development_session.catalog_gpu import backend_record
 
@@ -261,8 +282,8 @@ class MotorCatalogPractice:
                     train=material["train"],
                     example=material["example"],
                     seed=0,
-                    inputs=practice_inputs,
-                    expected_output_shape=material["expected_output_shape"],
+                    inputs=query,
+                    expected_output_shape=expected_shape,
                     allowlist_bytes=material["allowlist_bytes"],
                     expected_output_dtype=output_dtype(material["interface_document"]),
                     accelerator=device,
@@ -290,7 +311,8 @@ class MotorCatalogPractice:
             recipe = ConstructionRecipe.from_dict(expanded)
             if result.build.state_digest != result.inference.state_digest:
                 raise ValueError("motor catalog practice state differs between phases")
-        rows = result.inference.predictions
+        all_rows = result.inference.predictions
+        rows, grid_rows = all_rows[:n_bank], all_rows[n_bank:]
         practice = PracticeSet.load(self.root)
         by_case = dict(zip(material["practice_case_ids"], rows))
         predictions = {
@@ -331,11 +353,15 @@ class MotorCatalogPractice:
             "recipe": strategy,
             # C13: the exam's dual measurement on the public development bank.
             "practice_dual": (
-                practice_dual.unavailable(
-                    motor_dual_pack, "practice_version_not_registered"
+                practice_dual.from_rows_v2("motor", self.version, grid_rows)
+                if v2
+                else (
+                    practice_dual.unavailable(
+                        motor_dual_pack, "practice_version_not_registered"
+                    )
+                    if adapter is None
+                    else practice_dual.from_rows(adapter, rows)
                 )
-                if adapter is None
-                else practice_dual.from_rows(adapter, rows)
             ),
         }
         ResearchWorkspace(self.ledger, self.owner).put(

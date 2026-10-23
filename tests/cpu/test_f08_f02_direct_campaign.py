@@ -229,9 +229,45 @@ def test_with_an_offered_entry_the_refusal_is_not_the_catalogs(
 # --- practice: catalog and graph recipes ------------------------------------
 
 
+def _kind(material):
+    from carbon.scoring import f02_dual_pack, f08_dual_pack
+
+    challenge = material["challenge_key"].challenge_id
+    return "f08" if challenge == f08_dual_pack.CHALLENGE else "f02"
+
+
+def _query_shape(material):
+    """The practice grid query a v2 practice runs: the cells with the public
+    probes interleaved (more rows than the exposed bank alone)."""
+    from carbon.scoring import practice_grid
+
+    version = material["challenge_key"].version
+    bank = practice_grid.practice_bank(_kind(material), version)
+    return (len(bank["inputs"]), *tuple(material["expected_output_shape"])[1:])
+
+
+def _grid_rows(kind, version, cell_rows, fill=0.0):
+    """The practice query rows for ``cell_rows`` (the exposed bank in its own
+    order): each cell row at its grid position, the probe rows filled."""
+    from carbon.challenge_kit import physical_pack
+    from carbon.scoring import practice_grid
+
+    bank = practice_grid.practice_bank(kind, version)
+    source = physical_pack.development_bank(
+        {"f08": "f08-ribbed-bracket", "f02": "f02"}[kind], version
+    )
+    width = len(cell_rows[0])
+    position = {c: i for i, c in enumerate(bank["case_ids"])}
+    rows = [[fill] * width for _ in bank["case_ids"]]
+    for case_id, row in zip(source["case_ids"], cell_rows, strict=True):
+        rows[position[case_id]] = list(row)
+    return rows
+
+
 def _rows(material):
-    """Predicted rows of the interface's width, exactly float32-representable."""
-    shape = material["expected_output_shape"]
+    """Predicted rows of the interface's width for the practice grid query,
+    exactly float32-representable."""
+    shape = _query_shape(material)
     return (np.arange(np.prod(shape), dtype=np.float32).reshape(shape) / 4).tolist()
 
 
@@ -296,10 +332,13 @@ def test_a_catalog_recipe_runs_as_its_bundle_on_the_exposed_bank(
         "interface_digest": kit["interface_digest"],
         "construction_limits_digest": kit["construction_limits_digest"],
     }
-    assert np.array_equal(call["inputs"], material["practice_inputs"])
+    from carbon.scoring import practice_grid
+
+    grid = practice_grid.practice_bank(_kind(material), version)
+    assert np.array_equal(call["inputs"], np.asarray(grid["inputs"]).astype("<f4"))
     assert call["inputs"].dtype == np.float32
     assert call["expected_output_dtype"] == "<f4"
-    assert call["expected_output_shape"] == material["expected_output_shape"]
+    assert call["expected_output_shape"] == _query_shape(material)
     assert result["provenance"] == spec.practice_provenance
     assert result["source_kind"] == "catalog" and result["catalog_id"] == STAND_IN
     assert result["recipe"] == recipe
@@ -330,7 +369,10 @@ def test_a_graph_recipe_runs_through_carbons_graph_adapter(
     assert call["image"] is item.parent and call["seed"] == 0
     assert call["source_envelope"] == b"{}"
     assert envelopes[0].to_dict() == recipe
-    assert np.array_equal(call["inputs"], material["practice_inputs"])
+    from carbon.scoring import practice_grid
+
+    grid = practice_grid.practice_bank(_kind(material), version)
+    assert np.array_equal(call["inputs"], np.asarray(grid["inputs"]).astype("<f4"))
     assert call["allowlist_bytes"] == adapter.served_allowlist_bytes(
         spec.challenge_id, version
     )
@@ -878,6 +920,7 @@ def test_f02_practice_is_on_train_peak_std_c_with_the_registered_reduction(
             bank["case_ids"], bank["reference_records"], strict=True
         )
     ]
+    rows = _grid_rows("f02", "2.3", rows)
     _, result = _graph_practice(F02, "2.3", tmp_path, monkeypatch, rows=rows)
     summary = result["summary"]
     # By hand: mean 1.5 / 6.701245845436587, near-limit mean and worst
@@ -912,6 +955,7 @@ def test_f08_practice_is_on_dev1_section_7_scales_with_its_aggregation(
         if i == 0:
             row[names.index("peak_frequency_z005_hz")] = reference[2] + 20.0
         rows.append([float(np.float32(v)) for v in row])
+    rows = _grid_rows("f08", "1.4", rows)
     _, result = _graph_practice(F08, "1.4", tmp_path, monkeypatch, rows=rows)
     summary = result["summary"]
     # By hand: margin mean (8 x 0.1 + 24 x 0.2) / 32 = 0.175, worst 0.2;
@@ -1036,10 +1080,29 @@ def test_practice_carries_the_shared_dual_feedback_on_the_exposed_bank(
     material = physical_material.bundle_material(spec.challenge_id, version)
     bank = physical_pack.development_bank(spec.challenge_id, version)
     reference = np.asarray(bank["references"], dtype=np.float32).tolist()
+    # The exam's own v2 grader runs on the practice grid: the references at the
+    # cells, a stand-in model with the registered sensitivities at the probes.
+    from test_practice_dual_v2 import _power_law, _public
+
+    _adapter, public = _public(spec.prefix, version)
+    model = _power_law(spec.prefix, version, public)
+    grid = practice_grid_bank = __import__(
+        "carbon.scoring.practice_grid", fromlist=["x"]
+    ).practice_bank(spec.prefix, version)
+    by_case = dict(zip(bank["case_ids"], reference, strict=True))
+    query = [
+        (
+            by_case[case_id]
+            if case_id in by_case
+            else [float(np.float32(v)) for v in model(list(row))]
+        )
+        for case_id, row in zip(grid["case_ids"], grid["inputs"], strict=True)
+    ]
+    del practice_grid_bank
     monkeypatch.setattr(
         bundle_worker,
         "reconstruct_and_infer_public",
-        _fake(material, [], rows=reference),
+        _fake(material, [], rows=query),
     )
     item, _ = _practice(spec, version, tmp_path)
     result = item(
@@ -1047,8 +1110,9 @@ def test_practice_carries_the_shared_dual_feedback_on_the_exposed_bank(
     )
     assert result["schema"] == "carbon." + spec.prefix + ".direct-practice-feedback.v2"
     dual = result["practice_dual"]
-    assert dual["schema"] == "carbon.practice.dual-feedback.v1"
-    assert dual["available"] is True and dual["n_cases"] == len(reference)
+    assert dual["schema"] == "carbon.practice.dual-feedback.v2"
+    assert dual["bank"] == "practice (public bank)"
+    assert dual["available"] is True and dual["n_cases"] == len(query)
     gates = dual["gates"]
     assert gates["paired_repeat"] == "NOT_TESTED_ON_PRACTICE"
     assert all(v is True for k, v in gates.items() if k != "paired_repeat")
