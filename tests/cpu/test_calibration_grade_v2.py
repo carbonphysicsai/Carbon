@@ -14,8 +14,7 @@ from test_f02_sealed_pack import batch
 from carbon.challenge_kit import f02_sealed_pack as sealed
 from carbon.challenge_kit import physical_pack
 from carbon.challenge_validator import calibration_grade as cg
-from carbon.scoring import dual_score
-from carbon.scoring import f02_sealed_dual_pack
+from carbon.scoring import dual_score, f02_sealed_dual_pack
 from carbon.scoring import physical_dual_pack as physical
 
 
@@ -71,6 +70,7 @@ def test_a_v2_sealed_bank_with_probes_grades_like_the_sealed_grader():
 
     body, _ = fixture()
     body["value_weight"] = 0.5
+    body["challenge"] = adapter.CHALLENGE
     for leg in ("A", "D"):
         body["legs"][leg]["components"][0]["metric"] = physical.METRICS[leg]
     body["hard_gates"] = list(direct["gates"])
@@ -95,7 +95,9 @@ def test_a_v2_sealed_bank_with_probes_grades_like_the_sealed_grader():
     )
     # the probes ride in the same inference calls as the cells
     assert calls == [len(bank["inputs"])] * 3
-    assert len(bank["inputs"]) > sum(1 for c in bank["cohorts"] if c != "probe_response")
+    assert len(bank["inputs"]) > sum(
+        1 for c in bank["cohorts"] if c != "probe_response"
+    )
     assert result["A"] == direct["A"] and result["D"] == direct["D"]
     assert result["A_legs"] == direct["A_legs"]
     assert set(result["A_legs"]) == {"A_acc", "A_robust", "A_law", "A_response"}
