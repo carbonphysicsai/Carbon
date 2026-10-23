@@ -494,9 +494,15 @@ def test_the_page_loads_nothing_from_the_internet(server):
     # Nothing on the page is fetched from anywhere else. The one http string in
     # the script is the SVG namespace, an identifier rather than a request.
     script = (LAUNCHPAD / "app.js").read_text()
+    # The Fund step's two how-to-buy links (Coinbase, Kraken) are anchors the
+    # miner clicks, never a request the page makes: no affiliate, no embed.
+    links = ["https://www.coinbase.com/", "https://www.kraken.com/"]
+    assert sorted(re.findall(r"https://[^\"'\s)]+", script)) == sorted(links)
     for text in (
         page.decode(),
         style,
-        script.replace("http://www.w3.org/2000/svg", ""),
+        script.replace("http://www.w3.org/2000/svg", "")
+        .replace(links[0], "")
+        .replace(links[1], ""),
     ):
         assert not re.search(r"https?://", text)
