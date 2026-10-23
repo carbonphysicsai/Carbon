@@ -75,6 +75,14 @@ const all = (page, selector) => page.doc.querySelectorAll(selector);
 const byValue = (page, selector, value) => { const node = all(page, selector).find(item => item.value === value); assert.ok(node, "no " + selector + " valued " + value); return node; };
 function clean(page) { assert.deepEqual(page.errors.map(String), [], "the page raised no error"); }
 function selectable() { return fx.caps.challenges.find(entry => entry.selectable); }
+// The first Challenge the wizard lists (its newest version) that can be launched and practised: a
+// Challenge that cannot practise is Coming soon (Battery is out of launch), so no wizard scenario picks it.
+function listedChallenge() {
+  const newer = (x, y) => { const a = String(x || "").split(".").map(Number), b = String(y || "").split(".").map(Number); for (let i = 0; i < Math.max(a.length, b.length); i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); return false; };
+  const open = fx.caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status));
+  const listed = open.filter(entry => !open.some(other => other !== entry && other.challenge_id === entry.challenge_id && newer(other.version, entry.version)));
+  return listed.find(entry => entry.selectable && entry.practise?.ready !== false);
+}
 // A launchable world: the Challenge, the agent and this machine are ready.
 function launchable(state, agent = "manual") {
   state.caps.compute.choices[0] = {...state.caps.compute.choices[0], availability: "available"};
@@ -85,7 +93,7 @@ function launchable(state, agent = "manual") {
 async function wizardTo(page, step, agent = "manual") {
   page.go("#launch");
   await page.advance(0);
-  const challenge = selectable();
+  const challenge = listedChallenge();
   await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id + "@" + challenge.version));
   await page.press(page.$("wizard-next"));
   await page.press(byValue(page, "#research-selects input", agent));
@@ -114,7 +122,7 @@ const scenarios = [];
 const scenario = (name, run) => scenarios.push([name, run]);
 
 scenario("normal challenge selection shows only its construction serving paths", async () => {
-  const challenge = selectable();
+  const challenge = listedChallenge();
   const state = world();
   const document = state.options.construction_paths?.[challenge.challenge_id];
   assert.equal(state.options.schema, "carbon.launchpad.launch-options.v2");
@@ -146,7 +154,7 @@ scenario("normal challenge selection shows only its construction serving paths",
 });
 
 scenario("v2 construction paths render without family admission claims", async () => {
-  const challenge = selectable();
+  const challenge = listedChallenge();
   const state = launchable(world());
   const pathDocument = {
     schema: "carbon.launchpad.construction-paths.v1",
@@ -1732,7 +1740,7 @@ scenario("setup shows a stale compute check, why, and the installer's update tha
 
 scenario("Review shows each Challenge's evaluation and names a set-aside intake again", async () => {
   const doc = fx.setups.set_aside;
-  const item = doc.steps.evaluation.challenges[0];
+  const item = doc.steps.evaluation.challenges.find(entry => entry.set_aside_intake);
   assert.ok(item.set_aside_intake && item.note, "an intake the update set aside");
   const state = launchable(world({setup: copy(doc)}));
   const page = await open(state);
@@ -1774,7 +1782,7 @@ scenario("Review's answer names what it could not do; Carbon's endpoint shows it
   }
   // Carbon's published endpoint: whose it is, and its receiver, now binding
   // (LAUNCHPAD-ACCEPT-03).
-  const published = fx.setups.published.steps.evaluation.challenges[0];
+  const published = fx.setups.published.steps.evaluation.challenges.find(item => item.source === "published");
   assert.equal(published.source, "published");
   const second = launchable(world({setup: copy(fx.setups.published)}));
   const other = await open(second);
@@ -2021,7 +2029,7 @@ scenario("Graphite: offered in place of the autonomous agent, which is said to b
   const fourth = await open(nowhere);
   fourth.go("#launch");
   await fourth.advance(0);
-  await fourth.press(byValue(fourth, "#wizard-challenges input", selectable().challenge_id + "@" + selectable().version));
+  await fourth.press(byValue(fourth, "#wizard-challenges input", listedChallenge().challenge_id + "@" + listedChallenge().version));
   await fourth.press(fourth.$("wizard-next"));
   assert.equal(byValue(fourth, "#research-selects input", "graphite").disabled, true);
   assert.match(fourth.text("research-selects"), /Not offered for .*graphite not offered for challenge/);
@@ -2934,7 +2942,7 @@ scenario("the wallet page does not say connect while connected, and uses plain w
   assert.doesNotMatch(panel, /Connect this browser to read/);
   assert.match(panel, /Joining cost/);
   assert.doesNotMatch(panel, /Recycle|recycle|BURNED_REGISTRATION|COLDKEY|ss58/);
-  assert.match(panel, /Joining is paid from your coldkey/);
+  assert.match(panel, /Joining is paid from your money key/);
   clean(page);
 });
 
@@ -3026,9 +3034,9 @@ scenario("miners are offered only the latest version of each Challenge, and no r
   page.go("#launch");
   await page.advance(0);
   const inputs = [...all(page, "#wizard-challenges input")];
-  const pairs = inputs.map(input => input.value + "@" + input.dataset.version);
-  assert.equal(new Set(inputs.map(input => input.value)).size, inputs.length, "one entry per Challenge: " + pairs);
-  for (const input of inputs) assert.equal(input.dataset.version, latest(input.value) || "", "the latest version of " + input.value);
+  const pairs = inputs.map(input => input.value);
+  assert.equal(new Set(inputs.map(input => input.dataset.challenge)).size, inputs.length, "one entry per Challenge: " + pairs);
+  for (const input of inputs) assert.equal(input.dataset.version, latest(input.dataset.challenge) || "", "the latest version of " + input.value);
   assert.ok(!pairs.some(pair => /photonic|power-magnetics|airfoil|burgers-dynamics/.test(pair)), "no reserved, deferred or retired entry: " + pairs);
   page.go("#challenges");
   await page.advance(0);
