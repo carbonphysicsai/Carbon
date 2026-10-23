@@ -165,7 +165,6 @@ class MotorCatalogPractice:
         from carbon.development_session.construction_recipe import ConstructionRecipe
         from carbon.development_session.profile import canonical, digest
         from carbon.development_session.research_workspace import ResearchWorkspace
-
         from carbon.scoring import motor_dual_pack, practice_dual
 
         from .challenge import PublicMaterial
