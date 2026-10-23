@@ -43,9 +43,9 @@ PREDECESSOR = {
 #: The graph versions (the Validator, 2026-10-20), each 1.3 / 2.2 plus the
 #: catalog binding and the graph adapter.
 GRAPH = {(F08, "1.4"): "1.3", (F02, "2.3"): "2.2", (COOLING, "1.3"): "1.2"}
-#: Battery 2.2 (the Validator, 2026-10-22): 2.1 plus the catalog binding only
-#: (tests/cpu/test_battery_catalog_version.py).
-CATALOG_ONLY = {(BATTERY, "2.2"): "2.1"}
+#: Battery 2.2 is not served (OWNER-BATTERY-OUT-OF-LAUNCH-01): no catalog-only
+#: version serves v7 (tests/cpu/test_battery_22_not_served.py).
+CATALOG_ONLY = {}
 
 
 def _digest(raw):
@@ -77,9 +77,7 @@ def test_only_motor_1_3_cooling_1_2_and_the_graph_versions_serve_the_catalog():
         *GRAPH,
         *CATALOG_ONLY,
     }
-    assert cbm.versioned_material("2.2")["construction_limits_document"][
-        "backbone_catalog"
-    ]["digest"] == served.digest(BATTERY, "2.2")
+    assert (BATTERY, "2.2") not in sv.V7  # not served (OWNER-BATTERY-OUT-OF-LAUNCH-01)
     for key in ((MOTOR, "1.3"), (COOLING, "1.2")):
         limits = physical_public.construction_limits_document(*key)
         assert limits["backbone_catalog"]["digest"] == served.digest(*key)
