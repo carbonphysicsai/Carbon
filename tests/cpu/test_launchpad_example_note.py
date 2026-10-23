@@ -16,7 +16,9 @@ def test_every_catalog_example_says_it_is_a_starting_point_not_a_valid_grade():
                 with_examples.append((spec.challenge_id, version))
                 assert document["examples_note"] == direct.EXAMPLE_NOTE
             else:
-                assert "examples_note" not in document
+                # An empty catalog keeps its round-8b note: why there is no
+                # ready recipe yet, never the example note.
+                assert document.get("examples_note") != direct.EXAMPLE_NOTE
     assert ("f02", "2.3") in with_examples
     assert "not a recipe tested to pass" in direct.EXAMPLE_NOTE
 
