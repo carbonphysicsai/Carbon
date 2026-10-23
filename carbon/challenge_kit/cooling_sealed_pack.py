@@ -49,7 +49,7 @@ def _canonical(value) -> bytes:
 PROBE_BASES = 4
 
 
-def _with_probes(bank, cases):
+def _with_probes(bank, cases, challenge="cooling"):
     """``bank`` with the private probes appended as unreferenced rows, seeded by
     the batch input content (never ids or order) inside the registered ranges."""
     from carbon.scoring import cooling_physics, probe_design
@@ -57,7 +57,7 @@ def _with_probes(bank, cases):
     return probe_design.with_probes(
         bank,
         list(cases.values()),
-        challenge="cooling",
+        challenge=challenge,
         bounds=list(cooling_physics.PROBE_BOUNDS),
         valid=lambda x: True,
         bases=PROBE_BASES,

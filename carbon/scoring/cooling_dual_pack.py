@@ -187,7 +187,11 @@ def definition(*, bank, train_raw, rule="baseline_legs"):
                 "reference_evidence_sha256": "sha256:"
                 + hashlib.sha256(bank["solver_evidence"]).hexdigest(),
                 "reductions": list(cdm._SEALED_REDUCTIONS),
-                "cohort_counts": dict(cdm.SEALED_COHORT_COUNTS),
+                "cohort_counts": {
+                    cdm.SEALED_COHORT: sum(
+                        1 for c in bank["cohorts"] if c == cdm.SEALED_COHORT
+                    )
+                },
                 "critical": cdm.critical_block(_MEASUREMENT["D_scale_W"]),
                 "probes": {"cohort": probe_design.PROBE_COHORT, "rows": probes},
                 **({"physics": cooling_physics.block(train_raw)} if probes else {}),

@@ -106,7 +106,7 @@ PEAK_W = (70.0, 100.0)
 ON_TIME_S = (4.0, 6.0)
 
 
-def _with_probes(bank, cases, names, dtype):
+def _with_probes(bank, cases, names, dtype, challenge="f02"):
     """``bank`` with the private probes appended as unreferenced rows, seeded by
     the batch input content (never ids or order) inside the S1 law's region."""
     from carbon.scoring import probe_design
@@ -117,7 +117,7 @@ def _with_probes(bank, cases, names, dtype):
     return probe_design.with_probes(
         bank,
         list(cases.values()),
-        challenge="f02",
+        challenge=challenge,
         bounds=[PEAK_W, ON_TIME_S],
         valid=lambda x: True,
         bases=PROBE_BASES,
