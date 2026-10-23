@@ -751,7 +751,13 @@ def stages(own):
         current = "submit"
     elif state == "FREEZING":
         current = "candidate"
-    elif experiments or state == "PRACTICING":
+    elif state == "PRACTICING":
+        current = "practice"
+    elif results and state not in HALTED:
+        # Submitted and nothing pending (R5-3): practice must not flip back to "Now" after a
+        # submit. Practising again for the next epoch is PRACTICING, which says so.
+        current = None
+    elif experiments:
         current = "practice"
     else:
         current = "research"
