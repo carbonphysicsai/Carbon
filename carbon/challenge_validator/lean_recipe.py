@@ -183,6 +183,11 @@ class LeanRecipeAdapter(ChallengeAdapter):
             interface_digest=self._kit["interface_digest"],
             construction_limits_digest=self._kit["construction_limits_digest"],
         )
+        if recipe.to_dict()["source"]["kind"] == "bundle":
+            # a smoke-only GPU build is practice only: refuse it before anything is reserved
+            from carbon.backbone_catalog.served import refuse_unreproducible_runtime
+
+            refuse_unreproducible_runtime(recipe.to_dict()["source"]["bundle_ref"])
         if recipe.to_dict()["source"]["kind"] == "catalog":
             from carbon.backbone_catalog.served import expand
             from carbon.development_session.construction_recipe import (

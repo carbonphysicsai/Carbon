@@ -97,6 +97,64 @@ def check_reexpansion(document_bytes, bundle_recipe_digest):
     return document
 
 
+def refuse_unreproducible_runtime(bundle_ref):
+    """Refuse (typed GAP `catalog_runtime_not_reproducible`) a recipe whose `source.bundle_ref` is a GPU build the
+    official route cannot rebuild reproducibly: a smoke-only entry's GPU build, or any GPU build without an
+    official-grade receipt (pinned GPU worker image digest, the full determinism environment, a registered host
+    class: `gpu_receipt.official_grade_problem`). A recipe names its bundle_ref directly, so the receiver's recipe
+    screen looks the digest up here, before anything is reserved. The CPU build is always the official one.
+    """
+    from . import gpu_receipt
+
+    wanted = bundle_ref.get("bundle_digest")
+    for item in listing.load()["entries"]:
+        for runtime, ref in (item.get("bundle_refs") or {}).items():
+            if ref["bundle_digest"] != wanted:
+                continue
+            try:
+                problem = gpu_receipt.official_grade_problem(
+                    gpu_receipt.load(item["catalog_id"], runtime), runtime
+                )
+            except gpu_receipt.GpuReceiptBroken:
+                problem = "its receipt is invalid"
+            if problem is None:
+                continue
+            base = item["bundle_ref"]
+            raise CatalogRefused(
+                "catalog_runtime_not_reproducible",
+                f"{item['catalog_id']!r} {runtime} is not officially gradable: {problem}; "
+                f"{gpu_receipt.CARD_NOTE}; use the {base['runtime_profile_id']} build {base['bundle_digest']}",
+            )
+
+
+def runtime_bundle_ref(item, runtime, *, official):
+    """The bundle ref of the runtime a recipe names for `item`; `official` is the grading rebuild.
+
+    The CPU build is always the official one. A GPU build needs its valid receipt (`gpu_receipt`); a smoke-only
+    GPU build is practice only, so the official route refuses it with the typed GAP `catalog_runtime_not_reproducible`
+    and names the CPU build, which keeps its CPU pair-identity receipt (Validator ruling, 2026-10-22).
+    """
+    from . import gpu_receipt
+
+    base = item["bundle_ref"]
+    if runtime == base["runtime_profile_id"]:
+        return dict(base)
+    ref = (item.get("bundle_refs") or {}).get(runtime)
+    if ref is None:
+        raise CatalogRefused(
+            "catalog_entry_unknown", f"{item['catalog_id']!r} has no {runtime} build"
+        )
+    receipt = gpu_receipt.load(item["catalog_id"], runtime)
+    if receipt is None:
+        raise CatalogRefused(
+            "catalog_entry_unknown",
+            f"{item['catalog_id']!r} {runtime} build has no receipt yet",
+        )
+    if official:
+        refuse_unreproducible_runtime(ref)
+    return dict(ref)
+
+
 def expand(recipe, runtime=None):
     """The Carbon bundle recipe an admitted catalog recipe stands for.
 
@@ -153,6 +211,13 @@ def _bundle_ref(item, runtime):
     built = builds.get(runtime) if type(builds) is dict else None
     if type(built) is not dict or built.get("runtime_profile_id") != runtime:
         raise GpuBuildMissing(item["catalog_id"], runtime)
+    # Practice serves a GPU build only when it is offered: a valid receipt of its kind (smoke or repeat, any
+    # image). A build that was never shown to run on a GPU is not served; the typed GAP names the CPU build (Validator,
+    # 2026-10-22). The official route is separate and stricter (`runtime_bundle_ref`).
+    from . import gpu_receipt
+
+    if runtime not in gpu_receipt.offered_runtimes(item):
+        raise GpuBuildNotOffered(item, runtime)
     return built
 
 
@@ -164,3 +229,19 @@ class GpuBuildMissing(ValueError):
 
     def __init__(self, catalog_id, runtime):
         super().__init__(f"{catalog_id!r} has no {runtime} build yet")
+
+
+class GpuBuildNotOffered(GpuBuildMissing):
+    """Miner GPU practice only: the entry has the build but it is not offered (no valid receipt, or the owner's
+    confirmation is pending), so it practises on CPU. A `GpuBuildMissing` handler catches it too; the typed code
+    differs and the message names the CPU build."""
+
+    code = "catalog_gpu_build_not_offered"
+
+    def __init__(self, item, runtime):
+        base = item["bundle_ref"]
+        ValueError.__init__(
+            self,
+            f"{item['catalog_id']!r} {runtime} build is not offered yet (no valid receipt for it); practise on the "
+            f"{base.get('runtime_profile_id')} build {base.get('bundle_digest')}",
+        )

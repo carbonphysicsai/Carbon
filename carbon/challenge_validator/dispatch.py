@@ -74,12 +74,14 @@ RECIPE_SCREEN_REFUSALS = (
     "construction_recipe_binding_mismatch",
     # A catalog recipe's own refusals (`carbon.backbone_catalog.entries`):
     # REFUSED, the miner's input, except catalog_library_not_pinned (Carbon's
-    # GAP) (Validator, OWNER-BACKBONE-CATALOG-01).
+    # GAP) (Validator, OWNER-BACKBONE-CATALOG-01). catalog_runtime_not_reproducible is also Carbon's GAP: a
+    # smoke-only GPU runtime named for the official rebuild (Validator ruling, 2026-10-22).
     "catalog_entry_unknown",
     "catalog_setting_unknown",
     "catalog_setting_invalid",
     "catalog_settings_inconsistent",
     "catalog_library_not_pinned",
+    "catalog_runtime_not_reproducible",
 )
 
 
