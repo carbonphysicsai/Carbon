@@ -2,6 +2,10 @@
  "check": "codex-queue/inputs/prior_catalog/carry_check.py",
  "check_output_sha256": "sha256:89c2f19e6e2e19597f230f7f9865bcf327767091e3acb225ebdee02896e6f21a",
  "decision": "OWNER-CATALOG-LICENCES-01",
+ "gpu_carry_withdrawn": {
+  "ruling": "Validator, 2026-10-23: the earlier GPU receipts ran on an ad-hoc venv, not the pinned image, so the GPU carries in `rows[].gpu_twins` are withdrawn for every twin (CPU carries unaffected); all GPU twins are re-receipted on the image built from the final cu130 lock (option A)",
+  "status_column": "codex-queue/reports/CATALOG_S3_GPU_COLUMN_20261023.json"
+ },
  "gpu_twins_withdrawn": {
   "ids": [
    "f08.thuml.FNO",
