@@ -163,27 +163,100 @@ def test_the_sealed_pack_registers_its_own_gate_keys():
     assert pack["hard_gates"] == list(cdm.SEALED_GATES)
 
 
-def test_the_sealed_adapter_serves_exactly_cooling_1_1_to_1_3():
-    for version in ("1.1", "1.2", "1.3"):
+def test_the_raw_sealed_adapter_serves_exactly_cooling_1_1_and_1_2():
+    for version in ("1.1", "1.2"):
         chosen = adapter.sealed_adapter(version)
         assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v1"
         assert chosen.VERSION == version
-    for version in ("1.0", "1.4", None):
+    # 1.3 changes the output interface, so the raw adapter (which does not decode)
+    # never grades it: it has its own decoding sealed adapter.
+    for version in ("1.0", "1.3", "1.4", None):
         assert adapter.sealed_adapter(version) is None
 
 
-def test_the_sealed_exam_is_graded_under_every_served_cooling_version():
-    from carbon.challenge_kit import physical_pack
-    from carbon.scoring import cooling_dual_pack as cdp
+def test_cooling_1_3_is_1_2_with_only_its_output_encoding_changed():
+    """The guard for an encoding version: decode(TRAIN 1.3) is TRAIN 1.2 byte for byte,
+    and the interfaces differ only by `output_encoding`."""
+    import io
 
-    assert set(cdp.SEALED_VERSIONS) == {"1.1", "1.2", "1.3"}
-    assert len(set(cdp.SEALED_VERSIONS.values())) == 1
-    # 1.3 is 1.2 plus allowlist v7: the same exam, so its train and interface
-    # roles must equal 1.2's wherever 1.3 is served.
+    import numpy as np
+
+    from carbon.cold_plate.output_encoding import decode_flat
+
     try:
-        newer = physical_pack.public_roles(cdp.CHALLENGE, "1.3")
+        newer = physical_pack.public_roles(adapter.CHALLENGE, "1.3")
     except ValueError:
         pytest.skip("Cooling 1.3 is not served at this base")
-    older = physical_pack.public_roles(cdp.CHALLENGE, "1.2")
-    assert newer["train"] == older["train"]
-    assert newer["interface"] == older["interface"]
+    older = physical_pack.public_roles(adapter.CHALLENGE, "1.2")
+    with np.load(io.BytesIO(newer["train"]), allow_pickle=False) as one:
+        encoded_inputs, encoded_targets = one["inputs"], one["targets"]
+    with np.load(io.BytesIO(older["train"]), allow_pickle=False) as two:
+        native_inputs, native_targets = two["inputs"], two["targets"]
+    assert np.array_equal(encoded_inputs, native_inputs)
+    decoded = np.array([decode_flat(row) for row in encoded_targets])
+    assert np.array_equal(decoded, native_targets)  # byte-exact, not within a tolerance
+    one_interface, two_interface = json.loads(newer["interface"]), json.loads(
+        older["interface"]
+    )
+    changed = {
+        key
+        for key in set(one_interface) | set(two_interface)
+        if one_interface.get(key) != two_interface.get(key)
+    }
+    assert "output_encoding" in changed
+    # `transform` is the interface's prose for the same encoding (slot 0 holds e, slot
+    # 31 holds q); nothing else differs: inputs, names, units, slices and shapes are 1.2's.
+    assert changed <= {"output_encoding", "transform"}, changed
+    assert "softplus" in one_interface["transform"]
+    assert "softplus" not in two_interface["transform"]
+
+
+def test_a_native_model_and_its_1_3_encoding_score_byte_identically_on_the_sealed_exam():
+    from carbon.cold_plate.output_encoding import encode_targets
+    from carbon.scoring import cooling_encoded_dual_pack as encoded
+
+    bank = _sealed_bank()
+    truth = _truth(bank)
+    models = {
+        "perfect": truth,
+        # A fixed imperfect 1.2-native model: every output nudged by a case-wise amount.
+        "nudged": [
+            [v * (1.0 + 0.004 * ((i % 5) - 2)) for v in row]
+            for i, row in enumerate(truth)
+        ],
+    }
+    native = adapter.sealed_adapter("1.2")
+    newer = encoded.sealed_adapter("1.3")
+    rows = physical.bank_rows(bank, NAMES)
+    for name, outputs in models.items():
+        limits = json.loads(PUBLIC["important_limit_definition"])
+        objective = json.loads(PUBLIC["design_objective"])
+        definition = native.definition(bank=bank, train_raw=PUBLIC["train"])
+        want = native.measure(
+            bank_rows=rows,
+            outputs=outputs,
+            repeats=[outputs, outputs],
+            definition=definition,
+            limits=limits,
+            objective=objective,
+            train_raw=PUBLIC["train"],
+            names=NAMES,
+        )
+        coded = encode_targets(outputs).tolist()
+        definition_13 = newer.definition(bank=bank, train_raw=PUBLIC["train"])
+        got = newer.measure(
+            bank_rows=rows,
+            outputs=coded,
+            repeats=[coded, coded],
+            definition=definition_13,
+            limits=limits,
+            objective=objective,
+            train_raw=PUBLIC["train"],
+            names=NAMES,
+        )
+        assert json.dumps(got, sort_keys=True, default=str) == json.dumps(
+            want, sort_keys=True, default=str
+        ), name
+        assert definition_13["bank_kind"] == "sealed_batch"
+    assert newer.EVALUATION_VERSION == native.EVALUATION_VERSION
+    assert newer.VERSION == "1.3" and encoded.sealed_adapter("1.2") is None
