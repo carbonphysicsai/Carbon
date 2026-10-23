@@ -124,9 +124,12 @@ def test_a_planted_import_from_a_scoring_module_fails_the_runtime_check(tmp_path
 def test_no_funding_module_has_a_write_path():
     """The address and the amounts are never persisted (Validator condition)."""
     writes = re.compile(
-        r"bopen\(|write_text|write_bytes|\.write\(|sqlite3|json\.dumpb|"
+        r"\bopen\(|write_text|write_bytes|\.write\(|sqlite3|json\.dump\b|"
         r"shelve|pickle|os\.open|tempfile|logging|print\("
     )
+    # The pattern itself finds a write (a broken pattern would pass everything).
+    for planted in ("open(path, 'w')", "json.dump(x, f)", "f.write(b)", "print(x)"):
+        assert writes.search(planted), planted
     for name in FUNDING:
         path = ROOT / (name.replace(".", "/") + ".py")
         found = writes.findall(path.read_text(encoding="utf-8"))
