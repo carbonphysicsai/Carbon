@@ -386,7 +386,12 @@ class CoolingCatalogMaterial(ColdPlatePublicMaterial):
     catalog it serves (each entry and its settings, with a ready recipe) and
     its construction kit (OWNER-BACKBONE-CATALOG-01, as Motor's)."""
 
-    NAMES = (*ColdPlatePublicMaterial.NAMES, "catalog", "construction_kit")
+    NAMES = (
+        *ColdPlatePublicMaterial.NAMES,
+        "catalog",
+        "construction_kit",
+        "scaffold_recipe",
+    )
 
     def __init__(self, root, version):
         from .campaign import CATALOG_VERSIONS
@@ -397,13 +402,20 @@ class CoolingCatalogMaterial(ColdPlatePublicMaterial):
         self.VERSION = version
 
     def __call__(self, name, workspace):
-        if name not in ("catalog", "construction_kit"):
+        if name not in ("catalog", "construction_kit", "scaffold_recipe"):
             return super().__call__(name, workspace)
         from carbon.backbone_catalog import served
         from carbon.challenge_kit import physical_public
         from carbon.challenge_registry.cold_plate import catalog_recipe
+        from carbon.development_session.research_tasks import ready_recipes
 
-        if name == "catalog":
+        if name == "scaffold_recipe":
+            value = ready_recipes(
+                COLD_PLATE_CHALLENGE,
+                self.VERSION,
+                {"catalog": lambda: catalog_recipe(version=self.VERSION)},
+            )
+        elif name == "catalog":
             value = {
                 **served.document(COLD_PLATE_CHALLENGE, self.VERSION),
                 "catalog_digest": served.digest(COLD_PLATE_CHALLENGE, self.VERSION),

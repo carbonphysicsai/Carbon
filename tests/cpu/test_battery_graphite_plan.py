@@ -49,7 +49,7 @@ from carbon.development_session.research_loop import (
 from carbon.development_session.research_reply import RULE as RESEARCH_REPLY_RULE
 from carbon.development_session.research_tools import (
     ARGUMENT_NORMALISATION_V2,
-    ARGUMENT_NORMALISATION_V4,
+    ARGUMENT_NORMALISATION_V5,
     TOOLS_RULE,
 )
 
@@ -157,7 +157,7 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
     # LP-PROD-FIX-01: a new Graphite plan freezes the argument normalisation;
     # RESEARCH-TOOL-USABILITY-01: v2; since the M1 rehearsal (2026-10-21) v3,
     # which also fills a workspace call's obvious fields.
-    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V4
+    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V5
     assert plan["compaction"] == editions.COMPACTION_V1
     # Graphite context and reply spec, part 2: a cut reply is continued.
     assert plan["reply_continuation"] == REPLY_CONTINUATION_V1

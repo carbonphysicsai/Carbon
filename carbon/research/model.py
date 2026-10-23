@@ -312,7 +312,12 @@ def wire_record(name: str):
     return decorate
 
 
-def _validate_annotation(value: object, annotation: object, field_name: str) -> None:
+def _validate_annotation(
+    value: object,
+    annotation: object,
+    field_name: str,
+    train_use: str | None = None,
+) -> None:
     origin = get_origin(annotation)
     args = get_args(annotation)
     if origin is Annotated:
@@ -346,7 +351,7 @@ def _validate_annotation(value: object, annotation: object, field_name: str) -> 
     if origin is dict:
         if type(value) is not dict:
             raise TypeError(f"{field_name} must be an exact Strategy object")
-        _validate_strategy(value)
+        _validate_strategy(value, train_use)
         return
     if isinstance(annotation, type) and issubclass(annotation, Enum):
         if type(value) is not annotation:
@@ -379,15 +384,87 @@ def _annotation_matches(value: object, annotation: object) -> bool:
 
 def _validate_declared_fields(value: _ExactRecord) -> None:
     hints = get_type_hints(type(value), include_extras=True)
+    train_use = (
+        _registered_train_use(value.challenge_key, value.strategy)
+        if type(value).__name__ in _KEYED_STRATEGY_REQUESTS
+        else None
+    )
     for field in fields(value):
-        _validate_annotation(getattr(value, field.name), hints[field.name], field.name)
+        _validate_annotation(
+            getattr(value, field.name),
+            hints[field.name],
+            field.name,
+            train_use if field.name == "strategy" else None,
+        )
 
 
-def _validate_strategy(value: dict[str, object]) -> None:
+#: The keyed strategy requests whose construction recipe may name its
+#: Challenge version's registered TRAIN use (Validator, 2026-10-22).
+_KEYED_STRATEGY_REQUESTS = frozenset(
+    {
+        "DryValidateRequest",
+        "CompileStrategyRequest",
+        "InspectResourcesRequest",
+        "ForecastResourcesRequest",
+    }
+)
+#: The one place a construction recipe names its TRAIN use, and the schema
+#: that makes a strategy one.
+_TRAIN_USE_PATH = ("procedure", "train_use")
+_RECIPE_SCHEMA = "carbon.construction-recipe.v1"
+
+
+def _registered_train_use(key: object, strategy: object) -> str | None:
+    """The TRAIN use id a construction recipe on `key` may name at
+    procedure.train_use.dataset: the served version's registered graph
+    training adapter dataset (`physical_graph_adapter.SPECS`, or the
+    synthetic 1.3 adapter), the value that adapter itself checks. None - the
+    key's ban stands - for any other strategy or version. Read only when the
+    recipe sends that key, so no other request imports the adapter."""
+    procedure = strategy.get("procedure") if type(strategy) is dict else None
+    train_use = procedure.get("train_use") if type(procedure) is dict else None
+    if (
+        type(train_use) is not dict
+        or "dataset" not in train_use
+        or type(key) is not ChallengeKey
+        or strategy.get("schema") != _RECIPE_SCHEMA
+    ):
+        return None
+    from carbon.challenge_kit import synthetic_linear_field_2d as synthetic
+    from carbon.development_session import physical_graph_adapter
+
+    spec = physical_graph_adapter.SPECS.get((key.challenge_id, key.version))
+    if spec is not None:
+        return spec.train_use
+    if (key.challenge_id, key.version) == (synthetic.CHALLENGE.challenge_id, "1.3"):
+        block = synthetic.construction_limits_document_v3()["graph_training_adapter"]
+        return block["train_use_dataset"]
+    return None
+
+
+def _validate_strategy(value: dict[str, object], train_use: str | None = None) -> None:
+    """Bounds, JSON types and the key bans of one strategy. `train_use`, the
+    registered TRAIN use id of the request's Challenge version, admits the
+    key `dataset` at exactly procedure.train_use of a construction recipe
+    when it holds exactly that id; every other place, spelling or value is
+    refused as before."""
     active: set[int] = set()
-    stack: list[tuple[object, int, bool]] = [(value, 0, False)]
+    # Each entry carries its key path while it is a dict-of-dicts prefix of
+    # procedure.train_use (else None), so the admitted place is exact.
+    stack: list[tuple[object, int, bool, tuple | None]] = [(value, 0, False, ())]
+    allowed = None
+    if train_use is not None and type(value) is dict:
+        procedure = value.get("procedure")
+        held = procedure.get("train_use") if type(procedure) is dict else None
+        if (
+            value.get("schema") == _RECIPE_SCHEMA
+            and type(held) is dict
+            and type(held.get("dataset")) is str
+            and held["dataset"] == train_use
+        ):
+            allowed = held
     while stack:
-        current, depth, leaving = stack.pop()
+        current, depth, leaving, path = stack.pop()
         if leaving:
             active.remove(id(current))
             continue
@@ -398,7 +475,7 @@ def _validate_strategy(value: dict[str, object]) -> None:
             if id(current) in active:
                 raise ValueError("Strategy contains a cycle")
             active.add(id(current))
-            stack.append((current, depth, True))
+            stack.append((current, depth, True, None))
             if kind is dict:
                 items = list(dict.items(current))
                 if len(items) > 4_096:
@@ -415,15 +492,27 @@ def _validate_strategy(value: dict[str, object]) -> None:
                         raise ContextSelectionField(
                             "Strategy contains a context-selection field"
                         )
-                    if normalized in _FORBIDDEN_SCIENTIFIC_CONTROL_FORMS:
+                    if normalized in _FORBIDDEN_SCIENTIFIC_CONTROL_FORMS and not (
+                        key == "dataset"
+                        and path == _TRAIN_USE_PATH
+                        and current is allowed
+                    ):
                         raise ForbiddenControlField(
                             "Strategy contains a forbidden control field"
                         )
-                    stack.append((child, depth + 1, False))
+                    below = (
+                        path + (key,)
+                        if path is not None
+                        and _TRAIN_USE_PATH[: len(path) + 1] == path + (key,)
+                        else None
+                    )
+                    stack.append((child, depth + 1, False, below))
             else:
                 if len(current) > 4_096:
                     raise BoundExceededField("Strategy list exceeds the v2 bound")
-                stack.extend((child, depth + 1, False) for child in reversed(current))
+                stack.extend(
+                    (child, depth + 1, False, None) for child in reversed(current)
+                )
         elif current is None or kind in (bool, int, str):
             if kind is int and not -(1 << 63) <= current <= (1 << 63) - 1:
                 raise BoundExceededField("Strategy integer exceeds Int64")

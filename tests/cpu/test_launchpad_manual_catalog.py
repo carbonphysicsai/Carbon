@@ -231,7 +231,9 @@ def test_both_doors_refuse_a_recipe_the_version_does_not_take_by_its_code(
     for payload in (page, agent):
         assert payload["status"] == "REJECTED_BEFORE_DISPATCH"
         assert payload["correction_code"] == "direct_recipe_required"
-        assert "Allowed here: " + code + "." in payload["correction"]
+        # The recipe's own code first, then the source kinds the version
+        # takes (M1 G5a).
+        assert "Allowed here: " + code + ", source." in payload["correction"]
     assert practice.asked == []  # refused before the backend is asked
 
 

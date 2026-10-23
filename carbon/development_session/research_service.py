@@ -166,6 +166,23 @@ def takes_construction_recipes(key):
         return False
 
 
+def recipe_source_kinds(key):
+    """The construction recipe source kinds catalog version `key` takes, in
+    `construction_recipe.SOURCE_KINDS` order: catalog while it serves a tested
+    entry, graph where a physical graph training adapter is registered for it
+    (`physical_graph_adapter.SPECS`). Miner source bundles stay closed."""
+    from carbon.backbone_catalog import listing
+
+    from . import physical_graph_adapter
+
+    kinds = set()
+    if (key.challenge_id, key.version) in physical_graph_adapter.SPECS:
+        kinds.add("graph")
+    if listing.entries(key.challenge_id, key.version):
+        kinds.add("catalog")
+    return tuple(kind for kind in ("graph", "bundle", "catalog") if kind in kinds)
+
+
 def construction_recipe_issues(strategy, key):
     """The one recipe rule a catalog version's doors share (S22): the issues
     that refuse `strategy` on `key`, or () when it binds. It binds the

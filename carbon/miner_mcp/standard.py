@@ -37,7 +37,9 @@ from carbon.development_session.research_reply import (
 )
 from carbon.development_session.research_reply import validate as validate_reply
 from carbon.development_session.research_tools import (
+    ARGUMENT_NORMALISATION_V5,
     FIELDS,
+    OMITTED_NULL_FIELDS_V5,
     PREFIX,
     TASK_CORRECTIONS,
     PreDispatchRefusal,
@@ -396,12 +398,44 @@ def _field_refused(operation, code, field, value=None):
     )
 
 
+#: start_research_task's fields each kind takes only as JSON null, in this
+#: wire's names (`research_tools.OMITTED_NULL_FIELDS_V5`).
+_NULL_DEFAULTS = {
+    kind: tuple(
+        {"strategy_json": "strategy", "arguments_json": "arguments"}.get(f, f)
+        for f in fields
+    )
+    for kind, fields in OMITTED_NULL_FIELDS_V5.items()
+}
+
+
+def _omitted_reads_null(supplied, rule):
+    """Whether the campaign froze v5, read only when a field is left out; a
+    rule this code does not know reads nothing."""
+    if set(_NULL_DEFAULTS.get(supplied.get("kind"), ())) <= set(supplied):
+        return False
+    try:
+        return rule() == ARGUMENT_NORMALISATION_V5
+    except ValueError:
+        return False
+
+
 def _arguments(operation, supplied, rule=_no_rule):
     """The SDK's arguments for one object-valued request. `rule` returns the
     campaign's frozen argument normalisation; it is read only for a practice
     field sent as the string "null"."""
     if type(supplied) is not dict:
         _invalid()
+    if operation == "start_research_task" and _omitted_reads_null(supplied, rule):
+        # Under a plan that froze argument-normalisation.v5 (M1 G4: a
+        # workspace read that left out strategy was refused
+        # tool_field_missing), a field the call's kind takes only as JSON null
+        # may be left out, as the SDK reads it (`filled_task_arguments`).
+        # Graphite's miner path reaches this door too, so an older plan keeps
+        # refusing it and replays unchanged; the MCP server's own schema
+        # already defaults these fields to null.
+        omitted = _NULL_DEFAULTS.get(supplied.get("kind"), ())
+        supplied = {**dict.fromkeys(omitted), **supplied}
     names = {
         (
             "strategy"
