@@ -177,6 +177,10 @@ GPU_BUILDS = {
     COVERAGE_F32.schema_id: (
         "sha256:df1fdb3e4928c4db6ef114c251b478687647545439f509cb76c7c01a76b1ab7e"
     ),
+    # The v2 Torch build's twin: `gpu_build.patched_source` applied to `build_v2_src/build.py` (the same one transform).
+    TORCH_V2.schema_id: (
+        "sha256:0b76ec5041512c272247aee2bc9bc77d90c7e1408cacd3cb026ef690efb71495"
+    ),
 }
 #: The Torch entries whose spectral weights are complex64, so float64 is not offered to them (an external fact of the
 #: library's spectral layers; measured by building each entry and listing its complex parameters).
