@@ -82,9 +82,15 @@ def test_1_3_scores_through_its_own_adapter_and_1_2_keeps_its_producer():
     choose = _static()[COOLING]
     assert choose("1.3") is cooling_encoded_dual_pack
     assert choose("1.2") is not cooling_encoded_dual_pack
+    # Scoring v2 (D = min(V, C) and the physics half) adds its shared modules.
     assert cooling_dual_pack.FILES == (
         "cooling_dual_pack.py",
         "cooling_dual_measurement.py",
+        "critical_fidelity.py",
+        "design_fidelity.py",
+        "physics_half.py",
+        "probe_design.py",
+        "cooling_physics.py",
     )
     assert "1.3" not in cooling_dual_pack.VERSIONS
     assert (
