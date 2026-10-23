@@ -58,11 +58,8 @@ REGISTERED = (
     # adapter. F08 1.4 registers through f08_train.CHALLENGE_VERSIONS above. Their material
     # loads once their pack labels exist (physical_pack); until then it fails closed.
     ("f02", "2.3"),
-    # Battery 2.2 (the Validator, 2026-10-22): Battery 2.1 plus the catalog binding. Battery
-    # serves its own versioned material (`battery.construction_bundle_material`); it is listed
-    # here so the catalog's tested-digest check and the shared direct campaign read it by
-    # (id, version) like the others.
-    *((battery_catalog.CHALLENGE_ID, version) for version in battery_catalog.VERSIONS),
+    # Battery 2.2 is not registered: Battery is out of launch (OWNER-BATTERY-OUT-OF-LAUNCH-01)
+    # and 2.2 was never completed; `battery.catalog_version` stays, unserved.
 )
 
 
