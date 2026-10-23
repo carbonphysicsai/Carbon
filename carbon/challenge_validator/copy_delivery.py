@@ -356,3 +356,43 @@ def sync_copies(store, fetcher, producer_public_key, challenge_id, *, hotkey):
         import_copy(store, package, producer_public_key, hotkey=hotkey)
         results.append({"fingerprint": fingerprint, "state": "IMPORTED"})
     return {"packages": results}
+
+
+def sync_sets(store, fetcher, producer_public_key, challenge_id, challenge_version):
+    """Import the signed pack-set commitment(s) of one Challenge version (first
+    route). A set names its batches by canonical manifest digest only (digests, no
+    exam content), so every validator receives the same bytes; the batches
+    themselves come from this hotkey's own copies (`sync_copies`). Sets of other
+    versions and other kinds are skipped; verified withdrawals apply first.
+
+    Returns ``{"sets": [{"set_key", "state"}]}``."""
+    from .answer_key import apply_withdrawals, verify, verify_manifest
+
+    answer = fetcher.ask(challenge_id)
+    listed, notices = answer.get("packages"), answer.get("withdrawals", [])
+    if type(listed) is not list or type(notices) is not list:
+        raise AnswerKeyRefused("answer_key_malformed")
+    adapter = spi.SealedPackAdapter(challenge_id, challenge_version, store)
+    withdrawn = apply_withdrawals(adapter, notices, producer_public_key, challenge_id)
+    results = [{"set_key": f, "state": "WITHDRAWN"} for f in withdrawn]
+    for entry in listed:
+        commitment = verify_manifest(entry, producer_public_key)
+        if (
+            commitment.get("schema") != spi.SET_COMMITMENT_SCHEMA
+            or commitment["challenge_id"] != challenge_id
+            or commitment["challenge_version"] != challenge_version
+        ):
+            continue
+        key = commitment["set_key"]
+        if key in withdrawn:
+            continue
+        if store.holds_set(commitment):
+            results.append({"set_key": key, "state": "HELD"})
+            continue
+        value = fetcher.ask(challenge_id, commitment["fingerprint"]).get("package")
+        fetched, payload = verify(value, producer_public_key)
+        if fetched != commitment:
+            raise AnswerKeyRefused("answer_key_listing_mismatch")
+        store.import_pack_set(commitment, payload)
+        results.append({"set_key": key, "state": "IMPORTED"})
+    return {"sets": results}
