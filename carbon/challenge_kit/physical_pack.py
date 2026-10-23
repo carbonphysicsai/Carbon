@@ -109,6 +109,12 @@ PACK_VERSIONS = {
         cooling.CHALLENGE.challenge_id,
         "1.2",
     ): "cooling-normal-construction-development-3",
+    # Cooling 1.3: the law-safe encoded TRAIN and interface; the bank's
+    # references stay the native outputs, scored against decoded rows.
+    (
+        cooling.CHALLENGE.challenge_id,
+        "1.3",
+    ): "cooling-normal-construction-development-4",
     (battery_pack.CHALLENGE_ID, "1.0"): battery_pack.PACK_VERSION,
     (battery_pack.CHALLENGE_ID, "2.0"): "battery-normal-construction-development-3",
     (battery_pack.CHALLENGE_ID, "2.1"): "battery-normal-construction-development-4",
@@ -442,7 +448,9 @@ def public_roles(challenge_id: str, version: str) -> dict[str, bytes]:
         "interface": _canonical(
             physical_public.interface_document(challenge_id, version)
         ),
-        "train": physical_public_train.load_public_train(challenge_id)["train"],
+        "train": physical_public_train.load_public_train(challenge_id, version)[
+            "train"
+        ],
     }
     for role in _files(challenge_id, version):
         roles[role] = _role_file(challenge_id, version, role)

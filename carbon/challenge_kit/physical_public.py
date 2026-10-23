@@ -41,7 +41,19 @@ def _identity(challenge_id: str, version: str):
 def interface_document(challenge_id: str, version: str) -> dict:
     """Checked numeric boundary; native named output slices remain explicit."""
     _identity(challenge_id, version)
-    return physical_public_train.numeric_interface_document(challenge_id)
+    return physical_public_train.numeric_interface_document(
+        challenge_id, output_encoding(challenge_id, version)
+    )
+
+
+def output_encoding(challenge_id: str, version: str):
+    """The law-safe output encoding a version's rows use (Cooling 1.3,
+    `cold_plate.output_encoding`), or None: rows are the native outputs."""
+    if (challenge_id, version) not in physical_public_train.ENCODED_VERSIONS:
+        return None
+    from carbon.cold_plate.output_encoding import ENCODING
+
+    return ENCODING
 
 
 def construction_limits_document(challenge_id: str, version: str) -> dict:
@@ -103,7 +115,9 @@ def construction_limits_document(challenge_id: str, version: str) -> dict:
 def construction_kit(challenge_id: str, version: str) -> dict:
     """Five-field prospective normal binding, only for verified public TRAIN."""
     _identity(challenge_id, version)
-    provenance = physical_public_train.load_public_train(challenge_id)["provenance"]
+    provenance = physical_public_train.load_public_train(challenge_id, version)[
+        "provenance"
+    ]
     return {
         "id": challenge_id,
         "version": version,
