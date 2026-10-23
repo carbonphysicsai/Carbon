@@ -1132,9 +1132,9 @@
       if (miner) {
         const row = el("div", undefined, "controls");
         const id = doc.campaign.id;
-        const freeze = button("Freeze this run", "primary"); freeze.disabled = !state.connected || state.busy;
+        const freeze = button("Freeze this run", "primary"); freeze.disabled = !state.connected || state.busy || doc.campaign.admission === "PRACTICE_ONLY";
         freeze.addEventListener("click", () => CC.operate("freeze_candidate", {campaign: id, strategy: best.recipe, reason: "Best passing practice: run " + best.index + " (score " + fmt(best.score) + ")"}, "Freezing run " + best.index + ". It shows here once the campaign records it."));
-        const submit = button("Submit frozen candidate"); submit.disabled = !state.connected || state.busy || doc.journey?.frozen_awaiting_submission !== true;
+        const submit = button("Submit frozen candidate"); submit.disabled = !state.connected || state.busy || doc.journey?.frozen_awaiting_submission !== true || doc.campaign.admission === "PRACTICE_ONLY";
         submit.addEventListener("click", () => CC.operate("submit", {campaign: id}, "Submit started: your frozen candidate is sent for the DEVELOPMENT comparison."));
         row.append(freeze, submit); card.append(row);
         card.append(el("p", doc.journey?.frozen_awaiting_submission ? "A candidate is frozen and waiting for submission." : "Freeze first; submitting needs a frozen candidate.", "hint"));
@@ -1462,7 +1462,7 @@
     row("Who selects", doc.campaign.selects === "miner" ? "You" : doc.campaign.selects === "agent" ? "Carbon's agent" : null);
     row("Agent", doc.campaign.agent);
     row("Model", doc.campaign.model || "none");
-    row("Admission", words(doc.campaign.admission));
+    row("Admission", doc.campaign.admission === "PRACTICE_ONLY" ? "Practice only: this machine's practice identity, no registration" : words(doc.campaign.admission));
     row("Runtime revision", doc.campaign.runtime_revision);
     row("Evidence", words(doc.labels.evidence));
     panel.append(grid);
