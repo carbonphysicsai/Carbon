@@ -334,6 +334,7 @@ def test_g_feas_is_the_pinned_exceeds_comparison():
         assert bdm.g_feas_passes(measured, 0.05) is pinned
 
 
+@pytest.mark.skip(reason="Battery 2.2 is not served (OWNER-BATTERY-OUT-OF-LAUNCH-01)")
 def test_2_2_measures_as_2_1_on_the_same_bank():
     # The Validator (2026-10-23, option (b)): Battery 2.2's development pack is
     # 2.1's measurement under 2.1's evaluation version, on the same bank, with
@@ -394,19 +395,21 @@ def test_battery_s_pack_physics_is_its_served_material_s_envelope(tmp_path):
     import json as _json
 
     assert physical_pack.physics_contract(adapter.CHALLENGE, "1.0") is None
-    for version in ("2.0", "2.1", "2.2"):
+    # Battery 2.2 is not served (OWNER-BATTERY-OUT-OF-LAUNCH-01): 2.0 and 2.1.
+    for version in ("2.0", "2.1"):
         physics = physical_pack.physics_contract(adapter.CHALLENGE, version)
         assert set(physics) == {"version", "definition"}
         public = physical_pack.public_roles(adapter.CHALLENGE, version)
         assert physics == _json.loads(public["physics_contract"])
-    # Battery 2.2's calibration pack is written by Battery's own adapter.
+    # Battery's calibration pack is written by Battery's own adapter (2.1, the
+    # newest served Battery version).
     pack = tmp_path / "pack"
     pack.mkdir()
-    physical.versioned(adapter, "2.2").write_development_pack(
+    physical.versioned(adapter, "2.1").write_development_pack(
         pack, inference_image_id="sha256:" + "0" * 64, calibration=True
     )
     manifest = _json.loads((pack / "evaluation-pack.json").read_bytes())
-    assert manifest["challenge"] == {"id": adapter.CHALLENGE, "version": "2.2"}
+    assert manifest["challenge"] == {"id": adapter.CHALLENGE, "version": "2.1"}
     assert manifest["pack_version"].startswith(
-        "battery-normal-construction-development-5"
+        "battery-normal-construction-development-4"
     )

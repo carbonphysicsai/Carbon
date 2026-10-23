@@ -87,7 +87,15 @@ def _rekey(recipe, kit):
 
 # --- registration and the ruling's identity conditions ----------------------------
 
+#: Battery 2.2 is not served (OWNER-BATTERY-OUT-OF-LAUNCH-01: Battery is out of
+#: launch, and 2.2 was never completed): these tests describe its graph
+#: adapter as served, and come back if 2.2 is registered again.
+NOT_SERVED = pytest.mark.skip(
+    reason="Battery 2.2 is not served (OWNER-BATTERY-OUT-OF-LAUNCH-01)"
+)
 
+
+@NOT_SERVED
 def test_2_2_registers_the_battery_adapter_on_2_1s_graph_route():
     material = _material()
     block = material["construction_limits_document"]["graph_training_adapter"]
@@ -146,6 +154,7 @@ def _discovery(key, limits):
     )
 
 
+@NOT_SERVED
 def test_the_receiver_selects_the_adapter_only_on_its_served_block():
     from carbon.development_session.research_service import DirectFixtureDiscovery
 
@@ -162,6 +171,7 @@ def test_the_receiver_selects_the_adapter_only_on_its_served_block():
     assert select(_discovery(other, limits), other) is None
 
 
+@NOT_SERVED
 def test_the_build_stage_refuses_off_its_served_identity():
     material = _material()
     binding = _binding(material)
@@ -183,6 +193,7 @@ def test_the_build_stage_refuses_off_its_served_identity():
         adapter.build_stage(binding, altered, allowlist_module.v7_bytes(), recipe)
 
 
+@NOT_SERVED
 def test_a_2_2_recipe_is_2_1s_recipe_re_keyed():
     material = _material()
     old = _recipe("2.1")
@@ -306,6 +317,7 @@ def _old_path(tmp_path, recipe, envelope, case_ids, inputs):
     )
 
 
+@NOT_SERVED
 @posix
 def test_parity_the_old_2_1_path_and_the_adapter_grade_identically(tmp_path):
     material = _material()
@@ -329,6 +341,7 @@ def test_parity_the_old_2_1_path_and_the_adapter_grade_identically(tmp_path):
     adapter.check_state(result.build.state_path.read_bytes(), new)
 
 
+@NOT_SERVED
 @posix
 def test_a_settings_refusal_is_settled_in_the_build_child_by_its_class(tmp_path):
     material = _material()
@@ -367,6 +380,7 @@ def test_a_settings_refusal_is_settled_in_the_build_child_by_its_class(tmp_path)
         assert (caught.value.state, caught.value.detail_code) == (state, detail)
 
 
+@NOT_SERVED
 @posix
 def test_sealed_a_graph_built_model_is_graded_by_the_2_2_sealed_adapter(tmp_path):
     from test_battery_sealed_grading import _bank, _definition, _rows
