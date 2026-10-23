@@ -75,3 +75,13 @@ def test_no_mapping_unless_the_frozen_selection_is_the_submitted_catalog_recipe(
     assert projection._graded_digests(path, submitted) == ()
     (path.parent / "selected-recipe.json").unlink()
     assert projection._graded_digests(path, submitted) == ()
+
+
+def test_an_ungraded_submission_says_check_result_reads_the_latest_grade():
+    # R11: observe and wait kept "not_graded_yet" for 12 minutes after the
+    # receiver graded it; only check_result (a signed read) fetches it.
+    ungraded = projection._grade(_ladder("sha256:" + "b" * 64), "sha256:" + "a" * 64)
+    assert ungraded["this_submission"] == "not_graded_yet"
+    assert "check_result" in ungraded["refresh"]
+    graded = projection._grade(_ladder("sha256:" + "a" * 64), "sha256:" + "a" * 64)
+    assert "refresh" not in graded

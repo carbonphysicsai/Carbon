@@ -306,6 +306,14 @@ def _latest_ladder(path, document):
     return document["exam_feedback"]
 
 
+#: What an ungraded submission's grade says about reading it again (M1 E2E
+#: R11): observe and wait show the Ladder as last read.
+GRADE_REFRESH = (
+    "check_result reads the latest grade from the validator; "
+    "observe and wait show the one last read."
+)
+
+
 def _graded_digests(path, submitted):
     """The other digest the receiver may grade this submission under: a
     catalog recipe is graded as the Carbon bundle recipe it names
@@ -388,6 +396,9 @@ def _grade(ladder, submission=None, epoch=None, also=()):
     return {
         "latest": own,
         "this_submission": "graded" if own is not None else "not_graded_yet",
+        # M1 E2E R11: observe and wait show the Ladder as last read; reading
+        # it again is the miner's signed check_result, never automatic.
+        **({} if own is not None else {"refresh": GRADE_REFRESH}),
         "other_submission_latest": None if own is not None else latest,
         "best": best,
         "submission": submission,

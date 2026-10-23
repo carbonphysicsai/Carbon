@@ -69,6 +69,7 @@ def test_a_direct_outcome_before_any_grade_says_none_yet(tmp_path):
     assert shown["result"]["grade"] == {
         "latest": None,
         "this_submission": "not_graded_yet",
+        "refresh": projection.GRADE_REFRESH,
         "other_submission_latest": None,
         "best": None,
         "submission": "sha256:" + "a" * 64,
@@ -172,6 +173,7 @@ def test_a_stored_read_of_another_recipe_is_not_shown(tmp_path, monkeypatch):
     assert shown["result"]["grade"] == {
         "latest": None,
         "this_submission": "not_graded_yet",
+        "refresh": projection.GRADE_REFRESH,
         "other_submission_latest": None,
         "best": None,
         "submission": "sha256:" + "a" * 64,
