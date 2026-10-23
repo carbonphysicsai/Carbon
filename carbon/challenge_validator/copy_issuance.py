@@ -2,6 +2,7 @@
 write it where the distribution host serves it (E4; OWNER-TESTNET-EXAM-KEYS-01).
 
     python -m carbon.challenge_validator.copy_issuance issue --config JOB.json
+    python -m carbon.challenge_validator.copy_issuance publish-set --config SET.json
 
 Runs on the custody host only. It reads the producer key and K_master from owner-only
 files there, derives K_v = HMAC(K_master, hotkey) per hotkey, and writes
@@ -143,13 +144,63 @@ def issue(config, *, hotkeys=None):
     }
 
 
+SET_CONFIG_SCHEMA = "carbon.challenge-validator.pack-set-publication-config.v1"
+_SET_FIELDS = {
+    "schema",
+    "producer_key",
+    "challenge_id",
+    "challenge_version",
+    "batches",
+    "window",
+    "inbox",
+}
+
+
+def publish_set(config):
+    """Sign and publish a Challenge version's pack set (OWNER-FULL-EXAM-BANK-01).
+
+    The set names its batches by **canonical manifest digest** (digests only, no exam
+    content), so every validator receives the same bytes. It goes into the first
+    route's inbox (`<inbox>/<challenge>/set-<key>.json`, create-only, 0600); the host
+    serves it to permit holders like any signed package. Returns the set key and the
+    batch count only."""
+    from . import sealed_pack_import as spi
+    from .answer_key import package
+
+    if (
+        type(config) is not dict
+        or set(config) != _SET_FIELDS
+        or config["schema"] != SET_CONFIG_SCHEMA
+    ):
+        raise AnswerKeyRefused("copy_issuance_config_malformed")
+    key = ProducerKey.load(config["producer_key"])
+    commitment = spi.set_commitment_for(
+        config["challenge_id"],
+        config["challenge_version"],
+        config["batches"],
+        config["window"],
+    )
+    signed = package(key, commitment, spi.set_payload_for(commitment))
+    folder = Path(config["inbox"]) / config["challenge_id"]
+    folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+    path = folder / ("set-" + commitment["set_key"].removeprefix("sha256:") + ".json")
+    created = _write_once(path, signed)
+    return {
+        "set_key": commitment["set_key"],
+        "batches": len(commitment["batches"]),
+        "written": created,
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="carbon.challenge_validator.copy_issuance")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("issue").add_argument("--config", required=True)
+    sub.add_parser("publish-set").add_argument("--config", required=True)
     args = parser.parse_args(argv)
     try:
-        print(json.dumps(issue(read_private(args.config)), sort_keys=True))
+        run = publish_set if args.command == "publish-set" else issue
+        print(json.dumps(run(read_private(args.config)), sort_keys=True))
     except AnswerKeyRefused as refused:
         print(json.dumps({"refused": refused.code}))
         return 2
