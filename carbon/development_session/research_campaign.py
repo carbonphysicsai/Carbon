@@ -564,6 +564,50 @@ def practice_failed_gates(ledger, owner, strategy):
     return False
 
 
+def failed_gate_names(ledger, owner, strategy):
+    """The gates any retained practice of exactly `strategy` reports as failed
+    (False in its dual-feedback block), sorted and bounded; () where none is
+    named. Names only, as the practice result already shows them."""
+    with ledger.db() as db:
+        if (
+            db.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' "
+                "AND name='research_results'"
+            ).fetchone()
+            is None
+        ):
+            return ()
+        rows = db.execute(
+            "SELECT body,digest FROM research_results WHERE owner=?", (owner,)
+        ).fetchall()
+    names = set()
+    for body, fingerprint in rows:
+        if digest(body) != fingerprint:
+            raise ValueError("retained practice result changed")
+        result = json.loads(body)
+        if result.get("recipe") != strategy:
+            continue
+        places = [result] + [
+            result[key]
+            for key in ("outcome", "summary")
+            if type(result.get(key)) is dict
+        ]
+        for place in places:
+            for value in place.values():
+                if (
+                    type(value) is dict
+                    and value.get("schema") == PRACTICE_DUAL_SCHEMA
+                    and value.get("available") is True
+                    and type(value.get("gates")) is dict
+                ):
+                    names.update(
+                        str(name)[:128]
+                        for name, ok in value["gates"].items()
+                        if ok is False
+                    )
+    return tuple(sorted(names)[:32])
+
+
 async def final_epoch(
     args,
     ledger,
@@ -1648,6 +1692,27 @@ GATE_WARNING = {
 }
 
 
+def _gate_warning(names):
+    """`GATE_WARNING`, naming the failed gates when practice reported them
+    (M1 E2E R11e: the warning said "its practice result names the gate")."""
+    if not names:
+        return dict(GATE_WARNING)
+    which = ", ".join(names)
+    return {
+        **GATE_WARNING,
+        "gates": list(names),
+        "plain": (
+            f"A practice of this recipe failed the mandatory gate {which}, so "
+            "its exam grade will most likely be invalid. You may still freeze "
+            "and submit it."
+            if len(names) == 1
+            else f"A practice of this recipe failed the mandatory gates {which}, "
+            "so its exam grade will most likely be invalid. You may still "
+            "freeze and submit it."
+        ),
+    }
+
+
 def freeze_gate_warning(root, strategy):
     """`GATE_WARNING` when a retained practice of exactly `strategy` in the
     campaign at `root` reports a failed gate (`practice_failed_gates`), read
@@ -1656,8 +1721,9 @@ def freeze_gate_warning(root, strategy):
     if not manifest_path.exists():
         return None
     manifest = json.loads(manifest_path.read_bytes())
-    if practice_failed_gates(CampaignLedger(root), manifest["owner"], strategy):
-        return dict(GATE_WARNING)
+    ledger = CampaignLedger(root)
+    if practice_failed_gates(ledger, manifest["owner"], strategy):
+        return _gate_warning(failed_gate_names(ledger, manifest["owner"], strategy))
     return None
 
 
