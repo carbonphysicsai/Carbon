@@ -28,6 +28,13 @@ CPU_PROFILE = "torch-cpu-py311"
 JAX_PROFILE = "jax-cuda13-py311"
 JAX_CPU_PROFILE = "python-cpu-py311"
 TWINS = {CPU_PROFILE: PROFILE, JAX_CPU_PROFILE: JAX_PROFILE}
+#: The JAX GPU environment lock digest, copied here rather than imported: `carbon.reconstruction.accelerators` is on the
+#: execution side of the protected-material boundary, and catalog modules must not import it
+#: (tests/cpu/test_protected_material_isolation.py). `test_the_catalog_constants_equal_the_accelerator_profile` keeps the
+#: copy equal to `accelerators.GPU_PROFILE.environment_lock_digest`.
+JAX_GPU_LOCK_DIGEST = (
+    "sha256:a197af534a061636ba77e4f97f7e9be508b795d58883b6774fde74a5135ad434"
+)
 ANCHOR = "model = model.cpu().eval()"
 BUILD_MEMBER = "carbon_candidate/build.py"
 _CLEAR = (
@@ -250,7 +257,5 @@ def base_lock(twin: str) -> str:
 
         return torch_profile.GPU_LOCK_DIGEST
     if twin == JAX_PROFILE:
-        from carbon.reconstruction.accelerators import GPU_PROFILE
-
-        return GPU_PROFILE.environment_lock_digest
+        return JAX_GPU_LOCK_DIGEST
     raise GpuBuildRefused(f"no GPU lock for {twin}")
