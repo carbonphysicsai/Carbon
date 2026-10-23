@@ -85,6 +85,13 @@ TASK_CORRECTIONS = {
         "action, use kind=workspace, strategy_json=null and the action's arguments_json. "
         "Only files explicitly listed in run_python arguments are staged."
     ),
+    "catalog_setting_unknown": (
+        "A key in the recipe's procedure.configuration or procedure.train_use is "
+        "not a setting this catalog entry takes. Keep only the settings listed "
+        "under Allowed here (any not listed are left at the entry's default). "
+        "A catalog recipe names its model in source.catalog_id, never in "
+        "configuration: there is no backbone setting."
+    ),
     "direct_recipe_required": (
         "This campaign practises construction recipes (every new Launchpad "
         "campaign does): strategy_json is the recipe JSON string, one "
@@ -396,6 +403,8 @@ def _correction_choices():
         | frozenset(CATALOG_REFUSAL_CODES)
         | catalog_setting_choices()
         | frozenset(RECIPE_SOURCE_CHOICES),
+        # The setting names the catalog settings module declares (R9-1).
+        "catalog_setting_unknown": catalog_setting_choices(),
         # The forms the research wire refuses as a strategy key.
         "strategy_control_field_forbidden": frozenset(strategy_forbidden_forms()),
     }
@@ -1345,6 +1354,12 @@ class ResearchMinerTools:
                         for name in issues[0].allowed
                         if "setting:" + name in listable
                     )
+                    if issues[0].code == "catalog_setting_unknown":
+                        # M1 E2E R9-1 follow-up: its own correction, which
+                        # says what to change, not the generic recipe text.
+                        raise TaskContractMismatch(
+                            "catalog_setting_unknown", "strategy_json", settings_named
+                        )
                     raise TaskContractMismatch(
                         "direct_recipe_required",
                         "strategy_json",
