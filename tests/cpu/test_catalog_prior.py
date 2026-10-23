@@ -130,6 +130,9 @@ def test_the_prior_facts_are_read_from_the_bundle_without_importing_it():
 @pytest.fixture(scope="module")
 def prior_build(tmp_path_factory):
     jax = pytest.importorskip("jax")
+    # Restored on teardown: a module fixture that leaves x64 on makes every later test in
+    # the process trace float64 (the Level 4 train tests then refuse 'interface_dtype').
+    was_x64 = bool(jax.config.jax_enable_x64)
     jax.config.update("jax_enable_x64", True)
     root = tmp_path_factory.mktemp("prior_pkg")
     package = root / "ppkg"
@@ -143,6 +146,7 @@ def prior_build(tmp_path_factory):
             "ppkg.prior"
         )
     finally:
+        jax.config.update("jax_enable_x64", was_x64)
         sys.path.remove(str(root))
         for name in [m for m in sys.modules if m == "ppkg" or m.startswith("ppkg.")]:
             del sys.modules[name]
