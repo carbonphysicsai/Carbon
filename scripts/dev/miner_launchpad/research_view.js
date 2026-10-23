@@ -940,11 +940,14 @@
     const untested = Object.entries(dual.gates || {}).filter(([, ok]) => ok === "NOT_TESTED_ON_PRACTICE").map(([name]) => words(name));
     return dual.total.toFixed(4) + (detail ? " (" + detail + ")" : "") + (untested.length ? " · not tested on practice: " + untested.join(", ") : "");
   }
-  // A number never stands bare: the practice measure says which way is better (E5). Practice is an error today
-  // (lower is better); the same words follow whatever direction the Challenge declares.
+  // A number never stands bare: the practice measure says which way is better (E5), but only when the Challenge
+  // declares a direction. None is assumed (Validator, the same rule as the runs screen): without one it is a
+  // "value" with no "better" phrase.
   function directionWords(doc) {
-    const lower = doc.declaration?.direction !== "higher_is_better";
-    return {unit: lower ? "error" : "score", way: lower ? "lower is better" : "higher is better"};
+    const direction = doc.declaration?.direction;
+    const words = direction === "lower_is_better" ? {unit: "error", way: "lower is better"}
+      : direction === "higher_is_better" ? {unit: "score", way: "higher is better"} : {unit: "value", way: ""};
+    return {...words, paren: words.way ? " (" + words.way + ")" : ""};
   }
   // ---- The watch-your-agent screen (U45): one chronological picture of every practice run, whoever drives the
   // campaign (Graphite, Manual or an external MCP agent): runs are read from the same record, not from the agent.
@@ -973,7 +976,7 @@
         if (prev.map.get(k) !== here.map.get(k)) changes.push(k + " " + (prev.map.get(k) ?? "–") + " → " + (here.map.get(k) ?? "–"));
       }
       para(cell, changes.length ? "Changed from run " + before.index + ": " + changes.join(" · ") : "Same recipe as run " + before.index + " (a repeat).", "hint");
-      if (typeof r.score === "number" && typeof before.score === "number") para(cell, "Practice " + directionWords(doc).unit + " " + fmt(before.score) + " → " + fmt(r.score) + " (" + directionWords(doc).way + ")", "hint");
+      if (typeof r.score === "number" && typeof before.score === "number") para(cell, "Practice " + directionWords(doc).unit + " " + fmt(before.score) + " → " + fmt(r.score) + directionWords(doc).paren, "hint");
     }
     const failed = Object.entries(r.gate_failures || {}).filter(([, v]) => v && (v.cases || v.trials));
     if (failed.length) para(cell, "Gates failed: " + failed.map(([k, v]) => words(k) + " (" + (v.cases ?? v.trials) + ")").join(", "), "reason");
@@ -1052,7 +1055,7 @@
     if (d) add(svg, "path", {d, class: "best-line"});
     scored.forEach(r => {
       const x = X(runs.indexOf(r) + 1), y = Y(r.score);
-      const tip = "Run " + r.index + " · " + modelText(r) + " · " + directionWords(doc).unit + " " + fmt(r.score) + " (" + directionWords(doc).way + ") · " + (r.eligible === true ? "passed the gates" : r.eligible === false ? "gate failed" : "gates not reported");
+      const tip = "Run " + r.index + " · " + modelText(r) + " · " + directionWords(doc).unit + " " + fmt(r.score) + directionWords(doc).paren + " · " + (r.eligible === true ? "passed the gates" : r.eligible === false ? "gate failed" : "gates not reported");
       if (r.eligible === false) {
         const g = add(svg, "g", {class: "mark fail"});
         add(g, "line", {x1: x - 5, y1: y - 5, x2: x + 5, y2: y + 5}); add(g, "line", {x1: x - 5, y1: y + 5, x2: x + 5, y2: y - 5});
@@ -1069,7 +1072,7 @@
     if (best) {
       const card = el("div", undefined, "freeze-card best-card");
       const dsc = describeRecipe(best.recipe);
-      card.append(el("p", "Best passing run so far", "freeze-kind"), el("p", "Run " + best.index + " · " + (best.backbone || dsc.title) + " · " + directionWords(doc).unit + " " + fmt(best.score) + " (" + directionWords(doc).way + ")", "freeze-title"));
+      card.append(el("p", "Best passing run so far", "freeze-kind"), el("p", "Run " + best.index + " · " + (best.backbone || dsc.title) + " · " + directionWords(doc).unit + " " + fmt(best.score) + directionWords(doc).paren, "freeze-title"));
       if (dsc.settings.length) { const chips = el("p", undefined, "freeze-chips"); for (const s of dsc.settings) chips.append(el("span", s, "chip")); card.append(chips); }
       const state = CC.state ? CC.state() : {};
       const miner = doc.campaign?.selects === "miner" && typeof CC.operate === "function" && best.recipe;
@@ -1101,7 +1104,7 @@
     const table = el("table", undefined, "metrics-table sortable");
     const headRow = el("tr");
     const dual = rows.some(r => r.dual);
-    for (const name of ["Run", "Model", "Gates", ...(dual ? ["Graded total (0 to 1, higher is better)"] : []), "Practice " + directionWords(doc).unit + " (" + directionWords(doc).way + ")", ...keys.map(k => labels[k] || k), "Final loss", "Compute budget", "Framework", "Ran on"]) headRow.append(el("th", name));
+    for (const name of ["Run", "Model", "Gates", ...(dual ? ["Graded total (0 to 1, higher is better)"] : []), "Practice " + directionWords(doc).unit + directionWords(doc).paren, ...keys.map(k => labels[k] || k), "Final loss", "Compute budget", "Framework", "Ran on"]) headRow.append(el("th", name));
     table.append(headRow);
     // The model a run used: its backbone, or for a catalog recipe the catalog id
     // with the settings it changed (U52). A graph recipe has neither: say so.
