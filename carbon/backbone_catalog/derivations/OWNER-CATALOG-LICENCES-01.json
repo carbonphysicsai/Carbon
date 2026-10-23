@@ -2,6 +2,21 @@
  "check": "codex-queue/inputs/prior_catalog/carry_check.py",
  "check_output_sha256": "sha256:89c2f19e6e2e19597f230f7f9865bcf327767091e3acb225ebdee02896e6f21a",
  "decision": "OWNER-CATALOG-LICENCES-01",
+ "gpu_twins_withdrawn": {
+  "ids": [
+   "f08.thuml.FNO",
+   "f08.thuml.F_FNO",
+   "f08.thuml.Factformer",
+   "f08.thuml.Galerkin_Transformer",
+   "f08.thuml.Transolver",
+   "thuml.FNO",
+   "thuml.F_FNO",
+   "thuml.Factformer",
+   "thuml.Galerkin_Transformer",
+   "thuml.Transolver"
+  ],
+  "reason": "the relicensed twins fail under the pinned cu130 lock (timm and einops are not in it; GPU_TWIN_RECEIPTS_RELICENSED_20261023.json, 0/10); by Graphite Test's direction the pinned GPU lock is not changed for testnet, so these 10 are not offered on GPU: refs, twin directories and the 5 stale GPU receipts removed; CPU entries unchanged"
+ },
  "old_commit": "03b05614e",
  "rows": [
   {

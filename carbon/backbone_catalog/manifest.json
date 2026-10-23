@@ -912,15 +912,6 @@
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
-   "bundle_refs": {
-    "torch-cu130-py311": {
-     "bundle_digest": "sha256:23146e996899bbecd4f6db080c2791c696da59cdd196d66e14f6365e493be2a4",
-     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
-     "language": "python",
-     "runtime_profile_id": "torch-cu130-py311",
-     "schema": "carbon.library-bundle-ref.v1"
-    }
-   },
    "catalog_id": "f08.thuml.FNO",
    "challenges": [
     {
@@ -950,15 +941,6 @@
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
-   },
-   "bundle_refs": {
-    "torch-cu130-py311": {
-     "bundle_digest": "sha256:599b7e120a33d12dda59b34cbad6f167a73f6c795e26e221a543c7a25f98e6a2",
-     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
-     "language": "python",
-     "runtime_profile_id": "torch-cu130-py311",
-     "schema": "carbon.library-bundle-ref.v1"
-    }
    },
    "catalog_id": "f08.thuml.F_FNO",
    "challenges": [
@@ -990,15 +972,6 @@
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
-   "bundle_refs": {
-    "torch-cu130-py311": {
-     "bundle_digest": "sha256:298ba509d2120a0780a228b7665679b5399cd21a3d6a161583206e461c76df94",
-     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
-     "language": "python",
-     "runtime_profile_id": "torch-cu130-py311",
-     "schema": "carbon.library-bundle-ref.v1"
-    }
-   },
    "catalog_id": "f08.thuml.Factformer",
    "challenges": [
     {
@@ -1028,15 +1001,6 @@
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
-   },
-   "bundle_refs": {
-    "torch-cu130-py311": {
-     "bundle_digest": "sha256:d1bd247c1ef2390023c232a70012bd2a71db3154ba578031b96d32d655263d81",
-     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
-     "language": "python",
-     "runtime_profile_id": "torch-cu130-py311",
-     "schema": "carbon.library-bundle-ref.v1"
-    }
    },
    "catalog_id": "f08.thuml.Galerkin_Transformer",
    "challenges": [
@@ -1175,15 +1139,6 @@
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
-   },
-   "bundle_refs": {
-    "torch-cu130-py311": {
-     "bundle_digest": "sha256:d3f30166da4667d1acba7aad57fc743c3828f93c3c4623f7c199379b57d80d26",
-     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
-     "language": "python",
-     "runtime_profile_id": "torch-cu130-py311",
-     "schema": "carbon.library-bundle-ref.v1"
-    }
    },
    "catalog_id": "f08.thuml.Transolver",
    "challenges": [
@@ -2106,15 +2061,6 @@
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
-   "bundle_refs": {
-    "torch-cu130-py311": {
-     "bundle_digest": "sha256:2493347c1d2c007ac6e297b31617876161934769dae2cf3bd234781fea015ee5",
-     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
-     "language": "python",
-     "runtime_profile_id": "torch-cu130-py311",
-     "schema": "carbon.library-bundle-ref.v1"
-    }
-   },
    "catalog_id": "thuml.FNO",
    "challenges": [
     {
@@ -2144,15 +2090,6 @@
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
-   },
-   "bundle_refs": {
-    "torch-cu130-py311": {
-     "bundle_digest": "sha256:5a9c15c2769d3132314a670452315ce7ca69995958637531a4b7c83ff4bac1c3",
-     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
-     "language": "python",
-     "runtime_profile_id": "torch-cu130-py311",
-     "schema": "carbon.library-bundle-ref.v1"
-    }
    },
    "catalog_id": "thuml.F_FNO",
    "challenges": [
@@ -2184,15 +2121,6 @@
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
    },
-   "bundle_refs": {
-    "torch-cu130-py311": {
-     "bundle_digest": "sha256:9cbfb3bed9dd0374a251f2142cb7ec00b4df65a40f4fe7a6e59cfb9966e677a8",
-     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
-     "language": "python",
-     "runtime_profile_id": "torch-cu130-py311",
-     "schema": "carbon.library-bundle-ref.v1"
-    }
-   },
    "catalog_id": "thuml.Factformer",
    "challenges": [
     {
@@ -2222,15 +2150,6 @@
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
-   },
-   "bundle_refs": {
-    "torch-cu130-py311": {
-     "bundle_digest": "sha256:6d2472f15af9b84039d7ce368b83c7634d84279f5283215081db5a33060b802c",
-     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
-     "language": "python",
-     "runtime_profile_id": "torch-cu130-py311",
-     "schema": "carbon.library-bundle-ref.v1"
-    }
    },
    "catalog_id": "thuml.Galerkin_Transformer",
    "challenges": [
@@ -2369,15 +2288,6 @@
     "language": "python",
     "runtime_profile_id": "torch-cpu-py311",
     "schema": "carbon.library-bundle-ref.v1"
-   },
-   "bundle_refs": {
-    "torch-cu130-py311": {
-     "bundle_digest": "sha256:73bc17a568967662c34e7b228f90238562886a559aff6d71edcca7c661675714",
-     "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
-     "language": "python",
-     "runtime_profile_id": "torch-cu130-py311",
-     "schema": "carbon.library-bundle-ref.v1"
-    }
    },
    "catalog_id": "thuml.Transolver",
    "challenges": [
