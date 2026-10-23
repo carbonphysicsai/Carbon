@@ -4,7 +4,7 @@ VALIDATOR_MAINNET_RECAL_DECISIONS_20261020 §4).
 The F02/F08 pattern for Motor: the producer draws and solves each sealed
 batch once in AX42 custody; the sealed batch becomes a private evaluation
 pack in the development pack's format (`carbon.challenge_kit.motor_sealed_pack`)
-graded by the dual adapter's sealed version `motor-dual-sealed-batch-30-v1`.
+graded by the dual adapter's sealed version `motor-dual-sealed-batch-30-v2`.
 There is no second scoring path.
 
 Motor 1.0's hidden pool (VALIDATOR-21, `motor_hidden`) is unchanged: its
@@ -50,7 +50,7 @@ BATCH_CASES = motor_hidden.BATCH_CASES
 ACTIVE_BATCHES = 3
 ROTATION_EVERY_BLOCKS = 648_000  # the 90-day maximum
 PACK_VERSION = "motor-normal-construction-development-2"
-EVALUATION_VERSION = "motor-dual-sealed-batch-30-v1"
+EVALUATION_VERSION = "motor-dual-sealed-batch-30-v2"
 
 
 class MotorSealedError(ValueError):

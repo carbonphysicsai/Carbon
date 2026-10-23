@@ -52,7 +52,7 @@ BATCH_CASES = 8
 ROTATION_EVERY_BLOCKS = 648_000  # the 90-day maximum
 ACTIVE_BATCHES = 1
 PACK_VERSION = "f02-normal-construction-development-3"
-EVALUATION_VERSION = "f02-dual-sealed-batch-8-v1"
+EVALUATION_VERSION = "f02-dual-sealed-grid-8x1-v2"
 OBSERVED = (
     "peak_top_c",
     "extra_energy_j",

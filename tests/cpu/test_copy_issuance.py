@@ -144,3 +144,36 @@ def test_a_malformed_job_config_is_refused(job):
     with pytest.raises(ak.AnswerKeyRefused, match="copy_issuance_config_malformed"):
         issuance.issue({"schema": "x"})
     _ = FORMATS
+
+
+def test_the_pack_set_is_signed_published_once_and_imports_on_a_validator(job):
+    from carbon.challenge_validator import sealed_exam_common as common
+
+    challenge = job["config"]["challenge_id"]
+    version = job["config"]["challenge_version"]
+    batches = [delivery._sha(job["manifest"]), "sha256:" + "ab" * 32]
+    config = {
+        "schema": issuance.SET_CONFIG_SCHEMA,
+        "producer_key": job["config"]["producer_key"],
+        "challenge_id": challenge,
+        "challenge_version": version,
+        "batches": batches,
+        "window": WINDOW,
+        "inbox": str(job["tmp"] / "inbox"),
+    }
+    first = issuance.publish_set(config)
+    assert first["batches"] == 2 and first["written"] is True
+    assert first["set_key"] == common.pack_set_key(
+        common.pack_set_document(challenge, version, batches)
+    )
+    assert issuance.publish_set(config)["written"] is False
+    (path,) = (job["tmp"] / "inbox" / challenge).glob("set-*.json")
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    # A validator verifies and imports it like any signed package.
+    value = json.loads(path.read_bytes())
+    commitment, payload = ak.verify(value, job["key"].public_key)
+    store = spi.SealedPackStore(job["tmp"] / "v")
+    assert store.import_pack_set(commitment, payload) == first["set_key"]
+    assert store.holds_set(commitment)
+    with pytest.raises(ak.AnswerKeyRefused, match="copy_issuance_config_malformed"):
+        issuance.publish_set({"schema": "x"})

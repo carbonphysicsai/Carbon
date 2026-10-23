@@ -90,7 +90,7 @@ def applied_pack(*, bank_rows, definition, limits, objective, train_raw, names):
 
 
 def sealed_adapter(version):
-    """Cooling 1.3's sealed exam adapter (``cooling-dual-sealed-batch-16-v1``): the
+    """Cooling 1.3's sealed exam adapter (``cooling-dual-sealed-batch-16-v2``): the
     model's encoded rows are decoded, then Cooling's own sealed measurement runs on the
     native rows against the unchanged sealed bank. The 1.2 and 1.3 sealed scores are
     therefore comparable. None for any other version."""

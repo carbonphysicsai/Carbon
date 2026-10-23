@@ -28,8 +28,11 @@ from __future__ import annotations
 import hashlib
 import sys
 
+from carbon.scoring import critical_fidelity as critical
+from carbon.scoring import f08_critical
 from carbon.scoring import f08_dual_measurement as fdm
 from carbon.scoring import f08_dual_pack as _f08
+from carbon.scoring import f08_physics, probe_design
 from carbon.scoring import physical_dual_pack as physical
 from carbon.scoring import sealed_grid_common as grid_common
 from carbon.scoring import sealed_pack_writer
@@ -37,7 +40,9 @@ from carbon.scoring import sealed_pack_writer
 CHALLENGE = _f08.CHALLENGE
 #: The first sealed Challenge version; 1.3 and 1.4 grade the same batches (they change only the construction source).
 VERSION = "1.2"
-EVALUATION_VERSION = "f08-dual-sealed-grid-8x1-v1"
+#: v2: Design is D = min(V, C), the owner's rule (critical_fidelity); v1 graded V
+#: alone and stays as history under its own evaluation version, never re-scored.
+EVALUATION_VERSION = "f08-dual-sealed-grid-8x1-v2"
 CASE_ID = "f08-sealed-batch-8"
 VERSIONS = {version: (EVALUATION_VERSION, CASE_ID) for version in ("1.2", "1.3", "1.4")}
 OUTPUT = _f08.OUTPUT
@@ -45,6 +50,12 @@ FILES = (
     *_f08.FILES,
     "sealed_grid_common.py",
     "sealed_pack_writer.py",
+    "critical_fidelity.py",
+    "design_fidelity.py",
+    "f08_critical.py",
+    "f08_physics.py",
+    "physics_half.py",
+    "probe_design.py",
     "f08_sealed_dual_pack.py",
 )
 MINIMUM_LEGS = _f08.MINIMUM_LEGS
@@ -54,6 +65,7 @@ CASES = 8
 DESIGNS, CONDITIONS = 8, 1
 METHOD = "f08-sealed-grid-dual-from-predictions.v1"
 PACK_SUFFIX = "-sealed-batch-8"
+
 Refused = fdm.F08MeasurementRefused
 _ADAPTER = sys.modules[__name__]
 
@@ -85,13 +97,20 @@ def definition(*, bank, train_raw):
     base = _f08.definition(
         bank=bank, train_raw=train_raw, rule="baseline_legs", version=VERSION
     )
+    probes = sum(1 for c in bank["cohorts"] if c == probe_design.PROBE_COHORT)
     return {
         **base,
+        "geometry_count": CASES,
         "method": fdm.METHOD,
         "sealed_method": METHOD,
         "cohort_counts": {COHORT: CASES},
+        "probes": {"cohort": probe_design.PROBE_COHORT, "rows": probes},
         "grid": {"designs": DESIGNS, "conditions": CONDITIONS},
         "reference_receipt_sha256": _sha(evidence),
+        "critical": f08_critical.block(base),
+        **(
+            {"physics": f08_physics.block(train_raw, base["targets"])} if probes else {}
+        ),
     }
 
 
@@ -102,12 +121,21 @@ def validate_definition(definition):
         definition.get("sealed_method") == METHOD
         and definition.get("geometry_count") == CASES
         and definition.get("cohort_counts") == {COHORT: CASES}
+        and type(definition.get("probes")) is dict
+        and definition["probes"].get("cohort") == probe_design.PROBE_COHORT
+        and type(definition["probes"].get("rows")) is int
+        and definition["probes"]["rows"] >= 0
         and definition.get("grid") == {"designs": DESIGNS, "conditions": CONDITIONS}
         and type(definition.get("reference_receipt_sha256")) is str
         and definition["reference_receipt_sha256"].startswith("sha256:")
         and len(definition["reference_receipt_sha256"]) == 71,
         "f08_sealed_definition",
     )
+    if "critical" in definition:
+        try:
+            critical.validate_block(definition["critical"])
+        except critical.CriticalFidelityRefused as exc:
+            raise Refused("f08_sealed_definition") from exc
     return definition
 
 
@@ -120,7 +148,7 @@ def applied_pack(**_):
         "schema": dual_score.PACK_SCHEMA,
         "scope": "PUBLIC_DEVELOPMENT",
         "challenge": CHALLENGE,
-        "hard_gates": list(fdm.GATES),
+        "hard_gates": [*fdm.GATES, f08_physics.GATE],
         "legs": {
             leg: {
                 "components": [
@@ -162,13 +190,27 @@ def measure(
     """A, D, native gates and the decision outcome for one model on a sealed grid, by F08's registered dual
     measurement (see the module docstring)."""
     validate_definition(definition)
+    cells = [i for i, row in enumerate(bank_rows) if row.get("cohort") == COHORT]
+    probes = [
+        i
+        for i, row in enumerate(bank_rows)
+        if row.get("cohort") == probe_design.PROBE_COHORT
+    ]
     fdm._require(
-        len(bank_rows) == CASES
-        and all(row.get("cohort") == COHORT for row in bank_rows),
+        len(cells) == CASES
+        and len(cells) + len(probes) == len(bank_rows)
+        and len(probes) == definition["probes"]["rows"]
+        and len(outputs) == len(bank_rows)
+        and all(len(r) == len(bank_rows) for r in repeats),
         "f08_bank_cohort",
     )
-    _layout(bank_rows)
-    return _f08.measure(
+    cell_rows = [bank_rows[i] for i in cells]
+    probe_rows = [bank_rows[i] for i in probes]
+    _layout(cell_rows)
+    all_outputs = outputs
+    bank_rows, outputs = cell_rows, [outputs[i] for i in cells]
+    repeats = [[r[i] for i in cells] for r in repeats]
+    measured = _f08.measure(
         bank_rows=bank_rows,
         outputs=outputs,
         repeats=repeats,
@@ -178,6 +220,24 @@ def measure(
         train_raw=train_raw,
         names=names,
     )
+    constraints = fdm._limits(limits)
+    measured = f08_critical.apply(
+        measured,
+        bank_rows=bank_rows,
+        outputs=outputs,
+        definition=definition,
+        constraints=constraints,
+    )
+    return f08_physics.apply(
+        measured,
+        bank_rows=bank_rows,
+        outputs=outputs,
+        definition=definition,
+        train_rows=_f08._train_targets(train_raw),
+        constraints=constraints,
+        probe_rows=probe_rows,
+        probe_outputs=[all_outputs[i] for i in probes],
+    )
 
 
 def is_sealed_bank(bank) -> bool:
@@ -185,9 +245,17 @@ def is_sealed_bank(bank) -> bool:
     design x condition cell of the 8 x 1 grid."""
     if type(bank) is not dict:
         return False
+    cohorts, records = bank.get("cohorts"), bank.get("reference_records")
+    if (
+        type(cohorts) not in (tuple, list)
+        or type(records) not in (tuple, list)
+        or len(cohorts) != len(records)
+    ):
+        return False
+    keep = [i for i, c in enumerate(cohorts) if c != probe_design.PROBE_COHORT]
     return grid_common.is_grid_bank(
-        bank.get("cohorts"),
-        bank.get("reference_records"),
+        [cohorts[i] for i in keep],
+        [records[i] for i in keep],
         shape=(DESIGNS, CONDITIONS),
         design_of=lambda r: r.get("design_id"),
         condition_of=lambda r: r.get("condition_id"),

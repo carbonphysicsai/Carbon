@@ -1,5 +1,5 @@
 """Cooling's adapter grades a sealed exam batch (Validator, 2026-10-20,
-cooling-dual-sealed-batch-16-v1): one 4 x 4 grid in one cohort, so A is the
+cooling-dual-sealed-batch-16-v2): one 4 x 4 grid in one cohort, so A is the
 minimum over all 16 cells and the worst geometry (no boundary reduction), its
 grid gate is `complete_grid_common_mask`, its reference evidence is pinned by
 sha256, and D is the development bank's decision unchanged. The development
@@ -26,7 +26,7 @@ PUBLIC = physical_pack.public_roles(adapter.CHALLENGE, "1.1")
 NAMES = physical.input_names(adapter)
 
 
-def _sealed_bank():
+def _sealed_bank(probes=False):
     """Data Collection's fixture grid, its synthetic (non-production) outputs
     set so every design is feasible and each has its own hydraulic power."""
     doc = document(population.draw(random.Random(2), 16)[0])
@@ -35,7 +35,7 @@ def _sealed_bank():
         record = ok_record(case["case_id"], case["inputs"], peak=60.0)
         record["outputs"]["pressure_drop_pa"] = 40.0 + 3.0 * i
         records.append(record)
-    return sealed.sealed_bank(doc, records)
+    return sealed.sealed_bank(doc, records, probes=probes)
 
 
 def _measure(bank, outputs, definition=None):
@@ -169,13 +169,13 @@ def test_the_sealed_table_is_1_1_and_1_2_and_1_3_is_the_decoding_adapter():
     assert set(adapter.SEALED_VERSIONS) == {"1.1", "1.2"}
     for version in ("1.1", "1.2"):
         chosen = adapter.sealed_adapter(version)
-        assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v1"
+        assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v2"
         assert chosen.VERSION == version
     # 1.3 changes the output interface: the one dispatch point here hands it to the
     # adapter that DECODES; no raw (non-decoding) adapter ever grades it.
     chosen = adapter.sealed_adapter("1.3")
     assert chosen.VERSION == "1.3" and chosen._module is encoded
-    assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v1"
+    assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v2"
     for version in ("1.0", "1.4", None):
         assert adapter.sealed_adapter(version) is None
 
@@ -266,3 +266,192 @@ def test_a_native_model_and_its_1_3_encoding_score_byte_identically_on_the_seale
         assert definition_13["bank_kind"] == "sealed_batch"
     assert newer.EVALUATION_VERSION == native.EVALUATION_VERSION
     assert newer.VERSION == "1.3" and encoded.sealed_adapter("1.2") is None
+
+
+
+def _shift_cell(outputs, cell, degrees):
+    """One cell whole temperature profile (and peak) moved by ``degrees``."""
+    outputs = copy.deepcopy(outputs)
+    for k in range(0, 31):
+        outputs[cell][k] += degrees
+    return outputs
+
+
+def test_the_sealed_definition_registers_the_critical_block():
+    bank = _sealed_bank()
+    block = adapter.definition(bank=bank, train_raw=PUBLIC["train"])["critical"]
+    assert block["rule"] == "D=min(V,C)"
+    assert {c["quantity"]: c["scale"] for c in block["components"]} == {
+        "die_margin_c": 1.0,
+        "hydraulic_margin_w": 0.025,
+    }
+    assert block["objective"]["scale"] == 0.025
+    assert "critical" not in adapter.definition(
+        bank=physical_pack.development_bank(adapter.CHALLENGE, "1.1"),
+        train_raw=PUBLIC["train"],
+    )
+
+
+def test_a_right_pick_with_wrong_die_margins_scores_d_below_one():
+    bank = _sealed_bank()
+    truth = _truth(bank)
+    exact = _measure(bank, truth)
+    assert exact["D"] == 1.0 and exact["design_fidelity"]["C"] == 1.0
+    skewed = _measure(bank, _shift_cell(truth, 0, 2.0))
+    assert skewed["pick"] == exact["pick"] and skewed["regret_w"] == 0.0
+    assert skewed["design_fidelity"]["C"] < 1.0
+    assert skewed["D"] == skewed["design_fidelity"]["C"] < 1.0
+
+
+def test_a_definition_without_the_critical_block_grades_value_only():
+    bank = _sealed_bank()
+    legacy = {
+        k: v
+        for k, v in adapter.definition(bank=bank, train_raw=PUBLIC["train"]).items()
+        if k != "critical"
+    }
+    truth = _truth(bank)
+    measured = _measure(bank, _shift_cell(truth, 0, 2.0), legacy)
+    assert measured["D"] == 1.0 and "design_fidelity" not in measured
+
+
+# --- the physics half ----------------------------------------------------------
+
+
+def _model():
+    from carbon.scoring import cooling_physics
+
+    return cooling_physics.registered_model(PUBLIC["train"])
+
+
+def _full(bank, cells, probe=None):
+    """Predictions for every row in the delivered order: the cell predictions in
+    the order the cells appear, the stand-in model (or ``probe``) at each probe."""
+    probe = probe or _model()
+    cells = iter(cells)
+    return [
+        (
+            probe([float(r["inputs"][n]) for n in NAMES])
+            if r["cohort"] == "probe_response"
+            else list(map(float, next(cells, [0.0] * 32)))
+        )
+        for r in physical.bank_rows(bank, NAMES)
+    ]
+
+
+@pytest.fixture(scope="module")
+def probed():
+    bank = _sealed_bank(probes=True)
+    return {
+        "bank": bank,
+        "definition": adapter.definition(bank=bank, train_raw=PUBLIC["train"]),
+        "cells": _truth(sealed_cells(bank)),
+    }
+
+
+def sealed_cells(bank):
+    from carbon.scoring import probe_design
+
+    return probe_design.cells_only(bank)
+
+
+def _pmeasure(probed, outputs, definition=None):
+    return _measure(
+        probed["bank"],
+        outputs,
+        definition=definition or probed["definition"],
+    )
+
+
+def test_the_probed_definition_registers_probes_and_the_physics_block(probed):
+    definition = probed["definition"]
+    adapter.validate_definition(definition)
+    assert definition["probes"] == {"cohort": "probe_response", "rows": 4 * 21}
+    block = definition["physics"]
+    assert block["rule"] == "A=mean(A_acc,A_robust,A_law,A_response)"
+    assert block["response"]["outputs"] == ["rise_c", "pressure_drop_pa"]
+    assert {law["name"] for law in block["laws"]} >= {
+        "inlet_shift_temperatures",
+        "pressure_ignores_hotspot",
+    }
+
+
+def test_the_probes_are_private_unreferenced_rows_among_the_cells(probed):
+    rows = physical.bank_rows(probed["bank"], NAMES)
+    cohorts = [r["cohort"] for r in rows]
+    assert cohorts.count("decision_sealed_grid") == 16 and len(rows) == 100
+    # interleaved with the cells, never a suffix
+    assert cohorts[:16] != ["decision_sealed_grid"] * 16
+    assert cohorts[-16:] != ["decision_sealed_grid"] * 16
+    probes = [r for r in rows if r["cohort"] == "probe_response"]
+    assert len(probes) == 84 and all(r["reference"] is None for r in probes)
+    assert probed["bank"]["reference_present"] == tuple(
+        c == "decision_sealed_grid" for c in cohorts
+    )
+
+
+def test_a_model_with_the_registered_sensitivities_earns_full_response(probed):
+    result = _pmeasure(probed, _full(probed["bank"], probed["cells"]))
+    assert result["A_legs"]["A_response"] == pytest.approx(1.0, abs=1e-3)
+    assert result["physics_half"]["sign_gate_failed"] == []
+    assert result["A_legs"]["A_acc"] == 1.0
+    assert result["gates"]["physics_laws"] is True
+
+
+def test_a_model_that_ignores_the_inlet_loses_on_the_law_leg(probed):
+    registered = _model()
+
+    def stuck(point):
+        moved = list(point)
+        moved[4] = 40.0  # temperatures built at a fixed inlet
+        row = registered(moved)
+        return row
+
+    good = _pmeasure(probed, _full(probed["bank"], probed["cells"]))
+    bad = _pmeasure(probed, _full(probed["bank"], probed["cells"], probe=stuck))
+    assert bad["A_legs"]["A_law"] < good["A_legs"]["A_law"] - 0.02
+
+
+def test_a_pressure_drop_that_follows_the_hotspot_loses_on_the_law_leg(probed):
+    registered = _model()
+
+    def hotspot_pressure(point):
+        row = registered(point)
+        row[31] *= 1.0 + 0.5 * (point[6] - 2.0)
+        return row
+
+    good = _pmeasure(probed, _full(probed["bank"], probed["cells"]))
+    bad = _pmeasure(
+        probed, _full(probed["bank"], probed["cells"], probe=hotspot_pressure)
+    )
+    assert bad["A_legs"]["A_law"] < good["A_legs"]["A_law"] - 0.02
+
+
+def test_a_wrong_flow_trend_loses_on_the_response_leg_and_fails_the_gate(probed):
+    registered = _model()
+
+    def flipped(point):
+        moved = list(point)
+        moved[3] = 1.25 + 2.0 - point[3]  # flow mirrored in its range
+        return registered(moved)
+
+    result = _pmeasure(probed, _full(probed["bank"], probed["cells"], probe=flipped))
+    assert result["A_legs"]["A_response"] < 0.95
+    assert result["gates"]["physics_laws"] is False
+    assert any(
+        "flow_lpm_per_kw" in item for item in result["physics_half"]["gate_failed_laws"]
+    )
+
+
+def test_a_peak_below_a_profile_segment_fails_the_law_gate(probed):
+    cells = [list(r) for r in probed["cells"]]
+    cells[0][0] = cells[0][5] - 1.0
+    result = _pmeasure(probed, _full(probed["bank"], cells))
+    assert result["gates"]["physics_laws"] is False
+    assert "peak_above_profile" in result["physics_half"]["gate_failed_laws"]
+
+
+def test_a_sealed_cooling_bank_is_graded_under_the_v2_version(probed):
+    for version in ("1.1", "1.2", "1.3"):
+        chosen = adapter.sealed_adapter(version)
+        assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v2"

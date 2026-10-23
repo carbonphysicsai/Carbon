@@ -97,7 +97,40 @@ def _accepted(case_id, inputs, record, limit_c):
     return peaks, float(wall_s)
 
 
-def sealed_bank(document, records, *, version="2.1") -> dict:
+#: Base points of the private probes (physics half v1); each carries the base,
+#: two 1% moves per input and the two linearity-law rows.
+PROBE_BASES = 4
+#: The linearity-law step, as a fraction of the power span (a 10% move).
+LAW_STEP = 0.10
+PEAK_W = (70.0, 100.0)
+ON_TIME_S = (4.0, 6.0)
+
+
+def _with_probes(bank, cases, names, dtype):
+    """``bank`` with the private probes appended as unreferenced rows, seeded by
+    the batch input content (never ids or order) inside the S1 law's region."""
+    from carbon.scoring import probe_design
+
+    if list(names) != ["peak_w", "on_time_s"]:
+        raise SealedPackRefused("f02_sealed_probe_interface")
+    step = LAW_STEP * (PEAK_W[1] - PEAK_W[0])
+    return probe_design.with_probes(
+        bank,
+        list(cases.values()),
+        challenge="f02",
+        bounds=[PEAK_W, ON_TIME_S],
+        valid=lambda x: True,
+        bases=PROBE_BASES,
+        dtype=dtype,
+        margin=LAW_STEP,
+        extra=(
+            ("affine_up", lambda x: [x[0] + step, x[1]]),
+            ("affine_down", lambda x: [x[0] - step, x[1]]),
+        ),
+    )
+
+
+def sealed_bank(document, records, *, version="2.1", probes=True) -> dict:
     """The sealed batch as a bank in ``physical_pack.development_bank``'s format.
 
     ``document`` is the sealed batch document; ``records`` its terminal
@@ -177,7 +210,7 @@ def sealed_bank(document, records, *, version="2.1") -> dict:
             "records": [by_case[c] for c in case_ids],
         }
     )
-    return {
+    bank = {
         "case_ids": tuple(case_ids),
         "cohorts": (COHORT,) * len(case_ids),
         "inputs": inputs_array,
@@ -187,6 +220,7 @@ def sealed_bank(document, records, *, version="2.1") -> dict:
         "decision_coverage": DECISION_COVERAGE,
         "population": POPULATION,
     }
+    return _with_probes(bank, cases, names, dtype) if probes else bank
 
 
 def private_roles(bank) -> dict[str, bytes]:

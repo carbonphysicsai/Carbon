@@ -33,7 +33,7 @@ def batch(seed=11):
 
 def test_the_bank_has_the_development_banks_shape():
     doc, records = batch()
-    mine = sealed.sealed_bank(doc, records)
+    mine = sealed.sealed_bank(doc, records, probes=False)
     theirs = physical_pack.development_bank(*F08)
     assert set(mine) == set(theirs)
     assert theirs["cohorts"] == ("decision_near_limit",) * 8
@@ -137,7 +137,7 @@ def test_pack_rule_v2_ignores_h3_and_v1_keeps_it():
     assert bank["solver_evidence"] is not None
     assert all(
         kept[r["case_id"]]["rung_worst_dynamic_mm_per_n"]["h3"] is not None
-        for r in bank["reference_records"]
+        for r in bank["reference_records"][:8]  # the cells; probes follow
     )
     with pytest.raises(sealed.SealedPackRefused) as refused:
         sealed.sealed_bank(doc, h3_only, rule=sealed.PACK_RULE_V1)
@@ -167,7 +167,7 @@ def test_the_v7_version_is_graded_from_the_same_sealed_batches():
         for key in old:
             if isinstance(old[key], np.ndarray):
                 assert (
-                    np.array_equal(old[key], new[key])
+                    np.array_equal(old[key], new[key], equal_nan=True)
                     and old[key].dtype == new[key].dtype
                 )
             else:
