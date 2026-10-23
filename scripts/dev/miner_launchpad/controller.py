@@ -97,6 +97,9 @@ STATIC = {
 ROUTE_NOT_FOUND = "route_not_found"
 #: The page's own "Build the GPU worker" action (S15a, `gpu_worker_build`).
 GPU_BUILD_ROUTE = "/api/v1/page/gpu_worker_build"
+#: The page's one click that installs the backbone catalog in the
+#: background (M1 E2E E2): the page's door only, never an MCP tool.
+CATALOG_ROUTE = "/api/v1/page/catalog_install"
 
 
 class Rejected(Exception):
@@ -799,6 +802,7 @@ class Server(ThreadingHTTPServer):
         #: The set-aside profile whose campaigns list read-only (U54).
         self.research_profile_path = None
         self.legacy_database = legacy_database
+        self.state_dir = state_dir
         self.attach_lock = threading.Lock()
         self.setup = None
         if state_dir is not None:
@@ -823,6 +827,17 @@ class Server(ThreadingHTTPServer):
         super().__init__(("127.0.0.1", port), Handler)
         self.authority = f"127.0.0.1:{self.server_port}"
         self.origin = f"http://{self.authority}"
+
+    def start_catalog(self):
+        """Start the backbone catalog's background install for this page's
+        state directory where entries are missing (`catalog_build.start`);
+        its status. A failure to start never fails the setup step."""
+        from scripts.dev.miner_launchpad import catalog_build
+
+        try:
+            return catalog_build.start(self.state_dir)
+        except Exception:  # noqa: BLE001 - the status still says what to do
+            return catalog_build.status(self.state_dir)
 
     def attach_profile(self, profile: Path) -> bool:
         """Load the runner profile setup wrote, without a restart.
@@ -1056,6 +1071,18 @@ class Handler(BaseHTTPRequestHandler):
                         # The page's own build action and how it stands
                         # (S15a): served to this page, never to the MCP door.
                         document["gpu_build"] = self.server.gpu_build.status()
+                    if self.server.state_dir:
+                        # The catalog's background install and its progress
+                        # (M1 E2E E2), with the page's one click to start it.
+                        from scripts.dev.miner_launchpad import catalog_build
+
+                        document["catalog_build"] = {
+                            **catalog_build.status(self.server.state_dir),
+                            "start": {
+                                "http": "POST " + CATALOG_ROUTE,
+                                "body": {"start": True},
+                            },
+                        }
                     self.reply(200, document)
             elif self.path == "/api/v1/development":
                 sources = self.server.development_sources
@@ -1186,6 +1213,19 @@ class Handler(BaseHTTPRequestHandler):
                 result = setup_operations.perform(
                     self.server.setup, action, value, door=setup_operations.HTTP
                 )
+                if action in ("review", "recheck") and self.server.state_dir:
+                    # The page wrote the runner profile: the catalog starts
+                    # installing in the background now, where it is
+                    # missing (M1 E2E E2). The page's door only.
+                    self.server.start_catalog()
+            elif self.path == CATALOG_ROUTE:
+                # Install the backbone catalog in the background, from this
+                # page only (M1 E2E E2); a running install is reported.
+                if type(value) is not dict or value != {"start": True}:
+                    raise Rejected("closed_catalog_request_required")
+                if not self.server.state_dir:
+                    raise Rejected("setup_unavailable", 409)
+                result = self.server.start_catalog()
             elif self.path == GPU_BUILD_ROUTE:
                 # Build the GPU worker on this machine, from this page only
                 # (S15a): the installer's own GPU build, on consent to its

@@ -3602,7 +3602,7 @@ class EnvironmentSetup:
     def catalog(self) -> dict | None:
         """Whether the backbone catalog this install had is installed for
         the parents its written profile names (`catalog_state.state`): None
-        without a profile or a catalog, else {"had", "missing"}."""
+        without a profile, else {"entries", "missing"}."""
         from scripts.dev.miner_launchpad import catalog_state
 
         try:
@@ -4010,13 +4010,21 @@ def main(argv=None) -> int:
     what changed; `gpu-installed` says whether a GPU worker was built here
     before; `service-unit` prints the systemd user unit for the Control
     Center; `catalog-needed` says how many entries of the backbone catalog
-    this install had need installing again for its current parents."""
+    need installing for this install's current parents; `session-link`
+    prints the page's link with this install's session token, for the
+    miner's terminal only."""
     parser = argparse.ArgumentParser(description=main.__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("after-install", "gpu-installed", "service-unit", "catalog-needed"):
+    for name in (
+        "after-install",
+        "gpu-installed",
+        "service-unit",
+        "catalog-needed",
+        "session-link",
+    ):
         command = commands.add_parser(name)
         command.add_argument("--state-dir", type=Path, required=True)
-        if name == "service-unit":
+        if name in ("service-unit", "session-link"):
             command.add_argument("--port", type=int, required=True)
     args = parser.parse_args(argv)
     state_dir = args.state_dir
@@ -4025,6 +4033,20 @@ def main(argv=None) -> int:
 
         found = installed.found(state_dir, REPO)["gpu_image_manifest"]["path"]
         print("yes" if found else "no")
+        return 0
+    if args.command == "session-link":
+        # The page's address with this install's session token in its
+        # fragment, for the installer's last line (M1 E2E E1): printed to
+        # the miner's terminal only, never written to a log. The same token
+        # the Control Center keeps in <state>/session-token and reuses after
+        # a restart or an update. Nothing when the page cannot read it.
+        from scripts.dev.miner_launchpad import controller
+
+        if not controller.session_link_supported():
+            return 1
+        _private_dir(Path(state_dir))
+        token = controller.session_token(Path(state_dir))
+        print(controller.session_url(f"http://127.0.0.1:{args.port}", token))
         return 0
     if args.command == "catalog-needed":
         # How many entries of the catalog this install had need installing

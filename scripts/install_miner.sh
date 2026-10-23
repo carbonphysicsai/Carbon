@@ -739,18 +739,20 @@ if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
     --source-tree-digest "${DEVELOPMENT_SOURCE_TREE_DIGEST}"
 fi
 "${setup_cli[@]}" after-install --state-dir "${STATE_DIR}"
-# The backbone catalog this install had is built over its construction
-# parent; an update that rebuilt the parent leaves every entry uninstalled
-# (M1 E2E R7-1). Install it again here, only when entries are missing for
-# the current parent, and say so first: never silently missing.
+# The backbone catalog is built over this install's construction parent: an
+# update that rebuilt the parent leaves every entry uninstalled (M1 E2E
+# R7-1), and a newcomer should never have to know to install it (E2). When
+# a runner profile exists and entries are missing for the current parent,
+# it starts here in the background, said first; the page shows its
+# progress. A new install has no profile yet: the page starts it once
+# Review writes one.
 catalog_missing="$("${setup_cli[@]}" catalog-needed --state-dir "${STATE_DIR}" 2>/dev/null || true)"
 if [[ "${catalog_missing}" =~ ^[0-9]+$ ]]; then
-  catalog_command="${python} -m scripts.dev.catalog_install --state-dir ${STATE_DIR}"
   echo
-  echo "This install had the backbone catalog, and ${catalog_missing} of its entries need building again over the new construction parent."
-  echo "Installing them now: one image per entry, which can take a long time. Practice on catalog backbones waits for it; everything else is ready."
-  "${python}" -m scripts.dev.catalog_install --state-dir "${STATE_DIR}" \
-    || echo "The catalog install stopped (above). Practice on catalog backbones is refused until it completes; setup lists it. Run: ${catalog_command}"
+  echo "The backbone catalog needs ${catalog_missing} entries built over this install's construction parent."
+  echo "Starting it in the background now (about 40 minutes for the whole catalog on Carbon's test machine); the Control Center's setup shows its progress, and each Challenge can practise a catalog backbone as soon as its entry is ready. Everything else is ready now."
+  "${python}" -B -m scripts.dev.miner_launchpad.catalog_build start --state-dir "${STATE_DIR}" >/dev/null \
+    || echo "The catalog install could not start; the Control Center's setup offers it again, or run: ${python} -B -m scripts.dev.catalog_install --state-dir ${STATE_DIR}"
 fi
 
 cat <<EOF
@@ -768,6 +770,35 @@ Then, in the Control Center:
 EOF
 
 step "6/6 Starting the Control Center"
+#: remote_line: on a rented server reached over SSH, the one command the
+#: miner runs on their own computer to reach the page (M1 E2E E1).
+remote_line() {
+  [[ -n "${SSH_CONNECTION:-}" ]] || return 0
+  local host
+  host="$(printf '%s' "${SSH_CONNECTION}" | cut -d' ' -f3)"
+  [[ -n "${host}" ]] || host="<this machine's address>"
+  echo "This is a remote machine. On your own computer, run:"
+  echo "  ssh -N -L ${PORT}:127.0.0.1:${PORT} ${USER:-$(id -un)}@${host}"
+  echo "then open the link below there."
+}
+#: open_page_lines: the last lines: the remote line, then the page's link
+#: carrying this install's session token, to this terminal only and never
+#: to a log (M1 E2E E1: no token to fetch or paste). The token is kept in
+#: the state directory and survives restarts and updates.
+open_page_lines() {
+  remote_line
+  if [[ "${page_link}" == http://127.0.0.1:"${PORT}"/* ]]; then
+    echo "Open the Control Center (this link holds your session token; do not share it):"
+    echo "${page_link}"
+  else
+    echo "Open the Control Center at http://127.0.0.1:${PORT}"
+  fi
+}
+#: page_link_for: the page's link for the port the Control Center will use.
+page_link_for() {
+  page_link="$("${setup_cli[@]}" session-link --state-dir "${STATE_DIR}" --port "${PORT}" 2>/dev/null || true)"
+}
+page_link_for
 launcher=("${repo_root}/.venv/bin/carbon-control-center")
 [[ -x "${launcher[0]}" ]] \
   || launcher=("${python}" "${repo_root}/scripts/dev/miner_launchpad/controller.py")
@@ -796,6 +827,7 @@ if [[ "${service_mode}" == 1 ]]; then
     if [[ -n "${unit_port}" ]]; then
       PORT="${unit_port}"
       start_command="PYTHONDONTWRITEBYTECODE=1 ${launcher[*]} --state-dir ${STATE_DIR} --port ${PORT}"
+      page_link_for
     fi
   fi
   command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1 \
@@ -820,18 +852,10 @@ if [[ "${service_mode}" == 1 ]]; then
   fi
   cat <<EOF
   This install's own service: ${SERVICE_NAME%.service} (state directory ${STATE_DIR}).
-  Your session token (paste it into the page):
-    grep 'Local session token' ${STATE_DIR}/control-center.log | tail -n 1
   Restart it:  systemctl --user restart ${SERVICE_NAME%.service}
   Stop it:     systemctl --user stop ${SERVICE_NAME%.service}
   Its state:   systemctl --user status ${SERVICE_NAME%.service}
   Its output:  tail -f ${STATE_DIR}/control-center.log
-  Install the backbone catalog, which today's catalog Challenges need (the
-  install must have used the --pytorch option):
-    cd ${repo_root} && ${python} -B -m scripts.dev.catalog_install --state-dir ${STATE_DIR}
-  On a remote machine (a VPS), open the page from your own computer through
-  an SSH tunnel, then browse to http://127.0.0.1:${PORT}:
-    ssh -N -L ${PORT}:127.0.0.1:${PORT} ${USER:-$(id -un)}@<this machine's address>
 EOF
   # MINER-SURVIVE-REBOOT-01: the unit is enabled, but the user manager that
   # starts it runs at boot only when this user lingers; otherwise it waits
@@ -857,19 +881,17 @@ EOF
   if grep -qiE 'microsoft|wsl' /proc/sys/kernel/osrelease 2>/dev/null; then
     echo "On WSL, Windows does not start WSL at boot: see \"After a reboot\" in docs/development/FRESH_MINER_JOURNEY.md for the one-time logon task that starts this distro."
   fi
+  open_page_lines
   exit 0
 fi
 
-echo "Install the backbone catalog, which today's catalog Challenges need (the"
-echo "install must have used the --pytorch option):"
-echo "  cd ${repo_root} && ${python} -B -m scripts.dev.catalog_install --state-dir ${STATE_DIR}"
-echo "On a remote machine (a VPS), open the page from your own computer through"
-echo "an SSH tunnel (any local port works), then browse to http://127.0.0.1:${PORT}:"
-echo "  ssh -N -L ${PORT}:127.0.0.1:${PORT} ${USER:-$(id -un)}@<this machine's address>"
 echo "Start it again later with:"
 echo "  ${start_command}"
 if [[ "${START}" == 0 || "${UPDATE}" == 1 ]]; then
+  open_page_lines
   exit 0
 fi
+# Started here in the foreground: it prints the same link itself, last.
+remote_line
 export PYTHONDONTWRITEBYTECODE=1
 exec "${launcher[@]}" --state-dir "${STATE_DIR}" --port "${PORT}"

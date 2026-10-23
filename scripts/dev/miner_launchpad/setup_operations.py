@@ -586,7 +586,12 @@ def status(
             "title": nxt["title"],
             "missing": nxt["missing"],
             "blocks_launch": False,
-            "human_action_required": nxt["human_action_required"],
+            "install": nxt.get("install"),
+            **(
+                {"human_action_required": nxt["human_action_required"]}
+                if "human_action_required" in nxt
+                else {}
+            ),
             # Launch is not held up by it.
             "then": {
                 "step": "launch",
@@ -651,35 +656,47 @@ def status(
 
 
 def _catalog_row(setup):
-    """The catalog's own step, open, when entries of the catalog this
-    install had are not installed for its current parents; else None."""
+    """The catalog's own step, open, while entries are not installed for
+    this install's current parents (a new install, or an update that
+    rebuilt the parent), with how its background install stands; else
+    None. It never blocks launch: a catalog backbone's practice waits for
+    its entry (M1 E2E R7-1, E2)."""
+    from scripts.dev.miner_launchpad import catalog_build
     from scripts.dev.miner_launchpad.catalog_state import INSTALL_COMMAND
 
     read = getattr(setup, "catalog", None)
     found = read() if read is not None else None
     if not found or not found["missing"]:
         return None
-    command = INSTALL_COMMAND.format(state_dir=Path(setup.root).parent)
-    return {
+    state_dir = Path(setup.root).parent
+    try:
+        job = catalog_build.status(state_dir)
+    except Exception:  # noqa: BLE001 - the step still says what to do
+        job = None
+    row = {
         "id": "catalog",
         "title": "Backbone catalog",
         "state": "open",
         "missing": ["catalog_not_installed_for_this_install"],
-        "entries": found["had"],
+        "entries": found["entries"],
         "not_installed": found["missing"],
         "blocks_launch": False,
-        "blocks": "practice on catalog backbones (refused catalog_not_installed)",
-        "human_action_required": {
-            "who": "you, in a terminal on this machine",
-            "command": command,
-            "why": (
-                "Carbon was updated and its construction parent rebuilt, so "
-                "the catalog's images must be built again over it; Carbon's "
-                "agents never run this. It builds one image per entry and "
-                "can take a long time."
-            ),
-        },
+        "blocks": "practice on catalog backbones, each until its entry is ready",
+        "install": job,
+        "duration": catalog_build.DURATION,
     }
+    if job is None or job["state"] != "RUNNING":
+        row["human_action_required"] = {
+            "who": "you, on the Control Center page or in a terminal here",
+            "page": "Install the catalog (one click, in the background)",
+            "command": INSTALL_COMMAND.format(state_dir=state_dir),
+            "why": (
+                "practice on a catalog backbone needs its image built over "
+                "this install's construction parent; Carbon's agents never "
+                "start this"
+            ),
+        }
+    return row
 
 
 def _one_click(compute) -> bool:

@@ -426,6 +426,7 @@ case "$2" in
       gpu-installed) echo "${CARBON_TEST_GPU_INSTALLED:-no}" ;;
       after-install) echo "What this install changed: (fixture)" ;;
       catalog-needed) echo "${CARBON_TEST_CATALOG_MISSING:-no}" ;;
+      session-link) echo "http://127.0.0.1:$7/#token=fixture-token" ;;
       service-unit)
         echo "[Unit]"
         echo "ExecStart=/fixture/carbon-control-center --state-dir $5 --port $7" ;;
@@ -442,7 +443,7 @@ case "$2" in
           echo no
         fi ;;
     esac ;;
-  scripts.dev.catalog_install)
+  scripts.dev.miner_launchpad.catalog_build)
     [ "${CARBON_TEST_CATALOG_FAILS:-no}" != yes ] || exit 2 ;;
   scripts.dev.miner_launchpad.superseded_images)
     # Carbon's own images from earlier installs (R6-1): the one the test
@@ -949,28 +950,51 @@ def test_short_space_offers_carbons_old_images_and_removes_them_only_on_yes(sand
     assert not any("superseded_images" in line for line in sandbox.logged())
 
 
-def test_an_update_installs_the_catalog_again_when_its_parent_was_rebuilt(sandbox):
-    """M1 E2E R7-1: an update rebuilt the construction parent and left the
-    catalog this install had uninstalled, silently. It is installed again,
-    said first, only when entries are missing; a failure says what to run."""
+def test_an_install_starts_the_catalog_in_the_background_when_entries_are_missing(
+    sandbox,
+):
+    """M1 E2E R7-1, E2: an update rebuilt the construction parent and left
+    the catalog uninstalled, silently, and a newcomer had to know to install
+    it. Where a profile exists and entries are missing, it starts in the
+    background, said first with how long; a failure to start says what to
+    run."""
     quiet = sandbox.run("--no-start")
     assert quiet.returncode == 0, quiet.stderr
-    assert not any("catalog_install" in line for line in sandbox.logged())
-    assert "need building again" not in quiet.stdout
+    assert not any("catalog_build" in line for line in sandbox.logged())
+    assert "entries built over" not in quiet.stdout
     again = sandbox.run("--no-start", CARBON_TEST_CATALOG_MISSING="3")
     assert again.returncode == 0, again.stderr
-    assert "3 of its entries need building again" in again.stdout
-    assert "Practice on catalog backbones waits for it" in again.stdout
+    assert "needs 3 entries built over" in again.stdout
+    assert "in the background now (about 40 minutes" in again.stdout
     assert any(
-        "scripts.dev.catalog_install --state-dir " + str(sandbox.state) in line
+        "-B -m scripts.dev.miner_launchpad.catalog_build start --state-dir "
+        + str(sandbox.state)
+        in line
         for line in sandbox.logged()
     )
     failed = sandbox.run(
         "--no-start", CARBON_TEST_CATALOG_MISSING="3", CARBON_TEST_CATALOG_FAILS="yes"
     )
     assert failed.returncode == 0, failed.stderr
-    assert "The catalog install stopped" in failed.stdout
+    assert "The catalog install could not start" in failed.stdout
     assert "scripts.dev.catalog_install --state-dir" in failed.stdout
+
+
+def test_the_last_line_is_the_page_link_and_a_remote_box_gets_its_tunnel(sandbox):
+    """M1 E2E E1: no token to fetch and paste. The installer's last line is
+    the page's link with this install's token; over SSH, the one tunnel
+    command comes first."""
+    local = sandbox.run("--no-start")
+    assert local.returncode == 0, local.stderr
+    lines = local.stdout.strip().splitlines()
+    assert lines[-1] == "http://127.0.0.1:8788/#token=fixture-token"
+    assert "ssh -N -L" not in local.stdout
+    remote = sandbox.run(
+        "--no-start", SSH_CONNECTION="198.51.100.7 51000 203.0.113.9 22", USER="dana"
+    )
+    lines = remote.stdout.strip().splitlines()
+    assert lines[-1] == "http://127.0.0.1:8788/#token=fixture-token"
+    assert "  ssh -N -L 8788:127.0.0.1:8788 dana@203.0.113.9" in lines
 
 
 def test_two_filesystems_each_need_only_their_own_share(sandbox):

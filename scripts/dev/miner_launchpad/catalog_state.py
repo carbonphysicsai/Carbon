@@ -1,5 +1,5 @@
-"""Whether the backbone catalog this install had is installed for its current
-construction parents (M1 E2E R7-1).
+"""Whether the backbone catalog is installed for this install's current
+construction parents (M1 E2E R7-1, E2).
 
 `scripts.dev.catalog_install` builds each catalog entry's child image over
 its construction parent and stages the entry's material
@@ -71,34 +71,64 @@ def parents(cfg) -> dict[str, str]:
 
 
 def state(cfg) -> dict | None:
-    """None when this install never had the catalog (nothing staged), else
-    {"had": n, "missing": [catalog ids]}: of the n entries it had whose
-    runtime this install serves, those with no child for the current
-    parent."""
+    """None without a runner profile's cache, else {"entries": n,
+    "missing": [catalog ids]}: of the n entries whose runtime this install
+    serves, those with no child for the current parent (an install that
+    never had the catalog, or one whose parent an update rebuilt)."""
     from carbon.backbone_catalog import pipeline
 
     root = cache_root(cfg)
     if root is None:
         return None
-    materials = root / "materials"
-    try:
-        staged = {p.name for p in materials.iterdir() if p.is_dir()}
-    except OSError:
-        return None
-    if not staged:
-        return None
     served = parents(cfg)
-    had, missing = 0, []
+    entries, missing = 0, []
     for item in pipeline.load()["entries"]:
         ref = item.get("bundle_ref") or {}
         digest = ref.get("bundle_digest")
-        if type(digest) is not str or digest[7:] not in staged:
-            continue
         parent = served.get(ref.get("runtime_profile_id"))
-        if parent is None:
+        if type(digest) is not str or parent is None:
             continue
-        had += 1
+        entries += 1
         receipt = root / digest[7:] / (parent[7:] + ".image.json")
         if not receipt.is_file():
             missing.append(item["catalog_id"])
-    return {"had": had, "missing": missing}
+    return {"entries": entries, "missing": missing}
+
+
+def progress(cfg) -> dict | None:
+    """How far the catalog is installed for this install's current parents
+    (M1 E2E E2): {"total", "installed", "challenges": [{id, version, ready,
+    total}]}, over every entry whose runtime this install serves; None
+    without a runner profile's cache. A Challenge version can practise a
+    catalog backbone as soon as that entry is installed."""
+    from carbon.backbone_catalog import pipeline
+
+    root = cache_root(cfg)
+    if root is None:
+        return None
+    served = parents(cfg)
+    total = installed = 0
+    by_challenge = {}
+    for item in pipeline.load()["entries"]:
+        ref = item.get("bundle_ref") or {}
+        digest, parent = ref.get("bundle_digest"), served.get(
+            ref.get("runtime_profile_id")
+        )
+        if type(digest) is not str or parent is None:
+            continue
+        ready = (root / digest[7:] / (parent[7:] + ".image.json")).is_file()
+        total += 1
+        installed += ready
+        for challenge in item.get("challenges") or []:
+            key = (challenge.get("id"), challenge.get("version"))
+            row = by_challenge.setdefault(key, {"ready": 0, "total": 0})
+            row["total"] += 1
+            row["ready"] += ready
+    return {
+        "total": total,
+        "installed": installed,
+        "challenges": [
+            {"id": key[0], "version": key[1], **row}
+            for key, row in sorted(by_challenge.items(), key=str)
+        ],
+    }
