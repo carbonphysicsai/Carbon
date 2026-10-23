@@ -34,7 +34,18 @@ class _Net(torch.nn.Module):
         return self.net(x)
 
 
+class _Cplx(torch.nn.Module):
+    def __init__(self, n_in):
+        super().__init__()
+        self.w = torch.nn.Parameter(torch.randn(n_in, POINTS, dtype=torch.complex64))
+
+    def forward(self, x):
+        return (x.to(torch.complex64) @ self.w).real
+
+
 def build_backbone(name, n_in):
+    if name == "stub.Cplx":
+        return _Cplx(n_in)
     return _Net(n_in, 8)
 
 
@@ -220,10 +231,33 @@ def test_an_unimplemented_choice_is_refused_not_faked(trainer):
 
 
 # L5: precision
-def test_pytorch_precision_float32_is_allowed_and_float64_is_not_offered(trainer):
+def test_pytorch_precision_float32_and_float64_are_allowed(trainer):
     assert run(trainer, {"steps": 3, "precision": "float32"})
+    product = run(trainer, {"steps": 3, "precision": "float64"})
+    assert all(p.dtype == torch.float64 for p in product["parameters"])
+    again = run(trainer, {"steps": 3, "precision": "float64"})
+    assert all(
+        torch.equal(a, b) for a, b in zip(product["parameters"], again["parameters"])
+    )
     with pytest.raises(ValueError, match="precision must be"):
-        run(trainer, {"steps": 3, "precision": "float64"})
+        run(trainer, {"steps": 3, "precision": "float128"})
+
+
+def test_float64_is_not_offered_to_complex64_spectral_weights_and_is_whole_build(
+    trainer,
+):
+    with pytest.raises(ValueError, match="complex64"):
+        run(trainer, {"steps": 3, "precision": "float64"}, {"backbone": "stub.Cplx"})
+    assert run(trainer, {"steps": 3}, {"backbone": "stub.Cplx"})
+    trainer._DOUBLE[0] = False
+    with pytest.raises(ValueError, match="whole build"):
+        run(
+            trainer,
+            {
+                "steps": 3,
+                "search": {"candidates": [{"precision": "float64"}], "trial_steps": 2},
+            },
+        )
 
 
 # L6: arch keys
@@ -242,13 +276,6 @@ def test_library_arch_keys_are_taken_and_checked(trainer):
             run(trainer, {"steps": 3}, {"backbone": "stub.Lib", "arch": arch})
     with pytest.raises(ValueError, match="arch settings are not supported"):
         run(trainer, {"steps": 3}, {"backbone": "stub.Plain", "arch": {"n_hidden": 4}})
-
-
-def test_the_transolver_rule_is_kept(trainer):
-    with pytest.raises(ValueError, match="multiple of heads"):
-        trainer.make_model(
-            {"backbone": "transolver", "arch": {"hidden": 33, "heads": 4}}, 3
-        )
 
 
 # L7: quantize bits

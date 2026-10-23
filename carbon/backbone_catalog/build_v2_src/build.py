@@ -32,8 +32,8 @@ train_use (every key optional; `steps` default `DEFAULT_STEPS`, 300 unless the p
   distill        {"teacher": {arch...}, "teacher_steps", "alpha"}: self-distillation from a teacher trained fresh
   prune          {"fraction", "finetune_steps"}: global magnitude pruning
   quantize       {"bits"}: weights snapped to a symmetric per-tensor grid (bits >= 2); the graph still computes in float
-  precision      bfloat16|float16|float32: mixed-precision training (autocast), or plain float32; trained weights stay
-                 in the model's own dtype
+  precision      bfloat16|float16|float32|float64: mixed-precision training (autocast), plain float32, or float64
+                 (every model in float64: top-level only; not offered to the entries with complex64 spectral weights)
 """
 
 from __future__ import annotations
@@ -172,7 +172,23 @@ def _arch_hook(name, arch):
             mlp.FullyConnected = original
 
 
+#: Set by `build` for one build: train_use.precision == "float64" trains every model in float64.
+_DOUBLE = [False]
+
+
 def make_model(configuration, n_in):
+    model = _make_model(configuration, n_in)
+    if _DOUBLE[0]:
+        if any(p.is_complex() for p in model.parameters()):
+            raise ValueError(
+                f"{configuration['backbone']}: float64 is not offered, its spectral weights are complex64 "
+                "(an external fact of the library's spectral layers)"
+            )
+        model = model.double()
+    return model
+
+
+def _make_model(configuration, n_in):
     name = configuration["backbone"]
     arch = dict(configuration.get("arch") or {})
     if name in HOOKED_ARCH:
@@ -202,10 +218,6 @@ def make_model(configuration, n_in):
         if key in a:
             positive_int(a[key], key, 1)
     if name == "transolver":
-        if (
-            a["hidden"] % a["heads"]
-        ):  # external fact: the block's dim_head = hidden // heads, inner_dim = dim_head * heads
-            raise ValueError("hidden must be a multiple of heads")
         from .s7_transolver import CurveTransolver, _model_class
 
         model = _model_class()(
@@ -482,8 +494,10 @@ def train(
         raise ValueError("data.reweight must be none or hard_mining")
     mixup, noise = float(data.get("mixup", 0.0)), float(data.get("noise", 0.0))
     precision = train_use.get("precision")
-    if precision not in (None, "bfloat16", "float16", "float32"):
-        raise ValueError("precision must be bfloat16, float16 or float32")
+    if precision not in (None, "bfloat16", "float16", "float32", "float64"):
+        raise ValueError("precision must be bfloat16, float16, float32 or float64")
+    if precision == "float64" and next(model.parameters()).dtype != torch.float64:
+        raise ValueError("float64 is set for the whole build, in the top-level train_use.precision")
     autocast_dtype = {"bfloat16": torch.bfloat16, "float16": torch.float16}.get(
         precision
     )
@@ -795,6 +809,7 @@ def _combination(combine, spec, cover, members, vx, vy):
 def build(train_inputs, train_targets, *, seed, configuration, train_use):
     only(configuration, {"backbone", "arch", "learning_rate"}, "configuration")
     only(train_use, LEVERS, "train_use")
+    _DOUBLE[0] = train_use.get("precision") == "float64"
     # The product's dtype is the TRAIN's own (float32 for F08 and F02, float64 elsewhere), as the interface declares.
     out_dtype = (
         torch.float32

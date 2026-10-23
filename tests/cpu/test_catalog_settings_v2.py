@@ -166,7 +166,7 @@ def test_the_added_choices_are_open_in_v2_and_closed_in_v1():
         ok(JAX, use)
         refused(V1, use)
     refused(TORCH, {"optimizer": {"name": "nope"}}, code="catalog_setting_invalid")
-    refused(TORCH, {"precision": "float64"}, code="catalog_setting_invalid")
+    refused(TORCH, {"precision": "float128"}, code="catalog_setting_invalid")
 
 
 # L7: quantize bits
@@ -205,13 +205,35 @@ def test_library_entries_take_arch_keys_in_v2_only():
     assert settings.arch_keys("jno.fno1d", "v2") == ()
 
 
-def test_the_transolver_rule_is_kept_and_cited():
+def test_the_transolver_rule_is_gone_because_the_vendored_library_builds_and_runs_it():
+    # Measured on the vendored Transolver module (hidden 33 / heads 4, and 7 / 3): it builds and its forward runs.
     entry = item(settings.TORCH_V2, "transolver")
     ok(entry, configuration={"arch": {"hidden": 32, "heads": 4}})
+    ok(entry, configuration={"arch": {"hidden": 33, "heads": 4}})
+
+
+def test_float64_is_open_on_torch_v2_except_complex64_spectral_entries():
+    ok(item(settings.TORCH_V2, "thuml.LSM"), {"precision": "float64"})
+    ok(item(settings.TORCH_V2, "transolver"), {"precision": "float64"})
+    for backbone in sorted(settings.COMPLEX_WEIGHTS):
+        refused(
+            item(settings.TORCH_V2, backbone),
+            {"precision": "float64"},
+            code="catalog_setting_invalid",
+        )
     refused(
-        entry,
-        configuration={"arch": {"hidden": 33, "heads": 4}},
-        code="catalog_settings_inconsistent",
+        TORCH,
+        {"search": {"candidates": [{"precision": "float64"}]}},
+        code="catalog_setting_invalid",
+    )
+    refused(JAX, {"precision": "float64"}, code="catalog_setting_invalid")
+    refused(V1, {"precision": "float64"}, code="catalog_setting_invalid")
+
+
+def test_lsm_takes_the_library_arch_keys_like_the_other_thuml_entries():
+    ok(
+        item(settings.TORCH_V2, "thuml.LSM"),
+        configuration={"arch": {"n_hidden": 64, "n_layers": 6}},
     )
 
 

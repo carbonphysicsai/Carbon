@@ -124,7 +124,7 @@ COVERAGE_F32 = Schema(
 TORCH_V2 = Schema(
     "carbon-candidate-torch-v2",
     "carbon_candidate/build.py",
-    "sha256:b795a99d45a6018586b8f015477283fbc85c4183e68704958580ec657ca8ffdd",
+    "sha256:306568542bdff914113f8a8f942559debb4e5f32cf23ccd9a94ac5866d32f43a",
     frozenset({"learning_rate", "arch"}),
     LEVERS.train_use,
     vocabulary="v2",
@@ -137,6 +137,8 @@ JAX_V2 = Schema(
     frozenset({"learning_rate"}),
     LEVERS.train_use,
     vocabulary="v2",
+    # jax.random.PRNGKey(seed) folds a seed >= 2**32 onto colliding keys without x64 (2**32 and 2**40 both give [0, 0]) and
+    # raises OverflowError from 2**63 (measured on jax 0.10.2), so the JAX build keeps uint32 seeds.
     seed_limit=2**32,
 )
 SCHEMAS = {
@@ -176,6 +178,22 @@ GPU_BUILDS = {
         "sha256:df1fdb3e4928c4db6ef114c251b478687647545439f509cb76c7c01a76b1ab7e"
     ),
 }
+#: The Torch entries whose spectral weights are complex64, so float64 is not offered to them (an external fact of the
+#: library's spectral layers; measured by building each entry and listing its complex parameters).
+COMPLEX_WEIGHTS = frozenset(
+    {
+        "lno.LNO1d",
+        "neuralop.FNO",
+        "neuralop.GINO",
+        "neuralop.LocalNO",
+        "neuralop.TFNO",
+        "neuralop.UQNO",
+        "thuml.FNO",
+        "thuml.F_FNO",
+        "thuml.GeoFNO",
+        "thuml.MWT",
+    }
+)
 #: Each levers build's accepted mixed-precision values.
 PRECISIONS = {
     LEVERS.schema_id: ("bfloat16", "float16"),
@@ -183,7 +201,7 @@ PRECISIONS = {
     F08_LEVERS.schema_id: ("bfloat16", "float16"),
     F02_LEVERS.schema_id: ("bfloat16", "float16"),
     JAX_LEVERS.schema_id: ("bfloat16", "float16", "float32"),
-    TORCH_V2.schema_id: ("bfloat16", "float16", "float32"),
+    TORCH_V2.schema_id: ("bfloat16", "float16", "float32", "float64"),
     JAX_V2.schema_id: ("bfloat16", "float16", "float32"),
 }
 #: The levers build's architecture settings, per backbone (its `ARCH`).
@@ -374,15 +392,6 @@ def _arch(backbone, arch, where, vocabulary="v1"):
             _within(value, f"{where}.dropout", 0, 1, high_open=True)
         else:
             _positive_int(value, f"{where}.{key}")
-    if backbone == "transolver":
-        merged = {"hidden": 32, "heads": 4, **arch}  # the build's ARCH defaults
-        if (
-            merged["hidden"] % merged["heads"]
-        ):  # external fact: dim_head = hidden // heads (Transolver_plus.py:128)
-            raise CatalogRefused(
-                "catalog_settings_inconsistent",
-                "transolver hidden must be a multiple of heads",
-            )
 
 
 def _loss(spec, where, vocabulary="v1", n_out=None):
@@ -495,6 +504,11 @@ def _train_levers(
         _data(use["data"], where + ".data")
     if "precision" in use and use["precision"] is not None:
         _choice(use["precision"], where + ".precision", precisions)
+        if use["precision"] == "float64" and where != "train_use":
+            _bad(
+                where + ".precision",
+                "float64 for the whole build, set in train_use.precision",
+            )
     if "averaging" in use:
         spec = use["averaging"]
         _only(spec, {"kind", "decay", "start"}, where + ".averaging")
@@ -714,6 +728,12 @@ def resolve(item, configuration, train_use):
             first = item["challenges"][0]
             n_out = output_count(first["id"], first["version"])
         _levers(backbone, train_use, PRECISIONS[schema.schema_id], schema, n_out)
+        if train_use.get("precision") == "float64" and backbone in COMPLEX_WEIGHTS:
+            raise CatalogRefused(
+                "catalog_setting_invalid",
+                backbone
+                + ": float64 is not offered, its spectral weights are complex64",
+            )
     defaults = item["defaults"]
     merged = {**defaults["configuration"], **configuration, "backbone": backbone}
     if "arch" in configuration and "arch" in defaults["configuration"]:
