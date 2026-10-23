@@ -59,6 +59,10 @@ def test_every_scorer_verdict_reads_as_graded_in_words(challenge, verdict):
     # A NOT_SCORED grade says why when the Ladder carries its closed reason
     # (not admitted / not graded); otherwise the plain words of its status.
     reason = document.get("reason")
+    # A leg-minimum failure with no leg name keeps the plain words (the Ladder
+    # names the leg or nothing; a number or blank is never shown).
+    if reason == "LEG_MINIMUM_FAILED" and not document.get("leg"):
+        reason = None
     if document["status"] == "NOT_SCORED" and reason in projection.NOT_SCORED_WORDS:
         assert latest["reason"] == reason
         assert latest["words"].startswith(("not admitted:", "not graded:"))
