@@ -23,6 +23,7 @@ def _static():
     version-specific adapter)."""
     from carbon.scoring import (
         cooling_dual_pack,
+        cooling_encoded_dual_pack,
         f02_dual_pack,
         f08_dual_pack,
         motor_dual_pack,
@@ -35,8 +36,12 @@ def _static():
         motor_dual_pack.CHALLENGE: lambda version: physical.versioned(
             motor_dual_pack, version
         ),
-        cooling_dual_pack.CHALLENGE: lambda version: physical.versioned(
-            cooling_dual_pack, version
+        # Cooling 1.3's law-safe encoding has its own adapter module, so the
+        # 1.0-1.2 producer identity (and every pack bound to it) is unchanged.
+        cooling_dual_pack.CHALLENGE: lambda version: (
+            physical.versioned(cooling_encoded_dual_pack, version)
+            if version in cooling_encoded_dual_pack.VERSIONS
+            else physical.versioned(cooling_dual_pack, version)
         ),
         f08_dual_pack.CHALLENGE: lambda version: (
             f08_dual_pack.adapter(version=version)

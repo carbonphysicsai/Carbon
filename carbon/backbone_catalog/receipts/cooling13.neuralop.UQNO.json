@@ -1,0 +1,17 @@
+{
+ "catalog_id": "cooling13.neuralop.UQNO",
+ "differ": [],
+ "distinct_states": 1,
+ "files": 2,
+ "identical": 1,
+ "image_digest": "sha256:e063781cb683dc98ac93b94f097a0944aebb279331fa40e0971a764c52011aec",
+ "key": "cooling_neuralop_uqno",
+ "pairs": 1,
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "source_report": "PAIR_IDENTITY_C13_COOLING_20261022.json",
+ "source_report_sha256": "sha256:d8adf66b508ef6567da98c11404459d3d4d7cbdeea672fcdbb8c0d9358e696b9",
+ "tested_interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
+ "tested_on": "chip-cold-plate@1.3",
+ "tested_train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
+ "unpaired": 0
+}

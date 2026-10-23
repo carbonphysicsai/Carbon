@@ -52,6 +52,7 @@ CATALOG = frozenset(
         (MOTOR, "1.2"),
         (MOTOR, "1.3"),
         (COOLING, "1.2"),
+        (COOLING, "1.3"),
         # The Validator, 2026-10-20: F08 1.4 and F02 2.3 bind the catalog (and
         # Carbon's graph training adapter) before they freeze.
         (F08, "1.4"),
@@ -67,6 +68,7 @@ V7 = frozenset(
     {
         (MOTOR, "1.3"),
         (COOLING, "1.2"),
+        (COOLING, "1.3"),
         (F08, "1.3"),
         (F02, "2.2"),
         (BATTERY, "2.1"),

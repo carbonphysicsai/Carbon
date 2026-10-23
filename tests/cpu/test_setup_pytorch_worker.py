@@ -32,6 +32,7 @@ TORCH = {
     ("electric-motor-magnetics", "1.2"),
     ("electric-motor-magnetics", "1.3"),
     ("chip-cold-plate", "1.2"),
+    ("chip-cold-plate", "1.3"),
     ("f08-ribbed-bracket", "1.4"),
     ("f02", "2.3"),
 }

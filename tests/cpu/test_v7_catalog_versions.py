@@ -42,7 +42,7 @@ PREDECESSOR = {
 }
 #: The graph versions (the Validator, 2026-10-20), each 1.3 / 2.2 plus the
 #: catalog binding and the graph adapter.
-GRAPH = {(F08, "1.4"): "1.3", (F02, "2.3"): "2.2"}
+GRAPH = {(F08, "1.4"): "1.3", (F02, "2.3"): "2.2", (COOLING, "1.3"): "1.2"}
 
 
 def _digest(raw):
@@ -113,9 +113,18 @@ def test_only_motor_1_3_cooling_1_2_and_the_graph_versions_serve_the_catalog():
     f02 = {e["catalog_id"] for e in pipeline.entries("f02", "2.3")}
     assert "f02.physicsnemo.FullyConnected" in f02
     assert all(name.startswith("f02.") for name in f02)
+    # Cooling 1.3 (encoded outputs) offers the five baselines re-tested on it (pair-identity C13).
+    assert {e["catalog_id"] for e in pipeline.entries(COOLING, "1.3")} == {
+        "cooling13.neuralop.FNO",
+        "cooling13.neuralop.TFNO",
+        "cooling13.neuralop.UQNO",
+        "cooling13.physicsnemo.FullyConnected",
+        "cooling13.transolver",
+    }
     for challenge_id, version in sv.V7 - {
         (MOTOR, "1.3"),
         (COOLING, "1.2"),
+        (COOLING, "1.3"),
         ("f08-ribbed-bracket", "1.4"),
         ("f02", "2.3"),
     }:

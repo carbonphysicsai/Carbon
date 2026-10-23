@@ -515,6 +515,7 @@ def _versioned_campaigns():
         (MOTOR_CHALLENGE, "1.2"): _motor_catalog,
         (MOTOR_CHALLENGE, "1.3"): functools.partial(_motor_catalog, "1.3"),
         (COLD_PLATE_CHALLENGE, "1.2"): functools.partial(_cold_plate_catalog, "1.2"),
+        (COLD_PLATE_CHALLENGE, "1.3"): functools.partial(_cold_plate_catalog, "1.3"),
         **_direct_campaigns(),
     }
 
