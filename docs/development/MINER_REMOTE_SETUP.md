@@ -30,7 +30,7 @@ is evidence, and the validator rebuilds your recipe on its own pinned backend.
 
 | Transport | Your setup | What Carbon does per practice trial | Worker checked by |
 | --- | --- | --- | --- |
-| `ssh-docker` | A machine (VM, bare metal, workstation) with Docker and the NVIDIA Container Toolkit. Your SSH user runs `docker` without sudo. | Starts one `carbon-job-<24 hex>` container from the pinned worker, by image ID, and removes it. | Image ID |
+| `ssh-docker` | A machine (VM, bare metal, workstation) with Docker and the NVIDIA Container Toolkit. Your SSH user runs `docker` without sudo. | Starts one `carbon-job-<24 hex>` container from the pinned worker, by image ID, and removes it. | Image ID; where your Docker uses another image store than this machine's (containerd vs classic), the image's exact layers and run configuration |
 | `ssh-container` | A container you started from the pinned GPU worker image, with SSH into it. No Docker inside. | Starts one job server process in `/tmp/carbon-job-<24 hex>`, then stops it and removes the directory. | The build identity the image carries |
 | `endpoint` | A job endpoint you expose. | Not built (see [Why there is no endpoint transport](#why-there-is-no-endpoint-transport)). | n/a |
 

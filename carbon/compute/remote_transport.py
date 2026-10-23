@@ -52,6 +52,7 @@ from .remote_machine import (
     checked_destination,
     failure_for,
     job_endpoint,
+    local_fingerprint,
     remove_script,
     send_image,
     start_script,
@@ -245,8 +246,18 @@ class SSHDocker(RemoteTransport):
     sandboxed = True
     carrier_layout = True
 
+    def __init__(self, ssh, *, fingerprint=local_fingerprint):
+        # The controller's store-neutral fingerprint of the pinned worker
+        # (R8-6): the same image under another image store's ID is found by
+        # it, exactly. None (not readable here) leaves the ID check alone.
+        super().__init__(ssh)
+        self.fingerprint = fingerprint
+
     def check(self, image) -> dict:
-        code, _ = self.ssh.run(check_script(image.image_id), timeout=CHECK_SECONDS)
+        code, _ = self.ssh.run(
+            check_script(image.image_id, self.fingerprint(image.image_id)),
+            timeout=CHECK_SECONDS,
+        )
         if code not in (0, NO_WORKER_IMAGE):
             raise failure_for(code)
         return {
@@ -264,7 +275,9 @@ class SSHDocker(RemoteTransport):
 
     def send(self, image) -> str:
         """Stream the pinned worker to the machine: "present" or "sent"."""
-        return send_image(self.ssh, image.image_id)
+        return send_image(
+            self.ssh, image.image_id, fingerprint=self.fingerprint(image.image_id)
+        )
 
     def start(self, name, image, env, command, *, timeout) -> JobEndpoint:
         script = start_script(
@@ -272,6 +285,7 @@ class SSHDocker(RemoteTransport):
             name=name,
             env=(*env, ("CARBON_JOB_PORT", str(JOB_PORT))),
             command=command,
+            fingerprint=self.fingerprint(image.image_id),
         )
         endpoint = self._started(script, timeout)
         # The job container's address on its own private network, never the

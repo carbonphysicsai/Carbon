@@ -32,7 +32,9 @@ hardens it, because the job may run agent-written code (RSURF-D20):
 The job's environment goes through an owner-only temporary file, deleted at
 once. It installs nothing. `remove_script` removes only a container and
 network named `carbon-job-<24 hex>`. `send_image` streams the pinned worker
-(`docker save | ssh docker load`) and checks it arrived by image ID.
+(`docker save | ssh docker load`) and checks it arrived by image ID, or,
+where the machine's Docker image store differs from the controller's, by
+the image's exact store-neutral fingerprint (`FINGERPRINT_FORMAT`).
 
 Every outcome of a run is an exit status (a timeout 124, no `ssh` client
 127), never an exception that could skip a trial's cleanup.
@@ -44,6 +46,7 @@ has its own scripts in `remote_container` (LINKONLY-D5).
 
 from __future__ import annotations
 
+import hashlib
 import ipaddress
 import os
 import re
@@ -72,10 +75,12 @@ __all__ = [
     "environment_lines",
     "failure_for",
     "image_check_script",
+    "local_fingerprint",
     "published_port",
     "remove_script",
     "send_image",
     "start_script",
+    "worker_reference",
 ]
 
 #: The port the job server listens on inside the worker container.
@@ -490,25 +495,106 @@ def _bounded_read(stream, deadline: float) -> bytes:
         kept += chunk[: max(0, MAX_STDOUT_BYTES - len(kept))]
 
 
-def image_check_script(image_id: str) -> str:
-    """Exit 0 when the machine holds `image_id`, else NO_WORKER_IMAGE."""
+#: What two Docker image stores agree on for one image (R8-6). A containerd
+#: store's image ID is the manifest digest and a classic store's the config
+#: digest, so the same pinned worker has one ID on a Docker 29 controller and
+#: another on an older rented box. Neither store's `docker image inspect`
+#: gives the other's ID, and the containerd one gives no config digest at
+#: all. Both give these, read from the same config: every layer's content
+#: digest, and the configuration a job runs with. Their sha256 identifies the
+#: image's bytes and its run configuration exactly.
+FINGERPRINT_FORMAT = (
+    "{{json .RootFS.Layers}} {{json .Config.Env}} {{json .Config.Labels}} "
+    "{{json .Config.Entrypoint}} {{json .Config.Cmd}} {{json .Config.User}} "
+    "{{json .Config.WorkingDir}} {{.Os}} {{.Architecture}} {{.Created}}"
+)
+#: The tag the pinned worker travels under (`docker save` by ID drops every
+#: tag), named by the controller's own image ID.
+WORKER_REPOSITORY = "carbon-gpu-worker"
+_FINGERPRINT = re.compile(r"^[0-9a-f]{64}$")
+
+
+def worker_reference(image_id: str) -> str:
+    """The tag the pinned worker `image_id` is sent and found under."""
+    return f"{WORKER_REPOSITORY}:{_checked_image(image_id)[7:]}"
+
+
+def local_fingerprint(image_id: str, *, docker: str = "docker") -> str | None:
+    """The store-neutral fingerprint of `image_id` in this controller's own
+    Docker, or None when it cannot be read here (then only the ID counts)."""
+    try:
+        completed = subprocess.run(  # fixed argv, no shell
+            [
+                docker,
+                "image",
+                "inspect",
+                "--format",
+                FINGERPRINT_FORMAT,
+                _checked_image(image_id),
+            ],
+            capture_output=True,
+            timeout=60,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if completed.returncode != 0 or not completed.stdout.strip():
+        return None
+    return hashlib.sha256(completed.stdout).hexdigest()
+
+
+def _image_lines(image_id: str, fingerprint: str | None) -> str:
+    """Shell lines that set `carbon_image` to the machine's own ID of the
+    pinned worker, or exit NO_WORKER_IMAGE. The machine holds it by the
+    controller's ID; or, under another image store, as the tagged image
+    whose fingerprint is exactly the controller's."""
     image = shlex.quote(_checked_image(image_id))
-    return f"""set -u
-[ "$(docker image inspect --format '{{{{.Id}}}}' {image} 2>/dev/null)" = {image} ] || exit {NO_WORKER_IMAGE}
-"""
+    lines = [
+        "carbon_image=",
+        "if [ \"$(docker image inspect --format '{{.Id}}' "
+        + image
+        + ' 2>/dev/null)" = '
+        + image
+        + " ]; then",
+        "  carbon_image=" + image,
+    ]
+    if fingerprint is not None:
+        if not _FINGERPRINT.fullmatch(fingerprint):
+            raise ValueError("a worker fingerprint is 64 hex")
+        reference = shlex.quote(worker_reference(image_id))
+        lines += [
+            "else",
+            "  carbon_found=\"$(docker image inspect --format '{{.Id}}' "
+            + reference
+            + ' 2>/dev/null)" || carbon_found=',
+            '  if [[ "$carbon_found" =~ ^sha256:[0-9a-f]{64}$ ]] && [ "$(docker image '
+            "inspect --format "
+            + shlex.quote(FINGERPRINT_FORMAT)
+            + ' "$carbon_found" 2>/dev/null | sha256sum)" = "'
+            + fingerprint
+            + '  -" ]; then',
+            '    carbon_image="$carbon_found"',
+            "  fi",
+        ]
+    lines += ["fi", '[ -n "$carbon_image" ] || exit ' + str(NO_WORKER_IMAGE)]
+    return "\n".join(lines) + "\n"
 
 
-def check_script(image_id: str) -> str:
+def image_check_script(image_id: str, fingerprint: str | None = None) -> str:
+    """Exit 0 when the machine holds `image_id` (by its ID, or by its
+    fingerprint under another image store), else NO_WORKER_IMAGE."""
+    return "set -u\n" + _image_lines(image_id, fingerprint)
+
+
+def check_script(image_id: str, fingerprint: str | None = None) -> str:
     """Setup's live check: the start script's own checks, in its order, and
     nothing started. Exit 0, or the code of the first thing missing; a
     missing image (93) is what "send your worker" fixes."""
-    image = shlex.quote(_checked_image(image_id))
     return f"""set -u
 command -v docker >/dev/null 2>&1 || exit {NO_DOCKER}
 command -v nvidia-ctk >/dev/null 2>&1 || command -v nvidia-container-cli >/dev/null 2>&1 || exit {NO_NVIDIA_TOOLKIT}
 docker info >/dev/null 2>&1 || exit {NO_DOCKER_ACCESS}
-[ "$(docker image inspect --format '{{{{.Id}}}}' {image} 2>/dev/null)" = {image} ] || exit {NO_WORKER_IMAGE}
-exit 0
+{_image_lines(image_id, fingerprint)}exit 0
 """
 
 
@@ -519,6 +605,7 @@ def start_script(
     env: Sequence[tuple[str, str]],
     command: Sequence[str],
     port: int = JOB_PORT,
+    fingerprint: str | None = None,
 ) -> str:
     """The script that starts one hardened job container, by image ID.
 
@@ -527,7 +614,6 @@ def start_script(
     installs nothing and never uses sudo. The job's network shares the job's
     name, so `remove_script` finds both.
     """
-    image = shlex.quote(_checked_image(image_id))
     name = checked_name(name)
     if not 1024 <= port <= 65535:
         raise ValueError("invalid job port")
@@ -542,8 +628,7 @@ umask 077
 command -v docker >/dev/null 2>&1 || exit {NO_DOCKER}
 command -v nvidia-ctk >/dev/null 2>&1 || command -v nvidia-container-cli >/dev/null 2>&1 || exit {NO_NVIDIA_TOOLKIT}
 docker info >/dev/null 2>&1 || exit {NO_DOCKER_ACCESS}
-[ "$(docker image inspect --format '{{{{.Id}}}}' {image} 2>/dev/null)" = {image} ] || exit {NO_WORKER_IMAGE}
-carbon_gpu="$(nvidia-smi --query-gpu=uuid --format=csv,noheader 2>/dev/null)" || carbon_gpu=""
+{_image_lines(image_id, fingerprint)}carbon_gpu="$(nvidia-smi --query-gpu=uuid --format=csv,noheader 2>/dev/null)" || carbon_gpu=""
 carbon_gpu="${{carbon_gpu%%$'\\n'*}}"
 carbon_gpu="${{carbon_gpu//[[:space:]]/}}"
 [[ "$carbon_gpu" =~ ^(GPU|MIG)-[0-9A-Za-z-]{{8,96}}$ ]] || exit {NO_GPU_DEVICE}
@@ -557,7 +642,7 @@ if ! docker run -d --rm --name {name} --network {name} --read-only \\
     --tmpfs /input:rw,nosuid,nodev,exec,uid={WORKER_USER},gid={WORKER_USER},mode=0700 \\
     --cap-drop ALL --security-opt no-new-privileges \\
     --gpus "driver=nvidia,device=$carbon_gpu" \\
-    --env-file "$carbon_env" --entrypoint {shlex.quote(entry)} {image} {" ".join(map(shlex.quote, args))} >/dev/null; then
+    --env-file "$carbon_env" --entrypoint {shlex.quote(entry)} "$carbon_image" {" ".join(map(shlex.quote, args))} >/dev/null; then
   docker network rm {name} >/dev/null 2>&1 || true
   exit {JOB_CONTAINER_NOT_STARTED}
 fi
@@ -622,23 +707,54 @@ def published_port(stdout: bytes) -> int:
 
 
 def send_image(
-    ssh: SSHClient, image_id: str, *, docker: str = "docker", timeout: float = 3600
+    ssh: SSHClient,
+    image_id: str,
+    *,
+    docker: str = "docker",
+    timeout: float = 3600,
+    fingerprint: str | None = None,
 ) -> str:
     """Stream the pinned worker to the machine unless it holds it already.
 
-    `docker save <id> | ssh DEST docker load`, then the image ID is checked
-    on the machine. Returns "present" or "sent"; raises RemoteMachineError.
+    `docker save | ssh DEST docker load`, then the machine is checked to hold
+    it: by the image ID, or, with the controller's `fingerprint`, under the
+    machine's own ID for it where its image store differs (R8-6). With a
+    fingerprint the image travels under its tag (`worker_reference`), which
+    the machine keeps whatever the check finds. Returns "present" or "sent";
+    raises RemoteMachineError.
     """
-    check = image_check_script(image_id)
+    check = image_check_script(image_id, fingerprint)
     code, _ = ssh.run(check, timeout=60)
     if code == 0:
         return "present"
     if code != NO_WORKER_IMAGE:
         raise failure_for(code)
+    source = image_id
+    if fingerprint is not None:
+        # `docker save <id>` drops every tag; saving the tag carries it.
+        source = worker_reference(image_id)
+        try:
+            tagged = subprocess.run(  # fixed argv, no shell
+                [docker, "tag", image_id, source],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=60,
+                check=False,
+            )
+        except FileNotFoundError:
+            raise RemoteMachineError(
+                "no_local_docker", "install Docker on this machine"
+            ) from None
+        except subprocess.TimeoutExpired:
+            raise failure_for(TIMED_OUT) from None
+        if tagged.returncode != 0:
+            raise RemoteMachineError(
+                "worker_image_not_saved", "check the pinned GPU worker is built here"
+            )
     deadline = time.monotonic() + timeout
     try:
         save = subprocess.Popen(  # fixed argv, no shell
-            [docker, "save", image_id],
+            [docker, "save", source],
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
         )
