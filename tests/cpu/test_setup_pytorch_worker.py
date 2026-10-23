@@ -35,6 +35,12 @@ TORCH = {
     ("chip-cold-plate", "1.3"),
     ("f08-ribbed-bracket", "1.4"),
     ("f02", "2.3"),
+    # Graph route v2: each is its predecessor plus the graph adapter, and
+    # practises on the same workers.
+    ("electric-motor-magnetics", "1.4"),
+    ("chip-cold-plate", "1.4"),
+    ("f08-ribbed-bracket", "1.5"),
+    ("f02", "2.4"),
 }
 
 
