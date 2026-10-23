@@ -778,6 +778,53 @@ def test_a_head_git_cannot_read_is_not_a_moved_checkout(tmp_path, state, head):
     assert setup.state()["steps"]["compute"]["next_step"] == REINSTALL_STEP
 
 
+def test_recheck_writes_the_profile_a_changed_step_left_unwritten(
+    tmp_path, state, head
+):
+    """M1 E2E R8-7: after Compute was checked again (which drops Review's
+    record), recheck said ready and wrote nothing; Review had to. It writes
+    it, and with no profile ever written it says so."""
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Current())
+    made = completed(tmp_path, setup)
+    rebuild_path = {
+        "choice": LOCAL_CPU,
+        "image_manifest": made["worker.json"],
+        "analysis_image_manifest": made["analysis.json"],
+    }
+    rebuild(tmp_path, state, REVISION)
+    unwritten = setup.recheck({"confirm": True})
+    assert unwritten["update"]["profile"] == {
+        "written": False,
+        "code": "profile_not_written",
+    }
+    assert "review in setup to write your profile" in unwritten["update"]["next_steps"]
+    setup.review({"confirm": True})
+    setup.compute(rebuild_path)
+    assert setup.state()["steps"]["review"]["profile_written"] is False
+    result = setup.recheck({"confirm": True})
+    assert result["update"]["profile"]["written"] is True
+    assert result["steps"]["review"]["profile_written"] is True
+
+
+def test_a_challenge_without_an_intake_names_a_field_the_schema_has(
+    tmp_path, state, head
+):
+    """M1 E2E R8-7: the refusal sent an MCP agent to a page label; it names
+    `direct_intake_target`, which the review schema now describes."""
+    from scripts.dev.miner_launchpad import setup_operations
+
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Intakes())
+    completed(tmp_path, setup)
+    with pytest.raises(SetupRefused) as refused:
+        setup.review({"confirm": True, "intakes": {"electric-motor-magnetics": OWN}})
+    assert refused.value.code == "challenge_has_no_intake"
+    assert refused.value.field == "intakes"
+    assert "direct_intake_target" in refused.value.next_step
+    for door in (setup_operations.MCP, setup_operations.HTTP):
+        properties = setup_operations.schema("review", door)["properties"]
+        assert {"intakes", "direct_intake_target"} <= set(properties)
+
+
 def test_after_install_needs_the_installed_images(state, head):
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Reinstalled())
     with pytest.raises(SetupRefused) as refused:

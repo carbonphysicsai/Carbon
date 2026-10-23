@@ -146,6 +146,7 @@ SETUP_OPERATIONS = {
             {
                 "intakes",
                 "intake_targets",
+                "direct_intake_target",
                 "receiver_hotkey",
                 "receivers",
                 "practice_auto_retry",
@@ -213,6 +214,15 @@ FIELDS = {
         (
             "Challenge id to a list of distinct {intake_url, receiver_hotkey} validators. "
             "Every receiver is required and checked before signing; the same frozen model is sent to each."
+        ),
+    ),
+    "direct_intake_target": (
+        "object",
+        (
+            "{intake_url, receiver_hotkey}: the construction receiver that "
+            "checks your frozen recipe, for a Challenge that takes no "
+            "validator intake (a direct construction Challenge). Omitted: the "
+            "one you named before is kept."
         ),
     ),
     "receiver_hotkey": (
@@ -538,6 +548,13 @@ def status(
         # answer as `done`, said on the step itself.
         row["blocks_launch"] = row["state"] not in ("done", "skipped")
         rows.append(row)
+    # The backbone catalog this install had, when its entries have no child
+    # for the current parents (an update rebuilt them): its own not-done
+    # item, never all-done (M1 E2E R7-1). Launch still works; practice on a
+    # catalog backbone is refused until it is installed again.
+    catalog_row = _catalog_row(setup)
+    if catalog_row is not None:
+        rows.append(catalog_row)
     nxt = next((row for row in rows if row["state"] == "open"), None)
     if nxt is not None:
         nxt["state"] = "next"
@@ -562,6 +579,24 @@ def status(
     # (MINER-SURVIVE-REBOOT-01): setup's own read-only warning, as Review's.
     reboot = getattr(setup, "reboot_warnings", None)
     result["warnings"] = reboot() if reboot is not None else []
+    if nxt is not None and nxt["id"] == "catalog":
+        launched = campaigns is not None and campaigns > 0
+        result["next"] = {
+            "step": "catalog",
+            "title": nxt["title"],
+            "missing": nxt["missing"],
+            "blocks_launch": False,
+            "human_action_required": nxt["human_action_required"],
+            # Launch is not held up by it.
+            "then": {
+                "step": "launch",
+                "done": launched,
+                "call": _launch_call(
+                    setup, door, launch_available, profile_unusable=profile_unusable
+                ),
+            },
+        }
+        return result
     if nxt is None:
         launched = campaigns is not None and campaigns > 0
         result["next"] = {
@@ -613,6 +648,38 @@ def status(
     result["next"] = entry
     result["skips"] = {OWN_AGENT: {"inference": "your agent uses its own model"}}
     return result
+
+
+def _catalog_row(setup):
+    """The catalog's own step, open, when entries of the catalog this
+    install had are not installed for its current parents; else None."""
+    from scripts.dev.miner_launchpad.catalog_state import INSTALL_COMMAND
+
+    read = getattr(setup, "catalog", None)
+    found = read() if read is not None else None
+    if not found or not found["missing"]:
+        return None
+    command = INSTALL_COMMAND.format(state_dir=Path(setup.root).parent)
+    return {
+        "id": "catalog",
+        "title": "Backbone catalog",
+        "state": "open",
+        "missing": ["catalog_not_installed_for_this_install"],
+        "entries": found["had"],
+        "not_installed": found["missing"],
+        "blocks_launch": False,
+        "blocks": "practice on catalog backbones (refused catalog_not_installed)",
+        "human_action_required": {
+            "who": "you, in a terminal on this machine",
+            "command": command,
+            "why": (
+                "Carbon was updated and its construction parent rebuilt, so "
+                "the catalog's images must be built again over it; Carbon's "
+                "agents never run this. It builds one image per entry and "
+                "can take a long time."
+            ),
+        },
+    }
 
 
 def _one_click(compute) -> bool:

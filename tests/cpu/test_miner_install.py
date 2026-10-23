@@ -422,6 +422,7 @@ case "$2" in
     case "$3" in
       gpu-installed) echo "${CARBON_TEST_GPU_INSTALLED:-no}" ;;
       after-install) echo "What this install changed: (fixture)" ;;
+      catalog-needed) echo "${CARBON_TEST_CATALOG_MISSING:-no}" ;;
       service-unit)
         echo "[Unit]"
         echo "ExecStart=/fixture/carbon-control-center --state-dir $5 --port $7" ;;
@@ -438,6 +439,8 @@ case "$2" in
           echo no
         fi ;;
     esac ;;
+  scripts.dev.catalog_install)
+    [ "${CARBON_TEST_CATALOG_FAILS:-no}" != yes ] || exit 2 ;;
   scripts.dev.miner_launchpad.superseded_images)
     # Carbon's own images from earlier installs (R6-1): the one the test
     # names, if any.
@@ -933,6 +936,30 @@ def test_short_space_offers_carbons_old_images_and_removes_them_only_on_yes(sand
     roomy = sandbox.run("--no-start", CARBON_TEST_OLD_IMAGES=old)
     assert "earlier installs" not in roomy.stdout
     assert not any("superseded_images" in line for line in sandbox.logged())
+
+
+def test_an_update_installs_the_catalog_again_when_its_parent_was_rebuilt(sandbox):
+    """M1 E2E R7-1: an update rebuilt the construction parent and left the
+    catalog this install had uninstalled, silently. It is installed again,
+    said first, only when entries are missing; a failure says what to run."""
+    quiet = sandbox.run("--no-start")
+    assert quiet.returncode == 0, quiet.stderr
+    assert not any("catalog_install" in line for line in sandbox.logged())
+    assert "need building again" not in quiet.stdout
+    again = sandbox.run("--no-start", CARBON_TEST_CATALOG_MISSING="3")
+    assert again.returncode == 0, again.stderr
+    assert "3 of its entries need building again" in again.stdout
+    assert "Practice on catalog backbones waits for it" in again.stdout
+    assert any(
+        "scripts.dev.catalog_install --state-dir " + str(sandbox.state) in line
+        for line in sandbox.logged()
+    )
+    failed = sandbox.run(
+        "--no-start", CARBON_TEST_CATALOG_MISSING="3", CARBON_TEST_CATALOG_FAILS="yes"
+    )
+    assert failed.returncode == 0, failed.stderr
+    assert "The catalog install stopped" in failed.stdout
+    assert "scripts.dev.catalog_install --state-dir" in failed.stdout
 
 
 def test_two_filesystems_each_need_only_their_own_share(sandbox):

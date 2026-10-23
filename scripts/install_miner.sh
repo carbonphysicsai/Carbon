@@ -736,6 +736,19 @@ if [[ -n "${DEVELOPMENT_REVISION}" ]]; then
     --source-tree-digest "${DEVELOPMENT_SOURCE_TREE_DIGEST}"
 fi
 "${setup_cli[@]}" after-install --state-dir "${STATE_DIR}"
+# The backbone catalog this install had is built over its construction
+# parent; an update that rebuilt the parent leaves every entry uninstalled
+# (M1 E2E R7-1). Install it again here, only when entries are missing for
+# the current parent, and say so first: never silently missing.
+catalog_missing="$("${setup_cli[@]}" catalog-needed --state-dir "${STATE_DIR}" 2>/dev/null || true)"
+if [[ "${catalog_missing}" =~ ^[0-9]+$ ]]; then
+  catalog_command="${python} -m scripts.dev.catalog_install --state-dir ${STATE_DIR}"
+  echo
+  echo "This install had the backbone catalog, and ${catalog_missing} of its entries need building again over the new construction parent."
+  echo "Installing them now: one image per entry, which can take a long time. Practice on catalog backbones waits for it; everything else is ready."
+  "${python}" -m scripts.dev.catalog_install --state-dir "${STATE_DIR}" \
+    || echo "The catalog install stopped (above). Practice on catalog backbones is refused until it completes; setup lists it. Run: ${catalog_command}"
+fi
 
 cat <<EOF
 
