@@ -1637,9 +1637,8 @@ OPERATION_NEXT_ACTIONS = {
 #: The plain tail every code without its own entry gets (M1 E2E E9: "Read
 #: the code" was not a next step a newcomer could take).
 FALLBACK_ACTION = (
-    "Nothing was lost: your campaign and any frozen candidate are kept. Check "
-    "the campaign's state (observe) and your setup, change what this names, "
-    "then try again."
+    "Your campaign and any frozen candidate are kept. Check the campaign's "
+    "state (observe) and your setup, change what this names, then try again."
 )
 
 

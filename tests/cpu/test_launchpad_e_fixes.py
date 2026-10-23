@@ -21,7 +21,10 @@ def test_no_miner_text_says_read_the_code():
 def test_a_code_without_its_own_entry_is_said_in_words():
     words = supervisor.next_action("catalog_setting_unknown_for_example")
     assert words.startswith("Refused: catalog setting unknown for example.")
-    assert "your campaign and any frozen candidate are kept" in words
+    assert "Your campaign and any frozen candidate are kept" in words
+    # Generic, so it may follow a charge or a used slot: it never says
+    # nothing was lost (Validator).
+    assert "nothing was lost" not in words.lower()
     # A code with its own entry keeps it.
     assert supervisor.next_action("construction_intake_unavailable") == (
         supervisor.NEXT_ACTIONS["construction_intake_unavailable"]
