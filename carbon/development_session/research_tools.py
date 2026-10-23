@@ -380,8 +380,38 @@ def _correction_choices():
         # A direct recipe's own refusal codes (`construction_recipe`), and a
         # catalog version's catalog codes (`backbone_catalog.entries`).
         "direct_recipe_required": RECIPE_REFUSAL_CODES
-        | frozenset(CATALOG_REFUSAL_CODES),
+        | frozenset(CATALOG_REFUSAL_CODES)
+        | catalog_setting_choices(),
     }
+
+
+def catalog_setting_choices():
+    """`setting:<name>` for every setting name the catalog settings module
+    declares (its own constant names; M1 E2E R9-1), the closed list an
+    unknown-setting correction may name."""
+    from carbon.backbone_catalog import settings
+
+    names = set()
+
+    def gather(value):
+        if type(value) is str:
+            if _CHOICE.match("setting:" + value):
+                names.add(value)
+        elif type(value) in (tuple, list, set, frozenset):
+            for item in value:
+                gather(item)
+        elif type(value) is dict:
+            for key, item in value.items():
+                gather(key)
+                gather(item)
+        elif type(value) is settings.Schema:
+            gather(value.configuration)
+            gather(value.train_use)
+
+    for name in dir(settings):
+        if name.isupper():
+            gather(getattr(settings, name))
+    return frozenset("setting:" + name for name in names)
 
 
 def correction_choices(code):
@@ -1149,8 +1179,18 @@ class ResearchMinerTools:
                     else ()
                 )
                 if issues:
+                    # R9-1: an unknown setting lists the settings that place
+                    # takes, Carbon's own names (never the request's).
+                    listable = catalog_setting_choices()
+                    settings_named = tuple(
+                        "setting:" + name
+                        for name in issues[0].allowed
+                        if "setting:" + name in listable
+                    )
                     raise TaskContractMismatch(
-                        "direct_recipe_required", "strategy_json", (issues[0].code,)
+                        "direct_recipe_required",
+                        "strategy_json",
+                        (issues[0].code, *settings_named),
                     )
             # A backend this host cannot practise is refused here, before
             # anything starts or is charged, with the backends it serves.

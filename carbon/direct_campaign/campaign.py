@@ -35,7 +35,7 @@ SELECTION = {
 REPLICAS = {"reconstructions_per_submission": 1, "seed": 0}
 FEEDBACK_MODES = ("FULL",)
 RUNTIME_KEYS = frozenset(
-    {"implementation", "images", "authored_research", "gpu_research"}
+    {"implementation", "images", "authored_research", "gpu_research", "remote_gpu"}
 )
 
 
@@ -192,8 +192,8 @@ def compose(
     from .practice import DirectPractice
     from .research import make_research_service
 
-    if remote is not None:
-        raise ValueError(spec.prefix + " direct practice is CPU only")
+    if remote is not None and gpu_image is None:
+        raise ValueError(spec.prefix + " remote practice needs its GPU worker")
     key = research_key(spec)
     # The campaign's PyTorch CPU worker is the parent of every catalog bundle's
     # child (installed by `backbone_catalog.pipeline install` into the owner's
@@ -211,6 +211,11 @@ def compose(
     if gpu_image is not None:
         # The catalog practice's GPU builds (shared GPU path, S3).
         practice.gpu_image = gpu_image
+    if remote is not None:
+        from carbon.development_session.catalog_gpu import RemotePractice
+
+        # The GPU phases on the miner's own remote GPU (shared path, S4).
+        practice.runner = RemotePractice(remote, runner)
     composition = make_research_service(
         spec,
         root=ledger.root / "research-tasks",

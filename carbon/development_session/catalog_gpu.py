@@ -13,6 +13,13 @@ catalog entries' GPU builds on the host's pinned GPU worker
   "measured on GPU, not official";
 - recipes stay device-free: the frozen catalog recipe names no runtime, and
   every receiver expands it as before.
+
+Stage S4 runs the same practice on the miner's own remote GPU
+(`carbon.compute.remote_route`, OWNER-MINER-COMPUTE-LINK-ONLY-01): a runtime
+that also declares `remote_gpu` sends the GPU phases (the overlay
+preparation and the overlay build) to one hardened job container on the
+miner's machine over their own SSH (`ssh-docker`), with the same public
+practice inputs; the CPU phases stay on the controller.
 """
 
 from __future__ import annotations
@@ -90,9 +97,117 @@ def registered_gpu_image(root, declared, challenge_id):
 
 
 def with_gpu(runtime, declared, challenge_id, gpu_image):
-    """`runtime` plus the GPU scope when `declared` asks for GPU practice."""
+    """`runtime` plus the GPU scope when `declared` asks for GPU practice,
+    and the remote scope beside it when `declared` asks for remote practice
+    (recomposed against this host's GPU worker, over the declared
+    transport)."""
     if RUNTIME_KEY not in declared:
+        if REMOTE_KEY in declared:
+            raise ValueError("remote GPU practice needs the GPU practice scope")
         return runtime
     if gpu_image is None:
         raise ValueError("a GPU practice runtime needs its installed GPU image")
-    return {**runtime, RUNTIME_KEY: [gpu_scope(challenge_id, gpu_image)]}
+    runtime = {**runtime, RUNTIME_KEY: [gpu_scope(challenge_id, gpu_image)]}
+    if REMOTE_KEY in declared:
+        from carbon.compute.remote_route import declared_remote, remote_scope
+        from carbon.compute.remote_transport import SSH_DOCKER
+
+        transport = declared_remote(declared)["transport"]
+        if transport != SSH_DOCKER:
+            # A bundle job lays its inputs out as the local carrier mounts
+            # them, which only Carbon's hardened job container provides.
+            raise ValueError("catalog practice on a remote GPU runs over ssh-docker")
+        runtime[REMOTE_KEY] = [remote_scope(challenge_id, gpu_image, transport)]
+    return runtime
+
+
+#: The runtime key a remote GPU practice campaign declares
+#: (`carbon.compute.remote_route.RUNTIME_KEY`).
+REMOTE_KEY = "remote_gpu"
+
+
+def remote_worker(image):
+    """Every catalog Challenge's worker on the miner's own remote setup: the
+    pinned GPU worker, with the device environment its GPU build gets from
+    the local carrier (`accelerators.worker_environment`) less what names
+    the controller's own device. The same for every Challenge."""
+    from carbon.compute.remote_runner import RemoteWorker
+    from carbon.reconstruction.accelerators import GPU_DETERMINISM_ENVIRONMENT
+
+    from .gpu_practice import gpu_runtime
+
+    if gpu_runtime(image) is None:
+        raise ValueError("exact pinned GPU worker image required")
+    return RemoteWorker(
+        image=image,
+        environment=(
+            ("JAX_PLATFORMS", "cuda"),
+            ("XLA_PYTHON_CLIENT_PREALLOCATE", "false"),
+            *sorted(GPU_DETERMINISM_ENVIRONMENT.items()),
+        ),
+    )
+
+
+def backend_record(accelerator, parent, gpu_note, runner):
+    """What a catalog practice's feedback records about where it ran, the
+    same for every Challenge: this machine's CPU or GPU, or the miner's own
+    remote GPU (with its transport), a GPU run labelled as such (Validator
+    condition 4). Never a score input."""
+    remote = accelerator is not None and type(runner) is RemotePractice
+    record = {
+        "kind": (
+            "REMOTE_GPU"
+            if remote
+            else "C03_DOCKER_GPU" if accelerator is not None else "C03_DOCKER"
+        ),
+        "parent": getattr(parent, "image_id", None),
+    }
+    if remote:
+        record["transport"] = runner.remote.transport.name
+    if accelerator is not None:
+        record["label"] = LABEL
+    if gpu_note:
+        record["gpu_note"] = gpu_note
+        # M1 E2E R9-3: a GPU host that ran the CPU build says so in words,
+        # where the result is read, not only as a code.
+        record["fallback"] = (
+            "Ran on CPU: "
+            + FALLBACK_WORDS.get(gpu_note, "the GPU build did not run")
+            + ". The score is the CPU build's."
+        )
+    return record
+
+
+#: Why a GPU host ran the CPU build (`gpu_practice.device_build`'s notes).
+FALLBACK_WORDS = {
+    "catalog_gpu_build_missing": "this catalog entry has no GPU build yet",
+    "gpu_overlay_not_installed": "the entry's GPU build is not installed here",
+    "gpu_build_failed": "the entry's GPU build failed",
+}
+
+
+class RemotePractice:
+    """A catalog practice's runner with the miner's own remote GPU: a run on
+    the remote worker's image (the GPU parent) goes to the remote setup, and
+    every other run (the CPU parent's, the source-free inference) to the
+    controller's own carrier, unchanged. Names no Challenge."""
+
+    def __init__(self, remote, local=None):
+        from carbon.compute.remote_runner import RemoteRunner
+
+        if type(remote) is not RemoteRunner:
+            raise ValueError("the remote practice runner is the remote route's")
+        self.remote, self.local = remote, local
+
+    @property
+    def image_id(self):
+        return self.remote.image_id
+
+    def __call__(self, ledger, **kwargs):
+        if getattr(kwargs.get("image"), "image_id", None) == self.remote.image_id:
+            return self.remote(ledger, **kwargs)
+        if self.local is not None:
+            return self.local(ledger, **kwargs)
+        from .research_carrier import _run
+
+        return _run(ledger, **kwargs)

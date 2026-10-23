@@ -498,11 +498,13 @@ def test_the_mismatch_refusal_says_plainly_what_to_do():
     step = next_action("construction_intake_challenge_mismatch")
     assert "serves exactly one Challenge version" in step
     assert "carbon_setup_review" in step and "frozen candidate is kept" in step
-    from scripts.dev.miner_launchpad.supervisor import FALLBACK_ACTION
+    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
 
     for code in (
         "construction_intake_challenge_mismatch",
         "construction_intake_chain_mismatch",
         "construction_contract_not_served",
     ):
-        assert next_action(code) != FALLBACK_ACTION
+        # Its own entry, not the generic fallback (E9 made the fallback name
+        # the code, so a text comparison would no longer tell them apart).
+        assert code in NEXT_ACTIONS, code

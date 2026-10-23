@@ -328,6 +328,21 @@ def _challenges(profile_state, host, cfg=None):
             item["catalog_recipes"] = catalog_recipes(
                 entry["challenge_id"], entry["version"]
             )
+            # E11 (newcomer list): a Challenge with no ready recipe and no
+            # installable backbone cannot be practised from the page; say so
+            # rather than offer it as if it could (Battery 2.2 until its
+            # catalog entries land).
+            ready = bool(item["example_strategy"] or item["catalog_recipes"])
+            item["practise"] = {
+                "ready": ready,
+                "reason": None if ready else "no_ready_recipe_yet",
+                "plain": (
+                    None
+                    if ready
+                    else "Coming soon: no ready model is installable for this "
+                    "Challenge yet. You can read its description now."
+                ),
+            }
         if refusal is None and not profile_state["configured"]:
             refusal = {
                 "code": profile_state["reason"],

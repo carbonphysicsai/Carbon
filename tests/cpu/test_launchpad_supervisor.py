@@ -880,7 +880,7 @@ def test_a_code_from_another_slice_reaches_the_miner_with_a_generic_step(
     join(host)
     entry = host.get(identity)["last_refusal"]
     assert entry["code"] == "intake_refused_new_code"
-    assert entry["next_action"] == supervision.FALLBACK_ACTION
+    assert entry["next_action"] == supervision.next_action("intake_refused_new_code")
     # A code that is not a closed identifier is never echoed.
     assert supervision.refusal("Provider said: SECRET")["code"] == "operation_refused"
 

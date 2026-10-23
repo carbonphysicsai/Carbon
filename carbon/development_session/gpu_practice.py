@@ -262,7 +262,12 @@ def gpu_overlay(practice, identity, bundle, parent, expanded, kit, limits_docume
         accelerator=MINER_GPU,
         runner=practice.runner,
     )
-    if prep.controls_digest is None:
+    from .catalog_gpu import RemotePractice
+
+    # A preparation on the miner's own remote GPU (S4) ran in the route's
+    # hardened job container, not a local C-03 operation with a controls
+    # record; the overlay itself is checked the same way either way.
+    if prep.controls_digest is None and type(practice.runner) is not RemotePractice:
         raise ValueError("completed C03 preparation controls unavailable")
     return cache_verified_overlay(
         prep.snapshot,

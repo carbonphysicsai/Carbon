@@ -1,10 +1,18 @@
 # Practising on your own remote machine or container
 
 Carbon connects your Control Center to a GPU machine or container you already
-run, anywhere, and runs battery practice there. You choose the setup. Carbon
-provides the wiring and the tooling (OWNER-MINER-COMPUTE-LINK-ONLY-01, amended
-2026-10-02: "miners should be able to use whatever they want to run their
-setup").
+run, anywhere, and runs GPU practice there: Battery's GPU program, and the
+GPU build of every catalog Challenge's recipe (Motor, Cooling, Ribbed
+Bracket, Burst Thermal). You choose the setup. Carbon provides the wiring and
+the tooling (OWNER-MINER-COMPUTE-LINK-ONLY-01, amended 2026-10-02: "miners
+should be able to use whatever they want to run their setup").
+
+Catalog practice runs only over `ssh-docker` (a Lium DinD box or your own
+server): its build job lays its inputs out in the job container's empty
+`/input` tmpfs, as practice on your own machine does. Only the build runs on
+the remote GPU; the source-free inference stays on your controller. A result
+is labelled "measured on GPU, not official", and CPU and GPU results can
+differ.
 
 What Carbon never does:
 

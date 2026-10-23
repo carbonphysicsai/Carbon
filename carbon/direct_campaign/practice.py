@@ -445,11 +445,11 @@ class DirectPractice:
             accelerator=accelerator,
             runner=self.runner,
         )
-        backend = {
-            "kind": "C03_DOCKER_GPU" if accelerator else "C03_DOCKER",
-            "parent": getattr(construction_parent, "image_id", None),
-            **({"gpu_note": gpu_note} if gpu_note else {}),
-        }
+        from carbon.development_session.catalog_gpu import backend_record
+
+        backend = backend_record(
+            accelerator, construction_parent, gpu_note, self.runner
+        )
         return result, backend, recipe
 
     def _graph(self, recipe, binding, material, identity):

@@ -304,7 +304,8 @@ def _motor():
 
 def _catalog_gpu(key):
     """The one shared GPU practice hooks of a catalog campaign (S3,
-    `development_session.catalog_gpu`): the same for every Challenge."""
+    `development_session.catalog_gpu`), with its remote GPU worker (S4): the
+    same for every Challenge."""
     from carbon.development_session import catalog_gpu
 
     return {
@@ -313,6 +314,7 @@ def _catalog_gpu(key):
         ),
         "gpu_scope": lambda image: catalog_gpu.gpu_scope(key.challenge_id, image),
         "declared_gpu": catalog_gpu.declared_scope,
+        "remote_worker": catalog_gpu.remote_worker,
     }
 
 
@@ -685,7 +687,12 @@ def declared_remote(runtime):
     scope = shape(runtime)
     if scope is None:
         return None
-    declared_gpu(runtime)
+    from carbon.development_session import catalog_gpu
+
+    if declared_gpu(runtime)[0].get("schema") == catalog_gpu.SCOPE_SCHEMA:
+        # A catalog campaign's shared scope: every catalog version offers
+        # remote practice through the shared remote worker (S4).
+        return scope
     if campaign_for_id(runtime_challenge(runtime)).remote_worker is None:
         raise ValueError("this Challenge offers no remote GPU practice")
     return scope

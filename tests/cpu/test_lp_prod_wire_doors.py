@@ -271,7 +271,7 @@ def test_the_mcp_doors_refusal_is_the_catalogs_step_for_every_code():
     # A code the catalog does not name is still answered, with its fallback.
     assert refusal("a_code_from_a_later_slice") == {
         "error": "a_code_from_a_later_slice",
-        "next_step": supervision.FALLBACK_ACTION,
+        "next_step": supervision.next_action("a_code_from_a_later_slice"),
     }
 
 

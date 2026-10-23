@@ -105,6 +105,9 @@ class RecipeIssue:
     code: str
     path: str
     message: str
+    #: The settings the place takes, where the refusal names them (Carbon's
+    #: own setting names, never the request's).
+    allowed: tuple = ()
 
 
 #: The registered text for each code the recipe rule names. A recipe code is
@@ -197,6 +200,7 @@ def construction_recipe_issues(strategy, key):
                 refused.code,
                 _RECIPE_ISSUE_PATH.get(refused.code, ""),
                 RECIPE_ISSUE_TEXT.get(refused.code, RECIPE_ISSUE_DEFAULT),
+                tuple(getattr(refused, "allowed", ())),
             ),
         )
     return ()

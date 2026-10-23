@@ -107,6 +107,26 @@ SCHEMAS = {
     s.schema_id: s
     for s in (COVERAGE, LEVERS, JAX_LEVERS, COOLING_LEVERS, F08_LEVERS, F02_LEVERS)
 }
+#: Each Torch schema's GPU (`torch-cu130-py311`) build, the one deterministic
+#: transform of its CPU build (`gpu_build`, U58): the same vocabulary, its own
+#: build bytes. A schema accepts both builds; the CPU hash stays its own.
+GPU_BUILDS = {
+    COVERAGE.schema_id: (
+        "sha256:e4ae4ddf484f10ab35d92868139f888033eab66f9d06c5fd428212b1014e2f3a"
+    ),
+    LEVERS.schema_id: (
+        "sha256:ee4c81994543975bb2b51248c2a6a359ddb0c296e6b2fc8ee75f77107bc7968d"
+    ),
+    COOLING_LEVERS.schema_id: (
+        "sha256:a5b0b8a8deee166275aa606659f829d4a4c07e7f5e57254785b4f27166cf7163"
+    ),
+    F08_LEVERS.schema_id: (
+        "sha256:299063aaa3a536b43e46bb6e31ce7e9ad89ec1960ae3f7864072f98f1bbc6186"
+    ),
+    F02_LEVERS.schema_id: (
+        "sha256:0116f966f3e41f151bb3da64da4f778688a44d9c474e4534eb19d2031f53a842"
+    ),
+}
 #: Each levers build's accepted mixed-precision values.
 PRECISIONS = {
     LEVERS.schema_id: ("bfloat16", "float16"),
@@ -133,9 +153,17 @@ TRAIN_LEVERS = (
 )
 
 
+def build_hashes(schema_id):
+    """The build hashes a schema accepts: its CPU build, and its GPU build
+    when it has one."""
+    schema = SCHEMAS[schema_id]
+    gpu = GPU_BUILDS.get(schema_id)
+    return (schema.build_sha256,) if gpu is None else (schema.build_sha256, gpu)
+
+
 def schema_for_build(sha256):
     for schema in SCHEMAS.values():
-        if schema.build_sha256 == sha256:
+        if sha256 in build_hashes(schema.schema_id):
             return schema.schema_id
     raise CatalogRefused(
         "catalog_library_not_pinned", "no settings schema mirrors this build"
@@ -151,10 +179,14 @@ def _only(value, allowed, where):
         _bad(where, "an object")
     extra = sorted(set(value) - set(allowed))
     if extra:
-        raise CatalogRefused(
+        refused = CatalogRefused(
             "catalog_setting_unknown",
             f"{where} has no setting {extra[0]!r}; it has {', '.join(sorted(allowed)) or 'none'}",
         )
+        # The settings this place does take, Carbon's own names, so a door
+        # can list them (M1 E2E R9-1: an agent never learned what was wrong).
+        refused.allowed = tuple(sorted(allowed))
+        raise refused
 
 
 def _number(value):

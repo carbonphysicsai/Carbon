@@ -60,6 +60,9 @@ MINER_SURFACES = (
     # device choice run on the miner's machine.
     "carbon/development_session/catalog_gpu.py",
     "carbon/development_session/gpu_practice.py",
+    # Its remote route and worker (S4): what reaches the miner's own GPU.
+    "carbon/compute/remote_route.py",
+    "carbon/compute/remote_runner.py",
 )
 #: The shared card pack the miner edition ships.
 SHARED_PACK = "carbon/agent_campaign/graphite/miner/packs"
@@ -443,6 +446,8 @@ def _plant(tmp_path):
         "carbon/development_session/__init__.py": "",
         "carbon/development_session/catalog_gpu.py": "",
         "carbon/development_session/gpu_practice.py": "",
+        "carbon/compute/remote_route.py": "",
+        "carbon/compute/remote_runner.py": "",
         "carbon/agent_campaign/graphite/miner/__init__.py": "",
         "carbon/agent_campaign/graphite/miner/edition.py": (
             "def priors(root):\n"
@@ -493,7 +498,13 @@ def test_a_planted_import_of_the_store_from_a_miner_path_fails_the_check(tmp_pat
             alone = reach(closure(root, (surface,)), root)
             # Planted empty: a surface with nothing to reach.
             if surface.endswith(
-                ("method_cards.py", "catalog_gpu.py", "gpu_practice.py")
+                (
+                    "method_cards.py",
+                    "catalog_gpu.py",
+                    "gpu_practice.py",
+                    "remote_route.py",
+                    "remote_runner.py",
+                )
             ):
                 assert not alone
             else:

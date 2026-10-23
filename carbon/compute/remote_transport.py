@@ -182,6 +182,10 @@ class RemoteTransport:
     #: The miner's opt-in to agent-written code with no sandbox; only a
     #: transport with no sandbox can carry it.
     unsandboxed_code_cell: bool = False
+    #: Whether a job may lay out its inputs as the local carrier mounts them
+    #: (an empty `/input` beside `/scratch`): only in Carbon's hardened job
+    #: container, never a process in the miner's own container.
+    carrier_layout: bool = False
 
     def __init__(self, ssh):
         self.ssh = ssh
@@ -239,6 +243,7 @@ class SSHDocker(RemoteTransport):
     image_verified_by = IMAGE_ID
     cleans = "job-container"
     sandboxed = True
+    carrier_layout = True
 
     def check(self, image) -> dict:
         code, _ = self.ssh.run(check_script(image.image_id), timeout=CHECK_SECONDS)

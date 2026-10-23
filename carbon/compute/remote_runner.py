@@ -20,6 +20,18 @@ scored on the miner's own controller. What differs is where the program runs:
 `RemoteWorker` is the Challenge's part: the pinned worker image and the
 environment its practice program needs. The runner names no Challenge.
 
+**Carrier-layout jobs (catalog bundle practice, shared GPU path S4).** The
+shared bundle worker's GPU phases (overlay preparation and the overlay
+build) pass the carrier's own layout arguments: a `bootstrap`, a verified
+`trusted_overlay`, the pinned uv stage. Their programs read `/input` and
+write `/scratch/output`, as the local carrier mounts them. Such a job runs
+only in Carbon's hardened job container (`ssh-docker`, whose empty `/input`
+tmpfs sits beside `/scratch`), through one fixed adapter program
+(`CARRIER_LAYOUT`) that lays the staged inputs out there, runs the
+bootstrap and returns `/scratch/output`. The controller checks the overlay
+and the uv stage before anything is sent, and the bundle worker's own output
+validator checks what comes back, as it does locally.
+
 OWNER-MINER-COMPUTE-LINK-ONLY-01: Carbon never starts, stops or bills the
 machine; that is the miner's. **The trust boundary stays on the miner's
 controller.** The controller, the hotkey signer and every key stay there; the
@@ -54,6 +66,84 @@ START_COMMAND = (
     "carbon.compute.job_server",
 )
 _IMAGE_ID = re.compile(r"^sha256:[0-9a-f]{64}$")
+#: What a carrier-layout job stages beside its inputs: the carrier's program,
+#: its bootstrap, the layout itself and, for an overlay build, the verified
+#: overlay as one archive.
+CARRIER_PROGRAM = "carbon-carrier-program.py"
+CARRIER_BOOTSTRAP = "carbon-carrier-bootstrap.py"
+CARRIER_FILES = "carbon-carrier-layout.json"
+CARRIER_OVERLAY = "carbon-carrier-overlay.tar"
+CARRIER_NAMES = frozenset(
+    {CARRIER_PROGRAM, CARRIER_BOOTSTRAP, CARRIER_FILES, CARRIER_OVERLAY}
+)
+#: The fixed program a carrier-layout job runs: stdlib only, from the job
+#: server's own input directory. `/input` and `/scratch` are the hardened job
+#: container's tmpfs mounts; a test of this module names others.
+CARRIER_LAYOUT = r'''"""Carbon's carrier layout in a remote job container (remote_runner)."""
+import json, os, shutil, subprocess, sys, tarfile
+from pathlib import Path
+
+here = Path(__file__).resolve().parent
+out = Path.cwd().parent / "output"
+layout = json.loads((here / "carbon-carrier-layout.json").read_bytes())
+stage = Path(os.environ.get("CARBON_CARRIER_INPUT", "/input"))
+scratch = Path(os.environ.get("CARBON_CARRIER_SCRATCH", "/scratch"))
+if not stage.is_dir() or any(stage.iterdir()):
+    raise SystemExit("carrier layout needs an empty /input")
+for name in layout["files"]:
+    shutil.copyfile(here / name, stage / name)
+    (stage / name).chmod(0o555 if name in layout["executable"] else 0o444)
+shutil.copyfile(here / "carbon-carrier-program.py", stage / "program.py")
+(stage / "program.py").chmod(0o444)
+if layout["overlay"]:
+    with tarfile.open(here / "carbon-carrier-overlay.tar", mode="r:") as archive:
+        members = archive.getmembers()
+        for member in members:
+            parts = Path(member.name).parts
+            if (member.name.startswith("/") or ".." in parts or not parts
+                    or parts[0] != "overlay" or not (member.isreg() or member.isdir())):
+                raise SystemExit("closed overlay archive required")
+        archive.extractall(stage, members=members, filter="data")
+    for entry in sorted((stage / "overlay").rglob("*"), reverse=True):
+        entry.chmod(0o555 if entry.is_dir() else 0o444)
+    (stage / "overlay").chmod(0o555)
+bootstrap = (here / "carbon-carrier-bootstrap.py").read_text()
+done = subprocess.run([sys.executable, "-I", "-c", bootstrap], check=False)
+made = scratch / "output"
+if made.is_dir():
+    for item in sorted(made.iterdir()):
+        if item.is_file() and not item.is_symlink():
+            shutil.copyfile(item, out / item.name)
+raise SystemExit(done.returncode)
+'''
+
+
+def overlay_archive(root) -> bytes:
+    """A verified overlay tree as one deterministic tar under `overlay/`:
+    regular files and directories only."""
+    import io
+    import tarfile
+    from pathlib import Path
+
+    root = Path(root)
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w", format=tarfile.PAX_FORMAT) as archive:
+        entries = sorted(root.rglob("*"), key=lambda p: p.relative_to(root).as_posix())
+        for path in (root, *entries):
+            relative = path.relative_to(root).as_posix()
+            name = "overlay" if relative == "." else "overlay/" + relative
+            if path.is_symlink() or not (path.is_dir() or path.is_file()):
+                raise ValueError("a verified overlay holds files and directories")
+            info = tarfile.TarInfo(name)
+            info.mtime, info.uid, info.gid = 0, 0, 0
+            if path.is_dir():
+                info.type, info.mode = tarfile.DIRTYPE, 0o755
+                archive.addfile(info)
+            else:
+                body = path.read_bytes()
+                info.size, info.mode = len(body), 0o644
+                archive.addfile(info, io.BytesIO(body))
+    return buffer.getvalue()
 
 
 def _cancel_requested(ledger, owner, identity):
@@ -169,6 +259,138 @@ class RemoteRunner:
             timeout=self.startup_seconds,
         )
 
+    def _layout(
+        self,
+        image,
+        files,
+        *,
+        bootstrap,
+        executable_files,
+        trusted_overlay,
+        trusted_stage_provider,
+        trusted_stage_identity,
+    ):
+        """What a carrier-layout job binds in its request, checked before
+        anything is reserved; None for a job in the job server's own layout
+        (a GPU practice program, unchanged)."""
+        if (
+            bootstrap is None
+            and trusted_overlay is None
+            and trusted_stage_provider is None
+            and not executable_files
+        ):
+            if trusted_stage_identity is not None:
+                raise ValueError("trusted stage identity without provider")
+            return None
+        if not getattr(self.transport, "carrier_layout", False):
+            raise ValueError(
+                "catalog bundle practice on a remote GPU runs over ssh-docker"
+            )
+        if type(bootstrap) is not str or not bootstrap:
+            raise ValueError("a carrier-layout job names its bootstrap")
+        if CARRIER_NAMES & set(files) or "program.py" in files:
+            raise ValueError("closed stage required")
+        if executable_files not in ((), ("uv-bin",)) or (
+            executable_files and trusted_stage_provider is None
+        ):
+            raise ValueError("trusted preparation executable role required")
+        if (trusted_stage_provider is None) != (trusted_stage_identity is None) or (
+            trusted_stage_provider is not None and not callable(trusted_stage_provider)
+        ):
+            raise ValueError("trusted pinned UV stage required")
+        layout = {
+            "bootstrap": digest(bootstrap.encode()),
+            "executable_files": list(executable_files),
+        }
+        if trusted_stage_identity is not None:
+            layout["trusted_stage_identity"] = trusted_stage_identity
+        if trusted_overlay is not None:
+            from carbon.development_session.library_environment_cache import (
+                VerifiedLibraryOverlay,
+            )
+
+            if (
+                type(trusted_overlay) is not VerifiedLibraryOverlay
+                or trusted_overlay.parent_image_id != image.image_id
+            ):
+                raise ValueError("trusted construction-only overlay required")
+            layout["verified_overlay"] = {
+                "tree_digest": trusted_overlay.tree_digest,
+                "bundle_ref": trusted_overlay.bundle_ref.to_dict(),
+                "parent_image_id": trusted_overlay.parent_image_id,
+                "archive_digest": trusted_overlay.archive_digest,
+            }
+        return layout
+
+    def _staged(self, source, files, layout, *, bootstrap, overlay, provider):
+        """The job's whole stage: its inputs and the job server's program,
+        or, for a carrier-layout job, the fixed adapter with the carrier's
+        program, bootstrap, uv stage and verified overlay beside them."""
+        if layout is None:
+            return {**files, PROGRAM: source.encode()}
+        staged = dict(files)
+        if provider is not None:
+            from carbon.development_session.research_carrier import (
+                _checked_pinned_uv_stage,
+            )
+            from carbon.reconstruction.worker.docker_runtime import DockerCLI
+
+            # The pinned uv binary, copied from the controller's own pinned
+            # image exactly as the local carrier stages it.
+            staged.update(
+                _checked_pinned_uv_stage(
+                    provider(DockerCLI()), layout["trusted_stage_identity"]
+                )
+            )
+        listed = sorted(staged)
+        if overlay is not None:
+            from carbon.development_session.library_environment_cache import (
+                _verified_overlay_tree,
+            )
+
+            receipt = json.loads((overlay.path / ".overlay.json").read_bytes())
+            if (
+                type(receipt) is not dict
+                or receipt.get("tree_digest") != overlay.tree_digest
+                or receipt.get("bundle_ref") != overlay.bundle_ref.to_dict()
+                or receipt.get("parent_image_id") != overlay.parent_image_id
+                or receipt.get("archive_sha256") != overlay.archive_digest
+            ):
+                raise ValueError("trusted overlay receipt differs")
+            _verified_overlay_tree(overlay.path, receipt)
+            staged[CARRIER_OVERLAY] = overlay_archive(overlay.path)
+        staged[CARRIER_FILES] = canonical(
+            {
+                "files": listed,
+                "executable": layout["executable_files"],
+                "overlay": overlay is not None,
+            }
+        )
+        staged[CARRIER_PROGRAM] = source.encode()
+        staged[CARRIER_BOOTSTRAP] = bootstrap.encode()
+        staged[PROGRAM] = CARRIER_LAYOUT.encode()
+        return staged
+
+    def _failed(self, ledger, *, cleaned, failure, **settle):
+        """Settle a trial that did not complete: infrastructure, never the
+        candidate's, with the full reservation retained."""
+        ledger.finish(
+            settle["identity"],
+            owner=settle["owner"],
+            state="FAILED_INFRA",
+            actual=settle["resources"],
+            result={
+                "schema": "carbon.autoresearch.worker-reconciliation.v1",
+                "operation": settle["operation"].name,
+                "state": "FAILED_INFRA",
+                "remote": outcome(settle["remote"], cleaned),
+                "failed": getattr(failure, "code", type(failure).__name__),
+                "accounting": "full original reservation retained",
+                "scientific_outcome": "UNRESOLVED",
+                "retry_dispatched": False,
+            },
+        )
+
     def __call__(
         self,
         ledger,
@@ -182,6 +404,12 @@ class RemoteRunner:
         provenance,
         extra_resources,
         accelerator=None,
+        bootstrap=None,
+        output_validator=None,
+        executable_files=(),
+        trusted_overlay=None,
+        trusted_stage_provider=None,
+        trusted_stage_identity=None,
     ):
         del accelerator  # The machine's GPUs, through the pinned worker.
         if getattr(image, "image_id", None) != self.image_id:
@@ -190,6 +418,17 @@ class RemoteRunner:
             raise ValueError("bounded worker wall allowance required")
         if type(files) is not dict or PROGRAM in files:
             raise ValueError("closed stage required")
+        if output_validator is not None and not callable(output_validator):
+            raise ValueError("output validator required")
+        layout = self._layout(
+            image,
+            files,
+            bootstrap=bootstrap,
+            executable_files=tuple(executable_files),
+            trusted_overlay=trusted_overlay,
+            trusted_stage_provider=trusted_stage_provider,
+            trusted_stage_identity=trusted_stage_identity,
+        )
         remote = self.transport.describe(self.worker.image)
         request = {
             "source": digest(source.encode()),
@@ -197,6 +436,9 @@ class RemoteRunner:
             "seconds": seconds,
             "provenance": provenance,
             "remote": remote,
+            # Absent for a job in the job server's own layout, so existing
+            # remote operation identities are unchanged.
+            **({} if layout is None else {"carrier_layout": layout}),
         }
         launch = digest(
             canonical({"owner": owner, "identity": identity, "request": request})
@@ -204,7 +446,9 @@ class RemoteRunner:
         operation = ledger.root / ("operation-" + launch[7:])
         resources = {
             "numerical_milliseconds": seconds * 1000,
-            "retained_bytes": sum(map(len, files.values())) + 2 * 64 * 1024**2,
+            "retained_bytes": sum(map(len, files.values()))
+            + (0 if trusted_overlay is None else trusted_overlay.total_bytes)
+            + 2 * 64 * 1024**2,
             **extra_resources,
         }
         admission = ledger.reserve(
@@ -224,9 +468,24 @@ class RemoteRunner:
         name = job_name(launch)
         started = time.monotonic()
         cleaned = False
+        settle = {
+            "owner": owner,
+            "identity": identity,
+            "resources": resources,
+            "operation": operation,
+            "remote": remote,
+        }
         try:
             tunnel = None
             try:
+                staged = self._staged(
+                    source,
+                    files,
+                    layout,
+                    bootstrap=bootstrap,
+                    overlay=trusted_overlay,
+                    provider=trusted_stage_provider,
+                )
                 endpoint = self._start(name, record, seconds)
                 tunnel = self.transport.tunnel(endpoint)
                 # The job is reached only through the tunnel's owner-only Unix
@@ -239,7 +498,7 @@ class RemoteRunner:
                 )
                 now = job.clock()
                 result, output = job.run(
-                    {**files, PROGRAM: source.encode()},
+                    staged,
                     ready_deadline=now + self.startup_seconds,
                     run_deadline=now + self.startup_seconds + seconds + 60,
                 )
@@ -249,28 +508,28 @@ class RemoteRunner:
                 if tunnel is not None:
                     tunnel.close()
                 cleaned = self.transport.cleanup(name)
+            if layout is not None:
+                # The carrier's output set only: the job's stderr stays beside
+                # the snapshot, never in it.
+                stderr = output.pop("carbon-job-stderr.txt", b"")
+                write_once(operation / "remote-stderr.txt", stderr[-65536:])
+                if result.get("state") != "DONE":
+                    raise RemoteJobFailure("run", "the carrier program failed")
         except (RemoteMachineError, RemoteJobFailure, OSError, ValueError) as failure:
-            ledger.finish(
-                identity,
-                owner=owner,
-                state="FAILED_INFRA",
-                actual=resources,
-                result={
-                    "schema": "carbon.autoresearch.worker-reconciliation.v1",
-                    "operation": operation.name,
-                    "state": "FAILED_INFRA",
-                    "remote": outcome(remote, cleaned),
-                    "failed": getattr(failure, "code", type(failure).__name__),
-                    "accounting": "full original reservation retained",
-                    "scientific_outcome": "UNRESOLVED",
-                    "retry_dispatched": False,
-                },
-            )
+            self._failed(ledger, cleaned=cleaned, failure=failure, **settle)
             raise
         snapshot = operation / "snapshot"
         snapshot.mkdir(mode=0o700)
         for file_name, body in output.items():
             write_once(snapshot / file_name, body)
+        if output_validator is not None:
+            # The bundle worker's own check of its program's output, applied
+            # before settling, as the local carrier applies it.
+            try:
+                output_validator(snapshot)
+            except (ValueError, OSError, KeyError, TypeError) as failure:
+                self._failed(ledger, cleaned=cleaned, failure=failure, **settle)
+                raise
         worker_result = {
             "schema": "carbon.autoresearch.worker-result.v1",
             "provenance": provenance,

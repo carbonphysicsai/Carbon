@@ -143,7 +143,10 @@ def test_setup_offers_the_miners_own_remote_machine_or_container():
     assert remote["needs_gpu_image"] is True and "speed only" in remote["note"]
     assert "never starts, stops or" in remote["cost_basis"]
     assert remote["guide"] == "docs/development/MINER_REMOTE_SETUP.md"
-    assert [c["id"] for c in remote["for_challenges"]] == [BATTERY_CHALLENGE]
+    # Battery, and every catalog version through the shared hook (S4).
+    listed = [c["id"] for c in remote["for_challenges"]]
+    assert listed[0] == BATTERY_CHALLENGE
+    assert {"electric-motor-magnetics", "f08-ribbed-bracket"} <= set(listed)
     transports = {t["id"]: t for t in remote["transports"]}
     assert [t["id"] for t in remote["transports"]] == [
         "ssh-docker",

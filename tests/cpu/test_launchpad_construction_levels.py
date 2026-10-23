@@ -544,7 +544,7 @@ def test_both_doors_keep_old_level_fields_for_replay_only():
 
 
 def test_every_level_code_has_a_next_step():
-    from scripts.dev.miner_launchpad.supervisor import FALLBACK_ACTION, next_action
+    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
 
     codes = [
         c
@@ -553,7 +553,7 @@ def test_every_level_code_has_a_next_step():
     ]
     assert "level_not_registered" in codes and "level_not_served_by_target" in codes
     for code in codes + ["level_compile_unavailable"]:
-        assert next_action(code) != FALLBACK_ACTION, code
+        assert code in NEXT_ACTIONS, code
 
 
 # ---- The spawn gate (Test Lead's ruling on #902).
