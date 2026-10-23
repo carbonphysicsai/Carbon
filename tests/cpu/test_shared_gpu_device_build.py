@@ -126,3 +126,22 @@ def test_a_gpu_host_prepares_the_overlay_on_demand(monkeypatch):
     )
     assert out[2:5] == (made, "parent-of-gpu", MINER_GPU)
     assert asked == [("gpu", "parent-of-gpu")]
+
+
+def test_a_failed_gpu_build_logs_why(monkeypatch, caplog):
+    # M1 E2E: a 5090 fell back to the CPU build with no reason anywhere.
+    import logging
+
+    monkeypatch.setattr(gpu_practice, "gpu_runtime", lambda image: "torch-cu130-py311")
+
+    def failing(bundle, parent, built):
+        raise RuntimeError("no kernel image is available for sm_120")
+
+    with caplog.at_level(logging.WARNING, logger=gpu_practice.__name__):
+        out = gpu_practice.device_build(
+            _Practice("gpu", {"cpu": "cpu-image"}), _expand_for, str, failing
+        )
+    assert out[-1] == "gpu_build_failed"
+    (record,) = [r for r in caplog.records if r.name == gpu_practice.__name__]
+    assert "torch-cu130-py311" in record.getMessage()
+    assert "sm_120" in str(record.exc_info[1])

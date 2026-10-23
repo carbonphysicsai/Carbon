@@ -285,8 +285,9 @@ def device_build(practice, expand_for, bundle_of, overlay=None):
     GPU worker when that build is installed as a verified overlay, else its
     CPU build. Returns (expanded, bundle, image, construction_parent,
     accelerator, gpu_note); gpu_note says why a GPU host ran the CPU build
-    (`catalog_gpu_build_missing`, `gpu_overlay_not_installed`,
-    `gpu_build_failed`), None otherwise. Never a score input."""
+    (`catalog_gpu_build_missing`, `catalog_gpu_build_not_offered`,
+    `gpu_overlay_not_installed`, `gpu_build_failed`), None otherwise. Never a score input.
+    """
     from carbon.backbone_catalog.served import GpuBuildMissing
 
     from .library_environment_cache import VerifiedLibraryOverlay
@@ -311,7 +312,16 @@ def device_build(practice, expand_for, bundle_of, overlay=None):
             note = "gpu_overlay_not_installed"
         except GpuBuildMissing as missing:
             note = missing.code
-        except Exception:  # noqa: BLE001 - a GPU attempt never fails the practice
+        except Exception:  # a GPU attempt never fails the practice
+            # Why, in the controller's own log (M1 E2E: a 5090 fell back with
+            # no reason anywhere). The note stays the code; the CPU build runs.
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "catalog GPU build failed for runtime %s; practising the CPU build",
+                runtime,
+                exc_info=True,
+            )
             note = "gpu_build_failed"
     expanded = expand_for(None)
     bundle = bundle_of(expanded["source"]["bundle_ref"])
