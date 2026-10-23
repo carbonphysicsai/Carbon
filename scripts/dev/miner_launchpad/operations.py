@@ -30,6 +30,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from scripts.dev.miner_launchpad import practice_only
+
 # One refusal type for every door: a browser sees its status, MCP its code.
 from scripts.dev.miner_launchpad.controller import Rejected
 
@@ -1200,6 +1202,9 @@ def perform(host, name, request):
                 raise Rejected("research_profile_unavailable", 409) from None
             if "profile" in request and request["profile"] != profile["profile_id"]:
                 raise Rejected("research_profile_mismatch", 409)
+            # A practice-only profile freezes, submits and commits nothing:
+            # refused here, before a replay or the chain is read.
+            practice_only.require_registered(profile, op.name)
         elif gate == "replay":
             replayed = host.replayed(profile, request, op.name)
             if replayed is not None:

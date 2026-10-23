@@ -242,6 +242,18 @@ _ADDRESS = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
 
 #: What a miner does when the Agent step cannot reach their signer.
 SIGNER_STEP = "start `carbon-miner-signer` for your registered hotkey"
+#: Practice-only setup (Setup's "Practise without registering"): the next
+#: steps for a refusal that only a registration lifts.
+PRACTICE_ONLY_REGISTERED_STEP = (
+    "your hotkey is registered: continue setup with it; you practise and "
+    "submit with the same setup"
+)
+PRACTICE_PROFILE_STEP = (
+    "a practice-only runner profile is not available in this version yet: "
+    "register your hotkey and confirm it (carbon_setup_begin), start your "
+    "signer, then choose who researches again and Review; the steps you "
+    "checked are kept"
+)
 
 #: The evaluation endpoints Carbon publishes (LP-PROD-E): for a network,
 #: subnet, Challenge and Challenge version, the validator intake a frozen
@@ -493,6 +505,18 @@ class SetupRefused(Rejected):
         super().__init__(code, status)
         self.field = field
         self.next_step = next_step
+
+
+def _practice_only(record) -> bool:
+    """Whether a setup record is a practice-only one: Setup's "Practise
+    without registering" chosen, and no registration confirmed since."""
+    return "hotkey" not in record and bool(record.get("practice_only"))
+
+
+def _set_up_for(record) -> bool:
+    """Whether setup's steps after the first may be taken: a registration
+    confirmed, or practice-only chosen."""
+    return "hotkey" in record or _practice_only(record)
 
 
 def _owner_only(path: Path) -> bool:
@@ -2158,7 +2182,7 @@ class EnvironmentSetup:
 
     def _step(self, name: str, value: dict) -> dict:
         record = self._record()
-        if "hotkey" not in record:
+        if not _set_up_for(record):
             raise SetupRefused("address", "registration_not_confirmed")
         record[name] = {**value, "checked_at": int(time.time())}
         record.pop("profile", None)  # Any change needs a new review.
@@ -2395,6 +2419,9 @@ class EnvironmentSetup:
         return {
             "schema": SETUP_SCHEMA,
             "registered_hotkey": record.get("hotkey"),
+            # Setup's "Practise without registering": chosen, and no
+            # registration confirmed since (the first step's other choice).
+            "practice_only": _practice_only(record),
             # The images the installer built here, for setup to fill in.
             "installed": installed.read(self.root.parent),
             # Each image setup fills in, where it was found, or the one
@@ -2426,7 +2453,7 @@ class EnvironmentSetup:
                 # With Hermes, the files the miner agreed it writes.
                 "agent": _public(record.get("agent"), ("choice", "check", "consent")),
                 "review": {
-                    "ready": "hotkey" in record and all(done.values()),
+                    "ready": _set_up_for(record) and all(done.values()),
                     "profile_written": "profile" in record,
                 },
                 # Setup's first step (LINKONLY-D10): the miner's signer
@@ -2619,8 +2646,40 @@ class EnvironmentSetup:
             record = self._record()
             if record.get("hotkey") not in (None, address):
                 record = {}  # A different miner starts over.
+            if _practice_only(record):
+                # Registering after practising: the steps checked are kept,
+                # but who researches is chosen again, so the signer is asked
+                # for this hotkey, and Review writes a profile again.
+                record.pop("practice_only", None)
+                record.pop("agent", None)
+                record.pop("profile", None)
             record["hotkey"] = address
             self._save(record)
+        return self.state()
+
+    def practice(self, value) -> dict:
+        """Setup's first step's other choice: practise without registering.
+        Nothing is asked of the chain, a signer or a wallet, and nothing
+        leaves this machine; the steps after it are taken as a registered
+        miner takes them. Freeze, submit and commit need a registration,
+        which `begin` confirms later, keeping the steps checked here."""
+        _closed(value, {"confirm"})
+        if value["confirm"] is not True:
+            raise SetupRefused("confirm", "practice_needs_confirmation")
+        with self.lock:
+            record = self._record()
+            if "hotkey" in record:
+                raise SetupRefused(
+                    "confirm",
+                    "practice_only_is_before_registration",
+                    next_step=PRACTICE_ONLY_REGISTERED_STEP,
+                )
+            if not record.get("practice_only"):
+                record = {
+                    **record,
+                    "practice_only": {"chosen_at": int(time.time())},
+                }
+                self._save(record)
         return self.state()
 
     def _inference_choice(self, value) -> str:
@@ -2700,7 +2759,7 @@ class EnvironmentSetup:
         )
         with self.lock:
             record = self._record()
-            if "hotkey" not in record:
+            if not _set_up_for(record):
                 raise SetupRefused("address", "registration_not_confirmed")
             if "key" in value:
                 write_private(stored, _secret(value["key"], "key"))
@@ -3106,8 +3165,10 @@ class EnvironmentSetup:
         )
         with self.lock:
             record = self._record()
-            if "hotkey" not in record:
+            if not _set_up_for(record):
                 raise SetupRefused("address", "registration_not_confirmed")
+            if _practice_only(record):
+                return self._practice_agent(value, record, operator)
             hermes = None
             if value["choice"] == HERMES:
                 if "inference" in record:
@@ -3158,11 +3219,44 @@ class EnvironmentSetup:
                 step["consent"] = {"writes": list(value["consent"]["writes"])}
             return self._step("agent", step)
 
+    def _practice_agent(self, value, record, operator) -> dict:
+        """Who researches, for a practice-only setup: the choice alone. No
+        signer is asked and the network is not read - there is no hotkey,
+        and nothing leaves this machine. Registering later asks again
+        (`begin`)."""
+        if value.get("signer_socket") or operator is not None:
+            raise SetupRefused(
+                "signer_socket" if value.get("signer_socket") else "operator_config",
+                "nothing_to_check_in_practice_only",
+            )
+        check = {"practice_only": True}
+        if value["choice"] == HERMES:
+            if "inference" in record:
+                check = {
+                    **check,
+                    **self.checks.hermes(*self._hermes_document(value)),
+                    "profile": "carbon",
+                    "start": START,
+                    "tools_ask_first": True,
+                }
+            else:
+                self._hermes_consent(value)
+                check = {**check, "hermes_profile": "written at review"}
+        return self._step(
+            "agent", {"choice": value["choice"], "paths": {}, "check": check}
+        )
+
     def profile(self) -> dict:
         """The runner profile the checked steps describe, validated."""
         from scripts.dev.miner_launchpad.runner import PROFILE_SCHEMA, validated_profile
 
         record = self._record()
+        if _practice_only(record):
+            raise SetupRefused(
+                "confirm",
+                "practice_profile_unavailable",
+                next_step=PRACTICE_PROFILE_STEP,
+            )
         # Inference only for an agent that calls setup's model; the miner's
         # own agent brings its own (OWNER-MINER-SETUP-AGENT-FIRST-01).
         for step in ("agent", "inference", "compute"):
@@ -3357,6 +3451,15 @@ class EnvironmentSetup:
         )
         if value["confirm"] is not True:
             raise SetupRefused("confirm", "review_needs_confirmation")
+        with self.lock:
+            practising = _practice_only(self._record())
+        if practising:
+            # Before any intake is read: nothing leaves this machine.
+            raise SetupRefused(
+                "confirm",
+                "practice_profile_unavailable",
+                next_step=PRACTICE_PROFILE_STEP,
+            )
         if (
             PRACTICE_AUTO_RETRY in value
             and type(value[PRACTICE_AUTO_RETRY]) is not bool

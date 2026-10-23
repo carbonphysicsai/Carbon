@@ -411,10 +411,15 @@ NEXT_ACTIONS = {
         "(carbon_challenges_v1__list lists them)."
     ),
     # Registration and the miner's signer (operations._registered, SignerCode).
+    # Also a practice-only profile's answer to freeze, submit and commit
+    # (practice_only.REGISTERED_ONLY): the same steps upgrade it.
     "registration_required": (
-        "Your hotkey is not registered on the subnet. Register it in your own "
-        "wallet tooling (carbon_onboarding_prepare gives the unsigned call), "
-        "confirm, then try again or resume."
+        "This needs a hotkey registered on the subnet and your signer. "
+        "Register it in your own wallet tooling (carbon_onboarding_prepare "
+        "gives the unsigned call), confirm it at Setup's first step "
+        "(carbon_setup_begin), start your signer, then Review and launch "
+        "again (carbon_setup_review) and try again or resume. Practice "
+        "campaigns you ran without registering stay readable."
     ),
     "registration_unreadable": (
         "The chain could not be read. Try again shortly; nothing was started."

@@ -48,7 +48,7 @@ from carbon.development_session.private_records import private_json
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_control import CampaignControl, DispatchStopped
 from carbon.development_session.research_ledger import CampaignLedger
-from scripts.dev.miner_launchpad import budget_view, levels
+from scripts.dev.miner_launchpad import budget_view, levels, practice_only
 from scripts.dev.miner_launchpad import supervisor as supervision
 from scripts.dev.miner_launchpad.controller import Rejected, owner_lock
 
@@ -4969,6 +4969,9 @@ class RunnerAdapter:
         commit touches no campaign record but its own request). `retry_of`
         names the interrupted practice this one sends again.
         """
+        # Whatever door or retry reached it, a practice-only profile starts
+        # no freeze, submit or commit.
+        practice_only.require_registered(admitted.profile, operation)
         identity = admitted.campaign["id"]
         key = request.get("idempotency_key")
         delegating = self._delegating()
