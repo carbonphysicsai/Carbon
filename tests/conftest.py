@@ -23,3 +23,29 @@ def _no_installed_research_resource_profile(monkeypatch, _empty_profile_home):
         "carbon.development_session.miner_container._process_home",
         lambda: _empty_profile_home,
     )
+
+
+#: Tools a canonical run must have. A test that skips because one is missing is a
+#: FAILURE there (a gate that skipped the browser-page tests silently proved nothing);
+#: elsewhere the skip stands. `CARBON_CANONICAL_DEV_ENV` is set only by the canonical
+#: development image.
+CANONICAL_REQUIRED_TOOLS = ("node",)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    import os
+
+    outcome = yield
+    report = outcome.get_result()
+    if not report.skipped or not os.environ.get("CARBON_CANONICAL_DEV_ENV"):
+        return
+    reason = report.longrepr[2] if isinstance(report.longrepr, tuple) else ""
+    for tool in CANONICAL_REQUIRED_TOOLS:
+        if f"{tool} is not installed" in str(reason):
+            report.outcome = "failed"
+            report.longrepr = (
+                f"required tool missing in the canonical environment: {tool} "
+                f"(skip reason: {reason})"
+            )
+            return
