@@ -44,7 +44,29 @@ def _canonical(value) -> bytes:
     return canonical(value)
 
 
-def sealed_bank(document, records, *, version="1.1") -> dict:
+#: Base points of the private probes (physics half v1); each carries the base,
+#: two 1% moves per input (9 inputs) and the two law rows.
+PROBE_BASES = 4
+
+
+def _with_probes(bank, cases):
+    """``bank`` with the private probes appended as unreferenced rows, seeded by
+    the batch input content (never ids or order) inside the registered ranges."""
+    from carbon.scoring import cooling_physics, probe_design
+
+    return probe_design.with_probes(
+        bank,
+        list(cases.values()),
+        challenge="cooling",
+        bounds=list(cooling_physics.PROBE_BOUNDS),
+        valid=lambda x: True,
+        bases=PROBE_BASES,
+        dtype="<f8",
+        extra=cooling_physics.probe_extra(),
+    )
+
+
+def sealed_bank(document, records, *, version="1.1", probes=True) -> dict:
     """The sealed grid as a bank in Cooling's ``development_bank`` format."""
     from carbon.challenge_kit import physical_public_train
     from carbon.challenge_validator import cooling_hidden as hidden
@@ -113,7 +135,7 @@ def sealed_bank(document, records, *, version="1.1") -> dict:
     evidence = _canonical(
         {"schema": EVIDENCE_SCHEMA, "document": document, "records": out_records}
     )
-    return {
+    bank = {
         "case_ids": tuple(case_ids),
         "cohorts": (COHORT,) * len(case_ids),
         "inputs": inputs_array,
@@ -121,6 +143,7 @@ def sealed_bank(document, records, *, version="1.1") -> dict:
         "reference_records": out_records,
         "solver_evidence": evidence,
     }
+    return _with_probes(bank, cases) if probes else bank
 
 
 def private_roles(bank) -> dict[str, bytes]:

@@ -100,7 +100,10 @@ def test_a_draw_is_a_full_buildable_5_by_6_grid_meeting_the_placement(drawn_grid
     assert 2 <= sure.all(axis=1).sum() <= 3 and sure.any(axis=0).all()
     assert tries >= 1
     stored = population.placement_predictions(cases)
-    assert len(stored) == 30 and set(stored[0]) == {"predicted_mean_torque_nm", "predicted_ripple_fraction"}
+    assert len(stored) == 30 and set(stored[0]) == {
+        "predicted_mean_torque_nm",
+        "predicted_ripple_fraction",
+    }
 
 
 def test_a_seed_without_a_grid_raises_and_the_next_role_is_a_new_seed():
@@ -131,7 +134,10 @@ def test_the_selector_picks_the_grid_by_its_deployment_schema(tmp_path):
         custody=str(tmp_path / "grid-custody"),
     )
     MotorSealedGridBatchSource.init(path)
-    assert type(motor_source_for(path, repository=REPOSITORY)) is MotorSealedGridBatchSource
+    assert (
+        type(motor_source_for(path, repository=REPOSITORY))
+        is MotorSealedGridBatchSource
+    )
     other = write_deployment(
         tmp_path / "etc-placed" / "motor.json",
         placed.DEPLOYMENT_SCHEMA,
@@ -139,7 +145,9 @@ def test_the_selector_picks_the_grid_by_its_deployment_schema(tmp_path):
         custody=str(tmp_path / "placed-custody"),
     )
     MotorSealedBatchSource.init(other)
-    assert type(motor_source_for(other, repository=REPOSITORY)) is MotorSealedBatchSource
+    assert (
+        type(motor_source_for(other, repository=REPOSITORY)) is MotorSealedBatchSource
+    )
 
 
 def test_a_grid_batch_is_drawn_solved_sealed_and_packed(tmp_path):
@@ -158,7 +166,9 @@ def test_a_grid_batch_is_drawn_solved_sealed_and_packed(tmp_path):
         try:
             drawn = producer.draw(MOTOR, f"motor-grid-exam-{suffix}", kind="screening")
             break
-        except RuntimeError:  # no grid placed for this role: the operator moves to the next role (placement precedes every solve)
+        except (
+            RuntimeError
+        ):  # no grid placed for this role: the operator moves to the next role (placement precedes every solve)
             continue
     assert drawn is not None
     jobs = source.jobs(drawn["fingerprint"])
@@ -168,21 +178,32 @@ def test_a_grid_batch_is_drawn_solved_sealed_and_packed(tmp_path):
     exported = source.export(drawn["fingerprint"])
     assert exported["document"]["schema"] == grid.DOCUMENT_SCHEMA
     bank = pack.grid_bank(exported["document"], list(exported["references"].values()))
-    assert bank["cohorts"] == ("decision_sealed_grid",) * 30
+    # the 30 cells, then the private probes (physics half v1)
+    assert bank["cohorts"][:30] == ("decision_sealed_grid",) * 30
+    assert set(bank["cohorts"][30:]) == {"probe_response"}
 
 
 def test_the_pack_names_each_cell_with_design_and_condition_ids(drawn_grid):
     cases, _ = drawn_grid
     doc = document(cases)
     bank = pack.grid_bank(doc, records_for(doc))
-    assert bank["cohorts"] == (pack.GRID_COHORT,) * 30 == ("decision_sealed_grid",) * 30
-    designs = {r["design_id"] for r in bank["reference_records"]}
-    conditions = {r["condition_id"] for r in bank["reference_records"]}
+    assert (
+        bank["cohorts"][:30]
+        == (pack.GRID_COHORT,) * 30
+        == ("decision_sealed_grid",) * 30
+    )
+    cell_records = bank["reference_records"][:30]
+    designs = {r["design_id"] for r in cell_records}
+    conditions = {r["condition_id"] for r in cell_records}
     assert designs == {f"design-{i}" for i in range(5)}
     assert conditions == {f"condition-{i}" for i in range(6)}
-    cells = {(r["design_id"], r["condition_id"]) for r in bank["reference_records"]}
+    cells = {(r["design_id"], r["condition_id"]) for r in cell_records}
     assert len(cells) == 30
-    assert set(pack.private_roles(bank)) == {"case_bank", "reference_rows", "solver_evidence"}
+    assert set(pack.private_roles(bank)) == {
+        "case_bank",
+        "reference_rows",
+        "solver_evidence",
+    }
     # a placed (non-grid) document is not a grid batch
     with pytest.raises(pack.SealedPackRefused):
         pack.grid_bank(dict(doc, schema=placed.DOCUMENT_SCHEMA), records_for(doc))
@@ -238,7 +259,9 @@ def test_the_clearance_rule_refuses_without_a_measured_value_and_the_full_one_pl
     with pytest.raises(RuntimeError, match="placement_clearance_unavailable"):
         population.draw_v2(random.Random(1), population.CELLS, None)
     with pytest.raises(RuntimeError, match="placement_clearance_unavailable"):
-        population.draw_v2(random.Random(1), population.CELLS, {"mean_torque_nm": 0.4362})
+        population.draw_v2(
+            random.Random(1), population.CELLS, {"mean_torque_nm": 0.4362}
+        )
     full = {  # the measured clearance (90 cells): torque 0.4362, ripple e 0.9138 with U 0.026
         "mean_torque_nm": 0.4362,
         "ripple_fraction_log_ratio": 0.9138,

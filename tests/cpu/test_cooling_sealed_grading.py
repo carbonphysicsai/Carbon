@@ -26,7 +26,7 @@ PUBLIC = physical_pack.public_roles(adapter.CHALLENGE, "1.1")
 NAMES = physical.input_names(adapter)
 
 
-def _sealed_bank():
+def _sealed_bank(probes=False):
     """Data Collection's fixture grid, its synthetic (non-production) outputs
     set so every design is feasible and each has its own hydraulic power."""
     doc = document(population.draw(random.Random(2), 16)[0])
@@ -35,7 +35,7 @@ def _sealed_bank():
         record = ok_record(case["case_id"], case["inputs"], peak=60.0)
         record["outputs"]["pressure_drop_pa"] = 40.0 + 3.0 * i
         records.append(record)
-    return sealed.sealed_bank(doc, records)
+    return sealed.sealed_bank(doc, records, probes=probes)
 
 
 def _measure(bank, outputs, definition=None):
@@ -233,3 +233,140 @@ def test_a_definition_without_the_critical_block_grades_value_only():
     truth = _truth(bank)
     measured = _measure(bank, _shift_cell(truth, 0, 2.0), legacy)
     assert measured["D"] == 1.0 and "design_fidelity" not in measured
+
+
+# --- the physics half ----------------------------------------------------------
+
+
+def _model():
+    from carbon.scoring import cooling_physics
+
+    return cooling_physics.registered_model(PUBLIC["train"])
+
+
+def _probe_inputs(bank):
+    rows = physical.bank_rows(bank, NAMES)
+    return [
+        [float(r["inputs"][n]) for n in NAMES]
+        for r in rows
+        if r["cohort"] == "probe_response"
+    ]
+
+
+def _full(bank, cells, probe=None):
+    probe = probe or _model()
+    return [list(map(float, r)) for r in cells] + [
+        probe(x) for x in _probe_inputs(bank)
+    ]
+
+
+@pytest.fixture(scope="module")
+def probed():
+    bank = _sealed_bank(probes=True)
+    return {
+        "bank": bank,
+        "definition": adapter.definition(bank=bank, train_raw=PUBLIC["train"]),
+        "cells": _truth(sealed_cells(bank)),
+    }
+
+
+def sealed_cells(bank):
+    from carbon.scoring import probe_design
+
+    return probe_design.cells_only(bank)
+
+
+def _pmeasure(probed, outputs, definition=None):
+    return _measure(
+        probed["bank"],
+        outputs,
+        definition=definition or probed["definition"],
+    )
+
+
+def test_the_probed_definition_registers_probes_and_the_physics_block(probed):
+    definition = probed["definition"]
+    adapter.validate_definition(definition)
+    assert definition["probes"] == {"cohort": "probe_response", "rows": 4 * 21}
+    block = definition["physics"]
+    assert block["rule"] == "A=mean(A_acc,A_robust,A_law,A_response)"
+    assert block["response"]["outputs"] == ["rise_c", "pressure_drop_pa"]
+    assert {law["name"] for law in block["laws"]} >= {
+        "inlet_shift_temperatures",
+        "pressure_ignores_hotspot",
+    }
+
+
+def test_the_probes_are_private_unreferenced_rows_after_the_cells(probed):
+    rows = physical.bank_rows(probed["bank"], NAMES)
+    assert [r["cohort"] for r in rows[:16]] == ["decision_sealed_grid"] * 16
+    probes = rows[16:]
+    assert len(probes) == 84 and all(r["reference"] is None for r in probes)
+    assert probed["bank"]["reference_present"] == (True,) * 16 + (False,) * 84
+
+
+def test_a_model_with_the_registered_sensitivities_earns_full_response(probed):
+    result = _pmeasure(probed, _full(probed["bank"], probed["cells"]))
+    assert result["A_legs"]["A_response"] == pytest.approx(1.0, abs=1e-3)
+    assert result["physics_half"]["sign_gate_failed"] == []
+    assert result["A_legs"]["A_acc"] == 1.0
+    assert result["gates"]["physics_laws"] is True
+
+
+def test_a_model_that_ignores_the_inlet_loses_on_the_law_leg(probed):
+    registered = _model()
+
+    def stuck(point):
+        moved = list(point)
+        moved[4] = 40.0  # temperatures built at a fixed inlet
+        row = registered(moved)
+        return row
+
+    good = _pmeasure(probed, _full(probed["bank"], probed["cells"]))
+    bad = _pmeasure(probed, _full(probed["bank"], probed["cells"], probe=stuck))
+    assert bad["A_legs"]["A_law"] < good["A_legs"]["A_law"] - 0.02
+
+
+def test_a_pressure_drop_that_follows_the_hotspot_loses_on_the_law_leg(probed):
+    registered = _model()
+
+    def hotspot_pressure(point):
+        row = registered(point)
+        row[31] *= 1.0 + 0.5 * (point[6] - 2.0)
+        return row
+
+    good = _pmeasure(probed, _full(probed["bank"], probed["cells"]))
+    bad = _pmeasure(
+        probed, _full(probed["bank"], probed["cells"], probe=hotspot_pressure)
+    )
+    assert bad["A_legs"]["A_law"] < good["A_legs"]["A_law"] - 0.02
+
+
+def test_a_wrong_flow_trend_loses_on_the_response_leg_and_fails_the_gate(probed):
+    registered = _model()
+
+    def flipped(point):
+        moved = list(point)
+        moved[3] = 1.25 + 2.0 - point[3]  # flow mirrored in its range
+        return registered(moved)
+
+    result = _pmeasure(probed, _full(probed["bank"], probed["cells"], probe=flipped))
+    assert result["A_legs"]["A_response"] < 0.95
+    assert result["gates"]["physics_laws"] is False
+    assert any(
+        "flow_lpm_per_kw" in item for item in result["physics_half"]["gate_failed_laws"]
+    )
+
+
+def test_a_peak_below_a_profile_segment_fails_the_law_gate(probed):
+    cells = [list(r) for r in probed["cells"]]
+    cells[0][0] = cells[0][5] - 1.0
+    result = _pmeasure(probed, _full(probed["bank"], cells))
+    assert result["gates"]["physics_laws"] is False
+    assert "peak_above_profile" in result["physics_half"]["gate_failed_laws"]
+
+
+def test_a_sealed_cooling_bank_is_graded_under_the_v2_version(probed):
+    for version in ("1.1", "1.2", "1.3"):
+        chosen = adapter.sealed_adapter(version)
+        assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v2"

@@ -319,27 +319,49 @@ def measure(*, bank, outputs, repeats, definition, contract, train):
     verified = picked is not None and picked in reference_objectives
     regret = max(0.0, reference_objectives[picked] - best) if verified else None
     d_benefit = _benefit(regret, definition["D_scale_W"]) if verified else 0.0
-    fidelity = None
+    fidelity = critical_inputs = None
     if "critical" in definition:
         # D = min(V, C): C is the worst signed die/hydraulic margin error over
         # every design x condition cell, the unselected designs included; V is
         # the mean of the pair-ordering, accept/reject and nearby-variant measures.
-        d_benefit, fidelity = _critical_design(
-            d_benefit,
-            _critical_inputs(
-                definition,
-                bank,
-                keys,
-                designs,
-                conditions,
-                references,
-                first,
-                contract,
-                picked,
-            ),
+        critical_inputs = _critical_inputs(
             definition,
+            bank,
+            keys,
+            designs,
+            conditions,
+            references,
+            first,
+            contract,
+            picked,
         )
+        d_benefit, fidelity = _critical_design(d_benefit, critical_inputs, definition)
+    cells = {}
+    if "physics" in definition and critical_inputs is not None:
+        # What the physics half needs of the exam cells (no extra solves).
+        margins = critical_inputs[3]["cases"]
+        cells = {
+            "_cells": {
+                "cell_errors": (
+                    {bank[index[key]]["case_id"]: errors[key] for key in keys}
+                    if errors
+                    else {}
+                ),
+                "nearness": {
+                    cid: min(
+                        abs(m["die_margin_c"]) / DIE_MARGIN_SCALE_C,
+                        abs(m["hydraulic_margin_w"]) / HYDRAULIC_MARGIN_SCALE_W,
+                    )
+                    for cid, m in margins.items()
+                },
+                "condition_cells": [
+                    [bank[index[(d, c)]]["case_id"] for d in designs]
+                    for c in conditions
+                ],
+            }
+        }
     return {
+        **cells,
         **({"design_fidelity": fidelity} if "critical" in definition else {}),
         "gates": dict(
             zip(gates_for(definition), (native_pass, True, verified), strict=True)

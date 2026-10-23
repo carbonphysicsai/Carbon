@@ -77,6 +77,20 @@ def draw_valid(seed_bytes, bounds, valid, count, *, delta=DELTA, max_tries=100_0
     return points
 
 
+def row_key(probe):
+    """The order of a probe row among its set, from its own metadata (never its
+    position), so a bank whose rows were permuted canonicalizes back to the
+    builder order: base point, then the base row, the 1% moves by input and sign,
+    then the law rows by name."""
+    base, dim, sign = probe["base"], probe["dim"], probe["sign"]
+    kind = probe.get("kind", "response")
+    if kind != "response":
+        return (base, 2, 0, 0, kind)
+    if dim is None:
+        return (base, 0, 0, 0, "")
+    return (base, 1, dim, 0 if sign > 0 else 1, "")
+
+
 def response_rows(points, bounds, *, delta=DELTA, extra=()):
     """The probe rows for ``points``: ``[(case_id, record, x)]``. ``extra`` is
     ``[(name, transform)]``: each adds one law-probe row per base point,
@@ -158,7 +172,10 @@ def with_probes(
         bases,
         delta=max(delta, margin),
     )
-    rows = response_rows(points, bounds, delta=delta, extra=extra)
+    rows = sorted(
+        response_rows(points, bounds, delta=delta, extra=extra),
+        key=lambda row: row_key(row[1]["probe"]),
+    )
     width = bank["references"].shape[1]
     inputs = np.concatenate(
         [bank["inputs"], np.asarray([x for _, _, x in rows], dtype=dtype)]

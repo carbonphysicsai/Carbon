@@ -114,7 +114,29 @@ GRID_COHORT = "decision_sealed_grid"
 GRID_EVIDENCE_SCHEMA = "carbon.motor.sealed-grid-batch-evidence.v1"
 
 
-def grid_bank(document, records, *, version="1.1") -> dict:
+#: Base points of the private probes (physics half v1); each carries the base,
+#: two 1% moves per input (8 inputs) and the two current-law rows.
+PROBE_BASES = 4
+
+
+def _with_probes(bank, cases, dtype):
+    """``bank`` with the private probes appended as unreferenced rows, seeded by
+    the batch input content (never ids or order) inside the buildable region."""
+    from carbon.scoring import motor_physics, probe_design
+
+    return probe_design.with_probes(
+        bank,
+        list(cases.values()),
+        challenge="motor",
+        bounds=list(motor_physics.PROBE_BOUNDS),
+        valid=motor_physics.valid_geometry,
+        bases=PROBE_BASES,
+        dtype=dtype,
+        extra=motor_physics.probe_extra(),
+    )
+
+
+def grid_bank(document, records, *, version="1.1", probes=True) -> dict:
     """A sealed grid batch (OWNER-MOTOR-EXAM-GRID-01) as a bank: the placed
     bank's checks and shape, one cohort `decision_sealed_grid` for all 30 cells
     and each record naming its grid cell, `design_id` (`design-0..4`) and
@@ -130,30 +152,37 @@ def grid_bank(document, records, *, version="1.1") -> dict:
     except ValueError:
         raise SealedPackRefused("motor_sealed_document_malformed") from None
     bank = sealed_bank(
-        dict(document, schema=grid.motor_sealed.DOCUMENT_SCHEMA), records, version=version
+        dict(document, schema=grid.motor_sealed.DOCUMENT_SCHEMA),
+        records,
+        version=version,
     )
     designs, conditions = grid_of(list(cases.values()))
     design_id = {d: f"design-{i}" for i, d in enumerate(designs)}
     condition_id = {c: f"condition-{i}" for i, c in enumerate(conditions)}
     out_records = []
-    for case_id, record in zip(bank["case_ids"], bank["reference_records"], strict=True):
+    for case_id, record in zip(
+        bank["case_ids"], bank["reference_records"], strict=True
+    ):
         inputs = cases[case_id]
         out_records.append(
             {
                 **record,
                 "design_id": design_id[tuple(inputs[k] for k in DESIGN_INPUTS)],
-                "condition_id": condition_id[tuple(inputs[k] for k in CONDITION_INPUTS)],
+                "condition_id": condition_id[
+                    tuple(inputs[k] for k in CONDITION_INPUTS)
+                ],
             }
         )
     evidence = _canonical(
         {"schema": GRID_EVIDENCE_SCHEMA, "document": document, "records": out_records}
     )
-    return {
+    grid = {
         **bank,
         "cohorts": (GRID_COHORT,) * len(bank["case_ids"]),
         "reference_records": out_records,
         "solver_evidence": evidence,
     }
+    return _with_probes(grid, cases, "<f8") if probes else grid
 
 
 def private_roles(bank) -> dict[str, bytes]:

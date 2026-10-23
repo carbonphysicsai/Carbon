@@ -30,7 +30,7 @@ KEYS = (b"validator-one-key-0123456789", b"validator-two-key-9876543210")
 
 @pytest.fixture(scope="module")
 def world():
-    bank = _grid_bank()
+    bank = _grid_bank(probes=False)
     public = physical_pack.public_roles(MOTOR, "1.3")
     objective = {
         "design_ids": [f"design-{d}" for d in range(DESIGNS)],
@@ -151,3 +151,19 @@ def test_a_bank_with_two_identical_rows_is_not_canonicalizable(world):
     )
     with pytest.raises(cd.CopyRefused, match="copy_rows_not_distinct"):
         cd.canonicalize(broken)
+
+
+def test_the_private_probes_survive_copy_derivation_in_place(world):
+    """The probes follow the cells in every copy and canonicalize to the same
+    bank: a copy never changes where (or what) the probes are."""
+    _bank, public, objective = world
+    probed = _grid_bank(probes=True)
+    canonical = cd.canonicalize(probed)
+    assert list(canonical["cohorts"][30:]) == ["probe_response"] * 76
+    for key in KEYS:
+        copy_bank, _ = cd.derive_copy(canonical, objective, key=key)
+        again = cd.canonicalize(copy_bank)
+        assert list(again["cohorts"]) == list(canonical["cohorts"])
+        assert np.array_equal(
+            np.asarray(again["inputs"])[30:], np.asarray(canonical["inputs"])[30:]
+        )

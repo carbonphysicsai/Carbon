@@ -133,7 +133,10 @@ def validate_response(spec):
             and all(
                 type(row) is list
                 and len(row) == len(inputs)
-                and all(_number(v) and (k == "exponent" or v >= 0) for v in row)
+                and all(
+                    v is None or (_number(v) and (k == "exponent" or v >= 0))
+                    for v in row
+                )
                 for row in spec[k]
             )
             for k in ("exponent", "band")
@@ -203,6 +206,8 @@ def response_benefit(groups, inputs_of, outputs_of, spec, spread):
             for j in range(n_out):
                 slope = ((yp[j] - ym[j]) / y0[j]) / dx
                 slopes.setdefault((j, d), []).append(slope)
+                if spec["exponent"][j][d] is None:
+                    continue  # a sign-gate-only pair: no registered size
                 gap = max(
                     0.0,
                     abs(slope - spec["exponent"][j][d]) - spec["band"][j][d],
@@ -216,7 +221,7 @@ def response_benefit(groups, inputs_of, outputs_of, spec, spread):
         )
         if mean_slope[(j, d)] * gate["sign"] <= 0:
             failed.append(f"{gate['output']}~{gate['input']}")
-    mean_error = fmean(errors)
+    mean_error = fmean(errors) if errors else 0.0
     return 1.0 / (1.0 + mean_error), {
         "mean_response_error": mean_error,
         "sign_gate_failed": sorted(failed),

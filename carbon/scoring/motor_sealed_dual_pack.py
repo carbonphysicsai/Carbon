@@ -49,6 +49,7 @@ from carbon.motor import score_candidates as candidates
 from carbon.scoring import critical_fidelity as critical
 from carbon.scoring import motor_dual_measurement as mdm
 from carbon.scoring import motor_dual_pack as _motor
+from carbon.scoring import motor_physics, probe_design
 from carbon.scoring import physical_dual_pack as physical
 from carbon.scoring import sealed_grid_common as grid_common
 
@@ -67,6 +68,9 @@ FILES = (
     "sealed_grid_common.py",
     "critical_fidelity.py",
     "design_fidelity.py",
+    "physics_half.py",
+    "probe_design.py",
+    "motor_physics.py",
     "motor_sealed_dual_pack.py",
 )
 MINIMUM_LEGS = _motor.MINIMUM_LEGS
@@ -119,6 +123,10 @@ def validate_definition(definition):
         and definition["verification_budget"] >= 1
         and definition.get("grid") == {"designs": DESIGNS, "conditions": CONDITIONS}
         and definition.get("cohort_counts") == {COHORT: CASES}
+        and type(definition.get("probes")) is dict
+        and definition["probes"].get("cohort") == probe_design.PROBE_COHORT
+        and type(definition["probes"].get("rows")) is int
+        and definition["probes"]["rows"] >= 0
         and type(definition.get("reference_receipt_sha256")) is str
         and definition["reference_receipt_sha256"].startswith("sha256:")
         and len(definition["reference_receipt_sha256"]) == 71,
@@ -136,12 +144,12 @@ def definition(*, bank, train_raw):
     """The sealed accuracy definition fields (the shared module adds the
     producer, TRAIN and bank pins). Every scale and the verification budget are
     Motor's registered ones."""
-    del train_raw
     evidence = bank.get("solver_evidence") if type(bank) is dict else None
     mdm._require(
         type(evidence) is bytes and evidence, "motor_sealed_evidence_unavailable"
     )
     values = _motor._definition_values()
+    probes = sum(1 for c in bank["cohorts"] if c == probe_design.PROBE_COHORT)
     return {
         "schema": DEFINITION_SCHEMA,
         "method": METHOD,
@@ -172,6 +180,8 @@ def definition(*, bank, train_raw):
             ("1", "MINIMIZE", values["D_scale"]),
             [("torque_margin", -1)],
         ),
+        "probes": {"cohort": probe_design.PROBE_COHORT, "rows": probes},
+        **({"physics": motor_physics.block(train_raw)} if probes else {}),
     }
 
 
@@ -182,6 +192,7 @@ def applied_pack(**_):
     pack = _motor._applied_pack()
     return {
         **pack,
+        "hard_gates": [*pack["hard_gates"], motor_physics.GATE],
         "legs": {leg: {**body, "minimum": None} for leg, body in pack["legs"].items()},
     }
 
@@ -202,9 +213,59 @@ def measure(
     *, bank_rows, outputs, repeats, definition, limits, objective, train_raw, names
 ):
     """A, D, native gates and the decision outcome for one model on a sealed
-    5 x 6 grid, by Motor's registered decision measure (see the module docstring)."""
-    del names
+    5 x 6 grid, by Motor's registered decision measure (see the module
+    docstring), then the physics half from the private probes."""
     validate_definition(definition)
+    cells = [i for i, row in enumerate(bank_rows) if row.get("cohort") == COHORT]
+    probes = [
+        i
+        for i, row in enumerate(bank_rows)
+        if row.get("cohort") == probe_design.PROBE_COHORT
+    ]
+    mdm._require(
+        len(cells) == CASES
+        and len(cells) + len(probes) == len(bank_rows)
+        and len(probes) == definition["probes"]["rows"]
+        and all(i < CASES for i in cells)
+        and type(outputs) is list
+        and len(outputs) == len(bank_rows)
+        and type(repeats) in (list, tuple)
+        and len(repeats) == 2
+        and all(type(r) is list and len(r) == len(bank_rows) for r in repeats),
+        "motor_bank_cohort",
+    )
+    measured = _measure_cells(
+        bank_rows=[bank_rows[i] for i in cells],
+        outputs=[outputs[i] for i in cells],
+        repeats=[[r[i] for i in cells] for r in repeats],
+        definition=definition,
+        limits=limits,
+        objective=objective,
+        train_raw=train_raw,
+        names=names,
+    )
+    internal = measured.pop("_cells")
+    if "physics" not in definition:
+        return measured
+    return motor_physics.apply(
+        measured,
+        f0=internal["f0"],
+        nearness=internal["nearness"],
+        condition_cells=internal["condition_cells"],
+        f0_scale=definition["f0_scale"],
+        cell_curves=internal["curves"],
+        cell_density=internal["density"],
+        definition=definition,
+        spread=motor_physics.train_spread(train_raw),
+        probe_rows=[bank_rows[i] for i in probes],
+        probe_curves=[outputs[i] for i in probes],
+    )
+
+
+def _measure_cells(
+    *, bank_rows, outputs, repeats, definition, limits, objective, train_raw, names
+):
+    del names
     n = len(bank_rows)
     mdm._require(
         type(outputs) is list
@@ -284,8 +345,8 @@ def measure(
         quantities = None
 
     a = losses = None
+    f0 = {}
     if coverage_ok and native_ok and quantities is not None:
-        f0 = {}
         for i in index:
             parts = candidates.components(
                 predictions[i], references[i], component_scales
@@ -389,6 +450,25 @@ def measure(
         "decision_outcome": outcome,
         "verified_regret": regret,
         "selected_design": selected,
+        "_cells": {
+            "f0": f0,
+            "nearness": {
+                k: min(
+                    abs(v["mean_torque_margin_nm"]) / TORQUE_MARGIN_SCALE_NM,
+                    abs(v["ripple_fraction_margin"]) / RIPPLE_MARGIN_SCALE,
+                )
+                for k, v in reference_quantities.items()
+            },
+            "condition_cells": [
+                [bank_rows[i]["case_id"] for i in layout.rows_of_condition(c)]
+                for c in layout.conditions
+            ],
+            "curves": {bank_rows[i]["case_id"]: outputs[i] for i in range(n)},
+            "density": {
+                bank_rows[i]["case_id"]: bank_rows[i]["inputs"]["current_density_a_mm2"]
+                for i in range(n)
+            },
+        },
     }
 
 
@@ -398,9 +478,19 @@ def is_sealed_bank(bank) -> bool:
     the 5 x 6 grid."""
     if type(bank) is not dict:
         return False
+    cohorts, records = bank.get("cohorts"), bank.get("reference_records")
+    if (
+        type(cohorts) not in (tuple, list)
+        or type(records) not in (tuple, list)
+        or len(cohorts) != len(records)
+    ):
+        return False
+    keep = [i for i, c in enumerate(cohorts) if c != probe_design.PROBE_COHORT]
+    if keep != list(range(len(keep))):
+        return False
     return grid_common.is_grid_bank(
-        bank.get("cohorts"),
-        bank.get("reference_records"),
+        [cohorts[i] for i in keep],
+        [records[i] for i in keep],
         shape=(DESIGNS, CONDITIONS),
         design_of=lambda r: r.get("design_id"),
         condition_of=lambda r: r.get("condition_id"),

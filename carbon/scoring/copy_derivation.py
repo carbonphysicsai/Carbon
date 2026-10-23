@@ -29,6 +29,9 @@ import random
 
 #: The ids that are opaque by default (Validator ruling): case, design, condition.
 OPAQUE = ("case_id", "design_id", "condition_id")
+#: The cohort of the private physics probes (probe_design.PROBE_COHORT): rows that
+#: follow the exam cells and carry no design or condition.
+PROBE_COHORT = "probe_response"
 #: The bank's per-row lists.
 PER_ROW = (
     "case_ids",
@@ -278,6 +281,15 @@ def _group_ranks(keys_by_group):
     return {g: r for r, g in enumerate(sorted(content, key=content.__getitem__))}
 
 
+def _probe_key(record):
+    """A probe row place among the probes: its own metadata (probe_design.row_key),
+    as a string so it compares with the cells' keys."""
+    from carbon.scoring import probe_design
+
+    base, cls, dim, sign, kind = probe_design.row_key(record["probe"])
+    return f"{base:06d}|{cls}|{dim:06d}|{sign}|{kind}"
+
+
 def canonicalize(bank, *, opaque=OPAQUE, objective=None):
     """The bank in its canonical form: rows in content order, and every opaque id
     renamed by rank (case ``c0000``…, design ``d0``…, condition ``k0``…). Any copy
@@ -290,46 +302,50 @@ def canonicalize(bank, *, opaque=OPAQUE, objective=None):
     if len(set(keys)) != n:
         raise CopyRefused("copy_rows_not_distinct")
     records = bank["reference_records"]
+
+    def is_probe(i):
+        return bank["cohorts"][i] == PROBE_COHORT
+
+    cells = [i for i in range(n) if not is_probe(i)]
     design_rank = condition_rank = None
-    if "design_id" in opaque and any("design_id" in r for r in records):
+    if "design_id" in opaque and any("design_id" in records[i] for i in cells):
         design_rank = _group_ranks(
             {
-                d: [keys[i] for i in range(n) if records[i].get("design_id") == d]
-                for d in {r.get("design_id") for r in records}
+                d: [keys[i] for i in cells if records[i].get("design_id") == d]
+                for d in {records[i].get("design_id") for i in cells}
             }
         )
-    if "condition_id" in opaque and any("condition_id" in r for r in records):
+    if "condition_id" in opaque and any("condition_id" in records[i] for i in cells):
         condition_rank = _group_ranks(
             {
-                c: [keys[i] for i in range(n) if records[i].get("condition_id") == c]
-                for c in {r.get("condition_id") for r in records}
+                c: [keys[i] for i in cells if records[i].get("condition_id") == c]
+                for c in {records[i].get("condition_id") for i in cells}
             }
         )
 
     def place(i):
         record = records[i]
-        # A row with no design or condition (the private probes, which follow the
-        # exam cells) places after every row that has one.
+        # The private probes follow the exam cells, in the order the bank builder
+        # derived them from the batch content (so the canonical bank is the
+        # canonical batch rebuilt); every other row orders by content.
+        if is_probe(i):
+            return (1, 0, 0, _probe_key(records[i]))
         return (
-            (
-                design_rank.get(record.get("design_id"), len(design_rank))
-                if design_rank
-                else 0
-            ),
-            (
-                condition_rank.get(record.get("condition_id"), len(condition_rank))
-                if condition_rank
-                else 0
-            ),
-            # Probes keep the order the bank builder derived from the batch
-            # content (so the canonical bank is the canonical batch rebuilt).
-            keys[i] if "design_id" in record or not design_rank else f"{i:08d}",
+            0,
+            design_rank[record["design_id"]] if design_rank else 0,
+            condition_rank[record["condition_id"]] if condition_rank else 0,
+            keys[i],
         )
 
     if "case_id" in opaque:
         order = sorted(range(n), key=place)
     else:
-        order = sorted(range(n), key=lambda i: bank["case_ids"][i])
+        order = sorted(
+            range(n),
+            key=lambda i: (
+                (1, _probe_key(records[i])) if is_probe(i) else (0, bank["case_ids"][i])
+            ),
+        )
     bank_records_in_order = [bank["reference_records"][i] for i in order]
     derived = {
         name: ([bank[name][i] for i in order] if name in PER_ROW else bank[name])

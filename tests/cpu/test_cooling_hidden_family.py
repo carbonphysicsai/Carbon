@@ -130,7 +130,7 @@ def records_for(doc):
 
 def test_the_bank_has_coolings_development_bank_shape_and_names_its_cells(grid):
     doc = document(grid)
-    mine = pack.sealed_bank(doc, records_for(doc))
+    mine = pack.sealed_bank(doc, records_for(doc), probes=False)
     theirs = physical_pack.development_bank(COOLING, "1.1")
     assert set(mine) == set(theirs)
     assert mine["inputs"].dtype == theirs["inputs"].dtype
@@ -226,5 +226,7 @@ def test_a_grid_is_drawn_solved_with_a_retry_sealed_and_packed(tmp_path):
     producer.seal(COOLING, drawn["fingerprint"])
     assert [len(p) for p in solver.planned] == [16, 1]
     exported = source.export(drawn["fingerprint"])
-    bank = pack.sealed_bank(exported["document"], list(exported["references"].values()))
+    bank = pack.sealed_bank(
+        exported["document"], list(exported["references"].values()), probes=False
+    )
     assert len(bank["case_ids"]) == 16
