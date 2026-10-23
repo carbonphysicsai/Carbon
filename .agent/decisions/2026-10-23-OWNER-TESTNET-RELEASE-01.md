@@ -13,3 +13,15 @@ Amends: the publish-once rule (owner 10-20, image-publish-after-worker-freeze). 
    - `claude/launchpad-backbone-catalog` / 68bfee956 is never pushed.
    - No sealed or private material, keys, balances or account figures may be in the pushed tree or the images.
 3. **Scope:** testnet 567 only. Mainnet launch, the mainnet image and the chain actions stay with the owner's go/no-go.
+
+## Ship conditions added by the owner (same day, directly to the Lead)
+
+The owner's words: "this doesn't ship unless all 4 challenges are working, launchpad is operationally sound, they have full backbone access, limits only set by them, and all avenues work, and being scored correctly".
+
+So the push and publish in item 2 above also require **all** of the following, verified on the release head:
+1. **All 4 launch Challenges work end to end:** Motor, Cooling, Ribbed Bracket, Burst Thermal.
+2. **Launchpad is operationally sound:** install, update, setup, practice, freeze and submit, with no open blocker.
+3. **Full backbone access:** the whole Carbon-tested catalog is available on every launch Challenge (catalog v2).
+4. **Only miners set limits:** the no-Carbon-limits versions have landed. Only exam protection and cited external facts remain.
+5. **Every avenue works:** the Launchpad page with Graphite; the headless CLI/MCP route; the miner's own agent; local GPU and remote GPU (PyTorch and JAX).
+6. **Scored correctly:** the final scoring is live (D = min(V, C) with decision fidelity, the physics half, and the KOTH margin rules) and has been checked on each Challenge.
