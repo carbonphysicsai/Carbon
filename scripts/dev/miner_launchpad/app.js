@@ -3064,8 +3064,9 @@
     // Validator (Ladder v3): a non-improvement repeats the best total under
     // this submit's digest, so it is never read as this submit's score.
     if (latest.status === "NO_IMPROVEMENT") return "Grade: did not improve on your best" + (typeof latest.total === "number" ? " (" + latest.total.toFixed(4) + ")" : "") + ". Compares within this Challenge version only.";
-    if (latest.status === "GATE_FAILED") return "Grade: not eligible (a mandatory gate failed). Compares within this Challenge version only.";
-    if (typeof latest.total !== "number") return "Grade: not scored.";
+    if (latest.status === "GATE_FAILED") return "Grade: not eligible (a mandatory gate failed" + (Array.isArray(latest.gate_names) && latest.gate_names.length ? ": " + latest.gate_names.map(words).join(", ") : "") + "). Compares within this Challenge version only.";
+    // The projection's one mapping of every Ladder status into words (GRADE_WORDS).
+    if (typeof latest.total !== "number") return "Grade: " + (typeof latest.words === "string" ? latest.words.replace(/^graded: /, "") : "not scored") + ".";
     const detail = [typeof latest.A === "number" ? "A " + latest.A.toFixed(3) : null, typeof latest.D === "number" ? "D " + latest.D.toFixed(3) : null].filter(Boolean).join(", ");
     return "Grade: " + latest.total.toFixed(4) + " (0 to 1, higher is better" + (detail ? "; " + detail : "") + ")" + (best ? " · your best: " + best : "") + ". Compares within this Challenge version only.";
   }

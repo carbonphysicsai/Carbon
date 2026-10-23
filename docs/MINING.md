@@ -93,7 +93,7 @@ With Graphite you set your limits up front: how many model calls, how many dolla
 - **Freeze.** When you have a good, eligible practice, freeze it. That fixes the exact recipe you'll send.
 - **Submit.** The validator rebuilds your model from the recipe, then grades it on a hidden exam.
 
-Your **grade** runs from 0 to 1, and **higher is better**. Half of it is accuracy and half is design value: how well the model supports real design decisions. You can make at most one graded submission per Challenge per round (one epoch, about 72 minutes; the page says round), up to a daily allowance per Challenge that depends on validator capacity (at least one a day). Resubmitting the same recipe returns its earlier grade; a failed build or an infrastructure failure doesn't use your allowance.
+Your **grade** runs from 0 to 1, and **higher is better**. Half of it is accuracy and half is design value: how well the model supports real design decisions. You can make at most one graded submission per Challenge per round (one epoch, about 72 minutes; the page says round), up to a daily allowance per Challenge that depends on validator capacity (at least one a day). Resubmitting the same recipe returns its earlier grade; a failed build or an infrastructure failure doesn't use your allowance. A graded submission reads one of four ways: a new best, did not improve on your best, **not eligible** (it names the mandatory gate that failed), or **does not count** (an invalid result, a required score part below its minimum, or an infrastructure problem), which shows no total.
 
 ---
 
