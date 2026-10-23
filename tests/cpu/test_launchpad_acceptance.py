@@ -466,5 +466,5 @@ def test_both_browser_panes_render_acceptance_separately_from_readiness():
     assert 'return "Untested"' not in app
     assert "nothing is said (E6)" in app
     assert 'value.scope === "NAMED_CELL_REVISION_ONLY"' in app
-    assert "acceptanceText(client)" in app and "acceptanceText(change)" in app
+    assert "acceptanceSuffix(client)" in app and "acceptanceSuffix(change)" in app
     assert "CC.acceptanceText(acceptance)" in pane

@@ -222,7 +222,6 @@ def test_the_pod_phase_runs_from_the_shipped_files_alone(shipped, tmp_path):
     assert report["variants"], "no registered battery development variant"
 
 
-
 def test_the_pod_never_reads_catalog_bundles_or_receipts(shipped, tmp_path):
     """Catalog bundles and GPU receipts are not shipped, and a catalog recipe
     given to the pod phase from the shipped files alone ends in the same typed
@@ -234,7 +233,7 @@ def test_the_pod_never_reads_catalog_bundles_or_receipts(shipped, tmp_path):
     motor = "electric-motor-magnetics"
     from carbon.backbone_catalog import listing
 
-    (entry, *_) = listing.entries(motor, "1.3")
+    entry, *_ = listing.entries(motor, "1.3")
     strategy = _catalog_recipe(motor, "1.3", entry["catalog_id"])
     contract = ex.recorded_contract(SCORING)["contract_digest"]
     with pytest.raises(Exception) as on_host:
