@@ -236,10 +236,36 @@ class DirectParents:
         }
 
 
-#: The miner host's overlay cache bound for GPU builds: the receiver's own
-#: (`challenge_validator.receiver_setup.MATERIAL_CACHE_BYTES`), so a GPU
-#: practice prepares exactly what a receiver would (one shared path).
+#: The receiver's overlay cache bound
+#: (`challenge_validator.receiver_setup.MATERIAL_CACHE_BYTES`): the least a
+#: miner's cache is ever given. A GPU overlay is prepared and checked exactly
+#: as a receiver's is (one shared path); only where it is kept differs.
 MINER_OVERLAY_CACHE_BYTES = 192 * 1024 * 1024
+#: What the miner's overlay cache always leaves free on their own disk.
+MINER_CACHE_RESERVE_BYTES = 4 * 1024**3
+
+
+def miner_overlay_cache_bytes(cache_root):
+    """The miner's overlay cache bound: their own disk, not a fixed figure
+    (owner 2026-10-21: only resource limits bind). Everything the cache holds
+    now, plus the free space less `MINER_CACHE_RESERVE_BYTES`, and never less
+    than the receiver's bound (M1 S5: staging the catalog's GPU twins filled
+    the receiver's 192 MiB, and every GPU overlay fell back to CPU with 56 GB
+    free)."""
+    import shutil
+    from pathlib import Path
+
+    from .direct_material_staging import _cache_bytes
+
+    try:
+        retained = _cache_bytes(Path(cache_root))
+        free = shutil.disk_usage(cache_root).free
+    except OSError:
+        return MINER_OVERLAY_CACHE_BYTES
+    return max(
+        MINER_OVERLAY_CACHE_BYTES,
+        retained + max(0, free - MINER_CACHE_RESERVE_BYTES),
+    )
 
 
 def gpu_overlay(practice, identity, bundle, parent, expanded, kit, limits_document):
@@ -296,7 +322,7 @@ def gpu_overlay(practice, identity, bundle, parent, expanded, kit, limits_docume
         expected_bundle=bundle,
         expected_parent=parent,
         expected_receipt=prep.receipt,
-        material_cache_bytes=MINER_OVERLAY_CACHE_BYTES,
+        material_cache_bytes=miner_overlay_cache_bytes(practice.cache_root),
     )
 
 
