@@ -1104,3 +1104,28 @@ def test_every_served_launch_version_is_sealed_graded_on_v2_never_v1():
     for key in ((F08, "1.5"), (F02, "2.4"), (version_registry.MOTOR, "1.4")):
         assert key in checked, key
     assert (version_registry.COOLING, "1.4") in checked
+
+
+def test_cooling_1_3_and_1_4_decode_into_1_2s_output_space_and_share_its_sealed_exam():
+    """The Validator's condition (rc3, Cooling key flag): 1.2, 1.3 and 1.4 share
+    one evaluation-version key only because the encoded adapter decodes 1.3/1.4
+    rows into exactly 1.2's native output space and grades 1.2's sealed batches."""
+    from carbon.cold_plate.output_encoding import encode_targets
+    from carbon.scoring import cooling_dual_pack, cooling_encoded_dual_pack
+
+    rng = np.random.default_rng(0)
+    profile = 40.0 + 20.0 * rng.random((6, 30))
+    native = np.column_stack(
+        [profile.max(axis=1) + 1.0 + rng.random(6), profile, 100.0 + rng.random(6)]
+    )
+    decoded = np.asarray(cooling_encoded_dual_pack._decoded(encode_targets(native)))
+    assert decoded.shape == native.shape == (6, 32)
+    np.testing.assert_allclose(decoded, native, rtol=1e-12, atol=1e-9)
+    assert cooling_encoded_dual_pack.OUTPUT == cooling_dual_pack.OUTPUT
+    raw = cooling_dual_pack.sealed_adapter("1.2")
+    for version in ("1.3", "1.4"):
+        encoded = cooling_encoded_dual_pack.sealed_adapter(version)
+        assert (encoded.EVALUATION_VERSION, encoded.CASE_ID) == (
+            raw.EVALUATION_VERSION,
+            raw.CASE_ID,
+        )
