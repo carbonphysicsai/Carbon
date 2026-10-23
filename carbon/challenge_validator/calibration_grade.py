@@ -32,6 +32,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -61,6 +62,7 @@ MANIFEST_KEYS = frozenset(
     }
 )
 _HEX = frozenset("0123456789abcdef")
+_DIGEST_RE = re.compile(r"sha256:[0-9a-f]{64}")
 
 
 class CalibrationRefused(ValueError):
@@ -308,6 +310,39 @@ CONTROLS = {
 }
 
 
+def config_digest(run_config):
+    """The digest a controlled run is pinned to: ``sha256:`` over the canonical JSON of
+    its run config (the controls and the rule their magnitudes were set by)."""
+    return "sha256:" + _sha(
+        json.dumps(
+            run_config, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode()
+    )
+
+
+def _require_config(control, run_config, digest):
+    """A control runs only under a run config, fixed before grading, that names it
+    with exactly its parameters and hashes to the digest the caller was given."""
+    _require(
+        type(run_config) is dict
+        and type(digest) is str
+        and _DIGEST_RE.fullmatch(digest) is not None,
+        "control_run_config_required",
+    )
+    _require(config_digest(run_config) == digest, "control_run_config_digest")
+    listed = run_config.get("controls")
+    _require(
+        type(listed) is list
+        and any(
+            type(c) is dict
+            and c.get("name") == control["name"]
+            and c.get("params", {}) == control.get("params", {})
+            for c in listed
+        ),
+        "control_run_config_mismatch",
+    )
+
+
 def apply_control(control, rows, bank, challenge):
     """``rows`` (a list of rows, probes included) transformed by one registered
     control: ``{"name": ..., "params": {...}}``."""
@@ -427,6 +462,8 @@ def grade(
     control=None,
     challenge=None,
     population_role="P",
+    run_config=None,
+    run_config_digest=None,
 ):
     """Aggregates for one model on the calibration pack's sealed bank.
 
@@ -440,6 +477,8 @@ def grade(
 
     _require(artifact is not None or entry_id is not None, "calibration_entry")
     entry_id = entry_id or artifact.calibration_entry_id
+    if control is not None:
+        _require_config(control, run_config, run_config_digest)
     inputs = np.array(bank["inputs"])
     runs = [infer(inputs) for _ in range(3)]
     if control is not None:
@@ -490,13 +529,35 @@ def grade(
         ],
     }
     total = score(benchmark, pack)["models"][0]["score"]
-    return aggregates(
+    document = aggregates(
         measured,
         total,
         entry_id=entry_id,
         control=control,
         challenge=challenge or adapter.CHALLENGE,
     )
+    if control is not None:
+        document["run_config_digest"] = run_config_digest
+    return document
+
+
+def leg_delta(graded, controlled):
+    """What a control moved: the controlled run's A legs, A, D and total minus the
+    uncontrolled run's (numbers only), so a control's collateral on another leg (the
+    F08 zeta control also moves A_acc a little) is reported beside the leg it targets.
+    """
+
+    def numbers(document):
+        flat = {f"A_legs.{k}": v for k, v in (document.get("A_legs") or {}).items()}
+        flat.update({k: document.get(k) for k in ("A", "D", "total")})
+        return flat
+
+    before, after = numbers(graded), numbers(controlled)
+    return {
+        k: after[k] - before[k]
+        for k in sorted(before)
+        if type(before[k]) in (int, float) and type(after.get(k)) in (int, float)
+    }
 
 
 __all__ = [
@@ -507,7 +568,9 @@ __all__ = [
     "CalibrationRefused",
     "aggregates",
     "apply_control",
+    "config_digest",
     "grade",
+    "leg_delta",
     "load_artifact",
     "worker_infer",
 ]

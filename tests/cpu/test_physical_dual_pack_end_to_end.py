@@ -28,6 +28,7 @@ from carbon.challenge_kit import physical_pack
 from carbon.challenge_validator.evaluation_pack import parse_pack, prepare_pack
 from carbon.scoring import bundle_benchmark_core as bundle
 from carbon.scoring import cooling_dual_pack as cooling
+from carbon.scoring import f02_dual_pack as f02
 from carbon.scoring import f08_dual_pack as f08
 from carbon.scoring import grade_feedback
 from carbon.scoring import motor_dual_pack as motor
@@ -44,6 +45,7 @@ CHALLENGES = {
     "motor": (motor, "native_motor_valid"),
     "cooling": (cooling, "native_cold_plate"),
     "f08": (f08, "paired_repeat"),
+    "f02": (f02, "paired_repeat"),
     "f08-1.1": (f08.adapter(version="1.1"), "paired_repeat"),
 }
 GRADED_OPERATION = "operation-" + "a" * 64
@@ -275,6 +277,10 @@ def _baseline(name, bank, public, names):
         return motor.baseline_outputs(
             [dict(zip(names, map(float, row))) for row in bank["inputs"]]
         )
+    if name == "f02":
+        # F02's baseline is graded as a submitted recipe, not rebuilt: a model that
+        # predicts the references stands in (the path is what is under test).
+        return [[float(v) for v in row] for row in bank["references"]]
     if name.startswith("f08"):
         return f08._baseline_outputs(
             physical.bank_rows(bank, names), public["train"], names
@@ -353,6 +359,7 @@ def case(request, tmp_path_factory):
         "version": registration_doc["evaluation_version"],
         "references": json.loads(documents["reference_rows"]),
         "score_pack": json.loads(documents["score_pack"]),
+        "definition": json.loads(documents["accuracy_definition"]),
         "case_bank": case_bank,
         "originals": originals,
         "predictions": predictions,
@@ -698,3 +705,37 @@ def test_timed_outputs_that_cannot_be_scored_disagree(case, tmp_path, raw):
         source.PrivateEvaluationSourceRefused, match="timed_query_disagrees"
     ):
         _produce(case, originals, entry)
+
+
+def test_calibration_grade_matches_the_receiver_path_on_the_same_predictions(case):
+    """One fixture entry graded both ways: through the receiver's producer
+    (`produce_registered_dual_measurement` + the score engine) and through the
+    calibration tool with an `infer` that returns the same predictions. The A legs,
+    the D parts, the gates and the total are identical."""
+    from carbon.challenge_validator import calibration_grade as cg
+
+    adapter = case["adapter"]
+    _prepared, measured = _produce(case)
+    benchmark = json.loads(measured.raw)["benchmark"]
+    scoring = ScoreEngine.score_dual_benchmark_v4(benchmark, case["score_pack"])
+    names = physical.input_names(adapter)
+    bank = physical_pack.development_bank(adapter.CHALLENGE, adapter.VERSION)
+    result = cg.grade(
+        adapter=adapter,
+        bank=bank,
+        pack=case["score_pack"],
+        definition=case["definition"],
+        limits=json.loads(case["public"]["important_limit_definition"]),
+        objective=json.loads(case["public"]["design_objective"]),
+        train_raw=case["public"]["train"],
+        interface_names=names,
+        infer=lambda inputs: case["predictions"],
+        entry_id=case["entry"]["entry_id"],
+        population_role=benchmark["population_role"],
+        challenge=adapter.CHALLENGE,
+    )
+    model = benchmark["models"][0]
+    assert result["A"] == model["measurements"]["robust_fidelity_benefit"]["value"]
+    assert result["D"] == model["measurements"]["verified_value_benefit"]["value"]
+    assert result["gates"] == {k: v == "PASS" for k, v in model["gates"].items()}
+    assert result["total"] == scoring["models"][0]["score"]
