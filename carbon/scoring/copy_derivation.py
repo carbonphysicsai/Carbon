@@ -308,10 +308,22 @@ def canonicalize(bank, *, opaque=OPAQUE, objective=None):
 
     def place(i):
         record = records[i]
+        # A row with no design or condition (the private probes, which follow the
+        # exam cells) places after every row that has one.
         return (
-            design_rank[record["design_id"]] if design_rank else 0,
-            condition_rank[record["condition_id"]] if condition_rank else 0,
-            keys[i],
+            (
+                design_rank.get(record.get("design_id"), len(design_rank))
+                if design_rank
+                else 0
+            ),
+            (
+                condition_rank.get(record.get("condition_id"), len(condition_rank))
+                if condition_rank
+                else 0
+            ),
+            # Probes keep the order the bank builder derived from the batch
+            # content (so the canonical bank is the canonical batch rebuilt).
+            keys[i] if "design_id" in record or not design_rank else f"{i:08d}",
         )
 
     if "case_id" in opaque:
@@ -330,9 +342,9 @@ def canonicalize(bank, *, opaque=OPAQUE, objective=None):
         record = copy.deepcopy(record)
         if "case_id" in opaque and "case_id" in record:
             record["case_id"] = f"c{r:04d}"
-        if design_rank is not None:
+        if design_rank is not None and "design_id" in record:
             record["design_id"] = f"d{design_rank[record['design_id']]}"
-        if condition_rank is not None:
+        if condition_rank is not None and "condition_id" in record:
             record["condition_id"] = f"k{condition_rank[record['condition_id']]}"
         out.append(record)
     derived["reference_records"] = out

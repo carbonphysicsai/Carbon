@@ -13,11 +13,12 @@ A = mean(A_acc, A_robust, A_law, A_response)      # equal weights, each in 0..1
 - **A_law**: ``1/(1+r)`` where ``r`` is the mean residual of the registered laws
   in the same normalised-output units as A_acc (TRAIN spread), so no new scale is
   chosen.
-- **A_response** (local sensitivities from predictions at x and x(1 +- delta))
-  needs model queries beyond the bank cells. Those queries run in the shared
-  producer, which this module does not touch, so this version registers
-  ``legs_not_applied: ["A_response"]`` and averages the applied legs only. The
-  definition says so; nothing here pretends it was measured.
+- **A_response**: local sensitivities from predictions at the private probe
+  points x and x(1 +- delta) (``probe_design``), against the registered reference
+  exponents fitted on TRAIN. Each error is the exponent error beyond the fit own
+  residual band, expressed as the output change over that input full span, in
+  TRAIN-spread units (so the same units as A_acc). The sign of the probe-mean
+  sensitivity of the registered trends is a gate.
 
 Laws are plugin data: each constrains a predicted row and names the output that
 normalises its residual. A law that the reference satisfies with a clear margin
@@ -35,9 +36,9 @@ from __future__ import annotations
 import math
 from statistics import fmean
 
-RULE = "A=mean(A_acc,A_robust,A_law)"
-LEGS = ("A_acc", "A_robust", "A_law")
-NOT_APPLIED = ("A_response",)
+RULE = "A=mean(A_acc,A_robust,A_law,A_response)"
+LEGS = ("A_acc", "A_robust", "A_law", "A_response")
+NOT_APPLIED = ()
 SCHEMA = "carbon.scoring.physics-half.v1"
 ROBUST = "median_split_by_reference_limit_distance"
 
@@ -57,16 +58,18 @@ def _number(value):
     return type(value) in (int, float) and math.isfinite(value)
 
 
-def block(laws):
+def block(laws, response):
     """The definition block. ``laws``: ``[(name, role, normaliser_output,
     gate_margin)]`` with role ``measured`` or ``gate`` and ``gate_margin`` None
-    until the Validator registers it."""
+    until the Validator registers it. ``response``: the registered reference
+    sensitivities (see ``validate_response``)."""
     return {
         "schema": SCHEMA,
         "rule": RULE,
         "legs": list(LEGS),
         "legs_not_applied": list(NOT_APPLIED),
         "robust": ROBUST,
+        "response": response,
         "laws": [
             {"name": n, "role": r, "normaliser": o, "gate_margin": g}
             for n, r, o, g in laws
@@ -78,7 +81,15 @@ def validate_block(value):
     _require(
         type(value) is dict
         and set(value)
-        == {"schema", "rule", "legs", "legs_not_applied", "robust", "laws"}
+        == {
+            "schema",
+            "rule",
+            "legs",
+            "legs_not_applied",
+            "robust",
+            "laws",
+            "response",
+        }
         and value["schema"] == SCHEMA
         and value["rule"] == RULE
         and value["legs"] == list(LEGS)
@@ -96,7 +107,48 @@ def validate_block(value):
         ),
         "physics_block",
     )
+    validate_response(value["response"])
     return value
+
+
+def validate_response(spec):
+    """The registered reference sensitivities: per output and input the fitted
+    log-log exponent, its allowance band, the input span and the sign gates."""
+    inputs = spec.get("inputs") if type(spec) is dict else None
+    outputs = spec.get("outputs") if type(spec) is dict else None
+    _require(
+        type(spec) is dict
+        and set(spec)
+        == {"inputs", "outputs", "exponent", "band", "span", "delta", "sign_gates"}
+        and type(inputs) is list
+        and type(outputs) is list
+        and _number(spec["delta"])
+        and 0 < spec["delta"] < 0.5
+        and type(spec["span"]) is list
+        and len(spec["span"]) == len(inputs)
+        and all(_number(v) and v > 0 for v in spec["span"])
+        and all(
+            type(spec[k]) is list
+            and len(spec[k]) == len(outputs)
+            and all(
+                type(row) is list
+                and len(row) == len(inputs)
+                and all(_number(v) and (k == "exponent" or v >= 0) for v in row)
+                for row in spec[k]
+            )
+            for k in ("exponent", "band")
+        )
+        and type(spec["sign_gates"]) is list
+        and all(
+            type(g) is dict
+            and set(g) == {"output", "input", "sign"}
+            and g["output"] in outputs
+            and g["input"] in inputs
+            and g["sign"] in (1, -1)
+            for g in spec["sign_gates"]
+        ),
+        "physics_response",
+    )
 
 
 def acc_benefit(errors):
@@ -129,6 +181,53 @@ def law_benefit(residuals):
     return 1.0 / (1.0 + r), {"mean_residual_by_law": means, "mean_residual": r}
 
 
-def combine(a_acc, a_robust, a_law):
-    legs = {"A_acc": a_acc, "A_robust": a_robust, "A_law": a_law}
+def response_benefit(groups, inputs_of, outputs_of, spec, spread):
+    """``(A_response, record)``. ``groups``: `probe_design.groups` output over
+    probe-row indices; ``inputs_of(i)``/``outputs_of(i)`` give a probe row inputs
+    and predicted outputs (lists of floats); ``spread`` is per output. Returns
+    ``(None, record)`` when a probe prediction is unusable (a candidate fault)."""
+    validate_response(spec)
+    n_in, n_out = len(spec["inputs"]), len(spec["outputs"])
+    errors, slopes = [], {}
+    for group in groups:
+        y0, x0 = outputs_of(group["base"]), inputs_of(group["base"])
+        used = [y0] + [outputs_of(i) for pair in group["dims"].values() for i in pair]
+        if not all(_number(v) for row in used for v in row) or not all(
+            v > 0 for v in y0
+        ):
+            return None, {"probe_invalid": True}
+        for d in range(n_in):
+            plus, minus = group["dims"][d]
+            yp, ym = outputs_of(plus), outputs_of(minus)
+            dx = (inputs_of(plus)[d] - inputs_of(minus)[d]) / x0[d]
+            for j in range(n_out):
+                slope = ((yp[j] - ym[j]) / y0[j]) / dx
+                slopes.setdefault((j, d), []).append(slope)
+                gap = max(
+                    0.0,
+                    abs(slope - spec["exponent"][j][d]) - spec["band"][j][d],
+                )
+                errors.append(gap * abs(y0[j]) * (spec["span"][d] / x0[d]) / spread[j])
+    mean_slope = {key: fmean(values) for key, values in slopes.items()}
+    failed = []
+    for gate in spec["sign_gates"]:
+        j, d = spec["outputs"].index(gate["output"]), spec["inputs"].index(
+            gate["input"]
+        )
+        if mean_slope[(j, d)] * gate["sign"] <= 0:
+            failed.append(f"{gate['output']}~{gate['input']}")
+    mean_error = fmean(errors)
+    return 1.0 / (1.0 + mean_error), {
+        "mean_response_error": mean_error,
+        "sign_gate_failed": sorted(failed),
+    }
+
+
+def combine(a_acc, a_robust, a_law, a_response):
+    legs = {
+        "A_acc": a_acc,
+        "A_robust": a_robust,
+        "A_law": a_law,
+        "A_response": a_response,
+    }
     return fmean(legs.values()), legs

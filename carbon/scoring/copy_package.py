@@ -95,9 +95,11 @@ def _renamed(document, records, mapping, ordered_ids, opaque):
     inverse = {fresh: old for old, fresh in mapping.items()}
     cases = {c["case_id"]: c for c in document["cases"]}
     new_document = copy.deepcopy(document)
+    # Rows the bank derives itself (the private probes) are not batch cases.
     new_document["cases"] = [
         dict(copy.deepcopy(cases[inverse.get(new, new)]), case_id=new)
         for new in ordered_ids
+        if inverse.get(new, new) in cases
     ]
     new_records = []
     for record in records:

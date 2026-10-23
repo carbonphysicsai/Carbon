@@ -34,11 +34,52 @@ def case():
         "rows": physical.bank_rows(bank, names),
         "definition": sealed.definition(bank=bank, train_raw=public["train"]),
         "limits": json.loads(public["important_limit_definition"]),
-        "truth": [[float(v) for v in row] for row in bank["references"]],
+        "truth": [[float(v) for v in row] for row in bank["references"][:8]],
+        "model": _power_law_model(public["train"]),
     }
 
 
+def _power_law_model(train_raw):
+    """A stand-in model with exactly the registered sensitivities: the TRAIN
+    log-log fit (the probes carry no references, so a model must be supplied)."""
+    import io
+
+    import numpy as np
+
+    with np.load(io.BytesIO(train_raw), allow_pickle=False) as data:
+        x, y = np.asarray(data["inputs"], float), np.asarray(data["targets"], float)
+    design = np.column_stack([np.ones(len(x)), np.log(x)])
+    coefficients, *_ = np.linalg.lstsq(design, np.log(y), rcond=None)
+
+    def predict(inputs):
+        row = np.concatenate([[1.0], np.log(np.asarray(inputs, float))])
+        return [float(v) for v in np.exp(row @ coefficients)]
+
+    return predict
+
+
+def _probe_inputs(case):
+    return [
+        [float(row["inputs"][n]) for n in case["names"]]
+        for row in case["rows"]
+        if row["cohort"] == "probe_response"
+    ]
+
+
+def _full(case, cell_outputs, probe=None):
+    """Cell predictions followed by the probe-row predictions (the stand-in
+    power-law model unless ``probe`` is given)."""
+    model = probe or case["model"]
+    return [list(map(float, r)) for r in cell_outputs] + [
+        model(x) for x in _probe_inputs(case)
+    ]
+
+
 def _measure(case, outputs, *, rows=None, definition=None, module=sealed):
+    if module is sealed and len(outputs) == 8:
+        outputs = _full(case, outputs)
+    elif module is not sealed:
+        rows = [r for r in (rows or case["rows"]) if r["cohort"] != "probe_response"]
     return module.measure(
         bank_rows=rows or case["rows"],
         outputs=outputs,
@@ -61,8 +102,13 @@ def test_the_definition_registers_the_grid_and_the_batchs_own_receipt(case):
     )
     assert sealed.EVALUATION_VERSION == "f08-dual-sealed-grid-8x1-v2"
     assert sealed.COHORT == "decision_sealed_grid"
-    assert case["bank"]["cohorts"] == (sealed.COHORT,) * 8
-    assert {r["condition_id"] for r in case["bank"]["reference_records"]} == {
+    cohorts = case["bank"]["cohorts"]
+    assert cohorts[:8] == (sealed.COHORT,) * 8
+    # The private response probes follow the cells, unreferenced.
+    assert set(cohorts[8:]) == {"probe_response"} and len(cohorts) == 60
+    assert definition["probes"] == {"cohort": "probe_response", "rows": 52}
+    assert case["bank"]["reference_present"] == (True,) * 8 + (False,) * 52
+    assert {r["condition_id"] for r in case["bank"]["reference_records"][:8]} == {
         "condition-0"
     }
 
@@ -89,10 +135,13 @@ def test_the_grid_measure_equals_the_development_measure_on_a_dev_shaped_bank(ca
     measurement gives the same A, D, gates and pick."""
     outputs = [[v * 1.02 for v in row] for row in case["truth"]]
     sealed_result = _measure(case, outputs)
-    dev_rows = [{**row, "cohort": "decision_near_limit"} for row in case["rows"]]
-    dev_definition = dev.definition(
-        bank=case["bank"], train_raw=case["public"]["train"], version="1.2"
-    )
+    dev_rows = [{**row, "cohort": "decision_near_limit"} for row in case["rows"][:8]]
+    dev_definition = {
+        **dev.definition(
+            bank=case["bank"], train_raw=case["public"]["train"], version="1.2"
+        ),
+        "geometry_count": 8,
+    }
     dev_result = _measure(
         case, outputs, rows=dev_rows, definition=dev_definition, module=dev
     )
@@ -267,8 +316,8 @@ def _unphysical(case):
 
 def test_the_definition_registers_the_physics_block(case):
     block = case["definition"]["physics"]
-    assert block["rule"] == "A=mean(A_acc,A_robust,A_law)"
-    assert block["legs_not_applied"] == ["A_response"]
+    assert block["rule"] == "A=mean(A_acc,A_robust,A_law,A_response)"
+    assert block["legs_not_applied"] == []
     assert {law["name"] for law in block["laws"]} >= {
         "damping_scaling_005_010",
         "frequency_independence_005_010",
@@ -329,3 +378,147 @@ def test_a_sealed_f08_bank_is_graded_under_the_v2_grid_version(case):
         chosen = sealed.adapter_for_bank(case["bank"], version)
         assert chosen.EVALUATION_VERSION == "f08-dual-sealed-grid-8x1-v2"
         assert chosen.VERSION == version
+
+
+# --- A_response from the private probes ---------------------------------------
+
+
+def _wrong_trend_model(case):
+    """Correct everywhere the references are (the cells), wrong trends between
+    them: the length dependence of every output is inverted."""
+    good = case["model"]
+    names = case["names"]
+
+    def predict(x):
+        flipped = list(x)
+        j = names.index("length_mm")
+        flipped[j] = (180.0 * 260.0) / x[j]
+        return good(flipped)
+
+    return predict
+
+
+def test_the_probes_are_private_unreferenced_rows_after_the_cells(case):
+    rows = case["rows"]
+    assert [r["cohort"] for r in rows[:8]] == ["decision_sealed_grid"] * 8
+    probes = [r for r in rows if r["cohort"] == "probe_response"]
+    assert len(probes) == 52 and all(r["reference"] is None for r in probes)
+    assert sum(1 for r in probes if r["record"]["probe"]["dim"] is None) == 4
+
+
+def test_the_registered_sensitivities_come_from_train(case):
+    spec = case["definition"]["physics"]["response"]
+    assert spec["inputs"] == list(sealed.f08_physics.INPUTS)
+    assert len(spec["exponent"]) == 7 and len(spec["exponent"][0]) == 6
+    # beam theory: static compliance rises steeply with length, frequency falls
+    j = spec["outputs"].index("static_tip_mm_per_n")
+    assert spec["exponent"][j][0] > 2.0
+    f = spec["outputs"].index("peak_frequency_z010_hz")
+    assert spec["exponent"][f][0] < -1.0
+
+
+def test_a_model_with_the_registered_sensitivities_earns_full_a_response(case):
+    result = _measure(case, case["truth"])
+    assert result["A_legs"]["A_response"] == pytest.approx(1.0, abs=1e-3)
+    assert result["physics_half"]["sign_gate_failed"] == []
+
+
+def test_a_shuffled_sensitivity_model_loses_on_the_response_leg(case):
+    good = _measure(case, case["truth"])
+    outputs = _full(case, case["truth"], probe=_wrong_trend_model(case))
+    bad = _measure(case, outputs)
+    assert bad["A_legs"]["A_response"] < good["A_legs"]["A_response"] - 0.05
+    assert bad["A_legs"]["A_acc"] == good["A_legs"]["A_acc"]
+    assert bad["gates"]["physics_laws"] is False
+    assert any("length_mm" in item for item in bad["physics_half"]["gate_failed_laws"])
+
+
+def test_an_unusable_probe_prediction_fails_the_gate_and_scores_zero_response(case):
+    def broken(x):
+        return [0.0] * 7
+
+    result = _measure(case, _full(case, case["truth"], probe=broken))
+    assert result["A_legs"]["A_response"] == 0.0
+    assert result["gates"]["physics_laws"] is False
+    assert "probe_prediction_invalid" in result["physics_half"]["gate_failed_laws"]
+
+
+def test_the_probes_are_deterministic_from_the_batch(case):
+    from test_f08_sealed_pack import batch
+
+    again = pack.sealed_bank(*batch())
+    assert (again["inputs"] == case["bank"]["inputs"]).all()
+    other = pack.sealed_bank(*batch(seed=12))
+    assert not (other["inputs"][8:] == case["bank"]["inputs"][8:]).all()
+
+
+def test_an_infeasible_pick_under_v2_is_not_eligible(case):
+    """A model that makes a reference-infeasible geometry look best picks it: the
+    verified-pick gate fails, the outcome is a missed opportunity and the graded
+    model is not eligible, whatever its A and D are."""
+    from carbon.scoring import dual_score
+
+    exact = _measure(case, case["truth"])
+    names = case["definition"]["targets"]
+    tips = [names.index(n) for n in case["definition"]["tip_targets"]]
+    limit = json.loads(case["public"]["important_limit_definition"])["constraints"]
+    bad = copy.deepcopy(case["truth"])
+    infeasible = next(
+        i
+        for i, row in enumerate(case["truth"])
+        if max(row[j] for j in tips) > limit["dynamic_tip_mm_per_n_max"]
+    )
+    for j in tips:
+        bad[infeasible][j] = 1e-4  # predicted far safer and better than any other
+    result = _measure(case, bad)
+    ids = [r["case_id"] for r in case["rows"][:8]]
+    assert result["pick"] == ids[infeasible] != exact["pick"]
+    assert result["gates"]["verified_pick_feasible"] is False
+    assert result["decision_outcome"] == "MISSED_OPPORTUNITY"
+
+    provisional = "sha256:" + "0" * 64
+    pack = dual_score.register_pack(
+        {
+            **sealed.applied_pack(),
+            "physics_contract_digest": provisional,
+            "measurement_contract_digest": provisional,
+        }
+    )
+
+    def leg(value):
+        return (
+            {"status": "RESOLVED", "value": value, "unit": "1"}
+            if value is not None
+            else {"status": "CANDIDATE_INVALID", "value": None, "unit": "1"}
+        )
+
+    row = dual_score.score(
+        {
+            "schema": dual_score.INPUT_SCHEMA,
+            "scope": pack["scope"],
+            "challenge": pack["challenge"],
+            "physics_contract_digest": provisional,
+            "measurement_contract_digest": provisional,
+            "population_role": "P",
+            "common_mask_digest": provisional,
+            "models": [
+                {
+                    "artifact_digest": provisional,
+                    "gates": {
+                        k: "PASS" if v else "FAIL" for k, v in result["gates"].items()
+                    },
+                    "measurements": {
+                        physical.METRICS["A"]: leg(result["A"]),
+                        physical.METRICS["D"]: leg(result["D"]),
+                    },
+                    "decision_outcome": result["decision_outcome"],
+                }
+            ],
+        },
+        pack,
+    )["models"][0]
+    assert row["status"] != "SCORED_DEVELOPMENT_CANDIDATE" and row["score"] in (
+        None,
+        0,
+        0.0,
+    )

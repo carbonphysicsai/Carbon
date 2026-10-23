@@ -75,8 +75,63 @@ def _accepted(case_id, inputs, record, limit):
     return float(wall_s)
 
 
-def sealed_bank(document, records, *, version="1.2") -> dict:
-    """The sealed batch as a bank in ``physical_pack.development_bank``'s format."""
+#: Base points of the private response probes (physics half v1); each carries 13
+#: rows (the base and two moves per input), so a batch adds 52 unreferenced rows.
+PROBE_BASES = 4
+
+
+def _valid_geometry(x) -> bool:
+    """The packet shape rule (structures_readiness): the same buildable region the
+    exam cases are drawn from."""
+    length, width, _, _, rib, relief = x
+    return width / 4 - rib / 2 > 10 and min((length - relief) / 2, width / 2 - 10) >= 6
+
+
+def _with_probes(bank, cases, names, dtype):
+    """``bank`` with the private response probes appended as unreferenced rows.
+    The seed is the batch input content (never its ids or order), so every
+    validator copy of one exam gets the same probes."""
+    from carbon.challenge_pipeline import structures_readiness
+    from carbon.scoring import probe_design
+
+    bounds = [(float(lo), float(hi)) for lo, hi in structures_readiness.BOUNDS]
+    if list(names) != list(structures_readiness.FIELDS):
+        raise SealedPackRefused("f08_sealed_probe_interface")
+    points = probe_design.draw_valid(
+        probe_design.seed(
+            _canonical(
+                sorted(_canonical(inputs).decode() for inputs in cases.values())
+            ),
+            "f08",
+        ),
+        bounds,
+        _valid_geometry,
+        PROBE_BASES,
+    )
+    rows = probe_design.response_rows(points, bounds)
+    width = bank["references"].shape[1]
+    inputs = np.concatenate(
+        [bank["inputs"], np.asarray([x for _, _, x in rows], dtype=dtype)]
+    )
+    references = np.concatenate(
+        [bank["references"], np.full((len(rows), width), np.nan, dtype=dtype)]
+    )
+    inputs.setflags(write=False)
+    references.setflags(write=False)
+    return {
+        **bank,
+        "case_ids": (*bank["case_ids"], *[c for c, _, _ in rows]),
+        "cohorts": (*bank["cohorts"], *[probe_design.PROBE_COHORT] * len(rows)),
+        "inputs": inputs,
+        "references": references,
+        "reference_records": [*bank["reference_records"], *[r for _, r, _ in rows]],
+        "reference_present": (True,) * len(bank["case_ids"]) + (False,) * len(rows),
+    }
+
+
+def sealed_bank(document, records, *, version="1.2", probes=True) -> dict:
+    """The sealed batch as a bank in ``physical_pack.development_bank``'s format,
+    with (default) the private response probes of physics half v1 appended."""
     from carbon.challenge_kit import f08_public, physical_pack
     from carbon.challenge_validator import f08_hidden as hidden
     from carbon.f08.domain import LIMIT_MM_PER_N
@@ -172,7 +227,7 @@ def sealed_bank(document, records, *, version="1.2") -> dict:
             "records": [by_case[c] for c in case_ids],
         }
     )
-    return {
+    bank = {
         "case_ids": tuple(case_ids),
         "cohorts": (COHORT,) * len(case_ids),
         "inputs": inputs_array,
@@ -182,6 +237,7 @@ def sealed_bank(document, records, *, version="1.2") -> dict:
         "decision_coverage": DECISION_COVERAGE,
         "population": POPULATION,
     }
+    return _with_probes(bank, cases, names, dtype) if probes else bank
 
 
 def private_roles(bank) -> dict[str, bytes]:
