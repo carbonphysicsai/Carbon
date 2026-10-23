@@ -3358,9 +3358,18 @@
       raw.value = JSON.stringify(recipe, null, 2);
       journeyDrafts[run.id + ":recipe"] = raw.value; store(draftKey, journeyDrafts);
     };
-    pick.addEventListener("change", () => { describe(); write(); });
+    // Only the settings the chosen entry's schema takes are offered (a first run cannot hit catalog_setting_unknown).
+    const takes = (group, name) => { const list = current().settings?.[group]; return !Array.isArray(list) || list.includes(name); };
+    const fit = () => {
+      for (const [node, label, group, name] of [[steps, stepsLabel, "train_use", "steps"], [rate, rateLabel, "configuration", "learning_rate"]]) {
+        const shown = takes(group, name);
+        node.hidden = label.hidden = !shown;
+        if (!shown) node.value = "";
+      }
+    };
+    pick.addEventListener("change", () => { describe(); fit(); write(); });
     steps.addEventListener("input", write); rate.addEventListener("input", write);
-    describe();
+    describe(); fit();
     if (!known(idOf(raw.value))) write();
     form.append(pickLabel, pick, about, stepsLabel, steps, rateLabel, rate);
     box.insertBefore(form, holder.parentElement);

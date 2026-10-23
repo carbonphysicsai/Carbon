@@ -359,7 +359,10 @@ scenario("practice picks a tested backbone from a list and two settings are form
   const entry = state.caps.challenges.find(item => item.challenge_id === run.challenge.id && item.version === run.challenge.version);
   assert.ok(entry, "the campaign's Challenge is on the list");
   const recipeOf = id => ({schema: "carbon.construction-recipe.v1", source: {kind: "catalog", catalog_id: id}, procedure: {entrypoint: null, configuration: {}, train_use: {}, initial_state: null}});
-  entry.catalog_recipes = [{catalog_id: "neuralop.FNO", backbone: "FNO", recipe: recipeOf("neuralop.FNO")}, {catalog_id: "neuralop.TFNO", backbone: "TFNO", recipe: recipeOf("neuralop.TFNO")}];
+  entry.catalog_recipes = [
+    {catalog_id: "neuralop.FNO", backbone: "FNO", recipe: recipeOf("neuralop.FNO"), settings: {configuration: ["learning_rate"], train_use: ["steps"]}},
+    {catalog_id: "neuralop.TFNO", backbone: "TFNO", recipe: recipeOf("neuralop.TFNO"), settings: {configuration: [], train_use: ["steps"]}},
+  ];
   const page = await open(state);
   page.go("#campaigns/" + run.id + "/experiments");
   await page.advance(0);
@@ -367,16 +370,37 @@ scenario("practice picks a tested backbone from a list and two settings are form
   assert.deepEqual([...pick.options].map(option => option.value), ["neuralop.FNO", "neuralop.TFNO"]);
   assert.ok(one(page, "#journey-recipe-" + run.id).closest("details.advanced"), "the JSON is under Advanced");
   assert.equal(one(page, "#journey-steps-" + run.id).type, "number");
+  assert.equal(one(page, "#journey-rate-" + run.id).hidden, false, "FNO takes a learning rate");
   await page.change(pick, "neuralop.TFNO");
+  assert.equal(one(page, "#journey-rate-" + run.id).hidden, true, "TFNO's schema does not take a learning rate, so the field is not offered");
+  assert.equal(one(page, "#journey-steps-" + run.id).hidden, false);
   await page.type(one(page, "#journey-steps-" + run.id), "40");
-  await page.type(one(page, "#journey-rate-" + run.id), "0.003");
   await page.type(one(page, "#journey-hypothesis-" + run.id), "a different backbone");
   state.script.push({match: r => r.path === "/api/v1/operations/practice", answer: () => ({body: {...run, state: "PRACTICING"}})});
   await page.press(one(page, "#journey-practice-" + run.id));
   const sent = lastPost(state, "/api/v1/operations/practice").body.strategy;
   assert.equal(sent.source.catalog_id, "neuralop.TFNO");
   assert.equal(sent.procedure.train_use.steps, 40);
-  assert.equal(sent.procedure.configuration.learning_rate, 0.003);
+  assert.equal(sent.procedure.configuration.learning_rate, undefined, "no setting the entry does not take is sent");
+  clean(page);
+});
+
+scenario("the Overview launch card follows Setup's agent and does not mix in a stale wizard Graphite choice (R5-6)", async () => {
+  const setup = copy(fx.setups.none);
+  setup.steps.agent = {...(setup.steps.agent || {}), checked: true, choice: "hermes"};
+  setup.choices = {...(setup.choices || {}), agent: [{id: "hermes", display_name: "Hermes Agent (Nous Research), on this machine"}, {id: "carbon-graphite", display_name: "Carbon's Graphite"}]};
+  const state = launchable(world({setup}), "graphite");
+  const graphite = state.caps.agents.choices.find(choice => choice.launch_agent === "graphite");
+  assert.ok(graphite, "a Graphite agent is offered");
+  const page = await open(state);
+  await wizardTo(page, "agent", graphite.id);
+  page.go("#overview");
+  await page.advance(0);
+  const card = id => one(page, "#launchpad-strip [data-card=" + id + "]").textContent;
+  assert.match(card("agent"), /Hermes Agent/);
+  assert.doesNotMatch(card("agent"), /Graphite/, "no stale Graphite sub-line under Setup's agent");
+  assert.match(card("agent"), /Your own agent, with its own model/);
+  assert.equal(all(page, "#launchpad-strip [data-card=inference]").length, 0, "an own agent skips the model step");
   clean(page);
 });
 

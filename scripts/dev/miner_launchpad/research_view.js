@@ -1580,10 +1580,14 @@
     // applies. Your own agent (own-agent) uses its own model and skips it,
     // as does a launch that calls no model.
     const j = CC.journey ? CC.journey() : null;
-    const skipsInference = Boolean(j?.skipped?.inference) || Boolean(agent && !agent.uses_model);
+    // One source for the agent (R5-6): once Setup has checked "Who researches?", that choice speaks for the card, and a
+    // stale Launch-wizard agent (its Graphite plan, its model) does not mix into it.
+    const setupAgent = steps.agent?.checked ? steps.agent.choice : null;
+    const setupOwnAgent = Boolean(setupAgent) && setupAgent !== "carbon-graphite";
+    const skipsInference = Boolean(j?.skipped?.inference) || setupOwnAgent || (!setupAgent && Boolean(agent && !agent.uses_model));
     const cards = [
       {id: "challenge", title: "Challenge", value: entry ? plainTitle(entry.title) + " · v" + entry.version : "Not chosen", note: entry ? (entry.selectable ? "Ready to launch" : "Set up first") : "Choose what to mine", go: () => CC.goWizard("challenge")},
-      {id: "agent", title: "Agent", value: steps.agent?.checked ? choiceName("agent", steps.agent.choice) : agent ? agent.label : "Not chosen", note: agent ? (agent.launch_agent === "graphite" ? "Graphite · " + CC.graphite.summary() : agent.uses_model ? "Carbon's agent calls your model" : "Calls no model") : j?.skipped?.inference ? "Your own agent, with its own model" : "Who researches and submits", href: "#setup/agent"},
+      {id: "agent", title: "Agent", value: steps.agent?.checked ? choiceName("agent", steps.agent.choice) : agent ? agent.label : "Not chosen", note: setupOwnAgent ? "Your own agent, with its own model" : agent ? (agent.launch_agent === "graphite" ? "Graphite · " + CC.graphite.summary() : agent.uses_model ? "Carbon's agent calls your model" : "Calls no model") : j?.skipped?.inference ? "Your own agent, with its own model" : "Who researches and submits", href: "#setup/agent"},
     ];
     if (!skipsInference) cards.push({id: "inference", title: "AI model", value: steps.inference?.checked ? choiceName("inference", steps.inference.provider_id) + " · " + steps.inference.model_id : "Not checked", note: "Only Carbon's own agent calls a model, with your key", href: "#setup/inference"});
     cards.push(
