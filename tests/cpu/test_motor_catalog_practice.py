@@ -73,10 +73,14 @@ def test_a_catalog_recipe_runs_as_its_bundle_with_the_receivers_inputs(practice)
     # C13: the query is the whole public development bank, so
     # the exam's dual measurement is computable on the same model (the constant
     # stand-in rows here score poorly but validly).
+    # Practice dual v2: the exam's own v2 grader on the full public bank as a
+    # grid with public probes; the constant stand-in rows are not a valid model,
+    # so the gates say so (never a number).
     dual = result["practice_dual"]
-    assert dual["schema"] == "carbon.practice.dual-feedback.v1"
-    assert dual["available"] is True and 0 < dual["total"] <= 1
-    assert len(call["inputs"]) == 90
+    assert dual["schema"] == "carbon.practice.dual-feedback.v2"
+    assert dual["bank"] == "practice (public bank)" and dual["available"] is True
+    assert dual["eligible"] is False and dual["total"] is None
+    assert len(call["inputs"]) == 90 + 48 + 76
     assert result["safety"]["schema"] == "carbon.practice-safety-feedback.v1"
 
 
@@ -311,9 +315,26 @@ def test_a_model_equal_to_the_references_is_scored_on_the_public_bank(
     bank = physical_pack.development_bank("electric-motor-magnetics", "1.0")
     refs = np.asarray(bank["references"], dtype=float)
 
+    from carbon.scoring import practice_grid
+    from test_practice_dual_v2 import _power_law, _public
+
+    grid = practice_grid.practice_bank("motor", catalog_practice.VERSION)
+    _adapter, public = _public("motor", catalog_practice.VERSION)
+    model = _power_law("motor", catalog_practice.VERSION, public)
+    by_case = dict(zip(bank["case_ids"], refs.tolist(), strict=True))
+
     def fake(ledger_, **kwargs):
-        assert len(kwargs["inputs"]) == len(refs)
-        rows = refs.tolist()
+        assert len(kwargs["inputs"]) == len(refs) + len(grid["case_ids"])
+        # The bank's references, then the grid: references at the cells, the
+        # stand-in model with the registered sensitivities at the probes.
+        rows = refs.tolist() + [
+            (
+                by_case[case_id]
+                if case_id in by_case
+                else [float(v) for v in model(list(row))]
+            )
+            for case_id, row in zip(grid["case_ids"], grid["inputs"], strict=True)
+        ]
         state = "sha256:" + "5" * 64
         return SimpleNamespace(
             build=SimpleNamespace(state_digest=state),
@@ -333,5 +354,5 @@ def test_a_model_equal_to_the_references_is_scored_on_the_public_bank(
     )
     dual = item("motor-catalog-0002", catalog_recipe("neuralop.FNO"))["practice_dual"]
     assert dual["available"] is True and dual["eligible"] is True
-    assert dual["n_cases"] == len(refs)
-    assert dual["total"] == pytest.approx(1.0)
+    assert dual["n_cases"] == len(grid["case_ids"])
+    assert dual["total"] == pytest.approx(1.0, abs=3e-3)

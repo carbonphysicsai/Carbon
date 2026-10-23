@@ -82,6 +82,37 @@ MANIFEST_NAME = physical.MANIFEST_NAME
 COHORT = grid_common.GRID_COHORT
 CASES = 30
 DESIGNS, CONDITIONS = 5, 6
+#: The registered grid shapes: the sealed exam's 5 x 6, and the practice grid of
+#: the full exposed public bank (its 8 designs x 6 conditions). A definition
+#: names its own shape; practice is labelled "practice (public bank)" and is never
+#: comparable with a sealed grade.
+SHAPES = ((DESIGNS, CONDITIONS), (8, 6))
+#: The practice population's name (a bank's ``population``; also a definition's, set
+#: only for practice). A shape is bound to its population: a sealed definition is
+#: exactly 5 x 6 and a practice definition exactly 8 x 6, never "either".
+PRACTICE_POPULATION = "PRACTICE_PUBLIC_BANK"
+
+
+def _expected_shape(population):
+    mdm._require(population in (None, PRACTICE_POPULATION), "motor_sealed_definition")
+    return SHAPES[1] if population == PRACTICE_POPULATION else SHAPES[0]
+
+
+def grid_shape(definition):
+    """``(designs, conditions)`` a definition registers, or a typed refusal."""
+    grid = definition.get("grid") if type(definition) is dict else None
+    shape = (
+        (grid.get("designs"), grid.get("conditions"))
+        if type(grid) is dict and set(grid) == {"designs", "conditions"}
+        else None
+    )
+    mdm._require(
+        shape == _expected_shape(definition.get("population")),
+        "motor_sealed_definition",
+    )
+    return shape
+
+
 DEFINITION_SCHEMA = "carbon.scoring.motor-sealed-dual-accuracy.v1"
 METHOD = "motor-sealed-grid-dual-from-predictions.v1"
 LOSSES = (
@@ -125,8 +156,11 @@ def validate_definition(definition):
         )
         and type(definition.get("verification_budget")) is int
         and definition["verification_budget"] >= 1
-        and definition.get("grid") == {"designs": DESIGNS, "conditions": CONDITIONS}
-        and definition.get("cohort_counts") == {COHORT: CASES}
+        and definition.get("grid", {}).get("conditions") == CONDITIONS
+        and definition.get("grid", {}).get("designs")
+        == _expected_shape(definition.get("population"))[0]
+        and definition.get("cohort_counts")
+        == {COHORT: (definition.get("grid", {}).get("designs") or 0) * CONDITIONS}
         and type(definition.get("probes")) is dict
         and definition["probes"].get("cohort") == probe_design.PROBE_COHORT
         and type(definition["probes"].get("rows")) is int
@@ -154,14 +188,28 @@ def definition(*, bank, train_raw):
     )
     values = _motor._definition_values()
     probes = sum(1 for c in bank["cohorts"] if c == probe_design.PROBE_COHORT)
+    cells = [
+        r
+        for r, c in zip(bank["reference_records"], bank["cohorts"], strict=True)
+        if c == COHORT
+    ]
+    designs = len({r.get("design_id") for r in cells})
+    conditions = len({r.get("condition_id") for r in cells})
+    practice = bank.get("population") == PRACTICE_POPULATION
+    mdm._require(
+        (designs, conditions)
+        == _expected_shape(PRACTICE_POPULATION if practice else None),
+        "motor_sealed_grid",
+    )
     return {
+        **({"population": PRACTICE_POPULATION} if practice else {}),
         "schema": DEFINITION_SCHEMA,
         "method": METHOD,
         "source_definition_sha256": _motor.SOURCE_DEFINITION_SHA256,
         "g1_measurement_contract_sha256": _motor.G1_MEASUREMENT_CONTRACT_SHA256,
         "paired_repeat_procedure": "per_case",
-        "cohort_counts": {COHORT: CASES},
-        "grid": {"designs": DESIGNS, "conditions": CONDITIONS},
+        "cohort_counts": {COHORT: designs * conditions},
+        "grid": {"designs": designs, "conditions": conditions},
         "losses": list(LOSSES),
         "A_reducer": "minimum",
         "f0_scale": values["f0_scale"],
@@ -226,8 +274,9 @@ def measure(
         for i, row in enumerate(bank_rows)
         if row.get("cohort") == probe_design.PROBE_COHORT
     ]
+    designs, conditions = grid_shape(definition)
     mdm._require(
-        len(cells) == CASES
+        len(cells) == designs * conditions
         and len(cells) + len(probes) == len(bank_rows)
         and len(probes) == definition["probes"]["rows"]
         and type(outputs) is list
@@ -270,9 +319,11 @@ def _measure_cells(
 ):
     del names
     n = len(bank_rows)
+    shape = grid_shape(definition)
+    cases = shape[0] * shape[1]
     mdm._require(
         type(outputs) is list
-        and len(outputs) == n == CASES
+        and len(outputs) == n == cases
         and type(repeats) in (list, tuple)
         and len(repeats) == 2
         and all(type(r) is list and len(r) == n for r in repeats),
@@ -285,7 +336,7 @@ def _measure_cells(
         bank_rows,
         design_of=lambda row: row.get("design_id"),
         condition_of=lambda row: row.get("condition_id"),
-        shape=(DESIGNS, CONDITIONS),
+        shape=shape,
         refuse=lambda code: mdm._require(False, "motor_sealed_grid"),
     )
     designs = sorted(layout.designs)
@@ -320,7 +371,7 @@ def _measure_cells(
         for i in range(n)
     ]
     grid = exam.aggregate(grid_rows)
-    coverage_ok = grid["n_scored"] == grid["n_cases"] == CASES
+    coverage_ok = grid["n_scored"] == grid["n_cases"] == cases
     native_ok = (
         not gate_failed
         and grid["eligible"] is True

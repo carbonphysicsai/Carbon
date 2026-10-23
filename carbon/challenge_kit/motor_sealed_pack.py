@@ -119,7 +119,7 @@ GRID_EVIDENCE_SCHEMA = "carbon.motor.sealed-grid-batch-evidence.v1"
 PROBE_BASES = 4
 
 
-def _with_probes(bank, cases, dtype):
+def _with_probes(bank, cases, dtype, challenge="motor"):
     """``bank`` with the private probes appended as unreferenced rows, seeded by
     the batch input content (never ids or order) inside the buildable region."""
     from carbon.scoring import motor_physics, probe_design
@@ -127,7 +127,7 @@ def _with_probes(bank, cases, dtype):
     return probe_design.with_probes(
         bank,
         list(cases.values()),
-        challenge="motor",
+        challenge=challenge,
         bounds=list(motor_physics.PROBE_BOUNDS),
         valid=motor_physics.valid_geometry,
         bases=PROBE_BASES,

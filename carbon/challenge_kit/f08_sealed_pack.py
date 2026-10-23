@@ -101,7 +101,7 @@ def _valid_geometry(x) -> bool:
     return width / 4 - rib / 2 > 10 and min((length - relief) / 2, width / 2 - 10) >= 6
 
 
-def _with_probes(bank, cases, names, dtype):
+def _with_probes(bank, cases, names, dtype, challenge="f08"):
     """``bank`` with the private response probes appended as unreferenced rows.
     The seed is the batch input content (never its ids or order), so every
     validator copy of one exam gets the same probes."""
@@ -113,7 +113,7 @@ def _with_probes(bank, cases, names, dtype):
     return probe_design.with_probes(
         bank,
         list(cases.values()),
-        challenge="f08",
+        challenge=challenge,
         bounds=[(float(lo), float(hi)) for lo, hi in structures_readiness.BOUNDS],
         valid=_valid_geometry,
         bases=PROBE_BASES,
@@ -121,7 +121,9 @@ def _with_probes(bank, cases, names, dtype):
     )
 
 
-def sealed_bank(document, records, *, version="1.2", rule=PACK_RULE, probes=True) -> dict:
+def sealed_bank(
+    document, records, *, version="1.2", rule=PACK_RULE, probes=True
+) -> dict:
     """The sealed batch as a bank in ``physical_pack.development_bank``'s format,
     with (default) the private response probes of physics half v1 appended."""
     from carbon.challenge_kit import f08_public, physical_pack

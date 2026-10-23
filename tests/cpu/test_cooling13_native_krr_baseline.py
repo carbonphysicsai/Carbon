@@ -129,7 +129,10 @@ def test_the_practice_baseline_entry_is_the_recorded_run():
     assert entry["code_head"] == record["code_head"]
     assert record["n_cases"] == 48 and record["practice_dual"]["eligible"] is True
     assert record["environment"]["platform"].startswith("Linux")
+    # The record was measured by the earlier practice dual (v1 legs on the dev
+    # measure); practice now reports the exam's v2 legs on the practice grid, so
+    # it is not shown as the "beat this" line until re-measured by the same code.
+    assert entry["dual_schema"] == campaign_view.DUAL_FEEDBACK_SCHEMA
     shown = campaign_view.baseline({"id": "chip-cold-plate", "version": "1.3"})
-    assert shown["score"] == campaign_view.finite(record["score"])
-    assert shown["reason"] is None
-    assert shown["record"]["record_digest"] == entry["record_digest"]
+    assert shown["score"] is None
+    assert shown["reason"] == "baseline_predates_practice_dual_v2"

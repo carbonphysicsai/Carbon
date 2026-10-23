@@ -37,6 +37,13 @@ def _native_rows():
     return rows
 
 
+def _pad(rows, total):
+    """The practice cases' rows followed by rows for the practice grid query
+    (the exam's own v2 grader's cells and public probes), which these tests do
+    not score: zeros of the interface's width."""
+    return [*rows, *([[0.0] * len(rows[0])] * (total - len(rows)))]
+
+
 @pytest.fixture
 def practice(tmp_path, monkeypatch):
     inject(monkeypatch)
@@ -47,7 +54,10 @@ def practice(tmp_path, monkeypatch):
         state = "sha256:" + "5" * 64
         return SimpleNamespace(
             build=SimpleNamespace(state_digest=state),
-            inference=SimpleNamespace(state_digest=state, predictions=_native_rows()),
+            inference=SimpleNamespace(
+                state_digest=state,
+                predictions=_pad(_native_rows(), len(kwargs["inputs"])),
+            ),
         )
 
     monkeypatch.setattr(worker, "reconstruct_and_infer_public", fake)
@@ -88,9 +98,12 @@ def test_a_catalog_recipe_runs_as_its_bundle_on_the_public_practice_inputs(pract
         [[record["inputs"][name] for name in domain.INPUTS] for record in records],
         dtype="<f8",
     )
-    assert np.array_equal(call["inputs"], expected)
-    assert call["example"] is call["inputs"]
-    assert call["expected_output_shape"] == (100, 2 + domain.PROFILE_SEGMENTS)
+    # The query is the practice cases followed by the practice grid (the exam's
+    # own v2 grader's cells and public probes); `example` is the practice cases.
+    assert np.array_equal(call["inputs"][:100], expected)
+    assert np.array_equal(call["example"], expected)
+    assert len(call["inputs"]) == 100 + 48 + 84
+    assert call["expected_output_shape"] == (232, 2 + domain.PROFILE_SEGMENTS)
     assert call["expected_output_dtype"] == "<f8"
     assert result["provenance"] == PROVENANCE == "COLD_PLATE_PUBLIC_PRACTICE"
     assert result["catalog_id"] == STAND_IN
@@ -100,15 +113,14 @@ def test_a_catalog_recipe_runs_as_its_bundle_on_the_public_practice_inputs(pract
     # the provider; the feedback schema is versioned for it.
     assert result["schema"] == catalog_practice.FEEDBACK_SCHEMA
     assert result["schema"].endswith(".v3")
-    # C13: Cooling's development bank is the counted decision-study evidence the
-    # miner-side read boundary denies, so practice names the block unavailable.
-    assert result["practice_dual"] == {
-        "schema": "carbon.practice.dual-feedback.v1",
-        "scope": "PUBLIC_PRACTICE_FEEDBACK",
-        "challenge": {"id": "chip-cold-plate", "version": "1.2"},
-        "available": False,
-        "reason": "practice_dual_not_public_for_cooling",
-    }
+    # Practice dual v2: the exam's own v2 grader on the full public bank as a
+    # grid with public probes (zero rows here are not a valid model: the gates
+    # say so, never a number).
+    dual = result["practice_dual"]
+    assert dual["schema"] == "carbon.practice.dual-feedback.v2"
+    assert dual["bank"] == "practice (public bank)" and dual["available"] is True
+    assert dual["n_cases"] == 48 + 84 and dual["eligible"] is False
+    assert dual["total"] is None
     assert result["safety"]["schema"] == "carbon.practice-safety-feedback.v1"
 
 
@@ -139,7 +151,8 @@ def test_the_safety_block_is_level_0_practices_for_the_same_predictions(
             lambda ledger_, **kwargs: SimpleNamespace(
                 build=SimpleNamespace(state_digest="sha256:" + "5" * 64),
                 inference=SimpleNamespace(
-                    state_digest="sha256:" + "5" * 64, predictions=rows
+                    state_digest="sha256:" + "5" * 64,
+                    predictions=_pad(rows, len(kwargs["inputs"])),
                 ),
             ),
         )

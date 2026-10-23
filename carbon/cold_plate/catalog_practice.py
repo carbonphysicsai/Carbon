@@ -212,6 +212,18 @@ class CoolingCatalogPractice:
             ],
             dtype=interface["dtype"],
         )
+        # The exam's own v2 grader on the practice grid (public cells and public
+        # probes) when this version has one: the grid query follows the practice
+        # cases in the same inference call (practice must match the exam).
+        from carbon.scoring import practice_dual, practice_grid
+
+        v2 = practice_grid.adapter("cooling", self.version) is not None
+        n_practice = len(practice.records)
+        query = inputs
+        if v2:
+            query = np.concatenate(
+                [inputs, practice_dual.query_inputs_v2("cooling", self.version, inputs)]
+            )
         if source_kind == "graph":
             # Graph route v2: the miner's own graph on Carbon's graph training
             # adapter, one path for every Challenge (`graph_adapters.practise`).
@@ -242,8 +254,8 @@ class CoolingCatalogPractice:
                     },
                     material=material,
                     identity=identity,
-                    inputs=inputs,
-                    expected_output_shape=(len(practice.records), width),
+                    inputs=query,
+                    expected_output_shape=(len(query), width),
                 )
             except graph_adapters.GraphAdapterUnregistered:
                 raise ValueError("cooling_catalog_recipe_required") from None
@@ -281,8 +293,8 @@ class CoolingCatalogPractice:
                     train=material["train"],
                     example=inputs,
                     seed=0,
-                    inputs=inputs,
-                    expected_output_shape=(len(practice.records), width),
+                    inputs=query,
+                    expected_output_shape=(len(query), width),
                     allowlist_bytes=material["allowlist_bytes"],
                     expected_output_dtype=output_dtype(interface),
                     accelerator=device,
@@ -312,8 +324,9 @@ class CoolingCatalogPractice:
                 raise ValueError(
                     "cooling catalog practice state differs between phases"
                 )
-        rows = result.inference.predictions
-        if len(rows) != len(practice.records):
+        all_rows = result.inference.predictions
+        rows, grid_rows = all_rows[:n_practice], all_rows[n_practice:]
+        if len(all_rows) != len(query) or len(rows) != len(practice.records):
             raise ValueError("cooling catalog practice row count differs")
         encoded = interface.get("output_encoding")
         predictions = {
@@ -355,13 +368,17 @@ class CoolingCatalogPractice:
             # read boundary denies (and its decision rules live in that study's
             # module). Until the bank has a public mirror and a public decision
             # module (the Validator's ruling), practice says so, never silently.
-            "practice_dual": {
-                "schema": "carbon.practice.dual-feedback.v1",
-                "scope": "PUBLIC_PRACTICE_FEEDBACK",
-                "challenge": {"id": kit["id"], "version": kit["version"]},
-                "available": False,
-                "reason": "practice_dual_not_public_for_cooling",
-            },
+            "practice_dual": (
+                practice_dual.from_rows_v2("cooling", self.version, grid_rows)
+                if v2
+                else {
+                    "schema": "carbon.practice.dual-feedback.v1",
+                    "scope": "PUBLIC_PRACTICE_FEEDBACK",
+                    "challenge": {"id": kit["id"], "version": kit["version"]},
+                    "available": False,
+                    "reason": "practice_dual_not_public_for_cooling",
+                }
+            ),
         }
         ResearchWorkspace(self.ledger, self.owner).put(
             "trial-"

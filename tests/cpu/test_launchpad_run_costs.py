@@ -208,7 +208,11 @@ def test_the_baseline_is_null_with_why_until_one_is_registered(monkeypatch):
     monkeypatch.setitem(
         campaign_view.PRACTICE_BASELINES,
         ("electric-motor-magnetics", "1.3"),
-        {"score": 0.41, "strategy_digest": "sha256:" + "a" * 64},
+        {
+            "score": 0.41,
+            "strategy_digest": "sha256:" + "a" * 64,
+            "dual_schema": campaign_view.DUAL_FEEDBACK_SCHEMA_V2,
+        },
     )
     shown = campaign_view.baseline(challenge)
     assert shown["score"] == 0.41 and shown["reason"] is None

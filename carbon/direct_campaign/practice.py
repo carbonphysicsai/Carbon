@@ -349,6 +349,10 @@ class DirectPractice:
         from carbon.development_session.research_workspace import ResearchWorkspace
 
         material = self._material()
+        # The v2 practice grid: the public cells with the public-seeded probes
+        # interleaved (the exam's own query design), when this version has a
+        # sealed v2 grader; otherwise the exposed bank as before.
+        material, cell_rows = self._practice_query(material)
         interface = material["interface_document"]
         dtype = OUTPUT_DTYPES[self.spec.prefix]
         if output_dtype(interface) != dtype:
@@ -394,7 +398,13 @@ class DirectPractice:
             "source_kind": source["kind"],
             "recipe_digest": ConstructionRecipe.from_dict(strategy).digest,
             "built_recipe_digest": built.digest,
-            "summary": summary(self.spec, self.version, interface, rows, material),
+            "summary": summary(
+                self.spec,
+                self.version,
+                interface,
+                rows if cell_rows is None else rows[cell_rows],
+                material,
+            ),
             "fit": {"state_digest": result.build.state_digest},
             "backend": backend,
             "adaptively_seen": True,
@@ -422,6 +432,39 @@ class DirectPractice:
             canonical(out),
         )
         return out
+
+    def _practice_query(self, material):
+        """``(material, cell_rows)``: for a version with a sealed v2 grader, the
+        material with its practice inputs replaced by the practice grid query
+        (cells and public probes, interleaved), and the index of each exposed case
+        in that query (in ``practice_case_ids`` order); otherwise the material
+        unchanged and None."""
+        import numpy as np
+
+        from carbon.scoring import practice_grid
+
+        kind = self.spec.prefix
+        if (
+            kind not in ("f08", "f02")
+            or practice_grid.adapter(kind, self.version) is None
+        ):
+            return material, None
+        bank = practice_grid.practice_bank(kind, self.version)
+        like = material["practice_inputs"]
+        query = np.asarray(bank["inputs"]).astype(like.dtype)
+        position = {case_id: i for i, case_id in enumerate(bank["case_ids"])}
+        cell_rows = np.asarray(
+            [position[c] for c in material["practice_case_ids"]], dtype=np.int64
+        )
+        width = tuple(material["expected_output_shape"])[1:]
+        return (
+            {
+                **material,
+                "practice_inputs": query,
+                "expected_output_shape": (len(query), *width),
+            },
+            cell_rows,
+        )
 
     def _catalog(self, catalog_recipe, binding, material, identity, dtype):
         from carbon.development_session.bundle_construction_worker import (
@@ -532,7 +575,15 @@ class DirectPractice:
 
 def _dual_feedback(spec, version, rows):
     """The shared practice dual block for the rows of the exposed bank."""
-    from carbon.scoring import practice_dual
+    from carbon.scoring import practice_dual, practice_grid
+
+    # The exam's own v2 grader on the full public bank, with public probes, when
+    # this version has one (practice must match the exam).
+    if (
+        spec.prefix in ("f08", "f02")
+        and practice_grid.adapter(spec.prefix, version) is not None
+    ):
+        return practice_dual.from_rows_v2(spec.prefix, version, rows)
 
     # A static dispatch: the code-authority inventory forbids a computed import.
     if spec.prefix == "f08":

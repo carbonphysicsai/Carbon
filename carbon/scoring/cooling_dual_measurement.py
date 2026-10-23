@@ -41,6 +41,14 @@ GATES = (
 #: reference evidence pinned by sha256.
 SEALED_COHORT = "decision_sealed_grid"
 SEALED_COHORT_COUNTS = {SEALED_COHORT: 16}
+#: The practice grid of the full exposed public bank: 8 designs x 6 conditions
+#: (labelled "practice (public bank)", never comparable with a sealed grade).
+PRACTICE_COHORT_COUNTS = {SEALED_COHORT: 48}
+#: A definition's ``population`` (set only for practice) binds its cohort count: a
+#: sealed definition is exactly the 16-cell batch, a practice definition exactly the
+#: 48-cell public bank.
+PRACTICE_POPULATION = "PRACTICE_PUBLIC_BANK"
+GRID_COHORT_COUNTS = (SEALED_COHORT_COUNTS, PRACTICE_COHORT_COUNTS)
 _SEALED_REDUCTIONS = ("all16", "worst_geometry")
 SEALED_GATES = (
     "native_cold_plate",
@@ -126,8 +134,17 @@ def validate_definition(definition):
         )
         and type(definition.get("verification_condition_budget")) is int
         and definition["verification_condition_budget"] >= 1
-        and definition.get("cohort_counts")
-        == (SEALED_COHORT_COUNTS if is_sealed else COHORT_COUNTS)
+        and (
+            definition.get("cohort_counts")
+            == (
+                PRACTICE_COHORT_COUNTS
+                if definition.get("population") == PRACTICE_POPULATION
+                else SEALED_COHORT_COUNTS
+            )
+            and definition.get("population") in (None, PRACTICE_POPULATION)
+            if is_sealed
+            else definition.get("cohort_counts") == COHORT_COUNTS
+        )
         and definition.get("target_slices")
         == {"peak_c": [0, 1], "profile_c": [1, 31], "pressure_drop_pa": [31, 32]},
         "cooling_definition",
@@ -175,7 +192,7 @@ def measure(*, bank, outputs, repeats, definition, contract, train):
         "cooling_prediction_roster",
     )
     is_sealed = sealed(definition)
-    expected = SEALED_COHORT_COUNTS if is_sealed else COHORT_COUNTS
+    expected = definition["cohort_counts"] if is_sealed else COHORT_COUNTS
     counts = {c: 0 for c in expected}
     for row in bank:
         _require(row.get("cohort") in counts, "cooling_bank_cohort")
