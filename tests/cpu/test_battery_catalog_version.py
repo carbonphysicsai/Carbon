@@ -408,6 +408,13 @@ def test_a_catalog_recipe_runs_through_the_shared_bundle_worker(tmp_path, monkey
     }
     assert summary["cases"] == len(material["practice_case_ids"])
     assert summary["error_scale"]["record"] == catalog_version.PRACTICE_RECORD
+    # Practice feedback matches the exam: Battery's own dual measurement on the
+    # public development bank (gates, then 0.5 A + 0.5 D), keyed to 2.2.
+    dual = result["practice_dual"]
+    assert dual["schema"] == "carbon.practice.dual-feedback.v1"
+    assert dual["challenge"] == CHALLENGE
+    assert dual["available"] is True, dual
+    assert dual["n_cases"] == len(material["practice_case_ids"])
 
 
 def test_a_graph_recipe_runs_through_battery_s_graph_adapter(tmp_path, monkeypatch):
@@ -575,3 +582,27 @@ def test_the_receiver_serves_2_2_with_canonical_case_ids():
     discovery = DirectFixtureDiscovery(material, task_admission=True)
     assert discovery.info.challenge_key.version == "2.2"
     assert tuple(discovery.info.practice_case_ids) == material["practice_case_ids"]
+
+
+def test_2_2_practice_asks_only_public_case_ids_mapped_from_bank_names():
+    # The Validator (2026-10-23), a16032cec's assertion for 2.2: practice asks
+    # only public practice, decision-grid and development-bank cases; 2.2
+    # names them bank-NNNN, each mapped back to its source id.
+    from carbon.battery import practice, practice_safety
+    from carbon.challenge_kit import physical_pack
+
+    material = cbm.versioned_material("2.2")
+    served = material["practice_case_ids"]
+    sources = material["practice_case_sources"]
+    mapped = dict(zip(served, sources, strict=True))
+    assert len(mapped) == len(set(sources)) == len(served)
+    public = (
+        set(physical_pack.development_bank(BATTERY, "2.1")["case_ids"])
+        | set(practice.PracticeSet.load(REPOSITORY).case_ids)
+        | set(practice_safety.decision_set(REPOSITORY).case_ids)
+    )
+    assert {mapped[case] for case in served} <= public
+    # What practice asks is exactly these rows, in this order.
+    base = cbm.versioned_material("2.1")
+    assert np.array_equal(material["practice_inputs"], base["practice_inputs"])
+    assert sources == base["practice_case_ids"]

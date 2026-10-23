@@ -64,7 +64,7 @@ def served_challenges() -> tuple:
     from carbon.challenge_kit import physical_material
     from carbon.challenge_kit.synthetic_linear_field_2d import CHALLENGE
 
-    return (
+    listed = (
         {"id": CHALLENGE.challenge_id, "version": "1.3"},
         # Every served Battery construction version (1.0; step-2 2.0; 2.1,
         # allowlist v7), each with its approved pack (Validator, 2026-10-20),
@@ -80,6 +80,16 @@ def served_challenges() -> tuple:
             for challenge_id, version in physical_material.REGISTERED
         ),
     )
+    # Battery's catalog versions (2.2) are also registered physical kits; each
+    # (id, version) is listed once, in first-seen order.
+    seen = set()
+    unique = []
+    for item in listed:
+        key = (item["id"], item["version"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(item)
+    return tuple(unique)
 
 
 class ReceiverUnavailable(RuntimeError):

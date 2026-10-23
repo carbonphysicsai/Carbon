@@ -530,6 +530,10 @@ def _dual_feedback(spec, version, rows):
         from carbon.scoring import f08_dual_pack as module
     elif spec.prefix == "f02":
         from carbon.scoring import f02_dual_pack as module
+    elif spec.prefix == "battery_catalog":
+        # Battery's own practice dual, on modules a miner surface may import
+        # (Phase A), so practice feedback matches the exam (0.5 A + 0.5 D).
+        from carbon.scoring import battery_public_adapter as module
     else:
         raise ValueError(spec.prefix + "_practice_dual_unregistered")
     adapter = practice_dual.versioned(module, version)
