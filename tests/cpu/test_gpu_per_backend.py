@@ -367,3 +367,39 @@ def test_a_pytorch_worker_setup_cannot_use_is_said_not_dropped(tmp_path):
     refused = compute["check"]["extra_gpu_refused"]
     assert refused["code"] == "gpu_image_unverified"
     assert "DOCKER_BUILDKIT=1" in refused["next_step"]
+
+
+def test_each_catalog_campaign_run_builds_its_remote_runner(monkeypatch):
+    """M1 12h: a catalog campaign's own run path composed its practice with
+    no remote runner, so its GPU work - the overlay preparation included -
+    ran on the CPU-only controller ("no GPU device record is installed on
+    this host"). Each catalog campaign run builds it from the profile's
+    remote machine when its runtime declares remote practice, as battery's
+    does."""
+    from types import SimpleNamespace
+
+    from carbon.challenge_registry import campaigns
+
+    asked = []
+
+    class Campaign:
+        @staticmethod
+        def remote_runner(runtime, machine, gpu_image):
+            asked.append((runtime, machine, gpu_image))
+            return "runner"
+
+    monkeypatch.setattr(campaigns, "campaign_for", lambda challenge: Campaign)
+    key = SimpleNamespace(challenge_id=MOTOR["id"], version=MOTOR["version"])
+    assert catalog_gpu.campaign_remote(key, {"gpu_research": []}, {}, JAX) is None
+    runtime = {"gpu_research": [], "remote_gpu": []}
+    assert catalog_gpu.campaign_remote(key, runtime, {"m": 1}, (JAX, TORCH)) == "runner"
+    assert asked == [(runtime, {"m": 1}, (JAX, TORCH))]
+    import inspect
+
+    from carbon.cold_plate import campaign as cold_plate
+    from carbon.direct_campaign import campaign as direct
+    from carbon.motor import campaign as motor
+
+    for module in (motor, cold_plate, direct):
+        source = inspect.getsource(module)
+        assert "campaign_remote(" in source and "remote=remote" in source
