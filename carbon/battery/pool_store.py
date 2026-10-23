@@ -2065,6 +2065,31 @@ class PoolStore:
             {"model_id": model_id, "reason": reason, "previous": current},
         )
 
+    def incumbent_standing(self, model_id):
+        """The incumbent's latest scored private evaluation, for the public king
+        document: ``{"owner", "total"}``, or None when it has none scored. Reads only.
+        """
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM operations WHERE kind='private_evaluation.v1' "
+                "AND state='BOUND_DEVELOPMENT_ONLY' ORDER BY rowid DESC"
+            ).fetchall()
+        for (raw,) in rows:
+            try:
+                found = json.loads(raw)
+                model = found["evidence"]["model_p"]
+            except (ValueError, KeyError, TypeError):
+                continue
+            if found.get("submission_id") != model_id:
+                continue
+            total = model.get("total_score")
+            if model.get("score_status") != "SCORED_DEVELOPMENT_CANDIDATE" or (
+                type(total) not in (int, float)
+            ):
+                return None
+            return {"owner": found.get("owner"), "total": float(total)}
+        return None
+
     def vacate_incumbent(self, model_id, reason):
         """Remove `model_id` as incumbent, leaving the Challenge without one
         (a king dethroned with no valid successor). Refused if it moved."""

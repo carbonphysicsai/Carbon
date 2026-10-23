@@ -124,3 +124,103 @@ def test_the_intake_serves_only_its_own_challenge_and_the_route_is_read_only():
     assert intake._koth(kp.PATH + "other-challenge").status == 404
     intake.koth_view = None
     assert intake._koth(kp.PATH + KEY.challenge_id).status == 404
+
+
+class _Store:
+    def __init__(self, incumbent, standing):
+        self._incumbent, self._standing = incumbent, standing
+
+    def incumbent(self):
+        return self._incumbent
+
+    def incumbent_standing(self, model_id):
+        assert model_id == self._incumbent["model_id"]
+        return self._standing
+
+
+def _pool_view(store, epoch=7, noise=NOISE):
+    return kp.PoolKingView(
+        open_store=lambda: store,
+        epoch_of=lambda submission_id: epoch,
+        exam_version_label="exam-1",
+        rebuild_noise_of=lambda: noise,
+    )
+
+
+def test_the_pool_view_names_the_incumbent_its_owner_total_and_epoch():
+    store = _Store(
+        {"model_id": "sub-1", "reason": "r"}, {"owner": HOTKEY, "total": 0.8}
+    )
+    status, body = kp.serve(_pool_view(store), KEY)
+    assert status == 200
+    assert body["king"] == {
+        "hotkey": HOTKEY,
+        "total": pytest.approx(0.78),
+        "since_epoch": 7,
+    }
+    assert body["to_beat"] == pytest.approx(0.81)
+
+
+def test_the_pool_view_has_no_king_without_an_incumbent_a_scored_total_or_an_epoch():
+    assert kp.serve(_pool_view(_Store(None, None)), KEY)[1]["king"] is None
+    held = {"model_id": "sub-1", "reason": "r"}
+    assert kp.serve(_pool_view(_Store(held, None)), KEY)[1]["king"] is None
+    standing = {"owner": HOTKEY, "total": 0.8}
+    assert (
+        kp.serve(_pool_view(_Store(held, standing), epoch=None), KEY)[1]["king"] is None
+    )
+
+
+def test_an_unregistered_margin_gives_a_null_to_beat_with_a_king():
+    store = _Store(
+        {"model_id": "sub-1", "reason": "r"}, {"owner": HOTKEY, "total": 0.8}
+    )
+    body = kp.serve(_pool_view(store, noise=None), KEY)[1]
+    assert body["margin"] is None and body["to_beat"] is None
+    assert body["king"]["total"] == pytest.approx(0.8)
+
+
+def test_an_unopened_pool_store_is_unavailable_not_a_crash():
+    view = _pool_view(None)
+    assert kp.serve(view, KEY) == (503, {"refused": "koth_unavailable"})
+
+
+def test_the_real_pool_store_reports_the_incumbents_latest_scored_evaluation(tmp_path):
+    from carbon.battery.pool_store import PoolStore
+    from carbon.challenge_validator.interface import digest
+
+    store = PoolStore(tmp_path / "pool.sqlite", clock=lambda: 0.0)
+    store.admit(
+        "a",
+        request_digest=digest(["request", "a"]),
+        hotkey="fixture-a",
+        challenge="electric-motor-magnetics",
+        strategy={},
+        binding={"challenge": {"id": "electric-motor-magnetics"}},
+    )
+    assert store.incumbent_standing("a") is None
+
+    def file(op, status, total, submission="a"):
+        body = {
+            "submission_id": submission,
+            "owner": HOTKEY,
+            "evidence": {"model_p": {"score_status": status, "total_score": total}},
+        }
+        with store.transaction() as db:
+            db.execute(
+                "INSERT INTO operations VALUES(?,?,?,?)",
+                (
+                    op,
+                    "private_evaluation.v1",
+                    "BOUND_DEVELOPMENT_ONLY",
+                    json.dumps(body),
+                ),
+            )
+
+    file("1", "SCORED_DEVELOPMENT_CANDIDATE", 0.4)
+    file("2", "SCORED_DEVELOPMENT_CANDIDATE", 0.6, submission="other")
+    assert store.incumbent_standing("a") == {"owner": HOTKEY, "total": 0.4}
+    file("3", "SCORED_DEVELOPMENT_CANDIDATE", 0.7)
+    assert store.incumbent_standing("a")["total"] == 0.7
+    file("4", "FAILED_INFRA", None)  # the latest says nothing: no total shown
+    assert store.incumbent_standing("a") is None
