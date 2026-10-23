@@ -306,6 +306,9 @@ def _latest_ladder(path, document):
     return document["exam_feedback"]
 
 
+_GATE = re.compile(r"[A-Za-z0-9_.:-]{1,64}")
+
+
 #: What an ungraded submission's grade says about reading it again (M1 E2E
 #: R11): observe and wait show the Ladder as last read.
 GRADE_REFRESH = (
@@ -341,6 +344,20 @@ def _graded_digests(path, submitted):
         return ()
 
 
+#: What each Ladder status says to a miner, in words: the one mapping the
+#: page, the runs screen and an agent read (`grade.latest.words`), covering
+#: every status `carbon.scoring.grade_feedback` emits. NOT_SCORED is any
+#: graded outcome that does not count (an invalid or ineligible result, a
+#: leg below its required minimum, infrastructure, indeterminate evidence):
+#: the Ladder reveals no total for it, so neither does this.
+GRADE_WORDS = {
+    "IMPROVED": "graded: a new best for your mining key on this exam",
+    "NO_IMPROVEMENT": "graded: did not improve on your best",
+    "GATE_FAILED": "graded: not eligible, a mandatory gate failed",
+    "NOT_SCORED": "graded: this result does not count, so no total is shown",
+}
+
+
 def _grade(ladder, submission=None, epoch=None, also=()):
     """The miner's own Ladder for the exam, as the display rule shows it
     (Validator VALUE_SCORE_GAP): one graded total 0..1 per document, its
@@ -355,7 +372,13 @@ def _grade(ladder, submission=None, epoch=None, also=()):
             "NOT_SCORED",
         ):
             return None
-        shown = {"status": document["status"]}
+        shown = {"status": document["status"], "words": GRADE_WORDS[document["status"]]}
+        # The Ladder's own gate names (its closed registry), as it shows them.
+        names = document.get("gate_names")
+        if document["status"] == "GATE_FAILED" and type(names) is list:
+            shown["gate_names"] = [
+                n[:64] for n in names[:16] if type(n) is str and _GATE.fullmatch(n)
+            ]
         for name in ("total", "A", "D"):
             value = document.get(name)
             if (
