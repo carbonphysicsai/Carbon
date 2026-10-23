@@ -18,6 +18,7 @@ import shutil
 import stat
 import tarfile
 import tempfile
+import threading
 import time
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
@@ -62,6 +63,74 @@ _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 OVERLAY_SCHEMA = "carbon.development.library-overlay.v1"
 MAX_OVERLAY_BYTES = 128 * 1024**2 - 64 * 1024
 MAX_OVERLAY_FILES = 8192
+
+
+class OverlayCacheCapacityExceeded(ValueError):
+    """The in-flight builds alone fill the operator's bound (nothing is evictable).
+    The message is the one callers already handle."""
+
+    def __init__(self):
+        super().__init__("operator material and overlay cache capacity exceeded")
+
+
+#: Overlay trees an in-flight build is using, by real path (a count each): never
+#: evicted. Held from the moment a build is given its overlay until its task ends.
+_LEASES: dict[str, int] = {}
+_LEASES_LOCK = threading.Lock()
+
+
+def hold(overlay) -> None:
+    """Mark ``overlay`` (a ``VerifiedLibraryOverlay``) as used by an in-flight build."""
+    key = str(Path(overlay.path).resolve())
+    with _LEASES_LOCK:
+        _LEASES[key] = _LEASES.get(key, 0) + 1
+
+
+def release(overlay) -> None:
+    key = str(Path(overlay.path).resolve())
+    with _LEASES_LOCK:
+        count = _LEASES.get(key, 0) - 1
+        if count > 0:
+            _LEASES[key] = count
+        else:
+            _LEASES.pop(key, None)
+
+
+def _leaf_bytes(leaf: Path) -> int:
+    return sum(p.stat().st_size for p in leaf.rglob("*") if p.is_file())
+
+
+def _remove_tree(path: Path) -> None:
+    for entry in [path, *path.rglob("*")]:
+        if not entry.is_symlink():
+            entry.chmod(0o700)
+    shutil.rmtree(path)
+
+
+def _evict(overlays: Path, keep: Path, over: int) -> None:
+    """Remove least-recently-used overlay trees no in-flight build holds, until at
+    least ``over`` bytes are freed or none is left to remove. ``keep`` is the tree
+    being installed."""
+    leaves = [
+        p.parent
+        for p in overlays.glob("*/*/*/*/.overlay.json")
+        if not p.parent.is_symlink()
+    ]
+    with _LEASES_LOCK:
+        held = set(_LEASES)
+    freed = 0
+    for leaf in sorted(leaves, key=lambda p: (p.stat().st_mtime_ns, str(p))):
+        if freed >= over:
+            break
+        if leaf == keep or str(leaf.resolve()) in held:
+            continue
+        freed += _leaf_bytes(leaf)
+        _remove_tree(leaf)
+        for parent in (leaf.parent, leaf.parent.parent, leaf.parent.parent.parent):
+            try:
+                parent.rmdir()
+            except OSError:
+                break
 
 
 @dataclass(frozen=True)
@@ -381,6 +450,7 @@ def _cache_verified_overlay_locked(
         if retained > material_cache_bytes:
             raise ValueError("operator material and overlay cache capacity exceeded")
         _verified_overlay_tree(target, receipt)
+        os.utime(target)  # most recently used
         return VerifiedLibraryOverlay(
             target,
             receipt["tree_digest"],
@@ -395,7 +465,12 @@ def _cache_verified_overlay_locked(
     )
     additional = receipt["total_file_bytes"] + receipt_bytes
     if retained + additional > material_cache_bytes:
-        raise ValueError("operator material and overlay cache capacity exceeded")
+        # Evict least-recently-used overlays no in-flight build holds; refuse only
+        # when what is held alone (plus this one) exceeds the bound.
+        _evict(overlays, target, retained + additional - material_cache_bytes)
+        retained = _cache_bytes(root)
+    if retained + additional > material_cache_bytes:
+        raise OverlayCacheCapacityExceeded
     if shutil.disk_usage(root).free < additional + 16 * 1024**2:
         raise ValueError("overlay cache physical capacity unavailable")
     temporary = Path(tempfile.mkdtemp(prefix=".pending-", dir=bucket))

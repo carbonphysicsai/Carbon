@@ -112,6 +112,7 @@ def test_verified_overlay_seals_exact_archive_and_rejects_changed_cache(
     second_bytes = len(content) + len(
         json.dumps(second_receipt, sort_keys=True, separators=(",", ":")).encode()
     )
+    cache.hold(selected)  # in flight: nothing is evictable, so this still refuses
     with pytest.raises(ValueError, match="cache capacity exceeded"):
         cache.cache_verified_overlay(
             snapshot,
@@ -121,6 +122,7 @@ def test_verified_overlay_seals_exact_archive_and_rejects_changed_cache(
             expected_receipt=second_receipt,
             material_cache_bytes=used + second_bytes - 1,
         )
+    cache.release(selected)
     assert _cache_bytes(root) == used
     second = cache.cache_verified_overlay(
         snapshot,
@@ -535,3 +537,126 @@ def test_overlay_cache_lock_obeys_contended_deadline_and_task_cancel(
             )
         assert len(callbacks) == 3
     assert not called
+
+
+# --- eviction: least-recently-used overlays no in-flight build holds ---------------
+
+
+def _prepared(tmp_path, tag, size):
+    """A snapshot (overlay.tar + overlay.json) of one ``size``-byte file for a parent
+    named by ``tag``, and the cache arguments for it."""
+    image = _image(tmp_path / f"context-{tag}")
+    parent = replace(image.parent, image_id=_sha(tag), config_digest=_sha(tag))
+    snapshot = tmp_path / f"snapshot-{tag}"
+    snapshot.mkdir()
+    content = (tag * size).encode()[:size]
+    relative = "source/big.bin"
+    row = [relative, len(content), "sha256:" + hashlib.sha256(content).hexdigest()]
+    with tarfile.open(
+        snapshot / "overlay.tar", mode="w", format=tarfile.USTAR_FORMAT
+    ) as archive:
+        member = tarfile.TarInfo(relative)
+        member.size = len(content)
+        member.mode = 0o444
+        archive.addfile(member, io.BytesIO(content))
+    body = (snapshot / "overlay.tar").read_bytes()
+    receipt = {
+        "schema": cache.OVERLAY_SCHEMA,
+        "bundle_ref": image.provisioned.bundle.to_dict(),
+        "parent_image_id": parent.image_id,
+        "archive_sha256": "sha256:" + hashlib.sha256(body).hexdigest(),
+        "archive_bytes": len(body),
+        "tree_digest": "sha256:"
+        + hashlib.sha256(json.dumps([row], separators=(",", ":")).encode()).hexdigest(),
+        "file_count": 1,
+        "total_file_bytes": len(content),
+    }
+    (snapshot / "overlay.json").write_text(json.dumps(receipt), encoding="utf-8")
+    return snapshot, {
+        "expected_bundle": image.provisioned.bundle,
+        "expected_parent": parent,
+        "expected_receipt": receipt,
+    }
+
+
+def _cache_root(tmp_path):
+    root = tmp_path / "private-cache"
+    root.mkdir(mode=0o700)
+    root.chmod(0o700)
+    return root
+
+
+def test_two_max_size_overlays_in_sequence_both_build_by_evicting_the_idle_first(
+    tmp_path,
+):
+    size = 40 * 1024**2
+    capacity = 60 * 1024**2  # one overlay fits, two do not
+    root = _cache_root(tmp_path)
+    first_snapshot, first_args = _prepared(tmp_path, "1", size)
+    second_snapshot, second_args = _prepared(tmp_path, "2", size)
+    first = cache.cache_verified_overlay(
+        first_snapshot, root, material_cache_bytes=capacity, **first_args
+    )
+    assert first.path.is_dir()
+    second = cache.cache_verified_overlay(
+        second_snapshot, root, material_cache_bytes=capacity, **second_args
+    )
+    assert second.path.is_dir()
+    assert not first.path.exists()  # evicted: nothing held it
+    from carbon.development_session.direct_material_staging import _cache_bytes
+
+    assert _cache_bytes(root) <= capacity
+
+
+def test_two_concurrent_overlays_still_refuse_typed(tmp_path):
+    size = 40 * 1024**2
+    capacity = 60 * 1024**2
+    root = _cache_root(tmp_path)
+    first_snapshot, first_args = _prepared(tmp_path, "1", size)
+    second_snapshot, second_args = _prepared(tmp_path, "2", size)
+    first = cache.cache_verified_overlay(
+        first_snapshot, root, material_cache_bytes=capacity, **first_args
+    )
+    cache.hold(first)  # an in-flight build is using it
+    try:
+        with pytest.raises(cache.OverlayCacheCapacityExceeded) as refused:
+            cache.cache_verified_overlay(
+                second_snapshot, root, material_cache_bytes=capacity, **second_args
+            )
+        assert "cache capacity exceeded" in str(refused.value)
+        assert first.path.is_dir()  # the held overlay was not touched
+    finally:
+        cache.release(first)
+    # once the first build ends, the second can be built
+    second = cache.cache_verified_overlay(
+        second_snapshot, root, material_cache_bytes=capacity, **second_args
+    )
+    assert second.path.is_dir() and not first.path.exists()
+
+
+def test_the_least_recently_used_idle_overlay_goes_first(tmp_path):
+    size = 20 * 1024**2
+    capacity = 50 * 1024**2  # two fit, three do not
+    root = _cache_root(tmp_path)
+    built = []
+    for tag in ("1", "2"):
+        snapshot, args = _prepared(tmp_path, tag, size)
+        built.append(
+            (
+                snapshot,
+                args,
+                cache.cache_verified_overlay(
+                    snapshot, root, material_cache_bytes=capacity, **args
+                ),
+            )
+        )
+    # touch the first again so the second is the older use
+    cache.cache_verified_overlay(
+        built[0][0], root, material_cache_bytes=capacity, **built[0][1]
+    )
+    third_snapshot, third_args = _prepared(tmp_path, "3", size)
+    third = cache.cache_verified_overlay(
+        third_snapshot, root, material_cache_bytes=capacity, **third_args
+    )
+    assert built[0][2].path.is_dir() and third.path.is_dir()
+    assert not built[1][2].path.exists()
