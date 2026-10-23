@@ -133,8 +133,16 @@ def describe(spec, version):
     with keyed(spec, key):
         train = train_facts(spec)
     catalog = served.document(key.challenge_id, key.version)
-    # Battery's catalog version binds no graph adapter (catalog recipes only).
-    adapter = limits.get("graph_training_adapter")
+    # The graph route as miners are told about it: the limits' adapter block,
+    # where the version's graph route is offered (`graph_adapters.graph_offered`;
+    # Battery 2.2's waits on its graph screen, so it reads catalog-only).
+    from carbon.development_session.graph_adapters import graph_offered
+
+    adapter = (
+        limits.get("graph_training_adapter")
+        if graph_offered(spec.challenge_id, key.version)
+        else None
+    )
     outputs = {name: [] for name in interface["output"]["names"]}
     return {
         "identity": "carbon." + spec.challenge_id + "-direct." + version,

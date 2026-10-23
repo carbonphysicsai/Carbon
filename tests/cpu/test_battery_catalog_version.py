@@ -220,7 +220,8 @@ def test_the_catalog_and_toolbox_list_nothing_until_receipts(monkeypatch):
     toolbox._catalog_recipes.cache_clear()
     document = describe(BATTERY, "2.2")
     assert document["models"]["rebuildable"] == []
-    assert document["models"]["graph_training_adapter"]["base_version"] == "2.1"
+    # Catalog-only wording until Battery's graph screen lands (the Validator).
+    assert document["models"]["graph_training_adapter"] is None
     assert document["models"]["note"].startswith("No backbone is installable yet")
     assert document["models"]["note"] == document["examples_note"]
     assert document["examples"] == []
@@ -230,11 +231,11 @@ def test_the_catalog_and_toolbox_list_nothing_until_receipts(monkeypatch):
     assert template["challenge"] == catalog_version.construction_kit(BATTERY, "2.2")
 
 
-def test_an_empty_catalog_campaign_starts_on_the_graph_route_and_says_why(
+def test_an_empty_catalog_campaign_is_refused_and_the_toolbox_says_why(
     tmp_path, monkeypatch
 ):
-    # Round 8b: while the catalog waits on its checks, 2.2 can practise the
-    # miner's own graph; the toolbox says why it offers no ready recipe.
+    # 2.2's graph route is not offered until its graph screen lands, so an
+    # empty catalog refuses the campaign; the toolbox says why, catalog-only.
     from scripts.dev.miner_launchpad import toolbox
 
     empty(monkeypatch, BATTERY, "2.2")
@@ -244,13 +245,13 @@ def test_an_empty_catalog_campaign_starts_on_the_graph_route_and_says_why(
         command="run",
         product=SimpleNamespace(runtime={"implementation": "x"}, agent="none"),
     )
-    granted = SimpleNamespace(root=tmp_path, admission="a-grant")
-    with pytest.raises(ValueError, match="never consumes a development grant"):
-        asyncio.run(campaign.prepare(args, ledger=granted, campaign=campaign))
     assert catalog_campaign.CATALOG_EMPTY == "battery_catalog_catalog_empty"
+    with pytest.raises(ValueError, match="battery_catalog_catalog_empty"):
+        asyncio.run(campaign.prepare(args, ledger=None, campaign=campaign))
+    assert list(tmp_path.iterdir()) == []
     note = describe(BATTERY, "2.2")["examples_note"]
     assert note.startswith("No backbone is installable yet")
-    assert "practise your own graph" in note
+    assert "graph" not in note
     toolbox._sources.cache_clear()
     toolbox._catalog_recipes.cache_clear()
     try:
@@ -544,29 +545,46 @@ def test_describe_offers_a_catalog_example_practice_accepts(monkeypatch):
         assert listing.entries(BATTERY, version) == []
 
 
-def test_the_description_serves_both_routes_and_no_coming_line(monkeypatch):
-    # The Validator's ruling (a) built: catalog backbones and your own graphs.
-    from carbon.challenge_registry.known_limitations import known_limitations
-    from carbon.development_session import battery_graph_adapter
+def _graph_words(document):
+    """Every miner-facing text of a description that could offer graphs."""
+    return " ".join(
+        str(value)
+        for value in (
+            document["models"]["note"],
+            document.get("examples_note", ""),
+            document["execution"]["recipe"],
+            document["models"]["graph_training_adapter"],
+        )
+    )
 
-    assert not any(
-        "graphs coming" in line for line in known_limitations(BATTERY, "2.2")
-    )
-    inject(monkeypatch, BATTERY, "2.2")
-    document = describe(BATTERY, "2.2")
-    assert document["models"]["graph_training_adapter"] == (
-        battery_graph_adapter.adapter_block(BATTERY, "2.2")
-    )
-    assert "stage a graph" in document["models"]["note"]
-    assert document["execution"]["recipe"].endswith("source kind catalog or graph")
-    template = graph_recipe(BATTERY_CATALOG, version="2.2")
-    assert template["source"] == {"kind": "graph", "submission_digest": None}
-    assert template["procedure"]["train_use"] == {
-        "dataset": "battery-pinned-train-v1",
-        "train_fraction": 1.0,
-        "curriculum": "none",
-    }
-    assert template["output"]["format"] == "carbon.battery.raw-numeric.v1"
+
+def test_2_2_reads_catalog_only_until_its_graph_screen_lands(monkeypatch):
+    # The Validator: no page or doc may say Battery 2.2 takes graphs until its
+    # graph screen lands. The adapter stays registered and in the limits.
+    from carbon.development_session import battery_graph_adapter, graph_adapters
+
+    assert graph_adapters.for_version(BATTERY, "2.2") is battery_graph_adapter
+    assert not graph_adapters.graph_offered(BATTERY, "2.2")
+    limits = catalog_version.construction_limits_document(BATTERY, "2.2")
+    assert "graph_training_adapter" in limits
+    for offered in (False, True):
+        if offered:
+            inject(monkeypatch, BATTERY, "2.2")
+        document = describe(BATTERY, "2.2")
+        assert "graph" not in _graph_words(document).lower(), document["models"]
+        assert document["models"]["graph_training_adapter"] is None
+        assert document["execution"]["recipe"].endswith("source kind catalog")
+
+
+def test_f08_and_f02_still_offer_graphs(monkeypatch):
+    from carbon.development_session import graph_adapters
+
+    for challenge_id, version in (("f08-ribbed-bracket", "1.4"), ("f02", "2.3")):
+        assert graph_adapters.graph_offered(challenge_id, version)
+        document = describe(challenge_id, version)
+        assert document["models"]["graph_training_adapter"] is not None
+        assert document["execution"]["recipe"].endswith("source kind catalog or graph")
+        assert "graph" in _graph_words(document)
 
 
 def test_the_receiver_serves_2_2_with_canonical_case_ids():

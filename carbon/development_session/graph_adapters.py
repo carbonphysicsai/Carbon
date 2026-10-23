@@ -34,6 +34,17 @@ def for_adapter(adapter_id: str):
     return None
 
 
+def graph_offered(challenge_id: str, version: str) -> bool:
+    """Whether miners are told the version takes graph recipes: it has a
+    registered adapter and that adapter offers it (`OFFERED`, where an
+    adapter declares one; every served version otherwise)."""
+    module = for_version(challenge_id, version)
+    if module is None:
+        return False
+    offered = getattr(module, "OFFERED", None)
+    return offered is None or (challenge_id, version) in offered or version in offered
+
+
 def adapter_ids() -> frozenset:
     return frozenset().union(*(module.ADAPTER_IDS for module in modules()))
 

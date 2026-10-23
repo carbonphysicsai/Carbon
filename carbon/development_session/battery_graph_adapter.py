@@ -72,6 +72,11 @@ SPECS = {
     ),
 }
 ADAPTER_IDS = frozenset(spec.adapter_id for spec in SPECS.values())
+#: The versions whose graph route miners are told about: none until Battery's
+#: graph screen admits its registered TRAIN use (the Validator: no page or doc
+#: may say Battery 2.2 takes graphs until that screen lands). The adapter is
+#: registered and its block is in the limits meanwhile.
+OFFERED = frozenset()
 
 
 def spec_for(challenge_id: str, version: str) -> Spec:
