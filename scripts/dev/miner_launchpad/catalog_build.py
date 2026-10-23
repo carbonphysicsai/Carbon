@@ -242,6 +242,50 @@ def start(state_dir, *, python=sys.executable, spawn=subprocess.Popen) -> dict:
     return {**now, "state": "RUNNING"}
 
 
+def stage_twins(
+    state_dir, gpu_runtimes, *, python=sys.executable, spawn=subprocess.Popen
+):
+    """Stage the catalog's GPU twins' material in the background for the
+    GPU workers setup has just added (`gpu_runtimes`, the runtimes they
+    serve), so practice's GPU build finds it (M1 E2E S4: only the CPU build
+    was staged). Inert: `catalog_install --gpu-twins-only` copies pinned
+    bytes and wheels already in the host's wheelhouse; it builds, fetches
+    and runs nothing. Needs no runner profile (setup's compute check comes
+    before Review). Returns whether it started."""
+    if not gpu_runtimes:
+        return False
+    root = _setup_dir(state_dir)
+    from scripts.dev.miner_launchpad.environment_setup import _private_dir
+
+    _private_dir(root)
+    log = os.open(
+        root / LOG,
+        os.O_WRONLY | os.O_CREAT | os.O_APPEND | getattr(os, "O_NOFOLLOW", 0),
+        0o600,
+    )
+    try:
+        spawn(
+            [
+                python,
+                "-B",
+                "-m",
+                "scripts.dev.catalog_install",
+                "--state-dir",
+                str(state_dir),
+                "--gpu-twins-only",
+            ],
+            cwd=str(REPOSITORY),
+            stdin=subprocess.DEVNULL,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+            start_new_session=True,
+        )
+    finally:
+        os.close(log)
+    return True
+
+
 def _fetch_wheels(state_dir) -> bool:
     """The catalog's pinned wheels, fetched into the host's wheelhouse by
     exact name and version and kept only with their pinned sha256

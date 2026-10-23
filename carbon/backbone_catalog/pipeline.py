@@ -448,6 +448,37 @@ def bundle_directory(item, target, *, wheelhouse=None):
     return target
 
 
+def twin_directory(item, runtime, target, *, wheelhouse=None):
+    """Write `item`'s pinned GPU twin for bundle runtime `runtime` as the
+    directory the owner installer reads, as `bundle_directory` writes the CPU
+    build: the twin's own files under `bundles/<id>/<runtime>/` (the CPU
+    build's derivation, `_verify_runtime_ref`), and its pinned wheels from
+    `wheelhouse`. Refused when the entry has no build for `runtime`."""
+    builds = item.get("bundle_refs") or {}
+    if runtime not in builds:
+        raise CatalogBroken(f"{item['catalog_id']}: no {runtime} build")
+    root = BUNDLES / item["catalog_id"] / runtime
+    target = Path(target)
+    target.mkdir(mode=0o700)
+    for name in ("bundle.json", "source.tar.gz", "requirements.txt", "LICENSE"):
+        (target / name).write_bytes((root / name).read_bytes())
+    wheels = target / "wheels"
+    wheels.mkdir(mode=0o700)
+    declared = json.loads((root / "bundle.json").read_bytes())["wheels"]
+    if declared and wheelhouse is None:
+        raise CatalogBroken(
+            f"{item['catalog_id']}: its pinned wheels need --wheelhouse"
+        )
+    for name, expected in declared.items():
+        body = (Path(wheelhouse) / name).read_bytes()
+        if _digest(body) != expected:
+            raise CatalogBroken(
+                f"{item['catalog_id']}: wheel {name} differs from its pin"
+            )
+        (wheels / name).write_bytes(body)
+    return target
+
+
 def bind(
     catalog_id,
     *,

@@ -2833,7 +2833,9 @@ class EnvironmentSetup:
                 detected = self.checks.gpu(Path(gpu_image), campaign=campaign)
                 scopes = [detected["scope"]]
                 more = self._extra_gpu(
-                    extra, lambda path: self.checks.gpu(path, campaign=campaign)
+                    extra,
+                    lambda path: self.checks.gpu(path, campaign=campaign),
+                    check,
                 )
                 if more is not None:
                     scopes.append(more["scope"])
@@ -2851,7 +2853,9 @@ class EnvironmentSetup:
                 found = self.checks.remote(Path(gpu_image), machine, campaign)
                 scopes, remotes = [found["scope"]], [found["remote_scope"]]
                 more = self._extra_gpu(
-                    extra, lambda path: self.checks.remote(path, machine, campaign)
+                    extra,
+                    lambda path: self.checks.remote(path, machine, campaign),
+                    check,
                 )
                 if more is not None:
                     # Every backend the host registers, on the remote setup too.
@@ -2880,12 +2884,41 @@ class EnvironmentSetup:
                     check["next_step"] = "send your worker"
             if self._forget_compute_keys():
                 check["retired_compute_key"] = COMPUTE_KEY_REMOVED
-            return self._step("compute", {**step, "runtime": runtime, "check": check})
+            result = self._step("compute", {**step, "runtime": runtime, "check": check})
+        if gpu:
+            self._stage_gpu_twins(step)
+        return result
 
-    def _extra_gpu(self, extra, checked):
+    def _stage_gpu_twins(self, step):
+        """The catalog's GPU twins' material, staged in the background for
+        the GPU workers this check added (`catalog_build.stage_twins`; M1
+        E2E S4). Never fails the check: a twin not staged is listed by the
+        catalog step, and practice runs its CPU build."""
+        from scripts.dev.miner_launchpad import catalog_build, catalog_state
+
+        cfg = {
+            "gpu_image": step.get("gpu_image"),
+            "extra_gpu_image": step.get("extra_gpu_image"),
+        }
+        try:
+            runtimes = sorted(
+                runtime
+                for runtime in catalog_state.parents(cfg)
+                if runtime in catalog_state.GPU_BUILD_RUNTIMES
+            )
+            catalog_build.stage_twins(self.root.parent, runtimes)
+        except Exception:  # staging never fails the check
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "staging the catalog's GPU twins failed", exc_info=True
+            )
+
+    def _extra_gpu(self, extra, checked, check):
         """The other backend's GPU worker, checked as the first was
-        (`checked`), or None: none was built, or this Challenge's GPU
-        practice does not serve its backend."""
+        (`checked`), or None: none was built, or it could not be used, which
+        `check` then says, with the step that fixes it (M1 12g: a PyTorch GPU
+        worker that read as unregistered was dropped without a word)."""
         if extra is None:
             return None
         try:
@@ -2893,6 +2926,17 @@ class EnvironmentSetup:
         except SetupRefused as refused:
             if refused.code != "gpu_image_unverified":
                 raise
+            check["extra_gpu_refused"] = {
+                "code": refused.code,
+                "manifest": str(extra),
+                "next_step": (
+                    "your PyTorch GPU worker is not a registered one, so the "
+                    "catalog's PyTorch backbones practise on CPU: build it "
+                    "again with Docker BuildKit: DOCKER_BUILDKIT=1 "
+                    "scripts/dev/torch_gpu_worker_image.sh, then check Compute "
+                    "again; or this Challenge does not serve PyTorch on GPU"
+                ),
+            }
             return None
 
     def send_worker(self, value) -> dict:
