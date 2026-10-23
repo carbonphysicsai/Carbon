@@ -28,10 +28,12 @@ from carbon.scoring import motor_sealed_dual_pack as sealed
 from carbon.scoring import physical_dual_pack as physical
 
 MOTOR = "electric-motor-magnetics"
-#: Motor's development producer digest after the one accepted move that hashed
-#: the sealed bank loader and copy modules (Validator, 2026-10-22).
+#: Motor's development producer digest after composite 40's accepted move
+#: (the sealed bank loader and copy modules, Validator 2026-10-22: was
+#: sha256:5fe2c492...c75a2b9c) and graph route v2's one producer move (Motor
+#: 1.4 joins `VERSIONS` under 1.3's evaluation version).
 DEV_PRODUCER_DIGEST = (
-    "sha256:5fe2c492b3e56334fd8cefe183d41f1cb7d9198ca057213079c3df42c75a2b9c"
+    "sha256:f8a164fbbca2df64d7fc764bed41975f70323d334b95439651ded4ed518740aa"
 )
 DESIGNS, CONDITIONS = 5, 6
 
@@ -269,11 +271,11 @@ def test_the_development_producer_is_untouched_and_a_sealed_bank_refuses_under_i
 
 
 def test_dispatch_is_by_the_banks_declared_population(case):
-    for version in ("1.1", "1.2", "1.3"):
+    for version in ("1.1", "1.2", "1.3", "1.4"):
         chosen = sealed.adapter_for_bank(case["bank"], version)
         assert chosen.EVALUATION_VERSION == "motor-dual-sealed-batch-30-v1"
         assert chosen.VERSION == version and chosen.CASE_ID == sealed.CASE_ID
-    assert sealed.adapter("1.0") is None and sealed.adapter("1.4") is None
+    assert sealed.adapter("1.0") is None and sealed.adapter("1.5") is None
     development = physical_pack.development_bank(MOTOR, "1.3")
     chosen = sealed.adapter_for_bank(development, "1.3")
     assert chosen.EVALUATION_VERSION == dev.VERSIONS["1.3"][0]

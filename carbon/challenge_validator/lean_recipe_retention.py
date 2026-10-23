@@ -2124,7 +2124,10 @@ def _graph_regrade_query(discovery, material):
         "input_name": "inputs/forcing",
         "provenance": worker.INFERENCE_PROVENANCE,
     }
-    if adapter_id != worker.SYNTHETIC_ADAPTER_ID:
+    if adapter_id in worker._v2_adapter_ids():
+        key = discovery.info.challenge_key
+        query.update(worker.v2_infer_query(key.challenge_id, key.version))
+    elif adapter_id != worker.SYNTHETIC_ADAPTER_ID:
         root = _Path(worker.__file__).resolve().parents[2]
         name = "carbon.development_session.physical_graph_state"
         query["input_name"] = "inputs/features"

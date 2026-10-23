@@ -24,90 +24,32 @@ its bytes.
 
 from __future__ import annotations
 
-MOTOR = "electric-motor-magnetics"
-COOLING = "chip-cold-plate"
-F08 = "f08-ribbed-bracket"
-F02 = "f02"
-BATTERY = "battery-fastcharge-ageing-development-v1"
+from . import version_registry as _registry
 
-#: The step-2 versions: served v6, no fixed training-step caps.
-STEP2 = frozenset(
-    {
-        (MOTOR, "1.1"),
-        (COOLING, "1.1"),
-        (F08, "1.2"),
-        (F02, "2.1"),
-        (BATTERY, "2.0"),
-    }
-)
+MOTOR = _registry.MOTOR
+COOLING = _registry.COOLING
+F08 = _registry.F08
+F02 = _registry.F02
+BATTERY = _registry.BATTERY
+
+#: Each set is read from the one version registry (`version_registry`), where
+#: every version declares its allowlist, step caps and catalog explicitly.
+#: The step-2 versions: served v6, no fixed training-step caps, no catalog.
+STEP2 = _registry.keys(allowlist="v6", step_caps=False, catalog=False)
 #: The backbone-catalog versions (OWNER-BACKBONE-CATALOG-01; Validator: each
-#: Challenge's next version, never in place): step-2 serving plus Carbon's
-#: tested backbones by catalog id (`carbon.backbone_catalog`).
-#: Cooling 1.2 serves it too (owner priority via the Test Lead, 2026-10-20):
-#: only Motor served the catalog before because no Cooling entry was tested.
-#: Cooling's entries arrive by pipeline add, each with its own Cooling
-#: pair-identity receipt; until one does, Cooling 1.2's catalog is empty and
-#: its catalog campaign refuses to start (`carbon.cold_plate.campaign`). This
-#: binds Cooling 1.2's limits to its catalog before it freezes (open for the
-#: Validator to confirm, as F08 1.4 / F02 2.3 bind theirs before freezing).
-CATALOG = frozenset(
-    {
-        (MOTOR, "1.2"),
-        (MOTOR, "1.3"),
-        (COOLING, "1.2"),
-        (COOLING, "1.3"),
-        # The Validator, 2026-10-20: F08 1.4 and F02 2.3 bind the catalog (and
-        # Carbon's graph training adapter) before they freeze.
-        (F08, "1.4"),
-        (F02, "2.3"),
-        # The Validator, 2026-10-22: Battery 2.2 is 2.1 plus the catalog
-        # binding, by its own adapter (`battery.catalog_version`); its catalog
-        # is empty until each entry has its pair-identity receipt.
-        (BATTERY, "2.2"),
-    }
-)
-#: Each Challenge's catalog version, serving allowlist v7 (the Validator,
-#: 2026-10-20) with step-2 serving. A version's construction limits bind the
-#: exact catalog it serves: Motor 1.3 and Cooling 1.2, and F08 1.4 / F02 2.3
-#: (no entries yet); Battery 2.1, F08 1.3 and F02 2.2 bind none, and are never
-#: changed in place to bind one.
-V7 = frozenset(
-    {
-        (MOTOR, "1.3"),
-        (COOLING, "1.2"),
-        (COOLING, "1.3"),
-        (F08, "1.3"),
-        (F02, "2.2"),
-        (BATTERY, "2.1"),
-        # The Validator, 2026-10-20: F08 1.4 / F02 2.3 serve v7 with the catalog
-        # binding and the graph training adapter.
-        (F08, "1.4"),
-        (F02, "2.3"),
-        (BATTERY, "2.2"),
-    }
-)
+#: Challenge's next version, never in place), graph route v2 included.
+CATALOG = _registry.keys(catalog=True)
+#: The versions serving allowlist v7 (the Validator, 2026-10-20).
+V7 = _registry.keys(allowlist="v7")
 #: Versions registered before step 2: served v5 and their step caps, unchanged.
-EXISTING = frozenset(
-    {
-        (MOTOR, "1.0"),
-        (COOLING, "1.0"),
-        (F08, "1.0"),
-        (F08, "1.1"),
-        (F02, "2.0"),
-        (BATTERY, "1.0"),
-    }
-)
+EXISTING = _registry.keys(step_caps=True)
 
-
-class UnregisteredVersion(ValueError):
-    """A (Challenge, version) neither the step-2 batch nor history registers."""
+UnregisteredVersion = _registry.UnregisteredVersion
 
 
 def _known(challenge_id: str, version: str) -> tuple[str, str]:
-    key = (challenge_id, version)
-    if key not in STEP2 and key not in EXISTING and key not in CATALOG | V7:
-        raise UnregisteredVersion(f"unregistered Challenge version {key!r}")
-    return key
+    _registry.entry(challenge_id, version)
+    return (challenge_id, version)
 
 
 def is_step2(challenge_id: str, version: str) -> bool:

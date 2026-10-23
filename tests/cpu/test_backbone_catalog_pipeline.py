@@ -174,7 +174,8 @@ def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
     [
         ("cooling.neuralop.FNO", {"id": "chip-cold-plate", "version": "1.1"}),
         ("neuralop.FNO", {"id": "electric-motor-magnetics", "version": "1.1"}),
-        ("neuralop.FNO", {"id": "electric-motor-magnetics", "version": "1.4"}),
+        # 1.4 is graph route v2 (a catalog version); 1.5 is unregistered.
+        ("neuralop.FNO", {"id": "electric-motor-magnetics", "version": "1.5"}),
     ],
 )
 def test_an_entry_offered_where_no_catalog_is_served_is_refused(catalog_id, challenge):

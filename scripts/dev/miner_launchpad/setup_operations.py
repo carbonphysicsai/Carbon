@@ -521,6 +521,10 @@ def status(
             row.update(state="skipped", why="your agent uses its own model")
         elif done[step]:
             row["state"] = "done"
+            if step == "agent" and type(agent.get("consent")) is dict:
+                # What the miner agreed Hermes writes, still shown once the
+                # step is done (M1 E2E H17).
+                row["consent"] = agent["consent"]
         elif step in ("signer", "register") or registered is not None:
             row.update(state="open", missing=missing[step])
         else:

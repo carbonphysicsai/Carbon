@@ -73,8 +73,21 @@ def graph_recipe(spec, submission_digest=None, *, version, training=None):
     (`graph_adapters`) at `version`: the adapter's TRAIN use with its
     registered defaults and `training` (empty: every surface keeps its
     registered default). Without `submission_digest` it is an unfilled
-    template (None): the miner's graph, staged in their workspace, names it."""
+    template (None): the miner's graph, staged in their workspace, names it.
+    A graph route v2 version's template is its adapter v2's
+    (`graph_adapters.graph_recipe`)."""
+    from carbon.challenge_kit import version_registry
     from carbon.development_session.graph_adapters import for_version
+
+    if version_registry.entry(spec.challenge_id, version).graph_adapter == "v2":
+        from carbon.development_session import graph_adapters
+
+        return graph_adapters.graph_recipe(
+            spec.challenge_id,
+            version,
+            submission_digest,
+            configuration={"training": dict(training or {})},
+        )
 
     kit = _kit(spec, version)
     block = for_version(spec.challenge_id, version).adapter_block(
@@ -166,6 +179,7 @@ def describe(spec, version):
                 "reference_method",
                 "catalog",
                 "construction_kit",
+                "scaffold_recipe",
             ],
             "access": (
                 "start_research_task kind=workspace action=public_material with "

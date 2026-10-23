@@ -77,10 +77,10 @@ def test_motor_1_2_is_1_1s_measurement():
 @pytest.mark.parametrize(
     "challenge, version",
     [
-        (motor.CHALLENGE, "1.4"),
+        (motor.CHALLENGE, "1.5"),
         (motor.CHALLENGE, None),
         (cooling.CHALLENGE, "2.0"),
-        (f08.CHALLENGE, "1.5"),
+        (f08.CHALLENGE, "1.6"),
         (f02.CHALLENGE, "1.0"),
         (battery.CHALLENGE, "1.0"),
         ("unregistered-challenge", "1.0"),

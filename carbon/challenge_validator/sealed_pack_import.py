@@ -97,12 +97,46 @@ def commitment_for(challenge_id, challenge_version, manifest_bytes, files, windo
     }
 
 
-def set_commitment_for(challenge_id, challenge_version, batch_digests, window):
-    """The commitment a producer signs for a pack set: the Challenge version and
-    the active batch packs. The set key (the evaluation key) is its fingerprint."""
+def manifest_content(manifest_bytes):
+    """A batch pack's exam content: its `case_bank` and `reference_rows` role
+    digests, read from its manifest. These name neither the construction
+    version nor the pack version, so they key the pack set
+    (`sealed_exam_common.pack_set_document`). A role without a pinned file
+    digest has no content identity: refused, never guessed."""
     from . import sealed_exam_common as common
 
-    document = common.pack_set_document(challenge_id, challenge_version, batch_digests)
+    try:
+        body = json.loads(manifest_bytes)
+        roles = body["private"]
+        content = {role: roles[role]["sha256"] for role in common.CONTENT_ROLES}
+    except (ValueError, TypeError, KeyError):
+        raise AnswerKeyRefused("answer_key_pack_set_content_unavailable") from None
+    if any(
+        type(v) is not str or _DIGEST.fullmatch(v) is None for v in content.values()
+    ):
+        raise AnswerKeyRefused("answer_key_pack_set_content_unavailable")
+    return content
+
+
+def set_commitment_for(
+    challenge_id, challenge_version, batch_digests, window, *, contents
+):
+    """The commitment a producer signs for a pack set: the Challenge version and
+    the active batch packs by manifest digest. Its key (the evaluation key, also
+    the fingerprint) is over the batches' exam content, ``contents`` mapping each
+    manifest digest to `manifest_content` of that pack; it stays in
+    validator-side records."""
+    from . import sealed_exam_common as common
+
+    try:
+        batches = common._set_batches(challenge_id, challenge_version, batch_digests)
+        if type(contents) is not dict or set(contents) != set(batches):
+            raise common.PackSetRefused(common.SET_REFUSED)
+        document = common.pack_set_document(
+            challenge_id, challenge_version, [contents[d] for d in batches]
+        )
+    except common.PackSetRefused:
+        raise AnswerKeyRefused("answer_key_pack_set") from None
     key = common.pack_set_key(document)
     return {
         "schema": SET_COMMITMENT_SCHEMA,
@@ -111,7 +145,7 @@ def set_commitment_for(challenge_id, challenge_version, batch_digests, window):
         "challenge_version": challenge_version,
         "fingerprint": key,
         "set_key": key,
-        "batches": document["batches"],
+        "batches": batches,
         "window": window,
     }
 
@@ -121,10 +155,17 @@ def set_payload_for(commitment):
     return {"batches": list(commitment["batches"])}
 
 
-def verify_set(commitment, payload):
-    """Verify a pack-set commitment against its payload; returns the set body.
-    The payload must be exactly the committed batches, in the set's one order,
-    and the committed key must be the body's digest. Writes nothing."""
+def verify_set(commitment, payload, contents=None):
+    """Verify a pack-set commitment against its payload. The payload must be
+    exactly the committed batches, in the set's one order. Writes nothing.
+
+    The key: a set stored before v3 keeps its stored v2/v1 key and meaning
+    (`sealed_exam_common.stored_set_key`). A v3 key is over the batches' exam
+    content, so it is checked only with ``contents`` (`manifest_content` of each
+    delivered batch, in the set's order): at use (`SealedPackStore.pack_set`),
+    where every batch must be present. At import, before the batches arrive, a
+    v3 key is only checked to be a digest. Returns the verified body, or None
+    when the content check is still to come."""
     from . import sealed_exam_common as common
 
     if (
@@ -133,23 +174,38 @@ def verify_set(commitment, payload):
         or commitment["schema"] != SET_COMMITMENT_SCHEMA
         or commitment["kind"] != SET_KIND
         or commitment["fingerprint"] != commitment["set_key"]
+        or type(commitment["set_key"]) is not str
+        or _DIGEST.fullmatch(commitment["set_key"]) is None
     ):
         raise AnswerKeyRefused("answer_key_malformed")
     try:
-        document = common.pack_set_document(
+        batches = common._set_batches(
             commitment["challenge_id"],
             commitment["challenge_version"],
             commitment["batches"],
         )
-        key = common.pack_set_key(document)
+        if contents is None:
+            document = common.stored_set_key(
+                commitment["challenge_id"],
+                commitment["challenge_version"],
+                batches,
+                commitment["set_key"],
+            )
+        else:
+            document = common.verified_pack_set(
+                commitment["challenge_id"],
+                commitment["challenge_version"],
+                batches,
+                commitment["set_key"],
+                contents,
+            )
     except common.PackSetRefused:
         raise AnswerKeyRefused("answer_key_pack_set") from None
     if (
         type(payload) is not dict
         or set(payload) != {"batches"}
-        or payload["batches"] != document["batches"]
-        or commitment["batches"] != document["batches"]
-        or key != commitment["set_key"]
+        or payload["batches"] != batches
+        or commitment["batches"] != batches
     ):
         raise AnswerKeyRefused("answer_key_pack_set")
     return document
@@ -352,16 +408,42 @@ class SealedPackStore:
         path.write_bytes(raw)
         path.chmod(0o600)
 
-    def _set_path(self, set_key):
+    def _set_path(self, set_key, challenge_version=None):
+        """Where a set's commitment is kept. A v2 key is shared by every
+        construction version graded on the same batches, so each version's
+        commitment is kept under the key and that version; a set stored before
+        v2 stays at its key alone (`challenge_version` None)."""
         if type(set_key) is not str or _DIGEST.fullmatch(set_key) is None:
             raise AnswerKeyRefused("answer_key_malformed")
-        return self.root / SETS_DIRECTORY / (set_key.removeprefix("sha256:") + ".json")
+        name = set_key.removeprefix("sha256:")
+        if challenge_version is not None:
+            if (
+                type(challenge_version) is not str
+                or re.fullmatch(r"[0-9A-Za-z][0-9A-Za-z._-]{0,63}", challenge_version)
+                is None
+            ):
+                raise AnswerKeyRefused("answer_key_malformed")
+            name += "." + challenge_version
+        return self.root / SETS_DIRECTORY / (name + ".json")
+
+    def _stored_set_path(self, set_key, challenge_version):
+        """This version's commitment, else one stored at the key alone (v1),
+        else another version's under the same key, so the caller's challenge
+        check names the mismatch (`answer_key_wrong_challenge`)."""
+        versioned = self._set_path(set_key, challenge_version)
+        legacy = self._set_path(set_key)
+        if versioned.is_file() or legacy.is_file():
+            return versioned if versioned.is_file() else legacy
+        others = sorted(legacy.parent.glob(legacy.stem + ".*.json"))
+        return others[0] if others else legacy
 
     def holds_set(self, commitment):
         try:
             if self.withdrawn(commitment["set_key"]):
                 return False
-            return self._set_path(commitment["set_key"]).is_file()
+            return self._stored_set_path(
+                commitment["set_key"], commitment["challenge_version"]
+            ).is_file()
         except (AnswerKeyRefused, KeyError, TypeError):
             return False
 
@@ -375,7 +457,7 @@ class SealedPackStore:
         self._owner_only_root()
         record = self.root / SETS_DIRECTORY
         record.mkdir(mode=0o700, exist_ok=True)
-        path = self._set_path(commitment["set_key"])
+        path = self._set_path(commitment["set_key"], commitment["challenge_version"])
         if not path.exists():
             path.write_bytes(
                 json.dumps(commitment, sort_keys=True, separators=(",", ":")).encode()
@@ -392,10 +474,13 @@ class SealedPackStore:
         if self.withdrawn(set_key):
             raise AnswerKeyRefused("answer_key_pack_set_withdrawn")
         try:
-            commitment = json.loads(self._set_path(set_key).read_bytes())
+            commitment = json.loads(
+                self._stored_set_path(set_key, challenge_version).read_bytes()
+            )
         except (OSError, ValueError):
             raise AnswerKeyRefused("answer_key_pack_set_missing") from None
-        verify_set(commitment, set_payload_for(commitment))
+        payload = set_payload_for(commitment)
+        verify_set(commitment, payload)
         if (
             commitment["set_key"] != set_key
             or commitment["challenge_id"] != challenge_id
@@ -411,6 +496,13 @@ class SealedPackStore:
             batches.append(
                 (digest, self.pack_directory(digest, challenge_id, challenge_version))
             )
+        # The key names the exam's content: re-derived now from every delivered
+        # batch's own manifest, never taken from the commitment alone.
+        contents = [
+            manifest_content((directory / MANIFEST_NAME).read_bytes())
+            for _digest, directory in batches
+        ]
+        verify_set(commitment, payload, contents)
         return batches
 
     def _record_delivery(self, commitment):
@@ -535,6 +627,7 @@ __all__ = [
     "SealedPackAdapter",
     "SealedPackStore",
     "commitment_for",
+    "manifest_content",
     "payload_for",
     "set_commitment_for",
     "set_payload_for",

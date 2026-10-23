@@ -155,6 +155,81 @@ def test_with_consent_setup_writes_the_carbon_hermes_profile(tmp_path, installed
     assert setup.profile_path.exists()
 
 
+def test_the_consented_writes_still_show_once_the_agent_step_is_done(
+    tmp_path, installed
+):
+    """M1 E2E H17: before the step, setup offers the files Hermes writes for
+    consent; after it, setup still says which files the miner agreed to."""
+    setup, home, hermes_home = ready(tmp_path)
+    files = [
+        str(hermes_home / "profiles" / "carbon" / "config.yaml"),
+        str(hermes_home / "profiles" / "carbon" / ".env"),
+    ]
+    (choice,) = [c for c in setup.offered()["agent"] if c["id"] == HERMES]
+    assert choice["writes"] == files
+    assert "consent" not in setup.state()["steps"]["agent"]
+    agent = choose_hermes(setup, home)["steps"]["agent"]
+    assert agent["checked"] is True
+    assert agent["consent"] == {"writes": files}
+    assert agent["check"]["written"] == files
+    # Reading the state again, and after review, still shows it.
+    assert setup.state()["steps"]["agent"]["consent"] == {"writes": files}
+    setup.review({"confirm": True})
+    assert setup.state()["steps"]["agent"]["consent"] == {"writes": files}
+    # carbon_setup_status's own answer: the done Agent row names them.
+    from scripts.dev.miner_launchpad import setup_operations
+
+    rows = setup_operations.status(setup, door="mcp")["steps"]
+    (row,) = [r for r in rows if r["id"] == "agent"]
+    assert row["state"] == "done"
+    assert row["consent"] == {"writes": files}
+
+
+def test_consent_shows_when_hermes_is_written_at_review(tmp_path, installed):
+    """Hermes chosen before the model: the consent shows from the Agent step,
+    and the files are written at Review on that same consent."""
+    root = tmp_path / "state"
+    root.mkdir(mode=0o700)
+    home = tmp_path / "miner"
+    home.mkdir(mode=0o700)
+    for name in ("worker.json", "analysis.json", "operator.json"):
+        (home / name).write_text("{}")
+    hermes_home = tmp_path / "hermes"
+    setup = EnvironmentSetup(
+        root, onboarding=Onboarding(), checks=HermesChecks(hermes_home)
+    )
+    setup.begin({"address": HOTKEY})
+    files = setup.checks.hermes_files()
+    agent = choose_hermes(setup, home)["steps"]["agent"]
+    assert agent["check"]["hermes_profile"] == "written at review"
+    assert agent["consent"] == {"writes": files}
+    assert not hermes_home.exists()
+    inference = {"provider_id": "engy-chat", "model_id": "deepseek-v4-flash-0731"}
+    quote = setup.quote(inference)
+    setup.inference(
+        {**inference, "key": KEY, "consent": {"max_cost_nano": quote["max_cost_nano"]}}
+    )
+    setup.compute(
+        {
+            "choice": LOCAL_CPU,
+            "image_manifest": str(home / "worker.json"),
+            "analysis_image_manifest": str(home / "analysis.json"),
+        }
+    )
+    setup.review({"confirm": True})
+    agent = setup.state()["steps"]["agent"]
+    assert agent["consent"] == {"writes": files}
+    assert agent["check"]["written"] == files
+
+
+def test_carbon_s_own_agent_records_no_consent(tmp_path):
+    setup, home, _ = ready(tmp_path)
+    agent = setup.agent(
+        {"choice": GRAPHITE, "operator_config": str(home / "operator.json")}
+    )["steps"]["agent"]
+    assert "consent" not in agent
+
+
 def test_without_exact_consent_nothing_is_written(tmp_path, installed):
     setup, home, hermes_home = ready(tmp_path)
     for writes in ([], ["/elsewhere/config.yaml"], setup.checks.hermes_files()[:1]):
