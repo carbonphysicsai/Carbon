@@ -221,7 +221,7 @@ scenario("acceptance labels name a revision and never follow availability", asyn
   await wizardTo(page, "agent");
   assert.ok(page.text("research-selects").includes("Tested at aaaaaaaaaaaa · A3 only"));
   assert.ok(page.text("launchpad-strip").includes("Tested at aaaaaaaaaaaa · A3 only"));
-  assert.ok(page.text("launchpad-strip").includes("Untested"));
+  assert.ok(!page.text("launchpad-strip").includes("Untested"), "Untested is Carbon's internal state and is not said (E6)");
   const offered = byValue(page, "#research-selects input", "manual");
   assert.equal(offered.disabled, false);
   agent.acceptance = {...agent.acceptance, result: "FAIL"};
@@ -282,7 +282,7 @@ scenario("acceptance defaults label offered Agents Compute and Connections catal
   for (const [route, id] of [["agents", "agent-catalog"], ["compute", "compute-catalog"], ["connections", "connection-catalog"]]) {
     page.go("#" + route);
     await page.advance(0);
-    assert.ok(page.text(id).includes("Untested"), id + " labels the offered choice");
+    assert.ok(!page.text(id).includes("Untested"), id + " does not say Untested: Carbon's internal state is not said (E6)");
     assert.ok(!page.text(id).includes("Tested at"), id + " does not infer a PASS");
   }
   clean(page);
@@ -339,13 +339,13 @@ scenario("toolbox visibly stays untested without a PASS cell", async () => {
   page.go("#campaigns/" + run.id + "/tools");
   await page.advance(0);
   const label = () => one(page, "#campaign-detail .rs-toolbox-acceptance").textContent;
-  assert.equal(label(), "Untested");
+  assert.equal(label(), "", "an untested toolbox says nothing (E6), and never claims a PASS");
   state.view.toolbox.acceptance = {
     status: "UNTESTED", result: "BLOCKED", cell: null, revision: null,
     scope: "NAMED_CELL_REVISION_ONLY", evidence: null,
   };
   await refresh(page);
-  assert.equal(label(), "Untested");
+  assert.equal(label(), "", "an untested toolbox says nothing (E6), and never claims a PASS");
   clean(page);
 });
 
