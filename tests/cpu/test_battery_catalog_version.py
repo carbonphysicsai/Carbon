@@ -518,6 +518,20 @@ def test_describe_offers_a_catalog_example_practice_accepts(monkeypatch):
         toolbox._catalog_recipes.cache_clear()
     assert [item["catalog_id"] for item in offered] == [STAND_IN]
     assert construction_recipe_issues(offered[0]["recipe"], key) == ()
+    # The first landed entry is the toolbox's example by itself (as Cooling
+    # 1.3's entries gave it one): no release beyond the entry, and the empty
+    # catalog's note is gone.
+    assert "examples_note" not in document
+    toolbox._sources.cache_clear()
+    toolbox._catalog_recipes.cache_clear()
+    try:
+        built = toolbox.build(CHALLENGE, direct=True)
+    finally:
+        toolbox._sources.cache_clear()
+        toolbox._catalog_recipes.cache_clear()
+    assert built["examples"] == [recipe]
+    assert "examples_note" not in built
+    assert [item["catalog_id"] for item in built["catalog"]] == [STAND_IN]
     # The older versions offer no catalog.
     for version in ("1.0", "2.0", "2.1"):
         assert listing.entries(BATTERY, version) == []
