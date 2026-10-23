@@ -974,7 +974,7 @@ def test_short_space_offers_carbons_old_images_and_removes_them_only_on_yes(sand
     fake_df(sandbox, 13 * 1048576)
     asked = sandbox.run("--no-start", CARBON_TEST_OLD_IMAGES=old)
     assert asked.returncode == 2  # still short: nothing was removed
-    assert "Carbon's own images from earlier installs" in asked.stdout
+    assert "Carbon's own images and finished practice-job containers" in asked.stdout
     assert old in asked.stdout
     assert "Kept them" in asked.stdout and "--remove-old-images" in asked.stdout
     assert not any("superseded_images remove" in line for line in sandbox.logged())
