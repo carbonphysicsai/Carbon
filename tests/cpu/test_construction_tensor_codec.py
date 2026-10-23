@@ -77,6 +77,15 @@ def test_codec_choice_uses_checked_binding_not_recipe_configuration():
         codec.train_tensors(raw, {**binding, "codec": "npz"})
     with pytest.raises(codec.TensorCodecError, match="Battery TRAIN binding differs"):
         codec.train_tensors(raw, {**binding, "challenge_version": "unregistered"})
+    # Every served Battery construction version serves TRAIN v1 and decodes it
+    # (Test Lead's B22b: a 2.2 build died here when only 1.0 was accepted).
+    from carbon.battery import construction_bundle_material
+
+    assert codec._BATTERY_VERSIONS == construction_bundle_material.VERSIONS
+    expected = codec.train_tensors(raw, binding)
+    for version in construction_bundle_material.VERSIONS:
+        decoded = codec.train_tensors(raw, {**binding, "challenge_version": version})
+        assert all(np.array_equal(a, b) for a, b in zip(decoded, expected, strict=True))
 
 
 def test_example_and_inference_codec_accept_only_exact_input_bytes():
