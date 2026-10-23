@@ -118,6 +118,16 @@ def _empty_catalog_note(adapter):
     return waiting + " Until one is added, the campaign refuses to start."
 
 
+#: What a version's catalog example is (Validator, 2026-10-23: no card may
+#: imply a catalog default grades valid; F02 2.3's FullyConnected default
+#: fails verified_pick in practice and grades CANDIDATE_INVALID).
+EXAMPLE_NOTE = (
+    "The example is a catalog backbone at its tested default settings: a "
+    "starting point to practise and tune, not a recipe tested to pass this "
+    "Challenge's gates. Its practice result says whether it is eligible."
+)
+
+
 def describe(spec, version):
     """The direct version's description, from its registrations only."""
     from carbon.backbone_catalog import served
@@ -235,11 +245,10 @@ def describe(spec, version):
             else []
         ),
         # Never an empty list with no reason (round 8b): why there is no ready
-        # recipe yet, and what this version can already practise.
-        **(
-            {}
-            if catalog["entries"]
-            else {"examples_note": _empty_catalog_note(adapter)}
+        # recipe yet, and what this version can already practise; with
+        # entries, what the example is, never a claim that it grades valid.
+        "examples_note": (
+            EXAMPLE_NOTE if catalog["entries"] else _empty_catalog_note(adapter)
         ),
         "unsupported": [
             {

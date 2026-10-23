@@ -569,8 +569,8 @@ def build(challenge, *, lanes=None, compute=None, direct=False):
                     and type(e.get("strategy", e.get("recipe"))) is dict
                     and not (direct and "recipe" not in e)
                 ][:4],
-                # Why there is no ready recipe yet, when the description says
-                # (a direct version whose catalog is still empty).
+                # What the example is (never a claim that it grades valid), or
+                # why there is no ready recipe yet (an empty direct catalog).
                 **(
                     {"examples_note": described["examples_note"]}
                     if type(described.get("examples_note")) is str
