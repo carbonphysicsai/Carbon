@@ -3,6 +3,12 @@ set -euo pipefail
 # Never write bytecode into the checkout: a development candidate refuses
 # an ignored runtime source such as carbon/**/__pycache__ (M1, 2026-10-21).
 export PYTHONDONTWRITEBYTECODE=1
+# Dockerfile.gpu stamps the image's identity in heredoc RUN steps, which only
+# BuildKit runs; the legacy builder skips them silently and the image keeps
+# its parent's identity (M1 12g: the PyTorch GPU worker read as no
+# registered GPU worker). Ask for BuildKit, and refuse a manifest whose
+# identity was not stamped (below).
+export DOCKER_BUILDKIT="${DOCKER_BUILDKIT:-1}"
 
 # The PyTorch GPU (CUDA 13) reconstruction worker image (TORCH-GPU-01),
 # layered on the exact C-03 JAX worker image this checkout builds, in its own
@@ -50,11 +56,24 @@ image="$(tr -d '[:space:]' < "${temporary}/iid")"
 container="$(docker create "${image}")"
 docker cp "${container}:/opt/carbon/worker-image-build.json" "${temporary}/build.json"
 mkdir -p "$(dirname -- "${output}")"
-python3 - "${image}" "${temporary}/build.json" "${output}" <<'PY'
+python3 - "${image}" "${temporary}/build.json" "${output}" \
+  "${parent}" "${recipe_digest}" "${lock_digest}" <<'PY'
 import json
 import pathlib
 import sys
 build = json.loads(pathlib.Path(sys.argv[2]).read_text())
+# Written only when the image's identity names this build's parent, recipe
+# and PyTorch GPU lock, as the JAX GPU worker's build checks it.
+expected = {"base_image_digest": sys.argv[4], "build_recipe_digest": sys.argv[5],
+            "lock_digest": sys.argv[6]}
+differs = sorted(key for key, value in expected.items() if build.get(key) != value)
+if differs:
+    raise SystemExit(
+        "The PyTorch GPU worker image's build identity differs from this build ("
+        + ", ".join(differs) + "): its identity step did not run. No manifest "
+        "was written. Build again with Docker BuildKit (docker buildx, or "
+        "DOCKER_BUILDKIT=1), or report this."
+    )
 payload = {**build, "schema": "carbon.c03.worker-image.v1",
            "image_id": sys.argv[1], "config_digest": sys.argv[1]}
 pathlib.Path(sys.argv[3]).write_text(json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n")

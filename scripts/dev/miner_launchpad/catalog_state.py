@@ -71,6 +71,29 @@ def parents(cfg) -> dict[str, str]:
     return found
 
 
+#: The GPU build runtimes (`gpu_practice.GPU_RUNTIMES`), whose twins'
+#: material practice prepares a GPU overlay from.
+GPU_BUILD_RUNTIMES = frozenset(GPU_RUNTIMES.values())
+
+
+def _ready(root, item, served) -> bool:
+    """Whether `item` is installed for this install: its child built over the
+    current parent, and, for each GPU worker this install has, its GPU twin's
+    material staged where practice prepares the GPU overlay (M1 E2E S4: only
+    the CPU build was staged, so every GPU practice fell back to CPU)."""
+    ref = item.get("bundle_ref") or {}
+    digest, parent = ref.get("bundle_digest"), served[ref.get("runtime_profile_id")]
+    if not (root / digest[7:] / (parent[7:] + ".image.json")).is_file():
+        return False
+    for runtime, twin in (item.get("bundle_refs") or {}).items():
+        if runtime not in GPU_BUILD_RUNTIMES or runtime not in served:
+            continue
+        staged = (twin or {}).get("bundle_digest")
+        if type(staged) is not str or not (root / "materials" / staged[7:]).is_dir():
+            return False
+    return True
+
+
 def state(cfg) -> dict | None:
     """None without a runner profile's cache, else {"entries": n,
     "missing": [catalog ids]}: of the n entries whose runtime this install
@@ -90,8 +113,7 @@ def state(cfg) -> dict | None:
         if type(digest) is not str or parent is None:
             continue
         entries += 1
-        receipt = root / digest[7:] / (parent[7:] + ".image.json")
-        if not receipt.is_file():
+        if not _ready(root, item, served):
             missing.append(item["catalog_id"])
     return {"entries": entries, "missing": missing}
 
@@ -117,7 +139,7 @@ def progress(cfg) -> dict | None:
         )
         if type(digest) is not str or parent is None:
             continue
-        ready = (root / digest[7:] / (parent[7:] + ".image.json")).is_file()
+        ready = _ready(root, item, served)
         total += 1
         installed += ready
         for challenge in item.get("challenges") or []:

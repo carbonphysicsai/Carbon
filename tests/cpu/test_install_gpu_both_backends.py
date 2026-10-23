@@ -319,3 +319,29 @@ def test_gpu_without_a_driver_builds_the_workers_for_a_remote_gpu(tmp_path):
     assert "will not run on this machine" in result.stdout
     assert "gpu worker" in box.logged()
     assert "--gpu-image-manifest" in recorded(box)
+
+
+def test_a_pytorch_gpu_build_needs_buildx_and_says_so_before_building(sandbox):
+    """M1 12g: Docker 29 without buildx built a PyTorch GPU worker with its
+    parent's identity, silently. --gpu with --pytorch now needs buildx,
+    checked before any image is built; a JAX-only or CPU install does not."""
+    docker = sandbox.tools / "docker"
+    docker.write_text(
+        '#!/bin/sh\ncase "$1" in buildx) echo "docker: unknown command" >&2; exit 1 ;; esac\n'
+        'if [ "$*" = "info --format {{.DockerRootDir}}" ]; then\n'
+        '  echo "$CARBON_TEST_DOCKER_ROOT"\nfi\nexit 0\n'
+    )
+    docker.chmod(0o755)
+    refused = sandbox.run("--pytorch", "--gpu", "--no-start")
+    assert refused.returncode == 2
+    assert "needs Docker buildx" in refused.stderr
+    assert "docker-buildx-plugin" in refused.stderr
+    assert not any("worker" in line for line in sandbox.logged())
+    # A CPU-only --pytorch install, then a JAX-only GPU one: neither needs
+    # buildx. (After a GPU worker is built here, a --pytorch install builds
+    # the PyTorch GPU worker too, and then needs it.)
+    for args in (("--pytorch",), ("--gpu",)):
+        allowed = sandbox.run(*args, "--no-start")
+        assert allowed.returncode == 0, allowed.stderr
+    again = sandbox.run("--pytorch", "--no-start")
+    assert again.returncode == 2 and "needs Docker buildx" in again.stderr

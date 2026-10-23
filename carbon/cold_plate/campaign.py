@@ -383,6 +383,12 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
     )
     if declared != runtime:
         raise ValueError("configured runtime differs from the cold-plate runtime")
+    from carbon.development_session.catalog_gpu import campaign_remote
+
+    # The miner's own remote GPU, when the runtime declares it (S4).
+    remote = campaign_remote(
+        _key(), runtime, getattr(args, "remote_machine", None), gpu_image
+    )
 
     config = binding_for(args)
     public = json.loads(private_file(args.miner_public).read_bytes())
@@ -437,6 +443,7 @@ async def prepare_cold_plate(args, *, ledger=None, campaign):
             connection=connection,
             julia_image=julia_image,
             gpu_image=gpu_image,
+            remote=remote,
         )
         sdk = ResearchMinerTools(
             connection=connection,

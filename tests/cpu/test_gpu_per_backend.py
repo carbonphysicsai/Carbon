@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
+from pathlib import Path
 
 import pytest
 from test_battery_gpu_practice import Checks, Onboarding, gpu_image
@@ -261,7 +262,7 @@ class BothChecks(Checks):
 
     def gpu(self, manifest, campaign=None):
         self.calls.append(("gpu", str(manifest)))
-        image = TORCH if "torch" in str(manifest) else JAX
+        image = TORCH if Path(manifest).name.startswith("torch") else JAX
         return {
             "scope": campaign.gpu_scope(image),
             "device_kind": "NVIDIA GeForce RTX 4090",
@@ -316,3 +317,89 @@ def test_setup_checks_both_workers_and_declares_both_scopes(tmp_path):
         "pytorch",
     ]
     assert setup._stale(compute) == []
+
+
+def test_a_pytorch_worker_setup_cannot_use_is_said_not_dropped(tmp_path):
+    """M1 12g: the PyTorch GPU worker read as unregistered (its identity step
+    had not run) and setup dropped it without a word, so only the JAX worker
+    was offered. The check now says so, with the step that fixes it."""
+    from test_battery_gpu_practice import HOTKEY
+
+    from scripts.dev.miner_launchpad import installed
+    from scripts.dev.miner_launchpad.environment_setup import (
+        LOCAL_GPU,
+        EnvironmentSetup,
+        SetupRefused,
+    )
+
+    class Unregistered(BothChecks):
+        def gpu(self, manifest, campaign=None):
+            if Path(manifest).name.startswith("torch"):
+                raise SetupRefused("gpu_image_manifest", "gpu_image_unverified")
+            return super().gpu(manifest, campaign)
+
+    root = tmp_path / "state"
+    root.mkdir(mode=0o700)
+    home = tmp_path / "miner"
+    home.mkdir(mode=0o700)
+    for name in ("worker.json", "analysis.json", "gpu.json", "torch-gpu.json"):
+        (home / name).write_text("{}")
+    setup = EnvironmentSetup(root, onboarding=Onboarding(), checks=Unregistered())
+    setup.begin({"address": HOTKEY})
+    installed.write(
+        root,
+        image_manifest=home / "worker.json",
+        analysis_image_manifest=home / "analysis.json",
+        gpu_image_manifest=home / "gpu.json",
+        torch_gpu_image_manifest=home / "torch-gpu.json",
+    )
+    setup.compute(
+        {
+            "choice": LOCAL_GPU,
+            "image_manifest": str(home / "worker.json"),
+            "analysis_image_manifest": str(home / "analysis.json"),
+            "gpu_image_manifest": str((home / "gpu.json").resolve()),
+            "challenge": MOTOR,
+        }
+    )
+    compute = setup._record()["compute"]
+    assert "extra_gpu_image" not in compute
+    refused = compute["check"]["extra_gpu_refused"]
+    assert refused["code"] == "gpu_image_unverified"
+    assert "DOCKER_BUILDKIT=1" in refused["next_step"]
+
+
+def test_each_catalog_campaign_run_builds_its_remote_runner(monkeypatch):
+    """M1 12h: a catalog campaign's own run path composed its practice with
+    no remote runner, so its GPU work - the overlay preparation included -
+    ran on the CPU-only controller ("no GPU device record is installed on
+    this host"). Each catalog campaign run builds it from the profile's
+    remote machine when its runtime declares remote practice, as battery's
+    does."""
+    from types import SimpleNamespace
+
+    from carbon.challenge_registry import campaigns
+
+    asked = []
+
+    class Campaign:
+        @staticmethod
+        def remote_runner(runtime, machine, gpu_image):
+            asked.append((runtime, machine, gpu_image))
+            return "runner"
+
+    monkeypatch.setattr(campaigns, "campaign_for", lambda challenge: Campaign)
+    key = SimpleNamespace(challenge_id=MOTOR["id"], version=MOTOR["version"])
+    assert catalog_gpu.campaign_remote(key, {"gpu_research": []}, {}, JAX) is None
+    runtime = {"gpu_research": [], "remote_gpu": []}
+    assert catalog_gpu.campaign_remote(key, runtime, {"m": 1}, (JAX, TORCH)) == "runner"
+    assert asked == [(runtime, {"m": 1}, (JAX, TORCH))]
+    import inspect
+
+    from carbon.cold_plate import campaign as cold_plate
+    from carbon.direct_campaign import campaign as direct
+    from carbon.motor import campaign as motor
+
+    for module in (motor, cold_plate, direct):
+        source = inspect.getsource(module)
+        assert "campaign_remote(" in source and "remote=remote" in source

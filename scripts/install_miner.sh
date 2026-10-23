@@ -360,6 +360,13 @@ fi
 # wanted: a --pytorch release install without one needs no torch-gpu.
 if [[ "${PYTORCH}" == 1 && "${gpu_space}" -gt 0 ]]; then
   RELEASE_KINDS+=(torch-gpu)
+  # Building the PyTorch GPU worker needs Docker BuildKit: its identity is
+  # stamped in steps the legacy builder skips silently (M1 12g, Docker 29
+  # without buildx). Checked before any image is built; a release install
+  # pulls the image instead, and a CPU-only or JAX-only install needs none.
+  if [[ -z "${RELEASE}" ]] && ! docker buildx version >/dev/null 2>&1; then
+    fail "building the PyTorch GPU worker needs Docker buildx, which this Docker lacks. Install Docker buildx (Ubuntu or Debian: sudo apt-get install docker-buildx-plugin, or docker-buildx with your distribution's Docker), then run the installer again."
+  fi
 fi
 need_space "${repo_root}" "${CHECKOUT_GIB}" "Carbon's locked environment and its cache"
 docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"

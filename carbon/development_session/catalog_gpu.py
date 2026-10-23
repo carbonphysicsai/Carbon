@@ -209,6 +209,24 @@ FALLBACK_WORDS = {
 }
 
 
+def campaign_remote(key, runtime, machine, gpu_image):
+    """The practice runner on the miner's own remote GPU for a catalog
+    campaign's run, built by its Challenge's campaign (`remote_runner`) from
+    the profile's `remote_machine` when the runtime declares remote
+    practice; None otherwise. Every catalog campaign's own run path builds
+    it, as battery's does (M1 E2E S4: without it a catalog campaign's GPU
+    work - the overlay preparation included - ran on the controller, which
+    has no GPU)."""
+    from carbon.compute.remote_route import RUNTIME_KEY as REMOTE
+
+    if REMOTE not in runtime:
+        return None
+    from carbon.challenge_registry.campaigns import campaign_for
+
+    campaign = campaign_for({"id": key.challenge_id, "version": key.version})
+    return campaign.remote_runner(runtime, machine, gpu_image)
+
+
 class RemotePractice:
     """A catalog practice's runner with the miner's own remote GPU: a run on
     the remote worker's image (the GPU parent) goes to the remote setup, and

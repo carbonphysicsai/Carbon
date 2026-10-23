@@ -131,7 +131,88 @@ def install(
             )
             continue
         installed.append({"catalog_id": catalog_id, **result})
+    if state_dir is not None and receiver_config is None:
+        stage_gpu_twins(
+            catalog_ids, wheelhouse=wheelhouse, state_dir=state_dir, skipped=skipped
+        )
     return installed
+
+
+def gpu_runtimes(state_dir):
+    """The GPU build runtimes this install's GPU workers serve: the runner
+    profile's (`gpu_image`, `extra_gpu_image`) and, before Review wrote one,
+    the installer's record (`gpu_image_manifest`, `torch_gpu_image_manifest`)."""
+    from carbon.development_session.gpu_practice import gpu_runtime
+    from carbon.reconstruction.worker.docker_runtime import load_image_identity
+    from scripts.dev.miner_launchpad import installed
+
+    environment = Path(state_dir) / "environment"
+    paths = []
+    try:
+        cfg = json.loads((environment / "runner-profile.json").read_bytes())
+        paths += [cfg.get(f) for f in ("gpu_image", "extra_gpu_image")]
+    except (OSError, ValueError):
+        pass
+    record = installed.read(Path(state_dir)) or {}
+    paths += [record.get(f) for f in ("gpu_image_manifest", "torch_gpu_image_manifest")]
+    found = []
+    for path in paths:
+        if type(path) is not str:
+            continue
+        try:
+            runtime = gpu_runtime(load_image_identity(Path(path)))
+        except Exception:  # noqa: BLE001 - a record that cannot be read serves none
+            runtime = None
+        if runtime is not None and runtime not in found:
+            found.append(runtime)
+    return found
+
+
+def stage_gpu_twins(catalog_ids=None, *, wheelhouse=None, state_dir, skipped=None):
+    """Stage each entry's GPU twin material for every GPU runtime this
+    install serves (`gpu_runtimes`), where practice's GPU build prepares its
+    overlay from it (M1 E2E S4: only the CPU build was staged, so every GPU
+    practice fell back with "pinned bundle material is not staged"). Inert:
+    the pinned bytes and wheels are copied into the owner's library cache;
+    nothing is built or run. An entry whose twin cannot be staged is named
+    in `skipped` and the rest go on. Returns the staged [{catalog_id,
+    runtime}]."""
+    skipped = [] if skipped is None else skipped
+    runtimes = gpu_runtimes(state_dir)
+    if not runtimes:
+        return []
+    if wheelhouse is None and catalog_wheelhouse.DEFAULT_DIRECTORY.is_dir():
+        wheelhouse = catalog_wheelhouse.DEFAULT_DIRECTORY
+    staged = []
+    for item in pipeline.load()["entries"]:
+        catalog_id = item["catalog_id"]
+        if catalog_ids and catalog_id not in catalog_ids:
+            continue
+        for runtime in runtimes:
+            if runtime not in (item.get("bundle_refs") or {}):
+                continue
+            try:
+                with tempfile.TemporaryDirectory() as work:
+                    directory = pipeline.twin_directory(
+                        item, runtime, Path(work) / "twin", wheelhouse=wheelhouse
+                    )
+                    library_bundle.stage_bundle(directory, state_dir=state_dir)
+            except Exception as failure:  # noqa: BLE001 - one twin never stops the rest
+                detail = f"{type(failure).__name__}: {failure}"[:300]
+                print(
+                    f"skipped {catalog_id} {runtime} build: {detail}", file=sys.stderr
+                )
+                skipped.append(
+                    {
+                        "catalog_id": catalog_id,
+                        "reason": "gpu_twin_not_staged",
+                        "runtime": runtime,
+                        "detail": detail,
+                    }
+                )
+                continue
+            staged.append({"catalog_id": catalog_id, "runtime": runtime})
+    return staged
 
 
 def main(argv=None):
@@ -146,16 +227,29 @@ def main(argv=None):
     # Where the skipped entries are written as JSON, for the Control Center's
     # background install (scripts/dev/miner_launchpad/catalog_build.py).
     parser.add_argument("--report", type=Path)
+    # Only the GPU twins' material (inert; no build), for the GPU workers
+    # setup has just added (M1 E2E S4).
+    parser.add_argument("--gpu-twins-only", action="store_true")
     args = parser.parse_args(argv)
     skipped = []
     try:
-        installed = install(
-            args.catalog_id,
-            wheelhouse=args.wheelhouse,
-            state_dir=args.state_dir,
-            receiver_config=args.receiver_config,
-            skipped=skipped,
-        )
+        if args.gpu_twins_only:
+            if args.state_dir is None:
+                parser.error("--gpu-twins-only needs --state-dir")
+            installed = stage_gpu_twins(
+                args.catalog_id,
+                wheelhouse=args.wheelhouse,
+                state_dir=args.state_dir,
+                skipped=skipped,
+            )
+        else:
+            installed = install(
+                args.catalog_id,
+                wheelhouse=args.wheelhouse,
+                state_dir=args.state_dir,
+                receiver_config=args.receiver_config,
+                skipped=skipped,
+            )
     except pipeline.CatalogBroken as broken:
         print("refused: " + str(broken), file=sys.stderr)
         return 1
