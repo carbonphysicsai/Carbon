@@ -188,8 +188,10 @@ def construction_limits_document() -> dict:
             "nofile_max": 1024,
             "scratch_bytes_max": 512 * 1024**2,
             "scratch_inodes_max": 8192,
-            "build_wall_seconds_max": 600,
-            "inference_wall_seconds_max": 600,
+            # The registered rebuild limit (OWNER-REBUILD-TIME-LIMIT-01, interim): the
+            # worker reservation equals it (pinned in test_rebuild_reservation).
+            "build_wall_seconds_max": 1800,
+            "inference_wall_seconds_max": 1800,
             "total_reconstruction_wall_seconds_max": 1800,
             "network": "none",
             "cleanup_required": True,

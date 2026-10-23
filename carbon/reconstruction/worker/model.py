@@ -14,7 +14,13 @@ from carbon.registry import is_sha256_digest
 PROFILE_ID = "carbon.c03.linux-x86_64-cpu.development.v1"
 PROFILE_VERSION = "1.0"
 SCOPE = "UNQUALIFIED_PUBLIC_DEVELOPMENT"
-PRODUCTIVE_DEADLINE_SECONDS = 600
+#: The registered rebuild limit (OWNER-REBUILD-TIME-LIMIT-01, interim until the measured
+#: wall replaces it on the 4090 class). A launch's reservation IS this limit, never a
+#: stricter value of its own: a lower reservation silently refuses builds the limit
+#: admits (Battery CZ003). It is a Carbon resource setting, not exam protection and no
+#: training bound; past it the stop stays a typed resource refusal (WorkerCode.DEADLINE).
+REBUILD_LIMIT_SECONDS = 1800
+PRODUCTIVE_DEADLINE_SECONDS = REBUILD_LIMIT_SECONDS
 GRACEFUL_CANCELLATION_SECONDS = 5
 CLEANUP_CONFIRMATION_SECONDS = 30
 CPU_COUNT = 2
@@ -58,6 +64,8 @@ def _large_applies(allowlist_version):
     return LARGE_MODEL_PROFILE_APPLIED and (
         allowlist_version in LARGE_MODEL_ALLOWLIST_VERSIONS
     )
+
+
 LARGE_MODEL_RESOURCES = {
     "output_bytes": 2 * 1024**3,
     "scratch_bytes": 4 * 1024**3,
@@ -516,7 +524,10 @@ class DevelopmentWorkerProfile(LaunchAuthorityBearing):
             },
             "memory": {"bytes": self.effective_memory_bytes, "swap_bytes": SWAP_BYTES},
             "pids": PIDS_LIMIT,
-            "scratch": {"bytes": self.effective_scratch_bytes, "inodes": SCRATCH_INODES},
+            "scratch": {
+                "bytes": self.effective_scratch_bytes,
+                "inodes": SCRATCH_INODES,
+            },
             "input": {"bytes": INPUT_BYTES, "expanded_bytes": EXPANDED_INPUT_BYTES},
             "control_bytes": CONTROL_BYTES,
             "output": {

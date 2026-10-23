@@ -176,9 +176,18 @@ def test_the_frozen_request_is_the_shape_main_wrote(staged):
     assert request["accelerator"]["profile_id"] == MAIN_RTX3060_PROFILE_ID
 
 
-def test_the_frozen_request_still_loads_through_the_public_reader(staged):
-    """The compatibility claim, driven end to end rather than at the decoder."""
+def test_the_frozen_request_still_loads_through_the_public_reader(staged, monkeypatch):
+    """The compatibility claim, driven end to end rather than at the decoder.
+
+    The request names a worker-profile digest that embeds the 600 s productive
+    deadline in force when main wrote it. The registered reservation is now the
+    1800 s rebuild limit (OWNER-REBUILD-TIME-LIMIT-01), so the reader is shown the
+    deadline the record was written under; the fixture and its digest stay frozen.
+    """
+    from carbon.reconstruction.worker import model
     from carbon.reconstruction.worker.protocol import load_worker_request
+
+    monkeypatch.setattr(model, "PRODUCTIVE_DEADLINE_SECONDS", 600)
 
     attempt, plan, archive, seed, split = load_worker_request(staged)
     assert plan is not None and archive is not None and seed is not None
