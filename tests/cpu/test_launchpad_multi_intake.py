@@ -59,35 +59,41 @@ def test_pair_validation_copies_data_and_legacy_profile_is_unchanged(tmp_path):
 def test_published_validators_group_by_challenge_without_changing_a_single_entry(
     tmp_path,
 ):
+    from test_miner_setup_after_install import one_version_challenge
+
     from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK
+
+    # A v1 entry names a Challenge only, so it applies to a Challenge with
+    # one intake version; the rule picks it (Battery has two since 2.2).
+    one = one_version_challenge()
+    challenge, version = one["id"], one["version"]
 
     path = tmp_path / "published.json"
     entries = [
         {
             "network": CARBON_NETWORK,
             "netuid": CARBON_NETUID,
-            "challenge": CHALLENGE,
+            "challenge": challenge,
             **pair,
         }
         for pair in PAIRS
     ]
 
     def write(items):
-        # v1 (entries name the Challenge only): Battery has one intake version.
+        # v1 (entries name the Challenge only).
         path.write_text(
             json.dumps({"schema": setup.PUBLISHED_SCHEMA_V1, "endpoints": items}),
             encoding="utf-8",
         )
 
-    version = campaign.CHALLENGE.version
     write(entries[:1])
     assert (
-        setup.published_endpoints(path)["endpoints"][CHALLENGE][version] == entries[0]
+        setup.published_endpoints(path)["endpoints"][challenge][version] == entries[0]
     )
     write(entries)
     loaded = setup.published_endpoints(path)
     assert loaded["problem"] is None
-    assert loaded["endpoints"][CHALLENGE][version]["validators"] == entries
+    assert loaded["endpoints"][challenge][version]["validators"] == entries
     write([entries[0], entries[0]])
     assert setup.published_endpoints(path) == {
         "endpoints": {},

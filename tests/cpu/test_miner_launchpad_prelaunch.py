@@ -371,10 +371,12 @@ def test_review_states_where_a_frozen_candidate_is_evaluated(tmp_path, monkeypat
     url = "https://intake.example.org"
 
     def publish(*entries):
+        # v2: each entry names its version (a v1 entry no longer applies to a
+        # Challenge with two intake versions, as Battery has since 2.2).
         published.write_text(
             json.dumps(
                 {
-                    "schema": "carbon.launchpad.published-endpoints.v1",
+                    "schema": "carbon.launchpad.published-endpoints.v2",
                     "endpoints": list(entries),
                 }
             )
@@ -395,6 +397,7 @@ def test_review_states_where_a_frozen_candidate_is_evaluated(tmp_path, monkeypat
             "network": "testnet",
             "netuid": 567,
             "challenge": challenge["id"],
+            "version": challenge["version"],
             "intake_url": url,
             "receiver_hotkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
         }
@@ -413,11 +416,16 @@ def test_review_states_where_a_frozen_candidate_is_evaluated(tmp_path, monkeypat
     )
     # Every other intake Challenge (Motor 1.2 since its catalog landing) has
     # no endpoint published: CONFIGURED_FOR_SOME, each plainly NONE_PUBLISHED.
-    others = environment_setup.intake_challenges()[1:]
+    # Another Challenge, not another version of this one: the intake names
+    # the Challenge, so each of its versions (Battery 1.0 and 2.2) uses it.
+    others = [
+        c for c in environment_setup.intake_challenges() if c["id"] != challenge["id"]
+    ]
     assert written["configured"] == (
         "CONFIGURED_FOR_SOME" if others else "CONFIGURED_FOR_ALL"
     )
-    for other, item in zip(others, written["challenges"][1:], strict=True):
+    rest = [i for i in written["challenges"] if i["challenge_id"] != challenge["id"]]
+    for other, item in zip(others, rest, strict=True):
         assert (item["challenge_id"], item["status"]) == (
             other["id"],
             "NONE_PUBLISHED",
