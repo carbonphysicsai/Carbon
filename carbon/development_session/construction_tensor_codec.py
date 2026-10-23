@@ -29,7 +29,7 @@ _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 #: (`battery.construction_bundle_material.VERSIONS`, held equal by a test). Kept
 #: here, not imported, because this module runs inside the isolated worker with
 #: only its staged modules.
-_BATTERY_VERSIONS = ("1.0", "2.0", "2.1", "2.2")
+_BATTERY_VERSIONS = ("1.0", "2.0", "2.1")
 _BASE_MODULES = (
     "carbon.development_session.construction_tensor_codec",
     "carbon.development_session.bundle_graph_state",
