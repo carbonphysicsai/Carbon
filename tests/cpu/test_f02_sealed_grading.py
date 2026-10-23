@@ -19,7 +19,7 @@ from carbon.scoring import physical_dual_pack as physical
 LIMIT = f02_train.LIMIT_C
 
 
-def _sealed_bank():
+def _sealed_bank(probes=False):
     """Data Collection's fixture batch, its synthetic (non-production) peaks
     moved within 1 C of the limit on both sides so the margin coverage holds."""
     document, records = batch()
@@ -28,7 +28,7 @@ def _sealed_bank():
         record["outputs"]["peak_top_c"] = peak
         record["rung_peaks_c"] = {"primary": peak, "mesh2": peak + 0.003, "dt0.5": peak}
         record["rung_comparison"] = {"pass": True, "primary_peak_c": peak}
-    return sealed.sealed_bank(document, records)
+    return sealed.sealed_bank(document, records, probes=probes)
 
 
 def _rows(bank):

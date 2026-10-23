@@ -94,39 +94,17 @@ def _with_probes(bank, cases, names, dtype):
     from carbon.challenge_pipeline import structures_readiness
     from carbon.scoring import probe_design
 
-    bounds = [(float(lo), float(hi)) for lo, hi in structures_readiness.BOUNDS]
     if list(names) != list(structures_readiness.FIELDS):
         raise SealedPackRefused("f08_sealed_probe_interface")
-    points = probe_design.draw_valid(
-        probe_design.seed(
-            _canonical(
-                sorted(_canonical(inputs).decode() for inputs in cases.values())
-            ),
-            "f08",
-        ),
-        bounds,
-        _valid_geometry,
-        PROBE_BASES,
+    return probe_design.with_probes(
+        bank,
+        list(cases.values()),
+        challenge="f08",
+        bounds=[(float(lo), float(hi)) for lo, hi in structures_readiness.BOUNDS],
+        valid=_valid_geometry,
+        bases=PROBE_BASES,
+        dtype=dtype,
     )
-    rows = probe_design.response_rows(points, bounds)
-    width = bank["references"].shape[1]
-    inputs = np.concatenate(
-        [bank["inputs"], np.asarray([x for _, _, x in rows], dtype=dtype)]
-    )
-    references = np.concatenate(
-        [bank["references"], np.full((len(rows), width), np.nan, dtype=dtype)]
-    )
-    inputs.setflags(write=False)
-    references.setflags(write=False)
-    return {
-        **bank,
-        "case_ids": (*bank["case_ids"], *[c for c, _, _ in rows]),
-        "cohorts": (*bank["cohorts"], *[probe_design.PROBE_COHORT] * len(rows)),
-        "inputs": inputs,
-        "references": references,
-        "reference_records": [*bank["reference_records"], *[r for _, r, _ in rows]],
-        "reference_present": (True,) * len(bank["case_ids"]) + (False,) * len(rows),
-    }
 
 
 def sealed_bank(document, records, *, version="1.2", probes=True) -> dict:

@@ -20,6 +20,7 @@ arithmetic; DEVELOPMENT only: no qualification, weight, reward or LIVE authority
 from __future__ import annotations
 
 import hashlib
+import json
 
 PROBE_COHORT = "probe_response"
 DELTA = 0.01
@@ -76,8 +77,10 @@ def draw_valid(seed_bytes, bounds, valid, count, *, delta=DELTA, max_tries=100_0
     return points
 
 
-def response_rows(points, bounds, *, delta=DELTA):
-    """The probe rows for ``points``: ``[(case_id, record, x)]``."""
+def response_rows(points, bounds, *, delta=DELTA, extra=()):
+    """The probe rows for ``points``: ``[(case_id, record, x)]``. ``extra`` is
+    ``[(name, transform)]``: each adds one law-probe row per base point,
+    ``transform(base point) -> point`` (kind ``law:<name>``)."""
     spans = [hi - lo for lo, hi in bounds]
     rows = []
     for k, base in enumerate(points):
@@ -102,7 +105,78 @@ def response_rows(points, bounds, *, delta=DELTA):
                         moved,
                     )
                 )
+        for name, transform in extra:
+            rows.append(
+                (
+                    f"probe-{k:02d}-law-{name}",
+                    {
+                        "status": PROBE_STATUS,
+                        "probe": {
+                            "base": k,
+                            "dim": None,
+                            "sign": 0,
+                            "kind": "law:" + name,
+                        },
+                    },
+                    list(transform(base)),
+                )
+            )
     return rows
+
+
+def content_bytes(cases) -> bytes:
+    """The canonical batch input content (never its ids or order): the seed basis
+    that every validator copy of one exam shares. ``cases``: input dicts."""
+    return json.dumps(
+        sorted(json.dumps(c, sort_keys=True, separators=(",", ":")) for c in cases),
+        separators=(",", ":"),
+    ).encode()
+
+
+def with_probes(
+    bank,
+    cases,
+    *,
+    challenge,
+    bounds,
+    valid,
+    bases,
+    dtype,
+    extra=(),
+    delta=DELTA,
+    margin=DELTA,
+):
+    """``bank`` (a sealed bank in the development bank format) with the private
+    probes appended as unreferenced rows (``reference_present`` False, NaN
+    references), seeded by the batch input content ``cases`` (input dicts)."""
+    import numpy as np
+
+    points = draw_valid(
+        seed(content_bytes(cases), challenge),
+        bounds,
+        valid,
+        bases,
+        delta=max(delta, margin),
+    )
+    rows = response_rows(points, bounds, delta=delta, extra=extra)
+    width = bank["references"].shape[1]
+    inputs = np.concatenate(
+        [bank["inputs"], np.asarray([x for _, _, x in rows], dtype=dtype)]
+    )
+    references = np.concatenate(
+        [bank["references"], np.full((len(rows), width), np.nan, dtype=dtype)]
+    )
+    inputs.setflags(write=False)
+    references.setflags(write=False)
+    return {
+        **bank,
+        "case_ids": (*bank["case_ids"], *[c for c, _, _ in rows]),
+        "cohorts": (*bank["cohorts"], *[PROBE_COHORT] * len(rows)),
+        "inputs": inputs,
+        "references": references,
+        "reference_records": [*bank["reference_records"], *[r for _, r, _ in rows]],
+        "reference_present": (True,) * len(bank["case_ids"]) + (False,) * len(rows),
+    }
 
 
 def groups(rows):
@@ -111,6 +185,8 @@ def groups(rows):
     is ``[(index, probe record)]``."""
     bases = {}
     for index, probe in rows:
+        if probe.get("kind", "response") != "response":
+            continue
         entry = bases.setdefault(probe["base"], {"base": None, "dims": {}})
         if probe["dim"] is None:
             entry["base"] = index
@@ -131,3 +207,37 @@ def groups(rows):
             }
         )
     return result
+
+
+def law_pairs(rows, name):
+    """``[(base index, law-row index)]`` for law probe ``name``, in base order.
+    ``rows`` is ``[(index, probe record)]``."""
+    base, law = {}, {}
+    for index, probe in rows:
+        kind = probe.get("kind", "response")
+        if kind == "response" and probe["dim"] is None:
+            base[probe["base"]] = index
+        elif kind == "law:" + name:
+            law[probe["base"]] = index
+    if set(base) != set(law) or not base:
+        raise ProbeRefused("probe_law_incomplete")
+    return [(base[k], law[k]) for k in sorted(base)]
+
+
+_PER_ROW = (
+    "case_ids",
+    "cohorts",
+    "inputs",
+    "references",
+    "reference_records",
+    "reference_present",
+)
+
+
+def cells_only(bank):
+    """``bank`` without its probe rows (the exam cells alone)."""
+    keep = [i for i, c in enumerate(bank["cohorts"]) if c != PROBE_COHORT]
+    return {
+        name: ([value[i] for i in keep] if name in _PER_ROW else value)
+        for name, value in bank.items()
+    }
