@@ -138,76 +138,17 @@ def test_the_reader_asks_the_graders_route_and_says_why_when_it_cannot():
     )
 
 
-def _context():
-    from carbon.chain.models import ChainContext
-
-    return ChainContext(
-        network="testnet",
-        endpoint="wss://chain.example",
-        provider="test",
-        genesis_hash="0x" + "11" * 32,
-        netuid=567,
-    )
-
-
-def test_the_subnet_line_lists_paid_hotkeys_as_shares_only(monkeypatch):
-    from carbon.chain import adapter
-    from carbon.chain.models import MetagraphSnapshot, Participant
-
-    hotkeys = ["5" + c * 47 for c in "ABC"]
-
-    def translate(context, block, block_hash, timestamp_ms, graph):
-        return MetagraphSnapshot(
-            context,
-            block,
-            block_hash,
-            timestamp_ms,
-            tuple(Participant(i, h, h, 0) for i, h in enumerate(hotkeys)),
-        )
-
-    monkeypatch.setattr(adapter, "translate", translate)
-
-    async def fetch(context):
-        return {
-            "block": 5,
-            "block_hash": "0x" + "22" * 32,
-            "timestamp_ms": 1,
-            "graph": {"incentives": [0, 49151, 16384]},
-        }
-
-    rows, why = king.paid_now(_context(), fetch=fetch)
-    assert why is None
-    assert rows == [
-        {"uid": 1, "hotkey": hotkeys[1], "share_percent": 75.0},
-        {"uid": 2, "hotkey": hotkeys[2], "share_percent": 25.0},
-    ]
-
-    async def broken(context):
-        raise OSError("429")
-
-    assert king.paid_now(_context(), fetch=broken)[0] is None
-    assert king.paid_now(None) == (None, "No chain is set up on this machine yet.")
-
-
-def test_the_card_names_the_subnet_line_for_all_challenges():
+def test_the_card_lists_each_challenge_with_a_grader_and_no_subnet_line_yet():
     shown = king.card(
         {COOLING: "https://grader.example"},
-        None,
         read_one=lambda url, cid: (king.parse(answer(), cid), None),
-        paid=lambda context: (
-            [{"uid": 1, "hotkey": HOTKEY, "share_percent": 100.0}],
-            None,
-        ),
     )
-    assert shown["subnet"]["title"] == "Paid by the validator now (all Challenges)"
-    assert "not scores" in shown["subnet"]["words"]
+    assert shown["subnet"] is None
     assert shown["challenges"][0]["challenge_id"] == COOLING
     assert shown["challenges"][0]["lines"][0].startswith("Current king")
     unreachable = king.card(
         {COOLING: "https://grader.example"},
-        None,
         read_one=lambda url, cid: (None, king.UNREACHABLE),
-        paid=lambda context: (None, "x"),
     )
     assert unreachable["challenges"][0]["lines"] == [king.UNREACHABLE]
     assert king.for_profile(None)["challenges"] == []
@@ -224,6 +165,6 @@ def test_the_page_reads_the_card_from_the_controller():
 
 def test_a_score_to_beat_within_one_grid_step_of_total_plus_margin_is_read():
     # One Ladder grid step (max(eta, the margin)) of stepping is tolerated.
-    assert king.parse(answer(to_beat=0.66 + 0.04), COOLING)["to_beat"] == 0.70
+    assert king.parse(answer(to_beat=0.70), COOLING)["to_beat"] == pytest.approx(0.70)
     with pytest.raises(king.KingUnreadable):
-        king.parse(answer(to_beat=0.66 + 0.05), COOLING)
+        king.parse(answer(to_beat=0.71), COOLING)

@@ -11,9 +11,9 @@ Validator ruled the sources and what is public:
   of the wrong kind, makes the answer unreadable, never partly shown. A null
   margin (none measured yet) says takeovers are paused; nothing stands in
   for it.
-- For the whole subnet, from the miner's own chain read: the hotkeys the
-  validator pays now and their incentive shares. A share is not a score and
-  says nothing about which Challenge it is for.
+- The whole subnet's paid-keys line (Validator option (a)) is not built yet:
+  its chain read is the network snapshot's, which no Launchpad module may
+  reach (DASHBOARD-02 S3 condition 4).
 
 Nothing here reads a recipe, a leg, a case or an exam fingerprint.
 """
@@ -47,8 +47,6 @@ _ID = re.compile(r"[a-z0-9][a-z0-9._-]{0,63}")
 _LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9 ._:+-]{0,63}")
 #: Read bound: the answer is a handful of fields.
 MAX_BYTES = 16384
-#: u16: a UID's incentive as the chain stores it.
-U16 = 65535
 
 PAUSED = "Takeovers paused: the margin isn't measured yet."
 NO_ROUTE = "This grader doesn't publish its king yet."
@@ -193,66 +191,11 @@ def words(answer):
     return lines
 
 
-def paid_now(context, *, fetch=None):
-    """`(rows, None)`: each UID the validator pays now, `{uid, hotkey,
-    share_percent}`, largest first; or `(None, words)` when the chain can't
-    be read. From the miner's own read-only metagraph read."""
-    import asyncio
-    import concurrent.futures
-
-    from carbon.chain.adapter import translate
-    from carbon.chain.models import ChainContext, ChainFailure
-
-    if type(context) is not ChainContext:
-        return None, "No chain is set up on this machine yet."
-    if fetch is None:
-        from carbon.chain.metagraph_read import read_metagraph as fetch
-    try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            reading = pool.submit(asyncio.run, fetch(context)).result()
-        graph = reading["graph"]
-        snapshot = translate(
-            context,
-            reading["block"],
-            reading["block_hash"],
-            reading["timestamp_ms"],
-            graph,
-        )
-        incentive = graph.get("incentives")
-        count = len(snapshot.participants)
-        if type(incentive) is not list or len(incentive) != count:
-            raise ChainFailure
-        if not all(type(v) is int and 0 <= v <= U16 for v in incentive):
-            raise ChainFailure
-    except Exception:  # noqa: BLE001 - any provider failure is infrastructure
-        return None, "The chain couldn't be read just now; try again later."
-    total = sum(incentive)
-    rows = [
-        {
-            "uid": p.uid,
-            "hotkey": p.hotkey,
-            "share_percent": round(100 * incentive[p.uid] / total, 1),
-        }
-        for p in snapshot.participants
-        if total and incentive[p.uid] > 0
-    ]
-    rows.sort(key=lambda row: (-row["share_percent"], row["uid"]))
-    return rows[:16], None
-
-
-def card(intakes, context, *, read_one=read, paid=paid_now):
-    """The whole card: the subnet line, then each Challenge with a grader."""
-    rows, why = paid(context)
-    subnet = {
-        "title": "Paid by the validator now (all Challenges)",
-        "rows": rows,
-        "words": why
-        or (
-            "Incentive shares only: not scores, and not one Challenge's king."
-            if rows
-            else "Nobody is paid right now."
-        ),
-    }
+def card(intakes, *, read_one=read):
+    """The whole card: each Challenge with a grader on this machine."""
+    # The subnet's paid-keys line waits for a chain read of its own: the
+    # metagraph read this would use is the network snapshot's, which no
+    # Launchpad module may reach (the snapshot-unreachable invariant).
     challenges = []
     for challenge_id in sorted(intakes):
         answer, why = read_one(intakes[challenge_id], challenge_id)
@@ -263,7 +206,7 @@ def card(intakes, context, *, read_one=read, paid=paid_now):
                 "lines": words(answer) if answer is not None else [why],
             }
         )
-    return {"subnet": subnet, "challenges": challenges}
+    return {"subnet": None, "challenges": challenges}
 
 
 def for_profile(configuration):
@@ -276,18 +219,6 @@ def for_profile(configuration):
             "words": "Finish Setup to see each Challenge's king.",
         }
     from carbon.development_session.private_records import private_json
-    from scripts.dev.miner_launchpad.runner import intakes, is_practice_profile
+    from scripts.dev.miner_launchpad.runner import intakes
 
-    cfg = private_json(configuration)
-    context = None
-    if not is_practice_profile(cfg):
-        try:
-            from carbon.development_session.miner_network import binding
-
-            context = binding(
-                operator_config=cfg["paths"].get("operator_config"),
-                miner_network=cfg["paths"].get("miner_network"),
-            ).context
-        except Exception:  # noqa: BLE001 - no chain set up: the line says so
-            context = None
-    return card(intakes(cfg), context)
+    return card(intakes(private_json(configuration)))
