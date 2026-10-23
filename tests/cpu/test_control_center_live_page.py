@@ -325,6 +325,7 @@ def _setups(tmp_path, monkeypatch):
         Intakes,
         Reinstalled,
         entry,
+        one_version_challenge,
         own_review,
         publish,
         rebuild,
@@ -336,7 +337,7 @@ def _setups(tmp_path, monkeypatch):
     monkeypatch.setattr(
         environment, "checkout_revision", lambda repo=None: head["revision"]
     )
-    challenge = environment.intake_challenges()[0]
+    challenge = one_version_challenge()
 
     def made(name, checks):
         base = tmp_path / ("setup-" + name)

@@ -207,7 +207,14 @@ FIELDS = {
             "remote choice: required there, refused otherwise."
         ),
     ),
-    "confirm": ("boolean", "true"),
+    "confirm": (
+        "boolean",
+        (
+            "Must be true: you confirm this step writes (review) or rewrites"
+            " (recheck) your runner profile and loads it. Nothing is launched"
+            " or spent."
+        ),
+    ),
     "intakes": ("object", "Challenge id to validator intake URL (optional)."),
     "intake_targets": (
         "object",

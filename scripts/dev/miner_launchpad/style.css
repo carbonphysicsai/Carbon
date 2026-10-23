@@ -445,3 +445,6 @@ button.checking::after{content:"";display:inline-block;width:12px;height:12px;ma
 @keyframes ccspin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){button.checking::after{animation:none}}
 .learned-card{margin:6px 0 14px;padding:8px 12px;border-left:3px solid currentColor;font-size:15px}
+.campaign-group{margin:18px 0 6px;font-size:16px}
+.finished-campaigns>summary{cursor:pointer;margin:18px 0 6px;font-weight:600}
+.review-summary{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:8px 0 14px}.review-summary dt{opacity:.7}.review-summary dd{margin:0;font-weight:600}.review-more>summary{cursor:pointer;margin:14px 0 8px}

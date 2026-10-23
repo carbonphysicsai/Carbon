@@ -37,6 +37,14 @@
     for (let v = Math.ceil(low / step) * step; v <= high + step * 1e-9; v += step) ticks.push(Number(v.toPrecision(12)));
     return ticks;
   }
+  // Ticks that are whole numbers only (a run axis): the nice step, rounded up to at least 1.
+  function wholeTicks(low, high, count) {
+    if (high === low) return [low];
+    const step = Math.max(1, Math.ceil((high - low) / Math.max(1, count)));
+    const ticks = [];
+    for (let v = low; v <= high; v += step) ticks.push(v);
+    return ticks;
+  }
   function logTicks(low, high) {
     const ticks = [];
     for (let e = Math.floor(Math.log10(low)); e <= Math.ceil(Math.log10(high)); e++) ticks.push(Math.pow(10, e));
@@ -108,7 +116,9 @@
     const y = yScale(spec, values, top, bottom);
     const svg = frame(spec, height);
     yAxis(svg, y, left, right, spec.unit);
-    const xticks = numeric ? niceTicks(Math.min(...coords), Math.max(...coords), 6) : coords.map((_, i) => i);
+    // A run (or step) axis counts whole things: never a tick at run 1.5.
+    const whole = numeric && coords.every(Number.isInteger);
+    const xticks = numeric ? (whole ? wholeTicks(Math.min(...coords), Math.max(...coords), 6) : niceTicks(Math.min(...coords), Math.max(...coords), 6)) : coords.map((_, i) => i);
     for (const tick of xticks) {
       const at = numeric ? left + (tick - Math.min(...coords)) / ((Math.max(...coords) - Math.min(...coords)) || 1) * (right - left) : xAt(tick);
       svg.children.push(node("text", {x: at, y: bottom + 18, "text-anchor": "middle", class: "ch-tick"}, [], numeric ? fmt(tick) : String(coords[tick])));

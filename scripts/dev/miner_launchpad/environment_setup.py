@@ -764,7 +764,6 @@ def mcp_connect(state_dir=None) -> dict:
         f"    cwd: {quoted(repo)}\n"
         "    timeout: 1800\n"
     )
-    not_run = "UNVERIFIED: Carbon has not run this client against the server."
     return {
         "command": command,
         "cwd": repo,
@@ -794,8 +793,9 @@ def mcp_connect(state_dir=None) -> dict:
                     },
                     {"label": "Or in .mcp.json", "text": json.dumps(claude, indent=2)},
                 ],
-                # Run on Claude Code 2.1.294 (LA-F12, cell A3, 2026-10-08).
-                "verified": "Claude Code 2.1.294, 2026-10-08",
+                # Run on Claude Code 2.1.294 (LA-F12, cell A3, 2026-10-08)
+                # and 2.1.308 with this page's config (Test Runner, M1).
+                "verified": "Claude Code 2.1.308, 2026-10-22",
                 "unverified": [
                     (
                         "UNVERIFIED: how Claude Code bounds a long tool call; "
@@ -832,8 +832,15 @@ def mcp_connect(state_dir=None) -> dict:
                         "text": yaml,
                     }
                 ],
+                # Run on Hermes v0.22.4 through the profile `carbon` that
+                # setup writes, to a graded submit (Test Runner, M1). The
+                # hand-edited snippet above was not run.
+                "verified": "Hermes v0.22.4 (setup-written profile), 2026-10-22",
                 "unverified": [
-                    not_run,
+                    (
+                        "UNVERIFIED: this hand-edited snippet; the profile "
+                        "Carbon's setup writes is the path that was run."
+                    ),
                     (
                         "UNVERIFIED: whether `hermes mcp add` takes your own "
                         "command; its documentation shows presets."

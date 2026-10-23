@@ -127,6 +127,14 @@ def refusal_meaning(code):
     return first[:240] + "."
 
 
+#: A practice's gate verdict, as the journal says it. Never a silent pass.
+GATE_VERDICT_WORDS = {
+    "PASSED": "Practice gates passed.",
+    "FAILED": "Practice gates failed, so nothing is submitted.",
+    "NOT_REPORTED": "Practice gates not reported. That is not a pass.",
+}
+
+
 def clean_text(value, limit=NOTE_MAX):
     """Journal text as the view shows it: a string, unsafe characters
     removed, bounded; None when there is no text."""
@@ -743,7 +751,13 @@ def stages(own):
         current = "submit"
     elif state == "FREEZING":
         current = "candidate"
-    elif experiments or state == "PRACTICING":
+    elif state == "PRACTICING":
+        current = "practice"
+    elif results and state not in HALTED:
+        # Submitted and nothing pending (R5-3): practice must not flip back to "Now" after a
+        # submit. Practising again for the next epoch is PRACTICING, which says so.
+        current = None
+    elif experiments:
         current = "practice"
     else:
         current = "research"
@@ -1243,13 +1257,20 @@ def feed(own, notes):
             }
         )
     for item in own.get("decisions") or []:
+        # A selected recipe's practice gate verdict is always said, and a practice that reported none is
+        # "not reported", never a pass (Validator, G2 ruling).
+        gates = GATE_VERDICT_WORDS.get(clean_text(item.get("gate_verdict")))
+        text = clean_text(item.get("reason")) or gates or "Decision recorded."
+        detail = clean_text(item.get("evidence")) or clean_text(item.get("note"))
+        if gates and text != gates:
+            detail = (detail + " " if detail else "") + gates
         entries.append(
             {
                 "sequence": item.get("sequence"),
                 "kind": "decision",
                 "via": "agent_or_controller",
-                "text": clean_text(item.get("reason")) or "Decision recorded.",
-                "detail": clean_text(item.get("evidence")),
+                "text": text,
+                "detail": detail,
             }
         )
     for item in own.get("capability_requests") or []:
@@ -1930,7 +1951,8 @@ def _ledger_facts(root):
             "SELECT 1 FROM sqlite_master WHERE name='research_results' AND type='table'"
         ).fetchone():
             for task, body, pin in db.execute(
-                "SELECT task,body,digest FROM research_results WHERE owner=?", (owner,)
+                "SELECT task,body,digest FROM research_results WHERE owner=? ORDER BY rowid",
+                (owner,),
             ):
                 if digest(body) != pin:
                     raise ValueError("research result changed")

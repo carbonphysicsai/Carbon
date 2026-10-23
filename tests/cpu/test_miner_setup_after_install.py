@@ -106,6 +106,18 @@ def challenge():
     return intake_challenges()[0]
 
 
+def one_version_challenge():
+    """The first intake Challenge with exactly one intake version, read from
+    the registry: a v1 published entry (naming a Challenge only) applies only
+    to such a Challenge. Battery was it until it served 1.0 and 2.2; the rule,
+    not a name, picks it."""
+    every = intake_challenges()
+    counts = {}
+    for c in every:
+        counts[c["id"]] = counts.get(c["id"], 0) + 1
+    return next(c for c in every if counts[c["id"]] == 1)
+
+
 def publish(tmp_path, monkeypatch, entries, schema="v1"):
     """A published list; v1 (entries name a Challenge only) unless `schema`
     is "v2" (each entry names its version)."""
@@ -531,8 +543,11 @@ def test_a_profile_written_before_intakes_were_recorded_keeps_the_miners_own(
     # Written again unpinned, with a warning, rather than stranded
     # (LAUNCHPAD-ACCEPT-03's working decision).
     assert report["profile"]["written"] is True
+    # The miner's own intake names the Challenge, so it serves each of its
+    # intake versions (Battery 1.0 and 2.2), each unpinned and said so.
+    versions = [c for c in intake_challenges() if c["id"] == challenge["id"]]
     assert [w["code"] for w in report["profile"]["warnings"]] == [
-        "intake_receiver_not_pinned",
+        *(["intake_receiver_not_pinned"] * len(versions)),
         *(w["code"] for w in unpublished(challenge)),
     ]
     assert profile(setup)["intakes"] == {challenge["id"]: OWN}
@@ -946,8 +961,14 @@ def test_with_none_published_review_says_so_and_still_writes(
     evaluation = result["steps"]["evaluation"]
     assert evaluation["ready"] is False
     assert "nothing for you to fix" in evaluation["challenges"][0]["note"]
-    # Published after Review: setup says to review again.
-    publish(tmp_path, monkeypatch, [entry(challenge["id"])])
+    # Published after Review: setup says to review again. A v2 entry names
+    # its version: a v1 entry no longer applies to a Challenge with two.
+    publish(
+        tmp_path,
+        monkeypatch,
+        [entry(challenge["id"], version=challenge["version"])],
+        schema="v2",
+    )
     note = setup.state()["steps"]["evaluation"]["challenges"][0]["note"]
     assert "since your profile was written: review again" in note
 
@@ -1091,8 +1112,11 @@ def test_a_malformed_published_list_publishes_nothing(
 def test_the_published_list_is_one_per_challenge_on_this_network(
     tmp_path, monkeypatch, challenge
 ):
-    other = entry(challenge["id"], network="finney", netuid=1)
-    path = publish(tmp_path, monkeypatch, [entry(challenge["id"]), other])
+    # v2 entries: each names its version (a v1 entry no longer applies to a
+    # Challenge with two intake versions).
+    mine = entry(challenge["id"], version=challenge["version"])
+    other = {**mine, "network": "finney", "netuid": 1}
+    path = publish(tmp_path, monkeypatch, [mine, other], schema="v2")
     assert list(published_endpoints(path)["endpoints"]) == [challenge["id"]]
     path = publish(tmp_path, monkeypatch, [entry(challenge["id"])] * 2)
     assert published_endpoints(path)["problem"] == "published_endpoints_unreadable"

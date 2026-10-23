@@ -74,7 +74,17 @@ const all = (page, selector) => page.doc.querySelectorAll(selector);
 // A control by its current value (a property, as in a browser, not markup).
 const byValue = (page, selector, value) => { const node = all(page, selector).find(item => item.value === value); assert.ok(node, "no " + selector + " valued " + value); return node; };
 function clean(page) { assert.deepEqual(page.errors.map(String), [], "the page raised no error"); }
+// The page's own plain-words pass over a controller's sentence (what the miner reads).
+const plain = text => String(text).replace(/\bevaluation endpoints\b/g, "grading addresses").replace(/\bevaluation endpoint\b/g, "grading address").replace(/\bvalidator intakes\b/g, "grading addresses").replace(/\bvalidator intake\b/g, "grading address").replace(/\b[Cc]onstruction intake\b/g, "recipe receiver").replace(/\bconstruction receiver\b/g, "recipe receiver");
 function selectable() { return fx.caps.challenges.find(entry => entry.selectable); }
+// The first Challenge the wizard lists (its newest version) that can be launched and practised: a
+// Challenge that cannot practise is Coming soon (Battery is out of launch), so no wizard scenario picks it.
+function listedChallenge() {
+  const newer = (x, y) => { const a = String(x || "").split(".").map(Number), b = String(y || "").split(".").map(Number); for (let i = 0; i < Math.max(a.length, b.length); i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); return false; };
+  const open = fx.caps.challenges.filter(entry => !["RESERVED", "RETIRED", "DEFERRED"].includes(entry.status));
+  const listed = open.filter(entry => !open.some(other => other !== entry && other.challenge_id === entry.challenge_id && newer(other.version, entry.version)));
+  return listed.find(entry => entry.selectable && entry.practise?.ready !== false);
+}
 // A launchable world: the Challenge, the agent and this machine are ready.
 function launchable(state, agent = "manual") {
   state.caps.compute.choices[0] = {...state.caps.compute.choices[0], availability: "available"};
@@ -85,8 +95,8 @@ function launchable(state, agent = "manual") {
 async function wizardTo(page, step, agent = "manual") {
   page.go("#launch");
   await page.advance(0);
-  const challenge = selectable();
-  await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id));
+  const challenge = listedChallenge();
+  await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id + "@" + challenge.version));
   await page.press(page.$("wizard-next"));
   await page.press(byValue(page, "#research-selects input", agent));
   const order = ["agent", "model", "compute", "limits", "review", "launch"];
@@ -114,7 +124,7 @@ const scenarios = [];
 const scenario = (name, run) => scenarios.push([name, run]);
 
 scenario("normal challenge selection shows only its construction serving paths", async () => {
-  const challenge = selectable();
+  const challenge = listedChallenge();
   const state = world();
   const document = state.options.construction_paths?.[challenge.challenge_id];
   assert.equal(state.options.schema, "carbon.launchpad.launch-options.v2");
@@ -126,7 +136,7 @@ scenario("normal challenge selection shows only its construction serving paths",
   page.go("#launch");
   await page.advance(0);
   assert.equal(one(page, "#wizard-construction-options").hidden, true);
-  await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id));
+  await page.press(byValue(page, "#wizard-challenges input", challenge.challenge_id + "@" + challenge.version));
   assert.equal(one(page, "#wizard-construction-options").hidden, false);
   assert.match(page.text("wizard-construction-options"), /Construction serving paths/);
   assert.match(page.text("wizard-construction-options"), /Official submission · not served yet/);
@@ -137,7 +147,7 @@ scenario("normal challenge selection shows only its construction serving paths",
   const second = await open(unknown);
   second.go("#launch");
   await second.advance(0);
-  await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id));
+  await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id + "@" + challenge.version));
   assert.equal(one(second, "#wizard-construction-options").hidden, false);
   assert.match(second.text("wizard-construction-options"), /Construction path status unavailable/);
   assert.doesNotMatch(second.text("wizard-construction-options"), /Official submission · not served yet/,
@@ -146,7 +156,7 @@ scenario("normal challenge selection shows only its construction serving paths",
 });
 
 scenario("v2 construction paths render without family admission claims", async () => {
-  const challenge = selectable();
+  const challenge = listedChallenge();
   const state = launchable(world());
   const pathDocument = {
     schema: "carbon.launchpad.construction-paths.v1",
@@ -206,7 +216,7 @@ scenario("v2 construction paths render without family admission claims", async (
   const second = await open(unrelated);
   second.go("#launch");
   await second.advance(0);
-  await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id));
+  await second.press(byValue(second, "#wizard-challenges input", challenge.challenge_id + "@" + challenge.version));
   assert.match(second.text("wizard-construction-options"), /Construction path status unavailable/);
   assert.doesNotMatch(second.text("wizard-construction-options"), /Public reconstruction · available/,
     "another Challenge's path document cannot be shown for this choice");
@@ -339,6 +349,77 @@ scenario("the runs screen shows no best tile, best line or best card when no dir
   assert.ok(!tiles.some(text => /Best passing score/.test(text)), "no best tile");
   assert.equal(all(page, "#campaign-detail .best-card").length, 0, "no best card");
   assert.ok(!page.text("campaign-detail").includes("best passing score so far"), "no best line");
+  clean(page);
+});
+
+scenario("practice picks a tested backbone from a list and two settings are form fields; the JSON sits under Advanced (E4)", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  run.journey.frozen_awaiting_submission = false;
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const entry = state.caps.challenges.find(item => item.challenge_id === run.challenge.id && item.version === run.challenge.version);
+  assert.ok(entry, "the campaign's Challenge is on the list");
+  const recipeOf = id => ({schema: "carbon.construction-recipe.v1", source: {kind: "catalog", catalog_id: id}, procedure: {entrypoint: null, configuration: {}, train_use: {}, initial_state: null}});
+  entry.catalog_recipes = [
+    {catalog_id: "neuralop.FNO", backbone: "FNO", recipe: recipeOf("neuralop.FNO"), settings: {configuration: ["learning_rate"], train_use: ["steps"]}},
+    {catalog_id: "neuralop.TFNO", backbone: "TFNO", recipe: recipeOf("neuralop.TFNO"), settings: {configuration: [], train_use: ["steps"]}},
+  ];
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/experiments");
+  await page.advance(0);
+  const pick = one(page, "#journey-backbone-" + run.id);
+  assert.deepEqual([...pick.options].map(option => option.value), ["neuralop.FNO", "neuralop.TFNO"]);
+  assert.ok(one(page, "#journey-recipe-" + run.id).closest("details.advanced"), "the JSON is under Advanced");
+  assert.equal(one(page, "#journey-steps-" + run.id).type, "number");
+  assert.equal(one(page, "#journey-rate-" + run.id).hidden, false, "FNO takes a learning rate");
+  await page.change(pick, "neuralop.TFNO");
+  assert.equal(one(page, "#journey-rate-" + run.id).hidden, true, "TFNO's schema does not take a learning rate, so the field is not offered");
+  assert.equal(one(page, "#journey-steps-" + run.id).hidden, false);
+  await page.type(one(page, "#journey-steps-" + run.id), "40");
+  await page.type(one(page, "#journey-hypothesis-" + run.id), "a different backbone");
+  state.script.push({match: r => r.path === "/api/v1/operations/practice", answer: () => ({body: {...run, state: "PRACTICING"}})});
+  await page.press(one(page, "#journey-practice-" + run.id));
+  const sent = lastPost(state, "/api/v1/operations/practice").body.strategy;
+  assert.equal(sent.source.catalog_id, "neuralop.TFNO");
+  assert.equal(sent.procedure.train_use.steps, 40);
+  assert.equal(sent.procedure.configuration.learning_rate, undefined, "no setting the entry does not take is sent");
+  clean(page);
+});
+
+scenario("the Overview launch card follows Setup's agent and does not mix in a stale wizard Graphite choice (R5-6)", async () => {
+  const setup = copy(fx.setups.none);
+  setup.steps.agent = {...(setup.steps.agent || {}), checked: true, choice: "hermes"};
+  setup.choices = {...(setup.choices || {}), agent: [{id: "hermes", display_name: "Hermes Agent (Nous Research), on this machine"}, {id: "carbon-graphite", display_name: "Carbon's Graphite"}]};
+  const state = launchable(world({setup}), "graphite");
+  const graphite = state.caps.agents.choices.find(choice => choice.launch_agent === "graphite");
+  assert.ok(graphite, "a Graphite agent is offered");
+  const page = await open(state);
+  await wizardTo(page, "agent", graphite.id);
+  page.go("#overview");
+  await page.advance(0);
+  const card = id => one(page, "#launchpad-strip [data-card=" + id + "]").textContent;
+  assert.match(card("agent"), /Hermes Agent/);
+  assert.doesNotMatch(card("agent"), /Graphite/, "no stale Graphite sub-line under Setup's agent");
+  assert.match(card("agent"), /Your own agent, with its own model/);
+  assert.equal(all(page, "#launchpad-strip [data-card=inference]").length, 0, "an own agent skips the model step");
+  clean(page);
+});
+
+scenario("Review shows a recipe receiver the miner set as the grader for the Challenge it serves, not None yet (R12-2)", async () => {
+  const setup = copy(fx.setups.none);
+  const item = setup.steps.evaluation.challenges.find(entry => !/battery/.test(entry.id));
+  delete item.note;
+  item.direct_intake = {intake_url: "http://127.0.0.1:8771", receiver_hotkey: "5" + "F".repeat(47), serves: {id: item.id, version: item.version}};
+  const state = launchable(world({setup}));
+  const page = await open(state);
+  page.go("#setup/review");
+  await page.advance(0);
+  const row = [...all(page, "#setup-evaluation .evaluation-row")].find(node => node.dataset.challenge === item.id);
+  assert.ok(row, "a row for " + item.id);
+  assert.match(row.textContent, /Your recipe receiver/);
+  assert.doesNotMatch(row.textContent, /None yet/);
+  assert.ok(row.textContent.includes("http://127.0.0.1:8771"));
   clean(page);
 });
 
@@ -786,7 +867,7 @@ scenario("with no evaluation endpoint the submission says what works and what to
   await page.advance(0);
   const note = one(page, "#campaign-detail .evaluation-unavailable");
   assert.equal(note.dataset.evaluation, "NONE_PUBLISHED");
-  assert.match(note.textContent, /Evaluation is unavailable for this Challenge today: no validator intake is configured in your runner profile, and none is published for it yet\./);
+  assert.match(note.textContent, /Evaluation is unavailable for this Challenge today: no grading address is saved in your settings, and none is published for it yet\./);
   assert.match(note.textContent, /What you can do now: practise, observe, freeze a candidate, and stop or pause this campaign\./);
   assert.match(note.textContent, /Next: Carbon has not published an evaluation endpoint for .* yet, so there is nothing for you to fix/);
   assert.equal(note.querySelector("a").getAttribute("href"), "#setup/review");
@@ -1002,7 +1083,7 @@ scenario("a controller that publishes no recovery list gets Reconcile from the s
     clean(page);
   }
 });
-scenario("a healthy campaign's control bar keeps Reconcile and Export under More", async () => {
+scenario("a healthy campaign's control bar keeps Export under More and draws no control that cannot apply", async () => {
   const state = launchable(world());
   state.runs = [copy(fx.run)];
   state.view = copy(fx.view);
@@ -1010,13 +1091,28 @@ scenario("a healthy campaign's control bar keeps Reconcile and Export under More
   page.go("#campaigns/" + fx.run.id + "/live");
   await page.advance(0);
   assert.equal(all(page, "#campaign-detail [data-part=now] [data-action]").length, 0);
-  assert.equal(all(page, "#campaign-detail .rs-head [data-action=reconcile]").length, 1);
-  assert.equal(all(page, "#campaign-detail .rs-more [data-action=reconcile]").length, 1, "Reconcile is under More when nothing needs it");
+  assert.equal(all(page, "#campaign-detail .rs-head [data-action=reconcile]").length, 0, "Reconcile is not drawn when the controller says it cannot apply");
   assert.equal(all(page, "#campaign-detail .rs-more [data-action=export]").length, 1);
   assert.equal(all(page, "#campaign-detail .rs-head .primary").length, 0, "a healthy campaign has no primary button");
   assert.equal(page.text(one(page, "#campaign-detail [data-part=attention]")), "");
   // No model call's outcome is unknown: nothing to settle is shown.
   assert.equal(one(page, "#campaign-detail [data-part=settlement]").hidden, true);
+  clean(page);
+});
+scenario("a finished campaign with no practice result says so, never a bare Completed (Dana #9)", async () => {
+  const state = launchable(world());
+  state.runs = [{...copy(fx.run), state: "COMPLETED"}];
+  state.view = copy(fx.view);
+  state.view.campaign.state = "COMPLETED";
+  state.view.graphite = null;
+  state.view.tiles.practice_runs = {completed: 0, attempted: 1};
+  const page = await open(state);
+  page.go("#campaigns/" + fx.run.id + "/live");
+  await page.advance(0);
+  const banner = one(page, "#campaign-detail .rs-endstate");
+  assert.match(page.text(banner), /Finished without a result/);
+  assert.equal(all(page, "#campaign-detail .rs-endstate a").length, 1, "one fix button");
+  assert.doesNotMatch(page.text(one(page, "#campaign-detail .rs-meta")), /Completed/i);
   clean(page);
 });
 scenario("a queued campaign with no frozen record can be reconciled without its view", async () => {
@@ -1390,7 +1486,7 @@ scenario("Connections shows the real MCP command and the profile it names", asyn
   page.go("#connections");
   await page.advance(0);
   assert.match(page.text("connection-catalog"), /\/venv\/bin\/carbon-mcp --configuration \/srv\/miner\/profile\.json/);
-  assert.match(page.text("connection-catalog"), /Your runner profile: \/srv\/miner\/profile\.json/);
+  assert.match(page.text("connection-catalog"), /Your settings file: \/srv\/miner\/profile\.json/);
   assert.doesNotMatch(page.text("connection-catalog"), /<your runner profile>/);
   clean(page);
 });
@@ -1717,7 +1813,7 @@ scenario("setup shows a stale compute check, why, and the installer's update tha
 
 scenario("Review shows each Challenge's evaluation and names a set-aside intake again", async () => {
   const doc = fx.setups.set_aside;
-  const item = doc.steps.evaluation.challenges[0];
+  const item = doc.steps.evaluation.challenges.find(entry => entry.set_aside_intake);
   assert.ok(item.set_aside_intake && item.note, "an intake the update set aside");
   const state = launchable(world({setup: copy(doc)}));
   const page = await open(state);
@@ -1728,10 +1824,10 @@ scenario("Review shows each Challenge's evaluation and names a set-aside intake 
   await page.advance(0);
   const row = [...all(page, "#setup-evaluation .evaluation-row")].find(node => node.dataset.challenge === item.id);
   assert.ok(row, "a row for " + item.id);
-  assert.ok(row.textContent.includes(item.note));
+  assert.ok(row.textContent.includes(plain(item.note)));
   assert.ok(row.textContent.includes("set aside by the update: " + item.set_aside_intake));
   await page.press([...row.querySelectorAll("button")].find(b => b.textContent === "Name it again"));
-  assert.equal(page.$("setup-review-intake_challenge").value, item.id);
+  assert.equal(page.$("setup-review-intake_challenge").value, item.id + "@" + item.version);
   assert.equal(page.$("setup-review-intake_url").value, item.set_aside_intake);
   // With the receiver its Review pinned (LAUNCHPAD-ACCEPT-03).
   assert.ok(item.set_aside_receiver, "the set-aside intake's pinned receiver");
@@ -1746,16 +1842,20 @@ scenario("Review's answer names what it could not do; Carbon's endpoint shows it
   await page.advance(0);
   const none = fx.setups.none.steps.evaluation.challenges[0];
   assert.match(page.text("setup-evaluation"), /None yet/);
-  assert.ok(page.text("setup-evaluation").includes(none.note));
+  assert.ok(page.text("setup-evaluation").includes(plain(none.note)));
   const answer = fx.setups.review_answer;
   assert.ok(answer.warnings.length, "the real review warned");
   state.script.push({match: r => r.path === "/api/v1/setup/review", answer: () => { state.setup = copy(fx.setups.none_reviewed); return {body: copy(answer)}; }});
-  await page.press([...all(page, "#setup-body form[data-step=review] button")].find(b => /Write my profile/.test(b.textContent)));
+  await page.press([...all(page, "#setup-body form[data-step=review] button")].find(b => /Save my settings/.test(b.textContent)));
   assert.deepEqual(lastPost(state, "/api/v1/setup/review").body, {confirm: true});
-  for (const warning of answer.warnings) assert.ok(page.text("setup-result").includes(warning.message), warning.code);
+  // Challenges with no Carbon receiver are one calm line (U8); any other warning is shown whole.
+  for (const warning of answer.warnings) {
+    if (/has not published an evaluation endpoint/.test(warning.message)) assert.match(page.text("setup-result"), /no Carbon receiver yet\. Practice and freezing work without one/, warning.code);
+    else assert.ok(page.text("setup-result").includes(plain(warning.message)), warning.code);
+  }
   // Carbon's published endpoint: whose it is, and its receiver, now binding
   // (LAUNCHPAD-ACCEPT-03).
-  const published = fx.setups.published.steps.evaluation.challenges[0];
+  const published = fx.setups.published.steps.evaluation.challenges.find(item => item.source === "published");
   assert.equal(published.source, "published");
   const second = launchable(world({setup: copy(fx.setups.published)}));
   const other = await open(second);
@@ -1763,8 +1863,18 @@ scenario("Review's answer names what it could not do; Carbon's endpoint shows it
   await other.advance(0);
   const text = other.text("setup-evaluation");
   assert.match(text, /Carbon's endpoint/);
-  assert.ok(text.includes(published.intake) && text.includes("Receiver hotkey: " + published.receiver_hotkey));
-  assert.ok(text.includes("Binding" + published.receiver_hotkey_note.slice("binding".length)));
+  assert.ok(text.includes(published.intake) && text.includes("Grader's mining key address: " + published.receiver_hotkey));
+  assert.ok(text.includes("Binding" + published.receiver_hotkey_note.slice("binding".length).replace(/hotkeys/g, "mining keys").replace(/hotkey/g, "mining key").replace(/subnet/g, "Carbon network").replace(/ss58/g, "wallet")));
+  // The receiver picker (U9): Carbon's published receiver is a choice, and choosing it fills the fields the
+  // Advanced fold holds, so writing the profile is unchanged.
+  const pick = other.$("setup-review-receiver-pick");
+  assert.ok(pick, "the receiver picker is drawn");
+  assert.ok([...pick.options].some(option => option.textContent.includes("Carbon's receiver")), "the published receiver is offered");
+  await other.change(pick, "0");
+  assert.equal(other.$("setup-review-intake_url").value, published.intake);
+  assert.equal(other.$("setup-review-receiver_hotkey").value, published.receiver_hotkey);
+  assert.equal(other.$("setup-review-intake_challenge").value, published.id + "@" + published.version);
+  assert.match(other.text("setup-review-receiver-said"), /Chosen\. Write your profile to keep it/);
   clean(page);
   clean(other);
 });
@@ -1992,7 +2102,7 @@ scenario("Graphite: offered in place of the autonomous agent, which is said to b
   const fourth = await open(nowhere);
   fourth.go("#launch");
   await fourth.advance(0);
-  await fourth.press(byValue(fourth, "#wizard-challenges input", selectable().challenge_id));
+  await fourth.press(byValue(fourth, "#wizard-challenges input", listedChallenge().challenge_id + "@" + listedChallenge().version));
   await fourth.press(fourth.$("wizard-next"));
   assert.equal(byValue(fourth, "#research-selects input", "graphite").disabled, true);
   assert.match(fourth.text("research-selects"), /Not offered for .*graphite not offered for challenge/);
@@ -2268,7 +2378,7 @@ scenario("Graphite: per-epoch limits are optional; blank sends none, set sends w
   assert.match(page.text("graphite-limits"), /only your campaign's own limits bind/);
   await page.type(page.$("graphite-limit-calls_per_epoch"), "0");
   assert.equal(page.$("wizard-next").disabled, true);
-  assert.ok(page.text("wizard-next-reason").includes("per-epoch limits: model calls per epoch is a whole number from 1 to " + state.options.graphite.limits.maximum), page.text("wizard-next-reason"));
+  assert.ok(page.text("wizard-next-reason").includes("per-round limits: model calls per round is a whole number from 1 to " + state.options.graphite.limits.maximum), page.text("wizard-next-reason"));
   assert.equal(page.$("graphite-limit-calls_per_epoch").max, String(state.options.graphite.limits.maximum), "the input's bound is the controller's");
   await page.type(page.$("graphite-limit-calls_per_epoch"), String(state.options.graphite.limits.maximum + 1));
   assert.equal(page.$("wizard-next").disabled, true, "past the controller's own maximum");
@@ -2905,7 +3015,7 @@ scenario("the wallet page does not say connect while connected, and uses plain w
   assert.doesNotMatch(panel, /Connect this browser to read/);
   assert.match(panel, /Joining cost/);
   assert.doesNotMatch(panel, /Recycle|recycle|BURNED_REGISTRATION|COLDKEY|ss58/);
-  assert.match(panel, /Joining is paid from your coldkey/);
+  assert.match(panel, /Joining is paid from your money key/);
   clean(page);
 });
 
@@ -2997,9 +3107,9 @@ scenario("miners are offered only the latest version of each Challenge, and no r
   page.go("#launch");
   await page.advance(0);
   const inputs = [...all(page, "#wizard-challenges input")];
-  const pairs = inputs.map(input => input.value + "@" + input.dataset.version);
-  assert.equal(new Set(inputs.map(input => input.value)).size, inputs.length, "one entry per Challenge: " + pairs);
-  for (const input of inputs) assert.equal(input.dataset.version, latest(input.value) || "", "the latest version of " + input.value);
+  const pairs = inputs.map(input => input.value);
+  assert.equal(new Set(inputs.map(input => input.dataset.challenge)).size, inputs.length, "one entry per Challenge: " + pairs);
+  for (const input of inputs) assert.equal(input.dataset.version, latest(input.dataset.challenge) || "", "the latest version of " + input.value);
   assert.ok(!pairs.some(pair => /photonic|power-magnetics|airfoil|burgers-dynamics/.test(pair)), "no reserved, deferred or retired entry: " + pairs);
   page.go("#challenges");
   await page.advance(0);
@@ -3008,6 +3118,18 @@ scenario("miners are offered only the latest version of each Challenge, and no r
   assert.doesNotMatch(text, /electric-motor-magnetics · version 1\.(0|2)/);
   assert.match(text, /electric-motor-magnetics · version 1\.3/);
   clean(page);
+});
+
+scenario("plainWords keeps E10's secret warning and names an address as a mining key address, with no epoch word for a round", async () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "..", "scripts", "dev", "miner_launchpad", "app.js"), "utf8");
+  const text = source.match(/function plainWords[(]text[)] [{][^]*?\n  [}]/)[0];
+  const plainWords = new Function(text + "; return plainWords;")();
+  const e10 = "(public, starts with 5…; never a key, password or seed phrase";
+  assert.equal(plainWords(e10), e10, "the sentence survives plainWords untouched");
+  assert.equal(plainWords("its public ss58 address"), "its public mining key address");
+  assert.equal(plainWords("the hotkey address"), "the mining key address");
+  assert.doesNotMatch(plainWords("hotkey ss58 coldkey subnet netuid"), /wallet|hotkey|ss58|coldkey|subnet|netuid/);
+  assert.doesNotMatch(source, /Model calls per epoch|Practice trials per epoch|end an epoch sooner/);
 });
 
 (async () => {

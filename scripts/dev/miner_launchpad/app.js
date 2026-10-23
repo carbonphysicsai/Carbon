@@ -25,6 +25,8 @@
   // controller refuses it.
   const sessionKey = "carbon.launchpad.session.v1";
   const rememberedKey = "carbon.launchpad.remembered.v1";
+  // A browser this Control Center remembers is connecting, not disconnected: no token card flashes first (R5-8).
+  let resuming = false;
   function keptSession() {
     try { const value = sessionStorage.getItem(sessionKey); return value && /^[!-~]{1,512}$/.test(value) ? value : null; }
     catch (_) { return null; }
@@ -67,6 +69,21 @@
   const STEPS = [["challenge", "Challenge"], ["agent", "Agent"], ["model", "Model"], ["compute", "Compute"], ["limits", "Tools & limits"], ["review", "Review"], ["launch", "Launch"]];
   const TABS = [["overview", "Overview"], ["experiments", "Experiments"], ["metrics", "Metrics"], ["journal", "Research Journal"], ["artifacts", "Artifacts"], ["submission", "Submission"], ["logs", "Logs"], ["settings", "Settings"]];
   const TERMINAL = ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE", "EXPIRED"];
+  // A Challenge's registry title carries internal labels in brackets ("Name (DEVELOPMENT ...)"):
+  // people read the name; the full title stays on hover (U10).
+  // Words that came from the controller, in plain terms (Dana #4): the technical name stays in the Help fold.
+  function plainWords(text) {
+    return typeof text === "string" ? text.replace(/\bhotkeys\b/g, "mining keys").replace(/\bhotkey\b/g, "mining key").replace(/\bcoldkey\b/g, "money key").replace(/\bss58 address\b/g, "mining key address").replace(/\bss58\b/g, "mining key address").replace(/\bnetuid\b/g, "network number").replace(/\bsubnet\b/g, "Carbon network").replace(/\bevaluation endpoints\b/g, "grading addresses").replace(/\bevaluation endpoint\b/g, "grading address").replace(/\bvalidator intakes\b/g, "grading addresses").replace(/\bvalidator intake\b/g, "grading address").replace(/\b[Cc]onstruction intake\b/g, "recipe receiver").replace(/\bconstruction receiver\b/g, "recipe receiver") : text;
+  }
+  // The technical names, kept for those who meet them elsewhere (Dana #4).
+  function termsFold(parent) {
+    const fold = el("details", undefined, "terms-fold");
+    fold.append(el("summary", "What do these words mean?"));
+    fold.append(el("p", "Mining key = the key that signs your work (technical name: hotkey). Money key = the key that pays the joining fee (coldkey). Mining key address = the public text that names your mining key (ss58 address); it is safe to share, and no key, password or seed phrase is ever asked for. Carbon network = the group of miners you join (subnet). The joining fee is called a recycle fee.", "hint"));
+    parent.append(fold);
+    return fold;
+  }
+  function plainTitle(title) { return typeof title === "string" ? title.replace(/\s*\(.*$/, "").trim() || title : title; }
   // The keyed operations, as a person names them.
   const OPERATION_NAMES = {practice: "practice", freeze_candidate: "freeze", submit: "submit"};
   // The prelaunch review's evaluation statuses under which a submit can be
@@ -420,9 +437,9 @@
   const SIGNER_HELP = {
     signer_not_running: "your signer is not running. Start `carbon-miner-signer --wallet NAME --hotkey HOTKEY` in a terminal and leave it open",
     signer_refused: "your signer declined the request; its terminal shows why",
-    signer_wrong_hotkey: "the signer running holds a different hotkey than this profile's registered miner",
+    signer_wrong_hotkey: "the signer running holds a different mining key than this profile's registered miner",
     signer_timeout: "your signer did not answer in time. Check its terminal",
-    signer_invalid_signature: "your signer returned a signature that does not verify for this hotkey",
+    signer_invalid_signature: "your signer returned a signature that does not verify for this mining key",
     signer_protocol: "something other than carbon-miner-signer answered on the signer socket"
   };
   async function api(path, body, key, timeout = 5000) {
@@ -520,7 +537,7 @@
     if (route().view === "guide") renderGuide(route().id);
     $("settings-recheck").disabled = !connected || busy;
     // Connected: the token form steps aside; interrupted or new, it returns.
-    $("connect-panel").hidden = connected;
+    $("connect-panel").hidden = connected || resuming;
     // One click back in, from the session this tab kept.
     $("reconnect").hidden = connected || !keptSession();
     // The research surface (research_view.js) redraws with the page.
@@ -615,7 +632,7 @@
     setText($("run-steps"), run.steps + " / " + run.spec.max_steps);
     $("progress").max = run.spec.max_steps;
     $("progress").value = run.steps;
-    setText($("deadline"), "Fixed deadline: " + new Date(run.deadline * 1000).toLocaleString());
+    setText($("deadline"), "Fixed deadline: " + new Date(run.deadline * 1000).toLocaleString(undefined, {timeZoneName: "short"}));
     $("pause").disabled = !connected || busy || !["QUEUED", "RUNNING"].includes(run.state);
     $("resume").disabled = !connected || busy || !["PAUSED", "INTERRUPTED"].includes(run.state);
     $("stop").disabled = !connected || busy || !["QUEUED", "RUNNING", "PAUSED", "INTERRUPTED"].includes(run.state);
@@ -625,7 +642,7 @@
       for (const event of shown) {
         const item = document.createElement("li");
         const at = document.createElement("time");
-        at.textContent = new Date(event.at * 1000).toLocaleTimeString();
+        at.textContent = new Date(event.at * 1000).toLocaleTimeString(undefined, {timeZoneName: "short"});
         const kind = document.createElement("span");
         kind.textContent = event.kind.replaceAll("_", " ");
         item.append(at, kind);
@@ -675,13 +692,13 @@
       const stale = $("onboarding-result");
       if (stale.dataset.key === "disconnected") { stale.replaceChildren(); stale.dataset.key = ""; }
       // The network this controller registers on, always in view.
-      $("network-pill").textContent = (String(value.network).includes("test") ? "Testnet" : words(value.network)) + " · netuid " + value.netuid;
+      $("network-pill").textContent = (String(value.network).includes("test") ? "Testnet" : words(value.network)) + " · network " + value.netuid;
       const facts = $("onboarding-facts");
       facts.replaceChildren();
       // The cost is shown as Carbon actually knows it. NOT_READ is a different
       // claim from unknown, and neither is a figure to plan around.
       const rows = [
-        ["Network", value.network + " · netuid " + value.netuid],
+        ["Network", value.network + " · network " + value.netuid],
         ["How joining works", value.mechanism === "BURNED_REGISTRATION" ? "A payment from your own wallet each time you join; Carbon does not receive it" : words(value.mechanism)],
         ["Joining cost", value.cost && value.cost.value === "NOT_READ"
           ? "Not read by Carbon: your wallet shows the exact amount before you sign"
@@ -720,7 +737,7 @@
     if (busy || !connected) return;
     const address = $("onboarding-address").value.trim();
     if (!address) {
-      showOnboarding([onboardingLine("Enter the hotkey address you want to register.", "error")]);
+      showOnboarding([onboardingLine("Enter the mining key address you want to register.", "error")]);
       return;
     }
     try {
@@ -730,7 +747,7 @@
         lines.push(onboardingLine(
           value.registered
             ? "Registered. UID " + value.uid + " at block " + (value.observed_block ?? "unknown") + "."
-            : "Not registered on netuid " + value.netuid + " yet."
+            : "Not registered on network " + value.netuid + " yet."
         ));
         lines.push(onboardingLine("Research environment: " + value.research_environment));
         if (action === "confirm" && value.registered && value.confirmed) {
@@ -741,7 +758,7 @@
         }
       } else {
         lines.push(onboardingLine("Prepared an UNSIGNED " + value.extrinsic + ". Carbon has not signed and will not submit it."));
-        lines.push(onboardingLine("Execute it in " + value.execute_in + ". The recycle amount comes from your coldkey."));
+        lines.push(onboardingLine("Execute it in " + value.execute_in + ". The recycle amount comes from your money key."));
       }
       showOnboarding(lines);
     } catch (error) {
@@ -761,12 +778,12 @@
   // researches comes before Inference, which only an agent calling setup's
   // model needs. Step ids are stable anchors: #setup/<id>.
   const SETUP_STEPS = [
-    ["register", "Get your keys and join", "Make your mining keys, put some TAO in your wallet, then join Carbon's network (the subnet). You sign in your own wallet."],
+    ["register", "Get your keys and join", "Make your mining keys, put some TAO in your wallet, then join Carbon's network (the Carbon network). You sign in your own wallet."],
     ["signer", "Start your signer", "Your signer holds your mining key on this machine and signs your work. Carbon never sees your key."],
     ["agent", "Who researches?", "Carbon's agent, or your own agent over MCP. This step also checks your signer."],
     ["inference", "AI model", "Choose the AI model Carbon's agent uses. You bring your own key from the model's provider."],
     ["compute", "Compute", "Choose where practice runs: this machine, or a GPU you run elsewhere."],
-    ["review", "Review and launch", "Carbon writes your runner profile and loads it. Then you choose a Challenge."],
+    ["review", "Review and launch", "Carbon saves your settings and loads them. Then you choose a Challenge."],
   ];
   const SETUP_IDS = SETUP_STEPS.map(([id]) => id);
   // One step reads Next; others a miner can take now, in any order, read Open.
@@ -838,8 +855,8 @@
       return name + " " + KEY_REFUSALS[error.code] + " The key field clears after each check, so paste it again to retry.";
     }
     // U13: one plain sentence, never the raw "intakes: challenge has no intake".
-    if (error.code === "challenge_has_no_intake") return error.nextStep || "This Challenge takes no validator intake: put its construction receiver under 'Where your recipe is checked' instead.";
-    return (error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : "");
+    if (error.code === "challenge_has_no_intake") return error.nextStep || "This Challenge has no grading address of its own: put your grader under 'Where your recipe is graded' instead.";
+    return plainWords((error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : ""));
   }
   async function setupCall(step, body, timeout = 60000) {
     // The button that asked shows it is working (U5); the page redraws when the answer lands.
@@ -866,8 +883,11 @@
       const pytorch = needing.length ? [setupLine("This install's worker is the JAX CPU one. " + needing.map(item => item.title + " " + item.version).join(", ") + " practise" + (needing.length === 1 ? "s" : "") + " on the PyTorch CPU worker; to mine " + (needing.length === 1 ? "it" : "them") + ", " + String(check.pytorch_step || "reinstall with --pytorch") + ", then check compute again.", "error")] : [];
       // Review writes the profile and says what it could not do: a Challenge
       // with no evaluation endpoint, an unreadable published list (LP-PROD-E).
-      const warnings = step === "review" && Array.isArray(result.warnings) ? result.warnings.filter(item => typeof item?.message === "string") : [];
-      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")), ...pytorch, ...warnings.map(item => setupLine(item.message, "error")));
+      const allWarnings = step === "review" && Array.isArray(result.warnings) ? result.warnings.filter(item => typeof item?.message === "string") : [];
+      // Many Challenges without a Carbon receiver are one calm line, not a red notice each (U8).
+      const noReceiver = allWarnings.filter(item => /has not published an evaluation endpoint/.test(item.message));
+      const warnings = allWarnings.filter(item => !noReceiver.includes(item));
+      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")), ...pytorch, ...(noReceiver.length ? [setupLine(noReceiver.length + " Challenge" + (noReceiver.length === 1 ? " has" : "s have") + " no Carbon receiver yet. Practice and freezing work without one.")] : []), ...warnings.map(item => setupLine(plainWords(item.message), "error")));
       // The written profile changes what can launch: read it again now.
       if (step === "review") { try { await readCapabilities(); } catch (_) { /* re-read on request */ } }
       await readSetup();
@@ -1043,35 +1063,61 @@
   // Carbon's published endpoint, the miner's own intake, or plainly none
   // yet, as setup's `steps.evaluation` says. An intake of the miner's own
   // that an update set aside is named again with one click.
+  // The launch options carry a `budget_note` (what each model call reserves and what the ceiling buys); it sits in
+  // the Graphite options' input window, so it is found by name, shallowly, and shown only if it is a string (G1).
+  function findBudgetNote(value, depth = 0) {
+    if (!value || typeof value !== "object" || depth > 6) return null;
+    if (typeof value.budget_note === "string" && value.budget_note) return value.budget_note;
+    for (const child of Object.values(value)) { const found = findBudgetNote(child, depth + 1); if (found) return found; }
+    return null;
+  }
   function evaluationSection(parent, evaluation, nameAgain) {
     const items = Array.isArray(evaluation?.challenges) ? evaluation.challenges : [];
     if (!items.length && !evaluation?.problem) return null;
     const box = el("section", undefined, "setup-evaluation"); box.id = "setup-evaluation";
     box.append(el("h3", "Where your candidates are evaluated"));
+    // One line for the whole list; each Challenge's detail sits in a fold (U8).
+    if (items.length) {
+      const have = items.filter(item => item.intake || item.direct_intake?.serves).length;
+      // Your own recipe receiver, set but not yet read for which Challenge it serves, is not counted for every Challenge (R5-5).
+      const unread = items.filter(item => !item.intake && item.direct_intake && !item.direct_intake.serves).length;
+      box.append(el("p", "Submitting: " + have + " of " + items.length + " Challenges have a receiver." + (have < items.length ? " Practice and freezing work without one." : "") + (unread ? " Your own recipe receiver is set; which Challenge it serves is checked when you submit." : ""), "status-line"));
+    }
+    const folded = el("details", undefined, "evaluation-details");
+    folded.append(el("summary", "Details for each Challenge"));
     for (const item of items) {
       const row = el("div", undefined, "evaluation-row"); row.dataset.challenge = item.id;
       const head = el("p");
-      const [tag, kind] = item.intake ? [item.source === "published" ? "Carbon's endpoint" : "Your intake", "pill-done"] : ["None yet", "pill-need"];
-      head.append(el("strong", (item.title || item.id) + " · v" + item.version), " ", pill(tag, kind));
+      // R12-2: a recipe receiver the miner set that serves this very Challenge is a grader for it, so it is not "None yet".
+      const recipeReceiver = !item.intake && item.direct_intake && item.direct_intake.intake_url ? item.direct_intake : null;
+      const [tag, kind] = item.intake ? [item.source === "published" ? "Carbon's endpoint" : "Your own grader", "pill-done"] : recipeReceiver ? ["Your recipe receiver", "pill-done"] : ["None yet", "pill-need"];
+      head.append(el("strong", plainTitle(item.title || item.id) + " · v" + item.version), " ", pill(tag, kind));
       row.append(head);
       if (item.intake) row.append(el("p", "A frozen candidate is submitted to " + item.intake + ".", "status-line"));
+      else if (recipeReceiver) row.append(el("p", "A frozen recipe is sent to your recipe receiver at " + recipeReceiver.intake_url + ".", "status-line"));
       if (item.receiver_hotkey) {
-        row.append(el("p", "Receiver hotkey: " + item.receiver_hotkey, "hint"));
+        row.append(el("p", "Grader's mining key address: " + item.receiver_hotkey, "hint"));
         const note = item.receiver_hotkey_note;
-        if (typeof note === "string" && note) row.append(el("p", note[0].toUpperCase() + note.slice(1), "hint"));
+        if (typeof note === "string" && note) row.append(el("p", plainWords(note[0].toUpperCase() + note.slice(1)), "hint"));
       }
       // A profile from before receivers were pinned (LAUNCHPAD-ACCEPT-03).
-      if (item.receiver_hotkey_warning) row.append(el("p", item.receiver_hotkey_warning, "reason"));
-      if (item.note) row.append(el("p", item.note, item.intake ? "hint" : "reason"));
+      if (item.receiver_hotkey_warning) row.append(el("p", plainWords(item.receiver_hotkey_warning), "reason"));
+      if (item.note) row.append(el("p", plainWords(item.note), "hint"));
+      // G3: a construction receiver serves one Challenge version; say which, and say when it is another's.
+      const serves = item.direct_intake?.serves;
+      if (serves && typeof serves === "object") row.append(el("p", "Your recipe receiver rebuilds and grades this Challenge (v" + (serves.version ?? item.version) + ").", "hint"));
+      if (item.direct_intake_serves_other && typeof item.direct_intake_serves_other.note === "string") row.append(el("p", plainWords(item.direct_intake_serves_other.note), "hint"));
+      if (typeof item.direct_intake_serves_note === "string") row.append(el("p", plainWords(item.direct_intake_serves_note), "hint"));
       if (item.set_aside_intake) {
-        row.append(el("p", "Your own intake, set aside by the update: " + item.set_aside_intake, "status-line"));
+        row.append(el("p", "Your own grading address, set aside by the update: " + item.set_aside_intake, "status-line"));
         const again = el("button", "Name it again"); again.type = "button"; again.dataset.nameAgain = item.id;
         again.addEventListener("click", () => nameAgain(item.id, item.set_aside_intake, item.set_aside_receiver || ""));
         row.append(again);
       }
-      box.append(row);
+      folded.append(row);
     }
-    if (evaluation.problem) box.append(el("p", "Carbon's list of evaluation endpoints could not be read (" + words(evaluation.problem) + "), so none is offered.", "reason"));
+    if (items.length) box.append(folded);
+    if (evaluation.problem) box.append(el("p", "Carbon's list of grading addresses could not be read (" + words(evaluation.problem) + "), so none is offered.", "reason"));
     if (evaluation.published_by) box.append(el("p", "Carbon publishes its endpoints in " + evaluation.published_by + ", in this checkout.", "hint"));
     parent.append(box);
     return box;
@@ -1203,13 +1249,13 @@
     copyRow(box, null, "carbon-miner-identity", "setup-identity-copy");
     box.append(el("p", "At the end it shows two wallet addresses. Both are public. Copy the mining-key address into step 3, and the money-key address into step 2.", "hint"));
     details(box, "What are the two keys?", [
-      "Your wallet holds two keys. The money key (coldkey) holds your funds. The mining key (hotkey) signs your mining work and names you on the network; it cannot move your funds. Their addresses are public."
+      "Your wallet holds two keys. The money key (technical name: coldkey) holds your funds. The mining key (hotkey) signs your mining work and names you on the network; it cannot move your funds. Their addresses are public."
     ]);
     details(box, "Is my key safe?", [
       "The helper runs only on your computer and saves each key encrypted under its own password, one for your money and one for mining. Nothing it makes is sent anywhere, and Carbon never sees your keys, your recovery phrase or your passwords. Anyone who has your recovery phrase can take your funds, so write it on paper and keep it private."
     ]);
     details(box, "Lost my phrase?", [
-      "The 12 words are the only way to get your funds back if you lose your money password or this computer, and Carbon cannot recover them for you. Your hotkey has no recovery phrase: keep a copy of the wallet folder the helper names at the end. Without a copy you would make a new hotkey and register it again."
+      "The 12 words are the only way to get your funds back if you lose your money password or this computer, and Carbon cannot recover them for you. Your mining key has no recovery phrase: keep a copy of the wallet folder the helper names at the end. Without a copy you would make a new mining key and register it again."
     ]);
     const cost = details(box, "What does joining cost?", [
       "Joining is paid from your own money key, in your own wallet tool. Carbon neither charges nor receives it. The current amount is set by the network and changes, so read it before you sign: it is under Joining cost in Wallet & Identity, and your wallet shows it at signing."
@@ -1247,14 +1293,14 @@
   async function confirmRegistration(address) {
     if (busy || !connected) return;
     const result = $("setup-result");
-    if (!address) { result.replaceChildren(setupLine("Enter the hotkey address you registered.", "error")); return; }
+    if (!address) { result.replaceChildren(setupLine("Enter the mining key address you registered.", "error")); return; }
     try {
       const value = await api("/api/v1/onboarding/confirm", {address});
       if (value.registered && value.confirmed) {
         if (await setupCall("begin", {address})) location.hash = "#setup/agent";
         return;
       }
-      const line = el("p", "Not registered on netuid " + value.netuid + " yet. Prepare the unsigned registration under Wallet & Identity, sign it in your own wallet, then check again.", "reason");
+      const line = el("p", "Not registered on network " + value.netuid + " yet. Prepare the unsigned registration under Wallet & Identity, sign it in your own wallet, then check again.", "reason");
       result.replaceChildren(line, link({label: "Wallet & Identity", href: "#wallet"}));
     } catch (error) {
       result.replaceChildren(setupLine(error.message, "error"));
@@ -1278,22 +1324,23 @@
     // its socket, and the signer says which hotkey it holds. Nothing is
     // signed, and Carbon never sees the key.
     const signerHotkey = steps.signer?.hotkey || setupState.registered_hotkey || "";
-    const signer = stepPanel(body, "signer", j.done.signer ? "Your signer answered for " + (signerHotkey || "your registered hotkey") + "." : null);
+    const signer = stepPanel(body, "signer", j.done.signer ? "Your signer answered for " + (signerHotkey || "your registered mining key") + "." : null);
     signer.append(el("p", "Start it in your own terminal and leave it open:", "step-lede"));
+    termsFold(signer);
     copyRow(signer, null, offered.signer?.command || "carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>", "setup-signer-copy");
-    researchNote(signer, "Use your own wallet and hotkey names. Carbon never asks for your key or its password.", "hint");
+    researchNote(signer, "Use your own wallet and mining key names. Carbon never asks for your key or its password.", "hint");
     const signerLabel = el("label", "Your mining-key address"); signerLabel.htmlFor = "setup-signer-address";
     const signerAddress = el("input"); signerAddress.id = "setup-signer-address"; signerAddress.type = "text"; signerAddress.autocomplete = "off"; signerAddress.spellcheck = false; signerAddress.placeholder = "5...";
     signerAddress.value = signerHotkey || $("onboarding-address").value.trim();
     const signerCheck = el("button", j.done.signer ? "Check my signer again" : "Check my signer", j.done.signer ? "" : "primary"); signerCheck.type = "button"; signerCheck.id = "setup-signer-check";
     signerCheck.addEventListener("click", () => {
       const address = signerAddress.value.trim();
-      if (!address) { $("setup-result").replaceChildren(setupLine("Enter your hotkey address: its public ss58 address, never a key or phrase.", "error")); return; }
+      if (!address) { $("setup-result").replaceChildren(setupLine("Enter your mining key address: the public one, never a key or phrase.", "error")); return; }
       setupCall("signer", {address});
     });
     const signerAction = el("div", undefined, "step-action"); signerAction.append(signerCheck);
     signer.append(signerLabel, signerAddress, signerAction);
-    researchNote(signer, "This asks your signer which hotkey it holds. Nothing is signed. You can also register first: steps 1 and 2 go in either order.", "hint");
+    researchNote(signer, "This asks your signer which mining key it holds. Nothing is signed. You can also register first: steps 1 and 2 go in either order.", "hint");
 
     // 2. Register on the subnet: confirmed here, prepared under Wallet.
     const register = stepPanel(body, "register", j.registered ? "Registered: " + setupState.registered_hotkey : null);
@@ -1564,7 +1611,7 @@
       computeButton.textContent = choice?.needs_remote ? "Check my setup over my SSH" : "Check on this machine";
       const forChallenges = choice?.for_challenges || [];
       const previous = gpuChallenge.value;
-      gpuChallenge.replaceChildren(...forChallenges.map(item => { const option = el("option", item.title + " · v" + item.version); option.value = JSON.stringify({id: item.id, version: item.version}); return option; }));
+      gpuChallenge.replaceChildren(...forChallenges.map(item => { const option = el("option", plainTitle(item.title) + " · v" + item.version); option.value = JSON.stringify({id: item.id, version: item.version}); return option; }));
       if ([...gpuChallenge.options].some(option => option.value === previous)) gpuChallenge.value = previous;
       // Only what is built can be chosen; the endpoint transport says why not.
       const previousTransport = transport.value;
@@ -1735,7 +1782,7 @@
       }
       connectBox.append(el("p", "Then your agent loops on carbon_setup_status until launch; the carbon_setup_workflow_v1 prompt says how. You can finish here too: both doors share one setup.", "hint"));
     };
-    researchNote(agent, "Carbon never asks for your hotkey or its password. Start carbon-miner-signer for your registered hotkey in your own terminal; this step asks it which hotkey it holds.", "hint");
+    researchNote(agent, "Carbon never asks for your mining key or its password. Start carbon-miner-signer for your registered mining key in your own terminal; this step asks it which mining key it holds.", "hint");
     // Hermes (C-MLP-03 slice 5): nothing is written to the miner's Hermes
     // without their consent to the exact files, unticked by default.
     const hermesBox = el("div"); agent.append(hermesBox);
@@ -1788,7 +1835,7 @@
       const state = steps[name] || {};
       summary.append(el("dt", label), el("dd", state.checked ? checkedText(name, steps) : j.skipped[name] ? "Skipped: your agent uses its own model" : "Not checked yet"));
     }
-    researchNote(review, "Writes your runner profile beside this controller and loads it. Nothing is launched and nothing is spent.", "hint");
+    researchNote(review, "Saves your settings beside this controller and loads them. Nothing is launched and nothing is spent.", "hint");
     // The miner's choice, off unless turned on (LAUNCHPAD-PRACTICE-RETRY-01):
     // a practice the Control Center's restart cut off is sent again on its
     // own, on the miner's compute. Written by Review, like the intakes.
@@ -1802,32 +1849,65 @@
     // A validator's intake, when a Challenge's validator runs elsewhere
     // (C-MLP-03 slice 6, per Challenge since C-MLP-04). Its public facts are
     // read and checked by that Challenge; nothing is signed.
-    const reviewMore = advanced(review, "Advanced: a validator's intake");
+    const reviewMore = advanced(review, "Advanced: where a Challenge's grader runs");
     const intakeChallenges = offered.intake_challenges || [];
-    const intakeChallenge = setupSelect(reviewMore, "intake_challenge", "Validator intake for", intakeChallenges.map(item => [item.id, item.title + " · v" + item.version]));
-    const intake = setupField(reviewMore, "intake_url", "Validator intake URL (optional; https, or loopback)");
+    const intakeChallenge = setupSelect(reviewMore, "intake_challenge", "Grading address for", intakeChallenges.map(item => [item.id + "@" + item.version, plainTitle(item.title) + " · v" + item.version]));
+    const intake = setupField(reviewMore, "intake_url", "Grading address (optional; https, or this machine)");
     // Pinned in the profile: nothing is signed for an intake that reports
     // another receiver (LAUNCHPAD-ACCEPT-03). Required with an intake URL.
-    const receiver = setupField(reviewMore, "receiver_hotkey", "The validator's receiver hotkey (its public ss58 address; required with an intake URL)");
+    const receiver = setupField(reviewMore, "receiver_hotkey", "The grader's mining key address (public, starts with 5…; never a key, password or seed phrase; required with a grading address)");
     intakeChallenge.disabled = intake.disabled = receiver.disabled = !intakeChallenges.length;
-    const directMore = advanced(review, "Where your recipe is checked: your construction receiver");
-    researchNote(directMore, "Every new campaign submits its frozen recipe here when its Challenge has no validator intake of its own: the receiver rebuilds it from scratch and grades it. Its operator gives you both values.", "hint");
+    const directMore = advanced(review, "Where your recipe is graded: your own grader");
+    researchNote(directMore, "Every new campaign submits its frozen recipe here when its Challenge has no grading address of its own: the receiver rebuilds it from scratch and grades it. Its operator gives you both values.", "hint");
     const directIntake = setupField(directMore, "direct_intake_url", "Receiver URL (https, or loopback)");
-    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "Receiver hotkey (its public ss58 address)");
+    const directReceiver = setupField(directMore, "direct_receiver_hotkey", "The grader's mining key address (public, starts with 5…; never a key, password or seed phrase)");
     // U12: what Review last wrote comes back filled in, and is said plainly,
     // so writing the profile again never clears it by accident.
     const savedDirect = (steps.evaluation?.challenges || []).map(item => item.direct_intake).find(item => item && item.intake_url);
     if (savedDirect) {
       directIntake.value = savedDirect.intake_url; directReceiver.value = savedDirect.receiver_hotkey || "";
-      researchNote(directMore, "Saved: receiver " + savedDirect.intake_url + (savedDirect.receiver_hotkey ? " · hotkey " + savedDirect.receiver_hotkey.slice(0, 8) + "…" : "") + ". Edit the fields and write your profile to change it.", "hint");
+      researchNote(directMore, "Saved: receiver " + savedDirect.intake_url + (savedDirect.receiver_hotkey ? " · mining key address " + savedDirect.receiver_hotkey.slice(0, 8) + "…" : "") + ". Edit the fields and write your profile to change it.", "hint");
     }
     evaluationSection(evaluationBox, steps.evaluation, (challengeId, url, hotkey) => {
       // Review writes only the intakes it is given: this one, again.
-      intakeChallenge.value = challengeId; intake.value = url; receiver.value = hotkey;
+      intakeChallenge.value = [...intakeChallenge.options].map(option => option.value).find(value => value.split("@")[0] === challengeId) || challengeId; intake.value = url; receiver.value = hotkey;
       reviewMore.parentNode.open = true;
-      $("setup-result").replaceChildren(setupLine("Your intake is named again below. Write your profile to keep it."));
+      $("setup-result").replaceChildren(setupLine("Your grading address is filled in again below. Save your settings to keep it."));
     });
-    const write = el("button", written ? "Write my profile again" : "Write my profile", written ? "" : "primary");
+    // U9: pick where the finished recipe is checked from Carbon's published receivers, instead of typing a URL and a
+    // key. A pick fills the same fields the two Advanced folds hold, so writing the profile is unchanged. A Challenge
+    // with several published validators lists each one; a construction receiver is listed beside them.
+    const picks = [];
+    for (const item of steps.evaluation?.challenges || []) {
+      const name = plainTitle(item.title || item.id) + " · v" + item.version;
+      const validators = Array.isArray(item.validators) && item.validators.length
+        ? item.validators
+        : item.source === "published" && item.intake && item.receiver_hotkey ? [{intake_url: item.intake, receiver_hotkey: item.receiver_hotkey}] : [];
+      validators.forEach((v, i) => picks.push({kind: "validator", label: name + " · Carbon's receiver" + (validators.length > 1 ? " " + (i + 1) : ""), id: item.id, version: item.version, url: v.intake_url, hotkey: v.receiver_hotkey}));
+      if (item.direct_intake?.intake_url) picks.push({kind: "direct", label: name + " · rebuilds and grades your recipe", url: item.direct_intake.intake_url, hotkey: item.direct_intake.receiver_hotkey || ""});
+    }
+    const pickBox = el("div", undefined, "receiver-picker");
+    if (picks.length) {
+      const pickLabel = el("label", "Where should your finished recipe be checked?"); pickLabel.htmlFor = "setup-review-receiver-pick";
+      const pick = document.createElement("select"); pick.id = "setup-review-receiver-pick"; pick.name = "receiver_pick";
+      pick.append(Object.assign(el("option", "Choose a receiver Carbon publishes…"), {value: ""}));
+      picks.forEach((entry, index) => pick.append(Object.assign(el("option", entry.label), {value: String(index)})));
+      const said = el("p", "", "hint"); said.id = "setup-review-receiver-said";
+      pick.addEventListener("change", () => {
+        const entry = picks[Number(pick.value)];
+        if (!entry) { said.textContent = ""; return; }
+        if (entry.kind === "validator") {
+          intakeChallenge.value = [...intakeChallenge.options].map(option => option.value).find(value => value === entry.id + "@" + entry.version) || intakeChallenge.value;
+          intake.value = entry.url; receiver.value = entry.hotkey || "";
+        } else { directIntake.value = entry.url; directReceiver.value = entry.hotkey; }
+        said.textContent = "Chosen. Write your profile to keep it. You can still change the details under Advanced.";
+      });
+      pickBox.append(pickLabel, pick, said);
+    } else {
+      pickBox.append(el("p", "Carbon has not published a receiver yet, so there is nothing to choose. Practice and freezing work without one.", "hint"));
+    }
+    review.insertBefore(pickBox, reviewMore.parentNode);
+    const write = el("button", written ? "Save my settings again" : "Save my settings", written ? "" : "primary");
     write.disabled = !steps.review?.ready;
     const reviewAction = el("div", undefined, "step-action"); reviewAction.append(write);
     if (caps?.profile?.configured) {
@@ -1843,7 +1923,8 @@
       // so with the setting off (the default) the request is as before.
       if (retryAgain.checked !== retryWas) request.practice_auto_retry = retryAgain.checked;
       if (intake.value.trim() && intakeChallenge.value) {
-        request.intakes = {[intakeChallenge.value]: intake.value.trim()};
+        const intakeId = intakeChallenge.value.split("@")[0];
+        request.intakes = {[intakeId]: intake.value.trim()};
         if (receiver.value.trim()) request.receiver_hotkey = receiver.value.trim();
       }
       if (directIntake.value.trim() || directReceiver.value.trim()) {
@@ -2008,7 +2089,7 @@
           launchShape = operationsListed?.find(op => op.operation === "launch") || null;
         } catch (_) { launchShape = null; }
       }
-      connected = true;
+      connected = true; resuming = false;
       land();
       settleWatches();
       settleHeld();
@@ -2018,7 +2099,7 @@
       else pollSetup();
       setText($("connection-state"), "Connected");
     } catch (error) {
-      connected = false;
+      connected = false; resuming = false;
       if (error.status === 401 || error.status === 403) {
         // The controller no longer knows this token: it was restarted.
         token = ""; forgetSession();
@@ -2037,10 +2118,11 @@
     if (landed) return;
     landed = true;
     if (location.hash) return;
-    const active = research.runs.find(run => !TERMINAL.includes(run.state));
+    // Only a campaign that is really going: an old interrupted or stuck one is not where a
+    // person wants to land (U2); they get the Overview and its next step.
+    const active = research.runs.find(run => !TERMINAL.includes(run.state) && !["INTERRUPTED", "RECONCILIATION_REQUIRED"].includes(run.state));
     if (active) { location.hash = campaignHref(active.id); return; }
-    const last = stored(routeKey, null);
-    if (last && typeof last.hash === "string" && last.hash.startsWith("#")) location.hash = last.hash;
+    // No restored last page: a returning person lands on the Overview and its next step (U2, R5-8).
   }
   $("reconnect").addEventListener("click", () => {
     const resumed = keptSession();
@@ -2108,6 +2190,7 @@
       await refresh();
       if (storageError) message("Browser retry storage is unavailable. Launch is disabled to preserve duplicate protection.", true);
     } catch (error) {
+      resuming = false;
       token = "";
       connected = false;
       $("connection-state").textContent = "Disconnected";
@@ -2260,9 +2343,12 @@
       rebuild(list, "disconnected", target => target.append(el("li", "Connect this browser to see your next step.", "hint")));
       goTo("Get started", "#setup");
       setText($("getting-started-progress"), "");
+      $("launchpad-strip").hidden = true;
       return;
     }
     const j = journey();
+    // The launch strip repeats the same steps while setup is unfinished: show it only once setup is done.
+    $("launchpad-strip").hidden = Boolean(j.current);
     const key = JSON.stringify([j.state, j.profile, research.runs.length, setupState?.registered_hotkey ?? null, setupVersion]);
     goTo(j.current ? "Next: " + stepTitle(j.current, j) : "New campaign", j.current ? stepHref(j.current, j) : "#launch");
     // Never "You are set up" above a page of failures: the steps may all be done
@@ -2271,6 +2357,28 @@
     setText($("overview-lede"), j.current ? "Step " + (SETUP_IDS.indexOf(j.current) + 1) + " of 6 is next. Each step is checked before it counts." : blocked ? "Your steps are done, but one thing still stops a launch. It is at the top of this page." : "You are set up. Choose a Challenge and launch.");
     rebuild(list, key, target => drawGettingStarted(target, j));
     setText($("getting-started-progress"), Object.values(j.state).filter(state => state === "done").length + " of 6 done");
+    renderRecheck();
+  }
+  // When the controller says one click clears a stale setup (`next.recheck` in the setup status, or the research
+  // preflight's `recheck`), that click is offered here; it posts the same recheck the MCP tool does.
+  function renderRecheck() {
+    const panel = $("getting-started");
+    let row = $("gs-recheck");
+    const recheck = setupState?.next?.recheck || research?.preflight?.recheck || null;
+    if (!recheck) { if (row) row.hidden = true; return; }
+    if (!row) { row = el("div", undefined, "gs-recheck"); row.id = "gs-recheck"; panel.append(row); }
+    row.hidden = false;
+    const label = typeof recheck.label === "string" ? recheck.label : "Recheck my setup";
+    // The recheck is named by operation, with no wording of its own: the reason is what the status says is stale or
+    // set aside, or the preflight's next step.
+    const said = value => typeof value === "string" ? value : value && typeof value === "object" ? [value.plain, value.note, value.message, value.text, value.reason].find(x => typeof x === "string") : undefined;
+    const why = said(setupState?.next?.stale) || said(setupState?.next?.set_aside) || said(research?.preflight?.next_step) || "Something out of date may be holding this up; one recheck clears it.";
+    const key = label + "|" + why;
+    if (row.dataset.key === key) return;
+    row.dataset.key = key;
+    const go = el("button", label, "primary"); go.type = "button"; go.id = "gs-recheck-go";
+    go.addEventListener("click", async () => { await setupCall("recheck", {confirm: true}); await readSetup(); });
+    row.replaceChildren(el("p", plainWords(why), "hint"), go);
   }
   function drawGettingStarted(list, j) {
     SETUP_IDS.forEach((id, index) => {
@@ -2290,9 +2398,9 @@
     if (!caps) return [];
     const items = [];
     items.push(caps.profile.configured
-      ? {ok: true, text: "Your runner profile is loaded.", detail: ["Profile: " + caps.profile.profile_id]}
-      : {ok: false, area: "Runner profile", item: caps.profile});
-    items.push({ok: null, text: "Your subnet registration is read at launch, before anything is recorded.", fix: {label: "Check it", href: "#wallet"}});
+      ? {ok: true, text: "Your settings are loaded.", detail: ["Profile: " + caps.profile.profile_id]}
+      : {ok: false, area: "Your settings", item: caps.profile});
+    items.push({ok: null, text: "Your registration is read at launch, before anything is recorded.", fix: {label: "Check it", href: "#wallet"}});
     const selectable = caps.challenges.filter(entry => entry.selectable);
     items.push(selectable.length
       ? {ok: true, text: "You can launch: " + selectable.map(entry => entry.title).join(", ") + "."}
@@ -2442,8 +2550,8 @@
     return null;
   }
   function when(at) {
-    if (typeof at === "number" && Number.isFinite(at)) return new Date((at > 1e12 ? at : at * 1000)).toLocaleString();
-    if (typeof at === "string" && !Number.isNaN(Date.parse(at))) return new Date(at).toLocaleString();
+    if (typeof at === "number" && Number.isFinite(at)) return new Date((at > 1e12 ? at : at * 1000)).toLocaleString(undefined, {timeZoneName: "short"});
+    if (typeof at === "string" && !Number.isNaN(Date.parse(at))) return new Date(at).toLocaleString(undefined, {timeZoneName: "short"});
     return null;
   }
   // Where a refusal's correction is taken, when this page has the place.
@@ -2470,7 +2578,7 @@
     box.append(el("p", (REFUSAL_KINDS[refusal.kind] || "Refused") + ": " + (practiceMessage(refusal.code) || words(refusal.code)) + (refusal.operation ? " (" + words(refusal.operation) + ")" : "") + (at ? " · " + at : ""), "status-line"));
     // A submit through a validator intake that was not a verdict
     // (LAUNCHPAD-ACCEPT-04): queued, the validator's side, or yours to act on.
-    if (refusal.intake_outcome) box.append(el("p", "Validator intake: " + INTAKE_OUTCOMES[refusal.intake_outcome], "hint"));
+    if (refusal.intake_outcome) box.append(el("p", "The grader's answer: " + INTAKE_OUTCOMES[refusal.intake_outcome], "hint"));
     // What stopped it, by its code, so it can be named to someone who can help.
     if (refusal.kind === "interrupted" && !compact) box.append(el("p", "Code: " + refusal.code, "hint"));
     // A card in a list says what stopped it; the code and the long next action are in the campaign.
@@ -2485,9 +2593,9 @@
       // U57: the Challenge's name even where this version is not listed here
       // ("<id> · v<version>" read for a Challenge name).
       const entry = challengeEntry({id: run.challenge.id, version: run.challenge.version}) || (caps?.challenges || []).find(item => item.challenge_id === run.challenge.id);
-      return (entry ? entry.title : run.challenge.id) + " · v" + run.challenge.version;
+      return (entry ? plainTitle(entry.title) : run.challenge.id) + " · v" + run.challenge.version;
     }
-    return run.selects ? "Recorded without a Challenge (historical DEVELOPMENT campaign)" : "Challenge not yet recorded";
+    return run.selects ? "Older practice campaign" : "Challenge being recorded";
   }
   function campaignCard(parent, run) {
     const box = el("a", undefined, "integration card campaign-card");
@@ -2534,7 +2642,7 @@
   function renderChallengeCatalog(target) {
     for (const entry of offeredChallenges()) {
       const [tag, kind] = challengePill(entry);
-      const box = card(target, entry.title, tag, kind);
+      const box = card(target, plainTitle(entry.title), tag, kind);
       box.dataset.challenge = entry.challenge_id;
       if (comingSoon(entry)) {
         box.append(el("p", typeof entry.practise.plain === "string" ? entry.practise.plain : "Coming soon.", "status-line"));
@@ -2686,7 +2794,7 @@
       copyRow(box, "Connect your client with:", mcp.command, "connection-mcp-copy");
       // The command names this controller's own runner profile when it has
       // one (LP-PROD-F); otherwise it says where that path comes from.
-      if (mcp.profile_path) researchNote(box, "Your runner profile: " + mcp.profile_path + ". The command above names it; your client starts the server with it.", "hint");
+      if (mcp.profile_path) researchNote(box, "Your settings file: " + mcp.profile_path + ". The command above names it; your client starts the server with it.", "hint");
       else researchNote(box, "Replace <your runner profile> with your runner profile's path: Set up writes it, and this page shows it here once a profile is loaded.", "hint");
       if (mcp.client_configuration) details(box, "Client configuration (JSON)", [el("pre", JSON.stringify(mcp.client_configuration, null, 2))]);
       if (mcp.availability !== "available") unavailableNote(box, mcp);
@@ -2696,8 +2804,8 @@
   function renderWallet(target) {
     const box = card(target, "Research identity", ...(caps.profile.configured ? ["Ready", "pill-done"] : ["Needs setup", "pill-need"]));
     if (caps.profile.configured) {
-      box.append(el("p", "Your runner profile is loaded. Your registered miner is read from it at launch; signing stays in your own wallet.", "status-line"));
-      details(box, "Details", ["Runner profile " + caps.profile.profile_id]);
+      box.append(el("p", "Your settings are loaded. Your registered miner is read from it at launch; signing stays in your own wallet.", "status-line"));
+      details(box, "Details", ["Settings " + caps.profile.profile_id]);
     } else unavailableNote(box, caps.profile);
     // Registration is the miner's own transaction: said here, with no link
     // back to this same page.
@@ -2709,6 +2817,61 @@
   }
 
   // ---- Campaigns: list, deep-linked detail and tabs. ----
+  // The list reads as: what needs the miner first (one count), then running campaigns by
+  // Challenge name, then finished ones folded away (U3).
+  const NEEDS_ATTENTION = ["INTERRUPTED", "RECONCILIATION_REQUIRED"];
+  // Old stopped test campaigns should not nag: the miner can hide them (kept in this browser only, never sent
+  // anywhere) and show them again (R6-7).
+  const dismissedKey = "carbon.control-center.hidden-campaigns.v1";
+  function dismissedIds() { const value = stored(dismissedKey, {}); return value && typeof value === "object" ? value : {}; }
+  function hideCampaigns(ids, hide) {
+    const now = dismissedIds();
+    for (const id of ids) { if (hide) now[id] = true; else delete now[id]; }
+    store(dismissedKey, now);
+    quietly(render);
+  }
+  function campaignGroups(target, runs) {
+    const hidden = dismissedIds();
+    const stopped = runs.filter(run => NEEDS_ATTENTION.includes(run.state));
+    const attention = stopped.filter(run => !hidden[run.id]);
+    const hiddenStopped = stopped.filter(run => hidden[run.id]);
+    const finished = runs.filter(run => TERMINAL.includes(run.state));
+    const going = runs.filter(run => !attention.includes(run) && !finished.includes(run));
+    const byChallenge = (parent, items) => {
+      const groups = new Map();
+      for (const run of items) { const name = challengeLabel(run).replace(/ · v[\d.]+$/, ""); (groups.get(name) || groups.set(name, []).get(name)).push(run); }
+      for (const [name, group] of groups) {
+        parent.append(el("h3", name + " (" + group.length + ")", "campaign-group"));
+        for (const run of group) campaignCard(parent, run);
+      }
+    };
+    if (attention.length) {
+      const hideAll = el("button", "Hide " + (attention.length === 1 ? "it" : "all " + attention.length), "link-button"); hideAll.type = "button"; hideAll.id = "hide-stopped-campaigns";
+      hideAll.addEventListener("click", () => hideCampaigns(attention.map(run => run.id), true));
+      target.append(hideAll);
+    }
+    if (attention.length) {
+      const note = el("p", attention.length + (attention.length === 1 ? " campaign needs" : " campaigns need") + " your attention: " + (attention.length === 1 ? "it stopped" : "they stopped") + " before finishing and can be resumed or closed.", "reason attention-count");
+      target.append(note);
+      byChallenge(target, attention);
+    }
+    byChallenge(target, going);
+    if (hiddenStopped.length) {
+      const fold = el("details", undefined, "hidden-campaigns");
+      fold.append(el("summary", "Hidden stopped campaigns (" + hiddenStopped.length + ")"));
+      const showAll = el("button", "Show them again", "link-button"); showAll.type = "button";
+      showAll.addEventListener("click", () => hideCampaigns(hiddenStopped.map(run => run.id), false));
+      fold.append(showAll);
+      byChallenge(fold, hiddenStopped);
+      target.append(fold);
+    }
+    if (finished.length) {
+      const fold = el("details", undefined, "finished-campaigns");
+      fold.append(el("summary", "Finished (" + finished.length + ")"));
+      byChallenge(fold, finished);
+      target.append(fold);
+    }
+  }
   function renderCampaigns() {
     const list = $("research-runs");
     const current = route();
@@ -2722,14 +2885,14 @@
     const run = current.view === "campaigns" && current.id ? research.runs.find(r => r.id === current.id) : null;
     list.hidden = Boolean(run);
     detail.hidden = !run && !(current.view === "campaigns" && current.id);
-    rebuild(list, JSON.stringify([connected, research.runs.map(cardKey), capsVersion]), target => {
+    rebuild(list, JSON.stringify([connected, research.runs.map(cardKey), capsVersion, Object.keys(dismissedIds()).sort()]), target => {
       if (!connected) researchNote(target, "Reconnect to reconcile research state. Controls are disabled.", "hint");
       else if (!research.runs.length) {
         const empty = el("div", undefined, "empty");
         empty.append(el("h3", "No campaign yet."), el("p", "New campaign walks you through Challenge, agent, model, compute, tools and limits."));
         target.append(empty);
       }
-      for (const item of research.runs) campaignCard(target, item);
+      campaignGroups(target, research.runs);
     });
     if (current.view === "campaigns" && current.id && !run) {
       rebuild(detail, "missing|" + current.id + "|" + connected, target => {
@@ -2759,7 +2922,7 @@
       // A disabled control says why, rather than leaving the miner to guess.
       const reason = !connected ? "Reconnect this browser first."
         : busy ? "Another request is in progress."
-        : action === "resume" && !research.preflight.available ? "Resume needs a configured runner profile."
+        : action === "resume" && !research.preflight.available ? "Resume needs your settings saved first."
         : action !== "export" && ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE"].includes(run.state) ? "This campaign is " + run.state + "; there is nothing left to " + action + ". Export still gives its full record."
         : "";
       button.disabled = Boolean(reason);
@@ -2802,7 +2965,7 @@
     if (run.execution_label) researchNote(panel, run.execution_label, "hint");
     const health = agentHealth(run);
     if (health) researchNote(panel, health, "reason agent-health");
-    if (run.deadline_unix) researchNote(panel, "Deadline from your elapsed limit: " + new Date(run.deadline_unix * 1000).toLocaleString());
+    if (run.deadline_unix) researchNote(panel, "Deadline from your elapsed limit: " + new Date(run.deadline_unix * 1000).toLocaleString(undefined, {timeZoneName: "short"}));
     else researchNote(panel, "No deadline: you set no elapsed limit.", "hint");
     if (run.research_guidance) {
       const task = document.createElement("p"); task.className = "frozen-guidance";
@@ -2821,7 +2984,7 @@
       }
       panel.append(usage);
       researchNote(panel, run.usage.cost_basis || "Cost basis unavailable.");
-    } else missing(panel, "usage appears once the campaign ledger exists.");
+    } else missing(panel, "usage appears once the spending record exists.");
     const results = run.final_results || [];
     researchNote(panel, results.length ? "Independent DEVELOPMENT results: " + results.length + " (see Submission)" : "No independent DEVELOPMENT result yet.", "development-summary");
   }
@@ -2850,7 +3013,7 @@
     researchNote(parent, "Shown in USD, minutes and MB; the ledger counts whole nanodollars, milliseconds and bytes.", "hint");
   }
   function tabMetrics(panel, run) {
-    if (!run.usage) { missing(panel, "resource metrics appear once the campaign ledger exists."); return; }
+    if (!run.usage) { missing(panel, "resource metrics appear once the spending record exists."); return; }
     usageTable(panel, run.usage);
     const scores = (run.experiments || []).map((experiment, index) => experiment.outcome === "SMOKE" ? null : "#" + (index + 1) + ": " + (experiment.diagnostics?.descriptive_score ?? experiment.summary?.score ?? "unavailable")).filter(Boolean);
     researchNote(panel, scores.length ? "Descriptive practice scores (not accepted improvements): " + scores.join(" · ") : "No practice score yet.");
@@ -2862,8 +3025,8 @@
     for (const item of decisions) researchNote(panel, "Decision " + (item.sequence ?? "") + ": " + JSON.stringify(item));
     for (const item of run.capability_requests || []) researchNote(panel, "Capability request (grants nothing): " + JSON.stringify(item));
     for (const item of run.refusals || []) researchNote(panel, "Refused request (nothing ran): " + JSON.stringify(item));
-    for (const outcome of run.epoch_outcomes || []) researchNote(panel, (outcome.selected_by === "miner" ? "Your" : "Agent") + " epoch " + outcome.epoch + ": " + outcome.status + " · " + (outcome.reason || "No reason reported") + " · " + (outcome.selected_by === "miner" ? "Your" : "Agent-reported") + " decision, not independent science.");
-    if (!hypotheses.length && !decisions.length && !(run.epoch_outcomes || []).length) missing(panel, "the journal fills as hypotheses, decisions and epoch outcomes are recorded.");
+    for (const outcome of run.epoch_outcomes || []) researchNote(panel, (outcome.selected_by === "miner" ? "Your" : "Agent") + " round " + outcome.epoch + ": " + outcome.status + " · " + (outcome.reason || "No reason reported") + " · " + (outcome.selected_by === "miner" ? "Your" : "Agent-reported") + " decision, not independent science.");
+    if (!hypotheses.length && !decisions.length && !(run.epoch_outcomes || []).length) missing(panel, "the journal fills as hypotheses, decisions and round results are recorded.");
   }
   function tabArtifacts(panel, run) {
     const freezes = run.candidate_freezes || [];
@@ -2911,7 +3074,7 @@
     const s = o.screening;
     const cases = s && s.cases && typeof s.cases === "object" ? Object.entries(s.cases).map(([k, v]) => words(k) + " " + v).join(", ") : "unavailable";
     const lines = [
-      "Validator outcome, epoch " + result.epoch + ": " + o.state + (o.waiting ? " · waiting: " + o.waiting : ""),
+      "Validator outcome, round " + result.epoch + ": " + o.state + (o.waiting ? " · waiting: " + o.waiting : ""),
       "Submission: " + (o.submission_id || "unavailable") + (o.rule ? " · exam rule: " + o.rule : "") + (o.reconstruction?.backend ? " · rebuilt on " + o.reconstruction.backend : ""),
       ...(o.failure?.code ? ["Reason: " + words(o.failure.code) + ((o.failure.issues || []).length ? " (" + o.failure.issues.map(i => i.code + (i.path?.length ? " at " + i.path.join("/") : "")).join("; ") + ")" : "")] : []),
       // Sealed by the exam rule (LAUNCHPAD-ACCEPT-04): nothing computed on
@@ -3123,14 +3286,24 @@
     const journey = run.journey || {};
     return {journey, frozen: journey.frozen_awaiting_submission === true, exhausted: journey.final_exams_remaining === 0, ready: run.state === "READY"};
   }
-  function practicedRecipes(run) {
-    const practiced = [];
+  // The practiced recipes for the freeze choice, each with its run number and gate result, passing runs first so
+  // the default is never a run that failed a gate (R5-4).
+  function practicedRuns(run) {
+    const seen = new Set();
+    const found = [];
+    let number = 0;
     for (const experiment of run.experiments || []) {
+      if (experiment.outcome === "SMOKE") continue;
+      number += 1;
       if (!experiment.recipe) continue;
       const text = JSON.stringify(experiment.recipe);
-      if (!practiced.includes(text)) practiced.push(text);
+      if (seen.has(text)) continue;
+      seen.add(text);
+      const eligible = experiment.summary && typeof experiment.summary.eligible === "boolean" ? experiment.summary.eligible : null;
+      found.push({text, run: number, eligible});
     }
-    return practiced;
+    const rank = item => item.eligible === true ? 0 : item.eligible === null ? 1 : 2;
+    return found.sort((a, b) => rank(a) - rank(b) || a.run - b.run);
   }
   const practiceIssues = new Map();
   const smokeUnavailable = new Set();
@@ -3153,6 +3326,58 @@
   function smokeResultText(experiment) {
     return "Smoke: " + (experiment.status === "PASSED" ? "passed" : experiment.status === "FAILED" ? "failed" : "result unavailable");
   }
+  // The place under "Advanced" where the raw recipe JSON lives when a backbone list is offered (E4).
+  function advancedHolder(parent) {
+    const box = el("details", undefined, "advanced"); box.append(el("summary", "Advanced: the recipe as JSON"));
+    const body = el("div", undefined, "detail-body"); box.append(body); box.dataset.holder = "1";
+    parent.append(box);
+    return body;
+  }
+  // A tested backbone chosen from a list, with the two settings a newcomer changes first as form fields. It writes
+  // the recipe JSON (the Advanced text area) from the chosen backbone's ready recipe; whatever that text area holds
+  // when "Run practice trial" is pressed is what is sent (E4).
+  function catalogPracticeForm(box, run, catalog, raw, holder) {
+    const form = el("div", undefined, "catalog-practice"); form.id = "journey-form-" + run.id;
+    const idOf = text => { try { return JSON.parse(text)?.source?.catalog_id || null; } catch (_) { return null; } };
+    const known = id => catalog.some(item => item.catalog_id === id);
+    const start = known(idOf(raw.value)) ? idOf(raw.value) : catalog[0].catalog_id;
+    const pickLabel = el("label", "Backbone"); const pick = document.createElement("select"); pick.id = "journey-backbone-" + run.id; pickLabel.htmlFor = pick.id;
+    for (const item of catalog) { const option = el("option", item.backbone + (item.variant ? " (variant)" : "")); option.value = item.catalog_id; pick.append(option); }
+    pick.value = start; pick.dataset.draft = "1";
+    const about = el("p", undefined, "hint"); about.id = "journey-backbone-about-" + run.id;
+    const stepsLabel = el("label", "Training steps (empty keeps the tested default)"); const steps = document.createElement("input"); steps.type = "number"; steps.min = "1"; steps.step = "1"; steps.id = "journey-steps-" + run.id; stepsLabel.htmlFor = steps.id; steps.dataset.draft = "1";
+    const rateLabel = el("label", "Learning rate (empty keeps the tested default)"); const rate = document.createElement("input"); rate.type = "number"; rate.min = "0"; rate.step = "any"; rate.id = "journey-rate-" + run.id; rateLabel.htmlFor = rate.id; rate.dataset.draft = "1";
+    const current = () => catalog.find(item => item.catalog_id === pick.value) || catalog[0];
+    const describe = () => { about.textContent = current().variant ? current().variant : "A backbone Carbon has tested on this Challenge. Its tested settings are the starting point."; };
+    try { const kept = JSON.parse(raw.value); const s = kept?.procedure?.train_use?.steps, r = kept?.procedure?.configuration?.learning_rate; if (known(idOf(raw.value))) { if (Number.isFinite(s)) steps.value = String(s); if (Number.isFinite(r)) rate.value = String(r); } } catch (_) { /* kept as typed */ }
+    const write = () => {
+      const recipe = JSON.parse(JSON.stringify(current().recipe));
+      recipe.procedure = recipe.procedure || {};
+      recipe.procedure.configuration = {...(recipe.procedure.configuration || {})};
+      recipe.procedure.train_use = {...(recipe.procedure.train_use || {})};
+      const s = Number.parseInt(steps.value, 10), r = Number.parseFloat(rate.value);
+      if (Number.isFinite(s) && s >= 1) recipe.procedure.train_use.steps = s;
+      if (Number.isFinite(r) && r > 0) recipe.procedure.configuration.learning_rate = r;
+      raw.value = JSON.stringify(recipe, null, 2);
+      journeyDrafts[run.id + ":recipe"] = raw.value; store(draftKey, journeyDrafts);
+    };
+    // Only the settings the chosen entry's schema takes are offered (a first run cannot hit catalog_setting_unknown).
+    const takes = (group, name) => { const list = current().settings?.[group]; return !Array.isArray(list) || list.includes(name); };
+    const fit = () => {
+      for (const [node, label, group, name] of [[steps, stepsLabel, "train_use", "steps"], [rate, rateLabel, "configuration", "learning_rate"]]) {
+        const shown = takes(group, name);
+        node.hidden = label.hidden = !shown;
+        if (!shown) node.value = "";
+      }
+    };
+    pick.addEventListener("change", () => { describe(); fit(); write(); });
+    steps.addEventListener("input", write); rate.addEventListener("input", write);
+    describe(); fit();
+    if (!known(idOf(raw.value))) write();
+    form.append(pickLabel, pick, about, stepsLabel, steps, rateLabel, rate);
+    box.insertBefore(form, holder.parentElement);
+    researchNote(box, "Pick a tested backbone and, if you like, change its steps or learning rate. Anything else is under Advanced.", "hint");
+  }
   function renderJourneyPractice(parent, run) {
     // A person's own journey, with no Carbon agent: practice, freeze, submit.
     // Each step is an operation from the same table the agent and MCP use.
@@ -3161,9 +3386,15 @@
     researchNote(box, "1 · Practice a recipe here. 2 · Freeze one you practiced and 3 · submit it under Submission. Nothing reaches the chain.");
     const {journey, exhausted, ready} = journeyState(run);
     const example = exampleRecipe(run);
-    const recipe = journeyField(box, run.id, "recipe", "Recipe to practice (JSON)", document.createElement("textarea"), example);
+    const entry = run.challenge ? challengeEntry({id: run.challenge.id, version: run.challenge.version}) : null;
+    const catalog = (Array.isArray(entry?.catalog_recipes) ? entry.catalog_recipes : []).filter(item => item && typeof item.catalog_id === "string" && item.recipe && typeof item.recipe === "object");
+    // E4: with a tested-backbone list, the miner picks a backbone and fills two settings; the recipe JSON sits
+    // under Advanced and is what a practice sends either way.
+    const holder = catalog.length ? advancedHolder(box) : box;
+    const recipe = journeyField(holder, run.id, "recipe", "Recipe to practice (JSON)", document.createElement("textarea"), example || (catalog.length ? JSON.stringify(catalog[0].recipe, null, 2) : ""));
     recipe.rows = 8; recipe.className = "research-guidance";
-    if (example) researchNote(box, "Prefilled with this Challenge's registered example, which passes admission. Edit it freely.", "hint");
+    if (catalog.length) catalogPracticeForm(box, run, catalog, recipe, holder);
+    else if (example) researchNote(box, "Prefilled with this Challenge's registered example, which passes admission. Edit it freely.", "hint");
     else researchNote(box, "No registered example for this campaign's Challenge; write a recipe.", "hint");
     const hypothesis = journeyField(box, run.id, "hypothesis", "What this trial tests", document.createElement("input"), "");
     if (!ready) researchNote(box, "Working: " + String(run.state).replaceAll("_", " ").toLowerCase() + ". The next step opens when the campaign is ready.");
@@ -3216,10 +3447,11 @@
     const box = document.createElement("div"); box.className = "journey-submit";
     box.append(el("h4", "Freeze and submit"));
     const {journey, frozen, exhausted, ready} = journeyState(run);
-    const practiced = practicedRecipes(run);
-    researchNote(box, "Final exams remaining: " + (journey.final_exams_remaining ?? "unavailable") + " · Submitted epochs: " + ((journey.submitted_epochs || []).join(", ") || "none") + (frozen ? " · A frozen candidate is waiting for submission." : ""));
+    const runs = practicedRuns(run);
+    const practiced = runs.map(item => item.text);
+    researchNote(box, "Final exams remaining: " + (journey.final_exams_remaining ?? "unavailable") + " · Submitted rounds: " + ((journey.submitted_epochs || []).join(", ") || "none") + (frozen ? " · A frozen candidate is waiting for submission." : ""));
     const choose = document.createElement("select");
-    practiced.forEach((text, index) => { const option = document.createElement("option"); option.value = text; option.textContent = "Run " + (index + 1) + ": " + recipeWords(text); choose.append(option); });
+    runs.forEach(item => { const option = document.createElement("option"); option.value = item.text; option.textContent = "Run " + item.run + ": " + recipeWords(item.text) + (item.eligible === true ? " · passed the gates" : item.eligible === false ? " · a gate failed" : ""); choose.append(option); });
     journeyField(box, run.id, "candidate", "Practiced recipe to freeze", choose, practiced[0] || "");
     const reason = journeyField(box, run.id, "reason", "Why this candidate", document.createElement("input"), "");
     if (!practiced.length) researchNote(box, "No practiced recipe yet: a candidate must have a practice result before it can be frozen. Practice under Experiments.", "reason");
@@ -3240,17 +3472,25 @@
   // prelaunch review's evaluation_endpoints (LP-PROD-E): configuration only,
   // stated before a submit rather than learnt from its refusal. Said plainly,
   // with what still works and the next step (LAUNCHPAD-PAGE-USABILITY-01).
-  function evaluationOf(id) {
+  // Each Challenge version has its own endpoint entry (a receiver serves one
+  // version): a version, when known, must match, so a v1.3 campaign never
+  // reads the v1.2 entry (U46).
+  function evaluationOf(id, version) {
     const items = research.preflight?.review?.evaluation_endpoints?.challenges;
     if (!Array.isArray(items) || typeof id !== "string") return null;
-    return items.find(item => item && item.challenge_id === id) || null;
+    const same = items.filter(item => item && item.challenge_id === id);
+    if (typeof version === "string") return same.find(item => item.version === version) || null;
+    return same[0] || null;
   }
-  function evaluationFor(run) { return evaluationOf(run?.challenge?.id); }
+  function evaluationFor(run) { return evaluationOf(run?.challenge?.id, run?.challenge?.version); }
   function evaluationNote(parent, run) {
+    // A submit that was already accepted settles it: the note describes a
+    // refusal that did not happen (U46).
+    if ((run?.journey?.submitted_epochs || []).length) return;
     const item = evaluationFor(run);
     if (!item || EVALUABLE.includes(item.status)) return;
     const note = el("div", undefined, "evaluation-unavailable"); note.dataset.evaluation = item.status;
-    note.append(el("p", "Evaluation is unavailable for this Challenge today: no validator intake is configured in your runner profile" + (item.status === "NONE_PUBLISHED" ? ", and none is published for it yet" : "") + ". Submit is refused as evaluation unavailable, and a frozen candidate is kept.", "reason"));
+    note.append(el("p", "Evaluation is unavailable for this Challenge today: no grading address is saved in your settings" + (item.status === "NONE_PUBLISHED" ? ", and none is published for it yet" : "") + ". Submit is refused as evaluation unavailable, and a frozen candidate is kept.", "reason"));
     note.append(el("p", "What you can do now: practise, observe, freeze a candidate, and stop or pause this campaign.", "hint"));
     if (typeof item.next_step === "string" && item.next_step) note.append(el("p", "Next: " + item.next_step, "hint"));
     const link = el("a", "Review evaluation in setup"); link.href = "#setup/review";
@@ -3298,7 +3538,7 @@
   // The launch fields Graphite's choices travel in (S4's launch operation).
   const GRAPHITE_FIELDS = ["graphite_mode", "graphite_edition", "research_share", "plan", "hunt", "limits", "submission_policy"];
   // Optional per-epoch counts: blank leaves only the campaign's own limits.
-  const GRAPHITE_LIMITS = [["calls_per_epoch", "Model calls per epoch"], ["trials_per_epoch", "Practice trials per epoch"], ["planner_calls", "Planner model calls"]];
+  const GRAPHITE_LIMITS = [["calls_per_epoch", "Model calls per round"], ["trials_per_epoch", "Practice trials per round"], ["planner_calls", "Planner model calls"]];
   // A hunt's closed query grammar (the design's): at most 8 queries of at
   // most 6 terms, each letters, digits and hyphens. Raw arXiv syntax is
   // never accepted. The counts and the record bounds are the controller's
@@ -3691,7 +3931,7 @@
         // provider ceilings (graphite_ceilings_required); say so here, before
         // Launch, instead of calling every limit optional.
         const limits = graphiteLimitsProblem();
-        if (limits) return "Fix Graphite's per-epoch limits: " + limits + ".";
+        if (limits) return "Fix Graphite's per-round limits: " + limits + ".";
         const ceilings = composition.budget?.ceilings || {};
         if (!Number.isSafeInteger(ceilings.provider_attempts) || !Number.isSafeInteger(ceilings.provider_nanodollars)) return "Graphite needs two of your limits: a model-call ceiling and a model-spend ceiling. Set both under Advanced limits, Ceilings per resource; every other limit stays optional.";
       }
@@ -3801,27 +4041,32 @@
     rebuild(target, JSON.stringify([capsVersion, offeredChallenges().map(entry => [entry.challenge_id, entry.version, entry.selectable]), connected]), node => {
       for (const entry of offeredChallenges()) {
         const label = el("label", undefined, "choice" + (entry.selectable ? "" : " unavailable"));
-        const input = el("input"); input.type = "radio"; input.name = "wizard-challenge"; input.value = entry.challenge_id;
-        input.dataset.version = entry.version || "";
+        const input = el("input"); input.type = "radio"; input.name = "wizard-challenge"; input.value = entry.challenge_id + "@" + (entry.version || "");
+        input.dataset.version = entry.version || ""; input.dataset.challenge = entry.challenge_id;
         // Unimplemented Challenges are shown, never offered as working choices.
         input.disabled = !entry.implemented || comingSoon(entry);
         input.addEventListener("change", () => selectChallenge(entry));
         const text = el("span");
-        text.append(el("strong", entry.title), el("span", " " + challengeStatus(entry) + (entry.version ? " · v" + entry.version : "") + " · " + acceptanceText(entry), "small-tag"));
+        text.append(el("strong", plainTitle(entry.title)), el("span", " " + challengePill(entry)[0] + (entry.version ? " · v" + entry.version : "") + testedSuffix(entry), "small-tag"));
         if (comingSoon(entry)) text.append(el("span", " " + (typeof entry.practise.plain === "string" ? entry.practise.plain : "Coming soon."), "hint"));
-        if (!entry.selectable) text.append(el("span", "Unavailable: " + why(entry) + " · Next: " + entry.next_action, "reason"));
+        // One short line; the reason and the next step sit in a fold so the list stays scannable.
+        if (!entry.selectable) {
+          const more = el("details", undefined, "wizard-why");
+          more.append(el("summary", "Not available yet. Why?"), el("p", "Unavailable: " + why(entry) + " · Next: " + entry.next_action, "reason"));
+          text.append(more);
+        }
         label.append(input, text); node.append(label);
       }
     });
     // The choice is patched in place: choosing never redraws the list.
     for (const input of target.querySelectorAll("input[name=wizard-challenge]")) {
-      input.checked = Boolean(wizard.challenge && wizard.challenge.id === input.value && (wizard.challenge.version || "") === input.dataset.version);
+      input.checked = Boolean(wizard.challenge && wizard.challenge.id === input.dataset.challenge && (wizard.challenge.version || "") === input.dataset.version);
     }
     const description = $("wizard-challenge-description");
     const entry = challengeEntry(wizard.challenge);
     if (description.dataset.key !== (entry ? entry.challenge_id + "@" + entry.version : "")) {
       description.replaceChildren();
-      if (entry?.implemented) { description.append(el("h3", entry.title)); renderDescription(description, entry); }
+      if (entry?.implemented) { description.append(el("h3", plainTitle(entry.title))); renderDescription(description, entry); }
       description.dataset.key = entry ? entry.challenge_id + "@" + entry.version : "";
     }
   }
@@ -3952,12 +4197,12 @@
     options.append(estimate);
     hunt.append(options);
     box.append(hunt);
-    box.append(el("p", "Per-epoch limits are optional, under Tools & limits, Advanced: left blank, only your campaign's own limits bind, money and time.", "hint"));
+    box.append(el("p", "Per-round limits are optional, under Tools & limits, Advanced: left blank, only your campaign's own limits bind, money and time.", "hint"));
   }
   function buildGraphiteLimits() {
     const box = $("graphite-limits");
     if (box.dataset.built) return;
-    box.append(el("p", "Optional. Left blank, only your campaign's own limits bind: its money, calls, trials and time. Set one only to end an epoch sooner.", "hint"));
+    box.append(el("p", "Optional. Left blank, only your campaign's own limits bind: its money, calls, trials and time. Set one only to end a round sooner.", "hint"));
     for (const [key, label] of GRAPHITE_LIMITS) {
       const wrap = el("div");
       graphiteInput(wrap, "graphite-limit-" + key, label, "number", value => setGraphite({limits: {...graphiteChoices().limits, [key]: value}}), {min: "1", max: String(limitMax()), step: "1", placeholder: "No limit"});
@@ -4150,7 +4395,7 @@
     const task = connected && guidance ? guidance.text : "";
     if ($("research-guidance").value !== task) $("research-guidance").value = task;
     setText($("research-runtime"), connected && guidance ? "Configured runtime: " + research.preflight.runtime_revision + " · Task identity (frozen on launch): " + guidance.digest : "");
-    setText($("research-preflight"), connected ? research.preflight.status.replaceAll("_", " ") + (research.preflight.reason ? " · " + research.preflight.reason : "") + (research.preflight.available ? " · Admission: your subnet registration, read at launch · Budget: yours to set, or none" : "") : "Reconnect to reconcile research state. Controls are disabled.");
+    setText($("research-preflight"), connected ? research.preflight.status.replaceAll("_", " ") + (research.preflight.reason ? " · " + research.preflight.reason : "") + (research.preflight.available ? " · Admission: your registration, read at launch · Budget: yours to set, or none" : "") : "Reconnect to reconcile research state. Controls are disabled.");
     const review = connected && research.preflight.review;
     rebuild($("research-review"), JSON.stringify(review || null), reviewPanel => { if (review) drawReview(reviewPanel, review); });
   }
@@ -4192,8 +4437,8 @@
       const compute = computeChoice();
       const budget = composition.budget || {};
       const setup = setupModel();
-      row("Identity", caps.profile.configured ? "Runner profile " + caps.profile.profile_id + " · registered hotkey read from it at launch" : "No runner profile");
-      row("Network", research.preflight.review?.admission?.gate ? words(research.preflight.review.admission.gate).toLowerCase() + " · see Wallet & Identity for the network and netuid" : "Subnet registration, read at launch · see Wallet & Identity");
+      row("Identity", caps.profile.configured ? "Settings " + caps.profile.profile_id + " · registered mining key read from it at launch" : "No settings saved");
+      row("Network", research.preflight.review?.admission?.gate ? words(research.preflight.review.admission.gate).toLowerCase() + " · see Wallet & Identity for the network and netuid" : "Registration, read at launch · see Wallet & Identity");
       row("Challenge", entry ? entry.title + " · " + entry.challenge_id + " · version " + entry.version + (entry.description?.contract_digest ? " · contract " + entry.description.contract_digest : "") : "Not chosen");
       row("Agent", agent ? agent.label + " (launch agent: " + agent.launch_agent + ")" : "Not chosen");
       if (agent?.launch_agent === GRAPHITE) {
@@ -4219,8 +4464,13 @@
       row("Compute", compute ? compute.label + " · " + compute.lane + " lane · " + compute.availability : "Unavailable");
       row("Tools", entry ? Object.keys(entry.tools?.workflow || {}).join(", ") || "none listed" : "Choose a Challenge");
       // Stated before launch, not learnt at submit (LAUNCHPAD-PAGE-USABILITY-01).
-      const evaluation = entry ? evaluationOf(entry.challenge_id) : null;
+      const evaluation = entry ? evaluationOf(entry.challenge_id, entry.version) : null;
       if (evaluation) row("Evaluation", EVALUABLE.includes(evaluation.status) ? "A validator is configured for this Challenge in your profile; whether it answers is seen at submit." : "Unavailable today: no validator intake is configured in your profile" + (evaluation.status === "NONE_PUBLISHED" ? " and none is published for this Challenge yet" : "") + ". You can launch, practise, observe, freeze, and stop or pause; a submit is refused and the frozen candidate kept until one is configured.");
+      // G3: the configured receiver serves another Challenge.
+      if (evaluation && evaluation.direct_intake_serves_other && typeof evaluation.direct_intake_serves_other.note === "string") row("Recipe receiver", plainWords(evaluation.direct_intake_serves_other.note));
+      // G1: what the spending limit buys, as the launch options say it.
+      const budgetNote = findBudgetNote(launchOptions);
+      if (budgetNote) row("What your spending limit buys", plainWords(budgetNote));
       const limits = [];
       limits.push("elapsed: " + ("elapsed_seconds" in budget ? budget.elapsed_seconds + " s" + longer(budget.elapsed_seconds) : "no limit"));
       limits.push("final reserve: " + (budget.final_reserve ? "on" : "off"));
@@ -4229,8 +4479,22 @@
       row("Unset limits", "An unset limit means no limit. Carbon sets none for you.");
       for (const [name, label] of STEPS.slice(0, 5)) { const problem = stepProblem(name); if (problem) problems.push({ok: false, text: label + ": " + problem}); }
       if (!research.preflight.available) problems.push({ok: false, text: "Research launch: " + words(research.preflight.reason || research.preflight.status)});
-      problems.push({ok: null, text: "Subnet registration is read at launch, before anything is recorded.", href: "#wallet"});
+      problems.push({ok: null, text: "Registration is read at launch, before anything is recorded.", href: "#wallet"});
     }
+    // The five lines a person decides on (Dana #7); everything else is under More detail.
+    const summary = [];
+    if (caps) {
+      const entry = challengeEntry(wizard.challenge), agent = agentEntry(wizard.agentChoice), provider = selectedProvider(), compute = computeChoice(), setup = setupModel(), budget = composition.budget || {};
+      const set = [];
+      if ("elapsed_seconds" in budget) set.push(Math.round(budget.elapsed_seconds / 60) + " min");
+      for (const name of caps.budget.ceilings) if (budget.ceilings && name in budget.ceilings && budget.ceilings[name] !== null) set.push(resourceShort(name) + " " + resourceValue(name, budget.ceilings[name]));
+      summary.push(["Challenge", entry ? plainTitle(entry.title) + " · v" + entry.version : "Not chosen"]);
+      summary.push(["Agent", agent ? agent.label : "Not chosen"]);
+      summary.push(["Model", agent && !agent.uses_model ? "None needed" : provider && wizard.model ? provider.provider + " · " + wizard.model : setup ? setup.model_id : "Not chosen"]);
+      summary.push(["Computer", compute ? compute.label : "Not chosen"]);
+      summary.push(["Limits", set.length ? set.join(" · ") : "None set: you decide when to stop"]);
+    }
+    rebuild($("wizard-summary"), JSON.stringify(summary), grid => { for (const [label, value] of summary) grid.append(el("dt", label), el("dd", value)); });
     rebuild($("wizard-review"), JSON.stringify(rows), grid => { for (const [label, value] of rows) grid.append(el("dt", label), el("dd", value)); });
     rebuild($("wizard-missing"), JSON.stringify(problems), list => renderChecklist(list, problems));
   }
@@ -4608,7 +4872,7 @@
     if (entry.settled) return entry.settled;
     // A start time, not a running clock: the line changes only when the
     // operation's state does, so it never redraws its form.
-    const elapsed = "started " + new Date(entry.since).toLocaleTimeString();
+    const elapsed = "started " + new Date(entry.since).toLocaleTimeString(undefined, {timeZoneName: "short"});
     if (WORKING[run.state]) {
       const doing = {practice: entry.mode === "smoke" ? "Smoke practice running" : "Practice trial running", freeze_candidate: "Freezing your candidate", submit: "Submitting your frozen candidate: your registration is read, then it is sent for the DEVELOPMENT comparison"}[entry.name];
       return {kind: "working", text: doing + " · " + elapsed + "." + (entry.replaced ? " " + REPLACED : "")};
@@ -4627,7 +4891,7 @@
       return {kind: "done", text: "Submitted for the DEVELOPMENT comparison. The independent result appears below."};
     }
     if (entry.name === "freeze_candidate" && run.journey?.frozen_awaiting_submission === true) {
-      return {kind: "done", text: "Candidate frozen for this epoch. Submit it under Submission."};
+      return {kind: "done", text: "Candidate frozen for this round. Submit it under Submission."};
     }
     if (entry.name === "practice" && (run.experiments || []).length > entry.experiments) {
       const experiment = run.experiments[entry.experiments];
@@ -4639,6 +4903,9 @@
       return {kind: "refused", text: "Interrupted before it finished (" + words(run.state).toLowerCase() + "). Reconcile the campaign, then try again."};
     }
     if (Date.now() - entry.since < SETTLE_MS) return {kind: "working", text: "Finishing: waiting for the campaign's record · " + elapsed + "."};
+    // A submit that was sent and not refused is not "ended without the change": the page may simply not have
+    // read the record yet (R5-3, U62). Say that, and where the result will be.
+    if (entry.name === "submit") return {kind: "unclear", text: "Your submit was sent and was not refused. This page has not read the campaign's record of it yet; look under Submission for the result."};
     return {kind: "unclear", text: "It ended without the change it was for (" + words(run.state).toLowerCase() + "). Any reason is in the campaign's Logs and journal."};
   }
   // Each refresh: an operation that ended says so once, in the page's message.
@@ -4766,6 +5033,8 @@
   const footerSeenKey = "carbon.launchpad.footer-seen.v1";
   const pageFooter = document.querySelector("main > footer");
   if (pageFooter && stored(footerSeenKey, {}).seen === true) pageFooter.hidden = true;
+  resuming = linkToken === null && Boolean(stored(rememberedKey, null) || keptSession());
+  if (resuming) { setText($("connection-state"), "Connecting…"); setTimeout(() => { if (resuming) { resuming = false; quietly(render); } }, 6000); }
   buildNavigation();
   show();
   setInterval(refresh, 1500);

@@ -28,7 +28,13 @@ from test_miner_launchpad_environment_setup import (
     Onboarding,
     completed,
 )
-from test_miner_setup_after_install import Reinstalled, entry, profile, publish
+from test_miner_setup_after_install import (
+    Reinstalled,
+    entry,
+    one_version_challenge,
+    profile,
+    publish,
+)
 
 from carbon.battery import campaign as battery
 from carbon.development_session.intake_targets import for_version
@@ -72,7 +78,9 @@ def versions_of(challenge_id):
 def test_motor_has_several_intake_versions():
     # The premise of the ruling, read from the registry, not assumed.
     assert {"1.2", "1.3"} <= set(versions_of(MOTOR))
-    assert len(versions_of(battery.CHALLENGE.challenge_id)) == 1
+    # And some Challenge has exactly one, which a v1 entry can still name.
+    one = one_version_challenge()
+    assert versions_of(one["id"]) == [one["version"]]
 
 
 # --- the v2 list --------------------------------------------------------------------
@@ -150,16 +158,14 @@ def test_another_schema_publishes_nothing(tmp_path, monkeypatch):
 def test_a_v1_entry_applies_only_where_its_challenge_has_one_intake_version(
     tmp_path, monkeypatch
 ):
-    battery_id, battery_version = (
-        battery.CHALLENGE.challenge_id,
-        battery.CHALLENGE.version,
-    )
+    one = one_version_challenge()
+    battery_id, battery_version = one["id"], one["version"]
     path = publish(
         tmp_path, monkeypatch, [entry(battery_id), entry(MOTOR, intake_url=URL_12)]
     )
     found = published_endpoints(path)
     assert found["problem"] is None
-    # Battery: its one intake version, exactly as v1 read it.
+    # The one-version Challenge: its one intake version, exactly as v1 read it.
     assert found["endpoints"] == {battery_id: {battery_version: entry(battery_id)}}
     # Motor: several versions, so none; said, never guessed.
     assert found["unversioned"] == [MOTOR]

@@ -4,6 +4,29 @@ Carbon's Model Context Protocol interface lets an external agent or client inspe
 
 This is a development interface. A submitted candidate is not a qualified engineering model or a production reward claim. [Project status](../../docs/publications/PROJECT_STATUS.md) explains the available challenges and evidence.
 
+## Connect your agent
+
+1. Install with `scripts/install_miner.sh`; it gives you the `carbon-mcp`
+   command.
+2. Open the Control Center's **Setup → Agent** step. It shows the one command
+   for your machine and a snippet for Claude Code, Codex and Hermes to copy.
+   Hermes can instead have setup write a ready profile, `carbon`, which you
+   start with `hermes -p carbon chat`.
+3. Start your agent and ask it to finish setup. It loops on
+   `carbon_setup_status` until launch (the `carbon_setup_workflow_v1` prompt
+   says how). Starting your signer and signing your registration stay yours.
+4. After setup writes your runner profile, the same command takes it:
+
+   ```sh
+   carbon-mcp --configuration /absolute/private/runner-profile.json
+   ```
+
+Run against this server: Claude Code 2.1.308 with the Control Center's
+config, and Hermes v0.22.4 through the setup-written profile, which reached a
+graded submit (2026-10-22); Codex 0.161.0 (2026-10-08). For a one-shot Hermes
+run, set `trust: full` and run `hermes gateway stop` first; one-shot refuses
+`--run-budget`, so bound the run with `timeout`.
+
 ## Interface and admission
 
 This optional adapter exposes one of the miner's existing research campaigns. It
@@ -277,8 +300,9 @@ python -m carbon.miner_mcp.standard_cli            # add --state-dir if the Cont
 The Control Center's step 3 shows the command for its machine with snippets
 for Claude Code, Codex and Hermes, from each client's documentation, read
 2026-10-02. Setup's MCP step (`environment_setup.mcp_connect`) records which
-were run against this server: Claude Code 2.1.294 and Codex 0.161.0 on
-2026-10-08; the Hermes MCP-client snippet is UNVERIFIED.
+were run against this server: Codex 0.161.0 on 2026-10-08, Claude Code
+2.1.308 and Hermes v0.22.4 (its setup-written profile; the hand-edited Hermes
+snippet is UNVERIFIED) on 2026-10-22.
 
 ## The prepared-campaign profile
 
