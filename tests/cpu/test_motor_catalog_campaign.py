@@ -154,7 +154,7 @@ def test_1_2_is_graded_by_1_1s_evaluation_versions():
         physical_pack.PACK_VERSIONS[MOTOR, "1.2"]
         == "motor-normal-construction-development-3"
     )
-    assert motor_sealed.EVALUATION_VERSION == "motor-dual-sealed-batch-30-v1"
+    assert motor_sealed.EVALUATION_VERSION == "motor-dual-sealed-batch-30-v2"
     assert "1.2" in motor_sealed.SERVED_VERSIONS
     # 1.2 passes the version check (then the bogus document is refused as such).
     with pytest.raises(motor_sealed_pack.SealedPackRefused) as refused:

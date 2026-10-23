@@ -45,7 +45,7 @@ BATCH_CASES = 16
 ROTATION_EVERY_BLOCKS = 648_000  # the 90-day maximum
 ACTIVE_BATCHES = 1
 PACK_VERSION = "cooling-normal-construction-development-2"
-EVALUATION_VERSION = "cooling-dual-sealed-batch-16-v1"
+EVALUATION_VERSION = "cooling-dual-sealed-batch-16-v2"
 REFERENCE_OPTIONS = {"mesh_family": "graded-hotspot-v1", "resolution": 2 * math.sqrt(2)}
 ANALYSIS_VERSION = "carbon.cold-plate.graded-heat-in.v1"
 

@@ -1,5 +1,5 @@
 """Cooling's adapter grades a sealed exam batch (Validator, 2026-10-20,
-cooling-dual-sealed-batch-16-v1): one 4 x 4 grid in one cohort, so A is the
+cooling-dual-sealed-batch-16-v2): one 4 x 4 grid in one cohort, so A is the
 minimum over all 16 cells and the worst geometry (no boundary reduction), its
 grid gate is `complete_grid_common_mask`, its reference evidence is pinned by
 sha256, and D is the development bank's decision unchanged. The development
@@ -26,7 +26,7 @@ PUBLIC = physical_pack.public_roles(adapter.CHALLENGE, "1.1")
 NAMES = physical.input_names(adapter)
 
 
-def _sealed_bank():
+def _sealed_bank(probes=False):
     """Data Collection's fixture grid, its synthetic (non-production) outputs
     set so every design is feasible and each has its own hydraulic power."""
     doc = document(population.draw(random.Random(2), 16)[0])
@@ -35,7 +35,7 @@ def _sealed_bank():
         record = ok_record(case["case_id"], case["inputs"], peak=60.0)
         record["outputs"]["pressure_drop_pa"] = 40.0 + 3.0 * i
         records.append(record)
-    return sealed.sealed_bank(doc, records)
+    return sealed.sealed_bank(doc, records, probes=probes)
 
 
 def _measure(bank, outputs, definition=None):
@@ -169,13 +169,13 @@ def test_the_sealed_table_is_1_1_and_1_2_and_1_3_is_the_decoding_adapter():
     assert set(adapter.SEALED_VERSIONS) == {"1.1", "1.2"}
     for version in ("1.1", "1.2"):
         chosen = adapter.sealed_adapter(version)
-        assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v1"
+        assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v2"
         assert chosen.VERSION == version
     # 1.3 changes the output interface: the one dispatch point here hands it to the
     # adapter that DECODES; no raw (non-decoding) adapter ever grades it.
     chosen = adapter.sealed_adapter("1.3")
     assert chosen.VERSION == "1.3" and chosen._module is encoded
-    assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v1"
+    assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v2"
     for version in ("1.0", "1.4", None):
         assert adapter.sealed_adapter(version) is None
 

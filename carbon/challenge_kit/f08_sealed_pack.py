@@ -89,8 +89,41 @@ def _accepted(case_id, inputs, record, limit, rule=PACK_RULE):
     return float(wall_s)
 
 
-def sealed_bank(document, records, *, version="1.2", rule=PACK_RULE) -> dict:
-    """The sealed batch as a bank in ``physical_pack.development_bank``'s format."""
+#: Base points of the private response probes (physics half v1); each carries 13
+#: rows (the base and two moves per input), so a batch adds 52 unreferenced rows.
+PROBE_BASES = 4
+
+
+def _valid_geometry(x) -> bool:
+    """The packet shape rule (structures_readiness): the same buildable region the
+    exam cases are drawn from."""
+    length, width, _, _, rib, relief = x
+    return width / 4 - rib / 2 > 10 and min((length - relief) / 2, width / 2 - 10) >= 6
+
+
+def _with_probes(bank, cases, names, dtype):
+    """``bank`` with the private response probes appended as unreferenced rows.
+    The seed is the batch input content (never its ids or order), so every
+    validator copy of one exam gets the same probes."""
+    from carbon.challenge_pipeline import structures_readiness
+    from carbon.scoring import probe_design
+
+    if list(names) != list(structures_readiness.FIELDS):
+        raise SealedPackRefused("f08_sealed_probe_interface")
+    return probe_design.with_probes(
+        bank,
+        list(cases.values()),
+        challenge="f08",
+        bounds=[(float(lo), float(hi)) for lo, hi in structures_readiness.BOUNDS],
+        valid=_valid_geometry,
+        bases=PROBE_BASES,
+        dtype=dtype,
+    )
+
+
+def sealed_bank(document, records, *, version="1.2", rule=PACK_RULE, probes=True) -> dict:
+    """The sealed batch as a bank in ``physical_pack.development_bank``'s format,
+    with (default) the private response probes of physics half v1 appended."""
     from carbon.challenge_kit import f08_public, physical_pack
     from carbon.challenge_validator import f08_hidden as hidden
     from carbon.f08.domain import LIMIT_MM_PER_N
@@ -188,7 +221,7 @@ def sealed_bank(document, records, *, version="1.2", rule=PACK_RULE) -> dict:
             "records": [by_case[c] for c in case_ids],
         }
     )
-    return {
+    bank = {
         "case_ids": tuple(case_ids),
         "cohorts": (COHORT,) * len(case_ids),
         "inputs": inputs_array,
@@ -198,6 +231,7 @@ def sealed_bank(document, records, *, version="1.2", rule=PACK_RULE) -> dict:
         "decision_coverage": DECISION_COVERAGE,
         "population": POPULATION,
     }
+    return _with_probes(bank, cases, names, dtype) if probes else bank
 
 
 def private_roles(bank) -> dict[str, bytes]:

@@ -31,6 +31,7 @@ import sys
 from pathlib import Path
 
 from carbon.scoring import cooling_dual_measurement as cdm
+from carbon.scoring import cooling_physics, probe_design
 from carbon.scoring import physical_dual_pack as physical
 from carbon.scoring.physical_dual_pack import sha as _sha
 
@@ -53,14 +54,23 @@ VERSIONS = {
 }
 #: A sealed exam batch's evaluation version, per Challenge version (Validator,
 #: 2026-10-20): Cooling 1.1's sealed batches, served on 1.1 and 1.2.
-SEALED_EVALUATION_VERSION = "cooling-dual-sealed-batch-16-v1"
+#: v2: Design is D = min(V, C) with the physics half; v1 stays as history.
+SEALED_EVALUATION_VERSION = "cooling-dual-sealed-batch-16-v2"
 #: Versions whose output interface is Cooling's own graded by the raw sealed adapter.
 #: 1.3 changes the output interface (the law-safe encoding), so it is graded by
 #: `cooling_encoded_dual_pack.sealed_adapter`, which decodes first: an interface change
 #: never rides in this table.
 SEALED_VERSIONS = {version: SEALED_EVALUATION_VERSION for version in ("1.1", "1.2")}
 OUTPUT = {"quantity": "peak_c,profile_c[30],pressure_drop_pa", "unit": "degC,degC,Pa"}
-FILES = ("cooling_dual_pack.py", "cooling_dual_measurement.py")
+FILES = (
+    "cooling_dual_pack.py",
+    "cooling_dual_measurement.py",
+    "critical_fidelity.py",
+    "design_fidelity.py",
+    "physics_half.py",
+    "probe_design.py",
+    "cooling_physics.py",
+)
 #: Legs a measured baseline run sets minimums for (default rule).
 MINIMUM_LEGS = ("A", "D")
 Refused = cdm.CoolingMeasurementRefused
@@ -156,7 +166,10 @@ def definition(*, bank, train_raw, rule="baseline_legs"):
     ]
     # The bank says which it is: a sealed batch is one decision_sealed_grid
     # cohort; anything else is checked against the development cohorts.
-    sealed = set(bank["cohorts"]) == {cdm.SEALED_COHORT}
+    probes = sum(1 for c in bank["cohorts"] if c == probe_design.PROBE_COHORT)
+    sealed = {c for c in bank["cohorts"] if c != probe_design.PROBE_COHORT} == {
+        cdm.SEALED_COHORT
+    }
     return {
         "schema": cdm.DEFINITION_SCHEMA,
         "method": cdm.METHOD,
@@ -175,6 +188,9 @@ def definition(*, bank, train_raw, rule="baseline_legs"):
                 + hashlib.sha256(bank["solver_evidence"]).hexdigest(),
                 "reductions": list(cdm._SEALED_REDUCTIONS),
                 "cohort_counts": dict(cdm.SEALED_COHORT_COUNTS),
+                "critical": cdm.critical_block(_MEASUREMENT["D_scale_W"]),
+                "probes": {"cohort": probe_design.PROBE_COHORT, "rows": probes},
+                **({"physics": cooling_physics.block(train_raw)} if probes else {}),
             }
             if sealed
             else {
@@ -221,13 +237,49 @@ def measure(
         or limits.get("constraints") != contract.get("constraints")
     ):
         raise Refused("cooling_limit_or_objective")
-    return cdm.measure(
-        bank=bank_rows,
-        outputs=outputs,
-        repeats=repeats,
+    if "probes" not in definition:
+        return cdm.measure(
+            bank=bank_rows,
+            outputs=outputs,
+            repeats=repeats,
+            definition=definition,
+            contract=contract,
+            train=_train_records(train_raw, names),
+        )
+    cells = [
+        i for i, r in enumerate(bank_rows) if r["cohort"] != probe_design.PROBE_COHORT
+    ]
+    probes = [
+        i for i, r in enumerate(bank_rows) if r["cohort"] == probe_design.PROBE_COHORT
+    ]
+    if (
+        len(probes) != definition["probes"]["rows"]
+        or len(outputs) != len(bank_rows)
+        or not all(len(r) == len(bank_rows) for r in repeats)
+        or cells != list(range(len(cells)))
+    ):
+        raise Refused("cooling_bank_cohort")
+    measured = cdm.measure(
+        bank=[bank_rows[i] for i in cells],
+        outputs=[outputs[i] for i in cells],
+        repeats=[[r[i] for i in cells] for r in repeats],
         definition=definition,
         contract=contract,
         train=_train_records(train_raw, names),
+    )
+    internal = measured.pop("_cells", None)
+    if internal is None:
+        return measured
+    return cooling_physics.apply(
+        measured,
+        a_scale=definition["A_scale"],
+        cell_rows=[bank_rows[i] for i in cells],
+        cell_outputs=[outputs[i] for i in cells],
+        definition=definition,
+        train_raw=train_raw,
+        probe_rows=[bank_rows[i] for i in probes],
+        probe_outputs=[outputs[i] for i in probes],
+        **internal,
     )
 
 

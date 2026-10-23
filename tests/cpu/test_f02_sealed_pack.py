@@ -58,7 +58,7 @@ def batch(seed=11):
 
 def test_the_bank_has_the_development_banks_shape():
     document, records = batch()
-    mine = sealed.sealed_bank(document, records)
+    mine = sealed.sealed_bank(document, records, probes=False)
     theirs = physical_pack.development_bank("f02", "2.1")
     assert set(mine) == set(theirs)
     assert theirs["cohorts"] == ("decision_cold_eight",) * 8
@@ -172,7 +172,7 @@ def test_the_v7_version_is_graded_from_the_same_sealed_batches():
         for key in old:
             if isinstance(old[key], np.ndarray):
                 assert (
-                    np.array_equal(old[key], new[key])
+                    np.array_equal(old[key], new[key], equal_nan=True)
                     and old[key].dtype == new[key].dtype
                 )
             else:

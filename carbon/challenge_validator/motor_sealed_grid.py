@@ -5,7 +5,7 @@ Motor 1.1's sealed exam as a placed design x condition grid (5 x 6), so design
 value (D, half the dual score) is defined. Everything but the population is
 `motor_sealed`'s own (solver image, terminal statuses, kinds, rotation, the
 pack and evaluation versions): the evaluation version stays
-`motor-dual-sealed-batch-30-v1`, whose definition states that it is
+`motor-dual-sealed-batch-30-v2`, whose definition states that it is
 grid-based (A and D). A grid deployment has its own schemas, so the placed-30
 custody (`motor_sealed`) is never read as a grid one.
 
