@@ -356,6 +356,19 @@ GRADE_WORDS = {
     "GATE_FAILED": "graded: not eligible, a mandatory gate failed",
     "NOT_SCORED": "graded: this result does not count, so no total is shown",
 }
+#: Why a NOT_SCORED result does not count, from the Ladder's closed `reason`
+#: (Validator, 2026-10-23: a scientific refusal is never worded as
+#: infrastructure). A leg-minimum failure names the leg, never a number.
+NOT_SCORED_WORDS = {
+    "LEG_MINIMUM_FAILED": "not admitted: {leg} below its required minimum",
+    "CANDIDATE_INVALID": "not admitted: the rebuilt model's result is invalid",
+    "DECISION_INELIGIBLE": "not admitted: its design decision is not eligible",
+    "FAILED_INFRA": "not graded: infrastructure problem; your allowance is not used",
+    "INDETERMINATE": (
+        "not graded: the evidence was indeterminate; your allowance is not used"
+    ),
+}
+_LEG = re.compile(r"[A-Za-z][A-Za-z0-9_]{0,31}")
 
 
 def _grade(ladder, submission=None, epoch=None, also=()):
@@ -379,6 +392,17 @@ def _grade(ladder, submission=None, epoch=None, also=()):
             shown["gate_names"] = [
                 n[:64] for n in names[:16] if type(n) is str and _GATE.fullmatch(n)
             ]
+        reason = document.get("reason")
+        if document["status"] == "NOT_SCORED" and reason in NOT_SCORED_WORDS:
+            leg = document.get("leg")
+            if reason != "LEG_MINIMUM_FAILED":
+                shown.update(reason=reason, words=NOT_SCORED_WORDS[reason])
+            elif type(leg) is str and _LEG.fullmatch(leg):
+                shown.update(
+                    reason=reason,
+                    leg=leg,
+                    words=NOT_SCORED_WORDS[reason].format(leg=leg),
+                )
         for name in ("total", "A", "D"):
             value = document.get(name)
             if (
