@@ -82,6 +82,8 @@ def test_importing_every_score_weight_koth_ladder_and_receiver_module_loads_no_f
     for surface in SURFACES:
         assert (ROOT / surface).exists(), surface
     modules = _modules(ROOT, SURFACES)
+    # The Launchpad controller itself too: the door's import stays lazy.
+    modules.append("scripts.dev.miner_launchpad.controller")
     assert "carbon.scoring.grade_feedback" in modules
     assert "carbon.challenge_validator.ladder_store" in modules
     loaded, _stubbed = CHECK.import_all(modules)
@@ -117,3 +119,15 @@ def test_a_planted_import_from_a_scoring_module_fails_the_runtime_check(tmp_path
         path.write_text(text, encoding="utf-8")
     loaded, _ = CHECK.import_all(_modules(tmp_path, ("carbon/scoring",)), root=tmp_path)
     assert _leaked(loaded) == ["carbon.development_session.onboarding_funding"]
+
+
+def test_no_funding_module_has_a_write_path():
+    """The address and the amounts are never persisted (Validator condition)."""
+    writes = re.compile(
+        r"bopen\(|write_text|write_bytes|\.write\(|sqlite3|json\.dumpb|"
+        r"shelve|pickle|os\.open|tempfile|logging|print\("
+    )
+    for name in FUNDING:
+        path = ROOT / (name.replace(".", "/") + ".py")
+        found = writes.findall(path.read_text(encoding="utf-8"))
+        assert not found, (name, found)
