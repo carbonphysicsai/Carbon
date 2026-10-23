@@ -787,7 +787,11 @@ remote_line() {
 #: the state directory and survives restarts and updates.
 open_page_lines() {
   remote_line
-  if [[ "${page_link}" == http://127.0.0.1:"${PORT}"/* ]]; then
+  if [[ ! -t 1 ]]; then
+    # Captured or piped (tee, an agent, CI): never the token itself, which
+    # would then sit in that capture (Validator, E1 review).
+    echo "Open the Control Center at http://127.0.0.1:${PORT}; its session token is in ${STATE_DIR}/session-token (owner-only). Run this installer in a terminal to get a link that carries it."
+  elif [[ "${page_link}" == http://127.0.0.1:"${PORT}"/* ]]; then
     echo "Open the Control Center (this link holds your session token; do not share it):"
     echo "${page_link}"
   else

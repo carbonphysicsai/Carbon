@@ -563,23 +563,57 @@ class Sandbox:
         return subprocess.run(
             ["bash", str(self.clone / "scripts" / "install_miner.sh"), *args],
             cwd=self.tmp,
-            env={
-                "PATH": f"{self.tools}:/usr/bin:/bin",
-                "HOME": str(self.tmp / "home"),
-                "CARBON_STATE_DIR": str(self.state),
-                "CARBON_TEST_LOG": str(self.log),
-                "CARBON_TEST_PYTHON": str(self.tmp / "python"),
-                # The canonical image's interpreter is not on /usr/bin.
-                "CARBON_TEST_REAL_PYTHON": sys.executable,
-                "CARBON_TEST_CONTROL_CENTER": str(self.tmp / "control-center"),
-                "CARBON_TEST_DOCKER_ROOT": str(self.tmp / "docker-root"),
-                **env,
-            },
+            env=self.env(**env),
             capture_output=True,
             text=True,
             check=False,
             timeout=120,
         )
+
+    def run_in_terminal(self, *args, **env) -> str:
+        """The install with its output on a terminal (a pty), as a miner runs
+        it; what it printed there."""
+        import pty
+
+        master, slave = pty.openpty()
+        try:
+            subprocess.run(
+                ["bash", str(self.clone / "scripts" / "install_miner.sh"), *args],
+                cwd=self.tmp,
+                env=self.env(**env),
+                stdin=subprocess.DEVNULL,
+                stdout=slave,
+                stderr=subprocess.DEVNULL,
+                check=False,
+                timeout=120,
+            )
+        finally:
+            os.close(slave)
+        out = b""
+        while True:
+            try:
+                chunk = os.read(master, 65536)
+            except OSError:
+                break
+            if not chunk:
+                break
+            out += chunk
+        os.close(master)
+        return out.decode().replace("\r\n", "\n")
+
+    def env(self, **env):
+        return {
+            "PATH": f"{self.tools}:/usr/bin:/bin",
+            "HOME": str(self.tmp / "home"),
+            "CARBON_STATE_DIR": str(self.state),
+            "CARBON_TEST_LOG": str(self.log),
+            "CARBON_TEST_PYTHON": str(self.tmp / "python"),
+            # The canonical image's interpreter is not on /usr/bin.
+            "CARBON_TEST_REAL_PYTHON": sys.executable,
+            "CARBON_TEST_CONTROL_CENTER": str(self.tmp / "control-center"),
+            "CARBON_TEST_DOCKER_ROOT": str(self.tmp / "docker-root"),
+            **env,
+        }
 
     def logged(self) -> list[str]:
         return self.log.read_text().splitlines() if self.log.exists() else []
@@ -981,20 +1015,37 @@ def test_an_install_starts_the_catalog_in_the_background_when_entries_are_missin
 
 
 def test_the_last_line_is_the_page_link_and_a_remote_box_gets_its_tunnel(sandbox):
-    """M1 E2E E1: no token to fetch and paste. The installer's last line is
-    the page's link with this install's token; over SSH, the one tunnel
-    command comes first."""
-    local = sandbox.run("--no-start")
-    assert local.returncode == 0, local.stderr
-    lines = local.stdout.strip().splitlines()
+    """M1 E2E E1: no token to fetch and paste. In a terminal, the installer's
+    last line is the page's link with this install's token; over SSH, the
+    one tunnel command comes first."""
+    lines = sandbox.run_in_terminal("--no-start").strip().splitlines()
     assert lines[-1] == "http://127.0.0.1:8788/#token=fixture-token"
-    assert "ssh -N -L" not in local.stdout
-    remote = sandbox.run(
+    assert not any("ssh -N -L" in line for line in lines)
+    remote = sandbox.run_in_terminal(
         "--no-start", SSH_CONNECTION="198.51.100.7 51000 203.0.113.9 22", USER="dana"
     )
-    lines = remote.stdout.strip().splitlines()
+    lines = remote.strip().splitlines()
     assert lines[-1] == "http://127.0.0.1:8788/#token=fixture-token"
     assert "  ssh -N -L 8788:127.0.0.1:8788 dana@203.0.113.9" in lines
+
+
+def test_a_captured_install_never_carries_the_token(sandbox, tmp_path):
+    """Validator, E1 review: a piped or captured install (tee, an agent, CI)
+    names the owner-only token file, never the token."""
+    captured = tmp_path / "install.out"
+    with captured.open("w") as out:
+        subprocess.run(
+            ["bash", str(sandbox.clone / "scripts" / "install_miner.sh"), "--no-start"],
+            cwd=sandbox.tmp,
+            env=sandbox.env(),
+            stdout=out,
+            stderr=subprocess.STDOUT,
+            check=True,
+            timeout=120,
+        )
+    text = captured.read_text()
+    assert "fixture-token" not in text and "#token=" not in text
+    assert str(sandbox.state / "session-token") + " (owner-only)" in text
 
 
 def test_two_filesystems_each_need_only_their_own_share(sandbox):
