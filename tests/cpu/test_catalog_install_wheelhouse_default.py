@@ -68,6 +68,9 @@ def test_without_a_wheelhouse_the_wheel_entries_are_skipped_by_name(host, capsys
 def test_the_host_wheelhouse_is_used_when_it_exists(host, tmp_path, monkeypatch):
     built = tmp_path / "catalog-wheelhouse"
     built.mkdir(mode=0o700)
+    for item in pipeline.load()["entries"]:
+        for name in json.loads(pipeline.bundle_files(item)["bundle.json"])["wheels"]:
+            (built / name).write_bytes(b"fixture")
     monkeypatch.setattr(catalog_wheelhouse, "DEFAULT_DIRECTORY", built)
     installed = catalog_install.install()
     assert len(installed) == len(pipeline.load()["entries"])
@@ -87,3 +90,71 @@ def test_an_explicit_wheelhouse_wins_over_the_default(host, tmp_path, monkeypatc
     mine = tmp_path / "mine"
     catalog_install.install(sorted(_wheel_ids())[:1], wheelhouse=mine)
     assert set(host["wheelhouse"].values()) == {mine}
+
+
+def test_a_wheel_missing_from_the_wheelhouse_skips_only_its_entries(
+    host, tmp_path, monkeypatch, capsys
+):
+    """M1 E2E R10-1: new entries pinned a wheel an existing wheelhouse
+    lacked, and the whole catalog stopped at 12 of 56. Each entry needing it
+    is skipped and named with the wheel; every other entry installs."""
+    declared = {
+        item["catalog_id"]: json.loads(pipeline.bundle_files(item)["bundle.json"])[
+            "wheels"
+        ]
+        for item in pipeline.load()["entries"]
+    }
+    every = {name for wheels in declared.values() for name in wheels}
+    gone = min(every)
+    built = tmp_path / "catalog-wheelhouse"
+    built.mkdir(mode=0o700)
+    for name in every - {gone}:
+        (built / name).write_bytes(b"fixture")
+    monkeypatch.setattr(catalog_wheelhouse, "DEFAULT_DIRECTORY", built)
+    skipped = []
+    installed = catalog_install.install(skipped=skipped)
+    needing = {cid for cid, wheels in declared.items() if gone in wheels}
+    assert needing
+    assert {s["catalog_id"] for s in skipped} == needing
+    assert {s["reason"] for s in skipped} == {"wheel_missing"}
+    assert {s["wheel"] for s in skipped} == {gone}
+    assert {i["catalog_id"] for i in installed} == set(declared) - needing
+    err = capsys.readouterr().err
+    assert f"its pinned wheel {gone} is not in the wheelhouse" in err
+
+
+def test_one_entrys_failed_install_never_stops_the_rest(host, tmp_path, monkeypatch):
+    built = tmp_path / "catalog-wheelhouse"
+    built.mkdir(mode=0o700)
+    monkeypatch.setattr(catalog_wheelhouse, "DEFAULT_DIRECTORY", built)
+    monkeypatch.setattr(catalog_install, "_missing_wheel", lambda item, house: None)
+    first = pipeline.load()["entries"][0]["catalog_id"]
+    calls = []
+
+    def install_bundle(directory, **kwargs):
+        calls.append(directory)
+        if len(calls) == 1:
+            raise RuntimeError("docker build failed")
+        return {"status": "INSTALLED_VERIFIED"}
+
+    monkeypatch.setattr(
+        catalog_install.library_bundle, "install_bundle", install_bundle
+    )
+    skipped = []
+    installed = catalog_install.install(skipped=skipped)
+    assert skipped == [
+        {
+            "catalog_id": first,
+            "reason": "install_failed",
+            "detail": "RuntimeError: docker build failed",
+        }
+    ]
+    assert len(installed) == len(pipeline.load()["entries"]) - 1
+
+
+def test_the_report_names_what_was_skipped(host, tmp_path, monkeypatch):
+    report = tmp_path / "report.json"
+    assert catalog_install.main(["--report", str(report)]) == 0
+    written = json.loads(report.read_text())
+    assert {s["catalog_id"] for s in written["skipped"]} == _wheel_ids()
+    assert {s["reason"] for s in written["skipped"]} == {"wheelhouse_missing"}

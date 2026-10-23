@@ -37,6 +37,20 @@ from pathlib import Path
 SCHEMA = "carbon.launchpad.catalog-build.v1"
 RECORD = "catalog-build.json"
 LOG = "catalog-build.log"
+#: What `catalog_install --report` wrote: the entries it skipped and why.
+REPORT = "catalog-build-report.json"
+#: Each skipped entry's reason, in words, and the one next step.
+SKIP_WORDS = {
+    "wheel_missing": "its pinned wheel {wheel} could not be fetched",
+    "wheelhouse_missing": "its pinned wheels could not be fetched",
+    "install_failed": "its install failed ({detail})",
+}
+SKIP_NEXT = (
+    "If this machine is offline, connect it, then install the catalog again "
+    "(the page's button, or this job again): it fetches the missing wheels "
+    "first and installs only what is missing. An install that failed is "
+    "explained in its log."
+)
 LOCK = "catalog-build.lock"
 #: What a newcomer is told up front: the one measurement there is, the full
 #: catalog on Carbon's test machine (M1 E2E round 6, 2026-10-22).
@@ -137,18 +151,43 @@ def status(state_dir, clock=time.time) -> dict:
         if made > 0:
             per = (clock() - started) / made
             estimate = int(per * (found["total"] - found["installed"]))
+    skipped = [
+        {
+            "catalog_id": str(item.get("catalog_id")),
+            "reason": str(item.get("reason")),
+            "words": str(item.get("catalog_id"))
+            + ": "
+            + SKIP_WORDS.get(str(item.get("reason")), "it was skipped").format(
+                wheel=item.get("wheel", "?"), detail=item.get("detail", "see its log")
+            ),
+        }
+        for item in (record.get("skipped") or [])
+        if type(item) is dict
+    ]
     note = None
-    if state == "INCOMPLETE" and record.get("exit_code") == 0:
-        # It ran to the end and skipped some: an entry with pinned wheels
-        # needs the wheelhouse first (`catalog_install`'s own message).
+    if state == "INCOMPLETE" and skipped:
         note = (
-            "some entries were skipped; its log names why (an entry with "
-            "pinned wheels needs python -m scripts.dev.catalog_wheelhouse first)"
+            "Installed every entry it could; not installed: "
+            + "; ".join(item["words"] for item in skipped)
+            + ". "
+            + SKIP_NEXT
+        )
+    elif state == "STOPPED":
+        note = (
+            "It stopped with an error before finishing; its log says why. "
+            "Install the catalog again to continue where it stopped."
+        )
+    if record.get("wheels") == "unavailable" and state != "COMPLETE":
+        note = (note + " " if note else "") + (
+            "The catalog's pinned wheels could not be fetched this time."
         )
     return {
         "schema": SCHEMA,
         "state": state,
         "note": note,
+        # The entries the last run skipped, each with its reason code and
+        # the same in words (M1 E2E R10-1).
+        "skipped": skipped,
         "installed": found["installed"],
         "total": found["total"],
         "challenges": found["challenges"],
@@ -203,8 +242,51 @@ def start(state_dir, *, python=sys.executable, spawn=subprocess.Popen) -> dict:
     return {**now, "state": "RUNNING"}
 
 
-def run(state_dir, *, install=None, clock=time.time) -> int:
-    """The job itself: hold the lock, install every entry, record the end."""
+def _fetch_wheels(state_dir) -> bool:
+    """The catalog's pinned wheels, fetched into the host's wheelhouse by
+    exact name and version and kept only with their pinned sha256
+    (`scripts.dev.catalog_wheelhouse`); a wheelhouse built for an earlier
+    catalog is brought up to date. False, with one plain line, when they
+    cannot be (offline, or a file differs from its pin): the entries that
+    need them are then skipped and the rest install (M1 E2E R10-1)."""
+    completed = subprocess.run(
+        [sys.executable, "-B", "-m", "scripts.dev.catalog_wheelhouse"],
+        cwd=str(REPOSITORY),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode == 0:
+        return True
+    reason = (completed.stderr.strip().splitlines() or ["no reason given"])[-1]
+    print(
+        "Could not fetch the catalog's pinned wheels (" + reason[:200] + "); "
+        "the entries that need them are skipped and the rest install.",
+        flush=True,
+    )
+    return False
+
+
+def _install(state_dir) -> int:
+    return subprocess.run(
+        [
+            sys.executable,
+            "-B",
+            "-m",
+            "scripts.dev.catalog_install",
+            "--state-dir",
+            str(state_dir),
+            "--report",
+            str(_setup_dir(state_dir) / REPORT),
+        ],
+        cwd=str(REPOSITORY),
+        check=False,
+    ).returncode
+
+
+def run(state_dir, *, install=_install, fetch=_fetch_wheels, clock=time.time) -> int:
+    """The job itself: hold the lock, fetch the pinned wheels, install every
+    entry it can, and record how it ended and what it skipped."""
     root = _setup_dir(state_dir)
     fd = _lock(root)
     if fd is None:
@@ -212,24 +294,25 @@ def run(state_dir, *, install=None, clock=time.time) -> int:
     try:
         before = status(state_dir)["installed"]
         _save(state_dir, {"started_at": clock(), "installed_at_start": before})
-        if install is None:
-            completed = subprocess.run(
-                [
-                    sys.executable,
-                    "-B",
-                    "-m",
-                    "scripts.dev.catalog_install",
-                    "--state-dir",
-                    str(state_dir),
-                ],
-                cwd=str(REPOSITORY),
-                check=False,
-            )
-            code = completed.returncode
-        else:
-            code = install(state_dir)
+        (root / REPORT).unlink(missing_ok=True)
+        wheels = "fetched" if fetch(state_dir) else "unavailable"
+        code = install(state_dir)
+        try:
+            report = json.loads((root / REPORT).read_bytes())
+        except (OSError, ValueError):
+            report = {}
+        skipped = report.get("skipped") if type(report) is dict else None
         record = _record(state_dir) or {}
-        _save(state_dir, {**record, "ended_at": clock(), "exit_code": code})
+        _save(
+            state_dir,
+            {
+                **record,
+                "ended_at": clock(),
+                "exit_code": code,
+                "wheels": wheels,
+                "skipped": skipped if type(skipped) is list else [],
+            },
+        )
         return code
     finally:
         os.close(fd)
