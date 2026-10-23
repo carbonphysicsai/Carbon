@@ -15,11 +15,11 @@ entry's bundle manifest; two entries that disagree on a hash are refused). Each
 wheel is taken from a `--from` directory when one holds a file of that name with
 the pinned sha256, and otherwise fetched by exact name and version with
 `pip download --no-deps --only-binary=:all:`; a pure-Python wheel the index
-has only as source is rebuilt from it with `pip wheel` (isolated,
-SOURCE_DATE_EPOCH=0). Either is a network step on the host, by
-its owner or the background catalog install it started; never an MCP tool). A
-file whose sha256 differs from the catalog's
-pin is never kept: the build fails.
+has only as source is rebuilt from its pinned source distribution with
+pinned build requirements (`SOURCE_PINS`). Either is a network step on the
+host, by its owner or the background catalog install it started; never an MCP
+tool. A file whose sha256 differs from the catalog's pin is never kept: the
+build fails.
 
 `WHEELHOUSE.json` in the directory is the local build record (name, size and
 sha256 per wheel); it is not a second pin. A directory this built for an
@@ -98,9 +98,9 @@ def _sha256(path):
 def _fetch(name, hexdigest, into):
     """One wheel from the index, by exact name and version, kept only if its
     sha256 is the pin. A pure-Python wheel (`py3-none-any`) the index has no
-    binary of is rebuilt from its source distribution (`_rebuild`) and kept
-    only on the same terms (M1 E2E R10-1: torch_harmonics 0.7.4 is published
-    as an sdist only)."""
+    binary of is rebuilt from its pinned source distribution (`_rebuild`,
+    `SOURCE_PINS`) and kept only on the same terms (M1 E2E R10-1:
+    torch_harmonics 0.7.4 is published as an sdist only)."""
     with tempfile.TemporaryDirectory() as work:
         found = Path(work) / name
         try:
@@ -147,58 +147,168 @@ def _fetch(name, hexdigest, into):
 
 #: The wheels `_rebuild` may build: pure Python, the same bytes on any host.
 PURE = "-py3-none-any.whl"
+#: Pinned wheels the index publishes only as source, and how each is rebuilt:
+#: its source distribution's file name and sha256 (checked before anything
+#: of it runs), and every build requirement by exact version and sha256,
+#: installed with `pip --require-hashes` into a fresh build environment
+#: (Validator, R10-1 receipt). torch_harmonics 0.7.4 rebuilt with exactly
+#: these is byte-identical to its catalog pin (sha256 326941e1...ab72; its
+#: WHEEL names setuptools 84.2.1); the hashes are PyPI's published ones.
+SOURCE_PINS = {
+    "torch_harmonics-0.7.4-py3-none-any.whl": {
+        "sdist": "torch_harmonics-0.7.4.tar.gz",
+        "sdist_sha256": (
+            "fa7b7a86ded81600e32b55bd0c3c040a5dfef96849305670b7bb24fb96dda2c7"
+        ),
+        "build": (
+            (
+                "setuptools",
+                "84.2.1",
+                "ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2",
+            ),
+            (
+                "setuptools-scm",
+                "10.3.4",
+                "82f34c3e3084fc2b57d397200637cc13f2338004052d2fee47baa5f0e902464e",
+            ),
+            (
+                "vcs-versioning",
+                "2.6.0",
+                "f8bebd1302ebc12e67ceb30fc7dd698ec969414b6fa43b30c3f14ac9b1e72c41",
+            ),
+            (
+                "packaging",
+                "26.3",
+                "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+            ),
+        ),
+    }
+}
+#: Where a pinned source distribution is found: the index's JSON API, read
+#: directly, so nothing of the package runs to fetch it (`pip download`
+#: prepares an sdist's metadata by running its build backend).
+INDEX_JSON = "https://pypi.org/pypi/{project}/{version}/json"
+
+
+def _canonical(name):
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _download_sdist(name, filename):
+    """The bytes of `filename`, the source distribution the index lists for
+    the project and version `name` names; nothing of it is run."""
+    import urllib.request
+
+    project, version = requirement(name).split("==")
+    with urllib.request.urlopen(
+        INDEX_JSON.format(project=project, version=version), timeout=120
+    ) as response:
+        listing = json.load(response)
+    url = next(
+        (f["url"] for f in listing.get("urls", []) if f.get("filename") == filename),
+        None,
+    )
+    if url is None or not url.startswith("https://"):
+        raise WheelhouseRefused(f"{name}: the index lists no {filename}")
+    with urllib.request.urlopen(url, timeout=600) as response:
+        return response.read()
+
+
+def _build_requirements(archive):
+    """The build requirements an sdist declares (`[build-system] requires`),
+    read from its pyproject.toml without running anything; setuptools'
+    PEP 517 default when it declares none."""
+    import tarfile
+    import tomllib
+
+    with tarfile.open(archive) as tar:
+        roots = {member.split("/", 1)[0] for member in tar.getnames()}
+        found = None
+        if len(roots) == 1:
+            try:
+                found = tar.extractfile(roots.pop() + "/pyproject.toml")
+            except KeyError:
+                found = None
+        if found is None:
+            return ["setuptools>=40.8.0"]
+        document = tomllib.loads(found.read().decode("utf-8"))
+    return list((document.get("build-system") or {}).get("requires") or [])
 
 
 def _rebuild(name, work):
-    """`name` built from its source distribution on the index, by exact name
-    and version: `pip wheel --no-deps` in pip's build isolation with
-    SOURCE_DATE_EPOCH=0, which makes the archive reproducible (Graphite
-    Test, 2026-10-23: torch_harmonics 0.7.4 rebuilt byte-identical to its
-    pin, twice). The caller keeps it only when its sha256 is the pin."""
-    sources, built = work / "sdist", work / "built"
-    sources.mkdir()
+    """`name` built from its pinned source distribution (`SOURCE_PINS`):
+    the sdist is fetched and its sha256 checked before anything of it runs;
+    every build requirement it declares must be pinned, and the pinned ones
+    are installed with `pip --require-hashes` into a fresh environment; the
+    wheel is built there with `pip wheel --no-deps --no-build-isolation` and
+    SOURCE_DATE_EPOCH=0. The caller keeps it only when its sha256 is the
+    pin. A wheel with no source pin is never built."""
+    pin = SOURCE_PINS.get(name)
+    if pin is None:
+        raise WheelhouseRefused(
+            f"{name}: the index has no wheel of it, and it has no pinned source"
+        )
+    archive = work / pin["sdist"]
+    archive.write_bytes(_download_sdist(name, pin["sdist"]))
+    if _sha256(archive) != pin["sdist_sha256"]:
+        raise WheelhouseRefused(
+            f"{name}: its source {pin['sdist']} differs from its pin"
+        )
+    pinned = {_canonical(project) for project, _, _ in pin["build"]}
+    for declared in _build_requirements(archive):
+        project = _canonical(re.split(r"[<>=!~;\[ ]", declared.strip(), maxsplit=1)[0])
+        if project not in pinned:
+            raise WheelhouseRefused(
+                f"{name}: its build requirement {declared!r} is not pinned"
+            )
+    requirements = work / "build-requirements.txt"
+    requirements.write_text(
+        "".join(
+            f"{project}=={version} --hash=sha256:{digest}\n"
+            for project, version, digest in pin["build"]
+        ),
+        encoding="utf-8",
+    )
+    environment, built = work / "build-environment", work / "built"
     built.mkdir()
-    environment = {**os.environ, "SOURCE_DATE_EPOCH": "0"}
-    environment.pop("PIP_NO_BUILD_ISOLATION", None)
+    python = environment / "bin" / "python"
+    variables = {**os.environ, "SOURCE_DATE_EPOCH": "0"}
     try:
+        subprocess.run([sys.executable, "-m", "venv", str(environment)], check=True)
         subprocess.run(
             [
-                sys.executable,
+                str(python),
                 "-m",
                 "pip",
-                "download",
-                requirement(name),
-                "--no-deps",
-                "--no-binary=:all:",
-                "-d",
-                str(sources),
+                "install",
                 "-q",
+                "--require-hashes",
+                "--no-deps",
+                "--only-binary=:all:",
+                "-r",
+                str(requirements),
             ],
             check=True,
         )
-        archives = sorted(sources.iterdir())
-        if len(archives) != 1:
-            raise WheelhouseRefused(
-                f"{name}: the index has no wheel and no single source distribution"
-            )
         subprocess.run(
             [
-                sys.executable,
+                str(python),
                 "-m",
                 "pip",
                 "wheel",
+                "-q",
                 "--no-deps",
-                str(archives[0]),
+                "--no-build-isolation",
+                str(archive),
                 "-w",
                 str(built),
-                "-q",
             ],
             check=True,
-            env=environment,
+            env=variables,
         )
     except subprocess.CalledProcessError:
         raise WheelhouseRefused(
-            f"{name}: the index has no wheel, and its source could not be built"
+            f"{name}: the index has no wheel, and its pinned source could not be built"
         ) from None
     found = built / name
     if not found.is_file():

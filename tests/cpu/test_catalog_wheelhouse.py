@@ -263,66 +263,149 @@ def test_a_wheelhouse_built_for_an_earlier_catalog_is_brought_up_to_date(
         wheelhouse.build(target, sources=[source], checkout=checkout)
 
 
+SDIST_PYPROJECT = b"""[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+"""
+
+
+def _sdist(pyproject=SDIST_PYPROJECT):
+    """A source distribution's bytes, with only its pyproject.toml."""
+    import io
+    import tarfile
+
+    raw = io.BytesIO()
+    with tarfile.open(fileobj=raw, mode="w:gz") as tar:
+        info = tarfile.TarInfo("pkg-0.7.4/pyproject.toml")
+        info.size = len(pyproject)
+        tar.addfile(info, io.BytesIO(pyproject))
+    return raw.getvalue()
+
+
+NAME = "pkg-0.7.4-py3-none-any.whl"
+BUILD = (
+    ("setuptools", "84.2.1", "a" * 64),
+    ("setuptools-scm", "10.3.4", "b" * 64),
+)
+
+
 class FakeIndex:
-    """pip as the index answers it: no binary of the wheel, its sdist, and
-    the wheel `pip wheel` builds from it (`built`)."""
+    """pip and the index as `_fetch` meets them: no binary of the wheel, its
+    pinned sdist, and the wheel the pinned build environment makes."""
 
-    def __init__(self, name, built):
-        self.name, self.built, self.calls = name, built, []
+    def __init__(self, built, sdist=None):
+        self.built, self.sdist, self.calls = built, sdist or _sdist(), []
 
-    def __call__(self, command, check, env=None):
+    def run(self, command, check, env=None):
         self.calls.append((command, env))
-        work = Path(command[command.index("-d" if "download" in command else "-w") + 1])
-        if "--only-binary=:all:" in command:
+        if "--only-binary=:all:" in command and "download" in command:
             raise subprocess.CalledProcessError(1, command)
-        if "download" in command:
-            (work / "pkg-0.7.4.tar.gz").write_bytes(b"sdist")
-        else:
-            (work / self.name).write_bytes(self.built)
+        if "--require-hashes" in command:
+            self.requirements = (
+                Path(command[command.index("-r") + 1]).read_text().splitlines()
+            )
+        if "wheel" in command:
+            out = Path(command[command.index("-w") + 1])
+            (out / NAME).write_bytes(self.built)
+
+    def download(self, name, filename):
+        self.calls.append((["download-sdist", name, filename], None))
+        return self.sdist
 
 
-def test_a_pure_wheel_with_no_binary_is_rebuilt_from_its_sdist_and_kept_by_hash(
-    tmp_path, monkeypatch
-):
-    """M1 E2E R10-1: torch_harmonics 0.7.4 is on the index as an sdist only.
-    Rebuilt with pip wheel (isolated, SOURCE_DATE_EPOCH=0), it is kept only
-    because its sha256 is the pin."""
-    name = "torch_harmonics-0.7.4-py3-none-any.whl"
+@pytest.fixture
+def index(monkeypatch):
+    def make(built, sdist=None, sdist_pin=None):
+        fake = FakeIndex(built, sdist)
+        pin = {
+            "sdist": "pkg-0.7.4.tar.gz",
+            "sdist_sha256": sdist_pin or _digest(fake.sdist),
+            "build": BUILD,
+        }
+        monkeypatch.setattr(wheelhouse, "SOURCE_PINS", {NAME: pin})
+        monkeypatch.setattr(wheelhouse.subprocess, "run", fake.run)
+        monkeypatch.setattr(wheelhouse, "_download_sdist", fake.download)
+        return fake
+
+    return make
+
+
+def test_a_pure_wheel_with_no_binary_is_rebuilt_from_its_pinned_source(index, tmp_path):
+    """M1 E2E R10-1 (Validator receipt terms): the sdist's sha256 is checked
+    before anything of it runs, the build requirements are installed by
+    pinned version and hash into a fresh environment, the build runs without
+    pip's isolation, and the wheel is kept only because its sha256 is the
+    pin."""
     pinned = b"reproducible wheel bytes"
-    index = FakeIndex(name, pinned)
-    monkeypatch.setattr(wheelhouse.subprocess, "run", index)
-    monkeypatch.setenv("PIP_NO_BUILD_ISOLATION", "1")
-    wheelhouse._fetch(name, _digest(pinned), tmp_path)
-    assert (tmp_path / name).read_bytes() == pinned
-    (binary, _), (sdist, _), (build, env) = index.calls
+    fake = index(pinned)
+    wheelhouse._fetch(NAME, _digest(pinned), tmp_path)
+    assert (tmp_path / NAME).read_bytes() == pinned
+    binary, sdist, venv, install, build = [command for command, _ in fake.calls]
     assert "--only-binary=:all:" in binary
-    assert "torch-harmonics==0.7.4" in sdist and "--no-binary=:all:" in sdist
-    assert build[2:4] == ["pip", "wheel"] and "--no-deps" in build
-    assert env["SOURCE_DATE_EPOCH"] == "0"
-    assert "PIP_NO_BUILD_ISOLATION" not in env  # pip's own build isolation
+    assert sdist == ["download-sdist", NAME, "pkg-0.7.4.tar.gz"]
+    assert venv[1:3] == ["-m", "venv"]
+    assert "--require-hashes" in install and "--no-deps" in install
+    assert fake.requirements == [
+        "setuptools==84.2.1 --hash=sha256:" + "a" * 64,
+        "setuptools-scm==10.3.4 --hash=sha256:" + "b" * 64,
+    ]
+    assert "--no-build-isolation" in build and "--no-deps" in build
+    assert fake.calls[-1][1]["SOURCE_DATE_EPOCH"] == "0"
 
 
-def test_a_rebuilt_wheel_that_differs_from_its_pin_is_never_kept(tmp_path, monkeypatch):
-    name = "torch_harmonics-0.7.4-py3-none-any.whl"
-    monkeypatch.setattr(wheelhouse.subprocess, "run", FakeIndex(name, b"other"))
+def test_a_source_that_differs_from_its_pin_is_refused_before_any_build(
+    index, tmp_path
+):
+    fake = index(b"x", sdist_pin="0" * 64)
+    with pytest.raises(wheelhouse.WheelhouseRefused, match="differs from its pin"):
+        wheelhouse._fetch(NAME, _digest(b"x"), tmp_path)
+    assert [command[0] for command, _ in fake.calls][-1] == "download-sdist"
+    assert not (tmp_path / NAME).exists()
+
+
+def test_a_build_requirement_that_is_not_pinned_is_refused_before_any_build(
+    index, tmp_path
+):
+    unpinned = _sdist(b'[build-system]\nrequires = ["setuptools", "hatchling>=1"]\n')
+    fake = index(b"x", sdist=unpinned)
+    with pytest.raises(wheelhouse.WheelhouseRefused, match="'hatchling>=1' is not"):
+        wheelhouse._fetch(NAME, _digest(b"x"), tmp_path)
+    assert [command[0] for command, _ in fake.calls][-1] == "download-sdist"
+
+
+def test_a_rebuilt_wheel_that_differs_from_its_pin_is_never_kept(index, tmp_path):
+    index(b"other")
     with pytest.raises(wheelhouse.WheelhouseRefused, match="not the pinned one"):
-        wheelhouse._fetch(name, _digest(b"pinned"), tmp_path)
-    assert not (tmp_path / name).exists()
+        wheelhouse._fetch(NAME, _digest(b"pinned"), tmp_path)
+    assert not (tmp_path / NAME).exists()
 
 
-def test_a_platform_wheel_is_never_rebuilt_from_source(tmp_path, monkeypatch):
-    name = "native-1.0-cp311-cp311-manylinux_2_17_x86_64.whl"
-    index = FakeIndex(name, b"x")
-    monkeypatch.setattr(wheelhouse.subprocess, "run", index)
+def test_a_wheel_without_a_source_pin_is_never_built(index, tmp_path):
+    fake = index(b"x")
+    other = "unpinned-1.0-py3-none-any.whl"
+    with pytest.raises(wheelhouse.WheelhouseRefused, match="no pinned source"):
+        wheelhouse._fetch(other, _digest(b"x"), tmp_path)
+    assert len(fake.calls) == 1  # the binary download only
+
+
+def test_a_platform_wheel_is_never_rebuilt_from_source(index, tmp_path):
+    fake = index(b"x")
     with pytest.raises(subprocess.CalledProcessError):
-        wheelhouse._fetch(name, _digest(b"x"), tmp_path)
-    assert len(index.calls) == 1
+        wheelhouse._fetch(
+            "native-1.0-cp311-cp311-manylinux_2_17_x86_64.whl", _digest(b"x"), tmp_path
+        )
+    assert len(fake.calls) == 1
 
 
-def test_an_index_with_neither_wheel_nor_source_is_a_refusal(tmp_path, monkeypatch):
-    def nothing(command, check, env=None):
-        raise subprocess.CalledProcessError(1, command)
-
-    monkeypatch.setattr(wheelhouse.subprocess, "run", nothing)
-    with pytest.raises(wheelhouse.WheelhouseRefused, match="could not be built"):
-        wheelhouse._fetch("pure-1.0-py3-none-any.whl", _digest(b"x"), tmp_path)
+def test_the_torch_harmonics_source_pin_names_every_build_requirement():
+    """The one source pin: its sdist and each build requirement by exact
+    version and a full sha256."""
+    pin = wheelhouse.SOURCE_PINS["torch_harmonics-0.7.4-py3-none-any.whl"]
+    assert pin["sdist"] == "torch_harmonics-0.7.4.tar.gz"
+    assert wheelhouse.SHA256.fullmatch(pin["sdist_sha256"])
+    assert {project for project, _, _ in pin["build"]} >= {
+        "setuptools",
+        "setuptools-scm",
+    }
+    for _, version, digest in pin["build"]:
+        assert version and wheelhouse.SHA256.fullmatch(digest)
