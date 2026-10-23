@@ -1268,7 +1268,8 @@
   // The money-key address the miner pasted, kept in this tab only (never stored, never sent anywhere but the check).
   let fundAddress = "";
   const SS58 = /^5[1-9A-HJ-NP-Za-km-z]{46,47}$/;
-  const tao = value => { const n = Number(value); return Number.isFinite(n) ? String(Number(n.toFixed(4))) : String(value); };
+  // A 9-decimal TAO string as sent, without trailing zeros (never rounded to a smaller figure, never a float of rao).
+  const tao = value => typeof value === "string" && /^\d+(\.\d+)?$/.test(value) ? value.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "") : String(Number.isFinite(Number(value)) ? Number(Number(value).toFixed(9)) : value);
   // A QR code of a public address, drawn here from CarbonQr (nothing fetched, nothing third-party).
   function qrImage(text) {
     const {size, modules} = window.CarbonQr.encode(text);
@@ -1310,14 +1311,25 @@
       if (!SS58.test(address) || busy || !connected) return;
       check.classList.add("checking"); check.setAttribute("aria-busy", "true");
       try {
+        // The address goes only in the POST body, never a URL; the read is made again on every press, never kept.
         const value = await api("/api/v1/onboarding/funding", {address});
         const balance = tao(value.balance_tao), cost = tao(value.joining_cost_tao);
-        const lines = [el("p", "Your money key holds " + balance + " TAO. Joining costs " + cost + " TAO right now" + (value.read_at_block ? " (read at block " + value.read_at_block + ")" : "") + ". The price changes, so read it again before you sign.", "status-line")];
-        if (value.enough === true) { const ready = el("p", undefined, "step-done"); ready.id = "setup-fund-ready"; ready.append(pill("Ready to join", "pill-done"), el("span", " You have enough TAO. Continue to step 3.")); lines.push(ready); }
-        else lines.push(el("p", "Not enough yet: you need about " + tao(Number(value.joining_cost_tao) - Number(value.balance_tao)) + " more TAO. Dollar prices are not shown yet.", "reason"));
+        // Display only (OWNER-TAO-USD-PRICE-SOURCE-01): "about $X" only when the controller sent a price, with its time;
+        // TAO alone otherwise. The page itself never asks a price service anything.
+        const rate = Number(value.usd_per_tao);
+        const priced = Number.isFinite(rate) && rate > 0;
+        const usd = amount => " (about $" + (Number(amount) * rate).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ")";
+        const lines = [el("p", "Your money key holds " + balance + " TAO" + (priced ? usd(value.balance_tao) : "") + ". Joining costs " + cost + " TAO" + (priced ? usd(value.joining_cost_tao) : "") + " right now.", "status-line")];
+        if (priced) lines.push(el("p", "Dollar amounts are approximate, from CoinGecko's public TAO price" + (value.usd_read_at ? " at " + new Date(value.usd_read_at * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}) : "") + ". They are for orientation only; the joining cost is set in TAO.", "hint"));
+        // The controller's own sentence says whether it is enough, "before transaction fees" (Validator condition), and its note
+        // says where it was read: both shown as sent.
+        const sentence = typeof value.enough_words === "string" && value.enough_words ? value.enough_words : (value.enough === true ? "Enough to join" : "Not enough to join") + (value.read_at_block ? ", at block " + value.read_at_block : "") + ", before transaction fees.";
+        if (value.enough === true) { const ready = el("p", undefined, "step-done"); ready.id = "setup-fund-ready"; ready.append(pill("Ready to join", "pill-done"), el("span", " " + sentence + " Continue to step 3.")); lines.push(ready); }
+        else lines.push(el("p", sentence + " You need about " + tao(Number(value.joining_cost_tao) - Number(value.balance_tao)) + " more TAO.", "reason"));
+        if (typeof value.note === "string" && value.note) lines.push(el("p", value.note, "hint"));
         result.replaceChildren(...lines);
       } catch (error) {
-        result.replaceChildren(el("p", "Could not read your balance: " + words(error.message) + ". Your own wallet shows it too.", "reason"));
+        result.replaceChildren(el("p", "Could not read your balance: " + words(error.message) + (error.nextStep ? ". " + error.nextStep : "") + " Your own wallet shows it too.", "reason"));
       } finally { check.classList.remove("checking"); check.removeAttribute("aria-busy"); }
     });
     const action = el("div", undefined, "step-action"); action.append(check);

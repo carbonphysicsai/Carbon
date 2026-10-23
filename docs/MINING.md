@@ -80,6 +80,7 @@ The other steps you checked are kept. Your practice campaigns stay on the page a
 
 1. **Start your signer.** Your signer holds your mining key on this machine; Carbon never sees your key.
 2. **Join Carbon mining.** It confirms your hotkey's registration from the chain. You sign any registration in your own wallet.
+   - **Fund your wallet first.** Joining is paid in TAO from your money key (the coldkey), so put a little TAO there before you join. Paste your money-key address (public) into the **Put some TAO in your wallet** box: it shows the address to copy and as a QR code, and **Check my balance** reads your balance and the current joining cost from the chain, in TAO, with the block it was read at. It says **Ready to join** when your balance covers the cost, before transaction fees; your wallet shows the exact cost again when you sign, and that figure is the one that counts. The page only reads: it never moves your funds, and it never asks for a key, password or phrase. **How do I buy TAO?** lists the steps, with Coinbase and Kraken as plain links (examples only; Carbon has no link or share in either).
 3. **Who researches.** Choose one of three:
    - **Graphite**, Carbon's research agent, running on your model key.
    - **Your own agent**, e.g. Claude Code or Codex, connected over MCP (see below).

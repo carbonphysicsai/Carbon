@@ -448,20 +448,45 @@ scenario("the funding step rejects a non-address, then shows the address with co
   assert.equal(one(page, "#setup-fund-check").disabled, false);
   clean(page);
 });
-scenario("the balance check says Ready to join when the balance covers the joining cost, and how much more when it does not", async () => {
-  const enough = await fundingPage({body: {balance_tao: "1.5", joining_cost_tao: "0.5", enough: true, read_at_block: 123}});
+const FUNDING_NOTE = "Read at block 123. Your wallet shows the cost again when you sign; that figure is the one that counts.";
+const funded = extra => ({schema: "carbon.onboarding.funding.v1", network: "testnet", netuid: 567, address: MONEY_KEY, balance_rao: 1500000000, balance_tao: "1.500000000", joining_cost_rao: 500000, joining_cost_tao: "0.000500000", enough: true, enough_words: "Enough to join, at block 123, before transaction fees.", read_at_block: 123, note: FUNDING_NOTE, ...extra});
+scenario("the balance check says Ready to join before transaction fees, shows the block and the note word for word, and never puts the address in a URL", async () => {
+  const enough = await fundingPage({body: funded({})});
   await enough.page.type(one(enough.page, "#setup-fund-address"), MONEY_KEY);
   await enough.page.press(one(enough.page, "#setup-fund-check"));
-  assert.deepEqual(lastPost(enough.state, "/api/v1/onboarding/funding").body, {address: MONEY_KEY});
-  assert.match(enough.page.text("setup-fund-result"), /holds 1\.5 TAO. Joining costs 0\.5 TAO/);
+  const post = lastPost(enough.state, "/api/v1/onboarding/funding");
+  assert.deepEqual(post.body, {address: MONEY_KEY});
+  assert.ok(!post.path.includes(MONEY_KEY) && !String(enough.page.window.location.href).includes(MONEY_KEY), "the address is in the POST body only");
+  const text = enough.page.text("setup-fund-result");
+  assert.match(text, /holds 1\.5 TAO\. Joining costs 0\.0005 TAO right now/);
+  assert.ok(text.includes("Enough to join, at block 123, before transaction fees."));
+  assert.ok(text.includes(FUNDING_NOTE), "the note, word for word");
   assert.ok(one(enough.page, "#setup-fund-ready").textContent.includes("Ready to join"));
+  assert.doesNotMatch(text, /\$|fee of|fee estimate/, "no dollar figure when the controller sent none, and no fee estimate");
   clean(enough.page);
-  const short = await fundingPage({body: {balance_tao: "0.2", joining_cost_tao: "0.5", enough: false}});
+  const short = await fundingPage({body: funded({balance_rao: 200000, balance_tao: "0.000200000", enough: false, enough_words: "Not enough to join, at block 123, before transaction fees."})});
   await short.page.type(one(short.page, "#setup-fund-address"), MONEY_KEY);
   await short.page.press(one(short.page, "#setup-fund-check"));
   assert.equal(all(short.page, "#setup-fund-ready").length, 0);
-  assert.match(short.page.text("setup-fund-result"), /Not enough yet: you need about 0\.3 more TAO/);
+  assert.match(short.page.text("setup-fund-result"), /Not enough to join, at block 123, before transaction fees\. You need about 0\.0003 more TAO/);
   clean(short.page);
+});
+scenario("the funding check shows a dollar figure only when the controller sends a price, labelled approximate with its time", async () => {
+  const priced = await fundingPage({body: funded({usd_per_tao: 300, usd_read_at: 1760000000})});
+  await priced.page.type(one(priced.page, "#setup-fund-address"), MONEY_KEY);
+  await priced.page.press(one(priced.page, "#setup-fund-check"));
+  const text = priced.page.text("setup-fund-result");
+  assert.match(text, /holds 1\.5 TAO \(about \$450\.00\)\. Joining costs 0\.0005 TAO \(about \$0\.15\) right now/);
+  assert.match(text, /approximate, from CoinGecko's public TAO price at /);
+  clean(priced.page);
+});
+scenario("a failed balance read says why and what to do, and offers the read again", async () => {
+  const down = await fundingPage({status: 503, body: {error: "chain_read_failed_infra", next_step: "The chain couldn't be read just now; try again shortly."}});
+  await down.page.type(one(down.page, "#setup-fund-address"), MONEY_KEY);
+  await down.page.press(one(down.page, "#setup-fund-check"));
+  assert.match(down.page.text("setup-fund-result"), /Could not read your balance.*try again shortly/);
+  assert.equal(one(down.page, "#setup-fund-check").disabled, false, "the read can be made again");
+  clean(down.page);
 });
 scenario("the how-to-buy guide names two exchanges as plain links with no affiliate or tracking", async () => {
   const {page} = await fundingPage({body: {}});
