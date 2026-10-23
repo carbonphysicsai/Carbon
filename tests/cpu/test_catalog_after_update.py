@@ -187,12 +187,39 @@ def test_the_background_install_runs_once_and_reports_progress(
         # Measured: 100 s for one entry, so 200 s for the two left.
         assert found["estimate_seconds"] == 200
         assert (found["installed"], found["total"]) == (1, 3)
+        # What catalog_install --report writes: one entry skipped by name.
+        (state / "environment" / catalog_build.REPORT).write_text(
+            json.dumps({"installed": 1, "skipped": [skip]})
+        )
         return 0
 
-    assert catalog_build.run(state, install=install, clock=lambda: next(clock)) == 0
+    fetched = []
+    skip = {"catalog_id": items[1]["catalog_id"], "reason": "wheel_missing"}
+    skip["wheel"] = "torch_harmonics-0.7.4-py3-none-any.whl"
+    assert (
+        catalog_build.run(
+            state,
+            install=install,
+            fetch=lambda d: fetched.append(d) or True,
+            clock=lambda: next(clock),
+        )
+        == 0
+    )
+    assert fetched == [state]  # the wheels are fetched first
     ended = catalog_build.status(state)
     assert ended["state"] == "INCOMPLETE" and ended["exit_code"] == 0
-    assert "skipped" in ended["note"]
+    assert ended["skipped"] == [
+        {
+            "catalog_id": skip["catalog_id"],
+            "reason": "wheel_missing",
+            "words": skip["catalog_id"]
+            + ": its pinned wheel torch_harmonics-0.7.4-py3-none-any.whl could "
+            "not be fetched",
+        }
+    ]
+    assert ended["skipped"][0]["words"] in ended["note"]
+    assert catalog_build.SKIP_NEXT in ended["note"]
+    assert "Traceback" not in ended["note"]
     assert ended["estimate_seconds"] is None
     stage(root, items, NEW)
     assert catalog_build.status(state)["state"] == "COMPLETE"
@@ -205,9 +232,109 @@ def test_the_background_install_runs_once_and_reports_progress(
 def test_a_failed_install_reads_stopped(tmp_path, state, monkeypatch):
     setup = ready(tmp_path, state)
     monkeypatch.setattr(catalog_state, "parents", lambda _: {"torch-cpu-py311": NEW})
-    assert catalog_build.run(state, install=lambda _: 2, clock=lambda: 5.0) == 2
-    assert catalog_build.status(state)["state"] == "STOPPED"
+    assert (
+        catalog_build.run(
+            state, install=lambda _: 2, fetch=lambda _: True, clock=lambda: 5.0
+        )
+        == 2
+    )
+    stopped = catalog_build.status(state)
+    assert stopped["state"] == "STOPPED"
+    assert "its log says why" in stopped["note"]
     assert setup.catalog()["missing"]
+
+
+def test_wheels_that_cannot_be_fetched_are_said_and_the_rest_install(
+    tmp_path, state, monkeypatch
+):
+    """Offline, or a file that differs from its pin: one plain line, and the
+    install still runs (M1 E2E R10-1)."""
+    ready(tmp_path, state)
+    monkeypatch.setattr(catalog_state, "parents", lambda _: {"torch-cpu-py311": NEW})
+    installed = []
+    assert (
+        catalog_build.run(
+            state,
+            install=lambda d: installed.append(d) or 0,
+            fetch=lambda _: False,
+            clock=lambda: 5.0,
+        )
+        == 0
+    )
+    assert installed == [state]
+    found = catalog_build.status(state)
+    assert found["state"] == "INCOMPLETE"
+    assert "pinned wheels could not be fetched this time" in found["note"]
+
+
+def test_the_wheel_fetch_says_one_plain_line_when_it_fails(monkeypatch, capsys):
+    import subprocess
+
+    def refused(argv, **kwargs):
+        assert argv[1:] == ["-B", "-m", "scripts.dev.catalog_wheelhouse"]
+        return subprocess.CompletedProcess(argv, 1, "", "refused: offline\n")
+
+    monkeypatch.setattr(catalog_build.subprocess, "run", refused)
+    assert catalog_build._fetch_wheels("unused") is False
+    out = capsys.readouterr().out.strip().splitlines()
+    assert out == [
+        (
+            "Could not fetch the catalog's pinned wheels (refused: offline); the "
+            "entries that need them are skipped and the rest install."
+        )
+    ]
+
+
+def test_the_page_door_names_each_skipped_entry_by_code(tmp_path, state):
+    """The skipped reason codes reach the page through its real door."""
+    served = controller.Server(
+        controller.Controller(tmp_path / "runs.sqlite3"),
+        TOKEN,
+        port=0,
+        onboarding=Onboarding(),
+        state_dir=state,
+        setup_checks=Checks(),
+    )
+    served.setup.attach = lambda path: True
+    served.start_catalog = lambda: {"state": "RUNNING"}
+    completed(tmp_path, served.setup)
+    served.setup.review({"confirm": True})
+    catalog_build._save(
+        state,
+        {
+            "started_at": 1.0,
+            "ended_at": 2.0,
+            "exit_code": 0,
+            "wheels": "unavailable",
+            "skipped": [
+                {"catalog_id": "a", "reason": "wheel_missing", "wheel": "w.whl"},
+                {"catalog_id": "b", "reason": "install_failed", "detail": "E: x"},
+            ],
+        },
+    )
+    thread = threading.Thread(target=served.serve_forever, daemon=True)
+    thread.start()
+    try:
+        import http.client
+
+        connection = http.client.HTTPConnection(
+            "127.0.0.1", served.server_port, timeout=10
+        )
+        connection.request(
+            "GET", "/api/v1/setup", headers={"Authorization": "Bearer " + TOKEN}
+        )
+        response = connection.getresponse()
+        document = json.loads(response.read())
+        connection.close()
+    finally:
+        served.shutdown()
+        served.server_close()
+        thread.join(timeout=3)
+    assert response.status == 200
+    skipped = document["catalog_build"]["skipped"]
+    assert [item["reason"] for item in skipped] == ["wheel_missing", "install_failed"]
+    assert skipped[0]["words"] == "a: its pinned wheel w.whl could not be fetched"
+    assert skipped[1]["words"] == "b: its install failed (E: x)"
 
 
 def test_the_page_starts_it_after_review_and_on_one_click(tmp_path, state):

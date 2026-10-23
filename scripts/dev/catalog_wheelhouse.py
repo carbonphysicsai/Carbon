@@ -17,7 +17,9 @@ is an owner-run step on the host). A file whose sha256 differs from the catalog'
 pin is never kept: the build fails.
 
 `WHEELHOUSE.json` in the directory is the local build record (name, size and
-sha256 per wheel); it is not a second pin. The pins are each bundle manifest's,
+sha256 per wheel); it is not a second pin. A directory this built for an
+earlier catalog is brought up to the current pins: missing wheels are added,
+and recorded wheels nothing pins any more are removed. The pins are each bundle manifest's,
 which `library_bundles.load_cached_wheels` and `validate_bundle` enforce at
 install time. Running this on a directory it already built, with unchanged
 pins, checks it and changes nothing; a directory with any other content is
@@ -148,26 +150,12 @@ def build(directory=DEFAULT_DIRECTORY, *, sources=(), checkout=REPOSITORY):
     wanted = pinned_wheels(checkout)
     directory = Path(directory)
     if directory.exists() or directory.is_symlink():
-        return _check_existing(directory, wanted)
+        return _check_existing(directory, wanted, sources)
     directory.mkdir(parents=True, mode=0o700)
     os.chmod(directory, 0o700)
     try:
         for name, hexdigest in sorted(wanted.items()):
-            local = next(
-                (
-                    root / name
-                    for root in map(Path, sources)
-                    if (root / name).is_file() and _sha256(root / name) == hexdigest
-                ),
-                None,
-            )
-            if local is not None:
-                shutil.copyfile(local, directory / name)
-            else:
-                _fetch(name, hexdigest, directory)
-            if _sha256(directory / name) != hexdigest:
-                raise WheelhouseRefused(f"{name}: written file differs from its pin")
-            os.chmod(directory / name, 0o600)
+            _add(directory, name, hexdigest, sources)
         record = _record(directory, wanted)
         (directory / RECORD).write_text(
             json.dumps(record, indent=1, sort_keys=True) + "\n", encoding="utf-8"
@@ -179,24 +167,73 @@ def build(directory=DEFAULT_DIRECTORY, *, sources=(), checkout=REPOSITORY):
     return record
 
 
-def _check_existing(directory, wanted):
-    """A directory that is exactly this wheelhouse is accepted as is; anything
-    else is refused, never overwritten."""
+def _add(directory, name, hexdigest, sources):
+    """One pinned wheel into `directory`: from a `sources` directory holding
+    it with the pinned sha256, else fetched by exact name and version; kept
+    only with the pinned sha256, owner-only."""
+    local = next(
+        (
+            root / name
+            for root in map(Path, sources)
+            if (root / name).is_file() and _sha256(root / name) == hexdigest
+        ),
+        None,
+    )
+    if local is not None:
+        shutil.copyfile(local, directory / name)
+    else:
+        _fetch(name, hexdigest, directory)
+    if _sha256(directory / name) != hexdigest:
+        (directory / name).unlink()
+        raise WheelhouseRefused(f"{name}: written file differs from its pin")
+    os.chmod(directory / name, 0o600)
+
+
+def _recorded(directory):
+    """The wheel names an earlier build of this directory recorded."""
+    try:
+        record = json.loads((directory / RECORD).read_text(encoding="utf-8"))
+        return set(record["wheels"]) if record.get("schema") == SCHEMA else set()
+    except (OSError, ValueError, KeyError, TypeError):
+        return set()
+
+
+def _check_existing(directory, wanted, sources=()):
+    """A directory that is exactly this wheelhouse is accepted as is. One
+    built here before for an earlier catalog is brought up to its pins (M1
+    E2E R10-1: new entries pinned wheels an existing wheelhouse lacked, and
+    the catalog install stopped): each missing pinned wheel is added as a
+    new build adds it, and a wheel the earlier build recorded that nothing
+    pins any more is removed. Anything else - a file it never recorded, a
+    wheel that differs from its pin - is refused, never overwritten."""
     if directory.is_symlink() or not directory.is_dir():
         raise WheelhouseRefused(f"{directory} exists and is not a directory")
     if (directory.stat().st_mode & 0o777) != 0o700:
         raise WheelhouseRefused(f"{directory} is not owner-only (0700)")
     expected = set(wanted) | {RECORD}
     present = {path.name for path in directory.iterdir()}
-    if present != expected:
+    stale = (present - expected) & _recorded(directory)
+    if present - expected - stale or RECORD not in present:
         raise WheelhouseRefused(
             f"{directory} exists with different contents; remove it to rebuild"
         )
-    for name, hexdigest in wanted.items():
+    for name in sorted(present & set(wanted)):
         path = directory / name
-        if path.is_symlink() or _sha256(path) != hexdigest:
+        if path.is_symlink() or _sha256(path) != wanted[name]:
             raise WheelhouseRefused(f"{directory}/{name} differs from its pin")
-    return _record(directory, wanted)
+    missing = sorted(set(wanted) - present)
+    if not missing and not stale:
+        return _record(directory, wanted)
+    for name in missing:
+        _add(directory, name, wanted[name], sources)
+    for name in sorted(stale):
+        (directory / name).unlink()
+    record = _record(directory, wanted)
+    (directory / RECORD).write_text(
+        json.dumps(record, indent=1, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    os.chmod(directory / RECORD, 0o600)
+    return record
 
 
 def main(argv=None):

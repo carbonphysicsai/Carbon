@@ -234,3 +234,29 @@ def test_a_failed_pip_run_is_a_refusal_not_a_traceback(tmp_path, capsys, monkeyp
     )
     assert wheelhouse.main([str(tmp_path / "x")]) == 1
     assert "refused:" in capsys.readouterr().err
+
+
+@posix_only
+def test_a_wheelhouse_built_for_an_earlier_catalog_is_brought_up_to_date(
+    parts, tmp_path
+):
+    """M1 E2E R10-1: new entries pinned wheels an existing wheelhouse lacked.
+    A run adds each missing pinned wheel and removes a recorded wheel nothing
+    pins any more; a file it never recorded is still refused."""
+    checkout, source, wheels = parts
+    target = tmp_path / "house"
+    wheelhouse.build(target, sources=[source], checkout=checkout)
+    name = min(wheels)
+    (target / name).unlink()
+    old = "retired-1.0-py3-none-any.whl"
+    (target / old).write_bytes(b"old")
+    record = json.loads((target / wheelhouse.RECORD).read_text())
+    record["wheels"][old] = {"bytes": 3, "sha256": "0" * 64}
+    (target / wheelhouse.RECORD).write_text(json.dumps(record))
+    built = wheelhouse.build(target, sources=[source], checkout=checkout)
+    assert (target / name).is_file() and not (target / old).exists()
+    assert set(built["wheels"]) == set(wheels)
+    assert json.loads((target / wheelhouse.RECORD).read_text()) == built
+    (target / "stray.txt").write_text("x")
+    with pytest.raises(wheelhouse.WheelhouseRefused, match="different contents"):
+        wheelhouse.build(target, sources=[source], checkout=checkout)
