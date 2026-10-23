@@ -224,6 +224,37 @@ def test_the_machine_type_override_is_never_silent(machine):
     assert "overrides the machine-type check" in done.stderr
 
 
+def test_setup_and_one_receiver_are_not_combined(machine):
+    done = machine("--setup", "--receiver", "f02", "2.3")
+    assert done.returncode == 2
+    assert "not both" in done.stderr
+
+
+@pytest.mark.parametrize(
+    "flags",
+    [("--domain", "v.example.org"), ("--packs", "/tmp"), ("--challenges", "all")],
+)
+def test_setup_options_need_setup(machine, flags):
+    done = machine(*flags)
+    assert done.returncode == 2
+    assert "go with --setup" in done.stderr
+
+
+def test_setup_needs_the_validator_hotkey_before_anything_runs(tmp_path):
+    # E2: no hotkey and no terminal to ask on: refused before the machine checks.
+    done = subprocess.run(
+        ["bash", str(SCRIPT), "--setup"],
+        capture_output=True,
+        text=True,
+        stdin=subprocess.DEVNULL,
+        env={**os.environ, "CARBON_STATE_DIR": str(tmp_path / "state")},
+        check=False,
+    )
+    assert done.returncode == 2
+    assert "--hotkey SS58 is required" in done.stderr
+    assert "Checking this machine" not in done.stdout
+
+
 # --- one validator host class (OWNER-VALIDATOR-HOST-CLASS-01) -----------------------------
 
 

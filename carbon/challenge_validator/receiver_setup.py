@@ -1,10 +1,17 @@
 """Operator setup for the DEVELOPMENT direct receiver: profile, configuration, start.
 
+    .venv/bin/python -B -m carbon.challenge_validator.receiver_setup challenges
     .venv/bin/python -B -m carbon.challenge_validator.receiver_setup prepare \\
-        --installed-state STATE --receiver-state DIR --challenge ID VERSION \\
-        [--pack DIR | --pack-store DIR --pack-digest sha256:...]
+        --installed-state STATE --receiver-state DIR --hotkey SS58 \\
+        --challenge ID VERSION \\
+        [--pack DIR | --pack-store DIR (--pack-digest sha256:... | --pack-set-key KEY)] \\
+        [--port N] [--lifetime-seconds N]
     .venv/bin/python -B -m carbon.challenge_validator.receiver_setup start \\
         --receiver-state DIR [--detach]
+    .venv/bin/python -B -m carbon.challenge_validator.receiver_setup service \\
+        --receiver-state DIR
+    .venv/bin/python -B -m carbon.challenge_validator.receiver_setup status \\
+        --receiver-state DIR
 
 Run Python with -B, as `install_validator.sh` does: without it Python writes
 `carbon/**/__pycache__` into this checkout, and `prepare` refuses a checkout
@@ -24,9 +31,17 @@ manifest digest, re-verified at use, instead of an operator-typed directory.
 
 The evaluation pack is an input (`--pack`): a pack's leg minimums come from a
 baseline run on the judge image, which a validator host does not produce. The
-receiver hotkey is the network publisher the testnet context resolves, exactly
-as the drivers used it; another validator identity is an owner decision this
-tool does not make. The receiver listens on 127.0.0.1 only.
+receiver hotkey is the operator's own validator hotkey (`--hotkey`, its public
+ss58 address only): Carbon's network publisher, or a hotkey holding a validator
+permit on the subnet, read from the chain now and again at every start. The
+receiver listens on 127.0.0.1 only.
+
+`challenges` lists every Challenge version the receiver serves and each
+Challenge's current (newest) one. Without `--lifetime-seconds` the receiver
+runs until it is stopped; `service` installs it as a `systemd --user` service
+that restarts on failure and after a reboot (with linger on). `status` reports
+the service, the local intake, the selected exam and the last graded
+submission.
 """
 
 from __future__ import annotations
@@ -44,9 +59,9 @@ REPO = Path(__file__).resolve().parents[2]
 CONFIG_NAME = "receiver.json"
 PROFILE_NAME = "runner-profile.json"
 DEFAULT_PORT = 8769
-#: The drivers' value: the receiver stops itself after this long. A longer-lived
-#: validator lifetime is a deliberate setting, not a default.
-DEFAULT_LIFETIME_SECONDS = 7200
+#: No lifetime: the receiver is a service and runs until it is stopped (E5). A
+#: finite run (the drivers used 7200 s) is a deliberate `--lifetime-seconds`.
+DEFAULT_LIFETIME_SECONDS = None
 MATERIAL_CACHE_BYTES = 192 * 1024 * 1024
 
 
@@ -62,16 +77,76 @@ def _sha(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def _challenge(challenge_id: str, version: str) -> dict:
-    from carbon.challenge_kit import physical_material
+def served() -> tuple:
+    """The Challenge versions an operator may serve: every version the
+    receiver serves, except the synthetic software fixture."""
+    from carbon.challenge_kit.synthetic_linear_field_2d import CHALLENGE
 
-    if not physical_material.is_registered(challenge_id, version):
+    from .direct_receiver import served_challenges
+
+    return tuple(c for c in served_challenges() if c["id"] != CHALLENGE.challenge_id)
+
+
+def _version_key(version: str) -> tuple:
+    return tuple(int(part) for part in version.split("."))
+
+
+def current() -> tuple:
+    """Each served Challenge's newest version, in the registrations' order."""
+    newest = {}
+    for challenge in served():
+        held = newest.get(challenge["id"])
+        if held is None or _version_key(challenge["version"]) > _version_key(held):
+            newest[challenge["id"]] = challenge["version"]
+    return tuple({"id": key, "version": value} for key, value in newest.items())
+
+
+def _challenge(challenge_id: str, version: str) -> dict:
+    selected = {"id": challenge_id, "version": version}
+    if selected not in served():
         raise SetupRefused(
             "challenge_not_registered",
-            "name a registered lean Challenge (Motor electric-motor-magnetics 1.0 "
-            "or Cooling chip-cold-plate 1.0).",
+            "name a Challenge version this receiver serves; list them with "
+            "`receiver_setup challenges`.",
         )
-    return {"id": challenge_id, "version": version}
+    return selected
+
+
+def _require_permit(hotkey: str, network: dict, permits=None) -> None:
+    """Carbon's network publisher, or a hotkey with a validator permit now."""
+    from carbon.development_session.intake_targets import ADDRESS
+
+    if type(hotkey) is not str or not ADDRESS.fullmatch(hotkey):
+        raise SetupRefused(
+            "hotkey_invalid", "give your validator hotkey's ss58 address (public)."
+        )
+    if hotkey == network["publisher_hotkey"]:
+        return
+    from carbon.chain.models import ChainContext
+    from carbon.chain.permits import PermitUnavailable, ValidatorPermitReader
+
+    reader = (
+        ValidatorPermitReader(ChainContext(**network["context"]))
+        if permits is None
+        else permits
+    )
+    try:
+        permit = reader.read(hotkey)
+    except PermitUnavailable:
+        raise SetupRefused(
+            "permit_unreadable", "the chain could not be read; try again later."
+        ) from None
+    if permit is None:
+        raise SetupRefused(
+            "hotkey_not_registered",
+            "register this hotkey on the subnet, then run this again.",
+        )
+    if permit["permit"] is not True:
+        raise SetupRefused(
+            "hotkey_no_validator_permit",
+            "this hotkey holds no validator permit on the subnet yet; it needs "
+            "one to receive submissions.",
+        )
 
 
 def _pack_selection(pack: Path | None) -> dict | None:
@@ -139,19 +214,32 @@ def _stored_pack_set(store: Path, set_key: str, challenge: dict):
     return block, first_digest, first_directory
 
 
+def development_install(installed_state: Path, *, repository: Path = REPO) -> bool:
+    """Whether this install carries an explicit DEVELOPMENT candidate profile
+    (`install_validator.sh --development-candidate ...`)."""
+    from scripts.dev.miner_launchpad import installed
+
+    return (
+        installed.candidate_implementation(installed_state, repository=repository)
+        is not None
+    )
+
+
 def prepare(
     *,
     installed_state: Path,
     receiver_state: Path,
     challenge: dict,
+    hotkey: str,
     pack: Path | None = None,
     pack_store: Path | None = None,
     pack_digest: str | None = None,
     pack_set_key: str | None = None,
     port: int = DEFAULT_PORT,
-    lifetime_seconds: int = DEFAULT_LIFETIME_SECONDS,
+    lifetime_seconds: int | None = DEFAULT_LIFETIME_SECONDS,
     repository: Path = REPO,
     checks=None,
+    permits=None,
 ) -> dict:
     """Write the runner profile and receiver configuration; return public facts."""
     from carbon.challenge_validator.direct_receiver import installed_source, load_config
@@ -161,8 +249,10 @@ def prepare(
         NO_MODEL_KEY,
         PROFILE_ID,
         LiveChecks,
-        SetupRefused as EnvironmentRefused,
         write_private,
+    )
+    from scripts.dev.miner_launchpad.environment_setup import (
+        SetupRefused as EnvironmentRefused,
     )
     from scripts.dev.miner_launchpad.runner import PROFILE_SCHEMA, validated_profile
 
@@ -178,6 +268,16 @@ def prepare(
             "images_not_installed",
             "run scripts/install_validator.sh (or install_miner.sh) first; no "
             "installed worker and analysis images are recorded.",
+        )
+    if pack is not None and not development_install(
+        installed_state, repository=repository
+    ):
+        # An operator-built pack never serves as an official exam (Validator,
+        # E4 condition 2); a delivered pack comes from --pack-store.
+        raise SetupRefused(
+            "built_packs_development_only",
+            "--pack is for development installs only (an explicit DEVELOPMENT "
+            "candidate profile); take the delivered exam with --pack-store.",
         )
     chosen = (
         (pack is not None)
@@ -227,7 +327,7 @@ def prepare(
             f"{refusal.field}_{refusal}",
             refusal.next_step or "fix the named check and run this again.",
         ) from None
-    publisher = network["publisher_hotkey"]
+    _require_permit(hotkey, network, permits)
     environment = receiver_state / "environment"
     config_path = receiver_state / "receiver" / CONFIG_NAME
     profile_path = environment / PROFILE_NAME
@@ -265,12 +365,12 @@ def prepare(
     write_private(environment / "miner-network.json", canonical(network))
     write_private(
         environment / "miner-public.json",
-        canonical({"netuid": network["context"]["netuid"], "hotkey": publisher}),
+        canonical({"netuid": network["context"]["netuid"], "hotkey": hotkey}),
     )
     profile = {
         "schema": PROFILE_SCHEMA,
         "profile_id": PROFILE_ID,
-        "principal": publisher,
+        "principal": hotkey,
         "enabled": True,
         "paths": {
             "image_manifest": records["image_manifest"],
@@ -292,7 +392,7 @@ def prepare(
         "schema": "carbon.construction.direct-receiver-operator.v1",
         "root": str(receiver_state / "receiver" / "state"),
         "runner_profile": str(profile_path),
-        "receiver_hotkey": publisher,
+        "receiver_hotkey": hotkey,
         "host": "127.0.0.1",
         "port": port,
         "lifetime_seconds": lifetime_seconds,
@@ -310,6 +410,8 @@ def prepare(
         "status": "RECEIVER_PROFILE_READY",
         "source_head": implementation["revision"],
         "challenge": challenge,
+        "receiver_hotkey": hotkey,
+        "port": port,
         "evaluation_pack": selection is not None,
         "evaluation_pack_set": pack_set is not None,
         "network_block": block,
@@ -371,7 +473,7 @@ def start(receiver_state: Path, *, detach: bool = False) -> int:
             f"`loginctl enable-linger {shlex.quote(user)}` once on this host, "
             "then start again.",
         )
-    unit = "carbon-receiver-" + _sha(str(receiver_state).encode())[:12]
+    unit = unit_name(receiver_state)
     started = subprocess.run(
         [
             "systemd-run",
@@ -399,14 +501,203 @@ def start(receiver_state: Path, *, detach: bool = False) -> int:
     return started.returncode
 
 
+def unit_name(receiver_state: Path) -> str:
+    """The receiver's systemd user unit: one per receiver state."""
+    return "carbon-receiver-" + _sha(str(receiver_state).encode())[:12]
+
+
+#: Characters a unit's command may hold unquoted; anything else is refused.
+_UNIT_SAFE = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/._-+=:,@"
+)
+
+
+def _unit_text(receiver_state: Path, challenge: dict) -> str:
+    command = _command(receiver_state)
+    for part in (*command, str(REPO)):
+        if not part or set(part) - _UNIT_SAFE:
+            raise SetupRefused(
+                "receiver_path_unsupported",
+                "install Carbon and the receiver state under paths of letters, "
+                "digits and / . _ - only.",
+            )
+    return "\n".join(
+        (
+            "[Unit]",
+            (
+                "Description=Carbon validator receiver "
+                f"({challenge['id']} {challenge['version']})"
+            ),
+            "After=network-online.target",
+            "",
+            "[Service]",
+            "Type=simple",
+            f"WorkingDirectory={REPO}",
+            "ExecStart=" + " ".join(command),
+            "Restart=on-failure",
+            "RestartSec=30",
+            "",
+            "[Install]",
+            "WantedBy=default.target",
+            "",
+        )
+    )
+
+
+def service(receiver_state: Path, *, unit_dir: Path | None = None, run=None) -> dict:
+    """Install the receiver as a persistent `systemd --user` service (E5): it
+    restarts on failure and starts again after a reboot (linger on)."""
+    import getpass
+
+    from .direct_receiver import load_config
+
+    run = run or subprocess.run
+    config = load_config(receiver_state / "receiver" / CONFIG_NAME)
+    if "evaluation_pack" not in config:
+        # A validator receiver that cannot grade would spend miners' epoch slots
+        # on nothing (Validator, E4 (c)): the service refuses to start.
+        raise SetupRefused(
+            "evaluation_pack_missing",
+            "this receiver has no evaluation pack; fetch the signed exam for its "
+            "Challenge and prepare it with the pack.",
+        )
+    if config["lifetime_seconds"] is not None:
+        raise SetupRefused(
+            "service_has_lifetime",
+            "a service runs until stopped; prepare this receiver without "
+            "--lifetime-seconds.",
+        )
+    user = getpass.getuser()
+    if _lingers(user) is False:
+        raise SetupRefused(
+            "receiver_linger_off",
+            f"the service would stop when {user} logs out and not start after a "
+            f"reboot; run `loginctl enable-linger {shlex.quote(user)}` once, then "
+            "run this again.",
+        )
+    unit = unit_name(receiver_state)
+    text = _unit_text(receiver_state, config["challenge"])
+    unit_dir = unit_dir or Path.home() / ".config" / "systemd" / "user"
+    unit_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    (unit_dir / (unit + ".service")).write_bytes(text.encode("utf-8"))
+    for step in (["daemon-reload"], ["enable", "--now", unit + ".service"]):
+        if run(["systemctl", "--user", *step], check=False).returncode != 0:
+            raise SetupRefused(
+                "receiver_service_not_started",
+                f"systemctl --user {' '.join(step)} failed; see "
+                f"`journalctl --user -u {unit}`.",
+            )
+    return {
+        "status": "RECEIVER_SERVICE_ENABLED",
+        "unit": unit,
+        "challenge": config["challenge"],
+        "follow": f"journalctl --user -u {unit} -f",
+        "stop": f"systemctl --user disable --now {unit}",
+    }
+
+
+def _last_graded(root: Path):
+    """The receiver's graded submissions on its own ledger (operator view)."""
+    import sqlite3
+
+    ledger = root / "attempts.sqlite3"
+    if not ledger.is_file():
+        return {"graded": 0, "last_graded_unix": None}
+    try:
+        with sqlite3.connect(f"file:{ledger}?mode=ro", uri=True) as db:
+            count, last = db.execute(
+                "SELECT COUNT(*), MAX(settled_ns) FROM exam_graded "
+                "WHERE kind='GRADED' AND state='COUNTED'"
+            ).fetchone()
+    except sqlite3.Error:
+        # No grading yet (the cap's table appears with the first exam).
+        return {"graded": 0, "last_graded_unix": None}
+    return {
+        "graded": count,
+        "last_graded_unix": None if last is None else last // 1_000_000_000,
+    }
+
+
+def _auto_grade_failures(root: Path) -> dict:
+    """Auto-grade's FAILED markers for the operator (``{}`` when this receiver
+    does not auto-grade): a count and the last code, never a task's content."""
+    from carbon.challenge_validator.auto_grade import failure_summary
+
+    return failure_summary(root)
+
+
+def status(receiver_state: Path, *, run=None, fetch=None) -> dict:
+    """What a validator checks (E7): the service, the local intake, the exam
+    the receiver holds and its last graded submission. Read-only."""
+    import urllib.request
+
+    from .direct_receiver import load_config
+
+    run = run or subprocess.run
+    config = load_config(receiver_state / "receiver" / CONFIG_NAME)
+    unit = unit_name(receiver_state)
+    try:
+        shown = run(
+            ["systemctl", "--user", "is-active", unit + ".service"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        service_state = shown.stdout.strip() or "unknown"
+    except (OSError, subprocess.TimeoutExpired):
+        service_state = "unknown"
+
+    def read(url):
+        with urllib.request.urlopen(url, timeout=5) as answer:
+            return json.loads(answer.read(65536))
+
+    fetch = fetch or read
+    try:
+        facts = fetch(
+            f"http://{config['host']}:{config['port']}/carbon/v1/construction/intake"
+        )
+        intake = "LISTENING" if type(facts) is dict else "UNREADABLE"
+    except (OSError, ValueError):
+        intake = "UNREACHABLE"
+    root = Path(config["root"])
+    binding = root / "receiver-binding.json"
+    try:
+        exam = json.loads(binding.read_bytes()).get("evaluation_pack_digest")
+    except (OSError, ValueError):
+        exam = None
+    healthy = (
+        service_state == "active"
+        and intake == "LISTENING"
+        and "evaluation_pack" in config
+    )
+    return {
+        "status": "RECEIVER_HEALTHY" if healthy else "RECEIVER_NOT_HEALTHY",
+        "challenge": config.get("challenge"),
+        "receiver_hotkey": config["receiver_hotkey"],
+        "unit": unit,
+        "service": service_state,
+        "intake": intake,
+        "port": config["port"],
+        "exam": (
+            "SELECTED" if "evaluation_pack" in config else "evaluation_pack_missing"
+        ),
+        "exam_digest": exam,
+        **_last_graded(root),
+        **_auto_grade_failures(root),
+    }
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -B -m carbon.challenge_validator.receiver_setup"
     )
     sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("challenges")
     prep = sub.add_parser("prepare")
     prep.add_argument("--installed-state", type=Path, required=True)
     prep.add_argument("--receiver-state", type=Path, required=True)
+    prep.add_argument("--hotkey", required=True)
     prep.add_argument("--challenge", nargs=2, metavar=("ID", "VERSION"), required=True)
     prep.add_argument("--pack", type=Path)
     prep.add_argument("--pack-store", type=Path)
@@ -417,21 +708,33 @@ def main(argv=None) -> int:
     run = sub.add_parser("start")
     run.add_argument("--receiver-state", type=Path, required=True)
     run.add_argument("--detach", action="store_true")
+    for name in ("service", "status"):
+        sub.add_parser(name).add_argument("--receiver-state", type=Path, required=True)
     args = parser.parse_args(argv)
     try:
         if args.command == "start":
             return start(args.receiver_state, detach=args.detach)
-        result = prepare(
-            installed_state=args.installed_state,
-            receiver_state=args.receiver_state,
-            challenge=_challenge(*args.challenge),
-            pack=args.pack,
-            pack_store=args.pack_store,
-            pack_digest=args.pack_digest,
-            pack_set_key=args.pack_set_key,
-            port=args.port,
-            lifetime_seconds=args.lifetime_seconds,
-        )
+        if args.command == "challenges":
+            result = {"served": list(served()), "current": list(current())}
+        elif args.command == "service":
+            result = service(args.receiver_state)
+        elif args.command == "status":
+            result = status(args.receiver_state)
+            print(json.dumps(result, sort_keys=True))
+            return 0 if result["status"] == "RECEIVER_HEALTHY" else 3
+        else:
+            result = prepare(
+                installed_state=args.installed_state,
+                receiver_state=args.receiver_state,
+                challenge=_challenge(*args.challenge),
+                hotkey=args.hotkey,
+                pack=args.pack,
+                pack_store=args.pack_store,
+                pack_digest=args.pack_digest,
+                pack_set_key=args.pack_set_key,
+                port=args.port,
+                lifetime_seconds=args.lifetime_seconds,
+            )
     except SetupRefused as refusal:
         print(
             json.dumps({"refused": refusal.code, "next": refusal.next_step}),

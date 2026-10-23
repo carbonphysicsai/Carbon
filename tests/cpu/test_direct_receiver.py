@@ -1859,3 +1859,84 @@ def test_main_regrade_exam_se_reaches_the_receiver_and_needs_a_regrade(
     assert seen == [(True, True)]
     with pytest.raises(SystemExit):
         receiver.main([*base, "--retain-task", "rtsk_" + "d" * 64, "--exam-se"])
+
+
+def test_a_service_configuration_has_no_lifetime(tmp_path, monkeypatch):
+    # E5: no lifetime runs until stopped; a missing field is still refused.
+    cfg = {**_config(tmp_path), "lifetime_seconds": None}
+    monkeypatch.setattr(receiver, "private_json", lambda _: cfg)
+    assert receiver.load_config(tmp_path / "config.json")["lifetime_seconds"] is None
+    del cfg["lifetime_seconds"]
+    with pytest.raises(ValueError):
+        receiver.load_config(tmp_path / "config.json")
+
+
+class _Permits:
+    def __init__(self, answer):
+        self.answer, self.asked = answer, []
+
+    def read(self, hotkey):
+        self.asked.append(hotkey)
+        if isinstance(self.answer, Exception):
+            raise self.answer
+        return self.answer
+
+
+def test_the_receiver_is_the_publisher_or_a_validator_permit_holder():
+    # E2: the operator's own validator hotkey, read from the chain at start.
+    from carbon.chain.permits import PermitUnavailable
+
+    network = SimpleNamespace(publisher_hotkey=RECEIVER, context=None)
+    unused = _Permits(None)
+    receiver._require_receiver_identity(RECEIVER, network, unused)
+    assert unused.asked == []  # Carbon's publisher needs no permit read
+    holder = _Permits({"permit": True, "block": 7})
+    receiver._require_receiver_identity(OTHER, network, holder)
+    assert holder.asked == [OTHER]
+    for answer in (None, {"permit": False, "block": 7}):
+        with pytest.raises(ValueError, match="no validator permit"):
+            receiver._require_receiver_identity(OTHER, network, _Permits(answer))
+    with pytest.raises(receiver.ReceiverUnavailable) as unreadable:
+        receiver._require_receiver_identity(
+            OTHER, network, _Permits(PermitUnavailable("x"))
+        )
+    assert unreadable.value.code == "receiver_permit_unavailable"
+
+
+def test_every_served_challenge_is_one_registered_list():
+    served = receiver.served_challenges()
+    assert len({(c["id"], c["version"]) for c in served}) == len(served)
+    from carbon.challenge_kit import physical_material
+
+    for challenge_id, version in physical_material.REGISTERED:
+        assert {"id": challenge_id, "version": version} in served
+
+
+def test_the_permit_is_read_again_each_round_and_a_lost_one_stops_the_receiver():
+    # Validator, E2 note: a permit lost mid-run is noticed within a round.
+    import threading
+
+    from carbon.chain.permits import PermitUnavailable
+
+    network = SimpleNamespace(publisher_hotkey=RECEIVER, context=None)
+    stop = threading.Event()
+    answers = iter([PermitUnavailable("x"), {"permit": True, "block": 8}, None])
+
+    class Reads:
+        asked = 0
+
+        def read(self, hotkey):
+            Reads.asked += 1
+            answer = next(answers)
+            if isinstance(answer, Exception):
+                raise answer
+            return answer
+
+    watch = receiver.PermitWatch(OTHER, network, Reads(), stop, interval=0.01)
+    watch.run()
+    assert Reads.asked == 3  # unreadable: kept serving; held; lost: stopped
+    assert watch.lost and stop.is_set()
+    assert receiver.PERMIT_RECHECK_SECONDS == 360 * 12
+    # Carbon's publisher needs no read, so no watch thread runs for it.
+    quiet = receiver.PermitWatch(RECEIVER, network, Reads(), threading.Event())
+    assert quiet.start() is quiet and not quiet.lost
