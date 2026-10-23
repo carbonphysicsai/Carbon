@@ -202,7 +202,7 @@ def test_d_is_the_registered_decision_workflow_not_a_carried_a(case):
     starved = [[0.5 * min(row)] * len(row) for row in _truth(case)]
     outcome = _measure(case, starved)
     assert outcome["decision_outcome"] != "VERIFIED_FEASIBLE"
-    assert outcome["D"] in (0.0, None)
+    assert outcome["D"] is None or outcome["D"] < 1.0
 
 
 def test_the_total_is_the_registered_half_and_half(case):

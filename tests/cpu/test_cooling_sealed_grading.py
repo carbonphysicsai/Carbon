@@ -232,4 +232,4 @@ def test_a_definition_without_the_critical_block_grades_value_only():
     }
     truth = _truth(bank)
     measured = _measure(bank, _shift_cell(truth, 0, 2.0), legacy)
-    assert measured["D"] == 1.0 and measured["design_fidelity"] is None
+    assert measured["D"] == 1.0 and "design_fidelity" not in measured

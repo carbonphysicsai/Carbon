@@ -340,7 +340,7 @@ def measure(*, bank, outputs, repeats, definition, contract, train):
             definition,
         )
     return {
-        "design_fidelity": fidelity,
+        **({"design_fidelity": fidelity} if "critical" in definition else {}),
         "gates": dict(
             zip(gates_for(definition), (native_pass, True, verified), strict=True)
         ),

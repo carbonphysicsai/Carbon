@@ -320,3 +320,12 @@ def test_the_physics_block_is_optional_for_an_earlier_definition(case):
     legacy = {k: v for k, v in case["definition"].items() if k != "physics"}
     result = _measure(case, case["truth"], definition=legacy)
     assert "A_legs" not in result and "physics_laws" not in result["gates"]
+
+
+def test_a_sealed_f08_bank_is_graded_under_the_v2_grid_version(case):
+    """Dispatch by the bank population reaches the min(V, C) version for every
+    served Challenge version."""
+    for version in ("1.2", "1.3", "1.4"):
+        chosen = sealed.adapter_for_bank(case["bank"], version)
+        assert chosen.EVALUATION_VERSION == "f08-dual-sealed-grid-8x1-v2"
+        assert chosen.VERSION == version
