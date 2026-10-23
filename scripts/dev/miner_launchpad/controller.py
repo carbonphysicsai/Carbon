@@ -77,6 +77,7 @@ STATIC = {
     "/research.css": ("research.css", "text/css; charset=utf-8"),
     "/research_charts.js": ("research_charts.js", "text/javascript; charset=utf-8"),
     # A small local QR encoder for the money-key address in Setup's funding step.
+    "/qrcode_generator.js": ("qrcode_generator.js", "text/javascript; charset=utf-8"),
     "/qr.js": ("qr.js", "text/javascript; charset=utf-8"),
     "/research_view.js": ("research_view.js", "text/javascript; charset=utf-8"),
     # The working toolbox (OWNER-MINER-RESEARCH-SURFACE-03).

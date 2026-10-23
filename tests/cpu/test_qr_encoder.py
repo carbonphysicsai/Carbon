@@ -3,6 +3,7 @@
 The decode check needs OpenCV and Node; without either it is skipped, never faked.
 """
 
+import hashlib
 import json
 import shutil
 import subprocess
@@ -38,6 +39,18 @@ def _encode():
         check=True,
     ).stdout
     return json.loads(out)
+
+
+def test_the_vendored_generator_is_the_pinned_mit_file_with_its_notice():
+    vendored = QR.with_name("qrcode_generator.js").read_bytes()
+    assert (
+        hashlib.sha256(vendored).hexdigest()
+        == "18ae399f81182bc9de916e9c77b195df20cc58d6f2d55a62b085a299f1bf1780"
+    )
+    assert b"Copyright (c) 2009 Kazuhiko Arase" in vendored
+    assert b"MIT license" in vendored
+    notice = QR.with_name("THIRD_PARTY.md").read_text(encoding="utf-8")
+    assert "qrcode-generator" in notice and "1.4.4" in notice and "MIT" in notice
 
 
 def test_the_encoder_picks_the_smallest_version_and_refuses_too_long_text():
