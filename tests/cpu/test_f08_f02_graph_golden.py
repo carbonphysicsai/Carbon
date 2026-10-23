@@ -1,7 +1,7 @@
 """F08 1.4 / F02 2.3 graph route golden (the Validator's condition 1 on
 Battery's graph adapter, 2026-10-23): the receiver's graph worker changed, so
 F08's and F02's graph predictions and dev grades must be byte-identical before
-(8a3426ca7) and after it.
+(8a3426ca7; on the round 11b line 7731e4413) and after it.
 
 The recorded evidence (`docs/development/evidence/battery22-graph-adapter-
 20261023/f08-f02-graph-golden.json`) holds both runs: states, predictions and
@@ -32,6 +32,9 @@ EVIDENCE = (
     / "f08-f02-graph-golden.json"
 )
 CHANGED = "carbon.development_session.build_refusal.py"
+#: The inference child's one staged difference on the round 11b line: the TRAIN
+#: codec accepts every served Battery version (it decodes Battery TRAIN only).
+INFER_CHANGED = "carbon.development_session.construction_tensor_codec.py"
 posix = pytest.mark.skipif(os.name == "nt", reason="G3 parser needs POSIX rlimits")
 
 
@@ -52,7 +55,13 @@ def test_the_recorded_runs_are_byte_identical_before_and_after():
             assert before[key][field] == after[key][field], (key, field)
         build_before, infer_before = before[key]["children"]
         build_after, infer_after = after[key]["children"]
-        assert infer_before == infer_after
+        assert infer_before["source"] == infer_after["source"]
+        changed_infer = {
+            name
+            for name in set(infer_before["files"]) | set(infer_after["files"])
+            if infer_before["files"].get(name) != infer_after["files"].get(name)
+        }
+        assert changed_infer <= {INFER_CHANGED}
         assert build_before["source"] == build_after["source"]
         changed = {
             name
