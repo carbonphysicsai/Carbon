@@ -30,7 +30,9 @@ def _ladder(recipe_digest):
         "total": 0.56,
         "exam_version": "motor-exam",
         "recipe_digest": recipe_digest,
-        "epoch": 0,
+        # The receiver's chain epoch (block // 360), never the campaign's own
+        # epoch index the projection is given.
+        "epoch": 23009,
     }
     return {"latest": latest, "best": latest}
 

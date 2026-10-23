@@ -78,7 +78,7 @@ def test_an_unnamed_grade_is_never_any_submission_s_own(tmp_path):
         assert "may be from an earlier submission" not in text
 
 
-def test_a_v3_grade_of_this_recipe_s_other_epoch_is_not_this_submit_s():
+def test_a_v3_grade_is_this_submission_s_by_its_recipe_whatever_the_epoch_units():
     # Validator note on R5-1: v3 names the epoch as well as the recipe.
     from scripts.dev.miner_launchpad import projection
 
@@ -94,7 +94,20 @@ def test_a_v3_grade_of_this_recipe_s_other_epoch_is_not_this_submit_s():
         "recipe_digest": digest,
         "epoch": 1,
     }
-    grade = projection._grade({"best": earlier, "latest": earlier}, digest, 2)
-    assert grade["latest"] is None and grade["other_submission_latest"]["epoch"] == 1
-    grade = projection._grade({"best": earlier, "latest": earlier}, digest, 1)
-    assert grade["latest"]["epoch"] == 1 and grade["other_submission_latest"] is None
+    # M1 E2E R10-2: the Ladder's epoch is the chain epoch (exam_cap.epoch_of,
+    # e.g. 23009), the projection's is the campaign's own index (FINAL_EPOCHS),
+    # so the two were never equal and every v3 grade read "not graded yet".
+    # The recipe digest names the submission; a same-recipe resubmit returns
+    # its earlier grade (exam cap), so that grade is this submission's too.
+    for campaign_epoch in (0, 1, 2):
+        grade = projection._grade(
+            {"best": earlier, "latest": earlier}, digest, campaign_epoch
+        )
+        assert grade["this_submission"] == "graded"
+        assert (
+            grade["latest"]["epoch"] == 1 and grade["other_submission_latest"] is None
+        )
+    other = projection._grade(
+        {"best": earlier, "latest": earlier}, "sha256:" + "b" * 64, 1
+    )
+    assert other["latest"] is None and other["other_submission_latest"]["epoch"] == 1

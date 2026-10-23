@@ -380,9 +380,6 @@ def _grade(ladder, submission=None, epoch=None, also=()):
         if latest is not None
         and submission is not None
         and latest.get("recipe_digest") in (submission, *also)
-        # v3 also names the epoch: a document about this recipe's earlier
-        # submit (another epoch) is not this one's (Validator, R5-1 note).
-        and (epoch is None or latest.get("epoch") in (None, epoch))
         else None
     )
     # M1 E2E R8-1: agents read the key's latest grade as their own, so the
