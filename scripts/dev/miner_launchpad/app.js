@@ -3158,6 +3158,21 @@
     }
     parent.append(box);
   }
+  // A practiced recipe in words, for the freeze choice: the catalog model or
+  // custom graph with the settings it changed. The value stays the exact JSON
+  // that is frozen; only the label is words (U47).
+  function recipeWords(text) {
+    let recipe = null;
+    try { recipe = JSON.parse(text); } catch (error) { return "recipe"; }
+    const source = recipe?.source;
+    const settings = [];
+    for (const [name, value] of Object.entries(recipe?.procedure?.configuration || {})) {
+      if (value && typeof value === "object") for (const [inner, v] of Object.entries(value)) settings.push(inner.replace(/_/g, " ") + " " + v);
+      else settings.push(name.replace(/_/g, " ") + " " + value);
+    }
+    const title = source?.kind === "catalog" && typeof source.catalog_id === "string" ? source.catalog_id : source?.kind === "graph" ? "custom graph" : (recipe?.procedure?.configuration?.backbone || "recipe");
+    return title + (settings.length ? " (" + settings.join(", ") + ")" : "");
+  }
   function renderJourneySubmission(parent, run) {
     const box = document.createElement("div"); box.className = "journey-submit";
     box.append(el("h4", "Freeze and submit"));
@@ -3165,7 +3180,7 @@
     const practiced = practicedRecipes(run);
     researchNote(box, "Final exams remaining: " + (journey.final_exams_remaining ?? "unavailable") + " · Submitted epochs: " + ((journey.submitted_epochs || []).join(", ") || "none") + (frozen ? " · A frozen candidate is waiting for submission." : ""));
     const choose = document.createElement("select");
-    for (const text of practiced) { const option = document.createElement("option"); option.value = text; option.textContent = text; choose.append(option); }
+    practiced.forEach((text, index) => { const option = document.createElement("option"); option.value = text; option.textContent = "Run " + (index + 1) + ": " + recipeWords(text); choose.append(option); });
     journeyField(box, run.id, "candidate", "Practiced recipe to freeze", choose, practiced[0] || "");
     const reason = journeyField(box, run.id, "reason", "Why this candidate", document.createElement("input"), "");
     if (!practiced.length) researchNote(box, "No practiced recipe yet: a candidate must have a practice result before it can be frozen. Practice under Experiments.", "reason");
