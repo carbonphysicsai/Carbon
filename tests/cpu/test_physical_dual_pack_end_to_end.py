@@ -43,6 +43,7 @@ from scripts.dev.score_lab import public_unbound_entry as unbound_entry
 #: the baseline's own same-platform measurement exactly (no tolerance).
 CHALLENGES = {
     "motor": (motor, "native_motor_valid"),
+    "motor-1.2": (physical.versioned(motor, "1.2"), "native_motor_valid"),
     "cooling": (cooling, "native_cold_plate"),
     "f08": (f08, "paired_repeat"),
     "f02": (f02, "paired_repeat"),
@@ -273,7 +274,7 @@ def _pair(receipt, outputs):
 
 
 def _baseline(name, bank, public, names):
-    if name == "motor":
+    if name.startswith("motor"):
         return motor.baseline_outputs(
             [dict(zip(names, map(float, row))) for row in bank["inputs"]]
         )
@@ -739,3 +740,72 @@ def test_calibration_grade_matches_the_receiver_path_on_the_same_predictions(cas
     assert result["D"] == model["measurements"]["verified_value_benefit"]["value"]
     assert result["gates"] == {k: v == "PASS" for k, v in model["gates"].items()}
     assert result["total"] == scoring["models"][0]["score"]
+
+
+def test_the_calibration_driver_in_fake_mode_matches_the_receiver_path(case, tmp_path):
+    """The driver's whole path (artifact, sealed pack read, kit binding, resource policy,
+    the real `_infer_state` over a stub worker, bank, measure, score, aggregates) on the
+    same retained fixture: the totals equal the receiver path's."""
+    from carbon.backbone_catalog.served import expand
+    from carbon.challenge_registry.motor import catalog_recipe
+    from carbon.challenge_validator import calibration_grade_run as run
+    from carbon.development_session.construction_recipe import (
+        ConstructionRecipe,
+        bind_recipe,
+    )
+
+    adapter = case["adapter"]
+    if (adapter.CHALLENGE, adapter.VERSION) != (motor.CHALLENGE, "1.2"):
+        pytest.skip("the catalog recipe fixture is Motor 1.2's")
+    from carbon.agent_campaign import calibration_artifact_job as job
+    from carbon.challenge_kit import physical_material
+
+    kit = physical_material.construction_kit(adapter.CHALLENGE, adapter.VERSION)
+    bound = bind_recipe(
+        catalog_recipe("neuralop.FNO"),
+        challenge_id=kit["id"],
+        challenge_version=kit["version"],
+        train_digest=kit["train_digest"],
+        interface_digest=kit["interface_digest"],
+        construction_limits_digest=kit["construction_limits_digest"],
+    )
+    recipe = ConstructionRecipe.from_dict(expand(bound.to_dict(), None))
+    artifact = tmp_path / "artifact"
+    job.write_artifact(
+        artifact,
+        recipe_bytes=recipe.canonical_bytes,
+        state_bytes=b"stub-state",
+        challenge_id=adapter.CHALLENGE,
+        version=adapter.VERSION,
+        bundle_ref="catalog/neuralop.FNO",
+        bundle_sha256="sha256:" + "b" * 64,
+        worker_image_digest="sha256:" + "c" * 64,
+        parent_image_digest="sha256:" + "d" * 64,
+        runtime="torch-cpu-py311",
+        train_sha256=kit["train_digest"],
+        seed=0,
+        build_wall_s=1.0,
+        pod_id="stub",
+    )
+    predictions = tmp_path / "predictions.json"
+    predictions.write_text(json.dumps(case["predictions"]))
+    result = run.run(
+        artifact_dir=artifact,
+        pack_root=case["root"],
+        challenge_id=adapter.CHALLENGE,
+        version=adapter.VERSION,
+        work_root=tmp_path / "work",
+        fake=True,
+        fake_predictions=predictions,
+    )
+    prepared_source, measured = _produce(case)
+    benchmark = json.loads(measured.raw)["benchmark"]
+    scoring = ScoreEngine.score_dual_benchmark_v4(benchmark, case["score_pack"])
+    model = benchmark["models"][0]
+    assert result["total"] == scoring["models"][0]["score"]
+    assert result["A"] == model["measurements"]["robust_fidelity_benefit"]["value"]
+    assert result["D"] == model["measurements"]["verified_value_benefit"]["value"]
+    assert result["gates"] == {k: v == "PASS" for k, v in model["gates"].items()}
+    assert str(tmp_path / "work") in str(
+        sorted((tmp_path / "work").rglob("operation-*"))[0]
+    )
