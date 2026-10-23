@@ -814,11 +814,17 @@ def verify_direct_resource_policy(
         worker_resources_version as resources_for,
     )
 
+    # A graph route v2 version's rebuild wall (OWNER-SANDBOX-REBUILD-WALL-01):
+    # its trusted document (matched above) names it; every other one, 600 s.
+    rebuild = rebuild_wall_kwargs(trusted_limits).get("rebuild_wall_seconds")
+
     def expected(resources_version):
         profile = (
             _worker_profile(None, LIBRARY_BUILD_PROVENANCE)
-            if resources_version is None
-            else _worker_profile(None, LIBRARY_BUILD_PROVENANCE, resources_version)
+            if resources_version is None and rebuild is None
+            else _worker_profile(
+                None, LIBRARY_BUILD_PROVENANCE, resources_version, rebuild
+            )
         ).body
         return {
             "schema": resource_schema,
@@ -852,6 +858,23 @@ def verify_direct_resource_policy(
     if not any(served == expected(candidate) for candidate in candidates):
         raise RecipeRefused("construction_resource_policy_unserved")
     return binding["construction_limits_digest"]
+
+
+def rebuild_wall_kwargs(limits_document: dict | None) -> dict:
+    """The rebuild wall a build or inference under this limits document runs
+    under: `rebuild_wall_seconds` when it is a graph route v2 version's
+    (`version_registry.REBUILD_LIMIT_SECONDS`), else nothing (600 s).
+
+    Read only from a document `verify_direct_resource_policy` has matched to
+    the version's trusted one; with no document, nothing (600 s)."""
+    from carbon.challenge_kit.version_registry import REBUILD_LIMIT_SECONDS
+
+    if limits_document is None:
+        return {}
+    policy = limits_document.get("reconstruction_resource_policy") or {}
+    if policy.get("build_wall_seconds_max") != REBUILD_LIMIT_SECONDS:
+        return {}
+    return {"rebuild_wall_seconds": REBUILD_LIMIT_SECONDS}
 
 
 def _stage_modules() -> dict[str, bytes]:
@@ -1194,6 +1217,7 @@ def reconstruct_public(
         ),
         output_validator=checked,
         **accelerator_kwargs,
+        **rebuild_wall_kwargs(limits_document),
         **(
             {"trusted_overlay": overlay, "bootstrap": OVERLAY_BUILD_BOOTSTRAP}
             if overlay is not None
@@ -1317,6 +1341,7 @@ def infer_public(
         allowlist_bytes=allowlist_bytes,
         seconds=seconds,
         **_accelerator_kwargs(accelerator),
+        **rebuild_wall_kwargs(limits_document),
         runner=runner,
     )
 
@@ -1405,6 +1430,7 @@ def infer_saved_bundle(
         measure_query=True,
         seconds=seconds,
         **_accelerator_kwargs(accelerator),
+        **rebuild_wall_kwargs(limits_document),
         runner=runner,
     )
 
@@ -1442,6 +1468,7 @@ def _infer_state(
     runner=None,
     program: str | None = None,
     staged_files: dict[str, bytes] | None = None,
+    rebuild_wall_seconds: int | None = None,
 ) -> BundleInferenceResult:
     """`program` and `staged_files` serve a graph adapter's own inference
     program and its extra trusted modules (`direct_graph_construction_worker`).
@@ -1580,6 +1607,11 @@ def _infer_state(
         ),
         output_validator=checked,
         **_accelerator_kwargs(accelerator),
+        **(
+            {}
+            if rebuild_wall_seconds is None
+            else {"rebuild_wall_seconds": rebuild_wall_seconds}
+        ),
         # A model built under a next version's larger resources is loaded
         # and run under them too.
         **(

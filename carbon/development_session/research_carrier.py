@@ -16,6 +16,7 @@ from contextlib import ExitStack, contextmanager
 from contextvars import ContextVar
 from functools import partial
 
+from carbon.challenge_kit.version_registry import REBUILD_LIMIT_SECONDS
 from carbon.reconstruction.worker import liveness_reaper
 from carbon.reconstruction.worker.docker_runtime import (
     DockerCLI,
@@ -36,6 +37,8 @@ from carbon.reconstruction.worker.model import (
     WorkerFailure,
     WorkerImageIdentity,
     worker_resources_for,
+)
+from carbon.reconstruction.worker.model import (
     worker_resources_version as resources_version_for,
 )
 from carbon.reconstruction.worker.protocol import decode_output_stream
@@ -764,6 +767,7 @@ def _run_locked(
     trusted_stage_provider=None,
     trusted_stage_identity=None,
     worker_resources_version=None,
+    rebuild_wall_seconds=None,
 ):
     before_finish = before_finish or (lambda: None)
     # The miner's own research has no Carbon limits (owner direction): any
@@ -779,7 +783,18 @@ def _run_locked(
             raise ValueError(
                 "you set a compute-time budget; give this run a wall allowance"
             )
-    elif type(seconds) is not int or not 40 <= seconds <= 600:
+    # A graph route v2 version's build or inference runs under its longer
+    # rebuild wall (OWNER-SANDBOX-REBUILD-WALL-01), named by the caller from
+    # the version's trusted limits document; every other run keeps 600 s.
+    if rebuild_wall_seconds is not None and (
+        miner_lane
+        or rebuild_wall_seconds != REBUILD_LIMIT_SECONDS
+        or provenance in (G5_PROVENANCE, LIBRARY_PREP_PROVENANCE)
+    ):
+        raise ValueError("unsupported rebuild wall")
+    if not miner_lane and (
+        type(seconds) is not int or not 40 <= seconds <= (rebuild_wall_seconds or 600)
+    ):
         raise ValueError("bounded worker wall allowance required")
     # A next version's larger worker resources (OWNER-WORKER-RESOURCES-LARGE-
     # MODELS-01), named by the allowlist version the run builds under. Only
@@ -903,6 +918,9 @@ def _run_locked(
     if worker_resources_version is not None:
         # Absent for today's resources, so every existing identity is unchanged.
         request["worker_resources_version"] = worker_resources_version
+    if rebuild_wall_seconds is not None:
+        # Absent at 600 s, so every existing identity is unchanged.
+        request["rebuild_wall_seconds"] = rebuild_wall_seconds
     if execution_contract is not None:
         # Prospective language routes bind their complete reviewed environment.
         # Leaving this absent preserves historical Python operation identities.
@@ -1115,7 +1133,9 @@ def _run_locked(
             device=device,
         )
     with _fixed_practice_stage(operation, provenance, "PROFILE"):
-        worker = _worker_profile(device, provenance, worker_resources_version)
+        worker = _worker_profile(
+            device, provenance, worker_resources_version, rebuild_wall_seconds
+        )
     create_attempted = False
     output = operation / "export.stream"
     lease = ExitStack()
@@ -1532,17 +1552,25 @@ def _check_gpu_host(cli, image, device, pins=None):
 G5_PROVENANCE = "LEVEL4_G5_COMPILE_DEVELOPMENT"
 
 
-def _worker_profile(device, provenance=None, worker_resources_version=None):
+def _worker_profile(
+    device, provenance=None, worker_resources_version=None, rebuild_wall_seconds=None
+):
     """The carrier's worker profile: CPU, the G5 compile lane's CPU profile
     (only for G5's own provenance, never with a device), or the miner lane on
     `device`; under a next version's larger resources when
-    ``worker_resources_version`` names one."""
+    ``worker_resources_version`` names one, and a graph route v2 version's
+    rebuild wall when ``rebuild_wall_seconds`` names it (None: 600 s, and the
+    profile's body and digest unchanged)."""
     policy = digest(b"carbon.autoresearch.public-research.v1")
     if worker_resources_version is not None and (
         provenance == G5_PROVENANCE
         or resources_version_for(worker_resources_version) != worker_resources_version
     ):
         raise ValueError("unsupported worker resources")
+    if rebuild_wall_seconds is not None and (
+        rebuild_wall_seconds != REBUILD_LIMIT_SECONDS or provenance == G5_PROVENANCE
+    ):
+        raise ValueError("unsupported rebuild wall")
     if device is None and provenance == G5_PROVENANCE:
         from carbon.reconstruction.worker.model import G5_PROFILE_ID, PROFILE_VERSION
 
@@ -1552,14 +1580,22 @@ def _worker_profile(device, provenance=None, worker_resources_version=None):
             G5_PROFILE_ID,
             PROFILE_VERSION,
         )
-    resources = digest(
+    label = (
         b"2cpu-4gib-noswap-600seconds"
         if worker_resources_version is None
         else b"4cpu-16gib-noswap-600seconds"
     )
+    if rebuild_wall_seconds is not None:
+        # The resource class names its wall, so a rebuild-wall profile is a
+        # different class rather than the 600-second one restated.
+        label = label.replace(b"600seconds", b"%dseconds" % rebuild_wall_seconds)
+    resources = digest(label)
     if device is None:
         return DevelopmentWorkerProfile(
-            policy, resources, worker_resources_version=worker_resources_version
+            policy,
+            resources,
+            worker_resources_version=worker_resources_version,
+            rebuild_wall_seconds=rebuild_wall_seconds,
         )
     from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
     from carbon.reconstruction.worker.model import (
@@ -1586,8 +1622,16 @@ def _worker_profile(device, provenance=None, worker_resources_version=None):
         MINER_HOST_AUTHORITY,
         None,
         device.device_uuid,
-        registered_run_controls(worker_resources_version),
+        (
+            registered_run_controls(worker_resources_version)
+            if rebuild_wall_seconds is None
+            else {
+                **registered_run_controls(worker_resources_version),
+                "productive_seconds": rebuild_wall_seconds,
+            }
+        ),
         worker_resources_version=worker_resources_version,
+        rebuild_wall_seconds=rebuild_wall_seconds,
     )
 
 
@@ -1667,7 +1711,6 @@ def _run_miner_lane(
     raised. Every other failure keeps its infrastructure meaning.
     """
     from .miner_container import (
-        SCRATCH_CAP_BYTES,
         SCRATCH_CAP_EXCEEDED,
         SCRATCH_CAP_INODES,
         MinerOutputRefused,

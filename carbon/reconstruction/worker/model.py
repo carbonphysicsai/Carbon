@@ -58,6 +58,8 @@ def _large_applies(allowlist_version):
     return LARGE_MODEL_PROFILE_APPLIED and (
         allowlist_version in LARGE_MODEL_ALLOWLIST_VERSIONS
     )
+
+
 LARGE_MODEL_RESOURCES = {
     "output_bytes": 2 * 1024**3,
     "scratch_bytes": 4 * 1024**3,
@@ -324,6 +326,11 @@ class DevelopmentWorkerProfile(LaunchAuthorityBearing):
     # Absent from the body when None, so every existing profile's body and
     # digest are unchanged.
     worker_resources_version: str | None = None
+    # A graph route v2 version's rebuild wall (`version_registry.
+    # REBUILD_LIMIT_SECONDS`; OWNER-SANDBOX-REBUILD-WALL-01), or None for the
+    # C-03 600 seconds. Changes only `deadline_seconds`, so every existing
+    # profile's body and digest are unchanged.
+    rebuild_wall_seconds: int | None = None
 
     @property
     def large_model(self) -> bool:
@@ -333,6 +340,8 @@ class DevelopmentWorkerProfile(LaunchAuthorityBearing):
     @property
     def effective_deadline_seconds(self) -> int:
         """The productive deadline this launch is actually run under."""
+        if self.rebuild_wall_seconds is not None:
+            return self.rebuild_wall_seconds
         controls = self.accelerator_controls
         if not controls:
             return PRODUCTIVE_DEADLINE_SECONDS
@@ -499,6 +508,10 @@ class DevelopmentWorkerProfile(LaunchAuthorityBearing):
         object.__setattr__(
             self, "resource_class_digest", exact_digest(self.resource_class_digest)
         )
+        from carbon.challenge_kit.version_registry import REBUILD_LIMIT_SECONDS
+
+        if self.rebuild_wall_seconds not in (None, REBUILD_LIMIT_SECONDS):
+            raise WorkerFailure(WorkerCode.INVALID)
 
     @property
     def body(self) -> dict[str, object]:
@@ -519,7 +532,10 @@ class DevelopmentWorkerProfile(LaunchAuthorityBearing):
             },
             "memory": {"bytes": self.effective_memory_bytes, "swap_bytes": SWAP_BYTES},
             "pids": PIDS_LIMIT,
-            "scratch": {"bytes": self.effective_scratch_bytes, "inodes": SCRATCH_INODES},
+            "scratch": {
+                "bytes": self.effective_scratch_bytes,
+                "inodes": SCRATCH_INODES,
+            },
             "input": {"bytes": INPUT_BYTES, "expanded_bytes": EXPANDED_INPUT_BYTES},
             "control_bytes": CONTROL_BYTES,
             "output": {
@@ -755,13 +771,13 @@ __all__ = [
     "EXPANDED_OUTPUT_BYTES",
     "G5_MEMORY_BYTES",
     "G5_PROFILE_ID",
+    "GRACEFUL_CANCELLATION_SECONDS",
+    "INPUT_BYTES",
     "LARGE_MODEL_ALLOWLIST_VERSIONS",
     "LARGE_MODEL_CPU_COUNT",
     "LARGE_MODEL_PROFILE_APPLIED",
     "LARGE_MODEL_RESOURCES",
     "LARGE_MODEL_SHM_BYTES",
-    "GRACEFUL_CANCELLATION_SECONDS",
-    "INPUT_BYTES",
     "MEMORY_BYTES",
     "NOFILE_LIMIT",
     "OUTPUT_BYTES",

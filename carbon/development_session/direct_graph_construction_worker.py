@@ -28,6 +28,7 @@ from .bundle_construction_worker import (
     _stage_modules,
     _trusted_allowlist,
     direct_child_identity,
+    rebuild_wall_kwargs,
     verify_direct_resource_policy,
 )
 from .bundle_graph_state import MAX_BYTES as MAX_STATE_BYTES
@@ -808,6 +809,7 @@ def reconstruct_public_graph(
             {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
         ),
         output_validator=checked,
+        **rebuild_wall_kwargs(limits_document),
     )
     snapshot = ledger.root / worker["operation"] / "snapshot"
     result = checked(snapshot)
@@ -905,6 +907,7 @@ def reconstruct_and_infer_graph_public(
         "input_name": "inputs/forcing",
         "provenance": INFERENCE_PROVENANCE,
         "runner": runner,
+        **rebuild_wall_kwargs(limits_document),
     }
     from . import battery_graph_adapter
 

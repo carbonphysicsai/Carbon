@@ -38,6 +38,10 @@ BATTERY_TRAIN_V1 = "battery-public-train-v1"
 BATTERY_TRAIN_V2 = "battery-public-train-v2"
 #: Cooling 1.3's law-safe output encoding (`cold_plate.output_encoding`).
 COOLING_LAW_SAFE = "cooling-law-safe-output-encoding"
+#: The rebuild wall of the graph route v2 versions, in seconds: 30 minutes
+#: for the build and for inference (OWNER-SANDBOX-REBUILD-WALL-01, testnet).
+#: Every other version keeps the C-03 600 seconds.
+REBUILD_LIMIT_SECONDS = 1800
 
 
 class UnregisteredVersion(ValueError):
@@ -80,6 +84,9 @@ class Version:
     #: The version it adds a construction change to, recorded, never read
     #: through.
     predecessor: str | None = None
+    #: Its build and inference wall, in seconds: REBUILD_LIMIT_SECONDS, or
+    #: None for the C-03 600 seconds (every version before graph route v2).
+    rebuild_wall_seconds: int | None = None
 
 
 def _v(*args, **kwargs):
@@ -170,6 +177,7 @@ VERSIONS = dict(
             graph_adapter="v2",
             catalog_entries_from=("1.4", "1.3"),
             predecessor="1.3",
+            rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),
         # --- Cooling ------------------------------------------------------
         _v(
@@ -237,6 +245,7 @@ VERSIONS = dict(
             output_encoding=COOLING_LAW_SAFE,
             catalog_entries_from=("1.4", "1.3"),
             predecessor="1.3",
+            rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),
         # --- F08 (Ribbed Bracket) -----------------------------------------
         _v(
@@ -315,6 +324,7 @@ VERSIONS = dict(
             catalog_entries_from=("1.5",),
             facts="1.4",
             predecessor="1.4",
+            rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),
         # --- F02 (Burst Thermal) ------------------------------------------
         _v(
@@ -380,6 +390,7 @@ VERSIONS = dict(
             catalog_entries_from=("2.4",),
             facts="2.3",
             predecessor="2.3",
+            rebuild_wall_seconds=REBUILD_LIMIT_SECONDS,
         ),
         # --- Battery (2.3 joins after pack-set-canonical lands) -----------
         _v(
