@@ -641,3 +641,23 @@ def test_an_unlisted_entry_gets_no_device_fix_and_a_listed_one_missing_its_ancho
     # A listed entry whose build lacks the anchor exactly once is refused, never skipped.
     with pytest.raises(gpu_build.GpuBuildRefused, match="device fix anchor found 0"):
         gpu_build.derived_source("torch-cpu-py311", raw, "neuralop.GINO")
+
+
+def test_the_catalog_constants_equal_the_accelerator_profile():
+    """The catalog copies the JAX GPU lock and determinism constants instead of importing the accelerator profile (the
+    protected-material boundary); this is the one place that compares them, outside the scanned `carbon/` tree.
+    """
+    from carbon.backbone_catalog import gpu_receipt
+    from carbon.reconstruction import accelerators
+
+    assert (
+        gpu_build.JAX_GPU_LOCK_DIGEST
+        == accelerators.GPU_PROFILE.environment_lock_digest
+    )
+    assert (
+        gpu_receipt.JAX_DETERMINISM_XLA_FLAGS == accelerators.GPU_DETERMINISM_XLA_FLAGS
+    )
+    assert (
+        gpu_receipt.JAX_DETERMINISM_ENVIRONMENT
+        == accelerators.GPU_DETERMINISM_ENVIRONMENT
+    )

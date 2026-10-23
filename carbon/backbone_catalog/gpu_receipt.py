@@ -158,20 +158,30 @@ PINNED_GPU_IMAGES: dict = {}
 REGISTERED_HOST_CLASSES: frozenset = frozenset()
 
 
+#: The JAX GPU determinism environment, copied rather than imported (the accelerator profile is on the execution side of
+#: the protected-material boundary; catalog modules must not import it). The test
+#: `test_the_catalog_constants_equal_the_accelerator_profile` keeps both equal to `accelerators.GPU_DETERMINISM_*`.
+JAX_DETERMINISM_XLA_FLAGS = (
+    "--xla_gpu_deterministic_ops=true",
+    "--xla_gpu_exclude_nondeterministic_ops=true",
+    "--xla_gpu_autotune_level=0",
+)
+JAX_DETERMINISM_ENVIRONMENT = {
+    "NVIDIA_TF32_OVERRIDE": "0",
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+}
+
+
 def required_determinism(runtime: str):
     """The full determinism environment an official run carries, as a JSON-comparable value."""
     from carbon.reconstruction import torch_profile
-    from carbon.reconstruction.accelerators import (
-        GPU_DETERMINISM_ENVIRONMENT,
-        GPU_DETERMINISM_XLA_FLAGS,
-    )
 
     if runtime == "torch-cu130-py311":
         return [[key, value] for key, value in torch_profile.GPU_DETERMINISM]
     if runtime == "jax-cuda13-py311":
         return {
-            **GPU_DETERMINISM_ENVIRONMENT,
-            "XLA_FLAGS": " ".join(GPU_DETERMINISM_XLA_FLAGS),
+            **JAX_DETERMINISM_ENVIRONMENT,
+            "XLA_FLAGS": " ".join(JAX_DETERMINISM_XLA_FLAGS),
         }
     raise GpuReceiptBroken(f"no determinism environment for {runtime}")
 
