@@ -1812,8 +1812,9 @@ class PoolStore:
 
     def _carried_evaluation(self, db, incumbent_id, candidate):
         """A carried king's own filed evaluation of the exam the candidate was
-        graded on, or None. Only a king this store recorded as carried, only
-        to the candidate's construction version, only under the pin the carry
+        graded on, or None. Only a king this store recorded as carried on an
+        unchanged pack set, only to the candidate's construction version, only
+        under the pin the carry
         registered, and only where the measured exam - its evaluation version
         included - is the same (`bank_promotion.carry_identity`)."""
         from carbon.challenge_validator.bank_promotion import carry_identity
@@ -1826,6 +1827,9 @@ class PoolStore:
             if (
                 record["king"]["submission_id"] != incumbent_id
                 or record["new_version"] != evidence["challenge_version"]
+                # On a changed pack set the king's old evidence never stands
+                # in: he meets challengers there only once regraded on it.
+                or record["regrade"] != "NOT_REQUIRED"
             ):
                 continue
             for key in record["carried_evaluations"]:
@@ -1841,8 +1845,8 @@ class PoolStore:
         write the carry record, exactly once.
 
         `record` (built by `koth_carry`) names the king, both construction
-        versions, the evaluation version, the pack-set key and the king's
-        registered source pin. The king's admission, retained model and its
+        versions, the evaluation version, both pack-set keys, whether a
+        regrade is required and the king's registered source pin. The king's admission, retained model and its
         filed evaluations on the old version under that pin are copied
         unchanged (historical evidence keeps its own key and meaning). The
         incumbent keeps its reason, so the reward layer reads the same crown.
@@ -1856,7 +1860,10 @@ class PoolStore:
         same = ("king", "old_version", "new_version", "evaluation_version")
         for found in self.koth_carries():
             # A replay of the same carry returns the first record unchanged.
-            if all(found[k] == record[k] for k in (*same, "pack_set_key")):
+            if all(
+                found[k] == record[k]
+                for k in (*same, "old_pack_set_key", "new_pack_set_key")
+            ):
                 return found
         live = source.incumbent()
         if live is None or live["model_id"] != king:
@@ -1896,7 +1903,10 @@ class PoolStore:
         }
         with self.transaction() as db:
             for found in self._carry_records(db):
-                if all(found[k] == record[k] for k in (*same, "pack_set_key")):
+                if all(
+                    found[k] == record[k]
+                    for k in (*same, "old_pack_set_key", "new_pack_set_key")
+                ):
                     return found
             if (
                 self._incumbent_id(db) is not None

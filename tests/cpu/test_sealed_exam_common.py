@@ -266,9 +266,53 @@ def test_a_pack_set_has_one_body_and_its_digest_is_the_evaluation_key():
     # A rotation is a new set and so a new key.
     rotated = common.pack_set_document("motor", "1.0", [_digest("a"), _digest("c")])
     assert common.pack_set_key(rotated) != key
-    # The Challenge version is part of the body.
+    # A version with no registered sealed exam keys by its construction version.
     other = common.pack_set_document("motor", "1.1", [_digest("a"), _digest("b")])
     assert common.pack_set_key(other) != key
+
+
+def test_the_set_key_leaves_the_construction_version_out():
+    """VALIDATOR-KOTH-CARRY-SCOPE-01: {challenge, evaluation version, batches}."""
+    batches = [_digest("b"), _digest("a")]
+    f14 = common.pack_set_document("f08-ribbed-bracket", "1.4", batches)
+    f15 = common.pack_set_document("f08-ribbed-bracket", "1.5", batches)
+    assert (
+        f14
+        == f15
+        == {
+            "schema": common.PACK_SET_SCHEMA,
+            "challenge_id": "f08-ribbed-bracket",
+            "evaluation_version": "f08-dual-sealed-batch-8-v1",
+            "batches": sorted(batches),
+        }
+    )
+    assert common.pack_set_key(f14) == common.pack_set_key(f15)
+    # Different batches are a different set, on any version.
+    rotated = common.pack_set_document(
+        "f08-ribbed-bracket", "1.5", [_digest("a"), _digest("c")]
+    )
+    assert common.pack_set_key(rotated) != common.pack_set_key(f14)
+    # Another Challenge on the same batches is another set.
+    f02 = common.pack_set_document("f02", "2.4", batches)
+    assert common.pack_set_key(f02) != common.pack_set_key(f14)
+
+
+def test_a_set_keyed_before_v2_keeps_its_key_and_meaning():
+    batches = [_digest("a"), _digest("b")]
+    old = common.pack_set_document_v1("f08-ribbed-bracket", "1.4", batches)
+    assert old["challenge"] == {"id": "f08-ribbed-bracket", "version": "1.4"}
+    old_key = common.pack_set_key(old)
+    new_key = common.pack_set_key(
+        common.pack_set_document("f08-ribbed-bracket", "1.4", batches)
+    )
+    assert old_key != new_key
+    for key, document in ((old_key, old), (new_key, None)):
+        found = common.verified_pack_set("f08-ribbed-bracket", "1.4", batches, key)
+        assert common.pack_set_key(found) == key
+        assert document is None or found == document
+    # The v1 key named its version: it never verifies for 1.5.
+    with pytest.raises(common.PackSetRefused, match="pack_set_key_mismatch"):
+        common.verified_pack_set("f08-ribbed-bracket", "1.5", batches, old_key)
 
 
 @pytest.mark.parametrize(
@@ -293,7 +337,9 @@ def test_a_body_not_built_by_the_builder_has_no_key():
         {**body, "batches": [_digest("b"), _digest("a")]},
         {**body, "extra": 1},
         {**body, "schema": "other"},
-        {k: v for k, v in body.items() if k != "challenge"},
+        {k: v for k, v in body.items() if k != "challenge_id"},
+        {**body, "evaluation_version": ""},
+        {**common.pack_set_document_v1("motor", "1.0", [_digest("a")]), "extra": 1},
     ):
         with pytest.raises(common.PackSetRefused):
             common.pack_set_key(broken)

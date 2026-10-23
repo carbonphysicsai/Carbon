@@ -345,3 +345,50 @@ def test_a_forged_or_foreign_withdrawal_changes_nothing(world, tmp_path):
         )
     assert not world["store"].withdrawn(victim)
     assert world["store"].delivered(victim, CHALLENGE, VERSION)
+
+
+def test_a_set_stored_before_v2_still_verifies():
+    """Prospective re-key (VALIDATOR-KOTH-CARRY-SCOPE-01): a v1 commitment keeps
+    its key; a new commitment carries the v2 key."""
+    digests = [_sha(b"one"), _sha(b"two")]
+    new = sp.set_commitment_for(CHALLENGE, VERSION, digests, WINDOW)
+    v1 = common.pack_set_key(common.pack_set_document_v1(CHALLENGE, VERSION, digests))
+    assert new["set_key"] != v1
+    old = {**new, "set_key": v1, "fingerprint": v1}
+    assert sp.verify_set(old, sp.set_payload_for(old))["schema"] == (
+        common.PACK_SET_SCHEMA_V1
+    )
+    assert sp.verify_set(new, sp.set_payload_for(new))["schema"] == (
+        common.PACK_SET_SCHEMA
+    )
+
+
+def test_two_construction_versions_on_one_set_are_each_kept(tmp_path):
+    """F08 1.4 and 1.5 on the same batches share the v2 key; each version's
+    signed commitment is kept, so neither shadows the other."""
+    digests = [_sha(b"one"), _sha(b"two")]
+    store = sp.SealedPackStore(tmp_path / "store")
+    sets = [
+        sp.set_commitment_for("f08-ribbed-bracket", version, digests, WINDOW)
+        for version in ("1.4", "1.5")
+    ]
+    assert sets[0]["set_key"] == sets[1]["set_key"]
+    for commitment in sets:
+        assert store.import_pack_set(commitment, sp.set_payload_for(commitment)) == (
+            commitment["set_key"]
+        )
+    for commitment in sets:
+        assert store.holds_set(commitment)
+        path = store._stored_set_path(
+            commitment["set_key"], commitment["challenge_version"]
+        )
+        assert json.loads(path.read_bytes()) == commitment
+    # A v1 set stored at its key alone is still read for its version.
+    v1 = common.pack_set_key(
+        common.pack_set_document_v1("f08-ribbed-bracket", "1.3", digests)
+    )
+    legacy = {**sets[0], "challenge_version": "1.3", "set_key": v1, "fingerprint": v1}
+    store._set_path(v1).write_bytes(json.dumps(legacy).encode())
+    assert store.holds_set(legacy)
+    with pytest.raises(ak.AnswerKeyRefused, match="answer_key_pack_set_batch_missing"):
+        store.pack_set(v1, "f08-ribbed-bracket", "1.3")

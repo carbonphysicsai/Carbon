@@ -384,9 +384,25 @@ class BankPromotion:
         the receiver; never the pack's shape). Its win
         then carries `bank_comparison_sealed_testnet`, which the reward layer
         pays only under a testnet policy (Workstream I5).
+
+        An incumbent not yet regraded on this key (a rotation, or a carried
+        king whose regrade is unavailable) gives UNAVAILABLE with nothing
+        changed: never a reset, never a win (OWNER-EXAM-CAP-ROTATION-01,
+        VALIDATOR-KOTH-CARRY-SCOPE-01).
         """
         reason = SEALED_TESTNET_PROMOTION if sealed else DEVELOPMENT_PROMOTION
-        pair = self.private_pair(submission_id, evaluation_key)
+        try:
+            pair = self.private_pair(submission_id, evaluation_key)
+        except StateError as refused:
+            if refused.code != "incumbent_evaluation_required":
+                raise
+            return {
+                "outcome": UNAVAILABLE,
+                "reason": "incumbent_regrade_required",
+                "evaluation_key": evaluation_key,
+                "candidate": submission_id,
+                "incumbent": (self.store.incumbent() or {}).get("model_id"),
+            }
         outcome = compare_private_pair(pair, comparator)
         if outcome["outcome"] in (FIRST_INCUMBENT, CHALLENGER):
             self.store.set_incumbent(

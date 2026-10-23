@@ -136,10 +136,13 @@ def verify_set(commitment, payload):
     ):
         raise AnswerKeyRefused("answer_key_malformed")
     try:
-        document = common.pack_set_document(
+        # The v2 key leaves the construction version out; a set stored before
+        # v2 keeps its v1 key and meaning (VALIDATOR-KOTH-CARRY-SCOPE-01).
+        document = common.verified_pack_set(
             commitment["challenge_id"],
             commitment["challenge_version"],
             commitment["batches"],
+            commitment["set_key"],
         )
         key = common.pack_set_key(document)
     except common.PackSetRefused:
@@ -352,16 +355,42 @@ class SealedPackStore:
         path.write_bytes(raw)
         path.chmod(0o600)
 
-    def _set_path(self, set_key):
+    def _set_path(self, set_key, challenge_version=None):
+        """Where a set's commitment is kept. A v2 key is shared by every
+        construction version graded on the same batches, so each version's
+        commitment is kept under the key and that version; a set stored before
+        v2 stays at its key alone (`challenge_version` None)."""
         if type(set_key) is not str or _DIGEST.fullmatch(set_key) is None:
             raise AnswerKeyRefused("answer_key_malformed")
-        return self.root / SETS_DIRECTORY / (set_key.removeprefix("sha256:") + ".json")
+        name = set_key.removeprefix("sha256:")
+        if challenge_version is not None:
+            if (
+                type(challenge_version) is not str
+                or re.fullmatch(r"[0-9A-Za-z][0-9A-Za-z._-]{0,63}", challenge_version)
+                is None
+            ):
+                raise AnswerKeyRefused("answer_key_malformed")
+            name += "." + challenge_version
+        return self.root / SETS_DIRECTORY / (name + ".json")
+
+    def _stored_set_path(self, set_key, challenge_version):
+        """This version's commitment, else one stored at the key alone (v1),
+        else another version's under the same key, so the caller's challenge
+        check names the mismatch (`answer_key_wrong_challenge`)."""
+        versioned = self._set_path(set_key, challenge_version)
+        legacy = self._set_path(set_key)
+        if versioned.is_file() or legacy.is_file():
+            return versioned if versioned.is_file() else legacy
+        others = sorted(legacy.parent.glob(legacy.stem + ".*.json"))
+        return others[0] if others else legacy
 
     def holds_set(self, commitment):
         try:
             if self.withdrawn(commitment["set_key"]):
                 return False
-            return self._set_path(commitment["set_key"]).is_file()
+            return self._stored_set_path(
+                commitment["set_key"], commitment["challenge_version"]
+            ).is_file()
         except (AnswerKeyRefused, KeyError, TypeError):
             return False
 
@@ -375,7 +404,7 @@ class SealedPackStore:
         self._owner_only_root()
         record = self.root / SETS_DIRECTORY
         record.mkdir(mode=0o700, exist_ok=True)
-        path = self._set_path(commitment["set_key"])
+        path = self._set_path(commitment["set_key"], commitment["challenge_version"])
         if not path.exists():
             path.write_bytes(
                 json.dumps(commitment, sort_keys=True, separators=(",", ":")).encode()
@@ -392,7 +421,9 @@ class SealedPackStore:
         if self.withdrawn(set_key):
             raise AnswerKeyRefused("answer_key_pack_set_withdrawn")
         try:
-            commitment = json.loads(self._set_path(set_key).read_bytes())
+            commitment = json.loads(
+                self._stored_set_path(set_key, challenge_version).read_bytes()
+            )
         except (OSError, ValueError):
             raise AnswerKeyRefused("answer_key_pack_set_missing") from None
         verify_set(commitment, set_payload_for(commitment))

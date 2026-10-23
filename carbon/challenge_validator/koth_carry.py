@@ -1,26 +1,32 @@
 """A KOTH king carries across construction versions (OWNER-KOTH-CARRY-ACROSS-VERSIONS-01).
 
 The owner: a king carries to a new construction version (F08 1.4 -> 1.5, ...)
-while the sealed evaluation version **and** the active pack set are unchanged.
-A new exam or a pack-set rotation still resets the king. Each carry is recorded.
+while the sealed evaluation version is unchanged; a new exam resets the king.
+Each carry is recorded. A pack-set rotation is not a reset
+(OWNER-EXAM-CAP-ROTATION-01, held by VALIDATOR-KOTH-CARRY-SCOPE-01): the king
+carries and is regraded on the new set by the existing regrade step; until
+that regrade exists every comparison against him is UNAVAILABLE.
 
 The continuity key is `(challenge_id, evaluation_version, pack_set_key)`:
 - `evaluation_version` comes from `scoring.sealed_versions.evaluation_version`,
   the table the sealed graders register (F08 1.4 and 1.5 both grade on
-  `f08-dual-sealed-batch-8-v1`);
+  `f08-dual-sealed-batch-8-v1`); a different one refuses the carry;
 - `pack_set_key` is each deployment's configured active pack set
-  (`evaluation_pack_set.set_key` in its receiver configuration).
+  (`evaluation_pack_set.set_key`). Its key leaves the construction version out
+  (`sealed_exam_common.pack_set_document`, v2), so the same batches on 1.4 and
+  1.5 give one key and no regrade is needed; a different key marks the carry
+  `regrade: REQUIRED`.
 
-Either one unknown, or the two keys different, means no carry: the new
-deployment starts without a king, as before (fail closed).
+Either part unknown means no carry: the new deployment starts without a king,
+as before (fail closed).
 
 Where: at the cutover, once, into the new deployment's pool store
 (`PoolStore.carry_incumbent`). The new store's incumbent is then the king, so
 the weights publisher, the winner ledger (which finds the king's existing
 record by model id, so his clock is kept) and `score_feed.king_record` (which
 shows the deployment's live incumbent) all see him without change. A 1.5
-challenger meets him through the unchanged comparator: the pair reads the
-king's own carried evaluation of the same measured exam
+challenger meets him through the unchanged comparator: on an unchanged pack
+set the pair reads the king's own carried evaluation of the same measured exam
 (`bank_promotion.carry_identity`). The takeover rule, its margin and ties are
 untouched.
 
@@ -91,8 +97,6 @@ def carry(
     new = continuity_key(challenge_id, new_version, new_pack_set_key)
     if old[1] != new[1]:
         raise CarryRefused("koth_carry_evaluation_version_changed")
-    if old[2] != new[2]:
-        raise CarryRefused("koth_carry_pack_set_changed")
     if not is_digest(king_source_receipt_sha256):
         raise CarryRefused("koth_carry_source_pin_missing")
     live = old_store.incumbent()
@@ -114,7 +118,13 @@ def carry(
             "old_version": old_version,
             "new_version": new_version,
             "evaluation_version": new[1],
-            "pack_set_key": new[2],
+            "old_pack_set_key": old[2],
+            "new_pack_set_key": new[2],
+            # A pack-set change still carries the king
+            # (OWNER-EXAM-CAP-ROTATION-01, VALIDATOR-KOTH-CARRY-SCOPE-01): he
+            # meets challengers on the new set only once he is regraded on it;
+            # until then every comparison is UNAVAILABLE, never a reset.
+            "regrade": "NOT_REQUIRED" if old[2] == new[2] else "REQUIRED",
             "king_source_receipt_sha256": king_source_receipt_sha256,
         }
         return new_store.carry_incumbent(old_store, record)

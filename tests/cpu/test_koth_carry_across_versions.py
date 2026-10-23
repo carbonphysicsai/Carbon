@@ -1,8 +1,10 @@
 """A KOTH king carries across construction versions (OWNER-KOTH-CARRY-ACROSS-VERSIONS-01).
 
 A king of F08 1.4 survives the bump to 1.5 (same sealed evaluation version, same
-pack set) and meets 1.5 challengers under the unchanged takeover rule; a new pack
-set or a new evaluation version carries nothing. Each carry is recorded once.
+pack set) and meets 1.5 challengers under the unchanged takeover rule. A new
+evaluation version carries nothing. A rotation keeps the king
+(OWNER-EXAM-CAP-ROTATION-01): he is compared on the new set once regraded, and
+every comparison is UNAVAILABLE until then. Each carry is recorded once.
 
 The evaluations here are inert, structurally valid paired-dual bindings filed
 straight into the pool store: they exercise the store, the carry and the
@@ -21,6 +23,7 @@ from carbon.challenge_validator.bank_promotion import (
     INCUMBENT_KEEPS,
     PAIRED_BINDING,
     SEALED_TESTNET_PROMOTION,
+    UNAVAILABLE,
     BankPromotion,
     carry_identity,
     private_evaluation_key,
@@ -216,9 +219,11 @@ def test_a_challenger_on_another_measured_exam_never_meets_the_carried_king(
 ):
     old, new = _old_deployment(tmp_path), _new_deployment(tmp_path)
     _carry(old, new)
-    with pytest.raises(StateError) as refused:
-        _challenge(new, "other-exam", 0.99, queries="0")
-    assert refused.value.code == "incumbent_evaluation_required"
+    other = _challenge(new, "other-exam", 0.99, queries="0")
+    assert (other["outcome"], other["reason"]) == (
+        UNAVAILABLE,
+        "incumbent_regrade_required",
+    )
     assert new.incumbent()["model_id"] == "king"
 
 
@@ -267,12 +272,64 @@ def test_the_carried_king_is_the_feed_king_and_keeps_his_ledger_clock(tmp_path):
     assert len(ledger.records(F08)) == 1
 
 
-def test_a_pack_set_rotation_resets_the_king(tmp_path):
+def _consider(store, submission_id, version, total, *, pin, queries):
+    key = _file(
+        store,
+        submission_id,
+        submission_id + "-hotkey",
+        version,
+        total,
+        pin=pin,
+        queries=queries,
+    )
+    return BankPromotion(store, registered_source_receipt_sha256=pin).consider_private(
+        submission_id, key, _comparator(), sealed=True
+    )
+
+
+def test_a_rotation_and_regrade_keep_the_king(tmp_path):
+    """OWNER-EXAM-CAP-ROTATION-01 holds (VALIDATOR-KOTH-CARRY-SCOPE-01): a
+    rotation is not a reset. Before the king's regrade on the new set nothing
+    can be compared; after it he meets challengers under the unchanged rule."""
+    store = _old_deployment(tmp_path)
+    rotated = {"version": "1.4", "pin": OLD_PIN, "queries": "0"}
+    early = _consider(store, "early", total=0.99, **rotated)
+    assert (early["outcome"], early["reason"], early["incumbent"]) == (
+        UNAVAILABLE,
+        "incumbent_regrade_required",
+        "king",
+    )
+    assert store.incumbent()["model_id"] == "king"
+    # The regrade files the king's evaluation of the new set under his own id.
+    _file(store, "king", "king-hotkey", "1.4", 0.80, pin=OLD_PIN, queries="0")
+    within = _consider(store, "within", total=0.80 + NOISE / 2, **rotated)
+    assert within["outcome"] == INCUMBENT_KEEPS
+    assert store.incumbent()["model_id"] == "king"
+    beyond = _consider(store, "beyond", total=0.80 + 2 * NOISE, **rotated)
+    assert (beyond["outcome"], store.incumbent()["model_id"]) == (CHALLENGER, "beyond")
+
+
+def test_a_carry_onto_a_new_pack_set_keeps_the_king_until_regraded(tmp_path):
+    """A pack-set change carries the king, marked for a regrade. A 1.4 king
+    cannot be regraded by a 1.5 receiver (`regrade_challenge_changed`), so
+    every comparison is UNAVAILABLE: never a reset, never a free crown."""
     old, new = _old_deployment(tmp_path), _new_deployment(tmp_path)
-    with pytest.raises(koth_carry.CarryRefused) as refused:
-        _carry(old, new, new_pack_set_key=ROTATED_SET_KEY)
-    assert refused.value.code == "koth_carry_pack_set_changed"
-    assert new.incumbent() is None and new.koth_carries() == []
+    record = _carry(old, new, new_pack_set_key=ROTATED_SET_KEY)
+    assert (record["old_pack_set_key"], record["new_pack_set_key"]) == (
+        SET_KEY,
+        ROTATED_SET_KEY,
+    )
+    assert record["regrade"] == "REQUIRED"
+    assert new.incumbent() == {"model_id": "king", "reason": SEALED_TESTNET_PROMOTION}
+    # Even on content the carried evidence measured, it never stands in for
+    # the regrade on a changed set.
+    for name, queries in (("same-content", "1"), ("new-content", "0")):
+        outcome = _challenge(new, name, 0.99, queries=queries)
+        assert (outcome["outcome"], outcome["reason"]) == (
+            UNAVAILABLE,
+            "incumbent_regrade_required",
+        )
+    assert new.incumbent()["model_id"] == "king"
 
 
 def test_a_new_evaluation_version_resets_the_king(tmp_path, monkeypatch):
@@ -334,7 +391,9 @@ def test_the_carry_record_is_written_exactly_once_with_its_fields(tmp_path):
         "old_version": "1.4",
         "new_version": "1.5",
         "evaluation_version": SEALED,
-        "pack_set_key": SET_KEY,
+        "old_pack_set_key": SET_KEY,
+        "new_pack_set_key": SET_KEY,
+        "regrade": "NOT_REQUIRED",
         "king_source_receipt_sha256": OLD_PIN,
         "carried_evaluations": [old.king_key],
         "carried_at": 200.0,
@@ -384,7 +443,9 @@ def test_the_store_refuses_a_moved_or_unretained_king_and_itself(tmp_path):
         "old_version": "1.4",
         "new_version": "1.5",
         "evaluation_version": SEALED,
-        "pack_set_key": SET_KEY,
+        "old_pack_set_key": SET_KEY,
+        "new_pack_set_key": SET_KEY,
+        "regrade": "NOT_REQUIRED",
         "king_source_receipt_sha256": OLD_PIN,
     }
     for store, wrong, code in (
