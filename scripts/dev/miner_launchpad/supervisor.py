@@ -531,6 +531,13 @@ NEXT_ACTIONS = {
         "The validator's infrastructure failed. That is not a scientific "
         "result. The frozen candidate is kept; submit again later."
     ),
+    # A chain read refused or dropped after its retries (12h S4).
+    "chain_read_failed_infra": (
+        "Carbon could not read the subnet's chain: its endpoint was busy or "
+        "unreachable after several tries. That is infrastructure, not your "
+        "work; your campaign is kept. Resume it in a minute (carbon_resume, "
+        "or Resume in the Control Center)."
+    ),
     "intake_unreachable": (
         "The validator intake could not be reached. The frozen candidate is "
         "kept. For an intake on this machine's loopback (a tunnel to a "
@@ -1728,6 +1735,39 @@ def provider_interruption_code(exc):
     return code if code in NEXT_ACTIONS else None
 
 
+#: A chain read's failure codes (`carbon.chain.models.FailureCode`) that are
+#: infrastructure - the endpoint refused, dropped or timed out - and so a
+#: retryable stop, never a refusal of the miner's work.
+CHAIN_INFRA_FAILURES = frozenset(
+    {
+        "PROVIDER_RATE_LIMITED",
+        "PROVIDER_UNAVAILABLE",
+        "TRANSPORT_TIMEOUT",
+        "TRANSPORT_FAILURE",
+    }
+)
+#: Interruption codes that are infrastructure: their `last_refusal` says so
+#: (`failed_infra`, `retryable`).
+INFRA_CODES = frozenset({"chain_read_failed_infra"})
+
+
+def chain_interruption_code(exc):
+    """`chain_read_failed_infra` for a run or operation ended by a chain read
+    that failed for infrastructure reasons - the `ChainFailure` itself, or
+    one it caused - else None (12h S4: it was recorded as
+    UNSUPPORTED_CAPABILITY)."""
+    from carbon.chain.models import ChainFailure
+
+    seen = 0
+    while exc is not None and seen < 8:
+        if isinstance(exc, ChainFailure):
+            code = getattr(exc.code, "value", None)
+            return "chain_read_failed_infra" if code in CHAIN_INFRA_FAILURES else None
+        exc = exc.__cause__ or exc.__context__
+        seen += 1
+    return None
+
+
 def exception_code(exc):
     """A typed failure's closed code (its `code`, or that code's `value`), or
     None. Never the message: a `Rejected`, an `OperationRefused`, a
@@ -1773,6 +1813,8 @@ def refusal(code, *, operation=None, kind="refused", at=None):
         "at": round(time.time() if at is None else at, 3),
         "operation": operation if operation in OPERATIONS else None,
         "kind": kind if kind in ("refused", "interrupted", "paused") else "refused",
+        # An infrastructure stop says so, and that trying again is the fix.
+        **({"failed_infra": True, "retryable": True} if code in INFRA_CODES else {}),
     }
 
 

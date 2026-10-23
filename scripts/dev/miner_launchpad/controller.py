@@ -132,10 +132,16 @@ def failure_answer(exc, *, reading, campaign=False):
     operation that did not complete (`operation_not_completed`). Never the
     exception's message. `error_body` adds the next step for each.
     """
-    from scripts.dev.miner_launchpad.supervisor import exception_code
+    from scripts.dev.miner_launchpad.supervisor import (
+        chain_interruption_code,
+        exception_code,
+    )
 
     if isinstance(exc, LockHeld):
         return 409, "campaign_busy"
+    # A chain read that failed for infrastructure reasons: try again (S4).
+    if chain_interruption_code(exc) is not None:
+        return 503, chain_interruption_code(exc)
     code = exception_code(exc)
     if code is not None:
         return 409, code
