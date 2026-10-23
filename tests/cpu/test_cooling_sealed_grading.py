@@ -163,14 +163,20 @@ def test_the_sealed_pack_registers_its_own_gate_keys():
     assert pack["hard_gates"] == list(cdm.SEALED_GATES)
 
 
-def test_the_raw_sealed_adapter_serves_exactly_cooling_1_1_and_1_2():
+def test_the_sealed_table_is_1_1_and_1_2_and_1_3_is_the_decoding_adapter():
+    from carbon.scoring import cooling_encoded_dual_pack as encoded
+
+    assert set(adapter.SEALED_VERSIONS) == {"1.1", "1.2"}
     for version in ("1.1", "1.2"):
         chosen = adapter.sealed_adapter(version)
         assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v1"
         assert chosen.VERSION == version
-    # 1.3 changes the output interface, so the raw adapter (which does not decode)
-    # never grades it: it has its own decoding sealed adapter.
-    for version in ("1.0", "1.3", "1.4", None):
+    # 1.3 changes the output interface: the one dispatch point here hands it to the
+    # adapter that DECODES; no raw (non-decoding) adapter ever grades it.
+    chosen = adapter.sealed_adapter("1.3")
+    assert chosen.VERSION == "1.3" and chosen._module is encoded
+    assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v1"
+    for version in ("1.0", "1.4", None):
         assert adapter.sealed_adapter(version) is None
 
 

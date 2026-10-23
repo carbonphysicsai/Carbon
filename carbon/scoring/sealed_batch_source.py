@@ -148,12 +148,8 @@ def _adapter(challenge, bank, version, development_adapter):
         except ValueError:  # a population with no sealed grader
             return None
     if challenge == COOLING:
-        from carbon.scoring import cooling_dual_pack, cooling_encoded_dual_pack
+        from carbon.scoring import cooling_dual_pack
 
-        # An interface change (1.3's output encoding) is graded by the adapter that
-        # decodes it, never by the raw sealed adapter.
-        if version == cooling_encoded_dual_pack.VERSION:
-            return cooling_encoded_dual_pack.sealed_adapter(version)
         return cooling_dual_pack.sealed_adapter(version)
     if challenge == BATTERY:
         # Validator-only, never imported here (its value modules reach the attack

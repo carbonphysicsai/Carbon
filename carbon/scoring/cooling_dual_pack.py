@@ -403,7 +403,15 @@ def adapter(rule="baseline_legs"):
 def sealed_adapter(version):
     """The adapter for a sealed exam batch of exactly Challenge ``version``
     (``SEALED_VERSIONS``), or None: no default. The definition reads the bank
-    kind from the bank's cohort, so measurement is this module's."""
+    kind from the bank's cohort, so measurement is this module's.
+
+    Cooling 1.3 changes the output interface (the law-safe encoding), so its sealed
+    adapter is the one that decodes first (``cooling_encoded_dual_pack``): the one
+    dispatch point stays here, and no shared producer file routes it."""
+    if version == "1.3":
+        from carbon.scoring import cooling_encoded_dual_pack
+
+        return cooling_encoded_dual_pack.sealed_adapter(version)
     if type(version) is not str or version not in SEALED_VERSIONS:
         return None
     return physical.Variant(_ADAPTER, version, SEALED_VERSIONS[version], CASE_ID)
