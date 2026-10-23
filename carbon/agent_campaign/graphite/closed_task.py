@@ -40,6 +40,7 @@ from carbon.development_session.data import write_once
 from carbon.development_session.model_provider import select
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_agent import (
+    REQUEST_HOLD_FIT_V1,
     ProviderCallFailed,
     request_model,
 )
@@ -249,6 +250,8 @@ class _Session:
                 transport=self.transport,
                 provider=self.selection,
                 sleep=self.task.sleep,
+                # G1: the hold fits the miner's money left (Validator).
+                hold=REQUEST_HOLD_FIT_V1,
             )
         except ProviderCallFailed as error:
             raise TaskStopped(

@@ -383,7 +383,22 @@ def input_token_bound(request_bytes, anchor):
 #: and recorded (owner, 2026-10-22: a small overcharge is better than coming
 #: up 70% short).
 REQUEST_HOLD_V1 = "carbon.autoresearch.request-hold.v1"
-REQUEST_HOLDS = (REQUEST_HOLD_V1,)
+#: G1 (Validator, 2026-10-23): `REQUEST_HOLD_V1`'s hold, and never more than
+#: the money the miner's own cap still admits (`CampaignLedger.room`, and a
+#: stage's research share where one binds). When the V1 hold does not fit, the
+#: request's `max_output_tokens` is clamped to what is left after its input
+#: bound - the request's bytes (or its anchored bound) plus
+#: `CONTEXT_RESERVE_TOKENS` for provider framing - and the hold is that bound
+#: at the input price plus the clamped output at the output price. The
+#: provider is asked for no more output than the hold pays for. A call that
+#: cannot fit `FIT_MIN_OUTPUT_TOKENS` stops typed `miner_ceiling_reached`
+#: before anything is reserved. Billed input over the bound is
+#: `usage_exceeds_reservation`, settled and recorded, never silent. A
+#: recorded call replays its own stored request and reservation.
+REQUEST_HOLD_FIT_V1 = "carbon.autoresearch.request-hold.fit.v1"
+REQUEST_HOLDS = (REQUEST_HOLD_V1, REQUEST_HOLD_FIT_V1)
+#: The smallest reply a fitted call asks for (Validator, G1).
+FIT_MIN_OUTPUT_TOKENS = 512
 
 
 def request_extends(previous, request):
@@ -418,6 +433,68 @@ def request_hold(selection, request_bytes, anchor=None, extends=False):
         selection.reservation_nano,
         tokens * pricing.input_nano + settings.max_output_tokens * pricing.output_nano,
     )
+
+
+def fit_hold(
+    ledger,
+    *,
+    owner,
+    identity,
+    directory,
+    provider,
+    request,
+    payload,
+    held,
+    anchor,
+    phase,
+):
+    """`REQUEST_HOLD_FIT_V1`: `(request, payload, held)` for one priced call,
+    the request's `max_output_tokens` clamped so its hold fits the money left.
+    A call already recorded replays its stored request and reservation."""
+    from .research_ledger import (
+        MINER_CEILING_REACHED,
+        LedgerRefusal,
+        manifest_basis,
+    )
+
+    with ledger.db() as db:
+        row = db.execute(
+            "SELECT reservation FROM operations WHERE id=?", (identity,)
+        ).fetchone()
+        frozen = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+    if row is not None:
+        stored = directory / "request.json"
+        if stored.is_file():
+            payload = stored.read_bytes()
+            request = json.loads(payload)
+        recorded = json.loads(row[0]).get("provider_nanodollars")
+        return request, payload, held if recorded is None else recorded
+    # A ledger that cannot say what is left keeps the V1 hold, unchanged.
+    reader = getattr(ledger, "room", None)
+    room = reader("provider_nanodollars", phase=phase) if callable(reader) else None
+    if room is None or held <= room:
+        return request, payload, held
+    settings, pricing = provider.settings, provider.pricing
+    bound = min(
+        input_token_bound(len(payload), anchor) + CONTEXT_RESERVE_TOKENS,
+        settings.max_input_tokens,
+    )
+    inputs = bound * pricing.input_nano
+    output = min(
+        settings.max_output_tokens,
+        max(0, room - inputs) // max(1, pricing.output_nano),
+    )
+    if output < FIT_MIN_OUTPUT_TOKENS:
+        manifest = json.loads(frozen[0]) if frozen else {}
+        raise LedgerRefusal(
+            "miner budget: provider_nanodollars",
+            code=MINER_CEILING_REACHED,
+            dimension="provider_nanodollars",
+            basis=manifest_basis(manifest),
+            requested=inputs + FIT_MIN_OUTPUT_TOKENS * pricing.output_nano,
+        )
+    request = {**request, "max_output_tokens": output}
+    return request, canonical(request), inputs + output * pricing.output_nano
 
 
 def request_model(
@@ -750,6 +827,22 @@ def _request_once(
             provider, len(payload), anchor, request_extends(anchored, request)
         )
     )
+    if hold == REQUEST_HOLD_FIT_V1 and priced:
+        # G1: the hold fits the money left; the request asks for no more output
+        # than it pays for (`fit_hold`).
+        request, payload, held = fit_hold(
+            ledger,
+            owner=owner,
+            identity=identity,
+            directory=directory,
+            provider=provider,
+            request=request,
+            payload=payload,
+            held=held,
+            anchor=anchor,
+            phase=phase,
+        )
+        request_digest = digest(payload)
     reservation = {
         "provider_attempts": 1,
         **({"provider_nanodollars": held} if priced else {}),
@@ -869,7 +962,7 @@ def _request_once(
         "provider_status": response.get("status"),
     }
     if status != "SUCCEEDED":
-        result["incomplete"] = incomplete_reply(response, settings.max_output_tokens)
+        result["incomplete"] = incomplete_reply(response, request["max_output_tokens"])
     if not provider.is_historical_default:
         # Campaign evidence for every call: the estimate and the provider's
         # own charge side by side, and who served it.

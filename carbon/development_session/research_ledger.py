@@ -659,6 +659,25 @@ class CampaignLedger:
                 used[key] += value
         return used
 
+    def room(self, key, *, phase="research"):
+        """What the miner's own cap on `key` still admits for one reservation
+        in `phase`: the cap less what is used (a settled actual, else its
+        reservation) and the final-phase reserve a research reservation keeps
+        back, as `reserve` counts it; None when the miner set no cap on it.
+        Read only; it refuses nothing (G1, `research_agent.REQUEST_HOLD_FIT_V1`)."""
+        with self.db() as db:
+            frozen = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+            if frozen is None:
+                return None
+            manifest = json.loads(frozen[0])
+            cap = _caps(manifest).get(key, NO_BUDGET)
+            if cap is NO_BUDGET:
+                return None
+            headroom = (
+                _final_reserve(manifest).get(key, 0) if phase == "research" else 0
+            )
+            return max(0, cap - self._usage(db)[key] - headroom)
+
     def reserve(self, identity, *, owner, phase, request, resources):
         from .research_control import DispatchPaused
 
