@@ -21,7 +21,17 @@ from pathlib import Path
 
 SCHEMA = "carbon.launchpad.installed-images.v1"
 FILE = "installed-images.json"
-FIELDS = ("image_manifest", "analysis_image_manifest", "gpu_image_manifest")
+FIELDS = (
+    "image_manifest",
+    "analysis_image_manifest",
+    "gpu_image_manifest",
+    # The PyTorch GPU worker, beside the JAX one, when `install_miner.sh
+    # --pytorch --gpu` built it (Validator ruling: --gpu selects the GPU
+    # worker of each installed backend). This machine's GPU practice uses it
+    # (`environment_setup.local_gpu_manifest`); the remote route keeps the
+    # JAX worker.
+    "torch_gpu_image_manifest",
+)
 #: The released GPU worker's record (`carbon.worker-image-release.v1`), kept
 #: beside the image manifests but never read as one: `read` returns FIELDS only.
 GPU_RELEASE_RECORD = "gpu_release_record"
@@ -34,12 +44,16 @@ DEVELOPMENT_CANDIDATE_SCHEMA = "carbon.launchpad.development-candidate.v1"
 #: that script for their remote setup (`install_miner.sh --gpu` checks for a
 #: local NVIDIA driver first), and setup still finds it.
 GPU_DEFAULT = ".carbon-artifacts/accelerator-worker-image.json"
+#: Where `scripts/dev/torch_gpu_worker_image.sh` writes the PyTorch GPU
+#: worker's manifest by default.
+TORCH_GPU_DEFAULT = ".carbon-artifacts/torch-gpu-worker-image.json"
 #: The one command that builds each image, named when setup finds none: the
 #: script in the checkout and its arguments.
 BUILD = {
     "image_manifest": ("scripts/install_miner.sh", "--no-start"),
     "analysis_image_manifest": ("scripts/install_miner.sh", "--no-start"),
     "gpu_image_manifest": ("scripts/dev/accelerator_worker_image.sh",),
+    "torch_gpu_image_manifest": ("scripts/dev/torch_gpu_worker_image.sh",),
 }
 
 
@@ -50,7 +64,14 @@ def write(
     analysis_image_manifest,
     gpu_image_manifest=None,
     gpu_release_record=None,
+    torch_gpu_image_manifest=None,
+    clear_development_candidate=False,
 ):
+    """Record the installed images. An operator's development candidate pin
+    beside them is kept (M1 E2E: a hand-run `installed write` deleted it);
+    the installer clears it for an install that is not a candidate one
+    (`clear_development_candidate`), so no ordinary install runs on a stale
+    pin."""
     from scripts.dev.miner_launchpad.environment_setup import write_private
 
     record = {"schema": SCHEMA}
@@ -60,6 +81,7 @@ def write(
             image_manifest,
             analysis_image_manifest,
             gpu_image_manifest,
+            torch_gpu_image_manifest,
             gpu_release_record,
         ),
     ):
@@ -72,7 +94,8 @@ def write(
     candidate = Path(state_dir) / DEVELOPMENT_CANDIDATE_FILE
     if candidate.is_symlink():
         raise ValueError("development candidate record is a link")
-    candidate.unlink(missing_ok=True)
+    if clear_development_candidate:
+        candidate.unlink(missing_ok=True)
     return write_private(
         Path(state_dir) / FILE, json.dumps(record, sort_keys=True).encode()
     )
@@ -278,6 +301,13 @@ def released_gpu(state_dir, gpu_manifest) -> dict | None:
     return {"release_tag": record["release_tag"], "reference": record["reference"]}
 
 
+#: Where each GPU worker's build script writes its manifest, and its name.
+DEFAULTS = {
+    "gpu_image_manifest": (GPU_DEFAULT, "accelerator_worker_image.sh"),
+    "torch_gpu_image_manifest": (TORCH_GPU_DEFAULT, "torch_gpu_worker_image.sh"),
+}
+
+
 def found(state_dir, repo) -> dict:
     """Each image setup can fill in: its path and who recorded it, or none
     and the one command, from the checkout `repo`, that builds it.
@@ -289,10 +319,10 @@ def found(state_dir, repo) -> dict:
     images = {}
     for field in FIELDS:
         path, by = recorded.get(field), "install_miner.sh"
-        if path is None and field == "gpu_image_manifest":
-            default = Path(repo) / GPU_DEFAULT
+        if path is None and field in DEFAULTS:
+            default = Path(repo) / DEFAULTS[field][0]
             if default.is_file() and not default.is_symlink():
-                path, by = str(default), "accelerator_worker_image.sh"
+                path, by = str(default), DEFAULTS[field][1]
         script, *arguments = BUILD[field]
         images[field] = {
             "path": path,
@@ -367,6 +397,8 @@ def main(argv=None):
     record.add_argument("--analysis-image-manifest", required=True)
     record.add_argument("--gpu-image-manifest")
     record.add_argument("--gpu-release-record")
+    record.add_argument("--torch-gpu-image-manifest")
+    record.add_argument("--clear-development-candidate", action="store_true")
     reuse = commands.add_parser("current")
     reuse.add_argument("--manifest", type=Path, required=True)
     reuse.add_argument("--candidate-revision")
@@ -431,6 +463,8 @@ def main(argv=None):
         analysis_image_manifest=args.analysis_image_manifest,
         gpu_image_manifest=args.gpu_image_manifest,
         gpu_release_record=args.gpu_release_record,
+        torch_gpu_image_manifest=args.torch_gpu_image_manifest,
+        clear_development_candidate=args.clear_development_candidate,
     )
     print(f"Recorded the installed images for setup: {path}")
 

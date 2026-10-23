@@ -169,7 +169,16 @@ def test_operator_candidate_pin_is_private_exact_and_cleared_by_install(
     rewritten = {**profile, "intakes": {"x": "https://receiver.example"}}
     write_private(profile_path, canonical(rewritten))
     assert installed.current_profile(profile_path)["intakes"] == rewritten["intakes"]
+    # A hand-run `installed write` keeps the operator's pin (M1 E2E); the
+    # installer's write for an ordinary install clears it.
     installed.write(state, image_manifest=worker, analysis_image_manifest=analysis)
+    assert pin.exists()
+    installed.write(
+        state,
+        image_manifest=worker,
+        analysis_image_manifest=analysis,
+        clear_development_candidate=True,
+    )
     assert not pin.exists()
     assert installed.candidate_implementation(state, repository=tmp_path) is None
 
@@ -1832,8 +1841,11 @@ def test_remote_setup_names_the_released_gpu_worker_from_the_installed_record(
         gpu_image_manifest=gpu,
         gpu_release_record=record_path,
     )
-    # The release record is never read as an image manifest.
-    assert set(installed.read(state)) == set(installed.FIELDS)
+    # The release record is never read as an image manifest (no PyTorch GPU
+    # worker was recorded here).
+    assert set(installed.read(state)) == set(installed.FIELDS) - {
+        "torch_gpu_image_manifest"
+    }
     named = installed.released_gpu(state, str(gpu))
     assert named == {
         "release_tag": "worker-images-v1",
