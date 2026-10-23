@@ -52,6 +52,13 @@ class BrowserOnboarding:
     def chain_configured(self) -> bool:
         return self.reader is not None and self.context is not None
 
+    def funding(self, address: object) -> dict:
+        """The "Fund your wallet" read: this coldkey's balance and the joining
+        cost, fresh at the finalized head (Validator funding-door ruling)."""
+        from carbon.development_session.onboarding_funding import funding
+
+        return funding(self.context, address)
+
     def requirements(self) -> dict:
         value = service.requirements()
         value["chain_reads_available"] = self.chain_configured

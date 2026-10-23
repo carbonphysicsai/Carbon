@@ -1306,7 +1306,7 @@ class Handler(BaseHTTPRequestHandler):
                 result = self.server.gpu_build.start(value)
             elif self.path.startswith("/api/v1/onboarding/"):
                 action = self.path.removeprefix("/api/v1/onboarding/")
-                if action not in {"status", "prepare", "confirm"}:
+                if action not in {"status", "prepare", "confirm", "funding"}:
                     raise Rejected("unknown_onboarding_action", 404)
                 if type(value) is not dict or set(value) != {"address"}:
                     raise Rejected("closed_onboarding_request_required")
@@ -1314,6 +1314,20 @@ class Handler(BaseHTTPRequestHandler):
                     OnboardingFailure,
                 )
 
+                if action == "funding":
+                    # The address stays in this body: it goes to the chain
+                    # reader only, never into a URL or a log (Validator).
+                    from carbon.development_session.onboarding_funding import (
+                        FundingRefused,
+                    )
+
+                    try:
+                        result = self.server.onboarding.funding(value["address"])
+                    except FundingRefused as refused:
+                        self.reply(refused.status, refused.body())
+                        return
+                    self.reply(200, result)
+                    return
                 try:
                     result = getattr(self.server.onboarding, action)(value["address"])
                 except OnboardingFailure as failure:

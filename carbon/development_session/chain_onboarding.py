@@ -84,6 +84,13 @@ MECHANISM = "BURNED_REGISTRATION"
 #: query that failed. `NOT_READ` says Carbon did not ask. Only the second is
 #: true here, and a reader deciding how much to trust this surface should be
 #: able to tell them apart.
+#:
+#: Validator ruling, 2026-10-23 (funding door): `requirements` still reads no
+#: cost. The "Fund your wallet" step reads it separately, fresh at the
+#: finalized head on every request with its block named, never cached, and
+#: says the wallet's figure at signing is the one that counts
+#: (`onboarding_funding`). That answers the stale-figure concern above for
+#: that step only.
 COST_BASIS = "SUBNET_RECYCLE_PARAMETER"
 COST_VALUE = "NOT_READ"
 
