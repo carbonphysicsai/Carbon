@@ -288,6 +288,48 @@ scenario("acceptance defaults label offered Agents Compute and Connections catal
   clean(page);
 });
 
+// U45 / R8-4: the best tile follows the declared direction; with none declared there is no best at all.
+async function runsScreen(direction) {
+  const state = launchable(world());
+  const run = manualRun();
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const rows = state.view.experiments.rows;
+  assert.ok(rows.length >= 3, "the fixture has at least three runs");
+  [3, 1, 2].forEach((score, i) => { rows[i].score = score; rows[i].eligible = true; });
+  for (const row of rows.slice(3)) row.eligible = false;
+  state.view.declaration = {...(state.view.declaration || {})};
+  if (direction === undefined) delete state.view.declaration.direction; else state.view.declaration.direction = direction;
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/experiments");
+  await page.advance(0);
+  return {page, tiles: [...all(page, "#campaign-detail .run-tile")].map(node => node.textContent)};
+}
+scenario("the runs screen's best tile is the lowest passing score when lower is better", async () => {
+  const {page, tiles} = await runsScreen("lower_is_better");
+  const best = tiles.find(text => text.startsWith("Best passing score (lower is better)"));
+  assert.ok(best, "the lower-is-better best tile shows: " + JSON.stringify(tiles));
+  assert.equal(parseFloat(best.slice("Best passing score (lower is better)".length)), 1);
+  assert.equal(all(page, "#campaign-detail .best-card").length, 1);
+  clean(page);
+});
+scenario("the runs screen's best tile is the highest passing score when higher is better", async () => {
+  const {page, tiles} = await runsScreen("higher_is_better");
+  const best = tiles.find(text => text.startsWith("Best passing score (higher is better)"));
+  assert.ok(best, "the higher-is-better best tile shows: " + JSON.stringify(tiles));
+  assert.equal(parseFloat(best.slice("Best passing score (higher is better)".length)), 3);
+  assert.equal(all(page, "#campaign-detail .best-card").length, 1);
+  clean(page);
+});
+scenario("the runs screen shows no best tile, best line or best card when no direction is declared", async () => {
+  const {page, tiles} = await runsScreen(undefined);
+  assert.ok(tiles.length >= 2, "the runs screen itself still shows");
+  assert.ok(!tiles.some(text => /Best passing score/.test(text)), "no best tile");
+  assert.equal(all(page, "#campaign-detail .best-card").length, 0, "no best card");
+  assert.ok(!page.text("campaign-detail").includes("best passing score so far"), "no best line");
+  clean(page);
+});
+
 scenario("toolbox visibly stays untested without a PASS cell", async () => {
   const state = launchable(world());
   const run = manualRun();
