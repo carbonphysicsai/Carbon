@@ -72,6 +72,18 @@ class DirectConstructionPending(DirectIntakeRefusal):
         self.task_id = task_id
 
 
+class DirectSameRecipeSubmitted(DirectIntakeRefusal):
+    """The receiver already graded this hotkey's recipe on its current exam
+    set (Validator ruling (a)): nothing was graded and no exam was used.
+    `earlier` is that submission's own checked outcome."""
+
+    code_name = "same_recipe_already_submitted"
+
+    def __init__(self, earlier: dict):
+        super().__init__(self.code_name)
+        self.earlier = earlier
+
+
 class DirectIntakeRateLimit(DirectIntakeRefusal):
     """Only the receiver's explicit pre-admission HTTP 429 rate envelope."""
 
@@ -195,14 +207,17 @@ def _outcome(
     task_id=None,
     pinned=None,
     evidence_label="DEVELOPMENT_PUBLIC_SYNTHETIC",
+    kind="OUTCOME",
+    code=None,
 ):
-    """Check the existing public validator envelope and lean outcome contract."""
+    """Check the existing public validator envelope and lean outcome contract
+    (an OUTCOME, or a refusal that carries an earlier outcome)."""
     if (
         type(answer) is not dict
         or set(answer) != RESULT_FIELDS
         or answer.get("schema") != RESULT_SCHEMA
-        or answer.get("kind") != "OUTCOME"
-        or answer.get("code") is not None
+        or answer.get("kind") != kind
+        or answer.get("code") != code
         or answer.get("evidence") != "DEVELOPMENT"
         or answer.get("qualification") is not False
         or answer.get("reward") is not False
@@ -540,6 +555,23 @@ def submit_and_wait(
                 and answer.get("refused") == "rate"
             ):
                 raise DirectIntakeRateLimit()
+            if (
+                status == 400
+                and type(answer) is dict
+                and answer.get("kind") == "REFUSED"
+                and answer.get("code") == DirectSameRecipeSubmitted.code_name
+            ):
+                # Already graded on this exam set: no record for this epoch,
+                # so its exam stays unused; the earlier result comes back.
+                earlier, _ = _outcome(
+                    answer,
+                    contract_digest=contract_digest,
+                    challenge=expected_challenge,
+                    evidence_label=registered_contract.evidence_label,
+                    kind="REFUSED",
+                    code=DirectSameRecipeSubmitted.code_name,
+                )
+                raise DirectSameRecipeSubmitted(earlier)
             if (
                 status != 202
                 or type(answer) is not dict

@@ -27,6 +27,7 @@ from .interface import (
     ChallengeAdapter,
     OutcomeContractViolation,
     ReservedRole,
+    SameRecipeAlreadySubmitted,
     Submission,
     Unavailable,
     check_outcome,
@@ -384,6 +385,17 @@ class Validator:
         adapter, admitted = screened.adapter, screened.admitted
         try:
             outcome = check_outcome(adapter.evaluate(admitted), adapter)
+        except SameRecipeAlreadySubmitted as refused:
+            # Validator ruling (a): refused before any slot, with the earlier
+            # submission's own outcome; never a second grading.
+            try:
+                earlier = check_outcome(refused.outcome, adapter)
+            except OutcomeContractViolation:
+                return self._infra(submission, adapter, "outcome_contract_violation")
+            ledger.record(submission, kind="REFUSED", code=refused.code)
+            return _result(
+                "REFUSED", code=refused.code, adapter=adapter, outcome=earlier
+            )
         except Unavailable as unavailable:
             ledger.record(submission, kind="UNAVAILABLE", code=unavailable.code)
             return _result(

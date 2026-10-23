@@ -20,9 +20,18 @@ from carbon.development_session.construction_recipe import (
 from carbon.development_session.construction_recipe import bind_recipe
 from carbon.reconstruction.served_recipe_contract import registered
 
-from .interface import ChallengeAdapter, Unavailable, digest
+from .interface import (
+    ChallengeAdapter,
+    SameRecipeAlreadySubmitted,
+    Unavailable,
+    digest,
+)
 
 OUTCOME_SCHEMA = "carbon.lean-recipe-development-outcome.v1"
+#: How many fresh re-runs one recipe may get on one pack set after
+#: infrastructure failures (invariant 7): an engineering bound on retries of our
+#: own failures, never a scientific value. Past it the door is unavailable.
+MAX_INFRA_RERUNS = 16
 _SOURCE_PATHS = (
     "carbon/challenge_validator/lean_recipe.py",
     "carbon/development_session/construction_recipe.py",
@@ -198,7 +207,9 @@ class LeanRecipeAdapter(ChallengeAdapter):
             raise Unavailable("direct_provider_binding_unavailable")
         return provider
 
-    def _request(self, hotkey, recipe, *, evaluation_pack_digest=None):
+    def _request(self, hotkey, recipe, *, evaluation_pack_digest=None, rerun=0):
+        """The task request; ``rerun`` n > 0 is the n-th fresh task for the same
+        recipe after infrastructure failures (generation 0 is unchanged)."""
         from carbon.development_session.profile import canonical
         from carbon.development_session.profile import digest as sha
         from carbon.research import DirectStartTaskRequestV3
@@ -209,6 +220,8 @@ class LeanRecipeAdapter(ChallengeAdapter):
             task_binding += "\0" + self._identities["rule_digest"]
         if evaluation_pack_digest is not None:
             task_binding += "\0EVALUATION_PACK\0" + evaluation_pack_digest
+        if rerun:
+            task_binding += "\0INFRA_RERUN\0" + str(rerun)
         identity = hashlib.sha256(task_binding.encode("utf-8")).hexdigest()
         return DirectStartTaskRequestV3(
             info.challenge_key,
@@ -240,21 +253,33 @@ class LeanRecipeAdapter(ChallengeAdapter):
 
         recipe = self.validate_strategy(submission.strategy)
         provider = self._provider(submission.hotkey)
+        # The durable task provider owns source inspection and admitted
+        # environment preparation. A missing preinstalled image is not a
+        # separate construction-admission rule at the signed door.
+        # Generation 0 is the recipe's task. One that ended on our own
+        # infrastructure (the task, or its grading released as FAILED_INFRA)
+        # is never the miner's result (invariant 7): the next generation is a
+        # fresh task, graded in the miner's next slot.
+        for rerun in range(MAX_INFRA_RERUNS + 1):
+            request = self._request(
+                submission.hotkey,
+                recipe,
+                evaluation_pack_digest=provider.evaluation_pack_digest,
+                rerun=rerun,
+            )
+            task_id = provider._task_id(request)
+            if self._already_graded(submission.hotkey, task_id.value, provider):
+                raise SameRecipeAlreadySubmitted(self.outcome(task_id.value))
+            if not self._ended_on_infra(submission.hotkey, task_id, provider):
+                break
+        else:
+            raise Unavailable("direct_infra_rerun_limit_reached")
         source = recipe.to_dict()["source"]
         if source["kind"] == "graph":
             try:
                 graph_envelope_from_workspace(provider.ledger, provider.owner, recipe)
             except RecipeRefused as refused:
                 raise Unavailable(refused.code) from None
-        # The durable task provider owns source inspection and admitted
-        # environment preparation. A missing preinstalled image is not a
-        # separate construction-admission rule at the signed door.
-        request = self._request(
-            submission.hotkey,
-            recipe,
-            evaluation_pack_digest=provider.evaluation_pack_digest,
-        )
-        task_id = provider._task_id(request)
         from carbon.research import canonical_bytes
 
         self.ledger.record_recipe_task_intent(
@@ -286,6 +311,57 @@ class LeanRecipeAdapter(ChallengeAdapter):
         if task.task_id != task_id:
             raise RuntimeError("direct task identity changed after owner intent")
         return self._project(task, provider)
+
+    def _already_graded(self, hotkey, submission_id, provider):
+        """Validator ruling (a): this hotkey's recipe already graded on this
+        pack set. The task identity binds hotkey, contract, recipe and pack,
+        so its exam-cap row is the earlier grading; a rotated pack set is a
+        new task. Without a pack nothing is graded, so nothing is refused."""
+        if provider.evaluation_pack_digest is None:
+            return False
+        from carbon.challenge_validator.exam_cap import ExamCap
+
+        return ExamCap(self.ledger).holds_slot(
+            hotkey=hotkey,
+            challenge_id=self.challenge_id,
+            challenge_version=self.challenge_version,
+            exam_key=provider.evaluation_pack_digest,
+            submission_id=submission_id,
+        )
+
+    def _ended_on_infra(self, hotkey, task_id, provider):
+        """Whether this task exists and ended on Carbon's infrastructure: its
+        task state, or its grading released as FAILED_INFRA. Anything else
+        (absent, running, reconstructed, the candidate's own failure) is not."""
+        from carbon.research import DirectGetTaskRequestV3, DirectTaskStateV3
+        from carbon.research.errors import ResearchServiceErrorCode
+        from carbon.research.lifecycle import ResearchTaskProviderError
+
+        try:
+            task = provider.get_research_result(
+                DirectGetTaskRequestV3(self.discovery.info.challenge_key, task_id)
+            ).task
+        except ResearchTaskProviderError as missing:
+            if missing.code is ResearchServiceErrorCode.TASK_NOT_FOUND:
+                return False
+            raise
+        if task.state in (
+            DirectTaskStateV3.FAILED_INFRA,
+            DirectTaskStateV3.UNRESOLVED,
+            DirectTaskStateV3.CANCELLED,
+        ):
+            return True
+        if provider.evaluation_pack_digest is None:
+            return False
+        from carbon.challenge_validator.exam_cap import ExamCap
+
+        return ExamCap(self.ledger).released_on_infra(
+            hotkey=hotkey,
+            challenge_id=self.challenge_id,
+            challenge_version=self.challenge_version,
+            exam_key=provider.evaluation_pack_digest,
+            submission_id=task_id.value,
+        )
 
     def _project(self, task, provider):
         from carbon.research import DirectTaskStateV3
@@ -355,11 +431,24 @@ class LeanRecipeAdapter(ChallengeAdapter):
         if retained is None:
             return None
         recipe = ConstructionRecipe.from_dict(retained.recipe)
-        expected = self._request(
-            owner, recipe, evaluation_pack_digest=provider.evaluation_pack_digest
+        expected = next(
+            (
+                request
+                for request in (
+                    self._request(
+                        owner,
+                        recipe,
+                        evaluation_pack_digest=provider.evaluation_pack_digest,
+                        rerun=rerun,
+                    )
+                    for rerun in range(MAX_INFRA_RERUNS + 1)
+                )
+                if request == retained
+            ),
+            None,
         )
         if (
-            expected != retained
+            expected is None
             or provider._task_id(expected).value != submission_id
             or (submission_id in provider._measured_tasks) != self._measure_query
         ):

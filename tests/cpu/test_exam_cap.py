@@ -619,3 +619,476 @@ def test_receiver_start_up_refuses_before_restoring_when_the_policy_is_missing(
     uncapped = discovery("some-fixture", {})
     direct_receiver._exam_cap_startup(ledger, uncapped, lambda: restored.append(1))
     assert restored == [1]
+
+
+def test_the_cap_holds_whatever_request_id_a_resubmit_uses(cap, monkeypatch):
+    # Validator, H16 receipt condition: a miner's transport request id is not
+    # the receiver's submission identity. The task is derived from the hotkey,
+    # the contract, the recipe and the evaluation pack only, so the same
+    # recipe resubmitted under a new request id (same hotkey, epoch, pack set)
+    # is the same submission: its slot is reused and it is not graded again;
+    # on a rotated pack set it is a new submission.
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.registry.model import ChallengeKey
+
+    info = SimpleNamespace(
+        challenge_key=ChallengeKey(*MOTOR),
+        public_train_digest="sha256:" + "1" * 64,
+        practice_inputs_digest="sha256:" + "2" * 64,
+        interface_digest="sha256:" + "3" * 64,
+        construction_limits_digest="sha256:" + "4" * 64,
+    )
+    host = SimpleNamespace(
+        discovery=SimpleNamespace(
+            info=info,
+            _material={
+                "construction_limits_document": {"reconstruction_resource_policy": {}}
+            },
+        ),
+        contract_digest="sha256:" + "c" * 64,
+        _measure_query=False,
+        _identities={
+            "challenge_info_digest": "sha256:" + "5" * 64,
+            "manifest_digest": "sha256:" + "6" * 64,
+            "construction_kit_digest": "sha256:" + "7" * 64,
+            "resource_policy_digest": "sha256:" + "9" * 64,
+        },
+    )
+    recipe = SimpleNamespace(digest="sha256:" + "8" * 64, to_dict=lambda: {"r": 1})
+    # The task request's own fields, without its recipe validation: only its
+    # derived identity is under test here.
+    import carbon.research
+
+    monkeypatch.setattr(
+        carbon.research,
+        "DirectStartTaskRequestV3",
+        lambda *fields: SimpleNamespace(idempotency_key=fields[1]),
+    )
+
+    def submission(pack):
+        made = LeanRecipeAdapter._request(
+            host, HOTKEY, recipe, evaluation_pack_digest=pack
+        )
+        return made.idempotency_key
+
+    pack_a, pack_b = "sha256:" + "a" * 64, "sha256:" + "b" * 64
+    assert submission(pack_a) == submission(pack_a)  # any request id: one task
+    assert submission(pack_a) != submission(pack_b)  # a rotated pack: a new one
+    first = cap.reserve(
+        hotkey=HOTKEY,
+        challenge_id=MOTOR[0],
+        challenge_version=MOTOR[1],
+        exam_key=pack_a,
+        submission_id=submission(pack_a),
+        block=360,
+    )
+    cap.settle(first, "SCORED_DEVELOPMENT_CANDIDATE")
+    again = cap.reserve(
+        hotkey=HOTKEY,
+        challenge_id=MOTOR[0],
+        challenge_version=MOTOR[1],
+        exam_key=pack_a,
+        submission_id=submission(pack_a),
+        block=360,
+    )
+    assert again == first and _count(cap, exam=pack_a) == 1
+
+
+def test_holds_slot_is_a_graded_or_grading_row_of_this_hotkey_and_exam_key(cap):
+    first = _reserve(cap, 1)
+    held = {
+        "hotkey": HOTKEY,
+        "challenge_id": MOTOR[0],
+        "challenge_version": MOTOR[1],
+        "exam_key": EXAM,
+        "submission_id": "rtsk_1",
+    }
+    assert cap.holds_slot(**held)  # grading: its slot is held
+    cap.settle(first, "SCORED_DEVELOPMENT_CANDIDATE")
+    assert cap.holds_slot(**held)
+    assert not cap.holds_slot(**{**held, "exam_key": NEXT_EXAM})
+    assert not cap.holds_slot(**{**held, "hotkey": OTHER})
+    released = _reserve(cap, 2)
+    cap.settle(released, "FAILED_INFRA")  # our failure: never charged, retryable
+    assert not cap.holds_slot(**{**held, "submission_id": "rtsk_2"})
+    regrade = cap.reserve(
+        **{**held, "submission_id": "rtsk_3"}, block=None, regrade=True
+    )
+    cap.settle(regrade, "SCORED_DEVELOPMENT_CANDIDATE")
+    assert not cap.holds_slot(**{**held, "submission_id": "rtsk_3"})
+
+
+def test_same_recipe_on_the_same_pack_set_is_refused_with_its_earlier_result(
+    cap, monkeypatch
+):
+    # Validator ruling (a), the M1 bug: Graphite froze the same recipe again in
+    # epoch 2 and the receiver handed back epoch 1's task as epoch 2's result.
+    # Now the receiver refuses it, typed, with the earlier result, before any
+    # task or slot; the epoch's slot stays free for a different recipe, and on
+    # a rotated pack set the same recipe is graded again (a re-exam).
+    import hashlib
+
+    import carbon.research
+    from carbon.challenge_validator.interface import (
+        Admitted,
+        SameRecipeAlreadySubmitted,
+    )
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.registry.model import ChallengeKey
+    from carbon.research import DirectTaskStateV3, ResearchTaskId
+
+    monkeypatch.setattr(
+        carbon.research,
+        "DirectStartTaskRequestV3",
+        lambda *fields: SimpleNamespace(idempotency_key=fields[1]),
+    )
+    monkeypatch.setattr(
+        carbon.research,
+        "canonical_bytes",
+        lambda request: request.idempotency_key.encode(),
+    )
+    pack_a, pack_b = "sha256:" + "a" * 64, "sha256:" + "b" * 64
+    tasks, started = {}, []
+
+    def task_id(request):
+        key = request.idempotency_key.encode()
+        return ResearchTaskId("rtsk_" + hashlib.sha256(key).hexdigest())
+
+    def start(request, *, measure_query):
+        identity = task_id(request)
+        started.append(identity.value)
+        task = tasks.setdefault(
+            identity.value,
+            SimpleNamespace(task_id=identity, state=DirectTaskStateV3.QUEUED),
+        )
+        return SimpleNamespace(task=task)
+
+    provider = SimpleNamespace(
+        owner=HOTKEY,
+        evaluation_pack_digest=pack_a,
+        _task_id=task_id,
+        start_research_task=start,
+        get_research_result=lambda request: _found(tasks, request),
+        public_result=lambda _task: {
+            "official_eligible": False,
+            "predictions_digest": "sha256:" + "f" * 64,
+        },
+    )
+    adapter = object.__new__(LeanRecipeAdapter)
+    adapter.discovery = SimpleNamespace(
+        info=SimpleNamespace(
+            challenge_key=ChallengeKey(*MOTOR),
+            public_train_digest="sha256:" + "1" * 64,
+            practice_inputs_digest="sha256:" + "2" * 64,
+            interface_digest="sha256:" + "3" * 64,
+            construction_limits_digest="sha256:" + "4" * 64,
+        ),
+        _material={
+            "construction_limits_document": {"reconstruction_resource_policy": {}}
+        },
+    )
+    adapter.ledger = cap.ledger
+    adapter.challenge_id, adapter.challenge_version = MOTOR
+    adapter.contract_digest = "sha256:" + "c" * 64
+    adapter._measure_query = False
+    adapter._evidence_label = "DEVELOPMENT_PUBLIC_SYNTHETIC"
+    adapter._identities = {
+        "challenge_info_digest": "sha256:" + "5" * 64,
+        "manifest_digest": "sha256:" + "6" * 64,
+        "construction_kit_digest": "sha256:" + "7" * 64,
+    }
+    adapter.validate_strategy = lambda strategy: SimpleNamespace(
+        digest=strategy["recipe"],
+        to_dict=lambda: {"source": {"kind": "bundle"}, "r": strategy["recipe"]},
+    )
+    adapter._provider = lambda _hotkey: provider
+    adapter.owner = lambda _submission_id: HOTKEY
+    same, different = "sha256:" + "8" * 64, "sha256:" + "9" * 64
+
+    def submit(recipe, request_id):
+        # The transport's request id reaches the adapter only as the signed
+        # receipt; it is never the submission's identity.
+        return adapter.evaluate(
+            Admitted(
+                hotkey=HOTKEY,
+                receipt={"sequence": request_id, "digest": "0" * 64},
+                challenge_id=MOTOR[0],
+                challenge_version=MOTOR[1],
+                strategy={"recipe": recipe},
+                contract_digest=adapter.contract_digest,
+            )
+        )
+
+    def grade(submission_id, *, exam, block):
+        reservation = cap.reserve(
+            hotkey=HOTKEY,
+            challenge_id=MOTOR[0],
+            challenge_version=MOTOR[1],
+            exam_key=exam,
+            submission_id=submission_id,
+            block=block,
+        )
+        cap.settle(reservation, "SCORED_DEVELOPMENT_CANDIDATE")
+        tasks[submission_id].state = DirectTaskStateV3.SUCCEEDED
+        tasks[submission_id].terminal_receipt = SimpleNamespace(
+            state_digest="sha256:" + "e" * 64,
+            predictions_digest="sha256:" + "f" * 64,
+        )
+
+    # Epoch 1: the recipe is admitted and graded on pack set A.
+    first = submit(same, 1)
+    assert first["state"] == "ADMITTED"
+    grade(first["submission_id"], exam=pack_a, block=360)
+    # Epoch 2, same pack set, any request id: refused with the earlier result,
+    # before any task start or slot.
+    for request_id in (2, 3):
+        with pytest.raises(SameRecipeAlreadySubmitted) as refused:
+            submit(same, request_id)
+        assert refused.value.code == "same_recipe_already_submitted"
+        assert refused.value.outcome["submission_id"] == first["submission_id"]
+        assert refused.value.outcome["state"] == "RECONSTRUCTED"
+    assert started == [first["submission_id"]]
+    assert _count(cap, exam=pack_a) == 1
+    # That epoch's slot is unused: a different recipe is admitted and graded in it.
+    other = submit(different, 4)
+    assert other["submission_id"] != first["submission_id"]
+    grade(other["submission_id"], exam=pack_a, block=720)
+    assert _count(cap, exam=pack_a) == 2
+    # A rotated pack set: the same recipe is a new submission and is graded again.
+    provider.evaluation_pack_digest = pack_b
+    again = submit(same, 5)
+    assert again["state"] == "ADMITTED"
+    assert again["submission_id"] not in (
+        first["submission_id"],
+        other["submission_id"],
+    )
+    grade(again["submission_id"], exam=pack_b, block=1080)
+    assert _count(cap, exam=pack_b) == 1
+
+
+def test_a_resubmit_before_grading_holds_one_slot_in_the_first_epoch(cap):
+    # Validator, Open 1 of ruling (a): the same recipe submitted again in a
+    # later epoch, before its first submission is reserved, is the same task.
+    # Its grading takes one row, in the epoch of the first signed receipt.
+    contract = "sha256:" + "c" * 64
+    task = "rtsk_" + "7" * 64
+    for sequence, block in ((1, 360), (2, 720)):
+        cap.ledger.record(
+            SimpleNamespace(
+                hotkey=HOTKEY,
+                receipt={"sequence": sequence, "digest": "d", "block": block},
+                contract_digest=contract,
+            ),
+            kind="OUTCOME",
+            submission_id=task,
+        )
+    block = exam_cap.submission_block(cap.ledger, contract, task)
+    assert block == 360
+    for _ in range(2):  # grading reached again for the same task
+        reservation = cap.reserve(
+            hotkey=HOTKEY,
+            challenge_id=MOTOR[0],
+            challenge_version=MOTOR[1],
+            exam_key=EXAM,
+            submission_id=task,
+            block=block,
+        )
+    cap.settle(reservation, "SCORED_DEVELOPMENT_CANDIDATE")
+    with cap.ledger._db() as db:
+        rows = db.execute(
+            "SELECT epoch, state FROM exam_graded WHERE submission_id=?", (task,)
+        ).fetchall()
+    assert rows == [(1, "COUNTED")]
+
+
+def _found(tasks, request):
+    """The provider's read: a task it holds, or TASK_NOT_FOUND."""
+    from carbon.research.errors import ResearchServiceErrorCode
+    from carbon.research.lifecycle import ResearchTaskProviderError
+
+    if request.task_id.value not in tasks:
+        raise ResearchTaskProviderError(ResearchServiceErrorCode.TASK_NOT_FOUND)
+    return SimpleNamespace(task=tasks[request.task_id.value])
+
+
+def _rerun_adapter(cap, monkeypatch, pack="sha256:" + "a" * 64):
+    """A LeanRecipeAdapter over a recording provider; its owner() is the real
+    one (intent ledger + retained request), with the recipe class stubbed."""
+    import hashlib
+
+    import carbon.development_session.construction_recipe as construction
+    import carbon.research
+    from carbon.challenge_validator.lean_recipe import LeanRecipeAdapter
+    from carbon.registry.model import ChallengeKey
+    from carbon.research import DirectTaskStateV3, ResearchTaskId
+
+    monkeypatch.setattr(
+        carbon.research,
+        "DirectStartTaskRequestV3",
+        lambda *fields: SimpleNamespace(idempotency_key=fields[1], recipe=fields[2]),
+    )
+    monkeypatch.setattr(
+        carbon.research,
+        "canonical_bytes",
+        lambda request: request.idempotency_key.encode(),
+    )
+
+    def recipe_of(strategy):
+        return SimpleNamespace(
+            digest=strategy["recipe"],
+            to_dict=lambda: {
+                "source": {"kind": "bundle"},
+                "recipe": strategy["recipe"],
+            },
+        )
+
+    monkeypatch.setattr(
+        construction,
+        "ConstructionRecipe",
+        SimpleNamespace(from_dict=lambda value: recipe_of(value)),
+    )
+    tasks, requests, started = {}, {}, []
+
+    def task_id(request):
+        key = request.idempotency_key.encode()
+        return ResearchTaskId("rtsk_" + hashlib.sha256(key).hexdigest())
+
+    def start(request, *, measure_query):
+        identity = task_id(request)
+        started.append(identity.value)
+        requests[identity.value] = request
+        task = tasks.setdefault(
+            identity.value,
+            SimpleNamespace(task_id=identity, state=DirectTaskStateV3.QUEUED),
+        )
+        return SimpleNamespace(task=task)
+
+    provider = SimpleNamespace(
+        owner=HOTKEY,
+        evaluation_pack_digest=pack,
+        _task_id=task_id,
+        _requests=requests,
+        _measured_tasks=frozenset(),
+        start_research_task=start,
+        get_research_result=lambda request: _found(tasks, request),
+        public_result=lambda _task: None,
+    )
+    adapter = object.__new__(LeanRecipeAdapter)
+    adapter.discovery = SimpleNamespace(
+        info=SimpleNamespace(
+            challenge_key=ChallengeKey(*MOTOR),
+            public_train_digest="sha256:" + "1" * 64,
+            practice_inputs_digest="sha256:" + "2" * 64,
+            interface_digest="sha256:" + "3" * 64,
+            construction_limits_digest="sha256:" + "4" * 64,
+        ),
+        _material={
+            "construction_limits_document": {"reconstruction_resource_policy": {}}
+        },
+    )
+    adapter.ledger = cap.ledger
+    adapter.challenge_id, adapter.challenge_version = MOTOR
+    adapter.contract_digest = "sha256:" + "c" * 64
+    adapter._measure_query = False
+    adapter._evidence_label = "DEVELOPMENT_PUBLIC_SYNTHETIC"
+    adapter._identities = {
+        "challenge_info_digest": "sha256:" + "5" * 64,
+        "manifest_digest": "sha256:" + "6" * 64,
+        "construction_kit_digest": "sha256:" + "7" * 64,
+    }
+    adapter.validate_strategy = recipe_of
+    adapter._provider = lambda _hotkey: provider
+
+    def submit(recipe):
+        from carbon.challenge_validator.interface import Admitted
+
+        return adapter.evaluate(
+            Admitted(
+                hotkey=HOTKEY,
+                receipt={"sequence": 1, "digest": "0" * 64},
+                challenge_id=MOTOR[0],
+                challenge_version=MOTOR[1],
+                strategy={"recipe": recipe},
+                contract_digest=adapter.contract_digest,
+            )
+        )
+
+    return SimpleNamespace(
+        adapter=adapter, tasks=tasks, started=started, submit=submit, pack=pack
+    )
+
+
+def _reserve_task(cap, submission_id, *, exam, block):
+    return cap.reserve(
+        hotkey=HOTKEY,
+        challenge_id=MOTOR[0],
+        challenge_version=MOTOR[1],
+        exam_key=exam,
+        submission_id=submission_id,
+        block=block,
+    )
+
+
+def test_a_grading_released_on_infra_runs_the_same_recipe_again_as_a_fresh_task(
+    cap, monkeypatch
+):
+    # Validator, Open 2 of ruling (a), invariant 7: our failure is never the
+    # miner's result. A recipe whose grading was given back as FAILED_INFRA is
+    # a fresh task on the next submit, graded in the miner's next slot; it is
+    # never refused as same_recipe_already_submitted.
+    from carbon.challenge_validator.interface import SameRecipeAlreadySubmitted
+
+    host = _rerun_adapter(cap, monkeypatch)
+    recipe = "sha256:" + "8" * 64
+    first = host.submit(recipe)["submission_id"]
+    assert host.submit(recipe)["submission_id"] == first  # still running: same task
+    cap.settle(_reserve_task(cap, first, exam=host.pack, block=360), "FAILED_INFRA")
+    second = host.submit(recipe)["submission_id"]
+    assert second != first and host.started[-1] == second
+    assert host.adapter.owner(second) == HOTKEY  # the real owner resolves a re-run
+    assert host.adapter.owner(first) == HOTKEY
+    # The re-run is graded in the miner's next slot, and then it is refused.
+    cap.settle(
+        _reserve_task(cap, second, exam=host.pack, block=720),
+        "SCORED_DEVELOPMENT_CANDIDATE",
+    )
+    with pytest.raises(SameRecipeAlreadySubmitted) as refused:
+        host.submit(recipe)
+    assert refused.value.outcome["submission_id"] == second
+    assert _count(cap, exam=host.pack) == 1
+
+
+def test_a_task_that_ended_on_infra_is_run_again_and_a_candidate_failure_is_not(
+    cap, monkeypatch
+):
+    from carbon.research import DirectTaskStateV3
+
+    host = _rerun_adapter(cap, monkeypatch)
+    infra, own = "sha256:" + "8" * 64, "sha256:" + "9" * 64
+    lost = host.submit(infra)["submission_id"]
+    host.tasks[lost].state = DirectTaskStateV3.FAILED_INFRA
+    host.tasks[lost].terminal_receipt = SimpleNamespace(refusal_code=None)
+    again = host.submit(infra)["submission_id"]
+    assert again != lost
+    refused = host.submit(own)["submission_id"]
+    host.tasks[refused].state = DirectTaskStateV3.REFUSED
+    host.tasks[refused].terminal_receipt = SimpleNamespace(
+        refusal_code="candidate_build_failed"
+    )
+    # The candidate's own failure is its result: the same task answers again.
+    assert host.submit(own)["submission_id"] == refused
+
+
+def test_infra_re_runs_are_bounded(cap, monkeypatch):
+    from carbon.challenge_validator import lean_recipe
+    from carbon.challenge_validator.interface import Unavailable
+    from carbon.research import DirectTaskStateV3
+
+    monkeypatch.setattr(lean_recipe, "MAX_INFRA_RERUNS", 2)
+    host = _rerun_adapter(cap, monkeypatch)
+    recipe = "sha256:" + "8" * 64
+    for _ in range(3):
+        task = host.submit(recipe)["submission_id"]
+        host.tasks[task].state = DirectTaskStateV3.FAILED_INFRA
+    with pytest.raises(Unavailable, match="direct_infra_rerun_limit_reached"):
+        host.submit(recipe)

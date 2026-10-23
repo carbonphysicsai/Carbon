@@ -396,7 +396,14 @@ def _header_bounded_handler(intake):
 
 
 def serve_loopback(
-    intake: DirectRecipeIntake, config, *, stop, reader=None, ready=None, closing=None
+    intake: DirectRecipeIntake,
+    config,
+    *,
+    stop,
+    reader=None,
+    ready=None,
+    closing=None,
+    grader=None,
 ):
     """Serve the prospective receiver on a trusted loopback test host."""
     host = config.get("host")
@@ -414,6 +421,7 @@ def serve_loopback(
     # Join already-authenticated bounded handlers before taking the final
     # cancellation snapshot. Otherwise a submit may queue after cancellation.
     httpd.daemon_threads = False
+    work = threading.Lock()
     threads = [
         threading.Thread(
             target=refresher,
@@ -421,8 +429,14 @@ def serve_loopback(
             kwargs={"stop": stop, "reader": reader},
             daemon=True,
         ),
-        threading.Thread(target=_advance_loop, args=(intake, stop), daemon=True),
+        threading.Thread(target=_advance_loop, args=(intake, stop, work), daemon=True),
     ]
+    if grader is not None:
+        # A receiver that grades its own submissions (auto_grade): one grade at a
+        # time, never while a reconstruction runs.
+        threads.append(
+            threading.Thread(target=_grade_loop, args=(grader, stop, work), daemon=True)
+        )
     host, port = httpd.server_address[:2]
     serving = threading.Thread(target=httpd.serve_forever, daemon=True)
     started = []
@@ -455,10 +469,25 @@ def serve_loopback(
                     serving.join(5)
 
 
-def _advance_loop(intake, stop):
+def _advance_loop(intake, stop, work=None):
+    work = work or threading.Lock()
     while not stop.is_set():
         try:
-            intake.advance()
+            with work:
+                intake.advance()
         except Exception as failure:  # noqa: BLE001 - no private content in log
             log("direct_worker_failure", type=type(failure).__name__)
         stop.wait(1)
+
+
+def _grade_loop(grader, stop, work):
+    while not stop.is_set():
+        graded = None
+        try:
+            with work:
+                graded = grader.run_once()
+        except Exception as failure:  # noqa: BLE001 - no private content in log
+            log("direct_grade_failure", type=type(failure).__name__)
+        if graded is not None:
+            log("direct_grade", state=graded[1])
+        stop.wait(2 if graded is not None else 5)

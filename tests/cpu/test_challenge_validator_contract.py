@@ -686,3 +686,31 @@ def test_attempt_ledger_resolves_only_unambiguous_authenticated_task_owner(ledge
         sub(hotkey="other"), kind="OUTCOME", submission_id=task_id, state="ADMITTED"
     )
     assert ledger.owned_outcome(DIGEST, task_id) is None
+
+
+def test_same_recipe_refusal_is_refused_with_the_earlier_outcome(
+    validator, fake, ledger
+):
+    # Validator ruling (a): an adapter's same-recipe refusal is REFUSED with
+    # its typed code and the earlier submission's checked outcome.
+    from carbon.challenge_validator.interface import SameRecipeAlreadySubmitted
+
+    fake.raises = SameRecipeAlreadySubmitted(fake.outcome("sub-1"))
+    result = validator.evaluate(sub())
+    assert set(result) == RESULT_KEYS
+    assert (result["kind"], result["code"]) == (
+        "REFUSED",
+        "same_recipe_already_submitted",
+    )
+    assert result["outcome"] == fake.outcome("sub-1")
+    assert [(row["kind"], row["code"]) for row in ledger.attempts()] == [
+        ("REFUSED", "same_recipe_already_submitted")
+    ]
+    # An earlier outcome outside the contract is infrastructure, never echoed.
+    fake.raises = SameRecipeAlreadySubmitted({"score": MARKER})
+    broken = validator.evaluate(sub())
+    assert (broken["kind"], broken["code"]) == (
+        "FAILED_INFRA",
+        "outcome_contract_violation",
+    )
+    no_echo(broken)

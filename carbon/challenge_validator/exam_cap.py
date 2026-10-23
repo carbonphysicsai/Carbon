@@ -31,6 +31,15 @@ Refusals, all before grading, so none consumes exam wear and none writes an atte
 ``exam_daily_allowance_reached``, ``epoch_limit_reached``, ``exam_key_expired``,
 ``exam_cap_unregistered`` (a Challenge not registered) and ``exam_cadence_unregistered``.
 
+**Same recipe, same pack set.** A submission is hotkey + contract + recipe + evaluation
+pack (the receiver's task identity), so a resubmit of a graded recipe on the same pack set
+is the same submission. The receiver refuses it at its door (``holds_slot``;
+``same_recipe_already_submitted``, with the earlier result), before any reservation, so
+the epoch's slot stays free for a different recipe. On a rotated pack set it is a new
+submission (a re-exam). A grading given back as FAILED_INFRA is never the
+miner's result: the same recipe then runs again as a fresh task
+(``released_on_infra``).
+
 The state lives in the receiver's own attempt ledger file (owner-only SQLite). Nothing here
 touches a score, a bank entry or what a miner can see; a refusal is a typed code only.
 """
@@ -439,6 +448,74 @@ class ExamCap:
                 if row is None or row != (state, status):
                     raise ValueError("exam cap reservation is not open")
         return state
+
+    def holds_slot(
+        self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id
+    ) -> bool:
+        """Whether this submission is graded (or grading) on this exam key: a
+        GRADED row holding its slot. The receiver refuses its resubmit
+        (``same_recipe_already_submitted``) before anything is reserved."""
+        with self.ledger._db() as db:
+            row = db.execute(
+                "SELECT 1 FROM exam_graded WHERE hotkey=? AND challenge_id=? AND "
+                "challenge_version=? AND exam_key=? AND submission_id=? AND "
+                "kind='GRADED' AND state IN ('RESERVED','COUNTED')",
+                (hotkey, challenge_id, challenge_version, exam_key, submission_id),
+            ).fetchone()
+        return row is not None
+
+    def give_back_on_infra(
+        self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id
+    ) -> str:
+        """Record this submission's grading as given back on our infrastructure
+        (invariant 7), so the receiver's door runs the recipe again as a fresh task.
+
+        A COUNTED row is a graded result and is never given back. An open or
+        otherwise released row becomes RELEASED/FAILED_INFRA; without a row, one is
+        written (epoch 0, inert) so the failure is on the record. Returns the
+        resulting state: ``COUNTED`` (kept) or ``RELEASED``."""
+        values = (hotkey, challenge_id, challenge_version, exam_key, submission_id)
+        if not all(type(value) is str and value for value in values):
+            raise ExamCapRefused("exam_cap_identity_unavailable")
+        now = int(self.clock())
+        with self.ledger._db() as db:
+            row = db.execute(
+                "SELECT id, state FROM exam_graded WHERE challenge_id=? AND "
+                "challenge_version=? AND exam_key=? AND submission_id=?",
+                (challenge_id, challenge_version, exam_key, submission_id),
+            ).fetchone()
+            if row is not None and row[1] == "COUNTED":
+                return "COUNTED"
+            if row is None:
+                db.execute(
+                    "INSERT INTO exam_graded(hotkey, challenge_id, challenge_version, "
+                    "exam_key, kind, epoch, submission_id, state, status, reserved_ns, "
+                    "settled_ns) VALUES(?,?,?,?,'GRADED',0,?,'RELEASED','FAILED_INFRA',"
+                    "?,?)",
+                    (*values[:4], submission_id, now, now),
+                )
+            else:
+                db.execute(
+                    "UPDATE exam_graded SET state='RELEASED', status='FAILED_INFRA', "
+                    "settled_ns=? WHERE id=?",
+                    (now, row[0]),
+                )
+        return "RELEASED"
+
+    def released_on_infra(
+        self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id
+    ) -> bool:
+        """Whether this submission's grading was given back as FAILED_INFRA (our
+        failure or a crash): the receiver then runs the recipe again as a fresh
+        task, in the miner's next slot (invariant 7)."""
+        with self.ledger._db() as db:
+            row = db.execute(
+                "SELECT 1 FROM exam_graded WHERE hotkey=? AND challenge_id=? AND "
+                "challenge_version=? AND exam_key=? AND submission_id=? AND "
+                "kind='GRADED' AND state='RELEASED' AND status='FAILED_INFRA'",
+                (hotkey, challenge_id, challenge_version, exam_key, submission_id),
+            ).fetchone()
+        return row is not None
 
     def count(
         self, *, hotkey, challenge_id, challenge_version=None, exam_key=None

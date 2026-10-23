@@ -499,6 +499,17 @@ NEXT_ACTIONS = {
         "(carbon_submit) to ask for it. The frozen candidate is kept, and it "
         "is the same submission, never a second one."
     ),
+    # Validator ruling (a): the receiver refuses a recipe it already graded
+    # for this hotkey on its current exam set, before any exam is used.
+    "same_recipe_already_submitted": (
+        "You already submitted this exact recipe and it was graded on the "
+        "current exam set, so it was not graded again and this final exam is "
+        "still unused. Its result is the one shown where you first submitted "
+        "it (Check for result reads it again). Your frozen candidate is kept. "
+        "To use this exam, submit a different recipe (a new campaign, since "
+        "this one keeps its frozen candidate), or wait for a new exam set: "
+        "then this same recipe is graded again."
+    ),
     # LAUNCHPAD-PAGE-USABILITY-01: says what still works and what to do,
     # since a miner usually cannot add an intake until one is published.
     "construction_submission_unserved": (
