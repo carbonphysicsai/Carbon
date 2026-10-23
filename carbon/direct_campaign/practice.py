@@ -428,56 +428,58 @@ class DirectPractice:
             reconstruct_and_infer_public,
         )
         from carbon.development_session.construction_recipe import ConstructionRecipe
-        from carbon.development_session.gpu_practice import device_build, gpu_overlay
+        from carbon.development_session.gpu_practice import gpu_overlay, run_on_device
 
-        expanded, _bundle, image, construction_parent, accelerator, gpu_note = (
-            device_build(
-                self,
-                lambda runtime: _expand(catalog_recipe, runtime),
-                _bundle_ref,
-                lambda bundle, parent, built: gpu_overlay(
-                    self,
-                    identity,
-                    bundle,
-                    parent,
-                    built,
-                    {
-                        "id": binding["challenge_id"],
-                        "version": binding["challenge_version"],
-                        **{
-                            k: binding[k]
-                            for k in (
-                                "train_digest",
-                                "interface_digest",
-                                "construction_limits_digest",
-                            )
-                        },
-                    },
-                    material["construction_limits_document"],
-                ),
+        def run(trial, built, image, parent, device):
+            return reconstruct_and_infer_public(
+                self.ledger,
+                owner=self.owner,
+                identity=trial,
+                image=image,
+                inference_image=self.parent,
+                construction_parent=parent,
+                recipe=ConstructionRecipe.from_dict(built),
+                challenge_binding=dict(binding),
+                limits_document=material["construction_limits_document"],
+                train=material["train"],
+                example=material["example"],
+                seed=0,
+                inputs=material["practice_inputs"],
+                expected_output_shape=material["expected_output_shape"],
+                allowlist_bytes=material["allowlist_bytes"],
+                expected_output_dtype=dtype,
+                accelerator=device,
+                runner=self.runner,
             )
+
+        result, expanded, construction_parent, accelerator, gpu_note = run_on_device(
+            self,
+            identity,
+            lambda runtime: _expand(catalog_recipe, runtime),
+            _bundle_ref,
+            lambda bundle, parent, built: gpu_overlay(
+                self,
+                identity,
+                bundle,
+                parent,
+                built,
+                {
+                    "id": binding["challenge_id"],
+                    "version": binding["challenge_version"],
+                    **{
+                        k: binding[k]
+                        for k in (
+                            "train_digest",
+                            "interface_digest",
+                            "construction_limits_digest",
+                        )
+                    },
+                },
+                material["construction_limits_document"],
+            ),
+            run,
         )
         recipe = ConstructionRecipe.from_dict(expanded)
-        result = reconstruct_and_infer_public(
-            self.ledger,
-            owner=self.owner,
-            identity=identity,
-            image=image,
-            inference_image=self.parent,
-            construction_parent=construction_parent,
-            recipe=recipe,
-            challenge_binding=dict(binding),
-            limits_document=material["construction_limits_document"],
-            train=material["train"],
-            example=material["example"],
-            seed=0,
-            inputs=material["practice_inputs"],
-            expected_output_shape=material["expected_output_shape"],
-            allowlist_bytes=material["allowlist_bytes"],
-            expected_output_dtype=dtype,
-            accelerator=accelerator,
-            runner=self.runner,
-        )
         from carbon.development_session.catalog_gpu import backend_record
 
         backend = backend_record(

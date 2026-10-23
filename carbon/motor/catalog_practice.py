@@ -233,13 +233,46 @@ class MotorCatalogPractice:
             accelerator = construction_parent = gpu_note = None
         else:
             from carbon.development_session.gpu_practice import (
-                device_build,
                 gpu_overlay,
+                run_on_device,
             )
 
-            expanded, _bundle, image, construction_parent, accelerator, gpu_note = (
-                device_build(
+            kit = material["construction_kit"]
+
+            def run(trial, built, image, parent, device):
+                return reconstruct_and_infer_public(
+                    self.ledger,
+                    owner=self.owner,
+                    identity=trial,
+                    image=image,
+                    inference_image=self.parent,
+                    construction_parent=parent,
+                    recipe=ConstructionRecipe.from_dict(built),
+                    # The worker's trusted binding names the kit by challenge_id /
+                    # challenge_version (`_checked_binding`), as the receiver's does.
+                    challenge_binding={
+                        "challenge_id": kit["id"],
+                        "challenge_version": kit["version"],
+                        "train_digest": kit["train_digest"],
+                        "interface_digest": kit["interface_digest"],
+                        "construction_limits_digest": kit["construction_limits_digest"],
+                    },
+                    limits_document=material["construction_limits_document"],
+                    train=material["train"],
+                    example=material["example"],
+                    seed=0,
+                    inputs=practice_inputs,
+                    expected_output_shape=material["expected_output_shape"],
+                    allowlist_bytes=material["allowlist_bytes"],
+                    expected_output_dtype=output_dtype(material["interface_document"]),
+                    accelerator=device,
+                    runner=self.runner,
+                )
+
+            result, expanded, construction_parent, accelerator, gpu_note = (
+                run_on_device(
                     self,
+                    identity,
                     lambda runtime: self._expanded(strategy, material, runtime),
                     _bundle_ref,
                     lambda bundle, parent, built: gpu_overlay(
@@ -251,38 +284,10 @@ class MotorCatalogPractice:
                         material["construction_kit"],
                         material["construction_limits_document"],
                     ),
+                    run,
                 )
             )
             recipe = ConstructionRecipe.from_dict(expanded)
-            kit = material["construction_kit"]
-            result = reconstruct_and_infer_public(
-                self.ledger,
-                owner=self.owner,
-                identity=identity,
-                image=image,
-                inference_image=self.parent,
-                construction_parent=construction_parent,
-                recipe=recipe,
-                # The worker's trusted binding names the kit by challenge_id /
-                # challenge_version (`_checked_binding`), as the receiver's does.
-                challenge_binding={
-                    "challenge_id": kit["id"],
-                    "challenge_version": kit["version"],
-                    "train_digest": kit["train_digest"],
-                    "interface_digest": kit["interface_digest"],
-                    "construction_limits_digest": kit["construction_limits_digest"],
-                },
-                limits_document=material["construction_limits_document"],
-                train=material["train"],
-                example=material["example"],
-                seed=0,
-                inputs=practice_inputs,
-                expected_output_shape=material["expected_output_shape"],
-                allowlist_bytes=material["allowlist_bytes"],
-                expected_output_dtype=output_dtype(material["interface_document"]),
-                accelerator=accelerator,
-                runner=self.runner,
-            )
             if result.build.state_digest != result.inference.state_digest:
                 raise ValueError("motor catalog practice state differs between phases")
         rows = result.inference.predictions

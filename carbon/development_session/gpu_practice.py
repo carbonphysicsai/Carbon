@@ -351,6 +351,51 @@ def gpu_build_staged(practice, expand_for, bundle_of) -> bool:
     return False
 
 
+def run_on_device(practice, identity, expand_for, bundle_of, overlay, run):
+    """One catalog practice on the device `device_build` picks, the same for
+    every Challenge: `run(trial_identity, expanded, image, construction_parent,
+    accelerator)` builds and infers. When the GPU build itself fails for an
+    infrastructure reason after its preparation (M1 S5: jno.fno1d's remote
+    build job failed and the miner saw no result at all), the practice runs
+    again on the CPU build under its own identity, and says why
+    (`gpu_build_failed`), as a failed preparation already does. A failure of
+    the miner's own program or recipe is never retried. Returns (result,
+    expanded, construction_parent, accelerator, gpu_note)."""
+    from carbon.compute.remote_job import RemoteJobFailure
+    from carbon.compute.remote_machine import RemoteMachineError
+
+    expanded, _bundle, image, parent, accelerator, note = device_build(
+        practice, expand_for, bundle_of, overlay
+    )
+    if accelerator is None:
+        return (
+            run(identity, expanded, image, parent, None),
+            expanded,
+            parent,
+            None,
+            note,
+        )
+    try:
+        result = run(identity, expanded, image, parent, accelerator)
+    except (RemoteJobFailure, RemoteMachineError, OSError, RuntimeError):
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "catalog GPU build failed; practising the CPU build", exc_info=True
+        )
+        expanded = expand_for(None)
+        bundle = bundle_of(expanded["source"]["bundle_ref"])
+        try:
+            image = practice._resolve(bundle)
+        except (FileNotFoundError, ValueError, OSError):
+            # No CPU child here either: the capability gap, typed.
+            raise DirectParentRefused("backend_not_served") from None
+        parent = practice.parents().for_bundle(bundle)
+        result = run(identity + "-cpu", expanded, image, parent, None)
+        return result, expanded, parent, None, "gpu_build_failed"
+    return result, expanded, parent, accelerator, None
+
+
 def device_build(practice, expand_for, bundle_of, overlay=None):
     """The build one catalog practice runs, chosen by device, the same for
     every Challenge: the entry's GPU build on the host's GPU worker of the
