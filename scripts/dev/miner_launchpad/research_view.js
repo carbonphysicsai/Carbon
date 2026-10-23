@@ -956,10 +956,17 @@
     const dual = rows.some(r => r.dual);
     for (const name of ["Run", "Model", "Gates", ...(dual ? ["Graded total (0 to 1, higher is better)"] : []), "Score", ...keys.map(k => labels[k] || k), "Final loss", "Compute budget", "Framework", "Ran on"]) headRow.append(el("th", name));
     table.append(headRow);
+    // The model a run used: its backbone, or for a catalog recipe the catalog id
+    // with the settings it changed (U52). A graph recipe has neither: say so.
+    function modelLabel(r) {
+      if (r.backbone) return r.backbone;
+      const d = describeRecipe(r.recipe);
+      return d.title === "–" || !d.settings.length ? d.title : d.title + " (" + d.settings.join(", ") + ")";
+    }
     const fallback = (doc.toolbox?.runtimes || []).find(r => r.default)?.id;
     for (const r of rows) {
       const row = el("tr");
-      row.append(el("td", String(r.index)), el("td", r.backbone || "–"), el("td", r.eligible === true ? "passed" : r.eligible === false ? "failed" : "–"), el("td", fmt(r.score)));
+      row.append(el("td", String(r.index)), el("td", modelLabel(r)), el("td", r.eligible === true ? "passed" : r.eligible === false ? "failed" : "–"), el("td", fmt(r.score)));
       if (dual) row.children[3].before(el("td", dualText(r.dual) || "–"));
       for (const k of keys) row.append(el("td", fmt(r.components[k])));
       // What the run actually ran on: its recipe's framework (or the
@@ -1078,12 +1085,39 @@
   function tabArtifacts(panel, doc) {
     part(panel, "artifacts", JSON.stringify([doc.candidates, doc.experiments.rows.map(r => [r.index, r.backbone, r.recipe || null])]), box => drawArtifacts(box, doc), "rs-artifacts-part", "div");
   }
+  // A recipe in words: the catalog model or custom graph, and the settings it
+  // changed (U47, U52). Never invents: an unreadable recipe says so.
+  function describeRecipe(recipe) {
+    if (typeof recipe === "string") { try { recipe = JSON.parse(recipe); } catch (error) { recipe = null; } }
+    const source = recipe?.source;
+    const settings = [];
+    for (const [name, value] of Object.entries(recipe?.procedure?.configuration || {})) {
+      if (value && typeof value === "object") for (const [inner, v] of Object.entries(value)) settings.push(inner.replace(/_/g, " ") + " " + v);
+      else settings.push(name.replace(/_/g, " ") + " " + value);
+    }
+    if (source?.kind === "catalog" && typeof source.catalog_id === "string") return {title: source.catalog_id, kind: "Catalog model", settings};
+    if (source?.kind === "graph") return {title: "custom graph", kind: "Your own graph", settings};
+    return {title: "–", kind: "Recipe", settings};
+  }
+  function freezeCard(box, c) {
+    const d = describeRecipe(c.strategy);
+    const card = el("div", undefined, "freeze-card");
+    card.append(el("p", d.kind, "freeze-kind"), el("p", d.title, "freeze-title"));
+    if (d.settings.length) { const chips = el("p", undefined, "freeze-chips"); for (const s of d.settings) chips.append(el("span", s, "chip")); card.append(chips); }
+    const why = [];
+    why.push("Frozen at epoch " + c.epoch);
+    if (c.reason) why.push(c.reason);
+    why.push(c.used_feedback ? "chosen with feedback" : "chosen without exam feedback");
+    card.append(el("p", why.join(" · "), "hint"));
+    if (c.strategy_hash) card.append(el("p", "Fingerprint " + String(c.strategy_hash).replace("sha256:", "").slice(0, 12), "hint"));
+    const more = el("details", undefined, "freeze-details"); more.append(el("summary", "Full recipe (JSON)"), el("pre", JSON.stringify(c.strategy, null, 2), "rs-pre"));
+    card.append(more); box.append(card);
+  }
   function drawArtifacts(panel, doc) {
     const box = section(panel, "Frozen candidates", "Artifacts");
     if (!doc.candidates.length) para(box, "No candidate frozen yet. Freeze a practiced recipe under Submission.", "empty-state");
     for (const c of doc.candidates) {
-      para(box, "Epoch " + c.epoch + " · " + (c.strategy_hash || "") + (c.reason ? " · " + c.reason : ""), "status-line");
-      const pre = el("pre", JSON.stringify(c.strategy, null, 2), "rs-pre"); box.append(pre);
+      freezeCard(box, c);
     }
     const recipes = section(panel, "Practiced recipes", "Your own");
     const seen = new Set();
