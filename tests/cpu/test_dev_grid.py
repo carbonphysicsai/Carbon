@@ -14,32 +14,34 @@ from carbon.scoring import physical_dual_pack as physical
 
 KEYS = sorted(dev_grid.GRID_KINDS)
 MOTOR = "electric-motor-magnetics"
-#: The kits of the dev-grid versions before dev-pack v2 (rc8 1ea4c49ad, before dev-pack v2). A recipe or
+#: The kits of the dev-grid versions on rc9 (rc8 + the 1800 s rebuild wall, OWNER-SANDBOX-REBUILD-WALL-01; new
+#: versions, pre-publish, dev-pack v2: the wall moves only the two wall fields,
+#: tests/cpu/test_v2_rebuild_wall.py), before and after dev-pack v2 alike. A recipe or
 #: calibration artifact bound to them stays valid only while these do not move.
 KITS = {
     ("f08-ribbed-bracket", "1.5"): {
-        "construction_limits_digest": "sha256:ae6be62f31881aa2ce41e5dd631349672d101fdb4b351e9a3260f4bf0e8e3650",
+        "construction_limits_digest": "sha256:9ada93ee419c2adbe91e7e8aae8176f35e2d60b11484ad9e9814b772ae4cf63b",
         "id": "f08-ribbed-bracket",
         "interface_digest": "sha256:42e64c6800368f2b364bbc6e70e34814401e3e38b6a9ff7dcfec70c7b1818eba",
         "train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
         "version": "1.5",
     },
     ("f02", "2.4"): {
-        "construction_limits_digest": "sha256:a6195b4ea335306f10ad647caf9d9f51748b9ca0339916ac69ddb5c0ebd2c50c",
+        "construction_limits_digest": "sha256:5e1bf1057bbbaad62b223e748b54dd92ec94c384020c63778228789967feaf1f",
         "id": "f02",
         "interface_digest": "sha256:3a9c2f8bd2fdaeeca65e060d32f17a60cba06c16b837d6be185a95cdfa9e011e",
         "train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
         "version": "2.4",
     },
     ("electric-motor-magnetics", "1.4"): {
-        "construction_limits_digest": "sha256:07d08ec38eda6f78b34880846e3dc9cbbf840b2f732cd5517b77373a6fe71d45",
+        "construction_limits_digest": "sha256:43f3c2c3d9c7f3b6672cd59be012038526c4a937aa6fa1cc82ad3444eb365fa0",
         "id": "electric-motor-magnetics",
         "interface_digest": "sha256:e257628ce8fc935e42f495cf185facc19bbf93947f00a8766d232f155d896399",
         "train_digest": "sha256:5d27220b8b0c0ccddd013299183118cdce61f205057fe99bceb95c1f52173361",
         "version": "1.4",
     },
     ("chip-cold-plate", "1.4"): {
-        "construction_limits_digest": "sha256:22e5a43f94235d1511259e754067b8e4f263658a1b8a67a2b32df4f9e5e9f253",
+        "construction_limits_digest": "sha256:7fa9d2c89326b8fbf82e0500b49c139fa35790cbd91ec0029f119dbd3751876c",
         "id": "chip-cold-plate",
         "interface_digest": "sha256:cb1d7820bf1708920b0bd5e313f52d685047469d2e8e60f3ad2f2ed0f1d1298e",
         "train_digest": "sha256:2df26b41a2fdba6a6a64921a9d8c357370374d43d313840ea6e8a371920641d0",
