@@ -1604,6 +1604,8 @@ def test_the_build_ends_typed_at_the_miners_own_ceiling(tmp_path, monkeypatch):
         "stage": "build",
         "state": "STOPPED",
         "code": budget.MINER_CEILING_REACHED,
+        # G1: the stage row names the limit it reached.
+        "dimension": "provider_attempts",
     }
     # Finished stages never run again: a resume sends and records nothing.
     calls = len(w.engine.calls)

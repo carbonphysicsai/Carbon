@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from carbon.challenge_kit import version_registry
 from carbon.challenge_registry import direct
 from carbon.direct_campaign.spec import SPECS
 
@@ -11,6 +12,8 @@ def test_every_catalog_example_says_it_is_a_starting_point_not_a_valid_grade():
     with_examples = []
     for spec in SPECS.values():
         for version in spec.versions:
+            if version_registry.find(spec.challenge_id, version) is None:
+                continue  # not served (Battery 2.2, OWNER-BATTERY-OUT-OF-LAUNCH-01)
             document = direct.describe(spec, version)
             if document.get("examples"):
                 with_examples.append((spec.challenge_id, version))
