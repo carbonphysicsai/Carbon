@@ -1093,7 +1093,7 @@
       row.append(head);
       if (item.intake) row.append(el("p", "A frozen candidate is submitted to " + item.intake + ".", "status-line"));
       if (item.receiver_hotkey) {
-        row.append(el("p", "Receiver mining key: " + item.receiver_hotkey, "hint"));
+        row.append(el("p", "Grader's mining key address: " + item.receiver_hotkey, "hint"));
         const note = item.receiver_hotkey_note;
         if (typeof note === "string" && note) row.append(el("p", plainWords(note[0].toUpperCase() + note.slice(1)), "hint"));
       }
@@ -1863,7 +1863,7 @@
     const savedDirect = (steps.evaluation?.challenges || []).map(item => item.direct_intake).find(item => item && item.intake_url);
     if (savedDirect) {
       directIntake.value = savedDirect.intake_url; directReceiver.value = savedDirect.receiver_hotkey || "";
-      researchNote(directMore, "Saved: receiver " + savedDirect.intake_url + (savedDirect.receiver_hotkey ? " · mining key " + savedDirect.receiver_hotkey.slice(0, 8) + "…" : "") + ". Edit the fields and write your profile to change it.", "hint");
+      researchNote(directMore, "Saved: receiver " + savedDirect.intake_url + (savedDirect.receiver_hotkey ? " · mining key address " + savedDirect.receiver_hotkey.slice(0, 8) + "…" : "") + ". Edit the fields and write your profile to change it.", "hint");
     }
     evaluationSection(evaluationBox, steps.evaluation, (challengeId, url, hotkey) => {
       // Review writes only the intakes it is given: this one, again.
