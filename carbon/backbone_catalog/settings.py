@@ -144,6 +144,9 @@ GPU_BUILDS = {
     F02_LEVERS.schema_id: (
         "sha256:0116f966f3e41f151bb3da64da4f778688a44d9c474e4534eb19d2031f53a842"
     ),
+    COVERAGE_F32.schema_id: (
+        "sha256:df1fdb3e4928c4db6ef114c251b478687647545439f509cb76c7c01a76b1ab7e"
+    ),
 }
 #: Each levers build's accepted mixed-precision values.
 PRECISIONS = {
