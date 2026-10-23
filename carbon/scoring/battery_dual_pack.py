@@ -32,6 +32,10 @@ VERSIONS = {
     # Allowlist v7's catalog version (Validator, 2026-10-20): the predecessor's
     # measurement under its evaluation version; only the served allowlist differs.
     "2.1": (EVALUATION_VERSION, CASE_ID),
+    # Battery's launch version 2.2 (2.1 plus the backbone catalog and Battery's
+    # graph adapter): it serves 2.1's bank, so 2.1's measurement under its
+    # evaluation version (Validator, 2026-10-23: option (b), Battery-only).
+    "2.2": (EVALUATION_VERSION, CASE_ID),
 }
 OUTPUT = {
     "quantity": "voltage_v,temperature_c,plating_margin_v,capacity_ah",

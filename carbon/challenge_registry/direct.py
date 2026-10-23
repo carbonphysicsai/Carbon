@@ -1,5 +1,5 @@
-"""Discovery for the direct-recipe-only versions: F08 (Ribbed Bracket) 1.4 and
-F02 (Burst Thermal) 2.3.
+"""Discovery for the direct-recipe-only versions: F08 (Ribbed Bracket) 1.4,
+F02 (Burst Thermal) 2.3 and Battery 2.2.
 
 A description names the registered interface, construction kit, served backbone
 catalog and graph training adapter (each from its registered source), and a
@@ -69,15 +69,23 @@ def catalog_recipe(spec, catalog_id=None, *, version):
 
 
 def graph_recipe(spec, submission_digest=None, *, version, training=None):
-    """A graph recipe for Carbon's registered graph training adapter at
-    `version`: the adapter's dataset, `train_fraction` 1.0 (its registered
-    default) and `training` (empty: every surface keeps its registered
-    default). Without `submission_digest` it is an unfilled template (None):
-    the miner's graph, staged in their workspace, names it."""
-    from carbon.development_session import physical_graph_adapter as adapter
+    """A graph recipe for the version's registered graph training adapter
+    (`graph_adapters`) at `version`: the adapter's TRAIN use with its
+    registered defaults and `training` (empty: every surface keeps its
+    registered default). Without `submission_digest` it is an unfilled
+    template (None): the miner's graph, staged in their workspace, names it."""
+    from carbon.development_session.graph_adapters import for_version
 
     kit = _kit(spec, version)
-    block = adapter.adapter_block(spec.challenge_id, version)
+    block = for_version(spec.challenge_id, version).adapter_block(
+        spec.challenge_id, version
+    )
+    # Battery's adapter states its whole TRAIN use default; F08/F02's state
+    # their dataset and train_fraction surface.
+    train_use = block.get("train_use_default") or {
+        "dataset": block["train_use_dataset"],
+        "train_fraction": block["train_fraction"]["default"],
+    }
     return {
         "schema": "carbon.construction-recipe.v1",
         "challenge": kit,
@@ -85,10 +93,7 @@ def graph_recipe(spec, submission_digest=None, *, version, training=None):
         "procedure": {
             "entrypoint": None,
             "configuration": {"training": dict(training or {})},
-            "train_use": {
-                "dataset": block["train_use_dataset"],
-                "train_fraction": block["train_fraction"]["default"],
-            },
+            "train_use": dict(train_use),
             "initial_state": None,
         },
         "output": {
@@ -98,18 +103,46 @@ def graph_recipe(spec, submission_digest=None, *, version, training=None):
     }
 
 
+def _empty_catalog_note(adapter):
+    """What a version with no catalog entry yet says, in plain words."""
+    waiting = (
+        "No backbone is installable yet: each catalog entry arrives after its "
+        "own pair-identity check."
+    )
+    if adapter is not None:
+        return (
+            waiting + " Meanwhile, practise your own graph: stage it in your "
+            "workspace and name its digest in graph_recipe_template's "
+            "source.submission_digest."
+        )
+    return waiting + " Until one is added, the campaign refuses to start."
+
+
 def describe(spec, version):
     """The direct version's description, from its registrations only."""
     from carbon.backbone_catalog import served
     from carbon.direct_campaign import facts
-    from carbon.direct_campaign.spec import key_for
+    from carbon.direct_campaign.contracts import train_facts
+    from carbon.direct_campaign.spec import key_for, keyed
     from carbon.reconstruction.served_recipe_contract import registered
 
     key = key_for(spec, version)
     public = spec.public()
     interface = public.interface_document(key.challenge_id, key.version)
     limits = public.construction_limits_document(key.challenge_id, key.version)
+    with keyed(spec, key):
+        train = train_facts(spec)
     catalog = served.document(key.challenge_id, key.version)
+    # The graph route as miners are told about it: the limits' adapter block,
+    # where the version's graph route is offered (`graph_adapters.graph_offered`;
+    # Battery 2.2's waits on its graph screen, so it reads catalog-only).
+    from carbon.development_session.graph_adapters import graph_offered
+
+    adapter = (
+        limits.get("graph_training_adapter")
+        if graph_offered(spec.challenge_id, key.version)
+        else None
+    )
     outputs = {name: [] for name in interface["output"]["names"]}
     return {
         "identity": "carbon." + spec.challenge_id + "-direct." + version,
@@ -139,8 +172,8 @@ def describe(spec, version):
                 "arguments_json encoding one listed name"
             ),
             "train": {
-                "cases": limits["train_cases"],
-                "dtype": limits["train_dtype"],
+                "cases": train["train_cases"],
+                "dtype": train["train_dtype"],
                 "sha256": public.construction_kit(key.challenge_id, key.version)[
                     "train_digest"
                 ],
@@ -157,20 +190,26 @@ def describe(spec, version):
                 for catalog_id, entry in catalog["entries"].items()
             ],
             "catalog": catalog,
-            "graph_training_adapter": limits["graph_training_adapter"],
+            "graph_training_adapter": adapter,
             "note": (
-                "Choose a backbone by catalog_id, or stage a graph for Carbon's "
-                "graph training adapter."
+                (
+                    "Choose a backbone by catalog_id, or stage a graph for "
+                    "Carbon's graph training adapter."
+                    if adapter is not None
+                    else "Choose a backbone by catalog_id."
+                )
                 if catalog["entries"]
-                else "No backbone is tested for this version yet: each entry "
-                "needs its own pair-identity receipt, so the campaign refuses "
-                "to start until one is added."
+                else _empty_catalog_note(adapter)
             ),
         },
         "execution": {
             "worker_image": "the campaign's verified C-03 PyTorch CPU worker image",
             "gpu_lane": False,
-            "recipe": "carbon.construction-recipe.v1, source kind catalog or graph",
+            "recipe": (
+                "carbon.construction-recipe.v1, source kind catalog or graph"
+                if adapter is not None
+                else "carbon.construction-recipe.v1, source kind catalog"
+            ),
         },
         "workflow": {
             "practice": "Carbon rebuilds the recipe on public TRAIN as the receiver does",
@@ -193,6 +232,13 @@ def describe(spec, version):
             [{"recipe": catalog_recipe(spec, version=version)}]
             if catalog["entries"]
             else []
+        ),
+        # Never an empty list with no reason (round 8b): why there is no ready
+        # recipe yet, and what this version can already practise.
+        **(
+            {}
+            if catalog["entries"]
+            else {"examples_note": _empty_catalog_note(adapter)}
         ),
         "unsupported": [
             {

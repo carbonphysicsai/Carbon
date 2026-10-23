@@ -35,6 +35,7 @@ from carbon.authoring.primitives import CANONICALIZATION_PROFILE
 from . import facts
 from . import practice as direct_practice
 from .contracts import (
+    PRECISION,
     authored_contracts,
     canonical,
     compile_refused,
@@ -45,6 +46,7 @@ from .contracts import (
     interface_document,
     limits_document,
     semantic,
+    train_facts,
 )
 from .spec import HUMAN_INPUT, key_for, keyed, research_key
 
@@ -109,11 +111,11 @@ def objective(spec):
 
 def reference_method(spec):
     version = research_key(spec).version
-    limits = limits_document(spec)
+    train = train_facts(spec)
     return {
         "reference": facts.value(spec, version, "reference_method"),
-        "train_provenance_sha256": limits["train_provenance_sha256"],
-        "train_cases": limits["train_cases"],
+        "train_provenance_sha256": train["train_provenance_sha256"],
+        "train_cases": train["train_cases"],
         "quality": facts.value(spec, version, "reference_quality"),
     }
 
@@ -128,7 +130,9 @@ def capabilities(spec):
         "schema": "carbon." + spec.prefix + ".direct-capabilities.v1",
         "challenge": {"id": key.challenge_id, "version": key.version},
         "sources": {
-            "graph": limits["graph_training_adapter"],
+            # Battery's catalog version binds no graph adapter: its graph
+            # recipes stay on its base version's own graph worker.
+            "graph": limits.get("graph_training_adapter", "not served on this version"),
             "catalog": {
                 **limits["backbone_catalog"],
                 "entries": sorted(
@@ -169,7 +173,10 @@ def population_and_sampling(spec):
             stated(
                 "physical_support", "physical_support", "human_input_physical_support"
             ),
-            clause("representation_support", "float32_rows"),
+            clause(
+                "representation_support",
+                PRECISION[interface_document(spec)["train_dtype"]][1],
+            ),
             stated(
                 "support_boundary", "support_boundary", "human_input_support_boundary"
             ),
@@ -320,10 +327,12 @@ def population_and_sampling(spec):
 _NORMALIZATION = {
     "f02": "train40_v2_train_peak_std_c",
     "f08": "dev1_section7_f08_critical_scales",
+    "battery_catalog": "battery_exam_train_scales",
 }
 _AGGREGATION = {
     "f02": "max_of_mean_near_block_mean_and_worst",
     "f08": "dev1_worst_over_quantity_and_case_mean_recorded",
+    "battery_catalog": "battery_exam_aggregate_over_public_practice",
 }
 
 
@@ -366,7 +375,12 @@ def measurement_contract(spec):
         # The registered scale and its record's aggregation (practice.py).
         definition(kind.NORMALIZATION, _NORMALIZATION[spec.prefix]),
         definition(kind.AGGREGATION, _AGGREGATION[spec.prefix]),
-        definition(kind.PRECISION, "float32_outputs"),
+        definition(
+            kind.PRECISION,
+            PRECISION[interface_document(spec)["train_dtype"]][1].replace(
+                "rows", "outputs"
+            ),
+        ),
         m.ReferencePolicyRef(key, digest(canonical({"reference": HUMAN_INPUT}))),
         m.ScientificValueBinding(m.ScientificValueState.HUMAN_INPUT),
         definition(kind.APPLICABILITY_POLICY, "public_development_population_only"),
@@ -416,13 +430,13 @@ class DirectPublicMaterial:
                 self.key.challenge_id, self.key.version
             )
             body = material["train"]
-            workspace.put(prefix + "train.npz", body)
-            limits = limits_document(self.spec)
+            train = train_facts(self.spec)
+            workspace.put(prefix + train["file"], body)
             return {
-                "files": {prefix + "train.npz": digest(body)},
-                "cases": limits["train_cases"],
-                "dtype": limits["train_dtype"],
-                "format": "npz: inputs and targets, float32",
+                "files": {prefix + train["file"]: digest(body)},
+                "cases": train["train_cases"],
+                "dtype": train["train_dtype"],
+                "format": train["format"],
             }
         if name == "practice_data":
             value = {**bank(self.spec), "labels": HUMAN_INPUT, "adaptively_seen": True}

@@ -33,9 +33,11 @@ DECISION_REFERENCES = (
     REPOSITORY / "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz"
 )
 #: Battery's development producer digest after the one accepted move that hashed
-#: the sealed bank loader and copy modules (Validator, 2026-10-22).
+#: the sealed bank loader and copy modules (Validator, 2026-10-22), then the
+#: Battery-only move registering 2.2 (Validator, 2026-10-23, option (b); was
+#: sha256:d0f4804a0b4c9294cfeec7674900aad6472ba6ad9c8a20c9f277cb9abb420e35).
 DEV_PRODUCER_DIGEST = (
-    "sha256:d0f4804a0b4c9294cfeec7674900aad6472ba6ad9c8a20c9f277cb9abb420e35"
+    "sha256:bb52d20726666c41903dfc2f74429cd6d73f1a7e70dac3ecf5e1deab6be1f016"
 )
 
 

@@ -440,9 +440,14 @@ def test_the_receiver_selects_the_adapter_only_on_1_4_and_2_3():
     assert select(_discovery(synthetic, limits), synthetic) == (
         direct_graph_construction_worker.SYNTHETIC_ADAPTER_ID
     )
+    # Battery 2.2's adapter is registered beside these (its own tests:
+    # test_battery_graph_adapter.py).
+    from carbon.development_session import battery_graph_adapter
+
     assert direct_graph_construction_worker.graph_adapter_ids() == {
         direct_graph_construction_worker.SYNTHETIC_ADAPTER_ID,
         *adapter.ADAPTER_IDS,
+        *battery_graph_adapter.ADAPTER_IDS,
     }
 
 

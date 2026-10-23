@@ -426,12 +426,12 @@ class DirectFixtureDiscovery:
         train_ids = material.get("train_case_ids")
         practice_ids = material.get("practice_case_ids")
         battery = key == battery_challenge.CHALLENGE
-        # Battery 2.0 (step 2) and 2.1 (its catalog version): the bank's rows
-        # with the reference_present mask; an absent reference stays NaN (mask
-        # interface §3).
+        # Battery 2.0 (step 2), 2.1 (allowlist v7) and 2.2 (2.1 plus the
+        # backbone catalog): the bank's rows with the reference_present mask;
+        # an absent reference stays NaN (mask interface §3).
         battery_v2 = (
             key.challenge_id == battery_challenge.CHALLENGE.challenge_id
-            and key.version in ("2.0", "2.1")
+            and key.version in ("2.0", "2.1", "2.2")
         )
         present = material.get("reference_present") if battery_v2 else None
         physical = physical_material.is_registered(key.challenge_id, key.version)
@@ -620,27 +620,29 @@ class DirectFixtureDiscovery:
     def graph_adapter_for(self, key):
         """Return the exact registered graph adapter, or no capability.
 
-        Synthetic 1.3, and F08 1.4 / F02 2.3 (the Validator, 2026-10-20), each
-        only when the served limits carry that adapter's exact block. The
-        selector follows the existing full fixture recheck. A caller's recipe
-        or an unverified material flag cannot select an adapter.
+        Synthetic 1.3, and each registered per-version adapter
+        (`graph_adapters`: F08 1.4 / F02 2.3, the Validator, 2026-10-20;
+        Battery 2.2, 2026-10-22), each only when the served limits carry that
+        adapter's exact block. The selector follows the existing full fixture
+        recheck. A caller's recipe or an unverified material flag cannot
+        select an adapter.
         """
-        from . import physical_graph_adapter
+        from .graph_adapters import for_version
 
-        if (
-            type(key) is research.ChallengeKey
-            and (key.challenge_id, key.version) in physical_graph_adapter.SPECS
-        ):
+        module = (
+            for_version(key.challenge_id, key.version)
+            if type(key) is research.ChallengeKey
+            else None
+        )
+        if module is not None:
             if key != self.info.challenge_key:
                 return None
             self._checked(key)
-            spec = physical_graph_adapter.SPECS[(key.challenge_id, key.version)]
+            spec = module.SPECS[(key.challenge_id, key.version)]
             block = self._material["construction_limits_document"].get(
                 "graph_training_adapter"
             )
-            expected = physical_graph_adapter.adapter_block(
-                spec.challenge_id, spec.version
-            )
+            expected = module.adapter_block(spec.challenge_id, spec.version)
             return spec.adapter_id if block == expected else None
         if (
             type(key) is not research.ChallengeKey

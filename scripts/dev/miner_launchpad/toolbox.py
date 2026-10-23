@@ -559,6 +559,13 @@ def build(challenge, *, lanes=None, compute=None, direct=False):
                     and type(e.get("strategy", e.get("recipe"))) is dict
                     and not (direct and "recipe" not in e)
                 ][:4],
+                # Why there is no ready recipe yet, when the description says
+                # (a direct version whose catalog is still empty).
+                **(
+                    {"examples_note": described["examples_note"]}
+                    if type(described.get("examples_note")) is str
+                    else {}
+                ),
                 # The editor's backbone picker: each catalog entry and its
                 # ready recipe; [] where the version serves no catalog.
                 "catalog": catalog_recipes(challenge["id"], challenge.get("version")),

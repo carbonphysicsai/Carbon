@@ -122,7 +122,7 @@ def test_implemented_is_not_usable_until_the_host_has_it():
     rows = {
         p["profile"]: p
         for c in challenges.catalog(NOTHING)["challenges"]
-        if c["challenge_id"] == BATTERY
+        if c["challenge_id"] == BATTERY and c["version"] == "1.0"
         for p in c["profiles"]
     }
     # CPU practice, and the miner's own GPU for speed (C-MLP-03 slice 3).

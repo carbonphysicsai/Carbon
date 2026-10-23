@@ -64,7 +64,23 @@ F02 = Spec(
     "F02_PUBLIC_PRACTICE",
     contextvars.ContextVar("carbon_f02_research_key", default=None),
 )
-SPECS = {spec.challenge_id: spec for spec in (F08, F02)}
+#: Battery 2.2, Battery's launch version (OWNER-BATTERY-LAUNCH-VERSION-01;
+#: the Validator, 2026-10-22): Battery 2.1 plus the backbone
+#: catalog, by its own adapter beside the pinned Battery modules
+#: (`battery.catalog_version`, its public module), catalog recipes only. Its
+#: prefix keeps its documents apart from Battery 1.0's (`carbon.battery.*`);
+#: its practice provenance is Battery's, so a practised recipe supports a
+#: freeze.
+BATTERY_CATALOG = Spec(
+    "battery-fastcharge-ageing-development-v1",
+    "battery_catalog",
+    "Battery",
+    ("2.2",),
+    "carbon.battery.catalog_version",
+    "BATTERY_PUBLIC_PRACTICE",
+    contextvars.ContextVar("carbon_battery_catalog_research_key", default=None),
+)
+SPECS = {spec.challenge_id: spec for spec in (F08, F02, BATTERY_CATALOG)}
 
 
 def key_for(spec, version):

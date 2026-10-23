@@ -1,6 +1,8 @@
 """A direct-recipe version's public-practice declaration for the research view.
 
-Its outputs are the registered interface's names and units, one scalar each.
+Its outputs are the registered interface's names and units, one scalar each,
+or the public module's own (`research_outputs`: Battery's trajectories and
+checkpoints).
 Its components are the practice summary's aggregate errors on the registered
 scale (`practice.error_scale`; Validator, 2026-10-21), lower is better; per-case
 detail follows the practice population's disclosure contract, which makes no
@@ -27,6 +29,11 @@ LABELS = {
     "margin_worst": "Margin worst error",
     "resonance_mean": "Resonance mean error",
     "resonance_worst": "Resonance worst error",
+    # Battery's exam components (`battery.exam.COMPONENTS`).
+    "voltage": "Voltage",
+    "temperature": "Temperature",
+    "plating": "Plating",
+    "capacity": "Capacity",
 }
 
 
@@ -34,13 +41,20 @@ def research_view(spec):
     from .contracts import interface_document
     from .research import population_and_sampling
 
-    research_key(spec)
     interface = interface_document(spec)
     population, _ = population_and_sampling(spec)
-    outputs = tuple(
-        OutputSpec(name, "scalar", unit, name, ())
-        for name, unit in zip(
-            interface["output"]["names"], interface["output"]["units"], strict=True
+    public = spec.public()
+    key = research_key(spec)
+    outputs = (
+        public.research_outputs(key.challenge_id, key.version)
+        if hasattr(public, "research_outputs")
+        else tuple(
+            OutputSpec(name, "scalar", unit, name, ())
+            for name, unit in zip(
+                interface["output"]["names"],
+                interface["output"]["units"],
+                strict=True,
+            )
         )
     )
     return ResearchView(

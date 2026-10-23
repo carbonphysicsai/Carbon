@@ -18,7 +18,9 @@ CHALLENGE = "battery-fastcharge-ageing-development-v1"
 VERSION = "2.0"
 EVALUATION_VERSION = "battery-dual-development-bank-v2"
 CASE_ID = "battery-development-bank"
-VERSIONS = {"2.0": (EVALUATION_VERSION, CASE_ID), "2.1": (EVALUATION_VERSION, CASE_ID)}
+#: 2.2 (Battery's launch version, 2.1 plus the backbone catalog) serves 2.1's
+#: bank and pack set (Validator, 2026-10-22), so the same measurement.
+VERSIONS = {version: (EVALUATION_VERSION, CASE_ID) for version in ("2.0", "2.1", "2.2")}
 Refused = pdm.BatteryMeasurementRefused
 _REPOSITORY = Path(__file__).resolve().parents[2]
 

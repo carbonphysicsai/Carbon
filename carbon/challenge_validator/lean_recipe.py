@@ -44,6 +44,15 @@ _SOURCE_PATHS = (
     "carbon/development_session/physical_graph_adapter.py",
     "carbon/development_session/physical_graph_state.py",
     "carbon/development_session/physical_graph_trainer.py",
+    # Battery's graph adapter (the Validator's ruling (a)) and the Battery
+    # modules it stages unchanged into its build and inference children.
+    "carbon/development_session/graph_adapters.py",
+    "carbon/development_session/battery_graph_adapter.py",
+    "carbon/development_session/build_refusal.py",
+    "carbon/battery/domain.py",
+    "carbon/battery/recipes.py",
+    "carbon/battery/training.py",
+    "carbon/battery/direct_graph.py",
     "carbon/development_session/bundle_graph_state.py",
     "carbon/reconstruction/served_recipe_contract.py",
     "carbon/challenge_kit/physical_material.py",

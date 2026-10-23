@@ -25,6 +25,11 @@ _BINDING_FIELDS = {
     "construction_limits_digest",
 }
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
+#: Battery's served construction versions, each serving TRAIN v1
+#: (`battery.construction_bundle_material.VERSIONS`, held equal by a test). Kept
+#: here, not imported, because this module runs inside the isolated worker with
+#: only its staged modules.
+_BATTERY_VERSIONS = ("1.0", "2.0", "2.1", "2.2")
 _BASE_MODULES = (
     "carbon.development_session.construction_tensor_codec",
     "carbon.development_session.bundle_graph_state",
@@ -134,7 +139,7 @@ def train_tensors(raw: bytes, binding: dict) -> tuple[np.ndarray, np.ndarray]:
         from carbon.battery import challenge, construction_material
 
         if (
-            binding["challenge_version"] != challenge.CHALLENGE.version
+            binding["challenge_version"] not in _BATTERY_VERSIONS
             or binding["train_digest"] != "sha256:" + challenge.TRAIN_V1_SHA256
         ):
             raise TensorCodecError("Battery TRAIN binding differs")

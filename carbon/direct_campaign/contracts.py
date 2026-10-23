@@ -6,11 +6,11 @@ Level-0 contracts, as Motor's and Cooling's are. A direct-recipe version has no
 Level-0 family, so these contracts are its shell, mirroring Motor's structure:
 
 - the causal inputs and outputs are the registered interface document's names,
-  units and float32 dtype; the TRAIN support is its registered row count and
-  digests;
+  units, axes and dtype (float32 for F08/F02, float64 for Battery's catalog
+  version); the TRAIN support is its registered row count and digests;
 - the backbone surface's options are the direct sources the version's
-  construction limits bind: Carbon's graph training adapter (its block) and the
-  backbone catalog (its digest);
+  construction limits bind: Carbon's graph training adapter (its block, where
+  the limits bind one) and the backbone catalog (its digest);
 - every physical statement the interface does not register (governing law,
   geometry domain, operating envelope, rights, support) is the owner-approved
   fact (`facts`): a profile entry, and a clause under its approved label whose
@@ -58,6 +58,17 @@ UNIT_LABELS = {
     "W": "watt",
     "s": "second",
     "degC": "degree_celsius",
+    # Battery's catalog version (`battery.catalog_version`): the Battery
+    # contracts' own unit labels.
+    "C-rate": "c_rate",
+    "1": "fraction",
+    "V": "volt",
+    "Ah": "ampere_hour",
+}
+#: Each registered TRAIN dtype's precision and its rows clause label.
+PRECISION = {
+    "<f4": (PrecisionLiteral.FLOAT32, "float32_rows"),
+    "<f8": (PrecisionLiteral.FLOAT64, "float64_rows"),
 }
 IMPLEMENTATION_VERSION = "1.0"
 #: The sources the direct campaign's research path runs, by repository path.
@@ -125,16 +136,39 @@ def _documents(spec, version):
     }
 
 
+def train_facts(spec):
+    """Public TRAIN's registered facts: the public module's own where it
+    states them (Battery's catalog version, whose TRAIN is Battery's), else
+    the construction limits document's."""
+    public = spec.public()
+    key = research_key(spec)
+    if hasattr(public, "train_facts"):
+        return public.train_facts(key.challenge_id, key.version)
+    limits = limits_document(spec)
+    return {
+        **{
+            name: limits[name]
+            for name in ("train_cases", "train_dtype", "train_provenance_sha256")
+        },
+        "file": "train.npz",
+        "format": "npz: inputs and targets, float32",
+    }
+
+
 def direct_sources(spec):
     """The direct sources the version's limits bind, as (selector, backbone id,
     version, content digest): Carbon's training adapter (its limits block, by
-    digest) and the backbone catalog (its digest). Construction identities may
-    not carry a component-graph token, so the adapter is named by its role."""
+    digest), where the limits bind one, and the backbone catalog (its digest).
+    Construction identities may not carry a component-graph token, so the
+    adapter is named by its role."""
     limits = limits_document(spec)
-    adapter = limits["graph_training_adapter"]
     catalog = limits["backbone_catalog"]
+    adapter = ()
+    if "graph_training_adapter" in limits:
+        block = digest(canonical(limits["graph_training_adapter"]))
+        adapter = (("direct_adapter", "carbon_training_adapter", "1", block),)
     return (
-        ("direct_adapter", "carbon_training_adapter", "1", digest(canonical(adapter))),
+        *adapter,
         ("direct_catalog", "carbon_backbone_catalog", "1", catalog["digest"]),
     )
 
@@ -197,6 +231,7 @@ def _profile_document(spec):
 
     key = research_key(spec)
     limits = limits_document(spec)
+    train = train_facts(spec)
     return {
         "schema": "carbon." + spec.prefix + ".direct-development.profile.v1",
         "challenge": {"id": key.challenge_id, "version": key.version},
@@ -204,9 +239,8 @@ def _profile_document(spec):
         "interface": interface_document(spec),
         "construction_kit": construction_kit(spec),
         "public_material": {
-            "train_cases": limits["train_cases"],
-            "train_dtype": limits["train_dtype"],
-            "train_provenance_sha256": limits["train_provenance_sha256"],
+            name: train[name]
+            for name in ("train_cases", "train_dtype", "train_provenance_sha256")
         },
         "construction": {
             "sources": [list(source) for source in direct_sources(spec)],
@@ -261,16 +295,26 @@ def na(spec, label):
     return A.not_applicable(semantic(spec, "applicability_reason", label))
 
 
-def _field(spec, name, unit):
+def _field(spec, name, unit, dtype, axes=()):
     clause = functools.partial(semantic, spec)
     return p.ValueFieldContract(
         field_id=name,
         semantic_role_ref=clause("semantic_clause", name),
         representation_ref=clause("representation", "dense_physical_array"),
         unit_ref=clause("unit", UNIT_LABELS[unit]),
-        shape_contract=(),
-        # The registered interface is float32 (`train_dtype` "<f4").
-        precision_contract=(PrecisionLiteral.FLOAT32,),
+        # A scalar per row, or the output's registered axes (Battery's
+        # trajectories and capacity checkpoints).
+        shape_contract=tuple(
+            p.AxisContract(
+                axis,
+                clause("semantic_clause", axis),
+                clause("unit", "count"),
+                p.AxisExtent(p.AxisExtentKind.FIXED, fixed_extent=size),
+            )
+            for axis, size in axes
+        ),
+        # The registered interface's dtype (`train_dtype`).
+        precision_contract=(PRECISION[dtype][0],),
         geometry_binding=A.bound(
             fact(spec, "geometry_domain", "geometry_domain", "human_input_geometry")
         ),
@@ -284,9 +328,10 @@ def authored_contracts(spec):
     clause = functools.partial(semantic, spec)
     stated = functools.partial(fact, spec)
     interface = interface_document(spec)
-    limits = limits_document(spec)
-    if interface["train_dtype"] != "<f4" or limits["train_dtype"] != "<f4":
-        raise ValueError(spec.prefix + " direct contracts bind a float32 interface")
+    train = train_facts(spec)
+    dtype = interface["train_dtype"]
+    if dtype not in PRECISION or train["train_dtype"] != dtype:
+        raise ValueError(spec.prefix + " direct contracts bind a registered dtype")
     common = {
         "schema_version": "1.0",
         "canonicalization_profile": CANONICALIZATION_PROFILE,
@@ -294,15 +339,19 @@ def authored_contracts(spec):
         "object_version": "1.0",
     }
     inputs = tuple(
-        _field(spec, name, unit)
+        _field(spec, name, unit, dtype)
         for name, unit in zip(
             interface["input"]["names"], interface["input"]["units"], strict=True
         )
     )
+    names = interface["output"]["names"]
     outputs = tuple(
-        _field(spec, name, unit)
-        for name, unit in zip(
-            interface["output"]["names"], interface["output"]["units"], strict=True
+        _field(spec, name, unit, dtype, axes)
+        for name, unit, axes in zip(
+            names,
+            interface["output"]["units"],
+            interface["output"].get("axes", [()] * len(names)),
+            strict=True,
         )
     )
     physical = p.PhysicalSystemSpec(
@@ -405,7 +454,7 @@ def authored_contracts(spec):
             ),
             clause(
                 "representation_support",
-                "public_train_" + str(limits["train_cases"]) + "_cases",
+                "public_train_" + str(train["train_cases"]) + "_cases",
             ),
             "REJECT",
         ),
@@ -416,7 +465,7 @@ def authored_contracts(spec):
                 "human_input_physical_invariant",
             ),
         ),
-        representation_invariant_refs=(clause("semantic_clause", "float32_rows"),),
+        representation_invariant_refs=(clause("semantic_clause", PRECISION[dtype][1]),),
         permitted_source_materials=(),
         permitted_generators=t.PermittedGeneratorBinding(
             t.PermittedGeneratorKind.PERMITTED,

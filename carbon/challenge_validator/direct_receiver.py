@@ -64,11 +64,12 @@ def served_challenges() -> tuple:
     from carbon.challenge_kit import physical_material
     from carbon.challenge_kit.synthetic_linear_field_2d import CHALLENGE
 
-    return (
+    listed = (
         {"id": CHALLENGE.challenge_id, "version": "1.3"},
-        # Every served Battery construction version (1.0; step-2 2.0; the
-        # catalog version 2.1), each with its approved pack (Validator,
-        # 2026-10-20). Battery serves its own versioned material, not a
+        # Every served Battery construction version (1.0; step-2 2.0; 2.1,
+        # allowlist v7), each with its approved pack (Validator, 2026-10-20),
+        # and the catalog version 2.2 (2.1 plus the catalog; Validator,
+        # 2026-10-22). Battery serves its own versioned material, not a
         # physical kit, so it is listed here rather than in REGISTERED.
         *(
             {"id": battery_challenge.CHALLENGE.challenge_id, "version": version}
@@ -79,6 +80,16 @@ def served_challenges() -> tuple:
             for challenge_id, version in physical_material.REGISTERED
         ),
     )
+    # Battery's catalog versions (2.2) are also registered physical kits; each
+    # (id, version) is listed once, in first-seen order.
+    seen = set()
+    unique = []
+    for item in listed:
+        key = (item["id"], item["version"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(item)
+    return tuple(unique)
 
 
 class ReceiverUnavailable(RuntimeError):
@@ -1162,7 +1173,7 @@ def serve(
     _private_directory(cache)
     selected_id = cfg.get("challenge", {}).get("id")
     material = (
-        # The configured Battery version exactly (1.0, or step-2's 2.0).
+        # The configured Battery version exactly (1.0, 2.0, 2.1 or 2.2).
         battery_versioned_material(cfg["challenge"]["version"])
         if selected_id == battery_challenge.CHALLENGE.challenge_id
         else (

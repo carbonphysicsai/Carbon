@@ -118,6 +118,9 @@ PACK_VERSIONS = {
     (battery_pack.CHALLENGE_ID, "1.0"): battery_pack.PACK_VERSION,
     (battery_pack.CHALLENGE_ID, "2.0"): "battery-normal-construction-development-3",
     (battery_pack.CHALLENGE_ID, "2.1"): "battery-normal-construction-development-4",
+    # Battery 2.2 (Validator, 2026-10-23): 2.1's bank and measurement under its
+    # own pack version; only the construction kit differs.
+    (battery_pack.CHALLENGE_ID, "2.2"): "battery-normal-construction-development-5",
     (f08_train.CHALLENGE_ID, "1.0"): "f08-normal-construction-development-1",
     (f08_train.CHALLENGE_ID, "1.1"): "f08-normal-construction-development-2",
     (f08_train.CHALLENGE_ID, "1.2"): "f08-normal-construction-development-3",
@@ -368,6 +371,16 @@ def physics_contract(challenge_id: str, version: str) -> dict | None:
         from carbon.scoring import f08_dual_pack
 
         return f08_dual_pack.physics_contract()
+    if challenge_id == battery_pack.CHALLENGE_ID:
+        battery_pack._check(version)
+        if version == "1.0":
+            return None
+        # Battery 2.x: its served material's own {version, definition} envelope
+        # (`construction_bundle_material.versioned_material`), the role its pack
+        # carries (`battery_pack.public_roles`).
+        from carbon.battery.construction_bundle_material import versioned_material
+
+        return versioned_material(version)["physics_contract"]
     if challenge_id == cooling.CHALLENGE.challenge_id:
         _files(challenge_id, version)
         # Cooling's physics contract is the scoring producer's exact native

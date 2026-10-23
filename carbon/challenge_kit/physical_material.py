@@ -1,4 +1,5 @@
-"""Public Motor, Cooling, F08 and F02 construction material for the direct receiver (DEVELOPMENT only).
+"""Public Motor, Cooling, F08 and F02 construction material for the direct receiver (DEVELOPMENT only),
+and Battery's catalog versions' (`battery.catalog_version`, from Battery's own served material).
 
 The receiver serves a registered Challenge's fixed public TRAIN, interface, limits
 and physics contract, and runs the miner's recipe through the normal fresh build
@@ -12,6 +13,7 @@ reference, a qualification or LIVE authority.
 
 from __future__ import annotations
 
+from carbon.battery import catalog_version as battery_catalog
 from carbon.cold_plate import challenge as cooling
 from carbon.development_session.profile import canonical, digest
 from carbon.motor import challenge as motor
@@ -56,6 +58,11 @@ REGISTERED = (
     # adapter. F08 1.4 registers through f08_train.CHALLENGE_VERSIONS above. Their material
     # loads once their pack labels exist (physical_pack); until then it fails closed.
     ("f02", "2.3"),
+    # Battery 2.2 (the Validator, 2026-10-22): Battery 2.1 plus the catalog binding. Battery
+    # serves its own versioned material (`battery.construction_bundle_material`); it is listed
+    # here so the catalog's tested-digest check and the shared direct campaign read it by
+    # (id, version) like the others.
+    *((battery_catalog.CHALLENGE_ID, version) for version in battery_catalog.VERSIONS),
 )
 
 
@@ -70,6 +77,8 @@ def _public(challenge_id: str):
         return f08_public
     if challenge_id == f02_train.CHALLENGE_ID:
         return f02_public
+    if challenge_id == battery_catalog.CHALLENGE_ID:
+        return battery_catalog
     return physical_public
 
 
@@ -91,6 +100,10 @@ def bundle_material(
 
     if not is_registered(challenge_id, version):
         raise ValueError("unregistered public physical Challenge")
+    if challenge_id == battery_catalog.CHALLENGE_ID:
+        from carbon.battery.construction_bundle_material import versioned_material
+
+        return versioned_material(version)
     f08 = challenge_id == f08_train.CHALLENGE_ID
     f02 = challenge_id == f02_train.CHALLENGE_ID
     public = _public(challenge_id)

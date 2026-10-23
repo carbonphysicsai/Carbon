@@ -36,7 +36,10 @@ PACK_VERSION = "battery-normal-construction-development-2"
 #: STEP2_BATCH_VERSIONS_20261020) adds the v2 material rows. Every caller names
 #: its version.
 #: 2.1 (v7 catalog) is 2.0's bank under its own pack version; only the kit differs.
-VERSIONS = ("1.0", "2.0", "2.1")
+#: 2.2 (Battery's launch version: 2.1 plus the backbone catalog,
+#: `battery.catalog_version`) serves 2.1's bank and pack set (Validator,
+#: 2026-10-22); its roles are its served material's, so only the kit differs.
+VERSIONS = ("1.0", "2.0", "2.1", "2.2")
 #: Battery 2.0's extra rows (REFERENCE_PRESENT_MASK_INTERFACE_20261020 §1).
 _EV4_REFERENCES = (
     "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",

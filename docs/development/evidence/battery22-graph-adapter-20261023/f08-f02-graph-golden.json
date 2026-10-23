@@ -1,0 +1,527 @@
+{
+ "after": {
+  "commit": "399341e91080445087500dfff0fb845296242292",
+  "runs": {
+   "f02@2.3": {
+    "aggregate_error": 8.668773182308673,
+    "children": [
+     {
+      "files": {
+       "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+       "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+       "carbon.development_session.build_refusal.py": "0466e2d17d0fc12f7bae5963a9fe2a641a8259d085b8b38fb63c868ae17ae2fd",
+       "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+       "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+       "carbon.development_session.physical_graph_adapter.py": "9128d00a804ed56641bc07e6560a554fac46427444b433dd9b0cc20ec850102f",
+       "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+       "carbon.development_session.physical_graph_trainer.py": "3e97569bafd4b2f25312c8e1c01aa3fe5e581af94d2802a85ce17b29b62db7e5",
+       "carbon.level4._parse_worker.py": "e6b7f74cf8699720717ab50f249860c1e0421cbd05e03892556710cacbdfe1e8",
+       "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+       "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+       "carbon.level4.initializers.py": "5a5d57b82022648ffde23f50b9cd3d8c4df5955f687a0723d929b9ad7aabfa6a",
+       "carbon.level4.intake.py": "a8170f22d72d0ea44133a4f5071d957ce4998ce738c4e818e32cd42a16536ccb",
+       "carbon.level4.interpret.py": "bb65ff44a561498901dc6849cf9843eeb1da2e00617203f2bafa6828742f8b08",
+       "carbon.level4.loss.py": "b8bd18e8ffacb7d42966c9e7c3b3ca5bd4d44ff52e2ae189add5298346dd6995",
+       "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+       "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+       "carbon.level4.staging.py": "4254276061d66ba40207bea732d20f789f1bb309689a0be7a3e8db903406ba73",
+       "carbon.level4.submission.py": "9d00a3da89760eda99d5909e76fbe495b65983f426ce3a7e5a97bea190b8024e",
+       "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+       "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+       "carbon.level4.train.py": "2ae064b3d10f2736c4ab60b1465c3619b6a70f8a8349167e37b0e8e6bc518a48",
+       "carbon.level4.validate.py": "fa74ffa59244fcf7f8fddc0c612d4fe4d55e1c676517fda928cb786f28a57c8b",
+       "control.json": "0fb7342ba418006115cb513b370cf5775c4f22d37b967902fc22a9351017ae0d",
+       "recipe.json": "f019d06a596a35c759618357ab8e1e45307b20ba6e185954fdebece506e9ee7f",
+       "source-envelope.json": "762b845ec05b63f46909efc426e7ccbf4dd3e88a077ee3545d2d1ea5eee460a5",
+       "train.npz": "1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3"
+      },
+      "source": "5f3018c3f1a77cdb77295f4de34233a4069863080a83c1472dd35c6084f99f17"
+     },
+     {
+      "files": {
+       "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+       "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+       "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+       "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+       "carbon.development_session.construction_tensor_codec.py": "21aab9cd591cb531dbb9bc035bb8832a74b83dcd309e39d02f7f189d0895f5be",
+       "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+       "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+       "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+       "carbon.level4.interpret.py": "bb65ff44a561498901dc6849cf9843eeb1da2e00617203f2bafa6828742f8b08",
+       "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+       "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+       "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+       "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+       "control.json": "0988f1db77d0a328294cbc6aab90a19d133251922db5b1de2bed2aec5292f188",
+       "inputs.npz": "2489b6ca41c32a6a8e62d4ef9d773f60644b7e2fb33fb616121a62b0f7beabd7",
+       "recipe.json": "f019d06a596a35c759618357ab8e1e45307b20ba6e185954fdebece506e9ee7f",
+       "state.npz": "b2640c76228a1380b2f20b6c853d96b9515f2b3eacacf473ba18e35f7a2663d5"
+      },
+      "source": "dec3bf54fbaee202ed5f1621a7746e8c7f047d0fcdbc93cde32eacff2558d4de"
+     }
+    ],
+    "dev_grade": "9032ff57ef98e454174ef7a9aee704646491d4bccda2a76bd18ce4ca5bdab64c",
+    "predictions": "cf878dabc640449820985a9e10beaf12cc272e0d9d1d5fc6b654c14a0d4ae33f",
+    "state": "sha256:b2640c76228a1380b2f20b6c853d96b9515f2b3eacacf473ba18e35f7a2663d5"
+   },
+   "f08-ribbed-bracket@1.4": {
+    "aggregate_error": 35.75723571777344,
+    "children": [
+     {
+      "files": {
+       "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+       "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+       "carbon.development_session.build_refusal.py": "0466e2d17d0fc12f7bae5963a9fe2a641a8259d085b8b38fb63c868ae17ae2fd",
+       "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+       "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+       "carbon.development_session.physical_graph_adapter.py": "9128d00a804ed56641bc07e6560a554fac46427444b433dd9b0cc20ec850102f",
+       "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+       "carbon.development_session.physical_graph_trainer.py": "3e97569bafd4b2f25312c8e1c01aa3fe5e581af94d2802a85ce17b29b62db7e5",
+       "carbon.level4._parse_worker.py": "e6b7f74cf8699720717ab50f249860c1e0421cbd05e03892556710cacbdfe1e8",
+       "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+       "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+       "carbon.level4.initializers.py": "5a5d57b82022648ffde23f50b9cd3d8c4df5955f687a0723d929b9ad7aabfa6a",
+       "carbon.level4.intake.py": "a8170f22d72d0ea44133a4f5071d957ce4998ce738c4e818e32cd42a16536ccb",
+       "carbon.level4.interpret.py": "bb65ff44a561498901dc6849cf9843eeb1da2e00617203f2bafa6828742f8b08",
+       "carbon.level4.loss.py": "b8bd18e8ffacb7d42966c9e7c3b3ca5bd4d44ff52e2ae189add5298346dd6995",
+       "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+       "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+       "carbon.level4.staging.py": "4254276061d66ba40207bea732d20f789f1bb309689a0be7a3e8db903406ba73",
+       "carbon.level4.submission.py": "9d00a3da89760eda99d5909e76fbe495b65983f426ce3a7e5a97bea190b8024e",
+       "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+       "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+       "carbon.level4.train.py": "2ae064b3d10f2736c4ab60b1465c3619b6a70f8a8349167e37b0e8e6bc518a48",
+       "carbon.level4.validate.py": "fa74ffa59244fcf7f8fddc0c612d4fe4d55e1c676517fda928cb786f28a57c8b",
+       "control.json": "ced3a06b119338d314be53d0d8683371c6696efa026133d210ea9d8c00ad043a",
+       "recipe.json": "394738b8cf18ae2778b5122846f4bd206e5a7d5e2027e2999df24f31495f6f6c",
+       "source-envelope.json": "006c05a7ce48e29d564be84457f578483c2d1ab7bfd8b45fa6bf199b1caa285e",
+       "train.npz": "4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a"
+      },
+      "source": "5f3018c3f1a77cdb77295f4de34233a4069863080a83c1472dd35c6084f99f17"
+     },
+     {
+      "files": {
+       "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+       "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+       "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+       "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+       "carbon.development_session.construction_tensor_codec.py": "21aab9cd591cb531dbb9bc035bb8832a74b83dcd309e39d02f7f189d0895f5be",
+       "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+       "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+       "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+       "carbon.level4.interpret.py": "bb65ff44a561498901dc6849cf9843eeb1da2e00617203f2bafa6828742f8b08",
+       "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+       "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+       "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+       "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+       "control.json": "1dae9cb4e728b88714df8eff81b2a8ad57822adecf016118b059517d06f5ac48",
+       "inputs.npz": "81b68d113d4f82a4a6475d5708d2faa8f78f1c547d38f90f35ebed870b17260a",
+       "recipe.json": "394738b8cf18ae2778b5122846f4bd206e5a7d5e2027e2999df24f31495f6f6c",
+       "state.npz": "420d1bbcc291370e391cf96c55a5ab3a7d38fe6e49bec1ef66e60a97222356e9"
+      },
+      "source": "dec3bf54fbaee202ed5f1621a7746e8c7f047d0fcdbc93cde32eacff2558d4de"
+     }
+    ],
+    "dev_grade": "572c13b138b406d74b3b3c1496c53ef1c7a35a3eb9b3db76bbbe1dbb2ad640bb",
+    "predictions": "a0a53697645bb9ec0af119d9428e252dc80eb51c9f9909e4e0fef7777b7c4c8c",
+    "state": "sha256:420d1bbcc291370e391cf96c55a5ab3a7d38fe6e49bec1ef66e60a97222356e9"
+   }
+  }
+ },
+ "before": {
+  "commit": "7731e4413",
+  "note": "composite 38 base before the Battery 2.2 chain (round 11b)",
+  "runs": {
+   "f02@2.3": {
+    "aggregate_error": 8.668773182308673,
+    "children": [
+     {
+      "files": {
+       "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+       "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+       "carbon.development_session.build_refusal.py": "e0daf30597b527b07929a99b79a438e756d02b6228a6f58472aa74183693fac8",
+       "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+       "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+       "carbon.development_session.physical_graph_adapter.py": "9128d00a804ed56641bc07e6560a554fac46427444b433dd9b0cc20ec850102f",
+       "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+       "carbon.development_session.physical_graph_trainer.py": "3e97569bafd4b2f25312c8e1c01aa3fe5e581af94d2802a85ce17b29b62db7e5",
+       "carbon.level4._parse_worker.py": "e6b7f74cf8699720717ab50f249860c1e0421cbd05e03892556710cacbdfe1e8",
+       "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+       "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+       "carbon.level4.initializers.py": "5a5d57b82022648ffde23f50b9cd3d8c4df5955f687a0723d929b9ad7aabfa6a",
+       "carbon.level4.intake.py": "a8170f22d72d0ea44133a4f5071d957ce4998ce738c4e818e32cd42a16536ccb",
+       "carbon.level4.interpret.py": "bb65ff44a561498901dc6849cf9843eeb1da2e00617203f2bafa6828742f8b08",
+       "carbon.level4.loss.py": "b8bd18e8ffacb7d42966c9e7c3b3ca5bd4d44ff52e2ae189add5298346dd6995",
+       "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+       "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+       "carbon.level4.staging.py": "4254276061d66ba40207bea732d20f789f1bb309689a0be7a3e8db903406ba73",
+       "carbon.level4.submission.py": "9d00a3da89760eda99d5909e76fbe495b65983f426ce3a7e5a97bea190b8024e",
+       "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+       "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+       "carbon.level4.train.py": "2ae064b3d10f2736c4ab60b1465c3619b6a70f8a8349167e37b0e8e6bc518a48",
+       "carbon.level4.validate.py": "fa74ffa59244fcf7f8fddc0c612d4fe4d55e1c676517fda928cb786f28a57c8b",
+       "control.json": "0fb7342ba418006115cb513b370cf5775c4f22d37b967902fc22a9351017ae0d",
+       "recipe.json": "f019d06a596a35c759618357ab8e1e45307b20ba6e185954fdebece506e9ee7f",
+       "source-envelope.json": "762b845ec05b63f46909efc426e7ccbf4dd3e88a077ee3545d2d1ea5eee460a5",
+       "train.npz": "1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3"
+      },
+      "source": "5f3018c3f1a77cdb77295f4de34233a4069863080a83c1472dd35c6084f99f17"
+     },
+     {
+      "files": {
+       "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+       "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+       "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+       "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+       "carbon.development_session.construction_tensor_codec.py": "abc1f3c63a372ee64f741481f28211949d559932daf70a4654bd0d5c287b4931",
+       "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+       "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+       "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+       "carbon.level4.interpret.py": "bb65ff44a561498901dc6849cf9843eeb1da2e00617203f2bafa6828742f8b08",
+       "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+       "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+       "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+       "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+       "control.json": "0988f1db77d0a328294cbc6aab90a19d133251922db5b1de2bed2aec5292f188",
+       "inputs.npz": "2489b6ca41c32a6a8e62d4ef9d773f60644b7e2fb33fb616121a62b0f7beabd7",
+       "recipe.json": "f019d06a596a35c759618357ab8e1e45307b20ba6e185954fdebece506e9ee7f",
+       "state.npz": "b2640c76228a1380b2f20b6c853d96b9515f2b3eacacf473ba18e35f7a2663d5"
+      },
+      "source": "dec3bf54fbaee202ed5f1621a7746e8c7f047d0fcdbc93cde32eacff2558d4de"
+     }
+    ],
+    "dev_grade": "9032ff57ef98e454174ef7a9aee704646491d4bccda2a76bd18ce4ca5bdab64c",
+    "predictions": "cf878dabc640449820985a9e10beaf12cc272e0d9d1d5fc6b654c14a0d4ae33f",
+    "state": "sha256:b2640c76228a1380b2f20b6c853d96b9515f2b3eacacf473ba18e35f7a2663d5"
+   },
+   "f08-ribbed-bracket@1.4": {
+    "aggregate_error": 35.75723571777344,
+    "children": [
+     {
+      "files": {
+       "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+       "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+       "carbon.development_session.build_refusal.py": "e0daf30597b527b07929a99b79a438e756d02b6228a6f58472aa74183693fac8",
+       "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+       "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+       "carbon.development_session.physical_graph_adapter.py": "9128d00a804ed56641bc07e6560a554fac46427444b433dd9b0cc20ec850102f",
+       "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+       "carbon.development_session.physical_graph_trainer.py": "3e97569bafd4b2f25312c8e1c01aa3fe5e581af94d2802a85ce17b29b62db7e5",
+       "carbon.level4._parse_worker.py": "e6b7f74cf8699720717ab50f249860c1e0421cbd05e03892556710cacbdfe1e8",
+       "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+       "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+       "carbon.level4.initializers.py": "5a5d57b82022648ffde23f50b9cd3d8c4df5955f687a0723d929b9ad7aabfa6a",
+       "carbon.level4.intake.py": "a8170f22d72d0ea44133a4f5071d957ce4998ce738c4e818e32cd42a16536ccb",
+       "carbon.level4.interpret.py": "bb65ff44a561498901dc6849cf9843eeb1da2e00617203f2bafa6828742f8b08",
+       "carbon.level4.loss.py": "b8bd18e8ffacb7d42966c9e7c3b3ca5bd4d44ff52e2ae189add5298346dd6995",
+       "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+       "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+       "carbon.level4.staging.py": "4254276061d66ba40207bea732d20f789f1bb309689a0be7a3e8db903406ba73",
+       "carbon.level4.submission.py": "9d00a3da89760eda99d5909e76fbe495b65983f426ce3a7e5a97bea190b8024e",
+       "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+       "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+       "carbon.level4.train.py": "2ae064b3d10f2736c4ab60b1465c3619b6a70f8a8349167e37b0e8e6bc518a48",
+       "carbon.level4.validate.py": "fa74ffa59244fcf7f8fddc0c612d4fe4d55e1c676517fda928cb786f28a57c8b",
+       "control.json": "ced3a06b119338d314be53d0d8683371c6696efa026133d210ea9d8c00ad043a",
+       "recipe.json": "394738b8cf18ae2778b5122846f4bd206e5a7d5e2027e2999df24f31495f6f6c",
+       "source-envelope.json": "006c05a7ce48e29d564be84457f578483c2d1ab7bfd8b45fa6bf199b1caa285e",
+       "train.npz": "4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a"
+      },
+      "source": "5f3018c3f1a77cdb77295f4de34233a4069863080a83c1472dd35c6084f99f17"
+     },
+     {
+      "files": {
+       "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+       "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+       "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+       "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+       "carbon.development_session.construction_tensor_codec.py": "abc1f3c63a372ee64f741481f28211949d559932daf70a4654bd0d5c287b4931",
+       "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+       "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+       "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+       "carbon.level4.interpret.py": "bb65ff44a561498901dc6849cf9843eeb1da2e00617203f2bafa6828742f8b08",
+       "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+       "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+       "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+       "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+       "control.json": "1dae9cb4e728b88714df8eff81b2a8ad57822adecf016118b059517d06f5ac48",
+       "inputs.npz": "81b68d113d4f82a4a6475d5708d2faa8f78f1c547d38f90f35ebed870b17260a",
+       "recipe.json": "394738b8cf18ae2778b5122846f4bd206e5a7d5e2027e2999df24f31495f6f6c",
+       "state.npz": "420d1bbcc291370e391cf96c55a5ab3a7d38fe6e49bec1ef66e60a97222356e9"
+      },
+      "source": "dec3bf54fbaee202ed5f1621a7746e8c7f047d0fcdbc93cde32eacff2558d4de"
+     }
+    ],
+    "dev_grade": "572c13b138b406d74b3b3c1496c53ef1c7a35a3eb9b3db76bbbe1dbb2ad640bb",
+    "predictions": "a0a53697645bb9ec0af119d9428e252dc80eb51c9f9909e4e0fef7777b7c4c8c",
+    "state": "sha256:420d1bbcc291370e391cf96c55a5ab3a7d38fe6e49bec1ef66e60a97222356e9"
+   }
+  }
+ },
+ "differences": "only the staged build_refusal.py (Battery graph refusal codes, build child) and construction_tensor_codec.py (Battery TRAIN accepted for every served Battery version, inference child); programs, every other staged input, states, predictions and dev grades identical",
+ "environment": "WSL Ubuntu, /home/carbon/Carbon/.venv, JAX_PLATFORMS=cpu",
+ "first_line": {
+  "after": {
+   "commit": "249fb18c803ad62ce48e84cdeda823d6eb246091",
+   "runs": {
+    "f02@2.3": {
+     "aggregate_error": 8.668773182308673,
+     "children": [
+      {
+       "files": {
+        "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+        "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+        "carbon.development_session.build_refusal.py": "5872f46ebcd692c4c88d689a27b3b7f4d6226ab67299594385aa5c331627f704",
+        "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+        "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+        "carbon.development_session.physical_graph_adapter.py": "9128d00a804ed56641bc07e6560a554fac46427444b433dd9b0cc20ec850102f",
+        "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+        "carbon.development_session.physical_graph_trainer.py": "3e97569bafd4b2f25312c8e1c01aa3fe5e581af94d2802a85ce17b29b62db7e5",
+        "carbon.level4._parse_worker.py": "e6b7f74cf8699720717ab50f249860c1e0421cbd05e03892556710cacbdfe1e8",
+        "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+        "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+        "carbon.level4.initializers.py": "5a5d57b82022648ffde23f50b9cd3d8c4df5955f687a0723d929b9ad7aabfa6a",
+        "carbon.level4.intake.py": "a8170f22d72d0ea44133a4f5071d957ce4998ce738c4e818e32cd42a16536ccb",
+        "carbon.level4.interpret.py": "3342e151d33805ac9b48f060bac5317fab1715f94727e150bbcc3a095b2b20a8",
+        "carbon.level4.loss.py": "b8bd18e8ffacb7d42966c9e7c3b3ca5bd4d44ff52e2ae189add5298346dd6995",
+        "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+        "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+        "carbon.level4.staging.py": "4254276061d66ba40207bea732d20f789f1bb309689a0be7a3e8db903406ba73",
+        "carbon.level4.submission.py": "9d00a3da89760eda99d5909e76fbe495b65983f426ce3a7e5a97bea190b8024e",
+        "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+        "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+        "carbon.level4.train.py": "2ae064b3d10f2736c4ab60b1465c3619b6a70f8a8349167e37b0e8e6bc518a48",
+        "carbon.level4.validate.py": "fa74ffa59244fcf7f8fddc0c612d4fe4d55e1c676517fda928cb786f28a57c8b",
+        "control.json": "b3f0f2584c97db653c944520c9bf7b63020c85af587b5e7d769b30a3bcf9fbe8",
+        "recipe.json": "12b8f82f6df2e805f12ed4c59a81f3b2907de7d5e14a8c2cf5ebc4590a96d670",
+        "source-envelope.json": "762b845ec05b63f46909efc426e7ccbf4dd3e88a077ee3545d2d1ea5eee460a5",
+        "train.npz": "1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3"
+       },
+       "source": "5f3018c3f1a77cdb77295f4de34233a4069863080a83c1472dd35c6084f99f17"
+      },
+      {
+       "files": {
+        "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+        "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+        "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+        "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+        "carbon.development_session.construction_tensor_codec.py": "abc1f3c63a372ee64f741481f28211949d559932daf70a4654bd0d5c287b4931",
+        "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+        "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+        "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+        "carbon.level4.interpret.py": "3342e151d33805ac9b48f060bac5317fab1715f94727e150bbcc3a095b2b20a8",
+        "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+        "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+        "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+        "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+        "control.json": "9e469d223882aa6bd257df44a6878d750eec7d6ef8e4d68954063921f34338d9",
+        "inputs.npz": "2489b6ca41c32a6a8e62d4ef9d773f60644b7e2fb33fb616121a62b0f7beabd7",
+        "recipe.json": "12b8f82f6df2e805f12ed4c59a81f3b2907de7d5e14a8c2cf5ebc4590a96d670",
+        "state.npz": "5d3f95578887fdcd937b0e33bbd27721ea49d504290fe1e450481132295a6be3"
+       },
+       "source": "dec3bf54fbaee202ed5f1621a7746e8c7f047d0fcdbc93cde32eacff2558d4de"
+      }
+     ],
+     "dev_grade": "9032ff57ef98e454174ef7a9aee704646491d4bccda2a76bd18ce4ca5bdab64c",
+     "predictions": "cf878dabc640449820985a9e10beaf12cc272e0d9d1d5fc6b654c14a0d4ae33f",
+     "state": "sha256:5d3f95578887fdcd937b0e33bbd27721ea49d504290fe1e450481132295a6be3"
+    },
+    "f08-ribbed-bracket@1.4": {
+     "aggregate_error": 35.75723571777344,
+     "children": [
+      {
+       "files": {
+        "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+        "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+        "carbon.development_session.build_refusal.py": "5872f46ebcd692c4c88d689a27b3b7f4d6226ab67299594385aa5c331627f704",
+        "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+        "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+        "carbon.development_session.physical_graph_adapter.py": "9128d00a804ed56641bc07e6560a554fac46427444b433dd9b0cc20ec850102f",
+        "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+        "carbon.development_session.physical_graph_trainer.py": "3e97569bafd4b2f25312c8e1c01aa3fe5e581af94d2802a85ce17b29b62db7e5",
+        "carbon.level4._parse_worker.py": "e6b7f74cf8699720717ab50f249860c1e0421cbd05e03892556710cacbdfe1e8",
+        "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+        "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+        "carbon.level4.initializers.py": "5a5d57b82022648ffde23f50b9cd3d8c4df5955f687a0723d929b9ad7aabfa6a",
+        "carbon.level4.intake.py": "a8170f22d72d0ea44133a4f5071d957ce4998ce738c4e818e32cd42a16536ccb",
+        "carbon.level4.interpret.py": "3342e151d33805ac9b48f060bac5317fab1715f94727e150bbcc3a095b2b20a8",
+        "carbon.level4.loss.py": "b8bd18e8ffacb7d42966c9e7c3b3ca5bd4d44ff52e2ae189add5298346dd6995",
+        "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+        "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+        "carbon.level4.staging.py": "4254276061d66ba40207bea732d20f789f1bb309689a0be7a3e8db903406ba73",
+        "carbon.level4.submission.py": "9d00a3da89760eda99d5909e76fbe495b65983f426ce3a7e5a97bea190b8024e",
+        "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+        "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+        "carbon.level4.train.py": "2ae064b3d10f2736c4ab60b1465c3619b6a70f8a8349167e37b0e8e6bc518a48",
+        "carbon.level4.validate.py": "fa74ffa59244fcf7f8fddc0c612d4fe4d55e1c676517fda928cb786f28a57c8b",
+        "control.json": "6fd1639808d8425afd0eb0e271becf16b23a3838d067c8cc5ba51a0216bdb068",
+        "recipe.json": "a308c4ef1ea728e18833ef6c930610041545d29ebc4d5cb6111bd80fa63186e1",
+        "source-envelope.json": "006c05a7ce48e29d564be84457f578483c2d1ab7bfd8b45fa6bf199b1caa285e",
+        "train.npz": "4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a"
+       },
+       "source": "5f3018c3f1a77cdb77295f4de34233a4069863080a83c1472dd35c6084f99f17"
+      },
+      {
+       "files": {
+        "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+        "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+        "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+        "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+        "carbon.development_session.construction_tensor_codec.py": "abc1f3c63a372ee64f741481f28211949d559932daf70a4654bd0d5c287b4931",
+        "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+        "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+        "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+        "carbon.level4.interpret.py": "3342e151d33805ac9b48f060bac5317fab1715f94727e150bbcc3a095b2b20a8",
+        "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+        "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+        "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+        "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+        "control.json": "3fb9ddf44e0d2446f4aaf6cbfecdab9d7121ce143453b0106524e5f806049404",
+        "inputs.npz": "81b68d113d4f82a4a6475d5708d2faa8f78f1c547d38f90f35ebed870b17260a",
+        "recipe.json": "a308c4ef1ea728e18833ef6c930610041545d29ebc4d5cb6111bd80fa63186e1",
+        "state.npz": "a4664ef77818a4703e378cab4b66c8cbb54dc05b247ae6522d68188155b2b824"
+       },
+       "source": "dec3bf54fbaee202ed5f1621a7746e8c7f047d0fcdbc93cde32eacff2558d4de"
+      }
+     ],
+     "dev_grade": "572c13b138b406d74b3b3c1496c53ef1c7a35a3eb9b3db76bbbe1dbb2ad640bb",
+     "predictions": "a0a53697645bb9ec0af119d9428e252dc80eb51c9f9909e4e0fef7777b7c4c8c",
+     "state": "sha256:a4664ef77818a4703e378cab4b66c8cbb54dc05b247ae6522d68188155b2b824"
+    }
+   }
+  },
+  "before": {
+   "commit": "8a3426ca7d5fcf524940b35cdf4fd06d31859dc3",
+   "runs": {
+    "f02@2.3": {
+     "aggregate_error": 8.668773182308673,
+     "children": [
+      {
+       "files": {
+        "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+        "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+        "carbon.development_session.build_refusal.py": "93c1a865b9bb4aaf55b0f104f4149f2d8c05e0c5e3433dc51828298f14ace9b2",
+        "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+        "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+        "carbon.development_session.physical_graph_adapter.py": "9128d00a804ed56641bc07e6560a554fac46427444b433dd9b0cc20ec850102f",
+        "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+        "carbon.development_session.physical_graph_trainer.py": "3e97569bafd4b2f25312c8e1c01aa3fe5e581af94d2802a85ce17b29b62db7e5",
+        "carbon.level4._parse_worker.py": "e6b7f74cf8699720717ab50f249860c1e0421cbd05e03892556710cacbdfe1e8",
+        "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+        "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+        "carbon.level4.initializers.py": "5a5d57b82022648ffde23f50b9cd3d8c4df5955f687a0723d929b9ad7aabfa6a",
+        "carbon.level4.intake.py": "a8170f22d72d0ea44133a4f5071d957ce4998ce738c4e818e32cd42a16536ccb",
+        "carbon.level4.interpret.py": "3342e151d33805ac9b48f060bac5317fab1715f94727e150bbcc3a095b2b20a8",
+        "carbon.level4.loss.py": "b8bd18e8ffacb7d42966c9e7c3b3ca5bd4d44ff52e2ae189add5298346dd6995",
+        "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+        "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+        "carbon.level4.staging.py": "4254276061d66ba40207bea732d20f789f1bb309689a0be7a3e8db903406ba73",
+        "carbon.level4.submission.py": "9d00a3da89760eda99d5909e76fbe495b65983f426ce3a7e5a97bea190b8024e",
+        "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+        "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+        "carbon.level4.train.py": "2ae064b3d10f2736c4ab60b1465c3619b6a70f8a8349167e37b0e8e6bc518a48",
+        "carbon.level4.validate.py": "fa74ffa59244fcf7f8fddc0c612d4fe4d55e1c676517fda928cb786f28a57c8b",
+        "control.json": "b3f0f2584c97db653c944520c9bf7b63020c85af587b5e7d769b30a3bcf9fbe8",
+        "recipe.json": "12b8f82f6df2e805f12ed4c59a81f3b2907de7d5e14a8c2cf5ebc4590a96d670",
+        "source-envelope.json": "762b845ec05b63f46909efc426e7ccbf4dd3e88a077ee3545d2d1ea5eee460a5",
+        "train.npz": "1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3"
+       },
+       "source": "5f3018c3f1a77cdb77295f4de34233a4069863080a83c1472dd35c6084f99f17"
+      },
+      {
+       "files": {
+        "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+        "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+        "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+        "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+        "carbon.development_session.construction_tensor_codec.py": "abc1f3c63a372ee64f741481f28211949d559932daf70a4654bd0d5c287b4931",
+        "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+        "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+        "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+        "carbon.level4.interpret.py": "3342e151d33805ac9b48f060bac5317fab1715f94727e150bbcc3a095b2b20a8",
+        "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+        "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+        "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+        "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+        "control.json": "9e469d223882aa6bd257df44a6878d750eec7d6ef8e4d68954063921f34338d9",
+        "inputs.npz": "2489b6ca41c32a6a8e62d4ef9d773f60644b7e2fb33fb616121a62b0f7beabd7",
+        "recipe.json": "12b8f82f6df2e805f12ed4c59a81f3b2907de7d5e14a8c2cf5ebc4590a96d670",
+        "state.npz": "5d3f95578887fdcd937b0e33bbd27721ea49d504290fe1e450481132295a6be3"
+       },
+       "source": "dec3bf54fbaee202ed5f1621a7746e8c7f047d0fcdbc93cde32eacff2558d4de"
+      }
+     ],
+     "dev_grade": "9032ff57ef98e454174ef7a9aee704646491d4bccda2a76bd18ce4ca5bdab64c",
+     "predictions": "cf878dabc640449820985a9e10beaf12cc272e0d9d1d5fc6b654c14a0d4ae33f",
+     "state": "sha256:5d3f95578887fdcd937b0e33bbd27721ea49d504290fe1e450481132295a6be3"
+    },
+    "f08-ribbed-bracket@1.4": {
+     "aggregate_error": 35.75723571777344,
+     "children": [
+      {
+       "files": {
+        "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+        "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+        "carbon.development_session.build_refusal.py": "93c1a865b9bb4aaf55b0f104f4149f2d8c05e0c5e3433dc51828298f14ace9b2",
+        "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+        "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+        "carbon.development_session.physical_graph_adapter.py": "9128d00a804ed56641bc07e6560a554fac46427444b433dd9b0cc20ec850102f",
+        "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+        "carbon.development_session.physical_graph_trainer.py": "3e97569bafd4b2f25312c8e1c01aa3fe5e581af94d2802a85ce17b29b62db7e5",
+        "carbon.level4._parse_worker.py": "e6b7f74cf8699720717ab50f249860c1e0421cbd05e03892556710cacbdfe1e8",
+        "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+        "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+        "carbon.level4.initializers.py": "5a5d57b82022648ffde23f50b9cd3d8c4df5955f687a0723d929b9ad7aabfa6a",
+        "carbon.level4.intake.py": "a8170f22d72d0ea44133a4f5071d957ce4998ce738c4e818e32cd42a16536ccb",
+        "carbon.level4.interpret.py": "3342e151d33805ac9b48f060bac5317fab1715f94727e150bbcc3a095b2b20a8",
+        "carbon.level4.loss.py": "b8bd18e8ffacb7d42966c9e7c3b3ca5bd4d44ff52e2ae189add5298346dd6995",
+        "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+        "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+        "carbon.level4.staging.py": "4254276061d66ba40207bea732d20f789f1bb309689a0be7a3e8db903406ba73",
+        "carbon.level4.submission.py": "9d00a3da89760eda99d5909e76fbe495b65983f426ce3a7e5a97bea190b8024e",
+        "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+        "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+        "carbon.level4.train.py": "2ae064b3d10f2736c4ab60b1465c3619b6a70f8a8349167e37b0e8e6bc518a48",
+        "carbon.level4.validate.py": "fa74ffa59244fcf7f8fddc0c612d4fe4d55e1c676517fda928cb786f28a57c8b",
+        "control.json": "6fd1639808d8425afd0eb0e271becf16b23a3838d067c8cc5ba51a0216bdb068",
+        "recipe.json": "a308c4ef1ea728e18833ef6c930610041545d29ebc4d5cb6111bd80fa63186e1",
+        "source-envelope.json": "006c05a7ce48e29d564be84457f578483c2d1ab7bfd8b45fa6bf199b1caa285e",
+        "train.npz": "4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a"
+       },
+       "source": "5f3018c3f1a77cdb77295f4de34233a4069863080a83c1472dd35c6084f99f17"
+      },
+      {
+       "files": {
+        "allowlist.json": "7cc0152989d797a71f64b3faf03bb76a0a15d89adf873722d28cb3d134441c5c",
+        "carbon.challenge_validator.strict_json.py": "68cf0b200e2b965f2d71ce9cf901a73c7ed0a44024524bcafa72b5190b63bd54",
+        "carbon.development_session.bundle_graph_state.py": "b3581b39d068ef0586f90f8b198c38729ef9a139b33b51794e922752ca7a6dc9",
+        "carbon.development_session.construction_recipe.py": "9021bfaa3378c54182ab0b88d838447067e72b89494fe163935be42b843cb681",
+        "carbon.development_session.construction_tensor_codec.py": "abc1f3c63a372ee64f741481f28211949d559932daf70a4654bd0d5c287b4931",
+        "carbon.development_session.physical_graph_state.py": "22afa95e347779eec51502b1a09060bfbff0f677cfda191650507db0d5d9d121",
+        "carbon.level4.allowlist.py": "4cda295bb94c3eb3b6d7f73e10e2e11d7f436c42562faef208d47c3df22af88d",
+        "carbon.level4.graph.py": "70770bac56dff870853464a5b9cdd7987aa0973efde6361ef3a24ee28505c4e8",
+        "carbon.level4.interpret.py": "3342e151d33805ac9b48f060bac5317fab1715f94727e150bbcc3a095b2b20a8",
+        "carbon.level4.named.py": "f355e0c8fd4d530ba4990b7f874d9873e2a553bf4349e740a10d48c2441f8963",
+        "carbon.level4.params.py": "0d79bfafab5728b7730e13e930caf8eb9fd78df4eede6076f5b99d6ea82de4ac",
+        "carbon.level4.tooling.lower_jax.py": "41f0b98276ff9918271303428f3c9387a63bfc21c687191a56807815e5708283",
+        "carbon.level4.tooling.lower_torch.py": "9ab4186e0a64e3d3032842f05f7f4e5aae1f98f9cfb497119e4a48a5fac9cf66",
+        "control.json": "3fb9ddf44e0d2446f4aaf6cbfecdab9d7121ce143453b0106524e5f806049404",
+        "inputs.npz": "81b68d113d4f82a4a6475d5708d2faa8f78f1c547d38f90f35ebed870b17260a",
+        "recipe.json": "a308c4ef1ea728e18833ef6c930610041545d29ebc4d5cb6111bd80fa63186e1",
+        "state.npz": "a4664ef77818a4703e378cab4b66c8cbb54dc05b247ae6522d68188155b2b824"
+       },
+       "source": "dec3bf54fbaee202ed5f1621a7746e8c7f047d0fcdbc93cde32eacff2558d4de"
+      }
+     ],
+     "dev_grade": "572c13b138b406d74b3b3c1496c53ef1c7a35a3eb9b3db76bbbe1dbb2ad640bb",
+     "predictions": "a0a53697645bb9ec0af119d9428e252dc80eb51c9f9909e4e0fef7777b7c4c8c",
+     "state": "sha256:a4664ef77818a4703e378cab4b66c8cbb54dc05b247ae6522d68188155b2b824"
+    }
+   }
+  },
+  "differences": "only the staged build_refusal.py (Battery graph refusal codes added); programs, every other staged input, states, predictions and dev grades identical"
+ },
+ "method": "scratchpad golden.py: tests/cpu/test_f08_f02_graph_adapters._case(key, {'steps': 16}), reconstruct_and_infer_graph_public with the test-only local runner, seed 0, the exposed development bank; dev grade = direct_campaign.practice.summary. Digests are sha256 hex.",
+ "purpose": "F08 1.4 / F02 2.3 graph predictions and dev grades through the receiver's graph path are byte-identical before and after Battery's graph adapter (Validator condition 1, 2026-10-23)",
+ "schema": "carbon.evidence.graph-route-golden.v1"
+}

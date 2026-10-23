@@ -47,11 +47,26 @@ CODES = {
     # adapter does not serve is Carbon's gap; every other adapter refusal is the candidate's.
     "f02_graph_surface_unserved": GAP,
     "f08_graph_surface_unserved": GAP,
+    # Battery's graph adapter (the Validator's ruling (a), 2026-10-22): a registered
+    # training-surface value its graph route does not serve (the PyTorch backend, an
+    # ensemble) is Carbon's gap; the candidate's graph, recipe and training are its own.
+    "battery_graph_backend_unsupported": GAP,
+    "battery_graph_ensemble_unsupported": GAP,
     "allowlist_version_mismatch": REFUSED,
     "aten_index_out_of_bounds": REFUSED,
     "aten_index_registered_resource_bound": REFUSED,
     "aten_scatter_index_out_of_bounds": REFUSED,
     "aten_scatter_registered_resource_bound": REFUSED,
+    "battery_graph_challenge_version_unregistered": REFUSED,
+    "battery_graph_loss_unsupported": REFUSED,
+    "battery_graph_nonfinite_state": REFUSED,
+    "battery_graph_output_unsupported": REFUSED,
+    "battery_graph_procedure_invalid": REFUSED,
+    "battery_graph_state_oversized": REFUSED,
+    "battery_graph_train_empty": REFUSED,
+    "battery_graph_training_dependency_invalid": REFUSED,
+    "battery_graph_training_field_invalid": REFUSED,
+    "battery_graph_training_value_invalid": REFUSED,
     "bundle_graph_caps_refused": REFUSED,
     "bundle_graph_invalid": REFUSED,
     "bundle_graph_oversized": REFUSED,
