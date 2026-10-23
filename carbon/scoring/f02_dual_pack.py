@@ -335,7 +335,15 @@ def policy(bank_rows, kind):
                 "component": "margin",
                 "case_id": case,
                 "side": side,
-                "max_distance": {"value": MARGIN_SCALE_C, "unit": "C"},
+                # The development bank is the cold-eight (84-87 W): its slots keep
+                # the dev1 section 7 scale as the proximity. A sealed batch registers
+                # RANKING_AND_FEASIBILITY_STRADDLE (one case on each side, no
+                # distance bound), so its slots check the side only.
+                "max_distance": (
+                    None
+                    if kind == "sealed_batch"
+                    else {"value": MARGIN_SCALE_C, "unit": "C"}
+                ),
                 "structural_na_receipt": None,
             }
             for side, case in sides.items()

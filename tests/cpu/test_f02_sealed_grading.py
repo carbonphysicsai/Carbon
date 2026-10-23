@@ -149,3 +149,46 @@ def test_the_v7_catalog_version_serves_the_same_sealed_batches():
     assert adapter.sealed_adapter("2.4") is None
     assert f02_sealed_dual_pack.VERSIONS["2.4"][0] == "f02-dual-sealed-grid-8x1-v2"
     assert adapter.sealed_adapter("2.5") is None
+
+
+# --- a sealed batch registers a straddle, not a distance bound -----------------
+
+
+def test_a_sealed_batch_whose_nearest_margins_are_beyond_the_dev_scale_still_grades():
+    """RANKING_AND_FEASIBILITY_STRADDLE: one case on each side, no bound. The
+    fixture batch sits 2 C from the limit on both sides (beyond the 1 C dev1
+    section 7 scale); it grades, never OUTSIDE_DECLARED_PROXIMITY."""
+    document, records = batch()
+    bank = sealed.sealed_bank(document, records, probes=False)
+    definition = adapter.definition(bank=bank, train_raw=b"")
+    slots = definition["policy"]["coverage_slots"]
+    assert slots and all(slot["max_distance"] is None for slot in slots)
+    measured = _measure(bank, _truth(bank), definition)
+    assert measured["A"] == 1.0 and measured["D"] == 1.0
+    assert measured["gates"]["verified_pick"] is True
+
+
+def test_a_one_sided_batch_still_refuses():
+    document, records = batch()
+    bank = sealed.sealed_bank(document, records, probes=False)
+    rows = copy.deepcopy(_rows(bank))
+    for row in rows:
+        primary = LIMIT - 3.0
+        row["record"]["rung_peaks_c"] = {
+            "primary": primary,
+            "mesh2": primary,
+            "dt0.5": primary,
+        }
+    with pytest.raises(adapter.Refused) as refused:
+        adapter.policy(rows, "sealed_batch")
+    assert refused.value.code == "f02_coverage_side_missing"
+
+
+def test_the_development_slots_keep_the_registered_scale():
+    dev = physical_pack.development_bank("f02", "2.1")
+    rows = physical.bank_rows(dev, adapter.input_names())
+    slots = adapter.policy(rows, "development")["coverage_slots"]
+    assert slots and all(
+        slot["max_distance"] == {"value": adapter.MARGIN_SCALE_C, "unit": "C"}
+        for slot in slots
+    )
