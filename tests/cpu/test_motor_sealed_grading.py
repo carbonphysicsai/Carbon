@@ -252,6 +252,8 @@ def test_the_development_producer_is_untouched_and_a_sealed_bank_refuses_under_i
     assert sealed.FILES == (
         *dev.FILES,
         "sealed_grid_common.py",
+        "critical_fidelity.py",
+        "design_fidelity.py",
         "motor_sealed_dual_pack.py",
     )
     with pytest.raises(mdm.MotorMeasurementRefused) as refused:
@@ -271,7 +273,7 @@ def test_the_development_producer_is_untouched_and_a_sealed_bank_refuses_under_i
 def test_dispatch_is_by_the_banks_declared_population(case):
     for version in ("1.1", "1.2", "1.3"):
         chosen = sealed.adapter_for_bank(case["bank"], version)
-        assert chosen.EVALUATION_VERSION == "motor-dual-sealed-batch-30-v1"
+        assert chosen.EVALUATION_VERSION == "motor-dual-sealed-batch-30-v2"
         assert chosen.VERSION == version and chosen.CASE_ID == sealed.CASE_ID
     assert sealed.adapter("1.0") is None and sealed.adapter("1.4") is None
     development = physical_pack.development_bank(MOTOR, "1.3")
@@ -369,3 +371,49 @@ def test_the_receiver_pack_directory_scores_half_a_plus_half_d(case, tmp_path):
         sealed.write_sealed_pack(root, case["bank"], version="1.3")
     with pytest.raises(mdm.MotorMeasurementRefused):
         sealed.write_sealed_pack(tmp_path / "other", dev_bank, version="1.3")
+
+
+def test_the_definition_registers_the_critical_block(case):
+    block = case["definition"]["critical"]
+    assert block["rule"] == "D=min(V,C)"
+    assert {c["quantity"]: c["scale"] for c in block["components"]} == {
+        "mean_torque_margin_nm": 0.10,
+        "ripple_fraction_margin": 0.01,
+    }
+    assert block["objective"]["scale"] == case["definition"]["D_scale"]
+    assert block["components_not_applied"] == ["response", "gap"]
+
+
+def test_a_right_pick_with_wrong_margins_scores_d_below_one(case):
+    """The owner control: the reference own pick, margins off. The value-only
+    grader gave D = 1; a correct action alone no longer earns full Design."""
+    truth = _truth(case)
+    exact = _measure(case, truth)
+    assert exact["D"] == 1.0 and exact["design_fidelity"]["C"] == 1.0
+    skewed = _measure(case, [[v * 1.03 for v in row] for row in truth])
+    assert skewed["selected_design"] == exact["selected_design"]
+    assert skewed["verified_regret"] == 0.0
+    c = skewed["design_fidelity"]["C"]
+    assert c < 1.0 and skewed["D"] == c < 1.0
+
+
+def test_an_unselected_designs_wrong_margins_cap_d(case):
+    truth = _truth(case)
+    exact = _measure(case, truth)
+    outputs = copy.deepcopy(truth)
+    # design-0 (cells 0..5) is never the pick; one cell predicted 20% high.
+    assert exact["selected_design"] != "design-0"
+    outputs[0] = [v * 1.2 for v in outputs[0]]
+    measured = _measure(case, outputs)
+    assert measured["selected_design"] == exact["selected_design"]
+    assert measured["D"] < 1.0
+
+
+def test_a_definition_without_the_critical_block_grades_value_only(case):
+    """An earlier-version definition still grades exactly as it did."""
+    legacy = {k: v for k, v in case["definition"].items() if k != "critical"}
+    truth = _truth(case)
+    skewed = _measure(
+        case, [[v * 1.03 for v in row] for row in truth], definition=legacy
+    )
+    assert skewed["D"] == 1.0 and skewed["design_fidelity"] is None

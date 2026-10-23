@@ -12,7 +12,7 @@ Whole batch or nothing: every case must have exactly one `OK` record from the
 pinned image with a finite curve of the exam's length; otherwise the pack is
 refused (the batch fails QA and the backlog serves another version). The
 cohort is `screening`, the family's own kind; how the sealed evaluation
-version grades it is the scoring producer's (`motor-dual-sealed-batch-30-v1`).
+version grades it is the scoring producer's (`motor-dual-sealed-batch-30-v2`).
 Limits, straddle and spot-checks are the exam-batch QA's, not this module's.
 
 DEVELOPMENT only: no qualification, weight, reward or LIVE authority. The

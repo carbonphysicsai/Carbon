@@ -48,7 +48,7 @@ def test_the_rule_cites_the_sealed_exam_and_the_reference_level():
     rule = hidden.hidden_rule()
     assert rule["exam"] == {
         "pack_version": "cooling-normal-construction-development-2",
-        "evaluation_version": "cooling-dual-sealed-batch-16-v1",
+        "evaluation_version": "cooling-dual-sealed-batch-16-v2",
     }
     assert rule["reference"] == {
         "mesh_family": "graded-hotspot-v1",

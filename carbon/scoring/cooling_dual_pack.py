@@ -53,12 +53,19 @@ VERSIONS = {
 }
 #: A sealed exam batch's evaluation version, per Challenge version (Validator,
 #: 2026-10-20): Cooling 1.1's sealed batches, served on 1.1 and 1.2.
-SEALED_EVALUATION_VERSION = "cooling-dual-sealed-batch-16-v1"
+#: v2: Design is D = min(V, C), the owner's rule (critical_fidelity); v1 graded V
+#: alone and stays as history under its own evaluation version, never re-scored.
+SEALED_EVALUATION_VERSION = "cooling-dual-sealed-batch-16-v2"
 SEALED_VERSIONS = {
     version: SEALED_EVALUATION_VERSION for version in ("1.1", "1.2", "1.3")
 }
 OUTPUT = {"quantity": "peak_c,profile_c[30],pressure_drop_pa", "unit": "degC,degC,Pa"}
-FILES = ("cooling_dual_pack.py", "cooling_dual_measurement.py")
+FILES = (
+    "cooling_dual_pack.py",
+    "cooling_dual_measurement.py",
+    "critical_fidelity.py",
+    "design_fidelity.py",
+)
 #: Legs a measured baseline run sets minimums for (default rule).
 MINIMUM_LEGS = ("A", "D")
 Refused = cdm.CoolingMeasurementRefused
@@ -173,6 +180,7 @@ def definition(*, bank, train_raw, rule="baseline_legs"):
                 + hashlib.sha256(bank["solver_evidence"]).hexdigest(),
                 "reductions": list(cdm._SEALED_REDUCTIONS),
                 "cohort_counts": dict(cdm.SEALED_COHORT_COUNTS),
+                "critical": cdm.critical_block(_MEASUREMENT["D_scale_W"]),
             }
             if sealed
             else {

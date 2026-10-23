@@ -8,7 +8,7 @@ interface's target slices, and the runner records carried as the development
 bank carries them. Each record also names its grid cell, `design_id` (d1-d4)
 and `condition_id` (c1-c4), in sorted input order, which the dual adapter's
 decision rows read; the cohort is `decision_sealed_grid` (Validator's name),
-graded by `cooling-dual-sealed-batch-16-v1`.
+graded by `cooling-dual-sealed-batch-16-v2`.
 
 Whole batch or nothing: every one of the 16 cells must have exactly one `OK`
 record accepted by `cooling_hidden.check_reference`; otherwise the pack is

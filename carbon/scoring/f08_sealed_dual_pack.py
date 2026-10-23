@@ -28,6 +28,8 @@ from __future__ import annotations
 import hashlib
 import sys
 
+from carbon.scoring import critical_fidelity as critical
+from carbon.scoring import f08_critical
 from carbon.scoring import f08_dual_measurement as fdm
 from carbon.scoring import f08_dual_pack as _f08
 from carbon.scoring import physical_dual_pack as physical
@@ -37,7 +39,9 @@ from carbon.scoring import sealed_pack_writer
 CHALLENGE = _f08.CHALLENGE
 #: The first sealed Challenge version; 1.3 and 1.4 grade the same batches (they change only the construction source).
 VERSION = "1.2"
-EVALUATION_VERSION = "f08-dual-sealed-grid-8x1-v1"
+#: v2: Design is D = min(V, C), the owner's rule (critical_fidelity); v1 graded V
+#: alone and stays as history under its own evaluation version, never re-scored.
+EVALUATION_VERSION = "f08-dual-sealed-grid-8x1-v2"
 CASE_ID = "f08-sealed-batch-8"
 VERSIONS = {version: (EVALUATION_VERSION, CASE_ID) for version in ("1.2", "1.3", "1.4")}
 OUTPUT = _f08.OUTPUT
@@ -45,6 +49,9 @@ FILES = (
     *_f08.FILES,
     "sealed_grid_common.py",
     "sealed_pack_writer.py",
+    "critical_fidelity.py",
+    "design_fidelity.py",
+    "f08_critical.py",
     "f08_sealed_dual_pack.py",
 )
 MINIMUM_LEGS = _f08.MINIMUM_LEGS
@@ -54,6 +61,7 @@ CASES = 8
 DESIGNS, CONDITIONS = 8, 1
 METHOD = "f08-sealed-grid-dual-from-predictions.v1"
 PACK_SUFFIX = "-sealed-batch-8"
+
 Refused = fdm.F08MeasurementRefused
 _ADAPTER = sys.modules[__name__]
 
@@ -92,6 +100,7 @@ def definition(*, bank, train_raw):
         "cohort_counts": {COHORT: CASES},
         "grid": {"designs": DESIGNS, "conditions": CONDITIONS},
         "reference_receipt_sha256": _sha(evidence),
+        "critical": f08_critical.block(base),
     }
 
 
@@ -108,6 +117,11 @@ def validate_definition(definition):
         and len(definition["reference_receipt_sha256"]) == 71,
         "f08_sealed_definition",
     )
+    if "critical" in definition:
+        try:
+            critical.validate_block(definition["critical"])
+        except critical.CriticalFidelityRefused as exc:
+            raise Refused("f08_sealed_definition") from exc
     return definition
 
 
@@ -168,7 +182,7 @@ def measure(
         "f08_bank_cohort",
     )
     _layout(bank_rows)
-    return _f08.measure(
+    measured = _f08.measure(
         bank_rows=bank_rows,
         outputs=outputs,
         repeats=repeats,
@@ -177,6 +191,13 @@ def measure(
         objective=objective,
         train_raw=train_raw,
         names=names,
+    )
+    return f08_critical.apply(
+        measured,
+        bank_rows=bank_rows,
+        outputs=outputs,
+        definition=definition,
+        constraints=fdm._limits(limits),
     )
 
 

@@ -46,6 +46,7 @@ from statistics import fmean
 from carbon.motor import customer_decision as decision
 from carbon.motor import exam
 from carbon.motor import score_candidates as candidates
+from carbon.scoring import critical_fidelity as critical
 from carbon.scoring import motor_dual_measurement as mdm
 from carbon.scoring import motor_dual_pack as _motor
 from carbon.scoring import physical_dual_pack as physical
@@ -55,13 +56,19 @@ CHALLENGE = _motor.CHALLENGE
 #: The first sealed Challenge version; 1.2 and 1.3 grade the same batches
 #: (Validator, 2026-10-20: they change only the construction source).
 VERSION = "1.1"
-EVALUATION_VERSION = "motor-dual-sealed-batch-30-v1"
+#: v2: Design is D = min(V, C), the owner's rule (critical_fidelity); v1 graded V
+#: alone and stays as history under its own evaluation version, never re-scored.
+EVALUATION_VERSION = "motor-dual-sealed-batch-30-v2"
 CASE_ID = "motor-sealed-batch-30"
-VERSIONS = {
-    version: (EVALUATION_VERSION, CASE_ID) for version in ("1.1", "1.2", "1.3")
-}
+VERSIONS = {version: (EVALUATION_VERSION, CASE_ID) for version in ("1.1", "1.2", "1.3")}
 OUTPUT = _motor.OUTPUT
-FILES = (*_motor.FILES, "sealed_grid_common.py", "motor_sealed_dual_pack.py")
+FILES = (
+    *_motor.FILES,
+    "sealed_grid_common.py",
+    "critical_fidelity.py",
+    "design_fidelity.py",
+    "motor_sealed_dual_pack.py",
+)
 MINIMUM_LEGS = _motor.MINIMUM_LEGS
 MANIFEST_NAME = physical.MANIFEST_NAME
 COHORT = grid_common.GRID_COHORT
@@ -75,6 +82,13 @@ LOSSES = (
     "sealed_median_dimensionless_signed_margin_error",
 )
 PACK_SUFFIX = "-sealed-batch-30"
+#: dev1 section 3 / section 7 DEVELOPMENT normalisation scales (not physical
+#: thresholds): torque margin 0.10 N.m, ripple margin one percentage point. The
+#: value scale is the registered D_scale.
+TORQUE_MARGIN_SCALE_NM = 0.10
+RIPPLE_MARGIN_SCALE = 0.01
+TORQUE_MARGIN = "mean_torque_margin_nm"
+RIPPLE_MARGIN = "ripple_fraction_margin"
 Refused = mdm.MotorMeasurementRefused
 _ADAPTER = sys.modules[__name__]
 
@@ -110,6 +124,11 @@ def validate_definition(definition):
         and len(definition["reference_receipt_sha256"]) == 71,
         "motor_sealed_definition",
     )
+    if "critical" in definition:
+        try:
+            critical.validate_block(definition["critical"])
+        except critical.CriticalFidelityRefused as exc:
+            raise Refused("motor_sealed_definition") from exc
     return definition
 
 
@@ -139,6 +158,19 @@ def definition(*, bank, train_raw):
         "D_scale": values["D_scale"],
         "verification_budget": values["verification_budget"],
         "reference_receipt_sha256": _sha(evidence),
+        "critical": critical.block(
+            [
+                (
+                    "torque_margin",
+                    "margin",
+                    TORQUE_MARGIN,
+                    "N.m",
+                    TORQUE_MARGIN_SCALE_NM,
+                ),
+                ("ripple_margin", "margin", RIPPLE_MARGIN, "1", RIPPLE_MARGIN_SCALE),
+            ],
+            ("1", "MINIMIZE", values["D_scale"]),
+        ),
     }
 
 
@@ -149,9 +181,7 @@ def applied_pack(**_):
     pack = _motor._applied_pack()
     return {
         **pack,
-        "legs": {
-            leg: {**body, "minimum": None} for leg, body in pack["legs"].items()
-        },
+        "legs": {leg: {**body, "minimum": None} for leg, body in pack["legs"].items()},
     }
 
 
@@ -261,9 +291,7 @@ def measure(
             )
             f0[bank_rows[i]["case_id"]] = (parts["mean"] + parts["shape"]) / 2
         per_design = [
-            fmean(
-                f0[row["case_id"]] for row in bank_rows if row["design_id"] == design
-            )
+            fmean(f0[row["case_id"]] for row in bank_rows if row["design_id"] == design)
             for design in designs
         ]
         cell = definition["signed_margin_cell"]
@@ -294,9 +322,52 @@ def measure(
     outcome, d, regret, selected = mdm._decision(
         bank_rows, index, quantities, reference_quantities, grid_objective, definition
     )
+    fidelity = None
+    if "critical" in definition and quantities is not None and d:
+        # D = min(V, C): C is the worst signed torque/ripple margin error over
+        # every cell, the unselected designs included.
+        d, fidelity = critical.design(
+            d,
+            critical.reduce(
+                definition["critical"],
+                case_ids=[row["case_id"] for row in bank_rows],
+                action_ids=designs,
+                reference={
+                    "cases": {
+                        k: {q: v[q] for q in (TORQUE_MARGIN, RIPPLE_MARGIN)}
+                        for k, v in reference_quantities.items()
+                    },
+                    "actions": {
+                        design: {
+                            "feasible": all(
+                                reference_quantities[bank_rows[i]["case_id"]][
+                                    "feasible"
+                                ]
+                                for i in layout.rows_of_design(design)
+                            ),
+                            "objective": max(
+                                reference_quantities[bank_rows[i]["case_id"]][
+                                    "ripple_fraction"
+                                ]
+                                for i in layout.rows_of_design(design)
+                            ),
+                        }
+                        for design in designs
+                    },
+                },
+                prediction={
+                    "cases": {
+                        k: {q: v[q] for q in (TORQUE_MARGIN, RIPPLE_MARGIN)}
+                        for k, v in quantities.items()
+                    },
+                    "selected": selected,
+                },
+            ),
+        )
     return {
         "A": a,
         "D": d,
+        "design_fidelity": fidelity,
         "losses": losses,
         "gates": gates,
         "gate_failed_cases": gate_failed,

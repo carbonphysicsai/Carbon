@@ -75,7 +75,7 @@ def test_the_registration_is_the_grid_family_beside_the_placed_one():
 
 def test_the_rule_cites_the_unchanged_evaluation_version_and_the_grid():
     rule = grid.hidden_rule()
-    assert rule["exam"]["evaluation_version"] == "motor-dual-sealed-batch-30-v1"
+    assert rule["exam"]["evaluation_version"] == "motor-dual-sealed-batch-30-v2"
     assert rule["population"]["grid"] == {"designs": 5, "conditions": 6}
     assert rule["authority"] == "OWNER-MOTOR-EXAM-GRID-01"
     assert rule != placed.hidden_rule()

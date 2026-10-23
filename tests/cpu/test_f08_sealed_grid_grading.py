@@ -1,5 +1,5 @@
 """F08 grades a sealed exam batch as one design x condition grid (evaluation version
-``f08-dual-sealed-grid-8x1-v1``): the registered dual measurement, unchanged, on a complete 8 x 1 grid in the one
+``f08-dual-sealed-grid-8x1-v2``): the registered dual measurement, unchanged, on a complete 8 x 1 grid in the one
 sealed cohort, with 0.5 A + 0.5 D, no leg minimum carried, and the producer identity covering the shared grouping.
 """
 
@@ -59,7 +59,7 @@ def test_the_definition_registers_the_grid_and_the_batchs_own_receipt(case):
     assert definition["reference_receipt_sha256"] == physical.sha(
         case["bank"]["solver_evidence"]
     )
-    assert sealed.EVALUATION_VERSION == "f08-dual-sealed-grid-8x1-v1"
+    assert sealed.EVALUATION_VERSION == "f08-dual-sealed-grid-8x1-v2"
     assert sealed.COHORT == "decision_sealed_grid"
     assert case["bank"]["cohorts"] == (sealed.COHORT,) * 8
     assert {r["condition_id"] for r in case["bank"]["reference_records"]} == {
@@ -96,7 +96,16 @@ def test_the_grid_measure_equals_the_development_measure_on_a_dev_shaped_bank(ca
     dev_result = _measure(
         case, outputs, rows=dev_rows, definition=dev_definition, module=dev
     )
-    assert sealed_result == dev_result
+    # D = min(V, C): the sealed grid adds the critical-prediction credit to the
+    # development measure's verified value; everything else is the same.
+    assert sealed_result["design_fidelity"]["C"] is not None
+    assert sealed_result["D"] == min(
+        dev_result["D"], sealed_result["design_fidelity"]["C"]
+    )
+    ignored = ("D", "design_fidelity")
+    assert {k: v for k, v in sealed_result.items() if k not in ignored} == {
+        k: v for k, v in dev_result.items() if k not in ignored
+    }
 
 
 def test_a_bank_that_is_not_the_sealed_grid_refuses(case):
@@ -183,3 +192,55 @@ def test_two_copies_of_the_receiver_pack_are_byte_identical(case, tmp_path):
             physical_pack.development_bank(dev.CHALLENGE, "1.2"),
             version="1.2",
         )
+
+
+def test_the_definition_registers_the_critical_block(case):
+    block = case["definition"]["critical"]
+    assert block["rule"] == "D=min(V,C)"
+    scales = {c["id"]: c["scale"] for c in block["components"]}
+    assert scales["static_margin"] == 0.003
+    assert [v for k, v in scales.items() if k.startswith("dynamic_margin_")] == [
+        0.015
+    ] * 3
+    assert [v for k, v in scales.items() if k.startswith("resonance_")] == [10.0] * 3
+    assert block["objective"]["scale"] == case["definition"]["D_scale_mm_per_n"]
+
+
+def _shift_frequency(case, geometry):
+    """A truth copy with one geometry first resonance moved 30 Hz, in band."""
+    outputs = copy.deepcopy(case["truth"])
+    j = case["definition"]["targets"].index(case["definition"]["frequency_targets"][0])
+    low, high = case["definition"]["frequency_band_hz"]
+    value = outputs[geometry][j]
+    outputs[geometry][j] = value + 30.0 if value + 30.0 <= high else value - 30.0
+    return outputs
+
+
+def test_a_right_pick_with_wrong_resonance_scores_d_below_one(case):
+    exact = _measure(case, case["truth"])
+    assert exact["D"] == 1.0 and exact["design_fidelity"]["C"] == 1.0
+    ids = [row["case_id"] for row in case["rows"]]
+    other = next(i for i, cid in enumerate(ids) if cid != exact["pick"])
+    skewed = _measure(case, _shift_frequency(case, other))
+    # The pick, the gates and the verified value are all unchanged.
+    assert skewed["pick"] == exact["pick"] and skewed["regret_mm_per_n"] == 0.0
+    assert all(skewed["gates"].values())
+    assert skewed["design_fidelity"]["C"] < 1.0
+    assert skewed["D"] == skewed["design_fidelity"]["C"] < 1.0
+
+
+def test_wrong_margins_on_the_selected_geometry_also_cap_d(case):
+    exact = _measure(case, case["truth"])
+    ids = [row["case_id"] for row in case["rows"]]
+    chosen = ids.index(exact["pick"])
+    skewed = _measure(case, _shift_frequency(case, chosen))
+    assert skewed["pick"] == exact["pick"] and skewed["D"] < 1.0
+
+
+def test_a_definition_without_the_critical_block_grades_value_only(case):
+    legacy = {k: v for k, v in case["definition"].items() if k != "critical"}
+    ids = [row["case_id"] for row in case["rows"]]
+    exact = _measure(case, case["truth"])
+    other = next(i for i, cid in enumerate(ids) if cid != exact["pick"])
+    skewed = _measure(case, _shift_frequency(case, other), definition=legacy)
+    assert skewed["D"] == 1.0 and "design_fidelity" not in skewed

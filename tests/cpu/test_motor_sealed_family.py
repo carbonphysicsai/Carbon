@@ -59,7 +59,7 @@ def test_the_rule_cites_the_sealed_exam_and_never_restates_scoring():
     rule = sealed.hidden_rule()
     assert rule["exam"] == {
         "pack_version": "motor-normal-construction-development-2",
-        "evaluation_version": "motor-dual-sealed-batch-30-v1",
+        "evaluation_version": "motor-dual-sealed-batch-30-v2",
     }
     assert rule["challenge"] == {"id": MOTOR, "version": "1.1"}
     assert physical_pack.PACK_VERSIONS[(MOTOR, "1.1")] == sealed.PACK_VERSION

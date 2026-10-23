@@ -1,5 +1,5 @@
 """Cooling's adapter grades a sealed exam batch (Validator, 2026-10-20,
-cooling-dual-sealed-batch-16-v1): one 4 x 4 grid in one cohort, so A is the
+cooling-dual-sealed-batch-16-v2): one 4 x 4 grid in one cohort, so A is the
 minimum over all 16 cells and the worst geometry (no boundary reduction), its
 grid gate is `complete_grid_common_mask`, its reference evidence is pinned by
 sha256, and D is the development bank's decision unchanged. The development
@@ -166,7 +166,7 @@ def test_the_sealed_pack_registers_its_own_gate_keys():
 def test_the_sealed_adapter_serves_exactly_cooling_1_1_to_1_3():
     for version in ("1.1", "1.2", "1.3"):
         chosen = adapter.sealed_adapter(version)
-        assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v1"
+        assert chosen.EVALUATION_VERSION == "cooling-dual-sealed-batch-16-v2"
         assert chosen.VERSION == version
     for version in ("1.0", "1.4", None):
         assert adapter.sealed_adapter(version) is None
@@ -187,3 +187,49 @@ def test_the_sealed_exam_is_graded_under_every_served_cooling_version():
     older = physical_pack.public_roles(cdp.CHALLENGE, "1.2")
     assert newer["train"] == older["train"]
     assert newer["interface"] == older["interface"]
+
+
+def _shift_cell(outputs, cell, degrees):
+    """One cell whole temperature profile (and peak) moved by ``degrees``."""
+    outputs = copy.deepcopy(outputs)
+    for k in range(0, 31):
+        outputs[cell][k] += degrees
+    return outputs
+
+
+def test_the_sealed_definition_registers_the_critical_block():
+    bank = _sealed_bank()
+    block = adapter.definition(bank=bank, train_raw=PUBLIC["train"])["critical"]
+    assert block["rule"] == "D=min(V,C)"
+    assert {c["quantity"]: c["scale"] for c in block["components"]} == {
+        "die_margin_c": 1.0,
+        "hydraulic_margin_w": 0.025,
+    }
+    assert block["objective"]["scale"] == 0.025
+    assert "critical" not in adapter.definition(
+        bank=physical_pack.development_bank(adapter.CHALLENGE, "1.1"),
+        train_raw=PUBLIC["train"],
+    )
+
+
+def test_a_right_pick_with_wrong_die_margins_scores_d_below_one():
+    bank = _sealed_bank()
+    truth = _truth(bank)
+    exact = _measure(bank, truth)
+    assert exact["D"] == 1.0 and exact["design_fidelity"]["C"] == 1.0
+    skewed = _measure(bank, _shift_cell(truth, 0, 2.0))
+    assert skewed["pick"] == exact["pick"] and skewed["regret_w"] == 0.0
+    assert skewed["design_fidelity"]["C"] < 1.0
+    assert skewed["D"] == skewed["design_fidelity"]["C"] < 1.0
+
+
+def test_a_definition_without_the_critical_block_grades_value_only():
+    bank = _sealed_bank()
+    legacy = {
+        k: v
+        for k, v in adapter.definition(bank=bank, train_raw=PUBLIC["train"]).items()
+        if k != "critical"
+    }
+    truth = _truth(bank)
+    measured = _measure(bank, _shift_cell(truth, 0, 2.0), legacy)
+    assert measured["D"] == 1.0 and measured["design_fidelity"] is None
