@@ -618,6 +618,14 @@ def _last_graded(root: Path):
     }
 
 
+def _auto_grade_failures(root: Path) -> dict:
+    """Auto-grade's FAILED markers for the operator (``{}`` when this receiver
+    does not auto-grade): a count and the last code, never a task's content."""
+    from carbon.challenge_validator.auto_grade import failure_summary
+
+    return failure_summary(root)
+
+
 def status(receiver_state: Path, *, run=None, fetch=None) -> dict:
     """What a validator checks (E7): the service, the local intake, the exam
     the receiver holds and its last graded submission. Read-only."""
@@ -676,6 +684,7 @@ def status(receiver_state: Path, *, run=None, fetch=None) -> dict:
         ),
         "exam_digest": exam,
         **_last_graded(root),
+        **_auto_grade_failures(root),
     }
 
 

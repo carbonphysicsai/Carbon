@@ -422,3 +422,20 @@ def test_an_install_without_a_development_pin_is_not_a_development_install(
     installed_state,
 ):
     assert receiver_setup.development_install(installed_state) is False
+
+
+def test_status_shows_auto_grade_failures_to_the_operator(
+    tmp_path, installed_state, faked
+):
+    # Validator (via the Test Engineer): a FAILED auto-grade marker shows.
+    _prepare(tmp_path, installed_state, pack=_pack(tmp_path))
+    state = tmp_path / "receiver-state"
+    quiet = receiver_setup.status(state, run=Run(), fetch=lambda url: {})
+    assert "auto_grade_failed" not in quiet  # no auto-grade: nothing added
+    markers = state / "receiver" / "state" / "auto-grade" / "markers"
+    markers.mkdir(parents=True)
+    (markers / "a.json").write_text(json.dumps({"state": "FAILED", "code": "x_code"}))
+    (markers / "b.json").write_text(json.dumps({"state": "GRADED"}))
+    shown = receiver_setup.status(state, run=Run(), fetch=lambda url: {})
+    assert shown["auto_grade_failed"] == 1
+    assert shown["auto_grade_last_failure"] == "x_code"
