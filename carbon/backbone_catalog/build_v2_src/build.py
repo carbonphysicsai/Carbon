@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import math
 
+import numpy as np
 import torch
 
 from .common import DEVICE, check_seed, only, positive_int, prepare, rate
@@ -732,6 +733,12 @@ def _combination(combine, spec, cover, members, vx, vy):
 def build(train_inputs, train_targets, *, seed, configuration, train_use):
     only(configuration, {"backbone", "arch", "learning_rate"}, "configuration")
     only(train_use, LEVERS, "train_use")
+    # The product's dtype is the TRAIN's own (float32 for F08 and F02, float64 elsewhere), as the interface declares.
+    out_dtype = (
+        torch.float32
+        if np.asarray(train_targets).dtype == np.float32
+        else torch.float64
+    )
     z, t, stats = prepare(train_inputs, train_targets, seed)
     n_in, n_out = z.shape[1], t.shape[1]
     probe = make_model(configuration, n_in)
@@ -945,10 +952,10 @@ def build(train_inputs, train_targets, *, seed, configuration, train_use):
                     if scale > 0:
                         part.copy_(torch.round(part / scale) * scale)
 
-    return _product(model, stats, precision)
+    return _product(model, stats, precision, out_dtype)
 
 
-def _product(model, stats, precision):
+def _product(model, stats, precision, out_dtype=torch.float64):
     model = model.cpu().eval()
     named = list(model.named_parameters())
     names = tuple(n for n, _ in named)
@@ -963,6 +970,6 @@ def _product(model, stats, precision):
         out = torch.func.functional_call(
             model, (dict(zip(names, params)), buffers), (q,)
         )
-        return out.to(torch.float64) * sy + my
+        return (out.to(torch.float64) * sy + my).to(out_dtype)
 
     return {"framework": "torch", "apply": apply, "parameters": parameters}

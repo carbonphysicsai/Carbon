@@ -287,3 +287,19 @@ def test_keep_list_refusals_still_fire(trainer):
 
 def test_default_steps_come_from_the_registry(trainer):
     assert trainer.DEFAULT_STEPS == 12
+
+
+def test_the_product_dtype_follows_the_trains_own(trainer):
+    x, y = data()
+    cfg = {"backbone": "stub.Plain", "learning_rate": 0.01}
+    wide = trainer.build(x, y, seed=1, configuration=cfg, train_use={"steps": 3})
+    narrow = trainer.build(
+        x.astype(np.float32),
+        y.astype(np.float32),
+        seed=1,
+        configuration=cfg,
+        train_use={"steps": 3},
+    )
+    assert predict(wide, x).dtype == np.float64
+    assert predict(narrow, x.astype(np.float32)).dtype == np.float32
+    assert np.allclose(predict(narrow, x), predict(wide, x), atol=1e-3)
