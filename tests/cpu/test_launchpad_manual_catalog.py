@@ -172,7 +172,12 @@ def test_the_manual_door_admits_the_catalog_recipe_as_the_agent_door_does(
 
 @pytest.mark.parametrize(
     ("refusal", "code"),
-    [(("neuralop.TFNO",), "backend_not_served"), ((), "catalog_not_installed")],
+    # An entry not installed while others are: its install step, by name
+    # (gate round 1: JAX entries on a --pytorch install read as a backend).
+    [
+        (("neuralop.TFNO",), "catalog_entry_not_installed"),
+        ((), "catalog_not_installed"),
+    ],
 )
 def test_a_backend_refusal_reads_on_the_page_as_the_agent_reads_it(
     tmp_path, recipe, refusal, code
@@ -196,6 +201,10 @@ def test_a_backend_refusal_reads_on_the_page_as_the_agent_reads_it(
     )
     if refusal:
         assert "Allowed here: neuralop.TFNO." in page["correction"]
+        # Plain words and the miner's next step, never "change the backend".
+        assert "not installed on this machine" in page["correction"]
+        assert "scripts.dev.catalog_install" in page["correction"]
+        assert "backend" not in page["correction"]
 
 
 @pytest.mark.parametrize(

@@ -218,6 +218,18 @@ TASK_CORRECTIONS = {
         "--state-dir <the Control Center state directory>. Nothing started "
         "and no research-trial slot was charged."
     ),
+    # A catalog entry that is registered but not installed on this machine,
+    # while others are (gate round 1: JAX entries on a --pytorch install
+    # read as a backend to change): the miner's install step, by name.
+    "catalog_entry_not_installed": (
+        "This catalog entry is not installed on this machine, so it cannot "
+        "practise here; the entries installed here are listed below. Choose "
+        "one of them, or have the miner install this one once, outside the "
+        "campaign: python -B -m scripts.dev.catalog_install --state-dir <the "
+        "Control Center state directory> <its catalog id> (Setup's catalog "
+        "step says why an earlier install skipped it). Nothing started and no "
+        "research-trial slot was charged."
+    ),
     "backend_not_served": (
         "This host's practice serves only the backends listed below, and the "
         "recipe names another. Choose a served backend in the recipe, or "
@@ -390,6 +402,10 @@ def _correction_choices():
         # value a requester sent.
         "backend_not_served": implemented_backends()
         | frozenset(e["catalog_id"] for e in catalog_listing.entries()),
+        # The catalog entries installed here, by Carbon's public manifest.
+        "catalog_entry_not_installed": frozenset(
+            e["catalog_id"] for e in catalog_listing.entries()
+        ),
         "public_material_unknown": frozenset(every_public_material_name()),
         # The per-call read_file maximum, under each research tools rule.
         "read_file_range": frozenset(str(n) for n in READ_FILE_MAX_BYTES.values()),
@@ -1374,8 +1390,12 @@ class ResearchMinerTools:
                 # is the miner's install step, not a recipe to change.
                 if not refused and direct:
                     raise TaskContractMismatch("catalog_not_installed", "strategy_json")
+                # Some installed, not this one: its install step, by name -
+                # never a backend to change in the recipe.
                 raise TaskContractMismatch(
-                    "backend_not_served", "strategy_json", refused
+                    "catalog_entry_not_installed" if direct else "backend_not_served",
+                    "strategy_json",
+                    refused,
                 )
             if direct:
                 try:
