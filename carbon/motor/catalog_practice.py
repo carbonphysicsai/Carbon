@@ -190,13 +190,27 @@ class MotorCatalogPractice:
         # rows in the same inference call (practice must match the exam).
         import numpy as np
 
-        from carbon.scoring import practice_grid
+        from carbon.scoring import dev_grid, motor_dev_grid, practice_grid
 
         v2 = practice_grid.adapter("motor", self.version) is not None
         n_bank = len(practice_inputs)
         query = practice_inputs
         expected_shape = material["expected_output_shape"]
-        if v2:
+        if dev_grid.kind(motor_dev_grid.CHALLENGE, self.version) is not None:
+            # Dev-pack v2: the development bank already is the PRACTICE cohort followed by
+            # the practice grid with probes, so the one query covers both; the practice
+            # rows come first, the grid rows after (`motor_dev_grid.bank`).
+            v2 = True
+            n_bank = len(
+                [
+                    c
+                    for c in dev_grid.bank(motor_dev_grid.CHALLENGE, self.version)[
+                        "cohorts"
+                    ]
+                    if c == motor_dev_grid.PRACTICE
+                ]
+            )
+        elif v2:
             query = np.concatenate(
                 [
                     practice_inputs,

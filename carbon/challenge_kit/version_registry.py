@@ -105,6 +105,7 @@ _F02_DEV_2 = ("f02-dual-development-bank-8-v2", "f02-development-bank-8")
 #: grader (`scoring.dev_grid`); a new version, pre-publish.
 _F08_DEV_GRID = ("f08-dual-development-grid-v2", "f08-development-grid-8x1")
 _F02_DEV_GRID = ("f02-dual-development-grid-v2", "f02-development-grid-8x1")
+_MOTOR_DEV_GRID = ("motor-dual-development-grid-v2", "motor-development-grid-8x6")
 _F02_SEALED = "f02-dual-sealed-grid-8x1-v2"
 _MOTOR_DEV_2 = ("motor-dual-development-bank-90-v2", "motor-development-bank-90")
 _MOTOR_DEV_3 = ("motor-dual-development-bank-90-v3", "motor-development-bank-90")
@@ -175,7 +176,7 @@ VERSIONS = dict(
             "v7",
             False,
             "motor-normal-construction-development-5",
-            _MOTOR_DEV_3,
+            _MOTOR_DEV_GRID,
             _MOTOR_SEALED,
             "catalog",
             catalog=True,

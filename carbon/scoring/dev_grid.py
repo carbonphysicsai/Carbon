@@ -17,6 +17,7 @@ from __future__ import annotations
 GRID_KINDS = {
     ("f08-ribbed-bracket", "1.5"): "f08",
     ("f02", "2.4"): "f02",
+    ("electric-motor-magnetics", "1.4"): "motor",
 }
 
 
@@ -35,6 +36,10 @@ def adapter(challenge_id, version):
     from carbon.scoring import physical_dual_pack as physical
     from carbon.scoring import practice_grid
 
+    if chosen == "motor":
+        from carbon.scoring import motor_dev_grid
+
+        return motor_dev_grid.adapter(version)
     evaluation, case_id = version_registry.entry(
         challenge_id, version
     ).development_evaluation
@@ -48,4 +53,8 @@ def bank(challenge_id, version):
     """The development bank of a dev-grid version: the practice grid with probes."""
     from carbon.scoring import practice_grid
 
+    if kind(challenge_id, version) == "motor":
+        from carbon.scoring import motor_dev_grid
+
+        return motor_dev_grid.bank(version)
     return practice_grid.practice_bank(kind(challenge_id, version), version)

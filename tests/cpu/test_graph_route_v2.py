@@ -154,9 +154,14 @@ def test_a_new_version_is_its_predecessor_s_material(key):
             for row, cohort in zip(new["practice_inputs"], bank["cohorts"], strict=True)
             if cohort != "probe_response"
         ]
-        assert sorted(map(tuple, np.asarray(cells).tolist())) == sorted(
-            map(tuple, np.asarray(old["practice_inputs"]).tolist())
-        )
+        new_cells = sorted(map(tuple, np.asarray(cells).tolist()))
+        old_rows = sorted(map(tuple, np.asarray(old["practice_inputs"]).tolist()))
+        if cid == MOTOR:
+            # Motor (M2): the PRACTICE cohort and the 8 x 6 decision cells, all of them
+            # rows of the predecessor's 90-row bank (the 12 pilot rows are not carried).
+            assert set(new_cells) <= set(old_rows) and len(new_cells) == 78
+        else:
+            assert new_cells == old_rows
         assert len(new["practice_inputs"]) > len(old["practice_inputs"])
     assert new["physics_digest"] == old["physics_digest"]
     new_adapter = physical_adapters.adapter(cid, version)
