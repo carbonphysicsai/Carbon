@@ -297,6 +297,7 @@ class DirectDevelopmentTasksV3:
         self._requests: dict[str, DirectStartTaskRequestV3] = {}
         self._views: dict[str, DirectTaskViewV3] = {}
         self._task_image_bindings: dict[str, str] = {}
+        self._task_overlays: dict[str, object] = {}
         self._measured_tasks: set[str] = set()
         self._idempotency: dict[str, str] = {}
         self._cancellations: dict[str, str | None] = {}
@@ -1595,6 +1596,28 @@ class DirectDevelopmentTasksV3:
             self._transition(view, state, receipt=receipt)
 
     def run_queued_task(self, task_id):
+        """Run one admitted task. An overlay it was given stays leased against cache
+        eviction until the task ends, whatever the outcome."""
+        try:
+            return self._run_queued_task(task_id)
+        finally:
+            self._release_overlay(task_id.value)
+
+    def _hold_overlay(self, task_value, image):
+        from .library_environment_cache import VerifiedLibraryOverlay, hold
+
+        if type(image) is VerifiedLibraryOverlay:
+            hold(image)
+            self._task_overlays[task_value] = image
+
+    def _release_overlay(self, task_value):
+        from .library_environment_cache import release
+
+        overlay = self._task_overlays.pop(task_value, None)
+        if overlay is not None:
+            release(overlay)
+
+    def _run_queued_task(self, task_id):
         from .bundle_construction_worker import (
             CandidateBuildRefused,
             DirectReconstructionResult,
@@ -1692,6 +1715,7 @@ class DirectDevelopmentTasksV3:
                     image, overlay_prep = provisioned
                 else:
                     image = provisioned
+                self._hold_overlay(task_id.value, image)
                 actual_binding = self._image_binding(image)
                 with self._lock:
                     with self._db() as db:
