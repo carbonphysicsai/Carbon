@@ -27,6 +27,8 @@ SCHEMA = "carbon.onboarding.funding.v1"
 #: One TAO in rao.
 RAO = 10**9
 _SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
+#: The owner's label for the figure (U-c decision, via the Lead).
+LABEL = "current estimate; your wallet confirms the exact amount when you sign"
 NOTE = (
     "Read at block {block}. Your wallet shows the cost again when you sign; "
     "that figure is the one that counts."
@@ -104,5 +106,6 @@ def funding(context, address, *, fetch=None):
             f"{block}, before transaction fees."
         ),
         "read_at_block": block,
+        "label": LABEL,
         "note": NOTE.format(block=block),
     }

@@ -41,6 +41,8 @@ SURFACES = (
     "carbon/challenge_validator/direct_intake.py",
     "carbon/challenge_validator/direct_receiver.py",
     "carbon/challenge_validator/lean_recipe_retention.py",
+    # The Launchpad controller itself: its funding import must stay lazy.
+    "scripts/dev/miner_launchpad/controller.py",
 )
 #: The only files that may name a funding module.
 NAMERS = {
@@ -82,8 +84,7 @@ def test_importing_every_score_weight_koth_ladder_and_receiver_module_loads_no_f
     for surface in SURFACES:
         assert (ROOT / surface).exists(), surface
     modules = _modules(ROOT, SURFACES)
-    # The Launchpad controller itself too: the door's import stays lazy.
-    modules.append("scripts.dev.miner_launchpad.controller")
+    assert "scripts.dev.miner_launchpad.controller" in modules
     assert "carbon.scoring.grade_feedback" in modules
     assert "carbon.challenge_validator.ladder_store" in modules
     loaded, _stubbed = CHECK.import_all(modules)

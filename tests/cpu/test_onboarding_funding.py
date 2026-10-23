@@ -60,6 +60,7 @@ def test_a_funded_coldkey_reads_enough_at_its_block_before_fees():
         "enough": True,
         "enough_words": "Enough to join, at block 8286544, before transaction fees.",
         "read_at_block": 8286544,
+        "label": "current estimate; your wallet confirms the exact amount when you sign",
         "note": (
             "Read at block 8286544. Your wallet shows the cost again when you "
             "sign; that figure is the one that counts."
@@ -156,6 +157,18 @@ def _post(server, body):
     payload = json.loads(response.read())
     connection.close()
     return response.status, payload
+
+
+def test_a_request_leaves_no_file_holding_the_address(server, tmp_path):
+    """Nothing persists the address (Validator): after a request, no file in
+    the Launchpad's state holds it."""
+    assert _post(server, {"address": COLDKEY})[0] == 200
+    holding = [
+        path
+        for path in tmp_path.rglob("*")
+        if path.is_file() and COLDKEY.encode() in path.read_bytes()
+    ]
+    assert holding == []
 
 
 def test_the_door_answers_in_the_body_and_refuses_typed(server):
