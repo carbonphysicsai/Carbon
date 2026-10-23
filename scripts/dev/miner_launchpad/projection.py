@@ -150,10 +150,20 @@ def _epoch_outcome(epoch, outcome_path):
             not in {"SELECTED", "STOPPED", "RECONCILIATION_REQUIRED"}
         ):
             raise ValueError("research outcome association differs")
+        from scripts.dev.miner_launchpad.campaign_view import STOP_LIMITS
+
+        named = (
+            STOP_LIMITS.get(outcome.get("dimension"))
+            if outcome.get("code") == "miner_ceiling_reached"
+            else None
+        )
         return {
             "epoch": epoch,
             "status": outcome["status"],
             **_text_fields(outcome, {"reason", "stop_evidence"}),
+            # Which of the miner's limits stopped it, in words (G1: the reason
+            # read only "miner_ceiling_reached").
+            **({"limit": named[0], "next_step": named[1]} if named else {}),
             "used_feedback": (
                 outcome.get("used_feedback")
                 if type(outcome.get("used_feedback")) is bool

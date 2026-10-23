@@ -105,7 +105,7 @@ def graphite_plan(budget, selection, graphite):
         DEFAULT_SELECTION,
         check_budget,
     )
-    from carbon.development_session.research_agent import REQUEST_HOLD_V1
+    from carbon.development_session.research_agent import REQUEST_HOLD_FIT_V1
     from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
     from carbon.development_session.research_campaign import FINAL_EPOCHS
     from carbon.development_session.research_loop import (
@@ -168,7 +168,10 @@ def graphite_plan(budget, selection, graphite):
         "budget_headroom": BUDGET_HEADROOM_V1,
         "selection_admissibility": SELECTION_ADMISSIBLE_V1,
         # Each call holds its own request's cost, not the whole window's (G1).
-        "request_hold": REQUEST_HOLD_V1,
+        # G1 (Validator): a new Graphite plan holds no more than the money
+        # and time the miner's limits still admit (`REQUEST_HOLD_FIT_V1`);
+        # a plan frozen before keeps the V1 rule it froze.
+        "request_hold": REQUEST_HOLD_FIT_V1,
         "graphite": block,
     }
     if not selection.is_historical_default:

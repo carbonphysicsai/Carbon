@@ -242,3 +242,38 @@ def test_a_whole_reply_call_s_deadline_is_no_later_than_the_time_left(monkeypatc
     assert seen["deadline"] == 60
     transport(request())
     assert seen["deadline"] is None  # the call's own default deadline, as before
+
+
+def test_a_new_graphite_plan_freezes_the_fit_rule():
+    # Gate round 1 (cmp-1cf6dcfb): the plan and build stages go through the
+    # research loop with the plan's frozen rule, which was still V1.
+    import inspect
+
+    from carbon.challenge_registry import agent_plan
+
+    assert "REQUEST_HOLD_FIT_V1" in inspect.getsource(agent_plan.graphite_plan)
+
+
+def test_an_epoch_stop_names_its_limit(tmp_path):
+    import json
+
+    from scripts.dev.miner_launchpad import campaign_view, projection
+
+    path = tmp_path / "outcome.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "carbon.autoresearch.epoch-outcome.v1",
+                "epoch": 1,
+                "status": "STOPPED",
+                "code": "miner_ceiling_reached",
+                "dimension": "elapsed_seconds",
+                "reason": "miner_ceiling_reached",
+            }
+        )
+    )
+    shown = projection._epoch_outcome(1, path)
+    assert shown["limit"] == "time limit"
+    assert shown["next_step"] == campaign_view.STOP_LIMITS["elapsed_seconds"][1]
+    path.write_text(path.read_text().replace("elapsed_seconds", "<x>"))
+    assert "limit" not in projection._epoch_outcome(1, path)

@@ -3025,7 +3025,7 @@
     for (const item of decisions) researchNote(panel, "Decision " + (item.sequence ?? "") + ": " + JSON.stringify(item));
     for (const item of run.capability_requests || []) researchNote(panel, "Capability request (grants nothing): " + JSON.stringify(item));
     for (const item of run.refusals || []) researchNote(panel, "Refused request (nothing ran): " + JSON.stringify(item));
-    for (const outcome of run.epoch_outcomes || []) researchNote(panel, (outcome.selected_by === "miner" ? "Your" : "Agent") + " round " + outcome.epoch + ": " + outcome.status + " · " + (outcome.reason || "No reason reported") + " · " + (outcome.selected_by === "miner" ? "Your" : "Agent-reported") + " decision, not independent science.");
+    for (const outcome of run.epoch_outcomes || []) researchNote(panel, (outcome.selected_by === "miner" ? "Your" : "Agent") + " round " + outcome.epoch + ": " + outcome.status + " · " + (typeof outcome.limit === "string" && outcome.limit ? "stopped: " + outcome.limit + " reached" : outcome.reason || "No reason reported") + " · " + (outcome.selected_by === "miner" ? "Your" : "Agent-reported") + " decision, not independent science.");
     if (!hypotheses.length && !decisions.length && !(run.epoch_outcomes || []).length) missing(panel, "the journal fills as hypotheses, decisions and round results are recorded.");
   }
   function tabArtifacts(panel, run) {

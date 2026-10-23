@@ -1207,7 +1207,7 @@
     });
     const outcomes = part(panel, "outcomes", JSON.stringify(doc.journal.epoch_outcomes), box => {
       head(box, "Round results", "Agent or miner reported");
-      for (const o of doc.journal.epoch_outcomes) para(box, "Round " + o.epoch + ": " + words(o.status) + " · selected by " + (o.selected_by === "miner" ? "you" : "the agent") + (o.reason ? " · " + o.reason : "") + ". Reported, not independent science.");
+      for (const o of doc.journal.epoch_outcomes) para(box, "Round " + o.epoch + ": " + words(o.status) + " · selected by " + (o.selected_by === "miner" ? "you" : "the agent") + (typeof o.limit === "string" && o.limit ? " · stopped: " + o.limit + " reached" : o.reason ? " · " + o.reason : "") + ". Reported, not independent science.");
     });
     outcomes.hidden = !doc.journal.epoch_outcomes.length;
   }

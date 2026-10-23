@@ -1383,6 +1383,12 @@ def feed(own, notes):
             "status": _str(item.get("status"), 64),
             "selected_by": "miner" if item.get("selected_by") == "miner" else "agent",
             "reason": clean_text(item.get("reason"), 512),
+            # The stopping limit in words, only as `STOP_LIMITS` names it.
+            **(
+                {"limit": item["limit"]}
+                if item.get("limit") in {words for words, _ in STOP_LIMITS.values()}
+                else {}
+            ),
             "untrusted": True,
         }
         for item in own.get("epoch_outcomes") or []
