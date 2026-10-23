@@ -389,7 +389,7 @@ def test_a_catalog_recipe_runs_through_the_shared_bundle_worker(tmp_path, monkey
     assert call["inputs"].dtype == np.float64
     assert call["expected_output_dtype"] == "float64"
     assert call["expected_output_shape"] == material["expected_output_shape"]
-    assert result["schema"] == "carbon.battery_catalog.direct-practice-feedback.v1"
+    assert result["schema"] == BATTERY_CATALOG.practice_schema
     assert result["provenance"] == "BATTERY_PUBLIC_PRACTICE"
     assert result["challenge"] == CHALLENGE
     assert result["source_kind"] == "catalog" and result["catalog_id"] == STAND_IN
