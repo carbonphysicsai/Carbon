@@ -220,7 +220,10 @@ def validate_policy(policy):
             "coverage_case_binding",
         )
         require(slot["side"] in ("nonnegative", "negative"), "coverage_side")
-        scale(slot["max_distance"], component["unit"])
+        # None: side only (a sealed batch registers RANKING_AND_FEASIBILITY_STRADDLE,
+        # one case on each side, with no distance bound).
+        if slot["max_distance"] is not None:
+            scale(slot["max_distance"], component["unit"])
         receipt = slot["structural_na_receipt"]
         require(
             receipt is None
@@ -615,7 +618,9 @@ def reduce_design(policy, reference, models):
         component = components_by_id[slot["component"]]
         result = {
             **slot,
-            "max_distance": dict(slot["max_distance"]),
+            "max_distance": (
+                None if slot["max_distance"] is None else dict(slot["max_distance"])
+            ),
             "status": None,
             "reference_margin": None,
             "distance": None,
@@ -642,19 +647,21 @@ def reduce_design(policy, reference, models):
                     if slot["side"] == "nonnegative"
                     else atom["interval"][1] < 0
                 )
+                bound = (
+                    math.inf
+                    if slot["max_distance"] is None
+                    else slot["max_distance"]["value"]
+                )
                 interval_proximity_resolved = (
                     atom["interval"] is None
-                    or max(abs(endpoint) for endpoint in atom["interval"])
-                    <= slot["max_distance"]["value"]
+                    or max(abs(endpoint) for endpoint in atom["interval"]) <= bound
                 )
                 result["status"] = (
                     "COVERED"
-                    if correct
-                    and interval_side_resolved
-                    and abs(point) <= slot["max_distance"]["value"]
+                    if correct and interval_side_resolved and abs(point) <= bound
                     else "WRONG_SIDE" if not correct else "OUTSIDE_DECLARED_PROXIMITY"
                 )
-                if correct and abs(point) <= slot["max_distance"]["value"]:
+                if correct and abs(point) <= bound:
                     if not interval_side_resolved:
                         result["status"] = "INTERVAL_SIDE_UNRESOLVED"
                     elif not interval_proximity_resolved:

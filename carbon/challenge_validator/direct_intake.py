@@ -46,6 +46,7 @@ from carbon.transport.models import (
     parse_message,
 )
 
+from . import koth_public
 from .dispatch import Adapters, Validator
 from .interface import Submission, Unavailable
 from .lean_recipe import LeanRecipeAdapter
@@ -103,6 +104,8 @@ class DirectRecipeIntake(BatteryIntake):
         )
         self.challenge = discovery.info.challenge_key
         self.adapter = adapter
+        #: The receiver's public king view (`koth_public`); None until it publishes one.
+        self.koth_view = None
 
     def public(self):
         snapshot = self.window.latest()
@@ -173,9 +176,22 @@ class DirectRecipeIntake(BatteryIntake):
     def route(self, method, path, headers, body):
         if method == "GET" and path == INFO_PATH:
             return self.public()
+        if method == "GET" and path.startswith(koth_public.PATH):
+            return self._koth(path)
         if method != "POST" or path != SUBMIT_PATH:
             return _refused(404, "not_found")
         return asyncio.run(self._post(headers, body))
+
+    def _koth(self, path):
+        """The public king document of this receiver's one Challenge; any other
+        Challenge id is not found."""
+        from urllib.parse import unquote
+
+        asked = unquote(path[len(koth_public.PATH) :])
+        if asked != self.challenge.challenge_id:
+            return _refused(404, "not_found")
+        status, body = koth_public.serve(self.koth_view, self.challenge)
+        return Answer(status, body)
 
     async def _post(self, headers, body):
         try:

@@ -49,6 +49,24 @@ SCHEMA_V3 = "carbon.private-exam.ladder-feedback.v3"
 ETA = 0.02
 FIELDS = frozenset({"schema", "exam_version", "status", "total", "gate_names"})
 FIELDS_V3 = FIELDS | {"recipe_digest", "epoch"}
+#: A v3 NOT_SCORED document also says why, so a miner can tell a leg below its registered
+#: minimum from a candidate fault or an infrastructure failure (additive: absent on other
+#: statuses and on legacy rows; readers tolerate absence). ``leg`` is the registered leg
+#: NAME, only for LEG_MINIMUM_FAILED, never a number.
+FIELDS_V3_NOT_SCORED = FIELDS_V3 | {"reason", "leg"}
+REASONS = (
+    "LEG_MINIMUM_FAILED",
+    "CANDIDATE_INVALID",
+    "DECISION_INELIGIBLE",
+    "FAILED_INFRA",
+    "INDETERMINATE",
+)
+_REASON_OF_STATUS = {
+    "REQUIRED_LEG_MINIMUM_FAILED": "LEG_MINIMUM_FAILED",
+    "CANDIDATE_INVALID": "CANDIDATE_INVALID",
+    "DECISION_OUTCOME_INELIGIBLE": "DECISION_INELIGIBLE",
+    "FAILED_INFRA": "FAILED_INFRA",
+}
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 STATUSES = ("IMPROVED", "NO_IMPROVEMENT", "GATE_FAILED", "NOT_SCORED")
 #: Scoring statuses that carry a total (development now; official later).
@@ -73,6 +91,12 @@ def step(rebuild_noise=None):
     return max(ETA, float(rebuild_noise))
 
 
+def floor_to_step(value, rebuild_noise=None):
+    """``value`` rounded down to the Ladder step (``step(rebuild_noise)``), exactly:
+    what the Ladder itself shows for a total."""
+    return _floor(value, step(rebuild_noise))
+
+
 def _floor(value, grid):
     """``value`` rounded down to a multiple of ``grid``, exactly."""
     if type(value) not in (int, float) or not math.isfinite(value):
@@ -90,10 +114,47 @@ def shape(document):
         return SCHEMA
     if set(document) == FIELDS_V3 and document.get("schema") == SCHEMA_V3:
         return SCHEMA_V3
+    if (
+        set(document) == FIELDS_V3_NOT_SCORED
+        and document.get("schema") == SCHEMA_V3
+        and document.get("status") == "NOT_SCORED"
+        and document.get("reason") in REASONS
+        and (
+            document["leg"] is None
+            if document["reason"] != "LEG_MINIMUM_FAILED"
+            else document["leg"] is None or type(document["leg"]) is str
+        )
+    ):
+        return SCHEMA_V3
     return None
 
 
-def _document(exam_version, status, values, gate_names, about=None):
+def _reason(graded, leg_minimums):
+    """``(reason, leg)`` for a result that does not count. The leg is the first
+    registered leg (in the pack's order) whose value is below its minimum, and only for
+    LEG_MINIMUM_FAILED; it is None when the minimums are not supplied."""
+    reason = _REASON_OF_STATUS.get(graded["status"], "INDETERMINATE")
+    leg = None
+    legs = graded.get("legs")
+    if (
+        reason == "LEG_MINIMUM_FAILED"
+        and type(legs) is dict
+        and type(leg_minimums) is dict
+    ):
+        for name, value in legs.items():
+            minimum = leg_minimums.get(name)
+            if (
+                type(name) is str
+                and type(value) in (int, float)
+                and type(minimum) in (int, float)
+                and value < minimum
+            ):
+                leg = name
+                break
+    return reason, leg
+
+
+def _document(exam_version, status, values, gate_names, about=None, why=None):
     document = {
         "schema": SCHEMA,
         "exam_version": exam_version,
@@ -105,6 +166,9 @@ def _document(exam_version, status, values, gate_names, about=None):
     if about is not None:
         document.update(schema=SCHEMA_V3, **about)
         expected = FIELDS_V3
+        if status == "NOT_SCORED" and why is not None:
+            document.update(reason=why[0], leg=why[1])
+            expected = FIELDS_V3_NOT_SCORED
     if set(document) != expected or status not in STATUSES:
         raise LadderFeedbackRefused("document_fields")
     return document
@@ -129,6 +193,7 @@ def ladder_feedback(
     rebuild_noise,
     recipe_digest=None,
     epoch=None,
+    leg_minimums=None,
 ):
     """The miner's feedback document for one graded result.
 
@@ -183,7 +248,9 @@ def ladder_feedback(
         return _document(exam_version, "GATE_FAILED", shown, failed, about)
     if status not in _SCORED:
         # A result that does not count reveals no grade.
-        return _document(exam_version, "NOT_SCORED", none, (), about)
+        return _document(
+            exam_version, "NOT_SCORED", none, (), about, _reason(graded, leg_minimums)
+        )
     total = graded.get("score")
     rounded = {"total": _floor(total, grid)}
     if shown["total"] is not None and not total >= shown["total"] + grid:

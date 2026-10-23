@@ -197,7 +197,8 @@ def _policy(spec, case_ids, action_ids, reference_cases):
                         "component": component["id"],
                         "case_id": pool[0][1],
                         "side": side,
-                        "max_distance": {"value": component["scale"], "unit": unit},
+                        # Side only: a sealed batch registers a straddle, no bound.
+                        "max_distance": None,
                         "structural_na_receipt": None,
                     }
                 )

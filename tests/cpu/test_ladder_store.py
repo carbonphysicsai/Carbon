@@ -608,3 +608,29 @@ def test_without_a_receipt_block_the_hook_records_the_unchanged_v2(store):
     assert _hook_about(store, RECIPE_A, None) == "RECORDED"
     best = store.served("5Miner", MOTOR, EXAM)["best"]
     assert best["schema"] == gf.SCHEMA and set(best) == gf.FIELDS
+
+
+def test_a_not_scored_row_keeps_its_reason_and_leg_through_the_store(store):
+    graded = {
+        "status": "REQUIRED_LEG_MINIMUM_FAILED",
+        "score": None,
+        "legs": {"A": 0.1, "D": 0.9},
+        "gates": {g: "PASS" for g in GATES},
+    }
+    shown = store.record(
+        "hotkey-a",
+        MOTOR,
+        EXAM,
+        graded,
+        exam_version="exam-1",
+        gates=GATES,
+        rebuild_noise=None,
+        recipe_digest="sha256:" + "d" * 64,
+        epoch=1,
+        leg_minimums={"A": 0.5, "D": 0.5},
+    )
+    assert shown["reason"] == "LEG_MINIMUM_FAILED" and shown["leg"] == "A"
+    served = store.served("hotkey-a", MOTOR, EXAM)
+    assert served["latest"] == shown and served["best"] is None
+    with pytest.raises(LadderStoreRefused):
+        checked({**shown, "reason": "OTHER"}, latest=True)

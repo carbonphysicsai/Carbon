@@ -267,3 +267,25 @@ def test_an_action_ruled_out_exactly_costs_no_accept_error():
         exact_ok={"a": False},
     )
     assert record["V_feas"] == 1.0
+
+
+def test_a_straddle_far_from_the_limit_is_covered_not_out_of_proximity():
+    """A sealed batch registers a straddle (one case on each side), not a distance
+    bound: margins many scales from zero are covered, never charged."""
+    reference = {
+        "cases": {
+            "a0": {"torque_margin": 5.0, "ripple_margin": 0.5},
+            "a1": {"torque_margin": -4.0, "ripple_margin": -0.5},
+            "b0": {"torque_margin": 6.0, "ripple_margin": 0.4},
+            "b1": {"torque_margin": -3.0, "ripple_margin": -0.4},
+        },
+        "actions": {
+            "a": {"feasible": False, "objective": 0.1},
+            "b": {"feasible": False, "objective": 0.2},
+        },
+    }
+    result = _reduce(_model(reference), reference)
+    assert not any(
+        "OUTSIDE_DECLARED_PROXIMITY" in x for x in result["reference_limitations"]
+    )
+    assert result["C"] == 1.0

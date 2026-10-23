@@ -152,3 +152,72 @@ def test_a_malformed_or_unimproved_best_document_is_refused():
     shown = _feedback({"status": "CANDIDATE_INVALID"})
     with pytest.raises(ladder.LadderFeedbackRefused, match="best"):
         _feedback(_scored(0.6, 0.6, 0.6), best=shown)
+
+
+# --- a v3 NOT_SCORED document says why (reason, leg) --------------------------
+
+DIGEST = "sha256:" + "d" * 64
+
+
+def _v3(graded, **extra):
+    return ladder.ladder_feedback(
+        graded,
+        best=None,
+        exam_version="exam-1",
+        gate_registry=GATES,
+        rebuild_noise=None,
+        recipe_digest=DIGEST,
+        epoch=3,
+        **extra,
+    )
+
+
+@pytest.mark.parametrize(
+    "status,reason",
+    [
+        ("REQUIRED_LEG_MINIMUM_FAILED", "LEG_MINIMUM_FAILED"),
+        ("CANDIDATE_INVALID", "CANDIDATE_INVALID"),
+        ("DECISION_OUTCOME_INELIGIBLE", "DECISION_INELIGIBLE"),
+        ("FAILED_INFRA", "FAILED_INFRA"),
+        ("INDETERMINATE_EVIDENCE", "INDETERMINATE"),
+        ("DIAGNOSTIC_Q", "INDETERMINATE"),
+    ],
+)
+def test_a_v3_not_scored_document_names_its_reason_and_only_a_minimum_names_a_leg(
+    status, reason
+):
+    graded = {"status": status, "score": None, "legs": {"A": 0.7, "D": 0.2}}
+    doc = _v3(graded, leg_minimums={"A": 0.5, "D": 0.4})
+    assert doc["status"] == "NOT_SCORED" and doc["total"] is None
+    assert doc["reason"] == reason
+    assert doc["leg"] == ("D" if reason == "LEG_MINIMUM_FAILED" else None)
+    assert ladder.shape(doc) == ladder.SCHEMA_V3
+    assert set(doc) == ladder.FIELDS_V3_NOT_SCORED
+    assert "0.7" not in json.dumps(doc) and "0.2" not in json.dumps(doc)
+
+
+def test_the_leg_is_the_first_registered_leg_below_its_minimum_never_a_number():
+    graded = {
+        "status": "REQUIRED_LEG_MINIMUM_FAILED",
+        "score": None,
+        "legs": {"A": 0.1, "D": 0.1},
+    }
+    assert _v3(graded, leg_minimums={"A": 0.5, "D": 0.5})["leg"] == "A"
+    assert _v3(graded, leg_minimums=None)["leg"] is None  # unknown stays null
+
+
+def test_other_documents_and_v2_are_unchanged_by_the_reason_fields():
+    scored = _v3(_scored(0.7, 0.5, 0.9))
+    assert set(scored) == ladder.FIELDS_V3 and "reason" not in scored
+    v2 = _feedback({"status": "FAILED_INFRA", "score": None, "legs": {}})
+    assert set(v2) == ladder.FIELDS and v2["status"] == "NOT_SCORED"
+
+
+def test_a_malformed_reason_or_a_leg_on_another_reason_is_not_a_ladder_document():
+    doc = _v3({"status": "CANDIDATE_INVALID", "score": None, "legs": {}})
+    for bad in (
+        {**doc, "reason": "SOMETHING"},
+        {**doc, "leg": "A"},  # a leg only with LEG_MINIMUM_FAILED
+        {**doc, "status": "IMPROVED"},
+    ):
+        assert ladder.shape(bad) is None
