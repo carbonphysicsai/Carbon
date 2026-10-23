@@ -7,11 +7,12 @@ Scope: **testnet 567 and rehearsals only**, like the 2026-10-21 v7 acceptance (O
 ## Evidence (Validator ruling: VALIDATOR_EXAM_ARCHITECTURE_COMMON_20261022.md, section "jNO python-cpu parent containment: the EVIDENCE IS COMPLETE")
 
 - Run J3 at `claude/run-j-tests` @ `edf4debd85801c98d952b16ac57565a7c853449c`: every part rc 0, 0 skips. C-03 8/8 on both parents. Launch controls, escapes, resources, network, filesystem and process all held.
-- Run J3b (Part 5 rerun) at `fd06ebc44`: the JAX (a)+(b) tests 4/4, 0 skips. The bounded `/scratch/control-ready` wait is confirmed in production.
+  - Run record: `codex-queue/reports/CONTAINMENT_RUN_J3_edf4debd8_20261022.md`, sha256 `ed85cc68fad7bd807e22541e045c57914cb9608010f17ef5fc17171e02be7392`.
+- Run J3b (Part 5 rerun) at `fd06ebc44820bcf7e3746c586ab812e8109f3dfd`: the JAX (a)+(b) tests 4/4, 0 skips. The bounded `/scratch/control-ready` wait is confirmed in production.
 
 ## What is accepted
 
-1. The **non-test containment source** at `fd06ebc44`.
+1. The **non-test containment source** at `fd06ebc44820bcf7e3746c586ab812e8109f3dfd`.
 2. The **pass rule**: every part passes, nothing skipped.
 
 ## Condition
