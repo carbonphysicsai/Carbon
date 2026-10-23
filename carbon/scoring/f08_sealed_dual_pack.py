@@ -32,6 +32,7 @@ from carbon.scoring import critical_fidelity as critical
 from carbon.scoring import f08_critical
 from carbon.scoring import f08_dual_measurement as fdm
 from carbon.scoring import f08_dual_pack as _f08
+from carbon.scoring import f08_physics
 from carbon.scoring import physical_dual_pack as physical
 from carbon.scoring import sealed_grid_common as grid_common
 from carbon.scoring import sealed_pack_writer
@@ -52,6 +53,8 @@ FILES = (
     "critical_fidelity.py",
     "design_fidelity.py",
     "f08_critical.py",
+    "f08_physics.py",
+    "physics_half.py",
     "f08_sealed_dual_pack.py",
 )
 MINIMUM_LEGS = _f08.MINIMUM_LEGS
@@ -101,6 +104,7 @@ def definition(*, bank, train_raw):
         "grid": {"designs": DESIGNS, "conditions": CONDITIONS},
         "reference_receipt_sha256": _sha(evidence),
         "critical": f08_critical.block(base),
+        "physics": f08_physics.block(),
     }
 
 
@@ -134,7 +138,7 @@ def applied_pack(**_):
         "schema": dual_score.PACK_SCHEMA,
         "scope": "PUBLIC_DEVELOPMENT",
         "challenge": CHALLENGE,
-        "hard_gates": list(fdm.GATES),
+        "hard_gates": [*fdm.GATES, f08_physics.GATE],
         "legs": {
             leg: {
                 "components": [
@@ -192,12 +196,21 @@ def measure(
         train_raw=train_raw,
         names=names,
     )
-    return f08_critical.apply(
+    constraints = fdm._limits(limits)
+    measured = f08_critical.apply(
         measured,
         bank_rows=bank_rows,
         outputs=outputs,
         definition=definition,
-        constraints=fdm._limits(limits),
+        constraints=constraints,
+    )
+    return f08_physics.apply(
+        measured,
+        bank_rows=bank_rows,
+        outputs=outputs,
+        definition=definition,
+        train_rows=_f08._train_targets(train_raw),
+        constraints=constraints,
     )
 
 

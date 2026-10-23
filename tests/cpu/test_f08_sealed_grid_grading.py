@@ -102,10 +102,15 @@ def test_the_grid_measure_equals_the_development_measure_on_a_dev_shaped_bank(ca
     assert sealed_result["D"] == min(
         dev_result["D"], sealed_result["design_fidelity"]["C"]
     )
-    ignored = ("D", "design_fidelity")
+    ignored = ("A", "D", "gates", "design_fidelity", "A_legs", "physics_half")
     assert {k: v for k, v in sealed_result.items() if k not in ignored} == {
         k: v for k, v in dev_result.items() if k not in ignored
     }
+    # The physics half: A_acc is the development A; the gates add the law gate.
+    assert sealed_result["A_legs"]["A_acc"] == dev_result["A"]
+    assert {k: v for k, v in sealed_result["gates"].items() if k != "physics_laws"} == (
+        dev_result["gates"]
+    )
 
 
 def test_a_bank_that_is_not_the_sealed_grid_refuses(case):
@@ -244,3 +249,74 @@ def test_a_definition_without_the_critical_block_grades_value_only(case):
     other = next(i for i, cid in enumerate(ids) if cid != exact["pick"])
     skewed = _measure(case, _shift_frequency(case, other), definition=legacy)
     assert skewed["D"] == 1.0 and "design_fidelity" not in skewed
+
+
+# --- the physics half (A = mean(A_acc, A_robust, A_law)) ---------------------
+
+
+def _unphysical(case):
+    """Accurate within A_acc but breaking the 1/zeta peak law: each damping
+    level peak moved independently by a few percent."""
+    outputs = copy.deepcopy(case["truth"])
+    names = case["definition"]["targets"]
+    for row in outputs:
+        row[names.index("peak_tip_z005_mm_per_n")] *= 1.06
+        row[names.index("peak_tip_z020_mm_per_n")] *= 0.94
+    return outputs
+
+
+def test_the_definition_registers_the_physics_block(case):
+    block = case["definition"]["physics"]
+    assert block["rule"] == "A=mean(A_acc,A_robust,A_law)"
+    assert block["legs_not_applied"] == ["A_response"]
+    assert {law["name"] for law in block["laws"]} >= {
+        "damping_scaling_005_010",
+        "frequency_independence_005_010",
+        "peak_not_below_static",
+    }
+    assert sealed.f08_physics.GATE in [
+        *sealed.fdm.GATES,
+        sealed.f08_physics.GATE,
+    ]
+
+
+def test_a_model_equal_to_the_references_earns_full_physics_legs(case):
+    result = _measure(case, case["truth"])
+    # The references satisfy the laws to within their own residual, so the law
+    # leg is near but not necessarily exactly one; the other legs are exact.
+    assert result["A_legs"]["A_acc"] == 1.0 and result["A_legs"]["A_robust"] == 1.0
+    assert result["A_legs"]["A_law"] > 0.99
+    assert result["gates"]["physics_laws"] is True
+
+
+def test_an_accurate_but_unphysical_model_loses_on_the_law_leg(case):
+    good = _measure(case, case["truth"])
+    bad = _measure(case, _unphysical(case))
+    assert bad["A_legs"]["A_law"] < good["A_legs"]["A_law"]
+    assert bad["A"] < good["A"]
+    assert bad["physics_half"]["mean_residual"] > good["physics_half"]["mean_residual"]
+
+
+def test_a_peak_below_the_static_compliance_fails_the_law_gate(case):
+    outputs = copy.deepcopy(case["truth"])
+    names = case["definition"]["targets"]
+    outputs[0][names.index("peak_tip_z010_mm_per_n")] = 0.0
+    result = _measure(case, outputs)
+    assert result["gates"]["physics_laws"] is False
+    assert "peak_not_below_static" in result["physics_half"]["gate_failed_laws"]
+
+
+def test_unordered_damping_peaks_fail_the_law_gate(case):
+    outputs = copy.deepcopy(case["truth"])
+    names = case["definition"]["targets"]
+    j5, j20 = (names.index(f"peak_tip_z{z}_mm_per_n") for z in ("005", "020"))
+    outputs[1][j5], outputs[1][j20] = outputs[1][j20], outputs[1][j5]
+    result = _measure(case, outputs)
+    assert result["gates"]["physics_laws"] is False
+    assert "peaks_ordered_by_damping" in result["physics_half"]["gate_failed_laws"]
+
+
+def test_the_physics_block_is_optional_for_an_earlier_definition(case):
+    legacy = {k: v for k, v in case["definition"].items() if k != "physics"}
+    result = _measure(case, case["truth"], definition=legacy)
+    assert "A_legs" not in result and "physics_laws" not in result["gates"]
