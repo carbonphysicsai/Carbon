@@ -35,6 +35,10 @@ class FailureCode(str, Enum):
     IDENTITY = "IDENTITY_MISMATCH"
     STALE = "STALE_SNAPSHOT"
     UNSUPPORTED = "UNSUPPORTED_CAPABILITY"
+    #: The endpoint refused the read under its traffic or access policy
+    #: (HTTP 429/403, WebSocket 1008, a JSON-RPC policy error): an
+    #: infrastructure failure, retried with backoff, never a capability gap.
+    RATE_LIMITED = "PROVIDER_RATE_LIMITED"
 
 
 class ChainFailure(Exception):
