@@ -131,6 +131,49 @@ def document(
     return result
 
 
+class PoolKingView:
+    """The receiver's king view over its pool store: the incumbent, its owner hotkey
+    and latest scored total, and the epoch its signed submission arrived in. It reads
+    only; ``open_store`` returns the pool store, ``epoch_of`` maps a submission id to
+    an epoch (or None), and ``baseline`` is Carbon's baseline total or None."""
+
+    def __init__(
+        self,
+        *,
+        open_store,
+        epoch_of,
+        exam_version_label,
+        rebuild_noise_of,
+        baseline=lambda: None,
+    ):
+        self._open, self._epoch_of = open_store, epoch_of
+        self.exam_version_label = exam_version_label
+        self._noise_of, self._baseline = rebuild_noise_of, baseline
+
+    @property
+    def rebuild_noise(self):
+        return self._noise_of()
+
+    @property
+    def baseline_total(self):
+        return self._baseline()
+
+    def king(self):
+        store = self._open()
+        incumbent = store.incumbent()
+        if incumbent is None:
+            return None
+        standing = store.incumbent_standing(incumbent["model_id"])
+        epoch = self._epoch_of(incumbent["model_id"])
+        if standing is None or epoch is None:
+            return None
+        return {
+            "hotkey": standing["owner"],
+            "total": standing["total"],
+            "since_epoch": epoch,
+        }
+
+
 def serve(view, challenge):
     """``(status, document-or-refusal)`` for ``GET PATH<challenge_id>`` on a receiver
     serving ``challenge`` (a ``ChallengeKey``). ``view`` is None when this grader does
@@ -152,4 +195,4 @@ def serve(view, challenge):
         return 503, {"refused": "koth_unavailable"}
 
 
-__all__ = ["PATH", "SCHEMA", "KothPublicRefused", "document", "serve"]
+__all__ = ["PATH", "SCHEMA", "KothPublicRefused", "PoolKingView", "document", "serve"]

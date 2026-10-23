@@ -1351,6 +1351,8 @@ def serve(
                 grader = AutoGrader(
                     intake, root, pool_store=cfg["auto_grade"].get("pool_store")
                 )
+            if "auto_grade" in cfg and cfg["auto_grade"].get("pool_store"):
+                intake.koth_view = _king_view(intake, cfg["auto_grade"]["pool_store"])
             serve_loopback(
                 intake,
                 {"host": cfg["host"], "port": cfg["port"]},
@@ -1433,6 +1435,29 @@ class PermitWatch:
                 target=self.run, name="carbon-permit-watch", daemon=True
             ).start()
         return self
+
+
+def _king_view(intake, pool_store):
+    """The public king view (`koth_public`) over this receiver's pool store."""
+    from carbon.challenge_validator import exam_cap, koth_public, koth_registry
+
+    adapter = intake.adapter
+    challenge = intake.challenge
+
+    def epoch_of(submission_id):
+        block = exam_cap.submission_block(
+            adapter.ledger, adapter.contract_digest, submission_id
+        )
+        return None if block is None else exam_cap.epoch_of(block)
+
+    snapshot = getattr(adapter.discovery, "evaluation_pack_snapshot", None)
+    label = getattr(snapshot, "evaluation_version", None)
+    return koth_public.PoolKingView(
+        open_store=lambda: _open_pool_store(pool_store),
+        epoch_of=epoch_of,
+        exam_version_label=label if type(label) is str and label else "exam",
+        rebuild_noise_of=lambda: koth_registry.rebuild_noise(challenge.challenge_id),
+    )
 
 
 class PoolStoreUnavailable(ValueError):
