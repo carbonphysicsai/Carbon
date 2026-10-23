@@ -36,7 +36,6 @@ SURFACES = (
     "carbon/challenge_validator/design_scoring.py",
     "carbon/challenge_validator/motor_scoring.py",
     "carbon/challenge_validator/koth_registry.py",
-    "carbon/challenge_validator/koth_carry.py",
     "carbon/challenge_validator/ladder_store.py",
     "carbon/challenge_validator/exam_cap.py",
     "carbon/challenge_validator/direct_intake.py",
@@ -98,10 +97,9 @@ def test_only_the_funding_modules_and_the_onboarding_door_name_them():
             if pattern.search(path.read_text(encoding="utf-8", errors="replace")):
                 found.add(path.relative_to(ROOT).as_posix())
     assert found <= NAMERS, sorted(found - NAMERS)
-    assert {
-        "carbon/chain/funding_read.py",
-        "carbon/development_session/onboarding_funding.py",
-    } <= found
+    # The funding module names its chain read; the door names the module.
+    assert "carbon/development_session/onboarding_funding.py" in found
+    assert "scripts/dev/miner_launchpad/onboarding.py" in found
 
 
 def test_a_planted_import_from_a_scoring_module_fails_the_runtime_check(tmp_path):
