@@ -1,0 +1,14 @@
+{
+ "catalog_id": "jno.fno3d",
+ "differ": [],
+ "environment": "plain uv venv on a Lium pod, no container image; JAX equinox==0.13.8, foundax==0.2.0, jax==0.10.2, jax-cuda13-plugin==0.10.2, jaxlib==0.10.2; XLA_FLAGS=--xla_gpu_deterministic_ops=true in both processes",
+ "gpu_used": true,
+ "identical": 1,
+ "image_digest": null,
+ "kind": "repeat",
+ "pairs": 1,
+ "runtime_profile_id": "jax-cuda13-py311",
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "smoke_ok": true,
+ "tested_on": "1x NVIDIA GeForce RTX 4090, driver 595.71.05"
+}

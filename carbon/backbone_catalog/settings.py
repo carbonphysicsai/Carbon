@@ -103,9 +103,27 @@ F02_LEVERS = Schema(
     LEVERS.configuration,
     LEVERS.train_use,
 )
+#: The coverage build returning float32 (the interface's `<f4`) for F08 1.4 and F02 2.3
+#: (`codex-queue/inputs/physical_catalog_15/build_physical_packets.py`): the same one-backbone Adam vocabulary as
+#: COVERAGE, its own build bytes (the float32 line); F08 and F02 share it (their sizes live in the registry).
+COVERAGE_F32 = Schema(
+    "carbon-candidate-coverage-float32-v1",
+    "carbon_candidate/build.py",
+    "sha256:2298eca5a18f25ccdaccd34044c71e03ea7822a9332f6806764d7d8d0d8e35bc",
+    COVERAGE.configuration,
+    COVERAGE.train_use,
+)
 SCHEMAS = {
     s.schema_id: s
-    for s in (COVERAGE, LEVERS, JAX_LEVERS, COOLING_LEVERS, F08_LEVERS, F02_LEVERS)
+    for s in (
+        COVERAGE,
+        LEVERS,
+        JAX_LEVERS,
+        COOLING_LEVERS,
+        F08_LEVERS,
+        F02_LEVERS,
+        COVERAGE_F32,
+    )
 }
 #: Each Torch schema's GPU (`torch-cu130-py311`) build, the one deterministic
 #: transform of its CPU build (`gpu_build`, U58): the same vocabulary, its own
@@ -461,7 +479,7 @@ def resolve(item, configuration, train_use):
         _arch(backbone, configuration["arch"], "configuration.arch")
     if "steps" in train_use:
         _positive_int(train_use["steps"], "train_use.steps")
-    if schema is COVERAGE:
+    if schema in (COVERAGE, COVERAGE_F32):
         if "loss" in train_use:
             _choice(train_use["loss"], "train_use.loss", ("mse", "derivative"))
         if "derivative_weight" in train_use:

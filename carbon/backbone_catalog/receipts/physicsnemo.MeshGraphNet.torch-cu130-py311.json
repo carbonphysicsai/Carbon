@@ -1,0 +1,14 @@
+{
+ "catalog_id": "physicsnemo.MeshGraphNet",
+ "differ": [],
+ "environment": "plain uv venv on a Lium pod, no container image; torch neuraloperator==2.0.0, torch==2.13.0+cu130",
+ "gpu_used": true,
+ "identical": 1,
+ "image_digest": null,
+ "kind": "repeat",
+ "pairs": 1,
+ "runtime_profile_id": "torch-cu130-py311",
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "smoke_ok": true,
+ "tested_on": "1x NVIDIA GeForce RTX 4090, driver 580.178.04"
+}

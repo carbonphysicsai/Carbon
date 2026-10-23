@@ -17,6 +17,7 @@ REFUSAL_CODES = (
     "catalog_setting_invalid",
     "catalog_settings_inconsistent",
     "catalog_library_not_pinned",
+    "catalog_runtime_not_reproducible",
 )
 
 

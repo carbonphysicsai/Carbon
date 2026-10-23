@@ -239,7 +239,65 @@ def verify(item, *, wheelhouse=None):
                     f"{field.replace('_', ' ')} differs from the tested "
                     f"{tested[0]}'s: re-run it there"
                 )
+    for runtime, ref in (item.get("bundle_refs") or {}).items():
+        _verify_runtime_ref(item, runtime, ref, files, manifest)
     settings.resolve(item, {}, {})  # the defaults pass their own door
+
+
+def _verify_runtime_ref(item, runtime, ref, cpu_files, cpu_manifest):
+    """A GPU build is the CPU build plus the one registered change, and nothing else (U58).
+
+    The GPU files under `bundles/<id>/<runtime>/` are re-derived from the CPU files with `gpu_build`; any
+    difference, or a ref that is not the derived manifest's, is refused. `bundle_ref` stays the CPU build.
+    """
+    from . import gpu_build
+
+    if item["catalog_id"] in gpu_build.NO_GPU_TWIN:
+        raise CatalogBroken(f"{item['catalog_id']}: it has no GPU twin (CPU only)")
+    if (
+        runtime not in gpu_build.TWINS.values()
+        or gpu_build.TWINS.get(cpu_manifest["runtime_profile_id"]) != runtime
+    ):
+        raise CatalogBroken(
+            f"{item['catalog_id']}: no GPU build is registered for {runtime}"
+        )
+    root = BUNDLES / item["catalog_id"] / runtime
+    names = ("bundle.json", "source.tar.gz", "LICENSE", "requirements.txt")
+    try:
+        files = {name: (root / name).read_bytes() for name in names}
+    except OSError:
+        raise CatalogBroken(
+            f"{item['catalog_id']}: the {runtime} bundle files are missing"
+        ) from None
+    try:
+        source = gpu_build.derived_source(
+            cpu_manifest["runtime_profile_id"],
+            cpu_files["source.tar.gz"],
+            item["catalog_id"],
+        )
+        expected = gpu_build.gpu_manifest(
+            cpu_manifest, source, gpu_build.base_lock(runtime)
+        )
+    except gpu_build.GpuBuildRefused as refused:
+        raise CatalogBroken(f"{item['catalog_id']}: {refused}") from None
+    if (
+        files["source.tar.gz"] != source
+        or files["LICENSE"] != cpu_files["LICENSE"]
+        or files["requirements.txt"] != cpu_files["requirements.txt"]
+        or json.loads(files["bundle.json"]) != expected
+        or ref != gpu_build.bundle_ref(expected)
+    ):
+        raise CatalogBroken(
+            f"{item['catalog_id']}: the {runtime} build is not its CPU build's derivation"
+        )
+    from . import gpu_receipt
+
+    try:
+        gpu_receipt.load(
+            item["catalog_id"], runtime
+        )  # a receipt, once there is one, must prove its kind
+    except gpu_receipt.GpuReceiptBroken as broken:
+        raise CatalogBroken(str(broken)) from None
 
 
 def verify_all(*, wheelhouse=None):

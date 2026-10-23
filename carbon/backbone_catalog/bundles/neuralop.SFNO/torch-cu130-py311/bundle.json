@@ -1,0 +1,19 @@
+{
+ "accelerator": "cuda13",
+ "architecture": "amd64",
+ "base_environment_digest": "sha256:8ebbccd38e0d1f9b1992242ddb8ff49b31270b439f7a21d50051da55fa796c7e",
+ "environment_digest": "sha256:13eba7b94e0f9cbeda75aa745c60b36e1e177adfaa565954ed2df0b667faeba9",
+ "language": "python",
+ "license_sha256": "sha256:1776bbc6884f5982c21d2875ba2a1c595a19aff71983141cade8aad502c40709",
+ "lock_sha256": "sha256:fa890ff96710a6b516d8ab015720e2094074b22c287a678a957357703e574b68",
+ "name": "motor-catalog-neuralop-sfno-baseline",
+ "os": "linux",
+ "python_abi": "cp311",
+ "runtime_profile_id": "torch-cu130-py311",
+ "schema": "carbon.development.library-bundle.v1",
+ "source_bytes": 13780,
+ "source_sha256": "sha256:aef552b86858378f4eba9bb9b36460601760f72be5c59a09ec9c1bf227943249",
+ "wheels": {
+  "torch_harmonics-0.7.4-py3-none-any.whl": "sha256:326941e127489f7fa133fe4fd22f043f06e0fe8c5e344200392fd9da7ec0ab72"
+ }
+}

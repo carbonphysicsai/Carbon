@@ -1,0 +1,17 @@
+{
+ "catalog_id": "f08.thuml.FNO",
+ "differ": [],
+ "distinct_states": 1,
+ "files": 2,
+ "identical": 1,
+ "image_digest": "sha256:5b4a2a50c1a244b09da0c1d09cf961d7083c2857571d4a0a00b01e104bba42b4",
+ "key": "f08_thuml_fno",
+ "pairs": 1,
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "source_report": "PAIR_IDENTITY_PX15_F08_20261022.json",
+ "source_report_sha256": "sha256:635a48992b6faa4d69ad04358c42e2ecdbd23c6c43874e06ae912a5e53aab9bb",
+ "tested_interface_digest": "sha256:96d0f10bcedb1b4df050e39377df4476af61dc524fcf01754e9d303e67b4c9e8",
+ "tested_on": "f08-ribbed-bracket@1.4",
+ "tested_train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
+ "unpaired": 0
+}

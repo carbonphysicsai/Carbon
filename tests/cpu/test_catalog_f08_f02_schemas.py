@@ -56,3 +56,12 @@ def test_the_packet_builds_are_the_pinned_bytes(packet, schema):
         )
         build = archive.extractfile(member).read()
     assert "sha256:" + hashlib.sha256(build).hexdigest() == schema.build_sha256
+
+
+def test_the_float32_coverage_schema_pins_the_f08_f02_port_builds():
+    schema = settings.COVERAGE_F32
+    assert settings.SCHEMAS[schema.schema_id] is schema
+    assert schema.configuration == settings.COVERAGE.configuration
+    assert schema.train_use == settings.COVERAGE.train_use
+    assert settings.schema_for_build(schema.build_sha256) == schema.schema_id
+    assert schema.build_sha256 != settings.COVERAGE.build_sha256

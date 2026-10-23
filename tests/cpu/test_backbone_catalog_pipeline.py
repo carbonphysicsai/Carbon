@@ -75,8 +75,22 @@ F08 = {
     "f08.neuralop.UQNO",
     "f08.physicsnemo.FullyConnected",
     "f08.transolver",
+    # PX15: the Motor Torch bundles resized to 7 outputs (PAIR_IDENTITY_PX15_F08_20261022).
+    "f08.cno.CNO1d",
+    "f08.deepxde.DeepONetCartesianProd",
+    "f08.neuralop.LocalNO",
+    "f08.oformer.Encoder1D_PointWiseDecoder1D",
+    "f08.thuml.F_FNO",
+    "f08.thuml.FNO",
+    "f08.thuml.Factformer",
+    "f08.thuml.Galerkin_Transformer",
+    "f08.thuml.MWT",
+    "f08.thuml.Transformer",
+    "f08.thuml.Transolver",
+    # PAIR_IDENTITY_LSM2_F08: the 16-hidden-channel variant (the 32-channel one outran the build budget).
+    "f08.thuml.LSM",
 }
-F02 = {"f02.physicsnemo.FullyConnected"}
+F02 = {"f02.physicsnemo.FullyConnected", "f02.deepxde.DeepONetCartesianProd"}
 #: The five Torch builds resized to Cooling's 32 outputs, each with its own
 #: Cooling pair-identity receipt (Test Lead, PAIR_IDENTITY_COOLING_CATALOG_
 #: 20261020), offered on Cooling 1.2 only.

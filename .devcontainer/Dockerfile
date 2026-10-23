@@ -6,6 +6,12 @@ FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG PYTHON_VERSION=3.11.16
+# Browser-page tests run their pages' scripts under Node (the 14 tests that skip when
+# `node` is absent). Official nodejs.org tarball, version-pinned and sha256-checked
+# (SHASUMS256.txt of v22.11.0); the canonical marker is unchanged because it names the
+# Python/uv base, and the test gate refuses a canonical run that lacks node.
+ARG NODE_VERSION=22.11.0
+ARG NODE_SHA256=83bf07dd343002a26211cf1fcd46a9d9534219aad42ee02847816940bf610a72
 ARG USERNAME=ubuntu
 ARG USER_UID=1000
 ARG USER_GID=1000
@@ -26,7 +32,16 @@ RUN apt-get update \
         curl \
         git \
         libc6 \
+        xz-utils \
     && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+        -o /tmp/node.tar.xz \
+    && echo "${NODE_SHA256}  /tmp/node.tar.xz" | sha256sum -c - \
+    && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 --no-same-owner \
+        --exclude=CHANGELOG.md --exclude=LICENSE --exclude=README.md \
+    && rm -f /tmp/node.tar.xz \
+    && [ "$(/usr/local/bin/node --version)" = "v${NODE_VERSION}" ]
 
 COPY --from=uv /uv /uvx /usr/local/bin/
 
@@ -46,7 +61,7 @@ RUN mkdir -p /home/ubuntu/.cache/uv /workspaces/Carbon/.venv \
     && chmod 0444 /etc/carbon-canonical-environment
 
 LABEL org.opencontainers.image.title="Carbon canonical development environment" \
-      org.opencontainers.image.description="Ubuntu 24.04, glibc, CPython 3.11.16, uv 0.12.7; canonical development evidence only" \
+      org.opencontainers.image.description="Ubuntu 24.04, glibc, CPython 3.11.16, uv 0.12.7, Node 22.11.0; canonical development evidence only" \
       org.opencontainers.image.source="https://github.com/carbonphysicsai/Carbon" \
       org.opencontainers.image.carbon.canonical-marker="ubuntu-24.04-glibc-cpython-3.11.16-uv-0.12.7-amd64"
 
