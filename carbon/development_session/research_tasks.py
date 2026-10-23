@@ -2723,6 +2723,34 @@ def ceiling_correction(record):
     )
 
 
+#: The outcome of a catalog practice this host cannot run at all
+#: (`gpu_practice.PracticeUnavailable`), beside REQUEST_REFUSED and the
+#: campaign's ceiling.
+PRACTICE_UNAVAILABLE_OUTCOME = "PRACTICE_UNAVAILABLE"
+
+
+def practice_unavailable_result(error):
+    """The task result for a catalog practice this host cannot run: its GPU
+    build did not run, for the reason its code names, and the entry has no
+    CPU build here. Nothing was scored; what to do is said in words."""
+    from .catalog_gpu import FALLBACK_WORDS
+
+    reason = FALLBACK_WORDS.get(error.code, "the entry's GPU build did not run")
+    return {
+        "outcome": PRACTICE_UNAVAILABLE_OUTCOME,
+        "code": error.code,
+        "correction": (
+            "This practice could not run on this machine: "
+            + reason
+            + ". This catalog entry has no CPU build here to practise instead, "
+            "so nothing was scored. Choose an entry with a CPU build, or fix "
+            "the GPU cause and practise again."
+        ),
+        "nothing_scored": True,
+        "authority_granted": False,
+    }
+
+
 def ceiling_result(refusal):
     """The task result for work the campaign's own ceiling refused.
 
@@ -3112,6 +3140,7 @@ class PublicResearchExecutor:
         """
         from carbon.research.records import InfrastructureExecutionFailure
 
+        from .gpu_practice import PracticeUnavailable
         from .research_control import CampaignDeadlineReached
         from .research_ledger import (
             CARBON_SERVICE_CAPACITY,
@@ -3119,6 +3148,14 @@ class PublicResearchExecutor:
             LedgerRefusal,
         )
 
+        if type(error) is PracticeUnavailable:
+            # This host cannot run the practice at all: said in words, the
+            # task completed with it, never an infrastructure failure.
+            return self._complete(
+                attempt.task_id.value,
+                practice_unavailable_result(error),
+                ResearchEvidenceClass.STRUCTURAL_ONLY,
+            )
         if type(error) is CampaignDeadlineReached:
             # Campaign control's own check of the same time limit, made before
             # the ledger's (`CampaignLedger.reserve` runs it first).

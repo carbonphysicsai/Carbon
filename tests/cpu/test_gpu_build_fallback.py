@@ -16,7 +16,7 @@ from test_gpu_only_entry import JAX_RUNTIME, staged  # noqa: F401
 from test_gpu_per_backend import JAX, entry
 
 from carbon.compute.remote_job import RemoteJobFailure
-from carbon.development_session.gpu_practice import DirectParentRefused, run_on_device
+from carbon.development_session.gpu_practice import run_on_device
 from carbon.development_session.library_environment_cache import (
     VerifiedLibraryOverlay,
 )
@@ -95,14 +95,30 @@ def test_a_miner_or_recipe_failure_on_the_gpu_is_never_retried():
     assert len(calls) == 1
 
 
-def test_no_cpu_child_after_a_failed_gpu_build_is_refused_typed():
+def test_no_cpu_child_after_a_failed_gpu_build_is_unavailable_typed(monkeypatch):
+    from carbon.development_session import gpu_practice
+
+    monkeypatch.setattr(gpu_practice, "_uv_image_present", lambda: True)
     run, _calls = runner(RemoteJobFailure("run", "x"))
-    with pytest.raises(DirectParentRefused) as refused:
+    with pytest.raises(gpu_practice.PracticeUnavailable) as refused:
         attempt(Practice(JAX, cpu=False), run)
-    assert refused.value.code == "backend_not_served"
+    assert refused.value.code == "gpu_build_failed"
+    driver = runner(RemoteJobFailure("run", "gpu_driver_too_old"))[0]
+    with pytest.raises(gpu_practice.PracticeUnavailable) as refused:
+        attempt(Practice(JAX, cpu=False), driver)
+    assert refused.value.code == "gpu_driver_too_old"
 
 
 def test_a_host_with_no_gpu_runs_once_on_cpu():
     run, calls = runner()
     _result, _e, _p, accelerator, note = attempt(Practice(None), run)
     assert [c[1] for c in calls] == ["cpu"] and accelerator is None and note is None
+
+
+@pytest.fixture(autouse=True)
+def _uv_image_here(monkeypatch):
+    """The pinned uv image is present unless a test says otherwise, so a GPU
+    failure's note never depends on this machine's Docker."""
+    from carbon.development_session import gpu_practice
+
+    monkeypatch.setattr(gpu_practice, "_uv_image_present", lambda: True)

@@ -171,3 +171,12 @@ def test_setup_status_lists_a_worker_that_could_not_use_the_gpu():
         "backend": "jax",
         "next_step": "update the driver",
     } in view["warnings"]
+
+
+@pytest.fixture(autouse=True)
+def _uv_image_here(monkeypatch):
+    """The pinned uv image is present unless a test says otherwise, so a GPU
+    failure's note never depends on this machine's Docker."""
+    from carbon.development_session import gpu_practice
+
+    monkeypatch.setattr(gpu_practice, "_uv_image_present", lambda: True)

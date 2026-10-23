@@ -16,7 +16,6 @@ from test_gpu_per_backend import JAX, TORCH, entry
 
 from carbon.development_session import gpu_practice
 from carbon.development_session.gpu_practice import (
-    DirectParentRefused,
     device_build,
     gpu_build_staged,
 )
@@ -87,18 +86,24 @@ def test_an_unstaged_gpu_build_does_not_admit_it(monkeypatch):
     )
 
 
-def test_a_gpu_build_that_does_not_run_with_no_cpu_child_is_refused_typed():
+def test_a_gpu_build_that_does_not_run_with_no_cpu_child_is_refused_typed(
+    monkeypatch,
+):
+    from carbon.development_session import gpu_practice
+
+    monkeypatch.setattr(gpu_practice, "_uv_image_present", lambda: True)
+
     def failing_overlay(bundle, parent, expanded):
         raise RuntimeError("the GPU preparation failed")
 
-    with pytest.raises(DirectParentRefused) as refused:
+    with pytest.raises(gpu_practice.PracticeUnavailable) as refused:
         device_build(
             GpuOnlyPractice(JAX),
             entry({JAX_RUNTIME}),
             lambda ref: ref,
             failing_overlay,
         )
-    assert refused.value.code == "backend_not_served"
+    assert refused.value.code == "gpu_build_failed"
 
 
 def test_with_no_gpu_attempt_a_missing_cpu_child_raises_as_before():
@@ -120,3 +125,12 @@ def test_the_gpu_build_runs_when_it_is_prepared(monkeypatch):
     )
     assert built[2] is overlay and built[4] is not None and built[5] is None
     assert gpu_practice.gpu_runtimes(JAX) == (JAX_RUNTIME,)
+
+
+@pytest.fixture(autouse=True)
+def _uv_image_here(monkeypatch):
+    """The pinned uv image is present unless a test says otherwise, so a GPU
+    failure's note never depends on this machine's Docker."""
+    from carbon.development_session import gpu_practice
+
+    monkeypatch.setattr(gpu_practice, "_uv_image_present", lambda: True)
