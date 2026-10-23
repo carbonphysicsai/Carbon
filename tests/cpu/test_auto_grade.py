@@ -21,6 +21,7 @@ class FakeIntake:
         self.adapter = SimpleNamespace(
             contract_digest="sha256:" + "0" * 64,
             ledger=SimpleNamespace(submitted_outcomes=lambda contract: tuple(tasks)),
+            owner=lambda submission_id: None,
         )
         self.behaviour = behaviour
         self.calls = []
@@ -178,3 +179,82 @@ def test_a_receiver_without_auto_grade_is_unchanged(tmp_path, monkeypatch):
     cfg = _config(tmp_path)
     monkeypatch.setattr(direct_receiver, "private_json", lambda _: cfg)
     assert "auto_grade" not in direct_receiver.load_config(tmp_path / "config.json")
+
+
+def test_a_failed_grade_is_given_back_on_infrastructure_so_a_resubmit_runs_fresh(
+    tmp_path,
+):
+    """Invariant 7: the task stays SUCCEEDED, but its exam row is RELEASED/FAILED_INFRA,
+    which is what the receiver's door counts as 'ended on infra'; the miner's next
+    submit then gets a fresh generation."""
+    from carbon.challenge_validator.exam_cap import ExamCap
+    from carbon.challenge_validator.ledger import AttemptLedger
+
+    ledger = AttemptLedger(tmp_path / "attempts.sqlite3")
+    cap = ExamCap(ledger)
+    ident = dict(
+        hotkey="5" + "1" * 47,
+        challenge_id="electric-motor-magnetics",
+        challenge_version="1.3",
+        exam_key="sha256:" + "e" * 64,
+        submission_id=A,
+    )
+
+    class Ledger:
+        _db = staticmethod(ledger._db)
+
+        @staticmethod
+        def submitted_outcomes(contract):
+            return (A,)
+
+    adapter = SimpleNamespace(
+        challenge_id=ident["challenge_id"],
+        challenge_version=ident["challenge_version"],
+        contract_digest="sha256:" + "0" * 64,
+        ledger=Ledger,
+        owner=lambda submission_id: ident["hotkey"],
+        _provider=lambda owner: SimpleNamespace(
+            evaluation_pack_digest=ident["exam_key"]
+        ),
+    )
+    intake = FakeIntake([A], {A: RetentionUnavailable("evaluation_unavailable")})
+    intake.adapter = adapter
+    grader = auto_grade.AutoGrader(intake, tmp_path)
+    # Before: nothing recorded, so the door would hand back the same ungraded task.
+    assert not cap.released_on_infra(**ident)
+    assert grader.run_once() == (A, "FAILED")
+    assert cap.released_on_infra(**ident)
+    assert not cap.holds_slot(**ident)
+    assert grader.run_once() is None  # and no automatic retry of the same task
+    assert auto_grade.failure_summary(tmp_path) == {
+        "auto_grade_failed": 1,
+        "auto_grade_last_failure": "evaluation_unavailable",
+    }
+
+
+def test_a_graded_row_is_never_given_back(tmp_path):
+    from carbon.challenge_validator.exam_cap import ExamCap
+    from carbon.challenge_validator.ledger import AttemptLedger
+
+    ledger = AttemptLedger(tmp_path / "attempts.sqlite3")
+    cap = ExamCap(ledger)
+    ident = dict(
+        hotkey="5" + "1" * 47,
+        challenge_id="electric-motor-magnetics",
+        challenge_version="1.3",
+        exam_key="sha256:" + "e" * 64,
+        submission_id=A,
+    )
+    with ledger._db() as db:
+        db.execute(
+            "INSERT INTO exam_graded(hotkey, challenge_id, challenge_version, "
+            "exam_key, kind, epoch, submission_id, state, status, reserved_ns) "
+            "VALUES(?,?,?,?,'GRADED',7,?,'COUNTED','SCORED',1)",
+            tuple(ident.values()),
+        )
+    assert cap.give_back_on_infra(**ident) == "COUNTED"
+    assert cap.holds_slot(**ident) and not cap.released_on_infra(**ident)
+
+
+def test_no_failures_means_an_empty_summary(tmp_path):
+    assert auto_grade.failure_summary(tmp_path) == {}

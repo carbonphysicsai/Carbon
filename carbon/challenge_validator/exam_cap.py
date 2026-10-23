@@ -464,6 +464,44 @@ class ExamCap:
             ).fetchone()
         return row is not None
 
+    def give_back_on_infra(
+        self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id
+    ) -> str:
+        """Record this submission's grading as given back on our infrastructure
+        (invariant 7), so the receiver's door runs the recipe again as a fresh task.
+
+        A COUNTED row is a graded result and is never given back. An open or
+        otherwise released row becomes RELEASED/FAILED_INFRA; without a row, one is
+        written (epoch 0, inert) so the failure is on the record. Returns the
+        resulting state: ``COUNTED`` (kept) or ``RELEASED``."""
+        values = (hotkey, challenge_id, challenge_version, exam_key, submission_id)
+        if not all(type(value) is str and value for value in values):
+            raise ExamCapRefused("exam_cap_identity_unavailable")
+        now = int(self.clock())
+        with self.ledger._db() as db:
+            row = db.execute(
+                "SELECT id, state FROM exam_graded WHERE challenge_id=? AND "
+                "challenge_version=? AND exam_key=? AND submission_id=?",
+                (challenge_id, challenge_version, exam_key, submission_id),
+            ).fetchone()
+            if row is not None and row[1] == "COUNTED":
+                return "COUNTED"
+            if row is None:
+                db.execute(
+                    "INSERT INTO exam_graded(hotkey, challenge_id, challenge_version, "
+                    "exam_key, kind, epoch, submission_id, state, status, reserved_ns, "
+                    "settled_ns) VALUES(?,?,?,?,'GRADED',0,?,'RELEASED','FAILED_INFRA',"
+                    "?,?)",
+                    (*values[:4], submission_id, now, now),
+                )
+            else:
+                db.execute(
+                    "UPDATE exam_graded SET state='RELEASED', status='FAILED_INFRA', "
+                    "settled_ns=? WHERE id=?",
+                    (now, row[0]),
+                )
+        return "RELEASED"
+
     def released_on_infra(
         self, *, hotkey, challenge_id, challenge_version, exam_key, submission_id
     ) -> bool:

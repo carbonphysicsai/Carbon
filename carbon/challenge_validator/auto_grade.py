@@ -92,10 +92,10 @@ class AutoGrader:
                 code = getattr(unavailable, "code", None) or str(unavailable)
                 if code in _PENDING or code in _NOT_YET:
                     continue
-                self._write(submission_id, "FAILED", code=_code(code))
+                self._fail(submission_id, _code(code))
                 return submission_id, "FAILED"
             except Exception as failure:  # noqa: BLE001 - typed, no private content
-                self._write(submission_id, "FAILED", code=type(failure).__name__)
+                self._fail(submission_id, type(failure).__name__)
                 return submission_id, "FAILED"
             entry = result.get("entry_id") if type(result) is dict else None
             self._write(
@@ -105,6 +105,54 @@ class AutoGrader:
             )
             return submission_id, "GRADED"
         return None
+
+    def _fail(self, submission_id, code):
+        """Mark the failure and give the grading back on our infrastructure
+        (invariant 7): the task stays SUCCEEDED but its exam row is RELEASED as
+        FAILED_INFRA, so the miner's resubmit of the recipe runs as a fresh task
+        in their next slot. A graded (COUNTED) row is never given back."""
+        state = None
+        try:
+            state = self._give_back(submission_id)
+        except Exception:  # noqa: BLE001 - the marker below still records the failure
+            state = "UNRECORDED"
+        self._write(
+            submission_id,
+            "FAILED",
+            code=code if state in (None, "RELEASED") else code + ":" + state.lower(),
+        )
+
+    def _give_back(self, submission_id):
+        from .exam_cap import ExamCap
+
+        adapter = self.intake.adapter
+        owner = adapter.owner(submission_id)
+        if owner is None:
+            return None
+        provider = adapter._provider(owner)
+        exam_key = provider.evaluation_pack_digest
+        if exam_key is None:
+            return None
+        return ExamCap(adapter.ledger).give_back_on_infra(
+            hotkey=owner,
+            challenge_id=adapter.challenge_id,
+            challenge_version=adapter.challenge_version,
+            exam_key=exam_key,
+            submission_id=submission_id,
+        )
+
+    def failures(self):
+        """``(count, last code)`` of FAILED markers, for the operator's status."""
+        found = []
+        for path in sorted(self.markers.glob("*.json")):
+            try:
+                body = json.loads(path.read_text())
+            except (OSError, ValueError):
+                continue
+            if body.get("state") == "FAILED":
+                found.append((path.stat().st_mtime_ns, body.get("code")))
+        found.sort()
+        return len(found), (found[-1][1] if found else None)
 
     def _pool(self):
         if self.pool_store is None:
@@ -118,3 +166,25 @@ def _code(value):
     return (
         value if re.fullmatch(r"[a-z0-9_.:-]{1,96}", value) else "retention_unavailable"
     )
+
+
+def failure_summary(root):
+    """What an operator's status shows about auto-grade: how many tasks ended FAILED
+    and the last failure's code (``{}`` when no receiver auto-grades). Reads markers
+    only; never a score, a path or a task's content."""
+    markers = Path(root) / "auto-grade" / "markers"
+    if not markers.is_dir() or markers.is_symlink():
+        return {}
+    found = []
+    for path in sorted(markers.glob("*.json")):
+        try:
+            body = json.loads(path.read_text())
+            if body.get("state") == "FAILED":
+                found.append((path.stat().st_mtime_ns, body.get("code")))
+        except (OSError, ValueError):
+            continue
+    found.sort()
+    return {
+        "auto_grade_failed": len(found),
+        "auto_grade_last_failure": found[-1][1] if found else None,
+    }
