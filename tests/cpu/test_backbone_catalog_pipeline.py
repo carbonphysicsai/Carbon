@@ -122,9 +122,47 @@ COVERAGE_ITEM = {
 }
 
 
+#: The catalog-trainer-v2 entries (ids `v2.<group>.<backbone>`), each offered on its group's graph-route-v2 version only.
+V2_VERSION = {
+    "motor": {"id": "electric-motor-magnetics", "version": "1.4"},
+    "cooling": {"id": "chip-cold-plate", "version": "1.4"},
+    "f08": {"id": "f08-ribbed-bracket", "version": "1.5"},
+    "f02": {"id": "f02", "version": "2.4"},
+}
+V2_SCHEMAS = {
+    "carbon-candidate-torch-v2",
+    "carbon-candidate-jax-v2",
+    "carbon-candidate-jax-prior-v1",
+}
+
+
+def v2_ids():
+    return {
+        e["catalog_id"] for e in pipeline.entries() if e["catalog_id"].startswith("v2.")
+    }
+
+
+def test_the_v2_entries_are_offered_on_their_own_version_and_use_the_v2_schemas():
+    ids = v2_ids()
+    assert ids
+    for item in pipeline.entries():
+        if item["catalog_id"] not in ids:
+            continue
+        group = item["catalog_id"].split(".")[1]
+        assert item["challenges"] == [V2_VERSION[group]], item["catalog_id"]
+        assert item["settings_schema"] in V2_SCHEMAS, item["catalog_id"]
+        bare = item["catalog_id"].removeprefix(f"v2.{group}.")
+        if bare == "prior_krr":
+            assert item["backbone"] == "krr" and item["prior"]["id"], item["catalog_id"]
+            assert item["settings_schema"] == "carbon-candidate-jax-prior-v1"
+        else:
+            assert item["backbone"] == bare.removeprefix("jno."), item["catalog_id"]
+        assert item["defaults"]["train_use"] == {}
+
+
 def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
     assert set(pipeline.verify_all()) == (
-        TORCH | JNO | CLEAN | HARD | COOLING | COOLING13 | F08 | F02
+        TORCH | JNO | CLEAN | HARD | COOLING | COOLING13 | F08 | F02 | v2_ids()
     )
     # Motor 1.2 is unchanged: the five Torch entries. Motor 1.3 (1.2 plus
     # allowlist v7) adds the eleven jNO entries, built on the C-03 CPU parent,
@@ -136,6 +174,8 @@ def test_every_entry_verifies_and_motor_1_2_offers_each_tested_backbone():
     # Never on a released or step-2 version (Validator): only Motor's catalog
     # versions.
     for item in pipeline.entries():
+        if item["catalog_id"] in v2_ids():
+            continue
         assert item["challenges"] == (
             [{"id": "chip-cold-plate", "version": "1.2"}]
             if item["catalog_id"] in COOLING
@@ -514,7 +554,12 @@ def test_torch_levers_still_refuse_float32_precision():
 def test_each_entry_names_its_own_runtime_and_jno_keeps_its_build_name():
     for item in pipeline.entries():
         runtime = item["bundle_ref"]["runtime_profile_id"]
-        if item["catalog_id"] in JNO:
+        if item["catalog_id"] in v2_ids():
+            assert (runtime == "python-cpu-py311") == (
+                item["settings_schema"]
+                in ("carbon-candidate-jax-v2", "carbon-candidate-jax-prior-v1")
+            )
+        elif item["catalog_id"] in JNO:
             assert runtime == "python-cpu-py311"
             assert item["settings_schema"] == "carbon-candidate-jax-levers-v1"
             assert item["backbone"] == item["catalog_id"].removeprefix("jno.")

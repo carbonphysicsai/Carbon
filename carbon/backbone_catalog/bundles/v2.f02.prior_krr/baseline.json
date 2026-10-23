@@ -1,0 +1,19 @@
+{
+ "bundle_ref": {
+  "bundle_digest": "sha256:04b718580f406ce4a141250377f8e1c98dc4932fc27d2604b46985fe0652e254",
+  "environment_digest": "sha256:8cf9509f3f9d3e4b239715e17a181e0cae76a4b24c3ec6b90dc0890be51bb3cb",
+  "language": "python",
+  "runtime_profile_id": "python-cpu-py311",
+  "schema": "carbon.library-bundle-ref.v1"
+ },
+ "configuration": {
+  "backbone": "krr"
+ },
+ "entrypoint": {
+  "module": "carbon_candidate.build",
+  "name": "build"
+ },
+ "output_format": "carbon.numeric-graph.v1",
+ "packet": "t_f02_prior_krr_baseline",
+ "train_use": {}
+}

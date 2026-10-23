@@ -1,0 +1,26 @@
+{
+ "bundle_ref": {
+  "bundle_digest": "sha256:a9b98a568aab8bbc8226b9ace38ce45c16b62cf7261d2b8ab48df8724897ade0",
+  "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+  "language": "python",
+  "runtime_profile_id": "torch-cpu-py311",
+  "schema": "carbon.library-bundle-ref.v1"
+ },
+ "configuration": {
+  "arch": {
+   "heads": 4,
+   "hidden": 32,
+   "layers": 2,
+   "slices": 8
+  },
+  "backbone": "transolver",
+  "learning_rate": 0.001
+ },
+ "entrypoint": {
+  "module": "carbon_candidate.build",
+  "name": "build"
+ },
+ "output_format": "carbon.numeric-graph.v1",
+ "packet": "t_f08_transolver_baseline",
+ "train_use": {}
+}

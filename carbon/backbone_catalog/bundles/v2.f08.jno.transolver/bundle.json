@@ -1,0 +1,17 @@
+{
+ "accelerator": "cpu",
+ "architecture": "amd64",
+ "base_environment_digest": "sha256:dda045756e7c600e94c02b697a004e2c35020b9a87aca2d860f62b3f174b36ce",
+ "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+ "language": "python",
+ "license_sha256": "sha256:bb3d1375474bfb81426f3c70ca51d1c3bfe898fe2184f9cb7461eb93ab8eed5b",
+ "lock_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+ "name": "f08-catalog-transolver-baseline-v2",
+ "os": "linux",
+ "python_abi": "cp311",
+ "runtime_profile_id": "torch-cpu-py311",
+ "schema": "carbon.development.library-bundle.v1",
+ "source_bytes": 20984,
+ "source_sha256": "sha256:40e88985b3522dd9de6665c02f3f2ab301a9c668c84c2b8fbd51a7ca687733fa",
+ "wheels": {}
+}

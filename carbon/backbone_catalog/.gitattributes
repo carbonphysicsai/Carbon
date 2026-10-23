@@ -1,0 +1,3 @@
+# Upstream licence texts are reproduced byte for byte (trailing spaces and CRLF included); do not whitespace-check them.
+bundles/*/LICENSE -whitespace
+bundles/*/*/LICENSE -whitespace

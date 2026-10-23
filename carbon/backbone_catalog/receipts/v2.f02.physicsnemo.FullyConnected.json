@@ -1,0 +1,17 @@
+{
+ "catalog_id": "v2.f02.physicsnemo.FullyConnected",
+ "differ": [],
+ "distinct_states": 1,
+ "files": 2,
+ "identical": 1,
+ "image_digest": "sha256:e56d2e2e7faa94fb89114154cece73689c063be7aa6c128777bc9b557b12526d",
+ "key": "f02_physicsnemo_fullyconnected",
+ "pairs": 1,
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "source_report": "PAIR_IDENTITY_V2_F02.json",
+ "source_report_sha256": "sha256:b8c1c9a7ae5ae16cbc81eb3acb42cbbd1d4e94a5faf7781dab3dc4ca9bd2eb4e",
+ "tested_interface_digest": "sha256:3a9c2f8bd2fdaeeca65e060d32f17a60cba06c16b837d6be185a95cdfa9e011e",
+ "tested_on": "f02@2.4",
+ "tested_train_digest": "sha256:1201ec5461bfc08ad2ae4522eafc147282f4167e4bb222ed4e798284faa9a4c3",
+ "unpaired": 0
+}

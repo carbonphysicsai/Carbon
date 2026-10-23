@@ -2,23 +2,16 @@
  "accelerator": "cpu",
  "architecture": "amd64",
  "base_environment_digest": "sha256:dda045756e7c600e94c02b697a004e2c35020b9a87aca2d860f62b3f174b36ce",
- "environment_digest": "sha256:45a29703cf187da11d90f7c111e43cde974286a372264855d654df8383d1384b",
+ "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
  "language": "python",
- "license_sha256": "sha256:1776bbc6884f5982c21d2875ba2a1c595a19aff71983141cade8aad502c40709",
- "lock_sha256": "sha256:0099ce5932944d56d6f9d68b8930b549149dc023e916b44ac3422a37bd6ce9b3",
+ "license_sha256": "sha256:66520b9093771f13051668ff2ee44a58efe972b16ab14fabbed2fc8723d71449",
+ "lock_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
  "name": "f08-catalog-thuml-factformer-baseline",
  "os": "linux",
  "python_abi": "cp311",
  "runtime_profile_id": "torch-cpu-py311",
  "schema": "carbon.development.library-bundle.v1",
- "source_bytes": 64892,
- "source_sha256": "sha256:989789b9ac4cc83f3bcff64ca336196614584ed1c90ac433898afa8da2673c4b",
- "wheels": {
-  "deepxde-1.15.0-py3-none-any.whl": "sha256:e18243271ff0e8872e495b63c322babd982e79793b72839444fa15d49ccd28f2",
-  "joblib-1.5.2-py3-none-any.whl": "sha256:4e1f0bdbb987e6d843c70cf43714cb276623def372df3c22fe5266b2670bc241",
-  "pyaml-25.7.0-py3-none-any.whl": "sha256:ce5d7867cc2b455efdb9b0448324ff7b9f74d99f64650f12ca570102db6b985f",
-  "scikit_learn-1.7.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl": "sha256:89877e19a80c7b11a2891a27c21c4894fb18e2c2e077815bcade10d34287b20d",
-  "scikit_optimize-0.10.2-py2.py3-none-any.whl": "sha256:45bc7e879b086133984721f2f6735a86c085073f6c481c2ec665b5c67b44d723",
-  "threadpoolctl-3.6.0-py3-none-any.whl": "sha256:43a0b8fd5a2928500110039e43a5eed8480b918967083ea48dc3ab9f13c4a7fb"
- }
+ "source_bytes": 65505,
+ "source_sha256": "sha256:0631ccd054078dae5f8d96e0fdb16847c40e1462fa66d49a9ba3142d5ced8261",
+ "wheels": {}
 }

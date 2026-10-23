@@ -1,0 +1,17 @@
+{
+ "accelerator": "cpu",
+ "architecture": "amd64",
+ "base_environment_digest": "sha256:dda045756e7c600e94c02b697a004e2c35020b9a87aca2d860f62b3f174b36ce",
+ "environment_digest": "sha256:eac864ee18013ffd0b672b16692c5572f2d73aec0f3cda978c15978bf95a34b7",
+ "language": "python",
+ "license_sha256": "sha256:c4394d203a6ed9946f2d55e2e5c60b53cf15b0b74ca18848cd3d3d084d8d626f",
+ "lock_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+ "name": "f08-catalog-physicsnemo-fullyconnected-baseline-v2",
+ "os": "linux",
+ "python_abi": "cp311",
+ "runtime_profile_id": "torch-cpu-py311",
+ "schema": "carbon.development.library-bundle.v1",
+ "source_bytes": 15911,
+ "source_sha256": "sha256:4774e18e6ac492d86c8743ba9023f55352d4bd4a092d8ce8af300eb3830cd3ae",
+ "wheels": {}
+}

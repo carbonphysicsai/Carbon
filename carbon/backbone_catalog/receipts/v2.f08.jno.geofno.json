@@ -1,0 +1,17 @@
+{
+ "catalog_id": "v2.f08.jno.geofno",
+ "differ": [],
+ "distinct_states": 1,
+ "files": 2,
+ "identical": 1,
+ "image_digest": "sha256:440190bedb9afccb9ec7f777ea827b0693a3d7a10025fcfc6c4c6416a63a9820",
+ "key": "f08_jno_geofno",
+ "pairs": 1,
+ "schema": "carbon.backbone-catalog-pair-identity.v1",
+ "source_report": "PAIR_IDENTITY_V2_F08.json",
+ "source_report_sha256": "sha256:c008d30ddcb8b185b5bab48a12011e7ea49eac61ddd09f77c230957ef1b4514d",
+ "tested_interface_digest": "sha256:42e64c6800368f2b364bbc6e70e34814401e3e38b6a9ff7dcfec70c7b1818eba",
+ "tested_on": "f08-ribbed-bracket@1.5",
+ "tested_train_digest": "sha256:4b28e7490eca34061da1431c6379f0f2e5766ff41aedba968eba41ba84fefe0a",
+ "unpaired": 0
+}

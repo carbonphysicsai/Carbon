@@ -4,14 +4,14 @@
  "base_environment_digest": "sha256:8ebbccd38e0d1f9b1992242ddb8ff49b31270b439f7a21d50051da55fa796c7e",
  "environment_digest": "sha256:71b7402e6821763a381c3ee051b9ae5fc27bcac879219885b5722e00c26a0d13",
  "language": "python",
- "license_sha256": "sha256:1776bbc6884f5982c21d2875ba2a1c595a19aff71983141cade8aad502c40709",
+ "license_sha256": "sha256:66520b9093771f13051668ff2ee44a58efe972b16ab14fabbed2fc8723d71449",
  "lock_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
  "name": "motor-catalog-thuml-transformer-baseline",
  "os": "linux",
  "python_abi": "cp311",
  "runtime_profile_id": "torch-cu130-py311",
  "schema": "carbon.development.library-bundle.v1",
- "source_bytes": 65566,
- "source_sha256": "sha256:56c1805a2c2eb20fc477c2898bf569483513a4e388ed028c826a81d1da0c14f9",
+ "source_bytes": 66114,
+ "source_sha256": "sha256:223f32bc35d5cbaa6ded4c18a310305cb5e6d100c63ac10dd7ec112e423bea0d",
  "wheels": {}
 }
