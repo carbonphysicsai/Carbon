@@ -95,13 +95,14 @@ def sealed_adapter(version):
     """Cooling 1.3's sealed exam adapter (``cooling-dual-sealed-batch-16-v2``): the
     model's encoded rows are decoded, then Cooling's own sealed measurement runs on the
     native rows against the unchanged sealed bank. The 1.2 and 1.3 sealed scores are
-    therefore comparable. None for any other version."""
-    if version != VERSION:
+    therefore comparable. 1.4 (graph route v2, construction only) is graded the
+    same way, from 1.3's sealed batches. None for any other version."""
+    if version not in VERSIONS:
         return None
     from carbon.scoring import physical_dual_pack as physical
 
     return physical.Variant(
-        _SELF, VERSION, _cooling.SEALED_EVALUATION_VERSION, _cooling.CASE_ID
+        _SELF, version, _cooling.SEALED_EVALUATION_VERSION, _cooling.CASE_ID
     )
 
 

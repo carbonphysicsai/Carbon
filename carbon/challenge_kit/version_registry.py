@@ -90,17 +90,17 @@ def _v(*args, **kwargs):
 _F08_DEV_V1 = ("f08-dual-accepted-bank-8-v1", "f08-accepted-bank-8")
 _F08_DEV_NL1 = ("f08-dual-near-limit-bank-8-v1", "f08-near-limit-bank-8")
 _F08_DEV_NL2 = ("f08-dual-near-limit-bank-8-v2", "f08-near-limit-bank-8")
-_F08_SEALED = "f08-dual-sealed-batch-8-v1"
+_F08_SEALED = "f08-dual-sealed-grid-8x1-v2"
 _F02_DEV_1 = ("f02-dual-development-bank-8-v1", "f02-development-bank-8")
 _F02_DEV_2 = ("f02-dual-development-bank-8-v2", "f02-development-bank-8")
-_F02_SEALED = "f02-dual-sealed-batch-8-v1"
+_F02_SEALED = "f02-dual-sealed-grid-8x1-v2"
 _MOTOR_DEV_2 = ("motor-dual-development-bank-90-v2", "motor-development-bank-90")
 _MOTOR_DEV_3 = ("motor-dual-development-bank-90-v3", "motor-development-bank-90")
-_MOTOR_SEALED = "motor-dual-sealed-batch-30-v1"
+_MOTOR_SEALED = "motor-dual-sealed-batch-30-v2"
 _COOLING_DEV_2 = ("cooling-dual-development-bank-48-v2", "cooling-development-bank-48")
 _COOLING_DEV_3 = ("cooling-dual-development-bank-48-v3", "cooling-development-bank-48")
 _COOLING_DEV_4 = ("cooling-dual-development-bank-48-v4", "cooling-development-bank-48")
-_COOLING_SEALED = "cooling-dual-sealed-batch-16-v1"
+_COOLING_SEALED = "cooling-dual-sealed-batch-16-v2"
 _BATTERY_DEV = ("battery-dual-development-bank-v2", "battery-development-bank")
 _BATTERY_SEALED = "battery-dual-sealed-grid-4x35-v1"
 
@@ -202,7 +202,7 @@ VERSIONS = dict(
             False,
             "cooling-normal-construction-development-3",
             _COOLING_DEV_3,
-            None,
+            _COOLING_SEALED,
             "catalog",
             catalog=True,
             catalog_entries_from=("1.2",),
@@ -215,7 +215,7 @@ VERSIONS = dict(
             False,
             "cooling-normal-construction-development-4",
             _COOLING_DEV_4,
-            None,
+            _COOLING_SEALED,
             "catalog",
             catalog=True,
             output_encoding=COOLING_LAW_SAFE,
@@ -230,7 +230,7 @@ VERSIONS = dict(
             False,
             "cooling-normal-construction-development-5",
             _COOLING_DEV_4,
-            None,
+            _COOLING_SEALED,
             "catalog",
             catalog=True,
             graph_adapter="v2",

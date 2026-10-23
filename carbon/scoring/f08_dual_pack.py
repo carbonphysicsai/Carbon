@@ -91,8 +91,6 @@ SEALED_VERSIONS = {
     "1.2": "f08-dual-sealed-batch-8-v1",
     "1.3": "f08-dual-sealed-batch-8-v1",
     "1.4": "f08-dual-sealed-batch-8-v1",
-    # Graph route v2: 1.4's sealed exam, the same evaluation version.
-    "1.5": "f08-dual-sealed-batch-8-v1",
 }
 LEG_MINIMUM_RULES = {
     "baseline_legs": (

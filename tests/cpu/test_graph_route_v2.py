@@ -194,7 +194,9 @@ def _scorer_tables():
         cooling_dual_pack,
         cooling_encoded_dual_pack,
         f02_dual_pack,
+        f02_sealed_dual_pack,
         f08_dual_pack,
+        f08_sealed_dual_pack,
         motor_dual_pack,
         motor_sealed_dual_pack,
     )
@@ -206,15 +208,24 @@ def _scorer_tables():
     for module in (cooling_dual_pack, cooling_encoded_dual_pack):
         for version, entry in module.VERSIONS.items():
             development[(module.CHALLENGE, version)] = tuple(entry)
-    for module in (f08_dual_pack, f02_dual_pack):
-        for version, value in module.SEALED_VERSIONS.items():
-            sealed[(module.CHALLENGE, version)] = value
-    for module in (motor_sealed_dual_pack, battery_sealed_dual_pack):
+    # Scoring v2: F08, F02 and Motor are graded by their sealed grid graders.
+    for module in (
+        f08_sealed_dual_pack,
+        f02_sealed_dual_pack,
+        motor_sealed_dual_pack,
+        battery_sealed_dual_pack,
+    ):
         for version, entry in module.VERSIONS.items():
             sealed[(module.CHALLENGE, version)] = entry[0]
     sealed[(cooling_hidden.CHALLENGE_ID, cooling_hidden.CHALLENGE_VERSION)] = (
         cooling_hidden.EVALUATION_VERSION
     )
+    for version, value in cooling_dual_pack.SEALED_VERSIONS.items():
+        sealed[(cooling_dual_pack.CHALLENGE, version)] = value
+    for version in cooling_encoded_dual_pack.VERSIONS:
+        variant = cooling_encoded_dual_pack.sealed_adapter(version)
+        if variant is not None:
+            sealed[(cooling_dual_pack.CHALLENGE, version)] = variant.EVALUATION_VERSION
     return development, sealed
 
 
@@ -1035,3 +1046,53 @@ def test_each_adapter_s_specs_are_exactly_the_versions_declaring_it():
     assert set(v1.SPECS) == version_registry.keys(graph_adapter="v1")
     for key, spec in adapter.SPECS.items():
         assert spec.predecessor == version_registry.entry(*key).predecessor
+
+
+#: The sealed grid evaluation versions scoring v2 grades the launch Challenges
+#: with: D = min(V, C) and the physics half. v1 stays as history only.
+SEALED_V2 = {
+    F08: "f08-dual-sealed-grid-8x1-v2",
+    F02: "f02-dual-sealed-grid-8x1-v2",
+    version_registry.MOTOR: "motor-dual-sealed-batch-30-v2",
+    version_registry.COOLING: "cooling-dual-sealed-batch-16-v2",
+}
+
+
+def test_every_served_launch_version_is_sealed_graded_on_v2_never_v1():
+    """The Validator (rc3): every served F08, F02, Motor and Cooling version with
+    a sealed exam - graph route v2's included - dispatches to its grid grader's
+    v2 evaluation version, in the registry and in the graders, never v1."""
+    from carbon.scoring import (
+        cooling_dual_pack,
+        cooling_encoded_dual_pack,
+        f02_dual_pack,
+        f02_sealed_dual_pack,
+        f08_dual_pack,
+        f08_sealed_dual_pack,
+        motor_sealed_dual_pack,
+    )
+
+    graders = {
+        F08: f08_sealed_dual_pack.VERSIONS,
+        F02: f02_sealed_dual_pack.VERSIONS,
+        version_registry.MOTOR: motor_sealed_dual_pack.VERSIONS,
+    }
+    _, sealed = _scorer_tables()
+    checked = []
+    for (cid, version), entry in version_registry.VERSIONS.items():
+        if cid not in SEALED_V2 or entry.sealed_evaluation is None:
+            continue
+        checked.append((cid, version))
+        assert entry.sealed_evaluation == SEALED_V2[cid], (cid, version)
+        assert sealed[(cid, version)] == SEALED_V2[cid], (cid, version)
+        if cid in graders:
+            assert graders[cid][version][0] == SEALED_V2[cid], (cid, version)
+        else:
+            variant = cooling_encoded_dual_pack.sealed_adapter(version)
+            assert variant is not None or version in cooling_dual_pack.SEALED_VERSIONS
+    # The old flat v1 sealed path never takes a graph route v2 version.
+    assert "1.5" not in f08_dual_pack.SEALED_VERSIONS
+    assert "2.4" not in f02_dual_pack.SEALED_VERSIONS
+    for key in ((F08, "1.5"), (F02, "2.4"), (version_registry.MOTOR, "1.4")):
+        assert key in checked, key
+    assert (version_registry.COOLING, "1.4") in checked

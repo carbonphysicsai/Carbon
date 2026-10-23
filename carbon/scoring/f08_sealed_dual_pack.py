@@ -44,7 +44,9 @@ VERSION = "1.2"
 #: alone and stays as history under its own evaluation version, never re-scored.
 EVALUATION_VERSION = "f08-dual-sealed-grid-8x1-v2"
 CASE_ID = "f08-sealed-batch-8"
-VERSIONS = {version: (EVALUATION_VERSION, CASE_ID) for version in ("1.2", "1.3", "1.4")}
+VERSIONS = {
+    version: (EVALUATION_VERSION, CASE_ID) for version in ("1.2", "1.3", "1.4", "1.5")
+}
 OUTPUT = _f08.OUTPUT
 FILES = (
     *_f08.FILES,

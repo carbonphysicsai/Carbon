@@ -79,8 +79,6 @@ SEALED_VERSIONS = {
     "2.1": SEALED_EVALUATION_VERSION,
     "2.2": SEALED_EVALUATION_VERSION,
     "2.3": SEALED_EVALUATION_VERSION,
-    # Graph route v2: 2.3's sealed exam, the same evaluation version.
-    "2.4": SEALED_EVALUATION_VERSION,
 }
 ANALYTIC_ENERGY = "analytic:(peak_w-20)*on_time_s"
 #: dev1 §7 DEVELOPMENT normalisation scales, not physical thresholds.

@@ -39,7 +39,9 @@ VERSION = "2.1"
 #: (physics_half); v1 stays as history under its own evaluation version.
 EVALUATION_VERSION = "f02-dual-sealed-grid-8x1-v2"
 CASE_ID = "f02-sealed-batch-8"
-VERSIONS = {version: (EVALUATION_VERSION, CASE_ID) for version in ("2.1", "2.2", "2.3")}
+VERSIONS = {
+    version: (EVALUATION_VERSION, CASE_ID) for version in ("2.1", "2.2", "2.3", "2.4")
+}
 OUTPUT = _f02.OUTPUT
 FILES = (
     *_f02.FILES,
