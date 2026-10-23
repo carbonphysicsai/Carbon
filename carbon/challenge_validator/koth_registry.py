@@ -59,12 +59,24 @@ def rebuild_noise(challenge_id, *, path=REGISTRY):
     return None if noise is None else dict(noise)
 
 
+def _refuse_practice(*documents):
+    """A practice document is feedback on the public bank, never a grade: its pack or
+    definition cannot make a comparator (practice dual v2, Validator condition)."""
+    for document in documents:
+        if type(document) is dict and (
+            document.get("scope") == "PUBLIC_PRACTICE_FEEDBACK"
+            or document.get("population") == "PRACTICE_PUBLIC_BANK"
+        ):
+            raise RegistryInvalid("practice_is_not_a_grade")
+
+
 def comparator(challenge_id, score_pack, accuracy_definition, *, path=REGISTRY):
     """The DEVELOPMENT comparator for one Challenge and its selected pack:
     the pack's score digest, its leg-minimum source entries (never contenders)
     and the registered rebuild noise (None means UNAVAILABLE)."""
     from carbon.scoring.physical_dual_pack import minimum_source_entry_ids
 
+    _refuse_practice(score_pack, accuracy_definition)
     return {
         "schema": COMPARATOR_SCHEMA,
         "scope": "DEVELOPMENT",
@@ -94,6 +106,7 @@ def comparator_for_set(
         or len(score_packs) != len(accuracy_definitions)
     ):
         raise ValueError("a score pack and accuracy definition for every batch")
+    _refuse_practice(*score_packs, *accuracy_definitions)
     totals = [baseline_total(pack) for pack in score_packs]
     sources = sorted(
         {

@@ -192,6 +192,11 @@ def definition(*, bank, train_raw, rule="baseline_legs"):
                         1 for c in bank["cohorts"] if c == cdm.SEALED_COHORT
                     )
                 },
+                **(
+                    {"population": cdm.PRACTICE_POPULATION}
+                    if bank.get("population") == cdm.PRACTICE_POPULATION
+                    else {}
+                ),
                 "critical": cdm.critical_block(_MEASUREMENT["D_scale_W"]),
                 "probes": {"cohort": probe_design.PROBE_COHORT, "rows": probes},
                 **({"physics": cooling_physics.block(train_raw)} if probes else {}),

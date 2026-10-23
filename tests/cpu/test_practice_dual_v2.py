@@ -144,7 +144,7 @@ def _sealed_module(kind):
 @pytest.mark.parametrize("kind", sorted(CASES))
 def test_a_model_with_the_references_scores_the_v2_legs_aggregates_only(kind):
     version, *_ = CASES[kind]
-    adapter, public = _public(kind, version)
+    _adapter, public = _public(kind, version)
     _bank, rows, _names = _rows(kind, version)
     model = _power_law(kind, version, public)
     doc = practice_dual.feedback_v2(
@@ -199,7 +199,7 @@ def test_the_total_equals_the_exam_graders_total_on_the_same_bank(kind):
 @pytest.mark.parametrize("kind", ["f08", "f02"])
 def test_a_wrong_trend_model_loses_the_response_leg_in_practice_too(kind):
     version, *_ = CASES[kind]
-    adapter, public = _public(kind, version)
+    _adapter, public = _public(kind, version)
     _bank, rows, _names = _rows(kind, version)
     good = _power_law(kind, version, public)
     first = 0
@@ -224,3 +224,99 @@ def test_an_unregistered_version_is_an_explicit_unavailable_not_a_silent_omissio
     doc = practice_dual.feedback_v2("f08", "9.9", lambda inputs: [])
     assert doc["available"] is False and doc["bank"] == "practice (public bank)"
     assert doc["reason"] == "practice_version_not_registered"
+
+
+# --- a grid shape is bound to its population, never "either" --------------------
+
+
+def _practice_definition(kind):
+    version, *_ = CASES[kind]
+    adapter, public = _public(kind, version)
+    bank = practice_grid.practice_bank(kind, version)
+    definition = adapter.definition(bank=bank, train_raw=public["train"])
+    return adapter, bank, public, definition
+
+
+def test_a_practice_definition_names_its_population_and_validates():
+    for kind in ("motor", "cooling"):
+        adapter, _bank, _public_roles, definition = _practice_definition(kind)
+        assert definition["population"] == "PRACTICE_PUBLIC_BANK"
+        adapter.validate_definition(definition)
+
+
+def test_motor_practice_is_exactly_8x6_and_sealed_exactly_5x6():
+    adapter, bank, _public_roles, definition = _practice_definition("motor")
+    # a practice-shaped (8 x 6) definition without the practice population refuses
+    sealed_named = {k: v for k, v in definition.items() if k != "population"}
+    with pytest.raises(adapter.Refused):
+        adapter.validate_definition(sealed_named)
+    # a practice population with the sealed 5 x 6 shape refuses
+    shrunk = {
+        **definition,
+        "grid": {"designs": 5, "conditions": 6},
+        "cohort_counts": {"decision_sealed_grid": 30},
+    }
+    with pytest.raises(adapter.Refused):
+        adapter.validate_definition(shrunk)
+    # a bank that is not labelled practice cannot make an 8 x 6 definition
+    unlabelled = {k: v for k, v in bank.items() if k != "population"}
+    with pytest.raises(adapter.Refused):
+        adapter.definition(bank=unlabelled, train_raw=b"")
+
+
+def test_cooling_practice_is_exactly_48_cells_and_sealed_exactly_16():
+    adapter, _bank, _public_roles, definition = _practice_definition("cooling")
+    sealed_named = {k: v for k, v in definition.items() if k != "population"}
+    with pytest.raises(adapter.Refused):
+        adapter.validate_definition(sealed_named)
+    shrunk = {**definition, "cohort_counts": {"decision_sealed_grid": 16}}
+    with pytest.raises(adapter.Refused):
+        adapter.validate_definition(shrunk)
+    odd = {**definition, "population": "SOMETHING_ELSE"}
+    with pytest.raises(adapter.Refused):
+        adapter.validate_definition(odd)
+
+
+# --- practice is never a grade: Ladder and KOTH refuse it -----------------------
+
+
+def _practice_document():
+    kind = "f08"
+    version, *_ = CASES[kind]
+    _adapter, public = _public(kind, version)
+    _bank, rows, _names = _rows(kind, version)
+    model = _power_law(kind, version, public)
+    predict = _truth_predict(kind, version, rows, model)
+    return practice_dual.feedback_v2(kind, version, predict)
+
+
+def test_the_ladder_store_refuses_a_practice_document():
+    from carbon.challenge_validator import ladder_store
+
+    doc = _practice_document()
+    assert doc["schema"] == "carbon.practice.dual-feedback.v2"
+    for latest in (False, True):
+        with pytest.raises(ladder_store.LadderStoreRefused):
+            ladder_store.checked(doc, latest=latest)
+
+
+def test_the_koth_comparator_refuses_a_practice_pack_or_definition():
+    from carbon.challenge_validator import koth_registry
+
+    _adapter, _bank, _public_roles, definition = _practice_definition("motor")
+    practice_pack = {
+        "scope": practice_dual.SCOPE,
+        "pack_digest": "sha256:" + "0" * 64,
+        "legs": {"A": {"minimum": None}, "D": {"minimum": None}},
+        "value_weight": 0.5,
+        "combination": "weighted_arithmetic_mean",
+    }
+    with pytest.raises(koth_registry.RegistryInvalid):
+        koth_registry.comparator("motor", practice_pack, {})
+    real_pack = {**practice_pack, "scope": "DEVELOPMENT"}
+    with pytest.raises(koth_registry.RegistryInvalid):
+        koth_registry.comparator("motor", real_pack, definition)
+    with pytest.raises(koth_registry.RegistryInvalid):
+        koth_registry.comparator_for_set("motor", [practice_pack], [{}])
+    with pytest.raises(koth_registry.RegistryInvalid):
+        koth_registry.comparator_for_set("motor", [real_pack], [definition])

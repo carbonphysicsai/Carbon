@@ -87,6 +87,15 @@ DESIGNS, CONDITIONS = 5, 6
 #: names its own shape; practice is labelled "practice (public bank)" and is never
 #: comparable with a sealed grade.
 SHAPES = ((DESIGNS, CONDITIONS), (8, 6))
+#: The practice population's name (a bank's ``population``; also a definition's, set
+#: only for practice). A shape is bound to its population: a sealed definition is
+#: exactly 5 x 6 and a practice definition exactly 8 x 6, never "either".
+PRACTICE_POPULATION = "PRACTICE_PUBLIC_BANK"
+
+
+def _expected_shape(population):
+    mdm._require(population in (None, PRACTICE_POPULATION), "motor_sealed_definition")
+    return SHAPES[1] if population == PRACTICE_POPULATION else SHAPES[0]
 
 
 def grid_shape(definition):
@@ -97,7 +106,10 @@ def grid_shape(definition):
         if type(grid) is dict and set(grid) == {"designs", "conditions"}
         else None
     )
-    mdm._require(shape in SHAPES, "motor_sealed_definition")
+    mdm._require(
+        shape == _expected_shape(definition.get("population")),
+        "motor_sealed_definition",
+    )
     return shape
 
 
@@ -145,7 +157,8 @@ def validate_definition(definition):
         and type(definition.get("verification_budget")) is int
         and definition["verification_budget"] >= 1
         and definition.get("grid", {}).get("conditions") == CONDITIONS
-        and definition.get("grid", {}).get("designs") in (DESIGNS, 8)
+        and definition.get("grid", {}).get("designs")
+        == _expected_shape(definition.get("population"))[0]
         and definition.get("cohort_counts")
         == {COHORT: (definition.get("grid", {}).get("designs") or 0) * CONDITIONS}
         and type(definition.get("probes")) is dict
@@ -182,8 +195,14 @@ def definition(*, bank, train_raw):
     ]
     designs = len({r.get("design_id") for r in cells})
     conditions = len({r.get("condition_id") for r in cells})
-    mdm._require((designs, conditions) in SHAPES, "motor_sealed_grid")
+    practice = bank.get("population") == PRACTICE_POPULATION
+    mdm._require(
+        (designs, conditions)
+        == _expected_shape(PRACTICE_POPULATION if practice else None),
+        "motor_sealed_grid",
+    )
     return {
+        **({"population": PRACTICE_POPULATION} if practice else {}),
         "schema": DEFINITION_SCHEMA,
         "method": METHOD,
         "source_definition_sha256": _motor.SOURCE_DEFINITION_SHA256,
