@@ -100,6 +100,8 @@ GPU_BUILD_ROUTE = "/api/v1/page/gpu_worker_build"
 #: The page's one click that installs the backbone catalog in the
 #: background (M1 E2E E2): the page's door only, never an MCP tool.
 CATALOG_ROUTE = "/api/v1/page/catalog_install"
+#: The "Current king" card (`king.for_profile`).
+KING_ROUTE = "/api/v1/page/king"
 
 
 class Rejected(Exception):
@@ -1081,6 +1083,17 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(200, exam_environment())
             elif self.path == "/api/v1/runs":
                 self.reply(200, {"runs": self.server.controller.recent()})
+            elif self.path == KING_ROUTE:
+                # Each Challenge's current king from its grader's public
+                # route, and the subnet's paid hotkeys from this miner's own
+                # chain read (Validator, OWNER-INTAKE-EXPOSURE-03K).
+                from scripts.dev.miner_launchpad import king
+
+                runner = self.server.research_runner
+                self.reply(
+                    200,
+                    king.for_profile(None if runner is None else runner.configuration),
+                )
             elif self.path.startswith("/api/v1/guide/"):
                 # The wiring guide, read from this checkout and rendered by
                 # the page: nothing is fetched from the internet. Only the

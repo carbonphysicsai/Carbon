@@ -2512,6 +2512,44 @@
       }
       for (const run of shown) campaignCard(active, run);
     });
+    renderKings();
+    if (connected) loadKings();
+  }
+  // The "Current king" card (`king.for_profile`, Validator OWNER-INTAKE-EXPOSURE-03K):
+  // each Challenge's lines come worded from the controller; read at most once a minute.
+  let kings = null, kingsAt = 0, kingsLoading = false;
+  async function loadKings() {
+    if (kingsLoading || Date.now() - kingsAt < 60000) return;
+    kingsLoading = true;
+    try { kings = await api("/api/v1/page/king", undefined, undefined, 20000); } catch (_) { kings = {unreadable: true}; }
+    kingsAt = Date.now();
+    kingsLoading = false;
+    renderKings();
+  }
+  function renderKings() {
+    const box = $("overview-kings");
+    if (!box) return;
+    rebuild(box, JSON.stringify([connected, kings]), target => {
+      if (!connected) { target.append(el("p", "Connect to see who holds each Challenge.", "hint")); return; }
+      if (!kings) { target.append(el("p", "Reading each grader...", "hint")); return; }
+      if (kings.unreadable) { target.append(el("p", "The kings couldn't be read just now; try again later.", "hint")); return; }
+      if (typeof kings.words === "string") target.append(el("p", kings.words.slice(0, 400), "hint"));
+      for (const item of Array.isArray(kings.challenges) ? kings.challenges : []) {
+        const card = el("article", undefined, "card");
+        const entry = (caps?.challenges || []).find(c => c.challenge_id === item.challenge_id);
+        card.append(el("h3", entry ? plainTitle(entry.title) : String(item.challenge_id).slice(0, 64)));
+        for (const line of Array.isArray(item.lines) ? item.lines : []) card.append(el("p", String(line).slice(0, 400)));
+        target.append(card);
+      }
+      const subnet = kings.subnet;
+      if (subnet && typeof subnet === "object") {
+        const card = el("article", undefined, "card");
+        card.append(el("h3", String(subnet.title || "").slice(0, 80)));
+        for (const row of Array.isArray(subnet.rows) ? subnet.rows : []) card.append(el("p", String(row.hotkey).slice(0, 48) + " · " + Number(row.share_percent).toFixed(1) + "% of incentive"));
+        card.append(el("p", String(subnet.words || "").slice(0, 400), "hint"));
+        target.append(card);
+      }
+    });
   }
   // What a campaign card shows, as one key: it is redrawn only when this moves.
   function cardKey(run) {
