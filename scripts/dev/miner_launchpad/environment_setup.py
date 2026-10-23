@@ -509,6 +509,19 @@ class SetupRefused(Rejected):
         self.next_step = next_step
 
 
+#: "Test my GPU": what to do when a worker could not use the GPU.
+GPU_DRIVER_ADVICE = (
+    "your GPU machine's NVIDIA driver is older than this GPU worker's CUDA "
+    "runtime: update the driver (nvidia-smi shows the newest CUDA it runs), "
+    "then test again; until then this framework practises on CPU"
+)
+GPU_TEST_FAILED_STEP = (
+    "this GPU worker could not use your GPU in its test run: check nvidia-smi "
+    "and the NVIDIA Container Toolkit on that machine, then test again; until "
+    "then this framework practises on CPU"
+)
+
+
 def driver_warning(image, driver):
     """A plain warning when the GPU machine's driver runs an older CUDA than
     `image`'s GPU runtime is built for (M1 S5: the JAX cuda13 worker failed
@@ -1563,6 +1576,30 @@ class LiveChecks:
             "check": check,
         }
 
+    def test_gpu(self, script: str, machine=None) -> tuple[int, bytes]:
+        """Run one "Test my GPU" script (`remote_machine.gpu_test_script`) on
+        the miner's own remote machine over their own SSH, or, with no
+        machine, on this one: (exit status, standard output)."""
+        from carbon.compute.remote_machine import GPU_TEST_SECONDS
+
+        timeout = GPU_TEST_SECONDS + 60
+        if machine is not None:
+            from carbon.compute.remote_transport import transport_for
+
+            options = {} if self.ssh is None else {"ssh": self.ssh}
+            return transport_for(machine, **options).ssh.run(script, timeout=timeout)
+        try:
+            done = subprocess.run(  # fixed argv, the script on stdin
+                ["bash", "-s"],
+                input=script.encode(),
+                capture_output=True,
+                timeout=timeout,
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            return 124, b""
+        return done.returncode, done.stdout[-65536:]
+
     def send_worker(self, gpu_manifest: Path, machine, image_id: str) -> str:
         """Stream the pinned GPU worker `image_id` to the miner's machine with
         Docker, and check it arrived by image ID: "present" or "sent"."""
@@ -2226,6 +2263,8 @@ class EnvironmentSetup:
             raise SetupRefused("address", "registration_not_confirmed")
         record[name] = {**value, "checked_at": int(time.time())}
         record.pop("profile", None)  # Any change needs a new review.
+        if name == "compute":
+            record.pop("gpu_test", None)  # Its workers may have changed.
         record.pop(name + "_set_aside", None)  # Checked again.
         self._save(record)
         return self.state()
@@ -2459,6 +2498,8 @@ class EnvironmentSetup:
         return {
             "schema": SETUP_SCHEMA,
             "registered_hotkey": record.get("hotkey"),
+            # "Test my GPU"'s last verdicts, per framework (never a score).
+            "gpu_test": record.get("gpu_test"),
             # Setup's "Practise without registering": chosen, and no
             # registration confirmed since (the first step's other choice).
             "practice_only": _practice_only(record),
@@ -3074,6 +3115,136 @@ class EnvironmentSetup:
                 ),
             }
             return None
+
+    def gpu_test_offer(self):
+        """What "Test my GPU" would run, exactly, for the checked compute step
+        (OWNER-TEST-MY-GPU-01): where (this machine, or the miner's remote
+        machine), and per GPU worker its framework, image and the exact
+        script. None without a GPU compute step. Read only; runs nothing."""
+        from carbon.compute.remote_machine import gpu_test_script, local_fingerprint
+        from carbon.development_session.gpu_practice import gpu_image_backend
+        from carbon.reconstruction.worker.docker_runtime import load_image_identity
+
+        record = self._record()
+        compute = record.get("compute") or {}
+        if compute.get("choice") not in (LOCAL_GPU, REMOTE) or not compute.get(
+            "gpu_image"
+        ):
+            return None
+        workers = []
+        for path in (compute["gpu_image"], compute.get("extra_gpu_image")):
+            if not path:
+                continue
+            try:
+                image = load_image_identity(Path(path))
+            # A worker setup cannot read is left out of the test.
+            except Exception:  # noqa: BLE001, S112
+                continue
+            backend = gpu_image_backend(image)
+            if backend is None:
+                continue
+            fingerprint = local_fingerprint(image.image_id)
+            workers.append(
+                {
+                    "backend": backend,
+                    "image": image.image_id,
+                    "command": gpu_test_script(image.image_id, backend, fingerprint),
+                }
+            )
+        if not workers:
+            return None
+        machine = compute.get("remote_machine") if compute["choice"] == REMOTE else None
+        if machine and machine.get("transport") != "ssh-docker":
+            # Only a machine with its own Docker runs the worker's test
+            # container; inside a miner's container there is none.
+            return None
+        where = (
+            {"remote": {k: machine[k] for k in ("destination", "port") if k in machine}}
+            if machine
+            else {"this_machine": True}
+        )
+        return {"where": where, "workers": workers}
+
+    def test_gpu(self, value) -> dict:
+        """ "Test my GPU" (OWNER-TEST-MY-GPU-01): on the miner's consent naming
+        exactly what runs (`gpu_test_offer`), each GPU worker framework runs
+        once on their own GPU - this machine, or their own remote machine -
+        on public synthetic data only, for about a minute. The answer is a
+        plain verdict per framework, with driver advice where the driver is
+        older than the worker's CUDA runtime. It writes no score and no
+        ledger: only setup's own record of the verdicts, shown at Compute."""
+        from carbon.compute.remote_machine import (
+            GPU_TEST_DRIVER_TOO_OLD,
+            NO_GPU_DEVICE,
+            NO_WORKER_IMAGE,
+            driver_cuda,
+            failure_for,
+        )
+        from carbon.compute.remote_transport import RemoteMachine
+        from carbon.reconstruction.worker.docker_runtime import load_image_identity
+
+        _closed(value, {"consent"})
+        offer = self.gpu_test_offer()
+        if offer is None:
+            raise SetupRefused("compute", "gpu_compute_not_checked")
+        if value["consent"] != {"test": offer}:
+            raise SetupRefused(
+                "consent",
+                "consent_must_name_what_runs",
+                next_step=(
+                    "send the consent exactly as carbon_setup_status lists it "
+                    "under test_gpu: where it runs and each worker's command"
+                ),
+            )
+        record = self._record()
+        compute = record["compute"]
+        machine = (
+            RemoteMachine.from_document(compute["remote_machine"])
+            if "remote" in offer["where"]
+            else None
+        )
+        images = {
+            load_image_identity(Path(path)).image_id: load_image_identity(Path(path))
+            for path in (compute["gpu_image"], compute.get("extra_gpu_image"))
+            if path
+        }
+        verdicts = []
+        for worker in offer["workers"]:
+            started = time.monotonic()
+            code, stdout = self.checks.test_gpu(worker["command"], machine)
+            cuda = driver_cuda(stdout if type(stdout) is bytes else b"")
+            verdict = {
+                "backend": worker["backend"],
+                "image": worker["image"],
+                "verdict": "works" if code == 0 else "does_not_work",
+                "seconds": round(time.monotonic() - started, 1),
+                **({"driver_cuda": cuda} if cuda else {}),
+            }
+            if code != 0:
+                if code == GPU_TEST_DRIVER_TOO_OLD:
+                    verdict["code"] = "gpu_driver_too_old"
+                    warning = driver_warning(images[worker["image"]], cuda)
+                    verdict["next_step"] = (
+                        warning["next_step"]
+                        if warning is not None
+                        else GPU_DRIVER_ADVICE
+                    )
+                elif code in (NO_WORKER_IMAGE, NO_GPU_DEVICE) or code >= 90:
+                    failed = failure_for(code)
+                    verdict["code"], verdict["next_step"] = (
+                        failed.code,
+                        failed.next_step,
+                    )
+                else:
+                    verdict["code"] = "gpu_test_failed"
+                    verdict["next_step"] = GPU_TEST_FAILED_STEP
+            verdicts.append(verdict)
+        result = {"at": int(time.time()), "where": offer["where"], "verdicts": verdicts}
+        with self.lock:
+            record = self._record()
+            record["gpu_test"] = result
+            self._save(record)
+        return {**self.state(), "gpu_test": result}
 
     def send_worker(self, value) -> dict:
         """Send the pinned GPU worker to the miner's own machine with Docker.

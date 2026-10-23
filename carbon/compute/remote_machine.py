@@ -603,6 +603,62 @@ carbon_cuda="$(nvidia-smi 2>/dev/null | grep -o 'CUDA Version: [0-9.]*' | head -
 """
 
 
+#: "Test my GPU" (OWNER-TEST-MY-GPU-01): each GPU worker framework's test,
+#: run once in its own hardened container on the miner's GPU, on the miner's
+#: say-so only (never from the compute check). Public synthetic data only:
+#: the framework is imported and a small matrix it makes itself is
+#: multiplied on the device. No exam, bank or campaign data exists in it.
+GPU_TEST_PROGRAMS = {
+    "jax": (
+        "import jax, jax.numpy as n; d = jax.devices('gpu'); "
+        "a = n.ones((256, 256)); (a @ a).block_until_ready(); print(len(d))"
+    ),
+    "pytorch": (
+        "import torch; assert torch.cuda.is_available(); "
+        "a = torch.ones(256, 256, device='cuda'); (a @ a).sum().item(); "
+        "print(torch.cuda.device_count())"
+    ),
+}
+#: Its exit codes: the worker could not reach the GPU because the driver is
+#: older than its CUDA runtime, or for another reason.
+GPU_TEST_DRIVER_TOO_OLD, GPU_TEST_FAILED = 88, 89
+#: The longest one framework's test may run on the machine.
+GPU_TEST_SECONDS = 150
+#: The worker's own interpreter (`remote_runner.START_COMMAND`).
+WORKER_PYTHON = "/opt/carbon-worker/bin/python"
+
+
+def gpu_test_script(image_id: str, backend: str, fingerprint: str | None = None) -> str:
+    """One framework's "Test my GPU" run, exactly as the miner consents to it:
+    the pinned worker present (else NO_WORKER_IMAGE), one GPU by UUID (else
+    NO_GPU_DEVICE), then the worker run once - no network, read-only root,
+    no capabilities, no new privileges, a bounded time - on
+    `GPU_TEST_PROGRAMS[backend]`. Exit 0 when it worked; a driver older than
+    the worker's CUDA runtime is GPU_TEST_DRIVER_TOO_OLD, anything else
+    GPU_TEST_FAILED. Prints the newest CUDA the driver runs. Writes nothing."""
+    program = shlex.quote(GPU_TEST_PROGRAMS[backend])
+    return f"""set -u
+command -v docker >/dev/null 2>&1 || exit {NO_DOCKER}
+docker info >/dev/null 2>&1 || exit {NO_DOCKER_ACCESS}
+carbon_cuda="$(nvidia-smi 2>/dev/null | grep -o 'CUDA Version: [0-9.]*' | head -n1)" || carbon_cuda=""
+[ -z "$carbon_cuda" ] || printf 'carbon-driver-cuda %s\\n' "${{carbon_cuda#CUDA Version: }}"
+{_image_lines(image_id, fingerprint)}carbon_gpu="$(nvidia-smi --query-gpu=uuid --format=csv,noheader 2>/dev/null)" || carbon_gpu=""
+carbon_gpu="${{carbon_gpu%%$'\\n'*}}"
+carbon_gpu="${{carbon_gpu//[[:space:]]/}}"
+[[ "$carbon_gpu" =~ ^(GPU|MIG)-[0-9A-Za-z-]{{8,96}}$ ]] || exit {NO_GPU_DEVICE}
+carbon_out="$(timeout {GPU_TEST_SECONDS} docker run --rm --network none --read-only \\
+    --tmpfs /scratch:rw,nosuid,nodev,exec,uid={WORKER_USER},gid={WORKER_USER},mode=0700 \\
+    --env HOME=/scratch --env XDG_CACHE_HOME=/scratch/cache \\
+    --cap-drop ALL --security-opt no-new-privileges \\
+    --gpus "driver=nvidia,device=$carbon_gpu" \\
+    --entrypoint {WORKER_PYTHON} "$carbon_image" -I -c {program} 2>&1)" || {{
+  printf '%s\\n' "$carbon_out" | grep -qiE 'InsufficientDriver|driver version is insufficient' && exit {GPU_TEST_DRIVER_TOO_OLD}
+  exit {GPU_TEST_FAILED}
+}}
+exit 0
+"""
+
+
 def driver_cuda(stdout: bytes) -> str | None:
     """The newest CUDA the remote driver runs, as the check printed it."""
     match = re.search(

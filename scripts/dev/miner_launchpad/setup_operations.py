@@ -149,6 +149,17 @@ SETUP_OPERATIONS = {
             {"consent"},
         ),
         _op(
+            "test_gpu",
+            "compute",
+            REGISTERED,
+            "Test my GPU: run each GPU worker framework (JAX, PyTorch) once on "
+            "your own GPU - this machine or your own remote machine - for about "
+            "a minute each, on public synthetic data only, on consent to exactly "
+            "the commands status lists under test_gpu. A plain verdict per "
+            "framework, with driver advice. Writes no score and no ledger.",
+            {"consent"},
+        ),
+        _op(
             "review",
             "review",
             REGISTERED,
@@ -279,6 +290,10 @@ NEXT_STEPS = {
     "step_not_checked": "take the step named in field first; carbon_setup_status",
     "recheck_needs_confirmation": "send confirm: true",
     "practice_needs_confirmation": "send confirm: true",
+    "gpu_compute_not_checked": (
+        "check Compute with this machine's GPU or your own remote machine "
+        "first; Test my GPU tests the GPU workers that step found"
+    ),
     "nothing_to_check_in_practice_only": (
         "leave signer_socket and operator_config out: practice-only setup "
         "asks no signer and reads no network"
@@ -633,6 +648,19 @@ def status(
         "preferences": state.get("preferences"),
         "next": None,
     }
+    # "Test my GPU" (OWNER-TEST-MY-GPU-01): offered, never run, by status:
+    # exactly what it would run, and the last verdicts.
+    offer = getattr(setup, "gpu_test_offer", None)
+    offered = offer() if callable(offer) else None
+    result["test_gpu"] = (
+        None
+        if offered is None
+        else {
+            "call": call("test_gpu", door),
+            "consent": {"test": offered},
+            "last": state.get("gpu_test"),
+        }
+    )
     # Whether this install's Control Center comes back after a reboot
     # (MINER-SURVIVE-REBOOT-01): setup's own read-only warning, as Review's.
     reboot = getattr(setup, "reboot_warnings", None)

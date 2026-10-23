@@ -82,7 +82,10 @@ launch. Until the miner registers, `practice_choice` (also `next.or`) offers
 the first step's other choice, carbon_setup_practice: practise without
 registering, with no keys or signer, and nothing leaving the machine. Offer
 it; make it only when the miner chooses it. Freeze, submit and commit then
-refuse registration_required until the miner registers (carbon_setup_begin). Carbon rents no compute: a remote machine is the miner's own, reached
+refuse registration_required until the miner registers (carbon_setup_begin). With a GPU compute
+step, status lists `test_gpu`: offer the miner Test my GPU
+(carbon_setup_test_gpu, with `test_gpu.consent` exactly) and run it only when
+they agree; it answers works or does not work per framework. Carbon rents no compute: a remote machine is the miner's own, reached
 over their own SSH. DEVELOPMENT, on Carbon's testnet; nothing here is qualified.
 """
 
