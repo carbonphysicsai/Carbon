@@ -149,12 +149,24 @@ def test_only_motor_1_3_cooling_1_2_and_the_graph_versions_serve_the_catalog():
         # Graph route v2: Motor and Cooling 1.4 offer 1.3's receipted entries.
         (MOTOR, "1.4"),
         (COOLING, "1.4"),
+        # Catalog trainer v2 entries (v2.<group>.<backbone>) are offered on their own graph-route-v2 version.
+        ("f08-ribbed-bracket", "1.5"),
+        ("f02", "2.4"),
     }:
         assert pipeline.entries(challenge_id, version) == []
     for challenge_id in (MOTOR, COOLING):
-        assert pipeline.entries(challenge_id, "1.4") == pipeline.entries(
-            challenge_id, "1.3"
+        on_1_4 = pipeline.entries(challenge_id, "1.4")
+        on_1_3 = pipeline.entries(challenge_id, "1.3")
+        # 1.4 offers every 1.3 entry (inherited) and, besides, its own v2 entries
+        assert [e for e in on_1_4 if not e["catalog_id"].startswith("v2.")] == on_1_3
+        assert all(
+            e["challenges"] == [{"id": challenge_id, "version": "1.4"}]
+            for e in on_1_4
+            if e["catalog_id"].startswith("v2.")
         )
+    for challenge_id, version in (("f08-ribbed-bracket", "1.5"), ("f02", "2.4")):
+        offered = pipeline.entries(challenge_id, version)
+        assert offered and all(e["catalog_id"].startswith("v2.") for e in offered)
 
 
 @pytest.mark.parametrize("key", [(MOTOR, "1.3"), (COOLING, "1.2")])
