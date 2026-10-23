@@ -4529,6 +4529,9 @@ class RunnerAdapter:
         refusal = freeze_refusal(Path(admitted.campaign["root"]), strategy)
         if refusal is not None:
             raise Rejected(refusal, 409)
+        from carbon.development_session.research_campaign import freeze_gate_warning
+
+        warning = freeze_gate_warning(Path(admitted.campaign["root"]), strategy)
         # A level's freeze refusals, Level 4's lowered submission among them,
         # now rather than on the thread (LAUNCHPAD-LEVELS-01 S2, S3). The
         # level refuses before the budget does: an inadmissible strategy is
@@ -4542,10 +4545,19 @@ class RunnerAdapter:
         params = {"strategy": strategy, "reason": reason, "used_feedback": used}
         if directory is not None:
             params["level4_directory"] = directory
-        return self._with_budget(
+        answer = self._with_budget(
             self._background(admitted, "freeze_candidate", params, "FREEZING", request),
             budget,
         )
+        return self._with_gate_warning(answer, warning)
+
+    @staticmethod
+    def _with_gate_warning(value, warning):
+        """An answer with the practice gate warning beside it, when there is
+        one (M1 E2E R11: a warning, never a refusal)."""
+        if warning is None or type(value) is not dict:
+            return value
+        return {**value, "gate_warning": warning}
 
     @staticmethod
     def _with_budget(value, budget):
@@ -4582,8 +4594,19 @@ class RunnerAdapter:
         if not direct:
             self._require_level_served(admitted)
             self._require_commitment(admitted)
-        return self._with_budget(
-            self._background(admitted, "submit", {}, "SUBMITTING", request), budget
+        from carbon.development_session.research_campaign import freeze_gate_warning
+        from scripts.dev.miner_launchpad.commitment import frozen_candidate
+
+        _, frozen, _ = frozen_candidate(Path(admitted.campaign["root"]))
+        warning = freeze_gate_warning(
+            Path(admitted.campaign["root"]), frozen.get("strategy")
+        )
+        return self._with_gate_warning(
+            self._with_budget(
+                self._background(admitted, "submit", {}, "SUBMITTING", request),
+                budget,
+            ),
+            warning,
         )
 
     #: How a level campaign's target intake facts are read before a commit

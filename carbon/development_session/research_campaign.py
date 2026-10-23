@@ -1634,6 +1634,33 @@ def freeze_refusal(root, strategy):
     return None
 
 
+#: What a freeze or submit of a recipe whose practice failed a gate says
+#: beside its answer. A warning, never a refusal: under max miner freedom only
+#: exam protection blocks, and the exam judges every gate itself (M1 E2E R11:
+#: an ineligible F02 practice froze and submitted with no word anywhere).
+GATE_WARNING = {
+    "code": "practice_gate_failed",
+    "plain": (
+        "A practice of this recipe failed a mandatory gate, so its exam grade "
+        "will most likely be invalid. Its practice result names the gate; "
+        "you may still freeze and submit it."
+    ),
+}
+
+
+def freeze_gate_warning(root, strategy):
+    """`GATE_WARNING` when a retained practice of exactly `strategy` in the
+    campaign at `root` reports a failed gate (`practice_failed_gates`), read
+    from the campaign's own records without preparing it; None otherwise."""
+    manifest_path = Path(root) / "campaign-manifest.json"
+    if not manifest_path.exists():
+        return None
+    manifest = json.loads(manifest_path.read_bytes())
+    if practice_failed_gates(CampaignLedger(root), manifest["owner"], strategy):
+        return dict(GATE_WARNING)
+    return None
+
+
 def direct_candidate_record(prepared, strategy, reason, used_feedback):
     """A direct campaign's frozen-candidate record and its source envelope (or
     None), whoever selects it: a miner's freeze or Graphite's SELECT. One
