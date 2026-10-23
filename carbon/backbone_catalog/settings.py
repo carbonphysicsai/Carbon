@@ -123,7 +123,7 @@ COVERAGE_F32 = Schema(
 TORCH_V2 = Schema(
     "carbon-candidate-torch-v2",
     "carbon_candidate/build.py",
-    "sha256:f9a7f7768bd719ea50e38e4be7a738837f2348d88b5829fbd47554ae374d31a3",
+    "sha256:b795a99d45a6018586b8f015477283fbc85c4183e68704958580ec657ca8ffdd",
     frozenset({"learning_rate", "arch"}),
     LEVERS.train_use,
     vocabulary="v2",
@@ -190,6 +190,13 @@ ARCH = {
     "neuralop.FNO": ("modes", "hidden", "layers"),
     "neuralop.TFNO": ("modes", "hidden", "layers", "rank"),
     "transolver": ("layers", "hidden", "heads", "slices"),
+}
+#: Entries whose library constructor the v2 trainer wraps to take architecture settings (its `HOOKED_ARCH`).
+HOOKED_ARCH = {
+    "neuralop.LocalNO": ("modes", "hidden", "layers"),
+    "neuralop.SFNO": ("modes", "hidden", "layers"),
+    "neuralop.UQNO": ("modes", "hidden", "layers"),
+    "physicsnemo.FullyConnected": ("width", "layers"),
 }
 #: Library arguments the THUML library entries take as architecture settings in the v2 trainer (its `LIBRARY_ARCH`).
 LIBRARY_ARCH = (
@@ -324,6 +331,8 @@ def arch_keys(backbone, vocabulary="v1"):
     """The architecture settings a backbone takes under a vocabulary."""
     if backbone in ARCH:
         return tuple(ARCH[backbone])
+    if vocabulary == "v2" and backbone in HOOKED_ARCH:
+        return HOOKED_ARCH[backbone]
     if vocabulary == "v2" and backbone.startswith("thuml."):
         return LIBRARY_ARCH
     return ()

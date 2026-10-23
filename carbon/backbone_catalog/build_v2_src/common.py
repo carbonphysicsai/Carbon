@@ -71,3 +71,50 @@ def rate(value, default):
 def only(mapping, allowed, name):
     if type(mapping) is not dict or set(mapping) - set(allowed):
         raise ValueError(f"unsupported {name}: {sorted(set(mapping) - set(allowed))}")
+
+
+def module_product(model, stats):
+    """The worker product for a trained nn.Module: parameters plus a pure forward."""
+    model = model.cpu().eval()
+    named = list(model.named_parameters())
+    names = tuple(name for name, _ in named)
+    buffers = {name: value.detach().clone() for name, value in model.named_buffers()}
+    parameters = [value.detach().clone() for _, value in named]
+    if not all(bool(torch.isfinite(p).all()) for p in parameters):
+        raise RuntimeError("nonfinite trained state")
+    mx, sx, my, sy = (stats[k] for k in ("mx", "sx", "my", "sy"))
+
+    def apply(params, inputs):
+        if len(params) != len(names):
+            raise ValueError("parameter count differs")
+        z = (torch.as_tensor(inputs) - mx) / sx
+        out = torch.func.functional_call(
+            model, (dict(zip(names, params)), buffers), (z,)
+        )
+        return out * sy + my
+
+    return {"framework": "torch", "apply": apply, "parameters": parameters}
+
+
+def fit(model, z, t, steps, lr):
+    """Plain full-batch Adam on mean squared error."""
+    model = model.to(DEVICE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    model.train()
+    for _ in range(steps):
+        optimizer.zero_grad(set_to_none=True)
+        loss = torch.nn.functional.mse_loss(model(z), t)
+        if not bool(torch.isfinite(loss)):
+            raise RuntimeError("nonfinite TRAIN loss")
+        loss.backward()
+        optimizer.step()
+    return model
+
+
+def mlp(n_in, width, depth, n_out, activation=torch.nn.GELU):
+    layers, size = [], n_in
+    for _ in range(depth):
+        layers += [torch.nn.Linear(size, width), activation()]
+        size = width
+    layers.append(torch.nn.Linear(size, n_out))
+    return torch.nn.Sequential(*layers).double().to(DEVICE)

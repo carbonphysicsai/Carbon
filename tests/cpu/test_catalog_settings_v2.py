@@ -229,3 +229,21 @@ def test_the_keep_list_still_refuses():
         {"distill": {"teacher": {"backbone": "other"}}},
         code="catalog_setting_invalid",
     )
+
+
+def test_hooked_library_entries_take_their_constructors_arguments():
+    for backbone, keys in settings.HOOKED_ARCH.items():
+        assert settings.arch_keys(backbone, "v2") == keys
+    ok(
+        item(settings.TORCH_V2, "neuralop.LocalNO"),
+        configuration={"arch": {"modes": 3, "hidden": 8, "layers": 2}},
+    )
+    ok(
+        item(settings.TORCH_V2, "physicsnemo.FullyConnected"),
+        configuration={"arch": {"width": 16, "layers": 2}},
+    )
+    refused(
+        item(settings.TORCH_V2, "physicsnemo.FullyConnected"),
+        configuration={"arch": {"modes": 3}},
+        code="catalog_setting_unknown",
+    )

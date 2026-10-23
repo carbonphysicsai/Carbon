@@ -38,6 +38,7 @@ train_use (every key optional; `steps` default `DEFAULT_STEPS`, 300 unless the p
 
 from __future__ import annotations
 
+import contextlib
 import math
 
 import numpy as np
@@ -89,6 +90,16 @@ ARCH = {
 }
 #: Library arguments a registry entry of the THUML library (`ENTRIES`) takes as architecture settings: the
 #: registry's `DEFAULTS` names, each a library constructor argument. An entry reads the ones its class uses.
+#: Registry entries built by a library constructor the registry calls with literals (`_neuralop(...)`,
+#: physicsnemo's `FullyConnected`): the trainer reaches the same arguments by wrapping that constructor while the entry is
+#: built, so a registry needs no per-entry edit. The settings are the constructor's own: hidden channels, layers, Fourier
+#: modes (the same count in every dimension), or the MLP's width and depth. UQNO's two inner FNOs both take them.
+HOOKED_ARCH = {
+    "neuralop.LocalNO": ("modes", "hidden", "layers"),
+    "neuralop.SFNO": ("modes", "hidden", "layers"),
+    "neuralop.UQNO": ("modes", "hidden", "layers"),
+    "physicsnemo.FullyConnected": ("width", "layers"),
+}
 LIBRARY_ARCH = (
     "n_hidden",
     "n_layers",
@@ -113,12 +124,63 @@ def arch_keys(name):
     """The architecture settings a backbone takes (what the settings Schema mirrors)."""
     if name in ARCH:
         return tuple(ARCH[name])
+    if name in HOOKED_ARCH:
+        return HOOKED_ARCH[name]
     return LIBRARY_ARCH if _library_entry(name) is not None else ()
+
+
+@contextlib.contextmanager
+def _arch_hook(name, arch):
+    """While a hooked entry is built, the constructor its registry calls takes the miner's architecture settings."""
+    if not arch:
+        yield
+        return
+    if name.startswith("neuralop."):
+        original = _registry._neuralop
+
+        def hooked(model, n_in, **kw):
+            if "base_model" not in kw and "hidden_channels" in kw:  # not UQNO's shell: its inner FNOs
+                if "hidden" in arch:
+                    kw["hidden_channels"] = arch["hidden"]
+                if "layers" in arch:
+                    kw["n_layers"] = arch["layers"]
+                if "modes" in arch and "n_modes" in kw:
+                    kw["n_modes"] = tuple(arch["modes"] for _ in kw["n_modes"])
+            return original(model, n_in, **kw)
+
+        _registry._neuralop = hooked
+        try:
+            yield
+        finally:
+            _registry._neuralop = original
+    else:  # physicsnemo.FullyConnected
+        import physicsnemo.models.mlp as mlp
+
+        original = mlp.FullyConnected
+
+        def hooked(*args, **kw):
+            if "width" in arch:
+                kw["layer_size"] = arch["width"]
+            if "layers" in arch:
+                kw["num_layers"] = arch["layers"]
+            return original(*args, **kw)
+
+        mlp.FullyConnected = hooked
+        try:
+            yield
+        finally:
+            mlp.FullyConnected = original
 
 
 def make_model(configuration, n_in):
     name = configuration["backbone"]
     arch = dict(configuration.get("arch") or {})
+    if name in HOOKED_ARCH:
+        only(arch, set(HOOKED_ARCH[name]), "arch")
+        for key, value in arch.items():
+            positive_int(value, key, 1)
+        with _arch_hook(name, arch):
+            return build_backbone(name, n_in)
     if name not in ARCH:
         entry = _library_entry(name)
         if entry is None:
