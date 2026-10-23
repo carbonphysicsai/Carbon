@@ -102,6 +102,10 @@ OPTIONAL_PROFILE_FIELDS = {
     "disabled_reason",
     "authored_julia_image",
     "gpu_image",
+    # The other backend's GPU worker, beside `gpu_image` (Validator ruling:
+    # one GPU worker per installed backend); its scope is the runtime's
+    # second `gpu_research` scope.
+    "extra_gpu_image",
     "provider_credentials",
     "model_selection",
     # Per Challenge (C-MLP-04): {challenge_id: url}, the validator intake a
@@ -296,6 +300,7 @@ def feedback_modes(challenge=None):
 RESEARCH_IMAGE_RECORDS = {
     "authored_julia_image": ("authored_research", "authored-julia-image.json"),
     "gpu_image": ("gpu_research", "gpu-worker-image.json"),
+    "extra_gpu_image": ("gpu_research", "extra-gpu-worker-image.json"),
 }
 
 # The runtime compositions this runner can actually assemble and dispatch.
@@ -765,24 +770,7 @@ def validated_profile(cfg):
         or runtime["implementation"].get("revision") != cfg["accepted_revision"]
     ):
         raise ValueError("the runtime must name the accepted revision")
-    for field, (composition, _name) in RESEARCH_IMAGE_RECORDS.items():
-        # A declared composition needs its record, or it would fail after the
-        # miner had launched. A Julia record needs no declaration: Julia is
-        # available to every campaign whenever the host has it built. GPU
-        # research still binds its scope to the campaign's own material, so a
-        # GPU record still pairs with its declaration.
-        if composition in runtime and field not in cfg:
-            raise ValueError(
-                f"{field} is required when the runtime declares {composition}"
-            )
-        if field == "gpu_image" and field in cfg and composition not in runtime:
-            raise ValueError(
-                f"{field} is required exactly when the runtime declares {composition}"
-            )
-        if field in cfg and (
-            type(cfg[field]) is not str or not Path(cfg[field]).is_absolute()
-        ):
-            raise ValueError("operator paths must be absolute")
+    image_records_declared(cfg, runtime)
     _remote_machine(cfg, runtime)
     if PRACTICE_AUTO_RETRY in cfg and type(cfg[PRACTICE_AUTO_RETRY]) is not bool:
         raise ValueError("practice_auto_retry is true or false")
@@ -1776,6 +1764,42 @@ def _plan_entry(item):
         "parent": item["parent"][:128] if type(item.get("parent")) is str else None,
         "created_at": _saved_at(item.get("created_at")),
     }
+
+
+def image_records_declared(cfg, runtime):
+    """Each research image record the profile `cfg` names pairs with the
+    composition its runtime declares: a declared composition needs its
+    record, a GPU record its GPU scope, and the other backend's GPU worker
+    (`extra_gpu_image`) exactly a second GPU scope; every record path is
+    absolute. Raises ValueError."""
+    for field, (composition, _name) in RESEARCH_IMAGE_RECORDS.items():
+        # A declared composition needs its record, or it would fail after the
+        # miner had launched. A Julia record needs no declaration: Julia is
+        # available to every campaign whenever the host has it built. GPU
+        # research still binds its scope to the campaign's own material, so a
+        # GPU record still pairs with its declaration.
+        if field == "extra_gpu_image":
+            # Exactly when the runtime declares a second GPU scope (the other
+            # backend's worker); an older single-worker profile has neither.
+            scopes = runtime.get(composition)
+            second = type(scopes) is list and len(scopes) == 2
+            if second != (field in cfg) or (field in cfg and "gpu_image" not in cfg):
+                raise ValueError(
+                    f"{field} is required exactly when the runtime declares a "
+                    f"second {composition} scope"
+                )
+        elif composition in runtime and field not in cfg:
+            raise ValueError(
+                f"{field} is required when the runtime declares {composition}"
+            )
+        if field == "gpu_image" and field in cfg and composition not in runtime:
+            raise ValueError(
+                f"{field} is required exactly when the runtime declares {composition}"
+            )
+        if field in cfg and (
+            type(cfg[field]) is not str or not Path(cfg[field]).is_absolute()
+        ):
+            raise ValueError("operator paths must be absolute")
 
 
 def install_research_images(cfg, root):

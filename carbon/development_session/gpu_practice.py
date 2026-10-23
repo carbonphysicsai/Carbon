@@ -118,14 +118,35 @@ def gpu_runtime(gpu_image):
     return GPU_RUNTIMES.get(gpu_image_backend(gpu_image))
 
 
+def gpu_images(declared):
+    """The host's declared GPU workers as a tuple: one per installed backend
+    (Validator ruling: a profile carries one GPU worker per backend). A
+    single worker - every profile before that ruling - is a one-element
+    tuple; none is empty. Two workers of one backend are refused."""
+    if declared is None:
+        return ()
+    images = tuple(declared) if type(declared) in (tuple, list) else (declared,)
+    runtimes = [gpu_runtime(image) for image in images]
+    if len(images) > 1 and (None in runtimes or len(set(runtimes)) != len(images)):
+        raise ValueError("one registered GPU worker per backend")
+    return images
+
+
+def gpu_runtimes(declared):
+    """The catalog GPU build runtime of each declared GPU worker, in order;
+    a worker with none (not a registered GPU worker) adds nothing."""
+    found = (gpu_runtime(image) for image in gpu_images(declared))
+    return tuple(runtime for runtime in found if runtime is not None)
+
+
 def with_gpu_parent(parents, gpu_image):
-    """`parents` plus the GPU worker as the parent of its GPU build runtime;
-    `parents` unchanged when the host declares no GPU worker."""
-    runtime = gpu_runtime(gpu_image)
-    if runtime is None:
+    """`parents` plus each declared GPU worker (`gpu_images`) as the parent of
+    its GPU build runtime; `parents` unchanged when the host declares none."""
+    images = [image for image in gpu_images(gpu_image) if gpu_runtime(image)]
+    if not images:
         return parents
     served = {name: parents.for_runtime(name) for name in parents.runtimes()}
-    return DirectParents({**served, runtime: gpu_image})
+    return DirectParents({**served, **{gpu_runtime(image): image for image in images}})
 
 
 class DirectParentRefused(ValueError):
@@ -281,9 +302,9 @@ def gpu_overlay(practice, identity, bundle, parent, expanded, kit, limits_docume
 
 def device_build(practice, expand_for, bundle_of, overlay=None):
     """The build one catalog practice runs, chosen by device, the same for
-    every Challenge: the entry's GPU build on the host's declared PyTorch
-    GPU worker when that build is installed as a verified overlay, else its
-    CPU build. Returns (expanded, bundle, image, construction_parent,
+    every Challenge: the entry's GPU build on the host's GPU worker of the
+    entry's backend (one per installed backend) when that build is installed
+    as a verified overlay, else its CPU build. Returns (expanded, bundle, image, construction_parent,
     accelerator, gpu_note); gpu_note says why a GPU host ran the CPU build
     (`catalog_gpu_build_missing`, `catalog_gpu_build_not_offered`,
     `gpu_overlay_not_installed`, `gpu_build_failed`), None otherwise. Never a score input.
@@ -293,8 +314,27 @@ def device_build(practice, expand_for, bundle_of, overlay=None):
     from .library_environment_cache import VerifiedLibraryOverlay
     from .research_carrier import MINER_GPU
 
-    runtime = gpu_runtime(getattr(practice, "gpu_image", None))
+    try:
+        runtimes = gpu_runtimes(getattr(practice, "gpu_image", None))
+    except ValueError:  # no registered GPU worker: CPU, as before
+        runtimes = ()
     note = None
+    # The entry's GPU build for the backend it has one for, among the host's
+    # GPU workers (one per installed backend): a PyTorch entry's twin on the
+    # PyTorch worker, a jno.* entry's on the JAX worker. No build for any
+    # of them: the typed note, and the CPU build.
+    runtime = None
+    for candidate in runtimes:
+        try:
+            expand_for(candidate)
+        except GpuBuildMissing as missing:
+            note = missing.code
+            continue
+        except Exception:  # noqa: BLE001 - attempted below, as one GPU attempt
+            runtime = candidate
+            break
+        runtime, note = candidate, None
+        break
     if runtime is not None:
         try:
             expanded = expand_for(runtime)

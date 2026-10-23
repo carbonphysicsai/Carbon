@@ -107,10 +107,11 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --re
                latest main), build its images again (or use the ones already
                built from that exact source tree), check setup's compute again
                and rewrite your runner profile, then say what changed
-  --gpu        also build the GPU worker of each installed backend (needs an
-               NVIDIA GPU and the NVIDIA Container Toolkit): the JAX GPU
-               worker, and with --pytorch the PyTorch GPU worker too, which
-               this machine's GPU practice then uses
+  --gpu        also build the GPU worker of each installed backend: the JAX
+               GPU worker, and with --pytorch the PyTorch GPU worker too.
+               Practice on this machine's GPU needs an NVIDIA GPU and the
+               NVIDIA Container Toolkit; without them the workers are built
+               for your own remote GPU
   --pytorch    select the CPU Torch worker and its matching analysis image
                for JAX/PyTorch practice; repeat this option on updates.
                With --release, the release must publish torch-analysis
@@ -329,8 +330,14 @@ if [[ "${service_mode}" == 1 ]] && command -v systemctl >/dev/null 2>&1 \
   fi
 fi
 if [[ "${GPU}" == 1 ]]; then
-  command -v nvidia-smi >/dev/null 2>&1 \
-    || fail "--gpu needs the NVIDIA driver (nvidia-smi was not found)."
+  # Building the GPU workers needs Docker only. Without the NVIDIA driver
+  # here they are built and recorded for the miner's own remote GPU, which
+  # setup's remote route sends them to; this machine's GPU practice stays
+  # refused by setup's own driver check (M1 E2E S4: a CPU-only controller
+  # driving a rented GPU).
+  if ! command -v nvidia-smi >/dev/null 2>&1; then
+    echo "No NVIDIA driver here (nvidia-smi was not found): the GPU worker(s) are built for your own remote GPU and will not run on this machine."
+  fi
 fi
 if [[ "${UPDATE}" == 1 && ! -d "${STATE_DIR}" ]]; then
   fail "--update found no install at ${STATE_DIR}; run this without --update first."

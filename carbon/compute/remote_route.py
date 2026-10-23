@@ -91,39 +91,47 @@ def remote_scope(challenge_id: str, image, transport: str) -> dict:
     }
 
 
-def declared_remote(runtime) -> dict | None:
-    """The remote scope a runtime declares, checked for shape; None without
-    one. It needs the GPU practice scope beside it, for the same Challenge
-    and the same pinned worker."""
+def declared_remotes(runtime) -> list[dict] | None:
+    """The remote scopes a runtime declares, one per GPU practice scope
+    beside them (one GPU worker per installed backend), each for the same
+    Challenge and the same pinned worker as its GPU scope, all over one
+    transport; checked for shape. None without remote practice."""
     if type(runtime) is not dict or RUNTIME_KEY not in runtime:
         return None
     scopes, gpu = runtime[RUNTIME_KEY], runtime.get(GPU_KEY)
     if (
         type(scopes) is not list
-        or len(scopes) != 1
-        or type(scopes[0]) is not dict
+        or not scopes
         or type(gpu) is not list
-        or len(gpu) != 1
-        or type(gpu[0]) is not dict
+        or len(gpu) != len(scopes)
+        or any(type(item) is not dict for item in [*scopes, *gpu])
     ):
         raise ValueError("exact remote GPU practice scope required")
-    scope = scopes[0]
-    if scope.get("transport") == ENDPOINT:
-        raise endpoint_refused()
-    if (
-        scope.get("schema") != SCOPE_SCHEMA
-        or scope.get("transport") not in BUILT
-        or set(scope) != SCOPE_FIELDS
-        or scope.get("image_verified_by") != VERIFIED_BY[scope["transport"]]
-        or scope.get("job_transport") != JOB_TRANSPORT
-        or scope.get("purpose") != "speed_only"
-        or scope.get("official_eligible") is not False
-        or scope.get("score") is not None
-        or scope.get("image") != gpu[0].get("image")
-        or scope.get("challenge") != gpu[0].get("challenge")
-    ):
-        raise ValueError("exact remote GPU practice scope required")
-    return dict(scope)
+    for scope, local in zip(scopes, gpu, strict=True):
+        if scope.get("transport") == ENDPOINT:
+            raise endpoint_refused()
+        if (
+            scope.get("schema") != SCOPE_SCHEMA
+            or scope.get("transport") not in BUILT
+            or set(scope) != SCOPE_FIELDS
+            or scope.get("image_verified_by") != VERIFIED_BY[scope["transport"]]
+            or scope.get("job_transport") != JOB_TRANSPORT
+            or scope.get("purpose") != "speed_only"
+            or scope.get("official_eligible") is not False
+            or scope.get("score") is not None
+            or scope.get("image") != local.get("image")
+            or scope.get("challenge") != local.get("challenge")
+            or scope.get("transport") != scopes[0].get("transport")
+        ):
+            raise ValueError("exact remote GPU practice scope required")
+    return [dict(scope) for scope in scopes]
+
+
+def declared_remote(runtime) -> dict | None:
+    """The first remote scope a runtime declares (`declared_remotes`): its
+    transport and Challenge are every scope's; None without one."""
+    scopes = declared_remotes(runtime)
+    return None if scopes is None else scopes[0]
 
 
 def campaign_runner(campaign, *, runtime, machine, gpu_image, ssh=None):
@@ -136,15 +144,20 @@ def campaign_runner(campaign, *, runtime, machine, gpu_image, ssh=None):
     the campaign's verified GPU worker. Nothing is reached here: the runner
     connects on its first trial.
     """
-    scope = declared_remote(runtime)
-    if scope is None:
+    scopes = declared_remotes(runtime)
+    if scopes is None:
         return None
     if getattr(campaign, "remote_worker", None) is None:
         raise ValueError("this Challenge offers no remote GPU practice")
     if gpu_image is None:
         raise ValueError("remote practice runs the campaign's pinned GPU worker")
-    expected = remote_scope(campaign.key.challenge_id, gpu_image, scope["transport"])
-    if scope != expected:
+    images = tuple(gpu_image) if type(gpu_image) in (tuple, list) else (gpu_image,)
+    scope = scopes[0]
+    expected = [
+        remote_scope(campaign.key.challenge_id, image, scope["transport"])
+        for image in images
+    ]
+    if scopes != expected:
         raise ValueError("the declared remote scope differs from this GPU worker")
     if machine is None:
         raise ValueError("remote practice needs remote_machine in your runner profile")
@@ -154,8 +167,15 @@ def campaign_runner(campaign, *, runtime, machine, gpu_image, ssh=None):
             "your runner profile's remote machine uses another transport than "
             "this campaign"
         )
-    worker = campaign.remote_worker(gpu_image)
-    if not isinstance(worker, RemoteWorker) or worker.image != gpu_image:
-        raise ValueError("the Challenge's remote worker is its pinned GPU worker")
     options = {} if ssh is None else {"ssh": ssh}
-    return RemoteRunner(transport=transport_for(machine, **options), worker=worker)
+    runners = []
+    # One runner per GPU worker the host registers (one per backend), over
+    # the miner's one transport.
+    for image in images:
+        worker = campaign.remote_worker(image)
+        if not isinstance(worker, RemoteWorker) or worker.image != image:
+            raise ValueError("the Challenge's remote worker is its pinned GPU worker")
+        runners.append(
+            RemoteRunner(transport=transport_for(machine, **options), worker=worker)
+        )
+    return runners[0] if len(runners) == 1 else tuple(runners)

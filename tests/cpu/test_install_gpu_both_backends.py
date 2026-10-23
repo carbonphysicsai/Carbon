@@ -116,7 +116,10 @@ def record_install(setup, home, paths, *, torch=True):
     )
 
 
-def test_this_machines_gpu_practice_checks_the_pytorch_gpu_worker(tmp_path):
+def test_this_machines_gpu_practice_checks_the_pytorch_gpu_worker_too(tmp_path):
+    """One GPU worker per installed backend: the JAX worker setup offers
+    stays the profile's `gpu_image`, and the PyTorch one is checked beside it
+    (`extra_gpu_image`; test_gpu_per_backend has the scopes)."""
     setup, checks, home, paths = gpu_setup(tmp_path)
     record_install(setup, home, paths)
     offered = installed.found(setup.root.parent, tmp_path)["gpu_image_manifest"]
@@ -130,12 +133,13 @@ def test_this_machines_gpu_practice_checks_the_pytorch_gpu_worker(tmp_path):
         }
     )
     torch_path = str((home / "torch-gpu.json").resolve())
-    assert checks.calls[-1] == ("gpu", torch_path)
+    assert checks.calls[-2:] == [("gpu", offered["path"]), ("gpu", torch_path)]
     compute = setup._record()["compute"]
-    assert compute["gpu_image"] == torch_path
+    assert compute["gpu_image"] == offered["path"]
+    assert compute["extra_gpu_image"] == torch_path
     # Not stale against the installer's record, which built both.
     assert setup._stale(compute) == []
-    # A path the miner names themself is checked as named.
+    # A path the miner names themself is checked as named, alone.
     named = home / "own-gpu.json"
     named.write_text("{}")
     setup.compute(
@@ -147,6 +151,7 @@ def test_this_machines_gpu_practice_checks_the_pytorch_gpu_worker(tmp_path):
         }
     )
     assert checks.calls[-1] == ("gpu", str(named))
+    assert "extra_gpu_image" not in setup._record()["compute"]
 
 
 def test_without_a_pytorch_gpu_worker_the_jax_one_is_checked(tmp_path):
@@ -300,3 +305,17 @@ def test_the_remote_check_accepts_the_registered_pytorch_gpu_worker(
     with pytest.raises(SetupRefused) as refused:
         checks._remote(other, object())
     assert refused.value.code == "gpu_image_unverified"
+
+
+def test_gpu_without_a_driver_builds_the_workers_for_a_remote_gpu(tmp_path):
+    """M1 E2E S4: a CPU-only controller driving a rented GPU. Building the
+    GPU workers needs Docker only: they are built and recorded, said to be
+    for a remote GPU, and this machine's GPU practice stays refused by
+    setup's own driver check."""
+    box = Sandbox(tmp_path)  # no nvidia-smi among its tools
+    result = box.run("--gpu", "--no-start")
+    assert result.returncode == 0, result.stderr
+    assert "No NVIDIA driver here" in result.stdout
+    assert "will not run on this machine" in result.stdout
+    assert "gpu worker" in box.logged()
+    assert "--gpu-image-manifest" in recorded(box)

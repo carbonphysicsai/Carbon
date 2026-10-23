@@ -323,6 +323,7 @@ def test_setup_fills_in_the_images_it_finds_and_names_the_command_otherwise(
         image_manifest=worker,
         analysis_image_manifest=worker,
         gpu_image_manifest=worker,
+        torch_gpu_image_manifest=worker,
     )
     recorded = installed.found(state, repo)
     for field in installed.FIELDS:
