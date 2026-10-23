@@ -415,23 +415,8 @@ VERSIONS = dict(
             _BATTERY_SEALED,
             None,
         ),
-        # Battery 2.2 (the Validator, 2026-10-22): 2.1 plus the catalog binding
-        # and Battery's graph adapter, graded from 2.1's sealed batches.
-        _v(
-            BATTERY,
-            "2.2",
-            BATTERY_TRAIN_V2,
-            "v7",
-            False,
-            "battery-normal-construction-development-5",
-            _BATTERY_DEV,
-            _BATTERY_SEALED,
-            "battery_catalog",
-            catalog=True,
-            graph_adapter="battery",
-            catalog_entries_from=("2.2",),
-            facts="2.2",
-        ),
+        # Battery 2.2 is not served: Battery is out of launch
+        # (OWNER-BATTERY-OUT-OF-LAUNCH-01) and 2.2 was never completed.
     )
 )
 

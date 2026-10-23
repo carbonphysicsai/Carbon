@@ -4,7 +4,12 @@ versions already served (1.0 to 2.1). Its code (`battery.catalog_version`)
 stays, unregistered; registering it again is a new decision."""
 
 from carbon.battery import construction_bundle_material
-from carbon.challenge_kit import battery_pack, physical_material, served_versions
+from carbon.challenge_kit import (
+    battery_pack,
+    physical_material,
+    served_versions,
+    version_registry,
+)
 from carbon.challenge_registry import registry
 from carbon.challenge_registry.campaigns import _direct_campaigns
 from carbon.development_session import construction_tensor_codec
@@ -15,6 +20,7 @@ SERVED = ("1.0", "2.0", "2.1")
 
 def test_no_table_serves_battery_2_2():
     key = (BATTERY, "2.2")
+    assert key not in version_registry.VERSIONS
     assert key not in served_versions.CATALOG
     assert key not in served_versions.V7
     assert key not in physical_material.REGISTERED
