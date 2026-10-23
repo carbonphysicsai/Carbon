@@ -1073,6 +1073,7 @@
       const card = el("div", undefined, "freeze-card best-card");
       const dsc = describeRecipe(best.recipe);
       card.append(el("p", "Best passing run so far", "freeze-kind"), el("p", "Run " + best.index + " · " + (best.backbone || dsc.title) + " · " + directionWords(doc).unit + " " + fmt(best.score) + directionWords(doc).paren, "freeze-title"));
+      if (typeof best.fallback === "string" && best.fallback) card.append(el("p", best.fallback, "hint run-fallback"));
       if (dsc.settings.length) { const chips = el("p", undefined, "freeze-chips"); for (const s of dsc.settings) chips.append(el("span", s, "chip")); card.append(chips); }
       const state = CC.state ? CC.state() : {};
       const miner = doc.campaign?.selects === "miner" && typeof CC.operate === "function" && best.recipe;
@@ -1122,6 +1123,8 @@
       // What the run actually ran on: its recipe's framework (or the
       // Challenge's default) and the worker record's backend and image.
       row.append(el("td", fmt(r.fit.final_loss)), el("td", (CC.budgetLine && CC.budgetLine(r.budget_status)) || "–"), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend === "C03_DOCKER_GPU" ? "GPU · measured on GPU, not official" : r.backend === "REMOTE_GPU" ? (r.ran_on || "GPU (your remote setup)") + " · measured on GPU, not official" : (r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null)), r.image].filter(Boolean).join(" · ") || "–"));
+      // R9-3: a GPU host that ran the CPU build says so, in words, under where it ran.
+      if (typeof r.fallback === "string" && r.fallback) row.lastChild.append(el("br"), el("span", r.fallback, "run-fallback"));
       table.append(row);
       const detail = el("tr", undefined, "run-detail"); detail.hidden = true;
       const cell = el("td"); cell.colSpan = headRow.children.length; runDetail(cell, doc, r, rows.slice().reverse());

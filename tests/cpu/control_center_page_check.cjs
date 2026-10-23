@@ -342,6 +342,30 @@ scenario("the runs screen shows no best tile, best line or best card when no dir
   clean(page);
 });
 
+scenario("a GPU host that ran the CPU build says so on the run row and the best-run card (R9-3)", async () => {
+  const words = "Ran on CPU: this catalog entry has no GPU build yet. The score is the CPU build's.";
+  const state = launchable(world());
+  const run = manualRun();
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const rows = state.view.experiments.rows;
+  for (const row of rows) row.fallback = null;
+  // The best card follows a declared direction (R8-4), so name one and make the first run the best.
+  state.view.declaration = {...(state.view.declaration || {}), direction: "lower_is_better"};
+  rows.forEach((row, i) => { row.score = 1 + i; row.eligible = true; });
+  const best = rows[0];
+  best.fallback = words;
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/experiments");
+  await page.advance(0);
+  const lines = [...all(page, "#campaign-detail .run-fallback")];
+  assert.equal(lines.length, 2, "once on the run row and once on the best card");
+  assert.ok(lines.every(node => node.textContent === words), "in the controller's words");
+  assert.ok([...all(page, "#campaign-detail .best-card .run-fallback")].length === 1, "on the best-run card");
+  assert.ok([...all(page, "#campaign-detail tr")].some(row => row.textContent.includes(words)), "on the run row");
+  clean(page);
+});
+
 scenario("toolbox visibly stays untested without a PASS cell", async () => {
   const state = launchable(world());
   const run = manualRun();
