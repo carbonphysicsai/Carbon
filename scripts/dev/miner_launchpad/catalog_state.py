@@ -75,14 +75,14 @@ def state(cfg) -> dict | None:
     "missing": [catalog ids]}: of the n entries whose runtime this install
     serves, those with no child for the current parent (an install that
     never had the catalog, or one whose parent an update rebuilt)."""
-    from carbon.backbone_catalog import pipeline
+    from carbon.backbone_catalog import listing
 
     root = cache_root(cfg)
     if root is None:
         return None
     served = parents(cfg)
     entries, missing = 0, []
-    for item in pipeline.load()["entries"]:
+    for item in listing.load()["entries"]:
         ref = item.get("bundle_ref") or {}
         digest = ref.get("bundle_digest")
         parent = served.get(ref.get("runtime_profile_id"))
@@ -101,7 +101,7 @@ def progress(cfg) -> dict | None:
     total}]}, over every entry whose runtime this install serves; None
     without a runner profile's cache. A Challenge version can practise a
     catalog backbone as soon as that entry is installed."""
-    from carbon.backbone_catalog import pipeline
+    from carbon.backbone_catalog import listing
 
     root = cache_root(cfg)
     if root is None:
@@ -109,7 +109,7 @@ def progress(cfg) -> dict | None:
     served = parents(cfg)
     total = installed = 0
     by_challenge = {}
-    for item in pipeline.load()["entries"]:
+    for item in listing.load()["entries"]:
         ref = item.get("bundle_ref") or {}
         digest, parent = ref.get("bundle_digest"), served.get(
             ref.get("runtime_profile_id")

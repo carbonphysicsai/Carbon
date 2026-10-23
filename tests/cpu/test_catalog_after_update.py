@@ -26,7 +26,7 @@ import threading
 import pytest
 from test_miner_launchpad_environment_setup import Checks, Onboarding, completed
 
-from carbon.backbone_catalog import pipeline
+from carbon.backbone_catalog import listing, pipeline
 from scripts.dev.miner_launchpad import (
     catalog_build,
     catalog_state,
@@ -162,7 +162,8 @@ def test_the_background_install_runs_once_and_reports_progress(
         "parents",
         lambda _: {"torch-cpu-py311": NEW},
     )
-    monkeypatch.setattr(pipeline, "load", lambda: {"entries": items})
+    # Miner paths read the catalog through `listing` (the import-closure cut).
+    monkeypatch.setattr(listing, "load", lambda: {"entries": items})
     spawned = []
     started = catalog_build.start(
         state, spawn=lambda argv, **kw: spawned.append((argv, kw))
