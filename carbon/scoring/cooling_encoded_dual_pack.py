@@ -89,6 +89,20 @@ def applied_pack(*, bank_rows, definition, limits, objective, train_raw, names):
     )
 
 
+def sealed_adapter(version):
+    """Cooling 1.3's sealed exam adapter (``cooling-dual-sealed-batch-16-v1``): the
+    model's encoded rows are decoded, then Cooling's own sealed measurement runs on the
+    native rows against the unchanged sealed bank. The 1.2 and 1.3 sealed scores are
+    therefore comparable. None for any other version."""
+    if version != VERSION:
+        return None
+    from carbon.scoring import physical_dual_pack as physical
+
+    return physical.Variant(
+        _SELF, VERSION, _cooling.SEALED_EVALUATION_VERSION, _cooling.CASE_ID
+    )
+
+
 def adapter(rule="baseline_legs"):
     """This adapter; 1.3 serves the default leg-minimum rule only."""
     if rule != "baseline_legs":
